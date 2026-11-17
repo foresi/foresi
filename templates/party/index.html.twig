@@ -46,15 +46,9 @@
                     : {label: 'party.kpi.unreliable'|trans, value: counts.unreliablePayers ~ ''}),
             ]" />
 
-            <div class="flex flex-wrap items-end justify-between gap-3">
-                <twig:Ui:Tabs :items="tabs" :label="'party.views'|trans" class="min-w-0 flex-1" />
-                <form method="get" action="{{ path('app_contacts') }}" role="search" class="flex w-full items-center gap-2 sm:w-auto max-sm:[&_button]:h-control-lg max-sm:[&_input]:h-control-lg">
-                    {% if view != 'all' %}<input type="hidden" name="view" value="{{ view }}">{% endif %}
-                    {% if sort != 'name' %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
-                    <twig:Ui:SearchField name="q" :value="text" :label="'party.search.label'|trans" :placeholder="'party.search.placeholder'|trans" maxlength="100" class="min-w-0 flex-1 sm:w-72 sm:flex-none" />
-                    <twig:Ui:Button type="submit" icon="search">{{ 'party.search.submit'|trans }}</twig:Ui:Button>
-                </form>
-            </div>
+            <twig:Ui:Tabs :items="tabs" :label="'party.views'|trans" />
+            <twig:Ui:FilterBar id="contact-filters" :action="path('app_contacts')" :keep="{view: view != 'all' ? view : null, sort: sort != 'name' ? sort : null}"
+                :search="{name: 'q', value: text, label: 'party.search.label'|trans, placeholder: 'party.search.placeholder'|trans}" :empty="rows is empty" />
 
             {% if importedBy %}
                 <twig:Ui:Alert tone="info" data-imported-by>

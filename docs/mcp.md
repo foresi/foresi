@@ -41,6 +41,17 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_delete_webhook_endpoint` | **Write, destructive.** Deletes an endpoint with its deliveries and attempts for good. |
 | `foresi_rotate_webhook_secret` | **Write, destructive.** Makes a new secret and returns it with `previous_secret_expires_at`. The old secret keeps signing for `keep_previous_hours` (0 to 168, default 24). |
 | `foresi_redeliver_webhook` | **Write.** Sends a finished delivery (`endpoint_id`, `delivery_id`) once more, with the same `webhook-id` and a new signature. Queues one attempt and returns `delivery_id` and `attempt_id`. |
+| `foresi_cash_flow_forecast` | The cash-flow forecast of a firm (`firm_id`) in CZK: by weeks until the end of next month, then by months, 12 in all, with the balance, the items of each period, the lowest point and the shortfall. Takes `from`, `months` and `weeks_until`. |
+| `foresi_list_planned_items` | The planned items of a firm (`firm_id`), oldest first. |
+| `foresi_create_planned_item` | **Write.** Plans money in or out that no document carries yet, once on its day or recurring. |
+| `foresi_change_planned_item` | **Write.** Changes the fields given of a planned item (`planned_item_id`); `included: false` leaves it out of the forecast. |
+| `foresi_skip_planned_occurrence` | **Write.** Leaves one occurrence (`on`) of a planned item out. |
+| `foresi_end_planned_item` | **Write.** Ends a recurring planned item on a day (`on`). |
+| `foresi_delete_planned_item` | **Write, destructive.** Deletes a planned item with all its occurrences. |
+| `foresi_record_balance_checkpoint` | **Write.** Records the balance of a firm bank account (`bank_account_id`, from `balance.accounts` of the forecast) at the end of a day. |
+| `foresi_set_expected_date` | **Write.** Sets the day a document is expected to be paid, which replaces its due date in the forecast. |
+| `foresi_clear_expected_date` | **Write.** Removes the expected day of a document. |
+| `foresi_set_minimum_balance` | **Write.** Sets the minimum balance of a firm in CZK, or removes it with `null`. |
 | `foresi_list_modules` | The modules installed in the application, their dependencies and the known problems of the dependency graph. |
 
 The search tools take the filters of the matching REST list, with the same names (`firm_id`, `customer_id`, `state`, `issued_from`, `role`, `direction` and so on), except that the text search is called `query`, not `q`. They page the same way: a result has `items` and a `next_cursor`; when it is not `null`, call again with the same arguments and `next_cursor` as `cursor`. See [the REST API](api.md#endpoints) for what each filter means. Money, dates and ids have the same formats.
@@ -49,6 +60,7 @@ The webhook tools take the fields of the matching [REST routes](api.md#webhooks)
 
 The contact tools take the fields of the [REST contact writes](api.md#contact-writes), with the id of the contact as `contact_id`, and answer the contact as `foresi_get_contact` does. They refuse with the codes of the REST API: `invalid_argument` (it names the argument), `not_found`, `not_linked`, `duplicate` (with `existing_ids` in `structuredContent.error.details`) and `already_linked`. There is no upsert: search first with `foresi_search_contacts`, which also matches e-mails, and on `duplicate` update the contact it names.
 
+The cash-flow tools take the fields and parameters of the [REST cash flow](api.md#cash-flow), with the id of a planned item as `planned_item_id`, and answer what the REST API answers. They refuse with `invalid_argument` (it names the argument and the `reason`), `forbidden`, `not_found` and `not_recurring`. See [cash-flow.md](cash-flow.md) for what the forecast counts.
 The received document tools take the fields of the [REST received documents](api.md#received-documents), with the id of the document as `document_id` (`id` for the read tools), and the writes answer the document as `foresi_get_received_document` does. They refuse with the codes of the REST API, such as `invalid_argument` (it names the argument), `not_found`, `overpaid`, `paid` and `not_recorded`.
 
 Every write tool takes an optional `idempotency_key`, 1 to 255 visible ASCII characters. Send a new one for each change and the same one when you retry it: a retry after the first call finished answers the saved result with `idempotent_replayed: true` in its structured content, and nothing happens twice. The same key with other arguments is refused with `idempotency_key_reused`, and while the first call is still running with `idempotency_key_in_flight`. Keys are kept for 24 hours and never cross tokens or the REST API. The tools stay marked `idempotentHint: false`, as the key is optional.

@@ -58,8 +58,9 @@ test.describe.serial('the accountant pack', () => {
   test('the month filter narrows the list', async ({ page }) => {
     await page.goto('/invoices');
     await expect(page.locator('tbody tr')).toHaveCount(3);
-    await page.locator('#invoice-month').selectOption(lastMonth);
-    await page.locator('form:has(#invoice-month)').getByRole('button', { name: 'Hledat' }).click();
+    // The month is a pinned chip: a menu of links, applied at once.
+    await page.locator('[data-filter-chip="month"]').getByRole('button', { name: 'Měsíc' }).click();
+    await page.locator(`[data-filter-chip="month"] a[href*="month=${lastMonth}"]`).click();
 
     await expect(page).toHaveURL(new RegExp(`month=${lastMonth}`));
     await expect(page.locator('tbody tr')).toHaveCount(2);
@@ -110,8 +111,10 @@ test.describe.serial('the accountant pack', () => {
       await expect(row(page, number).locator('[data-icon-cell="archive"]')).toHaveText('Exportováno');
     }
     await expect(page.locator('tbody [data-icon-cell="archive"]')).toHaveCount(2);
-    await page.locator('#invoice-export').selectOption('exported');
-    await page.locator('form:has(#invoice-export)').getByRole('button', { name: 'Hledat' }).click();
+    // The export state waits in the More filters sheet, sent with Apply.
+    await page.getByRole('button', { name: 'Další filtry' }).click();
+    await page.locator('#invoice-filters-export-field').selectOption('exported');
+    await page.getByRole('button', { name: 'Použít' }).click();
     await expect(page).toHaveURL(/export=exported/);
     await expect(page.locator('tbody tr')).toHaveCount(2);
     await expect(row(page, FIRST)).toBeVisible();

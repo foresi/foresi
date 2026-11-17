@@ -267,6 +267,35 @@ final class DataTableTest extends KernelTestCase
         return (string) $this->renderTwigComponent('Ui:DataTable', $props + ['columns' => self::COLUMNS, 'rows' => $this->rows(), 'caption' => 'Contacts'], null, $blocks);
     }
 
+    public function testListRowsAre56PxDenseRows44AndTheHeader44OnTheTint(): void
+    {
+        $list = new Crawler($this->render());
+        self::assertStringContainsString('h-row-list', (string) $list->filter('tbody td')->first()->attr('class'));
+        $header = (string) $list->filter('thead th')->first()->attr('class');
+        foreach (['h-row', 'bg-head', 'text-caption', 'font-medium', 'text-muted'] as $expected) {
+            self::assertContains($expected, explode(' ', $header));
+        }
+
+        $dense = new Crawler($this->render(['density' => 'dense']));
+        self::assertContains('h-row', explode(' ', (string) $dense->filter('tbody td')->first()->attr('class')));
+        self::assertNotContains('h-row-list', explode(' ', (string) $dense->filter('tbody td')->first()->attr('class')));
+    }
+
+    public function testUnknownDensityThrows(): void
+    {
+        $this->expectExceptionMessageIsOrContains('Unknown density "roomy", expected one of: list, dense.');
+        $this->render(['density' => 'roomy']);
+    }
+
+    public function testTheFooterShowsTheCountAndTheTotalBeforeWhatThePageAdds(): void
+    {
+        $footer = new Crawler($this->render(['count' => '3 contacts', 'total' => 'Total 1 200,50 Kč'], ['footer' => '<nav data-pages>1</nav>']))->filter('[data-table-footer]');
+
+        self::assertSame('3 contacts', $footer->filter('[data-table-count]')->text());
+        self::assertSame('Total 1 200,50 Kč', $footer->filter('[data-table-total]')->text());
+        self::assertCount(1, $footer->filter('[data-pages]'));
+    }
+
     public function testSemanticTableWithCaptionAndScopedHeaders(): void
     {
         $html = $this->render();

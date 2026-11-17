@@ -26,16 +26,10 @@
         </twig:Ui:EmptyState>
     {% else %}
         <div class="grid grid-cols-1 gap-4">
-            <div class="flex flex-wrap items-end justify-between gap-3">
-                <twig:Ui:Tabs :items="tabs" :label="'recurring.list.views'|trans" class="min-w-0 flex-1" />
-                {% if firms is not empty %}
-                    <form method="get" action="{{ path('app_recurring') }}" class="flex w-full flex-wrap items-end gap-2 sm:w-auto max-sm:[&_button]:h-control-lg max-sm:[&_select]:h-control-lg">
-                        {% if tab != 'active' %}<input type="hidden" name="tab" value="{{ tab }}">{% endif %}
-                        <div class="min-w-0 flex-1 sm:w-52 sm:flex-none"><twig:Ui:Select name="firm" id="recurring-firm" :label="'invoice.field.firm'|trans" :options="firms" :value="firm" /></div>
-                        <twig:Ui:Button type="submit" icon="list-filter">{{ 'recurring.list.filter'|trans }}</twig:Ui:Button>
-                    </form>
-                {% endif %}
-            </div>
+            <twig:Ui:Tabs :items="tabs" :label="'recurring.list.views'|trans" />
+            {% if firms is not empty %}
+                <twig:Ui:FilterBar id="recurring-filters" :action="path('app_recurring')" :keep="{tab: tab != 'active' ? tab : null}" :filters="[{name: 'firm', label: 'invoice.field.firm'|trans, options: firms, value: firm, pinned: true}]" />
+            {% endif %}
 
             <twig:Ui:DataTable :caption="'recurring.list.title'|trans" :columns="columns" :rows="rows">
                 <twig:block name="empty">

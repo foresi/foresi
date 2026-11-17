@@ -22,12 +22,8 @@
     <div class="grid grid-cols-1 gap-4">
         <div class="flex flex-wrap items-end justify-between gap-3">
             <twig:Ui:Tabs :items="tabs" :label="'work.notifications.views'|trans" class="min-w-0 flex-1" />
-            <form method="get" action="{{ path('app_notifications') }}" role="search" class="flex w-full flex-wrap items-end gap-2 sm:w-auto max-sm:[&_button]:h-control-lg max-sm:[&_a]:h-control-lg" data-notifications-filter>
-                {% if done %}<input type="hidden" name="tab" value="done">{% endif %}
-                <div class="w-full min-w-0 sm:w-44"><twig:Ui:Select name="filter" id="filter-kind" :label="'work.notifications.filter.label'|trans" :options="filters" :value="filter" /></div>
-                <twig:Ui:Button type="submit" icon="list-filter">{{ 'work.filter.apply'|trans }}</twig:Ui:Button>
-                {% if filter != 'all' %}<twig:Ui:Button variant="ghost" :href="path('app_notifications', done ? {tab: 'done'} : {})">{{ 'work.filter.reset'|trans }}</twig:Ui:Button>{% endif %}
-            </form>
+            <twig:Ui:FilterBar id="notification-filters" :action="path('app_notifications')" :keep="{tab: done ? 'done' : null}" :empty="rows is empty" class="w-full sm:w-auto" data-notifications-filter
+                :filters="[{name: 'filter', label: 'work.notifications.filter.label'|trans, options: filters, value: filter, default: 'all', pinned: true}]" />
         </div>
 
         {% if done %}<p class="m-0 text-small text-muted" data-notifications-kept>{{ 'work.notifications.kept'|trans }}</p>{% endif %}

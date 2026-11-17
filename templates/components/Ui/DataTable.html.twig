@@ -5,6 +5,8 @@
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
 {# Columns of long text share the room the others leave and cut their text short; numbers, badges and actions keep their width. #}
 {% set share = this.shareClass %}
+{# A list row is 56 px, a dense one 44 px; the header is 44 px on the tint either way (level.io's tables). #}
+{% set rowHeight = this.rowHeight %}
 {% macro alert(alert, focus) %}{{ ux_icon('lucide:triangle-alert', {class: 'mt-0.5 size-3.5 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ alert.text }}{% if alert.href %} <a href="{{ alert.href }}" data-turbo="false" class="font-medium text-badge-red-text underline {{ focus }}">{{ alert.action }}</a>{% endif %}</span>{% endmacro %}
 {% macro confirm(confirm) %}{% if confirm %} data-turbo-confirm="{{ confirm.title }}"{% if confirm.text %} data-confirm-text="{{ confirm.text }}"{% endif %}{% if confirm.accept %} data-confirm-accept="{{ confirm.accept }}"{% endif %}{% if confirm.cancel %} data-confirm-cancel="{{ confirm.cancel }}"{% endif %}{% if confirm.tone %} data-confirm-tone="{{ confirm.tone }}"{% endif %}{% endif %}{% endmacro %}
 <div {{ attributes.defaults({class: 'relative' ~ (selectable ? ' pb-24' : '')}) }}{% if selectable %} data-controller="table-selection" data-action="keydown->table-selection#keydown click->table-selection#rowClick"{% endif %}>
@@ -18,14 +20,14 @@
                     <thead>
                         <tr>
                             {% if selectable %}
-                                <th scope="col" class="h-row w-12 border-b border-divider bg-white px-4 text-left">
+                                <th scope="col" class="h-row w-12 border-b border-divider bg-head px-4 text-left">
                                     <label class="inline-grid size-6 place-items-center">
                                         <input type="checkbox" aria-label="{{ 'ui.table.select_all'|trans }}" data-table-selection-target="all" data-action="change->table-selection#toggleAll" class="size-4 accent-green {{ focus }}">
                                     </label>
                                 </th>
                             {% endif %}
                             {% for column in this.columnViews %}
-                                <th scope="col"{% if column.sortable %} aria-sort="{{ this.ariaSort(column.sort) }}"{% endif %} class="h-row whitespace-nowrap border-b border-divider bg-white px-4 text-caption font-medium text-muted {{ this.alignClass(column.align) }}{{ column.phone ? '' : ' max-sm:hidden' }}{{ column.wide ? ' max-xl:hidden' : '' }}{{ column.truncate ? ' sm:max-w-0 ' ~ share : '' }}">
+                                <th scope="col"{% if column.sortable %} aria-sort="{{ this.ariaSort(column.sort) }}"{% endif %} class="h-row whitespace-nowrap border-b border-divider bg-head px-4 text-caption font-medium text-muted {{ this.alignClass(column.align) }}{{ column.phone ? '' : ' max-sm:hidden' }}{{ column.wide ? ' max-xl:hidden' : '' }}{{ column.truncate ? ' sm:max-w-0 ' ~ share : '' }}">
                                     {%- if column.sortable -%}
                                         <a href="{{ column.href }}" class="inline-flex min-h-6 items-center gap-1 text-muted no-underline hover:text-ink {{ focus }}">
                                             {{- column.label -}}
@@ -37,7 +39,7 @@
                                 </th>
                             {% endfor %}
                             {% if this.hasActions %}
-                                <th scope="col" class="h-row border-b border-divider bg-white px-2"><span class="sr-only">{{ 'ui.table.actions'|trans }}</span></th>
+                                <th scope="col" class="h-row border-b border-divider bg-head px-2"><span class="sr-only">{{ 'ui.table.actions'|trans }}</span></th>
                             {% endif %}
                         </tr>
                     </thead>
@@ -45,14 +47,14 @@
                         {% for row in this.rowViews %}
                             <tr data-table-selection-target="row" data-id="{{ row.id }}"{% if row.selected %} data-selected="true"{% endif %} class="group scroll-mb-24{{ selectable and row.href ? ' cursor-pointer' : '' }}{{ row.child ? ' text-small' : '' }}"{% if row.child %} data-row-child{% endif %}>
                                 {% if selectable %}
-                                    <td class="h-row w-12 border-b border-divider px-4 group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint group-data-[selected=true]:inset-shadow-selected">
+                                    <td class="{{ rowHeight }} w-12 border-b border-divider px-4 group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint group-data-[selected=true]:inset-shadow-selected">
                                         <label class="inline-grid size-6 place-items-center">
                                             <input type="checkbox"{% if selectionName %} name="{{ selectionName }}"{% endif %} value="{{ row.id }}" aria-label="{{ 'ui.table.select_row'|trans({label: row.label}) }}"{% if row.selected %} checked{% endif %} data-table-selection-target="check" data-action="click->table-selection#rowCheck change->table-selection#sync" class="size-4 accent-green {{ focus }}">
                                         </label>
                                     </td>
                                 {% endif %}
                                 {% for cell in row.cells %}
-                                    <td class="h-row whitespace-nowrap border-b border-divider px-4 text-text group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ cell.wide ? ' max-xl:hidden' : '' }}{{ cell.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ (row.secondary or row.alert) and loop.first ? ' max-sm:w-full max-sm:max-w-0 max-sm:py-2' : '' }}{{ row.alert and cell.key == row.alert.column ? ' py-2' : '' }}{{ row.child and loop.first ? ' pl-10' : '' }}">
+                                    <td class="{{ rowHeight }} whitespace-nowrap border-b border-divider px-4 text-text group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ cell.wide ? ' max-xl:hidden' : '' }}{{ cell.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ (row.secondary or row.alert) and loop.first ? ' max-sm:w-full max-sm:max-w-0 max-sm:py-2' : '' }}{{ row.alert and cell.key == row.alert.column ? ' py-2' : '' }}{{ row.child and loop.first ? ' pl-10' : '' }}">
                                         {%- set unreadMark = loop.first and row.unread is not null -%}
                                         {%- if unreadMark %}<span class="flex min-w-0 items-center gap-2 [&>*]:min-w-0 {{ row.unread ? '[&_a]:font-semibold' : '[&_a]:font-normal' }}" data-unread="{{ row.unread ? 'true' : 'false' }}"><span class="size-2 shrink-0 rounded-sm{{ row.unread ? ' bg-green' : '' }}" aria-hidden="true"></span>{% if row.unread %}<span class="sr-only">{{ 'ui.table.unread'|trans }}: </span>{% endif %}{% endif -%}
                                         {%- if cell.links -%}
@@ -104,7 +106,7 @@
                                     </td>
                                 {% endfor %}
                                 {% if this.hasActions %}
-                                    <td class="h-row whitespace-nowrap border-b border-divider px-2 text-right group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint" data-row-actions>
+                                    <td class="{{ rowHeight }} whitespace-nowrap border-b border-divider px-2 text-right group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint" data-row-actions>
                                         <div class="flex items-center justify-end gap-0.5">
                                             {% set menuId = 'row-menu-' ~ row.id %}
                                             {# Macros of this template are out of reach inside the menu's content block. #}
@@ -143,8 +145,17 @@
                     {% endif %}
                 </table>
             </div>
-            {% if footerSlot %}
-                <div data-table-footer class="flex items-center justify-between gap-2.5 border-t border-divider px-4 py-2.5 text-small text-muted">{{ footerSlot|raw }}</div>
+            {% if footerSlot or count or total %}
+                {# The footer: the count and the total of the list, then what the page adds (its pagination). #}
+                <div data-table-footer class="flex flex-wrap items-center justify-between gap-2.5 border-t border-divider px-4 py-2.5 text-small text-muted">
+                    {%- if count or total -%}
+                        <span class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                            {%- if count %}<span class="num" data-table-count>{{ count }}</span>{% endif -%}
+                            {%- if total %}<span class="num font-semibold text-ink" data-table-total>{{ total }}</span>{% endif -%}
+                        </span>
+                    {%- endif -%}
+                    {{ footerSlot|raw }}
+                </div>
             {% endif %}
         </div>
     {% endif %}

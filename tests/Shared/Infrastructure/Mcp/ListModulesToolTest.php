@@ -37,10 +37,10 @@ final class ListModulesToolTest extends TestCase
         $json = json_decode(json_encode($output->data, \JSON_THROW_ON_ERROR), true, flags: \JSON_THROW_ON_ERROR);
         self::assertIsArray($json);
         self::assertIsArray($json['modules']);
-        self::assertCount(18, $json['modules']);
+        self::assertCount(19, $json['modules']);
         self::assertSame($this->modules()->acceptedProblems(), $json['problems']);
         self::assertSame(ModulesView::toArray($this->modules()->graph()), $output->data);
-        self::assertSame('18 installed modules, 4 problems in their dependencies.', $output->summary);
+        self::assertSame('19 installed modules, 4 problems in their dependencies.', $output->summary);
     }
 
     private function tool(): ListModulesTool

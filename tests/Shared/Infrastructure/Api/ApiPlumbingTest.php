@@ -97,6 +97,9 @@ final class ApiPlumbingTest extends ApiTestCase
         self::assertIsArray($paths);
         // Each path with its operations and the status each answers when it succeeds.
         $operations = [
+            '/api/v1/cash-flow/forecast' => ['get' => '200'],
+            '/api/v1/cash-flow/planned-items' => ['get' => '200', 'post' => '201'],
+            '/api/v1/cash-flow/planned-items/{plannedItemId}' => ['get' => '200', 'delete' => '200', 'patch' => '200'],
             '/api/v1/events' => ['get' => '200'],
             '/api/v1/me' => ['get' => '200'],
             '/api/v1/invoices' => ['get' => '200'],
@@ -116,6 +119,12 @@ final class ApiPlumbingTest extends ApiTestCase
             '/api/v1/webhook-endpoints/{id}/secret/rotate' => ['post' => '200'],
             '/api/v1/webhook-endpoints/{id}/secret' => ['get' => '200'],
             '/api/v1/webhook-endpoints/{id}/ping' => ['post' => '202'],
+            '/api/v1/cash-flow/checkpoints' => ['post' => '201'],
+            '/api/v1/cash-flow/expected-dates/{subjectType}/{subjectId}' => ['delete' => '200'],
+            '/api/v1/cash-flow/expected-dates' => ['post' => '200'],
+            '/api/v1/cash-flow/firms/{firmId}/minimum-balance' => ['post' => '200'],
+            '/api/v1/cash-flow/planned-items/{plannedItemId}/end' => ['post' => '200'],
+            '/api/v1/cash-flow/planned-items/{plannedItemId}/skip' => ['post' => '200'],
             '/api/v1/contacts/{contactId}/archive' => ['post' => '200'],
             '/api/v1/contacts/{contactId}/contact-persons' => ['post' => '200'],
             '/api/v1/contacts/{contactId}/restore' => ['post' => '200'],

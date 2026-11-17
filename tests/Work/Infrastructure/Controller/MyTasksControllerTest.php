@@ -112,8 +112,8 @@ final class MyTasksControllerTest extends WebTestCase
         $this->seed();
 
         $crawler = $this->client->request('GET', '/my-tasks');
-        self::assertSame(['All clients', 'Example Client'], $crawler->filter('#filter-client option')->each(static fn (Crawler $option): string => trim($option->text())));
-        $crawler = $this->client->submit($crawler->filter('[data-my-tasks-filter]')->form(['client' => $this->clientId()]));
+        self::assertSame(['All clients', 'Example Client'], $crawler->filter('[data-filter-sheet-form] select[name=client] option')->each(static fn (Crawler $option): string => trim($option->text())));
+        $crawler = $this->client->submit($crawler->filter('[data-my-tasks-filter] [data-filter-sheet-form]')->form(['client' => $this->clientId()]));
 
         self::assertSame(['Fix the form', 'Call the client', 'Write the copy', 'Plan the launch'], $crawler->filter('[data-task-group] tbody tr td:first-child [data-row-link]')->each(static fn (Crawler $cell): string => trim($cell->text())));
         self::assertSame('/my-tasks?tab=watching&client='.$this->clientId(), $crawler->filter('nav a')->reduce(static fn (Crawler $a): bool => 'Watching' === trim($a->text()))->attr('href'));
@@ -131,7 +131,7 @@ final class MyTasksControllerTest extends WebTestCase
 
         self::assertSame(['No date (1)'], $crawler->filter('[data-task-group] h2')->each(static fn (Crawler $title): string => trim($title->text())));
         self::assertSame(['Review the budget'], $this->titles($crawler, 'no_date'));
-        self::assertSame('watching', $crawler->filter('[data-my-tasks-filter] input[name="tab"]')->attr('value'));
+        self::assertSame('watching', $crawler->filter('[data-my-tasks-filter] [data-filter-sheet-form] input[name="tab"]')->attr('value'));
     }
 
     private function signIn(Role $role = Role::Owner): void

@@ -159,7 +159,7 @@ final class InvoiceListControllerTest extends WebTestCase
 
         self::assertSame([$other->number()], $this->numbers($crawler));
         self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 1', 'To refund 0', 'Trash 0'], $this->tabs($crawler));
-        self::assertSame($second->id(), $crawler->filter('select[name="firm"] option[selected]')->attr('value'));
+        self::assertSame($second->id(), $crawler->filter('[data-filter-sheet-form] select[name="firm"] option[selected]')->attr('value'));
         // The tabs and the sort keep the firm.
         self::assertStringContainsString('firm='.$second->id(), (string) $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(1)->attr('href'));
     }
@@ -260,7 +260,9 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices', ['q' => 'nothing']);
 
         self::assertSelectorTextContains('main', 'No invoice matches');
-        self::assertCount(1, $crawler->filter('main a[href="/invoices"]'));
+        // The empty state's reset, besides the filter bar's own ways back.
+        self::assertCount(1, $crawler->filter('main a[data-filter-clear-all][href="/invoices"]'));
+        self::assertSame(1, $crawler->filter('main a[href="/invoices"]')->count() - $crawler->filter('[data-filter-bar] a[href="/invoices"]')->count());
     }
 
     public function testTheTabsShowWhatASearchFinds(): void
@@ -318,14 +320,14 @@ final class InvoiceListControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/invoices');
         self::assertNotContains('Firm', $this->headers($crawler));
-        self::assertCount(0, $crawler->filter('select[name="firm"]'));
+        self::assertCount(0, $crawler->filter('[data-filter-sheet-form] select[name="firm"]'));
 
         $this->issue('2026-11-02', '2026-12-01', firm: $second);
 
         $crawler = $this->client->request('GET', '/invoices');
         self::assertContains('Firm', $this->headers($crawler));
         self::assertStringContainsString('Example Second s.r.o.', $crawler->filter('tbody tr')->first()->text());
-        self::assertCount(1, $crawler->filter('select[name="firm"]'));
+        self::assertCount(1, $crawler->filter('[data-filter-sheet-form] select[name="firm"]'));
     }
 
     public function testAFirmStaysInTheColumnOnceItsOnlyInvoiceIsInTheTrash(): void
@@ -906,9 +908,9 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame([$exported->number()], $this->numbers($crawler));
         self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 0', 'To refund 0', 'Trash 0'], $this->tabs($crawler));
         self::assertSame('/invoices?tab=unpaid&export=exported', $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(2)->attr('href'));
-        self::assertSame('exported', $crawler->filter('select[name="export"] option[selected]')->attr('value'));
-        self::assertSame(['', 'not_exported', 'exported', 'changed'], $crawler->filter('select[name="export"] option')->each(static fn (Crawler $option): string => $option->attr('value') ?? ''));
-        self::assertSame(['All', 'Not exported', 'Exported', 'Changed after export'], $crawler->filter('select[name="export"] option')->each(static fn (Crawler $option): string => $option->text()));
+        self::assertSame('exported', $crawler->filter('[data-filter-sheet-form] select[name="export"] option[selected]')->attr('value'));
+        self::assertSame(['', 'not_exported', 'exported', 'changed'], $crawler->filter('[data-filter-sheet-form] select[name="export"] option')->each(static fn (Crawler $option): string => $option->attr('value') ?? ''));
+        self::assertSame(['All', 'Not exported', 'Exported', 'Changed after export'], $crawler->filter('[data-filter-sheet-form] select[name="export"] option')->each(static fn (Crawler $option): string => $option->text()));
 
         self::assertSame([$changed->number()], $this->numbers($this->client->request('GET', '/invoices?export=changed')));
         self::assertSame([$none->number()], $this->numbers($this->client->request('GET', '/invoices?export=not_exported')));
@@ -925,7 +927,9 @@ final class InvoiceListControllerTest extends WebTestCase
 
         self::assertSame([], $this->numbers($crawler));
         self::assertSelectorTextContains('main', 'No invoice matches');
-        self::assertCount(1, $crawler->filter('main a[href="/invoices"]'));
+        // The empty state's reset, besides the filter bar's own ways back.
+        self::assertCount(1, $crawler->filter('main a[data-filter-clear-all][href="/invoices"]'));
+        self::assertSame(1, $crawler->filter('main a[href="/invoices"]')->count() - $crawler->filter('[data-filter-bar] a[href="/invoices"]')->count());
     }
 
     public function testClearingTheExportStateIsOfferedOnceExportedAndTheNextExportTakesItAgain(): void
@@ -1256,9 +1260,9 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 1', 'To refund 0', 'Trash 0'], $this->tabs($crawler));
         self::assertSame('/invoices?tab=unpaid&sort=number&month=2026-10', $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(2)->attr('href'));
         // A list of the months with a document, not a native month field that overflows and Safari lacks.
-        self::assertSame(['select', 'Month'], [$crawler->filter('#invoice-month')->nodeName(), $crawler->filter('label[for="invoice-month"]')->text()]);
+        self::assertSame(['select', 'Month'], [$crawler->filter('#invoice-filters-month-field')->nodeName(), $crawler->filter('label[for="invoice-filters-month-field"]')->text()]);
         self::assertSame(['' => 'All months', '2026-11' => 'November 2026', '2026-10' => 'October 2026'], $this->monthOptions($crawler));
-        self::assertSame('2026-10', $crawler->filter('#invoice-month option[selected]')->attr('value'));
+        self::assertSame('2026-10', $crawler->filter('#invoice-filters-month-field option[selected]')->attr('value'));
         self::assertStringContainsString('month=2026-10', $crawler->filter('thead a')->first()->attr('href') ?? '');
         $return = $crawler->filter('tr[data-id="'.$october->id().'"] form input[name="return"]')->first()->attr('value');
         self::assertSame('sort=number&month=2026-10', $return);
@@ -1272,10 +1276,10 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[data-list-sums]'));
         // A month without a document stays chosen, so the filter it shows is the one applied.
         self::assertSame(['' => 'All months', '2026-11' => 'November 2026', '2026-10' => 'October 2026', '2026-09' => 'September 2026'], $this->monthOptions($crawler));
-        self::assertSame('2026-09', $crawler->filter('#invoice-month option[selected]')->attr('value'));
+        self::assertSame('2026-09', $crawler->filter('#invoice-filters-month-field option[selected]')->attr('value'));
 
         $crawler = $this->client->request('GET', '/invoices');
-        self::assertSame('', $crawler->filter('#invoice-month option[selected]')->attr('value'));
+        self::assertSame('', $crawler->filter('#invoice-filters-month-field option[selected]')->attr('value'));
     }
 
     public function testTheMonthsOfferedAreThoseOfTheListKindAndFirm(): void
@@ -1292,7 +1296,8 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame(['' => 'All months', '2026-11' => 'November 2026', '2026-09' => 'September 2026'], $this->monthOptions($this->client->request('GET', '/invoices')));
         self::assertSame(['' => 'All months', '2026-08' => 'August 2026'], $this->monthOptions($this->client->request('GET', '/advances')));
         self::assertSame(['' => 'All months', '2026-09' => 'September 2026'], $this->monthOptions($this->client->request('GET', '/invoices?firm='.$this->firm->id())));
-        self::assertSame(['' => 'All months'], $this->monthOptions($this->client->request('GET', '/corrections')));
+        // An empty list that nothing narrows has no filter bar.
+        self::assertSame([], $this->monthOptions($this->client->request('GET', '/corrections')));
     }
 
     /**
@@ -1301,7 +1306,7 @@ final class InvoiceListControllerTest extends WebTestCase
     private function monthOptions(Crawler $crawler): array
     {
         $options = [];
-        foreach ($crawler->filter('#invoice-month option') as $option) {
+        foreach ($crawler->filter('#invoice-filters-month-field option') as $option) {
             self::assertInstanceOf(\DOMElement::class, $option);
             $options[$option->getAttribute('value')] = trim($option->textContent);
         }

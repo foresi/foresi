@@ -90,8 +90,9 @@ test.describe.serial('the invoice list', () => {
     await expect(page.locator('tbody tr')).toHaveCount(2);
     await expectNoSeriousViolations(page);
 
+    // The search applies on Enter; there is no search button.
     await page.getByRole('search').getByRole('searchbox').fill('ÚČETNÍ');
-    await page.getByRole('search').getByRole('button').click();
+    await page.getByRole('search').getByRole('searchbox').press('Enter');
     await expect(page.locator('tbody tr')).toHaveCount(1);
 
     await page.goto('/invoices');

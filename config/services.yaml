@@ -120,6 +120,11 @@ services:
         arguments:
             $countries: !tagged_iterator app.invoicing_country
 
+    App\CashFlow\Application\Forecasts:
+        arguments:
+            $sources: !tagged_iterator app.cash_flow_source
+            $balanceSources: !tagged_iterator app.cash_flow_balance_source
+
     App\Banking\Application\BankMessageParsers:
         arguments:
             $parsers: !tagged_iterator app.bank_message_parser

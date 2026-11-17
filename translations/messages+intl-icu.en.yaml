@@ -25,7 +25,6 @@ dashboard:
   invoicing:
     title: Invoicing
     note: Amounts in CZK, months by the tax point.
-    show: Show
     invoiced: 'Invoiced – {month}'
     base: 'Base {amount}'
     unpaid: Unpaid
@@ -104,6 +103,15 @@ ui:
     keep_editing: Keep editing
     discard: Discard
     failed: Something went wrong. Please try again.
+  filter_bar:
+    title: Filters
+    description: Choose what narrows the list.
+    search: Search
+    more: More filters
+    filters: Filters
+    apply: Apply
+    clear_all: Clear all
+    clear_one: 'Clear the filter {label}'
   sheet:
     resize: Resize the panel
   confirm:
@@ -205,6 +213,8 @@ catalogue:
   mobile_preview: 390 px preview
   interaction_note: Hover and focus are shown by interacting with the live component; the focus ring is always visible on the keyboard.
   state:
+    filtered: Filtered
+    dense: Dense rows and footer
     live: Live
     default: Default
     variants: Variants
@@ -292,7 +302,6 @@ party:
   search:
     label: Search contacts
     placeholder: Name, registration number, VAT ID or e-mail
-    submit: Search
   pagination:
     summary: '{total, plural, one {# contact} other {# contacts}}'
   bulk:
@@ -841,8 +850,6 @@ bank:
       search_label: Search movements
       search_placeholder: Partner, VS or amount
       paired_with: 'Paired with {numbers}'
-      search: Search
-      show: Show
       summary: '{total, plural, one {# movement} other {# movements}}'
     empty:
       no_accounts_title: No bank account yet
@@ -1172,7 +1179,6 @@ invoice:
   sends:
     title: Sent e-mails
     views: Send states
-    filter: Filter
     tab:
       all: All
       sent: Sent
@@ -1407,7 +1413,6 @@ invoice:
     title_correction_document: Corrective documents
     views: Invoice lists
     all_firms: All firms
-    search: Search
     search_label: Search invoices
     search_placeholder: Number, customer or description
     summary: '{kind, select, advance {{total, plural, one {# advance invoice} other {# advance invoices}}} payment_tax_document {{total, plural, one {# tax document} other {# tax documents}}} correction_document {{total, plural, one {# corrective document} other {# corrective documents}}} other {{total, plural, one {# invoice} other {# invoices}}}}'
@@ -2041,7 +2046,6 @@ recurring:
   list:
     title: Recurring invoices
     views: Recurring invoice lists
-    filter: Show
     failed: 'Failed: {reason}'
     fix:
       mail: Set up the mail server
@@ -3097,6 +3101,7 @@ api_tokens:
     payments: Payments
     webhooks: Webhooks
     events: Events
+    cashflow: Cash flow
   state:
     expired: Expired
     revoked: Revoked
@@ -3771,8 +3776,6 @@ work:
     due_today: Today
     due_next_7_days: Next 7 days
     due_none: No date
-    apply: Filter
-    reset: Reset filters
   list:
     no_section: No section
     empty: No tasks yet.
@@ -3830,7 +3833,6 @@ purchasing:
     month: "Month"
     search_label: "Search received documents"
     search_placeholder: "Supplier or document number"
-    search: "Search"
     summary: "{total, plural, one {# document} other {# documents}}"
     draft_label: "Draft of {date}"
     column:

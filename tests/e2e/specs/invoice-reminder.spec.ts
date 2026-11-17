@@ -141,8 +141,16 @@ test.describe.serial('reminders of overdue invoices', () => {
     for (const [name, size] of SIZES) {
       await page.setViewportSize(size);
       await page.goto('/invoices/sent');
-      await page.locator('#send-purpose').selectOption('reminder');
-      await page.getByRole('button', { name: 'Filtrovat' }).click();
+      if (name === 'desktop') {
+        // The purpose is a pinned chip: a menu of links, applied at once.
+        await page.locator('[data-filter-chip="purpose"]').getByRole('button', { name: 'Druh' }).click();
+        await page.getByRole('menuitemradio', { name: 'Upomínka', exact: true }).click();
+      } else {
+        // On a phone the filters are in the sheet, sent with Apply.
+        await page.getByRole('button', { name: 'Filtry' }).click();
+        await page.locator('#send-filters-purpose-field').selectOption('reminder');
+        await page.getByRole('button', { name: 'Použít' }).click();
+      }
       await expect(page).toHaveURL(/purpose=reminder/);
       await expect(page.locator('tbody tr')).toHaveCount(3);
       if (name === 'desktop') {

@@ -6,13 +6,10 @@
             <h2 id="dashboard-invoicing-title" class="m-0 text-body font-semibold text-ink">{{ 'dashboard.invoicing.title'|trans }}</h2>
             <p class="m-0 text-caption text-muted">{{ 'dashboard.invoicing.note'|trans }}</p>
         </div>
-        {% if firms is not empty %}
-            <form method="get" action="{{ path('app_dashboard') }}" class="flex w-full flex-wrap items-end gap-2 sm:w-auto max-sm:[&_button]:h-control-lg">
-                <div class="min-w-0 flex-1 sm:w-52 sm:flex-none"><twig:Ui:Select name="firm" id="dashboard-firm" :label="'invoice.field.firm'|trans" :options="firms" :value="firm" /></div>
-                <twig:Ui:Button type="submit">{{ 'dashboard.invoicing.show'|trans }}</twig:Ui:Button>
-            </form>
-        {% endif %}
     </div>
+    {% if firms is not empty %}
+        <twig:Ui:FilterBar id="dashboard-filters" :action="path('app_dashboard')" :filters="[{name: 'firm', label: 'invoice.field.firm'|trans, options: firms, value: firm, pinned: true}]" />
+    {% endif %}
     {% if pending is not empty %}
         <div data-dashboard-pending class="grid gap-2">
             {% for reminder in pending %}

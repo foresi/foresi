@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Webhooks\Infrastructure\Controller;
 
+use App\CashFlow\Infrastructure\Events\CashFlowEventAccess;
 use App\Identity\Application\UserRepository;
 use App\Identity\Domain\Role;
 use App\Invoicing\Infrastructure\Events\InvoicingEventAccess;
@@ -166,7 +167,7 @@ final class WebhookEndpointControllerTest extends WebTestCase
         ], server: [self::DIALOG => '1']);
 
         self::assertResponseStatusCodeSame(422);
-        self::assertSelectorExists('#event-types-invoicing-error');
+        self::assertSelectorExists('#event-types-cash-flow-error');
         self::assertSame([], $this->endpoints());
     }
 
@@ -193,8 +194,8 @@ final class WebhookEndpointControllerTest extends WebTestCase
     {
         $this->signIn();
         $id = $this->stored();
-        // The person no longer works with invoices, contacts or received documents: the access services of the modules say no.
-        foreach ([InvoicingEventAccess::class => 'invoicing', PartyEventAccess::class => 'party', PurchasingEventAccess::class => 'purchasing'] as $service => $module) {
+        // The person no longer works with the cash flow, invoices, contacts or received documents: the access services of the modules say no.
+        foreach ([CashFlowEventAccess::class => 'cash-flow', InvoicingEventAccess::class => 'invoicing', PartyEventAccess::class => 'party', PurchasingEventAccess::class => 'purchasing'] as $service => $module) {
             self::getContainer()->set($service, new readonly class($module) implements EventReadAccess {
                 public function __construct(private string $module)
                 {
