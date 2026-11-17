@@ -1,0 +1,18 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set menu = this %}
+{% set extraClass = attributes.render('class') %}
+<div class="{{ ('relative ' ~ extraClass)|trim }}" data-controller="dropdown" {{ attributes }}{% if menu.float %} data-dropdown-float-value="true"{% endif %}>
+    {%- block trigger -%}
+        {%- if menu.iconOnly -%}
+            <twig:Ui:IconButton :icon="menu.icon" :label="menu.label" :variant="menu.variant" :size="menu.size" :id="menu.triggerId" aria-haspopup="menu" aria-expanded="false" :aria-controls="menu.id" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" />
+        {%- else -%}
+            <twig:Ui:Button :icon="menu.icon" :variant="menu.variant" :size="menu.size" :id="menu.triggerId" aria-haspopup="menu" aria-expanded="false" :aria-controls="menu.id" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton">
+                {{- menu.label -}}
+                {%- if menu.chevron %}{{ ux_icon('lucide:chevron-' ~ menu.chevron, {class: menu.chevronClasses, 'aria-hidden': 'true'}) }}{% endif -%}
+            </twig:Ui:Button>
+        {%- endif -%}
+    {%- endblock -%}
+    <div id="{{ menu.id }}" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate"{% if menu.menuLabel %} aria-label="{{ menu.menuLabel }}"{% else %} aria-labelledby="{{ menu.triggerId }}"{% endif %} class="{{ menu.panelClasses }}">
+        {%- block content %}{% endblock -%}
+    </div>
+</div>

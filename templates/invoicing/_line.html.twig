@@ -1,7 +1,8 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {# One row of the lines table (see _lines.html.twig for its columns), a card below the wide layout. Also rendered with index "__INDEX__" as the template of a new row. The line the row came from, a line of time or a stored line, is its data-source; the sources go as one field, see _lines.html.twig. A recurring template's form passes textAttributes, which its variable chips need on the text cell. #}
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
-{% macro classes(invalid) %}w-full rounded-control border bg-white px-2.5 text-ink {{ invalid ? 'border-badge-red-text' : 'border-control-line' }} {{ constant('App\\Ui\\Component\\Style::FOCUS') }}{% endmacro %}
+{# The field look of App\\Ui\\Component\\Style::field(), which a cell of this grid repeats. #}
+{% macro classes(invalid) %}w-full rounded-control border bg-white px-3 text-ink placeholder:text-muted transition-colors {{ invalid ? 'border-badge-red-text' : 'border-control-line' }} {{ constant('App\\Ui\\Component\\Style::FIELD_FOCUS') }}{% endmacro %}
 {% macro input(index, cell, label, value, errorFields, extra, numeric) %}
     {% set id = 'lines-' ~ index ~ '-' ~ cell %}
     {% set error = errorFields[id]|default(null) %}
@@ -63,22 +64,18 @@
         <td class="col-span-2 align-top xl:table-cell xl:p-1">
             <div class="flex items-center justify-end gap-1 xl:h-control">
                 <twig:Ui:IconButton id="{{ discountId }}-add" icon="tag" :label="'invoice.line.discount_add'|trans" variant="ghost" size="sm" type="submit" name="_action" value="discount_add:{{ index }}" aria-expanded="{{ discounted ? 'true' : 'false' }}" aria-controls="{{ discountId }}-box" data-action="invoice-form#addDiscount:prevent" />
-                <div class="relative" data-controller="dropdown" data-dropdown-float-value="true">
-                    <twig:Ui:IconButton id="lines-{{ index }}-menu" icon="ellipsis" :label="'invoice.line.actions'|trans" variant="ghost" size="sm" aria-haspopup="menu" aria-expanded="false" aria-controls="lines-{{ index }}-actions" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" />
-                    <div id="lines-{{ index }}-actions" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="lines-{{ index }}-menu" class="absolute bottom-full right-0 z-50 mb-1.5 w-max rounded-panel border border-container bg-white p-1.5 shadow-floating">
-                        {% set item = 'block w-full cursor-pointer rounded-control px-2.5 py-1.5 text-left text-ink hover:bg-head ' ~ focus %}
-                        <button type="submit" id="lines-{{ index }}-up" name="_action" value="move_up:{{ index }}" role="menuitem" tabindex="-1" class="{{ item }}" data-action="invoice-form#moveUp:prevent">{{ 'invoice.line.up'|trans }}</button>
-                        <button type="submit" id="lines-{{ index }}-down" name="_action" value="move_down:{{ index }}" role="menuitem" tabindex="-1" class="{{ item }}" data-action="invoice-form#moveDown:prevent">{{ 'invoice.line.down'|trans }}</button>
-                        <button type="submit" id="lines-{{ index }}-remove" name="_action" value="remove_line:{{ index }}" role="menuitem" tabindex="-1" class="{{ item }}" data-action="invoice-form#removeLine:prevent">{{ 'invoice.line.remove'|trans }}</button>
-                    </div>
-                </div>
+                <twig:Ui:Menu id="lines-{{ index }}-actions" buttonId="lines-{{ index }}-menu" :label="'invoice.line.actions'|trans" icon="ellipsis" :iconOnly="true" variant="ghost" size="sm" placement="above" :float="true">
+                    <twig:Ui:MenuItem type="submit" id="lines-{{ index }}-up" name="_action" value="move_up:{{ index }}" data-action="invoice-form#moveUp:prevent">{{ 'invoice.line.up'|trans }}</twig:Ui:MenuItem>
+                    <twig:Ui:MenuItem type="submit" id="lines-{{ index }}-down" name="_action" value="move_down:{{ index }}" data-action="invoice-form#moveDown:prevent">{{ 'invoice.line.down'|trans }}</twig:Ui:MenuItem>
+                    <twig:Ui:MenuItem type="submit" id="lines-{{ index }}-remove" name="_action" value="remove_line:{{ index }}" tone="danger" data-action="invoice-form#removeLine:prevent">{{ 'invoice.line.remove'|trans }}</twig:Ui:MenuItem>
+                </twig:Ui:Menu>
             </div>
         </td>
     </tr>
     <tr id="{{ discountId }}-box" class="mt-2 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2 border-t border-divider pt-2 xl:mt-0 xl:table-row xl:border-0 xl:pt-0"{% if not discounted %} hidden{% endif %} data-discount>
         <td class="hidden xl:table-cell"></td>
         <td class="align-top xl:table-cell xl:p-1">
-            <label for="{{ discountId }}" class="flex h-control items-center gap-2 px-2.5 font-medium text-ink">{{ ux_icon('lucide:tag', {class: 'size-4 shrink-0 text-muted', 'aria-hidden': 'true'}) }}<span>{{ 'invoice.line.discount'|trans }}</span></label>
+            <label for="{{ discountId }}" class="flex h-control items-center gap-2 px-3 font-medium text-ink">{{ ux_icon('lucide:tag', {class: 'size-4 shrink-0 text-muted', 'aria-hidden': 'true'}) }}<span>{{ 'invoice.line.discount'|trans }}</span></label>
         </td>
         <td class="align-top xl:table-cell xl:p-1">
             <div class="relative">

@@ -14,7 +14,8 @@ const DELAY = 200;
  */
 export default class extends Controller {
     static targets = ['value', 'input', 'list', 'status', 'empty'];
-    static values = { url: String, empty: String, found: String, minLength: { type: Number, default: 3 } };
+    // optionClass: the look of an option row, Ui:Menu's (src/Ui/Component/Menu.php).
+    static values = { url: String, empty: String, found: String, minLength: { type: Number, default: 3 }, optionClass: String };
 
     disconnect() {
         clearTimeout(this.timer);
@@ -75,14 +76,14 @@ export default class extends Controller {
         item.id = `${this.inputTarget.id}-option-${index}`;
         item.setAttribute('role', 'option');
         item.setAttribute('aria-selected', 'false');
-        item.className = 'flex cursor-pointer flex-wrap items-center gap-x-3 rounded-control px-2.5 py-1.5 text-ink hover:bg-head aria-selected:bg-head';
+        item.className = this.optionClassValue;
         const label = document.createElement('span');
         label.className = 'min-w-0 truncate font-medium';
         label.textContent = result.label;
         item.append(label);
         if (result.hint) {
             const hint = document.createElement('span');
-            hint.className = 'num text-muted';
+            hint.className = 'num font-normal text-muted';
             hint.textContent = result.hint;
             item.append(hint);
         }

@@ -6,11 +6,11 @@
 <div {{ attributes }} data-controller="command-palette" data-command-palette-dialog-outlet="#{{ id }}-dialog">
     {% if 'rail' == this.trigger %}
         <button type="button" aria-haspopup="dialog" aria-keyshortcuts="Control+K Meta+K" data-action="command-palette#open" data-command-palette-target="opener" class="group flex w-15 cursor-pointer flex-col items-center gap-0.5 rounded-panel border-0 bg-transparent py-1.5 text-micro font-medium text-muted hover:text-ink {{ focus }}">
-            <span class="grid h-8 w-10 place-items-center rounded-control group-hover:bg-frame-hover">{{ ux_icon('lucide:search', {class: 'size-5', 'aria-hidden': 'true'}) }}</span>
+            <span class="grid h-8 w-10 place-items-center rounded-control group-hover:bg-frame">{{ ux_icon('lucide:search', {class: 'size-5', 'aria-hidden': 'true'}) }}</span>
             <span>{{ 'ui.palette.search'|trans }}</span>
         </button>
     {% else %}
-        <button type="button" aria-haspopup="dialog" aria-keyshortcuts="Control+K Meta+K" data-action="command-palette#open" data-command-palette-target="opener" class="inline-flex h-control w-full min-w-[220px] cursor-pointer items-center gap-2 rounded-control border border-control-line bg-white px-2.5 text-left text-muted hover:bg-head {{ focus }}">
+        <button type="button" aria-haspopup="dialog" aria-keyshortcuts="Control+K Meta+K" data-action="command-palette#open" data-command-palette-target="opener" class="inline-flex h-control w-full min-w-[220px] cursor-pointer items-center gap-2 rounded-control border border-control-line bg-white px-3 text-left text-muted transition-colors hover:border-green {{ focus }}">
             {{ ux_icon('lucide:search', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}
             <span class="flex-1 truncate">{{ 'ui.palette.open'|trans }}</span>
             <twig:Ui:Kbd data-command-palette-target="shortcut">Ctrl K</twig:Ui:Kbd>

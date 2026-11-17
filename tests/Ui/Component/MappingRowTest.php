@@ -152,7 +152,7 @@ final class MappingRowTest extends KernelTestCase
         self::assertNull($select->attr('aria-invalid'));
         self::assertNull($select->attr('aria-describedby'));
         self::assertNull($select->attr('autofocus'));
-        self::assertSame('h-control w-full appearance-none rounded-control border border-control-line bg-white pl-2.5 pr-8 text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green', $select->attr('class'));
+        self::assertSame('h-control cursor-pointer appearance-none pr-10 hover:border-green '.\App\Ui\Component\Style::field(false), $select->attr('class'));
         self::assertCount(0, $crawler->filter('#column-0-error'));
     }
 

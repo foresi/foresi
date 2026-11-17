@@ -35,7 +35,6 @@
         The wrappers count as children of the header in pairs, so the menu never takes a row of its own;
         on a wider screen they are not boxes.
     #}
-    {% set itemClass = 'flex h-control w-full cursor-pointer items-center gap-2.5 rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head ' ~ focus %}
     {% set editable = edit != 'title' %}
     {% set subtaskable = not task.parent and not task.projectArchived %}
     {% set timed = timerHere or timeLoggable %}
@@ -58,23 +57,20 @@
     {% endif %}
     {% if collapse %}<div class="hidden sm:contents">{{ shareButton }}</div>{% else %}{{ shareButton }}{% endif %}
     {% if row.deletable or collapse %}
-        <div class="relative{{ row.deletable ? '' : ' sm:hidden' }}" data-controller="dropdown" data-dropdown-float-value="true" data-task-menu>
-            <twig:Ui:IconButton icon="ellipsis" :label="'ui.table.more_actions'|trans({label: row.title})" id="task-menu-button" aria-haspopup="menu" aria-expanded="false" aria-controls="task-menu" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" />
-            <div id="task-menu" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="task-menu-button" class="absolute right-0 z-50 w-max min-w-40 rounded-panel border border-container bg-white p-1.5 text-left shadow-floating">
-                {% if collapse %}
-                    {% if editable %}<a href="{{ taskUrl ~ '?edit=title' }}" role="menuitem" tabindex="-1" class="{{ itemClass }} sm:hidden" data-task-menu-edit>{{ ux_icon('lucide:pencil', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'work.task.edit'|trans }}</span></a>{% endif %}
-                    {% if subtaskable %}<a href="{{ path('app_task_subtask_new', {id: row.id}) }}" role="menuitem" tabindex="-1" class="{{ itemClass }} sm:hidden" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-menu-subtask>{{ ux_icon('lucide:plus', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'work.task.new_subtask'|trans }}</span></a>{% endif %}
-                    {% if task.shareable %}<a href="{{ path('app_sharing', {kind: 'tasks', id: row.id}) }}" role="menuitem" tabindex="-1" class="{{ itemClass }} sm:hidden" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-menu-share>{{ ux_icon('lucide:share-2', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'work.sharing.open'|trans }}</span></a>{% endif %}
-                {% endif %}
-                {% if row.deletable %}
-                    <form method="post" action="{{ path('app_task_delete', {id: row.id}) }}" role="none" data-task-delete>
-                        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TaskController::TRASH_TOKEN')) }}">
-                        <input type="hidden" name="from" value="task">
-                        <button type="submit" role="menuitem" tabindex="-1" class="{{ itemClass }}">{{ ux_icon('lucide:trash-2', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'work.trash.delete'|trans }}</span></button>
-                    </form>
-                {% endif %}
-            </div>
-        </div>
+        <twig:Ui:Menu id="task-menu" buttonId="task-menu-button" :label="'ui.table.more_actions'|trans({label: row.title})" icon="ellipsis" :iconOnly="true" :float="true" :class="row.deletable ? null : 'sm:hidden'" data-task-menu>
+            {% if collapse %}
+                {% if editable %}<twig:Ui:MenuItem :href="taskUrl ~ '?edit=title'" icon="pencil" class="sm:hidden" data-task-menu-edit>{{ 'work.task.edit'|trans }}</twig:Ui:MenuItem>{% endif %}
+                {% if subtaskable %}<twig:Ui:MenuItem :href="path('app_task_subtask_new', {id: row.id})" icon="plus" class="sm:hidden" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-menu-subtask>{{ 'work.task.new_subtask'|trans }}</twig:Ui:MenuItem>{% endif %}
+                {% if task.shareable %}<twig:Ui:MenuItem :href="path('app_sharing', {kind: 'tasks', id: row.id})" icon="share-2" class="sm:hidden" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-menu-share>{{ 'work.sharing.open'|trans }}</twig:Ui:MenuItem>{% endif %}
+            {% endif %}
+            {% if row.deletable %}
+                <form method="post" action="{{ path('app_task_delete', {id: row.id}) }}" role="none" data-task-delete>
+                    <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TaskController::TRASH_TOKEN')) }}">
+                    <input type="hidden" name="from" value="task">
+                    <twig:Ui:MenuItem type="submit" icon="trash-2" tone="danger">{{ 'work.trash.delete'|trans }}</twig:Ui:MenuItem>
+                </form>
+            {% endif %}
+        </twig:Ui:Menu>
     {% endif %}
 {% endblock %}
 

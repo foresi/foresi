@@ -36,7 +36,7 @@ final class SearchFieldTest extends KernelTestCase
 
         self::assertMatchesRegularExpression('/<input[^>]*maxlength="100"/', $html);
         self::assertStringContainsString('flex-1', $html);
-        self::assertStringNotContainsString('placeholder', $html);
+        self::assertStringNotContainsString('placeholder=', $html);
     }
 
     public function testValueIsEscaped(): void
