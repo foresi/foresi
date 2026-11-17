@@ -81,9 +81,8 @@ final class ProjectControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/projects/new');
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('main', 'To do, In progress, Done');
-        self::assertSelectorTextContains('main', 'Open, In progress, Review, Testing, Blocked, Done, Closed');
-        $this->client->submit($crawler->filter('#project-form')->form(['name' => 'Website', 'clientId' => $client, 'workflow' => 'development', 'description' => 'The new site.']));
+        self::assertCount(0, $crawler->filter('#project-form [name="workflow"]'));
+        $this->client->submit($crawler->filter('#project-form')->form(['name' => 'Website', 'clientId' => $client, 'description' => 'The new site.']));
 
         $id = $this->projectId('Website');
         self::assertResponseStatusCodeSame(303);
@@ -91,7 +90,7 @@ final class ProjectControllerTest extends WebTestCase
         $crawler = $this->client->followRedirect();
         self::assertSelectorTextContains('main h1', 'Website');
         self::assertSame('/contacts/'.$client, $crawler->filter('[data-project-client] a')->attr('href'));
-        self::assertSame(['Open', 'In progress', 'Review', 'Testing', 'Blocked', 'Done', 'Closed'], $this->statusNames($id));
+        self::assertSame(['To do', 'In progress', 'Done'], $this->statusNames($id));
 
         $crawler = $this->client->request('GET', '/projects');
         self::assertSame('Website', trim($crawler->filter('tbody tr td')->eq(0)->filter('[data-row-link]')->text()));

@@ -286,12 +286,6 @@ party:
     title: Nic nenalezeno
     text: Zkuste jiné hledání nebo zrušte filtr.
     reset: Zrušit filtr
-  kpi:
-    all: Všechny kontakty
-    customers: Zákazníci
-    suppliers: Dodavatelé
-    unreliable: Nespolehliví plátci
-    check: Zkontrolovat
   view:
     all: Všechny
     customers: Zákazníci
@@ -525,8 +519,8 @@ firm:
   field:
     name: Název
     vatStatus: Vztah k DPH
-    registerEntry: Zápis v rejstříku
-    registerEntry_help: Rejstřík a spisová značka, jak je uvádíte na dokladech
+    registerEntry: Zápis v rejstříku nebo evidenci
+    registerEntry_help: Společnost spisovou značku, živnostník živnostenský rejstřík
     logo: Logo
     logo_help: 'PNG nebo JPEG, nejvýš 1 MB'
     logo_stored_help: 'Nahráno. Nový PNG nebo JPEG ho nahradí, nejvýš 1 MB'
@@ -1375,9 +1369,9 @@ invoice:
     deduction_line: '{document, select, none {Odpočet zálohové faktury {number}, VS {symbol}} other {Odpočet zálohy VS {symbol} (daňový doklad {document})}}'
     item: Označení dodávky
     quantity: Počet
-    unit: m. j.
-    unit_price: Cena za m. j. bez DPH
-    unit_price_plain: Cena za m. j.
+    unit: MJ
+    unit_price: Cena za MJ bez DPH
+    unit_price_plain: Cena za MJ
     discount: Sleva
     rate: DPH %
     base: Základ
@@ -1824,7 +1818,7 @@ invoice:
     firm_archived: Tato firma je archivovaná, nové doklady nevystavuje.
     firm_country_unsupported: Pro zemi této firmy zatím faktury nejsou k dispozici.
     firm_locked: Firmu vystaveného dokladu nelze změnit.
-    firm_register_entry_missing: Doplňte zápis v rejstříku v nastavení firmy.
+    firm_register_entry_missing: 'Doplňte v nastavení firmy, kde je zapsaná. Společnost uvádí spisovou značku, živnostníkovi stačí „Zapsán v živnostenském rejstříku“.'
     firm_vat_id_missing: Doplňte DIČ v nastavení firmy.
     issue_date_missing: Zadejte datum vystavení.
     language_invalid: Vyberte jazyk dokladu.
@@ -3535,6 +3529,7 @@ work:
     new_status: Nový stav
     add_status: Přidat stav
     status_removed: 'Stav {name} je odebraný.'
+    workflow_applied: 'Stavy projektu jsou teď podle šablony {name}.'
     move_up: 'Posunout nahoru: {name}'
     move_down: 'Posunout dolů: {name}'
     remove: Odebrat
@@ -3542,6 +3537,12 @@ work:
     remove_section:
       title: 'Odebrat sekci {name}?'
       text: Úkoly sekce se přesunou do Bez sekce.
+    apply_workflow:
+      open: Použít šablonu postupu
+      title: Použít šablonu postupu
+      template: Šablona
+      text: 'Stavy projektu se nahradí stavy šablony, i s vlastními názvy. Každý úkol přejde do prvního stavu stejného typu; uzavřené úkoly do hotových, když šablona uzavřený stav nemá. Hotové úkoly zůstanou hotové.'
+      submit: Nahradit stavy
     remove_status:
       title: 'Odebrat stav {name}'
       text: 'Úkoly ve stavu {name} se přesunou do jiného stavu.'
@@ -3738,7 +3739,6 @@ work:
       client_help: Jakýkoli kontakt z adresáře.
       client_placeholder: Napište jméno kontaktu
       client_empty: Žádný kontakt nenalezen
-      workflow: Postup práce
       description: Popis
       billable: Fakturovat čas
       billable_help: Nový zápis času na tomto projektu je předem fakturovatelný.

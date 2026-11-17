@@ -6,7 +6,7 @@ Work of the organisation, kept in projects. This page says what the screens do a
 
 - **Project.** A body of work, for a client or internal. It belongs to the organisation, not to one of its firms, so every firm's people see the same projects. It has a name, an optional **client** (any contact of the address book), a plain-text description and an archive date. An archived project leaves the active list, can be restored at any time and accepts no new tasks.
 - **Section.** A heading that groups the tasks of a project in the list, such as "Backlog" or "Shared with client". Tasks without a section come first, under no heading. Sections have an order of their own.
-- **Status and workflow.** The statuses of a project are its workflow: the steps a task goes through, in order. A new project starts from a template, **Simple** (To do, In progress, Done) or **Development** (Open, In progress, Review, Testing, Blocked, Done, Closed). The names are translated once into your language and are plain text afterwards: rename, add, reorder or remove them in the project settings. What cannot change is the **type** of each status: open, active, done or closed. Reports and the completion date rely on the type, never on the name. A project always keeps at least one open and one done status.
+- **Status and workflow.** The statuses of a project are its workflow: the steps a task goes through, in order. A new project starts with the **Simple** template (To do, In progress, Done); the **Development** template (Open, In progress, Review, Testing, Blocked, Done, Closed) can be applied later in the project settings. The names are translated once into your language and are plain text afterwards: rename, add, reorder or remove them in the project settings. What cannot change is the **type** of each status: open, active, done or closed. Reports and the completion date rely on the type, never on the name. A project always keeps at least one open and one done status.
 - **Task.** A piece of work with a title, a description, a status, a section, a **responsible** person, a due date, a priority (none, low, medium, high, urgent) and labels. A task gets its completion date when it enters a status of type done or closed, and loses it when it leaves.
 - **Subtask.** A task one level under another task of the same project. A subtask cannot have subtasks of its own.
 - **Responsible.** The one person accountable for a task, picked from the active people of the organisation who can see the task, guests included.
@@ -15,7 +15,7 @@ Work of the organisation, kept in projects. This page says what the screens do a
 
 ## Projects
 
-**Work, Projects** lists the active projects with their client, the number of unfinished tasks and the nearest due date; the **Archived** tab lists the rest. **New project** opens a dialog for the name, the client, the workflow template and the description. The template is chosen once: it only seeds the statuses, which you can change later.
+**Work, Projects** lists the active projects with their client, the number of unfinished tasks and the nearest due date; the **Archived** tab lists the rest. **New project** opens a dialog for the name, the client and the description. Every project starts with the Simple workflow, as a Linear team starts with a default workflow customised later; change it in the project settings.
 
 ## The list
 
@@ -77,6 +77,7 @@ Open **Settings** on a project to:
 - change its name, client and description and whether it bills its time, and archive or restore it;
 - add, rename, reorder and remove **sections**. A removed section does not delete its tasks, they move to "No section";
 - add, rename, retype, reorder and remove **statuses**. Removing a status asks where its tasks go.
+- **Apply workflow template**, in the header of the statuses, replaces all the statuses with those of a template after one confirmation in a dialog. Custom names and statuses are gone; every task, subtasks and the trash included, moves to the first status of the same type, as Jira moves work between workflows by status category. A type the template lacks goes to the closest one: closed tasks go to done in the Simple template. Finished tasks stay finished with their completion date. The audit log and the history of each task record the change.
 
 ## Sharing
 

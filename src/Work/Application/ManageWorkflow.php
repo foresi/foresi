@@ -11,12 +11,14 @@ namespace App\Work\Application;
 use App\Work\Domain\Project;
 use App\Work\Domain\ProjectStatus;
 use App\Work\Domain\StatusType;
+use App\Work\Domain\WorkflowTemplate;
 use Psr\Clock\ClockInterface;
 
 /**
  * The statuses of a project, the columns of its board. A project always keeps
  * a status of type open, where new tasks start, and one of type done, where
  * they finish; the tasks of a removed status move to another of the project.
+ * A template applied later replaces all the statuses at once.
  */
 final readonly class ManageWorkflow
 {
@@ -24,6 +26,7 @@ final readonly class ManageWorkflow
         private Projects $projects,
         private Tasks $tasks,
         private VisibleWork $work,
+        private StatusNames $statusNames,
         private ClockInterface $clock,
         private WorkUnit $unit,
     ) {
@@ -103,6 +106,64 @@ final readonly class ManageWorkflow
             Positions::renumber($rest);
             $this->projects->remove($status);
         });
+    }
+
+    /**
+     * Replaces the statuses of the project with those of the template, named
+     * in the language of the person applying it. Every task, subtasks and the
+     * trash included, moves to the first new status of the type it had; a
+     * type the template lacks, such as closed in the simple one, goes to its
+     * first done status. A task stays finished or unfinished, so its
+     * completion date stays as it was.
+     *
+     * @throws WorkRefused
+     */
+    public function applyTemplate(string $projectId, WorkflowTemplate $template): void
+    {
+        $project = $this->work->managedProject($projectId);
+        $old = $this->projects->statuses($project);
+
+        $this->unit->run(function () use ($project, $template, $old): void {
+            $new = [];
+            foreach ($template->statuses() as $position => [$key, $type]) {
+                $new[] = $status = new ProjectStatus($project, $this->statusNames->of($key), $type, $position);
+                $this->projects->add($status);
+            }
+            $now = $this->clock->now();
+            foreach ($old as $status) {
+                $target = $this->firstOf($new, $status->type());
+                foreach ($this->tasks->inStatus($status) as $task) {
+                    $task->moveToStatus($target, $now);
+                }
+                $this->projects->remove($status);
+            }
+            $project->adoptWorkflow($template);
+        });
+    }
+
+    /**
+     * The first status of the type, or of the type closest to it: done for
+     * closed, open for active, and the other way round.
+     *
+     * @param list<ProjectStatus> $statuses
+     */
+    private function firstOf(array $statuses, StatusType $type): ProjectStatus
+    {
+        $fallback = match ($type) {
+            StatusType::Closed => StatusType::Done,
+            StatusType::Done => StatusType::Closed,
+            StatusType::Active => StatusType::Open,
+            StatusType::Open => StatusType::Active,
+        };
+        foreach ([$type, $fallback] as $wanted) {
+            foreach ($statuses as $status) {
+                if ($status->type() === $wanted) {
+                    return $status;
+                }
+            }
+        }
+
+        throw new \LogicException(\sprintf('The template has no status of type %s or %s.', $type->value, $fallback->value));
     }
 
     private function target(Project $project, ProjectStatus $removed, string $targetId): ProjectStatus

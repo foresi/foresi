@@ -9,9 +9,10 @@ declare(strict_types=1);
 namespace App\Work\Domain;
 
 /**
- * The set of statuses a new project starts with. Once seeded, the statuses
- * belong to the project and are edited there; the project only remembers the
- * template it came from.
+ * A set of statuses. A new project starts with the simple one; a template
+ * applied later replaces the statuses of the project. Once seeded, the
+ * statuses belong to the project and are edited there; the project only
+ * remembers the template they came from.
  */
 enum WorkflowTemplate: string
 {

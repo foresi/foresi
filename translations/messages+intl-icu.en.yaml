@@ -286,12 +286,6 @@ party:
     title: Nothing found
     text: Try another search or clear the filter.
     reset: Clear filter
-  kpi:
-    all: All contacts
-    customers: Customers
-    suppliers: Suppliers
-    unreliable: Unreliable payers
-    check: Check
   view:
     all: All
     customers: Customers
@@ -526,7 +520,7 @@ firm:
     name: Name
     vatStatus: VAT status
     registerEntry: Register entry
-    registerEntry_help: The register and file number, as printed on documents
+    registerEntry_help: A company its file number, a sole trader its trade register
     logo: Logo
     logo_help: 'PNG or JPEG, up to 1 MB'
     logo_stored_help: 'Uploaded. A new PNG or JPEG replaces it, up to 1 MB'
@@ -1824,7 +1818,7 @@ invoice:
     firm_archived: This firm is archived, so it issues no new documents.
     firm_country_unsupported: Invoices are not available for the country of this firm yet.
     firm_locked: The firm of an issued document cannot change.
-    firm_register_entry_missing: Add the register entry in the settings of the firm.
+    firm_register_entry_missing: 'Add in the settings of the firm where it is registered. A company gives its register and file number, a sole trader the register or record it is entered in.'
     firm_vat_id_missing: Add the VAT ID in the settings of the firm.
     issue_date_missing: Enter the issue date.
     language_invalid: Choose a document language.
@@ -3535,6 +3529,7 @@ work:
     new_status: New status
     add_status: Add a status
     status_removed: 'The status {name} is removed.'
+    workflow_applied: 'The statuses of the project now follow the {name} template.'
     move_up: 'Move up: {name}'
     move_down: 'Move down: {name}'
     remove: Remove
@@ -3542,6 +3537,12 @@ work:
     remove_section:
       title: 'Remove the section {name}?'
       text: Tasks of the section move to No section.
+    apply_workflow:
+      open: Apply workflow template
+      title: Apply a workflow template
+      template: Template
+      text: 'The statuses of the project are replaced by those of the template, custom names included. Every task moves to the first status of the same type; closed tasks go to done when the template has no closed status. Finished tasks stay finished.'
+      submit: Replace the statuses
     remove_status:
       title: 'Remove the status {name}'
       text: 'The tasks in {name} move to another status.'
@@ -3738,7 +3739,6 @@ work:
       client_help: Any contact of the address book.
       client_placeholder: Type the name of a contact
       client_empty: No contact found
-      workflow: Workflow
       description: Description
       billable: Bill time
       billable_help: New time on this project starts as billable.

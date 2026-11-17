@@ -113,25 +113,19 @@ final class PartyControllerTest extends WebTestCase
         self::assertSelectorTextNotContains('main table', 'Active Company');
     }
 
-    public function testViewsFilterByRoleAndTheKpiStripCountsThem(): void
+    public function testViewsFilterByRoleAndTheListComesWithoutAnOverview(): void
     {
         $this->signIn();
         $this->party('Customer Only', roles: [PartyRole::Customer]);
         $this->party('Supplier Only', roles: [PartyRole::Supplier]);
         $this->party('Both Roles', roles: [PartyRole::Customer, PartyRole::Supplier]);
-        $this->party('Unreliable Company', vat: 'CZ12345687', refresh: true);
 
         $this->client->request('GET', '/contacts?view=suppliers');
         self::assertSelectorCount(2, 'main tbody tr');
         self::assertSelectorTextNotContains('main table', 'Customer Only');
 
-        $crawler = $this->client->request('GET', '/contacts');
-        $kpis = $crawler->filter('[data-kpi]')->each(static fn (Crawler $kpi): string => preg_replace('/\s+/', ' ', trim($kpi->text())) ?? '');
-        self::assertCount(4, $kpis);
-        self::assertStringContainsString('4', $kpis[0]);
-        self::assertStringContainsString('3', $kpis[1]);
-        self::assertStringContainsString('2', $kpis[2]);
-        self::assertStringContainsString('1', $kpis[3]);
+        $this->client->request('GET', '/contacts');
+        self::assertSelectorCount(0, 'main [data-kpi]');
     }
 
     public function testSearchCoversNameRegistrationNumberVatIdAndEmail(): void

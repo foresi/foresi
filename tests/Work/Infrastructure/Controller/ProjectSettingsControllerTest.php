@@ -331,6 +331,52 @@ final class ProjectSettingsControllerTest extends WebTestCase
         self::assertSame(['To do', 'Done'], array_column($this->statuses($id), 0));
     }
 
+    public function testAWorkflowTemplateReplacesTheStatusesAfterAQuestion(): void
+    {
+        $this->signIn();
+        $id = $this->createProject('Website');
+        $this->task($id, 'Wireframes', null, $this->statusId($id, 'In progress'));
+        $this->task($id, 'Brief', null, $this->statusId($id, 'Done'));
+        $this->em->getConnection()->executeStatement('UPDATE task SET completed_at = ? WHERE title = ?', ['2026-11-01 10:00:00', 'Brief']);
+
+        $crawler = $this->client->request('GET', '/projects/'.$id.'/settings');
+        $link = $crawler->filter('[data-settings-apply-workflow]');
+        self::assertSame('/projects/'.$id.'/workflow', $link->attr('href'));
+        $crawler = $this->client->click($link->link());
+        self::assertResponseIsSuccessful();
+        self::assertSame(['simple', 'development'], $crawler->filter('input[name="workflow"]')->each(static fn (Crawler $input): string => (string) $input->attr('value')));
+        self::assertSame('simple', $crawler->filter('input[name="workflow"][checked]')->attr('value'));
+        self::assertSelectorTextContains('#workflow-apply-form', 'closed tasks go to done');
+
+        $this->client->submit($crawler->filter('#workflow-apply-form')->form(['workflow' => 'development']));
+        self::assertResponseRedirects('/projects/'.$id.'/settings', 303);
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'The statuses of the project now follow the Development template.');
+        self::assertSame([['Open', 'open'], ['In progress', 'active'], ['Review', 'active'], ['Testing', 'active'], ['Blocked', 'active'], ['Done', 'done'], ['Closed', 'closed']], $this->statuses($id));
+        self::assertSame($this->statusId($id, 'In progress'), $this->em->getConnection()->fetchOne('SELECT status_id FROM task WHERE title = ?', ['Wireframes']));
+        self::assertSame($this->statusId($id, 'Done'), $this->em->getConnection()->fetchOne('SELECT status_id FROM task WHERE title = ?', ['Brief']));
+        self::assertStringStartsWith('2026-11-01 10:00:00', $this->text($this->em->getConnection()->fetchOne('SELECT completed_at FROM task WHERE title = ?', ['Brief'])));
+        self::assertSame('development', $this->em->getConnection()->fetchOne('SELECT workflow_template FROM project WHERE id = ?', [$id]));
+
+        // An unknown template is told in the dialog and changes nothing.
+        $crawler = $this->client->request('GET', '/projects/'.$id.'/workflow');
+        $token = (string) $crawler->filter('#workflow-apply-form input[name="_token"]')->attr('value');
+        $this->client->request('POST', '/projects/'.$id.'/workflow', ['_token' => $token, 'workflow' => 'kanban']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertCount(7, $this->statuses($id));
+    }
+
+    public function testNoTemplateIsAppliedWithoutAToken(): void
+    {
+        $this->signIn();
+        $id = $this->createProject('Website');
+
+        $this->client->request('POST', '/projects/'.$id.'/workflow', ['workflow' => 'development']);
+
+        self::assertResponseStatusCodeSame(403);
+        self::assertCount(3, $this->statuses($id));
+    }
+
     private function signIn(Role $role = Role::Owner): void
     {
         $this->browser->seed(role: $role);
