@@ -28,7 +28,7 @@ final class MenuTest extends TestCase
         $menu = new Menu();
         $menu->id = 'actions';
         $menu->label = 'Actions';
-        if (null !== $set) {
+        if ($set instanceof \Closure) {
             $set($menu);
         }
 
