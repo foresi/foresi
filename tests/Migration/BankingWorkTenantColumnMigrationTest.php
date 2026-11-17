@@ -31,8 +31,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class BankingWorkTenantColumnMigrationTest extends TestCase
 {
-    private const string BEFORE = \DoctrineMigrations\Version20261118000002::class;
-    private const string DROP = \DoctrineMigrations\Version20261118000003::class;
+    private const string BEFORE = 'DoctrineMigrations\Version20261118000002';
+    private const string DROP = 'DoctrineMigrations\Version20261118000003';
     private const string SCHEMA = 'banking_work_tenant_column_migration_test';
     private const string TENANT = '11111111-1111-1111-1111-111111111111';
 
