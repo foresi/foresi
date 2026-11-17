@@ -115,6 +115,7 @@ Planned as 0.5.0: the first release with invoices.
 
 ### Changed
 
+- Every page title runs from the specific to the general: the page, the section of the navigation it belongs to, and the product, as "Fix the login · Projects · Foresi". A list page names its section once, the login page has no section, and the public document pages keep the issuer instead of the product.
 - On phones (below 900 px): the menu opens full screen with its own close button; search and the account menu sit in a sticky top bar; text fields, selects and text areas use 16 px text so iOS Safari no longer zooms in on focus (pinch zoom stays on); menu, tab, sort and row-checkbox targets are at least 44 px; the content runs edge to edge; dialogs, sheets and bottom bars keep clear of the notch and the home indicator (`viewport-fit=cover`, `env(safe-area-inset-*)`); page heights use dynamic viewport units.
 - Breaking for cash-flow sources: `App\CashFlow\Contract\CashFlowSource` has a new method, `mayReadDetails(): bool`, whether the caller may read the documents behind the flows. A third-party source must implement it; return true to keep its items visible. Sources with actuals implement the new `ActualFlowSource`.
 - The recurrence of recurring invoices (`Recurrence`, `RecurrenceUnit`, `RecurrenceEnd`, `RecurringSchedule`, `InvalidRecurrence`) moved from `App\Invoicing\Domain` to `App\Shared\Domain\Schedule`, so other modules can schedule with it. Behaviour and stored data are unchanged; code that imported the old names must use the new namespace.

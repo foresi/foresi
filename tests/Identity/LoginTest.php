@@ -62,13 +62,13 @@ final class LoginTest extends WebTestCase
         $crawler = $this->client->request('GET', '/login');
         self::assertNotNull($crawler->filter('form')->attr('novalidate'));
         self::assertNull($crawler->filter('#username')->attr('aria-invalid'));
-        self::assertSame('Přihlášení', $crawler->filter('title')->text());
+        self::assertSame('Přihlášení · Foresi', $crawler->filter('title')->text());
 
         $this->submit(IdentityFixtures::EMAIL, 'wrong-password');
         $crawler = $this->client->followRedirect();
 
         // The message stays where it was; both fields point at it, as the sign-in names no single field.
-        self::assertSame('Chyba: Přihlášení', $crawler->filter('title')->text());
+        self::assertSame('Chyba: Přihlášení · Foresi', $crawler->filter('title')->text());
         self::assertSame('login-error', $crawler->filter('[role="alert"]')->attr('id'));
         foreach (['username', 'password'] as $id) {
             self::assertSame('true', $crawler->filter('#'.$id)->attr('aria-invalid'));

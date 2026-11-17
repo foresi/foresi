@@ -6,6 +6,9 @@
 #}
 {% extends 'base.html.twig' %}
 
+{# A customer reads these pages: the title names the issuer the page gives, not the product. #}
+{% block document_title %}{{ block('title')|striptags|html_decode|trim }}{% endblock %}
+
 {% block head %}
     <meta name="robots" content="noindex, nofollow">
     <meta name="referrer" content="no-referrer">

@@ -92,6 +92,33 @@ final readonly class NavigationRegistry
     }
 
     /**
+     * The item the page belongs to: the one whose own route it is, or else the first whose prefix
+     * covers it. It runs no count, so the page title can ask for it on every page.
+     */
+    public function current(?string $currentRoute): ?NavigationItem
+    {
+        $items = $this->items();
+        $owned = array_any($items, static fn (NavigationItem $item): bool => $item->route === $currentRoute);
+
+        return array_find($items, fn (NavigationItem $item): bool => $this->isCurrent($item, $currentRoute, $owned));
+    }
+
+    /**
+     * @return list<NavigationItem>
+     */
+    private function items(): array
+    {
+        $items = [];
+        foreach ($this->providers as $provider) {
+            foreach ($provider->items() as $item) {
+                $items[] = $item;
+            }
+        }
+
+        return $items;
+    }
+
+    /**
      * Every item with its registration order and its resolved entry.
      *
      * @return list<array{NavigationItem, int, NavigationEntry}>

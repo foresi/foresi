@@ -263,14 +263,14 @@ final class PartyControllerTest extends WebTestCase
     {
         $this->signIn();
         $crawler = $this->client->request('GET', '/contacts/new');
-        self::assertSame('New contact', $crawler->filter('title')->text());
+        self::assertSame('New contact · Address book · Foresi', $crawler->filter('title')->text());
         self::assertNotNull($crawler->filter('main form')->attr('novalidate'));
         $form = $crawler->filter('main form')->form($this->values(['displayName' => '', 'vatId' => 'CZ12', 'street' => '', 'city' => 'Entered City']));
 
         $crawler = $this->client->submit($form);
 
         self::assertResponseStatusCodeSame(422);
-        self::assertSame('Error: New contact', $crawler->filter('title')->text());
+        self::assertSame('Error: New contact · Address book · Foresi', $crawler->filter('title')->text());
         self::assertSame(['displayName', 'vatId', 'street'], $crawler->filter('main form [aria-invalid="true"]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
         foreach (['displayName', 'street'] as $id) {
             self::assertSame($id.'-error', $crawler->filter('#'.$id)->attr('aria-describedby'));
@@ -297,7 +297,7 @@ final class PartyControllerTest extends WebTestCase
         $crawler = $this->client->submit($form);
 
         self::assertResponseStatusCodeSame(422);
-        self::assertSame('Error: Edit', $crawler->filter('title')->text());
+        self::assertSame('Error: Edit · Address book · Foresi', $crawler->filter('title')->text());
         self::assertSame(['email', 'postalCode'], $crawler->filter('main form [aria-invalid="true"]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
         self::assertSame(['email'], $crawler->filter('[autofocus]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
         self::assertSame('Example Renamed', $crawler->filter('#displayName')->attr('value'));
@@ -699,7 +699,7 @@ final class PartyControllerTest extends WebTestCase
         $crawler = $this->client->submit($form);
 
         self::assertResponseStatusCodeSame(422);
-        self::assertSame('Error: Example Company', $crawler->filter('title')->text());
+        self::assertSame('Error: Example Company · Address book · Foresi', $crawler->filter('title')->text());
         self::assertSame(['link-person', 'link-position'], $crawler->filter('[aria-invalid="true"]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
         self::assertSame(['link-person'], $crawler->filter('[autofocus]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
         self::assertSame('link-person-error', $crawler->filter('#link-person')->attr('aria-describedby'));

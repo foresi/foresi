@@ -217,7 +217,7 @@ final class ImportControllerTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         self::assertSame(ImportState::Mapping, $this->fresh($id)->state());
-        self::assertSame('Error: idoklad-contacts.csv', $crawler->filter('title')->text());
+        self::assertSame('Error: idoklad-contacts.csv · Import and export · Foresi', $crawler->filter('title')->text());
         // "Firma" is the column whose header names the field, so the message is under its select.
         $select = $crawler->filter('#column-0');
         self::assertSame('true', $select->attr('aria-invalid'));
@@ -305,7 +305,7 @@ final class ImportControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#confirmation-error', 'Type 1');
         $crawler = $this->client->getCrawler();
-        self::assertSame('Error: idoklad-contacts.csv', $crawler->filter('title')->text());
+        self::assertSame('Error: idoklad-contacts.csv · Import and export · Foresi', $crawler->filter('title')->text());
         self::assertNotNull($crawler->filter('form[action$="/run"]')->attr('novalidate'));
         self::assertSame('true', $crawler->filter('#confirmation')->attr('aria-invalid'));
         self::assertSame('confirmation-error', $crawler->filter('#confirmation')->attr('aria-describedby'));
@@ -565,7 +565,7 @@ final class ImportControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#file-error', 'Choose the file you want to upload.');
         $crawler = $this->client->getCrawler();
-        self::assertSame('Error: New import', $crawler->filter('title')->text());
+        self::assertSame('Error: New import · Import and export · Foresi', $crawler->filter('title')->text());
         self::assertNotNull($crawler->filter('form[enctype]')->attr('novalidate'));
         self::assertSame('true', $crawler->filter('#file')->attr('aria-invalid'));
         self::assertSame('file-help file-error', $crawler->filter('#file')->attr('aria-describedby'));
@@ -585,7 +585,7 @@ final class ImportControllerTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         $crawler = $this->client->getCrawler();
-        self::assertSame('Error: New import', $crawler->filter('title')->text());
+        self::assertSame('Error: New import · Import and export · Foresi', $crawler->filter('title')->text());
         self::assertSame('true', $crawler->filter('#file')->attr('aria-invalid'));
         self::assertSelectorTextContains('#file-error', 'larger than 50 MB');
         self::assertNotNull($crawler->filter('#file')->attr('autofocus'));
