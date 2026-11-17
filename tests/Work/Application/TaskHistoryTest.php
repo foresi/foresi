@@ -14,6 +14,7 @@ use App\Work\Application\TaskHistoryEntry;
 use App\Work\Domain\LabelColour;
 use App\Work\Domain\Priority;
 use App\Work\Domain\Task;
+use App\Work\Domain\WorkflowTemplate;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 final class TaskHistoryTest extends WorkTestCase
@@ -104,6 +105,20 @@ final class TaskHistoryTest extends WorkTestCase
 
         self::assertSame(['K udělání', 'Probíhá'], [$history[1]->statusFrom, $history[1]->statusTo]);
         self::assertSame(['Probíhá', 'Hotovo'], [$history[2]->statusFrom, $history[2]->statusTo]);
+    }
+
+    public function testAnAppliedTemplateIsAStepOfTheTask(): void
+    {
+        $project = $this->project();
+        [, $inProgress] = $this->statuses($project);
+        $task = $this->tasks->create($project->id(), 'Write the brief', statusId: $inProgress->id());
+
+        $this->workflow->applyTemplate($project->id(), WorkflowTemplate::Development);
+
+        $history = $this->history($task->id());
+        self::assertCount(2, $history);
+        self::assertSame(['Probíhá', 'Probíhá'], [$history[1]->statusFrom, $history[1]->statusTo]);
+        self::assertSame('Olga Owner', $history[1]->userName);
     }
 
     public function testAStepOfNobodyHasNoUserName(): void

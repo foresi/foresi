@@ -23,6 +23,7 @@ use App\Work\Application\StatusChoice;
 use App\Work\Application\WorkQueries;
 use App\Work\Application\WorkRefused;
 use App\Work\Domain\StatusType;
+use App\Work\Domain\WorkflowTemplate;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -38,7 +39,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * its time is billable and, for an owner only, its hourly rate, its archiving,
  * its sections and its statuses. Each change is a plain form that
  * comes back to the page, where a refusal is told; the removal of a status
- * asks in a dialog where its tasks go.
+ * asks in a dialog where its tasks go, and a workflow template replacing all
+ * the statuses is chosen and confirmed in a dialog.
  */
 final class ProjectSettingsController extends AbstractController
 {
@@ -281,6 +283,50 @@ final class ProjectSettingsController extends AbstractController
             'targets' => $targets,
             'target' => $target,
             'error' => $error,
+        ], new Response(status: null === $error ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
+    }
+
+    /**
+     * Replaces the statuses with those of a template, chosen and confirmed in
+     * a dialog over the settings, or on a page of its own. The tasks move by
+     * the type of their status, as Jira moves work between workflows by
+     * status category.
+     */
+    #[Route('/projects/{id}/workflow', name: 'app_project_workflow', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
+    public function applyWorkflow(string $id, Request $request): Response
+    {
+        $this->denyUnlessStaff();
+        $settings = $this->load($id);
+        $value = $settings->project->template->value;
+        $error = null;
+        if ($request->isMethod('POST')) {
+            $this->checkToken($request);
+            $value = $request->request->getString('workflow');
+            $template = WorkflowTemplate::tryFrom($value);
+            if (!$template instanceof WorkflowTemplate) {
+                $error = $this->translator->trans('work.project.error.workflow');
+            } else {
+                try {
+                    $this->workflow->applyTemplate($id, $template);
+                    $this->addFlash('success', $this->translator->trans('work.settings.workflow_applied', ['name' => $this->translator->trans('work.workflow.'.$template->value)]));
+
+                    return $this->back($id);
+                } catch (WorkRefused $refused) {
+                    $this->notFoundIfUnknown($refused);
+                    $error = $this->translator->trans('work.refused.'.$refused->reason);
+                }
+            }
+        }
+
+        return $this->render('work/projects/apply_workflow.html.twig', [
+            'project' => $settings->project,
+            'value' => $value,
+            'error' => $error,
+            'workflows' => array_map(fn (WorkflowTemplate $template): array => [
+                'value' => $template->value,
+                'label' => $this->translator->trans('work.workflow.'.$template->value),
+                'text' => $this->translator->trans('work.workflow.'.$template->value.'_text'),
+            ], WorkflowTemplate::cases()),
         ], new Response(status: null === $error ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 

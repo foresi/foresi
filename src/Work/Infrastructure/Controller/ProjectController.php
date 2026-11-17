@@ -123,23 +123,19 @@ final class ProjectController extends AbstractController
     public function new(Request $request): Response
     {
         $this->denyUnlessStaff();
-        $values = ['name' => '', 'clientId' => '', 'clientQuery' => '', 'workflow' => WorkflowTemplate::Simple->value, 'description' => ''];
+        $values = ['name' => '', 'clientId' => '', 'clientQuery' => '', 'description' => ''];
         $errors = [];
         if ($request->isMethod('POST')) {
             $this->checkToken($request, self::TOKEN);
             foreach (array_keys($values) as $field) {
                 $values[$field] = 'description' === $field ? $request->request->getString($field) : trim($request->request->getString($field));
             }
-            $template = WorkflowTemplate::tryFrom($values['workflow']);
             if ('' === $values['name']) {
                 $errors['name'] = $this->translator->trans('work.project.error.name_required');
             }
-            if (!$template instanceof WorkflowTemplate) {
-                $errors['workflow'] = $this->translator->trans('work.project.error.workflow');
-            }
-            if ([] === $errors && $template instanceof WorkflowTemplate) {
+            if ([] === $errors) {
                 try {
-                    $project = $this->projects->create($values['name'], '' === $values['clientId'] ? null : $values['clientId'], $template, $values['description']);
+                    $project = $this->projects->create($values['name'], '' === $values['clientId'] ? null : $values['clientId'], WorkflowTemplate::Simple, $values['description']);
 
                     return $this->redirectToRoute(self::PROJECT_ROUTE, ['id' => $project->id()], Response::HTTP_SEE_OTHER);
                 } catch (WorkRefused $refused) {
@@ -155,10 +151,6 @@ final class ProjectController extends AbstractController
         return $this->render('work/projects/new.html.twig', [
             'values' => $values,
             'errors' => $errors,
-            'workflows' => [
-                ['value' => WorkflowTemplate::Simple->value, 'label' => $this->translator->trans('work.workflow.simple'), 'text' => $this->translator->trans('work.workflow.simple_text')],
-                ['value' => WorkflowTemplate::Development->value, 'label' => $this->translator->trans('work.workflow.development'), 'text' => $this->translator->trans('work.workflow.development_text')],
-            ],
         ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 

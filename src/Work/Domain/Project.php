@@ -70,7 +70,7 @@ class Project implements Audited
         #[ORM\JoinColumn(name: 'client_id', nullable: true, onDelete: 'RESTRICT')]
         private ?Party $client,
         #[ORM\Column(name: 'workflow_template', type: 'string', length: 16, enumType: WorkflowTemplate::class)]
-        private readonly WorkflowTemplate $workflowTemplate,
+        private WorkflowTemplate $workflowTemplate,
         #[ORM\Column(name: 'created_by', type: 'guid')]
         private readonly string $createdBy,
         #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
@@ -184,9 +184,21 @@ class Project implements Audited
         return $this->client;
     }
 
+    /**
+     * The template the statuses last came from: the one the project started
+     * with, or the one applied over them since.
+     */
     public function workflowTemplate(): WorkflowTemplate
     {
         return $this->workflowTemplate;
+    }
+
+    /**
+     * Remembers the template whose statuses replaced those of the project.
+     */
+    public function adoptWorkflow(WorkflowTemplate $template): void
+    {
+        $this->workflowTemplate = $template;
     }
 
     public function archivedAt(): ?\DateTimeImmutable

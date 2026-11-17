@@ -3535,6 +3535,7 @@ work:
     new_status: Nový stav
     add_status: Přidat stav
     status_removed: 'Stav {name} je odebraný.'
+    workflow_applied: 'Stavy projektu jsou teď podle šablony {name}.'
     move_up: 'Posunout nahoru: {name}'
     move_down: 'Posunout dolů: {name}'
     remove: Odebrat
@@ -3542,6 +3543,12 @@ work:
     remove_section:
       title: 'Odebrat sekci {name}?'
       text: Úkoly sekce se přesunou do Bez sekce.
+    apply_workflow:
+      open: Použít šablonu postupu
+      title: Použít šablonu postupu
+      template: Šablona
+      text: 'Stavy projektu se nahradí stavy šablony, i s vlastními názvy. Každý úkol přejde do prvního stavu stejného typu; uzavřené úkoly do hotových, když šablona uzavřený stav nemá. Hotové úkoly zůstanou hotové.'
+      submit: Nahradit stavy
     remove_status:
       title: 'Odebrat stav {name}'
       text: 'Úkoly ve stavu {name} se přesunou do jiného stavu.'
@@ -3738,7 +3745,6 @@ work:
       client_help: Jakýkoli kontakt z adresáře.
       client_placeholder: Napište jméno kontaktu
       client_empty: Žádný kontakt nenalezen
-      workflow: Postup práce
       description: Popis
       billable: Fakturovat čas
       billable_help: Nový zápis času na tomto projektu je předem fakturovatelný.
