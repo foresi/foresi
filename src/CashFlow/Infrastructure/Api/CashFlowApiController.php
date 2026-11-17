@@ -66,6 +66,7 @@ final readonly class CashFlowApiController
     #[OA\Parameter(name: 'firm_id', in: 'query', required: true, schema: new OA\Schema(type: 'string', format: 'uuid'))]
     #[OA\Response(response: 200, description: 'The planned items of the firm, oldest first.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: '#/components/schemas/CashFlowPlannedItem'))], type: 'object'))]
     #[OA\Response(response: 400, description: 'A parameter cannot be used.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 403, description: 'The token lacks the cashflow:read scope.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 404, description: 'The organisation has no such firm.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     public function plannedItems(Request $request): JsonResponse
@@ -79,6 +80,7 @@ final readonly class CashFlowApiController
     #[Route('/api/v1/cash-flow/planned-items/{plannedItemId}', name: self::PLANNED_ITEM, methods: ['GET'])]
     #[OA\Tag(name: 'Cash flow')]
     #[OA\Response(response: 200, description: 'The planned item.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/CashFlowPlannedItem')], type: 'object'))]
+    #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 403, description: 'The token lacks the cashflow:read scope.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 404, description: 'The organisation has no such planned item.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     public function plannedItem(string $plannedItemId): JsonResponse

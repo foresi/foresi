@@ -21,6 +21,7 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'cash_flow_expected_date')]
+#[ORM\Index(name: 'idx_cash_flow_expected_date_tenant', columns: ['tenant_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_cash_flow_expected_date_subject', columns: ['tenant_id', 'subject_type', 'subject_id'])]
 class ExpectedDate implements TenantOwned, Audited
 {

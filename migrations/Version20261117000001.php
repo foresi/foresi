@@ -75,6 +75,7 @@ final class Version20261117000001 extends AbstractMigration
         $expected->addColumn('subject_id', Types::STRING, ['length' => 64]);
         $expected->addColumn('expected_on', Types::DATE_IMMUTABLE);
         $expected->setPrimaryKey(['id']);
+        $expected->addIndex(['tenant_id'], 'idx_cash_flow_expected_date_tenant');
         $expected->addUniqueIndex(['tenant_id', 'subject_type', 'subject_id'], 'uniq_cash_flow_expected_date_subject');
 
         $minimum = $schema->createTable('cash_flow_minimum_balance');
