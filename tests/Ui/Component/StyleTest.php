@@ -88,4 +88,50 @@ final class StyleTest extends TestCase
         Style::href(null);
         $this->expectNotToPerformAssertions();
     }
+
+    public function testAFieldWearsTheSoftEdgeOrRedWhenInvalid(): void
+    {
+        $rest = ' disabled:border-divider disabled:bg-head disabled:text-muted focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-green';
+        $base = 'w-full rounded-control border bg-white px-3 text-ink placeholder:text-muted transition-colors ';
+
+        self::assertSame($base.'border-control-line'.$rest, Style::field(false));
+        self::assertSame($base.'border-badge-red-text'.$rest, Style::field(true));
+    }
+
+    /**
+     * @return iterable<string, array{string, string, bool, bool, string}>
+     */
+    public static function buttons(): iterable
+    {
+        yield 'primary' => ['primary', 'md', false, false, 'bg-green border-green text-white hover:bg-green-hover h-control px-3.5'];
+        yield 'secondary' => ['secondary', 'md', false, false, 'bg-white border-control-line text-ink hover:bg-head h-control px-3.5'];
+        yield 'ghost' => ['ghost', 'md', false, false, 'bg-transparent border-transparent text-text hover:bg-head h-control px-3.5'];
+        yield 'danger' => ['danger', 'md', false, false, 'bg-white border-control-line text-badge-red-text hover:bg-badge-red h-control px-3.5'];
+        yield 'small' => ['secondary', 'sm', false, false, 'bg-white border-control-line text-ink hover:bg-head h-control-sm text-small px-2.5'];
+        yield 'icon only' => ['secondary', 'md', true, false, 'bg-white border-control-line text-ink hover:bg-head h-control w-control'];
+        yield 'small icon only' => ['ghost', 'sm', true, false, 'bg-transparent border-transparent text-text hover:bg-head h-control-sm text-small w-control-sm'];
+        yield 'pressed' => ['secondary', 'md', false, true, 'bg-green-tint border-green text-green h-control px-3.5'];
+    }
+
+    #[DataProvider('buttons')]
+    public function testTheButtonClasses(string $variant, string $size, bool $iconOnly, bool $pressed, string $classes): void
+    {
+        self::assertSame(
+            'inline-flex items-center justify-center gap-1.5 rounded-control border font-semibold whitespace-nowrap cursor-pointer no-underline transition-colors aria-disabled:opacity-50 disabled:opacity-50 disabled:cursor-not-allowed '
+                .$classes.' focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green',
+            Style::button($variant, $size, $iconOnly, $pressed),
+        );
+    }
+
+    public function testTheButtonIconSizes(): void
+    {
+        self::assertSame('size-5 shrink-0', Style::buttonIcon('md'));
+        self::assertSame('size-4 shrink-0', Style::buttonIcon('sm'));
+    }
+
+    public function testAnUnknownButtonIconSizeThrows(): void
+    {
+        $this->expectExceptionObject(new \InvalidArgumentException('Unknown size "xl", expected one of: md, sm.'));
+        Style::buttonIcon('xl');
+    }
 }
