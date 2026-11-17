@@ -80,7 +80,7 @@ final class InvoicePdfTest extends InvoiceTestCase
             'Datum vystavení', '1. 11. 2026',
             'Datum zdanitelného plnění',
             'Datum splatnosti', '15. 11. 2026',
-            'Consulting work', 'Cena za m. j.', 'bez DPH', 'Sazba', 'Základ', 'DPH',
+            'Consulting work', 'MJ', 'Cena za MJ bez DPH', 'DPH %', 'Sazba', 'Základ', 'DPH',
             '1 260,00', '264,60', '1 524,60',
             '1 525,00 Kč',
             'CZ6508000000192000145399', '19-2000145399/0800',
@@ -389,7 +389,10 @@ final class InvoicePdfTest extends InvoiceTestCase
         for ($index = 1; $index <= 60; ++$index) {
             self::assertMatchesRegularExpression('/závěr'.$index.'\b/u', $text);
         }
-        self::assertSame($pages, substr_count($text, 'Označení dodávky'), 'The header row repeats on each page.');
+        // Pages end in a form feed; the last may hold only the recap.
+        foreach (array_filter(explode("\f", $text), static fn (string $page): bool => str_contains($page, 'závěr')) as $page) {
+            self::assertStringContainsString('Označení dodávky', $page, 'The header row repeats on each page of lines.');
+        }
         self::assertStringContainsString('Razítko a podpis', $text);
         VeraPdf::assertConforms($rendered->bytes, '3a');
     }
@@ -443,7 +446,15 @@ final class InvoicePdfTest extends InvoiceTestCase
         self::assertStringContainsString($amounts->quantity($line->quantity()->toDecimal()), $text);
         self::assertStringContainsString($unit, $text);
         self::assertStringContainsString('33,33 %', $text);
+        self::assertMatchesRegularExpression('/Počet\s+MJ\s+Cena za MJ bez DPH\s+Sleva\s+DPH %\s+Základ\s+DPH\s+Celkem/', $text, 'No header of the items table wraps.');
         VeraPdf::assertConforms($rendered->bytes, '3a');
+    }
+
+    public function testNoEnglishHeaderWrapsEither(): void
+    {
+        $text = $this->textOf($this->issued([$this->discounted('1000.00', PriceType::WithoutVat, '2', '10')], ['language' => DocumentLanguage::English]));
+
+        self::assertMatchesRegularExpression('/Qty\s+Unit\s+Unit price excl\. VAT\s+Discount\s+VAT %\s+Base\s+VAT\s+Total/', $text);
     }
 
     public function testALargestQrAmountFitsTheBand(): void
