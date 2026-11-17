@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Idoklad\Domain;
 
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
@@ -21,16 +19,12 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'idoklad_record')]
-#[ORM\Index(name: 'idx_idoklad_record_tenant', columns: ['tenant_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_idoklad_record', columns: ['legal_entity_id', 'resource', 'external_id'])]
-class IdokladRecord implements TenantOwned
+class IdokladRecord
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     /** The record as JSON, byte for byte as it was encoded after decoding the answer. */
     #[ORM\Column(type: 'text')]
@@ -150,10 +144,5 @@ class IdokladRecord implements TenantOwned
     public function pdfSha256(): ?string
     {
         return $this->pdfSha256;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

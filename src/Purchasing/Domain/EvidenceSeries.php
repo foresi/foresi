@@ -10,8 +10,6 @@ namespace App\Purchasing\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditRooted;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
@@ -23,16 +21,12 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'evidence_series')]
-#[ORM\Index(name: 'idx_evidence_series_tenant', columns: ['tenant_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_evidence_series_firm', columns: ['legal_entity_id'])]
-class EvidenceSeries implements TenantOwned, Audited, AuditRooted
+class EvidenceSeries implements Audited, AuditRooted
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'string', length: EvidenceNumberFormat::MAX_LENGTH)]
     private string $format;
@@ -79,10 +73,5 @@ class EvidenceSeries implements TenantOwned, Audited, AuditRooted
     public function changeFormat(EvidenceNumberFormat $format): void
     {
         $this->format = $format->toString();
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

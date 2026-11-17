@@ -8,25 +8,18 @@ declare(strict_types=1);
 
 namespace App\Purchasing\Domain;
 
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
  * The last evidence number given in one period of a series. Mapped so the schema
- * is validated and the tenant filter applies to queries, but only the single
- * atomic statements of DoctrineEvidenceNumbers write it and the ORM never loads
- * a row. A technical value, so not audited: the documents explain it.
+ * is validated, but only the single atomic statements of DoctrineEvidenceNumbers
+ * write it and the ORM never loads a row. A technical value, so not audited: the documents explain it.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'evidence_counter')]
-#[ORM\Index(name: 'idx_evidence_counter_tenant', columns: ['tenant_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_evidence_counter', columns: ['evidence_series_id', 'period'])]
-class EvidenceCounter implements TenantOwned
+class EvidenceCounter
 {
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
-
     public function __construct(
         #[ORM\Id]
         #[ORM\Column(type: 'guid')]
@@ -44,10 +37,5 @@ class EvidenceCounter implements TenantOwned
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

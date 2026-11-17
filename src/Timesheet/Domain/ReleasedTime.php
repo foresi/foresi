@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Timesheet\Domain;
 
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Id;
 use App\Shared\Domain\Money;
@@ -24,16 +22,12 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'released_time')]
-#[ORM\Index(name: 'idx_released_time_tenant', columns: ['tenant_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_released_time', columns: ['invoice_id', 'time_entry_id'])]
-class ReleasedTime implements TenantOwned
+class ReleasedTime
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(name: 'rate_minor', type: 'bigint')]
     private int $rateMinor;
@@ -99,10 +93,5 @@ class ReleasedTime implements TenantOwned
     public function releasedAt(): \DateTimeImmutable
     {
         return $this->releasedAt;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

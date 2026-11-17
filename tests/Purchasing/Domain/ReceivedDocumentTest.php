@@ -360,13 +360,6 @@ final class ReceivedDocumentTest extends TestCase
         self::assertTrue($column[0]->newInstance()->nullable);
     }
 
-    public function testTheTenantIsKnownOnlyOncePersisted(): void
-    {
-        $this->expectException(\LogicException::class);
-
-        $this->draft()->tenantId();
-    }
-
     /**
      * @param list<VatRecapLine>|null $lines
      */

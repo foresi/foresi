@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Idoklad\Domain;
 
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
@@ -23,16 +21,12 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'idoklad_import_run')]
-#[ORM\Index(name: 'idx_idoklad_import_run_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_idoklad_import_run_firm', columns: ['legal_entity_id', 'started_at'])]
-class IdokladImportRun implements TenantOwned
+class IdokladImportRun
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(name: 'pull_id', type: 'guid', nullable: true)]
     private ?string $pullId = null;
@@ -154,10 +148,5 @@ class IdokladImportRun implements TenantOwned
     public function undoneAt(): ?\DateTimeImmutable
     {
         return $this->undoneAt;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

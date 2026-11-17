@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Idoklad\Domain;
 
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
@@ -22,16 +20,12 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'idoklad_link')]
-#[ORM\Index(name: 'idx_idoklad_link_tenant', columns: ['tenant_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_idoklad_link', columns: ['legal_entity_id', 'resource', 'external_id'])]
-class IdokladLink implements TenantOwned
+class IdokladLink
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     public function __construct(
         #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
@@ -85,10 +79,5 @@ class IdokladLink implements TenantOwned
     public function createdAt(): \DateTimeImmutable
     {
         return $this->createdAt;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

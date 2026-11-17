@@ -10,8 +10,6 @@ namespace App\Purchasing\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditExcluded;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
 use App\Shared\Domain\Currency;
@@ -38,13 +36,12 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'received_document')]
-#[ORM\Index(name: 'idx_received_document_tenant', columns: ['tenant_id'])]
-#[ORM\Index(name: 'idx_received_document_firm_received', columns: ['tenant_id', 'legal_entity_id', 'received_date'])]
-#[ORM\Index(name: 'idx_received_document_firm_deduction', columns: ['tenant_id', 'legal_entity_id', 'deduction_period'])]
+#[ORM\Index(name: 'idx_received_document_firm_received', columns: ['legal_entity_id', 'received_date'])]
+#[ORM\Index(name: 'idx_received_document_firm_deduction', columns: ['legal_entity_id', 'deduction_period'])]
 #[ORM\Index(name: 'idx_received_document_supplier', columns: ['supplier_id'])]
 #[ORM\Index(name: 'idx_received_document_original', columns: ['original_document_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_received_document_evidence', columns: ['legal_entity_id', 'evidence_number'])]
-class ReceivedDocument implements TenantOwned, Audited
+class ReceivedDocument implements Audited
 {
     /** The owner kind of the original file in the attachment store. */
     public const string ATTACHMENT_KIND = 'received_document';
@@ -58,9 +55,6 @@ class ReceivedDocument implements TenantOwned, Audited
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     // Goes up with every save, so a form can tell it was opened before the last one. A technical
     // value, so left out of the audit log: a save that changes nothing leaves no entry.
@@ -501,11 +495,6 @@ class ReceivedDocument implements TenantOwned, Audited
     public function createdAt(): \DateTimeImmutable
     {
         return $this->createdAt;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     /**

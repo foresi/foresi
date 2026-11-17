@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Idoklad\Domain;
 
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
@@ -22,9 +20,8 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'idoklad_pull')]
-#[ORM\Index(name: 'idx_idoklad_pull_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_idoklad_pull_firm', columns: ['legal_entity_id', 'started_at'])]
-class IdokladPull implements TenantOwned
+class IdokladPull
 {
     /** A moment as iDoklad writes it, without a zone: 2026-10-26T10:39:22.873. */
     public const string MOMENT = '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,7})?$/D';
@@ -32,9 +29,6 @@ class IdokladPull implements TenantOwned
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(name: 'finished_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $finishedAt = null;
@@ -153,10 +147,5 @@ class IdokladPull implements TenantOwned
     public function succeeded(): bool
     {
         return $this->finishedAt instanceof \DateTimeImmutable && null === $this->error;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }
