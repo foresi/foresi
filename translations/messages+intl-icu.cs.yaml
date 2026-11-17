@@ -1375,9 +1375,9 @@ invoice:
     deduction_line: '{document, select, none {Odpočet zálohové faktury {number}, VS {symbol}} other {Odpočet zálohy VS {symbol} (daňový doklad {document})}}'
     item: Označení dodávky
     quantity: Počet
-    unit: m. j.
-    unit_price: Cena za m. j. bez DPH
-    unit_price_plain: Cena za m. j.
+    unit: MJ
+    unit_price: Cena za MJ bez DPH
+    unit_price_plain: Cena za MJ
     discount: Sleva
     rate: DPH %
     base: Základ

@@ -130,7 +130,8 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
         $recap = array_map($this->recapRow(...), $document->summaries);
         $totals = ['base' => $this->amount($document->net), 'vat' => $this->hasCharge($document) ? $this->amount($document->vat) : '', 'total' => $this->amount($document->gross)];
         [$columns, $size] = $this->columns($payer, $hasDiscount, $lines, $rounding);
-        [$recapColumns, $recapSize] = $payer ? $this->fitted(self::RECAP_COLUMNS, [...$recap, $totals], 'label', self::RECAP_WIDTH_MM, self::LEAST_LABEL_MM, $size) : [[], $size];
+        $recapHeads = ['base' => $this->trans('invoice.pdf.base'), 'vat' => $this->trans('invoice.pdf.vat'), 'total' => $this->trans('invoice.pdf.total')];
+        [$recapColumns, $recapSize] = $payer ? $this->fitted(self::RECAP_COLUMNS, [...$recap, $totals], 'label', self::RECAP_WIDTH_MM, self::LEAST_LABEL_MM, $size, $recapHeads) : [[], $size];
 
         return [
             'trashed' => $document->trashed,
@@ -255,23 +256,47 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
         }
         $rows = null === $rounding ? $lines : [...$lines, ['quantity' => $rounding['quantity'], 'price' => $rounding['amount'], 'base' => $rounding['amount'], 'vat' => $rounding['zero'], 'total' => $rounding['amount']]];
 
-        return $this->fitted($least, $rows, 'text', self::TABLE_WIDTH_MM, self::LEAST_TEXT_MM);
+        return $this->fitted($least, $rows, 'text', self::TABLE_WIDTH_MM, self::LEAST_TEXT_MM, null, $this->heads($payer, $least));
     }
 
     /**
-     * Gives every column room for its longest value, and the free column the rest,
-     * at the largest type that leaves the free column usable. A value then has no
-     * reason to break: only the free column wraps, and a unit at its spaces. Sizes
-     * start at the given one.
+     * The header of each sized column of the items table, as the template prints it.
+     *
+     * @param array<string, float> $least
+     *
+     * @return array<string, string>
+     */
+    private function heads(bool $payer, array $least): array
+    {
+        $keys = [
+            'quantity' => 'invoice.pdf.quantity',
+            'unit' => 'invoice.pdf.unit',
+            'price' => $payer ? 'invoice.pdf.unit_price' : 'invoice.pdf.unit_price_plain',
+            'discount' => 'invoice.pdf.discount',
+            'rate' => 'invoice.pdf.rate',
+            'base' => 'invoice.pdf.base',
+            'vat' => 'invoice.pdf.vat',
+            'total' => 'invoice.pdf.total',
+        ];
+
+        return array_map($this->trans(...), array_intersect_key($keys, $least));
+    }
+
+    /**
+     * Gives every column room for its longest value and its whole header, and the
+     * free column the rest, at the largest type that leaves the free column usable.
+     * A value or a header then has no reason to break: only the free column wraps,
+     * and a unit at its spaces. Sizes start at the given one.
      *
      * @param array<string, float>        $least
      * @param list<array<string, string>> $rows
+     * @param array<string, string>       $heads the header of a column, kept on one line
      *
      * @return array{array<string, string>, float}
      *
      * @throws UndrawableDocument when no size leaves the free column usable
      */
-    private function fitted(array $least, array $rows, string $free, float $width, float $leastFree, ?float $size = null): array
+    private function fitted(array $least, array $rows, string $free, float $width, float $leastFree, ?float $size = null, array $heads = []): array
     {
         foreach (self::TABLE_SIZES as $candidate) {
             if (null !== $size && $candidate > $size) {
@@ -282,6 +307,7 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
                 foreach ($rows as $row) {
                     $widths[$column] = max($widths[$column], $this->font->longestWord($row[$column] ?? '', $candidate) + self::CELL_PADDING_MM);
                 }
+                $widths[$column] = max($widths[$column], $this->font->width($heads[$column] ?? '', $candidate) + self::CELL_PADDING_MM);
             }
             // The smallest type may narrow the free column further: it is the last step before refusing.
             if ($width - array_sum($widths) >= $leastFree * (self::SMALLEST_TABLE_SIZE === $candidate ? self::LAST_RESORT_SHARE : 1.0)) {
