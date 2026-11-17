@@ -96,6 +96,8 @@
     --radius-panel: 8px;
     /* The content panel of the app shell, which sits on the frame with a 10 px gap. */
     --radius-xl: 12px;
+    /* A person is a circle (Atlassian Avatar: circle for people, square for projects). */
+    --radius-avatar: 9999px;
 
     /*
      * Heights: controls (sm, md, lg = touch and the palette field) and table rows. A field, a

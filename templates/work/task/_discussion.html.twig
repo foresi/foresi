@@ -26,7 +26,7 @@
                     {% set comment = item.comment %}
                     {% set editing = editComment == comment.id %}
                     <li id="comment-{{ comment.id }}" class="grid scroll-mt-4 grid-cols-[2rem_minmax(0,1fr)] gap-x-3 py-3" data-comment="{{ comment.id }}">
-                        <span class="grid size-8 place-items-center rounded-control text-caption font-semibold {{ comment.tone }}" aria-hidden="true">{{ comment.initials }}</span>
+                        <twig:Ui:Avatar :name="comment.author" size="md" />
                         <div class="grid min-w-0 gap-1.5">
                             <div class="flex min-h-control flex-wrap items-center gap-x-2 gap-y-1">
                                 <span class="font-medium text-ink" data-comment-author>{{ comment.author }}</span>

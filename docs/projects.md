@@ -34,7 +34,7 @@ The order of a card is the order of the task in its status; the list shows the s
 
 ## The task page
 
-Opening a task shows its title and description, its subtasks, its **attachments**, and the **discussion and history** (below). The panel beside it (under it on a phone) holds the properties. Each property saves as soon as you choose a value; a **Save** button appears for a browser without JavaScript. The title and the description open in place with **Edit**. **New subtask**, next to **Edit** in the header, opens a dialog for the title; the subtask goes into the section of its task and the page comes back at the subtasks. A subtask has no **New subtask**, and neither does a task of an archived project.
+Opening a task shows its title and description, its subtasks, its **attachments**, and the **discussion and history** (below). The panel beside it (under it on a phone) holds the properties. Each property saves as soon as you choose a value; a **Save** button appears for a browser without JavaScript. **Responsible** is a button with the person's avatar and name that opens the list of people, each with their avatar, and **Nobody** first; choosing one saves it. People appear as round avatars with their initials everywhere in Work: in the list, on the board, among the watchers, beside comments and in the sharing dialog. The title and the description open in place with **Edit**. **New subtask**, next to **Edit** in the header, opens a dialog for the title; the subtask goes into the section of its task and the page comes back at the subtasks. A subtask has no **New subtask**, and neither does a task of an archived project.
 
 ## Discussion
 

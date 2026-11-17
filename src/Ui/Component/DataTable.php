@@ -8,12 +8,11 @@ declare(strict_types=1);
 
 namespace App\Ui\Component;
 
-use App\Ui\Avatar;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string}>, avatar: ?array{initials: string, tone: string}, badges: list<array{label: string, tone: string}>, flag: ?array{label: string, tone: string, icon: ?string}}
+ * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string}>, avatar: ?array{name: string, seed: string}, badges: list<array{label: string, tone: string}>, flag: ?array{label: string, tone: string, icon: ?string}}
  * @phpstan-type Confirm array{title: string, text: ?string, accept: ?string, cancel: ?string, tone: ?string}
  * @phpstan-type Action array{label: string, href: string, method: string, confirm: ?Confirm, icon: ?string, plain: bool, dialog: bool, fields: array<string, string>}
  * @phpstan-type RowAlert array{text: string, column: string, href: ?string, action: ?string}
@@ -372,10 +371,10 @@ final class DataTable
             $badges = $this->badges($value['badges']);
             $text = implode(', ', array_column($badges, 'label'));
         } elseif (is_array($value) && isset($value['avatar'])) {
-            // A person: the initials avatar, coloured by a stable seed such as the user id, before the name.
+            // A person: the Ui:Avatar, coloured by a stable seed such as the user id, before the name.
             $seed = is_string($value['avatar']) ? $value['avatar'] : throw new \InvalidArgumentException('An avatar seed must be a string.');
             $text = isset($value['text']) && is_string($value['text']) && '' !== $value['text'] ? $value['text'] : throw new \InvalidArgumentException('An avatar cell needs a name.');
-            $avatar = ['initials' => Avatar::initials($text), 'tone' => Avatar::tone($seed)];
+            $avatar = ['name' => $text, 'seed' => $seed];
         } elseif (is_array($value) && isset($value['links'])) {
             // Several links in one cell, such as the invoices a payment paid; plain leaves Turbo.
             $links = $this->links($value['links']);

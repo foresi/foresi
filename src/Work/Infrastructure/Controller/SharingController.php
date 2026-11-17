@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace App\Work\Infrastructure\Controller;
 
 use App\Identity\Application\StaffCheck;
-use App\Ui\Avatar;
 use App\Ui\Dialog\DialogRequest;
 use App\Work\Application\Choice;
 use App\Work\Application\ManageSharing;
@@ -78,8 +77,7 @@ final class SharingController extends AbstractController
             'people' => array_map(static fn (SharedPerson $person): array => [
                 'id' => $person->membershipId,
                 'name' => $person->name,
-                'initials' => Avatar::initials($person->name),
-                'tone' => Avatar::tone($person->userId),
+                'seed' => $person->userId,
                 'role' => $person->role->value,
             ], $view->people),
             'candidates' => ['' => $this->translator->trans('work.sharing.choose')] + array_column(array_map(static fn (Choice $choice): array => [$choice->id, $choice->name], $view->candidates), 1, 0),

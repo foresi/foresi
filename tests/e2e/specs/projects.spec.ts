@@ -18,7 +18,7 @@ async function openWebsite(page: Page, view: '' | '/board' = ''): Promise<void> 
 // What changes from one run to the next: the colour of a person's initials follows a random id. The
 // due dates, relative to today, get a fixed text from freezeDates instead.
 function volatile(page: Page) {
-  return [page.locator('main [aria-hidden="true"].place-items-center')];
+  return [page.locator('main [data-avatar]')];
 }
 
 // Relative due dates change the width of their column from one day to the next, so every date

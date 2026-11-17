@@ -1,0 +1,9 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set avatar = this %}
+{% if labelled %}
+    <span role="img" aria-label="{{ avatar.nobody ? 'ui.avatar.nobody'|trans : name }}" title="{{ avatar.nobody ? 'ui.avatar.nobody'|trans : name }}" {{ attributes.defaults({class: avatar.classes, 'data-avatar': ''}) }}>
+{%- else -%}
+    <span aria-hidden="true" {{ attributes.defaults({class: avatar.classes, 'data-avatar': ''}) }}>
+{%- endif -%}
+    {%- if avatar.nobody %}{{ ux_icon('lucide:user', {class: avatar.iconClasses, 'aria-hidden': 'true'}) }}{% else %}{{ avatar.initials }}{% endif -%}
+</span>

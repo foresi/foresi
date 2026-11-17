@@ -97,6 +97,10 @@ nav:
     time: Čas
     notifications: Oznámení
 ui:
+  avatar:
+    nobody: Nikdo
+  person_picker:
+    change: "Změnit {label}: {name}"
   dialog:
     close: Zavřít
     discard_question: Zahodit neuložené změny?

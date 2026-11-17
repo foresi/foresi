@@ -24,7 +24,7 @@ const comment = (page: Page, text: string) => page.locator('[data-comment]').fil
 
 // What changes from one run or day to the next: times and the colour of the initials.
 function volatile(block: Locator) {
-  return [block.locator('time'), block.locator('[aria-hidden="true"].place-items-center')];
+  return [block.locator('time'), block.locator('[data-avatar]')];
 }
 
 // The times come from the clock of the run; one fixed text gives every run the same widths, so what

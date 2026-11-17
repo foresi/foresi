@@ -17,7 +17,6 @@ use App\Identity\Application\StaffCheck;
 use App\Instance\Application\TenantClock;
 use App\Party\Application\PartyQuery;
 use App\Party\Application\PartyRow;
-use App\Ui\Avatar;
 use App\Work\Application\DueBucket;
 use App\Work\Application\LabelBadge;
 use App\Work\Application\ManageProjects;
@@ -518,8 +517,7 @@ final class ProjectController extends AbstractController
             'private' => $task->private,
             'responsible' => null === $task->responsibleId || null === $task->responsibleName ? null : [
                 'name' => $task->responsibleName,
-                'initials' => Avatar::initials($task->responsibleName),
-                'tone' => Avatar::tone($seeds[$task->responsibleId] ?? $task->responsibleId),
+                'seed' => $seeds[$task->responsibleId] ?? $task->responsibleId,
             ],
             'due' => $this->due($task),
             'priority' => Priority::None === $task->priority ? null : $this->translator->trans('work.priority.'.$task->priority->value),

@@ -78,7 +78,12 @@ final class TaskControllerTest extends WebTestCase
         self::assertSame('/projects/'.$project, $crawler->filter('[data-task-project]')->attr('href'));
         self::assertSelectorTextContains('[data-task-created]', 'Created by Example Company');
         self::assertCount(7, $crawler->filter('[data-task-details] noscript'));
-        self::assertCount(7, $crawler->filter('[data-task-details] form[data-controller="autosubmit"]'));
+        // The responsible person is a picker whose rows submit the form; the other properties save on change.
+        self::assertCount(6, $crawler->filter('[data-task-details] form[data-controller="autosubmit"]'));
+        self::assertStringContainsString('Example Company', $crawler->filter('[data-task-property="responsible"] [data-person-picker-trigger]')->text());
+        self::assertSame('EC', trim($crawler->filter('[data-task-property="responsible"] [data-person-picker-trigger] [data-avatar]')->text()));
+        self::assertSame(['Nobody', 'Example Company', 'Jana Example'], $crawler->filter('[data-task-property="responsible"] [role=menu] button[name=responsible] .truncate')->each(static fn (Crawler $row): string => trim($row->text())));
+        self::assertSame('Example Company', trim($crawler->filter('[data-task-property="responsible"] [role=menu] button[aria-checked=true] .truncate')->text()));
         self::assertSelectorTextContains('[data-task-history]', 'Created the task');
 
         $this->client->request('GET', '/tasks/01900000-0000-7000-8000-000000000000');

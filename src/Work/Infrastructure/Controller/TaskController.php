@@ -17,7 +17,6 @@ use App\Identity\Application\People;
 use App\Identity\Application\Person;
 use App\Identity\Application\StaffCheck;
 use App\Instance\Application\TenantClock;
-use App\Ui\Avatar;
 use App\Ui\FileSize;
 use App\Work\Application\Choice;
 use App\Work\Application\Comments;
@@ -505,13 +504,13 @@ final class TaskController extends AbstractController
         $row = $task->task;
 
         // Only someone who sees the task can be responsible for it or follow it.
-        $responsibles = ['' => $this->translator->trans('work.task.nobody')];
+        $responsibles = [];
         foreach ($task->people as $person) {
-            $responsibles[$person->id] = $person->name;
+            $responsibles[$person->id] = ['value' => $person->id, 'name' => $person->name, 'seed' => $seeds[$person->id] ?? $person->id];
         }
         // Someone no longer active stays shown as long as the task is theirs.
         if (null !== $row->responsibleId && !isset($responsibles[$row->responsibleId])) {
-            $responsibles[$row->responsibleId] = $row->responsibleName ?? '';
+            $responsibles[$row->responsibleId] = ['value' => $row->responsibleId, 'name' => $row->responsibleName ?? '', 'seed' => $seeds[$row->responsibleId] ?? $row->responsibleId];
         }
         $candidates = ['' => $this->translator->trans('work.task.watchers.choose')];
         foreach ($task->people as $person) {
@@ -550,14 +549,13 @@ final class TaskController extends AbstractController
             'errors' => array_filter($errors, \is_string(...)),
             'statusTone' => self::STATUS_TONES[$row->statusType->value],
             'statuses' => $statuses,
-            'responsibles' => $responsibles,
+            'responsibles' => array_values($responsibles),
             'priorities' => $priorities,
             'sections' => $sections,
             'candidates' => $candidates,
             'watchers' => array_map(static fn (Choice $watcher): array => [
                 'name' => $watcher->name,
-                'initials' => Avatar::initials($watcher->name),
-                'tone' => Avatar::tone($seeds[$watcher->id] ?? $watcher->id),
+                'seed' => $seeds[$watcher->id] ?? $watcher->id,
             ], $task->watchers),
             'watching' => null !== $me && \in_array($me, $watching, true),
             'canWatch' => null !== $me,
@@ -685,8 +683,6 @@ final class TaskController extends AbstractController
         return [
             'id' => $comment->id,
             'author' => $comment->authorName,
-            'initials' => $comment->authorInitials,
-            'tone' => Avatar::tone($comment->authorName),
             'text' => $comment->text,
             'html' => $comment->html,
             'internal' => $comment->internal,
