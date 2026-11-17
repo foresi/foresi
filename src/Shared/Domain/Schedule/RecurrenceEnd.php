@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Domain;
+namespace App\Shared\Domain\Schedule;
 
 /**
- * When a recurring invoice stops: never, after a date (that day included) or
- * after a number of issued invoices.
+ * When a recurrence stops: never, after a date (that day included) or
+ * after a number of occurrences (issued invoices, for example).
  */
 enum RecurrenceEnd: string
 {

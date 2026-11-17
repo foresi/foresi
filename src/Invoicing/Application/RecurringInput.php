@@ -8,11 +8,11 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
-use App\Invoicing\Domain\Recurrence;
 use App\Invoicing\Domain\RecurringDelivery;
 use App\Invoicing\Domain\TaxPointRule;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\PaymentMethod;
+use App\Shared\Domain\Schedule\Recurrence;
 
 /**
  * What a save of a recurring template asks for, on creation and on an edit alike:

@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Application;
 
-use App\Invoicing\Domain\RecurrenceEnd;
 use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\RecurringState;
 use App\Party\Application\TransactionalWork;
+use App\Shared\Domain\Schedule\RecurrenceEnd;
 
 final class RecurringLifecycleTest extends RecurringTestCase
 {

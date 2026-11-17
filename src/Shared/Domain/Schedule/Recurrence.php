@@ -6,12 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Domain;
+namespace App\Shared\Domain\Schedule;
 
 /**
- * How a recurring invoice repeats: from its first issue date, every N days,
- * weeks, months or years, until its end rule says stop. Dates are calendar
- * days at midnight in the first issue date's zone.
+ * How something repeats, such as a recurring invoice or a planned payment:
+ * from its first date, every N days, weeks, months or years, until its end
+ * rule says stop. Dates are calendar days at midnight in the first date's
+ * zone. It belongs to no module, so any module can schedule with it.
  */
 final readonly class Recurrence
 {

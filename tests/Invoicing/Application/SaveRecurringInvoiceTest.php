@@ -14,8 +14,6 @@ use App\Invoicing\Application\RecurringHistory;
 use App\Invoicing\Application\RecurringRefused;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\RecurrenceEnd;
-use App\Invoicing\Domain\RecurrenceUnit;
 use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\RecurringState;
 use App\Invoicing\Domain\Series;
@@ -25,6 +23,8 @@ use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Application\TransactionalWork;
 use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Id;
+use App\Shared\Domain\Schedule\RecurrenceEnd;
+use App\Shared\Domain\Schedule\RecurrenceUnit;
 
 final class SaveRecurringInvoiceTest extends RecurringTestCase
 {

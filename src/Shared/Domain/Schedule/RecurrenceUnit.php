@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Domain;
+namespace App\Shared\Domain\Schedule;
 
 /**
- * The step a recurring invoice repeats by. Yearly and "every 12 months" give the
+ * The step a recurrence repeats by. Yearly and "every 12 months" give the
  * same dates but stay distinct, as people chose one or the other.
  */
 enum RecurrenceUnit: string

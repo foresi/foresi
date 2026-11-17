@@ -16,14 +16,14 @@ use App\Invoicing\Application\NewInvoiceDefaults;
 use App\Invoicing\Application\RecurringInvoices;
 use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\RecurrenceEnd;
-use App\Invoicing\Domain\RecurrenceUnit;
 use App\Invoicing\Domain\RecurringDelivery;
 use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\RecurringInvoiceLine;
 use App\Invoicing\Domain\TaxPointRule;
 use App\Invoicing\Domain\VatRegime;
 use App\Party\Domain\LegalEntity;
+use App\Shared\Domain\Schedule\RecurrenceEnd;
+use App\Shared\Domain\Schedule\RecurrenceUnit;
 
 /**
  * The form of a recurring template as text: for a new one, for one started from an

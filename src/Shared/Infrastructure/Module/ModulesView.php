@@ -19,9 +19,11 @@ use App\Shared\Domain\Module\ModuleManifest;
 final class ModulesView
 {
     /**
-     * @return array{modules: list<array{id: string, kind: string, package: string, requires: list<string>, optional: list<string>, scopes: list<string>}>, problems: list<string>}
+     * @param list<ModuleIntegration> $integrations
+     *
+     * @return array{modules: list<array{id: string, kind: string, package: string, requires: list<string>, optional: list<string>, scopes: list<string>}>, integrations: list<array{module: string, uses: string, namespace: string, loaded: bool}>, problems: list<string>}
      */
-    public static function toArray(ModuleGraph $graph): array
+    public static function toArray(ModuleGraph $graph, array $integrations = []): array
     {
         return [
             'modules' => array_map(static fn (ModuleManifest $module): array => [
@@ -32,6 +34,12 @@ final class ModulesView
                 'optional' => self::ids($module->optional),
                 'scopes' => $module->scopes,
             ], $graph->all()),
+            'integrations' => array_map(static fn (ModuleIntegration $integration): array => [
+                'module' => $integration->module->value,
+                'uses' => $integration->uses->value,
+                'namespace' => $integration->namespace,
+                'loaded' => $integration->loaded,
+            ], $integrations),
             'problems' => array_map(static fn (GraphProblem $problem): string => $problem->code, $graph->problems()),
         ];
     }

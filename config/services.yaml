@@ -59,6 +59,9 @@ services:
         exclude:
             # Development tool: registered, and so routable, in the dev and test environments only.
             - '../src/Ui/Controller/CatalogueController.php'
+            # Integration code for an optional dependency: the kernel registers it only
+            # when that module is installed (App\Shared\Infrastructure\Module\ModuleIntegrations).
+            - '../src/*/Integration/'
 
     # Country modules plug into the core through tagged interfaces.
     _instanceof:
