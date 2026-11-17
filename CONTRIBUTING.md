@@ -54,6 +54,11 @@ CI splits the run so that it takes minutes, with the same thresholds. The `Tests
 - Keep pull requests focused. One logical change per pull request.
 - Update [CHANGELOG.md](CHANGELOG.md) under `Unreleased` for user-visible changes.
 - Never commit secrets or personal data. Use obviously fictional data in tests.
+- Pull requests are squash-merged. There is no merge queue, so a green pull request does not merge by itself: maintainers turn on auto-merge as soon as it is opened, and it then merges once the required checks pass:
+
+  ```bash
+  gh pr merge <number> --auto --squash
+  ```
 
 ## Reporting security issues
 
