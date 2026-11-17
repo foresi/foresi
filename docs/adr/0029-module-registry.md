@@ -1,6 +1,6 @@
 # 29. Module registry
 
-* Status: accepted
+* Status: accepted, amended by [ADR 0034](0034-module-packages.md) (core set, namespace, autoloading, bundles)
 * Date: 2026-11-11
 
 ## Context and problem statement

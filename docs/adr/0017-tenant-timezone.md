@@ -1,6 +1,6 @@
 # 17. Tenant time zone
 
-* Status: accepted
+* Status: superseded by [ADR 0035](0035-one-instance-per-customer.md)
 * Date: 2026-11-02
 
 ## Context and problem statement
