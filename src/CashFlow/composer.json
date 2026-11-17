@@ -1,0 +1,25 @@
+{
+    "name": "foresi/cash-flow",
+    "description": "Planned items, balance checkpoints and the cash-flow forecast.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "require": {
+        "foresi/audit": "*",
+        "foresi/exchange-rate": "*",
+        "foresi/identity": "*",
+        "foresi/party": "*",
+        "foresi/shared": "*",
+        "foresi/tenancy": "*"
+    },
+    "extra": {
+        "foresi": {
+            "module": "cash-flow",
+            "kind": "module",
+            "namespace": "App\\CashFlow\\",
+            "optional": [],
+            "scopes": [
+                "cashflow"
+            ]
+        }
+    }
+}

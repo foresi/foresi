@@ -3097,6 +3097,7 @@ api_tokens:
     payments: Platby
     webhooks: Webhooky
     events: Události
+    cashflow: Cash flow
   state:
     expired: Vypršel
     revoked: Zrušen

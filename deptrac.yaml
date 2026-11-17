@@ -232,6 +232,19 @@ deptrac:
       collectors:
         - type: directory
           value: src/Purchasing/Infrastructure/.*
+    # Cash flow: planned items, balance checkpoints and the forecast (plan 30).
+    - name: CashFlowDomain
+      collectors:
+        - type: directory
+          value: src/CashFlow/Domain/.*
+    - name: CashFlowApplication
+      collectors:
+        - type: directory
+          value: src/CashFlow/Application/.*
+    - name: CashFlowInfrastructure
+      collectors:
+        - type: directory
+          value: src/CashFlow/Infrastructure/.*
     # Exchange rates to CZK: the port, the store and the schedule. A source plugs in from a country module.
     - name: ExchangeRateDomain
       collectors:
@@ -843,6 +856,44 @@ deptrac:
       - VendorSymfony
       - VendorDoctrine
       - VendorDoctrineOrmMapping
+    # Cash flow builds on Party (firms, their bank accounts, contacts), Identity
+    # (people) and the exchange rates. It knows no module that feeds it: they
+    # plug in through its contract (ADR 0033).
+    CashFlowDomain:
+      - Contract
+      - VendorDoctrineOrmMapping
+      - SharedDomain
+      - TenancyDomain
+      - AuditDomain
+      - PartyDomain
+    CashFlowApplication:
+      - Contract
+      - CashFlowDomain
+      - SharedDomain
+      - SharedApplication
+      - TenancyDomain
+      - TenancyApplication
+      - AuditDomain
+      - AuditApplication
+      - PartyDomain
+      - PartyApplication
+      - IdentityApplication
+      - ExchangeRateDomain
+      - ExchangeRateApplication
+    CashFlowInfrastructure:
+      - Contract
+      - SharedInfrastructure
+      - CashFlowDomain
+      - CashFlowApplication
+      - VendorSymfony
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
+      - VendorOpenApi
+      - SharedDomain
+      - SharedApplication
+      - TenancyApplication
+      - PartyDomain
+      - IdentityApplication
     # Purchasing builds on Party (firms and suppliers), Identity (people), the
     # attachment store, which keeps the original files, and the exchange rates;
     # no module uses Purchasing but the navigation of Ui, and it never uses
@@ -1006,3 +1057,6 @@ deptrac:
       - SharedApplication
     Contract:
       - SharedDomain
+      # The autoconfigure tag attribute of a contract port, such as CashFlowSource, that
+      # integration code implements (ADR 0033); nothing else of Symfony is used there.
+      - VendorSymfony

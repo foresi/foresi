@@ -3097,6 +3097,7 @@ api_tokens:
     payments: Payments
     webhooks: Webhooks
     events: Events
+    cashflow: Cash flow
   state:
     expired: Expired
     revoked: Revoked

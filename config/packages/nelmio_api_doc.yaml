@@ -294,6 +294,135 @@ nelmio_api_doc:
                     properties:
                         data: { type: array, items: { $ref: '#/components/schemas/Payment' } }
                         next_cursor: { type: string, nullable: true }
+                CashFlowPlannedItem:
+                    type: object
+                    description: Money a firm expects to receive or pay that no document carries yet, one-off or recurring.
+                    properties:
+                        id: { type: string, format: uuid }
+                        firm: { $ref: '#/components/schemas/Reference' }
+                        direction: { type: string, enum: [in, out] }
+                        name: { type: string }
+                        category: { type: string, enum: [revenue, purchases, rent, software, payroll, taxes, insurance, vat, loans, owner_draws, other] }
+                        amount: { $ref: '#/components/schemas/Money' }
+                        counterparty: { allOf: [{ $ref: '#/components/schemas/Reference' }], nullable: true }
+                        'on': { type: string, format: date, description: 'The day of a one-off item, the first day of a recurring one.' }
+                        repeat: { type: string, enum: [day, week, month, year], nullable: true }
+                        every: { type: integer, nullable: true }
+                        last_day_of_month: { type: boolean }
+                        ends_on: { type: string, format: date, nullable: true }
+                        ends_after: { type: integer, nullable: true }
+                        included: { type: boolean }
+                        skipped_on: { type: array, items: { type: string, format: date } }
+                        match:
+                            type: object
+                            properties:
+                                account: { type: string, nullable: true }
+                                variable_symbol: { type: string, nullable: true }
+                                tolerance: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
+                        created_at: { type: string, format: date-time }
+                CashFlowCheckpoint:
+                    type: object
+                    description: The balance of a firm bank account at the end of a day.
+                    properties:
+                        id: { type: string, format: uuid }
+                        bank_account:
+                            type: object
+                            properties:
+                                id: { type: string, format: uuid }
+                                iban: { type: string }
+                                label: { type: string }
+                        firm_id: { type: string, format: uuid }
+                        'on': { type: string, format: date }
+                        amount: { $ref: '#/components/schemas/Money' }
+                        recorded_at: { type: string, format: date-time }
+                CashFlowExpectedDate:
+                    type: object
+                    properties:
+                        subject_type: { type: string }
+                        subject_id: { type: string }
+                        expected_on: { type: string, format: date, nullable: true, description: Null once cleared. }
+                CashFlowMinimumBalance:
+                    type: object
+                    properties:
+                        firm_id: { type: string, format: uuid }
+                        amount: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
+                CashFlowTotals:
+                    type: object
+                    properties:
+                        total: { $ref: '#/components/schemas/Money' }
+                        by_category: { type: object, additionalProperties: { $ref: '#/components/schemas/Money' } }
+                CashFlowItem:
+                    type: object
+                    description: One expected flow, counted in the period that holds counted_on.
+                    properties:
+                        source: { type: string, example: cash-flow.planned_items }
+                        subject:
+                            type: object
+                            properties:
+                                type: { type: string, example: planned_item }
+                                id: { type: string }
+                                url: { type: string, nullable: true }
+                        direction: { type: string, enum: [in, out] }
+                        label: { type: string }
+                        category: { type: string, enum: [revenue, purchases, rent, software, payroll, taxes, insurance, vat, loans, owner_draws, other] }
+                        certainty: { type: string, enum: [document, schedule, plan, estimate] }
+                        flags: { type: array, items: { type: string, enum: [overdue, estimated, no_due_date, expected_date] } }
+                        expected_on: { type: string, format: date }
+                        counted_on: { type: string, format: date }
+                        amount: { $ref: '#/components/schemas/Money' }
+                        amount_czk: { $ref: '#/components/schemas/Money' }
+                        counterparty_id: { type: string, format: uuid, nullable: true }
+                CashFlowForecast:
+                    type: object
+                    description: The forecast of a firm in CZK at today's ČNB rate, by ISO weeks until the end of next month, then by calendar months.
+                    properties:
+                        firm: { $ref: '#/components/schemas/Reference' }
+                        currency: { type: string, example: CZK }
+                        today: { type: string, format: date }
+                        from: { type: string, format: date }
+                        to: { type: string, format: date }
+                        balance:
+                            type: object
+                            properties:
+                                amount: { $ref: '#/components/schemas/Money' }
+                                as_of: { type: string, format: date, nullable: true }
+                                stale: { type: boolean, description: 'The oldest balance is older than 7 days, or there is none.' }
+                                accounts:
+                                    type: array
+                                    items:
+                                        type: object
+                                        properties:
+                                            id: { type: string, format: uuid }
+                                            iban: { type: string }
+                                            label: { type: string }
+                                            balance: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
+                                            amount: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
+                                            as_of: { type: string, format: date, nullable: true }
+                                            source: { type: string, nullable: true }
+                        periods:
+                            type: array
+                            items:
+                                type: object
+                                properties:
+                                    key: { type: string, example: 2026-W47 }
+                                    kind: { type: string, enum: [week, month] }
+                                    start: { type: string, format: date }
+                                    end: { type: string, format: date }
+                                    opening: { $ref: '#/components/schemas/Money' }
+                                    inflows: { $ref: '#/components/schemas/CashFlowTotals' }
+                                    outflows: { $ref: '#/components/schemas/CashFlowTotals' }
+                                    closing: { $ref: '#/components/schemas/Money' }
+                                    items: { type: array, items: { $ref: '#/components/schemas/CashFlowItem' } }
+                        lowest:
+                            type: object
+                            properties:
+                                amount: { $ref: '#/components/schemas/Money' }
+                                'on': { type: string, format: date }
+                        minimum_balance: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
+                        shortfall_on: { type: string, format: date, nullable: true }
+                        incomplete: { type: boolean }
+                        unavailable_sources: { type: array, items: { type: string } }
+                        unavailable_rates: { type: array, items: { type: string } }
                 WebhookEndpoint:
                     type: object
                     description: An HTTPS address that receives the events it subscribes to as signed Standard Webhooks requests. It never holds the secret.

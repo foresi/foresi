@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3b72130b6a7eed01785d302901bed579",
+    "content-hash": "0ffcfe71ac57d29761b71f342b0b554f",
     "packages": [
         {
             "name": "brick/math",
@@ -1602,7 +1602,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Attachment",
-                "reference": "cac38114ee855901baa258a3658daeaf3fe0fd93"
+                "reference": "8da870df505ca6bc9459933d8e8139c8b0cce04e"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1634,7 +1634,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Audit",
-                "reference": "8c7d090d82f9af9ddfe5ea41fce8d9aea2231a39"
+                "reference": "21a81582681dcd0194b7d59f7d4c2e74a98bd68f"
             },
             "require": {
                 "foresi/shared": "*",
@@ -1664,7 +1664,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Banking",
-                "reference": "8ee703faf1b3561dec56e8a4ad57e57ff7ec2aec"
+                "reference": "86c07cb2b9230b089e0bd2adfb2715a6170bbca2"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1694,12 +1694,49 @@
             }
         },
         {
+            "name": "foresi/cash-flow",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/CashFlow",
+                "reference": "9bece4a7a650a9bbc50c3ece093e27dc9fbf01a9"
+            },
+            "require": {
+                "foresi/audit": "*",
+                "foresi/exchange-rate": "*",
+                "foresi/identity": "*",
+                "foresi/party": "*",
+                "foresi/shared": "*",
+                "foresi/tenancy": "*"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "cash-flow",
+                    "kind": "module",
+                    "namespace": "App\\CashFlow\\",
+                    "optional": [],
+                    "scopes": [
+                        "cashflow"
+                    ]
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Planned items, balance checkpoints and the cash-flow forecast.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "foresi/country",
             "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "src/Country",
-                "reference": "89586661263e3b5c9f7e0891963e3d7e4a3488c7"
+                "reference": "acfdf55148d39c57f0f9ac10a2139fe685891f0c"
             },
             "require": {
                 "foresi/banking": "*",
@@ -1732,7 +1769,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Events",
-                "reference": "58ee22f6971a4056bb6edd30bf17ef0964f09f67"
+                "reference": "904521fc273de821fdb4e291e1a5b0702eb273c6"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1766,7 +1803,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/ExchangeRate",
-                "reference": "c3926e0f0bdfe862554e1a82896c2b33e02d4cc1"
+                "reference": "eb7d7c0dec6317876166b4052573e318699f43e1"
             },
             "require": {
                 "foresi/tenancy": "*"
@@ -1795,7 +1832,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Identity",
-                "reference": "48e3db56c381e1e5bf3b48dafbf5563c66e50694"
+                "reference": "664f169cffa60a23af9ae0a03285267cf7d2ab37"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1828,7 +1865,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Idoklad",
-                "reference": "f338a69e0ba8437d928dae00a922159f970f6e2b"
+                "reference": "04f9714b228739eabbfafb9cde41d8f2f08925bc"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1863,7 +1900,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Import",
-                "reference": "12d1bb543a060c8367ad5208734aa67e494ff347"
+                "reference": "3e00a0daf6009940b2330a8f7b15125f9b746b2b"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1896,7 +1933,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Invoicing",
-                "reference": "823d3064ae0e7143b40129021c35a9ae3d9b336e"
+                "reference": "3f5b45b8935890eb1a5a4ffd4f734197ac229667"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1934,7 +1971,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "f657b84318a3366b7d2bb09c4377c55005e1b9a5"
+                "reference": "421f61055a21e2e442e5d4662b508bb0990ff3ab"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1971,7 +2008,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Purchasing",
-                "reference": "2d71f459d28b591b8f148a8a9b853088115eb200"
+                "reference": "55f561bfb668923deaba9d5ebed32445a5ed361c"
             },
             "require": {
                 "foresi/attachment": "*",
@@ -2007,7 +2044,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "e0805a04f992f6d61a9b4643169c032003ba1802"
+                "reference": "bb19051caf0292d8c3d3e08f4b0d49e64cb1917f"
             },
             "type": "foresi-module",
             "extra": {
@@ -2033,7 +2070,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Tenancy",
-                "reference": "118c4e6d9e374cf9116f61008ad94848a50b197f"
+                "reference": "d42076303157221c7b03d36facbaa9afca5195c0"
             },
             "require": {
                 "foresi/shared": "*"
@@ -2062,7 +2099,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Timesheet",
-                "reference": "707325a4ea836e0935ff0ca64460d4f473225983"
+                "reference": "3ed924f15288f7be57b6805c8c3a21155a1432ab"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2097,7 +2134,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Ui",
-                "reference": "0c5b3b74ec0c263b774bd3f90977f52f9957f817"
+                "reference": "f8e0b065810c9af9d1992123dab24c6325742d1f"
             },
             "require": {
                 "foresi/shared": "*"
@@ -2126,7 +2163,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Webhooks",
-                "reference": "dd7492c8370dfcea76dbad80e41550eafc403528"
+                "reference": "f4f5d61ac9e4da3dcca575ea35dd217454bf5715"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2163,7 +2200,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Work",
-                "reference": "b6deb10775d6d9347637197b27c6a091b4d01e18"
+                "reference": "ba9a2f5b3a471513a9ed2e52ef5c163a623f7ddd"
             },
             "require": {
                 "foresi/attachment": "*",
@@ -18554,6 +18591,7 @@
         "foresi/attachment": 20,
         "foresi/audit": 20,
         "foresi/banking": 20,
+        "foresi/cash-flow": 20,
         "foresi/country": 20,
         "foresi/events": 20,
         "foresi/exchange-rate": 20,
