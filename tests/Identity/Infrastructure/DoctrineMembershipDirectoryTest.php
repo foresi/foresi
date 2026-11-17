@@ -8,23 +8,24 @@ declare(strict_types=1);
 
 namespace App\Tests\Identity\Infrastructure;
 
-use App\Identity\Application\Organisation;
+use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Doctrine\DoctrineMembershipDirectory;
-use App\Instance\Application\NoActiveTenant;
 use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
-use App\Instance\Infrastructure\Doctrine\TenantFilter;
 use App\Tests\Identity\Support\IdentityFixtures;
-use App\Tests\Instance\Fixtures\TestNote;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
+/**
+ * One instance serves one customer (ADR 0035): a person has one membership,
+ * and the directory answers their role in it whatever tenant is active.
+ */
 final class DoctrineMembershipDirectoryTest extends KernelTestCase
 {
+    private const string STRANGER = '019a0000-0000-7000-8000-0000000f1206';
+
     private EntityManagerInterface $em;
-    private TenantContext $context;
     private DoctrineMembershipDirectory $directory;
     private IdentityFixtures $fixtures;
 
@@ -32,172 +33,57 @@ final class DoctrineMembershipDirectoryTest extends KernelTestCase
     {
         self::bootKernel();
         $container = self::getContainer();
-        $em = $container->get('doctrine.orm.entity_manager');
-        $context = $container->get(TenantContext::class);
-        $directory = $container->get(DoctrineMembershipDirectory::class);
-
-        $this->em = $em;
-        $this->context = $context;
-        $this->directory = $directory;
-        $this->fixtures = new IdentityFixtures($em, $context);
+        $this->em = $container->get('doctrine.orm.entity_manager');
+        $this->directory = $container->get(DoctrineMembershipDirectory::class);
+        $this->fixtures = new IdentityFixtures($this->em, $container->get(TenantContext::class));
         $this->fixtures->rebuildSchema();
     }
 
-    public function testListsMembershipsAcrossTenantsWhateverTenantIsActive(): void
+    public function testTheRoleIsTheOneOfTheMembership(): void
     {
-        [$user, $a, $b] = $this->userInTwoTenants();
-        $this->fixtures->join($this->fixtures->user('other@example.com'), $this->fixtures->tenant('Tenant C'));
+        $tenant = $this->fixtures->tenant('Example Company');
+        $owner = $this->fixtures->user();
+        $member = $this->fixtures->user('member@example.com');
+        $this->fixtures->join($owner, $tenant);
+        $this->fixtures->join($member, $tenant, Role::Member);
 
-        $this->context->switchTo($a);
-        $ids = $this->directory->tenantIdsOf($user);
-
-        self::assertCount(2, $ids);
-        self::assertTrue($ids[0]->equals($a));
-        self::assertTrue($ids[1]->equals($b));
+        self::assertSame(Role::Owner, $this->directory->roleOf($owner->id()));
+        self::assertSame(Role::Member, $this->directory->roleOf($member->id()));
+        self::assertNull($this->directory->roleOf(self::STRANGER));
     }
 
-    public function testListsMembershipsWithoutActiveTenantAndStaysFailClosed(): void
+    public function testADeactivatedMembershipHasNoRole(): void
     {
-        [$user] = $this->userInTwoTenants();
+        $user = $this->fixtures->user();
+        $this->fixtures->join($user, $this->fixtures->tenant('Example Company'), Role::Member);
+        $this->em->getConnection()->executeStatement('UPDATE membership SET disabled_at = ?', ['2026-11-17 10:00:00']);
 
-        self::assertCount(2, $this->directory->tenantIdsOf($user));
-
-        self::assertTrue($this->em->getFilters()->isEnabled(TenantFilter::NAME));
-        $this->expectException(NoActiveTenant::class);
-        $this->em->getRepository(TestNote::class)->findAll();
+        self::assertNull($this->directory->roleOf($user->id()));
+        self::assertSame([], $this->directory->organisationsOf($user->id()));
     }
 
-    public function testActiveTenantIsRestoredAfterTheLookup(): void
+    public function testAPersonHasOneMembershipOnly(): void
     {
-        [$user, $a, $b] = $this->userInTwoTenants();
-        $this->seedNote($a, 'a-note');
-        $this->seedNote($b, 'b-note');
+        $user = $this->fixtures->user();
+        $this->fixtures->join($user, $this->fixtures->tenant('Example Company'));
 
-        $this->context->switchTo($a);
-        $this->directory->tenantIdsOf($user);
-
-        self::assertTrue($this->em->getFilters()->isEnabled(TenantFilter::NAME));
-        self::assertTrue($this->context->current()->equals($a));
-        self::assertSame(['a-note'], array_map(static fn (TestNote $n): string => $n->text(), $this->em->getRepository(TestNote::class)->findAll()));
-    }
-
-    public function testManagedEntitiesAndPendingChangesSurviveTheLookup(): void
-    {
-        [$user, $a] = $this->userInTwoTenants();
-        $this->seedNote($a, 'a-note');
-        $this->context->switchTo($a);
-        $managed = $this->em->getRepository(TestNote::class)->findOneBy(['text' => 'a-note']);
-        self::assertInstanceOf(TestNote::class, $managed);
-        $this->em->persist(new TestNote('pending'));
-
-        $this->directory->tenantIdsOf($user);
-
-        self::assertTrue($this->em->contains($managed));
-        self::assertTrue($this->em->getUnitOfWork()->hasPendingInsertions());
+        $this->expectException(UniqueConstraintViolationException::class);
+        $this->em->persist(new Membership($this->em->getReference($user::class, $user->id()) ?? throw new \LogicException('The user is missing.'), Role::Member));
         $this->em->flush();
-        $texts = array_map(static fn (TestNote $n): string => $n->text(), $this->em->getRepository(TestNote::class)->findAll());
-        sort($texts);
-        self::assertSame(['a-note', 'pending'], $texts);
-        self::assertSame($managed, $this->em->getRepository(TestNote::class)->findOneBy(['text' => 'a-note']));
     }
 
-    public function testFilterIsRestoredEvenWhenTheLookupThrows(): void
+    public function testTheOrganisationIsTheInstanceWithTheRole(): void
     {
-        [, $a] = $this->userInTwoTenants();
-        $this->seedNote($a, 'a-note');
-        $this->context->switchTo($a);
+        $tenant = $this->fixtures->tenant('Example Company');
+        $user = $this->fixtures->user();
+        $this->fixtures->join($user, $tenant, Role::Member);
 
-        try {
-            $this->directory->tenantIdsOf(new User('ghost@example.com', 'hash', 'Ghost'));
-            self::fail('Looking up an unsaved user must throw.');
-        } catch (\Throwable) {
-            self::assertTrue($this->em->getFilters()->isEnabled(TenantFilter::NAME));
-            self::assertTrue($this->context->current()->equals($a));
-            self::assertCount(1, $this->em->getRepository(TestNote::class)->findAll());
-        }
-    }
-
-    public function testFilterIsRestoredWhenThrowingWithoutActiveTenant(): void
-    {
-        try {
-            $this->directory->tenantIdsOf(new User('ghost@example.com', 'hash', 'Ghost'));
-            self::fail('Looking up an unsaved user must throw.');
-        } catch (\Throwable) {
-            self::assertTrue($this->em->getFilters()->isEnabled(TenantFilter::NAME));
-        }
-
-        $this->expectException(NoActiveTenant::class);
-        $this->em->getRepository(TestNote::class)->findAll();
-    }
-
-    public function testOrganisationsOfListsNamesAndRolesOfTheUsersTenantsOnly(): void
-    {
-        [$user, $a, $b] = $this->userInTwoTenants();
-        $this->fixtures->join($this->fixtures->user('other@example.com'), $this->fixtures->tenant('Tenant C'));
-
-        $this->context->switchTo($a);
         $organisations = $this->directory->organisationsOf($user->id());
 
-        self::assertCount(2, $organisations);
-        self::assertSame(['Tenant A', 'Tenant B'], array_map(static fn (Organisation $o): string => $o->name, $organisations));
-        self::assertTrue($organisations[0]->id->equals($a));
-        self::assertTrue($organisations[1]->id->equals($b));
-        self::assertSame(Role::Owner, $organisations[0]->role);
-    }
-
-    public function testOrganisationsOfWorksWithoutActiveTenantAndReturnsNothingForStrangers(): void
-    {
-        [$user] = $this->userInTwoTenants();
-
-        self::assertCount(2, $this->directory->organisationsOf($user->id()));
-        self::assertSame([], $this->directory->organisationsOf('019a0000-0000-7000-8000-0000000f1206'));
-    }
-
-    public function testOrganisationsOfIsScalarOnlyAndRestoresTheFilter(): void
-    {
-        [$user, $a] = $this->userInTwoTenants();
-        $this->seedNote($a, 'a-note');
-        $this->context->switchTo($a);
-        $managedBefore = $this->em->getUnitOfWork()->size();
-
-        $this->directory->organisationsOf($user->id());
-
-        // No Membership or Tenant entity became managed by the cross-tenant read.
-        self::assertSame($managedBefore, $this->em->getUnitOfWork()->size());
-        self::assertTrue($this->em->getFilters()->isEnabled(TenantFilter::NAME));
-        self::assertTrue($this->context->current()->equals($a));
-        self::assertCount(1, $this->em->getRepository(TestNote::class)->findAll());
-    }
-
-    public function testOrganisationsOfStaysFailClosedWithoutActiveTenant(): void
-    {
-        [$user] = $this->userInTwoTenants();
-
-        $this->directory->organisationsOf($user->id());
-
-        $this->expectException(NoActiveTenant::class);
-        $this->em->getRepository(TestNote::class)->findAll();
-    }
-
-    /**
-     * @return array{User, TenantId, TenantId}
-     */
-    private function userInTwoTenants(): array
-    {
-        $a = $this->fixtures->tenant('Tenant A');
-        $b = $this->fixtures->tenant('Tenant B');
-        $user = $this->fixtures->user();
-        $this->fixtures->join($user, $a);
-        $this->fixtures->join($user, $b);
-
-        return [$user, $a, $b];
-    }
-
-    private function seedNote(TenantId $tenant, string $text): void
-    {
-        $this->context->switchTo($tenant);
-        $this->em->persist(new TestNote($text));
-        $this->em->flush();
-        $this->context->reset();
+        self::assertCount(1, $organisations);
+        self::assertTrue($organisations[0]->id->equals($tenant));
+        self::assertSame('Example Company', $organisations[0]->name);
+        self::assertSame(Role::Member, $organisations[0]->role);
+        self::assertSame([], $this->directory->organisationsOf(self::STRANGER));
     }
 }

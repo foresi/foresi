@@ -14,7 +14,6 @@ use App\Import\Application\Source\SourceSettings;
 use App\Import\Application\Target\TargetRegistry;
 use App\Import\Domain\Import;
 use App\Import\Domain\ImportProfile;
-use App\Instance\Application\TenantContext;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -30,7 +29,6 @@ final readonly class StartImport
         private Imports $imports,
         private ProfileRepository $profiles,
         private ImportJobs $jobs,
-        private TenantContext $tenants,
         private ClockInterface $clock,
     ) {
     }
@@ -56,7 +54,7 @@ final readonly class StartImport
         $originalName = ImportFileName::normalise($originalName);
         // The reader detects the format from the content; the name only gives a first guess.
         $format = 'xlsx' === strtolower(pathinfo($originalName, \PATHINFO_EXTENSION)) ? SourceFormat::Xlsx : SourceFormat::Csv;
-        $fileKey = $this->files->store($this->tenants->current(), $tmpPath, $originalName);
+        $fileKey = $this->files->store($tmpPath, $originalName);
         try {
             $import = new Import($target->key(), $fileKey, $originalName, new SourceSettings($format)->toArray(), $actorUserId, \DateTimeImmutable::createFromInterface($this->clock->now()));
             if ($profile instanceof ImportProfile) {

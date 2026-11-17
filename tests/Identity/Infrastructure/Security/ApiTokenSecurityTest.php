@@ -13,37 +13,25 @@ use App\Identity\Application\ApiTokenRefused;
 use App\Identity\Application\InsufficientScope;
 use App\Identity\Domain\ApiScope;
 use App\Identity\Infrastructure\Security\ApiTokenRejected;
-use App\Identity\Infrastructure\Security\RequestActiveTenantStore;
 use App\Identity\Infrastructure\Security\SecurityApiTokenContext;
 use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Identity\Infrastructure\Security\SessionActiveTenantStore;
-use App\Identity\Infrastructure\Security\TokenActiveTenantStore;
-use App\Instance\Domain\TenantId;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\HttpFoundation\Session\Session;
-use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\Security\Core\Authentication\Token\NullToken;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 use Symfony\Component\Security\Http\Authenticator\Token\PostAuthenticationToken;
 
 /**
  * The pieces between the firewall and the token: where the grant is read,
- * which tenant store a request uses, and the code of each refusal.
+ * and the code of each refusal.
  */
 final class ApiTokenSecurityTest extends TestCase
 {
     private TokenStorage $storage;
-    private Session $session;
-    private TenantId $tokenTenant;
 
     protected function setUp(): void
     {
         $this->storage = new TokenStorage();
-        $this->session = new Session(new MockArraySessionStorage());
-        $this->tokenTenant = TenantId::generate();
     }
 
     public function testWithoutASignInThereIsNoGrantAndNoScope(): void
@@ -88,38 +76,6 @@ final class ApiTokenSecurityTest extends TestCase
         }
     }
 
-    public function testATokenRequestUsesTheTokensTenantAndNeverTheSession(): void
-    {
-        $this->signIn([ApiScope::read()]);
-        $other = TenantId::generate();
-        $this->session->set('active_tenant', $other->toString());
-        $store = $this->store();
-
-        self::assertTrue($store->get()?->equals($this->tokenTenant));
-        $store->store(TenantId::generate());
-        $store->clear();
-        $store->migrate();
-
-        self::assertSame($other->toString(), $this->session->get('active_tenant'));
-        self::assertTrue($store->get()?->equals($this->tokenTenant));
-    }
-
-    public function testAScreenRequestUsesTheSession(): void
-    {
-        $store = $this->store();
-        $chosen = TenantId::generate();
-
-        self::assertNull($store->get());
-        $store->store($chosen);
-        self::assertSame($chosen->toString(), $this->session->get('active_tenant'));
-        self::assertTrue($store->get()?->equals($chosen));
-        $id = $this->session->getId();
-        $store->migrate();
-        self::assertNotSame($id, $this->session->getId());
-        $store->clear();
-        self::assertNull($store->get());
-    }
-
     #[DataProvider('rejections')]
     public function testEachRefusalHasItsProblemCode(string $reason, string $problem): void
     {
@@ -147,7 +103,7 @@ final class ApiTokenSecurityTest extends TestCase
      */
     private function signIn(array $scopes): ApiTokenGrant
     {
-        $grant = new ApiTokenGrant('019a0000-0000-7000-8000-000000000001', $this->tokenTenant, '019a0000-0000-7000-8000-0000000000aa', 'Reporting', $scopes, new \DateTimeImmutable('2026-12-01'));
+        $grant = new ApiTokenGrant('019a0000-0000-7000-8000-000000000001', '019a0000-0000-7000-8000-0000000000aa', 'Reporting', $scopes, new \DateTimeImmutable('2026-12-01'));
         $token = $this->token();
         $token->setAttribute(SecurityApiTokenContext::ATTRIBUTE, $grant);
         $this->storage->setToken($token);
@@ -158,15 +114,5 @@ final class ApiTokenSecurityTest extends TestCase
     private function token(): PostAuthenticationToken
     {
         return new PostAuthenticationToken(new SecurityUser('019a0000-0000-7000-8000-000000000001', 'testing@example.com', 'hash'), 'api', ['ROLE_USER']);
-    }
-
-    private function store(): RequestActiveTenantStore
-    {
-        $request = new Request();
-        $request->setSession($this->session);
-        $requests = new RequestStack([$request]);
-        $context = new SecurityApiTokenContext($this->storage);
-
-        return new RequestActiveTenantStore($context, new TokenActiveTenantStore($context), new SessionActiveTenantStore($requests));
     }
 }

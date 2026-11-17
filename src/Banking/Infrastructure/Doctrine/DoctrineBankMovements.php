@@ -15,7 +15,6 @@ use App\Banking\Application\UnknownBankMovement;
 use App\Banking\Domain\BankMovement;
 use App\Banking\Domain\MovementDirection;
 use App\Banking\Domain\MovementState;
-use App\Instance\Application\TenantContext;
 use App\Invoicing\Domain\Payment;
 use App\Invoicing\Domain\PaymentAllocation;
 use App\Party\Domain\FirmBankAccount;
@@ -23,16 +22,15 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
 
 /**
- * Reads go through the ORM; the two locks are plain statements, the lock of an
- * account still naming its tenant, as accounts carry one. A page of the screen takes
- * one query for its movements and one for the invoice numbers of all of them.
+ * Reads go through the ORM; the two locks are plain statements. A page of the
+ * screen takes one query for its movements and one for the invoice numbers of all of them.
  */
 final readonly class DoctrineBankMovements implements BankMovements
 {
     private const string LOCK = 'UPDATE bank_movement SET version = version WHERE id = :id';
-    private const string LOCK_ACCOUNT = 'UPDATE firm_bank_account SET position = position WHERE id = :id AND tenant_id = :tenant';
+    private const string LOCK_ACCOUNT = 'UPDATE firm_bank_account SET position = position WHERE id = :id';
 
-    public function __construct(private EntityManagerInterface $em, private TenantContext $context)
+    public function __construct(private EntityManagerInterface $em)
     {
     }
 
@@ -61,7 +59,7 @@ final readonly class DoctrineBankMovements implements BankMovements
 
     public function lockAccount(string $accountId): void
     {
-        $this->em->getConnection()->executeStatement(self::LOCK_ACCOUNT, ['id' => $accountId, 'tenant' => $this->context->current()->toString()]);
+        $this->em->getConnection()->executeStatement(self::LOCK_ACCOUNT, ['id' => $accountId]);
     }
 
     public function add(BankMovement $movement): void

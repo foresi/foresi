@@ -9,11 +9,10 @@ declare(strict_types=1);
 namespace App\Identity\Application;
 
 use App\Identity\Domain\ApiScope;
-use App\Instance\Domain\TenantId;
 
 /**
- * What a valid personal API token lets a request do: act as its person, in its
- * organisation, within its scopes.
+ * What a valid personal API token lets a request do: act as its person within its
+ * scopes.
  */
 final readonly class ApiTokenGrant
 {
@@ -22,7 +21,6 @@ final readonly class ApiTokenGrant
      */
     public function __construct(
         public string $userId,
-        public TenantId $tenantId,
         public string $tokenId,
         public string $tokenName,
         public array $scopes,

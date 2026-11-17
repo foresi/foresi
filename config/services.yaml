@@ -101,10 +101,6 @@ services:
         App\Events\Application\EventSink:
             tags: ['app.event_sink']
 
-    # The tenant of a request signed in with a personal API token is the token's; otherwise the session's choice.
-    App\Identity\Application\ActiveTenantStore:
-        alias: App\Identity\Infrastructure\Security\RequestActiveTenantStore
-
     App\Party\Application\RegistrationNumberFactory:
         arguments:
             $validators: !tagged_iterator app.registration_number_validator

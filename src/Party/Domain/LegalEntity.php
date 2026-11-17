@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Party\Domain;
 
 use App\Audit\Domain\Audited;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -24,16 +22,12 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'legal_entity')]
-#[ORM\Index(name: 'idx_legal_entity_tenant', columns: ['tenant_id'])]
-#[ORM\UniqueConstraint(name: 'uniq_legal_entity_active_registration', columns: ['tenant_id', 'registration_country', 'active_registration_key'])]
-class LegalEntity implements TenantOwned, Audited
+#[ORM\UniqueConstraint(name: 'uniq_legal_entity_active_registration', columns: ['registration_country', 'active_registration_key'])]
+class LegalEntity implements Audited
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'string', length: 255)]
     private string $name;
@@ -165,11 +159,6 @@ class LegalEntity implements TenantOwned, Audited
     public function changeStamp(?string $name): void
     {
         $this->stamp = $name;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     private function cleanName(string $name): string

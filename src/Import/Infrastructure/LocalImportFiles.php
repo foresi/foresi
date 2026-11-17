@@ -9,31 +9,31 @@ declare(strict_types=1);
 namespace App\Import\Infrastructure;
 
 use App\Import\Application\ImportFiles;
-use App\Instance\Domain\TenantId;
 use Symfony\Component\Uid\Uuid;
 
 /**
  * Stores source files below one directory, outside the web root, as
- * <root>/<tenant>/<uuid> with mode 0600 (directories 0700).
+ * <root>/<uuid> with mode 0600 (directories 0700). Files stored under
+ * <root>/<tenant>/<uuid> before one instance served one customer still read.
  */
 final readonly class LocalImportFiles implements ImportFiles
 {
-    private const string KEY_PATTERN = '/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}\/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/D';
+    private const string KEY_PATTERN = '/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}(\/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12})?$/D';
 
     public function __construct(private string $root)
     {
     }
 
-    public function store(TenantId $tenant, string $tmpPath, string $originalName): string
+    public function store(string $tmpPath, string $originalName): string
     {
-        $directory = $this->root.'/'.$tenant->toString();
+        $directory = $this->root;
         if (!is_dir($directory) && !mkdir($directory, 0o700, true) && !is_dir($directory)) {
             throw new \RuntimeException('The import directory cannot be created.');
         }
         // A directory that already exists may have been created with wider permissions.
         chmod($directory, 0o700);
 
-        $key = $tenant->toString().'/'.Uuid::v4()->toRfc4122();
+        $key = Uuid::v4()->toRfc4122();
         $target = $this->root.'/'.$key;
         // Create the file private first, so the content is never readable by others.
         if (false === file_put_contents($target, '') || !chmod($target, 0o600)) {

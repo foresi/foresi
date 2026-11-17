@@ -14,7 +14,6 @@ use App\Banking\Application\PairingRules;
 use App\Banking\Domain\FirmPairing;
 use App\Instance\Application\TenantContext;
 use App\Instance\Domain\TenantId;
-use App\Party\Application\UnknownLegalEntity;
 use App\Party\Domain\Address;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\RegistrationNumber;
@@ -32,7 +31,6 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 final class ChangePairingTest extends KernelTestCase
 {
     private EntityManagerInterface $em;
-    private TenantContext $context;
 
     protected function setUp(): void
     {
@@ -42,8 +40,8 @@ final class ChangePairingTest extends KernelTestCase
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->context->switchTo(TenantId::generate());
+        $context = self::getContainer()->get(TenantContext::class);
+        $context->switchTo(TenantId::generate());
     }
 
     public function testDefaultsAreOnAndOffWithoutARow(): void
@@ -79,15 +77,6 @@ final class ChangePairingTest extends KernelTestCase
         $this->connection()->insert('firm_bank_pairing', ['id' => '01963c5e-0000-7000-8000-000000000001', 'legal_entity_id' => $firm->id()]);
 
         self::assertSame([['legal_entity_id' => $firm->id(), 'auto_pairing' => 1, 'small_difference' => 0]], $this->stored(), 'the database defaults are the ones of a firm without a row');
-    }
-
-    public function testAnotherTenantsFirmIsNotFound(): void
-    {
-        $firm = $this->firm('Example One s.r.o.');
-        $this->context->switchTo(TenantId::generate());
-
-        $this->expectException(UnknownLegalEntity::class);
-        $this->change()->change($firm->id(), false, false);
     }
 
     private function firm(string $name, string $number = '12345695'): LegalEntity

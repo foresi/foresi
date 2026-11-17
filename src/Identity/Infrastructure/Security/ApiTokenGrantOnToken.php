@@ -15,7 +15,7 @@ use Symfony\Component\Security\Http\Event\AuthenticationTokenCreatedEvent;
 
 /**
  * Puts the grant of a bearer token on the security token, where the token
- * context, the active tenant and the audit actor read it.
+ * context and the audit actor read it.
  */
 final readonly class ApiTokenGrantOnToken
 {

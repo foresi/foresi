@@ -14,9 +14,6 @@ use App\Identity\Application\UserRepository;
 use App\Identity\Domain\ApiScope;
 use App\Identity\Domain\ApiToken;
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
-use App\Shared\Domain\Id;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Option;
@@ -24,17 +21,16 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * The operator issues a token for a person of an organisation. No two-factor
+ * The operator issues a token for a person. No two-factor
  * sign-in is asked for here: whoever runs the console already holds the
  * installation. The secret is printed once and kept nowhere.
  */
-#[AsCommand(name: 'app:api-token:issue', description: 'Issue a personal API token for a user in an organisation')]
+#[AsCommand(name: 'app:api-token:issue', description: 'Issue a personal API token for a user')]
 final readonly class IssueApiTokenCommand
 {
     public function __construct(
         private ManageApiTokens $manage,
         private UserRepository $users,
-        private TenantContext $context,
     ) {
     }
 
@@ -45,8 +41,6 @@ final readonly class IssueApiTokenCommand
         SymfonyStyle $io,
         #[Argument(description: 'E-mail address of the user')]
         string $email,
-        #[Option(description: 'Id of the organisation (tenant)')]
-        string $tenant = '',
         #[Option(description: 'What the token is for, 1 to 80 characters')]
         string $name = '',
         #[Option(description: 'Days until it expires: 30, 90 or 365')]
@@ -54,11 +48,6 @@ final readonly class IssueApiTokenCommand
         #[Option(description: 'read, write, or a resource such as contacts:read or contacts:write; repeat for more')]
         array $scope = [],
     ): int {
-        if (!Id::isValid($tenant)) {
-            $io->error('Pass the id of the organisation with --tenant.');
-
-            return Command::INVALID;
-        }
         if ([] === $scope) {
             $io->error('Pass what the token may do with --scope, such as --scope=read or --scope=contacts:write.');
 
@@ -81,15 +70,12 @@ final readonly class IssueApiTokenCommand
             return Command::FAILURE;
         }
 
-        $this->context->switchTo(TenantId::fromString($tenant));
         try {
             $issued = $this->manage->issueAsOperator($user->id(), $name, $scopes, $days);
         } catch (ApiTokenRefused $refused) {
             $io->error($this->refusal($refused->reason));
 
             return Command::FAILURE;
-        } finally {
-            $this->context->reset();
         }
 
         $io->success(\sprintf('Issued "%s" for %s, valid until %s (id %s).', $issued->token->name(), $user->email(), $issued->token->expiresAt()->format(\DATE_ATOM), $issued->token->id()));
@@ -102,7 +88,7 @@ final readonly class IssueApiTokenCommand
     private function refusal(string $reason): string
     {
         return match ($reason) {
-            ApiTokenRefused::NOT_STAFF => 'The user is not the owner or a member of this organisation.',
+            ApiTokenRefused::NOT_STAFF => 'The user is not the owner or a team member.',
             ApiTokenRefused::NAME => \sprintf('Pass a name of 1 to %d characters with --name.', ApiToken::NAME_MAX_LENGTH),
             ApiTokenRefused::SCOPES => 'A scope names a resource no installed module declares; bin/console app:modules lists them.',
             ApiTokenRefused::EXPIRY => 'A token is valid for 30, 90 or 365 days.',

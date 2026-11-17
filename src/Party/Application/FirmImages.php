@@ -8,10 +8,8 @@ declare(strict_types=1);
 
 namespace App\Party\Application;
 
-use App\Instance\Domain\TenantId;
-
 /**
- * The logo and stamp images of the firms, per tenant and outside the web root.
+ * The logo and stamp images of the firms, outside the web root.
  * Files are named after their content and never deleted, so an image a document
  * froze stays when the firm changes it. The stamp holds a signature: it leaves
  * this store only inside a generated document, and no route serves it.
@@ -23,11 +21,11 @@ interface FirmImages
      *
      * @throws \InvalidArgumentException when the bytes are no PNG or JPEG
      */
-    public function store(TenantId $tenant, string $bytes): string;
+    public function store(string $bytes): string;
 
     /**
      * @throws \InvalidArgumentException when it cannot be the name of an image
      * @throws \RuntimeException         when the image is not stored
      */
-    public function path(TenantId $tenant, string $name): string;
+    public function path(string $name): string;
 }

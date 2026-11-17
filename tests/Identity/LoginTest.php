@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Identity;
 
-use App\Identity\Domain\User;
 use App\Instance\Application\TenantContext;
 use App\Tests\Identity\Support\IdentityFixtures;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -138,32 +137,6 @@ final class LoginTest extends WebTestCase
         $this->client->followRedirect();
         // The throttling message is a different one than the plain bad-credentials message.
         self::assertNotSame($wrongPassword, $this->client->getCrawler()->filter('[role="alert"]')->text());
-    }
-
-    public function testNewLoginDoesNotInheritTheTenantOfTheSessionBefore(): void
-    {
-        $em = self::getContainer()->get('doctrine.orm.entity_manager');
-        $fixtures = new IdentityFixtures($em, self::getContainer()->get(TenantContext::class));
-        $shared = $fixtures->tenant('Tenant B');
-        $other = $fixtures->tenant('Tenant C');
-        $second = $fixtures->user('second@example.com');
-        $fixtures->join($second, $shared);
-        $fixtures->join($second, $other);
-        $first = $em->getRepository(User::class)->findOneBy(['email' => IdentityFixtures::EMAIL]);
-        self::assertInstanceOf(User::class, $first);
-        $fixtures->join($first, $shared);
-
-        // The first user now has two tenants, picks one and the session remembers it.
-        $this->submit(IdentityFixtures::EMAIL, IdentityFixtures::PASSWORD);
-        $session = $this->client->getRequest()->getSession();
-        $session->set('active_tenant', $shared->toString());
-        $session->save();
-        self::assertSame($shared->toString(), $session->get('active_tenant'));
-
-        // The second user signs in over the same session: no inherited choice, two tenants, so none.
-        $this->submit('second@example.com', IdentityFixtures::PASSWORD);
-        self::assertResponseRedirects('/');
-        self::assertNull($this->client->getRequest()->getSession()->get('active_tenant'));
     }
 
     private function submit(string $email, string $password): void

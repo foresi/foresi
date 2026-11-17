@@ -53,7 +53,6 @@ final class PartyImportTargetTest extends KernelTestCase
 
     private EntityManagerInterface $em;
     private PartyImportTarget $target;
-    private TenantContext $tenants;
 
     protected function setUp(): void
     {
@@ -67,9 +66,9 @@ final class PartyImportTargetTest extends KernelTestCase
         $target = self::getContainer()->get(TargetRegistry::class)->get(PartyImportTarget::KEY);
         self::assertInstanceOf(PartyImportTarget::class, $target);
         $this->target = $target;
-        $this->tenants = self::getContainer()->get(TenantContext::class);
+        $tenants = self::getContainer()->get(TenantContext::class);
         $tenant = TenantId::generate();
-        $this->tenants->switchTo($tenant);
+        $tenants->switchTo($tenant);
     }
 
     public function testTheTargetDescribesItsFieldsAndMatchKeys(): void
@@ -286,21 +285,6 @@ final class PartyImportTargetTest extends KernelTestCase
         $this->em->flush();
 
         self::assertEquals([new RecordMatch($id, false)], $this->target->match('email', $values));
-    }
-
-    public function testTheTargetOfOneTenantNeverMatchesTheRecordsOfAnother(): void
-    {
-        $id = $this->create($this->values(['vat_id' => 'CZ12345687', 'email' => ['info@example.com']]))->id;
-
-        $this->tenants->switchTo(TenantId::generate());
-
-        foreach (['id' => ['id' => $id], 'registration_number' => [], 'vat_id' => ['vat_id' => 'CZ12345687'], 'email' => ['email' => ['info@example.com']]] as $key => $values) {
-            self::assertSame([], $this->target->match($key, $this->values($values)), $key);
-        }
-        self::assertSame([], [...$this->target->activeIds()]);
-        self::assertSame([], [...$this->target->export([$id])]);
-        $this->expectException(\DomainException::class);
-        $this->target->update($id, $this->values(), BlankCells::Keep);
     }
 
     public function testUpdateMergesAndAddsTheChildrenThatAreMissing(): void

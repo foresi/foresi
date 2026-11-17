@@ -12,16 +12,12 @@ use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Types\Types;
 
 /**
- * The idempotency keys of the API (ADR 0032): one row per organisation, token,
- * operation and key, which is also its primary key, so inserting it is the lock.
+ * The idempotency keys of the API (ADR 0032): one row per token, operation and
+ * key, which is also its primary key, so inserting it is the lock.
  */
 final class IdempotencyKeyTable
 {
     public const string TABLE = 'api_idempotency_key';
-    /** The column type of a tenant id, which Instance registers. */
-    public const string TENANT_TYPE = 'tenant_id';
-
-    public const string TENANT_ID = 'tenant_id';
     public const string TOKEN_ID = 'token_id';
     public const string OPERATION = 'operation';
     public const string IDEMPOTENCY_KEY = 'idempotency_key';
@@ -49,7 +45,6 @@ final class IdempotencyKeyTable
             return;
         }
         $table = $schema->createTable(self::TABLE);
-        $table->addColumn(self::TENANT_ID, self::TENANT_TYPE);
         $table->addColumn(self::TOKEN_ID, Types::GUID);
         $table->addColumn(self::OPERATION, Types::STRING, ['length' => self::MAX_OPERATION]);
         $table->addColumn(self::IDEMPOTENCY_KEY, Types::STRING, ['length' => self::MAX_KEY]);
@@ -60,7 +55,7 @@ final class IdempotencyKeyTable
         $table->addColumn(self::RESPONSE_BODY, Types::TEXT, ['notnull' => false]);
         $table->addColumn(self::CREATED_AT, Types::DATETIME_IMMUTABLE);
         $table->addColumn(self::COMPLETED_AT, Types::DATETIME_IMMUTABLE, ['notnull' => false]);
-        $table->setPrimaryKey([self::TENANT_ID, self::TOKEN_ID, self::OPERATION, self::IDEMPOTENCY_KEY]);
+        $table->setPrimaryKey([self::TOKEN_ID, self::OPERATION, self::IDEMPOTENCY_KEY]);
         $table->addIndex([self::CREATED_AT], 'idx_api_idempotency_key_created');
     }
 }

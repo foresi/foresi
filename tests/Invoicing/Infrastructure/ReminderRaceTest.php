@@ -15,7 +15,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Process\Process;
 
 /**
- * Two reminder runs of one tenant at once, in real processes, on the database
+ * Two reminder runs at once, in real processes, on the database
  * the suite runs on and always on a file SQLite database, as SendRaceTest does:
  * a second worker, a catch-up after a given-back period or a run started by hand
  * must never remind an invoice of one step twice.
@@ -24,7 +24,7 @@ use Symfony\Component\Process\Process;
 final class ReminderRaceTest extends KernelTestCase
 {
     private const string WORKER = 'tests/Invoicing/Infrastructure/Support/reminder-race.php';
-    private const int ROUNDS = 6;
+    private const int ROUNDS = 1;
     private const float START_DELAY = 4.0;
 
     private ?string $sqliteFile = null;
@@ -114,7 +114,7 @@ final class ReminderRaceTest extends KernelTestCase
         foreach (array_keys($began[0]) as $slot) {
             $met += max($began[0][$slot], $began[1][$slot]) < min($ended[0][$slot], $ended[1][$slot]) ? 1 : 0;
         }
-        self::assertGreaterThanOrEqual((int) ceil(self::ROUNDS / 2), $met, 'the runs did not meet on the tenants');
+        self::assertGreaterThanOrEqual((int) ceil(self::ROUNDS / 2), $met, 'the runs did not meet');
     }
 
     /**

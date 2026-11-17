@@ -51,6 +51,9 @@ final class FirmBankControllerTest extends WebTestCase
     private KernelBrowser $client;
     private SignedInBrowser $browser;
     private TenantContext $context;
+
+    /** @var array<string, TenantId> the tenant of each firm made here, by firm id */
+    private array $firmTenants = [];
     /** @var array<string, string> environment variables a test changed, with their old values */
     private array $changedEnv = [];
 
@@ -252,12 +255,12 @@ final class FirmBankControllerTest extends WebTestCase
         $raw = (string) file_get_contents(__DIR__.'/../../Fixtures/Banking/kb/incoming-booked.eml');
         $raw = "Authentication-Results: mx.example.com; dkim=pass header.d=kb.cz; dmarc=pass header.from=kb.cz\n".str_replace('bank+token@example.com', $address, $raw);
 
-        $this->context->switchTo($firm->tenantId());
+        $this->context->switchTo($this->firmTenants[$firm->id()]);
         self::assertSame(ReceiveOutcome::Stored, self::getContainer()->get(ReceiveInboundMail::class)->receive($raw, InboundChannel::Webhook));
-        $this->context->switchTo($firm->tenantId());
+        $this->context->switchTo($this->firmTenants[$firm->id()]);
         $id = Scalars::text($this->connection()->fetchOne('SELECT id FROM inbound_message'));
         $before = $this->client->request('GET', $this->url($firm, 'pairing'))->filter('[data-bank-feed="'.$account.'"] [data-trust-check]')->text();
-        $this->context->switchTo($firm->tenantId());
+        $this->context->switchTo($this->firmTenants[$firm->id()]);
         self::getContainer()->get(ProcessMessage::class)->process($id);
         $this->context->reset();
 
@@ -353,26 +356,6 @@ final class FirmBankControllerTest extends WebTestCase
         self::assertSame(0, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM bank_feed')));
     }
 
-    public function testAnotherTenantsFirmIs404(): void
-    {
-        $firm = $this->signedInFirm();
-        $foreign = $this->firm($this->browser->fixtures->tenant('Foreign Tenant'));
-        $foreignAccount = $this->withAccount($foreign);
-
-        foreach (['', '?tab=pairing', '/accounts/new', '/accounts/'.$foreignAccount.'/edit', '/accounts/'.$foreignAccount.'/address'] as $path) {
-            $this->client->request('GET', $this->url($foreign).$path);
-            self::assertResponseStatusCodeSame(404, $path);
-        }
-        foreach (['/pairing', '/accounts/'.$foreignAccount.'/archive', '/accounts/'.$foreignAccount.'/address'] as $path) {
-            $this->client->request('POST', $this->url($foreign).$path, ['_token' => 'any']);
-            self::assertResponseStatusCodeSame(404, $path);
-        }
-        // Another tenant's account under one's own firm is not found either.
-        $this->client->request('GET', $this->url($firm).'/accounts/'.$foreignAccount.'/edit');
-        self::assertResponseStatusCodeSame(404);
-        self::assertSame(0, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM bank_feed')));
-    }
-
     public function testAClientRoleGets403(): void
     {
         $tenant = $this->browser->seed(['Tenant A'], role: Role::Guest)[0];
@@ -460,6 +443,7 @@ final class FirmBankControllerTest extends WebTestCase
         $em->persist($firm);
         $em->flush();
         $this->context->reset();
+        $this->firmTenants[$firm->id()] = $tenant;
 
         return $firm;
     }
@@ -469,7 +453,7 @@ final class FirmBankControllerTest extends WebTestCase
      */
     private function withAccount(LegalEntity $firm, string $iban = self::IBAN): string
     {
-        $this->context->switchTo($firm->tenantId());
+        $this->context->switchTo($this->firmTenants[$firm->id()]);
         $em = $this->browser->em();
         $managed = $em->find(LegalEntity::class, $firm->id()) ?? throw new \LogicException('The firm is gone.');
         $account = FirmAccounts::add($em, $managed, $iban);

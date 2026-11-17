@@ -14,12 +14,11 @@ use App\Identity\Domain\ApiToken;
 use App\Identity\Domain\ApiTokenSecret;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantContext;
 use App\Shared\Application\Api\ApiResources;
 use Psr\Clock\ClockInterface;
 
 /**
- * Personal API tokens of the active organisation: the owner and the members
+ * Personal API tokens of the instance: the owner and the members
  * issue, list and revoke their own; an owner may also list and revoke anyone's.
  * Guests have none. Issuing needs two-factor sign-in, except for the operator
  * on the console, who issues for a person and revokes any token.
@@ -34,7 +33,6 @@ final readonly class ManageApiTokens
         private ApiTokens $tokens,
         private UserRepository $users,
         private MembershipDirectory $memberships,
-        private TenantContext $context,
         private AuditActor $actor,
         private ClockInterface $clock,
         private ApiResources $resources,
@@ -172,16 +170,6 @@ final readonly class ManageApiTokens
 
     private function roleOf(string $userId): ?Role
     {
-        if (!$this->context->has()) {
-            return null;
-        }
-        $tenant = $this->context->current();
-        foreach ($this->memberships->organisationsOf($userId) as $organisation) {
-            if ($organisation->id->equals($tenant)) {
-                return $organisation->role;
-            }
-        }
-
-        return null;
+        return $this->memberships->roleOf($userId);
     }
 }

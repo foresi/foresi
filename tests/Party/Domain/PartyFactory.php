@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Party\Domain;
 
-use App\Instance\Domain\TenantId;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
 use App\Party\Domain\VatId;
@@ -18,22 +17,13 @@ use App\Party\Domain\VatId;
  */
 final class PartyFactory
 {
-    public static function company(string $name = 'Example Company', ?TenantId $tenant = null): Party
+    public static function company(string $name = 'Example Company'): Party
     {
-        return self::stamp(new Party(PartyKind::Company, $name, null, VatId::fromString('CZ12345695'), ''), $tenant);
+        return new Party(PartyKind::Company, $name, null, VatId::fromString('CZ12345695'), '');
     }
 
-    public static function person(string $name = 'Test Person', ?TenantId $tenant = null): Party
+    public static function person(string $name = 'Test Person'): Party
     {
-        return self::stamp(new Party(PartyKind::Person, $name, null, null, ''), $tenant);
-    }
-
-    private static function stamp(Party $party, ?TenantId $tenant): Party
-    {
-        if ($tenant instanceof TenantId) {
-            new \ReflectionProperty($party, 'tenantId')->setValue($party, $tenant);
-        }
-
-        return $party;
+        return new Party(PartyKind::Person, $name, null, null, '');
     }
 }

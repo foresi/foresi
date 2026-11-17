@@ -10,8 +10,6 @@ namespace App\Party\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditRooted;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
@@ -27,19 +25,15 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'firm_bank_account')]
-#[ORM\Index(name: 'idx_firm_bank_account_tenant', columns: ['tenant_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_firm_bank_account_iban', columns: ['legal_entity_id', 'iban'])]
 #[ORM\UniqueConstraint(name: 'uniq_firm_bank_account_primary', columns: ['legal_entity_id', 'primary_flag'])]
-class FirmBankAccount implements TenantOwned, Audited, AuditRooted
+class FirmBankAccount implements Audited, AuditRooted
 {
     public const int MAX_LABEL_LENGTH = 100;
 
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'string', length: 34)]
     private string $iban;
@@ -163,11 +157,6 @@ class FirmBankAccount implements TenantOwned, Audited, AuditRooted
     public function restore(): void
     {
         $this->archivedAt = null;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     private function cleanLabel(string $label): string

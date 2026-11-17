@@ -54,7 +54,7 @@ final class TwoFactorTest extends WebTestCase
         $this->client->followRedirect();
         self::assertResponseRedirects('/account/two-factor');
 
-        $this->client->request('GET', '/organisation/choose');
+        $this->client->request('GET', '/settings/people');
         self::assertResponseRedirects('/account/two-factor');
 
         $crawler = $this->client->request('GET', '/account/two-factor');

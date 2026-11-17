@@ -10,13 +10,11 @@ namespace App\Tests\Identity\Application;
 
 use App\Audit\Application\AuditActor;
 use App\Identity\Application\ManagePeople;
-use App\Identity\Application\MembershipDirectory;
 use App\Identity\Application\People;
 use App\Identity\Application\PeopleRefused;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Instance\Domain\TenantId;
 use App\Party\Application\PartyQuery;
 use App\Shared\Domain\Id;
 use PHPUnit\Framework\MockObject\Stub;
@@ -36,14 +34,10 @@ final class ManagePeopleTest extends TestCase
     /** @var PartyQuery&Stub */
     private PartyQuery $parties;
 
-    /** @var MembershipDirectory&Stub */
-    private MembershipDirectory $memberships;
-
     protected function setUp(): void
     {
         $this->people = self::createStub(People::class);
         $this->parties = self::createStub(PartyQuery::class);
-        $this->memberships = self::createStub(MembershipDirectory::class);
     }
 
     public function testAnUnknownContactIsRefused(): void
@@ -87,7 +81,6 @@ final class ManagePeopleTest extends TestCase
     {
         $membership = $this->membership(Role::Member);
         $this->people->method('membership')->willReturn($membership);
-        $this->memberships->method('tenantIdsOf')->willReturn([TenantId::generate()]);
         $logger = self::createMock(LoggerInterface::class);
         $logger->expects(self::once())->method('notice')->with(
             'Two-factor sign-in was reset by an owner.',
@@ -115,6 +108,6 @@ final class ManagePeopleTest extends TestCase
         $clock = self::createStub(ClockInterface::class);
         $clock->method('now')->willReturn(new \DateTimeImmutable('2026-11-07 10:00:00'));
 
-        return new ManagePeople($this->people, $this->parties, $this->memberships, $actor, $clock, $logger ?? self::createStub(LoggerInterface::class));
+        return new ManagePeople($this->people, $this->parties, $actor, $clock, $logger ?? self::createStub(LoggerInterface::class));
     }
 }

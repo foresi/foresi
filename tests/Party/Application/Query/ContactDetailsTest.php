@@ -87,11 +87,9 @@ final class ContactDetailsTest extends ContactTestCase
     }
 
     #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
-    public function testAnUnknownContactAndOneOfAnotherTenantAreNotFound(): void
+    public function testAnUnknownContactIsNotFound(): void
     {
-        $foreign = $this->foreignContact('Foreign Example');
-
-        foreach ([Id::generate(), $foreign->id(), 'not-an-id', '12', ''] as $id) {
+        foreach ([Id::generate(), 'not-an-id', '12', ''] as $id) {
             try {
                 $this->details()->of($id);
                 self::fail('Contact "'.$id.'" was found.');

@@ -28,7 +28,6 @@ use App\Identity\Application\MembershipDirectory;
 use App\Identity\Application\Organisation;
 use App\Identity\Application\StaffCheck;
 use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
 use App\Instance\Application\TenantContext;
 use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\PaymentState;
@@ -403,9 +402,9 @@ final class ProcessMessageTest extends InboundTestCase
             {
             }
 
-            public function tenantIdsOf(User $user): array
+            public function roleOf(string $userId): Role
             {
-                return [$this->tenant];
+                return $this->staff ? Role::Member : Role::Guest;
             }
 
             public function organisationsOf(string $userId): array
@@ -427,6 +426,6 @@ final class ProcessMessageTest extends InboundTestCase
         $translator = $container->get(TranslatorInterface::class);
         $translator->setLocale('en');
 
-        return new BankNotices($container->get(InboundMessages::class), $container->get(BankMovements::class), new StaffCheck($memberships, $context, $actor), $urls, $translator, new RequestStack(), $container->get(ClockInterface::class));
+        return new BankNotices($container->get(InboundMessages::class), $container->get(BankMovements::class), new StaffCheck($memberships, $actor), $urls, $translator, new RequestStack(), $container->get(ClockInterface::class));
     }
 }

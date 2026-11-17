@@ -10,8 +10,6 @@ namespace App\Identity\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditExcluded;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -23,19 +21,15 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'api_token')]
-#[ORM\Index(name: 'idx_api_token_tenant', columns: ['tenant_id'])]
-#[ORM\Index(name: 'idx_api_token_user', columns: ['tenant_id', 'user_id'])]
+#[ORM\Index(name: 'idx_api_token_user', columns: ['user_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_api_token_hash', columns: ['token_hash'])]
-class ApiToken implements TenantOwned, Audited
+class ApiToken implements Audited
 {
     public const int NAME_MAX_LENGTH = 80;
 
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'string', length: self::NAME_MAX_LENGTH)]
     private string $name;
@@ -164,10 +158,5 @@ class ApiToken implements TenantOwned, Audited
     public function revokedBy(): ?string
     {
         return $this->revokedBy;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

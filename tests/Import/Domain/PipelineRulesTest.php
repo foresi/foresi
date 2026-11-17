@@ -25,7 +25,6 @@ use App\Import\Domain\Mapping;
 use App\Import\Domain\MatchReason;
 use App\Import\Domain\ReplaceScope;
 use App\Import\Domain\RowOutcome;
-use App\Instance\Domain\TenantId;
 use App\Shared\Domain\Id;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -217,15 +216,6 @@ final class PipelineRulesTest extends TestCase
         self::assertTrue(Id::isValid($match->id()));
         self::assertSame($import, $match->import());
         self::assertSame('019a0000-0000-7000-8000-000000000009', $match->recordId());
-        $tenant = TenantId::generate();
-        new \ReflectionProperty(ImportAmbiguousMatch::class, 'tenantId')->setValue($match, $tenant);
-        self::assertSame($tenant, $match->tenantId());
-    }
-
-    public function testAnAmbiguousMatchNeedsItsTenantStamped(): void
-    {
-        $this->expectException(\LogicException::class);
-        new ImportAmbiguousMatch($this->newImport(), '019a0000-0000-7000-8000-000000000009')->tenantId();
     }
 
     public function testUndoCountsAddUp(): void
@@ -512,21 +502,6 @@ final class PipelineRulesTest extends TestCase
             self::assertFalse($record->processedInUndo());
             self::assertSame(RowOutcome::Archive, $record->outcome());
         }
-    }
-
-    public function testAMissingRecordKeepsTheStampedTenant(): void
-    {
-        $record = new ImportMissingRecord($this->newImport(), 1, '019a0000-0000-7000-8000-000000000003');
-        $tenant = TenantId::generate();
-        new \ReflectionProperty(ImportMissingRecord::class, 'tenantId')->setValue($record, $tenant);
-
-        self::assertSame($tenant, $record->tenantId());
-    }
-
-    public function testAMissingRecordNeedsItsTenantStamped(): void
-    {
-        $this->expectException(\LogicException::class);
-        new ImportMissingRecord($this->newImport(), 1, '019a0000-0000-7000-8000-000000000003')->tenantId();
     }
 
     public function testANamedProfileRemembersNothingUntilARunSucceeds(): void

@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace App\Identity\Application;
 
 use App\Audit\Application\AuditActor;
-use App\Instance\Application\TenantContext;
 
 /**
  * Whether the signed-in user works for the active organisation, as its owner or a
@@ -20,7 +19,6 @@ final readonly class StaffCheck
 {
     public function __construct(
         private MembershipDirectory $memberships,
-        private TenantContext $context,
         private AuditActor $actor,
     ) {
     }
@@ -39,14 +37,6 @@ final readonly class StaffCheck
      */
     public function isStaffMember(string $userId): bool
     {
-        if (!$this->context->has()) {
-            return false;
-        }
-        $tenant = $this->context->current();
-
-        return array_any(
-            $this->memberships->organisationsOf($userId),
-            static fn (Organisation $organisation): bool => $organisation->role->isStaff() && $organisation->id->equals($tenant),
-        );
+        return $this->memberships->roleOf($userId)?->isStaff() ?? false;
     }
 }

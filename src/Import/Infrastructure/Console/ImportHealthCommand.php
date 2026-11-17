@@ -12,8 +12,8 @@ use App\Import\Application\ImportGate;
 use App\Import\Application\Imports;
 use App\Import\Domain\Import;
 use App\Import\Domain\ImportState;
+use App\Instance\Application\SoleTenant;
 use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
@@ -36,8 +36,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * way to tell which chunks of one import are still waiting, and a run is not
  * safe to guess at. The import fails and can be uploaded again.
  *
- * It works across all tenants, so it finds the imports through the connection and
- * then switches to the tenant of each one.
+ * It works on the whole instance and finds the imports through the connection. The
+ * messages a release sends are still stamped with the tenant, so it works as the
+ * one tenant of the instance until the tenant goes.
  */
 #[AsCommand(name: 'app:import:health', description: 'Fail imports that stopped moving and start the imports queued behind them')]
 final readonly class ImportHealthCommand
@@ -50,6 +51,7 @@ final readonly class ImportHealthCommand
     public function __construct(
         private Connection $connection,
         private TenantContext $tenants,
+        private SoleTenant $sole,
         private Imports $imports,
         private ImportGate $gate,
         private ClockInterface $clock,
@@ -62,9 +64,9 @@ final readonly class ImportHealthCommand
         $now = \DateTimeImmutable::createFromInterface($this->clock->now());
         $cutoff = $now->modify(\sprintf('-%d seconds', self::STALL_SECONDS));
 
-        /** @var list<array{id: string, tenant_id: string}> $stalled */
+        /** @var list<array{id: string}> $stalled */
         $stalled = $this->connection->fetchAllAssociative(
-            'SELECT id, tenant_id FROM import WHERE state IN (?) AND COALESCE(progressed_at, started_at, created_at) < ? ORDER BY id',
+            'SELECT id FROM import WHERE state IN (?) AND COALESCE(progressed_at, started_at, created_at) < ? ORDER BY id',
             [array_map(static fn (ImportState $state): string => $state->value, self::WORKING), $cutoff],
             [ArrayParameterType::STRING, Types::DATETIME_IMMUTABLE],
         );
@@ -72,10 +74,10 @@ final readonly class ImportHealthCommand
         $failed = 0;
         $errors = 0;
         $released = 0;
+        $this->tenants->switchTo($this->sole->id());
         try {
             foreach ($stalled as $row) {
                 try {
-                    $this->tenants->switchTo(TenantId::fromString($row['tenant_id']));
                     $failed += $this->fail($row['id'], $now, $cutoff);
                 } catch (\Throwable $error) {
                     ++$errors;
@@ -85,7 +87,6 @@ final readonly class ImportHealthCommand
             // Targets with waiting imports and none running: the one that held them just failed, or an earlier release did not finish.
             foreach ($this->orphanedQueues() as $queue) {
                 try {
-                    $this->tenants->switchTo(TenantId::fromString($queue['tenant_id']));
                     $this->gate->release($queue['target_key']);
                     ++$released;
                 } catch (\Throwable $error) {
@@ -103,15 +104,15 @@ final readonly class ImportHealthCommand
     }
 
     /**
-     * @return list<array{tenant_id: string, target_key: string}>
+     * @return list<array{target_key: string}>
      */
     private function orphanedQueues(): array
     {
-        /** @var list<array{tenant_id: string, target_key: string}> $queues */
+        /** @var list<array{target_key: string}> $queues */
         $queues = $this->connection->fetchAllAssociative(
-            'SELECT DISTINCT q.tenant_id, q.target_key FROM import q WHERE q.state = ?'
-            .' AND NOT EXISTS (SELECT 1 FROM import b WHERE b.tenant_id = q.tenant_id AND b.target_key = q.target_key AND b.state IN (?))'
-            .' ORDER BY q.tenant_id, q.target_key',
+            'SELECT DISTINCT q.target_key FROM import q WHERE q.state = ?'
+            .' AND NOT EXISTS (SELECT 1 FROM import b WHERE b.target_key = q.target_key AND b.state IN (?))'
+            .' ORDER BY q.target_key',
             [ImportState::Queued->value, [ImportState::Running->value, ImportState::Undoing->value]],
             [Types::STRING, ArrayParameterType::STRING],
         );

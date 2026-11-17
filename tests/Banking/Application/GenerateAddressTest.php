@@ -24,7 +24,6 @@ use App\Instance\Infrastructure\Doctrine\TenantFilterBypass;
 use App\Invoicing\Application\MailSecrets;
 use App\Party\Application\FirmBankAccounts;
 use App\Party\Application\TransactionalWork;
-use App\Party\Application\UnknownFirmBankAccount;
 use App\Party\Domain\Address;
 use App\Party\Domain\FirmBankAccount;
 use App\Party\Domain\LegalEntity;
@@ -116,7 +115,7 @@ final class GenerateAddressTest extends KernelTestCase
         self::assertIsString($token);
         $feedId = $this->connection()->fetchOne('SELECT id FROM bank_feed');
         $firmId = $account->firm()->id();
-        self::assertEquals(new FeedRoute($this->tenant->toString(), Scalars::text($feedId), $account->id(), $firmId), $this->directory()->route(InboundToken::hash($token)));
+        self::assertEquals(new FeedRoute(Scalars::text($feedId), $account->id(), $firmId), $this->directory()->route(InboundToken::hash($token)));
 
         $this->context->switchTo($this->tenant);
         $feed = $this->feeds()->ofAccount($account->id());
@@ -193,15 +192,6 @@ final class GenerateAddressTest extends KernelTestCase
         $this->em->flush();
 
         self::assertNull($this->directory()->route($token), 'mail to an archived account is not taken in');
-    }
-
-    public function testAnotherTenantsAccountIsNotFound(): void
-    {
-        $account = $this->account();
-        $this->context->switchTo(TenantId::generate());
-
-        $this->expectException(UnknownFirmBankAccount::class);
-        $this->generate()->generate($account->id());
     }
 
     public function testTokensAreFreshBase32(): void

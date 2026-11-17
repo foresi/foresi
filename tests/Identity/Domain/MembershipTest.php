@@ -94,13 +94,6 @@ final class MembershipTest extends TestCase
         ));
     }
 
-    public function testTenantIsStampedOnPersistOnly(): void
-    {
-        $this->expectException(\LogicException::class);
-
-        new Membership(new User('testing@example.com', 'hash', 'Example Company'), Role::Owner)->tenantId();
-    }
-
     private function contact(): Party
     {
         return new Party(PartyKind::Person, 'Alex Example', null, null, '');

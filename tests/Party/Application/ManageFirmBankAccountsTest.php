@@ -21,8 +21,6 @@ use App\Party\Application\FirmBankAccounts;
 use App\Party\Application\LegalEntities;
 use App\Party\Application\ManageFirmBankAccounts;
 use App\Party\Application\TransactionalWork;
-use App\Party\Application\UnknownFirmBankAccount;
-use App\Party\Application\UnknownLegalEntity;
 use App\Party\Domain\Address;
 use App\Party\Domain\FirmBankAccount;
 use App\Party\Domain\LegalEntity;
@@ -45,8 +43,6 @@ final class ManageFirmBankAccountsTest extends KernelTestCase
     private const string THIRD_IBAN = 'DE89370400440532013000';
 
     private EntityManagerInterface $em;
-    private TenantContext $context;
-    private TenantId $tenant;
     private ManageFirmBankAccounts $manage;
     private bool $movements = false;
 
@@ -59,9 +55,9 @@ final class ManageFirmBankAccountsTest extends KernelTestCase
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $this->context = $container->get(TenantContext::class);
-        $this->tenant = TenantId::generate();
-        $this->context->switchTo($this->tenant);
+        $context = $container->get(TenantContext::class);
+        $tenant = TenantId::generate();
+        $context->switchTo($tenant);
 
         $usage = new readonly class($this) implements BankAccountUsage {
             public function __construct(private ManageFirmBankAccountsTest $test)
@@ -425,40 +421,6 @@ final class ManageFirmBankAccountsTest extends KernelTestCase
         self::assertSame([self::THIRD_IBAN, self::SECOND_IBAN], array_map(static fn (FirmBankAccount $a): string => $a->iban(), $this->accounts()->of($firm)));
         self::assertSame([self::THIRD_IBAN, self::IBAN, self::SECOND_IBAN], array_map(static fn (FirmBankAccount $a): string => $a->iban(), $this->accounts()->of($firm, withArchived: true)));
         self::assertSame($third->id(), $this->accounts()->primaryOf($firm)?->id());
-    }
-
-    public function testAnotherTenantsAccountIsNotFound(): void
-    {
-        $firm = $this->firm();
-        $account = $this->manage->open($firm->id(), self::IBAN, 'CZK', '', false);
-        $this->em->clear();
-
-        $this->context->switchTo(TenantId::generate());
-        $ours = $this->firm();
-
-        try {
-            $this->accounts()->get($account->id());
-            self::fail('Another tenant\'s account was found.');
-        } catch (UnknownFirmBankAccount) {
-        }
-        foreach ([fn (): FirmBankAccount => $this->manage->change($account->id(), 'Taken', 'CZK', true), fn () => $this->manage->archive($account->id()), fn () => $this->manage->restore($account->id())] as $attempt) {
-            try {
-                $attempt();
-                self::fail('Another tenant\'s account was changed.');
-            } catch (UnknownFirmBankAccount) {
-            }
-        }
-        try {
-            $this->manage->open($firm->id(), self::SECOND_IBAN, 'CZK', '', false);
-            self::fail('An account was opened for another tenant\'s firm.');
-        } catch (UnknownLegalEntity) {
-        }
-        self::assertSame([], $this->accounts()->of($ours));
-        self::assertNull($this->accounts()->ofIban($ours, self::IBAN));
-
-        $this->context->switchTo($this->tenant);
-        $this->em->clear();
-        self::assertSame([[self::IBAN, true, 'CZK', '', 0]], $this->stored($firm));
     }
 
     public function testAuditHistoryOfTheFirmShowsTheAccount(): void

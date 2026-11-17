@@ -146,23 +146,9 @@ final class ApiTokenSignInTest extends WebTestCase
         $token = $this->token();
         self::assertSame([
             'user' => ['id' => $this->user->id(), 'email' => 'testing@example.com'],
-            'tenant' => ['id' => $this->tenant->toString(), 'name' => 'Tenant A'],
             'token' => ['id' => $token->id(), 'name' => 'Reporting', 'scopes' => ['read'], 'expires_at' => $token->expiresAt()->format(\DATE_ATOM)],
         ], json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR));
         self::assertNotNull($token->lastUsedAt());
-    }
-
-    public function testTheTokensOrganisationIsTheActiveOneAmongSeveral(): void
-    {
-        $this->start();
-        $other = $this->fixtures->tenant('Tenant B');
-        $this->fixtures->join($this->user, $other, Role::Member);
-        $secret = $this->issued($other);
-
-        $this->get($secret);
-
-        self::assertResponseIsSuccessful();
-        self::assertSame(['id' => $other->toString(), 'name' => 'Tenant B'], $this->json()['tenant']);
     }
 
     public function testATokenWorksWhereTwoFactorSignInIsRequiredOnTheScreens(): void
@@ -253,14 +239,9 @@ final class ApiTokenSignInTest extends WebTestCase
     /**
      * @param list<ApiScope>|null $scopes null for read only
      */
-    private function issued(?TenantId $tenant = null, ?array $scopes = null): string
+    private function issued(?array $scopes = null): string
     {
-        $this->context()->switchTo($tenant ?? $this->tenant);
-        try {
-            return self::getContainer()->get(ManageApiTokens::class)->issueAsOperator($this->user->id(), 'Reporting', $scopes)->secret;
-        } finally {
-            $this->context()->reset();
-        }
+        return self::getContainer()->get(ManageApiTokens::class)->issueAsOperator($this->user->id(), 'Reporting', $scopes)->secret;
     }
 
     private function stored(\DateTimeImmutable $created, \DateTimeImmutable $expires, bool $revoked = false): string

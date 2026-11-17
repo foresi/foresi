@@ -16,8 +16,6 @@ use App\Import\Application\StartImport;
 use App\Import\Application\Target\TargetRegistry;
 use App\Import\Domain\Import;
 use App\Import\Infrastructure\LocalImportFiles;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Infrastructure\Import\PartyImportTarget;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -35,7 +33,6 @@ final class StartImportTest extends KernelTestCase
         mkdir($this->root);
         $this->upload = $this->root.'/upload.csv';
         file_put_contents($this->upload, "Firma\nExample Company s.r.o.\n");
-        self::getContainer()->get(TenantContext::class)->switchTo(TenantId::generate());
     }
 
     protected function tearDown(): void
@@ -89,7 +86,6 @@ final class StartImportTest extends KernelTestCase
             $imports,
             self::createStub(ProfileRepository::class),
             self::createStub(ImportJobs::class),
-            $container->get(TenantContext::class),
             $container->get(ClockInterface::class),
         );
     }

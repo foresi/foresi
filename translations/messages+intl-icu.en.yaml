@@ -186,17 +186,10 @@ shell:
     notifications: Notification settings
     api_access: API and MCP access
     language: 'Switch language to {language}'
-    switch_organisation: Switch organisation
     soon: Soon
   worker:
     down: 'The background worker is not running. Mail, recurring invoices and bank mail wait until it runs again.'
     link: Show the status
-organisation:
-  choose:
-    title: Choose an organisation
-    intro: You belong to several organisations. Choose the one to work in.
-    empty_title: No organisation yet
-    empty_text: Your account is not a member of any organisation. Ask the owner of an organisation to invite you.
 role:
   guest: Guest
   owner: Owner
@@ -3066,7 +3059,6 @@ people:
     other_user: This invitation is for another account.
     last_owner: The organisation must keep at least one active owner.
     self: You cannot deactivate yourself.
-    other_organisations: This person also belongs to another organisation; the operator resets their sign-in.
   mail:
     subject: '{inviter} invites you to {organisation} in {product}'
     intro: '{inviter} invites you to work with {organisation} in {product}.'

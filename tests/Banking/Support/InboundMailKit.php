@@ -20,7 +20,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 
 /**
- * A fresh schema with one firm whose account has an inbound address, and
+ * A fresh schema with the instance's one tenant and one firm whose account has an inbound address, and
  * synthetic mail to it. Nothing is a real message: example.com names and the
  * test IBAN only. The tenant is reset afterwards, as mail arrives without one.
  */
@@ -42,6 +42,8 @@ final readonly class InboundMailKit
         $tool->createSchema($metadata);
 
         $tenant = TenantId::generate();
+        // The one tenant of the instance, which mail is stored for.
+        $em->getConnection()->executeStatement("INSERT INTO tenant (id, name, created_at) VALUES (?, 'Example Company', '2026-01-01 00:00:00')", [$tenant->toString()]);
         $context->switchTo($tenant);
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $em->persist($firm);

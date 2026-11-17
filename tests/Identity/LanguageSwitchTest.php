@@ -51,9 +51,9 @@ final class LanguageSwitchTest extends WebTestCase
     {
         $token = $this->token();
 
-        $this->client->request('POST', '/account/language', ['_token' => $token, 'locale' => 'cs', 'redirect' => '/organisation/choose?x=1']);
+        $this->client->request('POST', '/account/language', ['_token' => $token, 'locale' => 'cs', 'redirect' => '/settings/people?x=1']);
 
-        self::assertResponseRedirects('/organisation/choose?x=1');
+        self::assertResponseRedirects('/settings/people?x=1');
     }
 
     #[DataProvider('offSiteTargets')]

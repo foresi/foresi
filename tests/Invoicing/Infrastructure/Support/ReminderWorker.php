@@ -51,7 +51,7 @@ use Symfony\Component\Clock\MockClock;
 
 /**
  * What reminder-race.php runs: two reminder runs at once, in time slots shared
- * with the other process. Each slot is a tenant of its own, with a firm whose
+ * with the other process. Each slot has a firm whose
  * reminders are on and invoices due on 10 January, so both runs find the same
  * first reminders on the 17th.
  *
@@ -59,7 +59,7 @@ use Symfony\Component\Clock\MockClock;
  */
 abstract class ReminderWorker extends KernelTestCase
 {
-    public const int INVOICES = 2;
+    public const int INVOICES = 12;
     private const string IBAN = 'CZ6508000000192000145399';
     private const string RUN_AT = '2027-01-17 09:00:00 UTC';
     private const float SLOT = 1.5;

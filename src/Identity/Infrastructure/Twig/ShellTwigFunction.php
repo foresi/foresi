@@ -42,17 +42,8 @@ final readonly class ShellTwigFunction
             return null;
         }
 
-        $organisations = $this->memberships->organisationsOf($user->id());
         $tenantActive = $this->context->has();
-        $organisation = null;
-        if ($tenantActive) {
-            $current = $this->context->current();
-            foreach ($organisations as $candidate) {
-                if ($candidate->id->equals($current)) {
-                    $organisation = $candidate;
-                }
-            }
-        }
+        $organisation = $tenantActive ? ($this->memberships->organisationsOf($user->id())[0] ?? null) : null;
 
         return new ShellView(
             $user->displayName(),
@@ -62,7 +53,6 @@ final readonly class ShellTwigFunction
             $this->otherLocale($user->locale()),
             $tenantActive,
             $organisation,
-            $organisations,
         );
     }
 

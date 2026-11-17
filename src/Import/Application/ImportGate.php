@@ -11,7 +11,6 @@ namespace App\Import\Application;
 use App\Import\Application\Message\RunImportChunk;
 use App\Import\Domain\Import;
 use App\Import\Domain\ImportState;
-use App\Instance\Application\TenantContext;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -27,7 +26,6 @@ final readonly class ImportGate
         private Imports $imports,
         private ImportLock $lock,
         private ImportJobs $jobs,
-        private TenantContext $tenants,
         private ClockInterface $clock,
     ) {
     }
@@ -41,7 +39,7 @@ final readonly class ImportGate
     public function decide(string $targetKey, callable $decide): void
     {
         $messages = $this->lock->synchronized(
-            \sprintf('import-gate:%s:%s', $this->tenants->current()->toString(), $targetKey),
+            'import-gate:'.$targetKey,
             fn (): array => $this->imports->transactional($decide),
         );
         foreach ($messages as $message) {

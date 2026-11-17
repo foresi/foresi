@@ -10,7 +10,6 @@ namespace App\Tests\Party\Infrastructure;
 
 use App\Audit\Domain\AuditEntry;
 use App\Instance\Application\TenantContext;
-use App\Instance\Application\TenantMismatch;
 use App\Instance\Domain\TenantId;
 use App\Party\Application\CreateParty;
 use App\Party\Application\PartyAccess;
@@ -129,26 +128,6 @@ final class AddressBookPersistenceTest extends KernelTestCase
         self::assertSame('Test Person', $link->person()->displayName());
         self::assertSame('Accountant', $link->position());
         self::assertTrue($link->isPrimary());
-    }
-
-    public function testEveryChildTakesTheTenantOfItsParty(): void
-    {
-        $company = $this->company();
-        $person = new Party(PartyKind::Person, 'Test Person', null, null, '');
-        $this->em->persist($company);
-        $this->em->persist($person);
-        $address = new PartyAddress($company, AddressType::Billing, new Address('Example Street 1', 'Example City', '100 00', 'CZ'));
-        $email = new PartyEmail($company, 'invoices@example.com', EmailPurpose::Invoices);
-        $account = new PartyBankAccount($company, Iban::fromString(self::IBAN));
-        $link = new ContactLink($company, $person);
-        foreach ([$address, $email, $account, $link] as $child) {
-            $this->em->persist($child);
-        }
-        $this->em->flush();
-
-        foreach ([$address, $email, $account, $link] as $child) {
-            self::assertTrue($this->context->current()->equals($child->tenantId()));
-        }
     }
 
     public function testChildrenAreAudited(): void
@@ -537,46 +516,6 @@ final class AddressBookPersistenceTest extends KernelTestCase
 
         $this->expectException(UniqueConstraintViolationException::class);
         $this->em->flush();
-    }
-
-    public function testAChildOfAPartyOfAnotherTenantIsRejected(): void
-    {
-        $company = $this->company();
-        $this->em->persist($company);
-        $this->em->flush();
-        $this->context->switchTo(TenantId::generate());
-
-        $this->expectException(TenantMismatch::class);
-        $this->em->persist(new PartyEmail($company, 'invoices@example.com', EmailPurpose::Invoices));
-    }
-
-    public function testALinkBetweenPartiesOfAnotherTenantIsRejected(): void
-    {
-        $company = $this->company();
-        $person = new Party(PartyKind::Person, 'Test Person', null, null, '');
-        $this->em->persist($company);
-        $this->em->persist($person);
-        $this->em->flush();
-        $this->context->switchTo(TenantId::generate());
-
-        $this->expectException(TenantMismatch::class);
-        $this->em->persist(new ContactLink($company, $person));
-    }
-
-    public function testTheChildrenOfAnotherTenantAreInvisible(): void
-    {
-        $company = $this->company();
-        $this->em->persist($company);
-        $this->em->persist(new PartyEmail($company, 'invoices@example.com', EmailPurpose::Invoices));
-        $this->em->flush();
-        $this->em->clear();
-
-        $this->context->switchTo(TenantId::generate());
-
-        self::assertSame([], $this->em->getRepository(PartyEmail::class)->findAll());
-        self::assertSame([], $this->em->getRepository(PartyAddress::class)->findAll());
-        self::assertSame([], $this->em->getRepository(PartyBankAccount::class)->findAll());
-        self::assertSame([], $this->em->getRepository(ContactLink::class)->findAll());
     }
 
     private function company(string $name = 'Example Company'): Party

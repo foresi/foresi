@@ -16,7 +16,7 @@ use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * Who a token acts as: the person, the organisation and the token itself, for
+ * Who a token acts as: the person and the token itself, for
  * a client to check its set-up.
  */
 #[AsController]
@@ -30,7 +30,7 @@ final readonly class MeController
 
     #[Route('/api/v1/me', name: self::ROUTE, methods: ['GET'])]
     #[OA\Tag(name: 'Identity')]
-    #[OA\Response(response: 200, description: 'The person, the organisation and the token.', content: new OA\JsonContent(ref: '#/components/schemas/Me'))]
+    #[OA\Response(response: 200, description: 'The person and the token.', content: new OA\JsonContent(ref: '#/components/schemas/Me'))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 403, description: 'The request has no valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     public function __invoke(): JsonResponse
@@ -39,7 +39,6 @@ final readonly class MeController
 
         return new JsonResponse([
             'user' => ['id' => $identity->userId, 'email' => $identity->email],
-            'tenant' => ['id' => $identity->tenantId->toString(), 'name' => $identity->tenantName],
             'token' => [
                 'id' => $identity->token->tokenId,
                 'name' => $identity->token->tokenName,

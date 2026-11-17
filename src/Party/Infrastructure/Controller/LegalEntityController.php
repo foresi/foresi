@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace App\Party\Infrastructure\Controller;
 
 use App\Identity\Application\OwnerCheck;
-use App\Instance\Application\TenantContext;
 use App\Party\Application\FirmImages;
 use App\Party\Application\LegalEntities;
 use App\Party\Application\LegalEntityInput;
@@ -35,8 +34,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The firms of the organisation, for its owner: list, form and archiving. The
- * form works like the contact form. A firm of another tenant is never found, so
- * it answers 404 exactly like a firm that does not exist.
+ * form works like the contact form. A firm that does not exist answers 404.
  */
 final class LegalEntityController extends AbstractController
 {
@@ -55,7 +53,6 @@ final class LegalEntityController extends AbstractController
         private readonly ClockInterface $clock,
         private readonly TranslatorInterface $translator,
         private readonly FirmImages $images,
-        private readonly TenantContext $tenant,
     ) {
     }
 
@@ -202,7 +199,7 @@ final class LegalEntityController extends AbstractController
     private function imageName(?string $upload, bool $remove, ?string $current): ?string
     {
         if (null !== $upload) {
-            return $this->images->store($this->tenant->current(), $upload);
+            return $this->images->store($upload);
         }
 
         return $remove ? null : $current;

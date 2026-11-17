@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure\Pdf;
 
-use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\CorrectionInput;
 use App\Invoicing\Application\InvoicePdf;
 use App\Invoicing\Application\InvoicingCountries;
@@ -50,21 +49,21 @@ final class InvoicePdfTest extends InvoiceTestCase
     private const int PLATE_BOTTOM = 1125;
 
     private InvoicePdf $pdf;
-    private string $tenantImages;
+    private string $imageDir;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->pdf = self::getContainer()->get(InvoicePdf::class);
         $root = self::getContainer()->getParameter('app.firm_image_dir');
-        $this->tenantImages = $root.'/'.self::getContainer()->get(TenantContext::class)->current()->toString();
+        $this->imageDir = $root;
     }
 
     protected function tearDown(): void
     {
-        $files = glob($this->tenantImages.'/*');
+        $files = glob($this->imageDir.'/*');
         array_map(unlink(...), false === $files ? [] : $files);
-        @rmdir($this->tenantImages);
+        @rmdir($this->imageDir);
         parent::tearDown();
     }
 
@@ -256,7 +255,7 @@ final class InvoicePdfTest extends InvoiceTestCase
         self::assertStringContainsString($this->pdfText('Razítko a podpis: Example Firm s.r.o.'), $with);
         self::assertStringContainsString('Razítko a podpis', PdfTools::text($with));
 
-        unlink($this->tenantImages.'/'.$name);
+        unlink($this->imageDir.'/'.$name);
         $without = $this->render($document)->bytes;
         self::assertStringNotContainsString('/Width 40', $without);
         self::assertStringContainsString('Razítko a podpis', PdfTools::text($without));
@@ -301,7 +300,7 @@ final class InvoicePdfTest extends InvoiceTestCase
         $this->firm->changeLogo($name);
         $this->em->flush();
         $document = $this->issued([$this->line()]);
-        unlink($this->tenantImages.'/'.$name);
+        unlink($this->imageDir.'/'.$name);
 
         $pdf = $this->render($document)->bytes;
 
@@ -823,7 +822,7 @@ final class InvoicePdfTest extends InvoiceTestCase
         ob_start();
         imagepng($image);
 
-        return self::getContainer()->get(FirmImages::class)->store(self::getContainer()->get(TenantContext::class)->current(), (string) ob_get_clean());
+        return self::getContainer()->get(FirmImages::class)->store((string) ob_get_clean());
     }
 
     /**

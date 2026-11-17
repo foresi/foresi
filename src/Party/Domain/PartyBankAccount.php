@@ -10,8 +10,6 @@ namespace App\Party\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditRooted;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -23,17 +21,13 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'party_bank_account')]
-#[ORM\Index(name: 'idx_party_bank_account_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_party_bank_account_party', columns: ['party_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_party_bank_account_primary', columns: ['party_id', 'primary_flag'])]
-class PartyBankAccount implements TenantOwned, Audited, AuditRooted
+class PartyBankAccount implements Audited, AuditRooted
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId;
 
     #[ORM\Column(type: 'string', length: 34)]
     private string $iban;
@@ -58,7 +52,6 @@ class PartyBankAccount implements TenantOwned, Audited, AuditRooted
     ) {
         $this->id = Id::generate();
         $this->primaryFlag = $primary ? true : null;
-        $this->tenantId = $party->stampedTenantId();
         $this->iban = $iban->toString();
         $this->bic = $this->validateBic($bic);
         $this->label = trim($label);
@@ -107,11 +100,6 @@ class PartyBankAccount implements TenantOwned, Audited, AuditRooted
     public function demote(): void
     {
         $this->primaryFlag = null;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     private function validateBic(?string $bic): ?string

@@ -13,7 +13,6 @@ use App\Identity\Domain\Invitation;
 use App\Identity\Domain\InvitationToken;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantContext;
 use App\Party\Application\PartyQuery;
 use App\Party\Domain\Party;
 use App\Shared\Application\SystemMailUnavailable;
@@ -34,7 +33,6 @@ final readonly class InvitePeople
         private PartyQuery $parties,
         private InvitationMailer $mailer,
         private MembershipDirectory $memberships,
-        private TenantContext $context,
         private AuditActor $actor,
         private ClockInterface $clock,
     ) {
@@ -144,13 +142,6 @@ final readonly class InvitePeople
 
     private function organisation(): string
     {
-        $tenant = $this->context->current();
-        foreach ($this->memberships->organisationsOf($this->inviterId()) as $organisation) {
-            if ($organisation->id->equals($tenant)) {
-                return $organisation->name;
-            }
-        }
-
-        return '';
+        return $this->memberships->organisationsOf($this->inviterId())[0]->name ?? '';
     }
 }

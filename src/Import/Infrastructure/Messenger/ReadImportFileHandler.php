@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Import\Infrastructure\Messenger;
 
+use App\Import\Application\ImportFiles;
 use App\Import\Application\Imports;
 use App\Import\Application\Message\ReadImportFile;
 use App\Import\Application\PresetRegistry;
@@ -52,7 +53,7 @@ final readonly class ReadImportFileHandler
         private PresetRegistry $presets,
         private ColumnMatcher $matcher,
         private TranslatorInterface $translator,
-        private TenantFiles $tenantFiles,
+        private ImportFiles $files,
         private ClockInterface $clock,
     ) {
     }
@@ -60,7 +61,7 @@ final readonly class ReadImportFileHandler
     public function __invoke(ReadImportFile $message): void
     {
         $import = $this->imports->findFresh($message->importId);
-        // Unknown in this tenant (the filter hides other tenants' imports), or read already.
+        // Unknown, or read already.
         if (!$import instanceof Import || !\in_array($import->state(), [ImportState::Uploaded, ImportState::Reading], true)) {
             return;
         }
@@ -72,7 +73,7 @@ final readonly class ReadImportFileHandler
         });
 
         try {
-            $path = $this->tenantFiles->path($import);
+            $path = $this->pathOf($import);
             $inspection = $this->reader->inspect($path, SourceSettings::fromArray($import->sourceSettings()));
             $settings = $inspection->settings();
             $this->imports->transactional(function () use ($message, $path, $inspection, $settings): void {
@@ -95,6 +96,22 @@ final readonly class ReadImportFileHandler
             $this->fail($message->importId, $rejected->reason);
         } catch (MissingImportFile) {
             $this->fail($message->importId, 'import.failure.file_missing');
+        }
+    }
+
+    /**
+     * @throws MissingImportFile when the import has no file, its key is malformed or the file is gone
+     */
+    private function pathOf(Import $import): string
+    {
+        $key = $import->fileKey();
+        if (null === $key) {
+            throw new MissingImportFile('The import has no file.');
+        }
+        try {
+            return $this->files->path($key);
+        } catch (\RuntimeException $missing) {
+            throw new MissingImportFile($missing->getMessage(), 0, $missing);
         }
     }
 

@@ -8,12 +8,11 @@ declare(strict_types=1);
 
 namespace App\Party\Infrastructure\Http;
 
-use App\Instance\Domain\TenantId;
 use App\Party\Application\FirmImages;
 use App\Party\Application\FirmImageType;
 
 /**
- * Stores images as <root>/<tenant>/<name> with mode 0600 (directories 0700). The
+ * Stores images as <root>/<name> with mode 0600 (directories 0700). The
  * name comes from the content and the type from the bytes, never from the upload,
  * and a file appears under its name only when it is complete.
  */
@@ -25,11 +24,11 @@ final readonly class FilesystemFirmImages implements FirmImages
     {
     }
 
-    public function store(TenantId $tenant, string $bytes): string
+    public function store(string $bytes): string
     {
         $type = FirmImageType::of($bytes) ?? throw new \InvalidArgumentException('A firm image is a PNG or a JPEG.');
         $name = hash('sha256', $bytes).'.'.$type;
-        $directory = $this->root.'/'.$tenant->toString();
+        $directory = $this->root;
         if (!is_dir($directory) && !mkdir($directory, 0o700, true) && !is_dir($directory)) {
             throw new \RuntimeException('The image directory cannot be created.');
         }
@@ -50,17 +49,22 @@ final readonly class FilesystemFirmImages implements FirmImages
         return $name;
     }
 
-    public function path(TenantId $tenant, string $name): string
+    public function path(string $name): string
     {
         if (1 !== preg_match(self::NAME, $name)) {
             throw new \InvalidArgumentException('This is no name of a firm image.');
         }
 
-        $path = $this->root.'/'.$tenant->toString().'/'.$name;
-        if (!is_file($path)) {
-            throw new \RuntimeException('The firm image does not exist.');
+        // Images stored before the instance had one customer lie under <root>/<tenant>/<name>.
+        $path = $this->root.'/'.$name;
+        if (is_file($path)) {
+            return $path;
+        }
+        $legacy = glob(addcslashes($this->root, '*?[]\\').'/*/'.$name);
+        if (\is_array($legacy) && isset($legacy[0]) && is_file($legacy[0])) {
+            return $legacy[0];
         }
 
-        return $path;
+        throw new \RuntimeException('The firm image does not exist.');
     }
 }

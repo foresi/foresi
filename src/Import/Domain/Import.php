@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Import\Domain;
 
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -24,9 +22,8 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'import')]
-#[ORM\Index(name: 'idx_import_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_import_finished', columns: ['state', 'finished_at'])]
-class Import implements TenantOwned
+class Import
 {
     /** Undo stays possible this long after the run ended; the purge removes the staged rows at the same age. */
     public const int UNDO_DAYS = 30;
@@ -37,9 +34,6 @@ class Import implements TenantOwned
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\ManyToOne(targetEntity: ImportProfile::class)]
     #[ORM\JoinColumn(name: 'profile_id', nullable: true, onDelete: 'SET NULL')]
@@ -158,11 +152,6 @@ class Import implements TenantOwned
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     public function profile(): ?ImportProfile

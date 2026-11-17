@@ -627,13 +627,10 @@ final class IdokladImportControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(403);
     }
 
-    public function testAFirmOrRunOfAnotherTenantIsNotFound(): void
+    public function testAnUnknownRunIsNotFound(): void
     {
         $this->signedInFirm();
-        $foreign = $this->firm($this->browser->fixtures->tenant('Foreign Tenant'), '12345687');
 
-        $this->client->request('GET', '/import/idoklad/'.$foreign->id().'/pull');
-        self::assertResponseStatusCodeSame(404);
         $this->client->request('GET', $this->url('/runs/0190f5c4-6b1e-7c3a-9f7e-1a2b3c4d5e6f'));
         self::assertResponseStatusCodeSame(404);
     }

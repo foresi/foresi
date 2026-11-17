@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Party\Domain;
 
-use App\Instance\Domain\TenantId;
 use App\Party\Domain\ContactLink;
 use App\Shared\Domain\Id;
 use PHPUnit\Framework\TestCase;
@@ -71,28 +70,5 @@ final class ContactLinkTest extends TestCase
         $this->expectException(\DomainException::class);
 
         new ContactLink(PartyFactory::person(), PartyFactory::company());
-    }
-
-    public function testRejectsPartiesOfDifferentTenants(): void
-    {
-        $this->expectException(\DomainException::class);
-
-        new ContactLink(PartyFactory::company('Example Company', TenantId::generate()), PartyFactory::person('Test Person', TenantId::generate()));
-    }
-
-    public function testAdoptsTheTenantOfWhicheverPartyHasOne(): void
-    {
-        $tenant = TenantId::generate();
-
-        self::assertTrue($tenant->equals(new ContactLink(PartyFactory::company('Example Company', $tenant), PartyFactory::person('Test Person', $tenant))->tenantId()));
-        self::assertTrue($tenant->equals(new ContactLink(PartyFactory::company('Example Company', $tenant), PartyFactory::person())->tenantId()));
-        self::assertTrue($tenant->equals(new ContactLink(PartyFactory::company(), PartyFactory::person('Test Person', $tenant))->tenantId()));
-    }
-
-    public function testTenantIsUnavailableBeforePersist(): void
-    {
-        $this->expectException(\LogicException::class);
-
-        new ContactLink(PartyFactory::company(), PartyFactory::person())->tenantId();
     }
 }

@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Party\Domain;
 
-use App\Instance\Domain\TenantId;
 use App\Party\Domain\EmailPurpose;
 use App\Party\Domain\PartyEmail;
 use App\Shared\Domain\Id;
@@ -86,19 +85,5 @@ final class PartyEmailTest extends TestCase
         yield 'text after the address' => ['testing@example.com extra'];
         yield 'dot at the end' => ['testing@example.'];
         yield 'too long' => [str_repeat('a', 243).'@example.com'];
-    }
-
-    public function testAdoptsTheTenantOfItsParty(): void
-    {
-        $tenant = TenantId::generate();
-
-        self::assertTrue($tenant->equals(new PartyEmail(PartyFactory::company('Example Company', $tenant), 'testing@example.com', EmailPurpose::General)->tenantId()));
-    }
-
-    public function testTenantIsUnavailableBeforePersist(): void
-    {
-        $this->expectException(\LogicException::class);
-
-        new PartyEmail(PartyFactory::company(), 'testing@example.com', EmailPurpose::General)->tenantId();
     }
 }

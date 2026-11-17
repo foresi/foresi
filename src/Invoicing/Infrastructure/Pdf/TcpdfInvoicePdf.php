@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Pdf;
 
-use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\DocumentFormat;
 use App\Invoicing\Application\InvoicePdf;
 use App\Invoicing\Application\InvoicingCountries;
@@ -77,7 +76,6 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
         private PdfEngine $engine,
         private InvoicingCountries $countries,
         private FirmImages $images,
-        private TenantContext $tenants,
         private LocaleSwitcher $locales,
         private TranslatorInterface $translator,
         private AmountText $amounts,
@@ -407,7 +405,7 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
             return null;
         }
         try {
-            $path = $this->images->path($this->tenants->current(), $name);
+            $path = $this->images->path($name);
         } catch (\RuntimeException|\InvalidArgumentException) {
             return null;
         }

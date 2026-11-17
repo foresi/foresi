@@ -9,10 +9,8 @@ declare(strict_types=1);
 namespace App\Invoicing\Infrastructure\Doctrine;
 
 use App\Instance\Application\TenantZoneFallback;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\UnsupportedCountry;
-use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 
 /**
@@ -36,16 +34,15 @@ final readonly class FirmCountryZones implements TenantZoneFallback
             return [];
         }
 
-        /** @var list<array{tenant_id: string, address_country_code: string}> $rows */
-        $rows = $this->connection->fetchAllAssociative(
-            'SELECT tenant_id, address_country_code FROM legal_entity WHERE archived_at IS NULL AND tenant_id IN (:tenants) ORDER BY tenant_id, id',
-            ['tenants' => array_map(static fn (TenantId $tenant): string => $tenant->toString(), $tenants)],
-            ['tenants' => ArrayParameterType::STRING],
-        );
-
+        // The firms belong to the one customer of the instance, so every tenant takes the country of the first one.
+        $code = $this->connection->fetchOne('SELECT address_country_code FROM legal_entity WHERE archived_at IS NULL ORDER BY id LIMIT 1');
+        if (!\is_string($code)) {
+            return [];
+        }
+        $country = trim($code);
         $countries = [];
-        foreach ($rows as $row) {
-            $countries[$row['tenant_id']] ??= trim($row['address_country_code']);
+        foreach ($tenants as $tenant) {
+            $countries[$tenant->toString()] = $country;
         }
 
         $zones = [];

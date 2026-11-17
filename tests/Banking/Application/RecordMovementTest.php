@@ -20,8 +20,6 @@ use App\Banking\Domain\MovementDirection;
 use App\Banking\Domain\MovementState;
 use App\Banking\Domain\UnmatchedReason;
 use App\Country\CzechRepublic\Party\CzechBankAccount;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\ConflictRetry;
 use App\Invoicing\Application\PaymentState;
 use App\Party\Application\BankAccountRefusal;
@@ -31,7 +29,6 @@ use App\Party\Application\FirmBankAccounts;
 use App\Party\Application\LegalEntities;
 use App\Party\Application\ManageFirmBankAccounts;
 use App\Party\Application\TransactionalWork;
-use App\Party\Application\UnknownFirmBankAccount;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Application\Event\EventRecorder;
 use App\Shared\Domain\Currency;
@@ -244,14 +241,5 @@ final class RecordMovementTest extends BankingTestCase
         $this->recordMovement->record($this->incoming('10.00', vs: null), self::verified());
 
         self::assertTrue($usage->hasMovements($this->account->id()), 'a movement in the account\'s currency locks it');
-    }
-
-    public function testAnotherTenantsAccountIsRefused(): void
-    {
-        $account = $this->account->id();
-        self::getContainer()->get(TenantContext::class)->switchTo(TenantId::generate());
-
-        $this->expectException(UnknownFirmBankAccount::class);
-        $this->recordMovement->record($this->incoming('10.00', accountId: $account), self::verified());
     }
 }

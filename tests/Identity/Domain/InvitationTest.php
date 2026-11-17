@@ -134,13 +134,6 @@ final class InvitationTest extends TestCase
         self::assertEquals($this->now->modify('+7 days'), $invitation->expiresAt());
     }
 
-    public function testAnInvitationBeforeItIsPersistedHasNoTenant(): void
-    {
-        $this->expectException(\LogicException::class);
-
-        $this->invitation()->tenantId();
-    }
-
     public function testAGuestRepresentsAContact(): void
     {
         $party = new Party(PartyKind::Person, 'Alex Example', null, null, '');

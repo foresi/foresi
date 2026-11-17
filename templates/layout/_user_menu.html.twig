@@ -38,9 +38,6 @@
             <input type="hidden" name="redirect" value="{{ app.request.requestUri }}" data-nav-sync>
             <twig:Ui:MenuItem type="submit" icon="languages">{{ 'shell.user_menu.language'|trans({language: ('locale.' ~ shell.otherLocale)|trans}) }}</twig:Ui:MenuItem>
         </form>
-        {% if shell.organisations|length > 1 %}
-            <twig:Ui:MenuItem :href="path('app_organisation_choose')" icon="building-2">{{ 'shell.user_menu.switch_organisation'|trans }}</twig:Ui:MenuItem>
-        {% endif %}
     </twig:Ui:MenuSection>
     <twig:Ui:MenuSection>
         <form method="post" action="{{ path('app_logout') }}" data-turbo="false" role="none">

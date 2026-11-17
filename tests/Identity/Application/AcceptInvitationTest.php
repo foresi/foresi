@@ -11,15 +11,14 @@ namespace App\Tests\Identity\Application;
 use App\Identity\Application\AcceptInvitation;
 use App\Identity\Application\InvitationRefused;
 use App\Identity\Application\Invitations;
-use App\Identity\Application\InvitationTenant;
+use App\Identity\Application\MembershipDirectory;
+use App\Identity\Application\Organisation;
 use App\Identity\Application\People;
 use App\Identity\Application\UserRepository;
 use App\Identity\Domain\Invitation;
 use App\Identity\Domain\InvitationToken;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantContext;
-use App\Instance\Application\TenantScope;
 use App\Instance\Domain\TenantId;
 use App\Shared\Domain\Id;
 use PHPUnit\Framework\MockObject\Stub;
@@ -47,7 +46,6 @@ final class AcceptInvitationTest extends TestCase
         $this->token = InvitationToken::generate();
         $invitation = new Invitation('jana@example.com', 'Jana Example', Role::Member, null, Id::generate(), 'cs', InvitationToken::hash($this->token), $this->now);
         $this->invitations = self::createStub(Invitations::class);
-        $this->invitations->method('tenantOfToken')->willReturn(new InvitationTenant(TenantId::generate(), 'Example Company'));
         $this->invitations->method('byTokenHash')->willReturn($invitation);
         $this->users = self::createStub(UserRepository::class);
     }
@@ -102,7 +100,9 @@ final class AcceptInvitationTest extends TestCase
     {
         $clock = self::createStub(ClockInterface::class);
         $clock->method('now')->willReturn($this->now);
+        $memberships = self::createStub(MembershipDirectory::class);
+        $memberships->method('organisationsOf')->willReturn([new Organisation(TenantId::generate(), 'Example Company', Role::Owner)]);
 
-        return new AcceptInvitation($this->invitations, self::createStub(People::class), $this->users, new TenantContext(self::createStub(TenantScope::class)), $clock);
+        return new AcceptInvitation($this->invitations, self::createStub(People::class), $this->users, $memberships, $clock);
     }
 }

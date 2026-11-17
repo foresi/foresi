@@ -10,7 +10,6 @@ namespace App\Tests\Identity\Infrastructure;
 
 use App\Audit\Domain\AuditAction;
 use App\Audit\Domain\AuditEntry;
-use App\Identity\Application\ActiveTenantStore;
 use App\Identity\Application\ApiTokenContext;
 use App\Identity\Application\ApiTokenRecord;
 use App\Identity\Application\ApiTokenRefused;
@@ -31,7 +30,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 /**
- * Tokens in the database: the reads across tenants, the throttled time of last
+ * Tokens in the database: the reads, the throttled time of last
  * use, what the audit log keeps of a token, and a console process signed in
  * with one, whose changes the audit log puts on the token.
  */
@@ -53,7 +52,7 @@ final class ApiTokenPersistenceTest extends KernelTestCase
 
     public function testTheHashAndTheLastUseNeverReachTheAuditLog(): void
     {
-        $token = $this->issue($this->tenant);
+        $token = $this->issue();
 
         $this->context()->switchTo($this->tenant);
         $entries = $this->entries();
@@ -72,7 +71,7 @@ final class ApiTokenPersistenceTest extends KernelTestCase
 
     public function testAUseIsWrittenOnlyWhenTheLastOneIsOldEnough(): void
     {
-        $token = $this->issue($this->tenant);
+        $token = $this->issue();
         $first = new \DateTimeImmutable('2026-11-10 10:00:00');
 
         $this->tokens()->touch($token->id(), $first, $first->modify('-60 seconds'));
@@ -85,18 +84,13 @@ final class ApiTokenPersistenceTest extends KernelTestCase
         self::assertEquals($first->modify('+60 seconds'), $this->record($token)->lastUsedAt);
     }
 
-    public function testRecordsAreReadAcrossTenantsWithoutTheSecret(): void
+    public function testRecordsAreReadWithoutTheSecret(): void
     {
-        $other = $this->fixtures->tenant('Tenant B');
-        $this->fixtures->join($this->user, $other, Role::Owner);
-        $first = $this->issue($this->tenant);
-        $second = $this->issue($other);
+        $first = $this->issue();
+        $second = $this->issue();
 
-        self::assertSame([$second->id(), $first->id()], array_map(static fn (ApiTokenRecord $record): string => $record->id, $this->tokens()->records(null)));
-        $records = $this->tokens()->records($other);
-        self::assertCount(1, $records);
-        self::assertSame($second->id(), $records[0]->id);
-        self::assertTrue($records[0]->tenantId->equals($other));
+        $records = $this->tokens()->records();
+        self::assertSame([$second->id(), $first->id()], array_map(static fn (ApiTokenRecord $record): string => $record->id, $records));
         self::assertSame($this->user->id(), $records[0]->userId);
         self::assertSame('Reporting', $records[0]->name);
         self::assertEquals([ApiScope::read()], $records[0]->scopes);
@@ -107,20 +101,17 @@ final class ApiTokenPersistenceTest extends KernelTestCase
         self::assertNull($records[0]->lastUsedAt);
         self::assertNull($records[0]->revokedAt);
         self::assertSame(ApiTokenState::Active, $records[0]->state(new \DateTimeImmutable()));
-        self::assertTrue($this->tokens()->tenantOf($second->id())?->equals($other));
-        self::assertNull($this->tokens()->tenantOf('019a0000-0000-7000-8000-0000000000ff'));
         self::assertNull($this->tokens()->byHash(str_repeat('0', 64)));
     }
 
-    public function testTheTokensOfTheActiveTenantStayInIt(): void
+    public function testTheTokensOfAPersonAreFoundByThem(): void
     {
-        $other = $this->fixtures->tenant('Tenant B');
-        $this->fixtures->join($this->user, $other, Role::Owner);
-        $mine = $this->issue($this->tenant);
-        $this->issue($other);
+        $mine = $this->issue();
+        $colleague = $this->fixtures->user('colleague@example.com');
+        $this->fixtures->join($colleague, $this->tenant, Role::Member);
+        $theirs = self::getContainer()->get(ManageApiTokens::class)->issueAsOperator($colleague->id(), 'Reporting')->token;
 
-        $this->context()->switchTo($this->tenant);
-        self::assertSame([$mine->id()], array_map(static fn (ApiToken $token): string => $token->id(), $this->tokens()->all()));
+        self::assertEqualsCanonicalizing([$mine->id(), $theirs->id()], array_map(static fn (ApiToken $token): string => $token->id(), $this->tokens()->all()));
         self::assertSame([$mine->id()], array_map(static fn (ApiToken $token): string => $token->id(), $this->tokens()->ofUser($this->user->id())));
         self::assertSame([], $this->tokens()->ofUser('019a0000-0000-7000-8000-0000000000ff'));
         self::assertSame($mine->id(), $this->tokens()->find($mine->id())?->id());
@@ -140,7 +131,6 @@ final class ApiTokenPersistenceTest extends KernelTestCase
         self::assertInstanceOf(SecurityUser::class, $user);
         self::assertSame($this->user->id(), $user->id());
         self::assertSame($grant, self::getContainer()->get(ApiTokenContext::class)->grant());
-        self::assertTrue(self::getContainer()->get(ActiveTenantStore::class)->get()?->equals($this->tenant));
         self::assertNotNull($this->record($issued->token)->lastUsedAt);
 
         // A change made now is the token's, next to its person.
@@ -166,19 +156,14 @@ final class ApiTokenPersistenceTest extends KernelTestCase
         self::assertNull(self::getContainer()->get(ApiTokenContext::class)->grant());
     }
 
-    private function issue(TenantId $tenant): ApiToken
+    private function issue(): ApiToken
     {
-        $this->context()->switchTo($tenant);
-        try {
-            return self::getContainer()->get(ManageApiTokens::class)->issueAsOperator($this->user->id(), 'Reporting')->token;
-        } finally {
-            $this->context()->reset();
-        }
+        return self::getContainer()->get(ManageApiTokens::class)->issueAsOperator($this->user->id(), 'Reporting')->token;
     }
 
     private function record(ApiToken $token): ApiTokenRecord
     {
-        $records = array_values(array_filter($this->tokens()->records(null), static fn (ApiTokenRecord $record): bool => $record->id === $token->id()));
+        $records = array_values(array_filter($this->tokens()->records(), static fn (ApiTokenRecord $record): bool => $record->id === $token->id()));
         self::assertCount(1, $records);
 
         return $records[0];

@@ -29,11 +29,10 @@ final class ActiveLegalEntitiesTest extends WebTestCase
         $client->disableReboot();
         $this->context = self::getContainer()->get(TenantContext::class);
         $browser = new SignedInBrowser($client, $this->em(), $this->context);
-        [$this->tenantA, $this->tenantB] = $browser->seed(['Tenant A', 'Tenant B']);
+        [$this->tenantA] = $browser->seed(['Tenant A']);
     }
 
     private \App\Instance\Domain\TenantId $tenantA;
-    private \App\Instance\Domain\TenantId $tenantB;
 
     public function testActiveLeavesArchivedFirmsOutAndSortsByName(): void
     {
@@ -47,20 +46,6 @@ final class ActiveLegalEntitiesTest extends WebTestCase
 
         self::assertSame(['Alpha Firm', 'Zeta Firm'], array_map(static fn (LegalEntity $firm): string => $firm->name(), $active));
         self::assertCount(3, $this->firms()->all());
-    }
-
-    public function testActiveIsScopedToTheTenant(): void
-    {
-        $this->context->switchTo($this->tenantA);
-        $this->add('Tenant A Firm', '12345695');
-        $this->context->switchTo($this->tenantB);
-        $this->add('Tenant B Firm', '12345679');
-
-        self::assertSame(['Tenant B Firm'], array_map(static fn (LegalEntity $firm): string => $firm->name(), $this->firms()->active()));
-
-        $this->context->switchTo($this->tenantA);
-
-        self::assertSame(['Tenant A Firm'], array_map(static fn (LegalEntity $firm): string => $firm->name(), $this->firms()->active()));
     }
 
     public function testNoFirmsGiveAnEmptyList(): void

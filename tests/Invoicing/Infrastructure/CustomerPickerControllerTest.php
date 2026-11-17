@@ -84,18 +84,6 @@ final class CustomerPickerControllerTest extends WebTestCase
         self::assertSame('{"results":[]}', $this->client->getResponse()->getContent());
     }
 
-    public function testAForeignFirmAnswers404(): void
-    {
-        [$mine] = $this->browser->seed(['Example Company']);
-        $this->firm($mine);
-        $foreign = $this->firm($this->browser->fixtures->tenant('Example Other'));
-        $this->browser->signIn();
-
-        $this->client->request('GET', '/invoices/customers', ['firm' => $foreign->id(), 'q' => 'Example']);
-
-        self::assertResponseStatusCodeSame(404);
-    }
-
     public function testAMissingFirmAnswers404(): void
     {
         $this->browser->seed(['Example Company']);

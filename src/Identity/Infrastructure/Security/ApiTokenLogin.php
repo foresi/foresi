@@ -13,6 +13,7 @@ use App\Identity\Application\ApiTokenGrant;
 use App\Identity\Application\ApiTokenRefused;
 use App\Identity\Application\UserRepository;
 use App\Identity\Domain\User;
+use App\Instance\Application\SoleTenant;
 use App\Instance\Application\TenantContext;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Http\Authenticator\Token\PostAuthenticationToken;
@@ -20,7 +21,8 @@ use Symfony\Component\Security\Http\Authenticator\Token\PostAuthenticationToken;
 /**
  * Signs a console process in with a personal API token, as the MCP server on
  * stdio does: the token's person becomes the signed-in user and the audit
- * actor, and its organisation the active tenant, as on the mcp firewall.
+ * actor, as on the mcp firewall. The one tenant becomes the active one, as
+ * on every signed-in request, until the tenant itself goes.
  */
 final readonly class ApiTokenLogin
 {
@@ -30,6 +32,7 @@ final readonly class ApiTokenLogin
         private UserProvider $provider,
         private TokenStorageInterface $tokens,
         private TenantContext $context,
+        private SoleTenant $tenant,
     ) {
     }
 
@@ -47,7 +50,7 @@ final readonly class ApiTokenLogin
         $token = new PostAuthenticationToken($securityUser, ApiFirewalls::MCP, $securityUser->getRoles());
         $token->setAttribute(SecurityApiTokenContext::ATTRIBUTE, $grant);
         $this->tokens->setToken($token);
-        $this->context->set($grant->tenantId);
+        $this->context->set($this->tenant->id());
 
         return $grant;
     }

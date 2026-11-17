@@ -62,16 +62,16 @@ final readonly class MissingRecordFinder
     {
         return $this->ids(
             'SELECT DISTINCT r.record_id FROM import_row r INNER JOIN import i ON i.id = r.import_id'
-            .' WHERE i.tenant_id = ? AND i.profile_id = ? AND i.target_key = ? AND i.id <> ? AND i.state IN (?)'
+            .' WHERE i.profile_id = ? AND i.target_key = ? AND i.id <> ? AND i.state IN (?)'
             .' AND r.processed_in_run = ? AND r.processed_in_undo = ? AND r.outcome IN (?) AND r.record_id IS NOT NULL',
             [
-                $import->tenantId()->toString(), $profile->id(), $import->targetKey(), $import->id(),
+                $profile->id(), $import->targetKey(), $import->id(),
                 [ImportState::Finished->value, ImportState::FinishedWithErrors->value],
                 true, false,
                 [RowOutcome::Create->value, RowOutcome::Update->value, RowOutcome::Restore->value],
             ],
             [
-                ParameterType::STRING, ParameterType::STRING, ParameterType::STRING, ParameterType::STRING,
+                ParameterType::STRING, ParameterType::STRING, ParameterType::STRING,
                 ArrayParameterType::STRING, ParameterType::BOOLEAN, ParameterType::BOOLEAN, ArrayParameterType::STRING,
             ],
         );

@@ -36,6 +36,9 @@ final class FirmInvoicingControllerTest extends WebTestCase
     private KernelBrowser $client;
     private SignedInBrowser $browser;
     private TenantContext $context;
+
+    /** @var array<string, TenantId> the tenant of each firm made here, by firm id */
+    private array $firmTenants = [];
     private TenantId $tenant;
 
     protected function setUp(): void
@@ -152,17 +155,6 @@ final class FirmInvoicingControllerTest extends WebTestCase
         foreach (['/invoicing', '/invoicing/series/new'] as $path) {
             $this->client->request('GET', '/settings/firms/'.$firm->id().$path);
             self::assertResponseStatusCodeSame(403);
-        }
-    }
-
-    public function testAFirmOfAnotherTenantGets404(): void
-    {
-        $this->signedInFirm();
-        $foreign = $this->firm($this->browser->fixtures->tenant('Foreign Tenant'));
-
-        foreach (['/invoicing', '/invoicing/series/new'] as $path) {
-            $this->client->request('GET', '/settings/firms/'.$foreign->id().$path);
-            self::assertResponseStatusCodeSame(404);
         }
     }
 
@@ -600,7 +592,7 @@ final class FirmInvoicingControllerTest extends WebTestCase
     public function testTheStandardSeriesOfEachKindIsTranslated(): void
     {
         $firm = $this->signedInFirm();
-        $this->context->switchTo($firm->tenantId());
+        $this->context->switchTo($this->firmTenants[$firm->id()]);
         $stored = $this->em()->getRepository(LegalEntity::class)->find($firm->id()) ?? throw new \LogicException('The firm is missing.');
         $this->em()->persist(Series::standard($stored, DocumentKind::Advance));
         $this->em()->persist(Series::standard($stored, DocumentKind::PaymentTaxDocument));
@@ -641,13 +633,14 @@ final class FirmInvoicingControllerTest extends WebTestCase
         $this->em()->persist($firm);
         $this->em()->flush();
         $this->context->reset();
+        $this->firmTenants[$firm->id()] = $tenant;
 
         return $firm;
     }
 
     private function series(LegalEntity $firm, string $format = Series::STANDARD_FORMAT): Series
     {
-        $this->context->switchTo($firm->tenantId());
+        $this->context->switchTo($this->firmTenants[$firm->id()]);
         $stored = $this->em()->getRepository(LegalEntity::class)->find($firm->id()) ?? throw new \LogicException('The firm is missing.');
         $series = new Series($stored, 'Standard', SeriesFormat::fromString($format), DocumentKind::Invoice);
         $this->em()->persist($series);
@@ -659,14 +652,14 @@ final class FirmInvoicingControllerTest extends WebTestCase
 
     private function issue(Series $series, string $date = '2026-10-31'): void
     {
-        $this->context->switchTo($series->firm()->tenantId());
+        $this->context->switchTo($this->firmTenants[$series->firm()->id()]);
         self::getContainer()->get(NumberCounter::class)->next($series, new \DateTimeImmutable($date));
         $this->context->reset();
     }
 
     private function archive(Series $series): void
     {
-        $this->context->switchTo($series->firm()->tenantId());
+        $this->context->switchTo($this->firmTenants[$series->firm()->id()]);
         $stored = self::getContainer()->get(SeriesCatalog::class)->get($series->id());
         $stored->archive();
         $this->em()->flush();
@@ -724,7 +717,7 @@ final class FirmInvoicingControllerTest extends WebTestCase
     private function storedSettings(LegalEntity $firm): FirmInvoicing
     {
         $this->em()->clear();
-        $this->context->switchTo($firm->tenantId());
+        $this->context->switchTo($this->firmTenants[$firm->id()]);
         $stored = self::getContainer()->get(FirmInvoicingSettings::class)->for($this->em()->getRepository(LegalEntity::class)->find($firm->id()) ?? throw new \LogicException('The firm is missing.'));
         $this->context->reset();
 
@@ -737,7 +730,7 @@ final class FirmInvoicingControllerTest extends WebTestCase
     private function allSeries(LegalEntity $firm): array
     {
         $this->em()->clear();
-        $this->context->switchTo($firm->tenantId());
+        $this->context->switchTo($this->firmTenants[$firm->id()]);
         $series = self::getContainer()->get(SeriesCatalog::class)->forFirm($firm);
         $this->context->reset();
 

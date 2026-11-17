@@ -12,7 +12,6 @@ use App\Import\Application\Imports;
 use App\Import\Application\Message\RunImportChunk;
 use App\Import\Application\Source\SourceFormat;
 use App\Import\Application\Source\SourceSettings;
-use App\Import\Application\StartImport;
 use App\Import\Domain\Import;
 use App\Import\Domain\ImportState;
 use App\Import\Infrastructure\Source\OpenSpoutSourceReader;
@@ -22,7 +21,6 @@ use App\Party\Application\CreateParty;
 use App\Party\Domain\Address;
 use App\Party\Domain\PartyKind;
 use App\Party\Domain\PartyRole;
-use App\Party\Infrastructure\Import\PartyImportTarget;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Tests\Import\Support\RunMessages;
 use Doctrine\DBAL\Connection;
@@ -53,7 +51,6 @@ final class ImportControllerTest extends WebTestCase
     private RunMessages $worker;
     private InMemoryTransport $transport;
     private TenantId $tenant;
-    private TenantId $foreign;
     private string $dir;
 
     protected function setUp(): void
@@ -72,7 +69,7 @@ final class ImportControllerTest extends WebTestCase
         mkdir($this->dir);
 
         [$this->tenant] = $browser->seed(['Tenant A'], 'en');
-        $this->foreign = $browser->fixtures->tenant('Foreign Tenant');
+        $browser->fixtures->tenant('Foreign Tenant');
         $browser->signIn();
     }
 
@@ -426,17 +423,6 @@ final class ImportControllerTest extends WebTestCase
         self::assertStringContainsString('Contacts the import of idoklad-contacts.csv created.', $crawler->filter('[data-imported-by]')->text());
     }
 
-    public function testAnImportOfAnotherTenantDoesNotNarrowTheList(): void
-    {
-        $this->party('Example Seeded Contact');
-        $id = $this->foreignImport();
-
-        $crawler = $this->client->request('GET', '/contacts?import='.$id.'&outcome=create');
-
-        self::assertSelectorNotExists('[data-imported-by]');
-        self::assertCount(1, $crawler->filter('main tbody tr'));
-    }
-
     public function testEveryStepCarriesItsActionsInTheDockedBarInsideItsForm(): void
     {
         $crawler = $this->client->request('GET', '/imports/new?target=party');
@@ -557,35 +543,6 @@ final class ImportControllerTest extends WebTestCase
 
         self::assertResponseRedirects('/imports/new?target=party', 303);
         self::assertSame(ImportState::Cancelled, $this->fresh($id)->state());
-    }
-
-    public function testTheHistoryListsTheImportsOfTheTenantOnly(): void
-    {
-        $id = $this->finished();
-        $this->foreignImport();
-
-        $crawler = $this->client->request('GET', '/imports');
-
-        self::assertResponseIsSuccessful();
-        self::assertCount(1, $crawler->filter('main tbody tr'));
-        $cells = $crawler->filter('main tbody tr td')->each(static fn (Crawler $cell): string => trim($cell->text()));
-        self::assertSame(['idoklad-contacts.csv', '2026-10-01 10:00', 'Example Company', 'Contacts', 'Update existing', '3', '0', '1', 'Finished with errors'], $cells);
-        self::assertSame('/imports/'.$id, $crawler->filter('main tbody a')->attr('href'));
-    }
-
-    public function testAnImportOfAnotherTenantIsNotFound(): void
-    {
-        $id = $this->foreignImport();
-
-        foreach (['/imports/'.$id, '/imports/'.$id.'/progress', '/imports/'.$id.'/errors'] as $url) {
-            $this->client->request('GET', $url);
-            self::assertResponseStatusCodeSame(404, $url);
-        }
-        $token = $this->token();
-        foreach (['run', 'cancel', 'undo', 'check', 'mapping', 'source'] as $action) {
-            $this->client->request('POST', '/imports/'.$id.'/'.$action, ['_token' => $token]);
-            self::assertResponseStatusCodeSame(404, $action);
-        }
     }
 
     public function testActionsNeedTheCsrfToken(): void
@@ -774,18 +731,6 @@ final class ImportControllerTest extends WebTestCase
         $this->client->submit($crawler->selectButton('Start import')->form());
         $this->worker->run();
         self::assertSame(ImportState::FinishedWithErrors, $this->fresh($id)->state());
-
-        return $id;
-    }
-
-    private function foreignImport(): string
-    {
-        $path = $this->dir.'/foreign.csv';
-        file_put_contents($path, (string) file_get_contents(self::FIXTURE));
-        $this->context->switchTo($this->foreign);
-        $id = self::getContainer()->get(StartImport::class)->start(PartyImportTarget::KEY, $path, 'foreign.csv', '019a0000-0000-7000-8000-000000000001');
-        $this->worker->run();
-        $this->context->reset();
 
         return $id;
     }

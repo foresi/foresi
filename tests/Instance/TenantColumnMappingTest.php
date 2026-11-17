@@ -8,26 +8,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Instance;
 
-use App\Identity\Domain\ApiToken;
-use App\Identity\Domain\Invitation;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportAmbiguousMatch;
-use App\Import\Domain\ImportMissingRecord;
-use App\Import\Domain\ImportProfile;
-use App\Import\Domain\ImportRow;
 use App\Instance\Domain\ScheduledJobRun;
 use App\Instance\Domain\TenantOwned;
-use App\Party\Domain\ContactLink;
-use App\Party\Domain\FirmBankAccount;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyBankAccount;
-use App\Party\Domain\PartyEmail;
-use App\Party\Domain\PartyFirmSettings;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\ORM\Tools\SchemaTool;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -72,7 +57,7 @@ final class TenantColumnMappingTest extends KernelTestCase
      */
     public static function tenantOwnedEntities(): iterable
     {
-        foreach ([Party::class, PartyAddress::class, PartyEmail::class, PartyBankAccount::class, ContactLink::class, LegalEntity::class, FirmBankAccount::class, Membership::class, Invitation::class, ApiToken::class, PartyFirmSettings::class, Import::class, ImportRow::class, ImportProfile::class, ImportMissingRecord::class, ImportAmbiguousMatch::class, ScheduledJobRun::class] as $class) {
+        foreach ([ScheduledJobRun::class] as $class) {
             yield $class => [$class];
         }
     }

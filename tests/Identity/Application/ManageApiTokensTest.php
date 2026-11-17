@@ -13,16 +13,12 @@ use App\Identity\Application\ApiTokenRefused;
 use App\Identity\Application\IssuedApiToken;
 use App\Identity\Application\ManageApiTokens;
 use App\Identity\Application\MembershipDirectory;
-use App\Identity\Application\Organisation;
 use App\Identity\Application\UserRepository;
 use App\Identity\Domain\ApiScope;
 use App\Identity\Domain\ApiToken;
 use App\Identity\Domain\ApiTokenSecret;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantContext;
-use App\Instance\Application\TenantScope;
-use App\Instance\Domain\TenantId;
 use App\Shared\Application\Api\ApiResources;
 use App\Tests\Identity\Support\InMemoryApiTokens;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -36,20 +32,17 @@ use Symfony\Component\Clock\MockClock;
 final class ManageApiTokensTest extends TestCase
 {
     private InMemoryApiTokens $tokens;
-    private TenantId $tenant;
     private MockClock $clock;
     private User $me;
     private User $colleague;
     private ?string $actorId;
-    private bool $tenantActive = true;
 
-    /** @var array<string, Role> role in the active tenant by user id */
+    /** @var array<string, Role> role by user id */
     private array $roles = [];
 
     protected function setUp(): void
     {
         $this->tokens = new InMemoryApiTokens();
-        $this->tenant = TenantId::generate();
         $this->clock = new MockClock('2026-11-10 10:00:00');
         $this->me = new User('testing@example.com', 'hash', 'Example Person');
         $this->me->enrolTwoFactor('sealed', ['code']);
@@ -141,13 +134,6 @@ final class ManageApiTokensTest extends TestCase
     public function testNobodySignedInGetsNoToken(): void
     {
         $this->actorId = null;
-
-        $this->expectRefusal(ApiTokenRefused::NOT_STAFF, fn (): IssuedApiToken => $this->service()->issue('Reporting'));
-    }
-
-    public function testWithoutAnActiveOrganisationNobodyGetsAToken(): void
-    {
-        $this->tenantActive = false;
 
         $this->expectRefusal(ApiTokenRefused::NOT_STAFF, fn (): IssuedApiToken => $this->service()->issue('Reporting'));
     }
@@ -292,17 +278,11 @@ final class ManageApiTokensTest extends TestCase
         $users = self::createStub(UserRepository::class);
         $users->method('findById')->willReturnCallback(fn (string $id): ?User => [$this->me->id() => $this->me, $this->colleague->id() => $this->colleague][$id] ?? null);
         $memberships = self::createStub(MembershipDirectory::class);
-        $memberships->method('organisationsOf')->willReturnCallback(fn (string $userId): array => isset($this->roles[$userId])
-            ? [new Organisation(TenantId::generate(), 'Another Company', Role::Owner), new Organisation($this->tenant, 'Example Company', $this->roles[$userId])]
-            : [new Organisation(TenantId::generate(), 'Another Company', Role::Owner)]);
+        $memberships->method('roleOf')->willReturnCallback(fn (string $userId): ?Role => $this->roles[$userId] ?? null);
         $actor = self::createStub(AuditActor::class);
         $actor->method('userId')->willReturn($this->actorId);
-        $context = new TenantContext(self::createStub(TenantScope::class));
-        if ($this->tenantActive) {
-            $context->switchTo($this->tenant);
-        }
 
-        return new ManageApiTokens($this->tokens, $users, $memberships, $context, $actor, $this->clock, new class implements ApiResources {
+        return new ManageApiTokens($this->tokens, $users, $memberships, $actor, $this->clock, new class implements ApiResources {
             public function declared(): array
             {
                 return ['contacts'];

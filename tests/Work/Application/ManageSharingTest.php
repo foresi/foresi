@@ -11,12 +11,6 @@ namespace App\Tests\Work\Application;
 use App\Audit\Application\AuditTrail;
 use App\Audit\Domain\AuditAction;
 use App\Audit\Domain\AuditEntry;
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\Tenant;
-use App\Instance\Domain\TenantId;
 use App\Shared\Domain\Id;
 use App\Work\Application\ManageSharing;
 use App\Work\Application\ProjectRow;
@@ -108,13 +102,11 @@ final class ManageSharingTest extends WorkTestCase
         $this->sharing->shareProject($project->id(), $this->owner->id());
     }
 
-    public function testSharingIsWithAnActivePersonOfThisOrganisation(): void
+    public function testSharingIsWithAnActivePerson(): void
     {
         $task = $this->tasks->create($this->project()->id(), 'Write the brief');
-        $stranger = $this->strangerOfAnotherOrganisation();
 
         $this->assertRefused('share_person', fn () => $this->sharing->shareTask($task->id(), Id::generate()));
-        $this->assertRefused('share_person', fn () => $this->sharing->shareTask($task->id(), $stranger));
         $this->guest->deactivate($this->clock->now());
         $this->em->flush();
         $this->assertRefused('share_person', fn () => $this->sharing->shareTask($task->id(), $this->guest->id()));
@@ -191,30 +183,6 @@ final class ManageSharingTest extends WorkTestCase
     private function shareCount(): int
     {
         return \count($this->em->getRepository(WorkShare::class)->findAll());
-    }
-
-    /**
-     * The membership of a person in another organisation; this one does not know it.
-     */
-    private function strangerOfAnotherOrganisation(): string
-    {
-        $context = self::getContainer()->get(TenantContext::class);
-        $home = $context->current();
-        $other = new Tenant(TenantId::generate(), 'Other Organisation', $this->clock->now());
-        $this->em->persist($other);
-        $this->em->flush();
-        $context->switchTo($other->id());
-        $user = new User('stranger@example.com', 'hash', 'Stella Stranger');
-        $membership = new Membership($user, Role::Member);
-        $this->em->persist($user);
-        $this->em->persist($membership);
-        $this->em->flush();
-        $context->switchTo($home);
-        foreach (['owner', 'member', 'guest'] as $person) {
-            $this->{$person} = $this->em->find(Membership::class, $this->{$person}->id()) ?? throw new \LogicException('The person is gone.');
-        }
-
-        return $membership->id();
     }
 
     private function assertRefused(string $reason, callable $change): void

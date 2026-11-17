@@ -12,7 +12,6 @@ use App\Attachment\Application\UploadAttachment;
 use App\Attachment\Domain\Attachment;
 use App\Audit\Application\AuditCorrelation;
 use App\Audit\Domain\AuditEntry;
-use App\Instance\Application\TenantContext;
 use App\Party\Application\LegalEntities;
 use App\Party\Application\UnknownLegalEntity;
 use App\Party\Domain\LegalEntity;
@@ -216,7 +215,7 @@ final class PurchasingGuardsTest extends PurchasingTestCase
      */
     private function watchFirms(): void
     {
-        $this->firms = new WatchedLegalEntities(new DoctrineLegalEntities($this->em, self::getContainer()->get(TenantContext::class)));
+        $this->firms = new WatchedLegalEntities(new DoctrineLegalEntities($this->em));
         self::getContainer()->set(LegalEntities::class, $this->firms);
     }
 }

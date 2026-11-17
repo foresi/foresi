@@ -25,6 +25,7 @@ use App\Invoicing\Application\PaymentState;
 use App\Party\Application\TransactionalWork;
 use App\Tests\Banking\Support\InboundTestCase;
 use App\Tests\Banking\Support\Scalars;
+use App\Tests\Events\Support\SoleTenants;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -189,6 +190,7 @@ final class KbEndToEndTest extends InboundTestCase
             $container->get(InboundAddresses::class),
             $container->get(BankFeedDirectory::class),
             $container->get(TenantContext::class),
+            SoleTenants::of($container->get(TenantContext::class)->current()),
             $container->get(InboundMessages::class),
             $container->get(InboundFiles::class),
             $inline,

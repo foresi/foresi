@@ -19,6 +19,7 @@ use App\Banking\Application\ProcessMessage;
 use App\Banking\Application\ReceiveInboundMail;
 use App\Banking\Application\ReceiveOutcome;
 use App\Banking\Domain\InboundChannel;
+use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\ConflictRetry;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\PriceType;
@@ -45,6 +46,9 @@ abstract class InboundTestCase extends BankingTestCase
     {
         parent::setUp();
         $container = self::getContainer();
+        // Mail is stored for the one tenant of the instance.
+        $tenant = $container->get(TenantContext::class)->current()->toString();
+        $this->em->getConnection()->executeStatement("INSERT INTO tenant (id, name, created_at) VALUES (?, 'Example Company', '2026-01-01 00:00:00')", [$tenant]);
         $this->address = $container->get(GenerateAddress::class)->generate($this->account->id());
         $this->receive = $container->get(ReceiveInboundMail::class);
         $this->process = $container->get(ProcessMessage::class);

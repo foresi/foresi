@@ -767,14 +767,10 @@ final class ContactSettingsForFirmTest extends WebTestCase
         $this->firm('Other Firm', '12345687');
         $archived = $this->firm('Old Firm', '12345679');
         $this->transaction()->run(static fn () => $archived->archive(new \DateTimeImmutable('2026-10-31 12:00:00')));
-        $foreign = $this->browser->fixtures->tenant('Foreign Tenant');
-        $this->context->switchTo($foreign);
-        $foreignFirm = $this->firm('Foreign Firm', '12345679');
-        $this->context->switchTo($this->tenant);
         $this->browser->signIn();
 
         $forged = ['own' => ['roles' => '1', 'invoicing' => '1', 'emails' => '1', 'archive' => '1'], 'roles' => ['supplier'], 'dueDays' => '5', 'currency' => 'CZK', 'language' => 'cs', 'paymentMethod' => 'cash', 'invoiceEmails' => 'forged@example.com', 'copyEmails' => '', 'archived' => '1'];
-        $this->post($party, [$foreignFirm->id() => $forged, $archived->id() => $forged, 'not-a-firm' => $forged]);
+        $this->post($party, [$archived->id() => $forged, 'not-a-firm' => $forged]);
 
         self::assertResponseRedirects('/contacts/'.$party->id());
         self::assertSame(0, $this->rows(PartyFirmSettings::class));

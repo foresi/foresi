@@ -200,14 +200,9 @@ final class ContactApiTest extends ApiTestCase
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => $parameter]);
     }
 
-    public function testAContactOfAnotherOrganisationIsNotFound(): void
+    public function testAnUnknownContactIsNotFound(): void
     {
-        $theirs = $this->inTenant($this->foreignTenant(), fn (): Party => $this->contact('Foreign Example'));
-
-        $this->get('/api/v1/contacts');
-        self::assertSame([$this->customerId], $this->ids());
-
-        foreach ([$theirs->id(), Id::generate(), 'not-an-id'] as $id) {
+        foreach ([Id::generate(), 'not-an-id'] as $id) {
             $this->get('/api/v1/contacts/'.$id);
             $this->assertProblem(404, 'not_found', ['detail' => 'No such contact.']);
         }

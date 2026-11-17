@@ -10,8 +10,6 @@ namespace App\Identity\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditExcluded;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\Party;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
@@ -23,19 +21,15 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'invitation')]
-#[ORM\Index(name: 'idx_invitation_tenant', columns: ['tenant_id'])]
-#[ORM\Index(name: 'idx_invitation_email', columns: ['tenant_id', 'email'])]
+#[ORM\Index(name: 'idx_invitation_email', columns: ['email'])]
 #[ORM\UniqueConstraint(name: 'uniq_invitation_token', columns: ['token_hash'])]
-class Invitation implements TenantOwned, Audited
+class Invitation implements Audited
 {
     public const int VALID_DAYS = 7;
 
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'string', length: 255)]
     private string $email;
@@ -185,11 +179,6 @@ class Invitation implements TenantOwned, Audited
     public function expiresAt(): \DateTimeImmutable
     {
         return $this->expiresAt;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     private function assertHash(string $hash): void

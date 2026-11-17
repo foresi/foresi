@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Party\Domain;
 
-use App\Instance\Domain\TenantId;
 use App\Party\Domain\Iban;
 use App\Party\Domain\PartyBankAccount;
 use App\Shared\Domain\Id;
@@ -88,19 +87,5 @@ final class PartyBankAccountTest extends TestCase
         yield 'twelve' => ['COBADEFFXXXX'];
         yield 'digits in the bank code' => ['1OBADEFF'];
         yield 'punctuation' => ['COBADE-F'];
-    }
-
-    public function testAdoptsTheTenantOfItsParty(): void
-    {
-        $tenant = TenantId::generate();
-
-        self::assertTrue($tenant->equals(new PartyBankAccount(PartyFactory::company('Example Company', $tenant), Iban::fromString(self::IBAN))->tenantId()));
-    }
-
-    public function testTenantIsUnavailableBeforePersist(): void
-    {
-        $this->expectException(\LogicException::class);
-
-        new PartyBankAccount(PartyFactory::company(), Iban::fromString(self::IBAN))->tenantId();
     }
 }

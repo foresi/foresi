@@ -10,8 +10,6 @@ namespace App\Party\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditRooted;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -22,18 +20,14 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'contact_link')]
-#[ORM\Index(name: 'idx_contact_link_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_contact_link_company', columns: ['company_id'])]
 #[ORM\Index(name: 'idx_contact_link_person', columns: ['person_id'])]
-#[ORM\UniqueConstraint(name: 'uniq_contact_link_pair', columns: ['tenant_id', 'company_id', 'person_id'])]
-class ContactLink implements TenantOwned, Audited, AuditRooted
+#[ORM\UniqueConstraint(name: 'uniq_contact_link_pair', columns: ['company_id', 'person_id'])]
+class ContactLink implements Audited, AuditRooted
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId;
 
     #[ORM\Column(type: 'string', length: 100)]
     private string $position;
@@ -57,12 +51,6 @@ class ContactLink implements TenantOwned, Audited, AuditRooted
             throw new \DomainException('Only a person can be a contact person.');
         }
 
-        $companyTenant = $company->stampedTenantId();
-        $personTenant = $person->stampedTenantId();
-        if ($companyTenant instanceof TenantId && $personTenant instanceof TenantId && !$companyTenant->equals($personTenant)) {
-            throw new \DomainException('A contact can only be linked within one tenant.');
-        }
-        $this->tenantId = $companyTenant ?? $personTenant;
         $this->position = trim($position);
     }
 
@@ -104,10 +92,5 @@ class ContactLink implements TenantOwned, Audited, AuditRooted
     public function markPrimary(bool $primary): void
     {
         $this->primary = $primary;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

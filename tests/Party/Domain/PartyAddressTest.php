@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Party\Domain;
 
-use App\Instance\Domain\TenantId;
 use App\Party\Domain\Address;
 use App\Party\Domain\AddressType;
 use App\Party\Domain\PartyAddress;
@@ -38,16 +37,5 @@ final class PartyAddressTest extends TestCase
 
         self::assertSame('Main 2', $address->address()->street);
         self::assertSame('Head office', $address->label());
-    }
-
-    public function testAdoptsTheTenantOfItsPartyAndHasNoneBeforeThat(): void
-    {
-        $tenant = TenantId::generate();
-        $address = new PartyAddress(PartyFactory::company('Example Company', $tenant), AddressType::Billing, new Address('Example Street 1', 'Example City', '100 00', 'CZ'));
-
-        self::assertTrue($tenant->equals($address->tenantId()));
-
-        $this->expectException(\LogicException::class);
-        new PartyAddress(PartyFactory::company(), AddressType::Billing, new Address('Example Street 1', 'Example City', '100 00', 'CZ'))->tenantId();
     }
 }

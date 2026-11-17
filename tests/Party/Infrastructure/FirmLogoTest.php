@@ -54,7 +54,7 @@ final class FirmLogoTest extends WebTestCase
     protected function tearDown(): void
     {
         array_map(unlink(...), $this->temporary);
-        $this->removeTenantImages();
+        $this->removeImages();
         parent::tearDown();
     }
 
@@ -89,7 +89,7 @@ final class FirmLogoTest extends WebTestCase
         $stored = $this->stored($firm);
         $name = 'logo' === $field ? $stored->logo() : $stored->stamp();
         self::assertSame(hash('sha256', $bytes).'.'.$extension, $name);
-        self::assertSame($bytes, file_get_contents($this->images()->path($this->tenant, $name)));
+        self::assertSame($bytes, file_get_contents($this->images()->path($name)));
     }
 
     public function testAnImageOfExactlyTheLimitPasses(): void
@@ -266,7 +266,7 @@ final class FirmLogoTest extends WebTestCase
         $this->saveFirm($firm, ['logo' => $this->upload($second, 'second.jpg')]);
 
         self::assertSame(hash('sha256', $second).'.jpg', $this->stored($firm)->logo());
-        self::assertTrue(is_file($this->images()->path($this->tenant, hash('sha256', $first).'.png')));
+        self::assertTrue(is_file($this->images()->path(hash('sha256', $first).'.png')));
     }
 
     public function testSavingWithoutAFileKeepsTheImages(): void
@@ -331,23 +331,10 @@ final class FirmLogoTest extends WebTestCase
         self::assertStringNotContainsString(hash('sha256', $bytes), (string) $this->client->getResponse()->getContent());
     }
 
-    public function testImagesOfTwoTenantsLiveApart(): void
-    {
-        $other = TenantId::generate();
-        $bytes = $this->png();
-        $images = $this->images();
-
-        $name = $images->store($this->tenant, $bytes);
-        $images->store($other, $bytes);
-
-        self::assertNotSame($images->path($this->tenant, $name), $images->path($other, $name));
-        $this->removeDirectory($this->imageDir.'/'.$other->toString());
-    }
-
     public function testTheFilesAreForTheApplicationAlone(): void
     {
         $images = $this->images();
-        $path = $images->path($this->tenant, $images->store($this->tenant, $this->png()));
+        $path = $images->path($images->store($this->png()));
 
         self::assertSame(0o600, fileperms($path) & 0o777);
         self::assertSame(0o700, fileperms(\dirname($path)) & 0o777);
@@ -357,14 +344,14 @@ final class FirmLogoTest extends WebTestCase
     {
         $images = $this->images();
 
-        self::assertSame($images->store($this->tenant, $this->png()), $images->store($this->tenant, $this->png()));
+        self::assertSame($images->store($this->png()), $images->store($this->png()));
     }
 
     public function testTheStoreRefusesWhatIsNoImage(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        $this->images()->store($this->tenant, $this->pngHeader(10, 10));
+        $this->images()->store($this->pngHeader(10, 10));
     }
 
     /**
@@ -379,18 +366,27 @@ final class FirmLogoTest extends WebTestCase
     }
 
     #[DataProvider('wrongNames')]
-    public function testAPathNeverLeavesTheTenantDirectory(string $name): void
+    public function testAPathNeverLeavesTheStore(string $name): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        $this->images()->path($this->tenant, $name);
+        $this->images()->path($name);
+    }
+
+    public function testAnImageStoredUnderATenantDirectoryStillReads(): void
+    {
+        $name = hash('sha256', 'legacy').'.png';
+        mkdir($this->imageDir.'/'.$this->tenant->toString(), 0o700, true);
+        file_put_contents($this->imageDir.'/'.$this->tenant->toString().'/'.$name, 'legacy');
+
+        self::assertSame('legacy', file_get_contents($this->images()->path($name)));
     }
 
     public function testAFileThatIsNotThereIsAnError(): void
     {
         $this->expectException(\RuntimeException::class);
 
-        $this->images()->path($this->tenant, str_repeat('a', 64).'.png');
+        $this->images()->path(str_repeat('a', 64).'.png');
     }
 
     private function images(): FirmImages
@@ -507,7 +503,7 @@ final class FirmLogoTest extends WebTestCase
      */
     private function storedFiles(): array
     {
-        return $this->files($this->imageDir.'/'.$this->tenant->toString());
+        return $this->files($this->imageDir);
     }
 
     /**
@@ -520,9 +516,9 @@ final class FirmLogoTest extends WebTestCase
         return false === $files ? [] : array_values(array_diff($files, ['.', '..']));
     }
 
-    private function removeTenantImages(): void
+    private function removeImages(): void
     {
-        $this->removeDirectory($this->imageDir.'/'.$this->tenant->toString());
+        $this->removeDirectory($this->imageDir);
     }
 
     private function removeDirectory(string $directory): void

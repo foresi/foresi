@@ -157,18 +157,6 @@ final class SendLogControllerTest extends WebTestCase
         self::assertStringContainsString('SMTP 550: the mail server refused the message.', $crawler->filter('tbody tr')->text());
     }
 
-    public function testTheLogIsTenantIsolated(): void
-    {
-        $this->signedIn();
-        $this->foreignSend();
-
-        $crawler = $this->client->request('GET', '/invoices/sent');
-
-        self::assertResponseIsSuccessful();
-        self::assertCount(0, $crawler->filter('tbody tr'));
-        self::assertStringNotContainsString('Foreign', (string) $this->client->getResponse()->getContent());
-    }
-
     public function testTheLogIsForStaffAndInTheSidebar(): void
     {
         $this->signedIn();
@@ -487,27 +475,6 @@ final class SendLogControllerTest extends WebTestCase
 
             return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($issuer->id(), $series->id(), null, $this->customer->id(), null, $day, $day, new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line]));
         });
-    }
-
-    /**
-     * @return array{string, string} the invoice and the send, in a tenant of their own
-     */
-    private function foreignSend(): array
-    {
-        $tenant = $this->browser->fixtures->tenant('Foreign Tenant');
-        $this->context->switchTo($tenant);
-        try {
-            [$firm, $series] = $this->firmWithServer('Foreign Firm s.r.o.', '12345679');
-            $customer = $this->newCustomer('Foreign Customer a.s.');
-            $day = new \DateTimeImmutable('2026-11-01');
-            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
-            $invoice = self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($firm->id(), $series->id(), null, $customer->id(), null, $day, $day, new \DateTimeImmutable('2026-12-01'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Foreign', '', '', DocumentLanguage::Czech, [$line]));
-            $send = self::getContainer()->get(SendInvoice::class)->send(new SendRequest($invoice->id(), ['foreign@example.com'], [], false, 'Foreign invoice', '{link}'));
-
-            return [$invoice->id(), $send->id()];
-        } finally {
-            $this->context->reset();
-        }
     }
 
     private function signedIn(Role $role = Role::Owner, string $locale = 'en'): void

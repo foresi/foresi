@@ -69,13 +69,6 @@ final class FirmBankAccountTest extends TestCase
         self::assertSame(str_repeat('ř', 100), $account->label());
     }
 
-    public function testTheTenantIsKnownOnlyOnceStored(): void
-    {
-        $this->expectExceptionObject(new \LogicException('The tenant is stamped on persist.'));
-
-        $this->account()->tenantId();
-    }
-
     public function testALongLabelIsRefusedWhenOpening(): void
     {
         $this->expectException(\DomainException::class);
