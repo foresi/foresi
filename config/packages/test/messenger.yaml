@@ -8,5 +8,3 @@ framework:
             events: 'in-memory://'
             webhooks: 'in-memory://'
             failed: 'in-memory://'
-        routing:
-            App\Tests\Instance\Infrastructure\ScopedProbe: async

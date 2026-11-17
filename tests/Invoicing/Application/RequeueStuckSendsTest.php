@@ -24,7 +24,7 @@ final class RequeueStuckSendsTest extends TestCase
 
         self::assertSame('2026-11-03T09:05', $job->period(new \DateTimeImmutable('2026-11-03 10:09:59', $prague), $prague));
         self::assertSame('2026-11-03T09:10', $job->period(new \DateTimeImmutable('2026-11-03 10:10:00', $prague), $prague));
-        self::assertSame('2026-11-03T09:10', $job->period(new \DateTimeImmutable('2026-11-03 10:10:00', $prague), $tokyo), 'the tenant\'s zone changes nothing');
+        self::assertSame('2026-11-03T09:10', $job->period(new \DateTimeImmutable('2026-11-03 10:10:00', $prague), $tokyo), 'the instance\'s zone changes nothing');
         self::assertSame('2026-11-03T23:00', $job->period(new \DateTimeImmutable('2026-11-03 23:04:00', new \DateTimeZone('UTC')), $tokyo));
     }
 }

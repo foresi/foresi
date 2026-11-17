@@ -51,7 +51,7 @@ final readonly class CancelPayment
     }
 
     /**
-     * @throws UnknownPayment also for a payment of another tenant
+     * @throws UnknownPayment
      */
     public function cancel(string $paymentId): void
     {

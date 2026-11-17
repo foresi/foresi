@@ -20,16 +20,12 @@ use App\Events\Infrastructure\Payload\EventPayloads;
 use App\Events\Infrastructure\Relay\EventListeners;
 use App\Events\Infrastructure\Relay\EventRelay;
 use App\Events\Infrastructure\Relay\RelayEventsTask;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
-use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Shared\Domain\Id;
 use App\Shared\Domain\Module\ModuleId;
 use App\Tests\Events\Fixtures\Listeners\RecordingListener;
 use App\Tests\Events\Fixtures\Valid\Contract\Event\InvoiceIssued;
 use App\Tests\Events\Fixtures\Valid\Contract\Kind;
 use App\Tests\Events\Support\EventRows;
-use App\Tests\Events\Support\SoleTenants;
 use App\Work\Infrastructure\Doctrine\DoctrineProjects;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -53,8 +49,6 @@ final class EventRelayTest extends KernelTestCase
 {
     private Connection $db;
     private InMemoryTransport $events;
-    private TenantContext $context;
-    private TenantId $tenant;
     private EventListeners $listeners;
 
     protected function setUp(): void
@@ -68,8 +62,6 @@ final class EventRelayTest extends KernelTestCase
         $tool->createSchema($metadata);
 
         $this->db = $em->getConnection();
-        $this->context = $container->get(TenantContext::class);
-        $this->tenant = TenantId::generate();
         $events = $container->get('messenger.transport.events');
         self::assertInstanceOf(InMemoryTransport::class, $events);
         $this->events = $events;
@@ -143,12 +135,12 @@ final class EventRelayTest extends KernelTestCase
     {
         EventRows::insert($this->db, Id::generate());
         $sink = new class implements EventSink {
-            /** @var list<array{string, string, int}> */
+            /** @var list<array{string, int}> */
             public array $seen = [];
 
-            public function accept(string $tenantId, EventRow $row): void
+            public function accept(EventRow $row): void
             {
-                $this->seen[] = [$tenantId, $row->name, $row->position];
+                $this->seen[] = [$row->name, $row->position];
 
                 throw new \RuntimeException('The sink is down.');
             }
@@ -161,7 +153,7 @@ final class EventRelayTest extends KernelTestCase
             self::assertSame('The sink is down.', $failure->getMessage());
         }
 
-        self::assertSame([[$this->tenant->toString(), 'invoicing.invoice.issued', 1]], $sink->seen);
+        self::assertSame([['invoicing.invoice.issued', 1]], $sink->seen);
         self::assertSame([null], array_values(EventRows::positions($this->db)));
         self::assertCount(0, $this->events->getSent());
         self::assertFalse($this->db->isTransactionActive());
@@ -182,33 +174,15 @@ final class EventRelayTest extends KernelTestCase
             self::assertInstanceOf(DeliverEvent::class, $message);
             self::assertSame($id, $message->eventId);
             $listeners[] = $message->listener;
-            self::assertSame($this->tenant->toString(), $envelope->last(TenantStamp::class)?->tenantId);
         }
         sort($listeners);
         self::assertSame(['test.first', 'test.second'], $listeners);
-    }
-
-    public function testDeliveriesCarryTheOneTenantOfTheInstanceNotTheActiveOne(): void
-    {
-        EventRows::insert($this->db, Id::generate(), name: 'invoicing.invoice.paid');
-        $this->context->set(TenantId::generate());
-
-        try {
-            $this->relay()->relay();
-        } finally {
-            $this->context->reset();
-        }
-
-        $sent = $this->events->getSent();
-        self::assertCount(1, $sent);
-        self::assertSame($this->tenant->toString(), $sent[0]->last(TenantStamp::class)?->tenantId);
     }
 
     public function testSweepRelaysWhatNoNudgeAnnounced(): void
     {
         $container = self::getContainer();
         $em = $container->get(EntityManagerInterface::class);
-        $this->context->set($this->tenant);
         $recorder = new DbalEventRecorder(
             $this->db,
             EventCatalogue::scan([[ModuleId::of('invoicing'), 'App\Tests\Events\Fixtures\Valid\\', \dirname(__DIR__, 2).'/Fixtures/Valid']]),
@@ -222,7 +196,6 @@ final class EventRelayTest extends KernelTestCase
         );
         // A transaction of its own, which tells no outbox that it committed.
         new DoctrineProjects($em)->transactional(static fn () => $recorder->record(new InvoiceIssued('a', 1, false, null, Kind::Invoice, [])));
-        $this->context->reset();
         foreach ($this->events->getSent() as $envelope) {
             self::assertNotInstanceOf(RelayEvents::class, $envelope->getMessage());
         }
@@ -249,6 +222,6 @@ final class EventRelayTest extends KernelTestCase
     {
         $container = self::getContainer();
 
-        return new EventRelay($this->db, $container->get(LockFactory::class), $this->listeners, $bus ?? $container->get(MessageBusInterface::class), SoleTenants::of($this->tenant), $sinks);
+        return new EventRelay($this->db, $container->get(LockFactory::class), $this->listeners, $bus ?? $container->get(MessageBusInterface::class), $sinks);
     }
 }

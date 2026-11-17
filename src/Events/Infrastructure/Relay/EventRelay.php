@@ -12,12 +12,9 @@ use App\Events\Application\DeliverEvent;
 use App\Events\Application\EventSink;
 use App\Events\Infrastructure\Dbal\EventLogTable;
 use App\Events\Infrastructure\Dbal\EventRowReader;
-use App\Instance\Application\SoleTenant;
-use App\Instance\Infrastructure\Messenger\TenantStamp;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\Component\Lock\LockFactory;
-use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\Service\ResetInterface;
 
@@ -31,8 +28,7 @@ use Symfony\Contracts\Service\ResetInterface;
  * The deliveries go through the Doctrine transport, on the same connection, so
  * they are stored in the relay's transaction: a row is numbered together with
  * the messages to its listeners or, when enqueueing fails, stays unnumbered and
- * is picked up by the next run. Works with no tenant active: each message
- * carries the one tenant of the instance.
+ * is picked up by the next run.
  *
  * Each numbered row is also handed to the sinks, such as the webhooks, in the
  * same transaction: a sink that fails leaves the batch unnumbered too.
@@ -52,7 +48,6 @@ final readonly class EventRelay
         private LockFactory $locks,
         private EventListeners $listeners,
         private MessageBusInterface $bus,
-        private SoleTenant $tenant,
         #[AutowireIterator('app.event_sink')]
         private iterable $sinks = [],
     ) {
@@ -103,7 +98,6 @@ final readonly class EventRelay
             return 0;
         }
 
-        $tenant = $this->tenant->id()->toString();
         foreach ($this->sinks as $sink) {
             if ($sink instanceof ResetInterface) {
                 $sink->reset();
@@ -118,10 +112,10 @@ final readonly class EventRelay
             $row[EventLogTable::POSITION] = $position;
             $event = EventRowReader::read($row, $platform);
             foreach ($this->sinks as $sink) {
-                $sink->accept($tenant, $event);
+                $sink->accept($event);
             }
             foreach ($this->listeners->idsFor($this->text($row[EventLogTable::NAME])) as $listener) {
-                $this->bus->dispatch(new Envelope(new DeliverEvent($id, $listener), [new TenantStamp($tenant)]));
+                $this->bus->dispatch(new DeliverEvent($id, $listener));
             }
         }
 

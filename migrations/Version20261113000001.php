@@ -28,7 +28,7 @@ final class Version20261113000001 extends AbstractMigration
     {
         $endpoint = $schema->createTable('webhook_endpoint');
         $endpoint->addColumn('id', Types::GUID);
-        $endpoint->addColumn('tenant_id', 'tenant_id');
+        $endpoint->addColumn('tenant_id', 'guid');
         $endpoint->addColumn('url', Types::STRING, ['length' => 2048]);
         $endpoint->addColumn('description', Types::STRING, ['length' => 255, 'notnull' => false]);
         $endpoint->addColumn('event_types', Types::JSON);

@@ -21,7 +21,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Stored templates, and the built-in text from the translations of the document's
- * language. The tenant filter hides the rows of other tenants.
+ * language.
  */
 final readonly class DoctrineMailTemplates implements MailTemplates
 {

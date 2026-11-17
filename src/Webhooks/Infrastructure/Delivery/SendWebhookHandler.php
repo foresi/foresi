@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Webhooks\Infrastructure\Delivery;
 
-use App\Instance\Application\TenantContext;
-use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Shared\Application\SealerUnavailable;
 use App\Webhooks\Application\AttemptResult;
 use App\Webhooks\Application\AttemptTrigger;
@@ -30,7 +28,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
 
 /**
- * Makes one attempt of a delivery, in the tenant its message carries.
+ * Makes one attempt of a delivery.
  *
  * It claims the delivery first, so of two messages for one attempt, a stale
  * delayed one and the sweep's, or two copies of a redelivery, only one sends;
@@ -64,7 +62,6 @@ final readonly class SendWebhookHandler
         private MessageBusInterface $bus,
         private ClockInterface $clock,
         private LoggerInterface $logger,
-        private TenantContext $tenant,
         private \Random\Randomizer $random = new \Random\Randomizer(),
     ) {
     }
@@ -162,7 +159,6 @@ final readonly class SendWebhookHandler
     {
         $this->deliveries->schedule($delivery->id, $now->modify(\sprintf('+%d seconds', $seconds)));
         $this->bus->dispatch(new Envelope(new SendWebhook($delivery->id, AttemptTrigger::Schedule), [
-            new TenantStamp($this->tenant->current()->toString()),
             new DelayStamp($seconds * 1000),
         ]));
     }
@@ -170,6 +166,6 @@ final readonly class SendWebhookHandler
     private function disable(WebhookEndpoint $endpoint, DisabledReason $reason, \DateTimeImmutable $now): void
     {
         $endpoint->disable($reason, $now);
-        $this->mailer->notify($this->tenant->current()->toString(), $endpoint->ownerId(), $endpoint->id(), $endpoint->url()->host(), $reason);
+        $this->mailer->notify($endpoint->ownerId(), $endpoint->id(), $endpoint->url()->host(), $reason);
     }
 }

@@ -11,8 +11,6 @@ namespace App\Tests\Work\Infrastructure\Controller;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Tests\Identity\Support\IdentityFixtures;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Work\Domain\Label;
@@ -47,16 +45,13 @@ final class GuestWorkTest extends WebTestCase
     private KernelBrowser $client;
     private SignedInBrowser $browser;
     private EntityManagerInterface $em;
-    private TenantContext $context;
-    private TenantId $tenant;
 
     protected function setUp(): void
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
         $this->em = self::getContainer()->get('doctrine.orm.entity_manager');
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, $this->em, $this->context);
+        $this->browser = new SignedInBrowser($this->client, $this->em);
     }
 
     public function testTheStartPageListsTheSharedProjectThenTheTaskSharedOnItsOwnByTheNameOfItsProject(): void
@@ -297,7 +292,7 @@ final class GuestWorkTest extends WebTestCase
      */
     private function seed(bool $shares = true, bool $signInAsGuest = true): void
     {
-        [$this->tenant] = $this->browser->seed(['Example Organisation']);
+        $this->browser->seed();
         $this->browser->signIn();
         foreach (['Website', 'Office move', 'Hidden'] as $name) {
             $crawler = $this->client->request('GET', '/projects/new');
@@ -310,9 +305,9 @@ final class GuestWorkTest extends WebTestCase
             $this->em->persist($user);
         }
         $this->em->flush();
-        $this->browser->fixtures->join($jana, $this->tenant, Role::Member);
-        $this->browser->fixtures->join($guest, $this->tenant, Role::Guest);
-        $this->browser->fixtures->join($other, $this->tenant, Role::Guest);
+        $this->browser->fixtures->join($jana, Role::Member);
+        $this->browser->fixtures->join($guest, Role::Guest);
+        $this->browser->fixtures->join($other, Role::Guest);
         $this->scoped(function () use ($shares): void {
             $owner = $this->fetchId('SELECT id FROM app_user WHERE email = ?', [IdentityFixtures::EMAIL]);
             $now = new \DateTimeImmutable();
@@ -413,11 +408,6 @@ final class GuestWorkTest extends WebTestCase
      */
     private function scoped(callable $work): mixed
     {
-        $this->context->switchTo($this->tenant);
-        try {
-            return $work();
-        } finally {
-            $this->context->reset();
-        }
+        return $work();
     }
 }

@@ -40,8 +40,6 @@ use App\Import\Domain\Mapping;
 use App\Import\Domain\MatchReason;
 use App\Import\Domain\ReplaceScope;
 use App\Import\Domain\RowOutcome;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Tests\Import\Support\FakeTarget;
 use App\Tests\Import\Support\FlakyImportLock;
 use App\Tests\Import\Support\RunMessages;
@@ -67,12 +65,10 @@ final class PipelineTest extends KernelTestCase
     private const string HEADER = "Code;Name;Email\n";
 
     private EntityManagerInterface $em;
-    private TenantContext $tenants;
     private Imports $imports;
     private FakeTarget $target;
     private RunMessages $worker;
     private string $dir;
-    private TenantId $tenant;
 
     protected function setUp(): void
     {
@@ -80,7 +76,6 @@ final class PipelineTest extends KernelTestCase
         self::bootKernel();
         $container = self::getContainer();
         $this->em = $container->get('doctrine.orm.entity_manager');
-        $this->tenants = $container->get(TenantContext::class);
         $this->imports = $container->get(Imports::class);
         $target = $container->get(TargetRegistry::class)->get(FakeTarget::KEY);
         self::assertInstanceOf(FakeTarget::class, $target);
@@ -96,8 +91,6 @@ final class PipelineTest extends KernelTestCase
 
         $this->dir = sys_get_temp_dir().'/foresi-pipeline-'.bin2hex(random_bytes(6));
         mkdir($this->dir);
-        $this->tenant = TenantId::generate();
-        $this->tenants->switchTo($this->tenant);
     }
 
     protected function tearDown(): void
@@ -961,13 +954,10 @@ final class PipelineTest extends KernelTestCase
     private function stallAndCheckHealth(string $id): void
     {
         $this->em->getConnection()->executeStatement("UPDATE import SET progressed_at = '2026-09-30 10:00:00' WHERE id = ?", [$id]);
-        // The command works as the one tenant of the instance.
-        $this->em->getConnection()->executeStatement("INSERT INTO tenant (id, name, created_at) VALUES (?, 'Example Company', '2026-01-01 00:00:00')", [$this->tenant->toString()]);
         $tester = new CommandTester(new Application(self::$kernel ?? throw new \LogicException('No kernel.'))->find('app:import:health'));
 
         self::assertSame(Command::SUCCESS, $tester->execute([]));
         self::assertStringContainsString('Failed 1 stalled imports', $tester->getDisplay());
-        $this->tenants->switchTo($this->tenant);
     }
 
     private function fresh(string $id): Import

@@ -11,7 +11,6 @@ namespace App\Tests\Events\Infrastructure\Mcp;
 use App\Events\Infrastructure\Api\PositionCursor;
 use App\Events\Infrastructure\Mcp\ListEventsTool;
 use App\Events\Infrastructure\Relay\EventRelay;
-use App\Instance\Application\TenantContext;
 use App\Shared\Application\Event\EventRecorder;
 use App\Shared\Domain\Id;
 use App\Shared\Infrastructure\Mcp\ToolOutput;
@@ -31,7 +30,6 @@ final class ListEventsToolTest extends ReadToolTestCase
     {
         parent::setUp();
         $this->events = new RecordedEvents(
-            self::getContainer()->get(TenantContext::class),
             self::getContainer()->get(Connection::class),
             self::getContainer()->get(EventRecorder::class),
             self::getContainer()->get(EventRelay::class),
@@ -56,9 +54,9 @@ final class ListEventsToolTest extends ReadToolTestCase
     public function testItAnswersAsTheRestApiDoes(): void
     {
         $invoice = Id::generate();
-        $this->events->record($this->tenant, RecordedEvents::issued($invoice));
-        $this->events->record($this->tenant, RecordedEvents::payment(Id::generate(), $invoice));
-        $this->events->record($this->tenant, RecordedEvents::paid($invoice));
+        $this->events->record(RecordedEvents::issued($invoice));
+        $this->events->record(RecordedEvents::payment(Id::generate(), $invoice));
+        $this->events->record(RecordedEvents::paid($invoice));
         $this->events->number();
 
         $all = $this->call(ListEventsTool::class);
@@ -76,7 +74,7 @@ final class ListEventsToolTest extends ReadToolTestCase
     public function testTheCursorContinuesAndStaysWhenNothingIsNew(): void
     {
         foreach (range(1, 3) as $ignored) {
-            $this->events->record($this->tenant, RecordedEvents::issued(Id::generate()));
+            $this->events->record(RecordedEvents::issued(Id::generate()));
         }
         $this->events->number();
 
@@ -105,7 +103,7 @@ final class ListEventsToolTest extends ReadToolTestCase
 
     public function testNonStaffSees403ForInvoicingTypesAndAnEmptyListWithoutTypes(): void
     {
-        $this->events->record($this->tenant, RecordedEvents::issued(Id::generate()));
+        $this->events->record(RecordedEvents::issued(Id::generate()));
         $this->events->number();
         $guest = $this->guest();
 

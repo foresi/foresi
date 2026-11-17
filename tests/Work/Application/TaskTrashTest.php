@@ -321,7 +321,7 @@ final class TaskTrashTest extends WorkTestCase
         self::assertSame([false, false], [$task->isDeleted(), $subtask->isDeleted()]);
     }
 
-    public function testThePurgeRunsOnceADayFromThreeInTheMorningOfTheTenant(): void
+    public function testThePurgeRunsOnceADayFromThreeInTheMorningOfTheInstance(): void
     {
         $job = new PurgeTaskTrashDaily(self::getContainer()->get(PurgeDeletedTasks::class), $this->clock);
         $prague = new \DateTimeZone('Europe/Prague');

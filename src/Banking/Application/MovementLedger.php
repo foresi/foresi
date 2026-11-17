@@ -11,8 +11,7 @@ namespace App\Banking\Application;
 use App\Banking\Domain\BankMovement;
 
 /**
- * What the movements of the active tenant add up to, for the balance and the
- * forecast. A possible duplicate counts nowhere: it may be a movement already
+ * What the movements add up to, for the balance and the forecast. A possible duplicate counts nowhere: it may be a movement already
  * counted. Movements in another currency than their account's say the account
  * is set up wrong and count nowhere either.
  */

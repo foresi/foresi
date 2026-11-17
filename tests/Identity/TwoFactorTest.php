@@ -11,7 +11,6 @@ namespace App\Tests\Identity;
 use App\Identity\Application\UserRepository;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\RecoveryCodes;
-use App\Instance\Application\TenantContext;
 use App\Shared\Application\Sealer;
 use App\Tests\Identity\Support\IdentityFixtures;
 use OTPHP\TOTP;
@@ -34,9 +33,9 @@ final class TwoFactorTest extends WebTestCase
         // The test database lives in memory, so every request must share the kernel.
         $this->client->disableReboot();
 
-        $fixtures = new IdentityFixtures(self::getContainer()->get('doctrine.orm.entity_manager'), self::getContainer()->get(TenantContext::class));
+        $fixtures = new IdentityFixtures(self::getContainer()->get('doctrine.orm.entity_manager'));
         $fixtures->rebuildSchema();
-        $fixtures->join($fixtures->user(), $fixtures->tenant('Tenant A'));
+        $fixtures->join($fixtures->user());
         // A fresh secret per test: a code once accepted is refused again for a while.
         $this->secret = Base32::encodeUpperUnpadded(random_bytes(20));
     }
@@ -72,9 +71,9 @@ final class TwoFactorTest extends WebTestCase
         self::ensureKernelShutdown();
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $fixtures = new IdentityFixtures(self::getContainer()->get('doctrine.orm.entity_manager'), self::getContainer()->get(TenantContext::class));
+        $fixtures = new IdentityFixtures(self::getContainer()->get('doctrine.orm.entity_manager'));
         $fixtures->rebuildSchema();
-        $fixtures->join($fixtures->user(), $fixtures->tenant('Tenant A'));
+        $fixtures->join($fixtures->user());
 
         $this->signIn();
         $this->client->followRedirect();

@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace App\Idoklad\Infrastructure\Doctrine;
 
 use App\Idoklad\Application\Import\ImportTransaction;
-use App\Instance\Application\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -17,15 +16,13 @@ use Doctrine\Persistence\ManagerRegistry;
  * The units of work inside see the open transaction and leave the flush,
  * commit and rollback to it (see DoctrineTransactionalWork). A rolled-back
  * transaction leaves entities the manager still holds for stored, so it
- * forgets them; a failed one may have closed the manager, which is replaced
- * and bound to the active tenant again.
+ * forgets them; a failed one may have closed the manager, which is replaced.
  */
 final readonly class DoctrineImportTransaction implements ImportTransaction
 {
     public function __construct(
         private EntityManagerInterface $em,
         private ManagerRegistry $registry,
-        private TenantContext $context,
     ) {
     }
 
@@ -39,7 +36,6 @@ final readonly class DoctrineImportTransaction implements ImportTransaction
         } catch (\Throwable $failure) {
             $connection->rollBack();
             $this->registry->resetManager();
-            $this->context->switchTo($this->context->current());
 
             throw $failure;
         }

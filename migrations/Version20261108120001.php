@@ -27,7 +27,7 @@ final class Version20261108120001 extends AbstractMigration
     {
         $attachment = $schema->createTable('attachment');
         $attachment->addColumn('id', Types::GUID);
-        $attachment->addColumn('tenant_id', 'tenant_id');
+        $attachment->addColumn('tenant_id', 'guid');
         $attachment->addColumn('owner_kind', Types::STRING, ['length' => 40]);
         $attachment->addColumn('owner_id', Types::GUID);
         $attachment->addColumn('file_name', Types::STRING, ['length' => 255]);

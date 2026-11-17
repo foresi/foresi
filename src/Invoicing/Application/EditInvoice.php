@@ -56,7 +56,7 @@ final readonly class EditInvoice
      *
      * @throws IssueRefused   when a rule refuses, or when someone saved since the form
      *                        was opened (field "version"); nothing changes
-     * @throws UnknownInvoice also for an invoice of another tenant
+     * @throws UnknownInvoice
      */
     public function edit(string $id, InvoiceInput $input, int $version): Invoice
     {

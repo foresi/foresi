@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Identity;
 
-use App\Instance\Application\TenantContext;
 use App\Tests\Identity\Support\SignedInBrowser;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -21,8 +20,8 @@ final class LogoutTest extends WebTestCase
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), self::getContainer()->get(TenantContext::class));
-        $browser->seed(['Tenant A']);
+        $browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
+        $browser->seed();
         $browser->signIn();
     }
 

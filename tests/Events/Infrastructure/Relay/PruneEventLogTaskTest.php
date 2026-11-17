@@ -11,10 +11,8 @@ namespace App\Tests\Events\Infrastructure\Relay;
 use App\Events\Infrastructure\Relay\EventListeners;
 use App\Events\Infrastructure\Relay\EventRelay;
 use App\Events\Infrastructure\Relay\PruneEventLogTask;
-use App\Instance\Domain\TenantId;
 use App\Shared\Domain\Id;
 use App\Tests\Events\Support\EventRows;
-use App\Tests\Events\Support\SoleTenants;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -77,7 +75,7 @@ final class PruneEventLogTaskTest extends KernelTestCase
         $next = Id::generate();
         EventRows::insert($this->db, $next, '2026-11-11 10:00:00');
         $container = self::getContainer();
-        new EventRelay($this->db, $container->get(LockFactory::class), new EventListeners(new ServiceLocator([])), $container->get(MessageBusInterface::class), SoleTenants::of(TenantId::generate()))->relay();
+        new EventRelay($this->db, $container->get(LockFactory::class), new EventListeners(new ServiceLocator([])), $container->get(MessageBusInterface::class))->relay();
 
         self::assertSame([$newest => 42, $next => 43], EventRows::positions($this->db));
         self::assertSame([$newest], $this->db->fetchFirstColumn('SELECT event_id FROM event_consumption'));

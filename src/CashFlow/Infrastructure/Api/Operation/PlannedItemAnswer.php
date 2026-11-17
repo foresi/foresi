@@ -11,7 +11,7 @@ namespace App\CashFlow\Infrastructure\Api\Operation;
 use App\CashFlow\Domain\PlannedItem;
 use App\CashFlow\Infrastructure\Api\CashFlowApiController;
 use App\CashFlow\Infrastructure\Api\CashFlowJson;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Shared\Infrastructure\Operation\OperationOutput;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -20,7 +20,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  */
 final readonly class PlannedItemAnswer
 {
-    public function __construct(private TenantClock $clock, private UrlGeneratorInterface $urls)
+    public function __construct(private InstanceClock $clock, private UrlGeneratorInterface $urls)
     {
     }
 

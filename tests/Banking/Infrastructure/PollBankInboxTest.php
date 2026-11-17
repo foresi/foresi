@@ -16,7 +16,6 @@ use App\Banking\Application\ReceiveInboundMail;
 use App\Banking\Infrastructure\CachePollFailures;
 use App\Banking\Infrastructure\Imap\DisabledInboundMailbox;
 use App\Banking\Infrastructure\Imap\ImapInboundMailbox;
-use App\Instance\Application\TenantContext;
 use App\Tests\Banking\Support\FailingInboundFiles;
 use App\Tests\Banking\Support\InboundMailKit;
 use App\Tests\Banking\Support\Scalars;
@@ -51,7 +50,7 @@ final class PollBankInboxTest extends KernelTestCase
         self::bootKernel();
         Clock::set(new MockClock('2026-11-20 12:00:00', 'UTC'));
         $container = self::getContainer();
-        $this->kit = InboundMailKit::seed($container->get(EntityManagerInterface::class), $container->get(TenantContext::class), $container->get(GenerateAddress::class));
+        $this->kit = InboundMailKit::seed($container->get(EntityManagerInterface::class), $container->get(GenerateAddress::class));
         $mailbox = $container->get(InboundMailbox::class);
         self::assertInstanceOf(FakeInboundMailbox::class, $mailbox);
         $this->mailbox = $mailbox;

@@ -9,14 +9,13 @@ declare(strict_types=1);
 namespace App\Instance\Application\Schedule;
 
 /**
- * Timed work of the installation itself, done with no tenant active, such as
+ * Timed work of the installation itself, such as
  * polling the operator's inbox. The schedule sends it at its own pace; a run
  * holds a lock named after the task, so a second worker at the same moment
  * skips it. A failed run is logged, and the next one simply comes later: a task
  * must leave nothing half done that the next run cannot pick up.
  *
- * Unlike a ScheduledJob, there are no periods and no record of runs. Work that
- * belongs to a tenant must switch to it and back by itself, and never keep it.
+ * Unlike a ScheduledJob, there are no periods and no record of runs.
  * Implementations are tagged app.operator_task.
  */
 interface OperatorTask
@@ -32,7 +31,7 @@ interface OperatorTask
     public function every(): string;
 
     /**
-     * Does the work, with no tenant active. A run may take at most ten minutes,
+     * Does the work. A run may take at most ten minutes,
      * after which its lock may be taken by another worker.
      */
     public function run(): void;

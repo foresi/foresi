@@ -11,8 +11,8 @@ namespace App\Banking\Application;
 use Psr\Clock\ClockInterface;
 
 /**
- * What the bank screen shows of the active tenant: a page of the movements of a
- * tab, or of the bank mail, with the counts its tabs carry.
+ * What the bank screen shows: a page of the movements of a tab, or of the bank
+ * mail, with the counts its tabs carry.
  *
  * A message still waiting for processing after an hour is stuck: the queue gave
  * up on it, or no worker runs. It counts among the messages that wait for

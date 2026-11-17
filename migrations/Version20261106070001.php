@@ -27,7 +27,7 @@ final class Version20261106070001 extends AbstractMigration
     {
         $link = $schema->createTable('idoklad_link');
         $link->addColumn('id', Types::GUID);
-        $link->addColumn('tenant_id', 'tenant_id');
+        $link->addColumn('tenant_id', 'guid');
         $link->addColumn('legal_entity_id', Types::GUID);
         $link->addColumn('resource', Types::STRING, ['length' => 32]);
         $link->addColumn('external_id', Types::INTEGER);
@@ -41,7 +41,7 @@ final class Version20261106070001 extends AbstractMigration
 
         $run = $schema->createTable('idoklad_import_run');
         $run->addColumn('id', Types::GUID);
-        $run->addColumn('tenant_id', 'tenant_id');
+        $run->addColumn('tenant_id', 'guid');
         $run->addColumn('legal_entity_id', Types::GUID);
         $run->addColumn('mode', Types::STRING, ['length' => 8]);
         $run->addColumn('pull_id', Types::GUID, ['notnull' => false]);

@@ -32,7 +32,7 @@ final readonly class RecurringAmounts
     /**
      * @param list<RecurringInvoice>                    $templates
      * @param array<string, list<RecurringInvoiceLine>> $lines     by template id, as RecurringOverview::prepare() gives them
-     * @param \DateTimeImmutable                        $today     the tenant's today, for a template without a next date
+     * @param \DateTimeImmutable                        $today     the instance's today, for a template without a next date
      *
      * @return array<string, Money|null> payable by template id; null when it cannot be priced, such as without a rate on that day
      */

@@ -152,7 +152,7 @@ final class InvoiceExportController extends AbstractController
     }
 
     /**
-     * The firm a link names, if the tenant has it.
+     * The firm a link names, if it exists.
      */
     private function linkedFirm(string $id): ?LegalEntity
     {

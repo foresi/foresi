@@ -9,9 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Party\Infrastructure\Registry;
 
 use App\Audit\Domain\AuditEntry;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
-use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Party\Application\CreateParty;
 use App\Party\Application\PartyQuery;
 use App\Party\Application\RecheckRegistry;
@@ -35,7 +32,6 @@ use Symfony\Component\RateLimiter\RateLimiterFactory;
 final class RecheckRegistryHandlerTest extends KernelTestCase
 {
     private EntityManagerInterface $em;
-    private TenantId $tenant;
 
     protected function setUp(): void
     {
@@ -45,18 +41,15 @@ final class RecheckRegistryHandlerTest extends KernelTestCase
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $this->tenant = TenantId::generate();
-        self::getContainer()->get(TenantContext::class)->switchTo($this->tenant);
         RegistryCalls::reset();
     }
 
-    public function testTheRecheckIsRoutedToTheRegistryTransportWithTheTenant(): void
+    public function testTheRecheckIsRoutedToTheRegistryTransport(): void
     {
         $this->bus()->dispatch(new RecheckRegistry('019a0000-0000-7000-8000-000000000001'));
 
         $sent = $this->registry()->getSent();
         self::assertCount(1, $sent);
-        self::assertSame($this->tenant->toString(), $sent[0]->last(TenantStamp::class)?->tenantId);
     }
 
     public function testTheChecksAreStoredUnderTheCorrelationOfTheImport(): void
@@ -142,7 +135,7 @@ final class RecheckRegistryHandlerTest extends KernelTestCase
 
     private function handle(RecheckRegistry $message): void
     {
-        $this->bus()->dispatch(new Envelope($message, [new ReceivedStamp('registry'), new TenantStamp($this->tenant->toString())]));
+        $this->bus()->dispatch(new Envelope($message, [new ReceivedStamp('registry')]));
     }
 
     private function party(?string $vatId): Party

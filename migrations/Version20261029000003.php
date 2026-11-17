@@ -37,7 +37,7 @@ final class Version20261029000003 extends AbstractMigration
 
         $membership = $schema->createTable('membership');
         $membership->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $membership->addColumn('tenant_id', 'tenant_id');
+        $membership->addColumn('tenant_id', 'guid');
         $membership->addColumn('user_id', Types::INTEGER);
         $membership->addColumn('party_id', Types::INTEGER, ['notnull' => false]);
         $membership->addColumn('role', Types::STRING, ['length' => 32]);

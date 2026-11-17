@@ -13,8 +13,8 @@ use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * The issuing firm of a tenant. A tenant can have several, for example the one
- * doing the work and the one that invoices. Among the active firms of a tenant a
+ * The issuing firm of the instance. There can be several, for example the one
+ * doing the work and the one that invoices. Among the active firms a
  * registration number is unique; an archived firm stays for what it issued and
  * releases its number. Production code goes through the firm screens, which turn
  * a taken number into a form error before the unique index would refuse it. Its

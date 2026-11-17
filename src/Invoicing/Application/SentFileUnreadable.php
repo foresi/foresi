@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 /**
- * A kept PDF is missing, lies outside its tenant's storage, or no longer matches
+ * A kept PDF is missing, lies outside the storage, or no longer matches
  * the hash taken when it was sent.
  */
 final class SentFileUnreadable extends \RuntimeException

@@ -12,8 +12,7 @@ use App\Identity\Domain\Membership;
 use App\Work\Domain\NotificationPreference;
 
 /**
- * The e-mail preferences of the people of the active tenant; a person with
- * none has the defaults.
+ * The e-mail preferences of the people; a person with none has the defaults.
  */
 interface NotificationPreferences
 {

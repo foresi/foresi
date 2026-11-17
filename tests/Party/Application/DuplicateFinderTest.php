@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Party\Application;
 
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Domain\InvalidRegistrationNumber;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
@@ -30,7 +28,6 @@ final class DuplicateFinderTest extends KernelTestCase
         self::bootKernel();
         $container = self::getContainer();
         $em = $container->get('doctrine.orm.entity_manager');
-        $context = $container->get(TenantContext::class);
         $this->em = $em;
         $this->finder = new DoctrineDuplicateFinder($em);
 
@@ -38,7 +35,6 @@ final class DuplicateFinderTest extends KernelTestCase
         $metadata = $em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $context->switchTo(TenantId::generate());
     }
 
     public function testMatchesARegistrationNumberWrittenWithSpaces(): void

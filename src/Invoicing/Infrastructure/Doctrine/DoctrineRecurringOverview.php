@@ -16,7 +16,7 @@ use App\Party\Domain\Party;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Queries of the ORM only, so the tenant filter covers each of them.
+ * Queries of the ORM only.
  */
 final readonly class DoctrineRecurringOverview implements RecurringOverview
 {

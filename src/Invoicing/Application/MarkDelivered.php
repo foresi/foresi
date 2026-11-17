@@ -35,7 +35,7 @@ final readonly class MarkDelivered
      * @return Invoice the invoice as saved; anything loaded before is detached
      *
      * @throws \DomainException for an invoice in the trash
-     * @throws UnknownInvoice   also for an invoice of another tenant
+     * @throws UnknownInvoice
      */
     public function mark(string $id): Invoice
     {

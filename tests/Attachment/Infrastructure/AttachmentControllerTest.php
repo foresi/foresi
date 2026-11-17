@@ -11,8 +11,6 @@ namespace App\Tests\Attachment\Infrastructure;
 use App\Attachment\Infrastructure\Controller\AttachmentController;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Shared\Domain\Id;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Work\Domain\Project;
@@ -36,8 +34,6 @@ final class AttachmentControllerTest extends WebTestCase
     private KernelBrowser $client;
     private SignedInBrowser $browser;
     private EntityManagerInterface $em;
-    private TenantContext $context;
-    private TenantId $tenant;
     private string $task;
     /** @var list<string> */
     private array $paths = [];
@@ -47,8 +43,7 @@ final class AttachmentControllerTest extends WebTestCase
         $this->client = self::createClient();
         $this->client->disableReboot();
         $this->em = self::getContainer()->get('doctrine.orm.entity_manager');
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, $this->em, $this->context);
+        $this->browser = new SignedInBrowser($this->client, $this->em);
     }
 
     protected function tearDown(): void
@@ -272,7 +267,7 @@ final class AttachmentControllerTest extends WebTestCase
 
     public function testAGuestFindsNoFileOfARecordNotSharedWithThem(): void
     {
-        [$this->tenant] = $this->browser->seed(['Example Organisation'], role: Role::Guest);
+        $this->browser->seed(role: Role::Guest);
         $this->browser->signIn();
 
         $this->client->request('GET', '/attachments/'.Id::generate());
@@ -370,23 +365,18 @@ final class AttachmentControllerTest extends WebTestCase
 
     private function seed(): void
     {
-        [$this->tenant] = $this->browser->seed(['Example Organisation']);
+        $this->browser->seed();
         $this->browser->signIn();
         $crawler = $this->client->request('GET', '/projects/new');
         $this->client->submit($crawler->filter('#project-form')->form(['name' => 'Website']));
         $projectId = $this->em->getConnection()->fetchOne('SELECT id FROM project WHERE name = ?', ['Website']);
         self::assertIsString($projectId);
-        $this->context->switchTo($this->tenant);
-        try {
-            $project = $this->em->find(Project::class, $projectId) ?? throw new \LogicException('Project.');
-            $status = $this->em->getRepository(ProjectStatus::class)->findOneBy(['project' => $project], ['position' => 'ASC']) ?? throw new \LogicException('Status.');
-            $me = $this->em->getRepository(Membership::class)->findOneBy(['role' => Role::Owner]) ?? throw new \LogicException('Membership.');
-            $task = new Task($project, 'Wireframes', $status, 0, $me->user()->id(), new \DateTimeImmutable());
-            $this->em->persist($task);
-            $this->em->flush();
-            $this->task = $task->id();
-        } finally {
-            $this->context->reset();
-        }
+        $project = $this->em->find(Project::class, $projectId) ?? throw new \LogicException('Project.');
+        $status = $this->em->getRepository(ProjectStatus::class)->findOneBy(['project' => $project], ['position' => 'ASC']) ?? throw new \LogicException('Status.');
+        $me = $this->em->getRepository(Membership::class)->findOneBy(['role' => Role::Owner]) ?? throw new \LogicException('Membership.');
+        $task = new Task($project, 'Wireframes', $status, 0, $me->user()->id(), new \DateTimeImmutable());
+        $this->em->persist($task);
+        $this->em->flush();
+        $this->task = $task->id();
     }
 }

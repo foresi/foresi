@@ -30,7 +30,7 @@ final class Version20261031000001 extends AbstractMigration
 
         $match = $schema->createTable('import_ambiguous_match');
         $match->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $match->addColumn('tenant_id', 'tenant_id');
+        $match->addColumn('tenant_id', 'guid');
         $match->addColumn('import_id', Types::INTEGER);
         $match->addColumn('record_id', Types::INTEGER);
         $match->setPrimaryKey(['id']);

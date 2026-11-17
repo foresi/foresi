@@ -8,12 +8,10 @@ declare(strict_types=1);
 
 namespace App\Instance\Application\Schedule;
 
-use App\Instance\Application\TenantScopedMessage;
-
 /**
- * Runs one job for one period in the tenant the message carries.
+ * Runs one job for one period.
  */
-final readonly class RunScheduledJob implements TenantScopedMessage
+final readonly class RunScheduledJob
 {
     public function __construct(
         public string $job,

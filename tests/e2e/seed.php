@@ -16,7 +16,7 @@ declare(strict_types=1);
  *     E2E_WORLD=bank APP_ENV=e2e php tests/e2e/seed.php
  *
  * `php tests/e2e/seed.php --worlds` lists the worlds. The data of a world is in
- * tests/e2e/seed/<world>.php, which runs with the organisation already active; a world
+ * tests/e2e/seed/<world>.php, which runs after the owner is created; a world
  * without a file is the organisation and its owner only. Only example.com data and the
  * synthetic registration numbers of the registry fixtures are used.
  */
@@ -25,10 +25,7 @@ use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Instance\Application\TenantClock;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\Tenant;
-use App\Instance\Domain\TenantId;
+use App\Instance\Application\InstanceClock;
 use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\LinkTokens;
 use App\Invoicing\Application\MailSecrets;
@@ -51,7 +48,7 @@ use Symfony\Component\Dotenv\Dotenv;
 use Symfony\Component\PasswordHasher\Hasher\PasswordHasherFactoryInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
-// Each world: its organisation and the owner who signs in (none: nobody signs in to it).
+// Each world: a label for its organisation and the owner who signs in (none: nobody signs in to it).
 const WORLDS = [
     // 30 contacts for the address book, the contact and the layout specs.
     'main' => ['Example Company', 'testing@example.com', 'Testing Example'],
@@ -105,7 +102,6 @@ $kernel->boot();
 $container = $kernel->getContainer();
 
 $entityManager = $container->get('e2e.entity_manager');
-$context = $container->get('e2e.tenant_context');
 $createParty = $container->get('e2e.create_party');
 $registrationNumbers = $container->get('e2e.registration_numbers');
 $hashers = $container->get('e2e.password_hashers');
@@ -114,7 +110,6 @@ $issueInvoice = $container->get('e2e.issue_invoice');
 $sendInvoice = $container->get('e2e.send_invoice');
 $linkTokens = $container->get('e2e.link_tokens');
 \assert($entityManager instanceof EntityManagerInterface);
-\assert($context instanceof TenantContext);
 \assert($createParty instanceof CreateParty);
 \assert($registrationNumbers instanceof RegistrationNumberFactory);
 \assert($hashers instanceof PasswordHasherFactoryInterface);
@@ -153,18 +148,14 @@ $party = static fn (PartyKind $kind, string $name, array $roles, string $email, 
 $day = new DateTimeImmutable('2026-11-02');
 $due = new DateTimeImmutable('today')->modify('+14 days');
 $recordPayment = $container->get('e2e.record_payment');
-$tenantClock = $container->get('e2e.tenant_clock');
+$instanceClock = $container->get('e2e.instance_clock');
 $tokenStorage = $container->get('e2e.token_storage');
 \assert($recordPayment instanceof RecordPayment);
-\assert($tenantClock instanceof TenantClock);
+\assert($instanceClock instanceof InstanceClock);
 \assert($tokenStorage instanceof TokenStorageInterface);
 
-// The world's one organisation, with its owner as a member, active while its data is seeded.
-[$organisation, $ownerEmail, $ownerName] = WORLDS[$world];
-$tenant = TenantId::generate();
-$entityManager->persist(new Tenant($tenant, $organisation, new DateTimeImmutable()));
-$entityManager->flush();
-$context->switchTo($tenant);
+// The world's owner, as a member of the one organisation of the database.
+[, $ownerEmail, $ownerName] = WORLDS[$world];
 if (null !== $ownerEmail && null !== $ownerName) {
     $owner = new User($ownerEmail, $hash, $ownerName, 'cs');
     $entityManager->persist($owner);
@@ -174,6 +165,4 @@ if (null !== $ownerEmail && null !== $ownerName) {
 if (is_file(__DIR__.'/seed/'.$world.'.php')) {
     require __DIR__.'/seed/'.$world.'.php';
 }
-$context->reset();
-
 fwrite(\STDOUT, sprintf("Seeded the world %s.\n", $world));

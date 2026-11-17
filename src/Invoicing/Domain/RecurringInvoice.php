@@ -404,7 +404,7 @@ class RecurringInvoice implements Audited
     }
 
     /**
-     * @param \DateTimeImmutable $day the tenant's day an alert about this template went out
+     * @param \DateTimeImmutable $day the instance's day an alert about this template went out
      */
     public function markAlerted(\DateTimeImmutable $day): void
     {

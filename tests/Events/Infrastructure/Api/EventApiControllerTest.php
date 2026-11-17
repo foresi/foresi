@@ -13,7 +13,6 @@ use App\Events\Infrastructure\Relay\EventRelay;
 use App\Identity\Domain\ApiScope;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
 use App\Shared\Application\Event\EventRecorder;
@@ -23,8 +22,8 @@ use App\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use Doctrine\DBAL\Connection;
 
 /**
- * GET /api/v1/events: the events of the token's organisation that have a
- * position, from the last thirty days, in the order of their positions.
+ * GET /api/v1/events: the events that have a position, from the last thirty
+ * days, in the order of their positions.
  */
 final class EventApiControllerTest extends ApiTestCase
 {
@@ -34,7 +33,6 @@ final class EventApiControllerTest extends ApiTestCase
     {
         parent::setUp();
         $this->events = new RecordedEvents(
-            self::getContainer()->get(TenantContext::class),
             self::getContainer()->get(Connection::class),
             self::getContainer()->get(EventRecorder::class),
             self::getContainer()->get(EventRelay::class),
@@ -45,9 +43,9 @@ final class EventApiControllerTest extends ApiTestCase
     {
         $invoice = Id::generate();
         $payment = Id::generate();
-        $this->events->record($this->tenant, RecordedEvents::issued($invoice));
-        $this->events->record($this->tenant, RecordedEvents::payment($payment, $invoice));
-        $this->events->record($this->tenant, RecordedEvents::paid($invoice));
+        $this->events->record(RecordedEvents::issued($invoice));
+        $this->events->record(RecordedEvents::payment($payment, $invoice));
+        $this->events->record(RecordedEvents::paid($invoice));
         $this->events->number();
 
         $this->get('/api/v1/events');
@@ -65,7 +63,7 @@ final class EventApiControllerTest extends ApiTestCase
     {
         $ids = [Id::generate(), Id::generate(), Id::generate(), Id::generate(), Id::generate()];
         foreach ($ids as $id) {
-            $this->events->record($this->tenant, RecordedEvents::issued($id));
+            $this->events->record(RecordedEvents::issued($id));
         }
         $this->events->number();
 
@@ -89,7 +87,7 @@ final class EventApiControllerTest extends ApiTestCase
         self::assertSame(PositionCursor::encode(5), $this->at('next_cursor'));
 
         // What happens afterwards is listed from that cursor.
-        $this->events->record($this->tenant, RecordedEvents::paid($ids[0]));
+        $this->events->record(RecordedEvents::paid($ids[0]));
         $this->events->number();
         $this->get('/api/v1/events', ['cursor' => PositionCursor::encode(5)]);
         self::assertSame([6], array_column($this->dataRows(), 'position'));
@@ -97,7 +95,7 @@ final class EventApiControllerTest extends ApiTestCase
 
     public function testUnpositionedEventsAreNotListed(): void
     {
-        $this->events->record($this->tenant, RecordedEvents::issued(Id::generate()));
+        $this->events->record(RecordedEvents::issued(Id::generate()));
 
         $this->get('/api/v1/events');
 
@@ -108,10 +106,10 @@ final class EventApiControllerTest extends ApiTestCase
     public function testFiltersByTypeAndWildcard(): void
     {
         $invoice = Id::generate();
-        $this->events->record($this->tenant, RecordedEvents::issued($invoice));
-        $this->events->record($this->tenant, RecordedEvents::payment(Id::generate(), $invoice));
-        $this->events->record($this->tenant, RecordedEvents::paid($invoice));
-        $this->events->record($this->tenant, RecordedEvents::trashed($invoice));
+        $this->events->record(RecordedEvents::issued($invoice));
+        $this->events->record(RecordedEvents::payment(Id::generate(), $invoice));
+        $this->events->record(RecordedEvents::paid($invoice));
+        $this->events->record(RecordedEvents::trashed($invoice));
         $this->events->number();
 
         $this->get('/api/v1/events', ['types' => 'invoicing.invoice.paid']);
@@ -148,7 +146,7 @@ final class EventApiControllerTest extends ApiTestCase
     {
         // A guest never reaches the feed over REST: tokens of guests are refused before it. The refusal
         // of a module's events to one who is signed in is covered by ReadableEventsTest and the tools.
-        $this->inTenant($this->tenant, function (): void {
+        $this->flushed(function (): void {
             $party = new Party(PartyKind::Person, 'Alex Example', null, null, '');
             $this->em()->persist($party);
             $membership = $this->em()->getRepository(Membership::class)->findOneBy([]) ?? throw new \LogicException('No membership.');
@@ -164,8 +162,8 @@ final class EventApiControllerTest extends ApiTestCase
     {
         $old = Id::generate();
         $fresh = Id::generate();
-        $this->events->record($this->tenant, RecordedEvents::issued($old));
-        $this->events->record($this->tenant, RecordedEvents::issued($fresh));
+        $this->events->record(RecordedEvents::issued($old));
+        $this->events->record(RecordedEvents::issued($fresh));
         $this->events->number();
         self::getContainer()->get(Connection::class)->executeStatement('UPDATE event_log SET occurred_at = :at WHERE subject_id = :subject', ['at' => new \DateTimeImmutable('-31 days')->format('Y-m-d H:i:s'), 'subject' => $old]);
 
@@ -177,9 +175,9 @@ final class EventApiControllerTest extends ApiTestCase
     public function testEnvelopeShape(): void
     {
         $invoice = Id::generate();
-        $this->events->record($this->tenant, RecordedEvents::issued($invoice));
+        $this->events->record(RecordedEvents::issued($invoice));
         $payment = Id::generate();
-        $this->events->record($this->tenant, RecordedEvents::payment($payment, $invoice));
+        $this->events->record(RecordedEvents::payment($payment, $invoice));
         $this->events->number();
 
         $this->get('/api/v1/events');
@@ -210,7 +208,7 @@ final class EventApiControllerTest extends ApiTestCase
         self::assertSame([$invoice], $this->at('data', 1, 'data', 'invoice_ids'));
 
         $body = (string) $this->client->getResponse()->getContent();
-        foreach (['tenant', 'user_id', 'api_token', $this->tenant->toString(), $this->user->id()] as $secret) {
+        foreach (['user_id', 'api_token', $this->user->id()] as $secret) {
             self::assertStringNotContainsString($secret, $body);
         }
     }

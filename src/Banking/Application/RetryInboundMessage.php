@@ -24,7 +24,7 @@ final readonly class RetryInboundMessage
     /**
      * @return InboundStatus where the message stands afterwards
      *
-     * @throws UnknownInboundMessage also for a message of another tenant
+     * @throws UnknownInboundMessage for an unknown message
      */
     public function retry(string $messageId): InboundStatus
     {

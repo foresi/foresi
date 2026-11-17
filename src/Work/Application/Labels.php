@@ -11,7 +11,7 @@ namespace App\Work\Application;
 use App\Work\Domain\Label;
 
 /**
- * The labels of the active tenant.
+ * The labels of tasks.
  */
 interface Labels
 {

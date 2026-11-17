@@ -8,9 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure;
 
-use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\CorrectionInput;
@@ -82,8 +79,6 @@ final class PublicDocumentControllerTest extends WebTestCase
 
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private TenantContext $context;
-    private TenantId $tenant;
 
     /** @var array{string, string, string}|null */
     private ?array $firm = null;
@@ -95,9 +90,7 @@ final class PublicDocumentControllerTest extends WebTestCase
         $this->client->disableReboot();
         // A Czech browser, unless a test says otherwise.
         $this->client->setServerParameter('HTTP_ACCEPT_LANGUAGE', 'cs-CZ,cs;q=0.9');
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), $this->context);
-        $this->tenant = $this->browser->fixtures->tenant('Tenant A');
+        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
         RecordingMailGateway::reset();
     }
 
@@ -149,7 +142,7 @@ final class PublicDocumentControllerTest extends WebTestCase
     {
         $sent = $this->sentDocument();
         $stored = $this->storedPdf($sent['send']);
-        $this->inTenant(function () use ($sent): void {
+        $this->scoped(function () use ($sent): void {
             $connection = self::getContainer()->get(Connection::class);
             $connection->executeStatement("UPDATE invoice SET description = 'Changed after sending', version = version + 1 WHERE id = ?", [$sent['invoice']]);
         });
@@ -170,7 +163,7 @@ final class PublicDocumentControllerTest extends WebTestCase
         $revoked = $this->sentDocument();
         $this->command($revoked['send']);
         $cancelled = $this->queuedDocument();
-        $this->inTenant(static function () use ($cancelled): void {
+        $this->scoped(static function () use ($cancelled): void {
             self::getContainer()->get(TrashInvoice::class)->trash($cancelled['invoice'], 'Wrong customer');
         });
 
@@ -598,7 +591,7 @@ final class PublicDocumentControllerTest extends WebTestCase
     public function testASignedInMemberNeverCounts(): void
     {
         $sent = $this->sentDocument();
-        $this->signedInMemberOf([$this->tenant]);
+        $this->signedInMember();
 
         $this->client->request('GET', '/d/'.$sent['token'].'/open', server: self::CLICK);
 
@@ -645,20 +638,19 @@ final class PublicDocumentControllerTest extends WebTestCase
         self::assertSame('2026-11-03 10:00:00', substr(\is_string($revoked) ? $revoked : '', 0, 19));
         $this->client->request('GET', '/d/'.$sent['token']);
         self::assertResponseStatusCodeSame(404);
-        self::assertFalse($this->context->has(), 'the command leaves no tenant active');
 
         self::assertSame(1, $this->command('01963c5e-0000-7000-8000-00000000000a')->getStatusCode());
     }
 
     /**
-     * A delivered invoice of tenant A, sent from its firm.
+     * A delivered invoice, sent from its firm.
      *
      * @return array{send: string, invoice: string, token: string, copyToken: ?string}
      */
     private function sentDocument(DocumentLanguage $language = DocumentLanguage::Czech, bool $copy = false, PaymentMethod $method = PaymentMethod::BankTransfer): array
     {
         $sent = $this->queuedDocument($language, $copy, $method);
-        $this->inTenant(static function (): void {
+        $this->scoped(static function (): void {
             $mail = self::getContainer()->get('messenger.transport.mail');
             self::assertInstanceOf(InMemoryTransport::class, $mail);
             new RunMessages($mail, self::getContainer()->get(MessageBusInterface::class))->run();
@@ -672,7 +664,7 @@ final class PublicDocumentControllerTest extends WebTestCase
      */
     private function queuedDocument(DocumentLanguage $language = DocumentLanguage::Czech, bool $copy = false, PaymentMethod $method = PaymentMethod::BankTransfer): array
     {
-        return $this->inTenant(function () use ($language, $copy, $method): array {
+        return $this->scoped(function () use ($language, $copy, $method): array {
             $container = self::getContainer();
             [$firm, $series, $customer] = $this->firm ??= $this->newFirm();
             $day = new \DateTimeImmutable('2026-11-01');
@@ -697,7 +689,7 @@ final class PublicDocumentControllerTest extends WebTestCase
      */
     private function sentAdvance(): array
     {
-        $advance = $this->inTenant(fn (): Invoice => $this->issuedAdvance());
+        $advance = $this->scoped(fn (): Invoice => $this->issuedAdvance());
 
         return $this->sentOf($advance);
     }
@@ -709,7 +701,7 @@ final class PublicDocumentControllerTest extends WebTestCase
      */
     private function sentTaxDocument(): array
     {
-        $document = $this->inTenant(function (): Invoice {
+        $document = $this->scoped(function (): Invoice {
             $advance = $this->issuedAdvance();
             $money = Money::of('1210.00', Currency::CZK);
             $payment = self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($advance->firm()->id(), new \DateTimeImmutable('2026-11-02'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($advance->id(), $money)]));
@@ -730,7 +722,7 @@ final class PublicDocumentControllerTest extends WebTestCase
     private function sentFinalInvoice(string $price): array
     {
         $this->sentTaxDocument();
-        $final = $this->inTenant(function () use ($price): Invoice {
+        $final = $this->scoped(function () use ($price): Invoice {
             $container = self::getContainer();
             [$firm, $series, $customer] = $this->firm ?? throw new \LogicException('The firm is missing.');
             $issuer = $container->get('doctrine.orm.entity_manager')->find(LegalEntity::class, $firm) ?? throw new \LogicException('The firm is missing.');
@@ -756,7 +748,7 @@ final class PublicDocumentControllerTest extends WebTestCase
         if ($paidFirst) {
             $this->paid($original['invoice'], '1210.00');
         }
-        $correction = $this->inTenant(function () use ($original, $quantity): Invoice {
+        $correction = $this->scoped(function () use ($original, $quantity): Invoice {
             [$firm, , $customer] = $this->firm ?? throw new \LogicException('The firm is missing.');
             $day = new \DateTimeImmutable('2026-11-03');
             $line = new LineInput('Work', Quantity::fromString($quantity), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
@@ -764,7 +756,7 @@ final class PublicDocumentControllerTest extends WebTestCase
             return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($firm, null, null, $customer, null, $day, $day, new \DateTimeImmutable('2026-11-17'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line], true, DocumentKind::CorrectionDocument, null, new CorrectionInput($original['invoice'], 'Returned goods', CorrectionType::Change, $day)));
         });
 
-        $number = $this->inTenant(static fn (): string => self::getContainer()->get(InvoiceStore::class)->get($original['invoice'])->number());
+        $number = $this->scoped(static fn (): string => self::getContainer()->get(InvoiceStore::class)->get($original['invoice'])->number());
 
         return [...$this->sentOf($correction), 'original' => $number, 'originalToken' => $original['token']];
     }
@@ -783,7 +775,7 @@ final class PublicDocumentControllerTest extends WebTestCase
      */
     private function sentOf(Invoice $document): array
     {
-        return $this->inTenant(static function () use ($document): array {
+        return $this->scoped(static function () use ($document): array {
             $container = self::getContainer();
             $send = $container->get(SendInvoice::class)->send(new SendRequest($document->id(), ['billing@example.com'], [], false, 'Document '.$document->number(), "Document {$document->number()}\n{link}"));
             $mail = $container->get('messenger.transport.mail');
@@ -796,7 +788,7 @@ final class PublicDocumentControllerTest extends WebTestCase
 
     private function paid(string $invoiceId, string $amount, string $on = '2026-11-03'): void
     {
-        $this->inTenant(function () use ($invoiceId, $amount, $on): void {
+        $this->scoped(function () use ($invoiceId, $amount, $on): void {
             $money = Money::of($amount, Currency::CZK);
             self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm[0] ?? '', new \DateTimeImmutable($on), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoiceId, $money)]));
         });
@@ -804,7 +796,7 @@ final class PublicDocumentControllerTest extends WebTestCase
 
     /**
      * A payer firm with a series, a mail server and a contact address, and a
-     * customer, in the active tenant.
+     * customer.
      *
      * @return array{string, string, string} the ids of the firm, the series and the customer
      */
@@ -838,25 +830,14 @@ final class PublicDocumentControllerTest extends WebTestCase
      *
      * @return T
      */
-    private function inTenant(callable $work): mixed
+    private function scoped(callable $work): mixed
     {
-        $this->context->switchTo($this->tenant);
-        try {
-            return $work();
-        } finally {
-            $this->context->reset();
-        }
+        return $work();
     }
 
-    /**
-     * @param list<TenantId> $tenants
-     */
-    private function signedInMemberOf(array $tenants): void
+    private function signedInMember(): void
     {
-        $user = $this->browser->fixtures->user();
-        foreach ($tenants as $tenant) {
-            $this->browser->fixtures->join($user, $tenant, Role::Owner);
-        }
+        $user = $this->browser->seed();
         $this->browser->signIn();
         self::assertSame(IdentityFixtures::EMAIL, $user->email());
     }

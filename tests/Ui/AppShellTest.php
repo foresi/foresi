@@ -8,7 +8,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Ui;
 
-use App\Instance\Application\TenantContext;
+use App\Party\Domain\Address;
+use App\Party\Domain\LegalEntity;
+use App\Party\Domain\RegistrationNumber;
+use App\Party\Domain\VatStatus;
 use App\Tests\Identity\Support\IdentityFixtures;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Ui\Navigation\NavigationEntry;
@@ -26,12 +29,13 @@ final class AppShellTest extends WebTestCase
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), self::getContainer()->get(TenantContext::class));
+        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
     }
 
     public function testShellShowsTheActiveOrganisationAndTheSignedInUser(): void
     {
-        $this->browser->seed(['Example Company s.r.o.']);
+        $this->browser->seed();
+        $this->firm('Example Company s.r.o.');
         $this->browser->signIn();
 
         $this->client->request('GET', '/');
@@ -46,7 +50,7 @@ final class AppShellTest extends WebTestCase
 
     public function testTheNavigationItemOfTheCurrentRouteIsMarked(): void
     {
-        $this->browser->seed(['Tenant A']);
+        $this->browser->seed();
         $this->browser->signIn();
 
         $crawler = $this->client->request('GET', '/');
@@ -59,7 +63,7 @@ final class AppShellTest extends WebTestCase
 
     public function testTheRailListsTheAreasWithSettingsAtTheBottomAndMarksTheCurrentOne(): void
     {
-        $this->browser->seed(['Tenant A']);
+        $this->browser->seed();
         $this->browser->signIn();
 
         $crawler = $this->client->request('GET', '/');
@@ -79,7 +83,7 @@ final class AppShellTest extends WebTestCase
 
     public function testTheSidebarShowsTheAreaOfThePageWithItsTitleAndCaption(): void
     {
-        $this->browser->seed(['Tenant A']);
+        $this->browser->seed();
         $this->browser->signIn();
 
         $crawler = $this->client->request('GET', '/settings/people');
@@ -101,7 +105,7 @@ final class AppShellTest extends WebTestCase
 
     public function testOnlyTheContentPanelTakesPartInTheViewTransition(): void
     {
-        $this->browser->seed(['Tenant A']);
+        $this->browser->seed();
         $this->browser->signIn();
 
         $crawler = $this->client->request('GET', '/');
@@ -113,7 +117,7 @@ final class AppShellTest extends WebTestCase
 
     public function testNoUnreadDotWithoutUnreadNotifications(): void
     {
-        $this->browser->seed(['Tenant A']);
+        $this->browser->seed();
         $this->browser->signIn();
 
         $this->client->request('GET', '/');
@@ -123,7 +127,7 @@ final class AppShellTest extends WebTestCase
 
     public function testEveryNavigationItemSitsInExactlyOneArea(): void
     {
-        $this->browser->seed(['Tenant A']);
+        $this->browser->seed();
         $this->browser->signIn();
         $this->client->request('GET', '/');
 
@@ -141,7 +145,7 @@ final class AppShellTest extends WebTestCase
 
     public function testARegisteredProviderItemAppearsInTheExtensionsGroupWithItsCount(): void
     {
-        $this->browser->seed(['Tenant A']);
+        $this->browser->seed();
         $this->browser->signIn();
 
         $crawler = $this->client->request('GET', '/');
@@ -158,8 +162,8 @@ final class AppShellTest extends WebTestCase
 
     public function testNoCountIsComputedWithoutAnActiveOrganisation(): void
     {
-        // A user without any organisation has no tenant: the shell still renders, without counts.
-        $this->browser->seed([]);
+        // A user without a membership has no active organisation: the shell still renders, without counts.
+        $this->browser->seed(role: null);
         $this->browser->signIn();
 
         $this->client->request('GET', '/');
@@ -171,7 +175,7 @@ final class AppShellTest extends WebTestCase
 
     public function testRailHasASearchOpeningTheCommandPaletteThatListsTheNavigation(): void
     {
-        $this->browser->seed(['Tenant A']);
+        $this->browser->seed();
         $this->browser->signIn();
 
         $crawler = $this->client->request('GET', '/');
@@ -185,7 +189,7 @@ final class AppShellTest extends WebTestCase
 
     public function testMobileMenuButtonControlsTheDrawer(): void
     {
-        $this->browser->seed(['Tenant A']);
+        $this->browser->seed();
         $this->browser->signIn();
 
         $crawler = $this->client->request('GET', '/');
@@ -206,7 +210,7 @@ final class AppShellTest extends WebTestCase
 
     public function testUserMenuListsProfileNotificationsApiLanguageAndLogout(): void
     {
-        $this->browser->seed(['Tenant A']);
+        $this->browser->seed();
         $this->browser->signIn();
 
         $crawler = $this->client->request('GET', '/');
@@ -225,7 +229,7 @@ final class AppShellTest extends WebTestCase
     #[DataProvider('titles')]
     public function testPageTitleIsEscapedExactlyOnce(string $title): void
     {
-        $this->browser->seed(['Tenant A']);
+        $this->browser->seed();
         $this->browser->signIn();
 
         $crawler = $this->client->request('GET', '/_test/shell', ['title' => $title]);
@@ -249,7 +253,7 @@ final class AppShellTest extends WebTestCase
 
     public function testCrumbsVariableRendersTheBreadcrumbNavigation(): void
     {
-        $this->browser->seed(['Tenant A']);
+        $this->browser->seed();
         $this->browser->signIn();
 
         $crawler = $this->client->request('GET', '/_test/shell', ['title' => 'Detail']);
@@ -263,13 +267,14 @@ final class AppShellTest extends WebTestCase
 
     public function testLoginPageIsStyledAndOrganisationNeutral(): void
     {
-        $this->browser->seed(['Secret Tenant']);
+        $this->browser->seed();
+        $this->firm('Secret Firm s.r.o.');
 
         $crawler = $this->client->request('GET', '/login');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('body', 'Foresi');
-        self::assertSelectorTextNotContains('body', 'Secret Tenant');
+        self::assertSelectorTextNotContains('body', 'Secret Firm');
         self::assertSelectorNotExists('#sidebar');
         self::assertSelectorExists('label[for="username"]');
         self::assertSelectorExists('label[for="password"]');
@@ -280,12 +285,19 @@ final class AppShellTest extends WebTestCase
 
     public function testLoginErrorIsAnnounced(): void
     {
-        $this->browser->seed(['Tenant A']);
+        $this->browser->seed();
         $crawler = $this->client->request('GET', '/login');
         $this->client->submit($crawler->filter('form button[type="submit"]')->form(['_username' => IdentityFixtures::EMAIL, '_password' => 'wrong']));
         $this->client->followRedirect();
 
         self::assertSelectorExists('[role="alert"]');
+    }
+
+    private function firm(string $name): void
+    {
+        $em = $this->browser->em();
+        $em->persist(new LegalEntity($name, new RegistrationNumber('CZ', '12345679'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, ''));
+        $em->flush();
     }
 
     /**

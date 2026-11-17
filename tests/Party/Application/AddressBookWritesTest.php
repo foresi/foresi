@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Party\Application;
 
 use App\Audit\Domain\AuditEntry;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Application\ArchiveParty;
 use App\Party\Application\CreateParty;
 use App\Party\Application\LinkContactPerson;
@@ -46,8 +44,6 @@ final class AddressBookWritesTest extends KernelTestCase
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $tenant = TenantId::generate();
-        self::getContainer()->get(TenantContext::class)->switchTo($tenant);
     }
 
     public function testCreateFromInputStoresTheNoteTheBillingAddressAndTheEmail(): void

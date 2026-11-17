@@ -33,7 +33,7 @@ final readonly class InvoiceDetails
 
     /**
      * @throws InvoicingNotAllowed for anyone but the owners and members of the organisation
-     * @throws UnknownInvoice      also for an invoice of another tenant, and for an id that is none
+     * @throws UnknownInvoice      for an id that is none
      */
     public function of(string $id): InvoiceDetail
     {

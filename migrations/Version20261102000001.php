@@ -28,7 +28,7 @@ final class Version20261102000001 extends AbstractMigration
     {
         $series = $schema->createTable('series');
         $series->addColumn('id', Types::GUID);
-        $series->addColumn('tenant_id', 'tenant_id');
+        $series->addColumn('tenant_id', 'guid');
         $series->addColumn('legal_entity_id', Types::GUID);
         $series->addColumn('name', Types::STRING, ['length' => 100]);
         $series->addColumn('format', Types::STRING, ['length' => 64]);
@@ -45,7 +45,7 @@ final class Version20261102000001 extends AbstractMigration
 
         $counter = $schema->createTable('series_counter');
         $counter->addColumn('id', Types::GUID);
-        $counter->addColumn('tenant_id', 'tenant_id');
+        $counter->addColumn('tenant_id', 'guid');
         $counter->addColumn('series_id', Types::GUID);
         $counter->addColumn('period', Types::STRING, ['length' => 8]);
         $counter->addColumn('last_value', Types::INTEGER);
@@ -56,7 +56,7 @@ final class Version20261102000001 extends AbstractMigration
 
         $invoicing = $schema->createTable('firm_invoicing');
         $invoicing->addColumn('id', Types::GUID);
-        $invoicing->addColumn('tenant_id', 'tenant_id');
+        $invoicing->addColumn('tenant_id', 'guid');
         $invoicing->addColumn('legal_entity_id', Types::GUID);
         $invoicing->addColumn('rounding', Types::STRING, ['length' => 16]);
         $invoicing->addColumn('constant_symbol', Types::STRING, ['length' => 10]);

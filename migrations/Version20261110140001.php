@@ -30,7 +30,7 @@ final class Version20261110140001 extends AbstractMigration
     {
         $released = $schema->createTable('released_time');
         $released->addColumn('id', Types::GUID);
-        $released->addColumn('tenant_id', 'tenant_id');
+        $released->addColumn('tenant_id', 'guid');
         $released->addColumn('invoice_id', Types::GUID);
         $released->addColumn('time_entry_id', Types::GUID);
         $released->addColumn('invoice_line_id', Types::GUID);

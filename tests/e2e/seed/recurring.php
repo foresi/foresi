@@ -41,7 +41,7 @@ use App\Shared\Domain\Schedule\Recurrence;
 use App\Shared\Domain\Schedule\RecurrenceEnd;
 use App\Shared\Domain\Schedule\RecurrenceUnit;
 
-// The tenant of the recurring list specs: a firm with a mail server and templates in each
+// The world of the recurring list specs: a firm with a mail server and templates in each
 // state, one failing, and an invoice one of them issued that waits to be sent. Dates count
 // from the real today: a template cannot start in the past.
 $recurringFirm = $firmAccount(new LegalEntity('Example Recurring s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(4), VatStatus::Registered, 'Example register, entry C 7890'));
@@ -61,7 +61,7 @@ $issueRecurring = $container->get('e2e.issue_recurring');
 \assert($recurringLifecycle instanceof RecurringLifecycle);
 \assert($issueRecurring instanceof IssueRecurringOccurrence);
 // The firm's today, not the server's: after midnight in the firm's zone they differ.
-$today = $tenantClock->today();
+$today = $instanceClock->today();
 $firstOfNextMonth = $today->modify('first day of next month');
 $recurring = static fn (string $description, string $price, Recurrence $recurrence, RecurringDelivery $delivery = RecurringDelivery::Send): RecurringInvoice => $saveRecurring->create(new RecurringInput(
     $recurringFirm->id(),

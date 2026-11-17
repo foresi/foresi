@@ -31,7 +31,7 @@ use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 
-// The tenant of the dialog specs: a firm with a mail server and a customer, and three
+// The world of the dialog specs: a firm with a mail server and a customer, and three
 // invoices to send, to move to the trash and to mark delivered in dialogs.
 $dialogFirm = new LegalEntity('Example Dialogs s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(3), VatStatus::Registered, 'Example register, entry C 3456');
 $entityManager->persist($dialogFirm);

@@ -7,7 +7,7 @@ import { PROJECTS_OWNER_STATE } from '../support/session';
 // The time of last month on "Website" in tests/e2e/seed.php, which the dialog opens with: the
 // owner's 1 h 30 min on "Set up the domain" and 30 min on the project without a task, and Jana
 // Example's 1 h on "Pick the colour palette", all billable at the project's 1 200 Kč an hour. The
-// tenant bills it from its one firm, "Example Agency s.r.o.". The flow issues, trashes and
+// organisation bills it from its one firm, "Example Agency s.r.o.". The flow issues, trashes and
 // restores one invoice of two of them; the phone check only opens the dialog, so the spec leaves
 // the time as it found it but for the invoice, and no other spec reads last month.
 test.use({ storageState: PROJECTS_OWNER_STATE });

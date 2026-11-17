@@ -15,7 +15,7 @@ use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\People;
 use App\Identity\Application\UserRepository;
 use App\Identity\Domain\Membership;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Shared\Application\Markdown;
 use App\Ui\Avatar;
 use App\Work\Application\Choice;
@@ -66,14 +66,14 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
 
 /**
- * The read side in DQL, under the tenant filter. Each query asks WorkVisibility
- * for the scope first and keeps to it through ScopedDql, or through WorkScope
- * for what it already holds in PHP: a private task, a private section, a task
- * of a project the person does not see are left out of every view and count
- * as if they did not exist. A project is read with the tasks the person sees
- * and they are put in order in PHP: one query for the tasks and one for their
- * labels, whatever the view. A task in the trash is left out of every view but
- * the trash, and of every count.
+ * The read side in DQL. Each query asks WorkVisibility for the scope first and
+ * keeps to it through ScopedDql, or through WorkScope for what it already holds
+ * in PHP: a private task, a private section, a task of a project the person
+ * does not see are left out of every view and count as if they did not exist. A
+ * project is read with the tasks the person sees and they are put in order in
+ * PHP: one query for the tasks and one for their labels, whatever the view. A
+ * task in the trash is left out of every view but the trash, and of every
+ * count.
  */
 final readonly class DoctrineWorkQueries implements WorkQueries
 {
@@ -91,7 +91,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         private People $people,
         private UserRepository $users,
         private AuditActor $actor,
-        private TenantClock $clock,
+        private InstanceClock $clock,
         private TaskHistory $history,
         private Comments $comments,
         private Markdown $markdown,

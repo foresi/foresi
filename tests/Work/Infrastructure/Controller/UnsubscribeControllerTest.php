@@ -10,8 +10,6 @@ namespace App\Tests\Work\Infrastructure\Controller;
 
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Work\Domain\EmailDelivery;
 use App\Work\Domain\NotificationKind;
@@ -29,8 +27,6 @@ final class UnsubscribeControllerTest extends WebTestCase
 {
     private KernelBrowser $client;
     private EntityManagerInterface $em;
-    private TenantContext $context;
-    private TenantId $tenant;
     private SignedInBrowser $browser;
 
     protected function setUp(): void
@@ -38,9 +34,8 @@ final class UnsubscribeControllerTest extends WebTestCase
         $this->client = self::createClient();
         $this->client->disableReboot();
         $this->em = self::getContainer()->get('doctrine.orm.entity_manager');
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, $this->em, $this->context);
-        [$this->tenant] = $this->browser->seed(['Example Organisation'], role: Role::Member);
+        $this->browser = new SignedInBrowser($this->client, $this->em);
+        $this->browser->seed(role: Role::Member);
     }
 
     public function testOpeningTheLinkAsksFirstAndChangesNothing(): void
@@ -104,10 +99,8 @@ final class UnsubscribeControllerTest extends WebTestCase
 
     public function testThePageIsInTheLanguageOfThePerson(): void
     {
-        $this->context->switchTo($this->tenant);
         $this->em->getRepository(Membership::class)->findOneBy([])?->user()->changeLocale('cs');
         $this->em->flush();
-        $this->context->reset();
 
         $crawler = $this->client->request('GET', $this->link('assigned'));
 
@@ -137,10 +130,26 @@ final class UnsubscribeControllerTest extends WebTestCase
         self::assertNull($this->preference());
     }
 
+    public function testALinkSentWithTheOrganisationInThePathStillWorks(): void
+    {
+        $signer = self::getContainer()->get('uri_signer');
+        $link = $signer->sign('http://localhost/unsubscribe/0190a0a0-0000-7000-8000-0000000000aa/'.$this->membership()->id().'/mentioned?lang=en');
+
+        $this->client->request('GET', $link);
+        self::assertResponseIsSuccessful();
+        self::assertNull($this->preference());
+        $this->client->request('POST', $link);
+        self::assertResponseIsSuccessful();
+        self::assertSame(EmailDelivery::Off, $this->preference()?->delivery(NotificationKind::Mentioned));
+
+        $this->client->request('POST', str_replace('0000000000aa', '0000000000bb', $link));
+        self::assertResponseStatusCodeSame(404);
+    }
+
     public function testASignedLinkOfNothingKnownIsNotFound(): void
     {
         $signer = self::getContainer()->get('uri_signer');
-        $base = 'http://localhost/unsubscribe/'.$this->tenant->toString().'/';
+        $base = 'http://localhost/unsubscribe/';
 
         $this->client->request('GET', $signer->sign($base.$this->membership()->id().'/everything'));
         self::assertResponseStatusCodeSame(404);
@@ -157,26 +166,16 @@ final class UnsubscribeControllerTest extends WebTestCase
 
     private function membership(): Membership
     {
-        $this->context->switchTo($this->tenant);
-        try {
-            $membership = $this->em->getRepository(Membership::class)->findOneBy([]);
-            self::assertInstanceOf(Membership::class, $membership);
+        $membership = $this->em->getRepository(Membership::class)->findOneBy([]);
+        self::assertInstanceOf(Membership::class, $membership);
 
-            return $membership;
-        } finally {
-            $this->context->reset();
-        }
+        return $membership;
     }
 
     private function preference(): ?NotificationPreference
     {
-        $this->context->switchTo($this->tenant);
-        try {
-            $this->em->clear();
+        $this->em->clear();
 
-            return $this->em->getRepository(NotificationPreference::class)->findOneBy([]);
-        } finally {
-            $this->context->reset();
-        }
+        return $this->em->getRepository(NotificationPreference::class)->findOneBy([]);
     }
 }

@@ -10,7 +10,7 @@ namespace App\Invoicing\Infrastructure\Controller;
 
 use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\StaffCheck;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Invoicing\Application\InvoiceBalances;
 use App\Invoicing\Application\InvoicePayments;
 use App\Invoicing\Application\InvoiceSends;
@@ -90,7 +90,7 @@ final class InvoiceSendController extends AbstractController
         private readonly SentFiles $files,
         private readonly TranslatorInterface $translator,
         private readonly InvoiceBalances $balances,
-        private readonly TenantClock $tenantClock,
+        private readonly InstanceClock $instanceClock,
         private readonly InvoicePayments $payments,
     ) {
     }
@@ -238,12 +238,12 @@ final class InvoiceSendController extends AbstractController
     }
 
     /**
-     * The tenant's day, at its start, as the reminder run counts it (ADR 0017), so a
+     * The instance's day, at its start, as the reminder run counts it (ADR 0017), so a
      * reminder by hand and the run agree on whether an invoice is overdue and by how much.
      */
     private function today(): \DateTimeImmutable
     {
-        return $this->tenantClock->today();
+        return $this->instanceClock->today();
     }
 
     /**

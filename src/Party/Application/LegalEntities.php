@@ -11,7 +11,7 @@ namespace App\Party\Application;
 use App\Party\Domain\LegalEntity;
 
 /**
- * The firms of the active tenant. Call add() inside TransactionalWork, which flushes.
+ * The firms of the instance. Call add() inside TransactionalWork, which flushes.
  */
 interface LegalEntities
 {
@@ -30,7 +30,7 @@ interface LegalEntities
     public function active(): array;
 
     /**
-     * @throws UnknownLegalEntity also for a firm of another tenant
+     * @throws UnknownLegalEntity also for an unknown firm
      */
     public function get(string $id): LegalEntity;
 
@@ -38,7 +38,7 @@ interface LegalEntities
      * The firm, its row locked until the transaction ends, so whoever changes
      * what belongs to it waits for the one before. Call it inside TransactionalWork.
      *
-     * @throws UnknownLegalEntity also for a firm of another tenant
+     * @throws UnknownLegalEntity also for an unknown firm
      */
     public function lock(string $id): LegalEntity;
 

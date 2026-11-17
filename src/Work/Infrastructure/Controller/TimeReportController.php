@@ -11,7 +11,7 @@ namespace App\Work\Infrastructure\Controller;
 use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\People;
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Work\Application\TimeEntryRow;
 use App\Work\Application\TimeGrouping;
 use App\Work\Application\TimeQueries;
@@ -56,7 +56,7 @@ final class TimeReportController extends AbstractController
         private readonly TimeQueries $time,
         private readonly WorkQueries $work,
         private readonly People $people,
-        private readonly TenantClock $clock,
+        private readonly InstanceClock $clock,
         private readonly TranslatorInterface $translator,
         private readonly TimeFunctions $format,
         private readonly TimeReportCsv $csv,

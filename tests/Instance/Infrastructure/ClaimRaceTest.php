@@ -59,14 +59,12 @@ final class ClaimRaceTest extends KernelTestCase
             $this->sqliteFile = sys_get_temp_dir().'/foresi-claim-race-'.bin2hex(random_bytes(4)).'.db';
             $url = 'sqlite:///'.$this->sqliteFile;
         }
-        $seed = $this->process($url, ['seed']);
-        $seed->mustRun();
-        $tenant = $seed->getOutput();
+        $this->process($url, ['seed'])->mustRun();
 
         $startAt = \sprintf('%.6F', microtime(true) + 3.0);
         $workers = [];
         for ($i = 0; $i < self::WORKERS; ++$i) {
-            $workers[] = $this->process($url, ['claim', $tenant, $startAt, (string) self::ROUNDS]);
+            $workers[] = $this->process($url, ['claim', $startAt, (string) self::ROUNDS]);
         }
         foreach ($workers as $worker) {
             $worker->start();

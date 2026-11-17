@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Party\Application;
 
 use App\Audit\Domain\AuditEntry;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Application\ArchiveParty;
 use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Application\CreateParty;
@@ -49,18 +47,14 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 final class ContactSettingsForFirmTest extends WebTestCase
 {
     private KernelBrowser $client;
-    private TenantContext $context;
-    private TenantId $tenant;
     private SignedInBrowser $browser;
 
     protected function setUp(): void
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, $this->em(), $this->context);
-        [$this->tenant] = $this->browser->seed(['Tenant A']);
-        $this->context->switchTo($this->tenant);
+        $this->browser = new SignedInBrowser($this->client, $this->em());
+        $this->browser->seed();
     }
 
     public function testFallsBackToTheContactDefaults(): void
@@ -85,7 +79,6 @@ final class ContactSettingsForFirmTest extends WebTestCase
 
         $this->transaction()->run(fn () => $this->settings()->changeDefaults($party, $first, $special));
         $this->em()->clear();
-        $this->context->switchTo($this->tenant);
         $party = $this->em()->find(Party::class, $party->id()) ?? self::fail();
 
         self::assertEquals($special, $this->settings()->defaultsFor($party, $this->firms()->get($first->id())));
@@ -447,8 +440,6 @@ final class ContactSettingsForFirmTest extends WebTestCase
         $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
         $values = $crawler->filter('main form')->form()->getPhpValues();
         self::assertSelectorExists(\sprintf('input[name="firms[%s][own][roles]"][value=""]', $firm->id()));
-
-        $this->context->switchTo($this->tenant);
         $stored = $this->em()->find(Party::class, $party->id()) ?? self::fail();
         $this->transaction()->run(fn () => $this->settings()->changeRoles($stored, $this->firms()->get($firm->id()), [PartyRole::Supplier]));
         $this->client->request('POST', '/contacts/'.$party->id().'/edit', $values);
@@ -508,8 +499,6 @@ final class ContactSettingsForFirmTest extends WebTestCase
         $values = $crawler->filter('main form')->form()->getPhpValues();
         // A browser sends the hidden field behind the unticked checkbox; the crawler drops it.
         $values = array_replace_recursive($values, ['firms' => ['shared' => ['archived' => '']]]);
-
-        $this->context->switchTo($this->tenant);
         $stored = $this->em()->find(Party::class, $party->id()) ?? self::fail();
         self::getContainer()->get(ArchiveParty::class)->archive([$stored]);
         $this->client->request('POST', '/contacts/'.$party->id().'/edit', $values);
@@ -529,8 +518,6 @@ final class ContactSettingsForFirmTest extends WebTestCase
         $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
         $values = $crawler->filter('main form')->form()->getPhpValues();
         self::assertSelectorExists('input[type="checkbox"][name="firms[shared][archived]"][checked]');
-
-        $this->context->switchTo($this->tenant);
         $stored = $this->em()->find(Party::class, $party->id()) ?? self::fail();
         self::getContainer()->get(ArchiveParty::class)->restore([$stored]);
         $this->client->request('POST', '/contacts/'.$party->id().'/edit', $values);
@@ -831,7 +818,6 @@ final class ContactSettingsForFirmTest extends WebTestCase
 
         $this->transaction()->run(static fn () => $firm->archive(new \DateTimeImmutable('2026-10-31 12:00:00')));
         $this->em()->clear();
-        $this->context->switchTo($this->tenant);
 
         self::assertSame(1, $this->rows(PartyFirmSettings::class));
         $stored = $this->em()->find(Party::class, $party->id()) ?? self::fail();
@@ -895,7 +881,6 @@ final class ContactSettingsForFirmTest extends WebTestCase
     private function reload(): void
     {
         $this->em()->clear();
-        $this->context->switchTo($this->tenant);
     }
 
     private function party(): Party

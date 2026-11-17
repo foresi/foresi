@@ -13,7 +13,7 @@ use App\Invoicing\Domain\Payment;
 use App\Party\Domain\LegalEntity;
 
 /**
- * The imported documents and payments of the active tenant. Call remove() and
+ * The imported documents and payments. Call remove() and
  * removePayment() inside TransactionalWork.
  */
 interface ImportedDocuments

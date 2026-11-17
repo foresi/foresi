@@ -10,7 +10,7 @@ namespace App\Work\Application;
 
 /**
  * When a task is due, as the filters of the list and the board ask it, in the
- * tenant's time zone.
+ * instance's time zone.
  */
 enum DueBucket: string
 {

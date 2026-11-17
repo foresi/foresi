@@ -10,7 +10,7 @@ namespace App\Timesheet\Infrastructure\Controller;
 
 use App\Audit\Application\AuditActor;
 use App\Identity\Application\OwnerCheck;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Invoicing\Application\NewInvoiceDefaults;
 use App\Party\Application\LegalEntities;
 use App\Party\Domain\LegalEntity;
@@ -58,7 +58,7 @@ final class TimeInvoiceController extends AbstractController
         private readonly NewInvoiceDefaults $defaults,
         private readonly OwnerCheck $owner,
         private readonly AuditActor $actor,
-        private readonly TenantClock $clock,
+        private readonly InstanceClock $clock,
         private readonly TranslatorInterface $translator,
     ) {
     }

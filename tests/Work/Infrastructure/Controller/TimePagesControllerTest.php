@@ -11,9 +11,7 @@ namespace App\Tests\Work\Infrastructure\Controller;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantClock;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
+use App\Instance\Application\InstanceClock;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
 use App\Tests\Identity\Support\IdentityFixtures;
@@ -44,16 +42,13 @@ final class TimePagesControllerTest extends WebTestCase
     private KernelBrowser $client;
     private SignedInBrowser $browser;
     private EntityManagerInterface $em;
-    private TenantContext $context;
-    private TenantId $tenant;
 
     protected function setUp(): void
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
         $this->em = self::getContainer()->get('doctrine.orm.entity_manager');
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, $this->em, $this->context);
+        $this->browser = new SignedInBrowser($this->client, $this->em);
     }
 
     public function testTheWeekShowsEachDayWithItsEntriesAndTotals(): void
@@ -309,7 +304,7 @@ final class TimePagesControllerTest extends WebTestCase
      */
     private function seed(): void
     {
-        [$this->tenant] = $this->browser->seed(['Example Organisation']);
+        $this->browser->seed();
         $this->browser->signIn();
         foreach (['Website', 'Secret'] as $name) {
             $crawler = $this->client->request('GET', '/projects/new');
@@ -320,8 +315,8 @@ final class TimePagesControllerTest extends WebTestCase
         $this->em->persist($jana);
         $this->em->persist($guest);
         $this->em->flush();
-        $this->browser->fixtures->join($jana, $this->tenant, Role::Member);
-        $this->browser->fixtures->join($guest, $this->tenant, Role::Guest);
+        $this->browser->fixtures->join($jana, Role::Member);
+        $this->browser->fixtures->join($guest, Role::Guest);
         $this->scoped(function (): void {
             $website = $this->project('Website');
             [$open] = $this->em->getRepository(ProjectStatus::class)->findBy(['project' => $website], ['position' => 'ASC']);
@@ -399,7 +394,7 @@ final class TimePagesControllerTest extends WebTestCase
 
     private function today(): \DateTimeImmutable
     {
-        return $this->scoped(fn (): \DateTimeImmutable => self::getContainer()->get(TenantClock::class)->today()->setTime(0, 0));
+        return $this->scoped(fn (): \DateTimeImmutable => self::getContainer()->get(InstanceClock::class)->today()->setTime(0, 0));
     }
 
     private function project(string $name): Project
@@ -474,11 +469,6 @@ final class TimePagesControllerTest extends WebTestCase
      */
     private function scoped(callable $work): mixed
     {
-        $this->context->switchTo($this->tenant);
-        try {
-            return $work();
-        } finally {
-            $this->context->reset();
-        }
+        return $work();
     }
 }

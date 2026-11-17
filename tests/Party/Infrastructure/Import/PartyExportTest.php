@@ -17,8 +17,6 @@ use App\Import\Domain\MatchReason;
 use App\Import\Domain\NormalisationOptions;
 use App\Import\Domain\ValueNormaliser;
 use App\Import\Infrastructure\Source\OpenSpoutSourceReader;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Application\CreateParty;
 use App\Party\Domain\Address;
 use App\Party\Domain\PartyKind;
@@ -40,7 +38,6 @@ final class PartyExportTest extends KernelTestCase
         $tool = new SchemaTool($em);
         $tool->dropSchema($em->getMetadataFactory()->getAllMetadata());
         $tool->createSchema($em->getMetadataFactory()->getAllMetadata());
-        self::getContainer()->get(TenantContext::class)->switchTo(TenantId::generate());
         $this->path = sys_get_temp_dir().'/foresi-party-export-'.bin2hex(random_bytes(6));
     }
 

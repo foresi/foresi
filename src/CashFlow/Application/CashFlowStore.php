@@ -15,7 +15,7 @@ use App\CashFlow\Domain\PlannedItem;
 use App\Party\Domain\FirmBankAccount;
 
 /**
- * The records of the cash flow in the active tenant.
+ * The records of the cash flow.
  */
 interface CashFlowStore
 {

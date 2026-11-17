@@ -12,8 +12,7 @@ use App\Shared\Application\RefusalKind;
 use App\Shared\Application\Refused;
 
 /**
- * No such contact in the active tenant: it never existed, or it belongs to
- * another tenant.
+ * No such contact: it never existed or it was removed.
  */
 final class UnknownParty extends \RuntimeException implements Refused
 {

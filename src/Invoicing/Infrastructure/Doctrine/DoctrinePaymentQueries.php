@@ -19,8 +19,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Every read goes through the ORM, so the tenant filter narrows the payments and
- * their allocations both.
+ * Every read goes through the ORM, for the payments and their allocations both.
  */
 final readonly class DoctrinePaymentQueries implements PaymentQueries
 {
@@ -82,7 +81,6 @@ final readonly class DoctrinePaymentQueries implements PaymentQueries
 
     public function find(string $id): ?PaymentRow
     {
-        // A query, not find(): find() answers from the identity map without the tenant filter.
         $payment = $this->em->createQuery('SELECT p FROM '.Payment::class.' p WHERE p.id = :id')->setParameter('id', $id)->getOneOrNullResult();
 
         return $payment instanceof Payment ? $this->rows([$payment])[0] : null;

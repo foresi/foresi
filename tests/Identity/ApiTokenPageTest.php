@@ -15,8 +15,6 @@ use App\Identity\Domain\ApiToken;
 use App\Identity\Domain\ApiTokenSecret;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Shared\Application\Sealer;
 use App\Tests\Identity\Support\IdentityFixtures;
 use Doctrine\ORM\EntityManagerInterface;
@@ -37,21 +35,17 @@ final class ApiTokenPageTest extends WebTestCase
 
     private KernelBrowser $client;
     private EntityManagerInterface $em;
-    private TenantContext $context;
     private IdentityFixtures $fixtures;
-    private TenantId $tenant;
 
     protected function setUp(): void
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
         $this->em = self::getContainer()->get('doctrine.orm.entity_manager');
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->fixtures = new IdentityFixtures($this->em, $this->context);
+        $this->fixtures = new IdentityFixtures($this->em);
         $this->fixtures->rebuildSchema();
-        $this->tenant = $this->fixtures->tenant('Example Company');
-        $this->fixtures->join($this->fixtures->user(self::OWNER), $this->tenant);
-        $this->fixtures->join($this->fixtures->user(self::MEMBER), $this->tenant, Role::Member);
+        $this->fixtures->join($this->fixtures->user(self::OWNER));
+        $this->fixtures->join($this->fixtures->user(self::MEMBER), Role::Member);
     }
 
     public function testWithoutTokensThePageAsksToCreateOne(): void
@@ -401,8 +395,7 @@ final class ApiTokenPageTest extends WebTestCase
 
     public function testAGuestReachesNoneOfIt(): void
     {
-        $this->context->switchTo($this->tenant);
-        $this->fixtures->join($this->fixtures->user('guest@example.com'), $this->tenant, Role::Guest);
+        $this->fixtures->join($this->fixtures->user('guest@example.com'), Role::Guest);
         $this->signIn('guest@example.com');
 
         foreach ([['GET', '/settings/api'], ['GET', '/settings/api/new'], ['POST', '/settings/api/new'], ['POST', '/settings/api/0198a4f0-8b1e-7000-8000-000000000001/revoke']] as [$method, $url]) {
@@ -463,10 +456,8 @@ final class ApiTokenPageTest extends WebTestCase
         if ($revoked) {
             $token->revoke(null, $created);
         }
-        $this->context->switchTo($this->tenant);
         $this->em->persist($token);
         $this->em->flush();
-        $this->context->reset();
 
         return $token->id();
     }
@@ -477,11 +468,9 @@ final class ApiTokenPageTest extends WebTestCase
     private function tokens(string $email): array
     {
         $userId = $this->userId($email);
-        $this->context->switchTo($this->tenant);
         try {
             return $this->em->getRepository(ApiToken::class)->findBy(['userId' => $userId]);
         } finally {
-            $this->context->reset();
         }
     }
 

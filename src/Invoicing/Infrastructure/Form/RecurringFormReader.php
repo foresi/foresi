@@ -44,7 +44,7 @@ final readonly class RecurringFormReader
     }
 
     /**
-     * @param \DateTimeImmutable $today the tenant's today, whose zone the dates take
+     * @param \DateTimeImmutable $today the instance's today, whose zone the dates take
      */
     public function read(Request $request, Currency $currency, \DateTimeImmutable $today): RecurringSubmission
     {

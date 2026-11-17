@@ -13,8 +13,8 @@ use App\Work\Application\SendNotificationMail;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
- * Sends the delayed e-mail of a mention or an assignment, in its tenant,
- * when it is still news; see NotificationMailing.
+ * Sends the delayed e-mail of a mention or an assignment when it is still
+ * news; see NotificationMailing.
  */
 #[AsMessageHandler]
 final readonly class SendNotificationMailHandler

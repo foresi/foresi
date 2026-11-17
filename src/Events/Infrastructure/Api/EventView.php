@@ -16,9 +16,9 @@ use App\Shared\Domain\Event\EventSubject;
 use App\Shared\Infrastructure\Api\JsonValues;
 
 /**
- * An event as REST and MCP publish it. The tenant, the user and the token stay in
- * the log. The facts pass through the event class, so a row written before a fact
- * was added shows the fact too, with its default.
+ * An event as REST and MCP publish it. The user and the token stay in the log.
+ * The facts pass through the event class, so a row written before a fact was
+ * added shows the fact too, with its default.
  */
 final readonly class EventView
 {

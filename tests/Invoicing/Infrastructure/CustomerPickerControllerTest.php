@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Infrastructure\Controller\CustomerPickerController;
 use App\Party\Domain\Address;
 use App\Party\Domain\AddressType;
@@ -32,20 +30,18 @@ final class CustomerPickerControllerTest extends WebTestCase
 {
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private TenantContext $context;
 
     protected function setUp(): void
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), $this->context);
+        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
     }
 
     public function testAnswersWithTheOptionsAsJson(): void
     {
-        [$tenant] = $this->browser->seed(['Example Company']);
-        $firm = $this->firm($tenant);
+        $this->browser->seed();
+        $firm = $this->firm();
         $this->browser->signIn();
 
         $this->client->request('GET', '/invoices/customers', ['firm' => $firm->id(), 'q' => 'Example Customer']);
@@ -67,8 +63,8 @@ final class CustomerPickerControllerTest extends WebTestCase
 
     public function testAskedByIdItAnswersThatOneContact(): void
     {
-        [$tenant] = $this->browser->seed(['Example Company']);
-        $firm = $this->firm($tenant);
+        $this->browser->seed();
+        $firm = $this->firm();
         $this->browser->signIn();
         $this->client->request('GET', '/invoices/customers', ['firm' => $firm->id(), 'q' => 'Example Customer']);
         /** @var array{results: list<array{id: string}>} $found */
@@ -86,7 +82,7 @@ final class CustomerPickerControllerTest extends WebTestCase
 
     public function testAMissingFirmAnswers404(): void
     {
-        $this->browser->seed(['Example Company']);
+        $this->browser->seed();
         $this->browser->signIn();
 
         $this->client->request('GET', '/invoices/customers', ['q' => 'Example']);
@@ -107,8 +103,8 @@ final class CustomerPickerControllerTest extends WebTestCase
     #[DataProvider('roles')]
     public function testOnlyStaffReachThePicker(Role $role, int $status): void
     {
-        [$tenant] = $this->browser->seed(['Example Company'], role: $role);
-        $firm = $this->firm($tenant);
+        $this->browser->seed(role: $role);
+        $firm = $this->firm();
         $this->browser->signIn();
 
         $this->client->request('GET', '/invoices/customers', ['firm' => $firm->id(), 'q' => 'Example']);
@@ -116,16 +112,14 @@ final class CustomerPickerControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame($status);
     }
 
-    private function firm(TenantId $tenant): LegalEntity
+    private function firm(): LegalEntity
     {
-        $this->context->switchTo($tenant);
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register');
         $this->em()->persist($firm);
         $party = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), null, '');
         $this->em()->persist($party);
         $this->em()->persist(new PartyAddress($party, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
         $this->em()->flush();
-        $this->context->reset();
 
         return $firm;
     }

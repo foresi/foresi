@@ -8,9 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure\Support;
 
-use App\Instance\Application\TenantClock;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
+use App\Instance\Application\InstanceClock;
 use App\Invoicing\Application\IssueRecurringOccurrence;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\RecurringInput;
@@ -53,7 +51,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  * template per slot. Each template is monthly from today, so today is its next
  * occurrence; every edit comes from a form opened at the first version.
  *
- * @phpstan-type Ids array{tenant: string, firm: string, series: string, customer: string, today: string, templates: list<string>}
+ * @phpstan-type Ids array{firm: string, series: string, customer: string, today: string, templates: list<string>}
  * @phpstan-type Stored array{state: string, next: string|null, issued: int, invoices: list<list<string>>}
  */
 abstract class RecurringWorker extends KernelTestCase
@@ -80,8 +78,6 @@ abstract class RecurringWorker extends KernelTestCase
         $metadata = $em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $tenant = TenantId::generate();
-        $container->get(TenantContext::class)->switchTo($tenant);
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register');
         $em->persist($firm);
         FirmAccounts::add($em, $firm, self::IBAN);
@@ -92,7 +88,7 @@ abstract class RecurringWorker extends KernelTestCase
         $em->persist(new PartyAddress($customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
         $em->flush();
 
-        $ids = ['tenant' => $tenant->toString(), 'firm' => $firm->id(), 'series' => $series->id(), 'customer' => $customer->id(), 'today' => $container->get(TenantClock::class)->today()->format('Y-m-d'), 'templates' => []];
+        $ids = ['firm' => $firm->id(), 'series' => $series->id(), 'customer' => $customer->id(), 'today' => $container->get(InstanceClock::class)->today()->format('Y-m-d'), 'templates' => []];
         $save = $container->get(SaveRecurringInvoice::class);
         for ($i = 0; $i < $templates; ++$i) {
             $ids['templates'][] = $save->create(self::input($ids, self::OLD_LINES))->id();
@@ -107,7 +103,7 @@ abstract class RecurringWorker extends KernelTestCase
     public static function perform(string $json, string $job, float $startAt): array
     {
         $ids = self::ids($json);
-        self::enter($ids);
+        self::enter();
         $container = self::getContainer();
         $occurrences = $container->get(IssueRecurringOccurrence::class);
         $lifecycle = $container->get(RecurringLifecycle::class);
@@ -145,7 +141,7 @@ abstract class RecurringWorker extends KernelTestCase
     public static function inspect(string $json): array
     {
         $ids = self::ids($json);
-        self::enter($ids);
+        self::enter();
         $connection = self::getContainer()->get('doctrine.dbal.default_connection');
         $found = [];
         foreach ($ids['templates'] as $template) {
@@ -188,13 +184,9 @@ abstract class RecurringWorker extends KernelTestCase
         return new RecurringInput($ids['firm'], $ids['series'], $ids['customer'], PaymentMethod::BankTransfer, self::IBAN, '', '', 'Hosting {month/year}', '', '', DocumentLanguage::Czech, $lines, $recurrence, TaxPointRule::IssueDate, 14, RecurringDelivery::Send);
     }
 
-    /**
-     * @param Ids $ids
-     */
-    private static function enter(array $ids): void
+    private static function enter(): void
     {
         self::bootKernel(['debug' => false]);
-        self::getContainer()->get(TenantContext::class)->switchTo(TenantId::fromString($ids['tenant']));
     }
 
     /**

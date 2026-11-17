@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 /**
- * Decides whether a mail server host a tenant typed may be connected to. Tenants
+ * Decides whether a mail server host a firm typed may be connected to. Firms
  * choose the host, so without this the server could be made to reach its own
  * network or a cloud metadata address.
  */

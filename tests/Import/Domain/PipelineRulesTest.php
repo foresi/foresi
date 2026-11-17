@@ -527,7 +527,7 @@ final class PipelineRulesTest extends TestCase
 
     private function newImport(): Import
     {
-        return new Import('party', 'tenant/file', 'contacts.csv', self::SETTINGS, '019a0000-0000-7000-8000-000000000007', new \DateTimeImmutable('2026-10-01'));
+        return new Import('party', 'files/file', 'contacts.csv', self::SETTINGS, '019a0000-0000-7000-8000-000000000007', new \DateTimeImmutable('2026-10-01'));
     }
 
     private function ran(ImportState $state, \DateTimeImmutable $at): Import

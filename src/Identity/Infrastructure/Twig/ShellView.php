@@ -11,7 +11,9 @@ namespace App\Identity\Infrastructure\Twig;
 use App\Identity\Application\Organisation;
 
 /**
- * What the app shell shows about the signed-in user and the active organisation.
+ * What the app shell shows about the signed-in user and the organisation; $member
+ * tells whether they have an active membership, without which the data of the
+ * organisation stays out of the shell.
  */
 final readonly class ShellView
 {
@@ -21,7 +23,7 @@ final readonly class ShellView
         public string $initials,
         public string $locale,
         public string $otherLocale,
-        public bool $tenantActive,
+        public bool $member,
         public ?Organisation $organisation,
     ) {
     }

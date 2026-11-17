@@ -45,7 +45,7 @@ final readonly class ManageFirmBankAccounts
      * @param string $iban an IBAN, or a domestic account number of the firm's country
      *
      * @throws BankAccountRefused with InvalidIban, UnknownCurrency or Duplicate
-     * @throws UnknownLegalEntity also for a firm of another tenant
+     * @throws UnknownLegalEntity also for an unknown firm
      */
     public function open(string $firmId, string $iban, string $currency, string $label, bool $primary): FirmBankAccount
     {
@@ -73,7 +73,7 @@ final readonly class ManageFirmBankAccounts
      * Primary false leaves a primary account primary: another one takes it over.
      *
      * @throws BankAccountRefused     with UnknownCurrency, CurrencyLocked or ArchivedPrimary
-     * @throws UnknownFirmBankAccount also for an account of another tenant
+     * @throws UnknownFirmBankAccount also for an unknown account
      */
     public function change(string $id, string $label, string $currency, bool $primary): FirmBankAccount
     {
@@ -101,7 +101,7 @@ final readonly class ManageFirmBankAccounts
     /**
      * Repeatable. Archiving the primary account makes the next active one primary.
      *
-     * @throws UnknownFirmBankAccount also for an account of another tenant
+     * @throws UnknownFirmBankAccount also for an unknown account
      */
     public function archive(string $id): void
     {
@@ -128,7 +128,7 @@ final readonly class ManageFirmBankAccounts
     /**
      * Repeatable. A restored account is primary when the firm has no other.
      *
-     * @throws UnknownFirmBankAccount also for an account of another tenant
+     * @throws UnknownFirmBankAccount also for an unknown account
      */
     public function restore(string $id): void
     {

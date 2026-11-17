@@ -30,7 +30,8 @@ test.describe('people of the organisation', () => {
     const invitee = await browser.newContext({ locale: 'cs-CZ', storageState: worldState('people') });
     const visitor = await invitee.newPage();
     await visitor.goto(link);
-    await expect(visitor.getByRole('heading', { name: 'Připojit se k Example People' })).toBeVisible();
+    // The world has no firm, so the organisation goes by the default name.
+    await expect(visitor.getByRole('heading', { name: 'Připojit se k Foresi' })).toBeVisible();
     await visitor.locator('#password').fill('a-long-password-1');
     await visitor.locator('#password_repeat').fill('a-long-password-1');
     await visitor.getByRole('button', { name: 'Vytvořit účet a připojit se' }).click();

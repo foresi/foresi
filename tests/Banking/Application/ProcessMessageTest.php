@@ -28,8 +28,6 @@ use App\Identity\Application\MembershipDirectory;
 use App\Identity\Application\Organisation;
 use App\Identity\Application\StaffCheck;
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\PaymentState;
 use App\Party\Domain\Address;
 use App\Party\Domain\FirmBankAccount;
@@ -396,9 +394,8 @@ final class ProcessMessageTest extends InboundTestCase
     private function bankNotices(bool $staff, UrlGeneratorInterface $urls): BankNotices
     {
         $container = self::getContainer();
-        $context = $container->get(TenantContext::class);
-        $memberships = new readonly class($context->current(), $staff) implements MembershipDirectory {
-            public function __construct(private TenantId $tenant, private bool $staff)
+        $memberships = new readonly class($staff) implements MembershipDirectory {
+            public function __construct(private bool $staff)
             {
             }
 
@@ -407,9 +404,9 @@ final class ProcessMessageTest extends InboundTestCase
                 return $this->staff ? Role::Member : Role::Guest;
             }
 
-            public function organisationsOf(string $userId): array
+            public function organisationOf(string $userId): Organisation
             {
-                return [new Organisation($this->tenant, 'Example Firm', $this->staff ? Role::Member : Role::Guest)];
+                return new Organisation('Example Firm', $this->staff ? Role::Member : Role::Guest);
             }
         };
         $actor = new class implements AuditActor {

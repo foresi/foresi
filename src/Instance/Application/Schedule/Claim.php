@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Instance\Application\Schedule;
 
 /**
- * The right of one worker to run a job for one period in the active tenant.
+ * The right of one worker to run a job for one period.
  */
 final readonly class Claim
 {

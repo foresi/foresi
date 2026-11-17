@@ -10,7 +10,7 @@ namespace App\Tests\Work\Application;
 
 use App\Identity\Application\People;
 use App\Identity\Domain\Membership;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Shared\Application\SystemMail;
 use App\Work\Application\Comments;
 use App\Work\Application\ManageComments;
@@ -118,7 +118,8 @@ final class NotificationMailingTest extends WorkTestCase
         self::assertSame('member@example.com', $mail->to);
         self::assertSame('Mentioned in “Fix the contact form”', $mail->subject);
         self::assertSame('en', $mail->locale);
-        self::assertSame('Example Organisation', $mail->organisation);
+        // Without a firm the organisation is named after the product.
+        self::assertSame('Foresi', $mail->organisation);
         self::assertStringContainsString('Olga Owner: Mentioned you in a comment', $mail->text);
         self::assertStringContainsString('Task: Fix the contact form', $mail->text);
         self::assertStringContainsString('Project: Website', $mail->text);
@@ -126,7 +127,7 @@ final class NotificationMailingTest extends WorkTestCase
         self::assertStringContainsString('>@Marek Member the form fails on submit.</blockquote>', (string) $mail->html);
         self::assertStringContainsString("Open the task:\nhttp://localhost/tasks/".$this->task->id(), $mail->text);
         self::assertStringContainsString('Notification settings: http://localhost/account/notifications', $mail->text);
-        self::assertMatchesRegularExpression('#Stop e-mails about mentions: http://localhost/unsubscribe/[0-9a-f-]{36}/'.$this->member->id().'/mentioned\?_hash=[A-Za-z0-9_-]+&lang=en$#', $mail->text);
+        self::assertMatchesRegularExpression('#Stop e-mails about mentions: http://localhost/unsubscribe/'.$this->member->id().'/mentioned\?_hash=[A-Za-z0-9_-]+&lang=en$#', $mail->text);
         self::assertStringContainsString('href="http://localhost/tasks/'.$this->task->id().'"', (string) $mail->html);
         self::assertStringNotContainsString('<strong>', (string) $mail->html);
         self::assertMatchesRegularExpression('#^<http://localhost/unsubscribe/.+/mentioned\?_hash=.+>$#', $mail->headers['List-Unsubscribe']);
@@ -235,7 +236,7 @@ final class NotificationMailingTest extends WorkTestCase
             $container->get(People::class),
             $container->get(WorkVisibility::class),
             $mailer,
-            $container->get(TenantClock::class),
+            $container->get(InstanceClock::class),
             $this->clock,
             $container->get(WorkUnit::class),
         );
@@ -269,11 +270,11 @@ final class NotificationMailingTest extends WorkTestCase
         $mail = $this->onlyMail();
         self::assertSame('member@example.com', $mail->to);
         self::assertSame('Daily digest: 2 updates', $mail->subject);
-        self::assertSame('Example Organisation', $mail->organisation);
+        self::assertSame('Foresi', $mail->organisation);
         // Grouped by project, the newest first, with the latest event and how many more.
         self::assertStringContainsString("2 updates on your tasks\n\nShop\n- Price list: Olga Owner: New comment (+1 more)\n  http://localhost/tasks/".$other->id()."\n\nWebsite\n- Fix the contact form: Olga Owner: New comment\n  http://localhost/tasks/".$this->task->id(), $mail->text);
         self::assertStringContainsString("Open notifications:\nhttp://localhost/notifications", $mail->text);
-        self::assertMatchesRegularExpression('#Stop the daily digest: http://localhost/unsubscribe/.+/'.$this->member->id().'/digest\?_hash=#', $mail->text);
+        self::assertMatchesRegularExpression('#Stop the daily digest: http://localhost/unsubscribe/'.$this->member->id().'/digest\?_hash=#', $mail->text);
         self::assertStringContainsString('/digest?_hash=', $mail->headers['List-Unsubscribe']);
         self::assertNotNull($this->only($this->member)->emailedAt());
         self::assertEquals(new \DateTimeImmutable('2026-11-10 07:00:00 UTC'), $this->preference($this->member)?->lastDigestAt());

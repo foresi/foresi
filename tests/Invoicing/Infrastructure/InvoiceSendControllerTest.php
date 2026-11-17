@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\FirmInvoicingSettings;
 use App\Invoicing\Application\InvoiceInput;
@@ -78,8 +76,6 @@ final class InvoiceSendControllerTest extends WebTestCase
 
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private TenantContext $context;
-    private TenantId $tenant;
     private LegalEntity $firm;
     private Series $series;
     private Party $customer;
@@ -89,8 +85,7 @@ final class InvoiceSendControllerTest extends WebTestCase
         self::mockTime('2026-11-03 10:00:00');
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), $this->context);
+        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
         RecordingMailGateway::reset();
     }
 
@@ -688,13 +683,12 @@ final class InvoiceSendControllerTest extends WebTestCase
         self::assertStringContainsString('*AM:1000.00*', $this->string($row['payment_code']), 'the QR code asks for what is left');
     }
 
-    public function testTheReminderCountsTheTenantsDayAsTheRunsDo(): void
+    public function testTheReminderCountsTheInstanceDayAsTheRunsDo(): void
     {
         $this->signedIn();
         $invoice = $this->issued();
-        // Due on the 15th; at 11:00 UTC it is still the 15th in Prague, the firm's country, but the 16th for the tenant.
-        $this->connection()->executeStatement('UPDATE tenant SET timezone = ? WHERE id = ?', ['Pacific/Kiritimati', $this->tenant->toString()]);
-        self::mockTime('2026-11-15 11:00:00');
+        // Due on the 15th; at 23:30 UTC it is already the 16th in Prague, the firm's country.
+        self::mockTime('2026-11-15 23:30:00');
 
         $crawler = $this->openReminder($invoice);
 
@@ -754,7 +748,7 @@ final class InvoiceSendControllerTest extends WebTestCase
         self::assertStringContainsString('Upomínka: faktura 20260001', $crawler->filter('[data-send-preview-subject]')->text());
     }
 
-    public function testRemindIsStaffOnlyAndTenantIsolated(): void
+    public function testRemindIsStaffOnly(): void
     {
         $this->signedIn(Role::Guest);
         foreach (['GET', 'POST'] as $method) {
@@ -902,7 +896,7 @@ final class InvoiceSendControllerTest extends WebTestCase
 
     private function signedIn(Role $role = Role::Owner, string $locale = 'en', bool $server = true, EmailPurpose $email = EmailPurpose::Invoices): void
     {
-        [$this->tenant] = $this->browser->seed(['Tenant A'], $locale, $role);
+        $this->browser->seed($locale, $role);
         $this->scoped(function () use ($server, $email): void {
             [$this->firm, $this->series, $this->customer] = $this->firmWithCustomer($server, $email);
         });
@@ -911,7 +905,7 @@ final class InvoiceSendControllerTest extends WebTestCase
 
     /**
      * A payer firm with a contact address and, if asked, a mail server, and a customer
-     * with one address, in the active tenant.
+     * with one address.
      *
      * @return array{LegalEntity, Series, Party}
      */
@@ -942,7 +936,7 @@ final class InvoiceSendControllerTest extends WebTestCase
     }
 
     /**
-     * Runs outside a request, which has no tenant of its own.
+     * Runs outside a request.
      *
      * @template T
      *
@@ -952,12 +946,7 @@ final class InvoiceSendControllerTest extends WebTestCase
      */
     private function scoped(callable $work): mixed
     {
-        $this->context->switchTo($this->tenant);
-        try {
-            return $work();
-        } finally {
-            $this->context->reset();
-        }
+        return $work();
     }
 
     private function connection(): Connection

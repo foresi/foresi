@@ -18,9 +18,6 @@ use App\Banking\Application\InboundAddresses;
 use App\Banking\Application\InboundToken;
 use App\Banking\Domain\BankFeed;
 use App\Banking\Infrastructure\Doctrine\DoctrineBankFeedDirectory;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
-use App\Instance\Infrastructure\Doctrine\TenantFilterBypass;
 use App\Invoicing\Application\MailSecrets;
 use App\Party\Application\FirmBankAccounts;
 use App\Party\Application\TransactionalWork;
@@ -39,8 +36,8 @@ use Symfony\Component\Clock\MockClock;
 
 /**
  * An inbound address is a template with a secret token in it. Only the token's
- * hash and a sealed copy are stored; the address resolves to its feed across
- * tenants, and a new token kills the old one at once.
+ * hash and a sealed copy are stored; the address resolves to its feed, and a
+ * new token kills the old one at once.
  */
 final class GenerateAddressTest extends KernelTestCase
 {
@@ -48,8 +45,6 @@ final class GenerateAddressTest extends KernelTestCase
     private const string IBAN = 'CZ6508000000192000145399';
 
     private EntityManagerInterface $em;
-    private TenantContext $context;
-    private TenantId $tenant;
     private MockClock $clock;
 
     protected function setUp(): void
@@ -61,9 +56,6 @@ final class GenerateAddressTest extends KernelTestCase
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $this->context = $container->get(TenantContext::class);
-        $this->tenant = TenantId::generate();
-        $this->context->switchTo($this->tenant);
         $this->clock = new MockClock('2026-11-02 12:00:00');
     }
 
@@ -107,7 +99,6 @@ final class GenerateAddressTest extends KernelTestCase
 
         $address = $this->generate()->generate($account->id());
         $this->em->clear();
-        $this->context->reset();
 
         self::assertMatchesRegularExpression('/^bank\+[a-z2-7]{26}@example\.com$/D', $address);
         // Mail systems may change the case; the route does not.
@@ -117,7 +108,6 @@ final class GenerateAddressTest extends KernelTestCase
         $firmId = $account->firm()->id();
         self::assertEquals(new FeedRoute(Scalars::text($feedId), $account->id(), $firmId), $this->directory()->route(InboundToken::hash($token)));
 
-        $this->context->switchTo($this->tenant);
         $feed = $this->feeds()->ofAccount($account->id());
         self::assertInstanceOf(BankFeed::class, $feed);
         self::assertSame($address, $this->feeds()->revealAddress($feed));
@@ -264,7 +254,7 @@ final class GenerateAddressTest extends KernelTestCase
     private function directory(): BankFeedDirectory
     {
         // Nothing in this task asks for it yet, so the container may have dropped the service.
-        return new DoctrineBankFeedDirectory($this->connection(), self::getContainer()->get(TenantFilterBypass::class));
+        return new DoctrineBankFeedDirectory($this->connection());
     }
 
     private function connection(): Connection

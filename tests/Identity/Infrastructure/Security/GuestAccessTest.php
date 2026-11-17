@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Identity\Infrastructure\Security;
 
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
 use App\Shared\Domain\Id;
 use App\Tests\Identity\Support\SignedInBrowser;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -70,7 +69,7 @@ final class GuestAccessTest extends WebTestCase
         // Their own inbox, which holds only the tasks they see.
         'app_notifications', 'app_notifications_read_all', 'app_notification_done', 'app_notification_undone',
         // Their own e-mail settings, and the signed link in an e-mail that stops one kind of them.
-        'app_notification_settings', 'app_notification_unsubscribe',
+        'app_notification_settings', 'app_notification_unsubscribe', 'app_notification_unsubscribe_legacy',
         // No live components exist: an unknown one is not found before any controller runs.
         'ux_live_component',
     ];
@@ -82,7 +81,7 @@ final class GuestAccessTest extends WebTestCase
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), self::getContainer()->get(TenantContext::class));
+        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
     }
 
     /**
@@ -151,7 +150,7 @@ final class GuestAccessTest extends WebTestCase
 
     private function signIn(Role $role): void
     {
-        $this->browser->seed(['Tenant A'], role: $role);
+        $this->browser->seed(role: $role);
         $this->browser->signIn();
     }
 

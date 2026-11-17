@@ -70,7 +70,7 @@ final readonly class RecordPayment
      * @return Payment the payment as stored; anything loaded before is detached
      *
      * @throws PaymentRefused nothing is stored
-     * @throws UnknownInvoice also for an invoice of another tenant
+     * @throws UnknownInvoice
      */
     public function record(PaymentRequest $request): Payment
     {

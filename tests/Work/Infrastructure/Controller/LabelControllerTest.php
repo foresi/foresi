@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Work\Infrastructure\Controller;
 
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Ui\Dialog\DialogRequest;
 use App\Work\Domain\Label;
@@ -34,16 +32,13 @@ final class LabelControllerTest extends WebTestCase
     private KernelBrowser $client;
     private SignedInBrowser $browser;
     private EntityManagerInterface $em;
-    private TenantContext $context;
-    private TenantId $tenant;
 
     protected function setUp(): void
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
         $this->em = self::getContainer()->get('doctrine.orm.entity_manager');
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, $this->em, $this->context);
+        $this->browser = new SignedInBrowser($this->client, $this->em);
     }
 
     public function testTheStaffFindTheLabelsInTheSettingsAndStartEmpty(): void
@@ -150,44 +145,34 @@ final class LabelControllerTest extends WebTestCase
 
     private function signIn(Role $role = Role::Owner): void
     {
-        [$this->tenant] = $this->browser->seed(['Example Organisation'], role: $role);
+        $this->browser->seed(role: $role);
         $this->browser->signIn();
     }
 
     private function label(string $name, LabelColour $colour): string
     {
-        $this->context->switchTo($this->tenant);
-        try {
-            $label = new Label($name, $colour);
-            $this->em->persist($label);
-            $this->em->flush();
+        $label = new Label($name, $colour);
+        $this->em->persist($label);
+        $this->em->flush();
 
-            return $label->id();
-        } finally {
-            $this->context->reset();
-        }
+        return $label->id();
     }
 
     private function tagTasks(string $labelId, int $count): void
     {
-        $this->context->switchTo($this->tenant);
-        try {
-            $label = $this->em->find(Label::class, $labelId) ?? throw new \LogicException('Label.');
-            $userId = $this->em->getConnection()->fetchOne('SELECT id FROM app_user LIMIT 1');
-            self::assertIsString($userId);
-            $now = new \DateTimeImmutable();
-            $project = new Project('Website', null, WorkflowTemplate::Simple, $userId, $now);
-            $status = new ProjectStatus($project, 'To do', WorkflowTemplate::Simple->statuses()[0][1], 0);
-            $this->em->persist($project);
-            $this->em->persist($status);
-            for ($i = 0; $i < $count; ++$i) {
-                $task = new Task($project, 'Task '.$i, $status, $i, $userId, $now);
-                $this->em->persist($task);
-                $this->em->persist(new TaskLabel($task, $label));
-            }
-            $this->em->flush();
-        } finally {
-            $this->context->reset();
+        $label = $this->em->find(Label::class, $labelId) ?? throw new \LogicException('Label.');
+        $userId = $this->em->getConnection()->fetchOne('SELECT id FROM app_user LIMIT 1');
+        self::assertIsString($userId);
+        $now = new \DateTimeImmutable();
+        $project = new Project('Website', null, WorkflowTemplate::Simple, $userId, $now);
+        $status = new ProjectStatus($project, 'To do', WorkflowTemplate::Simple->statuses()[0][1], 0);
+        $this->em->persist($project);
+        $this->em->persist($status);
+        for ($i = 0; $i < $count; ++$i) {
+            $task = new Task($project, 'Task '.$i, $status, $i, $userId, $now);
+            $this->em->persist($task);
+            $this->em->persist(new TaskLabel($task, $label));
         }
+        $this->em->flush();
     }
 }

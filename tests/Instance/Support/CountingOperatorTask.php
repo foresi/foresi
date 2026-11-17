@@ -9,10 +9,9 @@ declare(strict_types=1);
 namespace App\Tests\Instance\Support;
 
 use App\Instance\Application\Schedule\OperatorTask;
-use App\Instance\Application\TenantContext;
 
 /**
- * An operator task that remembers whether a tenant was active in each run. It
+ * An operator task that counts its runs. It
  * can be told to fail, and to run a callback while it runs, so a test can try
  * a second run at the same moment. The record is static, as the task is a
  * service of the container and the test reads it.
@@ -21,17 +20,12 @@ final class CountingOperatorTask implements OperatorTask
 {
     public const string NAME = 'counting-operator';
 
-    /** @var list<bool> whether a tenant was active, per run */
-    private static array $runs = [];
+    private static int $runs = 0;
 
     private static int $failures = 0;
 
     /** @var (\Closure(): void)|null */
     private static ?\Closure $during = null;
-
-    public function __construct(private readonly TenantContext $context)
-    {
-    }
 
     public function name(): string
     {
@@ -45,7 +39,7 @@ final class CountingOperatorTask implements OperatorTask
 
     public function run(): void
     {
-        self::$runs[] = $this->context->has();
+        ++self::$runs;
         if (self::$during instanceof \Closure) {
             $during = self::$during;
             self::$during = null;
@@ -58,10 +52,7 @@ final class CountingOperatorTask implements OperatorTask
         }
     }
 
-    /**
-     * @return list<bool>
-     */
-    public static function runs(): array
+    public static function runs(): int
     {
         return self::$runs;
     }
@@ -81,7 +72,7 @@ final class CountingOperatorTask implements OperatorTask
 
     public static function reset(): void
     {
-        self::$runs = [];
+        self::$runs = 0;
         self::$failures = 0;
         self::$during = null;
     }

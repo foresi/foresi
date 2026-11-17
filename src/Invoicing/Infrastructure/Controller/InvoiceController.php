@@ -11,7 +11,7 @@ namespace App\Invoicing\Infrastructure\Controller;
 use App\Audit\Application\AuditActor;
 use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\StaffCheck;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\AdvanceTaxation;
 use App\Invoicing\Application\BilledWork;
@@ -132,7 +132,7 @@ final class InvoiceController extends AbstractController
         private readonly StaffCheck $staff,
         private readonly AuditActor $actor,
         private readonly ClockInterface $clock,
-        private readonly TenantClock $tenantClock,
+        private readonly InstanceClock $instanceClock,
         private readonly TranslatorInterface $translator,
         private readonly IssuedDocumentFactory $documents,
         private readonly InvoicePdf $pdf,
@@ -760,8 +760,8 @@ final class InvoiceController extends AbstractController
         if (!$context->invoice instanceof Invoice) {
             return null;
         }
-        // Overdue by the tenant's day, as the reminders count it (ADR 0017).
-        $status = InvoiceStatus::ofInvoice($context->invoice, $this->tenantClock->today(), $this->payments->paidOf($context->invoice), $this->payments->correctionsOf($context->invoice));
+        // Overdue by the instance's day, as the reminders count it (ADR 0017).
+        $status = InvoiceStatus::ofInvoice($context->invoice, $this->instanceClock->today(), $this->payments->paidOf($context->invoice), $this->payments->correctionsOf($context->invoice));
 
         return ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()];
     }

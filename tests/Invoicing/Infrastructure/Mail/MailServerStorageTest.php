@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure\Mail;
 
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\MailSecrets;
 use App\Invoicing\Application\MailServers;
 use App\Invoicing\Domain\FirmMailServer;
@@ -42,7 +40,6 @@ final class MailServerStorageTest extends KernelTestCase
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $container->get(TenantContext::class)->switchTo(TenantId::generate());
         $this->servers = $container->get(MailServers::class);
         $this->secrets = $container->get(MailSecrets::class);
 

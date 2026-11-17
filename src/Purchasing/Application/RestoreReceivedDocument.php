@@ -27,7 +27,7 @@ final readonly class RestoreReceivedDocument
 
     /**
      * @throws PurchasingNotAllowed    for anyone but the owners and members of the organisation
-     * @throws UnknownReceivedDocument also for a document of another tenant
+     * @throws UnknownReceivedDocument
      * @throws ReceivedDocumentRefused with LOCKED once locked
      */
     public function restore(string $documentId): ReceivedDocument

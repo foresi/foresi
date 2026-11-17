@@ -18,7 +18,6 @@ use App\Import\Domain\BlankCells;
 use App\Import\Domain\FieldDefinition;
 use App\Import\Domain\FieldType;
 use App\Import\Domain\RowError;
-use App\Instance\Application\TenantContext;
 use App\Shared\Domain\Id;
 
 /**
@@ -31,7 +30,7 @@ final class FakeTarget implements ImportTarget
 {
     public const string KEY = 'fake';
 
-    /** @var array<string, array{values: array<string, mixed>, archived: bool, tenant: string}> */
+    /** @var array<string, array{values: array<string, mixed>, archived: bool}> */
     public array $records = [];
 
     /** @var list<array{string, string, string|null}> operation, record id, correlation id */
@@ -40,8 +39,7 @@ final class FakeTarget implements ImportTarget
     /** @var (callable(array<string, mixed>): void)|null runs inside create(), so a test can make the write fail in the database */
     public $onCreate;
 
-    /** Records belong to the active tenant; matching and the active ids see only its records. */
-    public function __construct(private readonly AuditCorrelation $correlation, private readonly TenantContext $tenants, private readonly AuditTrail $trail)
+    public function __construct(private readonly AuditCorrelation $correlation, private readonly AuditTrail $trail)
     {
     }
 
@@ -95,7 +93,7 @@ final class FakeTarget implements ImportTarget
         $key = $this->matchKeyValue($matchKey, $values);
         $matches = [];
         foreach ($this->records as $id => $record) {
-            if ($record['tenant'] === $this->tenant() && null !== $key && $this->matchKeyValue($matchKey, $record['values']) === $key) {
+            if (null !== $key && $this->matchKeyValue($matchKey, $record['values']) === $key) {
                 $matches[] = new RecordMatch($id, $record['archived']);
             }
         }
@@ -110,7 +108,7 @@ final class FakeTarget implements ImportTarget
             ($this->onCreate)($values);
         }
         $id = Id::generate();
-        $this->records[$id] = ['values' => $values, 'archived' => false, 'tenant' => $this->tenant()];
+        $this->records[$id] = ['values' => $values, 'archived' => false];
         $this->log('create', $id);
 
         return new WriteResult($id, RecordSnapshot::none());
@@ -153,7 +151,7 @@ final class FakeTarget implements ImportTarget
         } else {
             /** @var array<string, mixed> $values */
             $values = $before->data['values'];
-            $this->records[$id] = ['values' => $values, 'archived' => true === $before->data['archived'], 'tenant' => $this->records[$id]['tenant']];
+            $this->records[$id] = ['values' => $values, 'archived' => true === $before->data['archived']];
         }
         $this->log('revert', $id);
     }
@@ -161,7 +159,7 @@ final class FakeTarget implements ImportTarget
     public function activeIds(): iterable
     {
         foreach ($this->records as $id => $record) {
-            if ($record['tenant'] === $this->tenant() && !$record['archived']) {
+            if (!$record['archived']) {
                 yield $id;
             }
         }
@@ -187,7 +185,7 @@ final class FakeTarget implements ImportTarget
     public function add(array $values, bool $archived = false): string
     {
         $id = Id::generate();
-        $this->records[$id] = ['values' => $values, 'archived' => $archived, 'tenant' => $this->tenant()];
+        $this->records[$id] = ['values' => $values, 'archived' => $archived];
 
         return $id;
     }
@@ -205,7 +203,7 @@ final class FakeTarget implements ImportTarget
     {
         $names = [];
         foreach ($this->records as $record) {
-            if ($record['tenant'] === $this->tenant() && !$record['archived']) {
+            if (!$record['archived']) {
                 $name = $record['values']['name'] ?? '';
                 $names[] = \is_string($name) ? $name : '';
             }
@@ -221,11 +219,6 @@ final class FakeTarget implements ImportTarget
     public function count(string $operation): int
     {
         return \count(array_filter($this->writes, static fn (array $write): bool => $write[0] === $operation));
-    }
-
-    private function tenant(): string
-    {
-        return $this->tenants->current()->toString();
     }
 
     private function snapshot(string $id): RecordSnapshot

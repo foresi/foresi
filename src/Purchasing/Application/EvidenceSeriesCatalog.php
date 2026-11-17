@@ -12,7 +12,7 @@ use App\Party\Domain\LegalEntity;
 use App\Purchasing\Domain\EvidenceSeries;
 
 /**
- * The evidence series of the firms of the active tenant, one per firm.
+ * The evidence series of the firms, one per firm.
  */
 interface EvidenceSeriesCatalog
 {

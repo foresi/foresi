@@ -15,8 +15,6 @@ use App\Import\Application\Source\SourceSettings;
 use App\Import\Domain\Import;
 use App\Import\Domain\ImportState;
 use App\Import\Infrastructure\Source\OpenSpoutSourceReader;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Application\CreateParty;
 use App\Party\Domain\Address;
 use App\Party\Domain\PartyKind;
@@ -47,10 +45,8 @@ final class ImportControllerTest extends WebTestCase
     private const string FIXTURE = __DIR__.'/../../Party/Fixtures/idoklad-contacts.csv';
 
     private KernelBrowser $client;
-    private TenantContext $context;
     private RunMessages $worker;
     private InMemoryTransport $transport;
-    private TenantId $tenant;
     private string $dir;
 
     protected function setUp(): void
@@ -59,8 +55,7 @@ final class ImportControllerTest extends WebTestCase
         $this->client = self::createClient();
         $this->client->disableReboot();
         $container = self::getContainer();
-        $this->context = $container->get(TenantContext::class);
-        $browser = new SignedInBrowser($this->client, $container->get('doctrine.orm.entity_manager'), $this->context);
+        $browser = new SignedInBrowser($this->client, $container->get('doctrine.orm.entity_manager'));
         $transport = $container->get('messenger.transport.async');
         self::assertInstanceOf(InMemoryTransport::class, $transport);
         $this->transport = $transport;
@@ -68,8 +63,7 @@ final class ImportControllerTest extends WebTestCase
         $this->dir = sys_get_temp_dir().'/foresi-import-screens-'.bin2hex(random_bytes(6));
         mkdir($this->dir);
 
-        [$this->tenant] = $browser->seed(['Tenant A'], 'en');
-        $browser->fixtures->tenant('Foreign Tenant');
+        $browser->seed('en');
         $browser->signIn();
     }
 
@@ -285,9 +279,7 @@ final class ImportControllerTest extends WebTestCase
         self::assertStringContainsString('Row 5', $crawler->filter('[data-error-rows] > li')->text());
         self::assertStringContainsString('Column IČ. "12345678" is not a valid', $crawler->filter('[data-error-rows] > li')->text());
         self::assertSelectorExists('a[href="/imports/'.$id.'/errors"]');
-        $this->context->switchTo($this->tenant);
         self::assertSame('Contacts from iDoklad', self::getContainer()->get(Imports::class)->findFresh($id)?->profile()?->name());
-        $this->context->reset();
     }
 
     public function testAFullReplaceRunsOnlyWithTheNumberToArchiveTyped(): void
@@ -783,11 +775,7 @@ final class ImportControllerTest extends WebTestCase
 
     private function fresh(string $id): Import
     {
-        $this->context->switchTo($this->tenant);
-        $import = self::getContainer()->get(Imports::class)->findFresh($id) ?? throw new \LogicException('No such import.');
-        $this->context->reset();
-
-        return $import;
+        return self::getContainer()->get(Imports::class)->findFresh($id) ?? throw new \LogicException('No such import.');
     }
 
     /**
@@ -795,8 +783,6 @@ final class ImportControllerTest extends WebTestCase
      */
     private function party(string $name, array $roles = [PartyRole::Customer]): void
     {
-        $this->context->switchTo($this->tenant);
         self::getContainer()->get(CreateParty::class)->create(PartyKind::SoleTrader, $name, null, null, '', '', $roles, new Address('Example Street 1', 'Example City', '100 00', 'CZ'));
-        $this->context->reset();
     }
 }

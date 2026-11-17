@@ -12,9 +12,6 @@ use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\Tenant;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Domain\Invoice;
 use App\Tests\Invoicing\Application\InvoiceTestCase;
 use Symfony\Component\Clock\Clock;
@@ -29,7 +26,6 @@ use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
  */
 abstract class InvoicingReadTestCase extends InvoiceTestCase
 {
-    protected Tenant $tenant;
     protected Membership $owner;
     protected Membership $member;
     protected Membership $guest;
@@ -38,9 +34,6 @@ abstract class InvoicingReadTestCase extends InvoiceTestCase
     {
         parent::setUp();
         Clock::set(new MockClock('2026-11-20 10:00:00', 'UTC'));
-        $current = self::getContainer()->get(TenantContext::class)->current();
-        $this->tenant = new Tenant($current, 'Example Organisation', new \DateTimeImmutable('2026-01-01'));
-        $this->em->persist($this->tenant);
         $this->owner = $this->person('owner@example.com', 'Olga Owner', Role::Owner);
         $this->member = $this->person('member@example.com', 'Marek Member', Role::Member);
         $this->guest = $this->person('guest@example.com', 'Greta Guest', Role::Guest, true);
@@ -63,28 +56,6 @@ abstract class InvoicingReadTestCase extends InvoiceTestCase
     protected function signOut(): void
     {
         self::getContainer()->get(TokenStorageInterface::class)->setToken(null);
-    }
-
-    /**
-     * Another organisation is the active one until switchTo() brings this one back.
-     */
-    protected function switchTo(TenantId $tenant): void
-    {
-        self::getContainer()->get(TenantContext::class)->switchTo($tenant);
-    }
-
-    /**
-     * Another organisation, with nothing in it and the owner as its owner, becomes the active one.
-     */
-    protected function switchToAnotherOrganisation(): void
-    {
-        $other = TenantId::generate();
-        $this->switchTo($other);
-        $this->em->persist(new Tenant($other, 'Other Organisation', new \DateTimeImmutable('2026-01-01')));
-        $user = $this->em->find(User::class, $this->owner->user()->id());
-        self::assertInstanceOf(User::class, $user);
-        $this->em->persist(new Membership($user, Role::Owner));
-        $this->em->flush();
     }
 
     protected function issued(string $issueDate = '2026-11-01', string $due = '2026-11-15', string $price = '1000.00'): Invoice

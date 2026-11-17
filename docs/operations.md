@@ -393,7 +393,7 @@ whatever was written since is lost.
   `failed_messages`, `disk_free_percent` of the data disk and `system_mail`
   (degraded while `SYSTEM_MAILER_DSN` or `SYSTEM_MAIL_FROM` is unset). The HTTP status is
   `200` while ok or degraded and `503` when down. It is rate limited per client
-  address (60 a minute) and holds no tenant data.
+  address (60 a minute) and holds no business data.
 - Point an **uptime check** at `https://foresi.example.com/health` every five
   minutes, alerting on anything but `200`, and on `"status":"degraded"` if the
   monitor can match the body.

@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Events\Application\Query;
 
 /**
- * The events of the active organisation, as an agent reads them: those that have
+ * The events of the organisation, as an agent reads them: those that have
  * a position, from the last thirty days, in the order of their positions. The
  * feed does not decide who may read which event; the caller passes only the
  * names it may show.

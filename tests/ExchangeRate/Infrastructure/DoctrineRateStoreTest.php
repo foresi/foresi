@@ -33,12 +33,11 @@ final class DoctrineRateStoreTest extends KernelTestCase
         $this->store = new DoctrineRateStore($em->getConnection());
     }
 
-    public function testTheTableHasNoTenantAndIsKeyedByDateAndCurrency(): void
+    public function testTheTableIsKeyedByDateAndCurrency(): void
     {
         $em = self::getContainer()->get(EntityManagerInterface::class);
         $table = new SchemaTool($em)->getSchemaFromMetadata([$em->getClassMetadata(StoredRate::class)])->getTable('exchange_rate');
 
-        self::assertFalse($table->hasColumn('tenant_id'));
         self::assertSame(['rate_date', 'currency'], $table->getPrimaryKey()?->getColumns());
     }
 

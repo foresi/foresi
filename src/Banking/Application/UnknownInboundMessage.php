@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Banking\Application;
 
 /**
- * No inbound message has the id in the active tenant.
+ * No inbound message has the id.
  */
 final class UnknownInboundMessage extends \RuntimeException
 {

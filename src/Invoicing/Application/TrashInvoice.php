@@ -49,7 +49,7 @@ final readonly class TrashInvoice
      * @throws InvalidDeletionReason without a reason, or with one past Invoice::MAX_REASON_LENGTH
      * @throws \DomainException      once delivered, or when it is in the trash already
      * @throws PaymentRefused        with HAS_PAYMENTS while a payment not cancelled pays it
-     * @throws UnknownInvoice        also for an invoice of another tenant
+     * @throws UnknownInvoice
      */
     public function trash(string $id, string $reason): Invoice
     {
@@ -75,7 +75,7 @@ final readonly class TrashInvoice
      *
      * @throws PaymentRefused with CANCELLED for a tax document whose payment is cancelled, or that was replaced
      * @throws IssueRefused   with invoice.problem.already_deducted when another invoice deducts what it deducted meanwhile, or when the work it billed was billed elsewhere, changed or deleted
-     * @throws UnknownInvoice also for an invoice of another tenant
+     * @throws UnknownInvoice
      */
     public function restore(string $id): Invoice
     {

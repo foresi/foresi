@@ -12,7 +12,7 @@ use App\Banking\Domain\InboundMessage;
 use App\Banking\Domain\InboundStatus;
 
 /**
- * The inbound messages of the active tenant.
+ * The inbound messages.
  */
 interface InboundMessages
 {
@@ -28,21 +28,21 @@ interface InboundMessages
     public function rawHashOf(string $dedupKey): ?string;
 
     /**
-     * Stores a new message by a single statement, in the active tenant. Of two
-     * messages with one dedup key only the first is stored, even at the same
-     * moment; the message object is not managed afterwards.
+     * Stores a new message by a single statement. Of two messages with one dedup
+     * key only the first is stored, even at the same moment; the message object
+     * is not managed afterwards.
      *
      * @return bool false when a message with its dedup key is stored already
      */
     public function add(InboundMessage $message): bool;
 
     /**
-     * The message as stored now, or null for none in the active tenant.
+     * The message as stored now, or null for none.
      */
     public function find(string $id): ?InboundMessage;
 
     /**
-     * The message the feed received last, or null for none in the active tenant.
+     * The message the feed received last, or null for none.
      */
     public function lastOfFeed(string $feedId): ?InboundMessage;
 
@@ -55,7 +55,7 @@ interface InboundMessages
      *
      * @param non-empty-list<InboundStatus> $from
      *
-     * @return ClaimedMessage|null null when the message is of another tenant, or stands elsewhere
+     * @return ClaimedMessage|null null when the message is unknown, or stands elsewhere
      */
     public function claim(string $id, array $from, ?string $failure = null): ?ClaimedMessage;
 
@@ -107,7 +107,7 @@ interface InboundMessages
     public function rows(MovementFilter $filter, \DateTimeImmutable $stuckBefore, int $offset, int $limit): array;
 
     /**
-     * The message as the Messages tab lists it, or null for none in the active tenant.
+     * The message as the Messages tab lists it, or null for none.
      */
     public function row(string $id, \DateTimeImmutable $stuckBefore): ?MessageRow;
 

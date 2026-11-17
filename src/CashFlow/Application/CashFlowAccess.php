@@ -22,8 +22,8 @@ use App\Party\Domain\Party;
 /**
  * Who works with the cash flow: the owners and the members of the
  * organisation, never its guests. Every use case asks here first, and finds
- * the firms, accounts and contacts it names here, so a record of another
- * tenant is refused as unknown.
+ * the firms, accounts and contacts it names here, so an unknown record is
+ * refused.
  */
 final readonly class CashFlowAccess
 {

@@ -21,8 +21,6 @@ use App\Import\Domain\Import;
 use App\Import\Domain\ImportMode;
 use App\Import\Domain\ImportOptions;
 use App\Import\Domain\ImportState;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Infrastructure\Import\PartyImportTarget;
 use App\Tests\Import\Support\RunMessages;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -57,7 +55,6 @@ final class PartyImportThroughputTest extends KernelTestCase
         $tool = new SchemaTool($em);
         $tool->dropSchema($em->getMetadataFactory()->getAllMetadata());
         $tool->createSchema($em->getMetadataFactory()->getAllMetadata());
-        $container->get(TenantContext::class)->switchTo(TenantId::generate());
         $imports = $container->get(Imports::class);
 
         $dir = sys_get_temp_dir().'/foresi-throughput-'.bin2hex(random_bytes(6));

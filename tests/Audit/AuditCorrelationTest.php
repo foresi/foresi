@@ -12,8 +12,6 @@ use App\Audit\Application\AuditCorrelation;
 use App\Audit\Application\AuditTrail;
 use App\Audit\Domain\AuditAction;
 use App\Audit\Domain\AuditEntry;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
 use App\Party\Domain\PartyRole;
@@ -35,7 +33,6 @@ final class AuditCorrelationTest extends KernelTestCase
         $container = self::getContainer();
         $em = $container->get('doctrine.orm.entity_manager');
         $this->em = $em;
-        $context = $container->get(TenantContext::class);
         $this->correlation = $container->get(AuditCorrelation::class);
         $this->trail = $container->get(AuditTrail::class);
 
@@ -43,7 +40,6 @@ final class AuditCorrelationTest extends KernelTestCase
         $metadata = $em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $context->switchTo(TenantId::generate());
     }
 
     public function testCreatedUpdatedAndDeletedEntriesCarryTheCorrelationId(): void

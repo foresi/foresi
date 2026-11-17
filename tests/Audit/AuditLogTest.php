@@ -19,8 +19,6 @@ use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\ApiFirewalls;
 use App\Identity\Infrastructure\Security\SecurityApiTokenContext;
 use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Domain\Address;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\FirmBankAccount;
@@ -47,16 +45,13 @@ use Symfony\Component\Security\Http\Authenticator\Token\PostAuthenticationToken;
 final class AuditLogTest extends KernelTestCase
 {
     private EntityManagerInterface $em;
-    private TenantContext $context;
 
     protected function setUp(): void
     {
         self::bootKernel();
         $container = self::getContainer();
         $em = $container->get('doctrine.orm.entity_manager');
-        $context = $container->get(TenantContext::class);
         $this->em = $em;
-        $this->context = $context;
 
         $tool = new SchemaTool($em);
         $metadata = $em->getMetadataFactory()->getAllMetadata();
@@ -66,7 +61,6 @@ final class AuditLogTest extends KernelTestCase
 
     public function testCreateIsLoggedWithGeneratedIdAndValues(): void
     {
-        $this->context->switchTo(TenantId::generate());
         $party = $this->party();
         $this->em->persist($party);
         $this->em->flush();
@@ -83,12 +77,10 @@ final class AuditLogTest extends KernelTestCase
         self::assertSame([null, 14], $changes['invoicingDefaults.dueDays']);
         self::assertSame([null, ['customer']], $changes['roles']);
         self::assertArrayNotHasKey('id', $changes);
-        self::assertArrayNotHasKey('tenantId', $changes);
     }
 
     public function testUpdateWritesFieldDiff(): void
     {
-        $this->context->switchTo(TenantId::generate());
         $party = $this->party();
         $this->em->persist($party);
         $this->em->flush();
@@ -104,7 +96,6 @@ final class AuditLogTest extends KernelTestCase
 
     public function testEmbeddedAndEnumChangesAreScalars(): void
     {
-        $this->context->switchTo(TenantId::generate());
         $party = $this->party();
         $this->em->persist($party);
         $this->em->flush();
@@ -121,7 +112,6 @@ final class AuditLogTest extends KernelTestCase
 
     public function testFlushWithoutChangesWritesNothing(): void
     {
-        $this->context->switchTo(TenantId::generate());
         $this->em->persist($this->party());
         $this->em->flush();
         $this->em->flush();
@@ -131,7 +121,6 @@ final class AuditLogTest extends KernelTestCase
 
     public function testDeleteIsLogged(): void
     {
-        $this->context->switchTo(TenantId::generate());
         $party = $this->party();
         $this->em->persist($party);
         $this->em->flush();
@@ -150,7 +139,6 @@ final class AuditLogTest extends KernelTestCase
 
     public function testAuditEntriesCannotBeUpdated(): void
     {
-        $this->context->switchTo(TenantId::generate());
         $this->em->persist($this->party());
         $this->em->flush();
 
@@ -163,7 +151,6 @@ final class AuditLogTest extends KernelTestCase
 
     public function testAuditEntriesCannotBeRemoved(): void
     {
-        $this->context->switchTo(TenantId::generate());
         $this->em->persist($this->party());
         $this->em->flush();
 
@@ -173,23 +160,8 @@ final class AuditLogTest extends KernelTestCase
         $this->em->flush();
     }
 
-    public function testTheLogIsReadWithoutATenant(): void
-    {
-        $this->context->switchTo(TenantId::generate());
-        $party = $this->party();
-        $this->em->persist($party);
-        $this->em->flush();
-        $this->setProperty($party, 'displayName', 'Renamed');
-        $this->em->flush();
-
-        $this->context->reset();
-
-        self::assertCount(2, $this->entries());
-    }
-
     public function testSensitiveFieldsAreNeverWritten(): void
     {
-        $this->context->switchTo(TenantId::generate());
         $secret = new AuditedSecret('first', 'hunter2');
         $this->em->persist($secret);
         $this->em->flush();
@@ -211,7 +183,6 @@ final class AuditLogTest extends KernelTestCase
 
     public function testChangeOfOnlyExcludedFieldWritesNothing(): void
     {
-        $this->context->switchTo(TenantId::generate());
         $secret = new AuditedSecret('first', 'hunter2');
         $this->em->persist($secret);
         $this->em->flush();
@@ -223,7 +194,6 @@ final class AuditLogTest extends KernelTestCase
 
     public function testLegalEntityAndMembershipStoreStableScalars(): void
     {
-        $this->context->switchTo(TenantId::generate());
         $party = $this->party();
         $user = new User('testing@example.com', 'hash-that-must-not-matter', 'Example Company');
         $this->em->persist($user);
@@ -258,7 +228,6 @@ final class AuditLogTest extends KernelTestCase
 
     public function testActingUserIsRecordedWhenSignedIn(): void
     {
-        $this->context->switchTo(TenantId::generate());
         $this->em->persist($this->party());
         $this->em->flush();
 
@@ -276,7 +245,6 @@ final class AuditLogTest extends KernelTestCase
 
     public function testTheKindOfActorIsRecorded(): void
     {
-        $this->context->switchTo(TenantId::generate());
         $this->em->persist($this->party());
         $this->em->flush();
 
@@ -302,7 +270,6 @@ final class AuditLogTest extends KernelTestCase
 
     public function testCollectionChangesOfAuditedEntitiesAreRejected(): void
     {
-        $this->context->switchTo(TenantId::generate());
         $secret = new AuditedSecret('first', 'x');
         $group = new AuditedGroup();
         $this->em->persist($secret);

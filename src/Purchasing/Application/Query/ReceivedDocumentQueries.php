@@ -11,7 +11,7 @@ namespace App\Purchasing\Application\Query;
 use App\Purchasing\Domain\ReceivedDocument;
 
 /**
- * Reads over the received documents of the active tenant for the lists, without
+ * Reads over the received documents for the lists, without
  * loading them. The query services ask here after checking who asks.
  */
 interface ReceivedDocumentQueries

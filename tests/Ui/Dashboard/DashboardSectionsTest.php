@@ -27,12 +27,12 @@ final class DashboardSectionsTest extends TestCase
         self::assertSame(['x' => 1], $sections->all(true)[0]->context);
     }
 
-    public function testAsksNoProviderWithoutATenant(): void
+    public function testAsksNoProviderWithoutAnActiveMembership(): void
     {
         $provider = new class implements DashboardSectionProvider {
             public function sections(): iterable
             {
-                throw new \LogicException('A provider is asked only with a tenant.');
+                throw new \LogicException('A provider is asked only with an active membership.');
             }
         };
 

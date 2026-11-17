@@ -29,7 +29,7 @@ final class Version20261103000802 extends AbstractMigration
     {
         $reminders = $schema->createTable('firm_reminders');
         $reminders->addColumn('id', Types::GUID);
-        $reminders->addColumn('tenant_id', 'tenant_id');
+        $reminders->addColumn('tenant_id', 'guid');
         $reminders->addColumn('legal_entity_id', Types::GUID);
         $reminders->addColumn('enabled', Types::BOOLEAN, ['default' => false]);
         $reminders->addColumn('enabled_on', Types::DATE_IMMUTABLE, ['notnull' => false]);

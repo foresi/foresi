@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace App\Party\Application\Query;
 
 /**
- * Reads the address book of the active tenant for the API. Anything of another
- * tenant does not exist for it. Call it through ContactList, which asks who may.
+ * Reads the address book for the API. Call it through ContactList, which asks
+ * who may.
  */
 interface ContactQueries
 {

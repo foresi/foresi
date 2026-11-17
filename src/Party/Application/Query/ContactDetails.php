@@ -36,7 +36,7 @@ final readonly class ContactDetails
 
     /**
      * @throws PartyNotAllowed for anyone but the owners and members of the organisation
-     * @throws UnknownParty    also for a contact of another tenant
+     * @throws UnknownParty    also for an unknown contact
      */
     public function of(string $id): ContactDetail
     {
@@ -59,7 +59,7 @@ final readonly class ContactDetails
      * The contact itself, for the screen that reads the rest of it as it shows it.
      *
      * @throws PartyNotAllowed for anyone but the owners and members of the organisation
-     * @throws UnknownParty    also for a contact of another tenant
+     * @throws UnknownParty    also for an unknown contact
      */
     public function party(string $id): Party
     {

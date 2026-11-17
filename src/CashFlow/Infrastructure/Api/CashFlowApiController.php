@@ -12,7 +12,7 @@ use App\CashFlow\Application\CashFlowRefused;
 use App\CashFlow\Application\Forecasts;
 use App\CashFlow\Application\PlannedItemReads;
 use App\CashFlow\Domain\PlannedItem;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Shared\Application\Api\ScopeGuard;
 use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -33,7 +33,7 @@ final readonly class CashFlowApiController
     public const string PLANNED_ITEMS = 'api_v1_cash_flow_planned_items';
     public const string PLANNED_ITEM = 'api_v1_cash_flow_planned_item';
 
-    public function __construct(private ScopeGuard $scope, private Forecasts $forecasts, private PlannedItemReads $items, private TenantClock $clock)
+    public function __construct(private ScopeGuard $scope, private Forecasts $forecasts, private PlannedItemReads $items, private InstanceClock $clock)
     {
     }
 

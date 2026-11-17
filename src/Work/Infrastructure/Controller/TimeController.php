@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Work\Infrastructure\Controller;
 
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Work\Application\ManageTime;
 use App\Work\Application\TimeEntryRow;
 use App\Work\Application\TimeQueries;
@@ -57,7 +57,7 @@ final class TimeController extends AbstractController
     public function __construct(
         private readonly ManageTime $time,
         private readonly TimeQueries $queries,
-        private readonly TenantClock $clock,
+        private readonly InstanceClock $clock,
         private readonly TranslatorInterface $translator,
         private readonly TimeFunctions $format,
         private readonly WorkQueries $work,

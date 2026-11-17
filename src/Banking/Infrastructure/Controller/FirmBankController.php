@@ -48,9 +48,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * The bank settings of a firm, for the owner, as one more tab of the firm: its
  * bank accounts, and how payments pair with invoices, with the inbound address
  * of each account. Adding and editing an account, and the setup steps of an
- * address, are dialogs over the tab; the same URLs are pages of their own. A
- * firm or an account of another tenant is never found, so it answers 404. The
- * address is shown only to the owner and never logged.
+ * address, are dialogs over the tab; the same URLs are pages of their own. An
+ * unknown firm or account answers 404. The address is shown only to the owner
+ * and never logged.
  */
 final class FirmBankController extends AbstractController
 {
@@ -488,7 +488,7 @@ final class FirmBankController extends AbstractController
     }
 
     /**
-     * An account of this firm; one of another firm or tenant is not found.
+     * An account of this firm; one of another firm is not found.
      */
     private function account(LegalEntity $firm, string $id): FirmBankAccount
     {

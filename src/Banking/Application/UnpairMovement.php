@@ -31,7 +31,7 @@ final readonly class UnpairMovement
 
     /**
      * @throws PairingRefused      with NOT_PAIRED; nothing is stored
-     * @throws UnknownBankMovement also for a movement of another tenant
+     * @throws UnknownBankMovement for an unknown movement
      */
     public function unpair(string $movementId): void
     {

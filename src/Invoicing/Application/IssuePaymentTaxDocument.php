@@ -70,7 +70,7 @@ final readonly class IssuePaymentTaxDocument
      *
      * @throws IssueRefused   when the payment has its document already, no VAT arose on it, it is
      *                        not a live payment of the advance, or a rule refuses the document
-     * @throws UnknownInvoice also for an advance of another tenant
+     * @throws UnknownInvoice
      */
     public function byHand(string $advanceId, string $paymentId): Invoice
     {

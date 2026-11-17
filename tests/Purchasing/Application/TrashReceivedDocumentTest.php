@@ -95,7 +95,7 @@ final class TrashReceivedDocumentTest extends PurchasingTestCase
         self::assertTrue($this->document($id)->isRecorded());
     }
 
-    public function testADocumentOfAnotherTenantIsNotFound(): void
+    public function testAnUnknownDocumentIsNotFound(): void
     {
         $this->expectException(UnknownReceivedDocument::class);
         $this->trashing()->trash('0190b4a1-0000-7000-8000-000000000000', 'Not ours');

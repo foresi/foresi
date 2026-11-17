@@ -8,14 +8,12 @@ declare(strict_types=1);
 
 namespace App\Work\Application;
 
-use App\Instance\Application\TenantScopedMessage;
-
 /**
  * The e-mail of a mention or of becoming responsible, sent a short while after
- * the event in the tenant the message carries, unless the inbox row was read,
- * done or mailed meanwhile (Linear skips what was read).
+ * the event, unless the inbox row was read, done or mailed meanwhile (Linear
+ * skips what was read).
  */
-final readonly class SendNotificationMail implements TenantScopedMessage
+final readonly class SendNotificationMail
 {
     public function __construct(
         public string $notificationId,

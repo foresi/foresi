@@ -29,7 +29,7 @@ final class Version20261101000004 extends AbstractMigration
     {
         $table = $schema->createTable('party_firm_settings');
         $table->addColumn('id', Types::GUID);
-        $table->addColumn('tenant_id', 'tenant_id');
+        $table->addColumn('tenant_id', 'guid');
         $table->addColumn('party_id', Types::GUID);
         $table->addColumn('legal_entity_id', Types::GUID);
         $table->addColumn('invoicing_due_days', Types::INTEGER);

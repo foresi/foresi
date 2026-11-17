@@ -20,7 +20,7 @@ use Psr\Log\LoggerInterface;
 /**
  * Tells the firm by e-mail which recurring templates could not issue or send
  * their invoice in a run: to the firm's contact address, else to the template's
- * owner while they are still staff of the tenant, through the firm's own server, in the language of the template's
+ * owner while they are still staff of the organisation, through the firm's own server, in the language of the template's
  * documents, with a built-in text. One mail per firm, address and language for
  * the whole run, naming each template, so a day of refusals is one mail and not
  * one per template. Each template is told at most once a day, however often the
@@ -49,7 +49,7 @@ final readonly class RecurringAlerts
     /**
      * @param array<string, string> $failures what was refused, by template id: a problem key of IssueRefused, or
      *                                        "send." and a reason of SendRefused
-     * @param \DateTimeImmutable    $today    the tenant's day of the run
+     * @param \DateTimeImmutable    $today    the instance's day of the run
      */
     public function alertAll(array $failures, \DateTimeImmutable $today): void
     {

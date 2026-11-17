@@ -15,7 +15,7 @@ use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatId;
 use App\Party\Domain\VatStatus;
 
-// The tenant of the iDoklad spec: a payer firm with stored iDoklad keys and a finished pull whose
+// The world of the iDoklad spec: a payer firm with stored iDoklad keys and a finished pull whose
 // records are inserted as a pull stores them, so the e2e server never calls iDoklad. Three
 // contacts, three number series, invoice 20260008 whose totals match and 20260009 whose VAT is a
 // koruna off, a credit note (refused), an advance Z20260003 of 1 210 Kč paid on 5 October with its

@@ -27,7 +27,7 @@ final readonly class ChangePairing
     }
 
     /**
-     * @throws UnknownLegalEntity also for a firm of another tenant
+     * @throws UnknownLegalEntity for an unknown firm
      */
     public function change(string $firmId, bool $autoPairing, bool $smallDifference): void
     {

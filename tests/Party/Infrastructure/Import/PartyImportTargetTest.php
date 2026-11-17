@@ -19,8 +19,6 @@ use App\Import\Domain\FieldType;
 use App\Import\Domain\NormalisationOptions;
 use App\Import\Domain\RowError;
 use App\Import\Domain\ValueNormaliser;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Application\PartyDetails;
 use App\Party\Application\PartyQuery;
 use App\Party\Application\RecheckRegistry;
@@ -66,9 +64,6 @@ final class PartyImportTargetTest extends KernelTestCase
         $target = self::getContainer()->get(TargetRegistry::class)->get(PartyImportTarget::KEY);
         self::assertInstanceOf(PartyImportTarget::class, $target);
         $this->target = $target;
-        $tenants = self::getContainer()->get(TenantContext::class);
-        $tenant = TenantId::generate();
-        $tenants->switchTo($tenant);
     }
 
     public function testTheTargetDescribesItsFieldsAndMatchKeys(): void
@@ -227,7 +222,7 @@ final class PartyImportTargetTest extends KernelTestCase
         );
     }
 
-    public function testMatchesByEachKeyWithinTheTenantAndReportsArchivedRecords(): void
+    public function testMatchesByEachKeyAndReportsArchivedRecords(): void
     {
         $id = $this->create($this->values(['vat_id' => 'CZ12345687', 'email' => ['Info@example.com']]))->id;
 

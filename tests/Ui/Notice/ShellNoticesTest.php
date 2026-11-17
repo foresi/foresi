@@ -24,12 +24,12 @@ final class ShellNoticesTest extends TestCase
         self::assertSame('Notice 1', $notices->all(true)[0]->text);
     }
 
-    public function testAsksNoProviderWithoutATenant(): void
+    public function testAsksNoProviderWithoutAnActiveMembership(): void
     {
         $provider = new class implements ShellNoticeProvider {
             public function notices(): iterable
             {
-                throw new \LogicException('A provider is asked only with a tenant.');
+                throw new \LogicException('A provider is asked only with an active membership.');
             }
         };
 

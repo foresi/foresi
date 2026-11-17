@@ -28,7 +28,7 @@ final class Version20261029000004 extends AbstractMigration
     {
         $entry = $schema->createTable('audit_entry');
         $entry->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $entry->addColumn('tenant_id', 'tenant_id');
+        $entry->addColumn('tenant_id', 'guid');
         $entry->addColumn('entity_class', Types::STRING, ['length' => 255]);
         $entry->addColumn('entity_id', Types::STRING, ['length' => 64]);
         $entry->addColumn('action', Types::STRING, ['length' => 16]);

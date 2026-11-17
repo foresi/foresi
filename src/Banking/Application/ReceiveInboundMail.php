@@ -10,9 +10,6 @@ namespace App\Banking\Application;
 
 use App\Banking\Domain\InboundChannel;
 use App\Banking\Domain\InboundMessage;
-use App\Instance\Application\SoleTenant;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Application\TransactionalWork;
 use App\Shared\Domain\Id;
 use Psr\Clock\ClockInterface;
@@ -20,10 +17,7 @@ use Psr\Clock\ClockInterface;
 /**
  * Takes one raw mail, from the operator mailbox or the webhook, and keeps it
  * for the feed its recipient names. The secret token in the recipient address
- * is the only route; the instance's one tenant is made active for storing
- * alone, as the processing message still carries it, and whatever was active
- * before is active again afterwards (switching discards the entities loaded
- * under it).
+ * is the only route.
  *
  * The file is written first and the row and the processing message after it,
  * in one transaction, so a crash leaves at most a file without a row, which is
@@ -54,8 +48,6 @@ final readonly class ReceiveInboundMail
         private MailReader $reader,
         private InboundAddresses $addresses,
         private BankFeedDirectory $directory,
-        private TenantContext $context,
-        private SoleTenant $soleTenant,
         private InboundMessages $messages,
         private InboundFiles $files,
         private InboundProcessing $processing,
@@ -84,17 +76,7 @@ final readonly class ReceiveInboundMail
             return ReceiveOutcome::UnknownRecipient;
         }
 
-        $previous = $this->context->has() ? $this->context->current() : null;
-        $this->context->switchTo($this->soleTenant->id());
-        try {
-            return $this->store($mail, $raw, $channel, $route);
-        } finally {
-            if ($previous instanceof TenantId) {
-                $this->context->switchTo($previous);
-            } else {
-                $this->context->reset();
-            }
-        }
+        return $this->store($mail, $raw, $channel, $route);
     }
 
     private function store(InboundMail $mail, string $raw, InboundChannel $channel, FeedRoute $route): ReceiveOutcome

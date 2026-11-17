@@ -95,7 +95,7 @@ final class CashFlowApiTest extends ApiTestCase
     public function testRecordsABalanceAndForecastsTheSameOnBothSurfaces(): void
     {
         $this->createdRent();
-        $account = $this->inTenant($this->tenant, fn (): string => $this->em()->getRepository(FirmBankAccount::class)->findOneBy(['iban' => self::IBAN])?->id() ?? throw new \LogicException('No account.'));
+        $account = $this->flushed(fn (): string => $this->em()->getRepository(FirmBankAccount::class)->findOneBy(['iban' => self::IBAN])?->id() ?? throw new \LogicException('No account.'));
 
         $this->send('POST', '/api/v1/cash-flow/checkpoints', ['bank_account_id' => $account, 'on' => '2026-11-16', 'amount' => '50000.00']);
         self::assertResponseStatusCodeSame(201);
@@ -175,7 +175,7 @@ final class CashFlowApiTest extends ApiTestCase
 
     public function testATokenWithoutTheDocumentScopesSeesTheirTotalsButNotTheItems(): void
     {
-        $invoice = $this->inTenant($this->tenant, fn (): string => $this->invoice()->id());
+        $invoice = $this->flushed(fn (): string => $this->invoice()->id());
         $restricted = ['invoicing.invoices', 'invoicing.recurring_invoices', 'purchasing.received_documents'];
 
         $this->get('/api/v1/cash-flow/forecast', ['firm_id' => $this->firmId], $this->issued([ApiScope::from('cashflow:read')]));

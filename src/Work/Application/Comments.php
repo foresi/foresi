@@ -13,7 +13,7 @@ use App\Work\Domain\Task;
 use App\Work\Domain\TaskComment;
 
 /**
- * The comments on tasks of the active tenant with the people they mention.
+ * The comments on tasks with the people they mention.
  */
 interface Comments
 {

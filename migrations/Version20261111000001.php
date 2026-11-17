@@ -28,7 +28,7 @@ final class Version20261111000001 extends AbstractMigration
     {
         $tokens = $schema->createTable('api_token');
         $tokens->addColumn('id', Types::GUID);
-        $tokens->addColumn('tenant_id', 'tenant_id');
+        $tokens->addColumn('tenant_id', 'guid');
         $tokens->addColumn('user_id', Types::GUID);
         $tokens->addColumn('name', Types::STRING, ['length' => 80]);
         $tokens->addColumn('scopes', Types::JSON);

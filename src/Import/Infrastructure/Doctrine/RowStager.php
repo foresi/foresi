@@ -17,8 +17,7 @@ use Doctrine\DBAL\ParameterType;
 /**
  * Stages rows with multi-row INSERT statements of one chunk each, straight
  * through the connection: a source of 200,000 rows never becomes 200,000
- * managed entities, and memory stays flat. The tenant id is written explicitly,
- * as the entity listener that stamps it does not see these rows.
+ * managed entities, and memory stays flat.
  */
 final readonly class RowStager
 {

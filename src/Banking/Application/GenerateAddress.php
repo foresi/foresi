@@ -36,7 +36,7 @@ final readonly class GenerateAddress
      * @return string the new address; any earlier one of the account stops at once
      *
      * @throws AddressRefused         with NotConfigured, NoKey or Archived
-     * @throws UnknownFirmBankAccount also for an account of another tenant
+     * @throws UnknownFirmBankAccount for an unknown account
      */
     public function generate(string $accountId): string
     {

@@ -192,8 +192,8 @@ final class AuditListener
     }
 
     /**
-     * Identifiers are implied by the entry itself, and the tenant of an entity
-     * that still has one is the instance's; excluded fields are never written.
+     * Identifiers are implied by the entry itself; excluded fields are never
+     * written.
      *
      * @param ClassMetadata<object> $metadata
      */
@@ -202,7 +202,6 @@ final class AuditListener
         return $metadata->isIdentifier($field)
             // An embedded object also appears as one field; its columns are logged individually.
             || isset($metadata->embeddedClasses[$field])
-            || 'tenantId' === $field
             || \in_array($field, $this->excludedFields($metadata), true);
     }
 

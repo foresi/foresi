@@ -8,13 +8,10 @@ declare(strict_types=1);
 
 namespace App\Idoklad\Application\Message;
 
-use App\Instance\Application\TenantScopedMessage;
-
 /**
- * Does one pull, check or run of the move from iDoklad, in the tenant the
- * message carries.
+ * Does one pull, check or run of the move from iDoklad.
  */
-final readonly class ProcessIdokladJob implements TenantScopedMessage
+final readonly class ProcessIdokladJob
 {
     public function __construct(public string $jobId)
     {

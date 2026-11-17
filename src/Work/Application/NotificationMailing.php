@@ -10,7 +10,7 @@ namespace App\Work\Application;
 
 use App\Identity\Application\People;
 use App\Identity\Domain\Membership;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Work\Domain\EmailDelivery;
 use App\Work\Domain\Notification;
 use App\Work\Domain\NotificationKind;
@@ -43,7 +43,7 @@ final readonly class NotificationMailing
         private People $people,
         private WorkVisibility $visibility,
         private NotificationMailer $mailer,
-        private TenantClock $tenantClock,
+        private InstanceClock $instanceClock,
         private ClockInterface $clock,
         private WorkUnit $unit,
     ) {
@@ -88,7 +88,7 @@ final readonly class NotificationMailing
     }
 
     /**
-     * Sends the digests that are due now in the active tenant.
+     * Sends the digests that are due now.
      *
      * @return int how many people got one
      */
@@ -97,7 +97,7 @@ final readonly class NotificationMailing
         if (!$this->mailer->isConfigured()) {
             return 0;
         }
-        $local = $now->setTimezone($this->tenantClock->timezone());
+        $local = $now->setTimezone($this->instanceClock->timezone());
         $preferences = [];
         foreach ($this->preferences->all() as $preference) {
             $preferences[$preference->membership()->id()] = $preference;

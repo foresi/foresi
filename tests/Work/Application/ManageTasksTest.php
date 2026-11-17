@@ -73,7 +73,7 @@ final class ManageTasksTest extends WorkTestCase
         $this->tasks->create($this->project->id(), 'Write the brief', responsibleId: $this->member->id());
     }
 
-    public function testMyTasksAreGroupedByTheDayOfTheTenant(): void
+    public function testMyTasksAreGroupedByTheDayOfTheInstance(): void
     {
         // 23:30 in UTC is already the 11th in Prague.
         $this->clock->modify('2026-11-10 23:30:00');

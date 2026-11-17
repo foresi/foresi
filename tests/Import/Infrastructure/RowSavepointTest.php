@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Import\Infrastructure;
 
 use App\Import\Infrastructure\Doctrine\RowSavepoint;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Application\CreateParty;
 use App\Party\Domain\Address;
 use App\Party\Domain\Party;
@@ -31,7 +29,6 @@ final class RowSavepointTest extends KernelTestCase
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        self::getContainer()->get(TenantContext::class)->switchTo(TenantId::generate());
     }
 
     public function testAWrittenRowIsKeptAndLeavesNothingLoaded(): void

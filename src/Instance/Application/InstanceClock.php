@@ -8,34 +8,26 @@ declare(strict_types=1);
 
 namespace App\Instance\Application;
 
-use App\Instance\Application\Schedule\TenantDirectory;
 use Symfony\Component\Clock\ClockInterface;
 
 /**
- * The zone and the clock of the instance, for work that needs no tenant
- * active. One instance serves one customer (ADR 0035), so its zone is that of
- * its tenant by the directory's rule (a stored zone, else APP_TIMEZONE, else
- * the country of the first active firm, else UTC); with no tenant yet it is
- * APP_TIMEZONE, else UTC. The zone is read each time, as it may change while a
- * worker runs.
+ * The zone and the clock of the instance. One instance serves one customer
+ * (ADR 0035), so it has one zone: APP_TIMEZONE when it is set, else the
+ * fallback's (the country of the first active firm), else UTC. The zone is
+ * read each time, as a firm may be added while a worker runs.
  */
 final readonly class InstanceClock
 {
     public function __construct(
-        private TenantDirectory $tenants,
         private ConfiguredZone $configured,
+        private ZoneFallback $fallback,
         private ClockInterface $clock,
     ) {
     }
 
     public function timezone(): \DateTimeZone
     {
-        $zones = $this->tenants->zones();
-        $first = array_key_first($zones);
-
-        return null === $first
-            ? $this->configured->zone() ?? new \DateTimeZone('UTC')
-            : $zones[$first];
+        return $this->configured->zone() ?? $this->fallback->zone() ?? new \DateTimeZone('UTC');
     }
 
     /**

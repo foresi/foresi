@@ -73,7 +73,6 @@ framework:
         buses:
             messenger.bus.default:
                 middleware:
-                    - App\Instance\Infrastructure\Messenger\TenantMiddleware
                     # A delivery waiting for another worker's lease is put back, not retried.
                     - App\Invoicing\Infrastructure\Messenger\WaitForLeaseMiddleware
 
@@ -88,25 +87,25 @@ framework:
             App\Idoklad\Application\Message\ProcessIdokladJob: async
             # Imported contacts are checked in the public registers later, at low priority.
             App\Party\Application\RecheckRegistry: registry
-            # Timed work: the schedule ticks, and each due job runs in its tenant.
+            # Timed work: the schedule ticks, and each due job runs.
             App\Instance\Application\Schedule\RunScheduledJob: async
-            # Operator tasks, such as polling the bank inbox, run with no tenant.
+            # Operator tasks, such as polling the bank inbox.
             App\Instance\Application\Schedule\RunOperatorTask: async
-            # Inbound bank mail is processed in its tenant after it was stored.
+            # Inbound bank mail is processed after it was stored.
             App\Banking\Application\ProcessInboundMessage: async
             # A recurring template saved or resumed after the day's run, issued at once.
             App\Invoicing\Application\IssueRecurringTemplate: async
             # Sending documents by e-mail, on its own queue.
             App\Invoicing\Application\DeliverInvoiceSend: mail
-            # The delayed e-mail of a mention or an assignment, decided in its tenant; it queues system mail.
+            # The delayed e-mail of a mention or an assignment; it queues system mail.
             App\Work\Application\SendNotificationMail: async
             # Mail of the installation itself, such as invitations, with the same retries.
             App\Shared\Application\SystemMail: mail
             # A commit that recorded events asks the relay to number and enqueue them.
             App\Events\Application\RelayEvents: events
-            # Each event once to each async listener, in the event's tenant.
+            # Each event once to each async listener.
             App\Events\Application\DeliverEvent: events
-            # Each attempt of a webhook delivery, in the tenant of the delivery.
+            # Each attempt of a webhook delivery.
             App\Webhooks\Application\SendWebhook: webhooks
 
 # The end-to-end environment has no worker: messages are handled inline.

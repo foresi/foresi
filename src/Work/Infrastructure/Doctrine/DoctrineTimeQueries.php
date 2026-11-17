@@ -34,9 +34,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
 
 /**
- * The read side of time in DQL, under the tenant filter. A query keeps to the
- * scope of WorkVisibility through ScopedDql, so a report over a year reads only
- * what the person sees and adds it up in the database; a single entry is
+ * The read side of time in DQL. A query keeps to the scope of WorkVisibility
+ * through ScopedDql, so a report over a year reads only what the person sees and adds it up in the database; a single entry is
  * checked in PHP through WorkScope, the rule commands use too. Time on a task
  * in the trash is left out everywhere. The lines of a task and of a week name
  * the invoice that billed them.

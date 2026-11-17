@@ -42,10 +42,10 @@ final readonly class PurchasingAccess
     }
 
     /**
-     * A firm of the active tenant that still takes documents. Call it inside
+     * A firm that still takes documents. Call it inside
      * the unit of work, as a failed one detaches what was loaded before it.
      *
-     * @throws UnknownLegalEntity      also for a firm of another tenant
+     * @throws UnknownLegalEntity
      * @throws ReceivedDocumentRefused with FIRM_ARCHIVED for an archived firm
      */
     public function activeFirm(LegalEntity|string $firm, bool $lock = false): LegalEntity

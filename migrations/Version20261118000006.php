@@ -116,7 +116,7 @@ final class Version20261118000006 extends AbstractMigration
             $schema->getTable($table)->dropIndex($after);
         }
         foreach (self::TENANT_INDEXES as $table => $index) {
-            $schema->getTable($table)->addColumn('tenant_id', 'tenant_id', ['notnull' => true]);
+            $schema->getTable($table)->addColumn('tenant_id', 'guid', ['notnull' => true]);
             $schema->getTable($table)->addIndex(['tenant_id'], $index);
         }
         foreach (self::LED_BY_TENANT as [$table, $before, $columns, , $unique]) {
@@ -127,7 +127,7 @@ final class Version20261118000006 extends AbstractMigration
 
         $idempotency = $schema->getTable(self::IDEMPOTENCY);
         $idempotency->dropPrimaryKey();
-        $idempotency->addColumn('tenant_id', 'tenant_id', ['notnull' => true]);
+        $idempotency->addColumn('tenant_id', 'guid', ['notnull' => true]);
         $idempotency->setPrimaryKey(['tenant_id', ...self::IDEMPOTENCY_KEY]);
     }
 }

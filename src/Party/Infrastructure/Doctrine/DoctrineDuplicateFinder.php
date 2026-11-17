@@ -16,7 +16,7 @@ use App\Party\Domain\VatId;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Tenant-scoped through the Doctrine tenant filter. Registration numbers are
+ * Registration numbers are
  * matched on the stored normalised key, so the lookup is one indexed query.
  */
 final readonly class DoctrineDuplicateFinder implements DuplicateFinder

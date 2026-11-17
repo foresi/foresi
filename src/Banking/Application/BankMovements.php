@@ -11,13 +11,13 @@ namespace App\Banking\Application;
 use App\Banking\Domain\BankMovement;
 
 /**
- * The bank movements of the active tenant. Call the writing methods inside
- * TransactionalWork, which flushes.
+ * The bank movements. Call the writing methods inside TransactionalWork, which
+ * flushes.
  */
 interface BankMovements
 {
     /**
-     * @throws UnknownBankMovement also for a movement of another tenant
+     * @throws UnknownBankMovement for an unknown movement
      */
     public function get(string $id): BankMovement;
 
@@ -26,7 +26,7 @@ interface BankMovements
      * Unlike an invoice lock it keeps the session: a cancelled payment waiting to be
      * stored stays waiting. Call it inside TransactionalWork.
      *
-     * @throws UnknownBankMovement also for a movement of another tenant
+     * @throws UnknownBankMovement for an unknown movement
      */
     public function lock(string $id): BankMovement;
 
@@ -65,8 +65,8 @@ interface BankMovements
     public function unmatchedIncoming(): int;
 
     /**
-     * Every bank account of the firms of the tenant, archived ones too, by firm name
-     * and then as the firm orders them.
+     * Every bank account of the firms, archived ones too, by firm name and then
+     * as the firm orders them.
      *
      * @return array<string, array{firmId: string, firmName: string, label: string, iban: string}> by account id
      */

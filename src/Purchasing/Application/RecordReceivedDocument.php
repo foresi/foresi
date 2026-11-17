@@ -42,7 +42,7 @@ final readonly class RecordReceivedDocument
      * @param int|null $version the version the person saw; another one is refused with STALE
      *
      * @throws PurchasingNotAllowed    for anyone but the owners and members of the organisation
-     * @throws UnknownReceivedDocument also for a document of another tenant
+     * @throws UnknownReceivedDocument
      * @throws ReceivedDocumentRefused with RECORDED once recorded, and for anything the document refuses
      */
     public function record(string $documentId, ReceivedDocumentInput $input, ?int $version = null): SavedReceivedDocument
@@ -76,7 +76,7 @@ final readonly class RecordReceivedDocument
      * A new document for the firm, recorded at once, without a file.
      *
      * @throws PurchasingNotAllowed    for anyone but the owners and members of the organisation
-     * @throws UnknownLegalEntity      also for a firm of another tenant
+     * @throws UnknownLegalEntity
      * @throws ReceivedDocumentRefused with FIRM_ARCHIVED for an archived firm, and for anything the document refuses
      */
     public function create(string $firmId, ReceivedDocumentInput $input): SavedReceivedDocument

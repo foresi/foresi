@@ -10,8 +10,6 @@ namespace App\Tests\Timesheet\Infrastructure;
 
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesFormat;
@@ -59,8 +57,6 @@ final class TimeInvoiceControllerTest extends WebTestCase
     private KernelBrowser $client;
     private SignedInBrowser $browser;
     private EntityManagerInterface $em;
-    private TenantContext $context;
-    private TenantId $tenant;
     private string $website;
     private string $shop;
     private string $homepage;
@@ -73,8 +69,7 @@ final class TimeInvoiceControllerTest extends WebTestCase
         $this->client = self::createClient();
         $this->client->disableReboot();
         $this->em = self::getContainer()->get('doctrine.orm.entity_manager');
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, $this->em, $this->context);
+        $this->browser = new SignedInBrowser($this->client, $this->em);
     }
 
     protected function tearDown(): void
@@ -214,7 +209,7 @@ final class TimeInvoiceControllerTest extends WebTestCase
 
     private function seed(Role $role = Role::Owner): void
     {
-        [$this->tenant] = $this->browser->seed(['Example Organisation'], role: $role);
+        $this->browser->seed(role: $role);
         $this->scoped(function (): void {
             $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
             $this->em->persist($firm);
@@ -311,11 +306,6 @@ final class TimeInvoiceControllerTest extends WebTestCase
      */
     private function scoped(callable $work): mixed
     {
-        $this->context->switchTo($this->tenant);
-        try {
-            return $work();
-        } finally {
-            $this->context->reset();
-        }
+        return $work();
     }
 }

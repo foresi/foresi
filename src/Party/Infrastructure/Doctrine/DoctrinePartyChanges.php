@@ -21,7 +21,7 @@ use Doctrine\ORM\EntityManagerInterface;
  * change to a child that is gone now too. A contact link concerns two parties
  * and is rooted at the company; the person's side is read by the links the
  * person has now, so a link removed since shows in the company's history only.
- * Reads the audit log through the tenant filter.
+ * Reads the audit log.
  */
 final readonly class DoctrinePartyChanges
 {
@@ -54,8 +54,8 @@ final readonly class DoctrinePartyChanges
     }
 
     /**
-     * One query per class: each uses the index over tenant, class and id, which an
-     * OR of classes would not. SQLite would read the tenant's whole log for it, once per record.
+     * One query per class: each uses the index over class and id, which an
+     * OR of classes would not. SQLite would read the whole log for it, once per record.
      *
      * @param 'entityClass'|'rootClass' $classField
      * @param 'entityId'|'rootId'       $idField
@@ -84,8 +84,7 @@ final readonly class DoctrinePartyChanges
 
     /**
      * The ids of the contact links the parties have now as the person. The
-     * parties were found through the tenant filter; their links belong to the
-     * same tenant.
+     * parties were found by the caller; their links are the ones they have now.
      *
      * @param list<string> $partyIds
      *

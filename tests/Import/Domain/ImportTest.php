@@ -128,7 +128,7 @@ final class ImportTest extends TestCase
 
         self::assertSame(ImportState::Uploaded, $import->state());
         self::assertSame('party', $import->targetKey());
-        self::assertSame('tenant/file', $import->fileKey());
+        self::assertSame('files/file', $import->fileKey());
         self::assertSame('contacts.csv', $import->originalName());
         self::assertSame(self::SETTINGS, $import->sourceSettings());
         self::assertSame('019a0000-0000-7000-8000-000000000007', $import->actorUserId());
@@ -492,7 +492,7 @@ final class ImportTest extends TestCase
 
     private function newImport(): Import
     {
-        return new Import('party', 'tenant/file', 'contacts.csv', self::SETTINGS, '019a0000-0000-7000-8000-000000000007', new \DateTimeImmutable('2026-10-01'));
+        return new Import('party', 'files/file', 'contacts.csv', self::SETTINGS, '019a0000-0000-7000-8000-000000000007', new \DateTimeImmutable('2026-10-01'));
     }
 
     private function importIn(ImportState $state): Import

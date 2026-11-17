@@ -13,7 +13,7 @@ use App\Invoicing\Application\IssueRecurringTemplate;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
- * Runs one template as the daily run does, in the tenant of the message.
+ * Runs one template as the daily run does.
  */
 #[AsMessageHandler]
 final readonly class IssueRecurringTemplateHandler

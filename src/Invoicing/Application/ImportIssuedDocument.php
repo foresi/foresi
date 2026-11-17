@@ -72,7 +72,7 @@ final readonly class ImportIssuedDocument
     }
 
     /**
-     * @throws UnknownLegalEntity also for a firm of another tenant
+     * @throws UnknownLegalEntity
      */
     public function import(ImportedDocumentInput $import): ImportedDocumentResult
     {

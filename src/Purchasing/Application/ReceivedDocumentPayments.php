@@ -11,7 +11,7 @@ namespace App\Purchasing\Application;
 use App\Purchasing\Domain\ReceivedDocumentPayment;
 
 /**
- * The payments of the received documents of the active tenant.
+ * The payments of the received documents.
  */
 interface ReceivedDocumentPayments
 {

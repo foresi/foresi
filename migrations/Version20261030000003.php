@@ -28,7 +28,7 @@ final class Version20261030000003 extends AbstractMigration
     {
         $profile = $schema->createTable('import_profile');
         $profile->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $profile->addColumn('tenant_id', 'tenant_id');
+        $profile->addColumn('tenant_id', 'guid');
         $profile->addColumn('mapping', Types::JSON);
         $this->addOptions($profile);
         $profile->addColumn('updated_at', Types::DATETIME_IMMUTABLE);
@@ -43,7 +43,7 @@ final class Version20261030000003 extends AbstractMigration
 
         $import = $schema->createTable('import');
         $import->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $import->addColumn('tenant_id', 'tenant_id');
+        $import->addColumn('tenant_id', 'guid');
         $import->addColumn('profile_id', Types::INTEGER, ['notnull' => false]);
         $import->addColumn('headers', Types::JSON);
         $import->addColumn('mapping', Types::JSON);
@@ -70,7 +70,7 @@ final class Version20261030000003 extends AbstractMigration
 
         $row = $schema->createTable('import_row');
         $row->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $row->addColumn('tenant_id', 'tenant_id');
+        $row->addColumn('tenant_id', 'guid');
         $row->addColumn('import_id', Types::INTEGER);
         $row->addColumn('outcome', Types::STRING, ['length' => 32, 'notnull' => false]);
         $row->addColumn('errors', Types::JSON);

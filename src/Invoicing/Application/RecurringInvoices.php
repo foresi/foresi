@@ -12,7 +12,7 @@ use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\RecurringInvoiceLine;
 
 /**
- * The recurring templates of the active tenant. Call the writing methods inside
+ * The recurring templates. Call the writing methods inside
  * TransactionalWork, which flushes.
  */
 interface RecurringInvoices
@@ -20,7 +20,7 @@ interface RecurringInvoices
     public const int PER_PAGE = 25;
 
     /**
-     * @throws UnknownRecurringInvoice also for a template of another tenant
+     * @throws UnknownRecurringInvoice
      */
     public function get(string $id): RecurringInvoice;
 
@@ -30,7 +30,7 @@ interface RecurringInvoices
      * here, so a run issuing it and a person editing it wait for each other. It starts
      * the session over; work from what it returns. Call it inside TransactionalWork.
      *
-     * @throws UnknownRecurringInvoice also for a template of another tenant
+     * @throws UnknownRecurringInvoice
      * @throws \LogicException         when the session holds unsaved changes, which it would lose
      */
     public function lock(string $id): RecurringInvoice;
@@ -40,7 +40,7 @@ interface RecurringInvoices
      * it starts the session over, as lock() does, so nothing remembered from earlier
      * answers for it.
      *
-     * @throws UnknownRecurringInvoice also for a template of another tenant
+     * @throws UnknownRecurringInvoice
      * @throws \LogicException         when the session holds unsaved changes, which it would lose
      */
     public function current(string $id): RecurringInvoice;
@@ -50,7 +50,7 @@ interface RecurringInvoices
      * issue has: the session stays and only the template is read again from its row.
      * Call it inside TransactionalWork.
      *
-     * @throws UnknownRecurringInvoice also for a template of another tenant
+     * @throws UnknownRecurringInvoice
      */
     public function lockDuringWrite(string $id): RecurringInvoice;
 

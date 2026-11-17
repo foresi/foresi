@@ -29,7 +29,7 @@ final class Version20261113000002 extends AbstractMigration
     {
         $delivery = $schema->createTable('webhook_delivery');
         $delivery->addColumn('id', Types::GUID);
-        $delivery->addColumn('tenant_id', 'tenant_id');
+        $delivery->addColumn('tenant_id', 'guid');
         $delivery->addColumn('endpoint_id', Types::GUID);
         $delivery->addColumn('event_id', Types::GUID);
         $delivery->addColumn('event_type', Types::STRING, ['length' => 128]);
@@ -48,7 +48,7 @@ final class Version20261113000002 extends AbstractMigration
 
         $attempt = $schema->createTable('webhook_delivery_attempt');
         $attempt->addColumn('id', Types::GUID);
-        $attempt->addColumn('tenant_id', 'tenant_id');
+        $attempt->addColumn('tenant_id', 'guid');
         $attempt->addColumn('delivery_id', Types::GUID);
         $attempt->addColumn('attempted_at', Types::DATETIME_IMMUTABLE);
         $attempt->addColumn('duration_ms', Types::INTEGER);

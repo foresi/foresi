@@ -69,18 +69,11 @@ For each active template whose next date has come, the run issues every occurren
 
 ### The organisation's time zone
 
-The day and the 05:00 hour follow the organisation's time zone, which by default is the zone of the country of its first active firm (`Europe/Prague` for a Czech firm), else UTC. The operator can set it:
-
-```bash
-php bin/console app:tenant:timezone <tenant-id> Europe/Prague
-php bin/console app:tenant:timezone <tenant-id> --clear
-```
-
-Only canonical names of the tz database are accepted. See [ADR 0017](adr/0017-tenant-timezone.md). The rows of the invoice list still tell overdue by the zone of the issuing firm's country rather than the organisation's zone, a known gap described in that ADR.
+The day and the 05:00 hour follow the instance's time zone: `APP_TIMEZONE` when it is set (see [operations](operations.md#environment-variables)), else the zone of the country of the first active firm (`Europe/Prague` for a Czech firm), else UTC. Only canonical names of the tz database are accepted. See [ADR 0035](adr/0035-one-instance-per-customer.md). The rows of the invoice list still tell overdue by the zone of the issuing firm's country rather than the organisation's zone, a known gap described in that ADR.
 
 ### Each occurrence exactly once
 
-An invoice issued from a template carries the template and the occurrence date, unique per organisation (`uniq_invoice_occurrence` on `tenant_id`, `recurring_invoice_id`, `recurring_occurrence`). Inside the issue transaction the template is locked, and the occurrence is taken only while the template is active, the occurrence is its next date and the template is still the version the invoice was built from. Two workers, a catch-up, a retry and "Issue now" on the same date therefore issue one invoice. An invoice moved to the trash keeps its occurrence, so the trash never causes a second issue. See [ADR 0018](adr/0018-recurring-occurrences.md).
+An invoice issued from a template carries the template and the occurrence date, unique (`uniq_invoice_occurrence` on `recurring_invoice_id`, `recurring_occurrence`). Inside the issue transaction the template is locked, and the occurrence is taken only while the template is active, the occurrence is its next date and the template is still the version the invoice was built from. Two workers, a catch-up, a retry and "Issue now" on the same date therefore issue one invoice. An invoice moved to the trash keeps its occurrence, so the trash never causes a second issue. See [ADR 0018](adr/0018-recurring-occurrences.md).
 
 An edit, a pause or an end that commits while a run is issuing is either seen whole or not at all: the invoice holds one whole version of the template, and nothing is issued after a pause commits.
 
@@ -158,7 +151,7 @@ A template must never be live in both systems at once, or the customer gets two 
 ### Checklist for the switch day
 
 - The worker runs and consumes `scheduler_foresi`, `mail` and `async`; the notice about an unfinished run stays away after 07:00.
-- The organisation's time zone is right (`app:tenant:timezone`).
+- The instance's time zone is right (`APP_TIMEZONE`, or the first active firm's country).
 - Every firm that sends has a working mail server and a contact address; send a test e-mail.
 - Every customer of a template has an invoicing e-mail for the firm.
 - The series of each template exists and takes the new year's numbers, if the switch is near 1 January.

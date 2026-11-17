@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Banking\Support;
 
 use App\Banking\Application\GenerateAddress;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Domain\Address;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\RegistrationNumber;
@@ -20,9 +18,9 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 
 /**
- * A fresh schema with the instance's one tenant and one firm whose account has an inbound address, and
+ * A fresh schema with one firm whose account has an inbound address, and
  * synthetic mail to it. Nothing is a real message: example.com names and the
- * test IBAN only. The tenant is reset afterwards, as mail arrives without one.
+ * test IBAN only.
  */
 final readonly class InboundMailKit
 {
@@ -30,21 +28,17 @@ final readonly class InboundMailKit
     public const string IBAN = 'CZ6508000000192000145399';
     public const string OTHER_TOKEN = 'abcdefghijklmnopqrstuvwxyz';
 
-    private function __construct(public TenantId $tenant, public string $address, public string $feedId, public string $token)
+    private function __construct(public string $address, public string $feedId, public string $token)
     {
     }
 
-    public static function seed(EntityManagerInterface $em, TenantContext $context, GenerateAddress $generate): self
+    public static function seed(EntityManagerInterface $em, GenerateAddress $generate): self
     {
         $tool = new SchemaTool($em);
         $metadata = $em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
 
-        $tenant = TenantId::generate();
-        // The one tenant of the instance, which mail is stored for.
-        $em->getConnection()->executeStatement("INSERT INTO tenant (id, name, created_at) VALUES (?, 'Example Company', '2026-01-01 00:00:00')", [$tenant->toString()]);
-        $context->switchTo($tenant);
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $em->persist($firm);
         $account = FirmAccounts::add($em, $firm, self::IBAN);
@@ -52,12 +46,11 @@ final readonly class InboundMailKit
 
         $address = $generate->generate($account->id());
         $feedId = Scalars::text($em->getConnection()->fetchOne('SELECT id FROM bank_feed'));
-        $context->reset();
         $em->clear();
 
         $token = substr($address, \strlen('bank+'), 26);
 
-        return new self($tenant, $address, $feedId, $token);
+        return new self($address, $feedId, $token);
     }
 
     /**

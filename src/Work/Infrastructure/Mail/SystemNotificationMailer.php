@@ -10,7 +10,6 @@ namespace App\Work\Infrastructure\Mail;
 
 use App\Identity\Application\MembershipDirectory;
 use App\Identity\Domain\Membership;
-use App\Instance\Application\TenantContext;
 use App\Shared\Application\Markdown;
 use App\Shared\Application\SystemMail;
 use App\Shared\Application\SystemMailer;
@@ -41,7 +40,6 @@ final readonly class SystemNotificationMailer implements NotificationMailer
         private NotificationLinks $links,
         private Markdown $markdown,
         private MembershipDirectory $directory,
-        private TenantContext $context,
     ) {
     }
 
@@ -132,13 +130,6 @@ final readonly class SystemNotificationMailer implements NotificationMailer
 
     private function organisation(Membership $recipient): ?string
     {
-        $tenant = $this->context->current();
-        foreach ($this->directory->organisationsOf($recipient->user()->id()) as $organisation) {
-            if ($organisation->id->equals($tenant)) {
-                return $organisation->name;
-            }
-        }
-
-        return null;
+        return $this->directory->organisationOf($recipient->user()->id())?->name;
     }
 }

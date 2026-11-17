@@ -10,7 +10,6 @@ namespace App\Tests\Webhooks\Infrastructure;
 
 use App\Audit\Domain\AuditEntry;
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
 use App\Shared\Domain\Id;
 use App\Tests\Identity\Support\IdentityFixtures;
 use App\Webhooks\Domain\EndpointUrl;
@@ -31,18 +30,15 @@ final class WebhookEndpointPersistenceTest extends KernelTestCase
     {
         self::bootKernel();
         $em = self::getContainer()->get(EntityManagerInterface::class);
-        $context = self::getContainer()->get(TenantContext::class);
-        $fixtures = new IdentityFixtures($em, $context);
+        $fixtures = new IdentityFixtures($em);
         $fixtures->rebuildSchema();
         $user = $fixtures->user();
-        $tenant = $fixtures->tenant('Tenant A');
-        $fixtures->join($user, $tenant, Role::Owner);
+        $fixtures->join($user, Role::Owner);
         $secrets = new SodiumWebhookSecrets('k1:'.base64_encode(str_repeat("\x07", SODIUM_CRYPTO_SECRETBOX_KEYBYTES)));
         $first = WebhookSecret::generate();
         $second = WebhookSecret::generate();
         $now = new \DateTimeImmutable('2026-11-13 10:00:00');
 
-        $context->switchTo($tenant);
         $endpoint = WebhookEndpoint::create(Id::generate(), new EndpointUrl('https://hooks.example.com/x'), null, EventTypes::of(['invoicing.*']), 1, $secrets->seal($first), $user->id(), $now);
         $em->persist($endpoint);
         $em->flush();

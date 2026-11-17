@@ -85,7 +85,7 @@ interface Imports
      */
     public function outcomeCounts(Import $import): array;
 
-    /** Whether another import of the active tenant runs or undoes into this target. */
+    /** Whether another import runs or undoes into this target. */
     public function isBusy(string $targetKey, ?string $exceptImportId = null): bool;
 
     /** The import of the target that has waited longest in the queue. */
@@ -119,7 +119,7 @@ interface Imports
     public function recordsInSource(Import $import, array $recordIds): array;
 
     /**
-     * The imports of the active tenant, newest first.
+     * The imports, newest first.
      *
      * @return list<Import>
      */

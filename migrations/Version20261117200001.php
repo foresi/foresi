@@ -29,7 +29,7 @@ final class Version20261117200001 extends AbstractMigration
     {
         $table = $schema->createTable('received_document_payment');
         $table->addColumn('id', Types::GUID);
-        $table->addColumn('tenant_id', 'tenant_id');
+        $table->addColumn('tenant_id', 'guid');
         $table->addColumn('received_document_id', Types::GUID);
         $table->addColumn('paid_on', Types::DATE_IMMUTABLE);
         $table->addColumn('amount_minor', Types::BIGINT);

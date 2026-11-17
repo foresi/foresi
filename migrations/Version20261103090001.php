@@ -28,7 +28,7 @@ final class Version20261103090001 extends AbstractMigration
     {
         $message = $schema->createTable('inbound_message');
         $message->addColumn('id', Types::GUID);
-        $message->addColumn('tenant_id', 'tenant_id');
+        $message->addColumn('tenant_id', 'guid');
         $message->addColumn('bank_feed_id', Types::GUID);
         $message->addColumn('channel', Types::STRING, ['length' => 16]);
         $message->addColumn('dedup_key', Types::STRING, ['length' => 64, 'fixed' => true]);

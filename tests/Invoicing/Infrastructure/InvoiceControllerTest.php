@@ -10,8 +10,6 @@ namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Audit\Domain\AuditEntry;
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\CancelPayment;
@@ -93,8 +91,6 @@ final class InvoiceControllerTest extends WebTestCase
 
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private TenantContext $context;
-    private TenantId $tenant;
     private LegalEntity $firm;
     private Series $series;
     private Party $customer;
@@ -103,8 +99,7 @@ final class InvoiceControllerTest extends WebTestCase
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), $this->context);
+        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
         Clock::set(new MockClock('2026-11-01 12:00:00', 'UTC'));
     }
 
@@ -462,7 +457,7 @@ final class InvoiceControllerTest extends WebTestCase
 
     public function testNoFirmSaysWhatToDo(): void
     {
-        [$this->tenant] = $this->browser->seed(['Tenant A']);
+        $this->browser->seed();
         $this->browser->signIn();
 
         $this->client->request('GET', '/invoices/new');
@@ -1008,7 +1003,7 @@ final class InvoiceControllerTest extends WebTestCase
 
     public function testNoFirmExplainsWhatIsNeeded(): void
     {
-        [$this->tenant] = $this->browser->seed(['Tenant A']);
+        $this->browser->seed();
         $this->browser->signIn();
 
         $this->client->request('GET', '/invoices/new');
@@ -1301,7 +1296,6 @@ final class InvoiceControllerTest extends WebTestCase
         return $this->scoped(function () use ($deducted): Invoice {
             $advance = $this->paidAdvanceWithoutTaxDocument();
             $this->em()->clear();
-            $this->context->switchTo($this->tenant);
             $payment = self::getContainer()->get(InvoicePayments::class)->linesOf($this->store()->get($advance->id()))[0]->paymentId;
             $tax = new \ReflectionProperty(RecordPayment::class, 'taxDocuments')->getValue(self::getContainer()->get(RecordPayment::class));
             self::assertInstanceOf(IssuePaymentTaxDocument::class, $tax);
@@ -1328,7 +1322,6 @@ final class InvoiceControllerTest extends WebTestCase
         $this->scoped(function (): void {
             $advance = $this->paidAdvanceWithoutTaxDocument();
             $this->em()->clear();
-            $this->context->switchTo($this->tenant);
             $payment = self::getContainer()->get(InvoicePayments::class)->linesOf(self::getContainer()->get(InvoiceStore::class)->get($advance->id()))[0]->paymentId;
             $tax = new \ReflectionProperty(RecordPayment::class, 'taxDocuments')->getValue(self::getContainer()->get(RecordPayment::class));
             self::assertInstanceOf(IssuePaymentTaxDocument::class, $tax);
@@ -2793,7 +2786,7 @@ final class InvoiceControllerTest extends WebTestCase
     }
 
     /**
-     * Runs outside a request, which has no tenant of its own.
+     * Runs outside a request.
      *
      * @template T
      *
@@ -2803,18 +2796,12 @@ final class InvoiceControllerTest extends WebTestCase
      */
     private function scoped(callable $work): mixed
     {
-        $this->context->switchTo($this->tenant);
-        try {
-            return $work();
-        } finally {
-            $this->context->reset();
-        }
+        return $work();
     }
 
     private function signedIn(Role $role = Role::Owner, VatStatus $status = VatStatus::Registered, bool $series = true, ?Address $address = null): void
     {
-        [$this->tenant] = $this->browser->seed(['Tenant A'], role: $role);
-        $this->context->switchTo($this->tenant);
+        $this->browser->seed(role: $role);
         $vatId = VatStatus::Registered === $status ? VatId::fromString('CZ12345695') : null;
         $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), $vatId, $address ?? new Address('Example Street 1', 'Example City', '100 00', 'CZ'), $status, 'Example register, entry C 1');
         $this->em()->persist($this->firm);
@@ -2829,7 +2816,6 @@ final class InvoiceControllerTest extends WebTestCase
         $this->em()->persist(new PartyAddress($this->customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
         $this->em()->persist(new PartyEmail($this->customer, 'billing@example.com', EmailPurpose::Invoices));
         $this->em()->flush();
-        $this->context->reset();
         $this->browser->signIn();
     }
 

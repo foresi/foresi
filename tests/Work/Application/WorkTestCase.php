@@ -12,9 +12,9 @@ use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\Tenant;
-use App\Instance\Domain\TenantId;
+use App\Instance\Application\ConfiguredZone;
+use App\Instance\Application\InstanceClock;
+use App\Instance\Application\ZoneFallback;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
 use App\Work\Application\ManageLabels;
@@ -36,7 +36,7 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 
 /**
- * An organisation in Prague with an owner signed in, a member and a guest, on a
+ * An instance in Prague with an owner signed in, a member and a guest, on a
  * fresh schema and a fixed clock.
  */
 abstract class WorkTestCase extends KernelTestCase
@@ -65,12 +65,12 @@ abstract class WorkTestCase extends KernelTestCase
         $this->clock = new MockClock('2026-11-10 09:00:00', 'UTC');
         Clock::set($this->clock);
 
-        $tenant = new Tenant(TenantId::generate(), 'Example Organisation', $this->clock->now());
-        $tenant->changeTimezone(new \DateTimeZone('Europe/Prague'));
-        $this->em->persist($tenant);
-        // Switching the tenant clears the entity manager.
-        $this->em->flush();
-        $container->get(TenantContext::class)->switchTo($tenant->id());
+        $container->set(InstanceClock::class, new InstanceClock(new ConfiguredZone('Europe/Prague'), new class implements ZoneFallback {
+            public function zone(): ?\DateTimeZone
+            {
+                return null;
+            }
+        }, $this->clock));
         $client = new Party(PartyKind::Person, 'Example Client', null, null, '');
         $this->em->persist($client);
         $this->owner = $this->person('owner@example.com', 'Olga Owner', Role::Owner);

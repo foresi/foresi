@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Webhooks\Application\Query;
 
 /**
- * The stored deliveries and attempts of the active organisation.
+ * The stored deliveries and attempts of the organisation.
  */
 interface DeliveryRecords
 {

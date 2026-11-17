@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\FirmInvoicingSettings;
 use App\Invoicing\Application\NumberCounter;
 use App\Invoicing\Application\SeriesCatalog;
@@ -35,18 +33,12 @@ final class FirmInvoicingControllerTest extends WebTestCase
 {
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private TenantContext $context;
-
-    /** @var array<string, TenantId> the tenant of each firm made here, by firm id */
-    private array $firmTenants = [];
-    private TenantId $tenant;
 
     protected function setUp(): void
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), $this->context);
+        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
         Clock::set(new MockClock('2026-10-31 12:00:00'));
     }
 
@@ -148,8 +140,8 @@ final class FirmInvoicingControllerTest extends WebTestCase
 
     public function testAMemberGets403(): void
     {
-        $tenant = $this->browser->seed(['Tenant A'], role: Role::Member)[0];
-        $firm = $this->firm($tenant);
+        $this->browser->seed(role: Role::Member);
+        $firm = $this->firm();
         $this->browser->signIn();
 
         foreach (['/invoicing', '/invoicing/series/new'] as $path) {
@@ -161,7 +153,7 @@ final class FirmInvoicingControllerTest extends WebTestCase
     public function testASeriesOfAnotherFirmGets404(): void
     {
         $firm = $this->signedInFirm();
-        $other = $this->firm($this->tenant, '12345687');
+        $other = $this->firm('12345687');
         $series = $this->series($other);
 
         $this->client->request('GET', $this->editUrl($firm, $series));
@@ -189,8 +181,8 @@ final class FirmInvoicingControllerTest extends WebTestCase
 
     public function testTheScreensAreTranslated(): void
     {
-        [$this->tenant] = $this->browser->seed(['Tenant A'], 'cs');
-        $firm = $this->firm($this->tenant);
+        $this->browser->seed('cs');
+        $firm = $this->firm();
         $this->browser->signIn();
 
         $this->client->request('GET', $this->settingsUrl($firm));
@@ -592,12 +584,10 @@ final class FirmInvoicingControllerTest extends WebTestCase
     public function testTheStandardSeriesOfEachKindIsTranslated(): void
     {
         $firm = $this->signedInFirm();
-        $this->context->switchTo($this->firmTenants[$firm->id()]);
         $stored = $this->em()->getRepository(LegalEntity::class)->find($firm->id()) ?? throw new \LogicException('The firm is missing.');
         $this->em()->persist(Series::standard($stored, DocumentKind::Advance));
         $this->em()->persist(Series::standard($stored, DocumentKind::PaymentTaxDocument));
         $this->em()->flush();
-        $this->context->reset();
 
         $this->client->request('GET', $this->settingsUrl($firm));
 
@@ -620,50 +610,41 @@ final class FirmInvoicingControllerTest extends WebTestCase
 
     private function signedInFirm(): LegalEntity
     {
-        [$this->tenant] = $this->browser->seed(['Tenant A']);
+        $this->browser->seed();
         $this->browser->signIn();
 
-        return $this->firm($this->tenant);
+        return $this->firm();
     }
 
-    private function firm(TenantId $tenant, string $number = '12345695'): LegalEntity
+    private function firm(string $number = '12345695'): LegalEntity
     {
-        $this->context->switchTo($tenant);
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', $number), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $this->em()->persist($firm);
         $this->em()->flush();
-        $this->context->reset();
-        $this->firmTenants[$firm->id()] = $tenant;
 
         return $firm;
     }
 
     private function series(LegalEntity $firm, string $format = Series::STANDARD_FORMAT): Series
     {
-        $this->context->switchTo($this->firmTenants[$firm->id()]);
         $stored = $this->em()->getRepository(LegalEntity::class)->find($firm->id()) ?? throw new \LogicException('The firm is missing.');
         $series = new Series($stored, 'Standard', SeriesFormat::fromString($format), DocumentKind::Invoice);
         $this->em()->persist($series);
         $this->em()->flush();
-        $this->context->reset();
 
         return $series;
     }
 
     private function issue(Series $series, string $date = '2026-10-31'): void
     {
-        $this->context->switchTo($this->firmTenants[$series->firm()->id()]);
         self::getContainer()->get(NumberCounter::class)->next($series, new \DateTimeImmutable($date));
-        $this->context->reset();
     }
 
     private function archive(Series $series): void
     {
-        $this->context->switchTo($this->firmTenants[$series->firm()->id()]);
         $stored = self::getContainer()->get(SeriesCatalog::class)->get($series->id());
         $stored->archive();
         $this->em()->flush();
-        $this->context->reset();
     }
 
     /**
@@ -717,11 +698,8 @@ final class FirmInvoicingControllerTest extends WebTestCase
     private function storedSettings(LegalEntity $firm): FirmInvoicing
     {
         $this->em()->clear();
-        $this->context->switchTo($this->firmTenants[$firm->id()]);
-        $stored = self::getContainer()->get(FirmInvoicingSettings::class)->for($this->em()->getRepository(LegalEntity::class)->find($firm->id()) ?? throw new \LogicException('The firm is missing.'));
-        $this->context->reset();
 
-        return $stored;
+        return self::getContainer()->get(FirmInvoicingSettings::class)->for($this->em()->getRepository(LegalEntity::class)->find($firm->id()) ?? throw new \LogicException('The firm is missing.'));
     }
 
     /**
@@ -730,11 +708,8 @@ final class FirmInvoicingControllerTest extends WebTestCase
     private function allSeries(LegalEntity $firm): array
     {
         $this->em()->clear();
-        $this->context->switchTo($this->firmTenants[$firm->id()]);
-        $series = self::getContainer()->get(SeriesCatalog::class)->forFirm($firm);
-        $this->context->reset();
 
-        return $series;
+        return self::getContainer()->get(SeriesCatalog::class)->forFirm($firm);
     }
 
     private function onlySeries(LegalEntity $firm): Series

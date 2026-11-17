@@ -31,8 +31,7 @@ use Symfony\Component\Routing\Attribute\Route;
  * relay, which often shares its address with strangers, so a request with the
  * secret only counts against a budget of its own, per client address, high enough
  * for any bank. A secret of 256 random bits is not guessed anyway. Stateless: no
- * session, no user and no tenant of a request. Never log the secret or the
- * recipient.
+ * session and no user of a request. Never log the secret or the recipient.
  */
 #[AsController]
 final readonly class InboundMailController

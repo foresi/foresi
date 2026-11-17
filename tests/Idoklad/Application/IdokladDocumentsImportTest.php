@@ -17,8 +17,6 @@ use App\Idoklad\Domain\IdokladRecord;
 use App\Idoklad\Domain\IdokladResource;
 use App\Idoklad\Domain\ImportMode;
 use App\Idoklad\Domain\ImportOptions;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\NumberCounter;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
@@ -50,7 +48,6 @@ final class IdokladDocumentsImportTest extends KernelTestCase
 
     private EntityManagerInterface $em;
     private LegalEntity $firm;
-    private TenantId $tenant;
 
     protected function setUp(): void
     {
@@ -61,8 +58,6 @@ final class IdokladDocumentsImportTest extends KernelTestCase
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $this->tenant = TenantId::generate();
-        $container->get(TenantContext::class)->switchTo($this->tenant);
 
         $this->firm = new LegalEntity('Example s.r.o.', new RegistrationNumber('CZ', '12345679'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $this->em->persist($this->firm);
@@ -650,7 +645,7 @@ final class IdokladDocumentsImportTest extends KernelTestCase
     {
         $this->invoice(130, []);
         $record = $this->em->getRepository(IdokladRecord::class)->findOneBy(['resource' => IdokladResource::IssuedInvoices, 'externalId' => 130]) ?? self::fail('The record is stored.');
-        $record->attachPdf($this->tenant->toString().'/'.$record->id().'.pdf', str_repeat('0', 64));
+        $record->attachPdf($record->id().'.pdf', str_repeat('0', 64));
         $this->em->flush();
 
         $check = $this->import()->run($this->firm, ImportMode::Check);

@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\LineInput;
@@ -71,8 +69,6 @@ final class SendLogControllerTest extends WebTestCase
 
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private TenantContext $context;
-    private TenantId $tenant;
     private LegalEntity $firm;
     private Series $series;
     private Party $customer;
@@ -82,8 +78,7 @@ final class SendLogControllerTest extends WebTestCase
         self::mockTime('2026-11-03 10:00:00');
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), $this->context);
+        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
         RecordingMailGateway::reset();
     }
 
@@ -96,7 +91,7 @@ final class SendLogControllerTest extends WebTestCase
     public function testTheLogFiltersByFirmAndStatusAndPaginates(): void
     {
         $this->signedIn();
-        $other = $this->scoped(fn (): array => $this->firmWithServer('Example Other s.r.o.', '12345687'));
+        $other = $this->firmWithServer('Example Other s.r.o.', '12345687');
         $invoice = $this->issued();
         for ($i = 0; $i < 25; ++$i) {
             $this->sent($invoice);
@@ -289,7 +284,7 @@ final class SendLogControllerTest extends WebTestCase
         $invoice = $this->issued();
         $this->sent($invoice, ['refuse@example.com']);
         $this->deliver();
-        $this->scoped(static fn () => self::getContainer()->get(TrashInvoice::class)->trash($invoice->id(), 'Wrong customer'));
+        self::getContainer()->get(TrashInvoice::class)->trash($invoice->id(), 'Wrong customer');
 
         $this->client->request('GET', '/contacts');
 
@@ -417,7 +412,7 @@ final class SendLogControllerTest extends WebTestCase
      */
     private function reminded(Invoice $invoice, int $step, array $to = ['billing@example.com']): string
     {
-        return $this->scoped(static fn (): string => self::getContainer()->get(SendInvoice::class)->send(new SendRequest($invoice->id(), $to, [], false, 'Reminder', '{link}', SendPurpose::Reminder, $step))->id());
+        return self::getContainer()->get(SendInvoice::class)->send(new SendRequest($invoice->id(), $to, [], false, 'Reminder', '{link}', SendPurpose::Reminder, $step))->id();
     }
 
     /**
@@ -426,7 +421,7 @@ final class SendLogControllerTest extends WebTestCase
      */
     private function sent(Invoice $invoice, array $to = ['billing@example.com'], array $cc = [], string $subject = 'Invoice', string $body = '{link}'): string
     {
-        return $this->scoped(static fn (): string => self::getContainer()->get(SendInvoice::class)->send(new SendRequest($invoice->id(), $to, $cc, false, $subject, $body))->id());
+        return self::getContainer()->get(SendInvoice::class)->send(new SendRequest($invoice->id(), $to, $cc, false, $subject, $body))->id();
     }
 
     private function savedWithDescription(Invoice $invoice, string $description): void
@@ -439,15 +434,13 @@ final class SendLogControllerTest extends WebTestCase
 
     private function deliver(): void
     {
-        $this->scoped(static function (): void {
-            $mail = self::getContainer()->get('messenger.transport.mail');
-            self::assertInstanceOf(InMemoryTransport::class, $mail);
-            try {
-                new RunMessages($mail, self::getContainer()->get(MessageBusInterface::class))->run();
-            } catch (HandlerFailedException) {
-                // A refused message fails for good, and the worker reports it: the send is stored as failed.
-            }
-        });
+        $mail = self::getContainer()->get('messenger.transport.mail');
+        self::assertInstanceOf(InMemoryTransport::class, $mail);
+        try {
+            new RunMessages($mail, self::getContainer()->get(MessageBusInterface::class))->run();
+        } catch (HandlerFailedException) {
+            // A refused message fails for good, and the worker reports it: the send is stored as failed.
+        }
     }
 
     private function opened(string $sendId): void
@@ -468,22 +461,18 @@ final class SendLogControllerTest extends WebTestCase
      */
     private function issued(?array $firm = null): Invoice
     {
-        return $this->scoped(function () use ($firm): Invoice {
-            [$issuer, $series] = $firm ?? [$this->firm, $this->series];
-            $day = new \DateTimeImmutable('2026-11-01');
-            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+        [$issuer, $series] = $firm ?? [$this->firm, $this->series];
+        $day = new \DateTimeImmutable('2026-11-01');
+        $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
-            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($issuer->id(), $series->id(), null, $this->customer->id(), null, $day, $day, new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line]));
-        });
+        return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($issuer->id(), $series->id(), null, $this->customer->id(), null, $day, $day, new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line]));
     }
 
     private function signedIn(Role $role = Role::Owner, string $locale = 'en'): void
     {
-        [$this->tenant] = $this->browser->seed(['Tenant A'], $locale, $role);
-        $this->scoped(function (): void {
-            [$this->firm, $this->series] = $this->firmWithServer('Example Firm s.r.o.', '12345695');
-            $this->customer = $this->newCustomer('Example Customer a.s.');
-        });
+        $this->browser->seed($locale, $role);
+        [$this->firm, $this->series] = $this->firmWithServer('Example Firm s.r.o.', '12345695');
+        $this->customer = $this->newCustomer('Example Customer a.s.');
         $this->browser->signIn();
     }
 
@@ -515,23 +504,6 @@ final class SendLogControllerTest extends WebTestCase
         $em->flush();
 
         return $customer;
-    }
-
-    /**
-     * @template T
-     *
-     * @param callable(): T $work
-     *
-     * @return T
-     */
-    private function scoped(callable $work): mixed
-    {
-        $this->context->switchTo($this->tenant);
-        try {
-            return $work();
-        } finally {
-            $this->context->reset();
-        }
     }
 
     private function connection(): Connection

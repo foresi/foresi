@@ -27,7 +27,7 @@ final class Version20261108130001 extends AbstractMigration
     {
         $comment = $schema->createTable('task_comment');
         $comment->addColumn('id', Types::GUID);
-        $comment->addColumn('tenant_id', 'tenant_id');
+        $comment->addColumn('tenant_id', 'guid');
         $comment->addColumn('task_id', Types::GUID);
         $comment->addColumn('author_id', Types::GUID);
         $comment->addColumn('body', Types::TEXT);
@@ -44,7 +44,7 @@ final class Version20261108130001 extends AbstractMigration
 
         $mention = $schema->createTable('comment_mention');
         $mention->addColumn('id', Types::GUID);
-        $mention->addColumn('tenant_id', 'tenant_id');
+        $mention->addColumn('tenant_id', 'guid');
         $mention->addColumn('comment_id', Types::GUID);
         $mention->addColumn('membership_id', Types::GUID);
         $mention->setPrimaryKey(['id']);

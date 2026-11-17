@@ -8,10 +8,8 @@ declare(strict_types=1);
 
 namespace App\Import\Application\Message;
 
-use App\Instance\Application\TenantScopedMessage;
-
 /** Archives one chunk of the records a full replace did not find in the source. Safe to handle twice. */
-final readonly class ArchiveMissing implements TenantScopedMessage
+final readonly class ArchiveMissing
 {
     public function __construct(
         public string $importId,

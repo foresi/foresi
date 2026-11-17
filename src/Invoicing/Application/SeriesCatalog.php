@@ -13,7 +13,7 @@ use App\Invoicing\Domain\Series;
 use App\Party\Domain\LegalEntity;
 
 /**
- * The number series of the active tenant. Call add() and makeDefault() inside
+ * The number series. Call add() and makeDefault() inside
  * TransactionalWork, which flushes.
  */
 interface SeriesCatalog
@@ -34,7 +34,7 @@ interface SeriesCatalog
     public function everyForFirm(LegalEntity $firm): array;
 
     /**
-     * @throws UnknownSeries also for a series of another tenant
+     * @throws UnknownSeries
      */
     public function get(string $id): Series;
 

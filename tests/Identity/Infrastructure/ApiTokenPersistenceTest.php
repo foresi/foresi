@@ -22,8 +22,6 @@ use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\ApiTokenLogin;
 use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Tests\Identity\Support\IdentityFixtures;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -38,34 +36,27 @@ final class ApiTokenPersistenceTest extends KernelTestCase
 {
     private IdentityFixtures $fixtures;
     private User $user;
-    private TenantId $tenant;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->fixtures = new IdentityFixtures($this->em(), $this->context());
+        $this->fixtures = new IdentityFixtures($this->em());
         $this->fixtures->rebuildSchema();
         $this->user = $this->fixtures->user();
-        $this->tenant = $this->fixtures->tenant('Tenant A');
-        $this->fixtures->join($this->user, $this->tenant, Role::Member);
+        $this->fixtures->join($this->user, Role::Member);
     }
 
     public function testTheHashAndTheLastUseNeverReachTheAuditLog(): void
     {
         $token = $this->issue();
-
-        $this->context()->switchTo($this->tenant);
         $entries = $this->entries();
         self::assertCount(1, $entries);
         self::assertSame(AuditAction::Created, $entries[0]->action());
         self::assertSame(ApiToken::class, $entries[0]->entityClass());
         self::assertSame(['name', 'scopes', 'userId', 'lastFour', 'createdAt', 'expiresAt'], array_keys($entries[0]->changes()));
         self::assertNull($entries[0]->apiTokenId());
-        $this->context()->reset();
 
         $this->tokens()->touch($token->id(), new \DateTimeImmutable('2026-11-10 10:00:00'), new \DateTimeImmutable('2026-11-10 09:59:00'));
-
-        $this->context()->switchTo($this->tenant);
         self::assertCount(1, $this->entries());
     }
 
@@ -108,7 +99,7 @@ final class ApiTokenPersistenceTest extends KernelTestCase
     {
         $mine = $this->issue();
         $colleague = $this->fixtures->user('colleague@example.com');
-        $this->fixtures->join($colleague, $this->tenant, Role::Member);
+        $this->fixtures->join($colleague, Role::Member);
         $theirs = self::getContainer()->get(ManageApiTokens::class)->issueAsOperator($colleague->id(), 'Reporting')->token;
 
         self::assertEqualsCanonicalizing([$mine->id(), $theirs->id()], array_map(static fn (ApiToken $token): string => $token->id(), $this->tokens()->all()));
@@ -119,14 +110,11 @@ final class ApiTokenPersistenceTest extends KernelTestCase
 
     public function testAConsoleSignInActsAsTheTokenAndItsOrganisation(): void
     {
-        $this->context()->switchTo($this->tenant);
         $issued = self::getContainer()->get(ManageApiTokens::class)->issueAsOperator($this->user->id(), 'Assistant');
-        $this->context()->reset();
 
         $grant = self::getContainer()->get(ApiTokenLogin::class)->asConsole($issued->secret);
 
         self::assertSame($issued->token->id(), $grant->tokenId);
-        self::assertTrue($this->context()->current()->equals($this->tenant));
         $user = self::getContainer()->get(TokenStorageInterface::class)->getToken()?->getUser();
         self::assertInstanceOf(SecurityUser::class, $user);
         self::assertSame($this->user->id(), $user->id());
@@ -152,7 +140,6 @@ final class ApiTokenPersistenceTest extends KernelTestCase
         }
 
         self::assertNull(self::getContainer()->get(TokenStorageInterface::class)->getToken());
-        self::assertFalse($this->context()->has());
         self::assertNull(self::getContainer()->get(ApiTokenContext::class)->grant());
     }
 
@@ -188,10 +175,5 @@ final class ApiTokenPersistenceTest extends KernelTestCase
     private function em(): EntityManagerInterface
     {
         return self::getContainer()->get('doctrine.orm.entity_manager');
-    }
-
-    private function context(): TenantContext
-    {
-        return self::getContainer()->get(TenantContext::class);
     }
 }

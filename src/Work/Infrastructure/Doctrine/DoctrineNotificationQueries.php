@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Work\Infrastructure\Doctrine;
 
 use App\Identity\Domain\Membership;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Work\Application\NotificationFilter;
 use App\Work\Application\NotificationPage;
 use App\Work\Application\NotificationQueries;
@@ -26,7 +26,7 @@ use Doctrine\ORM\Query;
  */
 final readonly class DoctrineNotificationQueries implements NotificationQueries
 {
-    public function __construct(private EntityManagerInterface $entityManager, private WorkVisibility $visibility, private TenantClock $clock)
+    public function __construct(private EntityManagerInterface $entityManager, private WorkVisibility $visibility, private InstanceClock $clock)
     {
     }
 

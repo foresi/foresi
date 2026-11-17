@@ -11,8 +11,6 @@ namespace App\Work\Application;
 use App\Audit\Application\AuditActor;
 use App\Identity\Application\People;
 use App\Identity\Domain\Membership;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Shared\Domain\Id;
 use App\Work\Domain\EmailDelivery;
 use App\Work\Domain\NotificationKind;
@@ -33,7 +31,6 @@ final readonly class ManageNotificationPreferences
         private NotificationMailing $mailing,
         private People $people,
         private AuditActor $actor,
-        private TenantContext $context,
         private WorkUnit $unit,
     ) {
     }
@@ -73,32 +70,20 @@ final readonly class ManageNotificationPreferences
 
     /**
      * Stops a kind of e-mail, or the digest, for the person of the signed
-     * link, in their organisation.
+     * link.
      *
      * @param string $what the value of a kind, or DIGEST
      *
      * @return bool whether the person and the kind were found
      */
-    public function switchOff(TenantId $tenant, string $membershipId, string $what): bool
+    public function switchOff(string $membershipId, string $what): bool
     {
         $kind = NotificationKind::tryFrom($what);
         if (!Id::isValid($membershipId) || (!$kind instanceof NotificationKind && self::DIGEST !== $what)) {
             return false;
         }
-        $previous = $this->context->has() ? $this->context->current() : null;
-        if ($previous instanceof TenantId && $previous->equals($tenant)) {
-            return $this->turnOff($membershipId, $kind);
-        }
-        $this->context->switchTo($tenant);
-        try {
-            return $this->turnOff($membershipId, $kind);
-        } finally {
-            if ($previous instanceof TenantId) {
-                $this->context->switchTo($previous);
-            } else {
-                $this->context->reset();
-            }
-        }
+
+        return $this->turnOff($membershipId, $kind);
     }
 
     /**

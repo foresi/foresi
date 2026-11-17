@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\InvoiceBalances;
 use App\Invoicing\Application\InvoiceInput;
@@ -74,10 +72,6 @@ final class FirmMailControllerTest extends WebTestCase
 
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private TenantContext $context;
-
-    /** @var array<string, TenantId> the tenant of each firm made here, by firm id */
-    private array $firmTenants = [];
     private ?string $keys = null;
 
     protected function setUp(): void
@@ -326,9 +320,9 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testThePreviewRowsNameTheInvoiceAndItsDates(): void
     {
-        [$tenant] = $this->browser->seed(['Tenant A']);
+        $this->browser->seed();
         $this->browser->signIn();
-        [$firm, $invoices] = $this->firmWithDeliveredInvoices($tenant, ['2026-11-10', '2026-10-20']);
+        [$firm, $invoices] = $this->firmWithDeliveredInvoices(['2026-11-10', '2026-10-20']);
 
         // Off: what switching on today would send, with the day of each first reminder.
         $crawler = $this->client->request('GET', $this->url($firm));
@@ -356,9 +350,9 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testThePreviewLeavesOutWhatIsPaidAndShowsWhatIsLeft(): void
     {
-        [$tenant] = $this->browser->seed(['Tenant A']);
+        $this->browser->seed();
         $this->browser->signIn();
-        [$firm, $invoices] = $this->firmWithDeliveredInvoices($tenant, ['2026-11-10', '2026-11-11', '2026-10-20', '2026-10-21']);
+        [$firm, $invoices] = $this->firmWithDeliveredInvoices(['2026-11-10', '2026-11-11', '2026-10-20', '2026-10-21']);
         [$partly, $paid, $partlyOverdue, $paidOverdue] = $invoices;
         $this->pay($firm, $partly, '210.00');
         $this->pay($firm, $paid, '1210.00');
@@ -606,8 +600,8 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testAClientRoleGets403(): void
     {
-        $tenant = $this->browser->seed(['Tenant A'], role: Role::Guest)[0];
-        $firm = $this->firm($tenant);
+        $this->browser->seed(role: Role::Guest);
+        $firm = $this->firm();
         $this->browser->signIn();
 
         $this->client->request('GET', $this->url($firm));
@@ -746,28 +740,24 @@ final class FirmMailControllerTest extends WebTestCase
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), $this->context);
+        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
     }
 
     private function signedInFirm(string $country = 'CZ'): LegalEntity
     {
-        [$tenant] = $this->browser->seed(['Tenant A']);
+        $this->browser->seed();
         $this->browser->signIn();
 
-        return $this->firm($tenant, $country);
+        return $this->firm($country);
     }
 
-    private function firm(TenantId $tenant, string $country = 'CZ'): LegalEntity
+    private function firm(string $country = 'CZ'): LegalEntity
     {
-        $this->context->switchTo($tenant);
         $number = 'CZ' === $country ? new RegistrationNumber('CZ', '12345695') : new RegistrationNumber($country, 'HRB 12345');
         $firm = new LegalEntity('Example Firm s.r.o.', $number, null, new Address('Example Street 1', 'Example City', '10000', $country), VatStatus::NotRegistered, '');
         $em = $this->browser->em();
         $em->persist($firm);
         $em->flush();
-        $this->context->reset();
-        $this->firmTenants[$firm->id()] = $tenant;
 
         return $firm;
     }
@@ -779,48 +769,37 @@ final class FirmMailControllerTest extends WebTestCase
      *
      * @return array{LegalEntity, list<Invoice>}
      */
-    private function firmWithDeliveredInvoices(TenantId $tenant, array $dueDates): array
+    private function firmWithDeliveredInvoices(array $dueDates): array
     {
-        $this->context->switchTo($tenant);
-        try {
-            $em = $this->browser->em();
-            $iban = 'CZ6508000000192000145399';
-            $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
-            $em->persist($firm);
-            $this->firmTenants[$firm->id()] = $tenant;
-            FirmAccounts::add($em, $firm, $iban);
-            $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
-            $series->markDefault();
-            $em->persist($series);
-            $customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');
-            $em->persist($customer);
-            $em->persist(new PartyAddress($customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
-            $em->persist(new PartyEmail($customer, 'billing@example.com', EmailPurpose::Invoices));
-            $em->flush();
-            $day = new \DateTimeImmutable('2026-10-01');
-            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
-            $invoices = [];
-            foreach ($dueDates as $due) {
-                $invoice = self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($firm->id(), $series->id(), null, $customer->id(), null, $day, $day, new \DateTimeImmutable($due), PaymentMethod::BankTransfer, $iban, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line]));
-                self::getContainer()->get(MarkDelivered::class)->mark($invoice->id());
-                $invoices[] = $invoice;
-            }
-
-            return [$firm, $invoices];
-        } finally {
-            $this->context->reset();
+        $em = $this->browser->em();
+        $iban = 'CZ6508000000192000145399';
+        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
+        $em->persist($firm);
+        FirmAccounts::add($em, $firm, $iban);
+        $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+        $series->markDefault();
+        $em->persist($series);
+        $customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');
+        $em->persist($customer);
+        $em->persist(new PartyAddress($customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
+        $em->persist(new PartyEmail($customer, 'billing@example.com', EmailPurpose::Invoices));
+        $em->flush();
+        $day = new \DateTimeImmutable('2026-10-01');
+        $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+        $invoices = [];
+        foreach ($dueDates as $due) {
+            $invoice = self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($firm->id(), $series->id(), null, $customer->id(), null, $day, $day, new \DateTimeImmutable($due), PaymentMethod::BankTransfer, $iban, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line]));
+            self::getContainer()->get(MarkDelivered::class)->mark($invoice->id());
+            $invoices[] = $invoice;
         }
+
+        return [$firm, $invoices];
     }
 
     private function pay(LegalEntity $firm, Invoice $invoice, string $amount): void
     {
-        $this->context->switchTo($this->firmTenants[$firm->id()]);
-        try {
-            $czk = Money::of($amount, Currency::CZK);
-            self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($firm->id(), new \DateTimeImmutable('2026-11-01'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $czk)]));
-        } finally {
-            $this->context->reset();
-        }
+        $czk = Money::of($amount, Currency::CZK);
+        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($firm->id(), new \DateTimeImmutable('2026-11-01'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $czk)]));
     }
 
     private function url(LegalEntity $firm, ?string $tab = null): string

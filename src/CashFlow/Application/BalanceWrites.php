@@ -11,7 +11,7 @@ namespace App\CashFlow\Application;
 use App\CashFlow\Domain\Checkpoint;
 use App\CashFlow\Domain\ExpectedDate;
 use App\CashFlow\Domain\MinimumBalance;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Party\Application\TransactionalWork;
 use App\Shared\Domain\Currency;
 use Psr\Clock\ClockInterface;
@@ -27,7 +27,7 @@ final readonly class BalanceWrites
         private CashFlowAccess $access,
         private CashFlowStore $store,
         private TransactionalWork $transaction,
-        private TenantClock $tenantClock,
+        private InstanceClock $instanceClock,
         private ClockInterface $clock,
     ) {
     }
@@ -41,8 +41,8 @@ final readonly class BalanceWrites
 
         return $this->transaction->run(function () use ($input): Checkpoint {
             $account = $this->access->account($input->bankAccountId);
-            $on = PlannedItemRules::day($input->on, $this->tenantClock->timezone(), 'on');
-            if ($on > $this->tenantClock->today()) {
+            $on = PlannedItemRules::day($input->on, $this->instanceClock->timezone(), 'on');
+            if ($on > $this->instanceClock->today()) {
                 throw CashFlowRefused::invalid('date_in_future', 'on', 'A balance is recorded for today or a day before; the forecast projects the days after it.');
             }
             $amount = PlannedItemRules::money($input->amount, $account->currency(), 'amount');
@@ -65,7 +65,7 @@ final readonly class BalanceWrites
     {
         $this->access->denyUnlessStaff();
         [$type, $id] = $this->subject($input->subjectType, $input->subjectId);
-        $on = PlannedItemRules::day($input->expectedOn, $this->tenantClock->timezone(), 'expectedOn');
+        $on = PlannedItemRules::day($input->expectedOn, $this->instanceClock->timezone(), 'expectedOn');
 
         return $this->transaction->run(function () use ($type, $id, $on): ExpectedDate {
             $expected = $this->store->expectedDate($type, $id);

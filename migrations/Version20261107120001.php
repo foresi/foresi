@@ -27,7 +27,7 @@ final class Version20261107120001 extends AbstractMigration
     {
         $project = $schema->createTable('project');
         $project->addColumn('id', Types::GUID);
-        $project->addColumn('tenant_id', 'tenant_id');
+        $project->addColumn('tenant_id', 'guid');
         $project->addColumn('name', Types::STRING, ['length' => 200]);
         $project->addColumn('client_id', Types::GUID, ['notnull' => false]);
         $project->addColumn('description', Types::TEXT);
@@ -42,7 +42,7 @@ final class Version20261107120001 extends AbstractMigration
 
         $status = $schema->createTable('project_status');
         $status->addColumn('id', Types::GUID);
-        $status->addColumn('tenant_id', 'tenant_id');
+        $status->addColumn('tenant_id', 'guid');
         $status->addColumn('project_id', Types::GUID);
         $status->addColumn('name', Types::STRING, ['length' => 80]);
         $status->addColumn('type', Types::STRING, ['length' => 16]);
@@ -54,7 +54,7 @@ final class Version20261107120001 extends AbstractMigration
 
         $section = $schema->createTable('project_section');
         $section->addColumn('id', Types::GUID);
-        $section->addColumn('tenant_id', 'tenant_id');
+        $section->addColumn('tenant_id', 'guid');
         $section->addColumn('project_id', Types::GUID);
         $section->addColumn('name', Types::STRING, ['length' => 120]);
         $section->addColumn('position', Types::INTEGER);
@@ -65,7 +65,7 @@ final class Version20261107120001 extends AbstractMigration
 
         $task = $schema->createTable('task');
         $task->addColumn('id', Types::GUID);
-        $task->addColumn('tenant_id', 'tenant_id');
+        $task->addColumn('tenant_id', 'guid');
         $task->addColumn('project_id', Types::GUID);
         $task->addColumn('section_id', Types::GUID, ['notnull' => false]);
         $task->addColumn('parent_id', Types::GUID, ['notnull' => false]);
@@ -96,7 +96,7 @@ final class Version20261107120001 extends AbstractMigration
 
         $watcher = $schema->createTable('task_watcher');
         $watcher->addColumn('id', Types::GUID);
-        $watcher->addColumn('tenant_id', 'tenant_id');
+        $watcher->addColumn('tenant_id', 'guid');
         $watcher->addColumn('task_id', Types::GUID);
         $watcher->addColumn('membership_id', Types::GUID);
         $watcher->setPrimaryKey(['id']);
@@ -108,7 +108,7 @@ final class Version20261107120001 extends AbstractMigration
 
         $label = $schema->createTable('label');
         $label->addColumn('id', Types::GUID);
-        $label->addColumn('tenant_id', 'tenant_id');
+        $label->addColumn('tenant_id', 'guid');
         $label->addColumn('name', Types::STRING, ['length' => 60]);
         $label->addColumn('colour', Types::STRING, ['length' => 16]);
         $label->setPrimaryKey(['id']);
@@ -117,7 +117,7 @@ final class Version20261107120001 extends AbstractMigration
 
         $taskLabel = $schema->createTable('task_label');
         $taskLabel->addColumn('id', Types::GUID);
-        $taskLabel->addColumn('tenant_id', 'tenant_id');
+        $taskLabel->addColumn('tenant_id', 'guid');
         $taskLabel->addColumn('task_id', Types::GUID);
         $taskLabel->addColumn('label_id', Types::GUID);
         $taskLabel->setPrimaryKey(['id']);

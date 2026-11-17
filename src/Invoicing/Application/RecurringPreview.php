@@ -26,7 +26,7 @@ final readonly class RecurringPreview
 
     /**
      * @param int                $issued how many invoices the template has issued so far
-     * @param \DateTimeImmutable $today  the tenant's today: no date before it is shown
+     * @param \DateTimeImmutable $today  the instance's today: no date before it is shown
      *
      * @return list<PreviewRow>
      */

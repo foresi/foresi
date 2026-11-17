@@ -29,14 +29,14 @@ final readonly class ShellNotices
     }
 
     /**
-     * @param bool $tenantActive providers read tenant-owned data, so they are skipped without a tenant
+     * @param bool $member providers read the instance's data, so they are skipped without an active membership
      *
      * @return list<ShellNotice>
      */
     #[AsTwigFunction('shell_notices')]
-    public function all(bool $tenantActive): array
+    public function all(bool $member): array
     {
-        if (!$tenantActive) {
+        if (!$member) {
             return [];
         }
         $notices = [];

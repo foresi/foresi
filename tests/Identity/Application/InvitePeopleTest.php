@@ -21,7 +21,6 @@ use App\Identity\Domain\Invitation;
 use App\Identity\Domain\InvitationToken;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Instance\Domain\TenantId;
 use App\Party\Application\PartyQuery;
 use App\Shared\Application\SystemMailUnavailable;
 use App\Shared\Domain\Id;
@@ -68,9 +67,7 @@ final class InvitePeopleTest extends TestCase
         $this->mailer = self::createStub(InvitationMailer::class);
         $this->mailer->method('link')->willReturnCallback(static fn (string $token): string => 'https://example.com/invitation/'.$token);
         $this->memberships = self::createStub(MembershipDirectory::class);
-        $this->memberships->method('organisationsOf')->willReturn([
-            new Organisation(TenantId::generate(), 'Example Company', Role::Owner),
-        ]);
+        $this->memberships->method('organisationOf')->willReturn(new Organisation('Example Company', Role::Owner));
     }
 
     public function testTheAddressIsTrimmedAndLowercasedBeforeItIsLookedUp(): void

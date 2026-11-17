@@ -24,8 +24,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
 
 /**
- * Tenant-scoped through the Doctrine tenant filter, which every query below
- * runs under. Roles live in a JSON column, so the role filter and the counts
+ * Roles live in a JSON column, so the role filter and the counts
  * read the narrow id and roles columns and filter in PHP, which behaves the
  * same on every database.
  */

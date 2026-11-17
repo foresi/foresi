@@ -12,7 +12,7 @@ use App\Audit\Application\AuditActor;
 use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\People;
 use App\Identity\Domain\Membership;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Shared\Domain\Money;
 use App\Work\Domain\Duration;
 use App\Work\Domain\Project;
@@ -45,7 +45,7 @@ final readonly class ManageTime
         private OwnerCheck $owner,
         private AuditActor $actor,
         private ClockInterface $clock,
-        private TenantClock $tenantClock,
+        private InstanceClock $instanceClock,
         private WorkUnit $unit,
     ) {
     }
@@ -129,7 +129,7 @@ final readonly class ManageTime
         [$project, $task] = $this->target($projectId, $taskId);
         $me = $this->me();
         $now = $this->clock->now();
-        $entry = TimeEntry::started($project, $task, $me, $this->tenantClock->today(), $now, $this->note($note), $billable ?? $project->billsTimeByDefault(), $me->user()->id());
+        $entry = TimeEntry::started($project, $task, $me, $this->instanceClock->today(), $now, $this->note($note), $billable ?? $project->billsTimeByDefault(), $me->user()->id());
         $running = $this->entries->running($me);
 
         return $this->unit->run(function () use ($entry, $running, $now): TimeEntry {

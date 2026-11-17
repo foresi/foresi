@@ -15,8 +15,6 @@ use App\Identity\Domain\ApiTokenSecret;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
 use App\Tests\Identity\Support\IdentityFixtures;
@@ -34,7 +32,6 @@ final class ApiTokenSignInTest extends WebTestCase
     private KernelBrowser $client;
     private IdentityFixtures $fixtures;
     private User $user;
-    private TenantId $tenant;
 
     protected function tearDown(): void
     {
@@ -104,12 +101,10 @@ final class ApiTokenSignInTest extends WebTestCase
     {
         $this->start();
         $secret = $this->issued();
-        $this->context()->switchTo($this->tenant);
         $membership = $this->em()->getRepository(Membership::class)->findOneBy(['user' => $this->user->id()]);
         self::assertInstanceOf(Membership::class, $membership);
         $membership->deactivate(new \DateTimeImmutable());
         $this->em()->flush();
-        $this->context()->reset();
 
         $this->get($secret);
 
@@ -120,12 +115,10 @@ final class ApiTokenSignInTest extends WebTestCase
     {
         $this->start();
         $secret = $this->issued();
-        $this->context()->switchTo($this->tenant);
         $membership = $this->em()->getRepository(Membership::class)->findOneBy(['user' => $this->user->id()]);
         self::assertInstanceOf(Membership::class, $membership);
         $membership->changeRole(Role::Guest, $this->party());
         $this->em()->flush();
-        $this->context()->reset();
 
         $this->get($secret);
 
@@ -229,11 +222,10 @@ final class ApiTokenSignInTest extends WebTestCase
         $this->client = self::createClient();
         // The test database lives in memory, so every request must share the kernel.
         $this->client->disableReboot();
-        $this->fixtures = new IdentityFixtures($this->em(), $this->context());
+        $this->fixtures = new IdentityFixtures($this->em());
         $this->fixtures->rebuildSchema();
         $this->user = $this->fixtures->user();
-        $this->tenant = $this->fixtures->tenant('Tenant A');
-        $this->fixtures->join($this->user, $this->tenant, Role::Member);
+        $this->fixtures->join($this->user, Role::Member);
     }
 
     /**
@@ -251,10 +243,8 @@ final class ApiTokenSignInTest extends WebTestCase
         if ($revoked) {
             $token->revoke(null, $created);
         }
-        $this->context()->switchTo($this->tenant);
         $this->em()->persist($token);
         $this->em()->flush();
-        $this->context()->reset();
 
         return $secret;
     }
@@ -262,8 +252,6 @@ final class ApiTokenSignInTest extends WebTestCase
     private function token(): ApiToken
     {
         $this->em()->clear();
-        $this->context()->reset();
-        $this->context()->switchTo($this->tenant);
         $token = $this->em()->getRepository(ApiToken::class)->findOneBy([]);
         self::assertInstanceOf(ApiToken::class, $token);
 
@@ -312,11 +300,6 @@ final class ApiTokenSignInTest extends WebTestCase
     private function em(): EntityManagerInterface
     {
         return self::getContainer()->get('doctrine.orm.entity_manager');
-    }
-
-    private function context(): TenantContext
-    {
-        return self::getContainer()->get(TenantContext::class);
     }
 
     private function requireTwoFactor(bool $required): void

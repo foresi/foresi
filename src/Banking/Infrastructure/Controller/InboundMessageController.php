@@ -44,7 +44,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * anyway after the payment was checked in the bank, which only the owner may, as
  * the message may be forged; and dismissing what nobody will record. Recording
  * anyway and dismissing ask first, in a dialog that is a page of its own as well.
- * A message of another tenant is never found.
+ * An unknown message is not found.
  */
 final class InboundMessageController extends AbstractController
 {

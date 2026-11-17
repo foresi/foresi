@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Party\Infrastructure;
 
 use App\Audit\Domain\AuditEntry;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Application\CreateParty;
 use App\Party\Application\PartyAccess;
 use App\Party\Domain\Address;
@@ -49,22 +47,18 @@ final class AddressBookPersistenceTest extends KernelTestCase
     private const string OTHER_IBAN = 'GB82WEST12345698765432';
 
     private EntityManagerInterface $em;
-    private TenantContext $context;
 
     protected function setUp(): void
     {
         self::bootKernel();
         $container = self::getContainer();
         $em = $container->get('doctrine.orm.entity_manager');
-        $context = $container->get(TenantContext::class);
         $this->em = $em;
-        $this->context = $context;
 
         $tool = new SchemaTool($em);
         $metadata = $em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $this->context->switchTo(TenantId::generate());
     }
 
     public function testPartyRoundTripsWithTheNewFields(): void
@@ -550,6 +544,6 @@ final class AddressBookPersistenceTest extends KernelTestCase
             }
         };
 
-        return new DoctrineTransactionalWork($this->em, self::getContainer()->get('doctrine'), $this->context, $outbox);
+        return new DoctrineTransactionalWork($this->em, self::getContainer()->get('doctrine'), $outbox);
     }
 }

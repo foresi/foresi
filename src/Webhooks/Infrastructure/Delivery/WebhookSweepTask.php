@@ -9,12 +9,9 @@ declare(strict_types=1);
 namespace App\Webhooks\Infrastructure\Delivery;
 
 use App\Instance\Application\Schedule\OperatorTask;
-use App\Instance\Application\SoleTenant;
-use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Webhooks\Application\AttemptTrigger;
 use App\Webhooks\Application\SendWebhook;
 use Psr\Clock\ClockInterface;
-use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
@@ -34,7 +31,6 @@ final readonly class WebhookSweepTask implements OperatorTask
         private WebhookDeliveries $deliveries,
         private MessageBusInterface $bus,
         private ClockInterface $clock,
-        private SoleTenant $tenant,
     ) {
     }
 
@@ -54,9 +50,8 @@ final readonly class WebhookSweepTask implements OperatorTask
         if ([] === $due) {
             return;
         }
-        $tenant = $this->tenant->id()->toString();
         foreach ($due as $id) {
-            $this->bus->dispatch(new Envelope(new SendWebhook($id, AttemptTrigger::Schedule), [new TenantStamp($tenant)]));
+            $this->bus->dispatch(new SendWebhook($id, AttemptTrigger::Schedule));
         }
     }
 }

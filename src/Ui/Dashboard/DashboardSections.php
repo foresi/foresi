@@ -26,14 +26,14 @@ final readonly class DashboardSections
     }
 
     /**
-     * @param bool $tenantActive providers read tenant-owned data, so they are skipped without a tenant
+     * @param bool $member providers read the instance's data, so they are skipped without an active membership
      *
      * @return list<DashboardSection>
      */
     #[AsTwigFunction('dashboard_sections')]
-    public function all(bool $tenantActive): array
+    public function all(bool $member): array
     {
-        if (!$tenantActive) {
+        if (!$member) {
             return [];
         }
         $sections = [];

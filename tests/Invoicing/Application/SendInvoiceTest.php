@@ -12,7 +12,6 @@ use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Instance\Application\TenantContext;
 use App\Instance\Infrastructure\Schedule\ScheduleTick;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\DeliverInvoiceSend;
@@ -24,6 +23,8 @@ use App\Invoicing\Application\PaymentRequest;
 use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Application\RenderedPdf;
 use App\Invoicing\Application\SendRefused;
+use App\Invoicing\Application\SentFiles;
+use App\Invoicing\Application\SentFileUnreadable;
 use App\Invoicing\Domain\InvoiceSend;
 use App\Invoicing\Domain\LinkAudience;
 use App\Invoicing\Domain\PaymentSource;
@@ -182,10 +183,31 @@ final class SendInvoiceTest extends SendingTestCase
     {
         // A table that cannot fit the page at any size of type.
         $invoice = $this->issue->issue($this->input([new LineInput('Work', Quantity::fromString('1'), str_repeat('m', 32), Money::of('123456789012.34', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('33.33'))]));
+        // The directory is shared with the tests that run beside this one, so the port is watched instead.
+        $files = new class implements SentFiles {
+            public int $stored = 0;
+
+            public function store(string $sendId, string $bytes): string
+            {
+                ++$this->stored;
+
+                return $sendId.'.pdf';
+            }
+
+            public function read(string $sendId, string $key, string $sha256): string
+            {
+                throw new SentFileUnreadable('Not kept.');
+            }
+
+            public function remove(string $sendId): void
+            {
+            }
+        };
+        self::getContainer()->set(SentFiles::class, $files);
 
         self::assertSame(SendRefused::UNDRAWABLE, $this->refusalOfSend(fn (): InvoiceSend => $this->sent($invoice)));
         $this->assertNothingStoredOrQueued();
-        self::assertSame([], glob($this->sentDocumentsDir().'/'.$this->tenant->toString().'/*'));
+        self::assertSame(0, $files->stored);
     }
 
     public function testALocalhostBaseIsRefusedOutsideTests(): void
@@ -384,15 +406,12 @@ final class SendInvoiceTest extends SendingTestCase
         $send = $this->sent($invoice);
         // As if the process died between the commit and the dispatch.
         $this->mailQueue->reset();
-        $context = self::getContainer()->get(TenantContext::class);
         $async = self::getContainer()->get('messenger.transport.async');
         self::assertInstanceOf(InMemoryTransport::class, $async);
         $jobs = new RunMessages($async, self::getContainer()->get(MessageBusInterface::class));
-        $tick = function () use ($context, $jobs): void {
-            $context->reset();
+        $tick = function () use ($jobs): void {
             self::getContainer()->get(MessageBusInterface::class)->dispatch(new ScheduleTick());
             $jobs->run();
-            $context->switchTo($this->tenant);
         };
 
         self::mockTime('2026-11-03 10:14:00');

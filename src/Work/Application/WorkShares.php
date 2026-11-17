@@ -15,7 +15,7 @@ use App\Work\Domain\Task;
 use App\Work\Domain\WorkShare;
 
 /**
- * The projects, sections and tasks of the active tenant shared with its people.
+ * The projects, sections and tasks shared with people.
  */
 interface WorkShares
 {

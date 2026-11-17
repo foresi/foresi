@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Party\Infrastructure;
 
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Application\FirmImages;
 use App\Party\Application\FirmImageType;
 use App\Party\Domain\Address;
@@ -17,6 +15,7 @@ use App\Party\Domain\LegalEntity;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatStatus;
 use App\Party\Infrastructure\Http\FilesystemFirmImages;
+use App\Shared\Domain\Id;
 use App\Tests\Identity\Support\SignedInBrowser;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -32,8 +31,6 @@ final class FirmLogoTest extends WebTestCase
     private const int MEGABYTE = 1_048_576;
 
     private KernelBrowser $client;
-    private TenantContext $context;
-    private TenantId $tenant;
     private string $imageDir;
 
     /** @var list<string> */
@@ -43,11 +40,10 @@ final class FirmLogoTest extends WebTestCase
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), $this->context);
+        $browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
         $directory = self::getContainer()->getParameter('app.firm_image_dir');
         $this->imageDir = $directory;
-        [$this->tenant] = $browser->seed(['Tenant A']);
+        $browser->seed();
         $browser->signIn();
     }
 
@@ -373,11 +369,12 @@ final class FirmLogoTest extends WebTestCase
         $this->images()->path($name);
     }
 
-    public function testAnImageStoredUnderATenantDirectoryStillReads(): void
+    public function testAnImageStoredUnderAnOldTenantDirectoryStillReads(): void
     {
         $name = hash('sha256', 'legacy').'.png';
-        mkdir($this->imageDir.'/'.$this->tenant->toString(), 0o700, true);
-        file_put_contents($this->imageDir.'/'.$this->tenant->toString().'/'.$name, 'legacy');
+        $directory = Id::generate();
+        mkdir($this->imageDir.'/'.$directory, 0o700, true);
+        file_put_contents($this->imageDir.'/'.$directory.'/'.$name, 'legacy');
 
         self::assertSame('legacy', file_get_contents($this->images()->path($name)));
     }
@@ -457,11 +454,9 @@ final class FirmLogoTest extends WebTestCase
 
     private function firm(): LegalEntity
     {
-        $this->context->switchTo($this->tenant);
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $this->em()->persist($firm);
         $this->em()->flush();
-        $this->context->reset();
 
         return $firm;
     }
@@ -527,7 +522,12 @@ final class FirmLogoTest extends WebTestCase
             return;
         }
         foreach ($this->files($directory) as $file) {
-            unlink($directory.'/'.$file);
+            $path = $directory.'/'.$file;
+            if (is_dir($path)) {
+                $this->removeDirectory($path);
+            } else {
+                unlink($path);
+            }
         }
         rmdir($directory);
     }

@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\PeriodText;
@@ -19,7 +19,7 @@ use App\Invoicing\Domain\RecurringState;
 /**
  * Issues the invoice of one occurrence of a recurring template, at most once
  * however often it is called, by however many workers. The invoice is an ordinary
- * one, issued through IssueInvoice: issued today in the tenant's zone, the tax
+ * one, issued through IssueInvoice: issued today in the instance's zone, the tax
  * point by the template's rule from that day, due its days later. The period
  * variables of the texts name the occurrence, so a late run still names the right
  * month; {document_number} names the number the invoice is given. The customer is
@@ -37,13 +37,13 @@ final readonly class IssueRecurringOccurrence
     public function __construct(
         private RecurringInvoices $templates,
         private IssueInvoice $issue,
-        private TenantClock $clock,
+        private InstanceClock $clock,
     ) {
     }
 
     /**
      * @param \DateTimeImmutable      $occurrence the date of the schedule to issue
-     * @param \DateTimeImmutable|null $today      the tenant's today; TenantClock's when not given
+     * @param \DateTimeImmutable|null $today      the instance's today; InstanceClock's when not given
      *
      * @return Invoice|null null when the occurrence is not the template's to issue: issued already,
      *                      by another worker too, not its next date, or the template is not active
@@ -52,7 +52,7 @@ final readonly class IssueRecurringOccurrence
      * loaded before is detached
      *
      * @throws IssueRefused              when a rule refuses the invoice; nothing is stored
-     * @throws UnknownRecurringInvoice   also for a template of another tenant
+     * @throws UnknownRecurringInvoice
      * @throws RecurringChangedMeanwhile when the template kept changing while it was built
      * @throws \LogicException           when the session holds unsaved changes
      */

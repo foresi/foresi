@@ -9,8 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Application\Query;
 
 /**
- * Reads the payments of the active tenant for the API. Anything of another
- * tenant does not exist for it. Call it through PaymentList and PaymentDetails,
+ * Reads the payments for the API. Call it through PaymentList and PaymentDetails,
  * which ask who may.
  */
 interface PaymentQueries

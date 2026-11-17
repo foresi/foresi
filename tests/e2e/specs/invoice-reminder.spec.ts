@@ -69,7 +69,7 @@ test.describe.serial('reminders of overdue invoices', () => {
     }
   });
 
-  test('the list of a tenant with two firms fits its frame at 1440 with every column shown @layout', async ({ page }) => {
+  test('the list of an organisation with two firms fits its frame at 1440 with every column shown @layout', async ({ page }) => {
     await page.setViewportSize(DESKTOP);
     await page.goto('/invoices');
     const table = page.getByRole('table', { name: 'Faktury' });

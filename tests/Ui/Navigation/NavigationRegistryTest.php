@@ -102,7 +102,7 @@ final class NavigationRegistryTest extends TestCase
         self::assertFalse($groups[0]['items'][0]->current);
     }
 
-    public function testCountsAreEvaluatedInsideAnActiveTenant(): void
+    public function testCountsAreEvaluatedForAMember(): void
     {
         $groups = $this->registry(new NavigationItem('main', 'a', 'plus', 'r1', $this->counter(7)), new NavigationItem('main', 'b', 'plus', 'r2'))->groups(null, true);
 
@@ -110,7 +110,7 @@ final class NavigationRegistryTest extends TestCase
         self::assertNull($groups[0]['items'][1]->count);
     }
 
-    public function testCountProvidersAreNeverCalledWithoutAnActiveTenant(): void
+    public function testCountProvidersAreNeverCalledWithoutAnActiveMembership(): void
     {
         $counter = new class implements NavigationCountProvider {
             public int $calls = 0;
@@ -119,7 +119,7 @@ final class NavigationRegistryTest extends TestCase
             {
                 ++$this->calls;
 
-                throw new \LogicException('Would run tenant-owned queries without a tenant.');
+                throw new \LogicException('Would run queries without an active membership.');
             }
         };
 
@@ -336,7 +336,7 @@ final class NavigationRegistryTest extends TestCase
         $registry->areas(null, true);
     }
 
-    public function testCountsAreEvaluatedOnceAndSkippedWithoutATenantInAreasToo(): void
+    public function testCountsAreEvaluatedOnceAndSkippedWithoutAMembershipInAreasToo(): void
     {
         $counter = new class implements NavigationCountProvider {
             public int $calls = 0;

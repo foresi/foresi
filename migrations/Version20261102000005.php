@@ -27,7 +27,7 @@ final class Version20261102000005 extends AbstractMigration
     {
         $template = $schema->createTable('mail_template');
         $template->addColumn('id', Types::GUID);
-        $template->addColumn('tenant_id', 'tenant_id');
+        $template->addColumn('tenant_id', 'guid');
         $template->addColumn('legal_entity_id', Types::GUID);
         $template->addColumn('kind', Types::STRING, ['length' => 16]);
         $template->addColumn('language', Types::STRING, ['length' => 8]);

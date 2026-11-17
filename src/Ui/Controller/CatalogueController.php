@@ -19,7 +19,7 @@ use Symfony\Component\Translation\LocaleSwitcher;
  *
  * Registered in the dev and test environments only (see config/services.yaml),
  * so in production neither the service nor the route exists. It shows no data
- * and works without a tenant.
+ * and works without a signed-in person.
  */
 final class CatalogueController extends AbstractController
 {

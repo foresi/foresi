@@ -65,7 +65,7 @@ final class InvoiceToolsTest extends ReadToolTestCase
 
     public function testTheSearchAnswersTheItemsOfTheRestList(): void
     {
-        $invoice = $this->inTenant($this->tenant, fn (): Invoice => $this->invoice('2026-11-02', '2026-11-30'));
+        $invoice = $this->flushed(fn (): Invoice => $this->invoice('2026-11-02', '2026-11-30'));
 
         $output = $this->call(SearchInvoicesTool::class);
 
@@ -76,7 +76,7 @@ final class InvoiceToolsTest extends ReadToolTestCase
 
     public function testTheGetAnswersTheRestDetail(): void
     {
-        $invoice = $this->inTenant($this->tenant, function (): Invoice {
+        $invoice = $this->flushed(function (): Invoice {
             $invoice = $this->invoice('2026-11-02', '2026-11-30');
             $this->payment('2026-11-12', [$invoice->id() => '1000']);
 
@@ -92,7 +92,7 @@ final class InvoiceToolsTest extends ReadToolTestCase
 
     public function testTheKindTheFirmAndTheCustomerNarrowTheSearch(): void
     {
-        [$first, $other, $otherCustomer] = $this->inTenant($this->tenant, function (): array {
+        [$first, $other, $otherCustomer] = $this->flushed(function (): array {
             $first = $this->invoice();
             [$firm, $series, $customer] = $this->firmWithCustomer('Other Firm s.r.o.', '25596641');
 
@@ -109,7 +109,7 @@ final class InvoiceToolsTest extends ReadToolTestCase
 
     public function testTheStateAndTheTrashNarrowTheSearch(): void
     {
-        [$paid, $overdue, $unpaid, $trashed] = $this->inTenant($this->tenant, function (): array {
+        [$paid, $overdue, $unpaid, $trashed] = $this->flushed(function (): array {
             $paid = $this->invoice('2026-11-01', '2099-12-31');
             $this->payment('2026-11-05', [$paid->id() => '2420']);
             $overdue = $this->invoice('2020-01-01', '2020-01-15');
@@ -129,7 +129,7 @@ final class InvoiceToolsTest extends ReadToolTestCase
 
     public function testTheIssueDaysAndTheTextNarrowTheSearch(): void
     {
-        [$early, $middle, $late] = $this->inTenant($this->tenant, fn (): array => [
+        [$early, $middle, $late] = $this->flushed(fn (): array => [
             $this->invoice('2026-11-01', '2026-11-30'),
             $this->invoice('2026-11-05', '2026-11-30'),
             $this->invoice('2026-11-10', '2026-11-30'),
@@ -145,7 +145,7 @@ final class InvoiceToolsTest extends ReadToolTestCase
 
     public function testTheCursorPagesThroughTheSearchAsTheRestListDoes(): void
     {
-        $ids = $this->inTenant($this->tenant, fn (): array => array_map(fn (int $day): string => $this->invoice(\sprintf('2026-11-%02d', $day), '2026-11-30')->id(), [1, 2, 3, 4, 5]));
+        $ids = $this->flushed(fn (): array => array_map(fn (int $day): string => $this->invoice(\sprintf('2026-11-%02d', $day), '2026-11-30')->id(), [1, 2, 3, 4, 5]));
 
         self::assertSame([[$ids[4], $ids[3]], [$ids[2], $ids[1]], [$ids[0]]], $this->toolPages(SearchInvoicesTool::class, 2));
         $first = $this->call(SearchInvoicesTool::class, ['limit' => 2]);
@@ -186,7 +186,7 @@ final class InvoiceToolsTest extends ReadToolTestCase
 
     public function testTheLimitsOfTheLimitAreAccepted(): void
     {
-        $this->inTenant($this->tenant, fn (): Invoice => $this->invoice());
+        $this->flushed(fn (): Invoice => $this->invoice());
 
         self::assertCount(1, self::itemIds($this->call(SearchInvoicesTool::class, ['limit' => 1])));
         self::assertCount(1, self::itemIds($this->call(SearchInvoicesTool::class, ['limit' => 100])));
@@ -195,7 +195,7 @@ final class InvoiceToolsTest extends ReadToolTestCase
 
     public function testAGuestReadsNoInvoices(): void
     {
-        $invoice = $this->inTenant($this->tenant, fn (): Invoice => $this->invoice());
+        $invoice = $this->flushed(fn (): Invoice => $this->invoice());
         $guest = $this->guest();
 
         $this->assertRefused('forbidden', 'Only the owners and members of the organisation read its invoices.', SearchInvoicesTool::class, [], $guest);

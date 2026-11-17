@@ -48,7 +48,7 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
 
 /**
- * Delivers what the request froze, in the tenant of the message, in steps that
+ * Delivers what the request froze, in steps that
  * each leave a record, so a delivery that stops anywhere is finished later and a
  * mail the server accepted is never sent again:
  *
@@ -121,7 +121,7 @@ final readonly class DeliverInvoiceSendHandler
         try {
             $owed = $this->claim($id);
         } catch (UnknownInvoiceSend) {
-            $this->logger->warning('No send {send} in the tenant of the message; nothing was sent.', ['send' => $id]);
+            $this->logger->warning('No send {send}; nothing was sent.', ['send' => $id]);
 
             return;
         }
@@ -168,7 +168,7 @@ final readonly class DeliverInvoiceSendHandler
      * @return InvoiceSend|null the send, claimed, when something is owed
      *
      * @throws SendLeaseHeld      while another worker holds the claim
-     * @throws UnknownInvoiceSend for a send of another tenant
+     * @throws UnknownInvoiceSend for a send that does not exist
      */
     private function claim(string $id): ?InvoiceSend
     {

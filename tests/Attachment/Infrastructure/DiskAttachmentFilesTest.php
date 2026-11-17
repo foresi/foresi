@@ -60,14 +60,14 @@ final class DiskAttachmentFilesTest extends TestCase
         $this->files->read($id, $key, hash('sha256', 'the bytes'));
     }
 
-    public function testAFileStoredUnderATenantStillReads(): void
+    public function testAFileStoredOneDirectoryDeeperStillReads(): void
     {
-        $tenant = Id::generate();
+        $directory = Id::generate();
         $id = Id::generate();
-        mkdir($this->root.'/'.$tenant, 0o700, true);
-        file_put_contents($this->root.'/'.$tenant.'/'.$id, 'the bytes');
+        mkdir($this->root.'/'.$directory, 0o700, true);
+        file_put_contents($this->root.'/'.$directory.'/'.$id, 'the bytes');
 
-        self::assertSame($this->root.'/'.$tenant.'/'.$id, $this->files->read($id, $tenant.'/'.$id, hash('sha256', 'the bytes')));
+        self::assertSame($this->root.'/'.$directory.'/'.$id, $this->files->read($id, $directory.'/'.$id, hash('sha256', 'the bytes')));
     }
 
     public function testAnotherAttachmentsKeyOrAMissingFileIsUnreadable(): void

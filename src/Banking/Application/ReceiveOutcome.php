@@ -13,7 +13,7 @@ namespace App\Banking\Application;
  */
 enum ReceiveOutcome
 {
-    /** Stored in its tenant and queued for processing. */
+    /** Stored and queued for processing. */
     case Stored;
     /** The same mail was stored before; nothing new was kept. */
     case Duplicate;

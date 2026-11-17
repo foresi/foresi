@@ -144,7 +144,7 @@ final class RecordMovementTest extends BankingTestCase
         self::assertSame(0, $this->paymentCount());
     }
 
-    public function testATransferFromAnotherFirmOfTheTenantPairsNormally(): void
+    public function testATransferFromAnotherOwnFirmPairsNormally(): void
     {
         $invoice = $this->issue->issue($this->input());
         $other = $this->firm(vatId: 'CZ12345687', registrationNumber: '12345687');

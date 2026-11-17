@@ -30,7 +30,7 @@ final class Version20261110200002 extends AbstractMigration
     {
         $document = $schema->createTable('received_document');
         $document->addColumn('id', Types::GUID);
-        $document->addColumn('tenant_id', 'tenant_id');
+        $document->addColumn('tenant_id', 'guid');
         $document->addColumn('legal_entity_id', Types::GUID);
         $document->addColumn('version', Types::INTEGER);
         $document->addColumn('state', Types::STRING, ['length' => 16]);

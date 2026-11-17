@@ -12,8 +12,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 /**
  * The last sign of life of a part of the installation, such as the worker or the
- * schedule, one row per name. Not owned by a tenant: the installation has one
- * worker. Mapped so the schema is validated, but only the single statements of
+ * schedule, one row per name; the installation has one worker. Mapped so the schema is validated, but only the single statements of
  * DoctrineHeartbeats write it and the ORM never loads a row.
  */
 #[ORM\Entity]

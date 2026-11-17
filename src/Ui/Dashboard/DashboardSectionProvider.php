@@ -13,7 +13,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 /**
  * Implemented by modules that show something on the start page. Every
  * implementation is picked up automatically (tag "app.dashboard_section").
- * Providers are asked only while a tenant is active; one with nothing to show
+ * Providers are asked only for a signed-in person with an active membership; one with nothing to show
  * gives no section.
  */
 #[AutoconfigureTag(DashboardSections::TAG)]

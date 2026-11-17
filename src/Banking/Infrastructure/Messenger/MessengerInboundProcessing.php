@@ -13,7 +13,7 @@ use App\Banking\Application\ProcessInboundMessage;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
- * Sends the message to the queue; the tenant middleware stamps the active tenant.
+ * Sends the message to the queue.
  */
 final readonly class MessengerInboundProcessing implements InboundProcessing
 {

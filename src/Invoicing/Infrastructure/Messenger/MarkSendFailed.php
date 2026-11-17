@@ -8,9 +8,6 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Messenger;
 
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
-use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Invoicing\Application\ConflictRetry;
 use App\Invoicing\Application\DeliverInvoiceSend;
 use App\Invoicing\Application\InvoiceSends;
@@ -25,9 +22,7 @@ use Symfony\Component\Messenger\Exception\HandlerFailedException;
 /**
  * When the queue gives up on a delivery, the send says so: it fails with the
  * reason of the last try, so the firm sees it instead of a send queued for ever.
- * The worker has no tenant of its own here, so the one of the message is made
- * active for the change. Only the server's own reason is kept, never the text of
- * another error.
+ * Only the server's own reason is kept, never the text of another error.
  *
  * The send's own tries decide, not the message that ran out: RequeueStuckSends
  * may have queued a second message for the same send, each with retries of its
@@ -43,7 +38,6 @@ final readonly class MarkSendFailed
 
     public function __construct(
         private InvoiceSends $sends,
-        private TenantContext $context,
         private TransactionalWork $work,
         private ConflictRetry $retry,
         private ClockInterface $clock,
@@ -53,16 +47,11 @@ final readonly class MarkSendFailed
     #[AsEventListener]
     public function onFailure(WorkerMessageFailedEvent $event): void
     {
-        $envelope = $event->getEnvelope();
-        $message = $envelope->getMessage();
-        $stamp = $envelope->last(TenantStamp::class);
-        if ($event->willRetry() || !$message instanceof DeliverInvoiceSend || !$stamp instanceof TenantStamp) {
+        $message = $event->getEnvelope()->getMessage();
+        if ($event->willRetry() || !$message instanceof DeliverInvoiceSend) {
             return;
         }
         $refused = $this->refusal($event->getThrowable());
-        $tenant = TenantId::fromString($stamp->tenantId);
-        $previous = $this->context->has() ? $this->context->current() : null;
-        $this->context->switchTo($tenant);
         try {
             $this->retry->run(fn (): null => $this->work->run(function () use ($message, $refused): null {
                 $send = $this->sends->lock($message->sendId);
@@ -80,12 +69,6 @@ final readonly class MarkSendFailed
                 return null;
             }));
         } catch (UnknownInvoiceSend) {
-        } finally {
-            if ($previous instanceof TenantId) {
-                $this->context->switchTo($previous);
-            } else {
-                $this->context->reset();
-            }
         }
     }
 

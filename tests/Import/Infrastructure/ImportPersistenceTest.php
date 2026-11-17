@@ -54,7 +54,7 @@ final class ImportPersistenceTest extends KernelTestCase
         $mapping = new Mapping([0 => 'name', 1 => null], ['kind' => ['Firma' => 'company']]);
         $profile = new ImportProfile('Contacts', 'party', 'idoklad', $mapping, $options, Mapping::signature(['Name', 'Kind']), new \DateTimeImmutable('2026-10-01 10:00:00'));
         $this->profiles->add($profile);
-        $import = new Import('party', 'tenant/file', 'contacts.csv', ['format' => 'csv', 'encoding' => 'utf-8', 'delimiter' => ';', 'sheet' => null, 'headerRow' => 1], '019a0000-0000-7000-8000-000000000007', new \DateTimeImmutable('2026-10-01 10:00:00'));
+        $import = new Import('party', 'files/file', 'contacts.csv', ['format' => 'csv', 'encoding' => 'utf-8', 'delimiter' => ';', 'sheet' => null, 'headerRow' => 1], '019a0000-0000-7000-8000-000000000007', new \DateTimeImmutable('2026-10-01 10:00:00'));
         $import->readHeaders(['Name', 'Kind']);
         $import->useMapping($mapping, $options, $profile);
         $import->moveTo(ImportState::Reading);
@@ -175,6 +175,6 @@ final class ImportPersistenceTest extends KernelTestCase
 
     private function newImport(): Import
     {
-        return new Import('party', 'tenant/file', 'contacts.csv', ['format' => 'csv', 'encoding' => null, 'delimiter' => null, 'sheet' => null, 'headerRow' => null], '019a0000-0000-7000-8000-000000000007', new \DateTimeImmutable('2026-10-01'));
+        return new Import('party', 'files/file', 'contacts.csv', ['format' => 'csv', 'encoding' => null, 'delimiter' => null, 'sheet' => null, 'headerRow' => null], '019a0000-0000-7000-8000-000000000007', new \DateTimeImmutable('2026-10-01'));
     }
 }

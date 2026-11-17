@@ -32,7 +32,7 @@ final readonly class DocumentExports
      *
      * @param list<string> $ids of documents of any kind, in the trash too
      *
-     * @throws UnknownInvoice also for a document of another tenant; nothing is marked
+     * @throws UnknownInvoice for an unknown document; nothing is marked
      */
     public function markExported(array $ids): void
     {
@@ -53,7 +53,7 @@ final readonly class DocumentExports
     /**
      * @return Invoice the document as saved; anything loaded before is detached
      *
-     * @throws UnknownInvoice also for a document of another tenant
+     * @throws UnknownInvoice
      */
     public function clear(string $id): Invoice
     {

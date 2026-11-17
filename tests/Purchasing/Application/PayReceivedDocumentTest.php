@@ -29,7 +29,7 @@ use App\Tests\Invoicing\Application\ReadsEventLog;
 /**
  * The payments of received documents (decision C3 of the cash flow spec):
  * several per document, never more than its total, "mark as paid" for what
- * remains today in the tenant's zone, the paid event once the document is paid
+ * remains today in the instance's zone, the paid event once the document is paid
  * in full, and the recorded event when a document is first recorded.
  */
 final class PayReceivedDocumentTest extends PurchasingTestCase
@@ -85,7 +85,7 @@ final class PayReceivedDocumentTest extends PurchasingTestCase
         $this->payments()->remove($id, $wrong->id());
     }
 
-    public function testMarkAsPaidPaysWhatRemainsOnTheTenantsToday(): void
+    public function testMarkAsPaidPaysWhatRemainsOnTheInstancesToday(): void
     {
         $id = $this->recorded();
         $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('210.00', Currency::CZK), PaymentMethod::BankTransfer);

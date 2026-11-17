@@ -34,9 +34,9 @@ use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 use App\Tests\Support\Mail\RecordingMailGateway;
 
-// The tenant of the send dialog specs: a payer firm with a mail server and one without,
+// The world of the send dialog specs: a payer firm with a mail server and one without,
 // and a customer with an address for invoices and one for a copy. Its invoices are
-// issued here, so the specs of the other tenants see nothing of them.
+// issued here, so the specs of the other worlds see nothing of them.
 $sendingFirm = new LegalEntity('Example Sending s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(1), VatStatus::Registered, 'Example register, entry C 9012');
 $entityManager->persist($sendingFirm);
 $firmAccount($sendingFirm);

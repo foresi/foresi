@@ -10,8 +10,6 @@ namespace App\Tests\Audit\Fixtures;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditExcluded;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -20,15 +18,11 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'test_audited_secret')]
-#[ORM\Index(name: 'idx_test_audited_secret_tenant', columns: ['tenant_id'])]
-class AuditedSecret implements TenantOwned, Audited
+class AuditedSecret implements Audited
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     public function __construct(
         #[ORM\Column(type: 'string', length: 64)]
@@ -63,10 +57,5 @@ class AuditedSecret implements TenantOwned, Audited
     public function secret(): string
     {
         return $this->secret;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

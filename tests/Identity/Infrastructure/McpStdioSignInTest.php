@@ -17,8 +17,6 @@ use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Console\McpStdioSignIn;
 use App\Identity\Infrastructure\Security\ApiTokenLogin;
 use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
 use App\Shared\Infrastructure\Mcp\ToolRefusal;
@@ -41,17 +39,15 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 final class McpStdioSignInTest extends KernelTestCase
 {
     private User $user;
-    private TenantId $tenant;
     private SplitOutput $output;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        $fixtures = new IdentityFixtures($this->em(), $this->context());
+        $fixtures = new IdentityFixtures($this->em());
         $fixtures->rebuildSchema();
         $this->user = $fixtures->user();
-        $this->tenant = $fixtures->tenant('Tenant A');
-        $fixtures->join($this->user, $this->tenant, Role::Member);
+        $fixtures->join($this->user, Role::Member);
         $this->output = new SplitOutput();
     }
 
@@ -65,7 +61,6 @@ final class McpStdioSignInTest extends KernelTestCase
         $user = $this->tokens()->getToken()?->getUser();
         self::assertInstanceOf(SecurityUser::class, $user);
         self::assertSame($this->user->id(), $user->id());
-        self::assertTrue($this->context()->current()->equals($this->tenant));
         self::assertSame('', $this->output->errors());
         self::assertSame('', $this->output->written());
     }
@@ -95,7 +90,6 @@ final class McpStdioSignInTest extends KernelTestCase
         self::assertSame($message."\n", $this->output->errors());
         self::assertSame('', $this->output->written());
         self::assertNull($this->tokens()->getToken());
-        self::assertFalse($this->context()->has());
     }
 
     /**
@@ -142,7 +136,6 @@ final class McpStdioSignInTest extends KernelTestCase
         $signIn->confirm();
 
         self::assertFalse($this->em()->contains($loaded));
-        self::assertTrue($this->context()->current()->equals($this->tenant));
         self::assertNotNull($this->tokens()->getToken());
     }
 
@@ -160,7 +153,6 @@ final class McpStdioSignInTest extends KernelTestCase
             self::assertSame('The API token of this connection was refused: it has been revoked. Restart the MCP server with a valid token.', $refused->getMessage());
         }
         self::assertNull($this->tokens()->getToken());
-        self::assertFalse($this->context()->has());
 
         $this->expectException(ToolRefusal::class);
         $signIn->confirm();
@@ -192,7 +184,7 @@ final class McpStdioSignInTest extends KernelTestCase
     {
         $container = self::getContainer();
 
-        return new McpStdioSignIn($container->get(ApiTokenLogin::class), $this->tokens(), $this->context(), $this->em(), $secret);
+        return new McpStdioSignIn($container->get(ApiTokenLogin::class), $this->tokens(), $this->em(), $secret);
     }
 
     private function start(McpStdioSignIn $signIn, string $command = McpStdioSignIn::COMMAND): ConsoleCommandEvent
@@ -205,17 +197,14 @@ final class McpStdioSignInTest extends KernelTestCase
 
     private function issued(): string
     {
-        $this->context()->switchTo($this->tenant);
         try {
             return self::getContainer()->get(ManageApiTokens::class)->issueAsOperator($this->user->id(), 'Claude', [ApiScope::read()])->secret;
         } finally {
-            $this->context()->reset();
         }
     }
 
     private function change(string $change): void
     {
-        $this->context()->switchTo($this->tenant);
         $token = $this->em()->getRepository(ApiToken::class)->findOneBy([]);
         self::assertInstanceOf(ApiToken::class, $token);
         $membership = $this->em()->getRepository(Membership::class)->findOneBy(['user' => $this->user->id()]);
@@ -229,7 +218,6 @@ final class McpStdioSignInTest extends KernelTestCase
         };
         $this->em()->flush();
         $this->em()->clear();
-        $this->context()->reset();
     }
 
     private function party(): Party
@@ -248,10 +236,5 @@ final class McpStdioSignInTest extends KernelTestCase
     private function em(): EntityManagerInterface
     {
         return self::getContainer()->get('doctrine.orm.entity_manager');
-    }
-
-    private function context(): TenantContext
-    {
-        return self::getContainer()->get(TenantContext::class);
     }
 }

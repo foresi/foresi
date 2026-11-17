@@ -71,7 +71,7 @@ final readonly class SendInvoice
      * @return InvoiceSend the send as stored, queued
      *
      * @throws SendRefused    nothing is stored and nothing queued
-     * @throws UnknownInvoice also for an invoice of another tenant
+     * @throws UnknownInvoice
      */
     public function send(SendRequest $request): InvoiceSend
     {

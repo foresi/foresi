@@ -12,8 +12,6 @@ use App\Identity\Application\ManageApiTokens;
 use App\Identity\Domain\ApiScope;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\LineInput;
@@ -64,7 +62,6 @@ abstract class ApiTestCase extends WebTestCase
     protected KernelBrowser $client;
     protected IdentityFixtures $fixtures;
     protected User $user;
-    protected TenantId $tenant;
     protected string $firmId;
     protected string $seriesId;
     protected string $customerId;
@@ -75,12 +72,11 @@ abstract class ApiTestCase extends WebTestCase
         $this->client = self::createClient();
         // The test database lives in memory, so every request must share the kernel.
         $this->client->disableReboot();
-        $this->fixtures = new IdentityFixtures($this->em(), $this->context());
+        $this->fixtures = new IdentityFixtures($this->em());
         $this->fixtures->rebuildSchema();
         $this->user = $this->fixtures->user();
-        $this->tenant = $this->fixtures->tenant('Example Organisation');
-        $this->fixtures->join($this->user, $this->tenant, Role::Member);
-        [$this->firmId, $this->seriesId, $this->customerId] = $this->inTenant($this->tenant, fn (): array => $this->firmWithCustomer());
+        $this->fixtures->join($this->user, Role::Member);
+        [$this->firmId, $this->seriesId, $this->customerId] = $this->flushed(fn (): array => $this->firmWithCustomer());
         $this->secret = $this->issued();
     }
 
@@ -89,11 +85,11 @@ abstract class ApiTestCase extends WebTestCase
      */
     protected function issued(?array $scopes = null): string
     {
-        return $this->inTenant($this->tenant, fn (): string => self::getContainer()->get(ManageApiTokens::class)->issueAsOperator($this->user->id(), 'Reporting', $scopes)->secret);
+        return $this->flushed(fn (): string => self::getContainer()->get(ManageApiTokens::class)->issueAsOperator($this->user->id(), 'Reporting', $scopes)->secret);
     }
 
     /**
-     * Runs the work while the organisation is the active one, and flushes it.
+     * Runs the work and flushes it.
      *
      * @template T
      *
@@ -101,25 +97,12 @@ abstract class ApiTestCase extends WebTestCase
      *
      * @return T
      */
-    protected function inTenant(TenantId $tenant, \Closure $work): mixed
+    protected function flushed(\Closure $work): mixed
     {
-        $this->context()->switchTo($tenant);
-        try {
-            $result = $work();
-            $this->em()->flush();
+        $result = $work();
+        $this->em()->flush();
 
-            return $result;
-        } finally {
-            $this->context()->reset();
-        }
-    }
-
-    /**
-     * Another organisation the user is no member of.
-     */
-    protected function foreignTenant(): TenantId
-    {
-        return $this->fixtures->tenant('Foreign Organisation');
+        return $result;
     }
 
     /**
@@ -296,10 +279,5 @@ abstract class ApiTestCase extends WebTestCase
     protected function em(): EntityManagerInterface
     {
         return self::getContainer()->get('doctrine.orm.entity_manager');
-    }
-
-    protected function context(): TenantContext
-    {
-        return self::getContainer()->get(TenantContext::class);
     }
 }

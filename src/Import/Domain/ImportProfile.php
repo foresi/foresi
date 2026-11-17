@@ -12,7 +12,7 @@ use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * What the tenant decided for a kind of source: the mapping and options an import
+ * What the instance decided for a kind of source: the mapping and options an import
  * proposes again when it meets the same headers.
  */
 #[ORM\Entity]

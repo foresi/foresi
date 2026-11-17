@@ -12,9 +12,7 @@ use App\Events\Application\RelayEvents;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
- * Relays after a commit that recorded events. The nudge may arrive stamped with
- * the tenant it was sent in; the relay ignores it, as it numbers the rows of
- * every tenant.
+ * Relays after a commit that recorded events.
  */
 #[AsMessageHandler]
 final readonly class RelayEventsHandler

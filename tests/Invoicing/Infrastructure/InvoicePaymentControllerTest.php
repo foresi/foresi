@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\CorrectionInput;
 use App\Invoicing\Application\InvoiceInput;
@@ -67,8 +65,6 @@ final class InvoicePaymentControllerTest extends WebTestCase
 
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private TenantContext $context;
-    private TenantId $tenant;
     private LegalEntity $firm;
     private Series $series;
     private Party $customer;
@@ -79,8 +75,7 @@ final class InvoicePaymentControllerTest extends WebTestCase
         self::mockTime('2026-11-03 10:00:00');
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), $this->context);
+        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
     }
 
     public function testPayingInTheDialogStoresThePaymentAndRedirectsAsJson(): void
@@ -639,10 +634,8 @@ final class InvoicePaymentControllerTest extends WebTestCase
 
     private function signedIn(Role $role = Role::Owner): void
     {
-        [$this->tenant] = $this->browser->seed(['Tenant A'], role: $role);
-        $this->context->switchTo($this->tenant);
+        $this->browser->seed(role: $role);
         [$this->firm, $this->series, $this->customer] = $this->firmWithSeries();
-        $this->context->reset();
         $this->browser->signIn();
     }
 
@@ -655,12 +648,7 @@ final class InvoicePaymentControllerTest extends WebTestCase
      */
     private function scoped(callable $work): mixed
     {
-        $this->context->switchTo($this->tenant);
-        try {
-            return $work();
-        } finally {
-            $this->context->reset();
-        }
+        return $work();
     }
 
     private function connection(): Connection

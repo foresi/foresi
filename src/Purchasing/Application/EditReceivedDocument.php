@@ -34,7 +34,7 @@ final readonly class EditReceivedDocument
      * @param int|null $version the version the person saw; another one is refused with STALE
      *
      * @throws PurchasingNotAllowed    for anyone but the owners and members of the organisation
-     * @throws UnknownReceivedDocument also for a document of another tenant
+     * @throws UnknownReceivedDocument
      * @throws ReceivedDocumentRefused with TRASHED in the trash, LOCKED once locked, and for anything the document refuses
      */
     public function edit(string $documentId, ReceivedDocumentInput $input, ?int $version = null): SavedReceivedDocument

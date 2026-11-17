@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Work\Application;
 
 /**
- * A group of my tasks, by when they are due in the tenant's time zone.
+ * A group of my tasks, by when they are due in the instance's time zone.
  */
 final readonly class TaskGroup
 {
@@ -32,7 +32,7 @@ final readonly class TaskGroup
      * Every group in order, each even when empty, with the tasks in the order they come.
      *
      * @param list<TaskRow>      $tasks
-     * @param \DateTimeImmutable $today midnight of today in the tenant's time zone
+     * @param \DateTimeImmutable $today midnight of today in the instance's time zone
      *
      * @return list<self>
      */

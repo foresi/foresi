@@ -8,9 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure\Support;
 
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\Tenant;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\LineInput;
@@ -55,7 +52,7 @@ use Symfony\Component\Clock\MockClock;
  * reminders are on and invoices due on 10 January, so both runs find the same
  * first reminders on the 17th.
  *
- * @phpstan-type Ids list<array{tenant: string, invoices: list<string>}>
+ * @phpstan-type Ids list<array{invoices: list<string>}>
  */
 abstract class ReminderWorker extends KernelTestCase
 {
@@ -65,7 +62,7 @@ abstract class ReminderWorker extends KernelTestCase
     private const float SLOT = 1.5;
 
     /**
-     * Rebuilds the schema and seeds one tenant per slot.
+     * Rebuilds the schema and seeds one firm per slot.
      *
      * @return Ids
      */
@@ -78,17 +75,13 @@ abstract class ReminderWorker extends KernelTestCase
         $metadata = $em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $context = $container->get(TenantContext::class);
         $issue = $container->get(IssueInvoice::class);
         $delivered = $container->get(MarkDelivered::class);
         $secrets = $container->get(MailSecrets::class);
 
         $ids = [];
         for ($slot = 0; $slot < $slots; ++$slot) {
-            $tenant = TenantId::generate();
-            $context->switchTo($tenant);
             $em->clear();
-            $em->persist(new Tenant($tenant, 'Example Company', new \DateTimeImmutable('2026-10-01')));
             $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register');
             $em->persist($firm);
             FirmAccounts::add($em, $firm, self::IBAN);
@@ -111,7 +104,7 @@ abstract class ReminderWorker extends KernelTestCase
                 $invoice = $issue->issue(new InvoiceInput($firm->id(), $series->id(), null, $customer->id(), null, $day, $day, new \DateTimeImmutable('2027-01-10'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line]));
                 $invoices[] = $delivered->mark($invoice->id())->id();
             }
-            $ids[] = ['tenant' => $tenant->toString(), 'invoices' => $invoices];
+            $ids[] = ['invoices' => $invoices];
         }
 
         return $ids;
@@ -127,15 +120,13 @@ abstract class ReminderWorker extends KernelTestCase
         }
         self::bootKernel(['debug' => false]);
         $container = self::getContainer();
-        $context = $container->get(TenantContext::class);
         $em = $container->get('doctrine.orm.entity_manager');
         Clock::set(new MockClock(self::RUN_AT));
         $results = [];
         $began = [];
         $ended = [];
-        foreach (self::ids($json) as $slot => $tenant) {
+        foreach (array_keys(self::ids($json)) as $slot) {
             usleep(max(0, (int) (($startAt + $slot * self::SLOT - microtime(true)) * 1_000_000)));
-            $context->switchTo(TenantId::fromString($tenant['tenant']));
             $em->clear();
             $began[] = microtime(true);
             $container->get(SendReminders::class)->run(null);
@@ -160,9 +151,9 @@ abstract class ReminderWorker extends KernelTestCase
         self::bootKernel(['debug' => false]);
         $connection = self::getContainer()->get('doctrine.dbal.default_connection');
         $found = [];
-        foreach (self::ids($json) as $tenant) {
+        foreach (self::ids($json) as $slotIds) {
             $invoices = [];
-            foreach ($tenant['invoices'] as $invoice) {
+            foreach ($slotIds['invoices'] as $invoice) {
                 $steps = $connection->fetchFirstColumn("SELECT reminder_step FROM invoice_send WHERE invoice_id = ? AND purpose = 'reminder' ORDER BY reminder_step", [$invoice]);
                 $invoices[] = array_map(static fn (mixed $step): int => is_numeric($step) ? (int) $step : -1, $steps);
             }

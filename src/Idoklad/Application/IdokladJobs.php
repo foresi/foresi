@@ -16,7 +16,7 @@ interface IdokladJobs
 {
     public function add(IdokladJob $job): void;
 
-    /** Also null for a job of another tenant. */
+    /** Also null for an unknown job. */
     public function find(string $id): ?IdokladJob;
 
     /** The firm's latest job, ended or not. */

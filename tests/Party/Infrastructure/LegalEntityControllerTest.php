@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Party\Infrastructure;
 
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Application\FirmBankAccounts;
 use App\Party\Application\LegalEntities;
 use App\Party\Domain\Address;
@@ -34,18 +32,12 @@ final class LegalEntityControllerTest extends WebTestCase
 
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private TenantContext $context;
-
-    /** @var array<string, TenantId> the tenant of each firm made here, by firm id */
-    private array $firmTenants = [];
-    private TenantId $tenant;
 
     protected function setUp(): void
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), $this->context);
+        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
     }
 
     protected function tearDown(): void
@@ -57,7 +49,7 @@ final class LegalEntityControllerTest extends WebTestCase
     public function testTheOwnerListsTheFirms(): void
     {
         $this->signIn();
-        $this->firm('Example Firm s.r.o.', $this->tenant, '12345695');
+        $this->firm('Example Firm s.r.o.', '12345695');
 
         $this->client->request('GET', '/settings/firms');
 
@@ -67,7 +59,7 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSelectorTextContains('main table', '12345695');
     }
 
-    public function testATenantWithoutFirmsIsToldHowToStart(): void
+    public function testAnInstanceWithoutFirmsIsToldHowToStart(): void
     {
         $this->signIn();
 
@@ -100,7 +92,7 @@ final class LegalEntityControllerTest extends WebTestCase
     public function testTheFirmPageHasTabsForDetailsInvoicingMailAndBankAndKeepsFirmsMarkedInTheSidebar(): void
     {
         $this->signIn();
-        $id = $this->firm('Example Firm', $this->tenant, '12345695')->id();
+        $id = $this->firm('Example Firm', '12345695')->id();
 
         $crawler = $this->client->request('GET', '/settings/firms/'.$id.'/edit');
 
@@ -126,7 +118,7 @@ final class LegalEntityControllerTest extends WebTestCase
 
     public function testTheSidebarHidesFirmsFromOtherRoles(): void
     {
-        $this->browser->seed(['Tenant A'], role: Role::Member);
+        $this->browser->seed(role: Role::Member);
         $this->browser->signIn();
 
         $this->client->request('GET', '/');
@@ -183,7 +175,6 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSame(VatStatus::Registered, $firm->vatStatus());
         self::assertSame('Register entry C 1234', $firm->registerEntry());
         self::assertSame('Example City', $firm->address()->city);
-        $this->context->switchTo($this->tenant);
         self::assertSame([], $this->accounts()->of($firm), 'the firm form opens no bank account');
     }
 
@@ -262,11 +253,9 @@ final class LegalEntityControllerTest extends WebTestCase
     public function testTheOwnerEditsAFirm(): void
     {
         $this->signIn();
-        $firm = $this->firm('Example Firm', $this->tenant, '12345695');
-        $this->context->switchTo($this->tenant);
+        $firm = $this->firm('Example Firm', '12345695');
         FirmAccounts::add($this->em(), self::getContainer()->get(LegalEntities::class)->get($firm->id()), self::IBAN);
         $this->em()->flush();
-        $this->context->reset();
 
         $crawler = $this->client->request('GET', '/settings/firms/'.$firm->id().'/edit');
         self::assertResponseIsSuccessful();
@@ -282,7 +271,6 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSelectorTextContains('main', 'The changes are saved.');
         $stored = $this->storedFirm();
         self::assertSame('Renamed Firm', $stored->name());
-        $this->context->switchTo($this->tenant);
         self::assertSame([self::IBAN_STORED], $this->accounts()->ibansOf($stored), 'saving the firm keeps its accounts');
         self::assertSame('12345695', $stored->registrationNumber()->value);
     }
@@ -290,9 +278,9 @@ final class LegalEntityControllerTest extends WebTestCase
     #[DataProvider('otherRoles')]
     public function testOtherRolesAreRefused(Role $role): void
     {
-        [$this->tenant] = $this->browser->seed(['Tenant A'], role: $role);
+        $this->browser->seed(role: $role);
         $this->browser->signIn();
-        $id = $this->firm('Example Firm', $this->tenant, '12345695')->id();
+        $id = $this->firm('Example Firm', '12345695')->id();
 
         foreach ([['GET', '/settings/firms'], ['GET', '/settings/firms/new'], ['POST', '/settings/firms/new'], ['GET', '/settings/firms/'.$id.'/edit'], ['POST', '/settings/firms/'.$id.'/edit'], ['POST', '/settings/firms/'.$id.'/archive']] as [$method, $url]) {
             $this->client->request($method, $url);
@@ -310,10 +298,10 @@ final class LegalEntityControllerTest extends WebTestCase
         yield 'guest' => [Role::Guest];
     }
 
-    public function testARegistrationNumberIsUniqueAmongTheActiveFirmsOfATenant(): void
+    public function testARegistrationNumberIsUniqueAmongTheActiveFirms(): void
     {
         $this->signIn();
-        $this->firm('Example Firm', $this->tenant, '12345695');
+        $this->firm('Example Firm', '12345695');
 
         $this->submitNew(['name' => 'Second Firm', 'registrationNumber' => '1234 5695']);
 
@@ -326,7 +314,7 @@ final class LegalEntityControllerTest extends WebTestCase
     public function testAnArchivedFirmReleasesItsRegistrationNumber(): void
     {
         $this->signIn();
-        $firm = $this->firm('Old Firm', $this->tenant, '12345687');
+        $firm = $this->firm('Old Firm', '12345687');
         $this->archive($firm);
 
         $this->submitNew(['name' => 'New Firm', 'registrationNumber' => '12345687']);
@@ -338,8 +326,8 @@ final class LegalEntityControllerTest extends WebTestCase
     public function testAFirmCannotTakeTheNumberOfAnotherOne(): void
     {
         $this->signIn();
-        $this->firm('Example Firm', $this->tenant, '12345695');
-        $other = $this->firm('Other Firm', $this->tenant, '12345687');
+        $this->firm('Example Firm', '12345695');
+        $other = $this->firm('Other Firm', '12345687');
 
         $crawler = $this->client->request('GET', '/settings/firms/'.$other->id().'/edit');
         $this->client->submit($crawler->filter('main form[data-controller]')->form(['registrationNumber' => '12345695']));
@@ -351,7 +339,7 @@ final class LegalEntityControllerTest extends WebTestCase
     public function testLosingTheRaceForANumberIsAFormError(): void
     {
         $this->signIn();
-        $this->firm('Example Firm', $this->tenant, '12345687');
+        $this->firm('Example Firm', '12345687');
         $form = $this->newForm();
         RacingLegalEntities::$blind = true;
 
@@ -366,8 +354,8 @@ final class LegalEntityControllerTest extends WebTestCase
     public function testArchivingMovesAFirmToTheArchivedView(): void
     {
         $this->signIn();
-        $firm = $this->firm('Example Firm', $this->tenant, '12345695');
-        $this->firm('Other Firm', $this->tenant, '12345687');
+        $firm = $this->firm('Example Firm', '12345695');
+        $this->firm('Other Firm', '12345687');
 
         $crawler = $this->client->request('GET', '/settings/firms/'.$firm->id().'/edit');
         $this->client->submit($crawler->filter('form[action$="/archive"]')->form());
@@ -385,7 +373,7 @@ final class LegalEntityControllerTest extends WebTestCase
     public function testTheArchiveButtonAsksForConfirmationNamingTheOutcome(): void
     {
         $this->signIn();
-        $firm = $this->firm('Example Firm', $this->tenant, '12345695');
+        $firm = $this->firm('Example Firm', '12345695');
 
         $crawler = $this->client->request('GET', '/settings/firms/'.$firm->id().'/edit');
 
@@ -400,7 +388,7 @@ final class LegalEntityControllerTest extends WebTestCase
     public function testTheLastActiveFirmCannotBeArchived(): void
     {
         $this->signIn();
-        $firm = $this->firm('Example Firm', $this->tenant, '12345695');
+        $firm = $this->firm('Example Firm', '12345695');
 
         $this->client->request('POST', '/settings/firms/'.$firm->id().'/archive', ['_token' => $this->actionToken($firm)]);
 
@@ -414,7 +402,7 @@ final class LegalEntityControllerTest extends WebTestCase
     public function testTheRefusalIsTranslated(): void
     {
         $this->signIn('cs');
-        $firm = $this->firm('Example Firm', $this->tenant, '12345695');
+        $firm = $this->firm('Example Firm', '12345695');
 
         $this->client->request('POST', '/settings/firms/'.$firm->id().'/archive', ['_token' => $this->actionToken($firm)]);
         $this->client->followRedirect();
@@ -425,8 +413,8 @@ final class LegalEntityControllerTest extends WebTestCase
     public function testAnArchivedFirmDoesNotKeepTheLastActiveOneArchivable(): void
     {
         $this->signIn();
-        $this->archive($this->firm('Old Firm', $this->tenant, '12345687'));
-        $firm = $this->firm('Example Firm', $this->tenant, '12345695');
+        $this->archive($this->firm('Old Firm', '12345687'));
+        $firm = $this->firm('Example Firm', '12345695');
 
         $this->client->request('POST', '/settings/firms/'.$firm->id().'/archive', ['_token' => $this->actionToken($firm)]);
 
@@ -436,8 +424,8 @@ final class LegalEntityControllerTest extends WebTestCase
     public function testArchivingStopsAtTheLastActiveFirm(): void
     {
         $this->signIn();
-        $first = $this->firm('Example Firm', $this->tenant, '12345695');
-        $second = $this->firm('Other Firm', $this->tenant, '12345687');
+        $first = $this->firm('Example Firm', '12345695');
+        $second = $this->firm('Other Firm', '12345687');
         $token = $this->actionToken($first);
 
         $this->client->request('POST', '/settings/firms/'.$first->id().'/archive', ['_token' => $token]);
@@ -450,10 +438,9 @@ final class LegalEntityControllerTest extends WebTestCase
     public function testActiveFirmsAreLockedOnlyInsideATransaction(): void
     {
         $this->signIn();
-        $this->archive($this->firm('Old Firm', $this->tenant, '12345687'));
-        $firm = $this->firm('Example Firm', $this->tenant, '12345695');
+        $this->archive($this->firm('Old Firm', '12345687'));
+        $firm = $this->firm('Example Firm', '12345695');
         $firms = self::getContainer()->get(LegalEntities::class);
-        $this->context->switchTo($this->tenant);
 
         self::assertSame([$firm->id()], $this->em()->wrapInTransaction(static fn (): array => array_map(static fn (LegalEntity $active): string => $active->id(), $firms->lockActive())));
 
@@ -464,7 +451,7 @@ final class LegalEntityControllerTest extends WebTestCase
     public function testAForgedArchiveIsRefused(): void
     {
         $this->signIn();
-        $firm = $this->firm('Example Firm', $this->tenant, '12345695');
+        $firm = $this->firm('Example Firm', '12345695');
 
         $this->client->request('POST', '/settings/firms/'.$firm->id().'/archive', ['_token' => 'forged']);
 
@@ -492,19 +479,16 @@ final class LegalEntityControllerTest extends WebTestCase
 
     private function signIn(string $locale = 'en'): void
     {
-        [$this->tenant] = $this->browser->seed(['Tenant A'], $locale);
+        $this->browser->seed($locale);
         $this->browser->signIn();
     }
 
-    private function firm(string $name, TenantId $tenant, string $number): LegalEntity
+    private function firm(string $name, string $number): LegalEntity
     {
         $em = $this->em();
-        $this->context->switchTo($tenant);
         $firm = new LegalEntity($name, new RegistrationNumber('CZ', $number), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $em->persist($firm);
         $em->flush();
-        $this->context->reset();
-        $this->firmTenants[$firm->id()] = $tenant;
 
         return $firm;
     }
@@ -512,11 +496,9 @@ final class LegalEntityControllerTest extends WebTestCase
     private function archive(LegalEntity $firm): void
     {
         $em = $this->em();
-        $this->context->switchTo($this->firmTenants[$firm->id()]);
         $stored = $em->getRepository(LegalEntity::class)->find($firm->id()) ?? throw new \LogicException('The firm is missing.');
         $stored->archive(new \DateTimeImmutable('2026-10-31 12:00:00'));
         $em->flush();
-        $this->context->reset();
     }
 
     private function newForm(): Form

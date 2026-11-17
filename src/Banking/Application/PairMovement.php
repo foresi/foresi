@@ -74,8 +74,8 @@ final readonly class PairMovement
      *
      * @throws PairingRefused      nothing is stored
      * @throws PaymentRefused      nothing is stored; the parts do not add up to the movement, say
-     * @throws UnknownBankMovement also for a movement of another tenant
-     * @throws UnknownInvoice      also for an invoice of another tenant
+     * @throws UnknownBankMovement for an unknown movement
+     * @throws UnknownInvoice      for an unknown invoice
      */
     public function pair(string $movementId, array $allocations, bool $checkedInBank = false): Payment
     {
@@ -112,7 +112,7 @@ final readonly class PairMovement
      *
      * @return Payment|null the payment, or null when it was not paired now
      *
-     * @throws UnknownBankMovement also for a movement of another tenant
+     * @throws UnknownBankMovement for an unknown movement
      */
     public function auto(string $movementId): ?Payment
     {

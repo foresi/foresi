@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Console;
 
-use App\Instance\Application\SoleTenant;
-use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\ConflictRetry;
 use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\PublicDocuments;
@@ -31,8 +29,6 @@ final readonly class RevokeLinkCommand
     public function __construct(
         private PublicDocuments $documents,
         private InvoiceSends $sends,
-        private TenantContext $context,
-        private SoleTenant $tenant,
         private TransactionalWork $work,
         private ConflictRetry $retry,
         private ClockInterface $clock,
@@ -46,16 +42,11 @@ final readonly class RevokeLinkCommand
 
             return Command::FAILURE;
         }
-        $this->context->switchTo($this->tenant->id());
-        try {
-            $this->retry->run(fn (): null => $this->work->run(function () use ($sendId): null {
-                $this->sends->lock($sendId)->revoke(\DateTimeImmutable::createFromInterface($this->clock->now()));
+        $this->retry->run(fn (): null => $this->work->run(function () use ($sendId): null {
+            $this->sends->lock($sendId)->revoke(\DateTimeImmutable::createFromInterface($this->clock->now()));
 
-                return null;
-            }));
-        } finally {
-            $this->context->reset();
-        }
+            return null;
+        }));
         $io->success(\sprintf('The links of send %s are ended. Sending the document again gives a new link.', $sendId));
 
         return Command::SUCCESS;

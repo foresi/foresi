@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace App\Attachment\Application;
 
 /**
- * The stored file of an attachment is missing, of another tenant or no longer
- * the one that was uploaded.
+ * The stored file of an attachment is missing, of another attachment or no
+ * longer the one that was uploaded.
  */
 final class AttachmentFileUnreadable extends \RuntimeException
 {

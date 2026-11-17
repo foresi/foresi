@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Instance\Application\Schedule;
 
 /**
- * The day a daily job works for: the local date in the tenant's zone, which
+ * The day a daily job works for: the local date in the instance's zone, which
  * begins at the start hour of the wall clock there. Before that hour it is still
  * yesterday. The hour is read off the local clock, not counted back from now, so
  * a day of the change to or from summer time begins at the same local hour.

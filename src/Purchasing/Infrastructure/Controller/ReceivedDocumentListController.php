@@ -10,7 +10,7 @@ namespace App\Purchasing\Infrastructure\Controller;
 
 use App\Attachment\Application\AttachmentRefused;
 use App\Attachment\Application\AttachmentUpload;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Purchasing\Application\Query\ReceivedDocumentDetails;
 use App\Purchasing\Application\Query\ReceivedDocumentFilter;
 use App\Purchasing\Application\Query\ReceivedDocumentList;
@@ -67,7 +67,7 @@ final class ReceivedDocumentListController extends AbstractController
         private readonly ReceivedDocumentForm $form,
         private readonly ReceivedDocumentScreen $screen,
         private readonly PurchasingText $text,
-        private readonly TenantClock $clock,
+        private readonly InstanceClock $clock,
         private readonly TranslatorInterface $translator,
     ) {
     }

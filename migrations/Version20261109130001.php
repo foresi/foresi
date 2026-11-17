@@ -27,7 +27,7 @@ final class Version20261109130001 extends AbstractMigration
     {
         $notification = $schema->createTable('notification');
         $notification->addColumn('id', Types::GUID);
-        $notification->addColumn('tenant_id', 'tenant_id');
+        $notification->addColumn('tenant_id', 'guid');
         $notification->addColumn('recipient_id', Types::GUID);
         $notification->addColumn('task_id', Types::GUID);
         $notification->addColumn('kind', Types::STRING, ['length' => 16]);

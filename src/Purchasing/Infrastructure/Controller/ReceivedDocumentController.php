@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Purchasing\Infrastructure\Controller;
 
 use App\Attachment\Domain\Attachment;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Purchasing\Application\DeleteReceivedDocumentDraft;
 use App\Purchasing\Application\EditReceivedDocument;
 use App\Purchasing\Application\Query\ReceivedDocumentDetail;
@@ -62,7 +62,7 @@ final class ReceivedDocumentController extends AbstractController
         private readonly DeleteReceivedDocumentDraft $deleting,
         private readonly ReceivedDocumentForm $form,
         private readonly ReceivedDocumentScreen $screen,
-        private readonly TenantClock $clock,
+        private readonly InstanceClock $clock,
         private readonly TranslatorInterface $translator,
     ) {
     }

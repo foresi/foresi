@@ -14,8 +14,8 @@ use Psr\Clock\ClockInterface;
 
 /**
  * Empties the trash of tasks of what is older than 30 days, once a day from
- * 03:00 in the tenant's zone, when nobody works. A missed day needs no catching
- * up: the next run takes everything that is old enough by then.
+ * 03:00 in the instance's zone, when nobody works. A missed day needs no
+ * catching up: the next run takes everything that is old enough by then.
  */
 final readonly class PurgeTaskTrashDaily implements ScheduledJob
 {

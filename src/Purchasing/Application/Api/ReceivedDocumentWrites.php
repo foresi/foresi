@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Purchasing\Application\Api;
 
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Party\Application\UnknownLegalEntity;
 use App\Purchasing\Application\PayReceivedDocument;
 use App\Purchasing\Application\PurchasingAccess;
@@ -40,7 +40,7 @@ final readonly class ReceivedDocumentWrites
         private RecordReceivedDocument $recording,
         private TrashReceivedDocument $trash,
         private PayReceivedDocument $payments,
-        private TenantClock $today,
+        private InstanceClock $today,
         private PurchasingAccess $access,
         private ReceivedDocuments $documents,
     ) {

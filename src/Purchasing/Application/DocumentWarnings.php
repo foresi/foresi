@@ -10,7 +10,7 @@ namespace App\Purchasing\Application;
 
 use App\Attachment\Application\Attachments;
 use App\Attachment\Domain\Attachment;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Party\Domain\Party;
 use App\Purchasing\Domain\ExchangeRate;
 use App\Purchasing\Domain\ReceivedDocument;
@@ -32,7 +32,7 @@ final readonly class DocumentWarnings
     public function __construct(
         private DuplicateDocuments $duplicates,
         private Attachments $attachments,
-        private TenantClock $clock,
+        private InstanceClock $clock,
     ) {
     }
 

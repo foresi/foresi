@@ -14,8 +14,6 @@ use App\Audit\Domain\AuditEntry;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Application\PartyDetails;
 use App\Party\Application\PartyHistoryEntry;
 use App\Party\Domain\Address;
@@ -40,14 +38,12 @@ final class AuditRootTest extends KernelTestCase
         self::bootKernel();
         $container = self::getContainer();
         $em = $container->get('doctrine.orm.entity_manager');
-        $context = $container->get(TenantContext::class);
         $this->em = $em;
 
         $tool = new SchemaTool($em);
         $metadata = $em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $context->switchTo(TenantId::generate());
     }
 
     public function testAChildChangeIsRecordedUnderItsParty(): void

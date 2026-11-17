@@ -70,7 +70,7 @@ final readonly class IssueInvoice
      * @param IssueOrigin|null $origin what issues the invoice, when not a person's form
      *
      * @throws IssueRefused       when a rule refuses; nothing is stored and no number is consumed
-     * @throws UnknownLegalEntity also for a firm of another tenant
+     * @throws UnknownLegalEntity
      */
     public function issue(InvoiceInput $input, ?IssueOrigin $origin = null): Invoice
     {

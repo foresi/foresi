@@ -142,6 +142,6 @@ final readonly class InvitePeople
 
     private function organisation(): string
     {
-        return $this->memberships->organisationsOf($this->inviterId())[0]->name ?? '';
+        return $this->memberships->organisationOf($this->inviterId())->name ?? '';
     }
 }

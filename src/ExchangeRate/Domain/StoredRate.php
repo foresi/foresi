@@ -12,7 +12,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 /**
  * One stored rate: a currency on a date it was asked for, with the day it was
- * published and where it came from. Not owned by a tenant: a rate is the same for
+ * published and where it came from. A rate is the same for
  * everyone. Mapped so the schema is validated, but only the statements of
  * DoctrineRateStore write it and the ORM never loads a row.
  */

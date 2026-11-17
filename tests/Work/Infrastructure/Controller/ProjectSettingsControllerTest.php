@@ -12,8 +12,6 @@ use App\Audit\Application\AuditTrail;
 use App\Audit\Domain\AuditAction;
 use App\Audit\Domain\AuditEntry;
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
 use App\Tests\Identity\Support\SignedInBrowser;
@@ -37,16 +35,13 @@ final class ProjectSettingsControllerTest extends WebTestCase
     private KernelBrowser $client;
     private SignedInBrowser $browser;
     private EntityManagerInterface $em;
-    private TenantContext $context;
-    private TenantId $tenant;
 
     protected function setUp(): void
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
         $this->em = self::getContainer()->get('doctrine.orm.entity_manager');
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, $this->em, $this->context);
+        $this->browser = new SignedInBrowser($this->client, $this->em);
     }
 
     public function testTheProjectPagesLinkToTheSettings(): void
@@ -121,15 +116,10 @@ final class ProjectSettingsControllerTest extends WebTestCase
         self::assertTrue($this->billable($id));
 
         // The change is in the history of the project, as its other fields are.
-        $this->context->switchTo($this->tenant);
-        try {
-            $updates = array_values(array_filter(
-                self::getContainer()->get(AuditTrail::class)->rootHistory(Project::class, $id),
-                static fn (AuditEntry $entry): bool => Project::class === $entry->entityClass() && AuditAction::Updated === $entry->action(),
-            ));
-        } finally {
-            $this->context->reset();
-        }
+        $updates = array_values(array_filter(
+            self::getContainer()->get(AuditTrail::class)->rootHistory(Project::class, $id),
+            static fn (AuditEntry $entry): bool => Project::class === $entry->entityClass() && AuditAction::Updated === $entry->action(),
+        ));
         self::assertSame([false, true], $updates[0]->changes()['billableByDefault'] ?? null);
 
         $form = $crawler->filter('#project-settings-form')->form();
@@ -143,17 +133,12 @@ final class ProjectSettingsControllerTest extends WebTestCase
     public function testAGuestCannotChangeWhetherTheTimeIsBillable(): void
     {
         $this->signIn(Role::Guest);
-        $this->context->switchTo($this->tenant);
-        try {
-            $userId = $this->em->getConnection()->fetchOne('SELECT id FROM app_user LIMIT 1');
-            self::assertIsString($userId);
-            $project = new Project('Website', null, WorkflowTemplate::Simple, $userId, new \DateTimeImmutable());
-            $this->em->persist($project);
-            $this->em->flush();
-            $id = $project->id();
-        } finally {
-            $this->context->reset();
-        }
+        $userId = $this->em->getConnection()->fetchOne('SELECT id FROM app_user LIMIT 1');
+        self::assertIsString($userId);
+        $project = new Project('Website', null, WorkflowTemplate::Simple, $userId, new \DateTimeImmutable());
+        $this->em->persist($project);
+        $this->em->flush();
+        $id = $project->id();
 
         $this->client->request('POST', '/projects/'.$id.'/settings', ['name' => 'Website', 'billable' => '1']);
 
@@ -183,15 +168,10 @@ final class ProjectSettingsControllerTest extends WebTestCase
         self::assertSame([125050, 'EUR'], $this->rate($id));
 
         // The change is in the history of the project, as its other fields are.
-        $this->context->switchTo($this->tenant);
-        try {
-            $updates = array_values(array_filter(
-                self::getContainer()->get(AuditTrail::class)->rootHistory(Project::class, $id),
-                static fn (AuditEntry $entry): bool => Project::class === $entry->entityClass() && AuditAction::Updated === $entry->action(),
-            ));
-        } finally {
-            $this->context->reset();
-        }
+        $updates = array_values(array_filter(
+            self::getContainer()->get(AuditTrail::class)->rootHistory(Project::class, $id),
+            static fn (AuditEntry $entry): bool => Project::class === $entry->entityClass() && AuditAction::Updated === $entry->action(),
+        ));
         self::assertSame([null, 125050], $updates[0]->changes()['hourlyRateMinor'] ?? null);
 
         // Saving the form unchanged keeps the rate; an empty field takes it away.
@@ -353,7 +333,7 @@ final class ProjectSettingsControllerTest extends WebTestCase
 
     private function signIn(Role $role = Role::Owner): void
     {
-        [$this->tenant] = $this->browser->seed(['Example Organisation'], role: $role);
+        $this->browser->seed(role: $role);
         $this->browser->signIn();
     }
 
@@ -376,21 +356,16 @@ final class ProjectSettingsControllerTest extends WebTestCase
 
     private function task(string $projectId, string $title, ?string $sectionId, ?string $statusId = null): void
     {
-        $this->context->switchTo($this->tenant);
-        try {
-            $project = $this->em->find(Project::class, $projectId) ?? throw new \LogicException('Project.');
-            $status = null === $statusId
-                ? $this->em->getRepository(ProjectStatus::class)->findOneBy(['project' => $project], ['position' => 'ASC'])
-                : $this->em->find(ProjectStatus::class, $statusId);
-            $section = null === $sectionId ? null : $this->em->find(Section::class, $sectionId);
-            self::assertInstanceOf(ProjectStatus::class, $status);
-            $userId = $this->em->getConnection()->fetchOne('SELECT id FROM app_user LIMIT 1');
-            self::assertIsString($userId);
-            $this->em->persist(new Task($project, $title, $status, 0, $userId, new \DateTimeImmutable(), $section));
-            $this->em->flush();
-        } finally {
-            $this->context->reset();
-        }
+        $project = $this->em->find(Project::class, $projectId) ?? throw new \LogicException('Project.');
+        $status = null === $statusId
+            ? $this->em->getRepository(ProjectStatus::class)->findOneBy(['project' => $project], ['position' => 'ASC'])
+            : $this->em->find(ProjectStatus::class, $statusId);
+        $section = null === $sectionId ? null : $this->em->find(Section::class, $sectionId);
+        self::assertInstanceOf(ProjectStatus::class, $status);
+        $userId = $this->em->getConnection()->fetchOne('SELECT id FROM app_user LIMIT 1');
+        self::assertIsString($userId);
+        $this->em->persist(new Task($project, $title, $status, 0, $userId, new \DateTimeImmutable(), $section));
+        $this->em->flush();
     }
 
     private function billable(string $project): bool
@@ -413,16 +388,11 @@ final class ProjectSettingsControllerTest extends WebTestCase
 
     private function contact(string $name): string
     {
-        $this->context->switchTo($this->tenant);
-        try {
-            $party = new Party(PartyKind::Person, $name, null, null, '');
-            $this->em->persist($party);
-            $this->em->flush();
+        $party = new Party(PartyKind::Person, $name, null, null, '');
+        $this->em->persist($party);
+        $this->em->flush();
 
-            return $party->id();
-        } finally {
-            $this->context->reset();
-        }
+        return $party->id();
     }
 
     /**

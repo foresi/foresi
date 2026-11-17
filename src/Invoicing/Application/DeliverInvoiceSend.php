@@ -8,13 +8,11 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
-use App\Instance\Application\TenantScopedMessage;
-
 /**
- * Delivers one stored send in the tenant the message carries. It holds only the
+ * Delivers one stored send. It holds only the
  * id: the link is derived when the mail leaves, so no link sits in the queue.
  */
-final readonly class DeliverInvoiceSend implements TenantScopedMessage
+final readonly class DeliverInvoiceSend
 {
     public function __construct(public string $sendId)
     {

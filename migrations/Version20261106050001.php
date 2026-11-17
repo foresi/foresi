@@ -27,7 +27,7 @@ final class Version20261106050001 extends AbstractMigration
     {
         $connection = $schema->createTable('idoklad_connection');
         $connection->addColumn('id', Types::GUID);
-        $connection->addColumn('tenant_id', 'tenant_id');
+        $connection->addColumn('tenant_id', 'guid');
         $connection->addColumn('legal_entity_id', Types::GUID);
         $connection->addColumn('client_id', Types::STRING, ['length' => 255]);
         $connection->addColumn('secret_sealed', Types::TEXT);
@@ -38,7 +38,7 @@ final class Version20261106050001 extends AbstractMigration
 
         $pull = $schema->createTable('idoklad_pull');
         $pull->addColumn('id', Types::GUID);
-        $pull->addColumn('tenant_id', 'tenant_id');
+        $pull->addColumn('tenant_id', 'guid');
         $pull->addColumn('legal_entity_id', Types::GUID);
         $pull->addColumn('started_at', Types::DATETIME_IMMUTABLE);
         $pull->addColumn('finished_at', Types::DATETIME_IMMUTABLE, ['notnull' => false]);
@@ -54,7 +54,7 @@ final class Version20261106050001 extends AbstractMigration
 
         $record = $schema->createTable('idoklad_record');
         $record->addColumn('id', Types::GUID);
-        $record->addColumn('tenant_id', 'tenant_id');
+        $record->addColumn('tenant_id', 'guid');
         $record->addColumn('legal_entity_id', Types::GUID);
         $record->addColumn('resource', Types::STRING, ['length' => 32]);
         $record->addColumn('external_id', Types::INTEGER);

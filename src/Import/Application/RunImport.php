@@ -11,7 +11,7 @@ namespace App\Import\Application;
 use App\Import\Domain\ImportState;
 
 /**
- * Runs a checked import: it starts at once when no other import of the tenant
+ * Runs a checked import: it starts at once when no other import
  * holds the target, or waits in Queued. A full replace that would archive
  * records runs only with the number of those records typed as confirmation.
  */

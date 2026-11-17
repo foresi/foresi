@@ -11,7 +11,7 @@ namespace App\Purchasing\Application;
 use App\Attachment\Application\AttachmentRefused;
 use App\Attachment\Application\AttachmentUpload;
 use App\Attachment\Application\UploadAttachment;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Party\Application\UnknownLegalEntity;
 use App\Purchasing\Domain\ReceivedDocument;
 use App\Purchasing\Domain\ReceivedDocumentContent;
@@ -32,7 +32,7 @@ final readonly class UploadReceivedDocuments
         private ReceivedDocuments $documents,
         private UploadAttachment $upload,
         private DocumentWarnings $warnings,
-        private TenantClock $tenantClock,
+        private InstanceClock $instanceClock,
         private ClockInterface $clock,
     ) {
     }
@@ -43,7 +43,7 @@ final readonly class UploadReceivedDocuments
      * @return list<UploadedDocument> one per file, in their order
      *
      * @throws PurchasingNotAllowed    for anyone but the owners and members of the organisation
-     * @throws UnknownLegalEntity      also for a firm of another tenant
+     * @throws UnknownLegalEntity
      * @throws ReceivedDocumentRefused with FIRM_ARCHIVED for an archived firm
      */
     public function upload(string $firmId, array $files): array
@@ -58,7 +58,7 @@ final readonly class UploadReceivedDocuments
     {
         try {
             $document = $this->unit->run(function () use ($firmId, $file, $userId): ReceivedDocument {
-                $document = new ReceivedDocument($this->access->activeFirm($firmId), ReceivedDocumentContent::blank($this->tenantClock->today()), $userId, \DateTimeImmutable::createFromInterface($this->clock->now()));
+                $document = new ReceivedDocument($this->access->activeFirm($firmId), ReceivedDocumentContent::blank($this->instanceClock->today()), $userId, \DateTimeImmutable::createFromInterface($this->clock->now()));
                 $this->documents->add($document);
                 // The store asks the module whether the document may take the file, and saves both.
                 $document->attachOriginal($this->upload->upload(ReceivedDocument::ATTACHMENT_KIND, $document->id(), $file)->id());

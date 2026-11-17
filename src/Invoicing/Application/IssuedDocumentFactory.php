@@ -30,7 +30,7 @@ final readonly class IssuedDocumentFactory
     /**
      * @param Money|null $owed what is still owed, for a reminder: below the payable, the document asks for it alone
      *
-     * @throws UnknownInvoice also for an invoice of another tenant
+     * @throws UnknownInvoice
      */
     public function of(string $id, ?Money $owed = null): IssuedDocument
     {

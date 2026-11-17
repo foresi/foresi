@@ -14,7 +14,7 @@ use Psr\Clock\ClockInterface;
 
 /**
  * Forgets the notifications marked done more than three months ago, once a
- * day from 03:00 in the tenant's zone (GitHub keeps done ones for a while,
+ * day from 03:00 in the instance's zone (GitHub keeps done ones for a while,
  * then lets them go). A missed day needs no catching up.
  */
 final readonly class PurgeDoneNotificationsDaily implements ScheduledJob

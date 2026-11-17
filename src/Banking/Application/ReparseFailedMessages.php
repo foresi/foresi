@@ -38,7 +38,7 @@ final readonly class ReparseFailedMessages implements ScheduledJob
     }
 
     /**
-     * An hour of UTC, the same in every zone: a parser's update waits for no tenant's day.
+     * An hour of UTC, the same in every zone: a parser's update waits for no local day.
      */
     public function period(\DateTimeImmutable $now, \DateTimeZone $zone): string
     {

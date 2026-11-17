@@ -20,9 +20,9 @@ use App\Shared\Domain\Money;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * One query through the ORM, so the tenant filter narrows the invoices and the
- * payments both. What is paid is summed as the invoice list sums it: amounts and
- * settlements of allocations whose payment is not cancelled, a refund's below zero.
+ * One query through the ORM. What is paid is summed as the invoice list sums
+ * it: amounts and settlements of allocations whose payment is not cancelled, a
+ * refund's below zero.
  */
 final readonly class DoctrineCandidates implements Candidates
 {

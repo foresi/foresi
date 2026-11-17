@@ -15,8 +15,6 @@ use App\Events\Infrastructure\Relay\DeliverEventHandler;
 use App\Events\Infrastructure\Relay\DeliveryWork;
 use App\Events\Infrastructure\Relay\EventConsumptions;
 use App\Events\Infrastructure\Relay\EventListeners;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Shared\Application\Event\EventOutbox;
 use App\Shared\Domain\Id;
 use App\Shared\Domain\Module\ModuleId;
@@ -43,7 +41,6 @@ use Symfony\Component\Messenger\Exception\RecoverableExceptionInterface;
 final class DeliverEventHandlerTest extends KernelTestCase
 {
     private Connection $db;
-    private TenantContext $context;
     private RecordingListener $listener;
     /** @var AbstractLogger&object{messages: list<string>} */
     private AbstractLogger $logger;
@@ -59,9 +56,6 @@ final class DeliverEventHandlerTest extends KernelTestCase
         $tool->createSchema($metadata);
 
         $this->db = $em->getConnection();
-        $this->context = $container->get(TenantContext::class);
-        $tenant = TenantId::generate();
-        $this->context->set($tenant);
         $this->listener = new RecordingListener('invoicing.invoice.issued');
         $this->logger = new class extends AbstractLogger {
             /** @var list<string> */
@@ -184,7 +178,7 @@ final class DeliverEventHandlerTest extends KernelTestCase
             new EventListeners(new ServiceLocator(['test.listener' => static fn (): RecordingListener => $listener])),
             EventCatalogue::scan([[ModuleId::of('invoicing'), 'App\Tests\Events\Fixtures\Valid\\', \dirname(__DIR__, 2).'/Fixtures/Valid']]),
             new EventPayloads(),
-            new DeliveryWork($container->get(EntityManagerInterface::class), $container->get(ManagerRegistry::class), $this->context, $outbox),
+            new DeliveryWork($container->get(EntityManagerInterface::class), $container->get(ManagerRegistry::class), $outbox),
             $this->consumptionRecord(),
             $this->logger,
         );

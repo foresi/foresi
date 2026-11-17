@@ -30,7 +30,7 @@ use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 
-// The tenant of the advances spec: a payer firm and one customer, an advance Z920260001 of
+// The world of the advances spec: a payer firm and one customer, an advance Z920260001 of
 // 1 210 Kč the spec pays, and an advance Z920260002 paid before its supply was known, so it
 // waits for its tax document; the spec issues it from the list.
 $advancesFirm = new LegalEntity('Example Advances s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(9), VatStatus::Registered, 'Example register, entry C 9753');

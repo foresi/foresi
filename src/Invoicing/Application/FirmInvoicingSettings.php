@@ -12,7 +12,7 @@ use App\Invoicing\Domain\FirmInvoicing;
 use App\Party\Domain\LegalEntity;
 
 /**
- * The invoicing settings of the firms of the active tenant. Call save() inside
+ * The invoicing settings of the firms. Call save() inside
  * TransactionalWork, which flushes.
  */
 interface FirmInvoicingSettings

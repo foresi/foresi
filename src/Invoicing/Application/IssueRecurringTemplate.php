@@ -8,15 +8,13 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
-use App\Instance\Application\TenantScopedMessage;
-
 /**
  * Issues and sends what one recurring template has due, as the daily run would,
- * in the tenant the message carries: for a template saved or resumed after the
+ * for a template saved or resumed after the
  * day's run had finished. The occurrence key issues each date once, so a second
  * message, or the run itself, issues nothing more.
  */
-final readonly class IssueRecurringTemplate implements TenantScopedMessage
+final readonly class IssueRecurringTemplate
 {
     public function __construct(public string $templateId)
     {

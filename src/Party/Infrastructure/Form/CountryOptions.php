@@ -16,7 +16,7 @@ use App\Shared\Domain\Countries;
  */
 final class CountryOptions
 {
-    /** The EU member states, then the neighbours the tenants most often trade with. */
+    /** The EU member states, then the neighbours firms most often trade with. */
     public const array CODES = Countries::CODES;
 
     public static function supports(string $code): bool

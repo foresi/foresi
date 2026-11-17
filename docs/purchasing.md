@@ -103,7 +103,7 @@ Payments are recorded over the [REST API](api.md#received-documents) and [MCP](m
 
 ## Operating it
 
-Received documents are rows of the application database, tenant-isolated like the rest. The original files are attachments in the `attachments` directory of the share directory, outside the web root and the database; the ops backup already includes the whole share directory (see [operations](operations.md)). Run `bin/console doctrine:migrations:migrate` on upgrade. The ČNB rates are fetched by a scheduled job of the worker; see [operations](operations.md#exchange-rates).
+Received documents are rows of the application database. The original files are attachments in the `attachments` directory of the share directory, outside the web root and the database; the ops backup already includes the whole share directory (see [operations](operations.md)). Run `bin/console doctrine:migrations:migrate` on upgrade. The ČNB rates are fetched by a scheduled job of the worker; see [operations](operations.md#exchange-rates).
 
 ## What comes later
 

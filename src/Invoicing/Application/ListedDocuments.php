@@ -29,7 +29,7 @@ interface ListedDocuments
     public function listedRates(InvoiceFilter $filter): array;
 
     /**
-     * The documents of the active tenant among the ids, in the order of the ids. They
+     * The documents among the ids, in the order of the ids. They
      * are not kept in the session, so a batch after a batch takes no more memory.
      *
      * @param list<string> $ids

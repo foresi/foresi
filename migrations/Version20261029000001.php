@@ -26,7 +26,7 @@ final class Version20261029000001 extends AbstractMigration
     public function up(Schema $schema): void
     {
         $table = $schema->createTable('tenant');
-        $table->addColumn('id', 'tenant_id');
+        $table->addColumn('id', 'guid');
         $table->addColumn('name', Types::STRING, ['length' => 255]);
         $table->addColumn('created_at', Types::DATETIME_IMMUTABLE);
         $table->setPrimaryKey(['id']);

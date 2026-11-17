@@ -176,7 +176,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
 
     /**
      * The dialog pays only the invoices it offered: a forged post naming an
-     * invoice of another firm of the tenant, or one paid already, pays nothing.
+     * invoice of another firm, or one paid already, pays nothing.
      */
     public function testAnInvoiceTheDialogDidNotOfferIsRefused(): void
     {

@@ -27,7 +27,7 @@ final class Version20261103030001 extends AbstractMigration
     {
         $payment = $schema->createTable('payment');
         $payment->addColumn('id', Types::GUID);
-        $payment->addColumn('tenant_id', 'tenant_id');
+        $payment->addColumn('tenant_id', 'guid');
         $payment->addColumn('legal_entity_id', Types::GUID);
         $payment->addColumn('received_on', Types::DATE_IMMUTABLE);
         $payment->addColumn('amount_minor', Types::BIGINT);
@@ -49,7 +49,7 @@ final class Version20261103030001 extends AbstractMigration
 
         $allocation = $schema->createTable('payment_allocation');
         $allocation->addColumn('id', Types::GUID);
-        $allocation->addColumn('tenant_id', 'tenant_id');
+        $allocation->addColumn('tenant_id', 'guid');
         $allocation->addColumn('payment_id', Types::GUID);
         $allocation->addColumn('invoice_id', Types::GUID);
         $allocation->addColumn('amount_minor', Types::BIGINT);

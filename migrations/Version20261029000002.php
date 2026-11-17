@@ -62,7 +62,7 @@ final class Version20261029000002 extends AbstractMigration
     private function identity(Table $table): void
     {
         $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $table->addColumn('tenant_id', 'tenant_id');
+        $table->addColumn('tenant_id', 'guid');
     }
 
     private function registrationNumber(Table $table, bool $required): void
