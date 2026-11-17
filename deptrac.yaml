@@ -929,6 +929,7 @@ deptrac:
       - PurchasingDomain
       - PurchasingApplication
       - VendorSymfony
+      - VendorOpenApi
       - VendorUid
       - VendorDoctrine
       - VendorDoctrineOrmMapping

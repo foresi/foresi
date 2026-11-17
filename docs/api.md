@@ -60,7 +60,7 @@ A scope says what a token may reach. A token has one or more:
 | `<resource>:read` | Reading one kind of record. |
 | `<resource>:write` | Changing one kind of record, and reading it. |
 
-The resources are `cashflow`, `contacts`, `invoices`, `payments`, `events` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
+The resources are `cashflow`, `contacts`, `invoices`, `payments`, `received_documents`, `events` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
 
 ## Using the API
 
@@ -110,7 +110,7 @@ A detail answers `{"data": {...}}`.
 
 ## Endpoints
 
-The endpoints below are `GET`. The writes of contacts are under [Contact writes](#contact-writes), those of the cash flow under [Cash flow](#cash-flow), and those of webhooks under [Webhooks](#webhooks).
+The endpoints below are `GET`. The writes of contacts are under [Contact writes](#contact-writes), those of the cash flow under [Cash flow](#cash-flow), those of received documents under [Received documents](#received-documents), and those of webhooks under [Webhooks](#webhooks).
 
 | Endpoint | Scope | What it returns |
 | --- | --- | --- |
@@ -121,6 +121,9 @@ The endpoints below are `GET`. The writes of contacts are under [Contact writes]
 | `/api/v1/contacts/{contactId}` | `contacts:read` | One contact with its addresses, e-mails, bank accounts and contact persons. |
 | `/api/v1/payments` | `payments:read` | Payments, newest first. |
 | `/api/v1/payments/{id}` | `payments:read` | One payment with the invoices it pays. |
+| `/api/v1/received-documents` | `received_documents:read` | Received documents, newest first, with what is paid and what remains. |
+| `/api/v1/received-documents/{documentId}` | `received_documents:read` | One received document with its VAT recap and payments. |
+| `/api/v1/received-documents/{documentId}/payments` | `received_documents:read` | The payments of one received document, by the day paid. |
 | `/api/v1/events` | `events:read` | Domain events of the last 30 days, oldest first. |
 | `/api/v1/cash-flow/forecast` | `cashflow:read` | The cash-flow forecast of a firm; see [Cash flow](#cash-flow). |
 | `/api/v1/cash-flow/planned-items` | `cashflow:read` | The planned items of a firm (`firm_id`, required), oldest first, without paging. |
@@ -171,7 +174,7 @@ Query parameters of `GET /api/v1/payments`:
 
 ### Events
 
-`GET /api/v1/events` is the feed of what happened in the organisation: an invoice was issued, delivered, paid, trashed or restored, a payment was recorded, a contact was created, updated, archived or restored. Query parameters:
+`GET /api/v1/events` is the feed of what happened in the organisation: an invoice was issued, delivered, paid, trashed or restored, a payment was recorded, a contact was created, updated, archived or restored, a received document was recorded or paid in full. Query parameters:
 
 | Parameter | Value |
 | --- | --- |
@@ -294,6 +297,71 @@ What the cash flow refuses:
 | 403 | `forbidden` | A guest of the organisation. |
 | 404 | `not_found` | The organisation has no such firm, bank account or planned item. |
 | 409 | `not_recurring` | Ending a one-off item. |
+
+## Received documents
+
+The documents the firms received from suppliers (see [received documents](purchasing.md)). Reading needs `received_documents:read`, writing `received_documents:write`. An item has the firm, `state` (`draft` or `recorded`), `kind`, `treatment`, the evidence number, the supplier, the supplier's number, the variable symbol, the dates, `total` (negative for a credit note), `base`, `vat`, and the derived `paid`, `remaining` (both positive), `is_paid` and `last_paid_on`. The detail adds the supplier as the document names it, `vat_recap`, the exchange rate, the deduction period and `payments`.
+
+Query parameters of `GET /api/v1/received-documents`:
+
+| Parameter | Value |
+| --- | --- |
+| `firm_id` | The id of a firm. |
+| `supplier_id` | The id of the supplier, a contact. |
+| `state` | `draft` or `recorded`. |
+| `unpaid` | `true` lists only recorded documents with something left to pay. Default `false`. |
+| `due_before` | `YYYY-MM-DD`: only documents due before this day, not on it. |
+| `trashed` | `true` lists only the documents in the trash. Default `false`. |
+| `limit`, `cursor` | Paging, as above. |
+
+The payables of a month are `?unpaid=true&due_before=` the first day of the next month.
+
+The writes answer `{"data": {...}}` with the document as `GET /api/v1/received-documents/{documentId}` shows it, payments included:
+
+| Method and path | Answer |
+| --- | --- |
+| `POST /api/v1/received-documents` | `201` with the new recorded document and `Location`. |
+| `POST /api/v1/received-documents/{documentId}/trash` | The document in the trash. Body: `reason`. |
+| `POST /api/v1/received-documents/{documentId}/payments` | `201` with the document and its new payment. |
+| `POST /api/v1/received-documents/{documentId}/mark-paid` | The document paid in full by one payment of all that remains, dated today in the organisation's time zone. |
+| `DELETE /api/v1/received-documents/{documentId}/payments/{paymentId}` | The document without the payment, for one recorded by mistake. |
+
+```bash
+curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
+  -H "Idempotency-Key: 7c1d-record-fv-2026-123" \
+  -d '{"firm_id": "…", "kind": "tax_invoice", "supplier_id": "…", "supplier_number": "FV-2026-123", "issue_date": "2026-11-02", "due_date": "2026-11-16", "total": "1210.00", "vat_recap": ["21:1000.00:210.00"]}' \
+  "https://app.example.com/api/v1/received-documents"
+```
+
+Recording takes the next evidence number of the firm, as the screen does, and needs no file; the original can be uploaded to the document in Foresi later. Fields of a record:
+
+| Field | Value |
+| --- | --- |
+| `firm_id`, `kind`, `supplier_id`, `issue_date`, `total` | Required. `kind` is `tax_invoice`, `simplified_receipt`, `foreign_invoice`, `credit_note`, `advance_request` or `other`. The supplier is a contact; find it by `registration_number` first, or create it with a contact write. |
+| `treatment` | `domestic` (default), `domestic_reverse_charge`, `eu_service`, `non_eu_service`, `non_deductible`, or `not_vat_document` for a document without VAT. |
+| `supplier_number`, `variable_symbol` | The supplier's number of the document and the symbol to pay with. |
+| `tax_point_date`, `due_date`, `received_date` | `YYYY-MM-DD`. The tax point is the issue date when left out, the received date today. |
+| `currency` | ISO 4217, default `CZK`. |
+| `total` | What the document asks, a decimal such as `"1210.00"`; negative for a credit note. |
+| `vat_recap` | One line per rate, `"rate:base:vat"`, such as `"21:1000.00:210.00"`; a document in another currency may add the VAT in CZK it prints as a fourth part. Needed for a tax invoice and a simplified receipt. |
+| `exchange_rate` | CZK for one unit of the currency; the published rate of the tax point when left out. |
+| `original_document_id` | The recorded document a credit note corrects. |
+| `supply_code` | The code of the supply of a domestic reverse charge. |
+
+Fields of a payment: `paid_on` (`YYYY-MM-DD`, required), `amount` (a decimal in the document's currency, required, positive also for a credit note), `method` (`bank_transfer`, the default, `card`, `cash` or `other`) and `bank_movement_id` (optional). Mark as paid takes only `method` and `bank_movement_id`. A payment recorded by mistake is removed and recorded again; a document paid in full before stays so in the event feed.
+
+What a received document write refuses:
+
+| Status | `code` | When |
+| --- | --- | --- |
+| 400 | `invalid_parameter` | A field breaks a rule. `parameter` names it and `reason` says which, such as `date_invalid`, `amount_invalid`, `currency_unsupported`, `vat_recap_line_invalid`, `supplier_unknown`, `vat_recap_missing`, `exchange_rate_missing`, `variable_symbol` or `payment_amount`. |
+| 404 | `not_found` | The organisation has no such received document. |
+| 404 | `firm_unknown` | The organisation has no such firm. |
+| 409 | `overpaid` | The payment is more than what remains. |
+| 409 | `paid` | The document is paid in full already. |
+| 409 | `not_recorded` | The document is a draft; only a recorded one takes payments. |
+| 409 | `trashed`, `locked`, `firm_archived` | The document is in the trash or in a closed month, or the firm is archived. |
+| 503 | `exchange_rate_unavailable` | No rate is published for the tax point yet; send `exchange_rate`. |
 
 ## Idempotency
 

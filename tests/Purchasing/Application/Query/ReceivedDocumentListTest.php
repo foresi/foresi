@@ -14,6 +14,7 @@ use App\Purchasing\Application\PurchasingNotAllowed;
 use App\Purchasing\Application\Query\ReceivedDocumentFilter;
 use App\Purchasing\Application\Query\ReceivedDocumentList;
 use App\Purchasing\Application\Query\ReceivedDocumentQueries;
+use App\Purchasing\Application\Query\ReceivedDocumentSliceFilter;
 use App\Purchasing\Domain\PurchaseTaxTreatment;
 use App\Purchasing\Domain\ReceivedDocumentKind;
 use App\Tests\Purchasing\Application\PurchasingTestCase;
@@ -271,5 +272,10 @@ final class ListedQueries implements ReceivedDocumentQueries
     public function correctable(string $firmId, ?string $exceptId, int $limit): array
     {
         return [];
+    }
+
+    public function slice(ReceivedDocumentSliceFilter $filter, ?string $afterId, int $limit): array
+    {
+        return [[], false];
     }
 }

@@ -11,11 +11,14 @@ namespace App\Purchasing\Infrastructure\Doctrine;
 use App\Purchasing\Application\Query\ReceivedDocumentFilter;
 use App\Purchasing\Application\Query\ReceivedDocumentQueries;
 use App\Purchasing\Application\Query\ReceivedDocumentRow;
+use App\Purchasing\Application\Query\ReceivedDocumentSliceFilter;
 use App\Purchasing\Domain\PurchaseTaxTreatment;
 use App\Purchasing\Domain\ReceivedDocument;
 use App\Purchasing\Domain\ReceivedDocumentKind;
+use App\Purchasing\Domain\ReceivedDocumentPayment;
 use App\Purchasing\Domain\ReceivedDocumentState;
 use App\Shared\Domain\Currency;
+use App\Shared\Domain\Id;
 use App\Shared\Domain\Money;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
@@ -163,6 +166,57 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
         }
 
         return [$where, $parameters];
+    }
+
+    public function slice(ReceivedDocumentSliceFilter $filter, ?string $afterId, int $limit): array
+    {
+        if ($limit < 1) {
+            throw new \InvalidArgumentException('A slice holds at least one document.');
+        }
+        if (null !== $afterId && !Id::isValid($afterId)) {
+            throw new \InvalidArgumentException('An id is not valid.');
+        }
+        $conditions = [$filter->trashed ? 'd.deletedAt IS NOT NULL' : 'd.deletedAt IS NULL'];
+        $parameters = [];
+        if (null !== $filter->firmId) {
+            if (!Id::isValid($filter->firmId)) {
+                return [[], false];
+            }
+            $conditions[] = 'd.firm = :firm';
+            $parameters['firm'] = [$filter->firmId, null];
+        }
+        if (null !== $filter->supplierId) {
+            if (!Id::isValid($filter->supplierId)) {
+                return [[], false];
+            }
+            $conditions[] = 'd.supplierParty = :supplier';
+            $parameters['supplier'] = [$filter->supplierId, null];
+        }
+        if ($filter->state instanceof ReceivedDocumentState) {
+            $conditions[] = 'd.state = :state';
+            $parameters['state'] = [$filter->state->value, null];
+        }
+        if ($filter->unpaid) {
+            // Recorded, with a total, and its payments short of it (PaymentBalance).
+            $conditions[] = 'd.state = :recorded AND d.totalMinor IS NOT NULL AND d.totalMinor <> 0'
+                .' AND ABS(d.totalMinor) > (SELECT COALESCE(SUM(p.amountMinor), 0) FROM '.ReceivedDocumentPayment::class.' p WHERE p.document = d)';
+            $parameters['recorded'] = [ReceivedDocumentState::Recorded->value, null];
+        }
+        if ($filter->dueBefore instanceof \DateTimeImmutable) {
+            $conditions[] = 'd.dueDate < :dueBefore';
+            $parameters['dueBefore'] = [$filter->dueBefore, Types::DATE_IMMUTABLE];
+        }
+        if (null !== $afterId) {
+            $conditions[] = 'd.id < :after';
+            $parameters['after'] = [$afterId, null];
+        }
+        $query = $this->em->createQuery('SELECT d FROM '.ReceivedDocument::class.' d WHERE '.implode(' AND ', $conditions).' ORDER BY d.id DESC');
+        $this->bind($query, $parameters);
+        // One more than asked tells whether another slice follows.
+        /** @var list<ReceivedDocument> $documents */
+        $documents = $query->setMaxResults($limit + 1)->getResult();
+
+        return [\array_slice($documents, 0, $limit), \count($documents) > $limit];
     }
 
     /**

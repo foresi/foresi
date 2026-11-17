@@ -20,6 +20,14 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_get_payment` | One payment with the invoices it pays. |
 | `foresi_list_events` | The domain events of the last 30 days, oldest first, such as an invoice being issued or paid. Takes `types` (event names or `module.*`), `limit` and `cursor`; follow the feed by calling again with `next_cursor`, also when nothing is new. |
 | `foresi_list_event_types` | The kinds of event the feed can hold with their facts, for the modules you may read. |
+| `foresi_search_received_documents` | Searches received documents, newest first, with filters such as firm, supplier, state, `unpaid` and `due_before`; each with what is paid and what remains. |
+| `foresi_get_received_document` | One received document with its VAT recap and payments. |
+| `foresi_list_received_document_payments` | The payments of one received document, by the day paid. |
+| `foresi_record_received_document` | **Write.** Records a received document from its fields, with no file, and gives it the firm's next evidence number. |
+| `foresi_trash_received_document` | **Write, destructive.** Moves a received document (`document_id`) to the trash with a `reason`; a person restores it in Foresi. |
+| `foresi_add_received_document_payment` | **Write.** Records a payment of a recorded received document: `paid_on`, `amount`, `method` and an optional `bank_movement_id`. Never more than what remains. |
+| `foresi_remove_received_document_payment` | **Write, destructive.** Removes a payment (`payment_id`) of a received document (`document_id`) recorded by mistake. |
+| `foresi_mark_received_document_paid` | **Write.** Pays all that remains of a recorded received document, dated today in the organisation's time zone. |
 | `foresi_create_contact` | **Write.** Creates a person, sole trader or company with its billing address. Refused with `duplicate` and `existing_ids` when a contact has the registration number or VAT id already. |
 | `foresi_update_contact` | **Write.** Changes the fields given of a contact (`contact_id`); an optional field sent as `null` is cleared. |
 | `foresi_archive_contact` | **Write.** Archives a contact (`contact_id`); it keeps its data and only the lists hide it. |
@@ -53,6 +61,7 @@ The webhook tools take the fields of the matching [REST routes](api.md#webhooks)
 The contact tools take the fields of the [REST contact writes](api.md#contact-writes), with the id of the contact as `contact_id`, and answer the contact as `foresi_get_contact` does. They refuse with the codes of the REST API: `invalid_argument` (it names the argument), `not_found`, `not_linked`, `duplicate` (with `existing_ids` in `structuredContent.error.details`) and `already_linked`. There is no upsert: search first with `foresi_search_contacts`, which also matches e-mails, and on `duplicate` update the contact it names.
 
 The cash-flow tools take the fields and parameters of the [REST cash flow](api.md#cash-flow), with the id of a planned item as `planned_item_id`, and answer what the REST API answers. They refuse with `invalid_argument` (it names the argument and the `reason`), `forbidden`, `not_found` and `not_recurring`. See [cash-flow.md](cash-flow.md) for what the forecast counts.
+The received document tools take the fields of the [REST received documents](api.md#received-documents), with the id of the document as `document_id` (`id` for the read tools), and the writes answer the document as `foresi_get_received_document` does. They refuse with the codes of the REST API, such as `invalid_argument` (it names the argument), `not_found`, `overpaid`, `paid` and `not_recorded`.
 
 Every write tool takes an optional `idempotency_key`, 1 to 255 visible ASCII characters. Send a new one for each change and the same one when you retry it: a retry after the first call finished answers the saved result with `idempotent_replayed: true` in its structured content, and nothing happens twice. The same key with other arguments is refused with `idempotency_key_reused`, and while the first call is still running with `idempotency_key_in_flight`. Keys are kept for 24 hours and never cross tokens or the REST API. The tools stay marked `idempotentHint: false`, as the key is optional.
 

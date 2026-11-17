@@ -18,7 +18,10 @@
             "module": "purchasing",
             "kind": "module",
             "namespace": "App\\Purchasing\\",
-            "optional": []
+            "optional": [],
+            "scopes": [
+                "received_documents"
+            ]
         }
     }
 }

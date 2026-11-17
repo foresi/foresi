@@ -423,6 +423,79 @@ nelmio_api_doc:
                         incomplete: { type: boolean }
                         unavailable_sources: { type: array, items: { type: string } }
                         unavailable_rates: { type: array, items: { type: string } }
+                ReceivedDocument:
+                    type: object
+                    description: 'A document a firm received from a supplier. Paid and remaining are positive, also for a credit note, whose total is negative.'
+                    properties:
+                        id: { type: string, format: uuid }
+                        firm: { $ref: '#/components/schemas/Reference' }
+                        state: { type: string, enum: [draft, recorded] }
+                        kind: { type: string, enum: [tax_invoice, simplified_receipt, foreign_invoice, credit_note, advance_request, other] }
+                        treatment: { type: string, enum: [domestic, domestic_reverse_charge, eu_service, non_eu_service, not_vat_document, non_deductible] }
+                        evidence_number: { type: string, nullable: true }
+                        supplier: { allOf: [{ $ref: '#/components/schemas/Reference' }], nullable: true }
+                        supplier_number: { type: string }
+                        variable_symbol: { type: string }
+                        issue_date: { type: string, format: date, nullable: true }
+                        tax_point_date: { type: string, format: date, nullable: true }
+                        due_date: { type: string, format: date, nullable: true }
+                        received_date: { type: string, format: date, nullable: true }
+                        total: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
+                        base: { $ref: '#/components/schemas/Money' }
+                        vat: { $ref: '#/components/schemas/Money' }
+                        vat_czk: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
+                        paid: { $ref: '#/components/schemas/Money' }
+                        remaining: { $ref: '#/components/schemas/Money' }
+                        is_paid: { type: boolean }
+                        last_paid_on: { type: string, format: date, nullable: true }
+                        has_original_file: { type: boolean }
+                        recorded_at: { type: string, format: date-time, nullable: true }
+                        trashed_at: { type: string, format: date-time, nullable: true }
+                        created_at: { type: string, format: date-time }
+                ReceivedDocumentPayment:
+                    type: object
+                    properties:
+                        id: { type: string, format: uuid }
+                        paid_on: { type: string, format: date }
+                        amount: { $ref: '#/components/schemas/Money' }
+                        method: { type: string, enum: [bank_transfer, card, cash, other] }
+                        bank_movement_id: { type: string, format: uuid, nullable: true }
+                        created_at: { type: string, format: date-time }
+                ReceivedDocumentDetail:
+                    allOf:
+                        - $ref: '#/components/schemas/ReceivedDocument'
+                        - type: object
+                          properties:
+                              supplier_snapshot:
+                                  type: object
+                                  properties:
+                                      name: { type: string }
+                                      registration_number: { type: string, nullable: true }
+                                      vat_id: { type: string, nullable: true }
+                              vat_recap:
+                                  type: array
+                                  items:
+                                      type: object
+                                      properties:
+                                          rate: { type: string, example: '21' }
+                                          base: { $ref: '#/components/schemas/Money' }
+                                          vat: { $ref: '#/components/schemas/Money' }
+                                          base_czk: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
+                                          vat_czk: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
+                              exchange_rate: { type: string, nullable: true }
+                              exchange_rate_date: { type: string, format: date, nullable: true }
+                              deduction_period: { type: string, nullable: true, example: '2026-12' }
+                              latest_deduction_date: { type: string, format: date, nullable: true }
+                              supply_code: { type: string, nullable: true }
+                              original_document_id: { type: string, format: uuid, nullable: true }
+                              trashed_reason: { type: string, nullable: true }
+                              payments: { type: array, items: { $ref: '#/components/schemas/ReceivedDocumentPayment' } }
+                ReceivedDocumentPage:
+                    type: object
+                    required: [data, next_cursor]
+                    properties:
+                        data: { type: array, items: { $ref: '#/components/schemas/ReceivedDocument' } }
+                        next_cursor: { type: string, nullable: true }
                 WebhookEndpoint:
                     type: object
                     description: An HTTPS address that receives the events it subscribes to as signed Standard Webhooks requests. It never holds the secret.

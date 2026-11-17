@@ -12,10 +12,13 @@ use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyRole;
+use App\Purchasing\Contract\Event\ReceivedDocumentRecorded;
 use App\Purchasing\Domain\EvidenceSeries;
 use App\Purchasing\Domain\ReceivedDocument;
 use App\Purchasing\Domain\ReceivedDocumentContent;
 use App\Purchasing\Domain\ReceivedDocumentRefused;
+use App\Shared\Application\Event\EventRecorder;
+use App\Shared\Domain\Money;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -23,7 +26,8 @@ use Psr\Clock\ClockInterface;
  * that locked it and its firm. A document recorded for the first time takes
  * the next evidence number of the firm's series, made with the standard format
  * when the firm has none yet; the number counts in the year of the received
- * date. Its supplier becomes a supplier of the firm.
+ * date. Its supplier becomes a supplier of the firm. Recording a draft records
+ * purchasing.received_document.recorded; saving a recorded document again does not.
  */
 final readonly class DocumentRecording
 {
@@ -32,6 +36,7 @@ final readonly class DocumentRecording
         private EvidenceNumbers $numbers,
         private ContactSettingsForFirm $contacts,
         private ClockInterface $clock,
+        private EventRecorder $events,
     ) {
     }
 
@@ -45,9 +50,25 @@ final readonly class DocumentRecording
         if (null === $document->evidenceNumber() && $content->receivedDate instanceof \DateTimeImmutable) {
             $document->assignEvidenceNumber($this->nextNumber($firm, $content->receivedDate));
         }
+        $first = !$document->isRecorded();
         $document->record($content, $userId, \DateTimeImmutable::createFromInterface($this->clock->now()));
         if ($content->supplierParty instanceof Party) {
             $this->contacts->addRole($content->supplierParty, $firm, PartyRole::Supplier);
+        }
+        if ($first) {
+            // A recorded document always has its total and its supplier.
+            $total = $document->total();
+            $supplier = $document->supplierParty();
+            \assert($total instanceof Money && $supplier instanceof Party);
+            $this->events->record(new ReceivedDocumentRecorded(
+                $document->id(),
+                $firm->id(),
+                $document->kind()->value,
+                $supplier->id(),
+                EventAmount::of($total),
+                $total->currency()->value,
+                $document->dueDate()?->format('Y-m-d'),
+            ));
         }
     }
 

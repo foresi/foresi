@@ -11,6 +11,7 @@ namespace App\Purchasing\Infrastructure\Doctrine;
 use App\Purchasing\Application\ReceivedDocuments;
 use App\Purchasing\Application\UnknownReceivedDocument;
 use App\Purchasing\Domain\ReceivedDocument;
+use App\Purchasing\Domain\ReceivedDocumentPayment;
 use App\Shared\Domain\Id;
 use App\Tenancy\Application\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
@@ -37,6 +38,12 @@ final readonly class DoctrineReceivedDocuments implements ReceivedDocuments
         // What this process loaded before may be older than the lock, so it is read again.
         $loaded = $this->entityManager->getUnitOfWork()->tryGetById($id, ReceivedDocument::class);
         if ($loaded instanceof ReceivedDocument) {
+            // Its payments loaded before would point at the detached copy, so they go too.
+            foreach ($this->entityManager->getUnitOfWork()->getIdentityMap()[ReceivedDocumentPayment::class] ?? [] as $payment) {
+                if ($payment instanceof ReceivedDocumentPayment && $payment->document() === $loaded) {
+                    $this->entityManager->detach($payment);
+                }
+            }
             $this->entityManager->detach($loaded);
         }
 

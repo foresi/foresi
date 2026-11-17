@@ -108,6 +108,9 @@ final class ApiPlumbingTest extends ApiTestCase
             '/api/v1/payments/{id}' => ['get' => '200'],
             '/api/v1/contacts' => ['get' => '200', 'post' => '201'],
             '/api/v1/contacts/{contactId}' => ['get' => '200', 'patch' => '200'],
+            '/api/v1/received-documents' => ['get' => '200', 'post' => '201'],
+            '/api/v1/received-documents/{documentId}' => ['get' => '200'],
+            '/api/v1/received-documents/{documentId}/payments' => ['get' => '200', 'post' => '201'],
             '/api/v1/webhook-endpoints/{id}/deliveries' => ['get' => '200'],
             '/api/v1/webhook-endpoints/{id}/deliveries/{deliveryId}' => ['get' => '200'],
             '/api/v1/webhook-endpoints/{id}/deliveries/{deliveryId}/redeliver' => ['post' => '202'],
@@ -126,6 +129,9 @@ final class ApiPlumbingTest extends ApiTestCase
             '/api/v1/contacts/{contactId}/contact-persons' => ['post' => '200'],
             '/api/v1/contacts/{contactId}/restore' => ['post' => '200'],
             '/api/v1/contacts/{contactId}/contact-persons/{personId}' => ['delete' => '200'],
+            '/api/v1/received-documents/{documentId}/mark-paid' => ['post' => '200'],
+            '/api/v1/received-documents/{documentId}/payments/{paymentId}' => ['delete' => '200'],
+            '/api/v1/received-documents/{documentId}/trash' => ['post' => '200'],
         ];
         self::assertSame(array_keys($operations), array_keys($paths));
         self::assertSame([['bearer' => []]], $this->at('security'));

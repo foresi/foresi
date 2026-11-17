@@ -21,17 +21,18 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * What the use cases and query services of received documents refuse, as the
  * screens answer it: forbidden for one who may not work with them, not found
  * for a firm or a document the organisation does not have. Only on the routes
- * of the module, so the controllers carry no check of their own.
+ * of the module's screens and of its REST reads, so the controllers carry no
+ * check of their own.
  */
 final readonly class PurchasingErrors
 {
-    public const string ROUTE_PREFIX = 'app_purchasing';
+    public const array ROUTE_PREFIXES = ['app_purchasing', 'api_v1_received_document'];
 
     #[AsEventListener(event: KernelEvents::EXCEPTION)]
     public function onException(ExceptionEvent $event): void
     {
         $route = $event->getRequest()->attributes->get('_route');
-        if (!\is_string($route) || !str_starts_with($route, self::ROUTE_PREFIX)) {
+        if (!\is_string($route) || !array_any(self::ROUTE_PREFIXES, static fn (string $prefix): bool => str_starts_with($route, $prefix))) {
             return;
         }
         $error = $event->getThrowable();

@@ -32,8 +32,8 @@ final class ListEventTypesToolTest extends ReadToolTestCase
 
         $items = $output->data['items'];
         self::assertIsArray($items);
-        self::assertSame('15 event types.', $output->summary);
-        self::assertSame(['cash-flow.planned_item.changed', 'cash-flow.planned_item.created', 'cash-flow.planned_item.deleted', 'cash-flow.planned_item.ended', 'cash-flow.planned_item.occurrence_skipped', 'invoicing.invoice.delivered', 'invoicing.invoice.issued', 'invoicing.invoice.paid', 'invoicing.invoice.restored', 'invoicing.invoice.trashed', 'invoicing.payment.recorded', 'party.contact.archived', 'party.contact.created', 'party.contact.restored', 'party.contact.updated'], array_column($items, 'name'));
+        self::assertSame('17 event types.', $output->summary);
+        self::assertSame(['cash-flow.planned_item.changed', 'cash-flow.planned_item.created', 'cash-flow.planned_item.deleted', 'cash-flow.planned_item.ended', 'cash-flow.planned_item.occurrence_skipped', 'invoicing.invoice.delivered', 'invoicing.invoice.issued', 'invoicing.invoice.paid', 'invoicing.invoice.restored', 'invoicing.invoice.trashed', 'invoicing.payment.recorded', 'party.contact.archived', 'party.contact.created', 'party.contact.restored', 'party.contact.updated', 'purchasing.received_document.paid', 'purchasing.received_document.recorded'], array_column($items, 'name'));
         self::assertSame(['name' => 'invoicing.invoice.paid', 'version' => 1, 'module' => 'invoicing', 'subject_type' => 'invoice', 'fields' => ['invoice_id', 'state', 'payment_id']], $items[7]);
         self::assertSame(['payment', 'invoice', 'contact'], [array_column($items, 'subject_type')[10], array_column($items, 'subject_type')[5], array_column($items, 'subject_type')[12]]);
         self::assertSame(['name' => 'party.contact.created', 'version' => 1, 'module' => 'party', 'subject_type' => 'contact', 'fields' => ['contact_id', 'kind']], $items[12]);
