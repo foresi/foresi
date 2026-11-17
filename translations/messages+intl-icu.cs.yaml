@@ -3776,6 +3776,7 @@ work:
     due_none: Bez termínu
   list:
     no_section: Bez sekce
+    loose_caption: 'Úkoly projektu {project}'
     empty: Zatím žádné úkoly.
     empty_filtered: Filtrům neodpovídá žádný úkol.
     empty_title: Zatím žádné úkoly
