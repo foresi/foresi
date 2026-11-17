@@ -322,8 +322,11 @@ $entityManager->persist($senderSeries);
 $entityManager->persist(FirmMailServer::define($senderFirm, 'smtp.example.com', 587, MailEncryption::Starttls, 'studio@example.com', $mailSecrets->seal('throwaway-smtp-password'), 'studio@example.com', 'Example Studio s.r.o.'));
 $entityManager->flush();
 $senderCustomer = $createParty->createFrom($party(PartyKind::Company, 'Example Client a.s.', [PartyRole::Customer], 'billing@example.com', 2, '12345679', 'CZ12345679'));
+// The issue day stays fixed, so the numbers of the year stay 2026xxxx; the due day follows the
+// calendar, so these invoices never fall overdue and turn into reminder rows on a later day.
 $day = new DateTimeImmutable('2026-11-02');
-$senderInvoice = $issueInvoice->issue(new InvoiceInput($senderFirm->id(), $senderSeries->id(), null, $senderCustomer->id(), null, $day, $day, $day->modify('+14 days'), PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '20260001', '', '', 'Website redesign', '', '', DocumentLanguage::Czech, [
+$due = (new DateTimeImmutable('today'))->modify('+14 days');
+$senderInvoice = $issueInvoice->issue(new InvoiceInput($senderFirm->id(), $senderSeries->id(), null, $senderCustomer->id(), null, $day, $day, $due, PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '20260001', '', '', 'Website redesign', '', '', DocumentLanguage::Czech, [
     new LineInput('Website redesign', Quantity::fromString('1'), 'ks', Money::of('12500.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
 ]));
 // Delivered at once: the mail queue of the e2e environment is synchronous.
@@ -333,6 +336,7 @@ file_put_contents(dirname(__DIR__, 2).'/var/e2e-links.json', json_encode([
     'customer' => $linkTokens->token($senderSend->id(), LinkAudience::Customer),
     'copy' => $linkTokens->token($senderSend->id(), LinkAudience::Copy),
     'number' => $senderInvoice->number(),
+    'due' => $due->format('j. n. Y'),
 ], \JSON_THROW_ON_ERROR));
 
 // The tenant of the send dialog specs: a payer firm with a mail server and one without,
@@ -357,7 +361,7 @@ $recipient = $createParty->createFrom($party(PartyKind::Company, 'Example Recipi
 $entityManager->persist(new PartyEmail($recipient, 'billing@example.com', EmailPurpose::Invoices));
 $entityManager->persist(new PartyEmail($recipient, 'accounts@example.com', EmailPurpose::Copy));
 $entityManager->flush();
-$sendingInvoice = static fn (LegalEntity $firm, Series $series, string $description, string $price): Invoice => $issueInvoice->issue(new InvoiceInput($firm->id(), $series->id(), null, $recipient->id(), null, $day, $day, $day->modify('+14 days'), PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
+$sendingInvoice = static fn (LegalEntity $firm, Series $series, string $description, string $price): Invoice => $issueInvoice->issue(new InvoiceInput($firm->id(), $series->id(), null, $recipient->id(), null, $day, $day, $due, PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
     new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
 ]));
 $sendingInvoice($sendingFirm, $sendingSeries, 'Annual support', '24000.00');
@@ -387,7 +391,7 @@ $buyer = $createParty->createFrom($party(PartyKind::Company, 'Example Buyer a.s.
 $entityManager->persist(new PartyEmail($buyer, 'buyer@example.com', EmailPurpose::Invoices));
 $entityManager->flush();
 foreach (['Support' => '1000.00', 'Hosting' => '2000.00', 'Licence' => '3000.00'] as $description => $price) {
-    $issueInvoice->issue(new InvoiceInput($dialogFirm->id(), $dialogSeries->id(), null, $buyer->id(), null, $day, $day, $day->modify('+14 days'), PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
+    $issueInvoice->issue(new InvoiceInput($dialogFirm->id(), $dialogSeries->id(), null, $buyer->id(), null, $day, $day, $due, PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
         new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
     ]));
 }
@@ -415,7 +419,7 @@ $entityManager->flush();
 $payer = $createParty->createFrom($party(PartyKind::Company, 'Example Payer a.s.', [PartyRole::Customer], 'payer@example.com', 10, '12345679', 'CZ12345679'));
 $payable = [];
 foreach (['Consulting' => '1000.00', 'Workshop' => '2000.00', 'Audit' => '3000.00'] as $description => $price) {
-    $payable[$description] = $issueInvoice->issue(new InvoiceInput($payingFirm->id(), $payingSeries->id(), null, $payer->id(), null, $day, $day, $day->modify('+14 days'), PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
+    $payable[$description] = $issueInvoice->issue(new InvoiceInput($payingFirm->id(), $payingSeries->id(), null, $payer->id(), null, $day, $day, $due, PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
         new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
     ]));
 }
@@ -454,7 +458,7 @@ $entityManager->persist($movementsSeries);
 $entityManager->flush();
 $movementsCustomer = $createParty->createFrom($party(PartyKind::Company, 'Example Payer a.s.', [PartyRole::Customer], 'payer@example.com', 11, '12345679', 'CZ12345679'));
 foreach (['Consulting' => '1000.00', 'Workshop' => '2000.00', 'Audit' => '500.00'] as $description => $price) {
-    $issueInvoice->issue(new InvoiceInput($movementsFirm->id(), $movementsSeries->id(), null, $movementsCustomer->id(), null, $day, $day, $day->modify('+14 days'), PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
+    $issueInvoice->issue(new InvoiceInput($movementsFirm->id(), $movementsSeries->id(), null, $movementsCustomer->id(), null, $day, $day, $due, PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
         new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
     ], true));
 }
@@ -616,7 +620,7 @@ $entityManager->persist($advancesFirm);
 $firmAccount($advancesFirm);
 $entityManager->flush();
 $advancesCustomer = $createParty->createFrom($party(PartyKind::Company, 'Example Advance Buyer a.s.', [PartyRole::Customer], 'buyer@example.com', 14, '12345679', 'CZ12345679'));
-$advanceOf = static fn (string $description, ?TaxOnReceiptChoice $choice): Invoice => $issueInvoice->issue(new InvoiceInput($advancesFirm->id(), null, null, $advancesCustomer->id(), null, $day, null, $day->modify('+14 days'), PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
+$advanceOf = static fn (string $description, ?TaxOnReceiptChoice $choice): Invoice => $issueInvoice->issue(new InvoiceInput($advancesFirm->id(), null, null, $advancesCustomer->id(), null, $day, null, $due, PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
     new LineInput($description, Quantity::fromString('1'), 'ks', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
 ], true, DocumentKind::Advance, $choice));
 $advanceOf('First milestone', null);
@@ -642,7 +646,7 @@ $entityManager->flush();
 $correctionsCustomer = $createParty->createFrom($party(PartyKind::Company, 'Example Credit Buyer a.s.', [PartyRole::Customer], 'credit-buyer@example.com', 15, '12345679', 'CZ12345679'));
 $correctable = [];
 foreach (['Consulting', 'Workshop'] as $description) {
-    $correctable[$description] = $issueInvoice->issue(new InvoiceInput($correctionsFirm->id(), $correctionsSeries->id(), null, $correctionsCustomer->id(), null, $day, $day, $day->modify('+14 days'), PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
+    $correctable[$description] = $issueInvoice->issue(new InvoiceInput($correctionsFirm->id(), $correctionsSeries->id(), null, $correctionsCustomer->id(), null, $day, $day, $due, PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
         new LineInput($description, Quantity::fromString('1'), 'ks', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
     ]));
 }
