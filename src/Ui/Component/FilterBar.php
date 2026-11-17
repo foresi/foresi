@@ -162,7 +162,7 @@ final class FilterBar
     {
         $values = $this->kept();
         if ($withSearch && null !== $this->search && '' !== $this->searchValue()) {
-            $values[self::text($this->search['name'])] = $this->searchValue();
+            $values[$this->text($this->search['name'])] = $this->searchValue();
         }
         if ($withFilters) {
             foreach ($this->set() as $view) {
@@ -180,7 +180,7 @@ final class FilterBar
      */
     private function view(array $filter): array
     {
-        $name = self::text($filter['name']);
+        $name = $this->text($filter['name']);
         $value = \is_scalar($filter['value'] ?? null) ? (string) $filter['value'] : '';
         $default = \is_scalar($filter['default'] ?? null) ? (string) $filter['default'] : '';
         /** @var array<int|string, string|array<int|string, string>> $options */
@@ -202,14 +202,14 @@ final class FilterBar
         return [
             'name' => $name,
             'id' => $this->id.'-'.preg_replace('/[^a-z0-9]+/i', '-', $name),
-            'label' => self::text($filter['label']),
+            'label' => $this->text($filter['label']),
             'value' => $value,
             'options' => $options,
             'groups' => $groups,
             'pinned' => true === ($filter['pinned'] ?? false),
             'set' => $value !== $default,
             'text' => \is_string($filter['text'] ?? null) ? $filter['text'] : ('' === $text ? $value : $text),
-            'type' => self::text($filter['type'] ?? 'select'),
+            'type' => $this->text($filter['type'] ?? 'select'),
             'clearHref' => $this->with($name, null),
         ];
     }
@@ -243,7 +243,7 @@ final class FilterBar
             $current = \is_scalar($filter['value'] ?? null) ? (string) $filter['value'] : '';
             $default = \is_scalar($filter['default'] ?? null) ? (string) $filter['default'] : '';
             if ($current !== $default) {
-                $query[self::text($filter['name'])] = $current;
+                $query[$this->text($filter['name'])] = $current;
             }
         }
         unset($query[$name]);
@@ -277,7 +277,7 @@ final class FilterBar
         return [] === $query ? $this->action : $this->action.(str_contains($this->action, '?') ? '&' : '?').http_build_query($query);
     }
 
-    private static function text(mixed $value): string
+    private function text(mixed $value): string
     {
         return \is_scalar($value) ? (string) $value : '';
     }

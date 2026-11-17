@@ -289,7 +289,7 @@ final class DataTableTest extends KernelTestCase
 
     public function testTheFooterShowsTheCountAndTheTotalBeforeWhatThePageAdds(): void
     {
-        $footer = (new Crawler($this->render(['count' => '3 contacts', 'total' => 'Total 1 200,50 Kč'], ['footer' => '<nav data-pages>1</nav>'])))->filter('[data-table-footer]');
+        $footer = new Crawler($this->render(['count' => '3 contacts', 'total' => 'Total 1 200,50 Kč'], ['footer' => '<nav data-pages>1</nav>']))->filter('[data-table-footer]');
 
         self::assertSame('3 contacts', $footer->filter('[data-table-count]')->text());
         self::assertSame('Total 1 200,50 Kč', $footer->filter('[data-table-total]')->text());
