@@ -10,8 +10,11 @@ const FIELDS = 'input:not([type="hidden"]), select, textarea';
 const FOCUSABLE = `${FIELDS}, button, a[href], [tabindex]:not([tabindex="-1"])`;
 const HISTORY_WAIT = 400;
 
-// One dialog at a time, across every instance of this controller.
-let current = null;
+// One open dialog per layer, across every instance of this controller: a sheet, and a
+// dialog that may open over it (a confirmation or a small form started in the sheet).
+const current = { sheet: null, dialog: null };
+// The controller stepping back out of its own history entry, which no other one answers.
+let popper = null;
 
 const visible = (element) => (typeof element.checkVisibility === 'function' ? element.checkVisibility() : element.getClientRects().length > 0);
 const isType = (response, type) => (response.headers.get('Content-Type') || '').includes(type);
@@ -39,10 +42,22 @@ const isType = (response, type) => (response.headers.get('Content-Type') || '').
  * - Turbo: closed before a page is cached or rendered, the open state is kept
  *   out of morphs, so Back never brings a dialog back.
  * - The confirm variant answers data-turbo-confirm and dialog:confirm events.
+ * - Ui:Sheet runs on the same code in the layer "sheet": its remote host follows
+ *   a[data-sheet] links and takes dialog#sheet-page from the answer. A dialog may
+ *   open over a sheet; Escape, Back and the focus belong to the top one.
  */
 export default class extends Controller {
     static targets = ['title', 'body', 'actions', 'discard', 'keep', 'text', 'accept', 'reject'];
-    static values = { fields: Boolean, dismissable: Boolean, remote: Boolean, confirm: Boolean, failed: String };
+    static values = {
+        fields: Boolean,
+        dismissable: Boolean,
+        remote: Boolean,
+        confirm: Boolean,
+        failed: String,
+        layer: { type: String, default: 'dialog' },
+        link: { type: String, default: 'a[data-dialog]' },
+        source: { type: String, default: 'dialog#dialog-page' },
+    };
 
     connect() {
         // Safari keeps a dialog that was taken out and put back open, but no longer modal.
@@ -62,7 +77,7 @@ export default class extends Controller {
         if (this.remoteValue) {
             // A form that can hand a step to a dialog says so, so the server may answer with one.
             document.querySelectorAll('input[data-dialog-capable]').forEach((input) => { input.value = '1'; });
-            const auto = document.querySelector('a[data-dialog][data-dialog-autoopen]');
+            const auto = document.querySelector(`${this.linkValue}[data-dialog-autoopen]`);
             if (auto) {
                 auto.removeAttribute('data-dialog-autoopen');
                 this.load(auto.href, auto);
@@ -71,8 +86,8 @@ export default class extends Controller {
     }
 
     disconnect() {
-        if (current === this) {
-            current = null;
+        if (current[this.layerValue] === this) {
+            current[this.layerValue] = null;
         }
     }
 
@@ -82,7 +97,7 @@ export default class extends Controller {
         if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
             return;
         }
-        const link = event.target instanceof Element ? event.target.closest('a[data-dialog]') : null;
+        const link = event.target instanceof Element ? event.target.closest(this.linkValue) : null;
         if (link === null || this.element.contains(link)) {
             return;
         }
@@ -91,7 +106,7 @@ export default class extends Controller {
     }
 
     async load(url, opener) {
-        if (current !== null || this.loading) {
+        if (current[this.layerValue] !== null || this.blocked() || this.loading) {
             return;
         }
         this.loading = true;
@@ -118,13 +133,13 @@ export default class extends Controller {
     }
 
     open(opener = document.activeElement) {
-        if (current !== null && current !== this) {
+        if ((current[this.layerValue] !== null && current[this.layerValue] !== this) || this.blocked()) {
             return false;
         }
         if (this.element.open) {
             return true;
         }
-        current = this;
+        current[this.layerValue] = this;
         this.afterClose = null;
         this.opener = opener instanceof HTMLElement ? opener : null;
         this.returnTo = null;
@@ -139,14 +154,19 @@ export default class extends Controller {
         return true;
     }
 
+    // A sheet never opens over a dialog.
+    blocked() {
+        return this.layerValue === 'sheet' && current.dialog !== null;
+    }
+
     // Puts the dialog of a server answer into this host, which may be open already.
     fill(html) {
         const page = new DOMParser().parseFromString(html, 'text/html');
-        const source = page.querySelector('dialog#dialog-page') || page.querySelector('dialog');
+        const source = page.querySelector(this.sourceValue) || page.querySelector('dialog');
         if (source === null) {
             throw new Error('The answer holds no dialog.');
         }
-        const own = ['id', 'open', 'data-controller', 'data-action', 'data-dialog-remote-value', 'data-dialog-failed-value'];
+        const own = ['id', 'open', 'data-controller', 'data-action', 'data-dialog-remote-value', 'data-dialog-failed-value', 'data-dialog-layer-value', 'data-dialog-link-value', 'data-dialog-source-value'];
         Array.from(this.element.attributes).filter((attribute) => !own.includes(attribute.name)).forEach((attribute) => this.element.removeAttribute(attribute.name));
         Array.from(source.attributes).filter((attribute) => !own.includes(attribute.name)).forEach((attribute) => this.element.setAttribute(attribute.name, attribute.value));
         this.element.replaceChildren(...Array.from(source.childNodes).map((node) => document.importNode(node, true)));
@@ -208,8 +228,8 @@ export default class extends Controller {
         if (event && event.target !== this.element) {
             return;
         }
-        if (current === this) {
-            current = null;
+        if (current[this.layerValue] === this) {
+            current[this.layerValue] = null;
         }
         this.dirty = false;
         this.hideDiscard();
@@ -429,11 +449,13 @@ export default class extends Controller {
             const done = () => {
                 clearTimeout(timer);
                 this.popping = null;
+                popper = null;
                 this.resumeTurbo();
                 resolve();
             };
             const timer = setTimeout(done, HISTORY_WAIT);
             this.popping = done;
+            popper = this;
             // The entry stays ahead as a forward step. Without Turbo's state it is no visit, and
             // the host steps over it if Forward lands there.
             history.replaceState({ foresiDialog: 'closed' }, '');
@@ -446,11 +468,17 @@ export default class extends Controller {
             this.popping();
             return;
         }
-        if (this.remoteValue && event.state && event.state.foresiDialog === 'closed' && current === null) {
+        if (popper !== null || (this.layerValue === 'sheet' && current.dialog !== null)) {
+            // Another one steps back out of its own entry, or a dialog over this sheet takes Back.
+            return;
+        }
+        if (this.remoteValue && this.layerValue === 'dialog' && event.state && event.state.foresiDialog === 'closed' && current.dialog === null) {
             // Forward onto the step a closed dialog left: go back to the page's own entry quietly.
             this.pauseTurbo();
+            popper = this;
             this.popping = () => {
                 this.popping = null;
+                popper = null;
                 this.resumeTurbo();
             };
             history.back();
@@ -497,7 +525,7 @@ export default class extends Controller {
 
     confirm({ title, text, accept, cancel, tone }) {
         return new Promise((resolve) => {
-            if (current !== null) {
+            if (current.dialog !== null) {
                 // One dialog at a time: inside another one the browser asks.
                 resolve(window.confirm(title));
                 return;

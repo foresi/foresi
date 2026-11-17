@@ -81,7 +81,7 @@ security:
         # The code step, between the password and the full sign-in.
         - { path: ^/login/code, roles: IS_AUTHENTICATED_2FA_IN_PROGRESS }
         # The development catalogue shows no data; its route exists in dev and test only.
-        - { path: ^/_catalogue$, roles: PUBLIC_ACCESS }
+        - { path: ^/_catalogue(?:/sheet)?$, roles: PUBLIC_ACCESS }
         # Links to sent documents, opened by customers from their mail.
         - { path: ^/d/, roles: PUBLIC_ACCESS }
         # Raw bank mail from a relay, which proves itself with the webhook secret.

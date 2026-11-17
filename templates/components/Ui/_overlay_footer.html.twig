@@ -1,0 +1,14 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The footer of a dialog or a sheet (`id`, `footer`, `asking`): the buttons, right-aligned with
+    Cancel first and the one primary verb last, and in their place the question a changed form asks
+    before it is closed, so it never opens a second dialog.
+#}
+<footer class="shrink-0 border-t border-divider px-6 py-4 max-sm:px-4">
+    <div data-dialog-target="actions"{% if asking %} hidden{% endif %} class="flex flex-wrap items-center justify-end gap-2 max-sm:grid max-sm:auto-cols-fr max-sm:grid-flow-col max-sm:[&_a]:h-auto max-sm:[&_a]:min-h-control-lg max-sm:[&_a]:w-full max-sm:[&_a]:whitespace-normal max-sm:[&_a]:py-1.5 max-sm:[&_button]:h-auto max-sm:[&_button]:min-h-control-lg max-sm:[&_button]:w-full max-sm:[&_button]:whitespace-normal max-sm:[&_button]:py-1.5">{{ footer }}</div>
+    <div data-dialog-target="discard"{% if not asking %} hidden{% endif %} class="flex flex-wrap items-center justify-end gap-2 max-sm:grid max-sm:grid-cols-2">
+        <p id="{{ id }}-discard" class="m-0 mr-auto text-body font-medium text-ink max-sm:col-span-2">{{ 'ui.dialog.discard_question'|trans }}</p>
+        <twig:Ui:Button data-action="dialog#keepEditing" data-dialog-target="keep" aria-describedby="{{ id }}-discard" class="max-sm:h-control-lg">{{ 'ui.dialog.keep_editing'|trans }}</twig:Ui:Button>
+        <twig:Ui:Button variant="danger" data-action="dialog#discard" class="max-sm:h-control-lg">{{ 'ui.dialog.discard'|trans }}</twig:Ui:Button>
+    </div>
+</footer>

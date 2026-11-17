@@ -1,0 +1,15 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A page as a side sheet: what the sheet host loads for a link with data-sheet. Like
+    layout/dialog.html.twig, the page keeps its URL and its full-page layout; for a dialog request it
+    extends this one and fills the blocks "title" (plain text), "sheet_body" and "sheet_footer".
+    Top-level variables: sheet_size (sm for filters and columns, md for a detail), sheet_fields (true
+    when it holds inputs), sheet_description and sheet_reload (as dialog_reload).
+#}
+{% set sheetTitle %}{% block title %}{% endblock %}{% endset %}
+{% set sheetBody %}{% block sheet_body %}{% endblock %}{% endset %}
+{% set sheetFooter %}{% block sheet_footer %}{% endblock %}{% endset %}
+<twig:Ui:Sheet id="sheet-page" :title="sheetTitle|striptags|html_decode|trim" :size="sheet_size|default('md')" :fields="sheet_fields ?? false" :description="sheet_description|default(null)" data-dialog-reload="{{ sheet_reload|default(false) ? '1' : '0' }}">
+    {{ sheetBody }}
+    <twig:block name="footer">{{ sheetFooter }}</twig:block>
+</twig:Ui:Sheet>

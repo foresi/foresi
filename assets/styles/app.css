@@ -149,6 +149,10 @@
 
     --drop-shadow-*: initial;
     --text-shadow-*: initial;
+
+    /* The blur of the dialog scrim (Untitled UI's modal overlay, backdrop-blur 6 px). */
+    --blur-*: initial;
+    --blur-overlay: 6px;
 }
 
 /*
@@ -260,9 +264,14 @@ html:has([data-table-selection-target~="bar"]:not([hidden])) {
 }
 
 /*
- * Dialogs: a dialog fades and rises in; the global reduced-motion rule below turns
- * the motion off. On a phone, where a dialog with fields fills the screen, the page
- * behind does not scroll; on a wide screen it keeps its scrollbar, so nothing moves.
+ * Dialogs and sheets. On a phone, where a dialog with fields or a sheet fills the
+ * screen, the page behind does not scroll; on a wide screen it keeps its scrollbar,
+ * so nothing moves. The global reduced-motion rule below turns all motion off.
+ *
+ * A dialog pops in over 220 ms (layout spec, Motion) from 95 % scale and fades
+ * out over 200 ms (Untitled UI modal: zoom-in-95 in, ease-in out). A sheet slides
+ * in from the right edge over 280 ms on cubic-bezier(.2,.7,.2,1) (layout spec) and
+ * out over 200 ms. The scrim fades with its overlay.
  */
 @media (max-width: 639px) {
     html:has(dialog:modal) {
@@ -270,20 +279,54 @@ html:has([data-table-selection-target~="bar"]:not([hidden])) {
     }
 }
 
-dialog[data-controller~="dialog"] {
-    transition: opacity 150ms ease-out, translate 150ms ease-out, overlay 150ms allow-discrete, display 150ms allow-discrete;
+dialog[data-controller~="dialog"],
+dialog[data-controller~="dialog"]::backdrop {
+    transition: opacity 200ms ease-in, scale 200ms ease-in, translate 200ms ease-in, overlay 200ms allow-discrete, display 200ms allow-discrete;
 }
 
-dialog[data-controller~="dialog"]:not([open]) {
+dialog[data-controller~="dialog"][open],
+dialog[data-controller~="dialog"][open]::backdrop {
+    transition-duration: 220ms;
+    transition-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+dialog[data-controller~="dialog"]:not([open])::backdrop,
+dialog[data-controller~="dialog"]:not([data-sheet]):not([open]) {
     opacity: 0;
-    translate: 0 6px;
+}
+
+dialog[data-controller~="dialog"]:not([data-sheet]):not([open]) {
+    scale: 0.95;
+}
+
+dialog[data-sheet][open],
+dialog[data-sheet][open]::backdrop {
+    transition-duration: 280ms;
+}
+
+dialog[data-sheet]:not([open]) {
+    translate: 100% 0;
 }
 
 @starting-style {
-    dialog[data-controller~="dialog"][open] {
+    dialog[data-controller~="dialog"][open]::backdrop,
+    dialog[data-controller~="dialog"]:not([data-sheet])[open] {
         opacity: 0;
-        translate: 0 6px;
     }
+
+    dialog[data-controller~="dialog"]:not([data-sheet])[open] {
+        scale: 0.95;
+    }
+
+    dialog[data-sheet][open] {
+        translate: 100% 0;
+    }
+}
+
+/* While its grip is dragged, a sheet follows the pointer without easing. */
+dialog[data-sheet][data-resizing] {
+    transition: none;
+    user-select: none;
 }
 
 .num {
