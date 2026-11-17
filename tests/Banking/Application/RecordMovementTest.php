@@ -31,6 +31,7 @@ use App\Party\Application\ManageFirmBankAccounts;
 use App\Party\Application\TransactionalWork;
 use App\Party\Application\UnknownFirmBankAccount;
 use App\Party\Domain\LegalEntity;
+use App\Shared\Application\Event\EventRecorder;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
@@ -91,7 +92,7 @@ final class RecordMovementTest extends BankingTestCase
             }
         };
         $container = self::getContainer();
-        $record = new RecordMovement($this->movements, $container->get(FirmBankAccounts::class), $this->matcher, $rules, $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $container->get(PairingChoices::class));
+        $record = new RecordMovement($this->movements, $container->get(FirmBankAccounts::class), $this->matcher, $rules, $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $container->get(PairingChoices::class), $container->get(EventRecorder::class));
 
         $movement = $record->record($this->incoming('1210.00'), self::verified());
 
@@ -104,7 +105,7 @@ final class RecordMovementTest extends BankingTestCase
     {
         $movements = new LoggingBankMovements($this->movements);
         $container = self::getContainer();
-        $record = new RecordMovement($movements, $container->get(FirmBankAccounts::class), $this->matcher, $container->get(FirmPairingRules::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $container->get(PairingChoices::class));
+        $record = new RecordMovement($movements, $container->get(FirmBankAccounts::class), $this->matcher, $container->get(FirmPairingRules::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $container->get(PairingChoices::class), $container->get(EventRecorder::class));
 
         $movement = $record->record($this->incoming('10.00'), self::verified());
 

@@ -16,7 +16,9 @@
             "module": "invoicing",
             "kind": "module",
             "namespace": "App\\Invoicing\\",
-            "optional": [],
+            "optional": [
+                "cash-flow"
+            ],
             "scopes": [
                 "invoices",
                 "payments"

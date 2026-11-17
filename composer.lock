@@ -1664,7 +1664,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Banking",
-                "reference": "86c07cb2b9230b089e0bd2adfb2715a6170bbca2"
+                "reference": "fd329dfb6b435e23bda8ea3b6f09965af1310d14"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1681,7 +1681,9 @@
                     "module": "banking",
                     "kind": "module",
                     "namespace": "App\\Banking\\",
-                    "optional": []
+                    "optional": [
+                        "cash-flow"
+                    ]
                 }
             },
             "license": [
@@ -1933,7 +1935,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Invoicing",
-                "reference": "3f5b45b8935890eb1a5a4ffd4f734197ac229667"
+                "reference": "0075fc1478a51992ee11d12d295f7ab9a8b8bb51"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1949,7 +1951,9 @@
                     "module": "invoicing",
                     "kind": "module",
                     "namespace": "App\\Invoicing\\",
-                    "optional": [],
+                    "optional": [
+                        "cash-flow"
+                    ],
                     "scopes": [
                         "invoices",
                         "payments"
@@ -2008,7 +2012,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Purchasing",
-                "reference": "6af818e7ffa922008d93782541c3fc838b725023"
+                "reference": "1cad836ec96545b07999ce155198bd153fd0137b"
             },
             "require": {
                 "foresi/attachment": "*",
@@ -2026,7 +2030,9 @@
                     "module": "purchasing",
                     "kind": "module",
                     "namespace": "App\\Purchasing\\",
-                    "optional": [],
+                    "optional": [
+                        "cash-flow"
+                    ],
                     "scopes": [
                         "received_documents"
                     ]

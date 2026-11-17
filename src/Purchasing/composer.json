@@ -18,7 +18,9 @@
             "module": "purchasing",
             "kind": "module",
             "namespace": "App\\Purchasing\\",
-            "optional": [],
+            "optional": [
+                "cash-flow"
+            ],
             "scopes": [
                 "received_documents"
             ]
