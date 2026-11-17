@@ -525,8 +525,8 @@ firm:
   field:
     name: Název
     vatStatus: Vztah k DPH
-    registerEntry: Zápis v rejstříku
-    registerEntry_help: Rejstřík a spisová značka, jak je uvádíte na dokladech
+    registerEntry: Zápis v rejstříku nebo evidenci
+    registerEntry_help: Společnost spisovou značku, živnostník živnostenský rejstřík
     logo: Logo
     logo_help: 'PNG nebo JPEG, nejvýš 1 MB'
     logo_stored_help: 'Nahráno. Nový PNG nebo JPEG ho nahradí, nejvýš 1 MB'
@@ -1824,7 +1824,7 @@ invoice:
     firm_archived: Tato firma je archivovaná, nové doklady nevystavuje.
     firm_country_unsupported: Pro zemi této firmy zatím faktury nejsou k dispozici.
     firm_locked: Firmu vystaveného dokladu nelze změnit.
-    firm_register_entry_missing: Doplňte zápis v rejstříku v nastavení firmy.
+    firm_register_entry_missing: 'Doplňte v nastavení firmy, kde je zapsaná. Společnost uvádí spisovou značku, živnostníkovi stačí „Zapsán v živnostenském rejstříku“.'
     firm_vat_id_missing: Doplňte DIČ v nastavení firmy.
     issue_date_missing: Zadejte datum vystavení.
     language_invalid: Vyberte jazyk dokladu.

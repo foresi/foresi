@@ -50,6 +50,8 @@ final readonly class LineRules
         if ($firm->vatStatus()->requiresVatId() && !$firm->vatId() instanceof VatId) {
             $problems[] = new IssueProblem('firm', 'invoice.problem.firm_vat_id_missing');
         }
+        // Every firm states where it is registered, not only one in a company register:
+        // a sole trader names the register or record it is entered in instead of a file number.
         if ('' === trim($firm->registerEntry())) {
             $problems[] = new IssueProblem('firm', 'invoice.problem.firm_register_entry_missing');
         }
