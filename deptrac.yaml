@@ -540,6 +540,7 @@ deptrac:
       # The import transaction binds the tenant again after a failure.
       - InstanceApplication
       - VendorSymfony
+      - VendorClock
       - VendorDoctrine
       - SharedDomain
       - PartyDomain
@@ -614,6 +615,7 @@ deptrac:
       - InstanceDomain
       - AuditApplication
       - VendorSymfony
+      - VendorClock
       - VendorUid
       - VendorDoctrine
       - VendorDoctrineOrmMapping
