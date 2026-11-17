@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { expect, test, type Page } from '@playwright/test';
-import { signIn } from '../support/session';
+import { signIn, worldState } from '../support/session';
 
 // The owner of "Example People" in tests/e2e/seed.php; the e2e installation has no system mail.
 const PEOPLE_OWNER = 'people@example.com';
@@ -27,7 +27,7 @@ test.describe('people of the organisation', () => {
     expect(link).toMatch(/\/invitation\/[A-Za-z0-9_-]{43}$/);
     await page.getByRole('button', { name: 'Kopírovat odkaz' }).click();
 
-    const invitee = await browser.newContext({ locale: 'cs-CZ' });
+    const invitee = await browser.newContext({ locale: 'cs-CZ', storageState: worldState('people') });
     const visitor = await invitee.newPage();
     await visitor.goto(link);
     await expect(visitor.getByRole('heading', { name: 'Připojit se k Example People' })).toBeVisible();
@@ -61,7 +61,7 @@ test.describe('people of the organisation', () => {
     await expect(page.locator('main')).toContainText('Pozvánka je zrušená.');
     await expect(page.locator('tbody tr').filter({ hasText: 'revoked@example.com' })).toHaveCount(0);
 
-    const invitee = await browser.newContext({ locale: 'cs-CZ' });
+    const invitee = await browser.newContext({ locale: 'cs-CZ', storageState: worldState('people') });
     const visitor = await invitee.newPage();
     await visitor.goto(link);
     await expect(visitor.getByRole('heading', { name: 'Pozvánka zrušena' })).toBeVisible();

@@ -5,7 +5,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { signIn } from '../support/session';
 
 // This spec changes data. It runs in the "lifecycle" project, after the read-only specs.
-// The tenants of this spec in tests/e2e/seed.php hold a finished iDoklad pull and stored keys,
+// The worlds of this spec in tests/e2e/seed.php hold a finished iDoklad pull and stored keys,
 // so nothing here reaches iDoklad: three contacts, three series, invoice 20260008 that matches,
 // 20260009 whose VAT is 421 Kč in iDoklad and 420 Kč by Foresi, a credit note (refused), an
 // advance Z20260003 paid with its tax document D20260001, and one monthly template. The e2e
@@ -143,7 +143,7 @@ test.describe('the move from iDoklad', () => {
     await expectNoSeriousViolations(page);
   });
 
-  // Screenshots import into their own tenant, which nothing else touches, so they show the same
+  // Screenshots import into their own world, which nothing else touches, so they show the same
   // counts whichever specs ran before. One check and one run serve both viewports: a second run
   // would find the contacts and series of the first. Dates of the day are masked.
   test('pull, check and result look as approved @visual', async ({ page }) => {

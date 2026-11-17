@@ -5,7 +5,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { signIn } from '../support/session';
 
 const DESKTOP = { width: 1440, height: 960 };
-// The tenant of this spec in tests/e2e/seed.php: in last month invoices {year}0001 of 1 210 Kč
+// The world of this spec in tests/e2e/seed.php: in last month invoices {year}0001 of 1 210 Kč
 // at 21 % and {year}0002 of 560 Kč at 12 % and an advance of 1 210 Kč; in this month an
 // invoice of 2 420 Kč. Nothing is exported yet.
 const OWNER = 'accountant@example.com';
@@ -130,7 +130,7 @@ test.describe.serial('the accountant pack', () => {
     await row(page, FIRST).getByRole('button', { name: `Další akce pro ${FIRST}`, exact: true }).click();
     await row(page, FIRST).getByRole('menuitem', { name: 'Zrušit příznak exportu' }).click();
 
-    await expect(page.locator('main').getByRole('status').filter({ hasText: `Doklad ${FIRST}` })).toContainText(`Doklad ${FIRST} už nemá příznak exportu`);
+    await expect(page.locator('main').getByRole('status')).toContainText(`Doklad ${FIRST} už nemá příznak exportu`);
     await expect(page.locator('tbody tr')).toHaveCount(1);
     await expect(row(page, SECOND)).toBeVisible();
     await page.goto('/invoices?export=not_exported');

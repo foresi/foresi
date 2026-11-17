@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: AGPL-3.0-only
 #
-# Starts the application for the end-to-end tests: a fresh SQLite database
-# (var/e2e.db), migrated and seeded, served by the PHP built-in server. It never
-# touches the development database. Run from the repository root by Playwright.
+# Starts the application for the end-to-end tests: one fresh SQLite database per world of
+# tests/e2e/seed.php (var/e2e/<world>.db, one organisation each), migrated once, copied and
+# seeded, served by the PHP built-in server, which picks the world of each request in
+# tests/e2e/world.php. It never touches the development database. Run from the repository
+# root by Playwright.
 set -euo pipefail
 
 port="${E2E_PORT:-8099}"
@@ -22,15 +24,23 @@ export BANK_INBOX_TRUSTED_AUTHSERV="mx.example.com"
 export INBOUND_WEBHOOK_TRUSTED_AUTHSERV="mx.example.com"
 
 # Fresh state: the login throttle and the registry cache live in the file cache.
-rm -rf var/cache/e2e
-rm -f var/e2e.db
-php bin/console doctrine:migrations:migrate --no-interaction --quiet
-# The seeded firms are Czech: PHP's own today is the firms' today, also after midnight in
-# Prague while the CI server is still on the day before in UTC.
-php -d date.timezone=Europe/Prague tests/e2e/seed.php
+rm -rf var/cache/e2e var/e2e
+mkdir -p var/e2e
+# Migrated once, into the template every world starts from.
+E2E_WORLD=template php bin/console doctrine:migrations:migrate --no-interaction --quiet
+worlds="$(php tests/e2e/seed.php --worlds)"
+for world in ${worlds}; do
+  cp var/e2e/template.db "var/e2e/${world}.db"
+done
+rm var/e2e/template.db
+# The worlds side by side, four at a time; each is its own database. The seeded firms are
+# Czech: PHP's own today is the firms' today, also after midnight in Prague while the CI
+# server is still on the day before in UTC.
+printf '%s\n' ${worlds} | xargs -P 4 -I '{}' env E2E_WORLD='{}' php -d date.timezone=Europe/Prague tests/e2e/seed.php
 
 export PHP_CLI_SERVER_WORKERS=4
+# auto_prepend_file: tests/e2e/world.php picks the world's database for each request.
 # variables_order=EGPCS: the built-in server otherwise hides APP_ENV from Symfony, which then
 # falls back to the dev environment and the developer database. display_errors=0 as in production:
 # the warning of a form past max_input_vars must not reach the page before the headers.
-exec php -d date.timezone=Europe/Prague -d variables_order=EGPCS -d display_startup_errors=0 -d display_errors=0 -S "127.0.0.1:${port}" -t public public/index.php
+exec php -d date.timezone=Europe/Prague -d auto_prepend_file=tests/e2e/world.php -d variables_order=EGPCS -d display_startup_errors=0 -d display_errors=0 -S "127.0.0.1:${port}" -t public public/index.php

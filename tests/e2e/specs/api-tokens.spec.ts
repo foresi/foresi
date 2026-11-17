@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { expect, request as playwrightRequest, test, type APIRequestContext } from '@playwright/test';
-import { signIn } from '../support/session';
+import { signIn, worldHeader } from '../support/session';
 import { totpCode } from '../support/totp';
 
 // The owner of "Example API" in tests/e2e/seed.php. The e2e installation does not require
@@ -9,11 +9,11 @@ import { totpCode } from '../support/totp';
 const API_OWNER = 'api@example.com';
 const TOKEN_NAME = 'Reporting example';
 
-// A client of the API: no cookies, only a bearer token (or none).
+// A client of the API: no cookies, only a bearer token (or none) and the world it reaches.
 async function client(baseURL: string, token?: string): Promise<APIRequestContext> {
   return playwrightRequest.newContext({
     baseURL,
-    extraHTTPHeaders: token === undefined ? {} : { Authorization: `Bearer ${token}` },
+    extraHTTPHeaders: { ...worldHeader('api'), ...(token === undefined ? {} : { Authorization: `Bearer ${token}` }) },
   });
 }
 

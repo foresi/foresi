@@ -74,8 +74,7 @@ test.describe('import of contacts', () => {
     await expect(page.locator('[aria-current="step"]')).toContainText('Výsledek');
     await expect(page.locator('[data-import-outcome]')).toContainText('Import je hotový.');
     // Opening the summary answers the notice.
-    // Bank notices come from the bank data of other specs, which shares the instance.
-    await expect(page.locator('[data-shell-notices] a:not([href^="/bank"])')).toHaveCount(0);
+    await expect(page.locator('[data-shell-notices]')).toHaveCount(0);
 
     const download = page.waitForEvent('download');
     await page.getByRole('link', { name: 'Stáhnout chyby' }).click();
@@ -169,7 +168,7 @@ test.describe('import of contacts', () => {
 
   // Screenshots: the viewport (with the action bar docked to its bottom) and the main content alone.
   // This spec runs on the desktop project only, so the mobile captures set their own viewport. They
-  // import into the empty tenant, which no other spec writes to, so the check shows the same counts
+  // import into the empty world, which no other spec writes to, so the check shows the same counts
   // whether the whole suite runs or only the @visual specs.
   test.describe('screens', () => {
     test.use({ storageState: EMPTY_OWNER_STATE });

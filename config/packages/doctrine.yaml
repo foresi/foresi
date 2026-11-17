@@ -138,12 +138,15 @@ when@test:
                     prefix: 'App\Tests\Audit\Fixtures'
                     alias: AuditFixtures
 
-# The end-to-end environment (tests/e2e) owns its database. The URL is fixed here, not read
-# from the environment, so no local .env file can ever point the browser tests at real data.
+# The end-to-end environment (tests/e2e) owns its databases, one SQLite file per world under
+# var/e2e. Only the world's name comes from the environment (tests/e2e/world.php checks it), so
+# no local .env file can ever point the browser tests at real data.
 when@e2e:
+    parameters:
+        env(E2E_WORLD): 'main'
     doctrine:
         dbal:
-            url: 'sqlite:///%kernel.project_dir%/var/e2e.db'
+            url: 'sqlite:///%kernel.project_dir%/var/e2e/%env(E2E_WORLD)%.db'
 
 when@prod:
     doctrine:

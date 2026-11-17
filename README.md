@@ -81,7 +81,7 @@ With supervisor, use the same command with `autorestart=true` and `stopwaitsecs=
 
 ## End-to-end tests
 
-Playwright tests in `tests/e2e` drive the real application in a browser: sign-in, the address book, keyboard use, accessibility (axe, WCAG 2.2 AA, zero serious or critical violations) and layout on a desktop (1440 px) and a mobile (390 px) viewport. They run in their own `e2e` environment with a separate SQLite database (`var/e2e.db`, recreated and seeded with example data by `tests/e2e/serve.sh`), and the registers (ARES, VIES, the unreliable payer register) are replaced by the same fixture-backed fakes the PHPUnit suite uses, so nothing calls the network. Your development database is never touched.
+Playwright tests in `tests/e2e` drive the real application in a browser: sign-in, the address book, keyboard use, accessibility (axe, WCAG 2.2 AA, zero serious or critical violations) and layout on a desktop (1440 px) and a mobile (390 px) viewport. They run in their own `e2e` environment with separate SQLite databases, one per world of `tests/e2e/seed.php` with one organisation each (`var/e2e/<world>.db`, recreated and seeded with example data by `tests/e2e/serve.sh`; a spec reaches its world through the sign-in helpers of `tests/e2e/support/session.ts`), and the registers (ARES, VIES, the unreliable payer register) are replaced by the same fixture-backed fakes the PHPUnit suite uses, so nothing calls the network. Your development database is never touched.
 
 ```bash
 bin/console importmap:install        # Stimulus and Turbo, git-ignored under assets/vendor

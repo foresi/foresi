@@ -129,7 +129,7 @@ test.describe.serial('sending an invoice', () => {
       await page.goto('/contacts');
       const notice = page.locator('[data-shell-notices]');
       await expect(notice).toContainText('Fakturu se nepodařilo odeslat.');
-      await notice.locator('a[href^="/invoices/sent"]').click();
+      await notice.getByRole('link', { name: 'Zobrazit' }).click();
 
       await expect(page.getByRole('heading', { level: 1, name: 'Odeslané e-maily' })).toBeVisible();
       await expect(page.getByRole('navigation', { name: 'Stavy odeslání' }).getByRole('link', { name: 'Neodešlo' })).toHaveAttribute('aria-current', 'page');
