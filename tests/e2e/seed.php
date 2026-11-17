@@ -325,7 +325,7 @@ $senderCustomer = $createParty->createFrom($party(PartyKind::Company, 'Example C
 // The issue day stays fixed, so the numbers of the year stay 2026xxxx; the due day follows the
 // calendar, so these invoices never fall overdue and turn into reminder rows on a later day.
 $day = new DateTimeImmutable('2026-11-02');
-$due = (new DateTimeImmutable('today'))->modify('+14 days');
+$due = new DateTimeImmutable('today')->modify('+14 days');
 $senderInvoice = $issueInvoice->issue(new InvoiceInput($senderFirm->id(), $senderSeries->id(), null, $senderCustomer->id(), null, $day, $day, $due, PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '20260001', '', '', 'Website redesign', '', '', DocumentLanguage::Czech, [
     new LineInput('Website redesign', Quantity::fromString('1'), 'ks', Money::of('12500.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
 ]));
