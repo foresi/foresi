@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Invoicing\Domain;
 
 use App\Audit\Domain\Audited;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Currency;
@@ -35,23 +33,19 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'payment')]
-#[ORM\Index(name: 'idx_payment_tenant', columns: ['tenant_id'])]
-#[ORM\Index(name: 'idx_payment_firm_received', columns: ['tenant_id', 'legal_entity_id', 'received_on'])]
+#[ORM\Index(name: 'idx_payment_firm_received', columns: ['legal_entity_id', 'received_on'])]
 #[ORM\Index(name: 'idx_payment_bank_movement', columns: ['bank_movement_id'])]
 #[ORM\Index(name: 'idx_payment_firm', columns: ['legal_entity_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_payment_active_movement', columns: ['live_bank_movement_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_payment_import', columns: ['legal_entity_id', 'import_source', 'import_external_id'])]
 #[ORM\Index(name: 'idx_payment_import_run', columns: ['import_run_id'])]
-class Payment implements TenantOwned, Audited
+class Payment implements Audited
 {
     public const int MAX_NOTE = 500;
 
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(name: 'amount_minor', type: 'bigint')]
     private int $amountMinor;
@@ -244,10 +238,5 @@ class Payment implements TenantOwned, Audited
     public function cancelledBy(): ?string
     {
         return $this->cancelledBy;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

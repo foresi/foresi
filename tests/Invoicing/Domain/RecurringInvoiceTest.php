@@ -8,17 +8,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Domain;
 
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Quantity;
 use App\Invoicing\Domain\RecurringContent;
 use App\Invoicing\Domain\RecurringDelivery;
 use App\Invoicing\Domain\RecurringInvoice;
-use App\Invoicing\Domain\RecurringInvoiceLine;
 use App\Invoicing\Domain\RecurringState;
 use App\Invoicing\Domain\TaxPointRule;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
 use App\Party\Domain\Address;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\LegalEntity;
@@ -28,7 +22,6 @@ use App\Party\Domain\PaymentMethod;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
 use App\Shared\Domain\Schedule\Recurrence;
 use App\Shared\Domain\Schedule\RecurrenceEnd;
 use App\Shared\Domain\Schedule\RecurrenceUnit;
@@ -245,22 +238,6 @@ final class RecurringInvoiceTest extends TestCase
         $later = new Recurrence(new \DateTimeImmutable('2026-12-10'), RecurrenceUnit::Month, 1, false, RecurrenceEnd::Never, null, null);
 
         self::assertSame('2027-01-10', $template->nextOccurrenceUnder($later, new \DateTimeImmutable('2026-12-15'))?->format('Y-m-d'));
-    }
-
-    public function testATemplateIsStampedWithItsTenantOnPersist(): void
-    {
-        $this->expectException(\LogicException::class);
-
-        $this->template()->tenantId();
-    }
-
-    public function testALineIsStampedWithItsTenantOnPersist(): void
-    {
-        $line = new RecurringInvoiceLine($this->template(), 0, 'Hosting', Quantity::fromString('1'), 'pcs', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
-
-        $this->expectException(\LogicException::class);
-
-        $line->tenantId();
     }
 
     private function template(string $name = '', string $description = 'Hosting', int $dueDays = 14, RecurrenceUnit $unit = RecurrenceUnit::Month, ?string $importedFrom = null): RecurringInvoice

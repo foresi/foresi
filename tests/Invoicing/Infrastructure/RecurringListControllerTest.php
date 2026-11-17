@@ -506,20 +506,6 @@ final class RecurringListControllerTest extends WebTestCase
         self::assertCount(0, $this->client->request('GET', '/contacts')->filter('#sidebar a[href="/invoices/recurring"]'));
     }
 
-    public function testAnotherTenantsTemplateIs404(): void
-    {
-        $this->signedIn();
-        $foreign = $this->foreignTemplate();
-        $token = $this->token($this->template());
-
-        foreach (self::ACTIONS as $action) {
-            $this->client->request('GET', '/invoices/recurring/'.$foreign.'/'.$action);
-            self::assertResponseStatusCodeSame(404, $action);
-            $this->client->request('POST', '/invoices/recurring/'.$foreign.'/'.$action, ['_token' => $token, 'occurrence' => '2026-12-01']);
-            self::assertResponseStatusCodeSame(404, $action);
-        }
-    }
-
     /**
      * @param array<string, string> $values
      */
@@ -689,28 +675,6 @@ final class RecurringListControllerTest extends WebTestCase
 
             return $firm;
         });
-    }
-
-    private function foreignTemplate(): string
-    {
-        $tenant = $this->browser->fixtures->tenant('Foreign Tenant '.bin2hex(random_bytes(2)));
-        $this->context->switchTo($tenant);
-        try {
-            $firm = new LegalEntity('Example Foreign s.r.o.', new RegistrationNumber('CZ', '12345679'), VatId::fromString('CZ12345679'), new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Register');
-            $this->em()->persist($firm);
-            FirmAccounts::add($this->em(), $firm, self::IBAN);
-            $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
-            $series->markDefault();
-            $this->em()->persist($series);
-            $customer = new Party(PartyKind::Company, 'Foreign Customer a.s.', new RegistrationNumber('CZ', '87654320'), null, '');
-            $this->em()->persist($customer);
-            $this->em()->persist(new PartyAddress($customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
-            $this->em()->flush();
-
-            return self::getContainer()->get(SaveRecurringInvoice::class)->create($this->input($firm, $series, $customer, $this->recurrence(), 'Foreign', RecurringDelivery::Send))->id();
-        } finally {
-            $this->context->reset();
-        }
     }
 
     private function nbsp(string $text): string

@@ -10,8 +10,6 @@ namespace App\Tests\Invoicing\Application;
 
 use App\Audit\Application\AuditActor;
 use App\Banking\Application\Candidates;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\CancelPayment;
@@ -30,7 +28,6 @@ use App\Invoicing\Application\PaymentState;
 use App\Invoicing\Application\PaymentTaxDocumentTexts;
 use App\Invoicing\Application\PaymentTransitions;
 use App\Invoicing\Application\RecordPayment;
-use App\Invoicing\Application\UnknownPayment;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\Payment;
 use App\Invoicing\Domain\PaymentSource;
@@ -523,30 +520,6 @@ final class RecordPaymentTest extends InvoiceTestCase
         self::assertSame('99990001', $stored->variableSymbol());
         self::assertSame(InvoiceStatus::Paid, $this->statusOf($stored));
         self::assertSame([$payment->id()], array_map(static fn (\App\Invoicing\Application\InvoicePaymentLine $line): string => $line->paymentId, $this->payments->linesOf($stored)));
-        self::assertFalse($this->payments->get($payment->id())->isCancelled());
-    }
-
-    public function testAnotherTenantsPaymentIsNotFound(): void
-    {
-        $invoice = $this->issue->issue($this->input());
-        $payment = $this->pay($invoice, '100.00');
-        $context = self::getContainer()->get(TenantContext::class);
-        $context->switchTo(TenantId::generate());
-        $this->em->clear();
-
-        try {
-            $this->payments->get($payment->id());
-            self::fail('Another tenant read the payment.');
-        } catch (UnknownPayment) {
-        }
-        try {
-            $this->cancel->cancel($payment->id());
-            self::fail('Another tenant cancelled the payment.');
-        } catch (UnknownPayment) {
-        }
-        self::assertSame([], $this->payments->paidFor([$invoice->id()]));
-
-        $context->switchTo($invoice->tenantId());
         self::assertFalse($this->payments->get($payment->id())->isCancelled());
     }
 

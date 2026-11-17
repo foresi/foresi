@@ -659,14 +659,14 @@ final class FirmInvoicingControllerTest extends WebTestCase
 
     private function issue(Series $series, string $date = '2026-10-31'): void
     {
-        $this->context->switchTo($series->tenantId());
+        $this->context->switchTo($series->firm()->tenantId());
         self::getContainer()->get(NumberCounter::class)->next($series, new \DateTimeImmutable($date));
         $this->context->reset();
     }
 
     private function archive(Series $series): void
     {
-        $this->context->switchTo($series->tenantId());
+        $this->context->switchTo($series->firm()->tenantId());
         $stored = self::getContainer()->get(SeriesCatalog::class)->get($series->id());
         $stored->archive();
         $this->em()->flush();

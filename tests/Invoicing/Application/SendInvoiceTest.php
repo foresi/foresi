@@ -73,7 +73,7 @@ final class SendInvoiceTest extends SendingTestCase
         self::assertSame(121000, self::integer($row, 'amount_minor'));
         self::assertSame('CZK', $row['currency']);
         self::assertSame('2026-11-15', substr(self::text($row, 'due_date'), 0, 10));
-        self::assertSame($this->tenant->toString().'/'.$send->id().'.pdf', $row['pdf_key']);
+        self::assertSame($send->id().'.pdf', $row['pdf_key']);
 
         $file = $this->sentDocumentsDir().'/'.self::text($row, 'pdf_key');
         self::assertFileExists($file);
@@ -375,23 +375,6 @@ final class SendInvoiceTest extends SendingTestCase
         self::assertStringContainsString($this->linkOf($second->id()), $messages[1]->text);
         // The second send froze the invoice as it was then: delivered by the first.
         self::assertSame(2, self::integer($this->row($second->id()), 'invoice_version'));
-    }
-
-    public function testAnotherTenantsSendIsNotFound(): void
-    {
-        $invoice = $this->issue->issue($this->input());
-        $send = $this->sent($invoice);
-        $context = self::getContainer()->get(TenantContext::class);
-        $context->switchTo(\App\Instance\Domain\TenantId::generate());
-        $this->em->clear();
-
-        try {
-            $this->sends->lock($send->id());
-            self::fail('Another tenant cannot take the row.');
-        } catch (\App\Invoicing\Application\UnknownInvoiceSend) {
-        }
-        $this->expectException(\App\Invoicing\Application\UnknownInvoice::class);
-        $this->sent($invoice);
     }
 
     public function testStuckQueuedRowsAreDispatchedAgainOncePerPeriod(): void

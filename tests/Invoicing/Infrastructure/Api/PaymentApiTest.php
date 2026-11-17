@@ -144,23 +144,6 @@ final class PaymentApiTest extends ApiTestCase
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => $parameter]);
     }
 
-    public function testAPaymentOfAnotherOrganisationIsNotFound(): void
-    {
-        $theirs = $this->inTenant($this->foreignTenant(), function (): Payment {
-            [$firm] = $this->firmWithCustomer();
-
-            return $this->payment(firmId: $firm, amount: '100');
-        });
-
-        $this->get('/api/v1/payments');
-        self::assertSame([], $this->ids());
-
-        foreach ([$theirs->id(), Id::generate(), 'not-an-id'] as $id) {
-            $this->get('/api/v1/payments/'.$id);
-            $this->assertProblem(404, 'not_found', ['detail' => 'No such payment.']);
-        }
-    }
-
     public function testATokenScopedToAnotherResourceReadsNothing(): void
     {
         $payment = $this->inTenant($this->tenant, fn (): Payment => $this->payment(amount: '100'));

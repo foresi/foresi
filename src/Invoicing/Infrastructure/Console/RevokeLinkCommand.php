@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Infrastructure\Console;
 
 use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
+use App\Instance\Application\SoleTenant;
 use App\Invoicing\Application\ConflictRetry;
 use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\PublicDocuments;
@@ -23,7 +23,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 /**
  * Ends both links of one send for good, for the operator: a delivered invoice
  * cannot go to the trash, so a link sent to a wrong address is ended here. The
- * change goes through the send of its own tenant, so the audit log records it.
+ * change goes through the send, so the audit log records it.
  */
 #[AsCommand(name: 'app:invoice:revoke-link', description: 'End the links of a sent document for good')]
 final readonly class RevokeLinkCommand
@@ -32,6 +32,7 @@ final readonly class RevokeLinkCommand
         private PublicDocuments $documents,
         private InvoiceSends $sends,
         private TenantContext $context,
+        private SoleTenant $tenant,
         private TransactionalWork $work,
         private ConflictRetry $retry,
         private ClockInterface $clock,
@@ -40,13 +41,12 @@ final readonly class RevokeLinkCommand
 
     public function __invoke(SymfonyStyle $io, #[Argument('The id of the send, as the send log shows it', name: 'sendId')] string $sendId): int
     {
-        $tenant = $this->documents->tenantOf($sendId);
-        if (null === $tenant) {
+        if (!$this->documents->exists($sendId)) {
             $io->error(\sprintf('No send has the id %s.', $sendId));
 
             return Command::FAILURE;
         }
-        $this->context->switchTo(TenantId::fromString($tenant));
+        $this->context->switchTo($this->tenant->id());
         try {
             $this->retry->run(fn (): null => $this->work->run(function () use ($sendId): null {
                 $this->sends->lock($sendId)->revoke(\DateTimeImmutable::createFromInterface($this->clock->now()));

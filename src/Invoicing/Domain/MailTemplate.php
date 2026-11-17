@@ -10,8 +10,6 @@ namespace App\Invoicing\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditRooted;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Id;
@@ -25,9 +23,8 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'mail_template')]
-#[ORM\Index(name: 'idx_mail_template_tenant', columns: ['tenant_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_mail_template_firm_kind_language', columns: ['legal_entity_id', 'kind', 'language'])]
-class MailTemplate implements TenantOwned, Audited, AuditRooted
+class MailTemplate implements Audited, AuditRooted
 {
     public const int MAX_SUBJECT = 255;
     public const int MAX_BODY = 10000;
@@ -35,9 +32,6 @@ class MailTemplate implements TenantOwned, Audited, AuditRooted
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'string', length: self::MAX_SUBJECT)]
     private string $subject;
@@ -122,10 +116,5 @@ class MailTemplate implements TenantOwned, Audited, AuditRooted
     public function body(): string
     {
         return $this->body;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

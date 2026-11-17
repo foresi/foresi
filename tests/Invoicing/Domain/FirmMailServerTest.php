@@ -198,11 +198,4 @@ final class FirmMailServerTest extends TestCase
 
         self::assertSame(str_repeat('č', 255), $server->lastTestError());
     }
-
-    public function testTheTenantIsKnownOnlyOnceStored(): void
-    {
-        $this->expectException(\LogicException::class);
-
-        $this->server()->tenantId();
-    }
 }

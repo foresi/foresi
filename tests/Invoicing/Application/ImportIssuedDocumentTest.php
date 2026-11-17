@@ -277,8 +277,7 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
     public function testAnOriginalThatChangedIsNotShown(): void
     {
         $invoice = $this->stored($this->import->import($this->imported(pdf: self::PDF)));
-        $tenant = self::getContainer()->get(TenantContext::class)->current()->toString();
-        self::getContainer()->get(OriginalDocuments::class)->store($tenant, $invoice->id(), 'something else');
+        self::getContainer()->get(OriginalDocuments::class)->store($invoice->id(), 'something else');
 
         $this->expectException(UndrawableDocument::class);
         self::getContainer()->get(InvoicePdf::class)->render(self::getContainer()->get(IssuedDocumentFactory::class)->of($invoice->id()));
@@ -338,17 +337,17 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
             /** @var list<string> */
             public array $removed = [];
 
-            public function store(string $tenantId, string $invoiceId, string $bytes): string
+            public function store(string $invoiceId, string $bytes): string
             {
-                return $tenantId.'/'.$invoiceId.'.pdf';
+                return $invoiceId.'.pdf';
             }
 
-            public function read(string $tenantId, string $key, string $sha256): string
+            public function read(string $invoiceId, string $key, string $sha256): string
             {
                 return '';
             }
 
-            public function remove(string $tenantId, string $invoiceId): void
+            public function remove(string $invoiceId): void
             {
                 $this->removed[] = $invoiceId;
             }
@@ -370,7 +369,6 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
             $container->get(AuditActor::class),
             $container->get(ClockInterface::class),
             $container->get(ContactSettingsForFirm::class),
-            $container->get(TenantContext::class),
             $container->get(AdvanceDeductions::class),
             $container->get(AdvanceDocuments::class),
             $container->get(InvoicePayments::class),

@@ -38,9 +38,8 @@ final class PaymentListTest extends PaymentReadTestCase
         }
     }
 
-    public function testASliceIsNewestFirstAndKeepsOutOtherTenants(): void
+    public function testASliceIsNewestFirst(): void
     {
-        $this->foreignPayment();
         $this->payment(note: 'First', amount: '100');
         $this->payment(note: 'Second', amount: '100');
         $this->payment(note: 'Third', amount: '100');

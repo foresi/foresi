@@ -87,15 +87,6 @@ final class PaymentAllocationTest extends InvoiceTestCase
         new PaymentAllocation($this->payment(Currency::CZK), $this->invoice, Money::of('0.00', Currency::CZK));
     }
 
-    public function testTheTenantIsKnownOnlyOnceStored(): void
-    {
-        $allocation = new PaymentAllocation($this->payment(Currency::CZK), $this->invoice, Money::of('100.00', Currency::CZK));
-
-        $this->expectExceptionObject(new \LogicException('The tenant is stamped on persist.'));
-
-        $allocation->tenantId();
-    }
-
     private function payment(Currency $currency, PaymentDirection $direction = PaymentDirection::Incoming): Payment
     {
         return new Payment($this->firm, new \DateTimeImmutable('2026-11-20'), Money::of('100.00', $currency), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', null, new \DateTimeImmutable('2026-11-20 10:00'), $direction);

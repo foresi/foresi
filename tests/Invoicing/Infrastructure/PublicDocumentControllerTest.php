@@ -606,17 +606,6 @@ final class PublicDocumentControllerTest extends WebTestCase
         self::assertSame(['first_read_at' => null, 'read_count' => 0], $this->readState($sent['send']));
     }
 
-    public function testAnotherTenantsMemberStillCounts(): void
-    {
-        $sent = $this->sentDocument();
-        $this->signedInMemberOf([$this->browser->fixtures->tenant('Tenant B')]);
-
-        $this->client->request('GET', '/d/'.$sent['token'].'/open', server: self::CLICK);
-
-        self::assertResponseIsSuccessful();
-        self::assertSame(1, $this->readState($sent['send'])['read_count']);
-    }
-
     public function testASignedInUserOfAnotherTenantKeepsTheirActiveTenant(): void
     {
         $sent = $this->sentDocument();

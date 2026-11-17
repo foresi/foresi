@@ -247,16 +247,6 @@ final class NumberCounterTest extends KernelTestCase
         self::assertSame('Z20260001', $this->counter->next($second, $this->date('2026-10-31')));
     }
 
-    public function testAnotherTenantSeesNoCounter(): void
-    {
-        $series = $this->series();
-        $this->counter->next($series, $this->date('2026-10-31'));
-
-        self::getContainer()->get(TenantContext::class)->switchTo(TenantId::generate());
-
-        self::assertSame(0, $this->counter->last($series, '2026'));
-    }
-
     public function testASeriesHasDocumentsOnceANumberLeftTheCounter(): void
     {
         $series = $this->series();
@@ -299,16 +289,6 @@ final class NumberCounterTest extends KernelTestCase
         $this->em->flush();
 
         self::assertSame([$archived, $active], $this->catalog->everyForFirm($this->firm));
-    }
-
-    public function testTheCatalogFindsNoSeriesOfAnotherTenant(): void
-    {
-        $series = $this->series();
-        self::getContainer()->get(TenantContext::class)->switchTo(TenantId::generate());
-
-        $this->expectException(\App\Invoicing\Application\UnknownSeries::class);
-
-        $this->catalog->get($series->id());
     }
 
     public function testWithoutADefaultTheStandardSeriesIsOfferedUnsaved(): void

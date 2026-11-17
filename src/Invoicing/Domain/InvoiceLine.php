@@ -10,8 +10,6 @@ namespace App\Invoicing\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditRooted;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use App\Shared\Domain\Money;
 use Doctrine\ORM\Mapping as ORM;
@@ -29,20 +27,16 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'invoice_line')]
-#[ORM\Index(name: 'idx_invoice_line_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_invoice_line_invoice', columns: ['invoice_id'])]
 #[ORM\Index(name: 'idx_invoice_line_deducts', columns: ['deducts_invoice_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_invoice_line_position', columns: ['invoice_id', 'position'])]
-class InvoiceLine implements TenantOwned, Audited, AuditRooted
+class InvoiceLine implements Audited, AuditRooted
 {
     public const int MAX_UNIT_LENGTH = 32;
 
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'text')]
     private string $text;
@@ -231,11 +225,6 @@ class InvoiceLine implements TenantOwned, Audited, AuditRooted
     public function gross(): Money
     {
         return $this->money($this->grossMinor);
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     private function money(int $minor): Money

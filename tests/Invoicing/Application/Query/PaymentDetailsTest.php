@@ -61,11 +61,9 @@ final class PaymentDetailsTest extends PaymentReadTestCase
     }
 
     #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
-    public function testAnUnknownPaymentAndOneOfAnotherTenantAreNotFound(): void
+    public function testAnUnknownPaymentIsNotFound(): void
     {
-        $foreign = $this->foreignPayment();
-
-        foreach ([Id::generate(), $foreign->id(), 'not-an-id', ''] as $id) {
+        foreach ([Id::generate(), 'not-an-id', ''] as $id) {
             try {
                 $this->details()->of($id);
                 self::fail('Payment "'.$id.'" was found.');

@@ -30,7 +30,7 @@ use Psr\Clock\ClockInterface;
 final readonly class DoctrinePublicDocuments implements PublicDocuments
 {
     private const string FIND = <<<'SQL'
-        SELECT id, tenant_id, token_hash, issuer_name, document_number, customer_name, amount_minor, currency, due_date, language, pdf_key, pdf_sha256,
+        SELECT id, token_hash, issuer_name, document_number, customer_name, amount_minor, currency, due_date, language, pdf_key, pdf_sha256,
             payment_method, bank_account, domestic_account, variable_symbol, payment_code,
             (SELECT i.payable_minor FROM invoice i WHERE i.id = s.invoice_id) AS payable_minor,
             (SELECT i.kind FROM invoice i WHERE i.id = s.invoice_id) AS kind,
@@ -84,7 +84,6 @@ final readonly class DoctrinePublicDocuments implements PublicDocuments
 
         return new PublicDocument(
             $this->text($row, 'id'),
-            $this->text($row, 'tenant_id'),
             hash_equals($this->text($row, 'token_hash'), $tokenHash) ? LinkAudience::Customer : LinkAudience::Copy,
             $this->text($row, 'issuer_name'),
             $this->text($row, 'document_number'),
@@ -122,11 +121,9 @@ final readonly class DoctrinePublicDocuments implements PublicDocuments
         $this->bypass->run(fn (): int|string => $this->connection->executeStatement(self::READ, ['now' => $now, 'id' => $sendId], ['now' => 'datetime_immutable']));
     }
 
-    public function tenantOf(string $sendId): ?string
+    public function exists(string $sendId): bool
     {
-        $tenant = $this->bypass->run(fn (): mixed => $this->connection->fetchOne('SELECT tenant_id FROM invoice_send WHERE id = :id', ['id' => $sendId]));
-
-        return \is_string($tenant) ? $tenant : null;
+        return false !== $this->bypass->run(fn (): mixed => $this->connection->fetchOne('SELECT 1 FROM invoice_send WHERE id = :id', ['id' => $sendId]));
     }
 
     /**

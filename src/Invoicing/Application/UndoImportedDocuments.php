@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
-use App\Instance\Application\TenantContext;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\Payment;
 use App\Party\Application\TransactionalWork;
@@ -40,7 +39,6 @@ final readonly class UndoImportedDocuments
         private TransactionalWork $work,
         private ConflictRetry $retry,
         private ClockInterface $clock,
-        private TenantContext $tenants,
         private AdvanceDocuments $advances,
     ) {
     }
@@ -88,9 +86,8 @@ final readonly class UndoImportedDocuments
             return $refused->blockers;
         }
         // The files go once the rows are gone for good.
-        $tenant = $this->tenants->current()->toString();
         foreach ($removed as $id) {
-            $this->originals->remove($tenant, $id);
+            $this->originals->remove($id);
         }
 
         return $blockers;

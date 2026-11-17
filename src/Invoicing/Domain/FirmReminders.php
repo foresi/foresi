@@ -10,8 +10,6 @@ namespace App\Invoicing\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditRooted;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Id;
@@ -30,9 +28,8 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'firm_reminders')]
-#[ORM\Index(name: 'idx_firm_reminders_tenant', columns: ['tenant_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_firm_reminders_firm', columns: ['legal_entity_id'])]
-class FirmReminders implements TenantOwned, Audited, AuditRooted
+class FirmReminders implements Audited, AuditRooted
 {
     public const int MAX_STEPS = 10;
     public const int MIN_DAYS = 1;
@@ -42,9 +39,6 @@ class FirmReminders implements TenantOwned, Audited, AuditRooted
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $enabled = false;
@@ -180,10 +174,5 @@ class FirmReminders implements TenantOwned, Audited, AuditRooted
     public function minimum(): ?Money
     {
         return null === $this->minimumMinor || !$this->minimumCurrency instanceof Currency ? null : Money::ofMinor($this->minimumMinor, $this->minimumCurrency);
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

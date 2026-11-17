@@ -20,20 +20,6 @@ use App\Import\Domain\ImportProfile;
 use App\Import\Domain\ImportRow;
 use App\Instance\Domain\ScheduledJobRun;
 use App\Instance\Domain\TenantOwned;
-use App\Invoicing\Domain\AbandonedNumber;
-use App\Invoicing\Domain\FirmInvoicing;
-use App\Invoicing\Domain\FirmMailServer;
-use App\Invoicing\Domain\FirmReminders;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Invoicing\Domain\InvoiceSend;
-use App\Invoicing\Domain\MailTemplate;
-use App\Invoicing\Domain\Payment;
-use App\Invoicing\Domain\PaymentAllocation;
-use App\Invoicing\Domain\RecurringInvoice;
-use App\Invoicing\Domain\RecurringInvoiceLine;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\SeriesCounter;
 use App\Party\Domain\ContactLink;
 use App\Party\Domain\FirmBankAccount;
 use App\Party\Domain\LegalEntity;
@@ -86,7 +72,7 @@ final class TenantColumnMappingTest extends KernelTestCase
      */
     public static function tenantOwnedEntities(): iterable
     {
-        foreach ([Party::class, PartyAddress::class, PartyEmail::class, PartyBankAccount::class, ContactLink::class, LegalEntity::class, FirmBankAccount::class, Membership::class, Invitation::class, ApiToken::class, Series::class, SeriesCounter::class, FirmInvoicing::class, FirmMailServer::class, MailTemplate::class, Invoice::class, InvoiceLine::class, InvoiceSend::class, AbandonedNumber::class, RecurringInvoice::class, RecurringInvoiceLine::class, FirmReminders::class, Payment::class, PaymentAllocation::class, PartyFirmSettings::class, Import::class, ImportRow::class, ImportProfile::class, ImportMissingRecord::class, ImportAmbiguousMatch::class, ScheduledJobRun::class] as $class) {
+        foreach ([Party::class, PartyAddress::class, PartyEmail::class, PartyBankAccount::class, ContactLink::class, LegalEntity::class, FirmBankAccount::class, Membership::class, Invitation::class, ApiToken::class, PartyFirmSettings::class, Import::class, ImportRow::class, ImportProfile::class, ImportMissingRecord::class, ImportAmbiguousMatch::class, ScheduledJobRun::class] as $class) {
             yield $class => [$class];
         }
     }

@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Doctrine;
 
-use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\DocumentMonths;
 use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoicePage;
@@ -57,8 +56,7 @@ use Psr\Clock\ClockInterface;
  * The lock is one write that changes nothing, the same on SQLite and PostgreSQL:
  * SELECT FOR UPDATE does not exist on SQLite, where a transaction that reads first
  * fails when it starts to write. The write takes the row, or the database, until
- * the transaction ends. A statement of its own, because it names the tenant itself:
- * the tenant filter covers only queries of the ORM.
+ * the transaction ends.
  *
  * What an invoice has been paid is summed in SQL for the tabs and for overdue, one
  * subquery per use, and read in one more query for the rows of a page. A document
@@ -70,7 +68,7 @@ use Psr\Clock\ClockInterface;
  */
 final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQueries, ListedDocuments, DocumentMonths
 {
-    private const string LOCK = 'UPDATE invoice SET version = version WHERE id = :id AND tenant_id = :tenant';
+    private const string LOCK = 'UPDATE invoice SET version = version WHERE id = :id';
     private const string COUNTRY = 'i.issuer.address.countryCode';
     private const array ORDER = [
         'number' => ['i.numberKey'],
@@ -82,7 +80,6 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
 
     public function __construct(
         private EntityManagerInterface $em,
-        private TenantContext $context,
         private InvoicingCountries $countries,
         private ClockInterface $clock,
         private InvoiceSends $sends,
@@ -92,7 +89,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
 
     public function get(string $id): Invoice
     {
-        // A query, not find(): find() answers from the identity map without the tenant filter.
+        // A query, not find(): find() answers from the identity map.
         $invoice = $this->em->createQuery('SELECT i FROM '.Invoice::class.' i WHERE i.id = :id')->setParameter('id', $id)->getOneOrNullResult();
 
         return $invoice instanceof Invoice ? $invoice : throw new UnknownInvoice();
@@ -100,7 +97,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
 
     public function lockRow(string $id): void
     {
-        if (1 !== $this->em->getConnection()->executeStatement(self::LOCK, ['id' => $id, 'tenant' => $this->context->current()->toString()])) {
+        if (1 !== $this->em->getConnection()->executeStatement(self::LOCK, ['id' => $id])) {
             throw new UnknownInvoice();
         }
     }
@@ -108,7 +105,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
     public function lock(string $id): Invoice
     {
         $this->refusePendingChanges();
-        $locked = $this->em->getConnection()->executeStatement(self::LOCK, ['id' => $id, 'tenant' => $this->context->current()->toString()]);
+        $locked = $this->em->getConnection()->executeStatement(self::LOCK, ['id' => $id]);
         if (1 !== $locked) {
             throw new UnknownInvoice();
         }

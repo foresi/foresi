@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Doctrine;
 
-use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\RecurringFilter;
 use App\Invoicing\Application\RecurringInvoices;
 use App\Invoicing\Application\RecurringPage;
@@ -24,20 +23,19 @@ use Doctrine\ORM\Query;
 
 /**
  * The lock is the write that changes nothing of DoctrineInvoiceStore, for the same
- * reasons: it works alike on SQLite and PostgreSQL, and it names the tenant itself,
- * as the tenant filter covers only queries of the ORM.
+ * reason: it works alike on SQLite and PostgreSQL.
  */
 final readonly class DoctrineRecurringInvoices implements RecurringInvoices
 {
-    private const string LOCK = 'UPDATE recurring_invoice SET version = version WHERE id = :id AND tenant_id = :tenant';
+    private const string LOCK = 'UPDATE recurring_invoice SET version = version WHERE id = :id';
 
-    public function __construct(private EntityManagerInterface $em, private TenantContext $context)
+    public function __construct(private EntityManagerInterface $em)
     {
     }
 
     public function get(string $id): RecurringInvoice
     {
-        // A query, not find(): find() answers from the identity map without the tenant filter.
+        // A query, not find(): find() answers from the identity map.
         $template = $this->em->createQuery('SELECT r FROM '.RecurringInvoice::class.' r WHERE r.id = :id')->setParameter('id', $id)->getOneOrNullResult();
 
         return $template instanceof RecurringInvoice ? $template : throw new UnknownRecurringInvoice();
@@ -54,7 +52,7 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
     public function lock(string $id): RecurringInvoice
     {
         $this->refusePendingChanges();
-        $locked = $this->em->getConnection()->executeStatement(self::LOCK, ['id' => $id, 'tenant' => $this->context->current()->toString()]);
+        $locked = $this->em->getConnection()->executeStatement(self::LOCK, ['id' => $id]);
         if (1 !== $locked) {
             throw new UnknownRecurringInvoice();
         }
@@ -66,7 +64,7 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
 
     public function lockDuringWrite(string $id): RecurringInvoice
     {
-        $locked = $this->em->getConnection()->executeStatement(self::LOCK, ['id' => $id, 'tenant' => $this->context->current()->toString()]);
+        $locked = $this->em->getConnection()->executeStatement(self::LOCK, ['id' => $id]);
         if (1 !== $locked) {
             throw new UnknownRecurringInvoice();
         }
@@ -89,10 +87,9 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
 
     public function occurrenceIssued(string $id, \DateTimeImmutable $occurrence): bool
     {
-        // Plain SQL: the tenant filter covers only queries of the ORM, so the tenant is named here.
         return false !== $this->em->getConnection()->fetchOne(
-            'SELECT 1 FROM invoice WHERE tenant_id = :tenant AND recurring_invoice_id = :id AND recurring_occurrence = :occurrence',
-            ['tenant' => $this->context->current()->toString(), 'id' => $id, 'occurrence' => $occurrence->format('Y-m-d')],
+            'SELECT 1 FROM invoice WHERE recurring_invoice_id = :id AND recurring_occurrence = :occurrence',
+            ['id' => $id, 'occurrence' => $occurrence->format('Y-m-d')],
         );
     }
 
@@ -198,14 +195,13 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
 
     public function inReview(?string $firmId = null): int
     {
-        // Plain SQL: the tenant filter covers only queries of the ORM, so the tenant is named here,
-        // which also lets the key of occurrences, led by tenant and template, find the invoices.
+        // Plain SQL, so the key of occurrences, led by the template, finds the invoices.
         // To send, as the list's filter has it: neither marked delivered nor on its way, and not in the trash.
         $count = $this->em->getConnection()->fetchOne(
-            'SELECT COUNT(*) FROM invoice i WHERE i.tenant_id = :tenant AND i.recurring_invoice_id IS NOT NULL AND i.deleted_at IS NULL AND i.delivered_at IS NULL'
+            'SELECT COUNT(*) FROM invoice i WHERE i.recurring_invoice_id IS NOT NULL AND i.deleted_at IS NULL AND i.delivered_at IS NULL'
             .(null === $firmId ? '' : ' AND i.legal_entity_id = :firm')
-            .' AND NOT EXISTS (SELECT 1 FROM invoice_send s WHERE s.tenant_id = :tenant AND s.invoice_id = i.id AND s.purpose = :purpose AND s.status IN (:queued, :sent))',
-            ['tenant' => $this->context->current()->toString(), 'purpose' => SendPurpose::Invoice->value, 'queued' => SendStatus::Queued->value, 'sent' => SendStatus::Sent->value] + (null === $firmId ? [] : ['firm' => $firmId]),
+            .' AND NOT EXISTS (SELECT 1 FROM invoice_send s WHERE s.invoice_id = i.id AND s.purpose = :purpose AND s.status IN (:queued, :sent))',
+            ['purpose' => SendPurpose::Invoice->value, 'queued' => SendStatus::Queued->value, 'sent' => SendStatus::Sent->value] + (null === $firmId ? [] : ['firm' => $firmId]),
         );
 
         return is_numeric($count) ? (int) $count : 0;

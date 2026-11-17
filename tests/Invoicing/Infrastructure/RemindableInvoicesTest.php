@@ -243,27 +243,6 @@ final class RemindableInvoicesTest extends InvoiceTestCase
         self::assertSame(['2026-12-03', '2026-12-23', '2026-12-27'], $this->plannedDays());
     }
 
-    public function testRowsOfAnotherTenantAreIgnored(): void
-    {
-        $silent = $this->customerWithoutAddress();
-        $flagged = $this->customer();
-        $this->em->flush();
-        $unreachable = $this->deliveredDue('2026-11-15', customer: $silent);
-        $reachable = $this->deliveredDue('2026-11-15', customer: $flagged);
-        $this->em->flush();
-        $other = Id::generate();
-        $connection = $this->connection();
-        // Rows that name this tenant's contacts but belong to another tenant.
-        $connection->executeStatement("INSERT INTO party_email (id, tenant_id, party_id, legal_entity_id, address, address_key, purpose) VALUES (?, ?, ?, NULL, 'foreign@example.com', 'foreign@example.com', 'invoices')", [Id::generate(), $other, $silent->id()]);
-        $connection->executeStatement('INSERT INTO party_firm_settings (id, tenant_id, party_id, legal_entity_id, invoicing_due_days, invoicing_send_reminders) VALUES (?, ?, ?, ?, 14, ?)', [Id::generate(), $other, $flagged->id(), $this->firm->id(), false], [4 => \Doctrine\DBAL\ParameterType::BOOLEAN]);
-        $this->em->clear();
-
-        $due = array_map(static fn (RemindableInvoice $invoice): string => $invoice->invoiceId, $this->remindable->due($this->firm, $this->settings(), $this->today(), 50));
-
-        self::assertNotContains($unreachable->id(), $due, 'another tenant\'s address does not count');
-        self::assertContains($reachable->id(), $due, 'another tenant\'s flag does not count');
-    }
-
     /**
      * The days of the first reminders, were reminders switched on today.
      *

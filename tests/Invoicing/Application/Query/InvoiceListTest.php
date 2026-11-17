@@ -200,17 +200,6 @@ final class InvoiceListTest extends InvoicingReadTestCase
         self::assertSame([], $this->ids($this->slice(new InvoiceSliceFilter(text: '%'))), 'A wildcard is looked for as it is.');
     }
 
-    public function testASliceNeverShowsAnotherOrganisation(): void
-    {
-        $mine = $this->issued();
-        $this->switchToAnotherOrganisation();
-
-        self::assertSame([], $this->ids($this->slice(new InvoiceSliceFilter())));
-        self::assertSame([], $this->ids($this->slice(new InvoiceSliceFilter(firmId: $this->firm->id()))));
-        $this->switchTo($this->tenant->id());
-        self::assertSame([$mine->id()], $this->ids($this->slice(new InvoiceSliceFilter())));
-    }
-
     #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
     public function testAGuestAndNobodyAreRefused(): void
     {

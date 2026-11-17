@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Application;
 
-use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\CancelPayment;
 use App\Invoicing\Application\InvoiceRow;
@@ -55,7 +54,7 @@ final class SendRemindersTest extends SendingTestCase
     {
         parent::setUp();
         // Before anything uses the balances, so the run and delivery see this one.
-        $this->balances = SettledBalances::install(self::getContainer(), $this->connection, self::getContainer()->get(TenantContext::class));
+        $this->balances = SettledBalances::install(self::getContainer(), $this->connection);
     }
 
     public function testFirstReminderSevenDaysAfterDue(): void

@@ -10,8 +10,6 @@ namespace App\Tests\Invoicing\Application;
 
 use App\Audit\Domain\AuditAction;
 use App\Audit\Domain\AuditEntry;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\BilledWorkRelease;
 use App\Invoicing\Application\EditInvoice;
 use App\Invoicing\Application\FirmInvoicingSettings;
@@ -20,7 +18,6 @@ use App\Invoicing\Application\IssuedDocumentFactory;
 use App\Invoicing\Application\IssueProblem;
 use App\Invoicing\Application\IssueRefused;
 use App\Invoicing\Application\LineInput;
-use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Domain\AbandonedNumber;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\DocumentParty;
@@ -481,35 +478,6 @@ final class EditInvoiceTest extends InvoiceTestCase
 
         $this->expectException(UniqueConstraintViolationException::class);
         $connection->insert('invoice_line', $row);
-    }
-
-    public function testAnInvoiceOfAnotherTenantCannotBeTouched(): void
-    {
-        $invoice = $this->issue->issue($this->input());
-        $input = $this->input(overrides: ['description' => 'Foreign']);
-        $tenants = self::getContainer()->get(TenantContext::class);
-        $own = $tenants->current();
-        $tenants->switchTo(TenantId::generate());
-        $tries = [
-            fn (): Invoice => $this->edit->edit($invoice->id(), $input, 1),
-            fn (): Invoice => $this->trash->trash($invoice->id(), 'Foreign'),
-            fn (): Invoice => $this->trash->restore($invoice->id()),
-            fn (): Invoice => $this->delivered->mark($invoice->id()),
-        ];
-        foreach ($tries as $try) {
-            try {
-                $try();
-                self::fail('Expected the invoice not to exist here.');
-            } catch (UnknownInvoice) {
-                $this->addToAssertionCount(1);
-            }
-        }
-
-        $tenants->switchTo($own);
-        $invoice = $this->reloaded($invoice);
-        self::assertSame('Consulting', $invoice->description());
-        self::assertSame(1, $invoice->version());
-        self::assertFalse($invoice->isDelivered());
     }
 
     public function testEditingToAnArchivedContactIsRefused(): void

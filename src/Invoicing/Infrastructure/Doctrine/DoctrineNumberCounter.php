@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Doctrine;
 
-use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\NumberCounter;
 use App\Invoicing\Application\SequenceOutOfRange;
 use App\Invoicing\Domain\Series;
@@ -28,16 +27,16 @@ use Doctrine\DBAL\ParameterType;
 final readonly class DoctrineNumberCounter implements NumberCounter
 {
     private const string NEXT = <<<'SQL'
-        INSERT INTO series_counter (id, tenant_id, series_id, period, last_value)
-        VALUES (:id, :tenant, :series, :period, :start)
+        INSERT INTO series_counter (id, series_id, period, last_value)
+        VALUES (:id, :series, :period, :start)
         ON CONFLICT (series_id, period) DO UPDATE
         SET last_value = CASE WHEN series_counter.last_value + 1 < :start THEN :start ELSE series_counter.last_value + 1 END
         RETURNING last_value
         SQL;
 
     private const string ADVANCE = <<<'SQL'
-        INSERT INTO series_counter (id, tenant_id, series_id, period, last_value)
-        VALUES (:id, :tenant, :series, :period, :start)
+        INSERT INTO series_counter (id, series_id, period, last_value)
+        VALUES (:id, :series, :period, :start)
         ON CONFLICT (series_id, period) DO UPDATE
         SET last_value = CASE WHEN series_counter.last_value < :start THEN :start ELSE series_counter.last_value END
         SQL;
@@ -45,9 +44,9 @@ final readonly class DoctrineNumberCounter implements NumberCounter
     /** PostgreSQL refuses a value above its integer column; SQLite stores it, so it is checked here. */
     private const string NUMERIC_OUT_OF_RANGE = '22003';
 
-    private const string LAST = 'SELECT last_value FROM series_counter WHERE tenant_id = :tenant AND series_id = :series AND period = :period';
+    private const string LAST = 'SELECT last_value FROM series_counter WHERE series_id = :series AND period = :period';
 
-    public function __construct(private Connection $connection, private TenantContext $context)
+    public function __construct(private Connection $connection)
     {
     }
 
@@ -92,7 +91,7 @@ final readonly class DoctrineNumberCounter implements NumberCounter
 
     public function last(Series $series, string $period): int
     {
-        $last = $this->connection->fetchOne(self::LAST, ['tenant' => $this->context->current()->toString(), 'series' => $series->id(), 'period' => $period]);
+        $last = $this->connection->fetchOne(self::LAST, ['series' => $series->id(), 'period' => $period]);
 
         return false === $last ? 0 : $this->sequence($last);
     }
@@ -107,6 +106,6 @@ final readonly class DoctrineNumberCounter implements NumberCounter
      */
     private function values(Series $series, string $period, int $start): array
     {
-        return ['id' => Id::generate(), 'tenant' => $this->context->current()->toString(), 'series' => $series->id(), 'period' => $period, 'start' => $start];
+        return ['id' => Id::generate(), 'series' => $series->id(), 'period' => $period, 'start' => $start];
     }
 }

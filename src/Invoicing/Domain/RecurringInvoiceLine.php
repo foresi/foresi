@@ -10,8 +10,6 @@ namespace App\Invoicing\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditRooted;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use App\Shared\Domain\Money;
 use Doctrine\ORM\Mapping as ORM;
@@ -25,17 +23,13 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'recurring_invoice_line')]
-#[ORM\Index(name: 'idx_recurring_invoice_line_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_recurring_invoice_line_template', columns: ['recurring_invoice_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_recurring_invoice_line_position', columns: ['recurring_invoice_id', 'position'])]
-class RecurringInvoiceLine implements TenantOwned, Audited, AuditRooted
+class RecurringInvoiceLine implements Audited, AuditRooted
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'text')]
     private string $text;
@@ -171,10 +165,5 @@ class RecurringInvoiceLine implements TenantOwned, Audited, AuditRooted
     public function discount(): Percent
     {
         return Percent::fromString($this->discount);
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

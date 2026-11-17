@@ -37,7 +37,7 @@ final readonly class OriginalFirstInvoicePdf implements InvoicePdf
         }
         try {
             // Both are kept together; a missing hash matches no file.
-            $bytes = $this->originals->read($invoice->tenantId()->toString(), $key, $invoice->originalPdfSha256() ?? '');
+            $bytes = $this->originals->read($invoice->id(), $key, $invoice->originalPdfSha256() ?? '');
         } catch (OriginalDocumentUnreadable $unreadable) {
             throw new UndrawableDocument('The original of the document cannot be read.', 0, $unreadable);
         }

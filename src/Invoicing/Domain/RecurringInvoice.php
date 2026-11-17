@@ -10,8 +10,6 @@ namespace App\Invoicing\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditExcluded;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
@@ -38,12 +36,11 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'recurring_invoice')]
-#[ORM\Index(name: 'idx_recurring_invoice_tenant', columns: ['tenant_id'])]
-#[ORM\Index(name: 'idx_recurring_invoice_due', columns: ['tenant_id', 'state', 'next_occurrence'])]
+#[ORM\Index(name: 'idx_recurring_invoice_due', columns: ['state', 'next_occurrence'])]
 #[ORM\Index(name: 'idx_recurring_invoice_firm', columns: ['legal_entity_id'])]
 #[ORM\Index(name: 'idx_recurring_invoice_series', columns: ['series_id'])]
 #[ORM\Index(name: 'idx_recurring_invoice_customer', columns: ['customer_id'])]
-class RecurringInvoice implements TenantOwned, Audited
+class RecurringInvoice implements Audited
 {
     public const int MAX_DUE_DAYS = 365;
     public const int MAX_NAME_LENGTH = 120;
@@ -55,9 +52,6 @@ class RecurringInvoice implements TenantOwned, Audited
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     // Goes up with every change, so a form or a run can tell it worked from an older
     // version. Technical, so left out of the audit log.
@@ -597,11 +591,6 @@ class RecurringInvoice implements TenantOwned, Audited
     public function createdAt(): \DateTimeImmutable
     {
         return $this->createdAt;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     private function applyContent(RecurringContent $content): void

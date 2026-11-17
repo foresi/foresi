@@ -10,8 +10,6 @@ namespace App\Invoicing\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditRooted;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
@@ -24,11 +22,10 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'series')]
-#[ORM\Index(name: 'idx_series_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_series_firm', columns: ['legal_entity_id'])]
-#[ORM\UniqueConstraint(name: 'uniq_series_name', columns: ['tenant_id', 'legal_entity_id', 'name'])]
+#[ORM\UniqueConstraint(name: 'uniq_series_name', columns: ['legal_entity_id', 'name'])]
 #[ORM\UniqueConstraint(name: 'uniq_series_default', columns: ['legal_entity_id', 'kind', 'default_flag'])]
-class Series implements TenantOwned, Audited, AuditRooted
+class Series implements Audited, AuditRooted
 {
     /** The name of the invoice series a firm gets without setting one up; the screens translate it. */
     public const string STANDARD = 'standard';
@@ -40,9 +37,6 @@ class Series implements TenantOwned, Audited, AuditRooted
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'string', length: self::MAX_NAME_LENGTH)]
     private string $name;
@@ -177,11 +171,6 @@ class Series implements TenantOwned, Audited, AuditRooted
     {
         $this->archived = true;
         $this->defaultFlag = null;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     private function cleanName(string $name): string

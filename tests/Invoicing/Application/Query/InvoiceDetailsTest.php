@@ -102,15 +102,6 @@ final class InvoiceDetailsTest extends InvoicingReadTestCase
         }
     }
 
-    public function testAnInvoiceOfAnotherOrganisationIsUnknown(): void
-    {
-        $invoice = $this->issued();
-        $this->switchToAnotherOrganisation();
-
-        $this->expectException(UnknownInvoice::class);
-        $this->details()->of($invoice->id());
-    }
-
     private function details(): InvoiceDetails
     {
         return self::getContainer()->get(InvoiceDetails::class);

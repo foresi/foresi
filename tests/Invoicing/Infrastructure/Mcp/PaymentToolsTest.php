@@ -135,23 +135,6 @@ final class PaymentToolsTest extends ReadToolTestCase
         $this->assertRefused('invalid_argument', $message, SearchPaymentsTool::class, $arguments);
     }
 
-    public function testAPaymentOfAnotherOrganisationIsNotFound(): void
-    {
-        $theirs = $this->inTenant($this->foreignTenant(), function (): Payment {
-            [$firm] = $this->firmWithCustomer();
-
-            return $this->payment(firmId: $firm, amount: '100');
-        });
-
-        $none = $this->call(SearchPaymentsTool::class);
-        self::assertSame(['items' => [], 'next_cursor' => null], $none->data);
-        self::assertSame('No payments match.', $none->summary);
-        foreach ([$theirs->id(), Id::generate(), 'not-an-id'] as $id) {
-            $this->assertRefused('not_found', 'The organisation has no payment with this id. Find the id with foresi_search_payments.', GetPaymentTool::class, ['id' => $id]);
-        }
-        $this->assertRefused('not_found', 'The organisation has no payment with this id. Find the id with foresi_search_payments.', GetPaymentTool::class);
-    }
-
     public function testAGuestReadsNoPayments(): void
     {
         $payment = $this->inTenant($this->tenant, fn (): Payment => $this->payment(amount: '100'));

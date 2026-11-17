@@ -237,16 +237,6 @@ final class SendLogControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
-    public function testTheKeptPdfOfAnotherTenantIs404(): void
-    {
-        $this->signedIn();
-        [$invoice, $send] = $this->foreignSend();
-
-        $this->client->request('GET', '/invoices/'.$invoice.'/sends/'.$send.'/pdf');
-
-        self::assertResponseStatusCodeSame(404);
-    }
-
     public function testChangedAfterSendingWarns(): void
     {
         $this->signedIn();

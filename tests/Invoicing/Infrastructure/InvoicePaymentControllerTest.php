@@ -463,18 +463,6 @@ final class InvoicePaymentControllerTest extends WebTestCase
         self::assertSame(['banknote', 'banknote-x'], \array_slice($items->each(static fn (Crawler $item): string => (string) $item->attr('data-history-icon')), 1, 2));
     }
 
-    public function testAnotherTenantsInvoiceIs404(): void
-    {
-        $this->signedIn();
-        $foreign = $this->foreignInvoice();
-
-        $this->client->request('GET', '/invoices/'.$foreign.'/pay');
-        self::assertResponseStatusCodeSame(404);
-        $this->client->request('POST', '/invoices/'.$foreign.'/pay', ['_token' => 'x']);
-        self::assertResponseStatusCodeSame(404);
-        self::assertSame('0', $this->scalar('SELECT COUNT(*) FROM payment'));
-    }
-
     public function testAClientRoleGets403(): void
     {
         $this->signedIn(Role::Guest);
@@ -628,20 +616,6 @@ final class InvoicePaymentControllerTest extends WebTestCase
 
             return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($this->firm->id(), $this->series->id(), null, $this->customer->id(), null, new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line], true));
         });
-    }
-
-    private function foreignInvoice(): string
-    {
-        $tenant = $this->browser->fixtures->tenant('Foreign Tenant '.bin2hex(random_bytes(2)));
-        $this->context->switchTo($tenant);
-        try {
-            [$firm, $series, $customer] = $this->firmWithSeries();
-            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
-
-            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($firm->id(), $series->id(), null, $customer->id(), null, new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-12-01'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Foreign', '', '', DocumentLanguage::Czech, [$line], true))->id();
-        } finally {
-            $this->context->reset();
-        }
     }
 
     /**

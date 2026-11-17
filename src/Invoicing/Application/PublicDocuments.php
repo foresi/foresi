@@ -27,7 +27,7 @@ interface PublicDocuments
     public function recordRead(string $sendId): void;
 
     /**
-     * The tenant of a send, for the operator's commands.
+     * Whether a send has this id, for the operator's commands.
      */
-    public function tenantOf(string $sendId): ?string;
+    public function exists(string $sendId): bool;
 }

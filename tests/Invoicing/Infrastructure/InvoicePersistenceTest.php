@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure;
 
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\ConflictRetry;
 use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\IssuedDocumentFactory;
@@ -141,12 +139,8 @@ final class InvoicePersistenceTest extends InvoiceTestCase
 
     public function testASnapshotOfAnUnknownInvoiceFails(): void
     {
-        $id = $this->issue->issue($this->input())->id();
-        $this->em->clear();
-        self::getContainer()->get(TenantContext::class)->switchTo(TenantId::generate());
-
         $this->expectException(UnknownInvoice::class);
-        $this->store->snapshot($id);
+        $this->store->snapshot('01963c5e-0000-7000-8000-0000000000ff');
     }
 
     public function testASnapshotKeepsTheOrderOfTheLines(): void
@@ -158,17 +152,6 @@ final class InvoicePersistenceTest extends InvoiceTestCase
         $lines = $this->store->snapshot($invoice->id())->lines;
 
         self::assertSame(['Two', 'Three', 'One'], array_map(static fn (InvoiceLine $line): string => $line->text(), $lines));
-    }
-
-    public function testAnInvoiceOfAnotherTenantDoesNotExist(): void
-    {
-        $id = $this->issue->issue($this->input())->id();
-        $this->em->clear();
-
-        self::getContainer()->get(TenantContext::class)->switchTo(TenantId::generate());
-
-        $this->expectException(UnknownInvoice::class);
-        $this->store->get($id);
     }
 
     public function testTheNumberKeyIsUniquePerFirm(): void

@@ -108,32 +108,6 @@ final class PaymentBalancesTest extends InvoiceBalancesContract
         self::assertEqualsCanonicalizing([$open->id(), $partly->id(), $cancelled->id()], $owing);
     }
 
-    public function testTheConditionIgnoresAllocationsOfAnotherTenant(): void
-    {
-        $invoice = $this->issue->issue($this->input());
-        $this->pay($invoice->id(), '1210.00');
-        // A row no tenant of this invoice wrote cannot pay it.
-        $this->connection()->executeStatement("UPDATE payment_allocation SET tenant_id = '01963c5e-0000-7000-8000-0000000000ee'");
-        $this->em->clear();
-
-        $owing = $this->connection()->fetchFirstColumn('SELECT i.id FROM invoice i WHERE '.self::getContainer()->get(OwingInvoiceCondition::class)->owing('i'));
-
-        self::assertSame([$invoice->id()], $owing);
-        self::assertSame(121000, $this->balances()->outstanding([$invoice->id()])[$invoice->id()]->minor());
-    }
-
-    public function testAPaymentOfAnotherTenantRowIsIgnored(): void
-    {
-        $invoice = $this->issue->issue($this->input());
-        $this->pay($invoice->id(), '1210.00');
-        // The allocation is this tenant's, its payment row claims another one.
-        $this->connection()->executeStatement("UPDATE payment SET tenant_id = '01963c5e-0000-7000-8000-0000000000ee'");
-        $this->em->clear();
-
-        self::assertSame(121000, $this->balances()->outstanding([$invoice->id()])[$invoice->id()]->minor());
-        self::assertSame([$invoice->id()], $this->connection()->fetchFirstColumn('SELECT i.id FROM invoice i WHERE '.self::getContainer()->get(OwingInvoiceCondition::class)->owing('i')));
-    }
-
     public function testAnInvoiceInAnotherCurrencyOwesInItsOwn(): void
     {
         $invoice = $this->issue->issue($this->input());

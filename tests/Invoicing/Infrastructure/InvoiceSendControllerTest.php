@@ -510,18 +510,6 @@ final class InvoiceSendControllerTest extends WebTestCase
         }
     }
 
-    public function testAnotherTenantsInvoiceIs404(): void
-    {
-        $this->signedIn();
-        $foreign = $this->foreignInvoice();
-
-        $this->client->request('GET', '/invoices/'.$foreign.'/send');
-        self::assertResponseStatusCodeSame(404);
-        $this->client->request('POST', '/invoices/'.$foreign.'/send', ['_token' => 'x']);
-        self::assertResponseStatusCodeSame(404);
-        self::assertSame(0, $this->sendCount());
-    }
-
     public function testAWrongCsrfTokenSendsNothing(): void
     {
         $this->signedIn();
@@ -775,18 +763,6 @@ final class InvoiceSendControllerTest extends WebTestCase
         }
     }
 
-    public function testRemindingAnotherTenantsInvoiceIs404(): void
-    {
-        $this->signedIn();
-        $foreign = $this->foreignInvoice();
-
-        $this->client->request('GET', '/invoices/'.$foreign.'/remind');
-        self::assertResponseStatusCodeSame(404);
-        $this->client->request('POST', '/invoices/'.$foreign.'/remind', ['_token' => 'x']);
-        self::assertResponseStatusCodeSame(404);
-        self::assertSame(0, $this->sendCount());
-    }
-
     private function pay(Invoice $invoice, string $amount): void
     {
         $this->scoped(function () use ($invoice, $amount): void {
@@ -922,21 +898,6 @@ final class InvoiceSendControllerTest extends WebTestCase
 
             return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($this->firm->id(), $this->series->id(), null, $this->customer->id(), null, $day, $day, new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', $description, '', '', $language, [$line]));
         });
-    }
-
-    private function foreignInvoice(): string
-    {
-        $tenant = $this->browser->fixtures->tenant('Foreign Tenant');
-        $this->context->switchTo($tenant);
-        try {
-            [$firm, $series, $customer] = $this->firmWithCustomer(true, EmailPurpose::Invoices);
-            $day = new \DateTimeImmutable('2026-11-01');
-            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
-
-            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($firm->id(), $series->id(), null, $customer->id(), null, $day, $day, new \DateTimeImmutable('2026-12-01'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Foreign', '', '', DocumentLanguage::Czech, [$line]))->id();
-        } finally {
-            $this->context->reset();
-        }
     }
 
     private function signedIn(Role $role = Role::Owner, string $locale = 'en', bool $server = true, EmailPurpose $email = EmailPurpose::Invoices): void

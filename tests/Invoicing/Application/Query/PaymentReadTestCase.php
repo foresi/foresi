@@ -170,22 +170,6 @@ abstract class PaymentReadTestCase extends InvoiceTestCase
         return $firm;
     }
 
-    /**
-     * A payment of another organisation, written while it is the active one.
-     */
-    protected function foreignPayment(): Payment
-    {
-        $context = self::getContainer()->get(TenantContext::class);
-        $context->switchTo(TenantId::generate());
-        $firm = $this->otherFirm();
-        $payment = $this->payment(firm: $firm, amount: '500');
-        $context->switchTo($this->tenantId);
-        // Switching the tenant cleared the entity manager.
-        $this->firm = $this->em->find(LegalEntity::class, $this->firm->id()) ?? throw new \LogicException('The firm is missing.');
-
-        return $payment;
-    }
-
     private function person(string $email, string $name, Role $role, ?Party $party = null): Membership
     {
         $user = new User($email, 'hash', $name);

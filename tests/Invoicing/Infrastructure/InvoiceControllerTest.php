@@ -453,21 +453,11 @@ final class InvoiceControllerTest extends WebTestCase
         $this->signedIn();
         $values = $this->filled(['customerId' => '', 'customerQuery' => '']);
 
-        foreach (['not-an-id', $this->foreignInvoice()->id()] as $copyOf) {
+        foreach (['not-an-id', '01963c5e-0000-7000-8000-0000000000ff'] as $copyOf) {
             $this->save(array_merge($values, ['copyOf' => $copyOf]));
             self::assertResponseStatusCodeSame(422);
             self::assertSelectorNotExists('[data-copy-notice]');
         }
-    }
-
-    public function testACopyOfAnotherTenantsInvoiceIs404(): void
-    {
-        $this->signedIn();
-        $foreign = $this->foreignInvoice();
-
-        $this->client->request('GET', '/invoices/'.$foreign->id().'/copy');
-
-        self::assertResponseStatusCodeSame(404);
     }
 
     public function testNoFirmSaysWhatToDo(): void
@@ -2709,29 +2699,6 @@ final class InvoiceControllerTest extends WebTestCase
             $firm->archive(new \DateTimeImmutable('2026-11-01'));
             $this->em()->flush();
         });
-    }
-
-    private function foreignInvoice(): Invoice
-    {
-        $tenant = $this->browser->fixtures->tenant('Foreign Tenant '.bin2hex(random_bytes(2)));
-        $this->context->switchTo($tenant);
-        try {
-            $firm = new LegalEntity('Example Foreign s.r.o.', new RegistrationNumber('CZ', '12345679'), VatId::fromString('CZ12345679'), new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Register');
-            $this->em()->persist($firm);
-            FirmAccounts::add($this->em(), $firm, self::IBAN);
-            $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
-            $series->markDefault();
-            $this->em()->persist($series);
-            $customer = new Party(PartyKind::Company, 'Foreign Customer a.s.', new RegistrationNumber('CZ', '87654320'), null, '');
-            $this->em()->persist($customer);
-            $this->em()->persist(new PartyAddress($customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
-            $this->em()->flush();
-            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
-
-            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($firm->id(), $series->id(), null, $customer->id(), null, new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-12-01'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Foreign', '', '', DocumentLanguage::Czech, [$line], true));
-        } finally {
-            $this->context->reset();
-        }
     }
 
     /**
