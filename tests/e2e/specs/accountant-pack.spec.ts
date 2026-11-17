@@ -55,7 +55,7 @@ test.describe.serial('the accountant pack', () => {
     await signIn(page, OWNER);
   });
 
-  test('the month filter narrows the list and sums it per VAT rate', async ({ page }) => {
+  test('the month filter narrows the list', async ({ page }) => {
     await page.goto('/invoices');
     await expect(page.locator('tbody tr')).toHaveCount(3);
     await page.locator('#invoice-month').selectOption(lastMonth);
@@ -63,14 +63,8 @@ test.describe.serial('the accountant pack', () => {
 
     await expect(page).toHaveURL(new RegExp(`month=${lastMonth}`));
     await expect(page.locator('tbody tr')).toHaveCount(2);
-    const sums = page.locator('[data-list-sums]');
-    await expect(sums.getByRole('heading', { name: 'Součty seznamu' })).toBeVisible();
-    // 1 210 Kč and 560 Kč: 1 500 Kč of base, 270 Kč of VAT, a line per rate.
-    await expect(sums).toContainText(/1\s500,00/);
-    await expect(sums).toContainText(/1\s770,00/);
-    await expect(sums.locator('[data-sum-line]')).toHaveCount(2);
-    await expect(sums.locator('[data-sum-line]').filter({ hasText: '21 %' })).toContainText(/1\s210,00/);
-    await expect(sums.locator('[data-sum-line]').filter({ hasText: '12 %' })).toContainText(/560,00/);
+    // The list carries no sums under it.
+    await expect(page.locator('[data-list-sums]')).toHaveCount(0);
   });
 
   test('the overview shows what was invoiced and reminds of the month not yet passed on', async ({ page }) => {

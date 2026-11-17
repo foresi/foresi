@@ -1554,14 +1554,6 @@ invoice:
   month:
     label: Month
     all: All months
-  sums:
-    title: Sums of the list
-    count: Documents
-    base: Base
-    vat: VAT
-    total: Total
-    rate: Rate
-    note: In CZK at each document's exchange rate, all pages
   rate: '{rate}%'
   errors_title: The invoice cannot be saved yet
   cut_off: The form was too large to arrive whole, so nothing was saved.

@@ -99,36 +99,6 @@
                     <twig:Ui:Pagination :page="page.page" :pages="page.pages" :baseUrl="baseUrl" />
                 </twig:block>
             </twig:Ui:DataTable>
-
-            {% if sums %}
-                {# What the whole list adds up to, every page of it, in the home currency. #}
-                <section data-list-sums aria-labelledby="invoice-sums-title" class="grid gap-2">
-                    <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                        <h2 id="invoice-sums-title" class="text-small font-semibold text-ink">{{ 'invoice.sums.title'|trans }}</h2>
-                        <p class="m-0 text-caption text-muted">{{ 'invoice.sums.note'|trans }}</p>
-                    </div>
-                    <twig:Ui:FactsGrid :items="sums.facts" />
-                    {% if sums.lines is not empty %}
-                        {# ARIA table roles: the rows of the list stay the only rows of a table on the page. It scrolls sideways on a phone, so the keyboard can reach it (tabindex). #}
-                        <div role="table" aria-labelledby="invoice-sums-title" data-sum-lines tabindex="0" class="overflow-x-auto rounded-panel border border-container bg-white text-small {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">
-                            <div role="row" class="grid grid-cols-[minmax(6rem,1fr)_repeat(3,minmax(0,auto))] gap-x-4 bg-head px-4 py-2 text-caption text-muted sm:grid-cols-[minmax(0,1fr)_repeat(3,10rem)]">
-                                <span role="columnheader" class="font-medium">{{ 'invoice.sums.rate'|trans }}</span>
-                                <span role="columnheader" class="text-right font-medium">{{ 'invoice.sums.base'|trans }}</span>
-                                <span role="columnheader" class="text-right font-medium">{{ 'invoice.sums.vat'|trans }}</span>
-                                <span role="columnheader" class="text-right font-medium">{{ 'invoice.sums.total'|trans }}</span>
-                            </div>
-                            {% for line in sums.lines %}
-                                <div role="row" data-sum-line class="grid grid-cols-[minmax(6rem,1fr)_repeat(3,minmax(0,auto))] gap-x-4 border-t border-divider px-4 py-2 sm:grid-cols-[minmax(0,1fr)_repeat(3,10rem)]">
-                                    <span role="rowheader" class="text-ink">{{ line.label }}</span>
-                                    <span role="cell" class="num whitespace-nowrap text-right">{{ line.base }}</span>
-                                    <span role="cell" class="num whitespace-nowrap text-right">{{ line.vat }}</span>
-                                    <span role="cell" class="num whitespace-nowrap text-right">{{ line.total }}</span>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </section>
-            {% endif %}
         </div>
     {% endif %}
 {% endblock %}
