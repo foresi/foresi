@@ -6,6 +6,11 @@
 {# Columns of long text share the room the others leave and cut their text short; numbers, badges and actions keep their width. #}
 {% set share = this.shareClass %}
 {# A list row is 56 px, a dense one 44 px; the header is 44 px on the tint either way (level.io's tables). #}
+{#
+    On a phone a checkbox keeps its 16 px box but its label grows to a 44 px target, pulled back by a
+    negative margin so the column does not widen, and a sortable header link is 44 px high (Apple
+    HIG, Buttons; WCAG 2.2 SC 2.5.8).
+#}
 {% set rowHeight = this.rowHeight %}
 {% macro alert(alert, focus) %}{{ ux_icon('lucide:triangle-alert', {class: 'mt-0.5 size-3.5 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ alert.text }}{% if alert.href %} <a href="{{ alert.href }}" data-turbo="false" class="font-medium text-badge-red-text underline {{ focus }}">{{ alert.action }}</a>{% endif %}</span>{% endmacro %}
 {% macro confirm(confirm) %}{% if confirm %} data-turbo-confirm="{{ confirm.title }}"{% if confirm.text %} data-confirm-text="{{ confirm.text }}"{% endif %}{% if confirm.accept %} data-confirm-accept="{{ confirm.accept }}"{% endif %}{% if confirm.cancel %} data-confirm-cancel="{{ confirm.cancel }}"{% endif %}{% if confirm.tone %} data-confirm-tone="{{ confirm.tone }}"{% endif %}{% endif %}{% endmacro %}
@@ -21,7 +26,7 @@
                         <tr>
                             {% if selectable %}
                                 <th scope="col" class="h-row w-12 border-b border-divider bg-head px-4 text-left">
-                                    <label class="inline-grid size-6 place-items-center">
+                                    <label class="inline-grid size-6 place-items-center max-shell:-m-2.5 max-shell:size-touch">
                                         <input type="checkbox" aria-label="{{ 'ui.table.select_all'|trans }}" data-table-selection-target="all" data-action="change->table-selection#toggleAll" class="size-4 accent-green {{ focus }}">
                                     </label>
                                 </th>
@@ -29,7 +34,7 @@
                             {% for column in this.columnViews %}
                                 <th scope="col"{% if column.sortable %} aria-sort="{{ this.ariaSort(column.sort) }}"{% endif %} class="h-row whitespace-nowrap border-b border-divider bg-head px-4 text-caption font-medium text-muted {{ this.alignClass(column.align) }}{{ column.phone ? '' : ' max-sm:hidden' }}{{ column.wide ? ' max-xl:hidden' : '' }}{{ column.truncate ? ' sm:max-w-0 ' ~ share : '' }}">
                                     {%- if column.sortable -%}
-                                        <a href="{{ column.href }}" class="inline-flex min-h-6 items-center gap-1 text-muted no-underline hover:text-ink {{ focus }}">
+                                        <a href="{{ column.href }}" class="inline-flex min-h-6 items-center max-shell:min-h-touch gap-1 text-muted no-underline hover:text-ink {{ focus }}">
                                             {{- column.label -}}
                                             {{- ux_icon('lucide:' ~ (column.sort ? 'chevron-down' : 'chevrons-up-down'), {class: 'size-3.5 shrink-0' ~ (column.sort == 'asc' ? ' rotate-180' : ''), 'aria-hidden': 'true'}) -}}
                                         </a>
@@ -48,7 +53,7 @@
                             <tr data-table-selection-target="row" data-id="{{ row.id }}"{% if row.selected %} data-selected="true"{% endif %} class="group scroll-mb-24{{ selectable and row.href ? ' cursor-pointer' : '' }}{{ row.child ? ' text-small' : '' }}"{% if row.child %} data-row-child{% endif %}>
                                 {% if selectable %}
                                     <td class="{{ rowHeight }} w-12 border-b border-divider px-4 group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint group-data-[selected=true]:inset-shadow-selected">
-                                        <label class="inline-grid size-6 place-items-center">
+                                        <label class="inline-grid size-6 place-items-center max-shell:-m-2.5 max-shell:size-touch">
                                             <input type="checkbox"{% if selectionName %} name="{{ selectionName }}"{% endif %} value="{{ row.id }}" aria-label="{{ 'ui.table.select_row'|trans({label: row.label}) }}"{% if row.selected %} checked{% endif %} data-table-selection-target="check" data-action="click->table-selection#rowCheck change->table-selection#sync" class="size-4 accent-green {{ focus }}">
                                         </label>
                                     </td>

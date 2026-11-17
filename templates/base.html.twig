@@ -7,7 +7,12 @@
 <html lang="{{ app.request.locale }}">
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        {#
+            viewport-fit=cover lets the page run under the notch and the home indicator; the shell, the
+            dialogs and the bars pad themselves with env(safe-area-inset-*) (WebKit, "Designing Websites
+            for iPhone X"). Pinch zoom stays on: no maximum-scale, no user-scalable=no.
+        #}
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
         {# Turbo cross-fades the content panel between pages; the shell sets which part moves. #}
         <meta name="view-transition" content="same-origin">
         <title>{% if form_invalid|default(false) %}{{ 'form.title_error'|trans }} {% endif %}{% block title %}{% endblock %}</title>

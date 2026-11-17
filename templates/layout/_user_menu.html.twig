@@ -1,15 +1,17 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     The account menu behind the avatar at the bottom of the rail: the person, the firm being worked
-    in and the switch to another firm, language and sign-out.
+    in and the switch to another firm, language and sign-out. In the phone app bar the avatar is the
+    last action, a 44 x 44 px target around the 36 px tile (Apple HIG, Buttons), and the menu opens
+    below it, kept inside the viewport by the dropdown controller (Android Developers, "Menus").
     Variables: shell (ShellView).
 #}
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
 {% set orgName = shell.organisation ? shell.organisation.name : 'shell.organisation.none'|trans %}
 <twig:Ui:Menu id="user-menu" buttonId="user-menu-button" :label="'shell.user_menu.label'|trans" :menuLabel="'shell.user_menu.label'|trans" placement="above" align="start" :float="true" menuClass="min-w-60 max-w-[min(340px,calc(100vw-24px))]" class="shell:mt-1.5">
     <twig:block name="trigger">
-        <button type="button" id="user-menu-button" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu" title="{{ shell.userName }} · {{ orgName }}" class="grid size-9 cursor-pointer place-items-center rounded-control border-0 bg-green-tint text-caption font-semibold text-green hover:bg-badge-green {{ focus }}">
-            <span aria-hidden="true">{{ shell.initials }}</span>
+        <button type="button" id="user-menu-button" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu" title="{{ shell.userName }} · {{ orgName }}" class="group grid size-9 cursor-pointer place-items-center rounded-control border-0 bg-transparent text-caption font-semibold text-green shell:bg-green-tint shell:hover:bg-badge-green max-shell:size-touch {{ focus }}">
+            <span aria-hidden="true" class="max-shell:grid max-shell:size-9 max-shell:place-items-center max-shell:rounded-control max-shell:bg-green-tint max-shell:group-hover:bg-badge-green">{{ shell.initials }}</span>
             <span class="sr-only">{{ 'shell.user_menu.label'|trans }}: {{ shell.userName }}, {{ orgName }}</span>
         </button>
     </twig:block>

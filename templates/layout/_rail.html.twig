@@ -1,7 +1,10 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     The rail: the Foresi mark, the business areas, and at the bottom search, settings and the account.
-    On a phone it is the top row of the drawer, where the sidebar lists the areas instead.
+    On a phone it is the top app bar: the menu button and the product name leading, search and the
+    account trailing (Android Developers, "App bars"); the overlay behind the menu button lists the
+    areas instead. Search and the account are one instance each, placed by the breakpoint, so their
+    ids stay unique.
     Variables: shell (ShellView), areas (nav_areas()).
 #}
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
@@ -29,7 +32,9 @@
     </a>
 {% endmacro %}
 
-<a href="{{ path('app_dashboard') }}" class="grid size-9 shrink-0 place-items-center rounded-control bg-green text-heading font-bold text-white no-underline shell:mb-3 {{ focus }}" aria-label="{{ product_name }}">{{ product_name|first|upper }}</a>
+<twig:Ui:IconButton icon="menu" :label="'shell.menu.open'|trans" variant="ghost" class="max-shell:h-touch max-shell:w-touch shell:hidden" data-sidebar-target="toggle" data-action="sidebar#toggle" aria-controls="navigation" aria-expanded="false" />
+<span class="font-semibold text-ink shell:hidden">{{ product_name }}</span>
+<a href="{{ path('app_dashboard') }}" class="grid size-9 shrink-0 place-items-center rounded-control bg-green text-heading font-bold text-white no-underline shell:mb-3 max-shell:hidden {{ focus }}" aria-label="{{ product_name }}">{{ product_name|first|upper }}</a>
 {% for entry in areas|filter(a => a.area.id != settings) %}{{ _self.area(entry, focus, notifications) }}{% endfor %}
 <div class="flex-1"></div>
 <twig:Ui:CommandPalette :commands="commands" trigger="rail" />

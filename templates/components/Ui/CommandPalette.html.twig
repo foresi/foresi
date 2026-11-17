@@ -5,9 +5,10 @@
 {% set groups = this.groups %}
 <div {{ attributes }} data-controller="command-palette" data-command-palette-dialog-outlet="#{{ id }}-dialog">
     {% if 'rail' == this.trigger %}
-        <button type="button" aria-haspopup="dialog" aria-keyshortcuts="Control+K Meta+K" data-action="command-palette#open" data-command-palette-target="opener" class="group flex w-15 cursor-pointer flex-col items-center gap-0.5 rounded-panel border-0 bg-transparent py-1.5 text-micro font-medium text-muted hover:text-ink {{ focus }}">
+        {# In the phone app bar the rail trigger is an action icon of 44 x 44 px (Apple HIG, Buttons); its label stays its accessible name. #}
+        <button type="button" aria-haspopup="dialog" aria-keyshortcuts="Control+K Meta+K" data-action="command-palette#open" data-command-palette-target="opener" class="group flex w-15 cursor-pointer flex-col items-center gap-0.5 rounded-panel border-0 bg-transparent py-1.5 text-micro font-medium text-muted hover:text-ink max-shell:h-touch max-shell:w-touch max-shell:justify-center max-shell:rounded-control max-shell:py-0 {{ focus }}">
             <span class="grid h-8 w-10 place-items-center rounded-control group-hover:bg-frame">{{ ux_icon('lucide:search', {class: 'size-5', 'aria-hidden': 'true'}) }}</span>
-            <span>{{ 'ui.palette.search'|trans }}</span>
+            <span class="max-shell:sr-only">{{ 'ui.palette.search'|trans }}</span>
         </button>
     {% else %}
         <button type="button" aria-haspopup="dialog" aria-keyshortcuts="Control+K Meta+K" data-action="command-palette#open" data-command-palette-target="opener" class="inline-flex h-control w-full min-w-[220px] cursor-pointer items-center gap-2 rounded-control border border-control-line bg-white px-3 text-left text-muted transition-colors hover:border-green {{ focus }}">
@@ -17,12 +18,12 @@
         </button>
     {% endif %}
     {# The shared dialog: a click outside closes it, as it holds no form. Visible even inside the hidden phone drawer. #}
-    <twig:Ui:Dialog :id="id ~ '-dialog'" variant="bare" :label="'ui.palette.label'|trans" :dismissable="true" data-command-palette-target="dialog" data-action="dialog:closed->command-palette#closed mousedown->command-palette#keepFocus" class="visible mt-[12vh]">
+    <twig:Ui:Dialog :id="id ~ '-dialog'" variant="bare" :label="'ui.palette.label'|trans" :dismissable="true" data-command-palette-target="dialog" data-action="dialog:closed->command-palette#closed mousedown->command-palette#keepFocus" class="visible mt-[12dvh]">
         <div class="flex items-center border-b border-divider pr-2">
             <input type="text" role="combobox" aria-expanded="false" aria-controls="{{ paletteId }}-list" aria-autocomplete="list" aria-label="{{ 'ui.palette.label'|trans }}" placeholder="{{ 'ui.palette.placeholder'|trans }}" autocomplete="off" spellcheck="false" data-command-palette-target="input" data-action="input->command-palette#filter keydown->command-palette#navigate" class="h-control-lg min-w-0 flex-1 border-0 bg-transparent px-4 text-ink outline-none">
             <twig:Ui:IconButton icon="x" :label="'ui.palette.close'|trans" variant="ghost" size="sm" data-action="command-palette#close" data-command-palette-target="close" />
         </div>
-        <ul id="{{ paletteId }}-list" role="listbox" aria-label="{{ 'ui.palette.label'|trans }}" data-command-palette-target="list" class="m-0 max-h-[50vh] list-none overflow-y-auto p-1.5">
+        <ul id="{{ paletteId }}-list" role="listbox" aria-label="{{ 'ui.palette.label'|trans }}" data-command-palette-target="list" class="m-0 max-h-[50dvh] list-none overflow-y-auto p-1.5">
             {% for group in groups %}
                 <li role="presentation" data-group>
                     <ul role="group"{% if group.label %} aria-labelledby="{{ paletteId }}-group-{{ group.index }}"{% endif %} class="m-0 list-none p-0">

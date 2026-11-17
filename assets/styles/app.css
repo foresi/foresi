@@ -108,6 +108,12 @@
     --spacing-row: 44px;
     --spacing-row-list: 56px;
     --spacing-badge: 22px;
+    /*
+     * The smallest touch target on a phone: 44 x 44 pt (Apple HIG, Buttons), above the 24 px of
+     * WCAG 2.2 SC 2.5.8. Phone-only controls of the shell, the table checkboxes, sortable headers
+     * and tabs reach it below the shell breakpoint.
+     */
+    --spacing-touch: 44px;
 
     /* App shell: the area rail and the area sidebar beside the content panel. */
     --spacing-rail: 76px;
@@ -247,6 +253,67 @@ body {
         box-shadow: 0 0 0 1000px var(--color-white) inset;
         -webkit-text-fill-color: var(--color-ink);
         caret-color: var(--color-ink);
+    }
+}
+
+/*
+ * Text fields at 16 px on phones and touch screens. iOS Safari zooms the page in when a field
+ * whose text is smaller than 16 px takes the focus, and does not zoom back out (CSS-Tricks,
+ * "16px or Larger Text Prevents iOS Form Zoom"). The viewport keeps pinch zoom: no
+ * maximum-scale, no user-scalable=no. Outside any layer on purpose, so it also wins over a
+ * text-* utility on a field (Tailwind's utilities sit in a layer, and unlayered styles beat
+ * every layer); it sets the size only, the line height and the field height stay.
+ */
+:where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="hidden"], [type="button"], [type="submit"], [type="reset"], [type="image"]), select, textarea) {
+    @variant max-shell {
+        font-size: 16px;
+    }
+
+    @media (pointer: coarse) {
+        font-size: 16px;
+    }
+}
+
+/*
+ * The phone navigation fills the screen; the page behind it does not scroll while it is open,
+ * as with a full-screen dialog below.
+ */
+html:has(#navigation[data-open]) {
+    overflow: hidden;
+}
+
+/*
+ * The phone app bar is sticky: keep a focused field clear of it when the page scrolls to it
+ * (WCAG 2.2 SC 2.4.11). 56 px is the bar: a 44 px touch target and 6 px above and below.
+ */
+html:has(#rail) {
+    @variant max-shell {
+        scroll-padding-top: calc(56px + env(safe-area-inset-top, 0px));
+    }
+}
+
+/*
+ * Safe areas (WebKit, "Designing Websites for iPhone X"; MDN, env()): the viewport runs under the
+ * notch and the home indicator (viewport-fit=cover in base.html.twig), so a dialog or a sheet that
+ * fills a phone keeps its header below the status bar and its buttons above the home indicator.
+ */
+@media (max-width: 639px) {
+    dialog:where([data-dialog-fields-value="true"], [data-sheet]) > header {
+        padding-top: calc(1.25rem + env(safe-area-inset-top, 0px));
+    }
+
+    dialog:where([data-dialog-fields-value="true"], [data-sheet]) > footer {
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    dialog:where([data-dialog-fields-value="true"], [data-sheet]) > :where(header, [data-dialog-target="body"], footer) {
+        padding-left: calc(1rem + env(safe-area-inset-left, 0px));
+        padding-right: calc(1rem + env(safe-area-inset-right, 0px));
+    }
+
+    /* The X sits 12 px from the edge, as in _overlay_header.html.twig. */
+    dialog:where([data-dialog-fields-value="true"], [data-sheet]) > header {
+        padding-right: calc(0.75rem + env(safe-area-inset-right, 0px));
     }
 }
 

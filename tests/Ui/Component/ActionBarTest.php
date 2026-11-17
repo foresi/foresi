@@ -23,7 +23,8 @@ final class ActionBarTest extends KernelTestCase
         self::assertStringContainsString('data-action-bar', $html);
         self::assertStringContainsString('data-controller="action-bar"', $html);
         self::assertStringContainsString('sticky', $html);
-        self::assertStringContainsString('bottom-3', $html);
+        // 12 px above the bottom, plus the home indicator of an iPhone.
+        self::assertStringContainsString('bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))]', $html);
         self::assertStringContainsString('rounded-panel border border-container', $html);
         self::assertStringContainsString('bg-white', $html);
         // In normal flow on low screens, where a docked bar would cover most of the page.
