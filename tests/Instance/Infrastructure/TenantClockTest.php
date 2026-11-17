@@ -111,14 +111,13 @@ final class TenantClockTest extends KernelTestCase
     public function testZonesTakeAtMostTwoQueries(): void
     {
         $stored = $this->tenant('America/New_York');
+        // The firms belong to the one customer of the instance, so every tenant without a zone follows the first one.
         $czech = [];
         foreach (range(1, 4) as $ignored) {
-            $tenant = $this->tenant(null);
-            $this->firm($tenant, 'CZ');
-            $this->firm($tenant, self::NO_RULES);
-            $czech[] = $tenant->toString();
+            $czech[] = $this->tenant(null)->toString();
         }
-        $bare = $this->tenant(null);
+        $this->firm($stored, 'CZ');
+        $this->firm($stored, self::NO_RULES);
         $this->em->clear();
 
         $before = $this->queryCount();
@@ -126,9 +125,8 @@ final class TenantClockTest extends KernelTestCase
         $used = $this->queryCount() - $before;
 
         self::assertLessThanOrEqual(2, $used, 'Queries used: '.$used);
-        self::assertCount(6, $zones);
+        self::assertCount(5, $zones);
         self::assertSame('America/New_York', $zones[$stored->toString()]->getName());
-        self::assertSame('UTC', $zones[$bare->toString()]->getName());
         foreach ($czech as $id) {
             self::assertSame('Europe/Prague', $zones[$id]->getName());
         }

@@ -399,24 +399,6 @@ final class ApiTokenPageTest extends WebTestCase
         self::assertSelectorTextContains('[data-api-tokens="others"]', 'The other people have no tokens.');
     }
 
-    public function testATokenOfAnotherOrganisationIsNotFound(): void
-    {
-        $other = $this->fixtures->tenant('Other Company');
-        $stranger = $this->fixtures->user('stranger@example.com');
-        $this->fixtures->join($stranger, $other);
-        $this->context->switchTo($other);
-        $token = new ApiToken($stranger->id(), 'Elsewhere', [ApiScope::read()], ApiTokenSecret::hash(ApiTokenSecret::generate()), 'abcd', new \DateTimeImmutable('-1 day'), new \DateTimeImmutable('+10 days'));
-        $this->em->persist($token);
-        $this->em->flush();
-        $this->context->reset();
-        $this->signIn(self::OWNER, twoFactor: true);
-        $this->client->request('GET', '/settings/api');
-
-        $this->client->request('POST', '/settings/api/'.$token->id().'/revoke', ['_token' => $this->csrf()]);
-
-        self::assertResponseStatusCodeSame(404);
-    }
-
     public function testAGuestReachesNoneOfIt(): void
     {
         $this->context->switchTo($this->tenant);

@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Identity\Domain;
 
 use App\Audit\Domain\Audited;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\Party;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Id;
@@ -18,7 +16,7 @@ use App\Shared\Domain\Money;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * Links a user to a tenant with a role. A guest membership always points at
+ * Links a user to the organisation with a role. A guest membership always points at
  * the contact (party) the person represents, of whatever kind; a member may
  * point at their own person record. A deactivated membership keeps its history
  * but no longer lets the person into the organisation.
@@ -28,16 +26,12 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'membership')]
-#[ORM\Index(name: 'idx_membership_tenant', columns: ['tenant_id'])]
-#[ORM\UniqueConstraint(name: 'uniq_membership_tenant_user', columns: ['tenant_id', 'user_id'])]
-class Membership implements TenantOwned, Audited
+#[ORM\UniqueConstraint(name: 'uniq_membership_user', columns: ['user_id'])]
+class Membership implements Audited
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(name: 'disabled_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $disabledAt = null;
@@ -130,11 +124,6 @@ class Membership implements TenantOwned, Audited
     public function party(): ?Party
     {
         return $this->party;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     private function assertContact(Role $role, ?Party $party): void

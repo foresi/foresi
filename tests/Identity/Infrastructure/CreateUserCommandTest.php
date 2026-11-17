@@ -8,10 +8,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Identity\Infrastructure;
 
+use App\Identity\Application\MembershipDirectory;
 use App\Identity\Application\UserRepository;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
-use App\Identity\Infrastructure\Doctrine\DoctrineMembershipDirectory;
+use App\Identity\Infrastructure\Console\CreateUserCommand;
 use App\Instance\Application\TenantContext;
 use App\Instance\Domain\Tenant;
 use App\Instance\Domain\TenantId;
@@ -40,67 +41,65 @@ final class CreateUserCommandTest extends KernelTestCase
         $this->tester = new CommandTester(new Application($kernel)->find('app:user:create'));
     }
 
-    public function testCreatesUserTenantAndMembership(): void
+    public function testCreatesTheUserTheInstanceAndTheMembership(): void
     {
-        $status = $this->create(['email' => 'Testing@Example.COM', 'tenant-name' => 'Example Company', 'role' => 'owner'], self::PASSWORD);
+        $status = $this->create(['email' => 'Testing@Example.COM', 'role' => 'owner'], self::PASSWORD);
 
         self::assertSame(Command::SUCCESS, $status);
         $user = $this->users()->findByEmail('testing@example.com');
         self::assertNotNull($user);
         self::assertNotSame(self::PASSWORD, $user->passwordHash());
         self::assertTrue(password_verify(self::PASSWORD, $user->passwordHash()));
-        self::assertCount(1, $this->directory()->tenantIdsOf($user));
+        self::assertSame(Role::Owner, $this->directory()->roleOf($user->id()));
+        self::assertSame([CreateUserCommand::INSTANCE_NAME], $this->em()->getConnection()->fetchFirstColumn('SELECT name FROM tenant'));
         self::assertStringNotContainsString(self::PASSWORD, $this->tester->getDisplay());
     }
 
     public function testNewUsersGetTheProductDefaultLocale(): void
     {
-        $this->create(['email' => 'testing@example.com', 'tenant-name' => 'Example Company', 'role' => 'owner'], self::PASSWORD);
+        $this->create(['email' => 'testing@example.com', 'role' => 'owner'], self::PASSWORD);
 
         self::assertSame('cs', $this->users()->findByEmail('testing@example.com')?->locale());
     }
 
     public function testDisplayNameDefaultsToTheLocalPartOfTheEmail(): void
     {
-        $this->create(['email' => 'Jana.Novak@example.com', 'tenant-name' => 'Example Company', 'role' => 'owner'], self::PASSWORD);
+        $this->create(['email' => 'Jana.Novak@example.com', 'role' => 'owner'], self::PASSWORD);
 
         self::assertSame('jana.novak', $this->users()->findByEmail('jana.novak@example.com')?->displayName());
     }
 
     public function testDisplayNameCanBeEnteredAndIsTrimmed(): void
     {
-        $this->create(['email' => 'testing@example.com', 'tenant-name' => 'Example Company', 'role' => 'owner'], self::PASSWORD, name: '  Jana Nováková ');
+        $this->create(['email' => 'testing@example.com', 'role' => 'owner'], self::PASSWORD, name: '  Jana Nováková ');
 
         self::assertSame('Jana Nováková', $this->users()->findByEmail('testing@example.com')?->displayName());
     }
 
-    public function testReusesAnExistingTenant(): void
+    public function testTheSecondUserJoinsTheSameInstance(): void
     {
-        $this->create(['email' => 'one@example.com', 'tenant-name' => 'Example Company', 'role' => 'owner'], self::PASSWORD);
-        $this->create(['email' => 'two@example.com', 'tenant-name' => 'Example Company', 'role' => 'member'], self::PASSWORD);
+        $existing = $this->tenant('Example Company');
+        $this->create(['email' => 'one@example.com', 'role' => 'owner'], self::PASSWORD);
+        $this->create(['email' => 'two@example.com', 'role' => 'member'], self::PASSWORD);
 
-        $em = self::getContainer()->get('doctrine.orm.entity_manager');
-        self::assertCount(1, $em->getRepository(Tenant::class)->findAll());
-        $one = $this->users()->findByEmail('one@example.com');
-        $two = $this->users()->findByEmail('two@example.com');
-        self::assertNotNull($one);
-        self::assertNotNull($two);
-        self::assertEquals($this->directory()->tenantIdsOf($one), $this->directory()->tenantIdsOf($two));
+        self::assertSame([$existing->toString()], $this->em()->getConnection()->fetchFirstColumn('SELECT id FROM tenant'));
+        self::assertSame(Role::Member, $this->directory()->roleOf($this->users()->findByEmail('two@example.com')?->id() ?? ''));
+        self::assertSame(2, $this->rows('membership'));
     }
 
     public function testRejectsAnUnknownRole(): void
     {
-        $status = $this->create(['email' => 'testing@example.com', 'tenant-name' => 'Example Company', 'role' => 'admin'], self::PASSWORD);
+        $status = $this->create(['email' => 'testing@example.com', 'role' => 'admin'], self::PASSWORD);
 
         self::assertSame(Command::INVALID, $status);
         self::assertNull($this->users()->findByEmail('testing@example.com'));
     }
 
-    public function testCreatesAGuestUserForAContactOfTheTenant(): void
+    public function testCreatesAGuestUserForAContact(): void
     {
-        $contact = $this->contactIn($this->tenant('Example Company'));
+        $contact = $this->contact();
 
-        $status = $this->create(['email' => 'guest@example.com', 'tenant-name' => 'Example Company', 'role' => 'guest', '--contact' => $contact], self::PASSWORD);
+        $status = $this->create(['email' => 'guest@example.com', 'role' => 'guest', '--contact' => $contact], self::PASSWORD);
 
         self::assertSame(Command::SUCCESS, $status, $this->tester->getDisplay());
         self::assertStringContainsString('as guest', $this->tester->getDisplay());
@@ -109,16 +108,16 @@ final class CreateUserCommandTest extends KernelTestCase
 
     public function testAMemberMayRepresentTheirOwnContact(): void
     {
-        $contact = $this->contactIn($this->tenant('Example Company'));
+        $contact = $this->contact();
 
-        $this->create(['email' => 'member@example.com', 'tenant-name' => 'Example Company', 'role' => 'member', '--contact' => $contact], self::PASSWORD);
+        $this->create(['email' => 'member@example.com', 'role' => 'member', '--contact' => $contact], self::PASSWORD);
 
         self::assertSame([['member', $contact]], $this->em()->getConnection()->fetchAllNumeric('SELECT role, party_id FROM membership'));
     }
 
     public function testAGuestUserNeedsAContact(): void
     {
-        $status = $this->create(['email' => 'guest@example.com', 'tenant-name' => 'Example Company', 'role' => 'guest'], self::PASSWORD);
+        $status = $this->create(['email' => 'guest@example.com', 'role' => 'guest'], self::PASSWORD);
 
         self::assertSame(Command::INVALID, $status);
         self::assertStringContainsString('--contact', $this->tester->getDisplay());
@@ -127,43 +126,35 @@ final class CreateUserCommandTest extends KernelTestCase
     }
 
     /**
-     * @return iterable<string, array{string, bool}>
+     * @return iterable<string, array{string}>
      */
     public static function unknownContacts(): iterable
     {
-        yield 'a contact of another tenant' => ['other', true];
-        yield 'not an id' => ['12', true];
-        yield 'a tenant that does not exist yet' => ['other', false];
+        yield 'nobody\'s id' => ['019a0000-0000-7000-8000-0000000000ff'];
+        yield 'not an id' => ['12'];
     }
 
     #[DataProvider('unknownContacts')]
-    public function testRefusesAContactTheTenantDoesNotHave(string $contact, bool $tenantExists): void
+    public function testRefusesAnUnknownContact(string $contact): void
     {
-        if ($tenantExists) {
-            $this->tenant('Example Company');
-        }
-        if ('other' === $contact) {
-            $contact = $this->contactIn($this->tenant('Other Company'));
-        }
-
-        $status = $this->create(['email' => 'guest@example.com', 'tenant-name' => 'Example Company', 'role' => 'guest', '--contact' => $contact], self::PASSWORD);
+        $status = $this->create(['email' => 'guest@example.com', 'role' => 'guest', '--contact' => $contact], self::PASSWORD);
 
         self::assertSame(Command::INVALID, $status);
-        self::assertStringContainsString(sprintf('There is no contact "%s" in "Example Company".', $contact), (string) preg_replace('/\s+/', ' ', $this->tester->getDisplay()));
+        self::assertStringContainsString(sprintf('There is no contact "%s".', $contact), (string) preg_replace('/\s+/', ' ', $this->tester->getDisplay()));
         self::assertNull($this->users()->findByEmail('guest@example.com'));
         self::assertSame(0, $this->rows('membership'));
     }
 
     public function testRejectsAnInvalidEmail(): void
     {
-        $status = $this->create(['email' => 'not-an-email', 'tenant-name' => 'Example Company', 'role' => Role::Owner->value], self::PASSWORD);
+        $status = $this->create(['email' => 'not-an-email', 'role' => Role::Owner->value], self::PASSWORD);
 
         self::assertSame(Command::INVALID, $status);
     }
 
     public function testRejectsAShortPassword(): void
     {
-        $status = $this->create(['email' => 'testing@example.com', 'tenant-name' => 'Example Company', 'role' => 'owner'], 'short');
+        $status = $this->create(['email' => 'testing@example.com', 'role' => 'owner'], 'short');
 
         self::assertSame(Command::INVALID, $status);
         self::assertNull($this->users()->findByEmail('testing@example.com'));
@@ -171,39 +162,23 @@ final class CreateUserCommandTest extends KernelTestCase
 
     public function testRefusesAnExistingUser(): void
     {
-        $this->create(['email' => 'testing@example.com', 'tenant-name' => 'Example Company', 'role' => 'owner'], self::PASSWORD);
+        $this->create(['email' => 'testing@example.com', 'role' => 'owner'], self::PASSWORD);
 
-        $status = $this->create(['email' => 'TESTING@example.com', 'tenant-name' => 'Other', 'role' => 'member'], self::PASSWORD);
+        $status = $this->create(['email' => 'TESTING@example.com', 'role' => 'member'], self::PASSWORD);
 
         self::assertSame(Command::FAILURE, $status);
     }
 
     public function testRejectsAPasswordConfirmationMismatch(): void
     {
-        $status = $this->create(['email' => 'testing@example.com', 'tenant-name' => 'Example Company', 'role' => 'owner'], self::PASSWORD, 'another-password-1');
+        $status = $this->create(['email' => 'testing@example.com', 'role' => 'owner'], self::PASSWORD, 'another-password-1');
 
         self::assertSame(Command::INVALID, $status);
         self::assertNull($this->users()->findByEmail('testing@example.com'));
         self::assertSame(0, $this->rows('tenant'));
     }
 
-    public function testTenantNameIsTrimmedForLookupAndCreation(): void
-    {
-        $this->create(['email' => 'one@example.com', 'tenant-name' => '  Example Company ', 'role' => 'owner'], self::PASSWORD);
-        $this->create(['email' => 'two@example.com', 'tenant-name' => 'Example Company', 'role' => 'member'], self::PASSWORD);
-
-        self::assertSame(1, $this->rows('tenant'));
-        self::assertSame('Example Company', $this->em()->getConnection()->fetchOne('SELECT name FROM tenant'));
-    }
-
-    public function testRejectsABlankTenantName(): void
-    {
-        $status = $this->create(['email' => 'testing@example.com', 'tenant-name' => '   ', 'role' => 'owner'], self::PASSWORD);
-
-        self::assertSame(Command::INVALID, $status);
-    }
-
-    public function testFailureLeavesNoOrphanTenant(): void
+    public function testAFailureLeavesNoTenantWithoutItsFirstUser(): void
     {
         $this->em()->getEventManager()->addEventListener(Events::prePersist, new class {
             public function prePersist(PrePersistEventArgs $args): void
@@ -215,7 +190,7 @@ final class CreateUserCommandTest extends KernelTestCase
         });
 
         try {
-            $this->create(['email' => 'testing@example.com', 'tenant-name' => 'Example Company', 'role' => 'owner'], self::PASSWORD);
+            $this->create(['email' => 'testing@example.com', 'role' => 'owner'], self::PASSWORD);
             self::fail('The failure must propagate.');
         } catch (\RuntimeException) {
             self::assertSame(0, $this->rows('tenant'));
@@ -227,7 +202,7 @@ final class CreateUserCommandTest extends KernelTestCase
     {
         $definition = new Application(self::bootKernel())->find('app:user:create')->getDefinition();
 
-        self::assertSame(['email', 'tenant-name', 'role'], array_keys($definition->getArguments()));
+        self::assertSame(['email', 'role'], array_keys($definition->getArguments()));
     }
 
     /**
@@ -249,14 +224,11 @@ final class CreateUserCommandTest extends KernelTestCase
         return $tenant->id();
     }
 
-    private function contactIn(TenantId $tenant): string
+    private function contact(): string
     {
-        $context = self::getContainer()->get(TenantContext::class);
-        $context->switchTo($tenant);
         $party = new Party(PartyKind::Person, 'Alex Example', null, null, '');
         $this->em()->persist($party);
         $this->em()->flush();
-        $context->reset();
 
         return $party->id();
     }
@@ -276,8 +248,8 @@ final class CreateUserCommandTest extends KernelTestCase
         return self::getContainer()->get(UserRepository::class);
     }
 
-    private function directory(): DoctrineMembershipDirectory
+    private function directory(): MembershipDirectory
     {
-        return self::getContainer()->get(DoctrineMembershipDirectory::class);
+        return self::getContainer()->get(MembershipDirectory::class);
     }
 }

@@ -28,7 +28,6 @@ use App\CashFlow\Infrastructure\Source\PlannedItemFlows;
 use App\Identity\Application\ApiTokenContext;
 use App\Identity\Application\ApiTokenGrant;
 use App\Identity\Domain\ApiScope;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\InvoiceRow;
@@ -395,7 +394,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
 
     public function testTheCallerMayReadTheDocumentsWithoutATokenOrWithTheReadScopeOfThem(): void
     {
-        $grant = static fn (string $scope): ApiTokenContext => new readonly class(new ApiTokenGrant('019a0000-0000-7000-8000-000000000001', TenantId::generate(), '019a0000-0000-7000-8000-0000000000aa', 'Reporting', [ApiScope::from($scope)], new \DateTimeImmutable('2026-12-01', new \DateTimeZone('UTC')))) implements ApiTokenContext {
+        $grant = static fn (string $scope): ApiTokenContext => new readonly class(new ApiTokenGrant('019a0000-0000-7000-8000-000000000001', '019a0000-0000-7000-8000-0000000000aa', 'Reporting', [ApiScope::from($scope)], new \DateTimeImmutable('2026-12-01', new \DateTimeZone('UTC')))) implements ApiTokenContext {
             public function __construct(private ApiTokenGrant $grant)
             {
             }

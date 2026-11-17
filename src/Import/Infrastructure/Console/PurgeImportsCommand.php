@@ -22,9 +22,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * Deletes the source file, the staged rows and the staged missing records of imports that ended more than
  * 30 days ago. Imports that never ended and were created more than 30 days ago
  * (waiting for the user, not owned by a worker) are cancelled first. The Import
- * record and its counters stay. It works across all
- * tenants, so it reads through the connection and not through the tenant-scoped
- * entity manager.
+ * record and its counters stay. It works on the whole instance and reads
+ * through the connection.
  */
 #[AsCommand(name: 'app:import:purge', description: 'Delete the files and staged rows of imports that ended more than 30 days ago')]
 final readonly class PurgeImportsCommand

@@ -37,7 +37,6 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 final class AddressBookWritesTest extends KernelTestCase
 {
     private EntityManagerInterface $em;
-    private TenantId $tenant;
 
     protected function setUp(): void
     {
@@ -47,8 +46,8 @@ final class AddressBookWritesTest extends KernelTestCase
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $this->tenant = TenantId::generate();
-        self::getContainer()->get(TenantContext::class)->switchTo($this->tenant);
+        $tenant = TenantId::generate();
+        self::getContainer()->get(TenantContext::class)->switchTo($tenant);
     }
 
     public function testCreateFromInputStoresTheNoteTheBillingAddressAndTheEmail(): void
@@ -219,14 +218,10 @@ final class AddressBookWritesTest extends KernelTestCase
         self::assertSame(['Čapek s.r.o.', 'čzech'], $this->names($this->query()->search('', null, false, 'name', 1)->rows), 'an upper-case Č sorts with the lower-case č');
     }
 
-    public function testSearchIsTenantScopedAndSorts(): void
+    public function testSearchSorts(): void
     {
         $this->create('Beta', number: '12345687');
         $this->create('alpha', number: '12345695');
-        $context = self::getContainer()->get(TenantContext::class);
-        $context->switchTo(TenantId::generate());
-        $this->create('Foreign', number: '12345687');
-        $context->switchTo($this->tenant);
 
         $page = $this->query()->search('', null, false, 'name', 1);
 

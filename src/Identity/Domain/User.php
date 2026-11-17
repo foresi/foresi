@@ -12,8 +12,8 @@ use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * A person who can log in. A user is global identity, not owned by a tenant:
- * which tenants they work in is decided by their memberships.
+ * A person who can log in. What they may do in the organisation is decided
+ * by their membership.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'app_user')]

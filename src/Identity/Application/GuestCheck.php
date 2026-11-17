@@ -10,7 +10,6 @@ namespace App\Identity\Application;
 
 use App\Audit\Application\AuditActor;
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
 
 /**
  * Whether the signed-in user is a guest of the active organisation:
@@ -20,7 +19,6 @@ final readonly class GuestCheck
 {
     public function __construct(
         private MembershipDirectory $memberships,
-        private TenantContext $context,
         private AuditActor $actor,
     ) {
     }
@@ -28,14 +26,7 @@ final readonly class GuestCheck
     public function isGuest(): bool
     {
         $userId = $this->actor->userId();
-        if (null === $userId || !$this->context->has()) {
-            return false;
-        }
-        $tenant = $this->context->current();
 
-        return array_any(
-            $this->memberships->organisationsOf($userId),
-            static fn (Organisation $organisation): bool => Role::Guest === $organisation->role && $organisation->id->equals($tenant),
-        );
+        return null !== $userId && Role::Guest === $this->memberships->roleOf($userId);
     }
 }

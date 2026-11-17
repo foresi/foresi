@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Import\Domain;
 
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -20,16 +18,12 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'import_ambiguous_match')]
-#[ORM\Index(name: 'idx_import_ambiguous_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_import_ambiguous_record', columns: ['import_id', 'record_id'])]
-class ImportAmbiguousMatch implements TenantOwned
+class ImportAmbiguousMatch
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     public function __construct(
         #[ORM\ManyToOne(targetEntity: Import::class)]
@@ -44,11 +38,6 @@ class ImportAmbiguousMatch implements TenantOwned
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     public function import(): Import

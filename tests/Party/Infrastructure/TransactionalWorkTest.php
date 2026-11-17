@@ -20,30 +20,24 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 final class TransactionalWorkTest extends KernelTestCase
 {
     private EntityManagerInterface $em;
-    private TenantContext $context;
-    private TenantId $tenant;
 
     protected function setUp(): void
     {
         self::bootKernel();
         $this->em = self::getContainer()->get('doctrine.orm.entity_manager');
-        $this->context = self::getContainer()->get(TenantContext::class);
+        $context = self::getContainer()->get(TenantContext::class);
         $tool = new SchemaTool($this->em);
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $this->tenant = TenantId::generate();
-        $this->context->switchTo($this->tenant);
+        $tenant = TenantId::generate();
+        $context->switchTo($tenant);
     }
 
-    public function testCaughtDomainErrorLeavesAUsableSessionThatIsStillTenantScoped(): void
+    public function testCaughtDomainErrorLeavesAUsableSession(): void
     {
         $this->em->persist(new Party(PartyKind::Person, 'Own Person', null, null, ''));
         $this->em->flush();
-        $this->context->switchTo(TenantId::generate());
-        $this->em->persist(new Party(PartyKind::Person, 'Foreign Person', null, null, ''));
-        $this->em->flush();
-        $this->context->switchTo($this->tenant);
 
         try {
             $this->work()->run(function (): never {
@@ -57,7 +51,7 @@ final class TransactionalWorkTest extends KernelTestCase
 
         self::assertTrue($this->em->isOpen());
         $names = $this->em->createQuery('SELECT p.displayName FROM '.Party::class.' p ORDER BY p.id')->getSingleColumnResult();
-        self::assertSame(['Own Person'], $names, 'the failed work is rolled back and the tenant filter is bound to the new session');
+        self::assertSame(['Own Person'], $names, 'the failed work is rolled back');
     }
 
     public function testSuccessfulWorkReturnsItsResult(): void

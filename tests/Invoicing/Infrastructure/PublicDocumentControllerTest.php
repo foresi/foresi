@@ -606,43 +606,6 @@ final class PublicDocumentControllerTest extends WebTestCase
         self::assertSame(['first_read_at' => null, 'read_count' => 0], $this->readState($sent['send']));
     }
 
-    public function testASignedInUserOfAnotherTenantKeepsTheirActiveTenant(): void
-    {
-        $sent = $this->sentDocument();
-        $second = $this->browser->fixtures->tenant('Tenant C');
-        $this->signedInMemberOf([$this->browser->fixtures->tenant('Tenant B'), $second]);
-        $choice = $this->client->request('GET', '/organisation/choose');
-        $this->client->submit($choice->filter('form[action$="'.$second->toString().'"]')->form());
-
-        $this->client->request('GET', '/d/'.$sent['token']);
-        self::assertResponseIsSuccessful();
-        $this->client->request('GET', '/d/'.$sent['token'].'/open', server: self::CLICK);
-        self::assertResponseIsSuccessful();
-
-        $this->client->request('GET', '/');
-        self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('body', 'Tenant C');
-    }
-
-    public function testAUserWithoutAChosenTenantIsNotRedirected(): void
-    {
-        $sent = $this->sentDocument();
-        $this->signedInMemberOf([$this->browser->fixtures->tenant('Tenant B'), $this->browser->fixtures->tenant('Tenant C')]);
-        $this->client->request('GET', '/');
-        self::assertResponseRedirects('/organisation/choose');
-
-        $this->client->request('GET', '/d/'.$sent['token']);
-        self::assertResponseIsSuccessful();
-        $this->client->request('GET', '/d/'.$sent['token'].'/pdf');
-        self::assertResponseIsSuccessful();
-        $this->client->request('GET', '/d/'.$sent['token'].'/open', server: self::CLICK);
-        self::assertResponseIsSuccessful();
-        $this->client->request('GET', '/d/'.$sent['token'].'/download', server: self::CLICK);
-        self::assertResponseIsSuccessful();
-        $this->client->request('GET', '/d/'.$sent['token'].'/x/y');
-        self::assertResponseStatusCodeSame(404);
-    }
-
     public function testNoAuditEntryIsWritten(): void
     {
         $sent = $this->sentDocument();

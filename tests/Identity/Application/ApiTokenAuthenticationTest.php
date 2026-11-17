@@ -13,11 +13,9 @@ use App\Identity\Application\ApiTokenGrant;
 use App\Identity\Application\ApiTokenRecord;
 use App\Identity\Application\ApiTokenRefused;
 use App\Identity\Application\MembershipDirectory;
-use App\Identity\Application\Organisation;
 use App\Identity\Domain\ApiScope;
 use App\Identity\Domain\ApiTokenSecret;
 use App\Identity\Domain\Role;
-use App\Instance\Domain\TenantId;
 use App\Tests\Identity\Support\InMemoryApiTokens;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -33,26 +31,19 @@ final class ApiTokenAuthenticationTest extends TestCase
     private const string TOKEN = '019a0000-0000-7000-8000-0000000000aa';
 
     private InMemoryApiTokens $tokens;
-    private TenantId $tenant;
     private MockClock $clock;
     private string $secret;
 
-    /** @var list<Organisation> */
-    private array $organisations = [];
+    private ?Role $role = Role::Member;
 
     protected function setUp(): void
     {
         $this->tokens = new InMemoryApiTokens();
-        $this->tenant = TenantId::generate();
         $this->clock = new MockClock('2026-11-10 10:00:00');
         $this->secret = ApiTokenSecret::generate();
-        $this->organisations = [
-            new Organisation(TenantId::generate(), 'Another Company', Role::Owner),
-            new Organisation($this->tenant, 'Example Company', Role::Member),
-        ];
     }
 
-    public function testAValidTokenGrantsItsPersonOrganisationAndScopes(): void
+    public function testAValidTokenGrantsItsPersonAndScopes(): void
     {
         $this->tokens->records = [$this->record()];
 
@@ -60,7 +51,6 @@ final class ApiTokenAuthenticationTest extends TestCase
 
         self::assertSame([hash('sha256', $this->secret)], $this->tokens->hashesLookedUp);
         self::assertSame(self::USER, $grant->userId);
-        self::assertTrue($grant->tenantId->equals($this->tenant));
         self::assertSame(self::TOKEN, $grant->tokenId);
         self::assertSame('Reporting', $grant->tokenName);
         self::assertEquals([ApiScope::read()], $grant->scopes);
@@ -73,7 +63,7 @@ final class ApiTokenAuthenticationTest extends TestCase
 
     public function testTheOwnerSignsInToo(): void
     {
-        $this->organisations = [new Organisation($this->tenant, 'Example Company', Role::Owner)];
+        $this->role = Role::Owner;
         $this->tokens->records = [$this->record()];
 
         self::assertSame(self::USER, $this->service()->authenticate($this->secret)->userId);
@@ -116,7 +106,7 @@ final class ApiTokenAuthenticationTest extends TestCase
 
     public function testAPersonWhoLeftTheOrganisationIsRefused(): void
     {
-        $this->organisations = [new Organisation(TenantId::generate(), 'Another Company', Role::Owner)];
+        $this->role = null;
         $this->tokens->records = [$this->record()];
 
         $this->expectRefusal(ApiTokenRefused::MEMBERSHIP_GONE, fn (): ApiTokenGrant => $this->service()->authenticate($this->secret));
@@ -125,7 +115,7 @@ final class ApiTokenAuthenticationTest extends TestCase
 
     public function testAGuestIsRefused(): void
     {
-        $this->organisations = [new Organisation($this->tenant, 'Example Company', Role::Guest)];
+        $this->role = Role::Guest;
         $this->tokens->records = [$this->record()];
 
         $this->expectRefusal(ApiTokenRefused::GUEST, fn (): ApiTokenGrant => $this->service()->authenticate($this->secret));
@@ -164,7 +154,6 @@ final class ApiTokenAuthenticationTest extends TestCase
     {
         return new ApiTokenRecord(
             self::TOKEN,
-            $this->tenant,
             self::USER,
             'Reporting',
             [ApiScope::read()],
@@ -190,7 +179,7 @@ final class ApiTokenAuthenticationTest extends TestCase
     private function service(): ApiTokenAuthentication
     {
         $memberships = self::createStub(MembershipDirectory::class);
-        $memberships->method('organisationsOf')->willReturnCallback(fn (string $userId): array => self::USER === $userId ? $this->organisations : []);
+        $memberships->method('roleOf')->willReturnCallback(fn (string $userId): ?Role => self::USER === $userId ? $this->role : null);
 
         return new ApiTokenAuthentication($this->tokens, $memberships, $this->clock);
     }

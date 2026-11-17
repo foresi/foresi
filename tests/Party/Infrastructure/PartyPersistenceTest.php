@@ -83,15 +83,4 @@ final class PartyPersistenceTest extends KernelTestCase
         self::assertNull($entity->vatId());
         self::assertSame('12345695', $entity->registrationNumber()->value);
     }
-
-    public function testPartiesAreIsolatedPerTenant(): void
-    {
-        $a = TenantId::generate();
-        $this->context->switchTo($a);
-        $this->em->persist(new Party(PartyKind::Person, 'Test Person', null, null, ''));
-        $this->em->flush();
-        $this->context->switchTo(TenantId::generate());
-
-        self::assertSame([], $this->em->getRepository(Party::class)->findAll());
-    }
 }

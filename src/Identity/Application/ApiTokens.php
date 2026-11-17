@@ -9,12 +9,9 @@ declare(strict_types=1);
 namespace App\Identity\Application;
 
 use App\Identity\Domain\ApiToken;
-use App\Instance\Domain\TenantId;
 
 /**
- * The personal API tokens of the active tenant, and the few reads across
- * tenants: a request names its token before any organisation is active, and
- * the operator works outside of one.
+ * The personal API tokens of the instance.
  */
 interface ApiTokens
 {
@@ -23,30 +20,28 @@ interface ApiTokens
     public function find(string $id): ?ApiToken;
 
     /**
-     * @return list<ApiToken> the tokens of the user in the active tenant, newest first
+     * @return list<ApiToken> the tokens of the user, newest first
      */
     public function ofUser(string $userId): array;
 
     /**
-     * @return list<ApiToken> every token of the active tenant, newest first
+     * @return list<ApiToken> every token, newest first
      */
     public function all(): array;
 
     /**
-     * Any tenant's token with this hash.
+     * The token with this hash.
      */
     public function byHash(string $tokenHash): ?ApiTokenRecord;
 
     /**
-     * @return list<ApiTokenRecord> the tokens of one tenant, or of all of them, newest first
+     * @return list<ApiTokenRecord> every token, newest first
      */
-    public function records(?TenantId $tenant): array;
-
-    public function tenantOf(string $id): ?TenantId;
+    public function records(): array;
 
     /**
-     * Records a use, unless one later than $usedAfter is recorded already. Any
-     * tenant's token; no audit entry is written.
+     * Records a use, unless one later than $usedAfter is recorded already. No
+     * audit entry is written.
      */
     public function touch(string $id, \DateTimeImmutable $now, \DateTimeImmutable $usedAfter): void;
 

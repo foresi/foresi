@@ -23,9 +23,6 @@ use App\Import\Domain\Mapping;
 use App\Import\Domain\ReplaceScope;
 use App\Import\Domain\RowError;
 use App\Import\Domain\RowOutcome;
-use App\Instance\Application\NoActiveTenant;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -34,7 +31,6 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 final class ImportPersistenceTest extends KernelTestCase
 {
     private EntityManagerInterface $em;
-    private TenantContext $context;
     private Imports $imports;
     private ProfileRepository $profiles;
 
@@ -43,7 +39,6 @@ final class ImportPersistenceTest extends KernelTestCase
         self::bootKernel();
         $container = self::getContainer();
         $this->em = $container->get('doctrine.orm.entity_manager');
-        $this->context = $container->get(TenantContext::class);
         $this->imports = $container->get(Imports::class);
         $this->profiles = $container->get(ProfileRepository::class);
 
@@ -55,8 +50,6 @@ final class ImportPersistenceTest extends KernelTestCase
 
     public function testAnImportWithItsProfileAndRowsRoundTrips(): void
     {
-        $tenant = TenantId::generate();
-        $this->context->switchTo($tenant);
         $options = new ImportOptions(ImportMode::FullReplace, ReplaceScope::All, 'registration_number', BlankCells::Clear, DateOrder::YearMonthDay, DecimalSeparator::Point, 3);
         $mapping = new Mapping([0 => 'name', 1 => null], ['kind' => ['Firma' => 'company']]);
         $profile = new ImportProfile('Contacts', 'party', 'idoklad', $mapping, $options, Mapping::signature(['Name', 'Kind']), new \DateTimeImmutable('2026-10-01 10:00:00'));
@@ -79,7 +72,6 @@ final class ImportPersistenceTest extends KernelTestCase
         self::assertNotNull($loaded);
         self::assertSame('party', $loaded->targetKey());
         self::assertSame(ImportState::Reading, $loaded->state());
-        self::assertTrue($tenant->equals($loaded->tenantId()));
         self::assertSame(['Name', 'Kind'], $loaded->headers());
         self::assertSame('csv', $loaded->sourceSettings()['format']);
         self::assertEquals($mapping, $loaded->mapping());
@@ -103,7 +95,6 @@ final class ImportPersistenceTest extends KernelTestCase
 
     public function testCountersSurviveALockedUpdate(): void
     {
-        $this->context->switchTo(TenantId::generate());
         $import = $this->newImport();
         $import->countRows(4, 2);
         $this->imports->add($import);
@@ -125,7 +116,6 @@ final class ImportPersistenceTest extends KernelTestCase
 
     public function testALockedUpdateOfAnAlreadyLoadedImportKeepsCountersWrittenMeanwhile(): void
     {
-        $this->context->switchTo(TenantId::generate());
         $import = $this->newImport();
         $import->countRows(10, 3);
         $this->imports->add($import);
@@ -150,25 +140,8 @@ final class ImportPersistenceTest extends KernelTestCase
         self::assertSame([7, 7, 2], [$after->created(), $after->processed(), $after->chunksDone()]);
     }
 
-    public function testStagedRowsBelongToTheTenantOfTheirImport(): void
-    {
-        $this->context->switchTo(TenantId::generate());
-        $import = $this->newImport();
-        $this->imports->add($import);
-        $this->imports->addRows([new ImportRow($import, 1, 0, ['a'])]);
-        $id = $import->id();
-        self::assertCount(1, $this->imports->rowsOfChunk($import, 0));
-
-        $this->context->switchTo(TenantId::generate());
-
-        $rows = $this->em->getRepository(ImportRow::class)->findBy(['chunk' => 0]);
-        self::assertSame([], $rows);
-        self::assertNull($this->imports->find($id));
-    }
-
     public function testARowNumberIsUniquePerImport(): void
     {
-        $this->context->switchTo(TenantId::generate());
         $import = $this->newImport();
         $this->imports->add($import);
 
@@ -176,33 +149,8 @@ final class ImportPersistenceTest extends KernelTestCase
         $this->imports->addRows([new ImportRow($import, 1, 0, ['a']), new ImportRow($import, 1, 0, ['b'])]);
     }
 
-    public function testImportsAndProfilesBelongToTheirTenant(): void
-    {
-        $first = TenantId::generate();
-        $this->context->switchTo($first);
-        $mine = $this->newImport();
-        $this->imports->add($mine);
-        $this->profiles->add(new ImportProfile('Contacts', 'party', null, new Mapping(), ImportOptions::standard(), 'sig', new \DateTimeImmutable('2026-10-01')));
-        $id = $mine->id();
-
-        $this->context->switchTo(TenantId::generate());
-
-        self::assertNull($this->imports->find($id));
-        self::assertNull($this->profiles->findByHeaders('party', 'sig'));
-        self::assertSame([], $this->profiles->forTarget('party'));
-    }
-
-    public function testNothingIsReadOrWrittenWithoutATenant(): void
-    {
-        $this->context->reset();
-
-        $this->expectException(NoActiveTenant::class);
-        $this->imports->add($this->newImport());
-    }
-
     public function testTheNewestProfileForTheHeadersWins(): void
     {
-        $this->context->switchTo(TenantId::generate());
         $older = new ImportProfile('Older', 'party', null, new Mapping(), ImportOptions::standard(), 'sig', new \DateTimeImmutable('2026-10-01'));
         $newer = new ImportProfile('Newer', 'party', null, new Mapping(), ImportOptions::standard(), 'sig', new \DateTimeImmutable('2026-10-02'));
         $other = new ImportProfile('Other', 'party', null, new Mapping(), ImportOptions::standard(), 'different', new \DateTimeImmutable('2026-10-03'));

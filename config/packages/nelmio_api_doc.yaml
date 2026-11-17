@@ -50,14 +50,13 @@ nelmio_api_doc:
                         parameter: { type: string, description: 'The parameter that cannot be used, with invalid_parameter.' }
                 Me:
                     type: object
-                    required: [user, tenant, token]
+                    required: [user, token]
                     properties:
                         user:
                             type: object
                             properties:
                                 id: { type: string, format: uuid }
                                 email: { type: string }
-                        tenant: { $ref: '#/components/schemas/Reference' }
                         token:
                             type: object
                             properties:

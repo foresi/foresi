@@ -10,11 +10,10 @@ namespace App\Identity\Application;
 
 use App\Identity\Domain\ApiScope;
 use App\Identity\Domain\ApiTokenState;
-use App\Instance\Domain\TenantId;
 
 /**
- * A personal API token as read across organisations: to sign a request in
- * before any organisation is active, and for the operator's list. Never holds
+ * A personal API token as read to sign a request in, and for the operator's
+ * list. Never holds
  * the secret or its hash.
  */
 final readonly class ApiTokenRecord
@@ -24,7 +23,6 @@ final readonly class ApiTokenRecord
      */
     public function __construct(
         public string $id,
-        public TenantId $tenantId,
         public string $userId,
         public string $name,
         public array $scopes,

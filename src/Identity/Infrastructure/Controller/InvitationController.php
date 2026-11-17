@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace App\Identity\Infrastructure\Controller;
 
 use App\Identity\Application\AcceptInvitation;
-use App\Identity\Application\ActiveTenantStore;
 use App\Identity\Application\InvitationRefused;
 use App\Identity\Application\OpenInvitation;
 use App\Identity\Application\OpenToGuest;
@@ -48,7 +47,6 @@ final class InvitationController extends AbstractController
 
     public function __construct(
         private readonly AcceptInvitation $accepting,
-        private readonly ActiveTenantStore $store,
         private readonly Security $security,
         private readonly PasswordHasherFactoryInterface $hashers,
         private readonly TranslatorInterface $translator,
@@ -106,11 +104,10 @@ final class InvitationController extends AbstractController
     private function acceptAsUser(string $token, SecurityUser $user, OpenInvitation $open): Response
     {
         try {
-            $tenant = $this->accepting->asUser($token, $user->id());
+            $this->accepting->asUser($token, $user->id());
         } catch (InvitationRefused $refused) {
             return $this->page('member' === $refused->reason ? 'member' : 'unknown', $open, [], Response::HTTP_CONFLICT);
         }
-        $this->store->store($tenant);
 
         return $this->redirectToRoute('app_dashboard');
     }

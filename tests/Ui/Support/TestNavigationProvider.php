@@ -29,7 +29,7 @@ final readonly class TestNavigationProvider implements NavigationItemProvider, N
 
     public function items(): iterable
     {
-        yield new NavigationItem('extensions', 'Pergola configurator', 'puzzle', 'app_organisation_choose', new class implements NavigationCountProvider {
+        yield new NavigationItem('extensions', 'Pergola configurator', 'puzzle', 'app_people_invitations', new class implements NavigationCountProvider {
             public function count(): int
             {
                 return 4;

@@ -50,7 +50,7 @@ test.describe('personal API tokens', () => {
     expect(me.status()).toBe(200);
     const identity = await me.json();
     expect(identity.user.email).toBe(API_OWNER);
-    expect(identity.tenant.name).toBe('Example API');
+    expect(identity).not.toHaveProperty('tenant');
     expect(identity.token.name).toBe(TOKEN_NAME);
     expect(identity.token.scopes).toEqual(['read']);
     // The secret is never in the answer.

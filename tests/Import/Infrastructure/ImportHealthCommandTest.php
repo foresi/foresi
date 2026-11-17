@@ -16,6 +16,8 @@ use App\Import\Application\Message\RunImportChunk;
 use App\Import\Domain\Import;
 use App\Import\Domain\ImportState;
 use App\Import\Infrastructure\Console\ImportHealthCommand;
+use App\Instance\Application\Schedule\TenantDirectory;
+use App\Instance\Application\SoleTenant;
 use App\Instance\Application\TenantContext;
 use App\Instance\Domain\TenantId;
 use Doctrine\ORM\EntityManagerInterface;
@@ -67,26 +69,38 @@ final class ImportHealthCommandTest extends KernelTestCase
             }
         };
         $this->lock = new FailingLock();
+        $directory = new class implements TenantDirectory {
+            public function ids(): array
+            {
+                return [TenantId::generate()];
+            }
+
+            public function zones(): array
+            {
+                return [];
+            }
+
+            public function zone(TenantId $tenant): \DateTimeZone
+            {
+                return new \DateTimeZone('UTC');
+            }
+        };
         $clock = new MockClock(self::NOW);
-        $gate = new ImportGate($this->imports, $this->lock, $this->jobs, $this->context, $clock);
+        $gate = new ImportGate($this->imports, $this->lock, $this->jobs, $clock);
         $application = new Application();
-        $application->addCommand(new ImportHealthCommand($this->em->getConnection(), $this->context, $this->imports, $gate, $clock, new NullLogger()));
+        $application->addCommand(new ImportHealthCommand($this->em->getConnection(), $this->context, new SoleTenant($directory), $this->imports, $gate, $clock, new NullLogger()));
         $this->tester = new CommandTester($application->find('app:import:health'));
     }
 
     public function testAStalledRunningImportFailsAndTheNextQueuedImportStarts(): void
     {
-        $tenant = TenantId::generate();
-        $this->context->switchTo($tenant);
         $stalled = $this->importIn(ImportState::Running, self::STALLED);
         $waiting = $this->importIn(ImportState::Queued, '2026-11-14 00:00:00', 3);
-        $this->context->reset();
 
         $status = $this->tester->execute([]);
 
         self::assertSame(Command::SUCCESS, $status);
         self::assertStringContainsString('Failed 1 stalled imports', $this->tester->getDisplay());
-        $this->context->switchTo($tenant);
         $failed = $this->imports->find($stalled);
         self::assertNotNull($failed);
         self::assertSame(ImportState::Failed, $failed->state());
@@ -98,44 +112,32 @@ final class ImportHealthCommandTest extends KernelTestCase
 
     public function testAnImportThatKeepsProgressingIsLeftAlone(): void
     {
-        $tenant = TenantId::generate();
-        $this->context->switchTo($tenant);
         // Started a day ago, but a chunk finished a minute ago.
         $busy = $this->importIn(ImportState::Running, '2026-11-15 11:59:00', 1, '2026-11-14 12:00:00');
-        $this->context->reset();
 
         $this->tester->execute([]);
 
         self::assertStringContainsString('Failed 0 stalled imports', $this->tester->getDisplay());
-        $this->context->switchTo($tenant);
         self::assertSame(ImportState::Running, $this->imports->find($busy)?->state());
         self::assertSame([], $this->jobs->sent);
     }
 
     public function testAnImportIdleForExactlyTheLimitIsNotStalledYet(): void
     {
-        $tenant = TenantId::generate();
-        $this->context->switchTo($tenant);
         $import = $this->importIn(ImportState::Running, self::AT_THE_LIMIT);
-        $this->context->reset();
 
         $this->tester->execute([]);
 
-        $this->context->switchTo($tenant);
         self::assertSame(ImportState::Running, $this->imports->find($import)?->state());
     }
 
     #[DataProvider('working')]
     public function testEveryWorkingStateCanStall(ImportState $state): void
     {
-        $tenant = TenantId::generate();
-        $this->context->switchTo($tenant);
         $import = $this->importIn($state, self::STALLED);
-        $this->context->reset();
 
         $this->tester->execute([]);
 
-        $this->context->switchTo($tenant);
         self::assertSame(ImportState::Failed, $this->imports->find($import)?->state());
     }
 
@@ -152,14 +154,10 @@ final class ImportHealthCommandTest extends KernelTestCase
     #[DataProvider('idle')]
     public function testImportsThatNoWorkerOwnsAreNotTouched(ImportState $state): void
     {
-        $tenant = TenantId::generate();
-        $this->context->switchTo($tenant);
         $import = $this->importIn($state, '2026-01-01 00:00:00');
-        $this->context->reset();
 
         $this->tester->execute([]);
 
-        $this->context->switchTo($tenant);
         self::assertSame($state, $this->imports->find($import)?->state());
     }
 
@@ -173,55 +171,42 @@ final class ImportHealthCommandTest extends KernelTestCase
         }
     }
 
-    public function testWorksAcrossTenantsAndStartsTheQueueOfTheSameTenantOnly(): void
+    public function testFailsStalledImportsOfEveryTargetAndStartsTheQueueOfItsOwnTargetOnly(): void
     {
-        $first = TenantId::generate();
-        $this->context->switchTo($first);
         $one = $this->importIn(ImportState::Running, self::STALLED);
-        $second = TenantId::generate();
-        $this->context->switchTo($second);
-        $two = $this->importIn(ImportState::Undoing, self::STALLED);
-        $otherWaiting = $this->importIn(ImportState::Queued, '2026-11-14 00:00:00');
-        $this->context->reset();
+        $two = $this->importIn(ImportState::Undoing, self::STALLED, target: 'other');
+        $otherWaiting = $this->importIn(ImportState::Queued, '2026-11-14 00:00:00', target: 'other');
+        $partyWaiting = $this->importIn(ImportState::Queued, '2026-11-14 00:00:00');
 
         $this->tester->execute([]);
 
         self::assertStringContainsString('Failed 2 stalled imports', $this->tester->getDisplay());
-        $this->context->switchTo($first);
         self::assertSame(ImportState::Failed, $this->imports->find($one)?->state());
-        $this->context->switchTo($second);
         self::assertSame(ImportState::Failed, $this->imports->find($two)?->state());
         self::assertSame(ImportState::Running, $this->imports->find($otherWaiting)?->state());
+        self::assertSame(ImportState::Running, $this->imports->find($partyWaiting)?->state());
     }
 
     public function testAnImportWithoutProgressTimeIsJudgedByItsStart(): void
     {
-        $tenant = TenantId::generate();
-        $this->context->switchTo($tenant);
         $import = $this->importIn(ImportState::Running, self::STALLED);
         $this->em->getConnection()->executeStatement('UPDATE import SET progressed_at = NULL, started_at = ?', [self::STALLED]);
         $this->em->clear();
-        $this->context->reset();
 
         $this->tester->execute([]);
 
-        $this->context->switchTo($tenant);
         self::assertSame(ImportState::Failed, $this->imports->find($import)?->state());
     }
 
     public function testAQueueWithoutARunningImportIsStartedEvenWhenNothingStalled(): void
     {
-        $tenant = TenantId::generate();
-        $this->context->switchTo($tenant);
         $older = $this->importIn(ImportState::Queued, '2026-11-14 00:00:00', 2);
         $newer = $this->importIn(ImportState::Queued, '2026-11-14 01:00:00');
-        $this->context->reset();
 
         $status = $this->tester->execute([]);
 
         self::assertSame(Command::SUCCESS, $status);
         self::assertStringContainsString('Failed 0 stalled imports, released 1 waiting queues', $this->tester->getDisplay());
-        $this->context->switchTo($tenant);
         self::assertSame(ImportState::Running, $this->imports->find($older)?->state());
         self::assertSame(ImportState::Queued, $this->imports->find($newer)?->state());
         self::assertEquals([new RunImportChunk($older, 0), new RunImportChunk($older, 1)], $this->jobs->sent);
@@ -229,57 +214,41 @@ final class ImportHealthCommandTest extends KernelTestCase
 
     public function testAQueueBehindARunningImportIsLeftAlone(): void
     {
-        $tenant = TenantId::generate();
-        $this->context->switchTo($tenant);
         $this->importIn(ImportState::Running, '2026-11-15 11:59:00');
         $waiting = $this->importIn(ImportState::Queued, '2026-11-14 00:00:00');
-        $this->context->reset();
 
         $this->tester->execute([]);
 
         self::assertStringContainsString('released 0 waiting queues', $this->tester->getDisplay());
-        $this->context->switchTo($tenant);
         self::assertSame(ImportState::Queued, $this->imports->find($waiting)?->state());
     }
 
     public function testAFailingReleaseDoesNotStopTheOthersAndTheNextRunRepairsIt(): void
     {
-        $broken = TenantId::generate();
-        $this->context->switchTo($broken);
-        $brokenStalled = $this->importIn(ImportState::Running, self::STALLED);
-        $brokenWaiting = $this->importIn(ImportState::Queued, '2026-11-14 00:00:00');
-        $fine = TenantId::generate();
-        $this->context->switchTo($fine);
+        $brokenStalled = $this->importIn(ImportState::Running, self::STALLED, target: 'broken');
+        $brokenWaiting = $this->importIn(ImportState::Queued, '2026-11-14 00:00:00', target: 'broken');
         $fineStalled = $this->importIn(ImportState::Running, self::STALLED);
         $fineWaiting = $this->importIn(ImportState::Queued, '2026-11-14 00:00:00');
-        $this->context->reset();
-        $this->lock->failFor = $broken->toString();
+        $this->lock->failFor = 'broken';
 
         $status = $this->tester->execute([]);
 
         self::assertSame(Command::FAILURE, $status);
         self::assertFalse($this->context->has());
-        $this->context->switchTo($fine);
         self::assertSame(ImportState::Failed, $this->imports->find($fineStalled)?->state());
         self::assertSame(ImportState::Running, $this->imports->find($fineWaiting)?->state());
-        $this->context->switchTo($broken);
         self::assertSame(ImportState::Failed, $this->imports->find($brokenStalled)?->state());
         self::assertSame(ImportState::Queued, $this->imports->find($brokenWaiting)?->state());
 
         $this->lock->failFor = null;
-        $this->context->reset();
         self::assertSame(Command::SUCCESS, $this->tester->execute([]));
-        $this->context->switchTo($broken);
         self::assertSame(ImportState::Running, $this->imports->find($brokenWaiting)?->state());
     }
 
     public function testASecondRunChangesNothing(): void
     {
-        $tenant = TenantId::generate();
-        $this->context->switchTo($tenant);
         $stalled = $this->importIn(ImportState::Running, self::STALLED);
         $waiting = $this->importIn(ImportState::Queued, '2026-11-14 00:00:00');
-        $this->context->reset();
 
         $this->tester->execute([]);
         $sent = $this->jobs->sent;
@@ -287,17 +256,13 @@ final class ImportHealthCommandTest extends KernelTestCase
 
         self::assertStringContainsString('Failed 0 stalled imports, released 0 waiting queues', $this->tester->getDisplay());
         self::assertSame($sent, $this->jobs->sent);
-        $this->context->switchTo($tenant);
         self::assertSame(ImportState::Failed, $this->imports->find($stalled)?->state());
         self::assertSame(ImportState::Running, $this->imports->find($waiting)?->state());
     }
 
     public function testTheTenantIsClearedAfterTheRun(): void
     {
-        $tenant = TenantId::generate();
-        $this->context->switchTo($tenant);
         $this->importIn(ImportState::Running, self::STALLED);
-        $this->context->reset();
 
         $this->tester->execute([]);
 
@@ -307,9 +272,9 @@ final class ImportHealthCommandTest extends KernelTestCase
     /**
      * @param int $chunks only Queued imports are given chunks
      */
-    private function importIn(ImportState $state, string $progressedAt, int $chunks = 1, ?string $startedAt = null): string
+    private function importIn(ImportState $state, string $progressedAt, int $chunks = 1, ?string $startedAt = null, string $target = 'party'): string
     {
-        $import = new Import('party', null, 'contacts.csv', ['format' => 'csv'], '019a0000-0000-7000-8000-000000000001', new \DateTimeImmutable('2026-01-01'));
+        $import = new Import($target, null, 'contacts.csv', ['format' => 'csv'], '019a0000-0000-7000-8000-000000000001', new \DateTimeImmutable('2026-01-01'));
         $this->imports->add($import);
         $import->countRows($chunks * 10, $chunks);
         $long = new \DateTimeImmutable('2026-01-01');

@@ -23,7 +23,6 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 final class DuplicateFinderTest extends KernelTestCase
 {
     private EntityManagerInterface $em;
-    private TenantContext $context;
     private DoctrineDuplicateFinder $finder;
 
     protected function setUp(): void
@@ -33,14 +32,13 @@ final class DuplicateFinderTest extends KernelTestCase
         $em = $container->get('doctrine.orm.entity_manager');
         $context = $container->get(TenantContext::class);
         $this->em = $em;
-        $this->context = $context;
         $this->finder = new DoctrineDuplicateFinder($em);
 
         $tool = new SchemaTool($em);
         $metadata = $em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $this->context->switchTo(TenantId::generate());
+        $context->switchTo(TenantId::generate());
     }
 
     public function testMatchesARegistrationNumberWrittenWithSpaces(): void
@@ -112,14 +110,6 @@ final class DuplicateFinderTest extends KernelTestCase
         self::assertCount(1, $with);
         self::assertTrue($with[0]->archived);
         self::assertSame([], $without);
-    }
-
-    public function testNeverReturnsPartiesOfOtherTenants(): void
-    {
-        $this->save($this->company('Example Company', '12345687', 'CZ12345687'));
-        $this->context->switchTo(TenantId::generate());
-
-        self::assertSame([], $this->finder->find(new RegistrationNumber('CZ', '12345687'), VatId::fromString('CZ12345687')));
     }
 
     public function testAnUnusableRegistrationNumberIsNotMatchedAndCannotBeBuilt(): void

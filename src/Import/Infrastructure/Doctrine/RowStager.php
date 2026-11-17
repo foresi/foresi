@@ -36,11 +36,10 @@ final readonly class RowStager
     public function stageRows(Import $import, iterable $rows): int
     {
         $importId = $import->id();
-        $tenant = $import->tenantId()->toString();
         $batch = [];
         $count = 0;
         foreach ($rows as $rowNumber => $cells) {
-            $batch[] = [$tenant, $importId, $rowNumber, intdiv($count, self::CHUNK_SIZE), json_encode($cells, \JSON_THROW_ON_ERROR | \JSON_UNESCAPED_UNICODE)];
+            $batch[] = [$importId, $rowNumber, intdiv($count, self::CHUNK_SIZE), json_encode($cells, \JSON_THROW_ON_ERROR | \JSON_UNESCAPED_UNICODE)];
             ++$count;
             if (self::CHUNK_SIZE === \count($batch)) {
                 $this->insertRows($batch);
@@ -64,11 +63,10 @@ final readonly class RowStager
     public function stageMissing(Import $import, iterable $recordIds): int
     {
         $importId = $import->id();
-        $tenant = $import->tenantId()->toString();
         $batch = [];
         $count = 0;
         foreach ($recordIds as $recordId) {
-            $batch[] = [$tenant, $importId, $import->chunks() + intdiv($count, self::CHUNK_SIZE), $recordId];
+            $batch[] = [$importId, $import->chunks() + intdiv($count, self::CHUNK_SIZE), $recordId];
             ++$count;
             if (self::CHUNK_SIZE === \count($batch)) {
                 $this->insertMissing($batch);
@@ -89,15 +87,14 @@ final readonly class RowStager
     }
 
     /**
-     * @param list<array{string, string, int, int, string}> $batch
+     * @param list<array{string, int, int, string}> $batch
      */
     private function insertRows(array $batch): void
     {
         $params = [];
         $types = [];
-        foreach ($batch as [$tenant, $importId, $rowNumber, $chunk, $raw]) {
+        foreach ($batch as [$importId, $rowNumber, $chunk, $raw]) {
             $params[] = Id::generate();
-            $params[] = $tenant;
             $params[] = $importId;
             $params[] = $rowNumber;
             $params[] = $chunk;
@@ -107,7 +104,6 @@ final readonly class RowStager
             $params[] = false;
             $types[] = ParameterType::STRING;
             $types[] = ParameterType::STRING;
-            $types[] = ParameterType::STRING;
             $types[] = ParameterType::INTEGER;
             $types[] = ParameterType::INTEGER;
             $types[] = ParameterType::STRING;
@@ -116,23 +112,22 @@ final readonly class RowStager
             $types[] = ParameterType::BOOLEAN;
         }
         $this->connection->executeStatement(
-            'INSERT INTO import_row (id, tenant_id, import_id, row_number, chunk, raw, errors, processed_in_run, processed_in_undo) VALUES '
-            .implode(', ', array_fill(0, \count($batch), '(?, ?, ?, ?, ?, ?, ?, ?, ?)')),
+            'INSERT INTO import_row (id, import_id, row_number, chunk, raw, errors, processed_in_run, processed_in_undo) VALUES '
+            .implode(', ', array_fill(0, \count($batch), '(?, ?, ?, ?, ?, ?, ?, ?)')),
             $params,
             $types,
         );
     }
 
     /**
-     * @param list<array{string, string, int, string}> $batch
+     * @param list<array{string, int, string}> $batch
      */
     private function insertMissing(array $batch): void
     {
         $params = [];
         $types = [];
-        foreach ($batch as [$tenant, $importId, $chunk, $recordId]) {
+        foreach ($batch as [$importId, $chunk, $recordId]) {
             $params[] = Id::generate();
-            $params[] = $tenant;
             $params[] = $importId;
             $params[] = $chunk;
             $params[] = $recordId;
@@ -141,7 +136,6 @@ final readonly class RowStager
             $params[] = false;
             $types[] = ParameterType::STRING;
             $types[] = ParameterType::STRING;
-            $types[] = ParameterType::STRING;
             $types[] = ParameterType::INTEGER;
             $types[] = ParameterType::STRING;
             $types[] = ParameterType::STRING;
@@ -149,8 +143,8 @@ final readonly class RowStager
             $types[] = ParameterType::BOOLEAN;
         }
         $this->connection->executeStatement(
-            'INSERT INTO import_missing_record (id, tenant_id, import_id, chunk, record_id, outcome, processed_in_run, processed_in_undo) VALUES '
-            .implode(', ', array_fill(0, \count($batch), '(?, ?, ?, ?, ?, ?, ?, ?)')),
+            'INSERT INTO import_missing_record (id, import_id, chunk, record_id, outcome, processed_in_run, processed_in_undo) VALUES '
+            .implode(', ', array_fill(0, \count($batch), '(?, ?, ?, ?, ?, ?, ?)')),
             $params,
             $types,
         );

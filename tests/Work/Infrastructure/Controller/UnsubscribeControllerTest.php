@@ -161,7 +161,6 @@ final class UnsubscribeControllerTest extends WebTestCase
         try {
             $membership = $this->em->getRepository(Membership::class)->findOneBy([]);
             self::assertInstanceOf(Membership::class, $membership);
-            $membership->tenantId();
 
             return $membership;
         } finally {

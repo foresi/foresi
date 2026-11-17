@@ -27,7 +27,6 @@ final readonly class ManagePeople
     public function __construct(
         private People $people,
         private PartyQuery $parties,
-        private MembershipDirectory $memberships,
         private AuditActor $actor,
         private ClockInterface $clock,
         private LoggerInterface $logger,
@@ -81,9 +80,7 @@ final readonly class ManagePeople
     }
 
     /**
-     * Only for a person who belongs to this organisation alone: an owner here
-     * never weakens the sign-in to another organisation. The operator resets
-     * anyone with app:user:reset-2fa.
+     * The operator resets anyone with app:user:reset-2fa.
      *
      * @throws PeopleRefused
      */
@@ -91,9 +88,6 @@ final readonly class ManagePeople
     {
         $membership = $this->membership($membershipId);
         $user = $membership->user();
-        if (\count($this->memberships->tenantIdsOf($user)) > 1) {
-            throw new PeopleRefused('other_organisations');
-        }
         $user->resetTwoFactor();
         $this->people->flush();
         $this->logger->notice('Two-factor sign-in was reset by an owner.', ['user' => $user->id(), 'by' => $this->actor->userId()]);

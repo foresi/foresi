@@ -15,9 +15,6 @@ use App\Identity\Application\Organisation;
  */
 final readonly class ShellView
 {
-    /**
-     * @param list<Organisation> $organisations
-     */
     public function __construct(
         public string $userName,
         public string $userEmail,
@@ -26,7 +23,6 @@ final readonly class ShellView
         public string $otherLocale,
         public bool $tenantActive,
         public ?Organisation $organisation,
-        public array $organisations,
     ) {
     }
 }

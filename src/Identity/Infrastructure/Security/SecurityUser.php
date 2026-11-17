@@ -17,7 +17,7 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
- * The signed-in identity as the Symfony firewall sees it. Tenant roles are
+ * The signed-in identity as the Symfony firewall sees it. Roles are
  * membership data; every authenticated user only has ROLE_USER here. The
  * opened TOTP secret lives only for the request: the session never holds it.
  */

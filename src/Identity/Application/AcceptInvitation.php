@@ -13,15 +13,12 @@ use App\Identity\Domain\InvitationState;
 use App\Identity\Domain\InvitationToken;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use Psr\Clock\ClockInterface;
 
 /**
  * The invited person follows the link: a new person sets a name and a password,
  * someone with an account signs in first; either way the invitation becomes a
- * membership once. The link activates the organisation it belongs to, for this
- * request only.
+ * membership once.
  */
 final readonly class AcceptInvitation
 {
@@ -29,7 +26,7 @@ final readonly class AcceptInvitation
         private Invitations $invitations,
         private People $people,
         private UserRepository $users,
-        private TenantContext $context,
+        private MembershipDirectory $memberships,
         private ClockInterface $clock,
     ) {
     }
@@ -39,18 +36,13 @@ final readonly class AcceptInvitation
         if (!InvitationToken::isWellFormed($token)) {
             return null;
         }
-        $hash = InvitationToken::hash($token);
-        $tenant = $this->invitations->tenantOfToken($hash);
-        if (!$tenant instanceof InvitationTenant) {
-            return null;
-        }
-        $this->activate($tenant->id);
-        $invitation = $this->invitations->byTokenHash($hash);
+        $invitation = $this->invitations->byTokenHash(InvitationToken::hash($token));
         if (!$invitation instanceof Invitation) {
             return null;
         }
+        $organisation = $this->memberships->organisationsOf($invitation->invitedBy())[0]->name ?? '';
 
-        return new OpenInvitation($invitation, $tenant->name, $invitation->state($this->clock->now()), $this->users->findByEmail($invitation->email()) instanceof User);
+        return new OpenInvitation($invitation, $organisation, $invitation->state($this->clock->now()), $this->users->findByEmail($invitation->email()) instanceof User);
     }
 
     /**
@@ -72,7 +64,7 @@ final readonly class AcceptInvitation
     /**
      * @throws InvitationRefused
      */
-    public function asUser(string $token, string $userId): TenantId
+    public function asUser(string $token, string $userId): void
     {
         $open = $this->pending($token);
         $user = $this->users->findById($userId);
@@ -83,8 +75,6 @@ final readonly class AcceptInvitation
             throw new InvitationRefused('member');
         }
         $this->join($user, $open->invitation);
-
-        return $this->context->current();
     }
 
     private function pending(string $token): OpenInvitation
@@ -103,12 +93,5 @@ final readonly class AcceptInvitation
         $this->people->add(new Membership($user, $invitation->role(), $invitation->party()));
         // One flush: the account, the membership and the used invitation together.
         $this->users->save($user);
-    }
-
-    private function activate(TenantId $tenant): void
-    {
-        if (!$this->context->has() || !$this->context->current()->equals($tenant)) {
-            $this->context->switchTo($tenant);
-        }
     }
 }

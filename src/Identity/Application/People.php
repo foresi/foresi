@@ -11,7 +11,7 @@ namespace App\Identity\Application;
 use App\Identity\Domain\Membership;
 
 /**
- * The people of the active tenant: its memberships with their users.
+ * The people of the organisation: the memberships with their users.
  */
 interface People
 {
@@ -23,7 +23,7 @@ interface People
     public function membership(string $id): ?Membership;
 
     /**
-     * The membership of a user in the active tenant, active or not.
+     * The membership of a user, active or not.
      */
     public function membershipOf(string $userId): ?Membership;
 

@@ -35,19 +35,18 @@ Open **Settings > API access**, open the row menu of the token and choose **Revo
 The operator can manage tokens from the console. No two-factor sign-in is asked for here: whoever runs the console already holds the installation.
 
 ```bash
-# Issue a token for a person (the organisation id is the tenant id).
-bin/console app:api-token:issue anna@example.com --tenant=<tenant-id> --name="Reporting" --days=90 --scope=read
-bin/console app:api-token:issue anna@example.com --tenant=<tenant-id> --name="Outreach" --scope=contacts:write
+# Issue a token for a person.
+bin/console app:api-token:issue anna@example.com --name="Reporting" --days=90 --scope=read
+bin/console app:api-token:issue anna@example.com --name="Outreach" --scope=contacts:write
 
-# List the tokens of all organisations, or of one. Only the last four characters of a token are known.
+# List every token. Only the last four characters of a token are known.
 bin/console app:api-token:list
-bin/console app:api-token:list --tenant=<tenant-id>
 
 # Revoke a token by its id.
 bin/console app:api-token:revoke <token-id>
 ```
 
-`issue` takes `--days` of 30, 90 or 365 (90 by default) and one or more `--scope`, which it requires: `read`, `write` or a resource scope such as `contacts:write` (see [Scopes](#scopes)). A scope no installed module declares is refused. The person must be the owner or a team member of the organisation. The command prints the token once.
+`issue` takes `--days` of 30, 90 or 365 (90 by default) and one or more `--scope`, which it requires: `read`, `write` or a resource scope such as `contacts:write` (see [Scopes](#scopes)). A scope no installed module declares is refused. The person must be the owner or a team member. The command prints the token once.
 
 ### Scopes
 
@@ -75,7 +74,7 @@ curl -H "Authorization: Bearer $FORESI_API_TOKEN" "https://app.example.com/api/v
 - Put the token in an environment variable or a secret store, never in a URL.
 - The organisation comes from the token. The firm is part of the data (`firm` on an invoice or payment); filter by `firm_id` to read one firm.
 
-To check a set-up, call `GET /api/v1/me`. It returns the person, the organisation and the token (its name, scopes and expiry). It never returns the secret.
+To check a set-up, call `GET /api/v1/me`. It returns the person and the token (its name, scopes and expiry). It never returns the secret.
 
 ### Money, dates and ids
 
@@ -114,7 +113,7 @@ The endpoints below are `GET`. The writes of contacts are under [Contact writes]
 
 | Endpoint | Scope | What it returns |
 | --- | --- | --- |
-| `/api/v1/me` | none | The person, the organisation and the token. |
+| `/api/v1/me` | none | The person and the token. |
 | `/api/v1/invoices` | `invoices:read` | Sales documents, newest first. |
 | `/api/v1/invoices/{id}` | `invoices:read` | One document with its lines, payments, corrections and balances. |
 | `/api/v1/contacts` | `contacts:read` | Contacts, newest first. |

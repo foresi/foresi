@@ -14,7 +14,7 @@ namespace App\Identity\Application;
  */
 final class PeopleRefused extends \DomainException
 {
-    public const array REASONS = ['unknown', 'last_owner', 'contact', 'self', 'other_organisations'];
+    public const array REASONS = ['unknown', 'last_owner', 'contact', 'self'];
 
     public function __construct(public readonly string $reason)
     {

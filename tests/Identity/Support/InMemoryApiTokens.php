@@ -11,10 +11,9 @@ namespace App\Tests\Identity\Support;
 use App\Identity\Application\ApiTokenRecord;
 use App\Identity\Application\ApiTokens;
 use App\Identity\Domain\ApiToken;
-use App\Instance\Domain\TenantId;
 
 /**
- * The tokens of one tenant in memory, and records across tenants as given.
+ * The tokens in memory, and the records as given.
  */
 final class InMemoryApiTokens implements ApiTokens
 {
@@ -65,14 +64,9 @@ final class InMemoryApiTokens implements ApiTokens
         return $this->records[0] ?? null;
     }
 
-    public function records(?TenantId $tenant): array
+    public function records(): array
     {
         return $this->records;
-    }
-
-    public function tenantOf(string $id): ?TenantId
-    {
-        return null;
     }
 
     public function touch(string $id, \DateTimeImmutable $now, \DateTimeImmutable $usedAfter): void

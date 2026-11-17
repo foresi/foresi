@@ -44,20 +44,6 @@ final class AppShellTest extends WebTestCase
         self::assertSelectorTextContains('main h1', 'Dashboard');
     }
 
-    public function testTheOrganisationNameFollowsTheChosenOrganisation(): void
-    {
-        [, $second] = $this->browser->seed(['Tenant A', 'Tenant B']);
-        $this->browser->signIn();
-        $this->client->getRequest()->getSession()->set('active_tenant', $second->toString());
-        $this->client->getRequest()->getSession()->save();
-
-        $this->client->request('GET', '/');
-
-        self::assertSelectorTextContains('#rail [data-organisation]', 'Tenant B');
-        self::assertSelectorTextNotContains('#rail [data-organisation]', 'Tenant A');
-        self::assertStringContainsString('Tenant B', $this->client->getCrawler()->filter('#user-menu-button')->text());
-    }
-
     public function testTheNavigationItemOfTheCurrentRouteIsMarked(): void
     {
         $this->browser->seed(['Tenant A']);
@@ -167,7 +153,7 @@ final class AppShellTest extends WebTestCase
         self::assertCount(1, $group);
         self::assertStringContainsString('Pergola configurator', $group->text());
         self::assertSame('4', trim($group->filter('[data-nav-count]')->text()));
-        self::assertSame('/organisation/choose', $group->filter('a')->attr('href'));
+        self::assertSame('/settings/people/invitations', $group->filter('a')->attr('href'));
     }
 
     public function testNoCountIsComputedWithoutAnActiveOrganisation(): void
@@ -218,35 +204,22 @@ final class AppShellTest extends WebTestCase
         self::assertSelectorCount(1, '[data-command-palette-target="opener"]');
     }
 
-    public function testUserMenuListsProfileNotificationsApiLanguageOrganisationAndLogout(): void
+    public function testUserMenuListsProfileNotificationsApiLanguageAndLogout(): void
     {
-        $this->browser->seed(['Tenant A', 'Tenant B']);
+        $this->browser->seed(['Tenant A']);
         $this->browser->signIn();
-        $this->client->request('GET', '/organisation/choose');
-        $this->client->submit($this->client->getCrawler()->filter('form[action*="/organisation/switch/"]')->first()->form());
 
         $crawler = $this->client->request('GET', '/');
 
         $menu = $crawler->filter('[data-controller="dropdown"] [role="menu"]');
         self::assertCount(1, $menu);
         self::assertTrue($menu->matches('[hidden]'));
-        self::assertCount(6, $menu->filter('[role="menuitem"]'));
+        self::assertCount(5, $menu->filter('[role="menuitem"]'));
         self::assertSelectorExists('[role="menu"] a[href="/account/notifications"]');
         self::assertSelectorExists('[role="menu"] form[action="/account/language"] input[name="_token"]');
         self::assertSelectorExists('[role="menu"] form[action="/logout"][method="post"] input[name="_csrf_token"]');
-        self::assertSelectorExists('[role="menu"] a[href="/organisation/choose"]');
-        self::assertSame('menu', $crawler->filter('[data-dropdown-target="button"]')->attr('aria-haspopup'));
-    }
-
-    public function testSwitchOrganisationEntryIsHiddenForASingleOrganisation(): void
-    {
-        $this->browser->seed(['Tenant A']);
-        $this->browser->signIn();
-
-        $this->client->request('GET', '/');
-
         self::assertSelectorNotExists('[role="menu"] a[href="/organisation/choose"]');
-        self::assertSelectorNotExists('[role="menu"] a[data-organisation]');
+        self::assertSame('menu', $crawler->filter('[data-dropdown-target="button"]')->attr('aria-haspopup'));
     }
 
     #[DataProvider('titles')]

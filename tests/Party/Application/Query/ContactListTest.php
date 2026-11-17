@@ -45,12 +45,11 @@ final class ContactListTest extends ContactTestCase
         }
     }
 
-    public function testASliceIsNewestFirstAndKeepsOutArchivedAndOtherTenants(): void
+    public function testASliceIsNewestFirstAndKeepsOutArchived(): void
     {
         $this->contact('First Example');
         $this->contact('Archived Example', archived: true);
         $this->contact('Second Example');
-        $this->foreignContact('Foreign Example');
         $this->contact('Third Example');
 
         $slice = $this->list()->slice(new ContactSliceFilter());

@@ -11,12 +11,11 @@ namespace App\Identity\Application;
 use App\Identity\Domain\ApiTokenSecret;
 use App\Identity\Domain\ApiTokenState;
 use App\Identity\Domain\Role;
-use App\Instance\Domain\TenantId;
 use Psr\Clock\ClockInterface;
 
 /**
  * Turns the secret a request presents into what it may do. The token must be
- * known, neither revoked nor expired, and its person must still work for its
+ * known, neither revoked nor expired, and its person must still work for the
  * organisation; guests never sign in with a token. The time of last use is
  * recorded at most once a minute, so a busy client does not write on every call.
  */
@@ -51,7 +50,7 @@ final readonly class ApiTokenAuthentication
             throw new ApiTokenRefused(ApiTokenRefused::EXPIRED);
         }
 
-        $role = $this->roleOf($record->userId, $record->tenantId);
+        $role = $this->memberships->roleOf($record->userId);
         if (!$role instanceof Role) {
             throw new ApiTokenRefused(ApiTokenRefused::MEMBERSHIP_GONE);
         }
@@ -64,17 +63,6 @@ final readonly class ApiTokenAuthentication
             $this->tokens->touch($record->id, $now, $usedAfter);
         }
 
-        return new ApiTokenGrant($record->userId, $record->tenantId, $record->id, $record->name, $record->scopes, $record->expiresAt);
-    }
-
-    private function roleOf(string $userId, TenantId $tenant): ?Role
-    {
-        foreach ($this->memberships->organisationsOf($userId) as $organisation) {
-            if ($organisation->id->equals($tenant)) {
-                return $organisation->role;
-            }
-        }
-
-        return null;
+        return new ApiTokenGrant($record->userId, $record->id, $record->name, $record->scopes, $record->expiresAt);
     }
 }

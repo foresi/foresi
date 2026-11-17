@@ -23,9 +23,8 @@ use Doctrine\ORM\Query;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * Reads and writes imports through the entity manager, so the tenant filter
- * confines every query to the active tenant; bulk statements name the import,
- * which was itself found through the filter.
+ * Reads and writes imports through the entity manager; bulk statements name
+ * the import.
  */
 final readonly class DoctrineImports implements Imports
 {
@@ -306,8 +305,8 @@ final readonly class DoctrineImports implements Imports
         }
         // Only the raw cells are read, row by row, so a large source never sits in memory as entities.
         $result = $this->em->getConnection()->executeQuery(
-            'SELECT raw FROM import_row WHERE import_id = :import AND tenant_id = :tenant',
-            ['import' => $import->id(), 'tenant' => $import->tenantId()->toString()],
+            'SELECT raw FROM import_row WHERE import_id = :import',
+            ['import' => $import->id()],
         );
         foreach ($result->iterateColumn() as $raw) {
             $cells = json_decode(\is_string($raw) ? $raw : '[]', true);

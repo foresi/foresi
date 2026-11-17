@@ -10,7 +10,7 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 
 | Tool | What it does |
 | --- | --- |
-| `foresi_whoami` | The person and the organisation of the connection, and the name, scopes and expiry of its token. Use it first to check the set-up. |
+| `foresi_whoami` | The person of the connection, and the name, scopes and expiry of its token. Use it first to check the set-up. |
 | `foresi_list_firms` | The firms of the organisation with their ids, for the `firm_id` filter of the other tools. |
 | `foresi_search_invoices` | Searches sales documents, newest first, with filters such as state, firm, customer and issue dates. |
 | `foresi_get_invoice` | One document with its lines, payments, corrections and balances. |
@@ -65,7 +65,7 @@ The received document tools take the fields of the [REST received documents](api
 
 Every write tool takes an optional `idempotency_key`, 1 to 255 visible ASCII characters. Send a new one for each change and the same one when you retry it: a retry after the first call finished answers the saved result with `idempotent_replayed: true` in its structured content, and nothing happens twice. The same key with other arguments is refused with `idempotency_key_reused`, and while the first call is still running with `idempotency_key_in_flight`. Keys are kept for 24 hours and never cross tokens or the REST API. The tools stay marked `idempotentHint: false`, as the key is optional.
 
-A tool acts as the person and the organisation of the token. It sees what that person sees, and nothing of any other organisation. Ask the assistant to call `foresi_whoami` to see who it is.
+A tool acts as the person of the token. It sees what that person sees. Ask the assistant to call `foresi_whoami` to see who it is.
 
 ## Before you connect
 

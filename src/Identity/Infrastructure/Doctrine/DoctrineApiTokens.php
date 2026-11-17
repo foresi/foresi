@@ -12,22 +12,17 @@ use App\Identity\Application\ApiTokenRecord;
 use App\Identity\Application\ApiTokens;
 use App\Identity\Domain\ApiScope;
 use App\Identity\Domain\ApiToken;
-use App\Instance\Domain\TenantId;
-use App\Instance\Infrastructure\Doctrine\TenantFilterBypass;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * The reads across tenants run with the tenant filter suspended and return
- * scalars only; the records are built once the filter is back.
+ * The records are read as scalars, without loading the entities.
  */
 final readonly class DoctrineApiTokens implements ApiTokens
 {
-    private const string RECORD = 'SELECT t.id AS id, t.tenantId AS tenantId, t.userId AS userId, t.name AS name, t.scopes AS scopes, t.lastFour AS lastFour, t.createdAt AS createdAt, t.expiresAt AS expiresAt, t.lastUsedAt AS lastUsedAt, t.revokedAt AS revokedAt FROM '.ApiToken::class.' t';
+    private const string RECORD = 'SELECT t.id AS id, t.userId AS userId, t.name AS name, t.scopes AS scopes, t.lastFour AS lastFour, t.createdAt AS createdAt, t.expiresAt AS expiresAt, t.lastUsedAt AS lastUsedAt, t.revokedAt AS revokedAt FROM '.ApiToken::class.' t';
 
-    public function __construct(
-        private EntityManagerInterface $entityManager,
-        private TenantFilterBypass $bypass,
-    ) {
+    public function __construct(private EntityManagerInterface $entityManager)
+    {
     }
 
     public function add(ApiToken $token): void
@@ -50,9 +45,6 @@ final readonly class DoctrineApiTokens implements ApiTokens
         return $this->entityManager->getRepository(ApiToken::class)->findBy([], ['id' => 'DESC']);
     }
 
-    /**
-     * A request names its token before any organisation is active.
-     */
     public function byHash(string $tokenHash): ?ApiTokenRecord
     {
         $rows = $this->rows(' WHERE t.tokenHash = :hash', ['hash' => [$tokenHash, null]]);
@@ -60,34 +52,22 @@ final readonly class DoctrineApiTokens implements ApiTokens
         return [] === $rows ? null : $this->record($rows[0]);
     }
 
-    public function records(?TenantId $tenant): array
+    public function records(): array
     {
-        $rows = $tenant instanceof TenantId
-            ? $this->rows(' WHERE t.tenantId = :tenant ORDER BY t.id DESC', ['tenant' => [$tenant, 'tenant_id']])
-            : $this->rows(' ORDER BY t.id DESC', []);
-
-        return array_map($this->record(...), $rows);
-    }
-
-    public function tenantOf(string $id): ?TenantId
-    {
-        $rows = $this->rows(' WHERE t.id = :id', ['id' => [$id, null]]);
-
-        return [] === $rows ? null : TenantId::fromString($rows[0]['tenantId']);
+        return array_map($this->record(...), $this->rows(' ORDER BY t.id DESC', []));
     }
 
     /**
-     * An update query, not a change of the entity: it runs before any
-     * organisation is active and writes no audit entry.
+     * An update query, not a change of the entity: it writes no audit entry.
      */
     public function touch(string $id, \DateTimeImmutable $now, \DateTimeImmutable $usedAfter): void
     {
-        $this->bypass->run(fn (): int => $this->entityManager
+        $this->entityManager
             ->createQuery('UPDATE '.ApiToken::class.' t SET t.lastUsedAt = :now WHERE t.id = :id AND (t.lastUsedAt IS NULL OR t.lastUsedAt <= :after)')
             ->setParameter('now', $now, 'datetime_immutable')
             ->setParameter('id', $id)
             ->setParameter('after', $usedAfter, 'datetime_immutable')
-            ->execute());
+            ->execute();
     }
 
     public function flush(): void
@@ -98,23 +78,21 @@ final readonly class DoctrineApiTokens implements ApiTokens
     /**
      * @param array<string, array{mixed, ?string}> $parameters value and type by name
      *
-     * @return list<array{id: string, tenantId: string, userId: string, name: string, scopes: list<string>, lastFour: string, createdAt: string, expiresAt: string, lastUsedAt: ?string, revokedAt: ?string}>
+     * @return list<array{id: string, userId: string, name: string, scopes: list<string>, lastFour: string, createdAt: string, expiresAt: string, lastUsedAt: ?string, revokedAt: ?string}>
      */
     private function rows(string $where, array $parameters): array
     {
-        /** @var list<array{id: string, tenantId: string, userId: string, name: string, scopes: list<string>, lastFour: string, createdAt: string, expiresAt: string, lastUsedAt: ?string, revokedAt: ?string}> $rows */
-        $rows = $this->bypass->run(function () use ($where, $parameters): array {
-            $query = $this->entityManager->createQuery(self::RECORD.$where);
-            foreach ($parameters as $name => [$value, $type]) {
-                $query->setParameter($name, $value, $type);
-            }
-            /** @var list<array<string, mixed>> $result */
-            $result = $query->getArrayResult();
+        $query = $this->entityManager->createQuery(self::RECORD.$where);
+        foreach ($parameters as $name => [$value, $type]) {
+            $query->setParameter($name, $value, $type);
+        }
+        /** @var list<array<string, mixed>> $result */
+        $result = $query->getArrayResult();
 
-            return array_map(static fn (array $row): array => array_map(self::scalar(...), $row), $result);
-        });
+        /** @var \Closure(array<mixed>): array{id: string, userId: string, name: string, scopes: list<string>, lastFour: string, createdAt: string, expiresAt: string, lastUsedAt: ?string, revokedAt: ?string} $record */
+        $record = static fn (array $row): array => array_map(self::scalar(...), $row);
 
-        return $rows;
+        return array_map($record, $result);
     }
 
     /**
@@ -123,7 +101,6 @@ final readonly class DoctrineApiTokens implements ApiTokens
     private static function scalar(mixed $value): string|array|null
     {
         return match (true) {
-            $value instanceof TenantId => $value->toString(),
             $value instanceof \DateTimeImmutable => $value->format(\DATE_ATOM),
             \is_array($value) => array_values(array_map(static fn (mixed $item): string => \is_string($item) ? $item : '', $value)),
             null === $value => null,
@@ -132,13 +109,12 @@ final readonly class DoctrineApiTokens implements ApiTokens
     }
 
     /**
-     * @param array{id: string, tenantId: string, userId: string, name: string, scopes: list<string>, lastFour: string, createdAt: string, expiresAt: string, lastUsedAt: ?string, revokedAt: ?string} $row
+     * @param array{id: string, userId: string, name: string, scopes: list<string>, lastFour: string, createdAt: string, expiresAt: string, lastUsedAt: ?string, revokedAt: ?string} $row
      */
     private function record(array $row): ApiTokenRecord
     {
         return new ApiTokenRecord(
             $row['id'],
-            TenantId::fromString($row['tenantId']),
             $row['userId'],
             $row['name'],
             array_values(array_filter(array_map(ApiScope::tryFrom(...), $row['scopes']))),

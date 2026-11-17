@@ -75,6 +75,9 @@ final class FirmMailControllerTest extends WebTestCase
     private KernelBrowser $client;
     private SignedInBrowser $browser;
     private TenantContext $context;
+
+    /** @var array<string, TenantId> the tenant of each firm made here, by firm id */
+    private array $firmTenants = [];
     private ?string $keys = null;
 
     protected function setUp(): void
@@ -601,19 +604,6 @@ final class FirmMailControllerTest extends WebTestCase
         self::assertSame([], $this->connection()->fetchFirstColumn('SELECT id FROM firm_mail_server'));
     }
 
-    public function testAnotherTenantsFirmIs404(): void
-    {
-        $this->signedInFirm();
-        $foreign = $this->firm($this->browser->fixtures->tenant('Foreign Tenant'));
-
-        $this->client->request('GET', $this->url($foreign));
-        self::assertResponseStatusCodeSame(404);
-        $this->client->request('POST', $this->url($foreign), ['section' => 'server'] + self::SERVER);
-        self::assertResponseStatusCodeSame(404);
-        $this->client->request('POST', $this->url($foreign).'/test');
-        self::assertResponseStatusCodeSame(404);
-    }
-
     public function testAClientRoleGets403(): void
     {
         $tenant = $this->browser->seed(['Tenant A'], role: Role::Guest)[0];
@@ -777,6 +767,7 @@ final class FirmMailControllerTest extends WebTestCase
         $em->persist($firm);
         $em->flush();
         $this->context->reset();
+        $this->firmTenants[$firm->id()] = $tenant;
 
         return $firm;
     }
@@ -796,6 +787,7 @@ final class FirmMailControllerTest extends WebTestCase
             $iban = 'CZ6508000000192000145399';
             $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
             $em->persist($firm);
+            $this->firmTenants[$firm->id()] = $tenant;
             FirmAccounts::add($em, $firm, $iban);
             $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
             $series->markDefault();
@@ -822,7 +814,7 @@ final class FirmMailControllerTest extends WebTestCase
 
     private function pay(LegalEntity $firm, Invoice $invoice, string $amount): void
     {
-        $this->context->switchTo($firm->tenantId());
+        $this->context->switchTo($this->firmTenants[$firm->id()]);
         try {
             $czk = Money::of($amount, Currency::CZK);
             self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($firm->id(), new \DateTimeImmutable('2026-11-01'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $czk)]));

@@ -21,8 +21,6 @@ use App\Identity\Domain\Invitation;
 use App\Identity\Domain\InvitationToken;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantContext;
-use App\Instance\Application\TenantScope;
 use App\Instance\Domain\TenantId;
 use App\Party\Application\PartyQuery;
 use App\Shared\Application\SystemMailUnavailable;
@@ -40,7 +38,6 @@ use Psr\Clock\ClockInterface;
 final class InvitePeopleTest extends TestCase
 {
     private \DateTimeImmutable $now;
-    private TenantId $tenant;
 
     /** @var Invitations&Stub */
     private Invitations $invitations;
@@ -65,7 +62,6 @@ final class InvitePeopleTest extends TestCase
     protected function setUp(): void
     {
         $this->now = new \DateTimeImmutable('2026-11-07 10:00:00');
-        $this->tenant = TenantId::generate();
         $this->invitations = self::createStub(Invitations::class);
         $this->users = self::createStub(UserRepository::class);
         $this->parties = self::createStub(PartyQuery::class);
@@ -73,8 +69,7 @@ final class InvitePeopleTest extends TestCase
         $this->mailer->method('link')->willReturnCallback(static fn (string $token): string => 'https://example.com/invitation/'.$token);
         $this->memberships = self::createStub(MembershipDirectory::class);
         $this->memberships->method('organisationsOf')->willReturn([
-            new Organisation(TenantId::generate(), 'Another Company', Role::Owner),
-            new Organisation($this->tenant, 'Example Company', Role::Owner),
+            new Organisation(TenantId::generate(), 'Example Company', Role::Owner),
         ]);
     }
 
@@ -216,9 +211,7 @@ final class InvitePeopleTest extends TestCase
         $actor->method('userId')->willReturn($this->actorId);
         $clock = self::createStub(ClockInterface::class);
         $clock->method('now')->willReturn($this->now);
-        $context = new TenantContext(self::createStub(TenantScope::class));
-        $context->switchTo($this->tenant);
 
-        return new InvitePeople($this->invitations, self::createStub(People::class), $this->users, $this->parties, $this->mailer, $this->memberships, $context, $actor, $clock);
+        return new InvitePeople($this->invitations, self::createStub(People::class), $this->users, $this->parties, $this->mailer, $this->memberships, $actor, $clock);
     }
 }

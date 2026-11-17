@@ -155,15 +155,13 @@ final class PartyToolsTest extends ReadToolTestCase
         $this->assertRefused('invalid_argument', $message, SearchContactsTool::class, $arguments);
     }
 
-    public function testAContactOfAnotherOrganisationIsNotFound(): void
+    public function testAnUnknownContactIsNotFound(): void
     {
-        $theirs = $this->inTenant($this->foreignTenant(), fn (): Party => $this->contact('Foreign Example'));
-
         self::assertSame([$this->customerId], self::itemIds($this->call(SearchContactsTool::class)));
         $none = $this->call(SearchContactsTool::class, ['query' => 'Foreign']);
         self::assertSame(['items' => [], 'next_cursor' => null], $none->data);
         self::assertSame('No contacts match.', $none->summary);
-        foreach ([$theirs->id(), Id::generate(), 'not-an-id'] as $id) {
+        foreach ([Id::generate(), 'not-an-id'] as $id) {
             $this->assertRefused('not_found', 'The organisation has no contact with this id. Find the id with foresi_search_contacts.', GetContactTool::class, ['id' => $id]);
         }
         $this->assertRefused('not_found', 'The organisation has no contact with this id. Find the id with foresi_search_contacts.', GetContactTool::class);
@@ -178,7 +176,6 @@ final class PartyToolsTest extends ReadToolTestCase
 
             return [$other, $archived];
         });
-        $this->inTenant($this->foreignTenant(), fn (): array => $this->firmWithCustomer('Foreign Firm s.r.o.'));
 
         $output = $this->call(ListFirmsTool::class);
 

@@ -14,7 +14,6 @@ use App\Identity\Domain\ApiTokenSecret;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Tests\Identity\Support\IdentityFixtures;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
@@ -24,14 +23,13 @@ use Symfony\Component\Console\Tester\CommandTester;
 
 /**
  * The operator's token commands: issuing prints the secret once, listing never
- * prints one, and revoking finds the token in whatever organisation it is.
+ * prints one, and revoking finds the token by its id.
  */
 final class ApiTokenCommandsTest extends KernelTestCase
 {
     private Application $application;
     private IdentityFixtures $fixtures;
     private User $user;
-    private TenantId $tenant;
 
     protected function setUp(): void
     {
@@ -40,23 +38,21 @@ final class ApiTokenCommandsTest extends KernelTestCase
         $this->fixtures = new IdentityFixtures(self::getContainer()->get('doctrine.orm.entity_manager'), self::getContainer()->get(TenantContext::class));
         $this->fixtures->rebuildSchema();
         $this->user = $this->fixtures->user();
-        $this->tenant = $this->fixtures->tenant('Tenant A');
-        $this->fixtures->join($this->user, $this->tenant, Role::Member);
+        $this->fixtures->join($this->user, $this->fixtures->tenant('Tenant A'), Role::Member);
     }
 
     public function testIssuingPrintsTheSecretOnceWithoutTwoFactorSignIn(): void
     {
         $tester = $this->tester('app:api-token:issue');
 
-        $status = $tester->execute(['email' => ' Testing@Example.com ', '--tenant' => $this->tenant->toString(), '--name' => 'Reporting', '--days' => '30', '--scope' => ['read', 'write']]);
+        $status = $tester->execute(['email' => ' Testing@Example.com ', '--name' => 'Reporting', '--days' => '30', '--scope' => ['read', 'write']]);
 
         self::assertSame(Command::SUCCESS, $status, $tester->getDisplay());
-        $records = $this->tokens()->records(null);
+        $records = $this->tokens()->records();
         self::assertCount(1, $records);
         self::assertSame('Reporting', $records[0]->name);
         self::assertEquals([ApiScope::read(), ApiScope::write()], $records[0]->scopes);
         self::assertSame($this->user->id(), $records[0]->userId);
-        self::assertTrue($records[0]->tenantId->equals($this->tenant));
         self::assertSame(30, $records[0]->createdAt->diff($records[0]->expiresAt)->days);
         self::assertSame(1, preg_match('/'.ApiTokenSecret::PATTERN.'/', $tester->getDisplay(), $match));
         self::assertNotNull($this->tokens()->byHash(ApiTokenSecret::hash($match[0])));
@@ -70,9 +66,9 @@ final class ApiTokenCommandsTest extends KernelTestCase
     {
         $tester = $this->tester('app:api-token:issue');
 
-        self::assertSame(Command::SUCCESS, $tester->execute(['email' => IdentityFixtures::EMAIL, '--tenant' => $this->tenant->toString(), '--name' => 'Outreach', '--scope' => ['contacts:write']]));
+        self::assertSame(Command::SUCCESS, $tester->execute(['email' => IdentityFixtures::EMAIL, '--name' => 'Outreach', '--scope' => ['contacts:write']]));
 
-        $record = $this->tokens()->records(null)[0];
+        $record = $this->tokens()->records()[0];
         self::assertEquals([ApiScope::from('contacts:write')], $record->scopes);
         self::assertSame(90, $record->createdAt->diff($record->expiresAt)->days);
     }
@@ -84,12 +80,12 @@ final class ApiTokenCommandsTest extends KernelTestCase
     public function testARefusedIssueSaysWhyAndIssuesNothing(array $input, int $status, string $message): void
     {
         $tester = $this->tester('app:api-token:issue');
-        $input += ['email' => IdentityFixtures::EMAIL, '--tenant' => $this->tenant->toString(), '--name' => 'Reporting', '--scope' => ['read']];
+        $input += ['email' => IdentityFixtures::EMAIL, '--name' => 'Reporting', '--scope' => ['read']];
 
         self::assertSame($status, $tester->execute($input));
 
         self::assertStringContainsString($message, preg_replace('/\s+/', ' ', $tester->getDisplay()) ?? '');
-        self::assertSame([], $this->tokens()->records(null));
+        self::assertSame([], $this->tokens()->records());
         self::assertFalse(self::getContainer()->get(TenantContext::class)->has());
     }
 
@@ -98,33 +94,39 @@ final class ApiTokenCommandsTest extends KernelTestCase
      */
     public static function refusedIssues(): iterable
     {
-        yield 'no tenant' => [['--tenant' => ''], Command::INVALID, 'Pass the id of the organisation with --tenant.'];
         yield 'bad scope' => [['--scope' => ['read', 'admin']], Command::INVALID, 'Unknown scope "admin", expected read, write, or a resource such as contacts:write.'];
         yield 'undeclared resource' => [['--scope' => ['ledger:read']], Command::FAILURE, 'A scope names a resource no installed module declares'];
         yield 'unknown user' => [['email' => 'nobody@example.com'], Command::FAILURE, 'No user has this e-mail.'];
         yield 'no name' => [['--name' => ''], Command::FAILURE, 'Pass a name of 1 to 80 characters with --name.'];
         yield 'odd lifetime' => [['--days' => '7'], Command::FAILURE, 'A token is valid for 30, 90 or 365 days.'];
         yield 'no scope' => [['--scope' => []], Command::INVALID, 'Pass what the token may do with --scope'];
-        yield 'another organisation' => [['--tenant' => '019a0000-0000-7000-8000-0000000000ff'], Command::FAILURE, 'The user is not the owner or a member of this organisation.'];
     }
 
     public function testAGuestGetsNoToken(): void
     {
-        $other = $this->fixtures->tenant('Tenant B');
-        $this->fixtures->join($this->user, $other, Role::Guest);
+        $this->fixtures->join($this->fixtures->user('guest@example.com'), $this->fixtures->tenant('Tenant A'), Role::Guest);
 
         $tester = $this->tester('app:api-token:issue');
 
-        self::assertSame(Command::FAILURE, $tester->execute(['email' => IdentityFixtures::EMAIL, '--tenant' => $other->toString(), '--name' => 'Reporting', '--scope' => ['read']]));
-        self::assertSame([], $this->tokens()->records(null));
+        self::assertSame(Command::FAILURE, $tester->execute(['email' => 'guest@example.com', '--name' => 'Reporting', '--scope' => ['read']]));
+        self::assertStringContainsString('The user is not the owner or a team member.', $tester->getDisplay());
+        self::assertSame([], $this->tokens()->records());
+    }
+
+    public function testSomeoneWithoutAMembershipGetsNoToken(): void
+    {
+        $this->fixtures->user('stranger@example.com');
+
+        $tester = $this->tester('app:api-token:issue');
+
+        self::assertSame(Command::FAILURE, $tester->execute(['email' => 'stranger@example.com', '--name' => 'Reporting', '--scope' => ['read']]));
+        self::assertSame([], $this->tokens()->records());
     }
 
     public function testListingShowsTokensButNeverASecret(): void
     {
-        $other = $this->fixtures->tenant('Tenant B');
-        $this->fixtures->join($this->user, $other, Role::Owner);
-        $secret = $this->issue($this->tenant, 'First');
-        $this->issue($other, 'Second');
+        $secret = $this->issue('First');
+        $this->issue('Second');
 
         $all = $this->tester('app:api-token:list');
         self::assertSame(Command::SUCCESS, $all->execute([]));
@@ -136,11 +138,6 @@ final class ApiTokenCommandsTest extends KernelTestCase
         self::assertStringNotContainsString($secret, $all->getDisplay());
         self::assertStringNotContainsString(ApiTokenSecret::hash($secret), $all->getDisplay());
         self::assertStringNotContainsString(ApiTokenSecret::PREFIX, $all->getDisplay());
-
-        $one = $this->tester('app:api-token:list');
-        self::assertSame(Command::SUCCESS, $one->execute(['--tenant' => $other->toString()]));
-        self::assertStringContainsString('Second', $one->getDisplay());
-        self::assertStringNotContainsString('First', $one->getDisplay());
     }
 
     public function testListingNothingSaysSo(): void
@@ -151,24 +148,16 @@ final class ApiTokenCommandsTest extends KernelTestCase
         self::assertStringContainsString('No API tokens.', $tester->getDisplay());
     }
 
-    public function testListingAnInvalidTenantIsRefused(): void
-    {
-        $tester = $this->tester('app:api-token:list');
-
-        self::assertSame(Command::INVALID, $tester->execute(['--tenant' => 'nope']));
-        self::assertStringContainsString('The organisation id is not valid.', $tester->getDisplay());
-    }
-
     public function testRevokingStopsTheToken(): void
     {
-        $this->issue($this->tenant, 'Reporting');
-        $id = $this->tokens()->records(null)[0]->id;
+        $this->issue('Reporting');
+        $id = $this->tokens()->records()[0]->id;
 
         $tester = $this->tester('app:api-token:revoke');
 
         self::assertSame(Command::SUCCESS, $tester->execute(['token-id' => $id]));
         self::assertStringContainsString('Revoked "Reporting"', $tester->getDisplay());
-        self::assertNotNull($this->tokens()->records(null)[0]->revokedAt);
+        self::assertNotNull($this->tokens()->records()[0]->revokedAt);
         self::assertFalse(self::getContainer()->get(TenantContext::class)->has());
     }
 
@@ -190,10 +179,10 @@ final class ApiTokenCommandsTest extends KernelTestCase
         yield 'nobody\'s' => ['019a0000-0000-7000-8000-0000000000ff'];
     }
 
-    private function issue(TenantId $tenant, string $name): string
+    private function issue(string $name): string
     {
         $tester = $this->tester('app:api-token:issue');
-        self::assertSame(Command::SUCCESS, $tester->execute(['email' => IdentityFixtures::EMAIL, '--tenant' => $tenant->toString(), '--name' => $name, '--scope' => ['read']]));
+        self::assertSame(Command::SUCCESS, $tester->execute(['email' => IdentityFixtures::EMAIL, '--name' => $name, '--scope' => ['read']]));
         self::assertSame(1, preg_match('/'.ApiTokenSecret::PATTERN.'/', $tester->getDisplay(), $match));
 
         return $match[0];

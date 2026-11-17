@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Import\Domain;
 
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -19,19 +17,15 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'import_row')]
-#[ORM\Index(name: 'idx_import_row_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_import_row_chunk', columns: ['import_id', 'chunk'])]
 #[ORM\Index(name: 'idx_import_row_match', columns: ['import_id', 'match_value'])]
 #[ORM\Index(name: 'idx_import_row_record', columns: ['import_id', 'record_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_import_row_number', columns: ['import_id', 'row_number'])]
-class ImportRow implements TenantOwned
+class ImportRow
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'string', length: 32, nullable: true, enumType: RowOutcome::class)]
     private ?RowOutcome $outcome = null;
@@ -80,11 +74,6 @@ class ImportRow implements TenantOwned
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     public function import(): Import

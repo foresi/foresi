@@ -186,17 +186,10 @@ shell:
     notifications: Nastavení oznámení
     api_access: Přístupy k API a MCP
     language: 'Přepnout jazyk na {language}'
-    switch_organisation: Přepnout organizaci
     soon: Brzy
   worker:
     down: 'Proces na pozadí neběží. E-maily, pravidelné faktury a bankovní pošta počkají, než se znovu spustí.'
     link: Zobrazit stav
-organisation:
-  choose:
-    title: Vyberte organizaci
-    intro: Patříte do několika organizací. Vyberte tu, ve které chcete pracovat.
-    empty_title: Zatím žádná organizace
-    empty_text: Váš účet není členem žádné organizace. Požádejte vlastníka organizace o pozvánku.
 role:
   guest: Host
   owner: Vlastník
@@ -3066,7 +3059,6 @@ people:
     other_user: Tato pozvánka je pro jiný účet.
     last_owner: Organizace musí mít alespoň jednoho aktivního vlastníka.
     self: Sami sebe deaktivovat nemůžete.
-    other_organisations: Tento člověk patří i do jiné organizace; přihlášení mu obnoví provozovatel.
   mail:
     subject: '{inviter} vás zve do {organisation} v {product}'
     intro: '{inviter} vás zve ke spolupráci s {organisation} v {product}.'

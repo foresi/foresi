@@ -79,12 +79,12 @@ final readonly class DbalIdempotencyKeys implements IdempotencyKeys
             T::RESPONSE_HEADERS => json_encode($answer->headers, \JSON_THROW_ON_ERROR),
             T::RESPONSE_BODY => $answer->body,
             T::COMPLETED_AT => \DateTimeImmutable::createFromInterface($this->clock->now()),
-        ], $this->where($grant, $operation, $key), [T::COMPLETED_AT => Types::DATETIME_IMMUTABLE, T::TENANT_ID => T::TENANT_TYPE]);
+        ], $this->where($grant, $operation, $key), [T::COMPLETED_AT => Types::DATETIME_IMMUTABLE]);
     }
 
     public function release(string $operation, string $key): void
     {
-        $this->connection->delete(T::TABLE, $this->where($this->grant(), $operation, $key), [T::TENANT_ID => T::TENANT_TYPE]);
+        $this->connection->delete(T::TABLE, $this->where($this->grant(), $operation, $key));
     }
 
     private function insert(ApiTokenGrant $grant, string $operation, string $key, string $fingerprint, \DateTimeImmutable $now): bool
@@ -94,7 +94,7 @@ final readonly class DbalIdempotencyKeys implements IdempotencyKeys
                 T::FINGERPRINT => $fingerprint,
                 T::STATUS => T::STATUS_IN_FLIGHT,
                 T::CREATED_AT => $now,
-            ], [T::TENANT_ID => T::TENANT_TYPE, T::CREATED_AT => Types::DATETIME_IMMUTABLE]);
+            ], [T::CREATED_AT => Types::DATETIME_IMMUTABLE]);
         } catch (UniqueConstraintViolationException) {
             return false;
         }
@@ -130,7 +130,7 @@ final readonly class DbalIdempotencyKeys implements IdempotencyKeys
             T::TABLE,
             [T::CREATED_AT => $now],
             $this->where($grant, $operation, $key) + [T::STATUS => T::STATUS_IN_FLIGHT, T::CREATED_AT => $this->createdAt($row)],
-            [T::CREATED_AT => Types::DATETIME_IMMUTABLE, T::TENANT_ID => T::TENANT_TYPE],
+            [T::CREATED_AT => Types::DATETIME_IMMUTABLE],
         );
     }
 
@@ -140,9 +140,8 @@ final readonly class DbalIdempotencyKeys implements IdempotencyKeys
     private function find(ApiTokenGrant $grant, string $operation, string $key): ?array
     {
         $row = $this->connection->fetchAssociative(
-            \sprintf('SELECT %s, %s, %s, %s, %s, %s FROM %s WHERE %s = :tenant AND %s = :token AND %s = :operation AND %s = :key', T::FINGERPRINT, T::STATUS, T::RESPONSE_STATUS, T::RESPONSE_HEADERS, T::RESPONSE_BODY, T::CREATED_AT, T::TABLE, T::TENANT_ID, T::TOKEN_ID, T::OPERATION, T::IDEMPOTENCY_KEY),
-            ['tenant' => $grant->tenantId, 'token' => $grant->tokenId, 'operation' => $operation, 'key' => $key],
-            ['tenant' => T::TENANT_TYPE],
+            \sprintf('SELECT %s, %s, %s, %s, %s, %s FROM %s WHERE %s = :token AND %s = :operation AND %s = :key', T::FINGERPRINT, T::STATUS, T::RESPONSE_STATUS, T::RESPONSE_HEADERS, T::RESPONSE_BODY, T::CREATED_AT, T::TABLE, T::TOKEN_ID, T::OPERATION, T::IDEMPOTENCY_KEY),
+            ['token' => $grant->tokenId, 'operation' => $operation, 'key' => $key],
         );
 
         return false === $row ? null : $row;
@@ -163,7 +162,7 @@ final readonly class DbalIdempotencyKeys implements IdempotencyKeys
      */
     private function where(ApiTokenGrant $grant, string $operation, string $key): array
     {
-        return [T::TENANT_ID => $grant->tenantId, T::TOKEN_ID => $grant->tokenId, T::OPERATION => $operation, T::IDEMPOTENCY_KEY => $key];
+        return [T::TOKEN_ID => $grant->tokenId, T::OPERATION => $operation, T::IDEMPOTENCY_KEY => $key];
     }
 
     private function grant(): ApiTokenGrant

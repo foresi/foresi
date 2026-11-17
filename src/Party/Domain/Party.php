@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Party\Domain;
 
 use App\Audit\Domain\Audited;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -24,17 +22,13 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'party')]
-#[ORM\Index(name: 'idx_party_tenant', columns: ['tenant_id'])]
-#[ORM\Index(name: 'idx_party_registration_key', columns: ['tenant_id', 'registration_key'])]
-#[ORM\Index(name: 'idx_party_vat_id', columns: ['tenant_id', 'vat_id'])]
-class Party implements TenantOwned, Audited
+#[ORM\Index(name: 'idx_party_registration_key', columns: ['registration_key'])]
+#[ORM\Index(name: 'idx_party_vat_id', columns: ['vat_id'])]
+class Party implements Audited
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(name: 'display_name', type: 'string', length: 255)]
     private string $displayName;
@@ -309,20 +303,6 @@ class Party implements TenantOwned, Audited
     public function recordPublishedBankAccounts(array $accounts): void
     {
         $this->unreliablePayerAccounts = $accounts;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
-    }
-
-    /**
-     * The tenant if the party was persisted already; children created for it
-     * adopt it so that a party of another tenant is rejected on persist.
-     */
-    public function stampedTenantId(): ?TenantId
-    {
-        return $this->tenantId;
     }
 
     private function check(RegistrySource $source, ?RegistryResult $result, ?\DateTimeImmutable $checkedAt): ?RegistryCheck

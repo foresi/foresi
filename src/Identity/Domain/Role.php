@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Identity\Domain;
 
 /**
- * What a user is within one tenant: the owner, a team member, or a
+ * What a user is in the organisation: the owner, a team member, or a
  * guest the organisation shares work with. What a guest
  * is (a client, a supplier, a subcontractor) comes from the contact their
  * membership links, not from the role. Fine-grained permissions come later.

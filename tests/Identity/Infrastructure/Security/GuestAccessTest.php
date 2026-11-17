@@ -32,8 +32,8 @@ final class GuestAccessTest extends WebTestCase
     private const array OPEN = [
         // The sign-in, its code step and signing out.
         'app_login', '2fa_login', '2fa_login_check', 'app_logout',
-        // Their account and the choice of organisation.
-        'app_account_language', 'app_organisation_choose', 'app_organisation_switch', 'app_two_factor_setup', 'app_two_factor_recovery_codes',
+        // Their account.
+        'app_account_language', 'app_two_factor_setup', 'app_two_factor_recovery_codes',
         // Machines: the uptime monitor and the bank mail relay, on firewalls without a session.
         'app_health', 'app_inbound_mail',
         // The API and MCP, whose firewalls only a personal API token signs in to; a guest gets none.

@@ -179,7 +179,7 @@ final class PeopleTest extends WebTestCase
 
     public function testSomeoneWithAnAccountSignsInFirstThenAccepts(): void
     {
-        $this->fixtures->join($this->fixtures->user(self::MEMBER), $this->fixtures->tenant('Example Elsewhere'));
+        $this->fixtures->user(self::MEMBER);
         $this->signIn(self::OWNER);
         $this->invite(self::MEMBER, 'Member Example');
         $token = $this->tokenOf($this->queuedMails()[0]);
@@ -196,7 +196,7 @@ final class PeopleTest extends WebTestCase
         self::assertResponseRedirects('/');
         $this->client->followRedirect();
         self::assertResponseIsSuccessful();
-        self::assertCount(2, self::getContainer()->get(MembershipDirectory::class)->organisationsOf($this->user(self::MEMBER)->id()));
+        self::assertSame(Role::Member, self::getContainer()->get(MembershipDirectory::class)->roleOf($this->user(self::MEMBER)->id()));
     }
 
     public function testAnExpiredOrUnknownLinkSaysSo(): void
@@ -401,7 +401,7 @@ final class PeopleTest extends WebTestCase
         self::assertCount(1, self::getContainer()->get(MembershipDirectory::class)->organisationsOf($member->id()));
     }
 
-    public function testTheOwnerResetsTheTwoFactorSignInOfSomeoneOnlyHere(): void
+    public function testTheOwnerResetsTheTwoFactorSignInOfAPerson(): void
     {
         $member = $this->fixtures->user(self::MEMBER);
         $member->enrolTwoFactor('sealed', ['hash']);
@@ -415,16 +415,6 @@ final class PeopleTest extends WebTestCase
         $this->client->request('POST', '/settings/people/'.$membership.'/reset-two-factor', ['_token' => $this->actionToken($crawler)]);
         self::assertResponseRedirects('/settings/people');
         self::assertFalse($this->user(self::MEMBER)->hasTwoFactor());
-
-        // Someone who also belongs elsewhere is the operator's to reset.
-        $other = $this->user(self::MEMBER);
-        $other->enrolTwoFactor('sealed', ['hash']);
-        $this->em->flush();
-        $this->fixtures->join($other, $this->fixtures->tenant('Example Elsewhere'));
-        $this->client->request('POST', '/settings/people/'.$membership.'/reset-two-factor', ['_token' => $this->actionToken($crawler)]);
-        $this->client->followRedirect();
-        self::assertSelectorTextContains('body', 'also belongs to another organisation');
-        self::assertTrue($this->user(self::MEMBER)->hasTwoFactor());
     }
 
     private function signIn(string $email): void
@@ -503,7 +493,7 @@ final class PeopleTest extends WebTestCase
 
     private function membershipOf(string $email): string
     {
-        $ids = $this->em->getConnection()->fetchFirstColumn('SELECT m.id FROM membership m JOIN app_user u ON u.id = m.user_id WHERE u.email = ? AND m.tenant_id = ?', [$email, $this->tenant->toString()]);
+        $ids = $this->em->getConnection()->fetchFirstColumn('SELECT m.id FROM membership m JOIN app_user u ON u.id = m.user_id WHERE u.email = ?', [$email]);
         self::assertCount(1, $ids);
         self::assertIsString($ids[0]);
 

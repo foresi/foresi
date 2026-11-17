@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Party\Infrastructure\Doctrine;
 
-use App\Instance\Application\TenantContext;
 use App\Party\Application\LegalEntities;
 use App\Party\Application\UnknownLegalEntity;
 use App\Party\Domain\LegalEntity;
@@ -18,9 +17,9 @@ use Doctrine\ORM\EntityManagerInterface;
 final readonly class DoctrineLegalEntities implements LegalEntities
 {
     /** A write that changes nothing: SQLite has no row lock, but a write takes the database's, as PostgreSQL takes the row's. */
-    private const string LOCK = 'UPDATE legal_entity SET tenant_id = tenant_id WHERE id = :id AND tenant_id = :tenant';
+    private const string LOCK = 'UPDATE legal_entity SET name = name WHERE id = :id';
 
-    public function __construct(private EntityManagerInterface $em, private TenantContext $context)
+    public function __construct(private EntityManagerInterface $em)
     {
     }
 
@@ -42,7 +41,6 @@ final readonly class DoctrineLegalEntities implements LegalEntities
 
     public function get(string $id): LegalEntity
     {
-        // A query, not find(): find() answers from the identity map without the tenant filter.
         $firm = $this->em->createQuery('SELECT f FROM '.LegalEntity::class.' f WHERE f.id = :id')->setParameter('id', $id)->getOneOrNullResult();
 
         return $firm instanceof LegalEntity ? $firm : throw new UnknownLegalEntity();
@@ -50,7 +48,7 @@ final readonly class DoctrineLegalEntities implements LegalEntities
 
     public function lock(string $id): LegalEntity
     {
-        $locked = $this->em->getConnection()->executeStatement(self::LOCK, ['id' => $id, 'tenant' => $this->context->current()->toString()]);
+        $locked = $this->em->getConnection()->executeStatement(self::LOCK, ['id' => $id]);
         if (1 !== $locked) {
             throw new UnknownLegalEntity();
         }

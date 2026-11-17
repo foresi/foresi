@@ -236,16 +236,6 @@ final class InvoiceExportControllerTest extends WebTestCase
         }
     }
 
-    public function testAnotherTenantsFirmIs404(): void
-    {
-        $this->signedIn();
-        $foreign = $this->foreignFirm();
-
-        $this->post(['firm' => $foreign->id(), 'month' => '2026-10']);
-
-        self::assertResponseStatusCodeSame(404);
-    }
-
     public function testAMissingFirmIs404(): void
     {
         $this->signedIn();
@@ -441,21 +431,6 @@ final class InvoiceExportControllerTest extends WebTestCase
 
             return $firm;
         });
-    }
-
-    private function foreignFirm(): LegalEntity
-    {
-        $tenant = $this->browser->fixtures->tenant('Foreign Tenant '.bin2hex(random_bytes(2)));
-        $this->context->switchTo($tenant);
-        try {
-            $firm = new LegalEntity('Example Foreign s.r.o.', new RegistrationNumber('CZ', '12345679'), null, new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register');
-            $this->em()->persist($firm);
-            $this->em()->flush();
-
-            return $firm;
-        } finally {
-            $this->context->reset();
-        }
     }
 
     private function signedIn(Role $role = Role::Owner): void

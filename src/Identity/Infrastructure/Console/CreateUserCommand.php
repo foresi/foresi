@@ -13,7 +13,6 @@ use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Instance\Application\TenantContext;
 use App\Instance\Domain\Tenant;
 use App\Instance\Domain\TenantId;
 use App\Party\Domain\Party;
@@ -26,13 +25,19 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\PasswordHasher\Hasher\PasswordHasherFactoryInterface;
 
-#[AsCommand(name: 'app:user:create', description: 'Create a user and a membership, creating the tenant if it is missing')]
+/**
+ * Creates a person who signs in, with their membership. The first run of an
+ * instance also creates its tenant row, which goes with the tenant itself.
+ */
+#[AsCommand(name: 'app:user:create', description: 'Create a user and their membership')]
 final readonly class CreateUserCommand
 {
+    /** The name the tenant row of a new instance gets. */
+    public const string INSTANCE_NAME = 'Foresi';
+
     public function __construct(
         private UserRepository $users,
         private EntityManagerInterface $entityManager,
-        private TenantContext $context,
         private PasswordHasherFactoryInterface $hashers,
     ) {
     }
@@ -41,11 +46,9 @@ final readonly class CreateUserCommand
         SymfonyStyle $io,
         #[Argument(description: 'E-mail address, used to sign in')]
         string $email,
-        #[Argument(description: 'Name of the tenant; created when it does not exist yet')]
-        string $tenantName,
         #[Argument(description: 'owner, member or guest')]
         string $role,
-        #[Option(description: 'Id of the contact the user represents in the tenant; required for a guest')]
+        #[Option(description: 'Id of the contact the user represents; required for a guest')]
         ?string $contact = null,
     ): int {
         $membershipRole = Role::tryFrom($role);
@@ -60,17 +63,9 @@ final readonly class CreateUserCommand
             return Command::INVALID;
         }
 
-        $tenantName = trim($tenantName);
-        if ('' === $tenantName) {
-            $io->error('The tenant name must not be empty.');
-
-            return Command::INVALID;
-        }
-
-        $tenant = $this->entityManager->getRepository(Tenant::class)->findOneBy(['name' => $tenantName]);
-        $party = null === $contact ? null : $this->contactIn($tenant, $contact);
+        $party = null === $contact || !Id::isValid($contact) ? null : $this->entityManager->find(Party::class, $contact);
         if (null !== $contact && !$party instanceof Party) {
-            $io->error(sprintf('There is no contact "%s" in "%s".', $contact, $tenantName));
+            $io->error(sprintf('There is no contact "%s".', $contact));
 
             return Command::INVALID;
         }
@@ -108,42 +103,18 @@ final readonly class CreateUserCommand
             return Command::INVALID;
         }
 
-        // One transaction: a failure never leaves an orphan tenant behind.
-        $this->entityManager->wrapInTransaction(function () use ($tenant, $tenantName, $user, $membershipRole, $party): void {
-            if (!$tenant instanceof Tenant) {
-                $tenant = new Tenant(TenantId::generate(), $tenantName, new \DateTimeImmutable());
-                $this->entityManager->persist($tenant);
-                $this->entityManager->flush();
+        // One transaction: a failure never leaves a tenant without its first user.
+        $this->entityManager->wrapInTransaction(function () use ($user, $membershipRole, $party): void {
+            if (!$this->entityManager->getRepository(Tenant::class)->findOneBy([]) instanceof Tenant) {
+                $this->entityManager->persist(new Tenant(TenantId::generate(), self::INSTANCE_NAME, new \DateTimeImmutable()));
             }
-
-            $this->context->switchTo($tenant->id());
-            try {
-                $this->entityManager->persist($user);
-                $this->entityManager->persist(new Membership($user, $membershipRole, $party instanceof Party ? $this->entityManager->getReference(Party::class, $party->id()) : null));
-                $this->entityManager->flush();
-            } finally {
-                $this->context->reset();
-            }
+            $this->entityManager->persist($user);
+            $this->entityManager->persist(new Membership($user, $membershipRole, $party));
+            $this->entityManager->flush();
         });
 
-        $io->success(sprintf('Created %s as %s in "%s".', $email, $membershipRole->value, $tenantName));
+        $io->success(sprintf('Created %s as %s.', $email, $membershipRole->value));
 
         return Command::SUCCESS;
-    }
-
-    /**
-     * A contact of the tenant, which must exist already: a new tenant has none.
-     */
-    private function contactIn(?Tenant $tenant, string $contact): ?Party
-    {
-        if (!$tenant instanceof Tenant || !Id::isValid($contact)) {
-            return null;
-        }
-        $this->context->switchTo($tenant->id());
-        try {
-            return $this->entityManager->find(Party::class, $contact);
-        } finally {
-            $this->context->reset();
-        }
     }
 }

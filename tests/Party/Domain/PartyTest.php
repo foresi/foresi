@@ -82,20 +82,6 @@ final class PartyTest extends TestCase
         self::assertSame('Example City', $entity->address()->city);
     }
 
-    public function testTenantIsUnavailableBeforePersist(): void
-    {
-        $this->expectException(\LogicException::class);
-
-        new Party(PartyKind::Person, 'Test Person', null, null, '')->tenantId();
-    }
-
-    public function testLegalEntityTenantIsUnavailableBeforePersist(): void
-    {
-        $this->expectException(\LogicException::class);
-
-        new LegalEntity('Example Company', new RegistrationNumber('DE', '1'), null, $this->address(), VatStatus::Registered, '')->tenantId();
-    }
-
     #[DataProvider('invalidRegistrationNumbers')]
     public function testRegistrationNumberInvariants(string $country, string $value): void
     {

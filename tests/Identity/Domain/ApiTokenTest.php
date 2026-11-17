@@ -138,13 +138,6 @@ final class ApiTokenTest extends TestCase
         self::assertSame(self::USER, $token->revokedBy());
     }
 
-    public function testTheTenantIsStampedOnPersist(): void
-    {
-        $this->expectException(\LogicException::class);
-
-        $this->token()->tenantId();
-    }
-
     public function testAStoredValueThatIsNoScopeIsLeftOut(): void
     {
         $token = $this->token();

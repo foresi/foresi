@@ -153,8 +153,8 @@ final class PartyImportEndToEndTest extends KernelTestCase
 
     public function testARowWhoseWriteFailsInTheDatabaseIsAnErrorAndTheOtherRowsAreWritten(): void
     {
-        // Stands in for a constraint the importer cannot foresee: one e-mail address per tenant.
-        $this->em->getConnection()->executeStatement('CREATE UNIQUE INDEX test_uniq_party_email ON party_email (tenant_id, address)');
+        // Stands in for a constraint the importer cannot foresee: one e-mail address per instance.
+        $this->em->getConnection()->executeStatement('CREATE UNIQUE INDEX test_uniq_party_email ON party_email (address)');
         $csv = "Firma,IČ,E-mailová adresa,Ulice,Město,PSČ\n"
             ."Example One,12345687,same@example.com,Example Street 1,Praha,110 00\n"
             ."Example Two,12345695,same@example.com,Example Street 2,Praha,110 00\n"

@@ -16,8 +16,6 @@ use App\Import\Domain\ImportRow;
 use App\Import\Domain\ImportState;
 use App\Import\Infrastructure\Console\PurgeImportsCommand;
 use App\Import\Infrastructure\LocalImportFiles;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -33,7 +31,6 @@ final class PurgeImportsCommandTest extends KernelTestCase
     private const string NOW = '2026-11-15 12:00:00';
 
     private EntityManagerInterface $em;
-    private TenantContext $context;
     private Imports $imports;
     private LocalImportFiles $files;
     private string $base;
@@ -47,7 +44,6 @@ final class PurgeImportsCommandTest extends KernelTestCase
         self::bootKernel();
         $container = self::getContainer();
         $this->em = $container->get('doctrine.orm.entity_manager');
-        $this->context = $container->get(TenantContext::class);
         $this->imports = $container->get(Imports::class);
         $tool = new SchemaTool($this->em);
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
@@ -71,9 +67,7 @@ final class PurgeImportsCommandTest extends KernelTestCase
 
     public function testRemovesFilesAndRowsOfImportsThatEndedMoreThan30DaysAgo(): void
     {
-        $tenant = TenantId::generate();
-        $this->context->switchTo($tenant);
-        $old = $this->finished($tenant, '2026-10-16 11:59:59', 2);
+        $old = $this->finished('2026-10-16 11:59:59', 2);
         $this->em->clear();
 
         $status = $this->tester->execute([]);
@@ -93,9 +87,7 @@ final class PurgeImportsCommandTest extends KernelTestCase
 
     public function testRemovesTheMissingRecordsAndAmbiguousMatchesToo(): void
     {
-        $tenant = TenantId::generate();
-        $this->context->switchTo($tenant);
-        $old = $this->finished($tenant, '2026-10-16 11:59:59', 1);
+        $old = $this->finished('2026-10-16 11:59:59', 1);
         $import = $this->imports->find($this->importIds[$old]);
         self::assertNotNull($import);
         $this->em->persist(new ImportMissingRecord($import, 1, '019a0000-0000-7000-8000-00000000002a'));
@@ -115,10 +107,8 @@ final class PurgeImportsCommandTest extends KernelTestCase
 
     public function testKeepsImportsThatEndedExactly30DaysAgoOrLater(): void
     {
-        $tenant = TenantId::generate();
-        $this->context->switchTo($tenant);
-        $exactly = $this->finished($tenant, '2026-10-16 12:00:00', 1);
-        $recent = $this->finished($tenant, '2026-11-14 12:00:00', 1);
+        $exactly = $this->finished('2026-10-16 12:00:00', 1);
+        $recent = $this->finished('2026-11-14 12:00:00', 1);
         $this->em->clear();
 
         $this->tester->execute([]);
@@ -132,9 +122,7 @@ final class PurgeImportsCommandTest extends KernelTestCase
 
     public function testKeepsImportsThatHaveNotEnded(): void
     {
-        $tenant = TenantId::generate();
-        $this->context->switchTo($tenant);
-        $running = $this->stage($tenant, 1);
+        $running = $this->stage(1);
         foreach ([ImportState::Reading, ImportState::Mapping, ImportState::Checking, ImportState::Checked, ImportState::Queued, ImportState::Running] as $state) {
             $running['import']->moveTo($state, new \DateTimeImmutable('2026-01-01'));
         }
@@ -150,9 +138,7 @@ final class PurgeImportsCommandTest extends KernelTestCase
     #[DataProvider('abandoned')]
     public function testAnImportLeftWaitingForMoreThan30DaysIsCancelledAndPurged(ImportState $waiting): void
     {
-        $tenant = TenantId::generate();
-        $this->context->switchTo($tenant);
-        $staged = $this->stage($tenant, 2, '2026-10-16 11:59:59');
+        $staged = $this->stage(2, '2026-10-16 11:59:59');
         $this->moveThrough($staged['import'], $waiting);
         $this->imports->save();
         $this->em->clear();
@@ -185,9 +171,7 @@ final class PurgeImportsCommandTest extends KernelTestCase
     #[DataProvider('abandoned')]
     public function testAWaitingImportYoungerThan30DaysIsKept(ImportState $waiting): void
     {
-        $tenant = TenantId::generate();
-        $this->context->switchTo($tenant);
-        $staged = $this->stage($tenant, 1, '2026-10-16 12:00:00');
+        $staged = $this->stage(1, '2026-10-16 12:00:00');
         $this->moveThrough($staged['import'], $waiting);
         $this->imports->save();
         $this->em->clear();
@@ -201,9 +185,7 @@ final class PurgeImportsCommandTest extends KernelTestCase
 
     public function testAQueuedImportIsLeftToItsWorkerHoweverOld(): void
     {
-        $tenant = TenantId::generate();
-        $this->context->switchTo($tenant);
-        $staged = $this->stage($tenant, 1);
+        $staged = $this->stage(1);
         $this->moveThrough($staged['import'], ImportState::Queued);
         $this->imports->save();
         $this->em->clear();
@@ -216,9 +198,7 @@ final class PurgeImportsCommandTest extends KernelTestCase
 
     public function testAnUndoInProgressIsNotPurged(): void
     {
-        $tenant = TenantId::generate();
-        $this->context->switchTo($tenant);
-        $staged = $this->stage($tenant, 1);
+        $staged = $this->stage(1);
         $this->advance($staged['import'], ImportState::Finished, '2026-01-01');
         $staged['import']->moveTo(ImportState::Undoing);
         $this->imports->save();
@@ -233,9 +213,7 @@ final class PurgeImportsCommandTest extends KernelTestCase
     #[DataProvider('endings')]
     public function testEveryEndedStateIsPurged(ImportState $ending): void
     {
-        $tenant = TenantId::generate();
-        $this->context->switchTo($tenant);
-        $staged = $this->stage($tenant, 1);
+        $staged = $this->stage(1);
         $this->advance($staged['import'], $ending, '2026-01-01');
         $this->imports->save();
         $this->em->clear();
@@ -256,15 +234,10 @@ final class PurgeImportsCommandTest extends KernelTestCase
         }
     }
 
-    public function testPurgesAllTenantsAndASecondRunDoesNothing(): void
+    public function testPurgesEveryImportAndASecondRunDoesNothing(): void
     {
-        $first = TenantId::generate();
-        $this->context->switchTo($first);
-        $one = $this->finished($first, '2026-01-01 00:00:00', 1);
-        $second = TenantId::generate();
-        $this->context->switchTo($second);
-        $two = $this->finished($second, '2026-01-01 00:00:00', 1);
-        $this->context->reset();
+        $one = $this->finished('2026-01-01 00:00:00', 1);
+        $two = $this->finished('2026-01-01 00:00:00', 1);
 
         $this->tester->execute([]);
         self::assertStringContainsString('2 imports', $this->tester->getDisplay());
@@ -277,9 +250,7 @@ final class PurgeImportsCommandTest extends KernelTestCase
 
     public function testAnImportWhoseFileIsAlreadyGoneStillLosesItsRows(): void
     {
-        $tenant = TenantId::generate();
-        $this->context->switchTo($tenant);
-        $key = $this->finished($tenant, '2026-01-01 00:00:00', 2);
+        $key = $this->finished('2026-01-01 00:00:00', 2);
         $this->files->delete($key);
         $this->em->clear();
 
@@ -304,11 +275,11 @@ final class PurgeImportsCommandTest extends KernelTestCase
     /**
      * @return array{import: Import, key: string}
      */
-    private function stage(TenantId $tenant, int $rows, string $createdAt = '2026-01-01'): array
+    private function stage(int $rows, string $createdAt = '2026-01-01'): array
     {
         $source = $this->base.'/upload.tmp';
         file_put_contents($source, "name\nExample Company\n");
-        $key = $this->files->store($tenant, $source, 'contacts.csv');
+        $key = $this->files->store($source, 'contacts.csv');
         $import = new Import('party', $key, 'contacts.csv', ['format' => 'csv'], '019a0000-0000-7000-8000-000000000001', new \DateTimeImmutable($createdAt));
         $this->imports->add($import);
         $staged = [];
@@ -350,9 +321,9 @@ final class PurgeImportsCommandTest extends KernelTestCase
         }
     }
 
-    private function finished(TenantId $tenant, string $at, int $rows): string
+    private function finished(string $at, int $rows): string
     {
-        $staged = $this->stage($tenant, $rows);
+        $staged = $this->stage($rows);
         $staged['import']->countRows($rows, 1);
         $staged['import']->recordChunk(['create' => 3]);
         $this->advance($staged['import'], ImportState::Finished, $at);

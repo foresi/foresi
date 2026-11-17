@@ -8,22 +8,23 @@ declare(strict_types=1);
 
 namespace App\Identity\Application;
 
-use App\Identity\Domain\User;
-use App\Instance\Domain\TenantId;
+use App\Identity\Domain\Role;
 
 /**
- * Answers which tenants a user belongs to, whatever tenant is active.
+ * Answers what a user is in the instance: one membership per person (ADR 0035).
  */
 interface MembershipDirectory
 {
     /**
-     * @return list<TenantId>
+     * The role of the user's active membership; null without one, or when it
+     * is deactivated.
      */
-    public function tenantIdsOf(User $user): array;
+    public function roleOf(string $userId): ?Role;
 
     /**
-     * The organisations of a user with their names and the role held in each,
-     * for the switcher and the choice page.
+     * The user's organisation with its name and the role held there, for mails
+     * that name it: empty without an active membership. It goes with the
+     * tenant itself.
      *
      * @return list<Organisation>
      */

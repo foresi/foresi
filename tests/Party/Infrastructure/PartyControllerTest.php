@@ -34,7 +34,6 @@ final class PartyControllerTest extends WebTestCase
     private SignedInBrowser $browser;
     private TenantContext $context;
     private TenantId $tenant;
-    private TenantId $foreign;
 
     protected function tearDown(): void
     {
@@ -90,17 +89,15 @@ final class PartyControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
-    public function testListShowsOnlyTheContactsOfTheActiveTenant(): void
+    public function testListShowsTheContacts(): void
     {
         $this->signIn();
         $this->party('Example Company s.r.o.', $this->tenant);
-        $this->party('Foreign Trading a.s.', $this->foreign);
 
         $this->client->request('GET', '/contacts');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main table', 'Example Company s.r.o.');
-        self::assertSelectorTextNotContains('body', 'Foreign Trading');
         self::assertSelectorCount(1, 'main tbody tr');
         self::assertSelectorTextContains('#sidebar', 'Address book');
     }
@@ -193,43 +190,6 @@ final class PartyControllerTest extends WebTestCase
         self::assertSelectorExists('main h2');
         self::assertSame('Add your first contact and it will show up here with your customers and suppliers.', trim($crawler->filter('main p')->first()->text()));
         self::assertSelectorExists('main a[href="/contacts/new"]');
-    }
-
-    public function testContactOfAnotherTenantIsNotFoundEverywhere(): void
-    {
-        $this->signIn();
-        $foreign = $this->party('Foreign Trading a.s.', $this->foreign);
-        $person = $this->party('Test Person', $this->tenant, kind: PartyKind::Person);
-        $id = $foreign->id();
-        $token = $this->token('party_action');
-
-        $this->client->request('GET', '/contacts/'.$id);
-        self::assertResponseStatusCodeSame(404);
-        $this->client->request('GET', '/contacts/'.$id.'/edit');
-        self::assertResponseStatusCodeSame(404);
-        $this->client->request('POST', '/contacts/'.$id.'/edit');
-        self::assertResponseStatusCodeSame(404);
-        foreach (['archive', 'restore', 'link', 'registry-checks'] as $action) {
-            $this->client->request('POST', '/contacts/'.$id.'/'.$action, ['_token' => $token, 'person' => $person->id()]);
-            self::assertResponseStatusCodeSame(404, $action);
-        }
-        $this->client->request('POST', '/contacts/archive', ['_token' => $token, 'ids' => [$id, $person->id()]]);
-        self::assertResponseStatusCodeSame(404);
-        $this->client->request('POST', '/contacts/export', ['_token' => $token, 'ids' => [$id]]);
-        self::assertResponseStatusCodeSame(404);
-        $this->client->request('GET', '/contacts/99999');
-        self::assertResponseStatusCodeSame(404);
-
-        // Nothing was archived by the rejected bulk request.
-        $this->client->request('GET', '/contacts');
-        self::assertSelectorTextContains('main table', 'Test Person');
-        self::assertSelectorExists('a[href="/contacts/new"]');
-
-        // A foreign person cannot be linked either.
-        $company = $this->party('Own Company', $this->tenant);
-        $foreignPerson = $this->party('Foreign Person', $this->foreign, kind: PartyKind::Person);
-        $this->client->request('POST', '/contacts/'.$company->id().'/link', ['_token' => $token, 'person' => $foreignPerson->id()]);
-        self::assertResponseStatusCodeSame(404);
     }
 
     public function testCreatingAContactSavesItAndSchedulesTheRegistryChecksAfterTheResponse(): void
@@ -498,15 +458,14 @@ final class PartyControllerTest extends WebTestCase
         self::assertSelectorTextContains('main table', 'Second Company');
     }
 
-    public function testCsvExportContainsOnlyTheSelectedContactsOfTheActiveTenant(): void
+    public function testCsvExportContainsOnlyTheSelectedContacts(): void
     {
         $this->signIn();
         $mine = $this->party('Example Company s.r.o.', $this->tenant, number: '12345687', vat: 'CZ12345687', email: 'info@example.com');
         $this->party('Not Selected', $this->tenant);
-        $foreign = $this->party('Foreign Trading a.s.', $this->foreign);
         $formula = $this->party('=HYPERLINK("http://example.com")', $this->tenant);
 
-        $this->client->request('POST', '/contacts/export', ['_token' => $this->token('party_action'), 'ids' => [$mine->id(), $foreign->id(), $formula->id(), 'abc', '']]);
+        $this->client->request('POST', '/contacts/export', ['_token' => $this->token('party_action'), 'ids' => [$mine->id(), $formula->id(), 'abc', '']]);
 
         self::assertResponseIsSuccessful();
         $response = $this->client->getResponse();
@@ -516,7 +475,6 @@ final class PartyControllerTest extends WebTestCase
         self::assertStringStartsWith("\xEF\xBB\xBF\"Číslo kontaktu ve Foresi\";Název;Druh;", $csv);
         self::assertStringContainsString(';"Example Company s.r.o.";Firma;12345687;', $csv);
         self::assertStringContainsString(';CZ12345687;info@example.com;', $csv);
-        self::assertStringNotContainsString('Foreign Trading', $csv);
         self::assertStringNotContainsString('Not Selected', $csv);
         self::assertStringContainsString("'=HYPERLINK", $csv);
         self::assertCount(3, array_filter(explode("\n", $csv), static fn (string $line): bool => '' !== $line), 'header and two selected contacts');
@@ -550,7 +508,6 @@ final class PartyControllerTest extends WebTestCase
     {
         $this->signIn();
         $existing = $this->party('Own Copy', $this->tenant, number: '12345687');
-        $this->party('Foreign Copy', $this->foreign, number: '12345687');
 
         $this->client->request('GET', '/contacts/lookup?q=1234 5687');
 
@@ -815,7 +772,6 @@ final class PartyControllerTest extends WebTestCase
     private function signIn(string $locale = 'en', Role $role = Role::Owner): void
     {
         [$this->tenant] = $this->browser->seed(['Tenant A'], $locale, $role);
-        $this->foreign = $this->browser->fixtures->tenant('Foreign Tenant');
         $this->browser->signIn();
     }
 

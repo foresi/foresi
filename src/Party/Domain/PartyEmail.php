@@ -11,8 +11,6 @@ namespace App\Party\Domain;
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditExcluded;
 use App\Audit\Domain\AuditRooted;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -22,11 +20,10 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'party_email')]
-#[ORM\Index(name: 'idx_party_email_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_party_email_party', columns: ['party_id'])]
-#[ORM\Index(name: 'idx_party_email_key', columns: ['tenant_id', 'address_key'])]
+#[ORM\Index(name: 'idx_party_email_key', columns: ['address_key'])]
 #[ORM\Index(name: 'idx_party_email_firm', columns: ['legal_entity_id'])]
-class PartyEmail implements TenantOwned, Audited, AuditRooted
+class PartyEmail implements Audited, AuditRooted
 {
     private const int MAX_LENGTH = 254;
     private const string PATTERN = '/^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$/';
@@ -34,9 +31,6 @@ class PartyEmail implements TenantOwned, Audited, AuditRooted
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId;
 
     #[ORM\Column(type: 'string', length: 254)]
     private string $address;
@@ -60,7 +54,6 @@ class PartyEmail implements TenantOwned, Audited, AuditRooted
     ) {
         $this->refuseGeneralForAFirm($purpose);
         $this->id = Id::generate();
-        $this->tenantId = $party->stampedTenantId();
         $this->address = $this->validate($address);
         $this->addressKey = self::key($this->address);
     }
@@ -117,11 +110,6 @@ class PartyEmail implements TenantOwned, Audited, AuditRooted
         $this->address = $this->validate($address);
         $this->addressKey = self::key($this->address);
         $this->purpose = $purpose;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     private function validate(string $address): string

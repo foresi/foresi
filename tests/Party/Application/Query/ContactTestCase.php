@@ -139,19 +139,6 @@ abstract class ContactTestCase extends KernelTestCase
         return $party;
     }
 
-    /**
-     * A contact of the other organisation.
-     */
-    protected function foreignContact(string $name): Party
-    {
-        $context = self::getContainer()->get(TenantContext::class);
-        $context->switchTo($this->foreign->id());
-        $party = $this->contact($name);
-        $context->switchTo($this->tenant->id());
-
-        return $party;
-    }
-
     private function person(string $email, string $name, Role $role, ?Party $party = null): Membership
     {
         $user = new User($email, 'hash', $name);

@@ -15,7 +15,6 @@ namespace App\Banking\Application;
 final readonly class FeedRoute
 {
     public function __construct(
-        public string $tenantId,
         public string $feedId,
         public string $accountId,
         public string $firmId,

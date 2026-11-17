@@ -116,10 +116,10 @@ start fresh after a deploy.
 
    On the first deploy the database is empty, so the dump before migrating is
    skipped here; set up [backups](#backups) before going live.
-5. Create the first user, an owner, and its organisation:
+5. Create the first user, an owner:
 
    ```bash
-   cd /srv/foresi/current && sudo -u www-data php bin/console app:user:create owner@example.com "Example Ltd" owner
+   cd /srv/foresi/current && sudo -u www-data php bin/console app:user:create owner@example.com owner
    ```
 
    The role is `owner`, `member` (a team member of the staff) or `guest` (someone

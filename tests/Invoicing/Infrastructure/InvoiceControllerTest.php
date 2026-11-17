@@ -766,18 +766,6 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(403);
     }
 
-    public function testRecountOfAForeignFirmIs404(): void
-    {
-        $this->signedIn();
-        $foreign = $this->foreignFirm();
-        $values = $this->openNew();
-        $values['firmId'] = $foreign->id();
-
-        $this->client->request('POST', '/invoices/recount', $values);
-
-        self::assertResponseStatusCodeSame(404);
-    }
-
     public function testRecountOfAnEditUsesTheStoredRegime(): void
     {
         $this->signedIn();
@@ -813,12 +801,11 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertStringContainsString('"number":"20260001"', (string) $this->client->getResponse()->getContent());
     }
 
-    public function testNextNumberOfAForeignSeriesIs404AndABadDate422(): void
+    public function testNextNumberOfAnUnknownSeriesIs404AndABadDate422(): void
     {
         $this->signedIn();
-        $foreign = $this->foreignFirm();
 
-        $this->client->request('GET', '/invoices/next-number', ['firm' => $foreign->id(), 'date' => '2026-11-01']);
+        $this->client->request('GET', '/invoices/next-number', ['firm' => '00000000-0000-7000-8000-000000000000', 'date' => '2026-11-01']);
         self::assertResponseStatusCodeSame(404);
 
         $this->client->request('GET', '/invoices/next-number', ['series' => '00000000-0000-7000-8000-000000000000', 'date' => '2026-11-01']);
@@ -828,13 +815,11 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
     }
 
-    public function testForgedFirmSeriesOrCustomerIs404OrAFormError(): void
+    public function testAnUnknownFirmIs404AndAnUnknownSeriesOrCustomerIsAFormError(): void
     {
         $this->signedIn();
-        $foreign = $this->foreignFirm();
-        $values = $this->filled();
 
-        $this->save(array_merge($values, ['firmId' => $foreign->id()]));
+        $this->save(array_merge($this->filled(), ['firmId' => '00000000-0000-7000-8000-000000000000']));
         self::assertResponseStatusCodeSame(404);
 
         $this->save(array_merge($this->filled(), ['seriesId' => '00000000-0000-7000-8000-000000000000']));
@@ -2574,7 +2559,7 @@ final class InvoiceControllerTest extends WebTestCase
         $this->openNew(['firm' => $second->id()]);
         self::assertSame($second->id(), $this->client->getCrawler()->filter('select[name="firmId"] option[selected]')->attr('value'));
 
-        $this->client->request('GET', '/invoices/new', ['firm' => $this->foreignFirm()->id()]);
+        $this->client->request('GET', '/invoices/new', ['firm' => '00000000-0000-7000-8000-000000000000']);
         self::assertResponseStatusCodeSame(404);
     }
 
@@ -2907,18 +2892,6 @@ final class InvoiceControllerTest extends WebTestCase
 
             return $firm;
         });
-    }
-
-    private function foreignFirm(): LegalEntity
-    {
-        $tenant = $this->browser->fixtures->tenant('Foreign Tenant '.bin2hex(random_bytes(2)));
-        $this->context->switchTo($tenant);
-        $firm = new LegalEntity('Example Foreign s.r.o.', new RegistrationNumber('CZ', '12345679'), null, new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register');
-        $this->em()->persist($firm);
-        $this->em()->flush();
-        $this->context->reset();
-
-        return $firm;
     }
 
     /**

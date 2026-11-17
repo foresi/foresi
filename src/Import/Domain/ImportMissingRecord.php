@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Import\Domain;
 
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -21,10 +19,9 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'import_missing_record')]
-#[ORM\Index(name: 'idx_import_missing_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_import_missing_chunk', columns: ['import_id', 'chunk'])]
 #[ORM\UniqueConstraint(name: 'uniq_import_missing_record', columns: ['import_id', 'record_id'])]
-class ImportMissingRecord implements TenantOwned
+class ImportMissingRecord
 {
     /** The message of a record the run could not archive. */
     public const string ARCHIVE_FAILED = 'import.error.archive_failed';
@@ -32,9 +29,6 @@ class ImportMissingRecord implements TenantOwned
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'string', length: 32, enumType: RowOutcome::class)]
     private RowOutcome $outcome = RowOutcome::Archive;
@@ -64,11 +58,6 @@ class ImportMissingRecord implements TenantOwned
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     public function import(): Import

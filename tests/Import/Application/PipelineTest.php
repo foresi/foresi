@@ -19,7 +19,6 @@ use App\Import\Application\ImportRefused;
 use App\Import\Application\Imports;
 use App\Import\Application\Message\ArchiveMissing;
 use App\Import\Application\Message\CheckImportChunk;
-use App\Import\Application\Message\ReadImportFile;
 use App\Import\Application\Message\RunImportChunk;
 use App\Import\Application\Message\UndoImportChunk;
 use App\Import\Application\RunImport;
@@ -126,7 +125,6 @@ final class PipelineTest extends KernelTestCase
         self::assertSame(1002, $rows[0]->rowNumber());
         self::assertSame(['C1001', 'Name 1001', 'person1001@example.com'], $rows[0]->raw());
         self::assertCount(500, $this->imports->rowsOfChunk($import, 0));
-        self::assertSame($this->tenant->toString(), $rows[0]->tenantId()->toString());
     }
 
     public function testAnUnreadableFileFailsTheImportWithTheReason(): void
@@ -731,45 +729,6 @@ final class PipelineTest extends KernelTestCase
         $this->container(RunImport::class)->run($id);
     }
 
-    public function testImportsOfTwoTenantsRunIndependently(): void
-    {
-        $first = $this->checked($this->rows(2));
-        $other = TenantId::generate();
-        $this->tenants->switchTo($other);
-        $second = $this->checked($this->rows(1));
-        $this->tenants->switchTo($this->tenant);
-        $this->container(RunImport::class)->run($first);
-
-        $this->tenants->switchTo($other);
-        $this->container(RunImport::class)->run($second);
-        self::assertSame(ImportState::Running, $this->fresh($second)->state());
-
-        $this->worker->run();
-
-        $done = $this->fresh($second);
-        self::assertSame(ImportState::Finished, $done->state());
-        self::assertSame(['Name 1'], $this->target->activeNames());
-        $this->tenants->switchTo($this->tenant);
-        $done = $this->fresh($first);
-        self::assertSame(ImportState::Finished, $done->state());
-        self::assertSame(['Name 1', 'Name 2'], $this->target->activeNames());
-    }
-
-    public function testAMessageCannotReachAnImportOfAnotherTenant(): void
-    {
-        $id = $this->checked($this->rows(1));
-        $this->tenants->switchTo(TenantId::generate());
-
-        $bus = self::getContainer()->get(MessageBusInterface::class);
-        $bus->dispatch(new RunImportChunk($id, 0));
-        $bus->dispatch(new ReadImportFile($id));
-        $this->worker->run();
-
-        $this->tenants->switchTo($this->tenant);
-        self::assertSame(ImportState::Checked, $this->fresh($id)->state());
-        self::assertSame([], $this->target->writes);
-    }
-
     public function testUndoRevertsWhatTheRunWroteAndLeavesRecordsChangedSince(): void
     {
         $kept = $this->target->add(['code' => 'C1', 'name' => 'Old 1', 'email' => null]);
@@ -1002,6 +961,8 @@ final class PipelineTest extends KernelTestCase
     private function stallAndCheckHealth(string $id): void
     {
         $this->em->getConnection()->executeStatement("UPDATE import SET progressed_at = '2026-09-30 10:00:00' WHERE id = ?", [$id]);
+        // The command works as the one tenant of the instance.
+        $this->em->getConnection()->executeStatement("INSERT INTO tenant (id, name, created_at) VALUES (?, 'Example Company', '2026-01-01 00:00:00')", [$this->tenant->toString()]);
         $tester = new CommandTester(new Application(self::$kernel ?? throw new \LogicException('No kernel.'))->find('app:import:health'));
 
         self::assertSame(Command::SUCCESS, $tester->execute([]));
