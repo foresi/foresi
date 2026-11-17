@@ -41,7 +41,7 @@ final readonly class PageTitle
     {
         $parts = [trim($page)];
         $item = null === $currentRoute ? null : $this->registry->current($currentRoute);
-        if (null !== $item) {
+        if ($item instanceof NavigationItem) {
             $parts[] = $this->translator->trans($item->labelKey);
         }
         $parts[] = $this->productName;
