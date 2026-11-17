@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 use App\Invoicing\Domain\PeriodText;
-use App\Invoicing\Domain\Recurrence;
-use App\Invoicing\Domain\RecurrenceEnd;
-use App\Invoicing\Domain\RecurringSchedule;
+use App\Shared\Domain\Schedule\Recurrence;
+use App\Shared\Domain\Schedule\RecurrenceEnd;
+use App\Shared\Domain\Schedule\RecurringSchedule;
 
 /**
  * The next invoices a template would issue, as the form shows them before a save.

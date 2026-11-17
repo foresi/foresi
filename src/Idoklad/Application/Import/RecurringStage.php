@@ -20,13 +20,9 @@ use App\Invoicing\Application\RecurringPreview;
 use App\Invoicing\Application\RecurringRefused;
 use App\Invoicing\Application\SaveRecurringInvoice;
 use App\Invoicing\Application\UnsupportedCountry;
-use App\Invoicing\Domain\InvalidRecurrence;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
-use App\Invoicing\Domain\Recurrence;
-use App\Invoicing\Domain\RecurrenceEnd;
-use App\Invoicing\Domain\RecurrenceUnit;
 use App\Invoicing\Domain\RecurringDelivery;
 use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\TaxPointRule;
@@ -38,6 +34,10 @@ use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
+use App\Shared\Domain\Schedule\InvalidRecurrence;
+use App\Shared\Domain\Schedule\Recurrence;
+use App\Shared\Domain\Schedule\RecurrenceEnd;
+use App\Shared\Domain\Schedule\RecurrenceUnit;
 
 /**
  * iDoklad recurring invoices as Foresi templates, stored paused so a template

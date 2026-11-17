@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Domain;
 
+use App\Shared\Domain\Schedule\RecurringSchedule;
+
 /**
  * Period variables in the texts of a recurring invoice, resolved against the
  * occurrence date: {day}, {month}, {year}, {quarter} and {month/year}, each with

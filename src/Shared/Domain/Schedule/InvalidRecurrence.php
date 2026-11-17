@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Domain;
+namespace App\Shared\Domain\Schedule;
 
 final class InvalidRecurrence extends \DomainException
 {

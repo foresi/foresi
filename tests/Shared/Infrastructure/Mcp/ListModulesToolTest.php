@@ -10,6 +10,7 @@ namespace App\Tests\Shared\Infrastructure\Mcp;
 
 use App\Shared\Infrastructure\Mcp\ListModulesTool;
 use App\Shared\Infrastructure\Module\InstalledModules;
+use App\Shared\Infrastructure\Module\ModuleIntegrations;
 use App\Shared\Infrastructure\Module\ModulesView;
 use PHPUnit\Framework\TestCase;
 
@@ -44,7 +45,7 @@ final class ListModulesToolTest extends TestCase
 
     private function tool(): ListModulesTool
     {
-        return new ListModulesTool($this->modules());
+        return new ListModulesTool($this->modules(), new ModuleIntegrations(\dirname(__DIR__, 4).'/src'));
     }
 
     private function modules(): InstalledModules

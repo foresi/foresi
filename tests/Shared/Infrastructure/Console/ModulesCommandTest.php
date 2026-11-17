@@ -14,6 +14,8 @@ use App\Shared\Domain\Module\ModuleKind;
 use App\Shared\Domain\Module\ModuleManifest;
 use App\Shared\Infrastructure\Console\ModulesCommand;
 use App\Shared\Infrastructure\Module\InstalledModules;
+use App\Shared\Infrastructure\Module\ModuleIntegration;
+use App\Shared\Infrastructure\Module\ModuleIntegrations;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\ArrayInput;
@@ -73,6 +75,32 @@ final class ModulesCommandTest extends TestCase
         self::assertStringContainsString('invoicing (absent), work (installed)', $output->fetch());
     }
 
+    public function testIntegrationsShowWhetherLoaded(): void
+    {
+        $output = new BufferedOutput();
+        $graph = new ModuleGraph([$this->module('invoicing', optional: ['cash-flow', 'work']), $this->module('work')]);
+        $integrations = [
+            new ModuleIntegration(ModuleId::of('invoicing'), ModuleId::of('cash-flow'), 'App\\Invoicing\\Integration\\CashFlow\\', '/src/Invoicing/Integration/CashFlow', false),
+            new ModuleIntegration(ModuleId::of('invoicing'), ModuleId::of('work'), 'App\\Invoicing\\Integration\\Work\\', '/src/Invoicing/Integration/Work', true),
+        ];
+
+        $this->command()->show($this->io($output), $graph, [], 'table', $integrations);
+        $text = $output->fetch();
+        $this->command()->show($this->io($output), $graph, [], 'json', $integrations);
+        $json = json_decode($output->fetch(), true, flags: \JSON_THROW_ON_ERROR);
+
+        self::assertStringContainsString('invoicing uses cash-flow through App\\Invoicing\\Integration\\CashFlow\\ (not loaded, cash-flow is absent)', $text);
+        self::assertStringContainsString('invoicing uses work through App\\Invoicing\\Integration\\Work\\ (loaded)', $text);
+        self::assertIsArray($json);
+        self::assertSame(
+            [
+                ['module' => 'invoicing', 'uses' => 'cash-flow', 'namespace' => 'App\\Invoicing\\Integration\\CashFlow\\', 'loaded' => false],
+                ['module' => 'invoicing', 'uses' => 'work', 'namespace' => 'App\\Invoicing\\Integration\\Work\\', 'loaded' => true],
+            ],
+            $json['integrations'],
+        );
+    }
+
     public function testUnacceptedProblemFails(): void
     {
         $output = new BufferedOutput();
@@ -110,7 +138,7 @@ final class ModulesCommandTest extends TestCase
 
     private function command(): ModulesCommand
     {
-        return new ModulesCommand(new InstalledModules(\dirname(__DIR__, 4)));
+        return new ModulesCommand(new InstalledModules(\dirname(__DIR__, 4)), new ModuleIntegrations(\dirname(__DIR__, 4).'/src'));
     }
 
     private function io(BufferedOutput $output): SymfonyStyle

@@ -16,8 +16,9 @@ use App\Shared\Infrastructure\Module\DeptracModulesConfig;
 use PHPUnit\Framework\TestCase;
 
 /**
- * One Deptrac layer per module; a module may use the modules its manifest
- * declares, nothing else.
+ * Each module has its own layer, its contract layer and one integration layer
+ * per optional dependency. A module may use the modules it requires; an
+ * optional one only from its integration code and only through its contract.
  */
 final class DeptracModulesConfigTest extends TestCase
 {
@@ -30,28 +31,69 @@ final class DeptracModulesConfigTest extends TestCase
             - name: invoicing
               collectors:
                 - type: classLike
-                  value: ^App\\Invoicing\\.*
+                  value: ^App\\Invoicing\\(?!Contract\\|Integration\\).*
+            - name: invoicing_contract
+              collectors:
+                - type: classLike
+                  value: ^App\\Invoicing\\Contract\\.*
             - name: shared
               collectors:
                 - type: classLike
-                  value: ^App\\Shared\\.*
+                  value: ^App\\Shared\\(?!Contract\\|Integration\\).*
+            - name: shared_contract
+              collectors:
+                - type: classLike
+                  value: ^App\\Shared\\Contract\\.*
             - name: timesheet
               collectors:
                 - type: classLike
-                  value: ^App\\Timesheet\\.*
+                  value: ^App\\Timesheet\\(?!Contract\\|Integration\\).*
+            - name: timesheet_contract
+              collectors:
+                - type: classLike
+                  value: ^App\\Timesheet\\Contract\\.*
+            - name: timesheet_integration_invoicing
+              collectors:
+                - type: classLike
+                  value: ^App\\Timesheet\\Integration\\Invoicing\\.*
             - name: work
               collectors:
                 - type: classLike
-                  value: ^App\\Work\\.*
+                  value: ^App\\Work\\(?!Contract\\|Integration\\).*
+            - name: work_contract
+              collectors:
+                - type: classLike
+                  value: ^App\\Work\\Contract\\.*
           ruleset:
             invoicing:
+              - invoicing_contract
               - shared
-            shared: []
+              - shared_contract
+            invoicing_contract:
+              - shared
+              - shared_contract
+            shared:
+              - shared_contract
+            shared_contract: []
             timesheet:
-              - invoicing
+              - timesheet_contract
               - work
+              - work_contract
+            timesheet_contract:
+              - work_contract
+            timesheet_integration_invoicing:
+              - invoicing_contract
+              - timesheet
+              - timesheet_contract
+              - work
+              - work_contract
             work:
               - shared
+              - shared_contract
+              - work_contract
+            work_contract:
+              - shared
+              - shared_contract
 
         YAML;
 
@@ -65,6 +107,15 @@ final class DeptracModulesConfigTest extends TestCase
         self::assertSame(self::EXPECTED, new DeptracModulesConfig()->render(new ModuleGraph(array_reverse($this->modules()))));
     }
 
+    public function testIntegrationCodeMayUseOnlyTheContractOfTheOptionalModule(): void
+    {
+        $config = new DeptracModulesConfig()->render(new ModuleGraph($this->modules()));
+
+        self::assertStringContainsString("          value: ^App\\\\Timesheet\\\\Integration\\\\Invoicing\\\\.*\n", $config);
+        self::assertStringContainsString("    timesheet_integration_invoicing:\n      - invoicing_contract\n      - timesheet\n", $config);
+        self::assertStringNotContainsString("      - invoicing\n", substr($config, (int) strpos($config, '    timesheet:')));
+    }
+
     public function testAbsentOptionalModuleIsNotAllowed(): void
     {
         $graph = new ModuleGraph([
@@ -72,7 +123,12 @@ final class DeptracModulesConfigTest extends TestCase
             $this->module('work', ModuleKind::Module, 'Work', requires: ['shared'], optional: ['invoicing']),
         ]);
 
-        self::assertStringNotContainsString('invoicing', new DeptracModulesConfig()->render($graph));
+        $config = new DeptracModulesConfig()->render($graph);
+
+        // The integration layer exists, so its code is checked, but it may use nothing of the absent module.
+        self::assertStringContainsString("    work_integration_invoicing:\n      - shared\n      - shared_contract\n      - work\n      - work_contract\n", $config);
+        self::assertStringNotContainsString('invoicing_contract', $config);
+        self::assertStringNotContainsString("      - invoicing\n", $config);
     }
 
     public function testHyphenatedIdsBecomeUnderscoredLayers(): void
@@ -80,14 +136,17 @@ final class DeptracModulesConfigTest extends TestCase
         // Deptrac reads the ruleset through Symfony Config, which turns "-" in keys into "_".
         $graph = new ModuleGraph([
             $this->module('exchange-rate', ModuleKind::Module, 'ExchangeRate', requires: ['shared']),
-            $this->module('purchasing', ModuleKind::Module, 'Purchasing', requires: ['exchange-rate']),
+            $this->module('purchasing', ModuleKind::Module, 'Purchasing', requires: ['shared'], optional: ['exchange-rate']),
+            $this->module('party', ModuleKind::Module, 'Party', requires: ['exchange-rate']),
             $this->module('shared', ModuleKind::Core, 'Shared'),
         ]);
         $config = new DeptracModulesConfig()->render($graph);
 
         self::assertStringContainsString("    - name: exchange_rate\n", $config);
-        self::assertStringContainsString("    exchange_rate:\n      - shared\n", $config);
-        self::assertStringContainsString("    purchasing:\n      - exchange_rate\n", $config);
+        self::assertStringContainsString("    exchange_rate:\n      - exchange_rate_contract\n      - shared\n", $config);
+        self::assertStringContainsString("    party:\n      - exchange_rate\n      - exchange_rate_contract\n", $config);
+        self::assertStringContainsString("    - name: purchasing_integration_exchange_rate\n      collectors:\n        - type: classLike\n          value: ^App\\\\Purchasing\\\\Integration\\\\ExchangeRate\\\\.*\n", $config);
+        self::assertStringContainsString("    purchasing_integration_exchange_rate:\n      - exchange_rate_contract\n", $config);
         self::assertStringNotContainsString('exchange-rate', $config);
     }
 

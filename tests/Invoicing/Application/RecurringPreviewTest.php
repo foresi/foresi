@@ -15,9 +15,6 @@ use App\Invoicing\Application\RecurringPreview;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
-use App\Invoicing\Domain\Recurrence;
-use App\Invoicing\Domain\RecurrenceEnd;
-use App\Invoicing\Domain\RecurrenceUnit;
 use App\Invoicing\Domain\RecurringDelivery;
 use App\Invoicing\Domain\TaxPointRule;
 use App\Invoicing\Domain\TaxTreatment;
@@ -26,6 +23,9 @@ use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
+use App\Shared\Domain\Schedule\Recurrence;
+use App\Shared\Domain\Schedule\RecurrenceEnd;
+use App\Shared\Domain\Schedule\RecurrenceUnit;
 use PHPUnit\Framework\TestCase;
 
 final class RecurringPreviewTest extends TestCase

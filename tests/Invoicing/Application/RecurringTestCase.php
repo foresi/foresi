@@ -15,13 +15,13 @@ use App\Invoicing\Application\RecurringInvoices;
 use App\Invoicing\Application\RecurringLifecycle;
 use App\Invoicing\Application\RecurringRefused;
 use App\Invoicing\Application\SaveRecurringInvoice;
-use App\Invoicing\Domain\Recurrence;
-use App\Invoicing\Domain\RecurrenceEnd;
-use App\Invoicing\Domain\RecurrenceUnit;
 use App\Invoicing\Domain\RecurringDelivery;
 use App\Invoicing\Domain\TaxPointRule;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\PaymentMethod;
+use App\Shared\Domain\Schedule\Recurrence;
+use App\Shared\Domain\Schedule\RecurrenceEnd;
+use App\Shared\Domain\Schedule\RecurrenceUnit;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 
 /**

@@ -1,9 +1,12 @@
 <?php
-// SPDX-License-Identifier: AGPL-3.0-only
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
 
 declare(strict_types=1);
 
 use Rector\Config\RectorConfig;
+use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPrivateMethodParameterRector;
 use Rector\PHPUnit\CodeQuality\Rector\Class_\PreferPHPUnitThisCallRector;
 
 return RectorConfig::configure()
@@ -14,6 +17,8 @@ return RectorConfig::configure()
         __DIR__.'/tests/e2e/node_modules',
         // Conflicts with phpstan-strict-rules (staticMethod.dynamicCall).
         PreferPHPUnitThisCallRector::class,
+        // MicroKernelTrait passes the configurator, the loader and the builder by position.
+        RemoveUnusedPrivateMethodParameterRector::class => [__DIR__.'/src/Kernel.php'],
     ])
     ->withPhpSets(php84: true)
     ->withComposerBased(twig: true, doctrine: true, phpunit: true, symfony: true)

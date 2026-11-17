@@ -10,6 +10,7 @@ namespace App\Shared\Infrastructure\Mcp;
 
 use App\Shared\Application\Api\ScopeGuard;
 use App\Shared\Infrastructure\Module\InstalledModules;
+use App\Shared\Infrastructure\Module\ModuleIntegrations;
 use App\Shared\Infrastructure\Module\ModulesView;
 
 /**
@@ -18,8 +19,10 @@ use App\Shared\Infrastructure\Module\ModulesView;
  */
 final readonly class ListModulesTool implements ReadTool
 {
-    public function __construct(private InstalledModules $modules)
-    {
+    public function __construct(
+        private InstalledModules $modules,
+        private ModuleIntegrations $integrations,
+    ) {
     }
 
     public function name(): string
@@ -39,7 +42,7 @@ final readonly class ListModulesTool implements ReadTool
 
     public function description(): string
     {
-        return 'Returns the modules installed in this Foresi application: id, kind (core, module or ui), package, required and optional modules, and the known problems of the dependency graph. Installed means enabled; there is no other switch.';
+        return 'Returns the modules installed in this Foresi application: id, kind (core, module or ui), package, required and optional modules, the integration code each module has for an optional one and whether it is loaded, and the known problems of the dependency graph. Installed means enabled; there is no other switch.';
     }
 
     public function inputSchema(): array
@@ -49,7 +52,8 @@ final readonly class ListModulesTool implements ReadTool
 
     public function call(array $arguments): ToolOutput
     {
-        $view = ModulesView::toArray($this->modules->graph());
+        $graph = $this->modules->graph();
+        $view = ModulesView::toArray($graph, $this->integrations->of($graph));
 
         return new ToolOutput(
             $view,

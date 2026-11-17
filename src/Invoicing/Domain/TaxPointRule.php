@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Domain;
 
+use App\Shared\Domain\Schedule\RecurringSchedule;
+
 /**
  * The tax point of an invoice issued from a recurring template, taken from its
  * issue date.
