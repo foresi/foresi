@@ -27,6 +27,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^App\\Banking\\Contract\\.*
+    - name: banking_integration_cash_flow
+      collectors:
+        - type: classLike
+          value: ^App\\Banking\\Integration\\CashFlow\\.*
     - name: cash_flow
       collectors:
         - type: classLike
@@ -91,6 +95,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^App\\Invoicing\\Contract\\.*
+    - name: invoicing_integration_cash_flow
+      collectors:
+        - type: classLike
+          value: ^App\\Invoicing\\Integration\\CashFlow\\.*
     - name: party
       collectors:
         - type: classLike
@@ -107,6 +115,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^App\\Purchasing\\Contract\\.*
+    - name: purchasing_integration_cash_flow
+      collectors:
+        - type: classLike
+          value: ^App\\Purchasing\\Integration\\CashFlow\\.*
     - name: shared
       collectors:
         - type: classLike
@@ -213,6 +225,24 @@ deptrac:
       - shared_contract
       - tenancy
       - tenancy_contract
+      - ui_contract
+    banking_integration_cash_flow:
+      - audit
+      - audit_contract
+      - banking
+      - banking_contract
+      - cash_flow_contract
+      - identity
+      - identity_contract
+      - invoicing
+      - invoicing_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - tenancy
+      - tenancy_contract
+      - ui
       - ui_contract
     cash_flow:
       - audit
@@ -376,6 +406,22 @@ deptrac:
       - tenancy
       - tenancy_contract
       - ui_contract
+    invoicing_integration_cash_flow:
+      - audit
+      - audit_contract
+      - cash_flow_contract
+      - identity
+      - identity_contract
+      - invoicing
+      - invoicing_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - tenancy
+      - tenancy_contract
+      - ui
+      - ui_contract
     party:
       - audit
       - audit_contract
@@ -432,6 +478,26 @@ deptrac:
       - shared_contract
       - tenancy
       - tenancy_contract
+      - ui_contract
+    purchasing_integration_cash_flow:
+      - attachment
+      - attachment_contract
+      - audit
+      - audit_contract
+      - cash_flow_contract
+      - exchange_rate
+      - exchange_rate_contract
+      - identity
+      - identity_contract
+      - party
+      - party_contract
+      - purchasing
+      - purchasing_contract
+      - shared
+      - shared_contract
+      - tenancy
+      - tenancy_contract
+      - ui
       - ui_contract
     shared:
       - shared_contract

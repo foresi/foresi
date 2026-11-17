@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\CashFlow\Application;
 
+use App\CashFlow\Contract\ActualFlowSource;
 use App\CashFlow\Contract\BalanceCheckpoint;
 use App\CashFlow\Contract\BalanceSource;
 use App\CashFlow\Contract\CashFlowSource;
@@ -15,8 +16,10 @@ use App\CashFlow\Contract\ExpectedFlow;
 use App\CashFlow\Contract\FlowCertainty;
 use App\CashFlow\Contract\FlowDirection;
 use App\CashFlow\Contract\FlowFlag;
+use App\CashFlow\Contract\ForecastPeriod;
 use App\CashFlow\Domain\Checkpoint;
 use App\CashFlow\Domain\MinimumBalance;
+use App\CashFlow\Domain\PlannedItem;
 use App\ExchangeRate\Application\ExchangeRates;
 use App\ExchangeRate\Domain\ExchangeRate;
 use App\ExchangeRate\Domain\RateNotAvailable;
@@ -33,6 +36,9 @@ use Psr\Log\LoggerInterface;
  * tenant's today only. A flow still open before today is counted on the first
  * day and flagged overdue; a document with an expected day is counted then.
  * Every amount is converted to CZK at today's rate and keeps its own amount.
+ * A planned occurrence that a document or a bank movement already fulfils is
+ * left out (PlannedFulfilment). A source whose documents the caller may not
+ * read adds to the category totals only, never as items (C15).
  * A source, a balance source or a rate that fails is listed and left out; it
  * never breaks the forecast.
  */
@@ -46,10 +52,13 @@ final class Forecasts
     private array $rates = [];
     /** @var list<string> the currencies without a rate in this forecast */
     private array $missingRates = [];
+    /** @var list<string> the keys of the sources whose documents the caller may not read */
+    private array $restricted = [];
 
     /**
-     * @param iterable<CashFlowSource> $sources
-     * @param iterable<BalanceSource>  $balanceSources
+     * @param iterable<CashFlowSource>   $sources
+     * @param iterable<BalanceSource>    $balanceSources
+     * @param iterable<ActualFlowSource> $actualSources
      */
     public function __construct(
         private readonly CashFlowAccess $access,
@@ -59,6 +68,7 @@ final class Forecasts
         private readonly LoggerInterface $logger,
         private readonly iterable $sources,
         private readonly iterable $balanceSources,
+        private readonly iterable $actualSources = [],
     ) {
     }
 
@@ -88,13 +98,14 @@ final class Forecasts
         $end = ForecastPeriods::horizonEnd($start, $months);
         $this->rates = [];
         $this->missingRates = [];
+        $this->restricted = [];
         $unavailable = [];
 
         $accounts = [];
         foreach ($this->access->accountsOf($firm) as $account) {
             $accounts[] = $this->opening($firm, $account, $today, $unavailable);
         }
-        $lines = $this->lines($firm, $today, $start, $end, $unavailable);
+        $lines = $this->unfulfilled($firm, $this->lines($firm, $today, $start, $end, $unavailable), $unavailable);
 
         $running = $this->sum(array_map(static fn (AccountOpening $account): ?Money => $account->amount, $accounts));
         $opening = $running;
@@ -135,7 +146,7 @@ final class Forecasts
                     $shortfallOn = $line->countedOn;
                 }
             }
-            $results[] = new PeriodForecast($period, $periodOpening, $in, $out, $running, $periodLines);
+            $results[] = $this->period($period, $periodOpening, $in, $out, $running, $periodLines);
         }
         $asOf = $this->oldest($accounts);
 
@@ -154,6 +165,7 @@ final class Forecasts
             $shortfallOn,
             array_values(array_unique($unavailable)),
             $this->missingRates,
+            array_values(array_unique($this->restricted)),
         );
     }
 
@@ -198,6 +210,7 @@ final class Forecasts
         foreach ($this->sources as $source) {
             try {
                 $flows = [];
+                $details = $source->mayReadDetails();
                 foreach ($source->flows($firm->id(), $today, $end, $today) as $flow) {
                     $flows[] = $flow;
                 }
@@ -205,6 +218,9 @@ final class Forecasts
                 $this->logger->error('The cash-flow source {source} failed.', ['source' => $source->key(), 'exception' => $failure]);
                 $unavailable[] = $source->key();
                 continue;
+            }
+            if (!$details) {
+                $this->restricted[] = $source->key();
             }
             foreach ($flows as $flow) {
                 $line = $this->line($flow, $expected, $today, $start, $end);
@@ -239,6 +255,88 @@ final class Forecasts
         $amount = $this->czk($flow->amount, $today);
 
         return $amount instanceof Money ? new ForecastLine($flow, $amount, $overdue ? $start : new \DateTimeImmutable($day, $today->getTimezone())) : null;
+    }
+
+    /**
+     * The lines but the planned occurrences that a document or a bank movement
+     * already fulfils, asked of the actual sources once for all the periods.
+     *
+     * @param list<ForecastLine> $lines
+     * @param list<string>       $unavailable
+     *
+     * @return list<ForecastLine>
+     */
+    private function unfulfilled(LegalEntity $firm, array $lines, array &$unavailable): array
+    {
+        $items = [];
+        foreach ($this->store->plannedItemsOf($firm->id()) as $item) {
+            $items[$item->id()] = $item;
+        }
+        $planned = [];
+        $first = null;
+        $last = null;
+        foreach ($lines as $index => $line) {
+            $item = 'planned_item' === $line->flow->subject->type ? ($items[$line->flow->subject->id] ?? null) : null;
+            if (!$item instanceof PlannedItem || (!$item->isRecurring() || !$item->counterparty() instanceof \App\Party\Domain\Party) && $item->matchRule()->isEmpty()) {
+                continue;
+            }
+            $planned[$index] = $item;
+            [$from, $to] = PlannedFulfilment::period($item, $line->flow->expectedOn);
+            $first = null === $first || $from < $first ? $from : $first;
+            $last = null === $last || $to > $last ? $to : $last;
+        }
+        if (!$first instanceof \DateTimeImmutable || !$last instanceof \DateTimeImmutable) {
+            return $lines;
+        }
+        $actuals = [];
+        foreach ($this->actualSources as $source) {
+            try {
+                $given = [];
+                foreach ($source->actuals($firm->id(), $first, $last) as $actual) {
+                    $given[] = $actual;
+                }
+            } catch (\Throwable $failure) {
+                // What it gave before failing may be partial; it suppresses nothing.
+                $this->logger->error('The cash-flow actual source {source} failed.', ['source' => $source->key(), 'exception' => $failure]);
+                $unavailable[] = $source->key();
+                continue;
+            }
+            array_push($actuals, ...$given);
+        }
+        foreach ($planned as $index => $item) {
+            if (PlannedFulfilment::isFulfilled($item, $lines[$index]->flow->expectedOn, $actuals)) {
+                unset($lines[$index]);
+            }
+        }
+
+        return array_values($lines);
+    }
+
+    /**
+     * A period with the items the caller may read; the lines of a restricted
+     * source are summed by source, direction and category instead.
+     *
+     * @param array<string, Money> $in
+     * @param array<string, Money> $out
+     * @param list<ForecastLine>   $lines
+     */
+    private function period(ForecastPeriod $period, Money $opening, array $in, array $out, Money $closing, array $lines): PeriodForecast
+    {
+        $visible = [];
+        $hidden = [];
+        foreach ($lines as $line) {
+            if (!\in_array($line->flow->source, $this->restricted, true)) {
+                $visible[] = $line;
+                continue;
+            }
+            $key = $line->flow->source.'|'.$line->flow->direction->value.'|'.$line->flow->category->value;
+            $hidden[$key] = isset($hidden[$key])
+                ? new HiddenTotal($line->flow->source, $line->flow->direction, $line->flow->category, $hidden[$key]->amount->plus($line->amount), $hidden[$key]->count + 1)
+                : new HiddenTotal($line->flow->source, $line->flow->direction, $line->flow->category, $line->amount, 1);
+        }
+        ksort($hidden);
+
+        return new PeriodForecast($period, $opening, $in, $out, $closing, $visible, array_values($hidden));
     }
 
     /**

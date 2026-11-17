@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Banking\Application;
 
+use App\Banking\Contract\Event\BankMovementRecorded;
 use App\Banking\Domain\BankMovement;
 use App\Banking\Domain\MovementState;
 use App\Banking\Domain\UnmatchedReason;
@@ -19,6 +20,8 @@ use App\Party\Domain\FirmBankAccount;
 use App\Party\Domain\Iban;
 use App\Party\Domain\InvalidIban;
 use App\Party\Domain\LegalEntity;
+use App\Shared\Application\Event\EventRecorder;
+use App\Shared\Domain\Money;
 
 /**
  * Records a movement on an account of a firm and decides where it stands. It pays
@@ -44,6 +47,7 @@ final readonly class RecordMovement
         private TransactionalWork $work,
         private ConflictRetry $retry,
         private PairingChoices $choices,
+        private EventRecorder $events,
     ) {
     }
 
@@ -67,6 +71,17 @@ final readonly class RecordMovement
                 }
             }
             $this->movements->add($movement);
+            $this->events->record(new BankMovementRecorded(
+                $movement->id(),
+                $account->firm()->id(),
+                $account->id(),
+                $movement->direction()->value,
+                $this->decimal($movement->amount()),
+                $movement->amount()->currency()->value,
+                $movement->bookedOn()->format('Y-m-d'),
+                $movement->state()->value,
+                $movement->variableSymbol(),
+            ));
 
             return $movement;
         }));
@@ -121,5 +136,19 @@ final readonly class RecordMovement
             $state,
             $reason,
         );
+    }
+
+    /**
+     * A positive amount as a decimal string, as events carry amounts.
+     */
+    private function decimal(Money $money): string
+    {
+        $places = $money->currency()->minorUnits();
+        if (0 === $places) {
+            return (string) $money->minor();
+        }
+        $unit = 10 ** $places;
+
+        return \sprintf('%d.%0'.$places.'d', intdiv($money->minor(), $unit), $money->minor() % $unit);
     }
 }

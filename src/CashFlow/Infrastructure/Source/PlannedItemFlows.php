@@ -37,6 +37,12 @@ final readonly class PlannedItemFlows implements CashFlowSource
         return self::KEY;
     }
 
+    public function mayReadDetails(): bool
+    {
+        // The forecast itself asks for cashflow:read, which planned items are part of.
+        return true;
+    }
+
     public function flows(string $firmId, \DateTimeImmutable $from, \DateTimeImmutable $to, \DateTimeImmutable $today): iterable
     {
         $zone = $today->getTimezone();

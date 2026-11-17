@@ -124,6 +124,7 @@ services:
         arguments:
             $sources: !tagged_iterator app.cash_flow_source
             $balanceSources: !tagged_iterator app.cash_flow_balance_source
+            $actualSources: !tagged_iterator app.cash_flow_actual_source
 
     App\Banking\Application\BankMessageParsers:
         arguments:

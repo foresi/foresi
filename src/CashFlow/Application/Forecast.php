@@ -23,6 +23,7 @@ final readonly class Forecast
      * @param list<PeriodForecast> $periods
      * @param list<string>         $unavailableSources the keys of the sources that failed
      * @param list<string>         $unavailableRates   the currencies without a rate today
+     * @param list<string>         $restrictedSources  the keys of the sources whose documents the caller may not read: in the totals, not as items
      */
     public function __construct(
         public LegalEntity $firm,
@@ -39,6 +40,7 @@ final readonly class Forecast
         public ?\DateTimeImmutable $shortfallOn,
         public array $unavailableSources,
         public array $unavailableRates,
+        public array $restrictedSources = [],
     ) {
     }
 

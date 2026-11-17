@@ -58,9 +58,9 @@ final readonly class CreatePlannedItemInput
         public ?string $counterpartyId = null,
         #[Field('Whether the forecast counts it; false keeps it for a "what if" without deleting it.')]
         public bool $included = true,
-        #[Field('The counterparty bank account its payments come from or go to, for matching bank movements later.', maxLength: PlannedItem::MAX_MATCH_ACCOUNT)]
+        #[Field('The counterparty bank account its payments come from or go to; a bank movement that meets the rule in the period of an occurrence fulfils it.', maxLength: PlannedItem::MAX_MATCH_ACCOUNT)]
         public ?string $matchAccount = null,
-        #[Field('The variable symbol its payments carry, up to 10 digits, for matching bank movements later.', maxLength: PlannedItem::MAX_VARIABLE_SYMBOL)]
+        #[Field('The variable symbol its payments carry, up to 10 digits; a bank movement that meets the rule in the period of an occurrence fulfils it.', maxLength: PlannedItem::MAX_VARIABLE_SYMBOL)]
         public ?string $matchVariableSymbol = null,
         #[Field('How far a payment may differ from the amount and still match, a decimal number such as "50.00".')]
         public ?string $matchTolerance = null,

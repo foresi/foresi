@@ -276,7 +276,7 @@ Fields of a planned item:
 | `ends_on`, `ends_after` | The last day an occurrence may fall on, or a count of 1 to 999 occurrences; not both. |
 | `counterparty_id` | A contact the money comes from or goes to. |
 | `included` | `false` leaves the item out of the forecast; `true` by default. |
-| `match_account`, `match_variable_symbol`, `match_tolerance` | The counterparty account, a variable symbol of up to 10 digits and how far a payment may differ, for pairing bank movements later. |
+| `match_account`, `match_variable_symbol`, `match_tolerance` | The counterparty account, a variable symbol of up to 10 digits and how far a payment may differ, a bank movement that meets them replaces the planned occurrence of its period. |
 
 Query parameters of `GET /api/v1/cash-flow/forecast`:
 
@@ -287,7 +287,9 @@ Query parameters of `GET /api/v1/cash-flow/forecast`:
 | `months` | How many calendar months the forecast covers, 1 to 24. 12 by default. |
 | `weeks_until` | Weeks are used up to the week that holds this day, then months. The end of next month by default. |
 
-The forecast answers `firm`, `currency` (`CZK`), `today`, `from`, `to`; `balance` with its `amount`, `as_of`, `stale` and the `accounts` (each with its id, IBAN, balance in its own currency, the amount in CZK, `as_of` and the `source` that knew it); `periods`, each with `key` (`2026-W47` or `2027-01`), `kind`, `start`, `end`, `opening`, `inflows` and `outflows` (`total` and `by_category`), `closing` and its `items`; `lowest` (`amount` and `on`), `minimum_balance`, `shortfall_on`, `incomplete`, `unavailable_sources` and `unavailable_rates`. An item has its `source`, `subject` (`type`, `id`, `url`), `direction`, `label`, `category`, `certainty`, `flags` (`overdue`, `expected_date`, `estimated`, `no_due_date`), `expected_on`, `counted_on`, `amount` in its own currency, `amount_czk` and `counterparty_id`.
+The forecast answers `firm`, `currency` (`CZK`), `today`, `from`, `to`; `balance` with its `amount`, `as_of`, `stale` and the `accounts` (each with its id, IBAN, balance in its own currency, the amount in CZK, `as_of` and the `source` that knew it); `periods`, each with `key` (`2026-W47` or `2027-01`), `kind`, `start`, `end`, `opening`, `inflows` and `outflows` (`total` and `by_category`), `closing` and its `items`; `lowest` (`amount` and `on`), `minimum_balance`, `shortfall_on`, `incomplete`, `unavailable_sources`, `unavailable_rates` and `restricted_sources`. An item has its `source`, `subject` (`type`, `id`, `url`), `direction`, `label`, `category`, `certainty`, `flags` (`overdue`, `expected_date`, `estimated`, `no_due_date`), `expected_on`, `counted_on`, `amount` in its own currency, `amount_czk` and `counterparty_id`.
+
+The items come from the sources of the installed modules: planned items, issued and recurring invoices, received documents. A planned occurrence that a document or a bank movement already stands for is left out. A source the token may not read in detail still counts in the totals and the balance: `cashflow:read` alone shows no invoices without `invoices:read` and no received documents without `received_documents:read`. Such a source is named in `restricted_sources`, and each period lists its flows in `hidden_items`, each with `source`, `direction`, `category`, `amount_czk` and the `count` of items. See [cash-flow.md](cash-flow.md#sources).
 
 What the cash flow refuses:
 

@@ -13,9 +13,11 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 /**
  * A module that tells the forecast what money it expects (ADR 0033). It is
  * collected by its tag, so a module implements it in its Integration/CashFlow
- * directory and Cash flow knows no source by name. A source answers only for
- * what the caller may read, inside the tenant filter. Whatever it throws is
- * caught: the forecast lists the source as unavailable and goes on.
+ * directory and Cash flow knows no source by name. A source answers inside the
+ * tenant filter, and says whether the caller may read its documents: without
+ * that, the forecast counts its flows in the category totals only (C15).
+ * Whatever it throws is caught: the forecast lists the source as unavailable
+ * and goes on.
  */
 #[AutoconfigureTag(self::TAG)]
 interface CashFlowSource
@@ -26,6 +28,13 @@ interface CashFlowSource
      * A stable key, such as "invoicing.invoices", lower case with dots.
      */
     public function key(): string;
+
+    /**
+     * Whether the caller may read the documents behind the flows, such as an API
+     * token with the read scope of the source's module. When not, the forecast
+     * shows only the category totals of its flows, never a document.
+     */
+    public function mayReadDetails(): bool;
 
     /**
      * The open flows of the firm expected by $to. A flow still open with a date

@@ -22,13 +22,18 @@ final class FakeSource implements CashFlowSource
     /**
      * @param list<ExpectedFlow> $flows
      */
-    public function __construct(private readonly string $key, private readonly array $flows = [], private readonly bool $fails = false)
+    public function __construct(private readonly string $key, private readonly array $flows = [], private readonly bool $fails = false, private readonly bool $details = true)
     {
     }
 
     public function key(): string
     {
         return $this->key;
+    }
+
+    public function mayReadDetails(): bool
+    {
+        return $this->details;
     }
 
     public function flows(string $firmId, \DateTimeImmutable $from, \DateTimeImmutable $to, \DateTimeImmutable $today): iterable

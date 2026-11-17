@@ -11,6 +11,7 @@ namespace App\CashFlow\Infrastructure\Api;
 use App\CashFlow\Application\AccountOpening;
 use App\CashFlow\Application\Forecast;
 use App\CashFlow\Application\ForecastLine;
+use App\CashFlow\Application\HiddenTotal;
 use App\CashFlow\Application\PeriodForecast;
 use App\CashFlow\Contract\FlowFlag;
 use App\CashFlow\Domain\Checkpoint;
@@ -120,6 +121,7 @@ final class CashFlowJson
             'incomplete' => $forecast->isIncomplete(),
             'unavailable_sources' => $forecast->unavailableSources,
             'unavailable_rates' => $forecast->unavailableRates,
+            'restricted_sources' => $forecast->restrictedSources,
         ];
     }
 
@@ -154,6 +156,13 @@ final class CashFlowJson
             'outflows' => self::totals($period->outflows),
             'closing' => JsonValues::money($period->closing),
             'items' => array_map(self::line(...), $period->lines),
+            'hidden_items' => array_map(static fn (HiddenTotal $hidden): array => [
+                'source' => $hidden->source,
+                'direction' => $hidden->direction->value,
+                'category' => $hidden->category->value,
+                'amount_czk' => JsonValues::money($hidden->amount),
+                'count' => $hidden->count,
+            ], $period->hidden),
         ];
     }
 

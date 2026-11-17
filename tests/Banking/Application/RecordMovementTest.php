@@ -31,17 +31,21 @@ use App\Party\Application\ManageFirmBankAccounts;
 use App\Party\Application\TransactionalWork;
 use App\Party\Application\UnknownFirmBankAccount;
 use App\Party\Domain\LegalEntity;
+use App\Shared\Application\Event\EventRecorder;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Banking\Support\BankingTestCase;
 use App\Tests\Banking\Support\LoggingBankMovements;
+use App\Tests\Invoicing\Application\ReadsEventLog;
 use App\Tests\Party\Support\FirmAccounts;
 use Psr\Clock\ClockInterface;
 
 final class RecordMovementTest extends BankingTestCase
 {
+    use ReadsEventLog;
+
     private const string OTHER_OWN_IBAN = 'DE89370400440532013000';
 
     public function testAVerifiedMovementIsPairedAndTheInvoiceIsPaid(): void
@@ -65,6 +69,23 @@ final class RecordMovementTest extends BankingTestCase
         $allocations = $connection->fetchAllAssociative('SELECT invoice_id, amount_minor, settlement_minor FROM payment_allocation WHERE payment_id = ?', [$payment->id()]);
         self::assertSame([[$invoice->id(), 121000, 0]], array_map(static fn (array $a): array => [$a['invoice_id'], self::int($a['amount_minor']), self::int($a['settlement_minor'])], $allocations));
         self::assertSame(PaymentState::Paid, $this->stateOf($invoice));
+    }
+
+    public function testRecordingAMovementPutsItsAmountAsADecimalStringInTheEvent(): void
+    {
+        $movement = $this->recordMovement->record($this->incoming('1234.05', vs: '777', counterIban: null), self::unverified());
+        $second = $this->recordMovement->record($this->incoming('0.07', vs: null, counterIban: null, bookedOn: '2026-11-21', direction: MovementDirection::Outgoing), self::unverified());
+
+        $events = $this->events('banking.movement.recorded');
+
+        self::assertCount(2, $events);
+        self::assertSame($movement->id(), $events[0]['subject']);
+        self::assertSame(
+            ['movement_id' => $movement->id(), 'firm_id' => $this->firm->id(), 'account_id' => $this->account->id(), 'direction' => 'incoming', 'amount' => '1234.05', 'currency' => 'CZK', 'booked_on' => '2026-11-20', 'state' => $movement->state()->value, 'variable_symbol' => '777'],
+            $events[0]['data'],
+        );
+        self::assertSame(['0.07', 'outgoing', '2026-11-21'], [$events[1]['data']['amount'] ?? null, $events[1]['data']['direction'] ?? null, $events[1]['data']['booked_on'] ?? null]);
+        self::assertSame($second->id(), $events[1]['subject']);
     }
 
     public function testAnUnverifiedMovementIsRecordedUnmatchedWithSuggestions(): void
@@ -91,7 +112,7 @@ final class RecordMovementTest extends BankingTestCase
             }
         };
         $container = self::getContainer();
-        $record = new RecordMovement($this->movements, $container->get(FirmBankAccounts::class), $this->matcher, $rules, $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $container->get(PairingChoices::class));
+        $record = new RecordMovement($this->movements, $container->get(FirmBankAccounts::class), $this->matcher, $rules, $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $container->get(PairingChoices::class), $container->get(EventRecorder::class));
 
         $movement = $record->record($this->incoming('1210.00'), self::verified());
 
@@ -104,7 +125,7 @@ final class RecordMovementTest extends BankingTestCase
     {
         $movements = new LoggingBankMovements($this->movements);
         $container = self::getContainer();
-        $record = new RecordMovement($movements, $container->get(FirmBankAccounts::class), $this->matcher, $container->get(FirmPairingRules::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $container->get(PairingChoices::class));
+        $record = new RecordMovement($movements, $container->get(FirmBankAccounts::class), $this->matcher, $container->get(FirmPairingRules::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $container->get(PairingChoices::class), $container->get(EventRecorder::class));
 
         $movement = $record->record($this->incoming('10.00'), self::verified());
 
