@@ -37,6 +37,9 @@ final class Style
         'secondary' => 'bg-white border-control-line text-ink hover:bg-head',
         'ghost' => 'bg-transparent border-transparent text-text hover:bg-head',
         'danger' => 'bg-white border-control-line text-badge-red-text hover:bg-badge-red',
+        // A filter chip of Ui:FilterBar: empty is quiet with a dashed edge, set sits on the green tint (Calm UI 1A).
+        'chip' => 'bg-white border-dashed border-control-line text-muted hover:border-green hover:text-ink',
+        'chip-set' => 'bg-transparent border-transparent text-green hover:bg-white/60',
     ];
 
     private const array BUTTON_SIZES = ['md' => 'h-control', 'sm' => 'h-control-sm text-small'];

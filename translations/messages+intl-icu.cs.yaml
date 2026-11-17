@@ -104,6 +104,15 @@ ui:
     keep_editing: Pokračovat v úpravách
     discard: Zahodit
     failed: Něco se nepovedlo. Zkuste to prosím znovu.
+  filter_bar:
+    title: Filtry
+    description: Vyberte, čím se má seznam zúžit.
+    search: Hledat
+    more: Další filtry
+    filters: Filtry
+    apply: Použít
+    clear_all: Zrušit vše
+    clear_one: 'Zrušit filtr {label}'
   sheet:
     resize: Změnit šířku panelu
   confirm:

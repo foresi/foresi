@@ -104,6 +104,15 @@ ui:
     keep_editing: Keep editing
     discard: Discard
     failed: Something went wrong. Please try again.
+  filter_bar:
+    title: Filters
+    description: Choose what narrows the list.
+    search: Search
+    more: More filters
+    filters: Filters
+    apply: Apply
+    clear_all: Clear all
+    clear_one: 'Clear the filter {label}'
   sheet:
     resize: Resize the panel
   confirm:

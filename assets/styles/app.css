@@ -99,12 +99,14 @@
 
     /*
      * Heights: controls (sm, md, lg = touch and the palette field) and table rows. A field, a
-     * button and a menu row are 40 px, as in level.io (h-10).
+     * button and a menu row are 40 px, as in level.io (h-10). A row of a list is 56 px (layout spec,
+     * lists); a dense table (lines, bank movements) and every table header keep 44 px (level.io).
      */
     --spacing-control-sm: 28px;
     --spacing-control: 40px;
     --spacing-control-lg: 40px;
     --spacing-row: 44px;
+    --spacing-row-list: 56px;
     --spacing-badge: 22px;
 
     /* App shell: the area rail and the area sidebar beside the content panel. */

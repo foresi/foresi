@@ -39,22 +39,15 @@
         </twig:Ui:EmptyState>
     {% else %}
         <div class="grid grid-cols-1 gap-4">
-            <div class="flex flex-wrap items-end justify-between gap-3">
-                <twig:Ui:Tabs :items="tabs" :label="'invoice.list.views'|trans" class="min-w-0 flex-1" />
-                <form method="get" action="{{ path(route) }}" role="search" class="flex w-full flex-wrap items-end gap-2 sm:w-auto max-sm:[&_button]:h-control-lg max-sm:[&_input]:h-control-lg">
-                    {% if tab != 'all' %}<input type="hidden" name="tab" value="{{ tab }}">{% endif %}
-                    {% if sort != '-issueDate' %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
-                    {% if toSend %}<input type="hidden" name="toSend" value="1">{% endif %}
-                    {% if firms is not empty %}
-                        <div class="w-full min-w-0 sm:w-52"><twig:Ui:Select name="firm" id="invoice-firm" :label="'invoice.field.firm'|trans" :options="firms" :value="firm" /></div>
-                    {% endif %}
-                    {# The months with a document, not a native month field: it overflows its box and Safari has no picker. #}
-                    <div class="w-full min-w-0 sm:w-44"><twig:Ui:Select name="month" id="invoice-month" :label="'invoice.month.label'|trans" :options="months" :value="month" /></div>
-                    <div class="w-full min-w-0 sm:w-44"><twig:Ui:Select name="export" id="invoice-export" :label="'invoice.export_state.label'|trans" :options="exportStates" :value="export" /></div>
-                    <twig:Ui:SearchField name="q" :value="text" :label="'invoice.list.search_label'|trans" :placeholder="'invoice.list.search_placeholder'|trans" maxlength="100" class="min-w-0 flex-1 sm:w-64 sm:flex-none" />
-                    <twig:Ui:Button type="submit" icon="search">{{ 'invoice.list.search'|trans }}</twig:Ui:Button>
-                </form>
-            </div>
+            <twig:Ui:Tabs :items="tabs" :label="'invoice.list.views'|trans" />
+            {# The months with a document, not a native month field: it overflows its box and Safari has no picker. #}
+            {% set invoiceFilters = (firms is not empty ? [{name: 'firm', label: 'invoice.field.firm'|trans, options: firms, value: firm, pinned: true}] : [])|merge([
+                {name: 'month', label: 'invoice.month.label'|trans, options: months, value: month, pinned: true},
+                {name: 'export', label: 'invoice.export_state.label'|trans, options: exportStates, value: export},
+            ]) %}
+            <twig:Ui:FilterBar id="invoice-filters" :action="path(route)" :keep="{tab: tab != 'all' ? tab : null, sort: sort != '-issueDate' ? sort : null, toSend: toSend ? '1' : null}"
+                :search="{name: 'q', value: text, label: 'invoice.list.search_label'|trans, placeholder: 'invoice.list.search_placeholder'|trans}"
+                :filters="invoiceFilters" :empty="rows is empty" />
             {% if toSend or toSendCount > 0 %}
                 {# The invoices recurring templates issued that nobody sent yet: held for review, or refused for sending. #}
                 <div class="flex flex-wrap items-center gap-2" data-to-send>
