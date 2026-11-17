@@ -12,7 +12,7 @@ use App\Events\Application\DeliverEvent;
 use App\Events\Application\EventSink;
 use App\Events\Infrastructure\Dbal\EventLogTable;
 use App\Events\Infrastructure\Dbal\EventRowReader;
-use App\Tenancy\Infrastructure\Messenger\TenantStamp;
+use App\Instance\Infrastructure\Messenger\TenantStamp;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\Component\Lock\LockFactory;

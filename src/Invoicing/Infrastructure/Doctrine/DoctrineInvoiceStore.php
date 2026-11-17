@@ -47,7 +47,7 @@ use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Id;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;

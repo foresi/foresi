@@ -12,7 +12,7 @@ use App\Audit\Domain\AuditEntry;
 use App\Invoicing\Infrastructure\Events\InvoicingEventAccess;
 use App\Shared\Application\Event\EventReadAccess;
 use App\Shared\Application\SealerUnavailable;
-use App\Tenancy\Infrastructure\Messenger\TenantStamp;
+use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Webhooks\Application\AttemptTrigger;
 use App\Webhooks\Application\SendWebhook;
 use App\Webhooks\Application\WebhookSecrets;

@@ -23,7 +23,7 @@ use App\Banking\Domain\InboundChannel;
 use App\Banking\Domain\InboundMessage;
 use App\Banking\Domain\InboundStatus;
 use App\Banking\Domain\MessageTrust;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;

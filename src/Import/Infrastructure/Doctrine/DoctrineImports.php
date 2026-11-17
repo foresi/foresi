@@ -16,7 +16,7 @@ use App\Import\Domain\ImportRow;
 use App\Import\Domain\ImportState;
 use App\Import\Domain\RowOutcome;
 use App\Import\Domain\Text;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;

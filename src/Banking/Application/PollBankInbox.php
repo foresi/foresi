@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Banking\Application;
 
 use App\Banking\Domain\InboundChannel;
-use App\Tenancy\Application\Schedule\OperatorTask;
+use App\Instance\Application\Schedule\OperatorTask;
 use Psr\Log\LoggerInterface;
 
 /**

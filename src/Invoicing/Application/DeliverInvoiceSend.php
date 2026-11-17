@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
-use App\Tenancy\Application\TenantScopedMessage;
+use App\Instance\Application\TenantScopedMessage;
 
 /**
  * Delivers one stored send in the tenant the message carries. It holds only the

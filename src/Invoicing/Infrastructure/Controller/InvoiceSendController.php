@@ -34,7 +34,7 @@ use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Infrastructure\Form\MailTokenLabels;
 use App\Party\Domain\PartyEmail;
 use App\Shared\Infrastructure\Http\SubmissionTokens;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\RedirectResponse;

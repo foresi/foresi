@@ -13,7 +13,7 @@ use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\People;
 use App\Identity\Domain\Membership;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use App\Work\Domain\Duration;
 use App\Work\Domain\Project;
 use App\Work\Domain\Task;

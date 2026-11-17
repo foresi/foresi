@@ -11,7 +11,7 @@ namespace App\Tests\Invoicing\Infrastructure\Messenger;
 use App\Invoicing\Application\DeliverInvoiceSend;
 use App\Invoicing\Infrastructure\Messenger\SendLeaseHeld;
 use App\Invoicing\Infrastructure\Messenger\WaitForLeaseMiddleware;
-use App\Tenancy\Infrastructure\Messenger\TenantStamp;
+use App\Instance\Infrastructure\Messenger\TenantStamp;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;

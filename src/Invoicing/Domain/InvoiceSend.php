@@ -14,8 +14,8 @@ use App\Audit\Domain\AuditRooted;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Currency;
-use App\Tenancy\Domain\TenantId;
-use App\Tenancy\Domain\TenantOwned;
+use App\Instance\Domain\TenantId;
+use App\Instance\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
 
 /**

@@ -13,8 +13,8 @@ use App\Invoicing\Application\UnknownMailVariables;
 use App\Invoicing\Domain\InvalidMailTemplate;
 use App\Invoicing\Domain\MailTemplateKind;
 use App\Party\Domain\DocumentLanguage;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use Doctrine\DBAL\Connection;
 
 final class MailTemplatesTest extends InvoiceTestCase

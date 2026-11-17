@@ -13,7 +13,7 @@ use App\Invoicing\Application\SequenceOutOfRange;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesFormat;
 use App\Shared\Domain\Id;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\ParameterType;

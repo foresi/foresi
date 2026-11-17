@@ -12,8 +12,8 @@ use App\Identity\Application\ApiTokenRecord;
 use App\Identity\Application\ApiTokens;
 use App\Identity\Domain\ApiScope;
 use App\Identity\Domain\ApiToken;
-use App\Tenancy\Domain\TenantId;
-use App\Tenancy\Infrastructure\Doctrine\TenantFilterBypass;
+use App\Instance\Domain\TenantId;
+use App\Instance\Infrastructure\Doctrine\TenantFilterBypass;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**

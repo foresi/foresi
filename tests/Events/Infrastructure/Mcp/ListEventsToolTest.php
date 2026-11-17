@@ -14,7 +14,7 @@ use App\Events\Infrastructure\Relay\EventRelay;
 use App\Shared\Application\Event\EventRecorder;
 use App\Shared\Domain\Id;
 use App\Shared\Infrastructure\Mcp\ToolOutput;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use App\Tests\Events\Support\RecordedEvents;
 use App\Tests\Shared\Infrastructure\Mcp\ReadToolTestCase;
 use Doctrine\DBAL\Connection;

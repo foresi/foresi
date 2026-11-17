@@ -12,7 +12,7 @@ use App\Events\Infrastructure\Relay\EventListeners;
 use App\Events\Infrastructure\Relay\EventRelay;
 use App\Events\Infrastructure\Relay\PruneEventLogTask;
 use App\Shared\Domain\Id;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 use App\Tests\Events\Support\EventRows;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;

@@ -20,7 +20,7 @@ use App\Party\Application\TransactionalWork;
 use App\Party\Domain\PartyEmail;
 use App\Shared\Domain\Id;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Psr\Clock\ClockInterface;
 
 /**

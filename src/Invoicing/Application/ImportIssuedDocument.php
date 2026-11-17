@@ -25,7 +25,7 @@ use App\Party\Application\UnknownLegalEntity;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
 use App\Shared\Domain\Currency;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Psr\Clock\ClockInterface;
 
 /**

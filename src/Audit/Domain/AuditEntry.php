@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace App\Audit\Domain;
 
 use App\Shared\Domain\Id;
-use App\Tenancy\Domain\TenantId;
-use App\Tenancy\Domain\TenantOwned;
+use App\Instance\Domain\TenantId;
+use App\Instance\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
 
 /**

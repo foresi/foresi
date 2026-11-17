@@ -18,7 +18,7 @@ use App\Party\Domain\PartyEmail;
 use App\Party\Infrastructure\Doctrine\VatIdType;
 use App\Shared\Domain\Id;
 use App\Shared\Infrastructure\Doctrine\RefuseMigrationRehearsal;
-use App\Tenancy\Infrastructure\Doctrine\TenantIdType;
+use App\Instance\Infrastructure\Doctrine\TenantIdType;
 use Doctrine\Common\EventManager;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;

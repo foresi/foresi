@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Import\Infrastructure;
 
 use App\Import\Infrastructure\LocalImportFiles;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

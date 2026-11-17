@@ -10,7 +10,7 @@ namespace App\Import\Infrastructure\Messenger;
 
 use App\Import\Application\ImportFiles;
 use App\Import\Domain\Import;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 
 /**
  * The path of an import's file, only when its key lies in the active tenant's

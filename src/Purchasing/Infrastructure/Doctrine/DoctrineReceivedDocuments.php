@@ -13,7 +13,7 @@ use App\Purchasing\Application\UnknownReceivedDocument;
 use App\Purchasing\Domain\ReceivedDocument;
 use App\Purchasing\Domain\ReceivedDocumentPayment;
 use App\Shared\Domain\Id;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
 
 final readonly class DoctrineReceivedDocuments implements ReceivedDocuments

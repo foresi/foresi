@@ -32,7 +32,7 @@ use App\Invoicing\Application\UndoBlocker;
 use App\Party\Application\LegalEntities;
 use App\Party\Application\UnknownLegalEntity;
 use App\Party\Domain\LegalEntity;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;

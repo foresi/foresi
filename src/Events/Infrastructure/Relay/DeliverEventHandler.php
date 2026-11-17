@@ -14,7 +14,7 @@ use App\Events\Infrastructure\Dbal\EventLogTable;
 use App\Events\Infrastructure\Payload\EventPayloads;
 use App\Shared\Application\Event\DomainEventListener;
 use App\Shared\Application\Event\RecordedEvent;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
 use Psr\Log\LoggerInterface;

@@ -11,8 +11,8 @@ namespace App\Party\Domain;
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditRooted;
 use App\Shared\Domain\Id;
-use App\Tenancy\Domain\TenantId;
-use App\Tenancy\Domain\TenantOwned;
+use App\Instance\Domain\TenantId;
+use App\Instance\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
 
 /**

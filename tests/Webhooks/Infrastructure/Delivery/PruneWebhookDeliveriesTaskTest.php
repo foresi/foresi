@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Webhooks\Infrastructure\Delivery;
 
 use App\Shared\Domain\Id;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 use App\Tests\Webhooks\Support\DeliveryRows;
 use App\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
 use App\Webhooks\Infrastructure\Delivery\PruneWebhookDeliveriesTask;

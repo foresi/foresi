@@ -33,7 +33,7 @@ use App\Party\Application\LegalEntities;
 use App\Party\Application\TransactionalWork;
 use App\Shared\Domain\Money;
 use App\Shared\Domain\Schedule\RecurrenceEnd;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;

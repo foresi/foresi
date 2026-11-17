@@ -13,7 +13,7 @@ use App\CashFlow\Application\Forecasts;
 use App\CashFlow\Application\PlannedItemReads;
 use App\CashFlow\Domain\PlannedItem;
 use App\Shared\Application\Api\ScopeGuard;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;

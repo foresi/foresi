@@ -19,7 +19,7 @@ use App\Import\Domain\FieldDefinition;
 use App\Import\Domain\FieldType;
 use App\Import\Domain\RowError;
 use App\Shared\Domain\Id;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 
 /**
  * An import target that keeps its records in memory: a code (the match key),

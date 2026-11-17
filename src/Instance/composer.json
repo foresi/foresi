@@ -1,0 +1,17 @@
+{
+    "name": "foresi/instance",
+    "description": "The instance: its clock, schedule, operator tasks and health, and for now the tenant of each request.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "require": {
+        "foresi/shared": "*"
+    },
+    "extra": {
+        "foresi": {
+            "module": "instance",
+            "kind": "core",
+            "namespace": "App\\Instance\\",
+            "optional": []
+        }
+    }
+}

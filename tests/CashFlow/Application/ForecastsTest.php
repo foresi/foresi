@@ -34,7 +34,7 @@ use App\ExchangeRate\Domain\RateNotAvailable;
 use App\Shared\Application\RefusalKind;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use App\Tests\CashFlow\Support\CashFlowTestCase;
 use App\Tests\CashFlow\Support\FakeBalanceSource;
 use App\Tests\CashFlow\Support\FakeSource;

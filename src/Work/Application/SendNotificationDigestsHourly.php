@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Work\Application;
 
-use App\Tenancy\Application\Schedule\ScheduledJob;
+use App\Instance\Application\Schedule\ScheduledJob;
 use Psr\Clock\ClockInterface;
 
 /**

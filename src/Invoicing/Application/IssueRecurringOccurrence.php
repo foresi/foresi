@@ -14,7 +14,7 @@ use App\Invoicing\Domain\PeriodText;
 use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\RecurringInvoiceLine;
 use App\Invoicing\Domain\RecurringState;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 
 /**
  * Issues the invoice of one occurrence of a recurring template, at most once

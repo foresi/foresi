@@ -32,7 +32,7 @@ use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Id;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use App\Tests\Invoicing\Infrastructure\Support\InvoiceCopies;
 use App\Tests\Invoicing\Infrastructure\Support\SettledBalances;
 use App\Tests\Invoicing\Infrastructure\Support\UnauthoritativeBalances;

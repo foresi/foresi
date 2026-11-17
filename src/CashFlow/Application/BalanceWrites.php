@@ -13,7 +13,7 @@ use App\CashFlow\Domain\ExpectedDate;
 use App\CashFlow\Domain\MinimumBalance;
 use App\Party\Application\TransactionalWork;
 use App\Shared\Domain\Currency;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use Psr\Clock\ClockInterface;
 
 /**

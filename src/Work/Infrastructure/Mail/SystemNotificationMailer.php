@@ -13,7 +13,7 @@ use App\Identity\Domain\Membership;
 use App\Shared\Application\Markdown;
 use App\Shared\Application\SystemMail;
 use App\Shared\Application\SystemMailer;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use App\Work\Application\ManageNotificationPreferences;
 use App\Work\Application\NotificationMailer;
 use App\Work\Domain\Notification;

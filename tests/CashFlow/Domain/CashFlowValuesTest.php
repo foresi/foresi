@@ -28,7 +28,7 @@ use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

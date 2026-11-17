@@ -10,7 +10,7 @@ namespace App\Tests\Party\Domain;
 
 use App\Party\Domain\ContactLink;
 use App\Shared\Domain\Id;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 use PHPUnit\Framework\TestCase;
 
 final class ContactLinkTest extends TestCase

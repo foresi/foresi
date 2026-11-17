@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace App\Tests\Webhooks\Infrastructure\Delivery;
 
 use App\Shared\Domain\Id;
-use App\Tenancy\Domain\TenantId;
-use App\Tenancy\Infrastructure\Messenger\TenantStamp;
+use App\Instance\Domain\TenantId;
+use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Tests\Webhooks\Support\DeliveryRows;
 use App\Webhooks\Application\AttemptTrigger;
 use App\Webhooks\Application\SendWebhook;

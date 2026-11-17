@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace App\Tests\Work\Infrastructure\Controller;
 
 use App\Identity\Domain\Role;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Ui\Dialog\DialogRequest;
 use App\Work\Domain\Label;

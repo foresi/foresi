@@ -14,7 +14,7 @@ use App\Attachment\Application\AttachmentPermissions;
 use App\Attachment\Domain\Attachment;
 use App\Audit\Domain\AuditAction;
 use App\Shared\Domain\Id;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use App\Work\Application\ManageComments;
 use App\Work\Application\PurgeDeletedTasks;
 use App\Work\Application\PurgeTaskTrashDaily;

@@ -15,7 +15,7 @@ use App\Identity\Infrastructure\Security\ApiFirewalls;
 use App\Identity\Infrastructure\Security\SecurityApiTokenContext;
 use App\Identity\Infrastructure\Security\SecurityAuditActor;
 use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;

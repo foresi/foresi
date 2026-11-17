@@ -13,7 +13,7 @@ use App\Identity\Application\ApiTokenGrant;
 use App\Identity\Application\ApiTokenRefused;
 use App\Identity\Application\UserRepository;
 use App\Identity\Domain\User;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Http\Authenticator\Token\PostAuthenticationToken;
 

@@ -12,8 +12,8 @@ use App\Banking\Domain\InboundChannel;
 use App\Banking\Domain\InboundMessage;
 use App\Party\Application\TransactionalWork;
 use App\Shared\Domain\Id;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use Psr\Clock\ClockInterface;
 
 /**

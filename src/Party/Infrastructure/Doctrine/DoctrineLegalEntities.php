@@ -11,7 +11,7 @@ namespace App\Party\Infrastructure\Doctrine;
 use App\Party\Application\LegalEntities;
 use App\Party\Application\UnknownLegalEntity;
 use App\Party\Domain\LegalEntity;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 

@@ -74,7 +74,7 @@ use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
 use App\Shared\Domain\Countries;
 use App\Shared\Infrastructure\Http\SubmissionTokens;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\HeaderUtils;

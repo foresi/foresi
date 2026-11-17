@@ -16,7 +16,7 @@ use App\Identity\Application\OpenToGuest;
 use App\Identity\Application\People;
 use App\Identity\Application\Person;
 use App\Identity\Application\StaffCheck;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use App\Ui\Avatar;
 use App\Ui\FileSize;
 use App\Work\Application\Choice;

@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Webhooks\Infrastructure\Api;
 
-use App\Tenancy\Infrastructure\Messenger\TenantStamp;
+use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Webhooks\Application\AttemptTrigger;
 use App\Webhooks\Application\SendWebhook;
 use App\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;

@@ -40,8 +40,8 @@ use App\Party\Domain\PaymentMethod;
 use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Tests\Party\Support\FirmAccounts;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 

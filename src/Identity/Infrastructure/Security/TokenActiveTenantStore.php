@@ -10,7 +10,7 @@ namespace App\Identity\Infrastructure\Security;
 
 use App\Identity\Application\ActiveTenantStore;
 use App\Identity\Application\ApiTokenContext;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 
 /**
  * The organisation of the personal API token a request signed in with. A token

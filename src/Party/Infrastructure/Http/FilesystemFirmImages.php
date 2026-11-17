@@ -10,7 +10,7 @@ namespace App\Party\Infrastructure\Http;
 
 use App\Party\Application\FirmImages;
 use App\Party\Application\FirmImageType;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 
 /**
  * Stores images as <root>/<tenant>/<name> with mode 0600 (directories 0700). The

@@ -11,7 +11,7 @@ namespace App\Tests\Identity\Support;
 use App\Identity\Application\ApiTokenRecord;
 use App\Identity\Application\ApiTokens;
 use App\Identity\Domain\ApiToken;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 
 /**
  * The tokens of one tenant in memory, and records across tenants as given.

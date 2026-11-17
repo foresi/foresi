@@ -35,7 +35,7 @@ use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Application\TransactionalWork;
 use App\Party\Domain\Address;
 use App\Party\Domain\PartyAddress;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 

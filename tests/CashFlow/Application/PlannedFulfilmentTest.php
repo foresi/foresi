@@ -30,7 +30,7 @@ use App\Party\Domain\PartyKind;
 use App\Party\Domain\RegistrationNumber;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use App\Tests\CashFlow\Support\CashFlowTestCase;
 use App\Tests\CashFlow\Support\FakeActualSource;
 use App\Tests\CashFlow\Support\FakeSource;

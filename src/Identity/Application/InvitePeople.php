@@ -16,7 +16,7 @@ use App\Identity\Domain\User;
 use App\Party\Application\PartyQuery;
 use App\Party\Domain\Party;
 use App\Shared\Application\SystemMailUnavailable;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Psr\Clock\ClockInterface;
 
 /**

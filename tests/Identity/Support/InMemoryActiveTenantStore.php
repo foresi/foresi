@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Identity\Support;
 
 use App\Identity\Application\ActiveTenantStore;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 
 final class InMemoryActiveTenantStore implements ActiveTenantStore
 {

@@ -11,7 +11,7 @@ namespace App\Work\Infrastructure\Controller;
 use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\People;
 use App\Identity\Domain\Role;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use App\Work\Application\TimeEntryRow;
 use App\Work\Application\TimeGrouping;
 use App\Work\Application\TimeQueries;

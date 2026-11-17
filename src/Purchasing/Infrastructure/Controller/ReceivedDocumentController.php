@@ -26,7 +26,7 @@ use App\Purchasing\Infrastructure\Form\ReceivedDocumentForm;
 use App\Purchasing\Infrastructure\Form\ReceivedDocumentScreen;
 use App\Purchasing\Infrastructure\Form\RefusalFields;
 use App\Purchasing\Infrastructure\Navigation\PurchasingNavigation;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;

@@ -49,7 +49,7 @@ use App\Party\Application\LegalEntities;
 use App\Party\Application\PartyQuery;
 use App\Party\Application\TransactionalWork;
 use App\Party\Domain\Address;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Clock\Clock;

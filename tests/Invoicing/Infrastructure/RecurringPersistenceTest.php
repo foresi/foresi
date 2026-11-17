@@ -15,8 +15,8 @@ use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\RecurringInvoiceLine;
 use App\Invoicing\Domain\RecurringState;
 use App\Party\Application\TransactionalWork;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Tests\Invoicing\Application\RecurringTestCase;
 
 final class RecurringPersistenceTest extends RecurringTestCase

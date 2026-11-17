@@ -24,7 +24,7 @@ use App\Shared\Domain\Schedule\InvalidRecurrence;
 use App\Shared\Domain\Schedule\Recurrence;
 use App\Shared\Domain\Schedule\RecurrenceEnd;
 use App\Shared\Domain\Schedule\RecurringSchedule;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use Psr\Clock\ClockInterface;
 
 /**

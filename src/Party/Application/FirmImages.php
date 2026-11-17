@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Party\Application;
 
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 
 /**
  * The logo and stamp images of the firms, per tenant and outside the web root.

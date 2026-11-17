@@ -11,7 +11,7 @@ namespace App\Identity\Infrastructure\Security;
 use App\Identity\Application\ActiveTenantStore;
 use App\Identity\Application\ApiTokenContext;
 use App\Identity\Application\ApiTokenGrant;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 
 /**
  * The tenant store of the current request: the token's organisation for a

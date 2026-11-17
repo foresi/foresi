@@ -10,7 +10,7 @@ namespace App\Party\Infrastructure\Doctrine;
 
 use App\Party\Application\TransactionalWork;
 use App\Shared\Application\Event\EventOutbox;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 

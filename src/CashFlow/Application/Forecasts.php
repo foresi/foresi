@@ -27,7 +27,7 @@ use App\Party\Domain\FirmBankAccount;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use Psr\Log\LoggerInterface;
 
 /**

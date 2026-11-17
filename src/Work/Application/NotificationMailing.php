@@ -10,7 +10,7 @@ namespace App\Work\Application;
 
 use App\Identity\Application\People;
 use App\Identity\Domain\Membership;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use App\Work\Domain\EmailDelivery;
 use App\Work\Domain\Notification;
 use App\Work\Domain\NotificationKind;

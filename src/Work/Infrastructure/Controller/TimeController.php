@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Work\Infrastructure\Controller;
 
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use App\Work\Application\ManageTime;
 use App\Work\Application\TimeEntryRow;
 use App\Work\Application\TimeQueries;

@@ -13,9 +13,9 @@ use App\Invoicing\Domain\RecurringDelivery;
 use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\RecurringState;
 use App\Party\Application\TransactionalWork;
-use App\Tenancy\Application\Schedule\DailyPeriod;
-use App\Tenancy\Application\Schedule\ScheduledJob;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\Schedule\DailyPeriod;
+use App\Instance\Application\Schedule\ScheduledJob;
+use App\Instance\Application\TenantClock;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 

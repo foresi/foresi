@@ -29,7 +29,7 @@ use App\Purchasing\Infrastructure\Form\ReceivedDocumentScreen;
 use App\Purchasing\Infrastructure\Form\RefusalFields;
 use App\Purchasing\Infrastructure\Navigation\PurchasingNavigation;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;

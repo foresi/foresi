@@ -7,7 +7,7 @@
         "foresi/audit": "*",
         "foresi/party": "*",
         "foresi/shared": "*",
-        "foresi/tenancy": "*",
+        "foresi/instance": "*",
         "foresi/ui": "*"
     },
     "extra": {

@@ -12,9 +12,9 @@ use App\Invoicing\Domain\FirmReminders;
 use App\Invoicing\Domain\SendPurpose;
 use App\Party\Application\LegalEntities;
 use App\Party\Domain\LegalEntity;
-use App\Tenancy\Application\Schedule\DailyPeriod;
-use App\Tenancy\Application\Schedule\ScheduledJob;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\Schedule\DailyPeriod;
+use App\Instance\Application\Schedule\ScheduledJob;
+use App\Instance\Application\TenantClock;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 

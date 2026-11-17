@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Events\Infrastructure\Relay;
 
-use App\Tenancy\Application\Schedule\OperatorTask;
+use App\Instance\Application\Schedule\OperatorTask;
 
 /**
  * Sweeps the log on every tick of the schedule, for rows no nudge announced: a

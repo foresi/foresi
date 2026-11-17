@@ -15,7 +15,7 @@ use App\CashFlow\Infrastructure\Api\CashFlowJson;
 use App\Shared\Infrastructure\Mcp\ReadTool;
 use App\Shared\Infrastructure\Mcp\ToolArguments;
 use App\Shared\Infrastructure\Mcp\ToolOutput;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 
 /**
  * The planned items of a firm, as GET /api/v1/cash-flow/planned-items writes them.

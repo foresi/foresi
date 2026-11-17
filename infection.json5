@@ -31,7 +31,7 @@
         // Equivalent mutants: a numeric string added to an int yields the same value, and so it does when
         // compared with an int or taken by max(); false from strrpos() plus one is one, cast or not.
         "CastInt": {"ignore": [
-            "App\\Tenancy\\Domain\\TenantId::generate",
+            "App\\Instance\\Domain\\TenantId::generate",
             "App\\Invoicing\\Domain\\Percent::fromString",
             "App\\Invoicing\\Domain\\Quantity::fromString",
             "App\\Invoicing\\Domain\\SeriesFormat::beyondCounter",
@@ -42,7 +42,7 @@
             "App\\Invoicing\\Application\\RecurringPreview::next",
             "App\\Invoicing\\Application\\RecurringAlerts::message",
             "App\\Invoicing\\Application\\MailVariables::valuesForReminder",
-            "App\\Tenancy\\Application\\Schedule\\DailyPeriod::of",
+            "App\\Instance\\Application\\Schedule\\DailyPeriod::of",
             // bindec() of five bits is an int, and the logged money columns are ints.
             "App\\Banking\\Application\\InboundToken::generate::32",
             "App\\Invoicing\\Application\\InvoiceHistory::minor::135",

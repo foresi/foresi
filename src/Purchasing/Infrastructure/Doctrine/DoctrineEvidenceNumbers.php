@@ -13,7 +13,7 @@ use App\Purchasing\Application\EvidenceNumbersExhausted;
 use App\Purchasing\Domain\EvidenceNumberFormat;
 use App\Purchasing\Domain\EvidenceSeries;
 use App\Shared\Domain\Id;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\DriverException;
 

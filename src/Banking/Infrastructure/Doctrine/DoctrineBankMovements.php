@@ -18,7 +18,7 @@ use App\Banking\Domain\MovementState;
 use App\Invoicing\Domain\Payment;
 use App\Invoicing\Domain\PaymentAllocation;
 use App\Party\Domain\FirmBankAccount;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
 

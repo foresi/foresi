@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Webhooks\Infrastructure\Doctrine;
 
 use App\Shared\Application\Event\EventOutbox;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use App\Webhooks\Application\WebhookWork;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;

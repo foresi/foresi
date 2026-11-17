@@ -36,8 +36,8 @@ use App\Invoicing\Infrastructure\Mail\RouterDocumentLinks;
 use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Infrastructure\Schedule\ScheduleTick;
+use App\Instance\Application\TenantContext;
+use App\Instance\Infrastructure\Schedule\ScheduleTick;
 use App\Tests\Import\Support\RunMessages;
 use App\Tests\Support\Mail\RecordingMailGateway;
 use Doctrine\DBAL\Connection;
@@ -382,7 +382,7 @@ final class SendInvoiceTest extends SendingTestCase
         $invoice = $this->issue->issue($this->input());
         $send = $this->sent($invoice);
         $context = self::getContainer()->get(TenantContext::class);
-        $context->switchTo(\App\Tenancy\Domain\TenantId::generate());
+        $context->switchTo(\App\Instance\Domain\TenantId::generate());
         $this->em->clear();
 
         try {

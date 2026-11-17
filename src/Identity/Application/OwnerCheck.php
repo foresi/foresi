@@ -10,7 +10,7 @@ namespace App\Identity\Application;
 
 use App\Audit\Application\AuditActor;
 use App\Identity\Domain\Role;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 
 /**
  * Whether the signed-in user owns the active organisation. Roles are membership

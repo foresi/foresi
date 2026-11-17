@@ -10,7 +10,7 @@ namespace App\Tests\Webhooks\Support;
 
 use App\Identity\Domain\ApiScope;
 use App\Shared\Domain\Id;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 use App\Webhooks\Domain\DisabledReason;
 use App\Webhooks\Domain\EndpointUrl;
 use App\Webhooks\Domain\EventTypes;

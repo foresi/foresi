@@ -39,7 +39,7 @@ use App\Party\Infrastructure\Registry\RefreshRegistryChecksAfterResponse;
 use App\Party\Infrastructure\Registry\RegistryLookup;
 use App\Shared\Domain\Currency;
 use App\Shared\Infrastructure\Http\SubmissionTokens;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use App\Ui\Dialog\DialogRequest;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;

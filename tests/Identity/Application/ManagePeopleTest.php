@@ -18,7 +18,7 @@ use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Party\Application\PartyQuery;
 use App\Shared\Domain\Id;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 use Psr\Clock\ClockInterface;

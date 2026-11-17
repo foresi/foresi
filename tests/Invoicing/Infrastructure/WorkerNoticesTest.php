@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
-use App\Tenancy\Application\Schedule\Heartbeats;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\Schedule\Heartbeats;
+use App\Instance\Application\TenantContext;
 use App\Tests\Identity\Support\SignedInBrowser;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;

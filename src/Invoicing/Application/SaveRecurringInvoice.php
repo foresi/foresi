@@ -21,7 +21,7 @@ use App\Party\Application\UnknownLegalEntity;
 use App\Party\Domain\Iban;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\PaymentMethod;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use Psr\Clock\ClockInterface;
 
 /**

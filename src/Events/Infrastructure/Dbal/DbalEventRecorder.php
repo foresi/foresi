@@ -18,7 +18,7 @@ use App\Shared\Application\Event\EventOutbox;
 use App\Shared\Application\Event\EventRecorder;
 use App\Shared\Domain\Event\DomainEventPayload;
 use App\Shared\Domain\Id;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
 use Psr\Clock\ClockInterface;

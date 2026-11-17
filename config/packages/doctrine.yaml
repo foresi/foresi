@@ -2,7 +2,7 @@ doctrine:
     dbal:
         url: '%env(resolve:DATABASE_URL)%'
         types:
-            tenant_id: App\Tenancy\Infrastructure\Doctrine\TenantIdType
+            tenant_id: App\Instance\Infrastructure\Doctrine\TenantIdType
             vat_id: App\Party\Infrastructure\Doctrine\VatIdType
 
         profiling_collect_backtrace: '%kernel.debug%'
@@ -17,12 +17,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Shared/Domain'
                 prefix: 'App\Shared\Domain'
                 alias: Shared
-            Tenancy:
+            Instance:
                 type: attribute
                 is_bundle: false
-                dir: '%kernel.project_dir%/src/Tenancy/Domain'
-                prefix: 'App\Tenancy\Domain'
-                alias: Tenancy
+                dir: '%kernel.project_dir%/src/Instance/Domain'
+                prefix: 'App\Instance\Domain'
+                alias: Instance
             Party:
                 type: attribute
                 is_bundle: false
@@ -112,19 +112,19 @@ doctrine:
                 CAST_TEXT: App\Party\Infrastructure\Doctrine\CastTextFunction
         filters:
             tenant:
-                class: App\Tenancy\Infrastructure\Doctrine\TenantFilter
+                class: App\Instance\Infrastructure\Doctrine\TenantFilter
                 enabled: true
 
 when@test:
     doctrine:
         orm:
             mappings:
-                TenancyFixtures:
+                InstanceFixtures:
                     type: attribute
                     is_bundle: false
-                    dir: '%kernel.project_dir%/tests/Tenancy/Fixtures'
-                    prefix: 'App\Tests\Tenancy\Fixtures'
-                    alias: TenancyFixtures
+                    dir: '%kernel.project_dir%/tests/Instance/Fixtures'
+                    prefix: 'App\Tests\Instance\Fixtures'
+                    alias: InstanceFixtures
                 SharedFixtures:
                     type: attribute
                     is_bundle: false

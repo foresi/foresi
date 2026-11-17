@@ -16,7 +16,7 @@ use App\Invoicing\Domain\SendPurpose;
 use App\Party\Domain\EmailPurpose;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;

@@ -10,8 +10,8 @@ namespace App\Tests\Identity\Support;
 
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 

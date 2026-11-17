@@ -16,7 +16,7 @@ use App\Purchasing\Domain\ReceivedDocument;
 use App\Purchasing\Domain\ReceivedDocumentKind;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 
 /**
  * What a person should look at about a saved document, never a reason to

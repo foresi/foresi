@@ -15,7 +15,7 @@ use App\Purchasing\Domain\ReceivedDocumentPayment;
 use App\Purchasing\Domain\ReceivedDocumentRefused;
 use App\Shared\Application\Event\EventRecorder;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use Psr\Clock\ClockInterface;
 
 /**

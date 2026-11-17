@@ -13,7 +13,7 @@ use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\People;
 use App\Identity\Application\Person;
 use App\Identity\Domain\Role;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use App\Work\Application\TimeDay;
 use App\Work\Application\TimeEntryRow;
 use App\Work\Application\TimeQueries;

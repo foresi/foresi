@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Webhooks\Infrastructure\Doctrine;
 
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use App\Webhooks\Application\WebhookEndpoints;
 use App\Webhooks\Domain\WebhookEndpoint;
 use App\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;

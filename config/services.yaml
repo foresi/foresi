@@ -78,11 +78,11 @@ services:
         # ...and contribute presets of the known sources they can read.
         App\Import\Domain\Preset\SourcePreset:
             tags: ['app.import_preset']
-        # Timed work done once per tenant and period; see App\Tenancy\Application\Schedule.
-        App\Tenancy\Application\Schedule\ScheduledJob:
+        # Timed work done once per tenant and period; see App\Instance\Application\Schedule.
+        App\Instance\Application\Schedule\ScheduledJob:
             tags: ['app.scheduled_job']
-        # Timed work of the installation, with no tenant; see App\Tenancy\Application\Schedule\OperatorTask.
-        App\Tenancy\Application\Schedule\OperatorTask:
+        # Timed work of the installation, with no tenant; see App\Instance\Application\Schedule\OperatorTask.
+        App\Instance\Application\Schedule\OperatorTask:
             tags: ['app.operator_task']
         # The module that owns a kind of record decides who reaches its attachments.
         App\Attachment\Application\AttachmentAccess:
@@ -364,7 +364,7 @@ services:
 
     # Application classes stay framework-free, so the reset tag is declared here:
     # long-running workers and Messenger never carry a tenant into the next job.
-    App\Tenancy\Application\TenantContext:
+    App\Instance\Application\TenantContext:
         tags:
             - { name: kernel.reset, method: reset }
 
@@ -420,7 +420,7 @@ when@e2e:
 
         # Public handles for tests/e2e/seed.php.
         e2e.tenant_context:
-            alias: App\Tenancy\Application\TenantContext
+            alias: App\Instance\Application\TenantContext
             public: true
         e2e.create_party:
             alias: App\Party\Application\CreateParty
@@ -486,7 +486,7 @@ when@e2e:
             alias: App\Invoicing\Application\IssueRecurringOccurrence
             public: true
         e2e.tenant_clock:
-            alias: App\Tenancy\Application\TenantClock
+            alias: App\Instance\Application\TenantClock
             public: true
         e2e.manage_projects:
             alias: App\Work\Application\ManageProjects
@@ -677,9 +677,9 @@ when@test:
             public: true
 
         # A scheduled job that counts its runs, and the run records it is claimed through.
-        App\Tests\Tenancy\Support\CountingJob:
+        App\Tests\Instance\Support\CountingJob:
             tags: ['app.scheduled_job']
-        App\Tests\Tenancy\Support\CountingOperatorTask:
+        App\Tests\Instance\Support\CountingOperatorTask:
             tags: ['app.operator_task']
 
         # The operator mailbox in memory, and an inbound file store a test can make fail.
@@ -693,8 +693,8 @@ when@test:
         App\Banking\Infrastructure\CachePollFailures:
             arguments:
                 $cache: !service { class: Symfony\Component\Cache\Adapter\ArrayAdapter }
-        App\Tenancy\Application\Schedule\ScheduledJobRuns:
-            alias: App\Tenancy\Infrastructure\Schedule\DoctrineScheduledJobRuns
+        App\Instance\Application\Schedule\ScheduledJobRuns:
+            alias: App\Instance\Infrastructure\Schedule\DoctrineScheduledJobRuns
             public: true
         # The tests drive the work services directly; the screens come next.
         App\Work\Application\ManageProjects: { public: true }
@@ -717,7 +717,7 @@ when@test:
             alias: App\Work\Infrastructure\Doctrine\DoctrineWorkQueries
             public: true
         # Nothing uses the tenant's clock yet; the jobs that will are on their way.
-        App\Tenancy\Application\TenantClock: { public: true }
+        App\Instance\Application\TenantClock: { public: true }
         # The MCP server on stdio will sign in with it; until then only the tests do.
         App\Identity\Infrastructure\Security\ApiTokenLogin: { public: true }
 

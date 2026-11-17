@@ -56,7 +56,7 @@ use App\Party\Domain\Party;
 use App\Shared\Domain\Schedule\RecurrenceEnd;
 use App\Shared\Domain\Schedule\RecurrenceUnit;
 use App\Shared\Infrastructure\Http\SubmissionTokens;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;

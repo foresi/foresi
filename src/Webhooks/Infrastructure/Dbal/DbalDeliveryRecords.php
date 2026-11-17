@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Webhooks\Infrastructure\Dbal;
 
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use App\Webhooks\Application\Query\AttemptRow;
 use App\Webhooks\Application\Query\DeliveryRecords;
 use App\Webhooks\Application\Query\DeliveryRow;

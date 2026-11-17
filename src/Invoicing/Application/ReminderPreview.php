@@ -10,7 +10,7 @@ namespace App\Invoicing\Application;
 
 use App\Invoicing\Domain\FirmReminders;
 use App\Party\Domain\LegalEntity;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 
 /**
  * Which invoices of a firm would be reminded tomorrow, so the owner sees it before

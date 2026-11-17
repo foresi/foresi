@@ -16,7 +16,7 @@ use App\Banking\Application\ReceiveInboundMail;
 use App\Banking\Infrastructure\CachePollFailures;
 use App\Banking\Infrastructure\Imap\DisabledInboundMailbox;
 use App\Banking\Infrastructure\Imap\ImapInboundMailbox;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use App\Tests\Banking\Support\FailingInboundFiles;
 use App\Tests\Banking\Support\InboundMailKit;
 use App\Tests\Banking\Support\Scalars;

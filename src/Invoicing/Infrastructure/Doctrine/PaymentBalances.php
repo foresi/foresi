@@ -13,7 +13,7 @@ use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Domain\DocumentKind;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 

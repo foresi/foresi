@@ -19,7 +19,7 @@ use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Mcp\WhoAmITool;
 use App\Shared\Infrastructure\Mcp\ToolRefusal;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 use PHPUnit\Framework\TestCase;
 
 /**

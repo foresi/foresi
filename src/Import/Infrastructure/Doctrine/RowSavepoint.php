@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Import\Infrastructure\Doctrine;
 
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 

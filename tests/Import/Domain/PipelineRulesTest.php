@@ -26,7 +26,7 @@ use App\Import\Domain\MatchReason;
 use App\Import\Domain\ReplaceScope;
 use App\Import\Domain\RowOutcome;
 use App\Shared\Domain\Id;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

@@ -28,7 +28,7 @@ use App\Purchasing\Domain\ReceivedDocumentKind;
 use App\Purchasing\Domain\ReceivedDocumentRefused;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Id;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 
 /**
  * The guards around the use cases: the firm is locked where a document is

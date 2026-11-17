@@ -10,7 +10,7 @@
         "foresi/invoicing": "*",
         "foresi/party": "*",
         "foresi/shared": "*",
-        "foresi/tenancy": "*"
+        "foresi/instance": "*"
     },
     "extra": {
         "foresi": {

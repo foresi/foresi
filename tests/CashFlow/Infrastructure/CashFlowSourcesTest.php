@@ -97,7 +97,7 @@ use App\Shared\Domain\Money;
 use App\Shared\Domain\Schedule\Recurrence;
 use App\Shared\Domain\Schedule\RecurrenceEnd;
 use App\Shared\Domain\Schedule\RecurrenceUnit;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 use App\Tests\CashFlow\Support\CashFlowTestCase;
 use App\Tests\CashFlow\Support\FakeInvoiceQueries;
 use Symfony\Component\Clock\Clock;

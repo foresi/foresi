@@ -13,9 +13,9 @@ use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Domain\Tenant;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\Tenant;
+use App\Instance\Domain\TenantId;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 

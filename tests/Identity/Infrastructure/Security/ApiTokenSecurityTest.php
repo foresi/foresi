@@ -18,7 +18,7 @@ use App\Identity\Infrastructure\Security\SecurityApiTokenContext;
 use App\Identity\Infrastructure\Security\SecurityUser;
 use App\Identity\Infrastructure\Security\SessionActiveTenantStore;
 use App\Identity\Infrastructure\Security\TokenActiveTenantStore;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;

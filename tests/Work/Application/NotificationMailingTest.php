@@ -11,7 +11,7 @@ namespace App\Tests\Work\Application;
 use App\Identity\Application\People;
 use App\Identity\Domain\Membership;
 use App\Shared\Application\SystemMail;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use App\Work\Application\Comments;
 use App\Work\Application\ManageComments;
 use App\Work\Application\ManageNotificationPreferences;

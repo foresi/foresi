@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Import\Application\Message;
 
-use App\Tenancy\Application\TenantScopedMessage;
+use App\Instance\Application\TenantScopedMessage;
 
 /** Checks one chunk of staged rows without writing anything. Safe to handle twice. */
 final readonly class CheckImportChunk implements TenantScopedMessage

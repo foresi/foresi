@@ -14,7 +14,7 @@ use App\Identity\Application\UserRepository;
 use App\Identity\Domain\ApiScope;
 use App\Identity\Domain\User;
 use App\Shared\Domain\Id;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Option;

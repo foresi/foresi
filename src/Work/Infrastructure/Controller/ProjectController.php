@@ -16,7 +16,7 @@ use App\Identity\Application\Person;
 use App\Identity\Application\StaffCheck;
 use App\Party\Application\PartyQuery;
 use App\Party\Application\PartyRow;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use App\Ui\Avatar;
 use App\Work\Application\DueBucket;
 use App\Work\Application\LabelBadge;

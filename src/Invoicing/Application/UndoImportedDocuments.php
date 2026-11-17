@@ -11,7 +11,7 @@ namespace App\Invoicing\Application;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\Payment;
 use App\Party\Application\TransactionalWork;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Psr\Clock\ClockInterface;
 
 /**

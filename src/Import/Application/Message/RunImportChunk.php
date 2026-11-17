@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Import\Application\Message;
 
-use App\Tenancy\Application\TenantScopedMessage;
+use App\Instance\Application\TenantScopedMessage;
 
 /** Writes one chunk of staged rows into the target. Safe to handle twice. */
 final readonly class RunImportChunk implements TenantScopedMessage

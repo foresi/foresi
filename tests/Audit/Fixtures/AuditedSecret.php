@@ -11,8 +11,8 @@ namespace App\Tests\Audit\Fixtures;
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditExcluded;
 use App\Shared\Domain\Id;
-use App\Tenancy\Domain\TenantId;
-use App\Tenancy\Domain\TenantOwned;
+use App\Instance\Domain\TenantId;
+use App\Instance\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
 
 /**

@@ -11,7 +11,7 @@ namespace App\Tests\Webhooks\Infrastructure;
 use App\Audit\Domain\AuditEntry;
 use App\Identity\Domain\Role;
 use App\Shared\Domain\Id;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use App\Tests\Identity\Support\IdentityFixtures;
 use App\Webhooks\Domain\EndpointUrl;
 use App\Webhooks\Domain\EventTypes;

@@ -13,7 +13,7 @@ use App\Identity\Infrastructure\Security\ApiTokenLogin;
 use App\Identity\Infrastructure\Security\ApiTokenRejected;
 use App\Shared\Infrastructure\Mcp\ToolCaller;
 use App\Shared\Infrastructure\Mcp\ToolRefusal;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\ConsoleEvents;
 use Symfony\Component\Console\Event\ConsoleCommandEvent;

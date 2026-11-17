@@ -10,7 +10,7 @@ namespace App\Tests\Banking\Infrastructure;
 
 use App\Banking\Application\GenerateAddress;
 use App\Banking\Application\ReceiveInboundMail;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use App\Tests\Banking\Support\InboundMailKit;
 use App\Tests\Banking\Support\Scalars;
 use Doctrine\DBAL\Connection;

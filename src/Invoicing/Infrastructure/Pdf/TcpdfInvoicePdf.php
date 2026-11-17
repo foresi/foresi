@@ -28,7 +28,7 @@ use App\Invoicing\Infrastructure\Form\AmountText;
 use App\Party\Application\FirmImages;
 use App\Shared\Domain\Countries;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Symfony\Component\Translation\LocaleSwitcher;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Environment;

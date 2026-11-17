@@ -14,7 +14,7 @@ use App\Identity\Application\SwitchTenant;
 use App\Identity\Application\UserRepository;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;

@@ -11,7 +11,7 @@ namespace App\ExchangeRate\Infrastructure\Schedule;
 use App\ExchangeRate\Application\FetchRates;
 use App\ExchangeRate\Application\RateSource;
 use App\ExchangeRate\Application\RateStore;
-use App\Tenancy\Application\Schedule\OperatorTask;
+use App\Instance\Application\Schedule\OperatorTask;
 use Psr\Clock\ClockInterface;
 
 /**

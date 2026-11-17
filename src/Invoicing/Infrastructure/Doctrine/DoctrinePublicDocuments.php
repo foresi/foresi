@@ -18,7 +18,7 @@ use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
-use App\Tenancy\Infrastructure\Doctrine\TenantFilterBypass;
+use App\Instance\Infrastructure\Doctrine\TenantFilterBypass;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 

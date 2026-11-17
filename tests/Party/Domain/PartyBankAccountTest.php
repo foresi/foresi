@@ -11,7 +11,7 @@ namespace App\Tests\Party\Domain;
 use App\Party\Domain\Iban;
 use App\Party\Domain\PartyBankAccount;
 use App\Shared\Domain\Id;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

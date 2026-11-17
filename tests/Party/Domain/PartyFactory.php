@@ -11,7 +11,7 @@ namespace App\Tests\Party\Domain;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
 use App\Party\Domain\VatId;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 
 /**
  * Builds parties for tests of the address book entities.

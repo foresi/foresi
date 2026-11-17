@@ -17,7 +17,7 @@ use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
 use App\Shared\Application\Event\EventRecorder;
 use App\Shared\Domain\Id;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use App\Tests\Events\Support\RecordedEvents;
 use App\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use Doctrine\DBAL\Connection;

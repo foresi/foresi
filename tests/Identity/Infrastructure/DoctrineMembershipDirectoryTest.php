@@ -12,12 +12,12 @@ use App\Identity\Application\Organisation;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Doctrine\DoctrineMembershipDirectory;
-use App\Tenancy\Application\NoActiveTenant;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Domain\TenantId;
-use App\Tenancy\Infrastructure\Doctrine\TenantFilter;
+use App\Instance\Application\NoActiveTenant;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
+use App\Instance\Infrastructure\Doctrine\TenantFilter;
 use App\Tests\Identity\Support\IdentityFixtures;
-use App\Tests\Tenancy\Fixtures\TestNote;
+use App\Tests\Instance\Fixtures\TestNote;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 

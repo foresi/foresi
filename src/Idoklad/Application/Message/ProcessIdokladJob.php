@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Idoklad\Application\Message;
 
-use App\Tenancy\Application\TenantScopedMessage;
+use App\Instance\Application\TenantScopedMessage;
 
 /**
  * Does one pull, check or run of the move from iDoklad, in the tenant the

@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Identity\Infrastructure;
 
 use App\Identity\Application\UserRepository;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use App\Tests\Identity\Support\IdentityFixtures;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;

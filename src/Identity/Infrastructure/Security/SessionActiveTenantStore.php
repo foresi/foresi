@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Identity\Infrastructure\Security;
 
 use App\Identity\Application\ActiveTenantStore;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 final readonly class SessionActiveTenantStore implements ActiveTenantStore

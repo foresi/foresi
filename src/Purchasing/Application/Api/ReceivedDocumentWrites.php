@@ -26,7 +26,7 @@ use App\Purchasing\Domain\VatRate;
 use App\Purchasing\Domain\VatRecapLine;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 
 /**
  * The writes of received documents over the API and MCP: it reads the text of

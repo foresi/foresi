@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Identity\Application;
 
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 
 /**
  * The organisation an invitation link leads into.

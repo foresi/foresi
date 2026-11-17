@@ -16,7 +16,7 @@ use App\Party\Domain\PartyBankAccount;
 use App\Party\Domain\PartyEmail;
 use App\Party\Infrastructure\Doctrine\VatIdType;
 use App\Shared\Domain\Id;
-use App\Tenancy\Infrastructure\Doctrine\TenantIdType;
+use App\Instance\Infrastructure\Doctrine\TenantIdType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\ParameterType;
