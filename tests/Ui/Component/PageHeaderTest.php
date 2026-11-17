@@ -173,7 +173,9 @@ final class PageHeaderTest extends KernelTestCase
         self::assertInstanceOf(PageHeader::class, $header);
 
         self::assertSame(['action' => '/tasks/1/title', 'token' => 't0k', 'name' => 'title', 'id' => 'title', 'label' => 'Title', 'href' => '/tasks/1?edit=title', 'cancelHref' => '/tasks/1', 'open' => false, 'value' => 'T', 'error' => null, 'maxlength' => null], $header->titleEditView());
-        self::assertNull($this->mountTwigComponent('Ui:PageHeader', ['title' => 'T'])->titleEditView());
+        $plain = $this->mountTwigComponent('Ui:PageHeader', ['title' => 'T']);
+        self::assertInstanceOf(PageHeader::class, $plain);
+        self::assertNull($plain->titleEditView());
     }
 
     /**
