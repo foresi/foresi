@@ -18,6 +18,9 @@
 
 {% block title %}{{ project.name }}{% endblock %}
 
+{# A change made in a row comes back to this page: Turbo morphs it in place and keeps the scroll. #}
+{% block head %}{{ include('work/_morph_refresh.html.twig') }}{% endblock %}
+
 {% block actions %}
     {% if project.manageable %}<twig:Ui:Button icon="settings" :href="path('app_project_settings', {id: project.id})" data-project-settings>{{ 'work.settings.title'|trans }}</twig:Ui:Button>{% endif %}
     {{ share }}

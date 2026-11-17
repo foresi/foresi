@@ -19,6 +19,7 @@ use App\Work\Application\ManageComments;
 use App\Work\Application\ManageSharing;
 use App\Work\Application\MentionCandidate;
 use App\Work\Application\ProjectRow;
+use App\Work\Application\StatusChoice;
 use App\Work\Application\TaskRow;
 use App\Work\Application\TrashedTask;
 use App\Work\Application\WorkRefused;
@@ -224,6 +225,9 @@ final class SharedWorkTest extends WorkTestCase
 
         self::assertSame(['Greta Guest', 'Olga Owner'], array_map(static fn (MentionCandidate $person): string => $person->name, $this->queries->mentionCandidates($this->offer->id()) ?? []));
         self::assertSame(['Greta Guest', 'Olga Owner'], array_map(static fn (Choice $person): string => $person->name, $this->queries->task($this->offer->id())->people ?? []));
+        // The pickers of a list offer the same people as the task page.
+        self::assertSame([$this->offer->id() => ['Greta Guest', 'Olga Owner']], array_map(static fn (array $people): array => array_map(static fn (Choice $person): string => $person->name, $people), $this->queries->assignable([$this->offer->id()])));
+        self::assertSame([], $this->queries->assignable([]));
         $this->assertRefused('responsible', fn () => $this->tasks->assign($this->offer->id(), $this->member->id()));
         $this->assertRefused('watcher', fn () => $this->tasks->watch($this->offer->id(), $this->member->id()));
         $this->tasks->assign($this->offer->id(), $this->guest->id());
@@ -232,6 +236,23 @@ final class SharedWorkTest extends WorkTestCase
         $comment = $this->comments->add($this->offer->id(), sprintf('@[Greta Guest](membership:%s) @[Olga Owner](membership:%s)', $this->guest->id(), $this->owner->id()));
         $mentioned = array_map(static fn (CommentMention $mention): string => $mention->membership()->id(), self::getContainer()->get(Comments::class)->mentions($comment));
         self::assertSame([$this->owner->id()], $mentioned);
+    }
+
+    public function testThePickersOfAListLeaveOutWhatOneDoesNotSee(): void
+    {
+        $this->signIn($this->guest);
+
+        self::assertSame([], $this->queries->assignable([$this->offer->id(), $this->brief->id()]));
+        self::assertSame([], $this->queries->statusesOf([$this->chosen->id()]));
+
+        $this->signIn($this->owner);
+        $this->sharing->shareTask($this->offer->id(), $this->guest->id());
+        $this->signIn($this->guest);
+
+        self::assertSame([$this->offer->id()], array_keys($this->queries->assignable([$this->offer->id(), $this->brief->id()])));
+        // A task shared on its own names its project, whose statuses it moves through.
+        self::assertSame([$this->chosen->id()], array_keys($this->queries->statusesOf([$this->chosen->id(), $this->chosen->id()])));
+        self::assertSame(array_map(static fn (StatusChoice $status): string => $status->id, $this->queries->task($this->offer->id())->statuses ?? []), array_map(static fn (StatusChoice $status): string => $status->id, $this->queries->statusesOf([$this->chosen->id()])[$this->chosen->id()]));
     }
 
     public function testADeactivatedPersonSeesNothingAndIsNobodyToShareWith(): void

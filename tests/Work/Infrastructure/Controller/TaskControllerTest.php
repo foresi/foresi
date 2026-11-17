@@ -383,6 +383,53 @@ final class TaskControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
+    public function testAPropertyChangedInARowComesBackToTheListWithItsFilters(): void
+    {
+        $this->signIn();
+        $project = $this->seed();
+        $id = $this->taskId('Brief');
+        $list = $this->client->request('GET', '/projects/'.$project.'?status=all');
+        $form = $list->filter('form[data-inline-edit="priority"][action="/tasks/'.$id.'/priority"]');
+        self::assertSame('/projects/'.$project.'?status=all', $form->filter('input[name="return"]')->attr('value'));
+
+        $this->client->request('POST', '/tasks/'.$id.'/priority', ['_token' => $form->filter('input[name="_token"]')->attr('value'), 'return' => '/projects/'.$project.'?status=all', 'priority' => 'urgent']);
+
+        self::assertResponseRedirects('/projects/'.$project.'?status=all', 303);
+        self::assertSame('urgent', $this->em->getConnection()->fetchOne('SELECT priority FROM task WHERE id = ?', [$id]));
+    }
+
+    public function testAChangeComesBackToTheBoardOrMyTasksAndNowhereElse(): void
+    {
+        $this->signIn();
+        $project = $this->seed();
+        $id = $this->taskId('Brief');
+        $token = $this->token($this->client->request('GET', '/tasks/'.$id));
+
+        foreach (['/projects/'.$project.'/board?due=overdue', '/projects/'.$project.'/board', '/my-tasks?tab=watching', '/my-tasks', '/projects/'.$project] as $place) {
+            $this->client->request('POST', '/tasks/'.$id.'/due', ['_token' => $token, 'return' => $place, 'due' => '2026-12-24']);
+            self::assertResponseRedirects($place, 303, $place);
+        }
+        foreach (['https://example.com/my-tasks', '//example.com/my-tasks', '/projects/'.$project.'/settings', '/projects/'.$project.'/board/x', '/projects/nope', '/my-tasks#top', '/admin', "/my-tasks\n", 'my-tasks'] as $elsewhere) {
+            $this->client->request('POST', '/tasks/'.$id.'/due', ['_token' => $token, 'return' => $elsewhere, 'due' => '2026-12-24']);
+            self::assertResponseRedirects('/tasks/'.$id, 303, $elsewhere);
+        }
+        self::assertSame('2026-12-24', $this->em->getConnection()->fetchOne('SELECT due_on FROM task WHERE id = ?', [$id]));
+    }
+
+    public function testARefusalInARowIsToldOnTheListItCameFrom(): void
+    {
+        $this->signIn();
+        $project = $this->seed();
+        $id = $this->taskId('Brief');
+        $token = $this->token($this->client->request('GET', '/tasks/'.$id));
+
+        $this->client->request('POST', '/tasks/'.$id.'/due', ['_token' => $token, 'return' => '/projects/'.$project, 'due' => '2026-02-30']);
+
+        self::assertResponseRedirects('/projects/'.$project, 303);
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'Enter the due date as a date.');
+    }
+
     public function testEveryChangeNeedsItsToken(): void
     {
         $this->signIn();

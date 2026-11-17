@@ -22,6 +22,10 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
  *
  * "people" is a list of ["value" => id, "name" => full name, "seed" => colour seed]; with
  * "noneLabel" a first row chooses nobody (the empty value).
+ *
+ * "compact" is the picker of a row or a card (Ui:InlineEdit): no label above it, the trigger
+ * reads as the avatar and the name do, nobody is the dashed avatar alone. Without JavaScript it
+ * shows the person as plain text; the record's own page has the full field.
  */
 #[AsTwigComponent]
 final class PersonPicker
@@ -38,6 +42,8 @@ final class PersonPicker
     public ?string $noneLabel = null;
     /** The label of the Save button without JavaScript. */
     public string $saveLabel = 'Save';
+    /** The picker of a row or a card: no label shown, the trigger as the value reads. */
+    public bool $compact = false;
 
     /** @var list<array{value: string, name: string, seed: ?string}> */
     private array $checked = [];
@@ -106,6 +112,8 @@ final class PersonPicker
 
     public function triggerClasses(): string
     {
-        return 'flex h-control w-full cursor-pointer items-center gap-2 text-left hover:border-green '.Style::field(false);
+        return $this->compact
+            ? InlineEdit::TRIGGER
+            : 'flex h-control w-full cursor-pointer items-center gap-2 text-left hover:border-green '.Style::field(false);
     }
 }

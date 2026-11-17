@@ -270,6 +270,29 @@ final class GuestWorkTest extends WebTestCase
         self::assertResponseIsSuccessful();
     }
 
+    public function testAGuestChangesATaskInTheRowAsOnItsPageAndComesBackToTheList(): void
+    {
+        $this->seed();
+        $website = $this->projectId('Website');
+        $homepage = $this->taskId('Design the homepage');
+
+        $list = $this->client->request('GET', '/projects/'.$website);
+        $row = $list->filter('tbody tr[data-id="'.$homepage.'"]');
+        // The people who can be responsible are those the task page offers: who sees the task.
+        $page = $this->client->request('GET', '/tasks/'.$homepage);
+        self::assertSame(
+            $page->filter('#task-responsible option')->each(static fn (Crawler $option): string => trim($option->text())),
+            $row->filter('form[data-inline-edit="responsible"] [role=menu] button .truncate')->each(static fn (Crawler $item): string => trim($item->text())),
+        );
+        $status = $row->filter('form[data-inline-edit="status"]');
+        $next = (string) $status->filter('[role=menu] button')->eq(1)->attr('value');
+
+        $this->client->request('POST', (string) $status->attr('action'), ['_token' => (string) $status->filter('input[name="_token"]')->attr('value'), 'return' => '/projects/'.$website, 'status' => $next]);
+
+        self::assertResponseRedirects('/projects/'.$website, 303);
+        self::assertSame(1, $this->rows('SELECT COUNT(*) FROM task WHERE id = ? AND status_id = ?', [$homepage, $next]));
+    }
+
     public function testMyTasksOfAGuestNameAProjectTheyDoNotSeeWithoutALink(): void
     {
         $this->seed();

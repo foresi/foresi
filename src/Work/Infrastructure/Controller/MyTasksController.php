@@ -38,6 +38,7 @@ final class MyTasksController extends AbstractController
         private readonly WorkQueries $queries,
         private readonly TenantClock $clock,
         private readonly TranslatorInterface $translator,
+        private readonly InlineTaskEdits $edits,
     ) {
     }
 
@@ -51,6 +52,7 @@ final class MyTasksController extends AbstractController
         $clientId = '' === $client ? null : $client;
         $today = $this->clock->today();
         $groups = $watching ? TaskGroup::split($this->queries->watchedTasks($clientId), $today) : $this->queries->myTasks($clientId);
+        $edits = $this->edits->for(array_merge(...array_map(static fn (TaskGroup $group): array => $group->tasks, $groups)), $request->getRequestUri());
         $url = $this->generateUrl(self::ROUTE);
         $filter = '' === $client ? [] : ['client' => $client];
 
@@ -66,6 +68,7 @@ final class MyTasksController extends AbstractController
                 ['key' => 'title', 'label' => $this->translator->trans('work.task.field.title'), 'truncate' => true],
                 ['key' => 'project', 'label' => $this->translator->trans('work.task.field.project'), 'truncate' => true, 'phone' => false],
                 ['key' => 'status', 'label' => $this->translator->trans('work.task.field.status')],
+                ['key' => 'responsible', 'label' => $this->translator->trans('work.task.field.responsible'), 'truncate' => true, 'phone' => false],
                 ['key' => 'due', 'label' => $this->translator->trans('work.task.field.due_on'), 'phone' => false],
                 ['key' => 'priority', 'label' => $this->translator->trans('work.task.field.priority'), 'phone' => false],
             ],
@@ -73,7 +76,7 @@ final class MyTasksController extends AbstractController
                 'key' => $group->key,
                 'name' => $this->translator->trans('work.my_tasks.group.'.$group->key),
                 'count' => \count($group->tasks),
-                'rows' => array_map(fn (TaskRow $task): array => $this->row($task, $today), $group->tasks),
+                'rows' => array_map(fn (TaskRow $task): array => $this->row($task, $today, $edits), $group->tasks),
             ], array_filter($groups, static fn (TaskGroup $group): bool => [] !== $group->tasks))),
         ]);
     }
@@ -107,7 +110,7 @@ final class MyTasksController extends AbstractController
     /**
      * @return array<string, mixed>
      */
-    private function row(TaskRow $task, \DateTimeImmutable $today): array
+    private function row(TaskRow $task, \DateTimeImmutable $today, TaskEdits $edits): array
     {
         $due = null;
         if ($task->dueOn instanceof \DateTimeImmutable) {
@@ -125,9 +128,10 @@ final class MyTasksController extends AbstractController
             'cells' => [
                 'title' => $task->title,
                 'project' => $task->projectSeen ? ['links' => [['text' => $task->projectName, 'href' => $this->generateUrl(ProjectController::PROJECT_ROUTE, ['id' => $task->projectId])]]] : $task->projectName,
-                'status' => ['text' => $task->statusName, 'tone' => self::STATUS_TONES[$task->statusType->value]],
-                'due' => $due,
-                'priority' => Priority::None === $task->priority ? null : $this->translator->trans('work.priority.'.$task->priority->value),
+                'status' => TaskEdits::cell(['text' => $task->statusName, 'tone' => self::STATUS_TONES[$task->statusType->value]], $edits->status($task)),
+                'responsible' => TaskEdits::cell(null === $task->responsibleId || null === $task->responsibleName ? null : ['avatar' => $edits->seed($task->responsibleId), 'text' => $task->responsibleName], $edits->responsible($task)),
+                'due' => TaskEdits::cell($due, $edits->due($task)),
+                'priority' => TaskEdits::cell(Priority::None === $task->priority ? null : $this->translator->trans('work.priority.'.$task->priority->value), $edits->priority($task)),
             ],
         ];
     }

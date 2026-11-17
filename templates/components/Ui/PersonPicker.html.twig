@@ -3,32 +3,43 @@
 {% set chosen = picker.chosen %}
 {% set buttonId = id ~ '-button' %}
 {% set menuId = id ~ '-menu' %}
-<div {{ attributes.defaults({class: 'grid min-w-0 gap-1.5', 'data-person-picker': name}) }}>
+<div {{ attributes.defaults({class: compact ? 'flex min-w-0' : 'grid min-w-0 gap-1.5', 'data-person-picker': name}) }}>
     {# The menu needs JavaScript; without it (scripting: none) the select below takes its place. #}
-    <div class="grid min-w-0 gap-1.5 [@media(scripting:none)]:hidden">
+    <div class="{{ compact ? 'flex min-w-0' : 'grid min-w-0 gap-1.5' }} [@media(scripting:none)]:hidden">
         {# The button names itself from its text, the label first, so its name holds what it shows (WCAG 2.5.3). #}
-        <span class="text-small text-ink" aria-hidden="true">{{ label }}</span>
-        <twig:Ui:Menu :id="menuId" :buttonId="buttonId" :label="label" :menuLabel="label" align="start" :float="true" menuClass="max-h-80 min-w-56 overflow-y-auto">
+        {% if not compact %}<span class="text-small text-ink" aria-hidden="true">{{ label }}</span>{% endif %}
+        <twig:Ui:Menu :id="menuId" :buttonId="buttonId" :label="label" :menuLabel="label" align="start" :float="true" :class="compact ? 'min-w-0' : ''" menuClass="max-h-80 min-w-56 overflow-y-auto">
             <twig:block name="trigger">
                 <button type="button" id="{{ buttonId }}" aria-haspopup="menu" aria-expanded="false" aria-controls="{{ menuId }}" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" class="{{ picker.triggerClasses }}" data-person-picker-trigger>
                     <span class="sr-only">{{ label }}: </span>
                     <twig:Ui:Avatar :name="chosen ? chosen.name : ''" :seed="chosen ? chosen.seed : null" />
-                    <span class="min-w-0 flex-1 truncate">{{ chosen ? chosen.name : noneLabel }}</span>
-                    {{ ux_icon('lucide:chevron-down', {class: 'size-5 shrink-0 text-muted', 'aria-hidden': 'true'}) }}
+                    {%- if compact and not chosen -%}
+                        <span class="sr-only">{{ noneLabel }}</span>
+                    {%- else -%}
+                        <span class="min-w-0 flex-1 truncate">{{ chosen ? chosen.name : noneLabel }}</span>
+                    {%- endif -%}
+                    {% if not compact %}{{ ux_icon('lucide:chevron-down', {class: 'size-5 shrink-0 text-muted', 'aria-hidden': 'true'}) }}{% endif %}
                 </button>
             </twig:block>
             {% for row in picker.rows %}
-                <twig:Ui:MenuItem type="submit" :name="name" :value="row.value" :checked="row.value == value" data-person-picker-option="{{ row.value }}">
+                <twig:Ui:MenuItem type="submit" :name="name" :value="row.value" :checked="row.value == value" data-action="dropdown#close" data-person-picker-option="{{ row.value }}">
                     <twig:Ui:Avatar :name="row.name" :seed="row.seed" />
                     <span class="min-w-0 truncate">{{ row.value == '' ? noneLabel : row.name }}</span>
                 </twig:Ui:MenuItem>
             {% endfor %}
         </twig:Ui:Menu>
     </div>
-    <noscript>
-        <div class="grid gap-1.5">
-            <twig:Ui:Select :name="name" :id="id" :label="label" :options="picker.options" :value="value" />
-            <div><twig:Ui:Button type="submit" size="sm">{{ saveLabel }}</twig:Ui:Button></div>
-        </div>
-    </noscript>
+    {% if compact %}
+        {# Without JavaScript the person reads as plain text. #}
+        <span class="hidden min-w-0 items-center gap-1.5 [@media(scripting:none)]:flex">
+            {%- if chosen %}<twig:Ui:Avatar :name="chosen.name" :seed="chosen.seed" /><span class="min-w-0 truncate">{{ chosen.name }}</span>{% else %}<span class="text-muted" aria-hidden="true">—</span><span class="sr-only">{{ label }}: {{ noneLabel }}</span>{% endif -%}
+        </span>
+    {% else %}
+        <noscript>
+            <div class="grid gap-1.5">
+                <twig:Ui:Select :name="name" :id="id" :label="label" :options="picker.options" :value="value" />
+                <div><twig:Ui:Button type="submit" size="sm">{{ saveLabel }}</twig:Ui:Button></div>
+            </div>
+        </noscript>
+    {% endif %}
 </div>

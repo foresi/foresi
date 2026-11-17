@@ -12,7 +12,7 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string}>, avatar: ?array{name: string, seed: string}, badges: list<array{label: string, tone: string}>, flag: ?array{label: string, tone: string, icon: ?string}}
+ * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string}>, avatar: ?array{name: string, seed: string}, badges: list<array{label: string, tone: string}>, flag: ?array{label: string, tone: string, icon: ?string}, edit: ?array<array-key, mixed>}
  * @phpstan-type Confirm array{title: string, text: ?string, accept: ?string, cancel: ?string, tone: ?string}
  * @phpstan-type Action array{label: string, href: string, method: string, confirm: ?Confirm, icon: ?string, plain: bool, dialog: bool, fields: array<string, string>}
  * @phpstan-type RowAlert array{text: string, column: string, href: ?string, action: ?string}
@@ -53,7 +53,8 @@ final class DataTable
      *                                 href and action label of the place that fixes it; a phone shows it as a line of its own
      *                                 under the first cell) and actions, each with a label, href and method, optional
      *                                 confirm, icon (shown in the row, else in its menu), plain and fields (hidden values of
-     *                                 a POST)
+     *                                 a POST). A cell value with "edit" is changed in place: "edit" holds the props of a
+     *                                 Ui:InlineEdit (but its id, text and tone, which the cell gives), the rest what it reads as.
      */
     public array $rows = [];
 
@@ -360,6 +361,13 @@ final class DataTable
         $avatar = null;
         $badges = [];
         $flag = null;
+        $edit = null;
+        if (is_array($value) && isset($value['edit'])) {
+            // The value changed in place (Ui:InlineEdit): its props, and what it reads as without them.
+            $edit = is_array($value['edit']) ? $value['edit'] : throw new \InvalidArgumentException('An edit of a cell must be the props of a Ui:InlineEdit.');
+            unset($value['edit']);
+            $value = [] === $value ? null : (array_keys($value) === ['text'] ? $value['text'] : $value);
+        }
         if (is_array($value) && isset($value['flag'])) {
             // A text with a badge after it that marks the row, such as a private task.
             $text = isset($value['text']) && is_string($value['text']) && '' !== $value['text'] ? $value['text'] : throw new \InvalidArgumentException('A flagged cell needs a text.');
@@ -421,6 +429,7 @@ final class DataTable
             'avatar' => $avatar,
             'badges' => $badges,
             'flag' => $flag,
+            'edit' => $edit,
         ];
     }
 

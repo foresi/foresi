@@ -467,7 +467,8 @@ final class TaskController extends AbstractController
     }
 
     /**
-     * Runs the change of one property and goes back to the task; a refusal is told there.
+     * Runs the change of one property and goes back to the task, or to the list,
+     * the board or My tasks it was changed from (Ui:InlineEdit); a refusal is told there.
      *
      * @param callable(): mixed $change
      */
@@ -480,8 +481,30 @@ final class TaskController extends AbstractController
             $this->notFoundIfUnknown($refused);
             $this->addFlash('error', $this->translator->trans('work.refused.'.$refused->reason));
         }
+        $return = $this->returnPath($request->request->getString('return'));
 
-        return $this->back($id);
+        return null === $return ? $this->back($id) : $this->redirect($return, Response::HTTP_SEE_OTHER);
+    }
+
+    /**
+     * The page a property was changed from, with its filters: the list or the
+     * board of a project, or My tasks. Anything else is the task page (null).
+     */
+    private function returnPath(string $return): ?string
+    {
+        $parts = parse_url($return);
+        if ('' === $return || !\is_array($parts) || isset($parts['scheme']) || isset($parts['host']) || isset($parts['user']) || isset($parts['fragment'])) {
+            return null;
+        }
+        $path = $parts['path'] ?? '';
+        $place = $path === $this->generateUrl(MyTasksController::ROUTE)
+            || (1 === preg_match('#^/projects/('.Requirement::UUID_V7.')(/board)?$#D', $path, $match)
+                && $path === $this->generateUrl(isset($match[2]) ? ProjectController::BOARD_ROUTE : ProjectController::PROJECT_ROUTE, ['id' => $match[1]]));
+        if (!$place || 1 === preg_match('/[\x00-\x20\\\\]/', $return)) {
+            return null;
+        }
+
+        return $return;
     }
 
     /**

@@ -82,6 +82,27 @@ interface WorkQueries
     public function mentionCandidates(string $taskId): ?array;
 
     /**
+     * For the pickers of a list: the active people who see each task, who alone
+     * can be responsible for it, as the task page offers them. A task one cannot
+     * see is left out.
+     *
+     * @param list<string> $taskIds
+     *
+     * @return array<string, list<Choice>> by task id, the people in the order of the people screen
+     */
+    public function assignable(array $taskIds): array;
+
+    /**
+     * For the pickers of a list: the statuses of each project, in order. A
+     * project one cannot see is left out.
+     *
+     * @param list<string> $projectIds
+     *
+     * @return array<string, list<StatusChoice>> by project id
+     */
+    public function statusesOf(array $projectIds): array;
+
+    /**
      * @return list<LabelBadge> by name
      */
     public function labels(): array;

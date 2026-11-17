@@ -1,0 +1,9 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A page whose rows or cards change in place (Ui:InlineEdit): the change posts and comes back to
+    the same address, which Turbo takes as a refresh of the page; it then morphs the page into the
+    new one and keeps where it was scrolled, so the row stays under the pointer (Turbo, "Page
+    refreshes": turbo-refresh-method morph, turbo-refresh-scroll preserve).
+#}
+<meta name="turbo-refresh-method" content="morph">
+<meta name="turbo-refresh-scroll" content="preserve">

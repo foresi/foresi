@@ -191,4 +191,42 @@ test.describe('projects', () => {
     await page.getByRole('button', { name: 'Přidat stav' }).click();
     await expect(page.locator('[data-settings-statuses]').locator('input[value="Waiting for client"]')).toBeVisible();
   });
+
+  test('a task changes its status, responsible person, due date and priority from the list and the board', async ({ page }) => {
+    await openWebsite(page);
+    const title = 'Hand over the logo';
+    await page.getByRole('link', { name: 'Nový úkol' }).click();
+    await page.getByRole('dialog').getByLabel('Název').fill(title);
+    await page.getByRole('dialog').getByRole('button', { name: 'Přidat úkol' }).click();
+    const row = page.locator('[data-section] tbody tr').filter({ hasText: title });
+    await expect(row).toBeVisible();
+
+    // A click on the value opens its picker; choosing saves at once and keeps the focus on the value.
+    const status = row.getByRole('button', { name: /^Stav: / });
+    await status.click();
+    await page.getByRole('menuitemradio', { name: 'Kontrola' }).click();
+    await expect(status).toHaveText(/Kontrola/);
+    await expect(status).toBeFocused();
+    const responsible = row.getByRole('button', { name: /^Odpovědná osoba: / });
+    await responsible.click();
+    await page.getByRole('menuitemradio', { name: 'Jana Example' }).click();
+    await expect(responsible).toHaveText(/Jana Example/);
+    // The browser's own date picker cannot be driven; its field takes the date as the picker would.
+    await row.locator('input[type="date"]').fill('2027-01-15');
+    await expect(row.getByRole('button', { name: /^Termín: / })).toHaveText(/15\.\s1\.\s2027/);
+    await expect(page).toHaveURL(/\/projects\/[^/]+$/);
+
+    await page.getByRole('link', { name: 'Nástěnka' }).click();
+    const priority = card(page, title).getByRole('button', { name: /^Priorita: / });
+    await priority.press('ArrowDown');
+    await page.getByRole('menuitemradio', { name: 'Vysoká' }).press('Enter');
+    await expect(priority).toHaveText(/Vysoká/);
+    await expect(priority).toBeFocused();
+    await expect(page).toHaveURL(/\/board$/);
+
+    await page.reload();
+    await expect(column(page, 'Kontrola').locator('[data-board-card]').filter({ hasText: title })).toContainText('Jana Example');
+    await expect(card(page, title)).toContainText(/15\.\s1\.\s2027/);
+    await expect(card(page, title)).toContainText('Vysoká');
+  });
 });

@@ -3263,6 +3263,7 @@ work:
     edit: Edit
     nobody: Nobody
     due_clear: Clear
+    no_due: No due date
     labels_edit: Choose labels
     labels_title: Labels of the task
     labels_none: The organisation has no labels yet.
