@@ -290,10 +290,11 @@ final class TimePagesControllerTest extends WebTestCase
         self::assertCount(4, $actions);
         self::assertSame(['hidden sm:contents', 'form', 'hidden sm:contents', 'relative'], $actions->each(static fn (Crawler $child): string => 'form' === $child->nodeName() ? 'form' : (string) $child->attr('class')));
         $menu = $crawler->filter('#task-menu');
-        self::assertSame('/tasks/'.$id.'?edit=title', $menu->filter('a[data-task-menu-edit]')->attr('href'));
+        // The title is changed where it is read, so the header has no Edit of its own.
+        self::assertCount(0, $menu->filter('[data-task-menu-edit]'));
         self::assertSame('/tasks/'.$id.'/subtasks/new', $menu->filter('a[data-task-menu-subtask]')->attr('href'));
         self::assertNotNull($menu->filter('a[data-task-menu-share]')->attr('data-dialog'));
-        self::assertStringContainsString('sm:hidden', (string) $menu->filter('a[data-task-menu-edit]')->attr('class'));
+        self::assertStringContainsString('sm:hidden', (string) $menu->filter('a[data-task-menu-subtask]')->attr('class'));
     }
 
     /**

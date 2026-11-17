@@ -4,7 +4,10 @@
     the subtasks and the discussion in the main column; the properties in the panel beside it (under it
     on a phone). Each property is a form of its own that saves once a value is chosen, with a Save
     button for a browser without JavaScript; the responsible person is a Ui:PersonPicker, whose rows
-    save it at once. The title and the description open their form in place.
+    save it at once. The title in the header and the description change where they are read: a click on
+    them, or on the pencil button beside them, opens the field in place (Linear, "Creating issues"; Atlassian,
+    Inline edit), and the page comes back morphed with the change. Without JavaScript the pencil is a link
+    to this page with the form open (?edit=title or ?edit=description).
     The files of the task follow the description; an image or a PDF, in the list or in a text,
     opens in the viewer dialog. A new subtask opens in a dialog from the header, and so does the sharing
     dialog; a private task has its badge next to the title. The people of the organisation see the time
@@ -27,23 +30,29 @@
 {% if row.private %}{% set badges = [{label: 'work.sharing.private_badge'|trans, tone: 'gray', icon: 'lock'}] %}{% endif %}
 {% set save %}<noscript><twig:Ui:Button type="submit" size="sm">{{ 'work.save'|trans }}</twig:Ui:Button></noscript>{% endset %}
 
+{% set titleEdit = {
+    action: path('app_task_title', {id: row.id}), token: token, name: 'title', id: 'title', label: 'work.task.field.title'|trans,
+    href: taskUrl ~ '?edit=title', cancelHref: taskUrl, open: edit == 'title', value: values.title, error: errors.title|default(null),
+    maxlength: constant('App\\Work\\Domain\\Task::MAX_TITLE_LENGTH'),
+} %}
+
+{% block head %}{{ include('work/_morph_refresh.html.twig') }}{% endblock %}
+
 {% block title %}{{ row.title }}{% endblock %}
 
 {% block actions %}
     {#
         On a phone, when the header holds more than two actions, it keeps the timer and the "…" menu on
-        one row; editing, a new subtask and sharing move into the menu, as the actions of a table row do.
+        one row; a new subtask and sharing move into the menu, as the actions of a table row do.
         The wrappers count as children of the header in pairs, so the menu never takes a row of its own;
         on a wider screen they are not boxes.
     #}
-    {% set editable = edit != 'title' %}
     {% set subtaskable = not task.parent and not task.projectArchived %}
     {% set timed = timerHere or timeLoggable %}
-    {% set collapse = [editable, subtaskable, timed, task.shareable, row.deletable]|filter(shown => shown)|length > 2 %}
-    {% set editButton %}{% if editable %}<twig:Ui:Button icon="pencil" :href="taskUrl ~ '?edit=title'" data-task-edit-title>{{ 'work.task.edit'|trans }}</twig:Ui:Button>{% endif %}{% endset %}
+    {% set collapse = [subtaskable, timed, task.shareable, row.deletable]|filter(shown => shown)|length > 2 %}
     {% set subtaskButton %}{% if subtaskable %}<twig:Ui:Button icon="plus" :href="path('app_task_subtask_new', {id: row.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-subtask-new-open>{{ 'work.task.new_subtask'|trans }}</twig:Ui:Button>{% endif %}{% endset %}
     {% set shareButton %}{% if task.shareable %}<twig:Ui:Button icon="share-2" :href="path('app_sharing', {kind: 'tasks', id: row.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-share>{{ 'work.sharing.open'|trans }}</twig:Ui:Button>{% endif %}{% endset %}
-    {% if collapse %}<div class="hidden sm:contents">{{ editButton }}{{ subtaskButton }}</div>{% else %}{{ editButton }}{{ subtaskButton }}{% endif %}
+    {% if collapse %}<div class="hidden sm:contents">{{ subtaskButton }}</div>{% else %}{{ subtaskButton }}{% endif %}
     {% if timerHere %}
         <form method="post" action="{{ path('app_timer_stop') }}" data-task-timer="stop">
             <input type="hidden" name="_token" value="{{ timeToken }}">
@@ -60,7 +69,6 @@
     {% if row.deletable or collapse %}
         <twig:Ui:Menu id="task-menu" buttonId="task-menu-button" :label="'ui.table.more_actions'|trans({label: row.title})" icon="ellipsis" :iconOnly="true" :float="true" :class="row.deletable ? null : 'sm:hidden'" data-task-menu>
             {% if collapse %}
-                {% if editable %}<twig:Ui:MenuItem :href="taskUrl ~ '?edit=title'" icon="pencil" class="sm:hidden" data-task-menu-edit>{{ 'work.task.edit'|trans }}</twig:Ui:MenuItem>{% endif %}
                 {% if subtaskable %}<twig:Ui:MenuItem :href="path('app_task_subtask_new', {id: row.id})" icon="plus" class="sm:hidden" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-menu-subtask>{{ 'work.task.new_subtask'|trans }}</twig:Ui:MenuItem>{% endif %}
                 {% if task.shareable %}<twig:Ui:MenuItem :href="path('app_sharing', {kind: 'tasks', id: row.id})" icon="share-2" class="sm:hidden" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-menu-share>{{ 'work.sharing.open'|trans }}</twig:Ui:MenuItem>{% endif %}
             {% endif %}
@@ -79,36 +87,32 @@
     {{ include('work/_flashes.html.twig') }}
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]" data-controller="attachments" data-action="click->attachments#openImage dialog:closed->attachments#closed">
         <div class="grid min-w-0 content-start gap-6">
-            {% if edit == 'title' %}
-                <form method="post" action="{{ path('app_task_title', {id: row.id}) }}" id="task-title-form" class="grid max-w-field-long gap-3" novalidate data-task-title-form>
+            {#
+                The description changes where it is read, as the title does, but stays open when the focus leaves
+                it, and a refresh of the page by another change leaves it as typed (Atlassian, Inline edit:
+                keepEditViewOpenOnBlur for a long text). A link, a checkbox or a picture in it is still its own.
+            #}
+            {% set describing = edit == 'description' %}
+            <section class="grid gap-2" aria-labelledby="task-description-title" id="task-description" data-controller="inline-field" data-inline-field-blur-value="keep">
+                <div class="flex items-center gap-1">
+                    <h2 id="task-description-title" class="m-0 text-heading font-semibold text-ink">{{ 'work.task.field.description'|trans }}</h2>
+                    <twig:Ui:IconButton :href="taskUrl ~ '?edit=description#task-description-title'" icon="pencil" variant="ghost" size="sm" :label="'ui.inline_field.edit'|trans({label: ('work.task.field.description'|trans)|lower})" :hidden="describing" data-inline-field-target="pencil" data-action="inline-field#open" data-task-edit-description />
+                </div>
+                <div class="-mx-[7px] cursor-text rounded-option border border-transparent px-1.5 py-1 transition-colors hover:border-control-line" data-inline-field-target="read" data-action="click->inline-field#open"{% if describing %} hidden{% endif %}>
+                    {% if task.description is not empty %}
+                        <div class="markdown" data-task-description>{{ task.description|markdown }}</div>
+                    {% else %}
+                        <p class="m-0 text-muted">{{ 'work.task.no_description'|trans }}</p>
+                    {% endif %}
+                </div>
+                <form method="post" action="{{ path('app_task_description', {id: row.id}) }}" class="grid gap-3" data-inline-field-target="form" data-action="submit->inline-field#submit" data-task-description-form{% if not describing %} hidden{% endif %}>
                     <input type="hidden" name="_token" value="{{ token }}">
-                    <twig:Ui:TextInput name="title" id="title" :label="'work.task.field.title'|trans" :value="values.title" :error="errors.title|default(null)" maxlength="500" required autocomplete="off" :autofocus="errors is empty" />
+                    <twig:Ui:MarkdownEditor name="description" id="description" :label="'work.task.field.description'|trans" :value="values.description" :rows="6" :previewUrl="path('app_markdown_preview')" :mentionsUrl="path('app_task_mention_candidates', {id: row.id})" :uploadUrl="path('app_attachment_upload')" :uploadKind="attachmentKind" :uploadOwner="row.id" :autofocus="describing" data-inline-field-target="field" />
                     <div class="flex flex-wrap gap-2">
                         <twig:Ui:Button type="submit" variant="primary">{{ 'work.save'|trans }}</twig:Ui:Button>
-                        <twig:Ui:Button :href="taskUrl">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+                        <twig:Ui:Button :href="taskUrl" data-action="inline-field#cancel" data-task-description-cancel>{{ 'work.cancel'|trans }}</twig:Ui:Button>
                     </div>
                 </form>
-            {% endif %}
-
-            <section class="grid gap-2" aria-labelledby="task-description-title">
-                <div class="flex items-center justify-between gap-2">
-                    <h2 id="task-description-title" class="m-0 text-heading font-semibold text-ink">{{ 'work.task.field.description'|trans }}</h2>
-                    {% if edit != 'description' %}<twig:Ui:Button variant="ghost" size="sm" icon="pencil" :href="taskUrl ~ '?edit=description#task-description-title'" data-task-edit-description>{{ 'work.task.edit'|trans }}</twig:Ui:Button>{% endif %}
-                </div>
-                {% if edit == 'description' %}
-                    <form method="post" action="{{ path('app_task_description', {id: row.id}) }}" class="grid gap-3" data-task-description-form>
-                        <input type="hidden" name="_token" value="{{ token }}">
-                        <twig:Ui:MarkdownEditor name="description" id="description" :label="'work.task.field.description'|trans" :value="values.description" :rows="6" :previewUrl="path('app_markdown_preview')" :mentionsUrl="path('app_task_mention_candidates', {id: row.id})" :uploadUrl="path('app_attachment_upload')" :uploadKind="attachmentKind" :uploadOwner="row.id" autofocus />
-                        <div class="flex flex-wrap gap-2">
-                            <twig:Ui:Button type="submit" variant="primary">{{ 'work.save'|trans }}</twig:Ui:Button>
-                            <twig:Ui:Button :href="taskUrl">{{ 'work.cancel'|trans }}</twig:Ui:Button>
-                        </div>
-                    </form>
-                {% elseif task.description is not empty %}
-                    <div class="markdown" data-task-description>{{ task.description|markdown }}</div>
-                {% else %}
-                    <p class="m-0 text-muted">{{ 'work.task.no_description'|trans }}</p>
-                {% endif %}
             </section>
 
             {{ include('work/task/_attachments.html.twig') }}

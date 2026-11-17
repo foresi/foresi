@@ -97,6 +97,10 @@ nav:
     time: Čas
     notifications: Oznámení
 ui:
+  inline_field:
+    edit: 'Upravit {label}'
+    save: Uložit
+    cancel: Zrušit
   avatar:
     nobody: Nikdo
   person_picker:

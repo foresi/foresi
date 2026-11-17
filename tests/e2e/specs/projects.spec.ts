@@ -229,4 +229,59 @@ test.describe('projects', () => {
     await expect(card(page, title)).toContainText(/15\.\s1\.\s2027/);
     await expect(card(page, title)).toContainText('Vysoká');
   });
+
+  test('the title and the description of a task change where they are read, without a reload', async ({ page }) => {
+    await openWebsite(page);
+    const title = 'Plan the launch mail';
+    await page.getByRole('link', { name: 'Nový úkol' }).click();
+    await page.getByRole('dialog').getByLabel('Název').fill(title);
+    await page.getByRole('dialog').getByRole('button', { name: 'Přidat úkol' }).click();
+    await page.locator('[data-section] tbody tr').filter({ hasText: title }).getByRole('link', { name: title, exact: true }).click();
+    const heading = page.getByRole('heading', { level: 1 });
+    await expect(heading).toHaveText(title);
+    // The header has no Edit: the title is changed where it is read.
+    await expect(page.locator('[data-page-actions]').getByRole('link', { name: 'Upravit' })).toHaveCount(0);
+    // Set on the page: a full reload would lose it.
+    await page.evaluate(() => { (window as unknown as { kept: boolean }).kept = true; });
+
+    // A click on the title turns it into the field; Escape leaves it as it was.
+    await heading.click();
+    const field = page.getByRole('textbox', { name: 'Název' });
+    await expect(field).toBeFocused();
+    await field.fill('Something else');
+    await field.press('Escape');
+    await expect(heading).toHaveText(title);
+    await expect(page.getByRole('link', { name: 'Upravit název' })).toBeFocused();
+
+    // The pencil is the way of a keyboard; Enter saves.
+    await page.getByRole('link', { name: 'Upravit název' }).press('Enter');
+    await expect(field).toBeFocused();
+    await field.fill('Plan and write the launch mail');
+    await field.press('Enter');
+    await expect(heading).toHaveText('Plan and write the launch mail');
+    await expect(page.locator('[data-task-history]')).toContainText('Změna: Název');
+    await expect(page).toHaveTitle(/^Plan and write the launch mail/);
+
+    // An empty title is refused next to the field, which stays open.
+    await heading.click();
+    await field.fill('');
+    await field.press('Enter');
+    await expect(page.locator('#title-error')).toHaveText('Zadejte název úkolu.');
+    await page.locator('[data-page-title-form]').getByRole('link', { name: 'Zrušit' }).click();
+    await expect(heading).toHaveText('Plan and write the launch mail');
+
+    // The description opens its editor in place and stays open when the focus leaves it.
+    const description = page.locator('[data-task-description-form]');
+    await page.getByText('Bez popisu').click();
+    const editor = page.locator('#description');
+    await expect(editor).toBeFocused();
+    await editor.fill('Who gets it and when.');
+    await page.locator('[data-task-details]').click();
+    await expect(editor).toBeVisible();
+    await expect(editor).toHaveValue('Who gets it and when.');
+    await description.getByRole('button', { name: 'Uložit' }).click();
+    await expect(page.locator('[data-task-description]')).toHaveText('Who gets it and when.');
+    await expect(description).toBeHidden();
+    expect(await page.evaluate(() => (window as unknown as { kept?: boolean }).kept)).toBe(true);
+  });
 });
