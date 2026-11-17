@@ -174,7 +174,12 @@ final class ProjectControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSame(['none', $this->sectionId($id, 'Design'), $this->sectionId($id, 'Build')], $crawler->filter('[data-section]')->each(static fn (Crawler $section): string => (string) $section->attr('data-section')));
-        self::assertSame(['No section (1)', 'Design (1)', 'Build (0)'], $crawler->filter('[data-section] h2')->each(static fn (Crawler $heading): string => preg_replace('/\s+/', ' ', trim($heading->text())) ?? ''));
+        // The tasks in no section are the list's own: no heading, a table named after the project.
+        self::assertSame(['Design (1)', 'Build (0)'], $crawler->filter('[data-section] h2')->each(static fn (Crawler $heading): string => preg_replace('/\s+/', ' ', trim($heading->text())) ?? ''));
+        $loose = $crawler->filter('[data-section="none"]');
+        self::assertCount(0, $loose->filter('h2'));
+        self::assertStringStartsWith('Tasks of ', trim($loose->filter('table caption')->text()));
+        self::assertStringNotContainsString('No section', $crawler->filter('main')->text());
 
         $design = $crawler->filter('[data-section]')->eq(1);
         self::assertSame(['Wireframes', 'Logo'], $design->filter('tbody tr td:first-child [data-row-link]')->each(static fn (Crawler $cell): string => trim($cell->text())));

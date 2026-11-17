@@ -3776,6 +3776,7 @@ work:
     due_none: No date
   list:
     no_section: No section
+    loose_caption: 'Tasks of {project}'
     empty: No tasks yet.
     empty_filtered: No task matches the filters.
     empty_title: No tasks yet
