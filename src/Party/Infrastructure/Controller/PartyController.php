@@ -108,7 +108,6 @@ final class PartyController extends AbstractController
             + ($importedBy instanceof ImportedBy ? ['import' => $importedBy->importId, 'outcome' => $importedBy->outcome] : []);
 
         return $this->render('party/index.html.twig', [
-            'counts' => $counts,
             'firstRun' => 0 === $counts->all && 0 === $counts->archived,
             'view' => $view,
             'text' => $text,

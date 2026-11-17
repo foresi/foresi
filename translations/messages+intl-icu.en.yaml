@@ -286,12 +286,6 @@ party:
     title: Nothing found
     text: Try another search or clear the filter.
     reset: Clear filter
-  kpi:
-    all: All contacts
-    customers: Customers
-    suppliers: Suppliers
-    unreliable: Unreliable payers
-    check: Check
   view:
     all: All
     customers: Customers

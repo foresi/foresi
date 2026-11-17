@@ -37,15 +37,6 @@
         </twig:Ui:EmptyState>
     {% else %}
         <div class="grid grid-cols-1 gap-4">
-            <twig:Ui:KpiStrip :items="[
-                {label: 'party.kpi.all'|trans, value: counts.all ~ ''},
-                {label: 'party.kpi.customers'|trans, value: counts.customers ~ ''},
-                {label: 'party.kpi.suppliers'|trans, value: counts.suppliers ~ ''},
-                (counts.unreliablePayers > 0
-                    ? {label: 'party.kpi.unreliable'|trans, value: counts.unreliablePayers ~ '', badge: {label: 'party.kpi.check'|trans, tone: 'red'}}
-                    : {label: 'party.kpi.unreliable'|trans, value: counts.unreliablePayers ~ ''}),
-            ]" />
-
             <twig:Ui:Tabs :items="tabs" :label="'party.views'|trans" />
             <twig:Ui:FilterBar id="contact-filters" :action="path('app_contacts')" :keep="{view: view != 'all' ? view : null, sort: sort != 'name' ? sort : null}"
                 :search="{name: 'q', value: text, label: 'party.search.label'|trans, placeholder: 'party.search.placeholder'|trans}" :empty="rows is empty" />
