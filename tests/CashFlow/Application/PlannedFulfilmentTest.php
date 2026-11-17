@@ -124,7 +124,7 @@ final class PlannedFulfilmentTest extends CashFlowTestCase
         $forecast = $this->forecasts([$hidden, new PlannedItemFlows(self::getContainer()->get(CashFlowStore::class))], [])->of($this->firm->id());
 
         $week = $forecast->periods[0];
-        self::assertSame(['planned_item'], array_map(static fn ($line): string => $line->flow->subject->type, $week->lines));
+        self::assertSame(['planned_item'], array_map(static fn (\App\CashFlow\Application\ForecastLine $line): string => $line->flow->subject->type, $week->lines));
         self::assertSame('15700', (string) $week->inflows['revenue']->plus($week->inflows['other'])->minor());
         self::assertCount(2, $week->hidden);
         self::assertSame(['test.invoices', 'other', 700, 1], [$week->hidden[0]->source, $week->hidden[0]->category->value, $week->hidden[0]->amount->minor(), $week->hidden[0]->count]);

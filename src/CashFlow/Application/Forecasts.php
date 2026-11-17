@@ -277,7 +277,7 @@ final class Forecasts
         $last = null;
         foreach ($lines as $index => $line) {
             $item = 'planned_item' === $line->flow->subject->type ? ($items[$line->flow->subject->id] ?? null) : null;
-            if (!$item instanceof PlannedItem || (!$item->isRecurring() || null === $item->counterparty()) && $item->matchRule()->isEmpty()) {
+            if (!$item instanceof PlannedItem || (!$item->isRecurring() || !$item->counterparty() instanceof \App\Party\Domain\Party) && $item->matchRule()->isEmpty()) {
                 continue;
             }
             $planned[$index] = $item;

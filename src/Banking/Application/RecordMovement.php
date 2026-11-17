@@ -76,7 +76,7 @@ final readonly class RecordMovement
                 $account->firm()->id(),
                 $account->id(),
                 $movement->direction()->value,
-                self::decimal($movement->amount()),
+                $this->decimal($movement->amount()),
                 $movement->amount()->currency()->value,
                 $movement->bookedOn()->format('Y-m-d'),
                 $movement->state()->value,
@@ -141,7 +141,7 @@ final readonly class RecordMovement
     /**
      * A positive amount as a decimal string, as events carry amounts.
      */
-    private static function decimal(Money $money): string
+    private function decimal(Money $money): string
     {
         $places = $money->currency()->minorUnits();
         if (0 === $places) {

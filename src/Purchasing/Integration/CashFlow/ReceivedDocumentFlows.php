@@ -75,12 +75,12 @@ final readonly class ReceivedDocumentFlows implements CashFlowSource, ActualFlow
             yield new ExpectedFlow(
                 self::KEY,
                 $this->subject($document),
-                self::direction($document),
+                $this->direction($document),
                 $remaining,
                 new \DateTimeImmutable($day->format('Y-m-d'), $zone),
                 FlowCategory::Purchases,
                 FlowCertainty::Document,
-                self::label($document),
+                $this->label($document),
                 $due instanceof \DateTimeImmutable ? [] : [FlowFlag::NoDueDate],
                 $document->supplierParty()?->id(),
             );
@@ -99,7 +99,7 @@ final readonly class ReceivedDocumentFlows implements CashFlowSource, ActualFlow
             yield new ActualFlow(
                 self::KEY,
                 $this->subject($document),
-                self::direction($document),
+                $this->direction($document),
                 $payable->balance->due,
                 new \DateTimeImmutable($day->format('Y-m-d'), $from->getTimezone()),
                 counterpartyId: $document->supplierParty()?->id(),
@@ -120,12 +120,12 @@ final readonly class ReceivedDocumentFlows implements CashFlowSource, ActualFlow
         } while (null !== $after);
     }
 
-    private static function direction(ReceivedDocument $document): FlowDirection
+    private function direction(ReceivedDocument $document): FlowDirection
     {
         return ReceivedDocumentKind::CreditNote === $document->kind() ? FlowDirection::In : FlowDirection::Out;
     }
 
-    private static function label(ReceivedDocument $document): string
+    private function label(ReceivedDocument $document): string
     {
         return trim(\sprintf('%s %s', '' === $document->supplierNumber() ? ($document->evidenceNumber() ?? '') : $document->supplierNumber(), $document->supplier()->name));
     }
