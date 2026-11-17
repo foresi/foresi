@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Console;
 
-use App\Instance\Application\TenantContext;
 use App\Instance\Application\SoleTenant;
+use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\ConflictRetry;
 use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\PublicDocuments;

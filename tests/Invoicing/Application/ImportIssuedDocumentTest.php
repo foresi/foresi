@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Application;
 
 use App\Audit\Application\AuditActor;
-use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\AdvanceDeductions;
 use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\ConflictRetry;
@@ -388,15 +387,16 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
         $first = $this->stored($this->import->import($this->imported(pdf: self::PDF)));
         $this->import->import($this->imported(document: ['typedNumber' => '20240008'], overrides: ['externalId' => '4712']));
         $other = $this->import->import($this->imported(document: ['typedNumber' => '20240009'], overrides: ['externalId' => '4713', 'runId' => '0192f0a0-0000-7000-8000-000000000002']));
-        $tenant = self::getContainer()->get(TenantContext::class)->current()->toString();
         $key = (string) $first->originalPdfKey();
+        $originals = self::getContainer()->get(OriginalDocuments::class);
+        self::assertSame(self::PDF, $originals->read($first->id(), $key, hash('sha256', self::PDF)));
 
         self::assertSame([], $this->undo->undo(self::RUN));
 
         self::assertSame(1, $this->invoiceCount());
         self::assertSame($other->invoiceId, $this->em->createQuery('SELECT i.id FROM '.Invoice::class.' i')->getSingleScalarResult());
         $this->expectException(\App\Invoicing\Application\OriginalDocumentUnreadable::class);
-        self::getContainer()->get(OriginalDocuments::class)->read($tenant, $key, hash('sha256', self::PDF));
+        $originals->read($first->id(), $key, hash('sha256', self::PDF));
     }
 
     public function testARunIsKeptWhileAnythingStandsOnIt(): void
