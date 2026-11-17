@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 // Written by tests/e2e/seed.php: the links of the seeded send, derived from the e2e secret.
-const links = JSON.parse(readFileSync(resolve(__dirname, '../../../var/e2e-links.json'), 'utf8')) as { customer: string; copy: string; number: string };
+const links = JSON.parse(readFileSync(resolve(__dirname, '../../../var/e2e-links.json'), 'utf8')) as { customer: string; copy: string; number: string; due: string };
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 const SHOTS = process.env.E2E_SHOTS;
 
@@ -53,7 +53,7 @@ test('the link shows the document and opens its PDF from the keyboard @a11y @lay
 
   await expect(page.getByRole('heading', { level: 1, name: `Faktura ${links.number}` })).toBeVisible();
   await expect(page.getByText(/^15\s125,00\sKč$/).first()).toBeVisible();
-  await expect(page.getByText('16. 11. 2026')).toBeVisible();
+  await expect(page.getByText(links.due)).toBeVisible();
   await expect(page.getByRole('heading', { level: 2, name: 'Platba převodem' })).toBeVisible();
   await expect(page.getByText('Example Studio s.r.o.').first()).toBeVisible();
   await expectNoSeriousViolations(page);
