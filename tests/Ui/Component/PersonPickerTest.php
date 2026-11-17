@@ -39,7 +39,9 @@ final class PersonPickerTest extends KernelTestCase
     {
         $trigger = $this->picker(['value' => 'm-2'])->filter('[data-person-picker-trigger]');
 
-        self::assertSame('task-responsible-button-label task-responsible-button', $trigger->attr('aria-labelledby'));
+        // Named by its own text, the label first, so the name holds what it shows (no aria-label).
+        self::assertNull($trigger->attr('aria-labelledby'));
+        self::assertSame('Responsible: Jana Example', preg_replace('/\s+/', ' ', trim($trigger->filter('.sr-only')->text().' '.$trigger->filter('.truncate')->text())));
         self::assertSame('menu', $trigger->attr('aria-haspopup'));
         self::assertSame('JE', trim($trigger->filter('[data-avatar]')->text()));
         self::assertStringContainsString('Jana Example', $trigger->text());

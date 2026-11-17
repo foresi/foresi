@@ -96,9 +96,9 @@ final class PersonPicker
      */
     public function options(): array
     {
-        $options = [];
-        foreach ($this->rows() as $row) {
-            $options[$row['value']] = '' === $row['value'] ? (string) $this->noneLabel : $row['name'];
+        $options = null === $this->noneLabel ? [] : ['' => $this->noneLabel];
+        foreach ($this->checked as $person) {
+            $options[$person['value']] = $person['name'];
         }
 
         return $options;
