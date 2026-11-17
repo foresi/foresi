@@ -94,10 +94,13 @@ final class MyTasksControllerTest extends WebTestCase
         self::assertSame(['Overdue (1)', 'Today (2)', 'Next 7 days (1)', 'Later (1)'], $crawler->filter('[data-task-group] h2')->each(static fn (Crawler $title): string => trim($title->text())));
         self::assertSame(['Call the client', 'Order the hosting'], $this->titles($crawler, 'today'));
         $overdue = $crawler->filter('[data-task-group="overdue"] tbody tr td');
-        self::assertSame(['Website', 'To do', 'Overdue 2026-11-18'], array_map(trim(...), $overdue->slice(1, 3)->each(static fn (Crawler $cell): string => $cell->text())));
-        self::assertCount(1, $overdue->eq(3)->filter('.bg-badge-red'));
+        // Each property but the project changes in the row.
+        self::assertSame(['Website', 'Status: To do', 'Responsible: Example Company', 'Due date: Overdue 2026-11-18'], $overdue->slice(1, 4)->each(static fn (Crawler $cell): string => self::shown($cell)));
+        self::assertCount(1, $overdue->eq(4)->filter('[data-inline-edit-trigger] .bg-badge-red'));
         self::assertSame('/tasks/'.$this->taskId('Fix the form'), $overdue->eq(0)->filter('a')->attr('href'));
-        self::assertSame('High', trim($crawler->filter('[data-task-group="today"] tbody tr')->eq(0)->filter('td')->eq(4)->text()));
+        self::assertSame('/tasks/'.$this->taskId('Fix the form').'/due', $overdue->eq(4)->filter('form')->attr('action'));
+        self::assertSame('/my-tasks', $overdue->eq(4)->filter('input[name="return"]')->attr('value'));
+        self::assertSame('Priority: High', self::shown($crawler->filter('[data-task-group="today"] tbody tr')->eq(0)->filter('td')->eq(5)));
         self::assertSame(['Write the copy'], $this->titles($crawler, 'upcoming'));
         self::assertSame(['Plan the launch'], $this->titles($crawler, 'later'));
         // Nothing without a date: the group is left out.
@@ -210,5 +213,25 @@ final class MyTasksControllerTest extends WebTestCase
         self::assertIsString($id);
 
         return $id;
+    }
+
+    /**
+     * What a cell reads as: the text of its picker a screen reader hears (no avatar initials, no dash), else its text.
+     */
+    private static function shown(Crawler $cell): string
+    {
+        $trigger = $cell->filter('[data-inline-edit-trigger], [data-person-picker-trigger]');
+        if (0 === $trigger->count()) {
+            return trim($cell->text());
+        }
+        $node = $trigger->getNode(0)?->cloneNode(true) ?? throw new \LogicException('A trigger.');
+        $hidden = new \DOMXPath($node->ownerDocument ?? throw new \LogicException('A document.'))->query('.//*[@aria-hidden="true"]', $node);
+        foreach (false === $hidden ? [] : iterator_to_array($hidden) as $element) {
+            if ($element instanceof \DOMElement) {
+                $element->parentNode?->removeChild($element);
+            }
+        }
+
+        return trim((string) preg_replace('/\s+/', ' ', $node->textContent));
     }
 }

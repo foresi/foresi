@@ -3263,6 +3263,7 @@ work:
     edit: Upravit
     nobody: Nikdo
     due_clear: Smazat
+    no_due: Bez termínu
     labels_edit: Vybrat štítky
     labels_title: Štítky úkolu
     labels_none: Organizace zatím nemá žádné štítky.

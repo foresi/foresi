@@ -83,6 +83,30 @@ final class PersonPickerTest extends KernelTestCase
         self::assertStringContainsString('[@media(scripting:none)]:hidden', (string) $crawler->filter('[data-person-picker] > div')->attr('class'));
     }
 
+    public function testACompactPickerReadsAsTheAvatarAndTheNameWithoutALabelAbove(): void
+    {
+        $crawler = $this->picker(['value' => 'm-2', 'compact' => true]);
+        $trigger = $crawler->filter('[data-person-picker-trigger]');
+
+        self::assertSame('Responsible: Jana Example', preg_replace('/\s+/', ' ', trim($trigger->filter('.sr-only')->text().' '.$trigger->filter('.truncate')->text())));
+        self::assertCount(0, $trigger->filter('svg'));
+        self::assertCount(0, $crawler->filter('[data-person-picker] > div > span[aria-hidden=true]'));
+        // Without JavaScript the person reads as plain text; no select in a row.
+        self::assertCount(0, $crawler->filter('noscript'));
+        self::assertSame('Jana Example', trim($crawler->filter('[data-person-picker] > span .truncate')->text()));
+    }
+
+    public function testACompactPickerWithNobodyShowsTheDashedAvatarAlone(): void
+    {
+        $crawler = $this->picker(['value' => '', 'compact' => true]);
+        $trigger = $crawler->filter('[data-person-picker-trigger]');
+
+        self::assertStringContainsString('border-dashed', (string) $trigger->filter('[data-avatar]')->attr('class'));
+        self::assertCount(0, $trigger->filter('.truncate'));
+        self::assertSame('Responsible: Nobody', preg_replace('/\s+/', ' ', trim(implode(' ', $trigger->filter('.sr-only')->each(static fn (Crawler $span): string => trim($span->text()))))));
+        self::assertSame('Responsible: Nobody', trim($crawler->filter('[data-person-picker] > span .sr-only')->text()));
+    }
+
     #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
     public function testAPersonNeedsAValueAndAName(): void
     {

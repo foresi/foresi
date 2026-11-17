@@ -24,6 +24,9 @@
 
 {% block title %}{{ project.name }}{% endblock %}
 
+{# A change made on a card comes back to this page: Turbo morphs it in place and keeps the scroll. #}
+{% block head %}{{ include('work/_morph_refresh.html.twig') }}{% endblock %}
+
 {% block actions %}
     {% if project.manageable %}<twig:Ui:Button icon="settings" :href="path('app_project_settings', {id: project.id})" data-project-settings>{{ 'work.settings.title'|trans }}</twig:Ui:Button>{% endif %}
     {{ share }}
@@ -104,18 +107,24 @@
                                         {% endif %}
                                     </div>
                                     <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-small text-muted">
-                                        {% if card.responsible %}
+                                        {% if card.edit.responsible %}
+                                            <twig:Ui:InlineEdit :id="'card-responsible-' ~ card.id" {{ ...card.edit.responsible }} class="-ml-1.5 min-w-0" data-card-responsible />
+                                        {% elseif card.responsible %}
                                             <span class="flex min-w-0 items-center gap-1.5" data-card-responsible>
                                                 <twig:Ui:Avatar :name="card.responsible.name" :seed="card.responsible.seed" />
                                                 <span class="sr-only">{{ 'work.task.field.responsible'|trans }}: </span><span class="min-w-0 truncate">{{ card.responsible.name }}</span>
                                             </span>
                                         {% endif %}
-                                        {% if card.due %}
+                                        {% if card.edit.due %}
+                                            <twig:Ui:InlineEdit :id="'card-due-' ~ card.id" {{ ...card.edit.due }} :text="card.due is iterable ? card.due.text : (card.due ?? '')" :tone="card.due is iterable ? card.due.tone : null" emptyIcon="calendar" data-card-due />
+                                        {% elseif card.due %}
                                             <span data-card-due><span class="sr-only">{{ 'work.task.field.due_on'|trans }}: </span>
                                                 {%- if card.due is iterable %}<twig:Ui:Badge :tone="card.due.tone">{{ card.due.text }}</twig:Ui:Badge>{% else %}{{ card.due }}{% endif -%}
                                             </span>
                                         {% endif %}
-                                        {% if card.priority %}<span data-card-priority><span class="sr-only">{{ 'work.task.field.priority'|trans }}: </span>{{ card.priority }}</span>{% endif %}
+                                        {% if card.edit.priority %}
+                                            <twig:Ui:InlineEdit :id="'card-priority-' ~ card.id" {{ ...card.edit.priority }} :text="card.priority ?? ''" emptyIcon="chart-column" data-card-priority />
+                                        {% elseif card.priority %}<span data-card-priority><span class="sr-only">{{ 'work.task.field.priority'|trans }}: </span>{{ card.priority }}</span>{% endif %}
                                         {% if card.subtasks %}
                                             <span class="num inline-flex items-center gap-1" data-card-subtasks>{{ ux_icon('lucide:square-check-big', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span aria-hidden="true">{{ card.subtasks.done }}/{{ card.subtasks.total }}</span><span class="sr-only">{{ 'work.board.subtasks'|trans({done: card.subtasks.done, total: card.subtasks.total}) }}</span></span>
                                         {% endif %}

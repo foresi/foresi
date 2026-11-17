@@ -21,6 +21,8 @@ Work of the organisation, kept in projects. This page says what the screens do a
 
 A project opens as a list: one block per section, each task a row with its status, responsible, due date, priority and labels, and its subtasks under it. The filters above narrow the list by responsible person, status (unfinished by default, finished, or all) and due date (overdue, today, the next 7 days, none).
 
+**Changing a task in its row.** The status, the responsible person, the due date and the priority change without opening the task, as in Linear and GitHub Projects: click the value. Status and priority open a menu with a check on the current one, the responsible person opens the list of people with their avatars and **Nobody**, and the due date opens the browser's date picker, where clearing the date removes it. The choice is saved at once and the page stays where it was, with its filters and the focus on the value; a refusal is shown at the top of the list. The same works on the cards of the board (the responsible person, the due date and the priority; a card changes its status by moving) and in **My tasks**. The people offered are those who see the task, as on its page. An archived project offers none of this. Without JavaScript the values are plain text and the task page changes them.
+
 **New task**, in the header of the list and of the board, opens a dialog for the title and the section (no section by default). The task starts in the first open status of the workflow, and you come back to the view you opened it from, with its filters, where a message confirms it. A project without tasks shows the same button in the middle of the page. An archived project has no **New task**. Without JavaScript the dialog is a page of its own.
 
 ## The board
@@ -66,7 +68,7 @@ Under the task, **Discussion and history** is one timeline, oldest first: every 
 
 ## My tasks
 
-**Work, My tasks** lists the unfinished tasks you are responsible for, grouped by when they are due: overdue, today, the next 7 days, later and without a date. A group with nothing in it is left out. The **Watching** tab lists the tasks you follow instead. The client filter narrows both tabs. The count of tasks due by today is shown beside the item in the menu. A guest has **My tasks** too, with the tasks they see; the project of a task shared on its own is named, not linked.
+**Work, My tasks** lists the unfinished tasks you are responsible for, grouped by when they are due: overdue, today, the next 7 days, later and without a date. Each row shows the project, the status, the responsible person, the due date and the priority, and all but the project change in the row as in the list; a task you hand to someone else or finish leaves the tab. A group with nothing in it is left out. The **Watching** tab lists the tasks you follow instead. The client filter narrows both tabs. The count of tasks due by today is shown beside the item in the menu. A guest has **My tasks** too, with the tasks they see; the project of a task shared on its own is named, not linked.
 
 ## Project settings
 

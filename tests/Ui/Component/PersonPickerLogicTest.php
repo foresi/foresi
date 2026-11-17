@@ -66,6 +66,14 @@ final class PersonPickerLogicTest extends TestCase
         self::assertSame('flex h-control w-full cursor-pointer items-center gap-2 text-left hover:border-green w-full rounded-control border bg-white px-3 text-ink placeholder:text-muted transition-colors border-control-line disabled:border-divider disabled:bg-head disabled:text-muted focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-green', $this->picker()->triggerClasses());
     }
 
+    public function testACompactTriggerReadsAsTheValue(): void
+    {
+        $picker = $this->picker();
+        $picker->compact = true;
+
+        self::assertSame(\App\Ui\Component\InlineEdit::TRIGGER, $picker->triggerClasses());
+    }
+
     /**
      * @return iterable<string, array{array<mixed>, string, string, string}>
      */

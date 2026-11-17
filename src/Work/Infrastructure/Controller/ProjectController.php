@@ -22,6 +22,7 @@ use App\Work\Application\LabelBadge;
 use App\Work\Application\ManageProjects;
 use App\Work\Application\ManageTasks;
 use App\Work\Application\ProjectRow;
+use App\Work\Application\ProjectSummary;
 use App\Work\Application\PurgeDeletedTasks;
 use App\Work\Application\SectionTasks;
 use App\Work\Application\StatusTasks;
@@ -85,6 +86,7 @@ final class ProjectController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly TimeQueries $time,
         private readonly OwnerCheck $owner,
+        private readonly InlineTaskEdits $edits,
     ) {
     }
 
@@ -183,13 +185,14 @@ final class ProjectController extends AbstractController
         $query = $this->filterQuery($request->query);
         $list = $this->queries->projectList($id, $this->filter($query)) ?? throw new NotFoundHttpException();
         $seeds = $this->seeds();
+        $edits = $this->editsOf($list->project, array_merge(...array_map(static fn (SectionTasks $section): array => self::withSubtasks($section->tasks), $list->sections)), $request);
         $sections = [];
         foreach ($list->sections as $section) {
             // The tasks in no section only when there are some.
             if (null === $section->id && [] === $section->tasks) {
                 continue;
             }
-            $sections[] = $this->sectionView($section, $seeds);
+            $sections[] = $this->sectionView($section, $seeds, $edits);
         }
 
         return $this->render('work/projects/show.html.twig', [
@@ -224,6 +227,7 @@ final class ProjectController extends AbstractController
         $query = $this->filterQuery($request->query);
         $board = $this->queries->board($id, $this->filter(['status' => 'all'] + $query)) ?? throw new NotFoundHttpException();
         $seeds = $this->seeds();
+        $edits = $this->editsOf($board->project, array_merge(...array_map(static fn (StatusTasks $column): array => $column->tasks, $board->columns)), $request);
         $statuses = array_map(static fn (StatusTasks $column): array => ['id' => $column->id, 'name' => $column->name], $board->columns);
 
         return $this->render('work/projects/board.html.twig', [
@@ -242,7 +246,7 @@ final class ProjectController extends AbstractController
                 'type' => $this->translator->trans('work.board.type.'.$column->type->value),
                 'count' => \count($column->tasks),
                 'cards' => array_map(
-                    fn (TaskRow $task, int $at): array => $this->card($task, $seeds, $column->id, $statuses, $at, \count($column->tasks)),
+                    fn (TaskRow $task, int $at): array => $this->card($task, $seeds, $column->id, $statuses, $at, \count($column->tasks), $edits),
                     $column->tasks,
                     array_keys($column->tasks),
                 ),
@@ -506,7 +510,7 @@ final class ProjectController extends AbstractController
      *
      * @return array<string, mixed>
      */
-    private function card(TaskRow $task, array $seeds, string $statusId, array $statuses, int $at, int $count): array
+    private function card(TaskRow $task, array $seeds, string $statusId, array $statuses, int $at, int $count, ?TaskEdits $edits): array
     {
         $done = \count(array_filter($task->subtasks, static fn (TaskRow $subtask): bool => $subtask->done));
 
@@ -528,7 +532,40 @@ final class ProjectController extends AbstractController
             'up' => $at > 0,
             'down' => $at < $count - 1,
             'deletable' => $task->deletable,
+            // The responsible person, the due date and the priority change on the card; the column is its status.
+            'edit' => [
+                'responsible' => $edits?->responsible($task),
+                'due' => $edits?->due($task),
+                'priority' => $edits?->priority($task),
+            ],
         ];
+    }
+
+    /**
+     * The pickers of the tasks of a project page; none in an archived project,
+     * whose board does not move either.
+     *
+     * @param list<TaskRow> $tasks
+     */
+    private function editsOf(ProjectSummary $project, array $tasks, Request $request): ?TaskEdits
+    {
+        return $project->archivedAt instanceof \DateTimeImmutable ? null : $this->edits->for($tasks, $request->getRequestUri());
+    }
+
+    /**
+     * @param list<TaskRow> $tasks
+     *
+     * @return list<TaskRow> the tasks, each followed by its subtasks
+     */
+    private static function withSubtasks(array $tasks): array
+    {
+        $all = [];
+        foreach ($tasks as $task) {
+            $all[] = $task;
+            array_push($all, ...$task->subtasks);
+        }
+
+        return $all;
     }
 
     /**
@@ -572,13 +609,13 @@ final class ProjectController extends AbstractController
      *
      * @return array{id: ?string, key: string, name: string, count: int, private: bool, rows: list<array<string, mixed>>}
      */
-    private function sectionView(SectionTasks $section, array $seeds): array
+    private function sectionView(SectionTasks $section, array $seeds, ?TaskEdits $edits): array
     {
         $rows = [];
         foreach ($section->tasks as $task) {
-            $rows[] = $this->taskRow($task, $seeds, false);
+            $rows[] = $this->taskRow($task, $seeds, false, $edits);
             foreach ($task->subtasks as $subtask) {
-                $rows[] = $this->taskRow($subtask, $seeds, true);
+                $rows[] = $this->taskRow($subtask, $seeds, true, $edits);
             }
         }
 
@@ -612,7 +649,7 @@ final class ProjectController extends AbstractController
      *
      * @return array<string, mixed>
      */
-    private function taskRow(TaskRow $task, array $seeds, bool $child): array
+    private function taskRow(TaskRow $task, array $seeds, bool $child, ?TaskEdits $edits): array
     {
         $due = $this->due($task);
 
@@ -625,10 +662,10 @@ final class ProjectController extends AbstractController
             'secondary' => implode(' · ', array_filter([$task->responsibleName ?? $this->translator->trans('work.task.nobody'), \is_array($due) ? $due['text'] : $due], \is_string(...))),
             'cells' => [
                 'title' => $task->private ? ['text' => $task->title, 'flag' => $this->privateFlag()] : $task->title,
-                'status' => $this->statusBadge($task->statusName, $task->statusType),
-                'responsible' => null === $task->responsibleId || null === $task->responsibleName ? null : ['avatar' => $seeds[$task->responsibleId] ?? $task->responsibleId, 'text' => $task->responsibleName],
-                'due' => $due,
-                'priority' => Priority::None === $task->priority ? null : $this->translator->trans('work.priority.'.$task->priority->value),
+                'status' => TaskEdits::cell($this->statusBadge($task->statusName, $task->statusType), $edits?->status($task)),
+                'responsible' => TaskEdits::cell(null === $task->responsibleId || null === $task->responsibleName ? null : ['avatar' => $seeds[$task->responsibleId] ?? $task->responsibleId, 'text' => $task->responsibleName], $edits?->responsible($task)),
+                'due' => TaskEdits::cell($due, $edits?->due($task)),
+                'priority' => TaskEdits::cell(Priority::None === $task->priority ? null : $this->translator->trans('work.priority.'.$task->priority->value), $edits?->priority($task)),
                 'labels' => [] === $task->labels ? null : ['badges' => array_map(static fn (LabelBadge $label): array => ['label' => $label->name, 'tone' => $label->colour->value], $task->labels)],
             ],
             'actions' => $task->deletable ? [[

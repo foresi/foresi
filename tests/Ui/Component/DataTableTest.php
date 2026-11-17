@@ -591,6 +591,31 @@ final class DataTableTest extends KernelTestCase
         }
     }
 
+    public function testACellWithAnEditIsChangedInPlaceAndReadsAsItsValue(): void
+    {
+        $edit = ['action' => '/tasks/t1/status', 'name' => 'status', 'label' => 'Status', 'value' => 's-2', 'token' => 'tok', 'fields' => ['return' => '/projects/p1'], 'options' => [['value' => 's-1', 'label' => 'Open'], ['value' => 's-2', 'label' => 'In progress']]];
+        $rows = [
+            ['id' => 't1', 'cells' => ['name' => 'Task', 'email' => ['text' => 'In progress', 'tone' => 'amber', 'edit' => $edit], 'balance' => ['edit' => $edit + ['value' => '']]]],
+            ['id' => 't2', 'cells' => ['name' => 'Task', 'email' => ['text' => 'Open', 'edit' => $edit], 'balance' => '']],
+        ];
+
+        $crawler = new Crawler($this->render(['rows' => $rows]));
+
+        $status = $crawler->filter('#edit-t1-email-button');
+        self::assertSame('Status: In progress', preg_replace('/\s+/', ' ', trim($status->text())));
+        self::assertStringContainsString('bg-badge-amber', (string) $status->filter('span')->last()->attr('class'));
+        self::assertSame('/tasks/t1/status', $crawler->filter('form[data-inline-edit]')->first()->attr('action'));
+        // A text alone reads as text; an edit alone as no value.
+        self::assertSame('Status: Open', preg_replace('/\s+/', ' ', trim($crawler->filter('#edit-t2-email-button')->text())));
+        self::assertSame('—', $crawler->filter('#edit-t1-balance-button span[aria-hidden=true]')->text());
+    }
+
+    public function testAnEditOfACellMustBeAnArray(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mountTwigComponent('Ui:DataTable', ['columns' => self::COLUMNS, 'rows' => [['id' => 'a1', 'cells' => ['name' => ['edit' => 'status']]]]]);
+    }
+
     public function testABadgesCellShowsEachBadgeWithItsTone(): void
     {
         $rows = [['id' => 'a1', 'cells' => ['name' => 'Task', 'email' => ['badges' => [['label' => 'Bug', 'tone' => 'red'], ['label' => 'Design']]], 'balance' => '']]];

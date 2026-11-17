@@ -191,18 +191,23 @@ final class ProjectControllerTest extends WebTestCase
         self::assertSame('Logo', trim($design->filter('tbody tr[data-row-child] [data-row-link]')->text()));
         $wireframes = $design->filter('tbody tr')->eq(0)->filter('td');
         self::assertSame('/tasks/'.$this->taskId('Wireframes'), $wireframes->eq(0)->filter('a')->attr('href'));
-        self::assertSame('In progress', trim($wireframes->eq(1)->text()));
-        self::assertStringContainsString('bg-badge-amber', (string) $wireframes->eq(1)->filter('span')->attr('class'));
-        self::assertSame('Example Company', trim($wireframes->eq(2)->filter('[data-avatar-cell] > span')->last()->text()));
-        self::assertCount(1, $wireframes->eq(2)->filter('[data-avatar-cell]'));
-        self::assertStringStartsWith('Overdue ', trim($wireframes->eq(3)->text()));
-        self::assertStringContainsString('bg-badge-red', (string) $wireframes->eq(3)->filter('span')->attr('class'));
-        self::assertSame('High', trim($wireframes->eq(4)->text()));
+        // The status, the responsible person, the due date and the priority change in the row.
+        self::assertSame('Status: In progress', $this->shown($wireframes->eq(1)));
+        self::assertCount(1, $wireframes->eq(1)->filter('[data-inline-edit-trigger] .bg-badge-amber'));
+        self::assertSame(['To do', 'In progress', 'Done'], $wireframes->eq(1)->filter('[role=menu] button')->each(static fn (Crawler $item): string => trim($item->text())));
+        self::assertSame('Responsible: Example Company', $this->shown($wireframes->eq(2)));
+        self::assertSame(['Nobody', 'Example Company'], $wireframes->eq(2)->filter('[role=menu] button .truncate')->each(static fn (Crawler $item): string => trim($item->text())));
+        self::assertStringStartsWith('Due date: Overdue ', $this->shown($wireframes->eq(3)));
+        self::assertCount(1, $wireframes->eq(3)->filter('[data-inline-edit-trigger] .bg-badge-red'));
+        self::assertSame('Priority: High', $this->shown($wireframes->eq(4)));
+        self::assertSame(['/tasks/'.$this->taskId('Wireframes').'/status', '/tasks/'.$this->taskId('Wireframes').'/responsible', '/tasks/'.$this->taskId('Wireframes').'/due', '/tasks/'.$this->taskId('Wireframes').'/priority'], $wireframes->slice(1, 4)->each(static fn (Crawler $cell): string => (string) $cell->filter('form')->attr('action')));
+        self::assertSame(['/projects/'.$id], array_values(array_unique($wireframes->filter('input[name="return"]')->each(static fn (Crawler $input): string => (string) $input->attr('value')))));
         self::assertSame(['Design'], $wireframes->eq(5)->filter('[data-badges] > *')->each(static fn (Crawler $badge): string => trim($badge->text())));
-        // No priority shows nothing, a task without a date shows no date.
+        // No priority and no date read as a dash, which a screen reader hears as what it is.
         $logo = $design->filter('tbody tr[data-row-child] td');
-        self::assertSame('—', trim($logo->eq(4)->text()));
-        self::assertSame('—', trim($logo->eq(3)->text()));
+        self::assertSame('Priority: No priority', $this->shown($logo->eq(4)));
+        self::assertSame('Due date: No due date', $this->shown($logo->eq(3)));
+        self::assertSame('Responsible: Nobody', $this->shown($logo->eq(2)));
 
         // The finished task is left out until the filter asks for it.
         self::assertStringNotContainsString('Launch', $crawler->filter('main')->text());
@@ -374,6 +379,8 @@ final class ProjectControllerTest extends WebTestCase
         foreach (['/projects/'.$id, '/projects/'.$id.'/board'] as $url) {
             $crawler = $this->client->request('GET', $url);
             self::assertCount(0, $crawler->filter('a[data-task-new-open]'), $url);
+            // Nor changes in a row or on a card: the board does not move either.
+            self::assertCount(0, $crawler->filter('form[data-inline-edit]'), $url);
         }
         $this->client->request('GET', '/projects/'.$id.'/tasks/new?return='.rawurlencode('/projects/'.$id.'/board'));
         self::assertResponseRedirects('/projects/'.$id.'/board');
@@ -458,9 +465,14 @@ final class ProjectControllerTest extends WebTestCase
         self::assertSame('Design', trim($card->filter('[data-badges]')->text()));
         self::assertStringContainsString('0/1', $card->filter('[data-card-subtasks]')->text());
         self::assertCount(1, $card->filter('[data-board-handle]'));
-        // A card without a priority or subtasks shows neither.
+        // The responsible person, the due date and the priority change on the card, and come back to the board.
+        self::assertSame(['/tasks/'.$this->taskId('Wireframes').'/responsible', '/tasks/'.$this->taskId('Wireframes').'/due', '/tasks/'.$this->taskId('Wireframes').'/priority'], $card->filter('form[data-inline-edit]')->each(static fn (Crawler $form): string => (string) $form->attr('action')));
+        self::assertSame(['/projects/'.$id.'/board'], array_values(array_unique($card->filter('input[name="return"]')->each(static fn (Crawler $input): string => (string) $input->attr('value')))));
+        // A card without a priority, a date or subtasks shows the icons of the first two only.
         $brief = $crawler->filter('[data-board-card][data-task-id="'.$this->taskId('Brief').'"]');
-        self::assertCount(0, $brief->filter('[data-card-priority]'));
+        self::assertSame('Priority: No priority', $this->shown($brief->filter('[data-card-priority]')));
+        self::assertSame('Due date: No due date', $this->shown($brief->filter('[data-card-due]')));
+        self::assertCount(1, $brief->filter('[data-card-priority] [data-inline-edit-trigger] svg'));
         self::assertCount(0, $brief->filter('[data-card-subtasks]'));
         // The menu moves to the other statuses, and not up or down in a column of one.
         self::assertSame(['hidden', null, null], $brief->filter('[data-move-status]')->each(static fn (Crawler $form): ?string => null === $form->attr('hidden') ? null : 'hidden'));
@@ -697,5 +709,25 @@ final class ProjectControllerTest extends WebTestCase
         } finally {
             $this->context->reset();
         }
+    }
+
+    /**
+     * What a cell reads as: the text of its picker a screen reader hears (no avatar initials, no dash), else its text.
+     */
+    private function shown(Crawler $cell): string
+    {
+        $trigger = $cell->filter('[data-inline-edit-trigger], [data-person-picker-trigger]');
+        if (0 === $trigger->count()) {
+            return trim($cell->text());
+        }
+        $node = $trigger->getNode(0)?->cloneNode(true) ?? throw new \LogicException('A trigger.');
+        $hidden = new \DOMXPath($node->ownerDocument ?? throw new \LogicException('A document.'))->query('.//*[@aria-hidden="true"]', $node);
+        foreach (false === $hidden ? [] : iterator_to_array($hidden) as $element) {
+            if ($element instanceof \DOMElement) {
+                $element->parentNode?->removeChild($element);
+            }
+        }
+
+        return trim((string) preg_replace('/\s+/', ' ', $node->textContent));
     }
 }

@@ -62,7 +62,9 @@
                                     <td class="{{ rowHeight }} whitespace-nowrap border-b border-divider px-4 text-text group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ cell.wide ? ' max-xl:hidden' : '' }}{{ cell.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ (row.secondary or row.alert) and loop.first ? ' max-sm:w-full max-sm:max-w-0 max-sm:py-2' : '' }}{{ row.alert and cell.key == row.alert.column ? ' py-2' : '' }}{{ row.child and loop.first ? ' pl-10' : '' }}">
                                         {%- set unreadMark = loop.first and row.unread is not null -%}
                                         {%- if unreadMark %}<span class="flex min-w-0 items-center gap-2 [&>*]:min-w-0 {{ row.unread ? '[&_a]:font-semibold' : '[&_a]:font-normal' }}" data-unread="{{ row.unread ? 'true' : 'false' }}"><span class="size-2 shrink-0 rounded-sm{{ row.unread ? ' bg-green' : '' }}" aria-hidden="true"></span>{% if row.unread %}<span class="sr-only">{{ 'ui.table.unread'|trans }}: </span>{% endif %}{% endif -%}
-                                        {%- if cell.links -%}
+                                        {%- if cell.edit -%}
+                                            {{ component('Ui:InlineEdit', cell.edit|merge({id: 'edit-' ~ row.id ~ '-' ~ cell.key, text: cell.edit.kind|default('menu') == 'person' ? null : cell.text, tone: cell.tone})) }}
+                                        {%- elseif cell.links -%}
                                             <span class="block {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate"{% if cell.title %} title="{{ cell.title }}"{% endif %} data-links>
                                                 {%- for link in cell.links -%}
                                                     {%- if not loop.first %}, {% endif -%}

@@ -384,6 +384,52 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         return $items;
     }
 
+    public function assignable(array $taskIds): array
+    {
+        if ([] === $taskIds) {
+            return [];
+        }
+        /** @var list<Task> $tasks */
+        $tasks = $this->entityManager
+            ->createQuery('SELECT t FROM '.Task::class.' t WHERE t.id IN (:tasks) AND t.deletedAt IS NULL')
+            ->setParameter('tasks', array_values(array_unique($taskIds)))
+            ->getResult();
+        $scope = $this->visibility->scope();
+        // The scope of each active person once, not once per task.
+        $people = [];
+        foreach ($this->people->all() as $person) {
+            $membership = $person->active ? $this->people->membership($person->membershipId) : null;
+            if ($membership instanceof Membership && $membership->isActive()) {
+                $people[] = [new Choice($person->membershipId, $person->name), $this->visibility->scopeOf($membership)];
+            }
+        }
+        $assignable = [];
+        foreach ($tasks as $task) {
+            if (!$scope->seesTask($task)) {
+                continue;
+            }
+            $assignable[$task->id()] = array_values(array_map(
+                static fn (array $person): Choice => $person[0],
+                array_filter($people, static fn (array $person): bool => $person[1]->seesTask($task)),
+            ));
+        }
+
+        return $assignable;
+    }
+
+    public function statusesOf(array $projectIds): array
+    {
+        $statuses = [];
+        foreach (array_unique($projectIds) as $projectId) {
+            $project = $this->projects->project($projectId);
+            if ($project instanceof Project && $this->visibility->canSeeProjectName($project)) {
+                $statuses[$projectId] = array_map(static fn (ProjectStatus $status): StatusChoice => new StatusChoice($status->id(), $status->name(), $status->type()), $this->projects->statuses($project));
+            }
+        }
+
+        return $statuses;
+    }
+
     public function mentionCandidates(string $taskId): ?array
     {
         $task = $this->tasks->task($taskId);

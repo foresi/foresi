@@ -1,7 +1,8 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     My unfinished tasks: those I am responsible for, or those I watch, in groups by when they are
-    due. A group with nothing in it is left out; the client filter narrows both tabs.
+    due. A group with nothing in it is left out; the client filter narrows both tabs. The status,
+    the responsible person, the due date and the priority change in the row.
 #}
 {% extends 'layout/app.html.twig' %}
 
@@ -9,7 +10,11 @@
 
 {% block title %}{{ 'work.my_tasks.title'|trans }}{% endblock %}
 
+{# A change made in a row comes back to this page: Turbo morphs it in place and keeps the scroll. #}
+{% block head %}{{ include('work/_morph_refresh.html.twig') }}{% endblock %}
+
 {% block content %}
+    {{ include('work/_flashes.html.twig') }}
     <div class="grid grid-cols-1 gap-4">
         <div class="flex flex-wrap items-end justify-between gap-3">
             <twig:Ui:Tabs :items="tabs" :label="'work.my_tasks.views'|trans" class="min-w-0 flex-1" />
