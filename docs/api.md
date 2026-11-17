@@ -2,7 +2,7 @@
 
 Foresi has a REST API. Scripts and other systems use it to read the data of an organisation and to change its contacts. The decisions behind it are in [ADR 0027](adr/0027-api-and-mcp.md) and [ADR 0032](adr/0032-api-writes.md). Assistants use the [MCP server](mcp.md), which is built on the same code.
 
-The API lists and shows invoices, contacts and payments, and follows the feed of domain events. It writes [contacts](#contact-writes) and [webhook endpoints](#webhooks): addresses of your own that receive the events as signed requests.
+The API lists and shows invoices, contacts and payments, and follows the feed of domain events. It keeps the [cash flow](#cash-flow) of a firm and answers its forecast. It writes [contacts](#contact-writes) and [webhook endpoints](#webhooks): addresses of your own that receive the events as signed requests.
 
 ## Personal API tokens
 
@@ -60,7 +60,7 @@ A scope says what a token may reach. A token has one or more:
 | `<resource>:read` | Reading one kind of record. |
 | `<resource>:write` | Changing one kind of record, and reading it. |
 
-The resources are `contacts`, `invoices`, `payments`, `events` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
+The resources are `cashflow`, `contacts`, `invoices`, `payments`, `events` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
 
 ## Using the API
 
@@ -110,7 +110,7 @@ A detail answers `{"data": {...}}`.
 
 ## Endpoints
 
-The endpoints below are `GET`. The writes of contacts are under [Contact writes](#contact-writes), and those of webhooks under [Webhooks](#webhooks).
+The endpoints below are `GET`. The writes of contacts are under [Contact writes](#contact-writes), those of the cash flow under [Cash flow](#cash-flow), and those of webhooks under [Webhooks](#webhooks).
 
 | Endpoint | Scope | What it returns |
 | --- | --- | --- |
@@ -122,6 +122,9 @@ The endpoints below are `GET`. The writes of contacts are under [Contact writes]
 | `/api/v1/payments` | `payments:read` | Payments, newest first. |
 | `/api/v1/payments/{id}` | `payments:read` | One payment with the invoices it pays. |
 | `/api/v1/events` | `events:read` | Domain events of the last 30 days, oldest first. |
+| `/api/v1/cash-flow/forecast` | `cashflow:read` | The cash-flow forecast of a firm; see [Cash flow](#cash-flow). |
+| `/api/v1/cash-flow/planned-items` | `cashflow:read` | The planned items of a firm (`firm_id`, required), oldest first, without paging. |
+| `/api/v1/cash-flow/planned-items/{plannedItemId}` | `cashflow:read` | One planned item. |
 
 ### Invoices
 
@@ -227,6 +230,70 @@ What a contact write refuses:
 | 409 | `already_linked` | The person is linked to the company already. |
 
 There is no upsert. To keep a contact you may have created before, search for it first (`q` also matches e-mails), and on `duplicate` read the contact in `existing_ids` and update it.
+
+## Cash flow
+
+The cash flow of a firm: planned items, bank balance checkpoints, the expected days of documents, the minimum balance and the forecast. What each one means is in [cash-flow.md](cash-flow.md). The writes need `cashflow:write`, the reads `cashflow:read`, and the owners and team members of the organisation may use them. Bodies are JSON with snake case fields.
+
+| Method and path | Answer |
+| --- | --- |
+| `POST /api/v1/cash-flow/planned-items` | `201` with the new planned item and `Location`. |
+| `PATCH /api/v1/cash-flow/planned-items/{plannedItemId}` | The item as it is now. A field left out keeps its value; an optional field sent as `null` is cleared, so `"repeat": null` makes it one-off. The firm and the direction do not change. |
+| `POST /api/v1/cash-flow/planned-items/{plannedItemId}/skip` | The item with the day `on` among `skipped_on`. The day must be one the item falls on. |
+| `POST /api/v1/cash-flow/planned-items/{plannedItemId}/end` | The recurring item ending on the day `on`. A one-off item is refused with `409 not_recurring`. |
+| `DELETE /api/v1/cash-flow/planned-items/{plannedItemId}` | `{"id": ..., "deleted": true}`. The item and its occurrences are gone. |
+| `POST /api/v1/cash-flow/checkpoints` | `201` with the checkpoint: `bank_account_id`, `on` (today or before) and `amount` in the currency of the account. The same account and day again corrects it. |
+| `POST /api/v1/cash-flow/expected-dates` | The expected day: `subject_type` and `subject_id` as a forecast item names its subject, and `expected_on`. Setting it again moves it. |
+| `DELETE /api/v1/cash-flow/expected-dates/{subjectType}/{subjectId}` | The subject with `expected_on: null`. Clearing one that is not set changes nothing. |
+| `POST /api/v1/cash-flow/firms/{firmId}/minimum-balance` | The minimum balance in CZK (`amount`); `null` removes it. |
+
+```bash
+curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
+  -d '{"firm_id": "0198a4f0-8b1e-7000-8000-000000000001", "direction": "out", "name": "Office rent", "category": "rent", "amount": "15000.00", "on": "2026-12-15", "repeat": "month"}' \
+  "https://app.example.com/api/v1/cash-flow/planned-items"
+
+curl -H "Authorization: Bearer $FORESI_API_TOKEN" \
+  "https://app.example.com/api/v1/cash-flow/forecast?firm_id=0198a4f0-8b1e-7000-8000-000000000001"
+```
+
+Fields of a planned item:
+
+| Field | Value |
+| --- | --- |
+| `firm_id` | Required on create. The firm the money belongs to. |
+| `direction` | Required on create. `in` or `out`. |
+| `name` | Required. At most 120 characters. |
+| `category` | Required. `revenue`, `purchases`, `rent`, `software`, `payroll`, `taxes`, `insurance`, `vat`, `loans`, `owner_draws` or `other`. |
+| `amount` | Required. The amount of one occurrence, more than zero, as a decimal string such as `"1500.00"`. |
+| `currency` | `CZK` (the default), `EUR` or `USD`. |
+| `on` | Required. The day of a one-off item, or the first day of a recurring one. |
+| `repeat` | `day`, `week`, `month` or `year`; left out or `null` for a one-off item. |
+| `every` | 1 to 99, 1 by default. |
+| `last_day_of_month` | `true` puts a monthly or yearly item on the last day of its month. |
+| `ends_on`, `ends_after` | The last day an occurrence may fall on, or a count of 1 to 999 occurrences; not both. |
+| `counterparty_id` | A contact the money comes from or goes to. |
+| `included` | `false` leaves the item out of the forecast; `true` by default. |
+| `match_account`, `match_variable_symbol`, `match_tolerance` | The counterparty account, a variable symbol of up to 10 digits and how far a payment may differ, for pairing bank movements later. |
+
+Query parameters of `GET /api/v1/cash-flow/forecast`:
+
+| Parameter | Value |
+| --- | --- |
+| `firm_id` | Required. The firm. |
+| `from` | The first day, today or later. Today by default. |
+| `months` | How many calendar months the forecast covers, 1 to 24. 12 by default. |
+| `weeks_until` | Weeks are used up to the week that holds this day, then months. The end of next month by default. |
+
+The forecast answers `firm`, `currency` (`CZK`), `today`, `from`, `to`; `balance` with its `amount`, `as_of`, `stale` and the `accounts` (each with its id, IBAN, balance in its own currency, the amount in CZK, `as_of` and the `source` that knew it); `periods`, each with `key` (`2026-W47` or `2027-01`), `kind`, `start`, `end`, `opening`, `inflows` and `outflows` (`total` and `by_category`), `closing` and its `items`; `lowest` (`amount` and `on`), `minimum_balance`, `shortfall_on`, `incomplete`, `unavailable_sources` and `unavailable_rates`. An item has its `source`, `subject` (`type`, `id`, `url`), `direction`, `label`, `category`, `certainty`, `flags` (`overdue`, `expected_date`, `estimated`, `no_due_date`), `expected_on`, `counted_on`, `amount` in its own currency, `amount_czk` and `counterparty_id`.
+
+What the cash flow refuses:
+
+| Status | `code` | When |
+| --- | --- | --- |
+| 400 | `invalid_parameter` | A field or parameter breaks a rule. `parameter` names it and `reason` says which rule, such as `name_required`, `amount_invalid`, `amount_not_positive`, `date_invalid`, `date_in_future`, `repeat_unknown`, `recurrence_invalid`, `end_ambiguous`, `not_recurring`, `not_an_occurrence`, `ends_before_start`, `counterparty_unknown`, `firm_required`, `from_in_past` or `months_invalid`. |
+| 403 | `forbidden` | A guest of the organisation. |
+| 404 | `not_found` | The organisation has no such firm, bank account or planned item. |
+| 409 | `not_recurring` | Ending a one-off item. |
 
 ## Idempotency
 

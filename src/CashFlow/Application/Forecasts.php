@@ -90,7 +90,10 @@ final class Forecasts
         $this->missingRates = [];
         $unavailable = [];
 
-        $accounts = array_map(fn (FirmBankAccount $account): AccountOpening => $this->opening($firm, $account, $today, $unavailable), $this->access->accountsOf($firm));
+        $accounts = [];
+        foreach ($this->access->accountsOf($firm) as $account) {
+            $accounts[] = $this->opening($firm, $account, $today, $unavailable);
+        }
         $lines = $this->lines($firm, $today, $start, $end, $unavailable);
 
         $running = $this->sum(array_map(static fn (AccountOpening $account): ?Money => $account->amount, $accounts));
@@ -210,7 +213,8 @@ final class Forecasts
                 }
             }
         }
-        usort($lines, static fn (ForecastLine $a, ForecastLine $b): int => [$a->countedOn->format('Y-m-d'), $a->flow->direction->value, $a->flow->label] <=> [$b->countedOn->format('Y-m-d'), $b->flow->direction->value, $b->flow->label]);
+        // By the day they are counted on, overdue ones first, money in before money out.
+        usort($lines, static fn (ForecastLine $a, ForecastLine $b): int => self::order($a) <=> self::order($b));
 
         return $lines;
     }
@@ -263,6 +267,14 @@ final class Forecasts
         $czk = Money::ofMinor($money->minor(), Currency::CZK)->multipliedBy($rate->rate);
 
         return 1 === $rate->amount ? $czk : $czk->dividedBy((string) $rate->amount);
+    }
+
+    /**
+     * @return array{string, bool, string, string}
+     */
+    private static function order(ForecastLine $line): array
+    {
+        return [$line->countedOn->format('Y-m-d'), !$line->flow->hasFlag(FlowFlag::Overdue), $line->flow->direction->value, $line->flow->label];
     }
 
     /**
