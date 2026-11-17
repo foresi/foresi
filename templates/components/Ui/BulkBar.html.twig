@@ -1,7 +1,8 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The bar floats above the home indicator of an iPhone (env(safe-area-inset-bottom), 0 elsewhere). #}
 <div {{ attributes }}>
     <div role="status" aria-live="polite" class="sr-only" data-table-selection-target="status"></div>
-    <div role="region" aria-label="{{ 'ui.bulk.label'|trans }}" hidden data-table-selection-target="bar" data-label-one="{{ 'ui.bulk.selected.one'|trans }}" data-label-few="{{ 'ui.bulk.selected.few'|trans }}" data-label-other="{{ 'ui.bulk.selected.other'|trans }}" class="fixed bottom-6 left-1/2 z-40 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-wrap items-center gap-2 rounded-panel border border-container bg-white p-2 shadow-floating">
+    <div role="region" aria-label="{{ 'ui.bulk.label'|trans }}" hidden data-table-selection-target="bar" data-label-one="{{ 'ui.bulk.selected.one'|trans }}" data-label-few="{{ 'ui.bulk.selected.few'|trans }}" data-label-other="{{ 'ui.bulk.selected.other'|trans }}" class="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] left-1/2 z-40 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-wrap items-center gap-2 rounded-panel border border-container bg-white p-2 shadow-floating">
         <span class="num px-2 text-muted" data-table-selection-target="count"></span>
         {% block content %}{% endblock %}
     </div>

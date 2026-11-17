@@ -209,9 +209,13 @@ final class AppShellTest extends WebTestCase
         self::assertSame('navigation', $button->attr('aria-controls'));
         self::assertSame('false', $button->attr('aria-expanded'));
         self::assertNotSame('', trim((string) $button->attr('aria-label')));
-        // The drawer holds the rail and the sidebar.
-        self::assertSelectorExists('#navigation[data-sidebar-target="panel"] > #rail');
+        // The button sits in the rail, the phone app bar; the overlay holds the sidebar and its own X.
+        self::assertSelectorExists('#rail button[data-sidebar-target="toggle"]');
         self::assertSelectorExists('#navigation[data-sidebar-target="panel"] > #sidebar');
+        self::assertSelectorExists('#navigation button[data-action="sidebar#close"][aria-label]');
+        // One instance of search and of the account menu, so their ids stay unique.
+        self::assertSelectorCount(1, '#user-menu-button');
+        self::assertSelectorCount(1, '[data-command-palette-target="opener"]');
     }
 
     public function testUserMenuListsProfileNotificationsApiLanguageOrganisationAndLogout(): void

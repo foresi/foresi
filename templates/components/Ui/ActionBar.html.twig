@@ -8,9 +8,10 @@
     behind a floating box, and at the end of the form it sits right under the last content.
 #}
 {% set statusHtml %}{% block status %}{{ this.statusText }}{% endblock %}{% endset %}
+{# On an iPhone the bar keeps clear of the home indicator (env(safe-area-inset-bottom), 0 elsewhere). #}
 {% set shape = end
-    ? 'bottom-0 rounded-b-panel border-t border-divider py-3'
-    : 'bottom-3 mt-4 rounded-panel border border-container py-2.5 max-sm:bottom-2' %}
+    ? 'bottom-0 rounded-b-panel border-t border-divider pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]'
+    : 'bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] mt-4 rounded-panel border border-container py-2.5 max-sm:bottom-[calc(0.5rem+env(safe-area-inset-bottom,0px))]' %}
 <div {{ attributes.defaults({class: shape ~ ' sticky z-20 flex flex-wrap items-center gap-x-4 gap-y-2 bg-white px-4 transition-shadow data-[stuck]:shadow-floating max-sm:px-2.5 [@media(max-height:480px)]:static'}) }} data-action-bar data-controller="action-bar">
     {% if statusHtml|trim is not empty %}
         <p class="m-0 min-w-0 text-small text-muted max-sm:w-full" aria-live="polite" data-action-bar-status>{{ statusHtml }}</p>

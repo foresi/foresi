@@ -105,6 +105,7 @@ Planned as 0.5.0: the first release with invoices.
 
 ### Changed
 
+- On phones (below 900 px): the menu opens full screen with its own close button; search and the account menu sit in a sticky top bar; text fields, selects and text areas use 16 px text so iOS Safari no longer zooms in on focus (pinch zoom stays on); menu, tab, sort and row-checkbox targets are at least 44 px; the content runs edge to edge; dialogs, sheets and bottom bars keep clear of the notch and the home indicator (`viewport-fit=cover`, `env(safe-area-inset-*)`); page heights use dynamic viewport units.
 - Breaking for cash-flow sources: `App\CashFlow\Contract\CashFlowSource` has a new method, `mayReadDetails(): bool`, whether the caller may read the documents behind the flows. A third-party source must implement it; return true to keep its items visible. Sources with actuals implement the new `ActualFlowSource`.
 - The recurrence of recurring invoices (`Recurrence`, `RecurrenceUnit`, `RecurrenceEnd`, `RecurringSchedule`, `InvalidRecurrence`) moved from `App\Invoicing\Domain` to `App\Shared\Domain\Schedule`, so other modules can schedule with it. Behaviour and stored data are unchanged; code that imported the old names must use the new namespace.
 - SQLite 3.35 or newer is required, for the atomic counter of number series.

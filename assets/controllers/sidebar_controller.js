@@ -5,7 +5,7 @@ import { Controller } from '@hotwired/stimulus';
 
 /**
  * The shell breakpoint, from the --breakpoint-shell token of assets/styles/app.css,
- * so the drawer and the layout switch at the same width.
+ * so the overlay and the layout switch at the same width.
  */
 function narrowQuery() {
     const width = getComputedStyle(document.documentElement).getPropertyValue('--breakpoint-shell').trim();
@@ -14,17 +14,19 @@ function narrowQuery() {
 }
 
 /**
- * Narrow screens: the rail and the sidebar are one drawer behind the menu button. While it is
- * open the page behind it is inert, Escape closes it and focus returns to the
- * button. On wide screens the sidebar is always shown and this does nothing.
+ * Narrow screens: the sidebar is a full-screen overlay behind the menu button of the app bar.
+ * While it is open the app bar and the page behind it are inert, the page does not scroll (the
+ * html:has(#navigation[data-open]) rule of app.css), Escape and its X close it and focus returns
+ * to the menu button. A visit to another page closes it before Turbo caches the page. On wide
+ * screens the sidebar is always shown and this does nothing.
  */
 export default class extends Controller {
-    static targets = ['panel', 'scrim', 'toggle', 'page'];
+    static targets = ['panel', 'toggle', 'page'];
 
     connect() {
         this.media = window.matchMedia(narrowQuery());
         this.onKeydown = (event) => {
-            // A menu inside the drawer handles its own Escape first; an open dialog takes Escape for
+            // A menu inside the overlay handles its own Escape first; an open dialog takes Escape for
             // itself, and preventing it here would keep the dialog open.
             if (event.key === 'Escape' && !event.defaultPrevented && this.isOpen() && document.querySelector('dialog:modal') === null) {
                 event.preventDefault();
@@ -59,7 +61,6 @@ export default class extends Controller {
 
     open() {
         this.panelTarget.setAttribute('data-open', '');
-        this.scrimTarget.hidden = false;
         this.toggleTarget.setAttribute('aria-expanded', 'true');
         this.pageTargets.forEach((page) => {
             page.inert = true;
@@ -75,7 +76,6 @@ export default class extends Controller {
             return;
         }
         this.panelTarget.removeAttribute('data-open');
-        this.scrimTarget.hidden = true;
         this.toggleTarget.setAttribute('aria-expanded', 'false');
         this.release();
         if (restoreFocus !== false) {

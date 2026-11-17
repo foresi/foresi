@@ -16,7 +16,7 @@
 {% block javascripts %}{% endblock %}
 
 {% block body %}
-    <main class="mx-auto grid min-h-screen w-full max-w-4xl content-start gap-4 px-4 py-6 sm:gap-5 sm:py-10">
+    <main class="mx-auto grid min-h-dvh w-full max-w-4xl content-start gap-4 px-[max(1rem,env(safe-area-inset-left,0px),env(safe-area-inset-right,0px))] py-6 sm:gap-5 sm:py-10">
         {% block content %}{% endblock %}
     </main>
 {% endblock %}
