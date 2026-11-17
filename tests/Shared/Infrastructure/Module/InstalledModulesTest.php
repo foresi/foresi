@@ -24,7 +24,7 @@ final class InstalledModulesTest extends TestCase
     public function testFindsEveryModuleDirectory(): void
     {
         self::assertSame(
-            ['attachment', 'audit', 'banking', 'country', 'events', 'exchange-rate', 'identity', 'idoklad', 'import', 'invoicing', 'party', 'purchasing', 'shared', 'tenancy', 'timesheet', 'ui', 'webhooks', 'work'],
+            ['attachment', 'audit', 'banking', 'cash-flow', 'country', 'events', 'exchange-rate', 'identity', 'idoklad', 'import', 'invoicing', 'party', 'purchasing', 'shared', 'tenancy', 'timesheet', 'ui', 'webhooks', 'work'],
             array_map(static fn (ModuleManifest $module): string => $module->id->value, $this->modules()->graph()->all()),
         );
     }
@@ -39,7 +39,7 @@ final class InstalledModulesTest extends TestCase
         self::assertSame(['attachment', 'audit', 'events', 'identity', 'shared', 'tenancy', 'webhooks'], $kinds[ModuleKind::Core->value] ?? []);
         self::assertSame(['ui'], $kinds[ModuleKind::Ui->value] ?? []);
         self::assertSame(
-            ['banking', 'country', 'exchange-rate', 'idoklad', 'import', 'invoicing', 'party', 'purchasing', 'timesheet', 'work'],
+            ['banking', 'cash-flow', 'country', 'exchange-rate', 'idoklad', 'import', 'invoicing', 'party', 'purchasing', 'timesheet', 'work'],
             $kinds[ModuleKind::Module->value] ?? [],
         );
     }
@@ -69,7 +69,7 @@ final class InstalledModulesTest extends TestCase
     {
         $graph = new InstalledModules(\dirname(__DIR__, 4))->graph();
 
-        self::assertSame(['contacts', 'events', 'invoices', 'payments', 'webhooks'], $graph->resources());
+        self::assertSame(['cashflow', 'contacts', 'events', 'invoices', 'payments', 'webhooks'], $graph->resources());
         self::assertSame(['contacts'], $graph->get(\App\Shared\Domain\Module\ModuleId::of('party'))->scopes);
         self::assertSame([], InstalledModules::manifestFrom(self::composer(), [])->scopes);
     }

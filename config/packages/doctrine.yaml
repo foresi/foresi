@@ -83,6 +83,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Attachment/Domain'
                 prefix: 'App\Attachment\Domain'
                 alias: Attachment
+            CashFlow:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/CashFlow/Domain'
+                prefix: 'App\CashFlow\Domain'
+                alias: CashFlow
             Purchasing:
                 type: attribute
                 is_bundle: false
