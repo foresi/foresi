@@ -125,7 +125,7 @@ final readonly class ProcessMessage
     private function result(ClaimedMessage $message, ?TrustVerdict $accepted): ProcessingResult
     {
         try {
-            $raw = $this->files->read($message->tenantId, $message->rawKey, $message->rawSha256);
+            $raw = $this->files->read($message->id, $message->rawKey, $message->rawSha256);
         } catch (\RuntimeException $unreadable) {
             return new ProcessingResult(InboundStatus::Failed, failure: self::RAW_CHANGED, detail: $unreadable->getMessage());
         }

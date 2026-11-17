@@ -195,16 +195,6 @@ final class GenerateAddressTest extends KernelTestCase
         self::assertNull($this->directory()->route($token), 'mail to an archived account is not taken in');
     }
 
-    public function testAFeedRoutesOnlyToAnAccountOfItsOwnTenant(): void
-    {
-        $account = $this->account();
-        $token = InboundToken::hash(Scalars::text($this->addresses()->tokenIn($this->generate()->generate($account->id()))));
-
-        $this->connection()->update('firm_bank_account', ['tenant_id' => TenantId::generate()->toString()], ['id' => $account->id()]);
-
-        self::assertNull($this->directory()->route($token));
-    }
-
     public function testAnotherTenantsAccountIsNotFound(): void
     {
         $account = $this->account();

@@ -95,15 +95,6 @@ final class InboundMessageTest extends TestCase
         $this->message(size: -1);
     }
 
-    public function testTheTenantIsOnlyKnownOncePersisted(): void
-    {
-        $message = $this->message();
-
-        $this->expectException(\LogicException::class);
-        $this->expectExceptionMessageIsOrContains('The tenant is stamped on persist.');
-        $message->tenantId();
-    }
-
     private function message(
         string $dedupKey = self::HASH,
         string $rawKey = 'raw/message.eml',

@@ -11,8 +11,6 @@ namespace App\Banking\Domain;
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditExcluded;
 use App\Audit\Domain\AuditRooted;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\FirmBankAccount;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
@@ -28,17 +26,13 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'bank_feed')]
-#[ORM\Index(name: 'idx_bank_feed_tenant', columns: ['tenant_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_bank_feed_account', columns: ['firm_bank_account_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_bank_feed_token', columns: ['token_hash'])]
-class BankFeed implements TenantOwned, Audited, AuditRooted
+class BankFeed implements Audited, AuditRooted
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(name: 'token_hash', type: 'string', length: 64, options: ['fixed' => true])]
     private string $tokenHash;
@@ -141,11 +135,6 @@ class BankFeed implements TenantOwned, Audited, AuditRooted
     public function lastReceivedAt(): ?\DateTimeImmutable
     {
         return $this->lastReceivedAt;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     private function checkedHash(string $hash): string

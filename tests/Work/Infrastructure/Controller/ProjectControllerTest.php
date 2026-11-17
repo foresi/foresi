@@ -25,7 +25,6 @@ use App\Work\Domain\Section;
 use App\Work\Domain\StatusType;
 use App\Work\Domain\Task;
 use App\Work\Domain\TaskLabel;
-use App\Work\Domain\WorkflowTemplate;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -558,21 +557,6 @@ final class ProjectControllerTest extends WebTestCase
         // The token comes first: a move without it is refused before the task is looked for.
         $this->client->request('POST', '/tasks/'.$id.'/move', ['direction' => 'down']);
         self::assertResponseStatusCodeSame(403);
-    }
-
-    public function testAProjectOfAnotherOrganisationIsNotFound(): void
-    {
-        $this->signIn();
-        $other = $this->browser->fixtures->tenant('Example Elsewhere');
-        $this->context->switchTo($other);
-        $project = new Project('Secret', null, WorkflowTemplate::Simple, '01900000-0000-7000-8000-000000000001', new \DateTimeImmutable());
-        $this->em->persist($project);
-        $this->em->flush();
-        $this->context->reset();
-
-        $this->client->request('GET', '/projects/'.$project->id());
-
-        self::assertResponseStatusCodeSame(404);
     }
 
     private function signIn(Role $role = Role::Owner): void

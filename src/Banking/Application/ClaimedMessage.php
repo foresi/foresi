@@ -22,7 +22,6 @@ final readonly class ClaimedMessage
      */
     public function __construct(
         public string $id,
-        public string $tenantId,
         public string $accountId,
         public string $rawKey,
         public string $rawSha256,

@@ -20,7 +20,6 @@ use App\Banking\Application\Ownership;
 use App\Banking\Application\PendingChanges;
 use App\Banking\Application\ReceiveOutcome;
 use App\Banking\Application\RetryInboundMessage;
-use App\Banking\Application\UnknownInboundMessage;
 use App\Banking\Domain\InboundChannel;
 use App\Banking\Domain\InboundMessage;
 use App\Banking\Domain\InboundStatus;
@@ -141,9 +140,9 @@ final class ProcessMessageTest extends InboundTestCase
         self::assertSame(['failed', 'unknown_layout', 'cz.kb', 1, 1], [$row['status'], $row['failure'], $row['parser_id'], self::int($row['parser_version']), self::int($row['attempts'])]);
         self::assertStringContainsString('Odloženo', Scalars::text($row['failure_detail']));
         self::assertSame([], $this->movementsOf($id));
-        $stored = $this->em->getConnection()->fetchAssociative('SELECT tenant_id, raw_key, raw_sha256 FROM inbound_message WHERE id = ?', [$id]);
+        $stored = $this->em->getConnection()->fetchAssociative('SELECT raw_key, raw_sha256 FROM inbound_message WHERE id = ?', [$id]);
         self::assertIsArray($stored);
-        self::assertSame($raw, self::getContainer()->get(\App\Banking\Application\InboundFiles::class)->read(Scalars::text($stored['tenant_id']), Scalars::text($stored['raw_key']), Scalars::text($stored['raw_sha256'])));
+        self::assertSame($raw, self::getContainer()->get(\App\Banking\Application\InboundFiles::class)->read($id, Scalars::text($stored['raw_key']), Scalars::text($stored['raw_sha256'])));
     }
 
     public function testAMailNoParserKnowsIsNotBankMail(): void
@@ -304,22 +303,6 @@ final class ProcessMessageTest extends InboundTestCase
         self::assertSame(['failed', 'raw_changed', null], [$row['status'], $row['failure'], $row['parser_id']]);
         self::assertSame([], $this->movementsOf($id));
         self::assertSame(0, $this->paymentCount());
-    }
-
-    public function testAMessageOfAnotherTenantIsUnknown(): void
-    {
-        $id = $this->received($this->notice('incoming-booked'));
-        $context = self::getContainer()->get(TenantContext::class);
-        $tenant = $context->current();
-        $context->switchTo(TenantId::generate());
-        try {
-            $this->process->process($id);
-            self::fail('A message of another tenant is not processed.');
-        } catch (UnknownInboundMessage) {
-        } finally {
-            $context->switchTo($tenant);
-        }
-        self::assertSame(['received', 0], [$this->messageRow($id)['status'], self::int($this->messageRow($id)['attempts'])]);
     }
 
     public function testAnUnexpectedErrorUndoesTheRunAndCountsTheAttempt(): void

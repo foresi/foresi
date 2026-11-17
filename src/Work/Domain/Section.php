@@ -10,8 +10,6 @@ namespace App\Work\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditRooted;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -24,18 +22,14 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'project_section')]
-#[ORM\Index(name: 'idx_project_section_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_project_section_position', columns: ['project_id', 'position'])]
-class Section implements TenantOwned, Audited, AuditRooted
+class Section implements Audited, AuditRooted
 {
     public const int MAX_NAME_LENGTH = 120;
 
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'string', length: self::MAX_NAME_LENGTH)]
     private string $name;
@@ -98,10 +92,5 @@ class Section implements TenantOwned, Audited, AuditRooted
     public function position(): int
     {
         return $this->position;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

@@ -16,7 +16,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Reads under the tenant filter of the entity manager.
+ * Reads through the entity manager.
  */
 final readonly class DoctrineMovementLedger implements MovementLedger
 {

@@ -242,28 +242,6 @@ final class InboundMessageControllerTest extends BankScreenTestCase
         self::assertStringContainsString(Scalars::text($this->messageRow($processed)['parser_id']), $known);
     }
 
-    public function testAnotherTenantsMessageIs404(): void
-    {
-        $this->signedIn();
-        $foreignTenant = $this->browser->fixtures->tenant('Foreign Tenant');
-        $foreignAccount = $this->scoped(fn (): FirmBankAccount => $this->firmWithSeries('Example Foreign s.r.o.', self::IBAN)[1], $foreignTenant);
-        $tenant = $this->tenant;
-        $this->tenant = $foreignTenant;
-        $foreign = $this->received($this->notice('incoming-unknown-status', account: $foreignAccount));
-        $this->tenant = $tenant;
-        $token = $this->messageToken();
-
-        foreach (['', '/accept', '/dismiss'] as $path) {
-            $this->client->request('GET', '/bank/messages/'.$foreign.$path);
-            self::assertResponseStatusCodeSame(404, $path);
-        }
-        foreach (['/retry', '/accept', '/dismiss'] as $path) {
-            $this->client->request('POST', '/bank/messages/'.$foreign.$path, ['_token' => $token]);
-            self::assertResponseStatusCodeSame(404, $path);
-        }
-        self::assertSame('failed', $this->messageRow($foreign)['status']);
-    }
-
     public function testAClientRoleGets403(): void
     {
         $this->signedIn(Role::Guest);

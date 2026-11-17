@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Work\Domain;
 
 use App\Audit\Domain\Audited;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\Party;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Id;
@@ -19,7 +17,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 /**
  * A body of work of the organisation, for a client or internal. It belongs to
- * the tenant, not to one of its firms: the firms of an organisation share their
+ * the organisation, not to one of its firms: the firms of an organisation share their
  * people and their projects, and only an invoice needs a firm.
  *
  * Statuses, sections and tasks point here and are read by query; the project
@@ -35,18 +33,14 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'project')]
-#[ORM\Index(name: 'idx_project_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_project_client', columns: ['client_id'])]
-class Project implements TenantOwned, Audited
+class Project implements Audited
 {
     public const int MAX_NAME_LENGTH = 200;
 
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'string', length: self::MAX_NAME_LENGTH)]
     private string $name;
@@ -208,10 +202,5 @@ class Project implements TenantOwned, Audited
     public function createdAt(): \DateTimeImmutable
     {
         return $this->createdAt;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

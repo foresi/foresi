@@ -23,13 +23,13 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
 
 /**
- * Reads go through the ORM, so the tenant filter narrows them; the two locks are
- * plain statements that name the tenant themselves. A page of the screen takes
+ * Reads go through the ORM; the two locks are plain statements, the lock of an
+ * account still naming its tenant, as accounts carry one. A page of the screen takes
  * one query for its movements and one for the invoice numbers of all of them.
  */
 final readonly class DoctrineBankMovements implements BankMovements
 {
-    private const string LOCK = 'UPDATE bank_movement SET version = version WHERE id = :id AND tenant_id = :tenant';
+    private const string LOCK = 'UPDATE bank_movement SET version = version WHERE id = :id';
     private const string LOCK_ACCOUNT = 'UPDATE firm_bank_account SET position = position WHERE id = :id AND tenant_id = :tenant';
 
     public function __construct(private EntityManagerInterface $em, private TenantContext $context)
@@ -38,7 +38,7 @@ final readonly class DoctrineBankMovements implements BankMovements
 
     public function get(string $id): BankMovement
     {
-        // A query, not find(): find() answers from the identity map without the tenant filter.
+        // A query, not find(): find() answers from the identity map.
         $movement = $this->em->createQuery('SELECT m FROM '.BankMovement::class.' m WHERE m.id = :id')->setParameter('id', $id)->getOneOrNullResult();
 
         return $movement instanceof BankMovement ? $movement : throw new UnknownBankMovement();
@@ -46,7 +46,7 @@ final readonly class DoctrineBankMovements implements BankMovements
 
     public function lock(string $id): BankMovement
     {
-        $locked = $this->em->getConnection()->executeStatement(self::LOCK, ['id' => $id, 'tenant' => $this->context->current()->toString()]);
+        $locked = $this->em->getConnection()->executeStatement(self::LOCK, ['id' => $id]);
         if (1 !== $locked) {
             throw new UnknownBankMovement();
         }

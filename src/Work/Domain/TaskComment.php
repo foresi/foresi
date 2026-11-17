@@ -11,8 +11,6 @@ namespace App\Work\Domain;
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditRooted;
 use App\Identity\Domain\Membership;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -27,19 +25,15 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'task_comment')]
-#[ORM\Index(name: 'idx_task_comment_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_task_comment_task', columns: ['task_id', 'created_at'])]
 #[ORM\Index(name: 'idx_task_comment_author', columns: ['author_id'])]
-class TaskComment implements TenantOwned, Audited, AuditRooted
+class TaskComment implements Audited, AuditRooted
 {
     public const int MAX_BODY_LENGTH = 20_000;
 
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'text')]
     private string $body;
@@ -167,10 +161,5 @@ class TaskComment implements TenantOwned, Audited, AuditRooted
     public function deletedAt(): ?\DateTimeImmutable
     {
         return $this->deletedAt;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

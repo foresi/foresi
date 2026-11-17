@@ -53,7 +53,7 @@ final readonly class TrustChecks
     private function topmostAuthserv(InboundMessage $message): ?string
     {
         try {
-            $mail = $this->reader->read($this->files->read($message->tenantId()->toString(), $message->rawKey(), $message->rawSha256()));
+            $mail = $this->reader->read($this->files->read($message->id(), $message->rawKey(), $message->rawSha256()));
         } catch (\RuntimeException|\InvalidArgumentException) {
             return null;
         }

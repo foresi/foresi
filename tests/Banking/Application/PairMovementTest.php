@@ -21,8 +21,6 @@ use App\Banking\Domain\MessageTrust;
 use App\Banking\Domain\MovementDirection;
 use App\Banking\Domain\MovementState;
 use App\Banking\Domain\UnmatchedReason;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\CancelPayment;
 use App\Invoicing\Application\ConflictRetry;
@@ -309,15 +307,6 @@ final class PairMovementTest extends BankingTestCase
 
         self::assertSame(UnmatchedReason::CurrencyMismatch, $this->storedMovement($movement->id())->unmatchedReason());
         self::assertSame(0, $this->paymentCount());
-    }
-
-    public function testAnotherTenantsMovementIsNotFound(): void
-    {
-        $movement = $this->recordMovement->record($this->incoming('10.00'), self::verified());
-        self::getContainer()->get(TenantContext::class)->switchTo(TenantId::generate());
-
-        $this->expectException(UnknownBankMovement::class);
-        $this->pairing->auto($movement->id());
     }
 
     public function testAnInvoiceThatDropsOutOfALaterReadStaysLocked(): void

@@ -74,7 +74,8 @@ test.describe('import of contacts', () => {
     await expect(page.locator('[aria-current="step"]')).toContainText('Výsledek');
     await expect(page.locator('[data-import-outcome]')).toContainText('Import je hotový.');
     // Opening the summary answers the notice.
-    await expect(page.locator('[data-shell-notices]')).toHaveCount(0);
+    // Bank notices come from the bank data of other specs, which shares the instance.
+    await expect(page.locator('[data-shell-notices] a:not([href^="/bank"])')).toHaveCount(0);
 
     const download = page.waitForEvent('download');
     await page.getByRole('link', { name: 'Stáhnout chyby' }).click();

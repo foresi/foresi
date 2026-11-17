@@ -130,7 +130,7 @@ test.describe.serial('the accountant pack', () => {
     await row(page, FIRST).getByRole('button', { name: `Další akce pro ${FIRST}`, exact: true }).click();
     await row(page, FIRST).getByRole('menuitem', { name: 'Zrušit příznak exportu' }).click();
 
-    await expect(page.locator('main').getByRole('status')).toContainText(`Doklad ${FIRST} už nemá příznak exportu`);
+    await expect(page.locator('main').getByRole('status').filter({ hasText: `Doklad ${FIRST}` })).toContainText(`Doklad ${FIRST} už nemá příznak exportu`);
     await expect(page.locator('tbody tr')).toHaveCount(1);
     await expect(row(page, SECOND)).toBeVisible();
     await page.goto('/invoices?export=not_exported');

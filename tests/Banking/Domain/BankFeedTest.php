@@ -50,14 +50,6 @@ final class BankFeedTest extends TestCase
         yield 'upper case' => [strtoupper($hash)];
     }
 
-    public function testTheTenantIsOnlyThereOncePersisted(): void
-    {
-        $this->expectException(\LogicException::class);
-        $this->expectExceptionMessageIsOrContains('The tenant is stamped on persist.');
-
-        $this->open(hash('sha256', 'token'))->tenantId();
-    }
-
     private function open(string $hash): BankFeed
     {
         $firm = new LegalEntity('Example Firm', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');

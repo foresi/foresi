@@ -291,7 +291,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
         self::assertSelectorNotExists('#pair-settle', 'The switch is off by default.');
 
         $this->scoped(function (): void {
-            $this->connection()->insert('firm_bank_pairing', ['id' => '01963c5e-0000-7000-8000-00000000f1f1', 'tenant_id' => $this->tenant->toString(), 'legal_entity_id' => $this->firm->id(), 'auto_pairing' => 1, 'small_difference' => 1]);
+            $this->connection()->insert('firm_bank_pairing', ['id' => '01963c5e-0000-7000-8000-00000000f1f1', 'legal_entity_id' => $this->firm->id(), 'auto_pairing' => 1, 'small_difference' => 1]);
         });
         $dialog = $this->dialog($this->pairUrl($movement));
         self::assertCount(1, $dialog->filter('#pair-settle'));
@@ -450,25 +450,6 @@ final class BankMovementControllerTest extends BankScreenTestCase
 
         self::assertSame('page', $crawler->filter('#sidebar [data-nav-group] a[href="/bank"]')->first()->attr('aria-current'));
         self::assertCount(1, $this->page('/invoices')->filter('#sidebar [data-nav-group] a[href="/bank"]'));
-    }
-
-    public function testAnotherTenantsMovementIs404(): void
-    {
-        $this->signedIn();
-        $foreignTenant = $this->browser->fixtures->tenant('Foreign Tenant');
-        $account = $this->scoped(fn (): FirmBankAccount => $this->firmWithSeries('Example Foreign s.r.o.', self::IBAN)[1], $foreignTenant);
-        $foreign = $this->movement('100.00', null, account: $account, auto: false, tenant: $foreignTenant);
-        $token = $this->formToken();
-
-        foreach (['/pair', '/unpair'] as $path) {
-            $this->client->request('GET', '/bank/movements/'.$foreign.$path);
-            self::assertResponseStatusCodeSame(404, $path);
-        }
-        foreach (['/pair', '/unpair', '/undo'] as $path) {
-            $this->client->request('POST', '/bank/movements/'.$foreign.$path, ['_token' => $token]);
-            self::assertResponseStatusCodeSame(404, $path);
-        }
-        self::assertSame([], $this->rowIds($this->page('/bank?movement='.$foreign)));
     }
 
     public function testAClientRoleGets403(): void

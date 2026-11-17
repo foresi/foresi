@@ -20,8 +20,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Tenant-scoped through the Doctrine tenant filter, except touch(), which is
- * plain SQL by the feed's id.
+ * Through the ORM, except touch(), which is plain SQL by the feed's id.
  */
 final readonly class DoctrineBankFeeds implements BankFeeds
 {

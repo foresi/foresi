@@ -10,8 +10,6 @@ namespace App\Work\Domain;
 
 use App\Identity\Domain\Membership;
 use App\Shared\Domain\Id;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -27,18 +25,14 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'notification_preference')]
-#[ORM\Index(name: 'idx_notification_preference_tenant', columns: ['tenant_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_notification_preference_membership', columns: ['membership_id'])]
-class NotificationPreference implements TenantOwned
+class NotificationPreference
 {
     public const int DEFAULT_DIGEST_HOUR = 8;
 
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'string', length: 16, enumType: EmailDelivery::class)]
     private EmailDelivery $mentioned;
@@ -189,10 +183,5 @@ class NotificationPreference implements TenantOwned
     public function lastDigestAt(): ?\DateTimeImmutable
     {
         return $this->lastDigestAt;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }
