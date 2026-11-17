@@ -286,12 +286,6 @@ party:
     title: Nic nenalezeno
     text: Zkuste jiné hledání nebo zrušte filtr.
     reset: Zrušit filtr
-  kpi:
-    all: Všechny kontakty
-    customers: Zákazníci
-    suppliers: Dodavatelé
-    unreliable: Nespolehliví plátci
-    check: Zkontrolovat
   view:
     all: Všechny
     customers: Zákazníci
