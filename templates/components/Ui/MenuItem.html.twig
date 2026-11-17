@@ -1,0 +1,7 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set tag = this.tag %}
+<{{ tag }}{% if tag == 'a' %} href="{{ href }}"{% elseif tag == 'button' %} type="{{ type }}"{% endif %} role="{{ checked is null ? 'menuitem' : 'menuitemradio' }}"{% if checked is not null %} aria-checked="{{ checked ? 'true' : 'false' }}"{% endif %}{% if disabled %} aria-disabled="true"{% endif %} tabindex="-1" {{ attributes.defaults({class: this.classes}) }}>
+    {%- if icon %}{{ ux_icon('lucide:' ~ icon, {class: 'size-5 shrink-0', 'aria-hidden': 'true'}) }}{% endif -%}
+    {%- block content %}{% endblock -%}
+    {%- if checked is not null %}{{ ux_icon('lucide:check', {class: 'ml-auto hidden size-5 shrink-0 text-green group-aria-checked:block', 'aria-hidden': 'true'}) }}{% endif -%}
+</{{ tag }}>

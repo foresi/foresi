@@ -22,7 +22,8 @@ final class CheckboxTest extends KernelTestCase
         self::assertStringContainsString('type="checkbox"', $html);
         self::assertStringContainsString(' checked', $html);
         self::assertStringContainsString('value="1"', $html);
-        self::assertStringContainsString('size-4', $html);
+        // The 16 px box itself comes from the base style of app.css; the component adds the focus ring.
+        self::assertStringContainsString('focus-visible:outline-green', $html);
         self::assertStringContainsString('aria-describedby="agree-help"', $html);
         self::assertMatchesRegularExpression('/<label[^>]*>\\s*<input.*<\/label>/s', $html);
     }

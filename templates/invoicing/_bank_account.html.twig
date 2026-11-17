@@ -11,8 +11,9 @@
     <input type="hidden" name="bankAccount" value="">
     <twig:Ui:Field id="bankAccount" :row="true" :plain="true" width="medium" :label="'invoice.field.bankAccount'|trans">
         <twig:Ui:Alert tone="warning" data-bank-note>
-            <span>{{ 'invoice.field.bankAccount_none'|trans }}</span>
-            {% if bankUrl %}<a href="{{ bankUrl }}" target="_blank" rel="noopener" id="bank-account-settings" class="ml-1 font-semibold text-current underline underline-offset-2 {{ focus }}">{{ 'invoice.field.bankAccount_add'|trans }}</a>{% endif %}
+            {# The action on its own line, so the note never breaks in the middle of the link. #}
+            <span class="block">{{ 'invoice.field.bankAccount_none'|trans }}</span>
+            {% if bankUrl %}<a href="{{ bankUrl }}" target="_blank" rel="noopener" id="bank-account-settings" class="mt-0.5 inline-block font-semibold text-current underline underline-offset-2 {{ focus }}">{{ 'invoice.field.bankAccount_add'|trans }}</a>{% endif %}
         </twig:Ui:Alert>
     </twig:Ui:Field>
 {% else %}

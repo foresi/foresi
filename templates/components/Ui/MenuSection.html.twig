@@ -1,0 +1,5 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div role="group"{% if label %} aria-label="{{ label }}"{% endif %} {{ attributes.defaults({class: 'not-first:mt-1 not-first:border-t not-first:border-divider not-first:pt-1'}) }}>
+    {%- if label %}<div aria-hidden="true" class="px-3 pb-0.5 pt-1 text-caption font-bold uppercase text-muted">{{ label }}</div>{% endif -%}
+    {%- block content %}{% endblock -%}
+</div>

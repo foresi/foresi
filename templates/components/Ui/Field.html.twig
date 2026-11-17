@@ -13,7 +13,7 @@
         {% endif %}
         <div class="min-w-0 md:col-start-2 {{ widthClass }}">{{ control|raw }}</div>
         {% if help %}<p id="{{ id }}-help" class="m-0 text-caption text-muted md:col-start-2 {{ widthClass }}">{{ help }}</p>{% endif %}
-        {% if error %}<p id="{{ id }}-error" role="alert" class="m-0 text-caption font-medium text-badge-red-text md:col-start-2 {{ widthClass }}">{{ error }}</p>{% endif %}
+        {% if error %}<p id="{{ id }}-error" role="alert" class="m-0 text-small text-badge-red-text md:col-start-2 {{ widthClass }}">{{ error }}</p>{% endif %}
     </div>
 {% else %}
     <div {{ attributes.defaults({class: 'grid content-start gap-1.5'}) }}>
@@ -27,6 +27,6 @@
             {% if widthClass %}<div class="min-w-0 {{ widthClass }}">{{ control|raw }}</div>{% else %}{{ control|raw }}{% endif %}
         {% endif %}
         {% if help %}<p id="{{ id }}-help" class="text-caption text-muted">{{ help }}</p>{% endif %}
-        {% if error %}<p id="{{ id }}-error" role="alert" class="text-caption font-medium text-badge-red-text">{{ error }}</p>{% endif %}
+        {% if error %}<p id="{{ id }}-error" role="alert" class="text-small text-badge-red-text">{{ error }}</p>{% endif %}
     </div>
 {% endif %}

@@ -43,17 +43,30 @@ final class ContrastTest extends TestCase
     }
 
     /**
-     * Control boundaries (WCAG 2.2 SC 1.4.11 non-text contrast, 3:1): every control
-     * sits on white, and the palette opener and nav sit on the frame.
+     * Control states (WCAG 2.2 SC 1.4.11 non-text contrast, 3:1): the error edge, the selected
+     * edge and the focus ring. The resting edge is soft on purpose; see testTheControlEdgeIsSoft().
      *
      * @return iterable<string, array{string, string}>
      */
     public static function controlBoundaries(): iterable
     {
-        yield 'control line on white' => ['control-line', 'white'];
-        yield 'control line on frame' => ['control-line', 'frame'];
         yield 'error line on white' => ['badge-red-text', 'white'];
-        yield 'selected line on white' => ['green', 'white'];
+        yield 'selected line and focus ring on white' => ['green', 'white'];
+        yield 'focus ring on frame' => ['green', 'frame'];
+    }
+
+    /**
+     * The resting edge of a field, button and chip is level.io's soft light border (#cdd5df, about
+     * 1.5:1 on white) in Foresi's warm grey. Martin chose it on 2026-11-16 knowing it is below the
+     * 3:1 of SC 1.4.11; a field is identified by its label. Pinned so it neither drifts into a
+     * near-invisible line nor quietly back to the strong edge.
+     */
+    public function testTheControlEdgeIsSoft(): void
+    {
+        $ratio = $this->ratio($this->token('control-line'), $this->token('white'));
+
+        self::assertEqualsWithDelta(1.5, $ratio, 0.1, sprintf('control-line on white is %.2f:1', $ratio));
+        self::assertGreaterThan($this->ratio($this->token('container'), $this->token('white')), $ratio, 'The control edge is stronger than the edge of a surface.');
     }
 
     #[DataProvider('controlBoundaries')]

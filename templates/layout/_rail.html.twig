@@ -23,9 +23,9 @@
     {% set first = (entry.groups|first).items|first %}
     {% set unread = entry.groups|filter(g => g.items|filter(i => i.route == notifications and i.count)|length > 0)|length > 0 %}
     <a href="{{ path(first.route) }}" data-nav-area="{{ entry.area.id }}" data-nav-sync{% if entry.current %} aria-current="true"{% endif %} class="group relative flex w-15 flex-col items-center gap-0.5 rounded-panel py-1.5 text-micro font-medium text-muted no-underline hover:text-ink aria-[current=true]:text-ink max-shell:hidden {{ focus }}">
-        <span class="grid h-8 w-10 place-items-center rounded-control group-hover:bg-frame-hover group-aria-[current=true]:bg-white group-aria-[current=true]:text-green group-aria-[current=true]:shadow-raised">{{ ux_icon('lucide:' ~ entry.area.icon, {class: 'size-5', 'aria-hidden': 'true'}) }}</span>
+        <span class="grid h-8 w-10 place-items-center rounded-control group-hover:bg-frame group-aria-[current=true]:bg-white group-aria-[current=true]:text-green group-aria-[current=true]:shadow-raised">{{ ux_icon('lucide:' ~ entry.area.icon, {class: 'size-5', 'aria-hidden': 'true'}) }}</span>
         <span class="max-w-full truncate px-0.5">{{ entry.area.labelKey|trans }}</span>
-        {% if unread %}<span data-nav-unread data-nav-sync class="absolute right-3 top-1 size-2 rounded-sm bg-badge-red-text ring-2 ring-frame"><span class="sr-only">{{ 'shell.unread_notifications'|trans }}</span></span>{% endif %}
+        {% if unread %}<span data-nav-unread data-nav-sync class="absolute right-3 top-1 size-2 rounded-sm bg-badge-red-text ring-2 ring-frame-hover"><span class="sr-only">{{ 'shell.unread_notifications'|trans }}</span></span>{% endif %}
     </a>
 {% endmacro %}
 

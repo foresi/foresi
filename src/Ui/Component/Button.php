@@ -36,4 +36,9 @@ final class Button
     {
         return Style::button($this->variant, $this->size, false, $this->pressed);
     }
+
+    public function iconClasses(): string
+    {
+        return Style::buttonIcon($this->size);
+    }
 }

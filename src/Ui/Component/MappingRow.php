@@ -117,6 +117,6 @@ final class MappingRow
 
     public function selectClasses(): string
     {
-        return 'h-control w-full appearance-none rounded-control border '.($this->invalid() ? 'border-badge-red-text' : 'border-control-line').' bg-white pl-2.5 pr-8 text-ink '.Style::FOCUS;
+        return 'h-control cursor-pointer appearance-none pr-10 hover:border-green '.Style::field($this->invalid());
     }
 }
