@@ -26,6 +26,7 @@ final class DataTable
     /** Values longer than this get their full text in a title attribute. */
     private const int TITLE_FROM_LENGTH = 24;
     private const array ALIGNS = ['left', 'right', 'center'];
+    private const array ROW_HEIGHTS = ['list' => 'h-row-list', 'dense' => 'h-row'];
     /**
      * The share of the room left by the other columns that each truncating column takes, by
      * how many there are. The browser scales the shares down to the room there is.
@@ -70,6 +71,18 @@ final class DataTable
     /** The CSRF token the POST actions of the rows send. */
     public ?string $actionToken = null;
 
+    /**
+     * "list" rows are 56 px, as a list of documents or contacts (layout spec, lists); "dense" rows
+     * keep 44 px for a table read line by line, such as invoice lines or bank movements.
+     */
+    public string $density = 'list';
+
+    /** The count of the footer, such as "12 invoices". */
+    public ?string $count = null;
+
+    /** The total of the footer, already formatted, such as "Total 12 100,00 Kč". */
+    public ?string $total = null;
+
     /** @var list<ColumnView> */
     private array $columnViews = [];
 
@@ -79,6 +92,9 @@ final class DataTable
     #[PostMount]
     public function validate(): void
     {
+        if (!isset(self::ROW_HEIGHTS[$this->density])) {
+            throw new \InvalidArgumentException(\sprintf('Unknown density "%s", expected one of: %s.', $this->density, implode(', ', array_keys(self::ROW_HEIGHTS))));
+        }
         foreach ($this->columns as $column) {
             $this->columnViews[] = $this->column($column);
         }
@@ -128,6 +144,12 @@ final class DataTable
      * The width of a truncating column: an even share of what the columns that keep their
      * width leave. With no width of its own it could not be narrower than its text.
      */
+    /** The height class of a body row. */
+    public function rowHeight(): string
+    {
+        return self::ROW_HEIGHTS[$this->density];
+    }
+
     public function shareClass(): string
     {
         $count = \count(array_filter($this->columnViews, static fn (array $column): bool => $column['truncate']));

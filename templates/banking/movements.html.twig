@@ -38,27 +38,18 @@
         </twig:Ui:EmptyState>
     {% else %}
         <div class="grid grid-cols-1 gap-4">
-            <div class="flex flex-wrap items-end justify-between gap-3">
-                <twig:Ui:Tabs :items="tabs" :label="'bank.movement.views'|trans" class="min-w-0 flex-1" />
-                <form method="get" action="{{ path('app_bank_movements') }}" role="search" class="flex w-full flex-wrap items-end gap-2 sm:w-auto max-sm:[&_button]:h-control-lg max-sm:[&_input]:h-control-lg max-sm:[&_select]:h-control-lg">
-                    {% if tab != 'incoming' %}<input type="hidden" name="tab" value="{{ tab }}">{% endif %}
-                    {% if firms is not empty %}
-                        <div class="w-full min-w-0 sm:w-48"><twig:Ui:Select name="firm" id="bank-firm" :label="'bank.movement.list.firm'|trans" :options="firms" :value="firm" /></div>
-                    {% endif %}
-                    {% if accounts is not empty %}
-                        <div class="w-full min-w-0 sm:w-48"><twig:Ui:Select name="account" id="bank-account" :label="'bank.movement.list.account'|trans" :options="accounts" :value="account" /></div>
-                    {% endif %}
-                    {% if not messagesTab %}
-                        <twig:Ui:SearchField name="q" :value="text" :label="'bank.movement.list.search_label'|trans" :placeholder="'bank.movement.list.search_placeholder'|trans" maxlength="100" class="min-w-0 flex-1 sm:w-56 sm:flex-none" />
-                    {% endif %}
-                    <twig:Ui:Button type="submit" icon="search">{{ (messagesTab ? 'bank.movement.list.show' : 'bank.movement.list.search')|trans }}</twig:Ui:Button>
-                </form>
-            </div>
+            <twig:Ui:Tabs :items="tabs" :label="'bank.movement.views'|trans" />
+            {% set bankFilters = (firms is not empty ? [{name: 'firm', label: 'bank.movement.list.firm'|trans, options: firms, value: firm, pinned: true}] : [])|merge(accounts is not empty ? [{name: 'account', label: 'bank.movement.list.account'|trans, options: accounts, value: account, pinned: true}] : []) %}
+            {% if bankFilters is not empty or not messagesTab %}
+                <twig:Ui:FilterBar id="bank-filters" :action="path('app_bank_movements')" :keep="{tab: tab != 'incoming' ? tab : null}"
+                    :search="messagesTab ? null : {name: 'q', value: text, label: 'bank.movement.list.search_label'|trans, placeholder: 'bank.movement.list.search_placeholder'|trans}"
+                    :filters="bankFilters" :empty="rows is empty" />
+            {% endif %}
 
             {% set token = messagesTab
                 ? csrf_token(constant('App\\Banking\\Infrastructure\\Controller\\InboundMessageController::ACTION_TOKEN'))
                 : csrf_token(constant('App\\Banking\\Infrastructure\\Controller\\BankMovementController::ACTION_TOKEN')) %}
-            <twig:Ui:DataTable :caption="('bank.movement.tab.' ~ tab)|trans" :columns="columns" :rows="rows" :actionToken="token">
+            <twig:Ui:DataTable :caption="('bank.movement.tab.' ~ tab)|trans" :columns="columns" :rows="rows" :actionToken="token" density="dense">
                 <twig:block name="empty">
                     {% if filtered %}
                         <twig:Ui:EmptyState icon="search" :title="'bank.movement.empty.filtered_title'|trans" :text="'bank.movement.empty.filtered_text'|trans">

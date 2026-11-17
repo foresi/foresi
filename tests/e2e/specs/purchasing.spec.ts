@@ -180,7 +180,7 @@ test.describe('screens', () => {
   test('the list and the detail look as approved @visual', async ({ page }) => {
     // The seeded studio firm keeps its own two documents, whatever the other tests recorded.
     await page.goto('/purchasing?tab=recorded');
-    const studio = await page.locator('select[name="firm"] option', { hasText: 'Example Studio s.r.o.' }).getAttribute('value');
+    const studio = await page.locator('[data-filter-chip="firm"] a[role="menuitemradio"]', { hasText: 'Example Studio s.r.o.' }).evaluate((link) => new URL((link as HTMLAnchorElement).href).searchParams.get('firm'));
     await page.goto(`/purchasing?tab=recorded&firm=${studio}`);
     await expect(page.locator('tbody tr')).toHaveCount(2);
     await page.mouse.move(0, 0);

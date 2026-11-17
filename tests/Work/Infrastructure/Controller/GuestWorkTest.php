@@ -115,7 +115,7 @@ final class GuestWorkTest extends WebTestCase
         }
         // The filter of who is responsible offers the people of the organisation and no other guest.
         $crawler = $this->client->request('GET', '/projects/'.$website);
-        self::assertSame(['Anyone', 'Me', 'Example Company', 'Jana Example'], $crawler->filter('#filter-responsible option')->each(static fn (Crawler $option): string => trim($option->text())));
+        self::assertSame(['Anyone', 'Me', 'Example Company', 'Jana Example'], $crawler->filter('[data-filter-sheet-form] select[name=responsible] option')->each(static fn (Crawler $option): string => trim($option->text())));
     }
 
     public function testWhatIsNotSharedIsNotFound(): void

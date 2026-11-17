@@ -219,7 +219,7 @@ final class ProjectControllerTest extends WebTestCase
         self::assertSame(['Launch'], $this->titles($crawler));
         // The tasks in no section are left out when none of them is shown.
         self::assertCount(0, $crawler->filter('[data-section="none"]'));
-        self::assertSame('finished', $crawler->filter('#filter-status option[selected]')->attr('value'));
+        self::assertSame('finished', $crawler->filter('[data-filter-sheet-form] select[name=status] option[selected]')->attr('value'));
 
         $crawler = $this->client->request('GET', '/projects/'.$id.'?status=all');
         self::assertSame(['Brief', 'Wireframes', 'Logo', 'Launch'], $this->titles($crawler));
@@ -445,8 +445,8 @@ final class ProjectControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSame('page', $crawler->filter('nav a:contains("Board")')->attr('aria-current'));
         // Every status has its column, so the status filter of the list is not offered.
-        self::assertCount(0, $crawler->filter('#filter-status'));
-        self::assertCount(1, $crawler->filter('#filter-responsible'));
+        self::assertCount(0, $crawler->filter('[data-filter-sheet-form] select[name=status]'));
+        self::assertCount(1, $crawler->filter('[data-filter-sheet-form] select[name=responsible]'));
         self::assertSame(['To do' => ['Brief'], 'In progress' => ['Wireframes'], 'Done' => ['Launch']], $this->board($crawler));
         self::assertSame(['1', '1', '1'], $crawler->filter('[data-board-count]')->each(static fn (Crawler $count): string => trim($count->text())));
         self::assertStringContainsString('Type: in progress', $crawler->filter('[data-board-column] h2')->eq(1)->text());
@@ -478,7 +478,7 @@ final class ProjectControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/projects/'.$id.'/board?responsible=me');
         self::assertSame(['To do' => [], 'In progress' => ['Wireframes'], 'Done' => []], $this->board($crawler));
-        self::assertSame('me', $crawler->filter('#filter-responsible option[selected]')->attr('value'));
+        self::assertSame('me', $crawler->filter('[data-filter-sheet-form] select[name=responsible] option[selected]')->attr('value'));
 
         $crawler = $this->client->request('GET', '/projects/'.$id.'/board?due=none&status=finished');
         self::assertSame(['To do' => ['Brief'], 'In progress' => [], 'Done' => []], $this->board($crawler));

@@ -393,7 +393,7 @@ final class SendLogControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/invoices/sent?purpose=reminder');
         self::assertCount(1, $crawler->filter('tbody tr'));
-        self::assertSame('reminder', $crawler->filter('#send-purpose option[selected]')->attr('value'));
+        self::assertSame('reminder', $crawler->filter('#send-filters-purpose-field option[selected]')->attr('value'));
         // The tabs keep the purpose, so a status narrows the reminders.
         self::assertSame('/invoices/sent?status=queued&purpose=reminder', $crawler->filter('nav[aria-label="Send states"] a')->eq(2)->attr('href'));
         // A reminder row offers the next reminder, not the invoice again.

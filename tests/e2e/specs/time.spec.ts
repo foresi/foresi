@@ -42,7 +42,7 @@ function day(page: Page, key: string) {
 // What changes from one run to the next: the colour of a person's initials follows a random id.
 // The dates of the inputs of the period are masked; the pointer leaves the page.
 function volatile(page: Page) {
-  return [page.locator('main [aria-hidden="true"].place-items-center'), page.locator('#report-from, #report-until')];
+  return [page.locator('main [aria-hidden="true"].place-items-center'), page.locator('#report-filters-from-field, #report-filters-until-field')];
 }
 
 // The days of the week and of the period are relative to today, so every date gets the same text.
@@ -102,8 +102,8 @@ test.describe('the week', () => {
     await expect(friday.locator('[data-time-billable]')).toBeVisible();
 
     // An owner reads the week of anyone of the team.
-    await page.locator('#filter-person').selectOption({ label: 'Jana Example' });
-    await page.locator('[data-time-person-filter]').getByRole('button', { name: 'Filtrovat' }).click();
+    await page.locator('[data-filter-chip="person"]').getByRole('button', { name: 'Osoba' }).click();
+    await page.getByRole('menuitemradio', { name: 'Jana Example' }).click();
     await expect(page).toHaveURL(new RegExp(`week=${lastMonday}`));
     await expect(page.locator('[data-time-week-total]')).toHaveText('2 h 30 min');
     await expect(page.locator('[data-time-entry]')).toHaveCount(1);
@@ -183,11 +183,14 @@ test.describe('the report', () => {
     await expect(page.locator('main h1')).toHaveText('Výkaz');
 
     const sunday = shift(thisMonday, 6);
-    await page.locator('#report-from').fill(lastMonday);
-    await page.locator('#report-until').fill(sunday);
-    await page.locator('#report-person').selectOption({ label: 'Jana Example' });
-    await page.locator('[data-time-report-filter]').getByRole('button', { name: 'Filtrovat' }).click();
-    await expect(page.locator('#report-period')).toHaveValue('custom');
+    // The dates wait in the More filters sheet, sent with Apply; the person is a pinned chip.
+    await page.getByRole('button', { name: 'Další filtry' }).click();
+    await page.locator('#report-filters-from-field').fill(lastMonday);
+    await page.locator('#report-filters-until-field').fill(sunday);
+    await page.getByRole('button', { name: 'Použít' }).click();
+    await expect(page.locator('[data-filter-chip="period"]')).toContainText('Vlastní');
+    await page.locator('[data-filter-chip="person"]').getByRole('button', { name: 'Osoba' }).click();
+    await page.getByRole('menuitemradio', { name: 'Jana Example' }).click();
     await expect(reportRows(page)).toHaveCount(2);
     await expect(reportRows(page).first()).toContainText('Write the copy for the about page');
     await expect(reportRows(page).last()).toContainText('Pick the colour palette');
@@ -195,8 +198,9 @@ test.describe('the report', () => {
     await expect(page.locator('[data-time-report]')).not.toContainText('Design the homepage');
 
     // Totals by task instead of by project.
-    await page.locator('#report-group').selectOption('task');
-    await page.locator('[data-time-report-filter]').getByRole('button', { name: 'Filtrovat' }).click();
+    await page.getByRole('button', { name: 'Další filtry' }).click();
+    await page.locator('#report-filters-group-field').selectOption('task');
+    await page.getByRole('button', { name: 'Použít' }).click();
     await expect(page.locator('[data-time-report-totals] h3')).toHaveText('Součty po úkolech');
     await expect(page.locator('[data-time-report-totals] tbody tr')).toHaveCount(2);
 

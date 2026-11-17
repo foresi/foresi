@@ -111,7 +111,7 @@ final class NotificationControllerTest extends WebTestCase
         $back = $crawler->filter('[data-notifications] [data-row-actions] form')->first();
         self::assertSame('/notifications/'.$this->notificationId('Old news', 'owner').'/undone?tab=done', $back->attr('action'));
         self::assertSame('Back to new', $back->filter('button[role="menuitem"]')->text());
-        self::assertSame('done', $crawler->filter('[data-notifications-filter] input[name="tab"]')->attr('value'));
+        self::assertSame('done', $crawler->filter('[data-notifications-filter] [data-filter-sheet-form] input[name="tab"]')->attr('value'));
         self::assertSame('/notifications/read?tab=done', $crawler->filter('[data-notifications-read-all]')->attr('action'));
     }
 
@@ -120,12 +120,12 @@ final class NotificationControllerTest extends WebTestCase
         $this->seed();
 
         $crawler = $this->client->request('GET', '/notifications');
-        self::assertSame(['All', 'Mentions', 'Assigned'], $crawler->filter('#filter-kind option')->each(static fn (Crawler $option): string => trim($option->text())));
-        self::assertCount(0, $crawler->filter('[data-notifications-filter] a'));
-        $crawler = $this->client->submit($crawler->filter('[data-notifications-filter]')->form(['filter' => 'mentions']));
+        self::assertSame(['All', 'Mentions', 'Assigned'], $crawler->filter('[data-filter-sheet-form] select[name=filter] option')->each(static fn (Crawler $option): string => trim($option->text())));
+        self::assertCount(0, $crawler->filter('[data-notifications-filter] [data-filter-clear-all]'));
+        $crawler = $this->client->submit($crawler->filter('[data-notifications-filter] [data-filter-sheet-form]')->form(['filter' => 'mentions']));
         self::assertSame(['Fix the form'], $this->titles($crawler));
-        self::assertSame('mentions', $crawler->filter('#filter-kind option[selected]')->attr('value'));
-        self::assertSame('/notifications', $crawler->filter('[data-notifications-filter] a')->attr('href'));
+        self::assertSame('mentions', $crawler->filter('[data-filter-sheet-form] select[name=filter] option[selected]')->attr('value'));
+        self::assertSame('/notifications', $crawler->filter('[data-notifications-filter] [data-filter-clear-all]')->attr('href'));
         self::assertSame('/notifications?tab=done&filter=mentions', $crawler->filter('main nav a')->reduce(static fn (Crawler $a): bool => 'Done' === trim($a->text()))->attr('href'));
 
         $crawler = $this->client->request('GET', '/notifications?filter=assigned');
@@ -134,7 +134,7 @@ final class NotificationControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/notifications?tab=done&filter=assigned');
         self::assertSame('Nothing done yet', $this->emptyTitle($crawler));
         self::assertSame('Nothing here with this filter.', $this->emptyText($crawler));
-        self::assertSame('/notifications?tab=done', $crawler->filter('[data-notifications-filter] a')->attr('href'));
+        self::assertSame('/notifications?tab=done', $crawler->filter('[data-notifications-filter] [data-filter-clear-all]')->attr('href'));
 
         $crawler = $this->client->request('GET', '/notifications?filter=nonsense');
         self::assertSame(['Fix the form', 'Call the client', 'Write the copy'], $this->titles($crawler));
