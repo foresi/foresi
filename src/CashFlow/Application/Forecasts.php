@@ -23,11 +23,11 @@ use App\CashFlow\Domain\PlannedItem;
 use App\ExchangeRate\Application\ExchangeRates;
 use App\ExchangeRate\Domain\ExchangeRate;
 use App\ExchangeRate\Domain\RateNotAvailable;
+use App\Instance\Application\TenantClock;
 use App\Party\Domain\FirmBankAccount;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantClock;
 use Psr\Log\LoggerInterface;
 
 /**

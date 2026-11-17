@@ -8,6 +8,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure;
 
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
+use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Invoicing\Application\DeliverInvoiceSend;
 use App\Invoicing\Application\InvoiceBalances;
 use App\Invoicing\Application\InvoiceSendQueue;
@@ -31,9 +34,6 @@ use App\Party\Domain\PartyEmail;
 use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Id;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Domain\TenantId;
-use App\Tenancy\Infrastructure\Messenger\TenantStamp;
 use App\Tests\Invoicing\Application\SendingTestCase;
 use App\Tests\Invoicing\Infrastructure\Support\SettledBalances;
 use App\Tests\Support\Mail\RecordingMailGateway;

@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Idoklad\Infrastructure\Doctrine;
 
 use App\Idoklad\Application\Import\ImportTransaction;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 

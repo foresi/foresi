@@ -8,11 +8,11 @@ declare(strict_types=1);
 
 namespace App\Party\Infrastructure\Doctrine;
 
+use App\Instance\Application\TenantContext;
 use App\Party\Application\FirmBankAccounts;
 use App\Party\Application\UnknownFirmBankAccount;
 use App\Party\Domain\FirmBankAccount;
 use App\Party\Domain\LegalEntity;
-use App\Tenancy\Application\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
 

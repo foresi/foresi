@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Doctrine;
 
+use App\Instance\Application\TenantZoneFallback;
+use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\UnsupportedCountry;
-use App\Tenancy\Application\TenantZoneFallback;
-use App\Tenancy\Domain\TenantId;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 

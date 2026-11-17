@@ -11,8 +11,8 @@ namespace App\CashFlow\Infrastructure\Api\Operation;
 use App\CashFlow\Domain\PlannedItem;
 use App\CashFlow\Infrastructure\Api\CashFlowApiController;
 use App\CashFlow\Infrastructure\Api\CashFlowJson;
+use App\Instance\Application\TenantClock;
 use App\Shared\Infrastructure\Operation\OperationOutput;
-use App\Tenancy\Application\TenantClock;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

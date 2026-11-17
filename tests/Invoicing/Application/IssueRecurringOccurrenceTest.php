@@ -13,6 +13,7 @@ use App\Country\CzechRepublic\Invoicing\CzechSupplyCodes;
 use App\Country\CzechRepublic\Invoicing\CzechVatRates;
 use App\Country\CzechRepublic\Invoicing\IsdocWriter;
 use App\Country\CzechRepublic\Invoicing\QrPlatba;
+use App\Instance\Application\TenantClock;
 use App\Invoicing\Application\InvoiceHistory;
 use App\Invoicing\Application\InvoiceHistoryEntry;
 use App\Invoicing\Application\IssueInvoice;
@@ -35,7 +36,6 @@ use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Application\TransactionalWork;
 use App\Party\Domain\Address;
 use App\Party\Domain\PartyAddress;
-use App\Tenancy\Application\TenantClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 

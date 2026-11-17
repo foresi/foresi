@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 use App\Audit\Application\AuditActor;
+use App\Instance\Application\TenantClock;
 use App\Invoicing\Domain\RecurringContent;
 use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\RecurringInvoiceLine;
@@ -21,7 +22,6 @@ use App\Party\Application\UnknownLegalEntity;
 use App\Party\Domain\Iban;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\PaymentMethod;
-use App\Tenancy\Application\TenantClock;
 use Psr\Clock\ClockInterface;
 
 /**

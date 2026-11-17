@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace App\Tests\Audit\Infrastructure;
 
 use App\Audit\Infrastructure\Doctrine\AuditValueNormalizer;
+use App\Instance\Domain\TenantId;
 use App\Party\Domain\PartyKind;
 use App\Party\Domain\VatId;
-use App\Tenancy\Domain\TenantId;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Types\Type;
 use PHPUnit\Framework\TestCase;
@@ -23,7 +23,7 @@ final class AuditValueNormalizerTest extends TestCase
     protected function setUp(): void
     {
         $this->normalizer = new AuditValueNormalizer(new SQLitePlatform());
-        foreach (['tenant_id' => \App\Tenancy\Infrastructure\Doctrine\TenantIdType::class, 'vat_id' => \App\Party\Infrastructure\Doctrine\VatIdType::class] as $name => $class) {
+        foreach (['tenant_id' => \App\Instance\Infrastructure\Doctrine\TenantIdType::class, 'vat_id' => \App\Party\Infrastructure\Doctrine\VatIdType::class] as $name => $class) {
             if (!Type::hasType($name)) {
                 Type::addType($name, $class);
             }

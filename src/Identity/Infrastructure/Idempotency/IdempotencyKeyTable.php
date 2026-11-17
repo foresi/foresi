@@ -18,7 +18,7 @@ use Doctrine\DBAL\Types\Types;
 final class IdempotencyKeyTable
 {
     public const string TABLE = 'api_idempotency_key';
-    /** The column type of a tenant id, which Tenancy registers. */
+    /** The column type of a tenant id, which Instance registers. */
     public const string TENANT_TYPE = 'tenant_id';
 
     public const string TENANT_ID = 'tenant_id';

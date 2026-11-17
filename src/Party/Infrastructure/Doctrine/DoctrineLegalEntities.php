@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace App\Party\Infrastructure\Doctrine;
 
+use App\Instance\Application\TenantContext;
 use App\Party\Application\LegalEntities;
 use App\Party\Application\UnknownLegalEntity;
 use App\Party\Domain\LegalEntity;
-use App\Tenancy\Application\TenantContext;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 

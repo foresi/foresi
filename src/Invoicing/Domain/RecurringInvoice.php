@@ -10,6 +10,8 @@ namespace App\Invoicing\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditExcluded;
+use App\Instance\Domain\TenantId;
+use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
@@ -20,8 +22,6 @@ use App\Shared\Domain\Schedule\Recurrence;
 use App\Shared\Domain\Schedule\RecurrenceEnd;
 use App\Shared\Domain\Schedule\RecurrenceUnit;
 use App\Shared\Domain\Schedule\RecurringSchedule;
-use App\Tenancy\Domain\TenantId;
-use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
 
 /**

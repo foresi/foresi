@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Work\Infrastructure\Controller;
 
 use App\Identity\Application\OpenToGuest;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use App\Work\Application\TaskGroup;
 use App\Work\Application\TaskRow;
 use App\Work\Application\WorkQueries;

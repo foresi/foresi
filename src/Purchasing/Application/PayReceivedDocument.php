@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Purchasing\Application;
 
+use App\Instance\Application\TenantClock;
 use App\Purchasing\Contract\Event\ReceivedDocumentPaid;
 use App\Purchasing\Domain\PaymentMethod;
 use App\Purchasing\Domain\ReceivedDocument;
@@ -15,7 +16,6 @@ use App\Purchasing\Domain\ReceivedDocumentPayment;
 use App\Purchasing\Domain\ReceivedDocumentRefused;
 use App\Shared\Application\Event\EventRecorder;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantClock;
 use Psr\Clock\ClockInterface;
 
 /**

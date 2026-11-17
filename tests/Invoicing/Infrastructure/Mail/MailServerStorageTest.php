@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure\Mail;
 
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\MailSecrets;
 use App\Invoicing\Application\MailServers;
 use App\Invoicing\Domain\FirmMailServer;
@@ -16,8 +18,6 @@ use App\Party\Domain\Address;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatStatus;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Domain\TenantId;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;

@@ -8,12 +8,12 @@ declare(strict_types=1);
 
 namespace App\Purchasing\Infrastructure\Doctrine;
 
+use App\Instance\Application\TenantContext;
 use App\Purchasing\Application\ReceivedDocuments;
 use App\Purchasing\Application\UnknownReceivedDocument;
 use App\Purchasing\Domain\ReceivedDocument;
 use App\Purchasing\Domain\ReceivedDocumentPayment;
 use App\Shared\Domain\Id;
-use App\Tenancy\Application\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
 
 final readonly class DoctrineReceivedDocuments implements ReceivedDocuments

@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace App\Party\Infrastructure\Doctrine;
 
+use App\Instance\Application\TenantContext;
 use App\Party\Application\TransactionalWork;
 use App\Shared\Application\Event\EventOutbox;
-use App\Tenancy\Application\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 

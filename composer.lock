@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c48ed256e745a27b264dccde6fbd08e6",
+    "content-hash": "c50c2e6d31a784e2a818e071808af3cf",
     "packages": [
         {
             "name": "brick/math",
@@ -1602,13 +1602,13 @@
             "dist": {
                 "type": "path",
                 "url": "src/Attachment",
-                "reference": "8da870df505ca6bc9459933d8e8139c8b0cce04e"
+                "reference": "25b3a2387c4395caf8534dc78880c940cccecc6d"
             },
             "require": {
                 "foresi/audit": "*",
                 "foresi/identity": "*",
-                "foresi/shared": "*",
-                "foresi/tenancy": "*"
+                "foresi/instance": "*",
+                "foresi/shared": "*"
             },
             "type": "foresi-module",
             "extra": {
@@ -1634,11 +1634,11 @@
             "dist": {
                 "type": "path",
                 "url": "src/Audit",
-                "reference": "21a81582681dcd0194b7d59f7d4c2e74a98bd68f"
+                "reference": "1252514d5e8dff25f41a2448c35b3716aeb6f4fe"
             },
             "require": {
-                "foresi/shared": "*",
-                "foresi/tenancy": "*"
+                "foresi/instance": "*",
+                "foresi/shared": "*"
             },
             "type": "foresi-module",
             "extra": {
@@ -1664,15 +1664,15 @@
             "dist": {
                 "type": "path",
                 "url": "src/Banking",
-                "reference": "fd329dfb6b435e23bda8ea3b6f09965af1310d14"
+                "reference": "257aa9d1b5b66a159e1bb905b824f1d2755be062"
             },
             "require": {
                 "foresi/audit": "*",
                 "foresi/identity": "*",
+                "foresi/instance": "*",
                 "foresi/invoicing": "*",
                 "foresi/party": "*",
                 "foresi/shared": "*",
-                "foresi/tenancy": "*",
                 "foresi/ui": "*"
             },
             "type": "foresi-module",
@@ -1701,15 +1701,15 @@
             "dist": {
                 "type": "path",
                 "url": "src/CashFlow",
-                "reference": "9bece4a7a650a9bbc50c3ece093e27dc9fbf01a9"
+                "reference": "72306421adeab9f15531c99e48e47970b5b881d1"
             },
             "require": {
                 "foresi/audit": "*",
                 "foresi/exchange-rate": "*",
                 "foresi/identity": "*",
+                "foresi/instance": "*",
                 "foresi/party": "*",
-                "foresi/shared": "*",
-                "foresi/tenancy": "*"
+                "foresi/shared": "*"
             },
             "type": "foresi-module",
             "extra": {
@@ -1738,7 +1738,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Country",
-                "reference": "acfdf55148d39c57f0f9ac10a2139fe685891f0c"
+                "reference": "4c82228b21bd4c6a1f846d7c19529b46d18b19a2"
             },
             "require": {
                 "foresi/banking": "*",
@@ -1771,12 +1771,12 @@
             "dist": {
                 "type": "path",
                 "url": "src/Events",
-                "reference": "904521fc273de821fdb4e291e1a5b0702eb273c6"
+                "reference": "e6e57b34899c052d6524d46471922bdc64aad7fb"
             },
             "require": {
                 "foresi/audit": "*",
-                "foresi/shared": "*",
-                "foresi/tenancy": "*"
+                "foresi/instance": "*",
+                "foresi/shared": "*"
             },
             "type": "foresi-module",
             "extra": {
@@ -1805,10 +1805,10 @@
             "dist": {
                 "type": "path",
                 "url": "src/ExchangeRate",
-                "reference": "eb7d7c0dec6317876166b4052573e318699f43e1"
+                "reference": "fd42bc7525e369b833825f39a3009d99f070dc56"
             },
             "require": {
-                "foresi/tenancy": "*"
+                "foresi/instance": "*"
             },
             "type": "foresi-module",
             "extra": {
@@ -1834,13 +1834,13 @@
             "dist": {
                 "type": "path",
                 "url": "src/Identity",
-                "reference": "664f169cffa60a23af9ae0a03285267cf7d2ab37"
+                "reference": "02c6b6adf0593c25c7d910444451e2a02d57259a"
             },
             "require": {
                 "foresi/audit": "*",
+                "foresi/instance": "*",
                 "foresi/party": "*",
                 "foresi/shared": "*",
-                "foresi/tenancy": "*",
                 "foresi/ui": "*"
             },
             "type": "foresi-module",
@@ -1867,16 +1867,16 @@
             "dist": {
                 "type": "path",
                 "url": "src/Idoklad",
-                "reference": "04f9714b228739eabbfafb9cde41d8f2f08925bc"
+                "reference": "376ac5cd19cf5ddd6cb5a6170a7ca563b84a636d"
             },
             "require": {
                 "foresi/audit": "*",
                 "foresi/identity": "*",
                 "foresi/import": "*",
+                "foresi/instance": "*",
                 "foresi/invoicing": "*",
                 "foresi/party": "*",
-                "foresi/shared": "*",
-                "foresi/tenancy": "*"
+                "foresi/shared": "*"
             },
             "type": "foresi-module",
             "extra": {
@@ -1902,13 +1902,13 @@
             "dist": {
                 "type": "path",
                 "url": "src/Import",
-                "reference": "3e00a0daf6009940b2330a8f7b15125f9b746b2b"
+                "reference": "f9b6dcdd9cf2cf38a1758c492b53941b0cc10e82"
             },
             "require": {
                 "foresi/audit": "*",
                 "foresi/identity": "*",
+                "foresi/instance": "*",
                 "foresi/shared": "*",
-                "foresi/tenancy": "*",
                 "foresi/ui": "*"
             },
             "type": "foresi-module",
@@ -1930,19 +1930,48 @@
             }
         },
         {
+            "name": "foresi/instance",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Instance",
+                "reference": "01204f9bf9ebb64499fd0de79da975b962da4961"
+            },
+            "require": {
+                "foresi/shared": "*"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "instance",
+                    "kind": "core",
+                    "namespace": "App\\Instance\\",
+                    "optional": []
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "The instance: its clock, schedule, operator tasks and health, and for now the tenant of each request.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "foresi/invoicing",
             "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "src/Invoicing",
-                "reference": "0075fc1478a51992ee11d12d295f7ab9a8b8bb51"
+                "reference": "389c6997c771b15b35e7b8a8400de4e6eabb9835"
             },
             "require": {
                 "foresi/audit": "*",
                 "foresi/identity": "*",
+                "foresi/instance": "*",
                 "foresi/party": "*",
                 "foresi/shared": "*",
-                "foresi/tenancy": "*",
                 "foresi/ui": "*"
             },
             "type": "foresi-module",
@@ -1975,14 +2004,14 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "421f61055a21e2e442e5d4662b508bb0990ff3ab"
+                "reference": "9be07971cf6882099e46a91d648ada49b612a3f6"
             },
             "require": {
                 "foresi/audit": "*",
                 "foresi/identity": "*",
                 "foresi/import": "*",
+                "foresi/instance": "*",
                 "foresi/shared": "*",
-                "foresi/tenancy": "*",
                 "foresi/ui": "*"
             },
             "type": "foresi-module",
@@ -2012,16 +2041,16 @@
             "dist": {
                 "type": "path",
                 "url": "src/Purchasing",
-                "reference": "1cad836ec96545b07999ce155198bd153fd0137b"
+                "reference": "d082b32510cd83b40d8b134dfeb3aa87b7c74caf"
             },
             "require": {
                 "foresi/attachment": "*",
                 "foresi/audit": "*",
                 "foresi/exchange-rate": "*",
                 "foresi/identity": "*",
+                "foresi/instance": "*",
                 "foresi/party": "*",
                 "foresi/shared": "*",
-                "foresi/tenancy": "*",
                 "foresi/ui": "*"
             },
             "type": "foresi-module",
@@ -2053,7 +2082,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "bb19051caf0292d8c3d3e08f4b0d49e64cb1917f"
+                "reference": "ff44d583696882d50c614dce55f61e9efc0cb22b"
             },
             "type": "foresi-module",
             "extra": {
@@ -2074,49 +2103,20 @@
             }
         },
         {
-            "name": "foresi/tenancy",
-            "version": "dev-main",
-            "dist": {
-                "type": "path",
-                "url": "src/Tenancy",
-                "reference": "d42076303157221c7b03d36facbaa9afca5195c0"
-            },
-            "require": {
-                "foresi/shared": "*"
-            },
-            "type": "foresi-module",
-            "extra": {
-                "foresi": {
-                    "module": "tenancy",
-                    "kind": "core",
-                    "namespace": "App\\Tenancy\\",
-                    "optional": []
-                }
-            },
-            "license": [
-                "AGPL-3.0-only"
-            ],
-            "description": "Organisations and the tenant of each request.",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
-        },
-        {
             "name": "foresi/timesheet",
             "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "src/Timesheet",
-                "reference": "3ed924f15288f7be57b6805c8c3a21155a1432ab"
+                "reference": "8931b2316f2e6e658745405474c7c02e95f42a7c"
             },
             "require": {
                 "foresi/audit": "*",
                 "foresi/identity": "*",
+                "foresi/instance": "*",
                 "foresi/invoicing": "*",
                 "foresi/party": "*",
                 "foresi/shared": "*",
-                "foresi/tenancy": "*",
                 "foresi/work": "*"
             },
             "type": "foresi-module",
@@ -2143,7 +2143,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Ui",
-                "reference": "f8e0b065810c9af9d1992123dab24c6325742d1f"
+                "reference": "44c60efcd29405f3d520e5690d8eb70bc8f9a821"
             },
             "require": {
                 "foresi/shared": "*"
@@ -2172,14 +2172,14 @@
             "dist": {
                 "type": "path",
                 "url": "src/Webhooks",
-                "reference": "f4f5d61ac9e4da3dcca575ea35dd217454bf5715"
+                "reference": "21fbe127bff1bb909a346b092fb5d5f07003aa55"
             },
             "require": {
                 "foresi/audit": "*",
                 "foresi/events": "*",
                 "foresi/identity": "*",
+                "foresi/instance": "*",
                 "foresi/shared": "*",
-                "foresi/tenancy": "*",
                 "foresi/ui": "*"
             },
             "type": "foresi-module",
@@ -2209,15 +2209,15 @@
             "dist": {
                 "type": "path",
                 "url": "src/Work",
-                "reference": "ba9a2f5b3a471513a9ed2e52ef5c163a623f7ddd"
+                "reference": "48453b8defafc9e82819f2d7ddeda17e7e122aef"
             },
             "require": {
                 "foresi/attachment": "*",
                 "foresi/audit": "*",
                 "foresi/identity": "*",
+                "foresi/instance": "*",
                 "foresi/party": "*",
                 "foresi/shared": "*",
-                "foresi/tenancy": "*",
                 "foresi/ui": "*"
             },
             "type": "foresi-module",
@@ -18671,11 +18671,11 @@
         "foresi/identity": 20,
         "foresi/idoklad": 20,
         "foresi/import": 20,
+        "foresi/instance": 20,
         "foresi/invoicing": 20,
         "foresi/party": 20,
         "foresi/purchasing": 20,
         "foresi/shared": 20,
-        "foresi/tenancy": 20,
         "foresi/timesheet": 20,
         "foresi/ui": 20,
         "foresi/webhooks": 20,

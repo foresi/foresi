@@ -10,10 +10,10 @@ namespace App\Banking\Application;
 
 use App\Banking\Domain\InboundChannel;
 use App\Banking\Domain\InboundMessage;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Party\Application\TransactionalWork;
 use App\Shared\Domain\Id;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Domain\TenantId;
 use Psr\Clock\ClockInterface;
 
 /**

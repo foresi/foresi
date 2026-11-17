@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Party\Domain;
 
+use App\Instance\Domain\TenantId;
 use App\Party\Domain\EmailPurpose;
 use App\Party\Domain\PartyEmail;
 use App\Shared\Domain\Id;
-use App\Tenancy\Domain\TenantId;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace App\Webhooks\Infrastructure\Delivery;
 
+use App\Instance\Application\TenantContext;
+use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Shared\Application\SealerUnavailable;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Infrastructure\Messenger\TenantStamp;
 use App\Webhooks\Application\AttemptResult;
 use App\Webhooks\Application\AttemptTrigger;
 use App\Webhooks\Application\RetrySchedule;

@@ -10,7 +10,7 @@ namespace App\Banking\Infrastructure\Doctrine;
 
 use App\Banking\Application\BankFeedDirectory;
 use App\Banking\Application\FeedRoute;
-use App\Tenancy\Infrastructure\Doctrine\TenantFilterBypass;
+use App\Instance\Infrastructure\Doctrine\TenantFilterBypass;
 use Doctrine\DBAL\Connection;
 
 /**

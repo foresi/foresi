@@ -10,6 +10,8 @@ namespace App\Tests\Purchasing\Infrastructure;
 
 use App\ExchangeRate\Application\RateSource;
 use App\Identity\Domain\Role;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Party\Domain\Address;
 use App\Party\Domain\AddressType;
 use App\Party\Domain\LegalEntity;
@@ -24,8 +26,6 @@ use App\Purchasing\Domain\ReceivedDocument;
 use App\Purchasing\Domain\ReceivedDocumentRefused;
 use App\Purchasing\Domain\ReceivedDocumentState;
 use App\Shared\Domain\Id;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Domain\TenantId;
 use App\Tests\ExchangeRate\Support\FakeRateSource;
 use App\Tests\Identity\Support\SignedInBrowser;
 use Doctrine\ORM\EntityManagerInterface;

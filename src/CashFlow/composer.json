@@ -9,7 +9,7 @@
         "foresi/identity": "*",
         "foresi/party": "*",
         "foresi/shared": "*",
-        "foresi/tenancy": "*"
+        "foresi/instance": "*"
     },
     "extra": {
         "foresi": {

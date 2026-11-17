@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Doctrine;
 
+use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\RemindableInvoice;
 use App\Invoicing\Application\RemindableInvoices;
 use App\Invoicing\Domain\DocumentKind;
@@ -16,7 +17,6 @@ use App\Invoicing\Domain\SendPurpose;
 use App\Party\Domain\EmailPurpose;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantContext;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;

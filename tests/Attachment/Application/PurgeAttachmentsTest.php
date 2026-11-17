@@ -12,10 +12,10 @@ use App\Attachment\Application\AttachmentFiles;
 use App\Attachment\Application\Attachments;
 use App\Attachment\Application\PurgeAttachments;
 use App\Attachment\Domain\Attachment;
+use App\Instance\Application\TenantContext;
+use App\Instance\Application\TenantScope;
+use App\Instance\Domain\TenantId;
 use App\Shared\Domain\Id;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Application\TenantScope;
-use App\Tenancy\Domain\TenantId;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;
 

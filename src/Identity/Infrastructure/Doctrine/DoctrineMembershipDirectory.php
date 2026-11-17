@@ -13,9 +13,9 @@ use App\Identity\Application\Organisation;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Tenancy\Domain\Tenant;
-use App\Tenancy\Domain\TenantId;
-use App\Tenancy\Infrastructure\Doctrine\TenantFilterBypass;
+use App\Instance\Domain\Tenant;
+use App\Instance\Domain\TenantId;
+use App\Instance\Infrastructure\Doctrine\TenantFilterBypass;
 use Doctrine\ORM\EntityManagerInterface;
 
 final readonly class DoctrineMembershipDirectory implements MembershipDirectory

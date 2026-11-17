@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Work\Infrastructure\Doctrine;
 
 use App\Identity\Domain\Membership;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use App\Work\Application\NotificationFilter;
 use App\Work\Application\NotificationPage;
 use App\Work\Application\NotificationQueries;

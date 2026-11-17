@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Banking\Application;
 
-use App\Tenancy\Application\TenantScopedMessage;
+use App\Instance\Application\TenantScopedMessage;
 
 /**
  * Processes one stored inbound message in the tenant the message carries.

@@ -13,8 +13,8 @@ use App\Identity\Domain\InvitationState;
 use App\Identity\Domain\InvitationToken;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\User;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use Psr\Clock\ClockInterface;
 
 /**

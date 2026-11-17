@@ -8,6 +8,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure\Support;
 
+use App\Instance\Application\TenantClock;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\IssueRecurringOccurrence;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\RecurringInput;
@@ -40,9 +43,6 @@ use App\Shared\Domain\Money;
 use App\Shared\Domain\Schedule\Recurrence;
 use App\Shared\Domain\Schedule\RecurrenceEnd;
 use App\Shared\Domain\Schedule\RecurrenceUnit;
-use App\Tenancy\Application\TenantClock;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Domain\TenantId;
 use App\Tests\Party\Support\FirmAccounts;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;

@@ -11,8 +11,8 @@ namespace App\Attachment\Application;
 use App\Attachment\Domain\Attachment;
 use App\Audit\Application\AuditActor;
 use App\Audit\Application\AuditCorrelation;
+use App\Instance\Application\TenantContext;
 use App\Shared\Domain\Id;
-use App\Tenancy\Application\TenantContext;
 use Psr\Clock\ClockInterface;
 
 /**

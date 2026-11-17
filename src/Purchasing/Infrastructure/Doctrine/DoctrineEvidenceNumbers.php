@@ -8,12 +8,12 @@ declare(strict_types=1);
 
 namespace App\Purchasing\Infrastructure\Doctrine;
 
+use App\Instance\Application\TenantContext;
 use App\Purchasing\Application\EvidenceNumbers;
 use App\Purchasing\Application\EvidenceNumbersExhausted;
 use App\Purchasing\Domain\EvidenceNumberFormat;
 use App\Purchasing\Domain\EvidenceSeries;
 use App\Shared\Domain\Id;
-use App\Tenancy\Application\TenantContext;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\DriverException;
 

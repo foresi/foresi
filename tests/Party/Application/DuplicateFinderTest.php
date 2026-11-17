@@ -8,14 +8,14 @@ declare(strict_types=1);
 
 namespace App\Tests\Party\Application;
 
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Party\Domain\InvalidRegistrationNumber;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatId;
 use App\Party\Infrastructure\Doctrine\DoctrineDuplicateFinder;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Domain\TenantId;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;

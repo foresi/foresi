@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Work\Application;
 
-use App\Tenancy\Application\TenantScopedMessage;
+use App\Instance\Application\TenantScopedMessage;
 
 /**
  * The e-mail of a mention or of becoming responsible, sent a short while after

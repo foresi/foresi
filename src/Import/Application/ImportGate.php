@@ -11,7 +11,7 @@ namespace App\Import\Application;
 use App\Import\Application\Message\RunImportChunk;
 use App\Import\Domain\Import;
 use App\Import\Domain\ImportState;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Psr\Clock\ClockInterface;
 
 /**

@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Work\Infrastructure\Twig;
 
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use App\Work\Application\TimeEntryRow;
 use App\Work\Application\TimeQueries;
 use Symfony\Contracts\Translation\TranslatorInterface;

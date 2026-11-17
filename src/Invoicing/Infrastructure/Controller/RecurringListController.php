@@ -10,6 +10,7 @@ namespace App\Invoicing\Infrastructure\Controller;
 
 use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\StaffCheck;
+use App\Instance\Application\TenantClock;
 use App\Invoicing\Application\DeliverRecurringInvoice;
 use App\Invoicing\Application\IssueAfterTodaysRun;
 use App\Invoicing\Application\IssueProblem;
@@ -33,7 +34,6 @@ use App\Party\Application\LegalEntities;
 use App\Party\Application\TransactionalWork;
 use App\Shared\Domain\Money;
 use App\Shared\Domain\Schedule\RecurrenceEnd;
-use App\Tenancy\Application\TenantClock;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;

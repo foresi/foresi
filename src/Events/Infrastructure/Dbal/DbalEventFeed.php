@@ -12,7 +12,7 @@ use App\Events\Application\Query\EventFeed;
 use App\Events\Application\Query\EventRow;
 use App\Events\Application\Query\EventSlice;
 use App\Events\Infrastructure\Relay\PruneEventLogTask;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;

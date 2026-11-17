@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Infrastructure\Navigation;
 
 use App\Identity\Application\OwnerCheck;
-use App\Tenancy\Application\Schedule\Heartbeats;
+use App\Instance\Application\Schedule\Heartbeats;
 use App\Ui\Notice\ShellNotice;
 use App\Ui\Notice\ShellNoticeProvider;
 use Psr\Clock\ClockInterface;

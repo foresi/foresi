@@ -10,7 +10,7 @@ namespace App\Identity\Application;
 
 use App\Identity\Domain\ApiScope;
 use App\Identity\Domain\ApiTokenState;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 
 /**
  * A personal API token as read across organisations: to sign a request in

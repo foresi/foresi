@@ -11,9 +11,9 @@ namespace App\Identity\Infrastructure\Doctrine;
 use App\Identity\Application\Invitations;
 use App\Identity\Application\InvitationTenant;
 use App\Identity\Domain\Invitation;
-use App\Tenancy\Domain\Tenant;
-use App\Tenancy\Domain\TenantId;
-use App\Tenancy\Infrastructure\Doctrine\TenantFilterBypass;
+use App\Instance\Domain\Tenant;
+use App\Instance\Domain\TenantId;
+use App\Instance\Infrastructure\Doctrine\TenantFilterBypass;
 use Doctrine\ORM\EntityManagerInterface;
 
 final readonly class DoctrineInvitations implements Invitations

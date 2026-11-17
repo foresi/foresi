@@ -14,7 +14,7 @@ use App\Import\Application\Source\SourceSettings;
 use App\Import\Application\Target\TargetRegistry;
 use App\Import\Domain\Import;
 use App\Import\Domain\ImportProfile;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use Psr\Clock\ClockInterface;
 
 /**

@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace App\Party\Infrastructure\Http;
 
+use App\Instance\Domain\TenantId;
 use App\Party\Application\FirmImages;
 use App\Party\Application\FirmImageType;
-use App\Tenancy\Domain\TenantId;
 
 /**
  * Stores images as <root>/<tenant>/<name> with mode 0600 (directories 0700). The

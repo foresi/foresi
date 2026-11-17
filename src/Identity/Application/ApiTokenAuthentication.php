@@ -11,7 +11,7 @@ namespace App\Identity\Application;
 use App\Identity\Domain\ApiTokenSecret;
 use App\Identity\Domain\ApiTokenState;
 use App\Identity\Domain\Role;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 use Psr\Clock\ClockInterface;
 
 /**

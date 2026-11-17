@@ -4,7 +4,7 @@
     "type": "foresi-module",
     "license": "AGPL-3.0-only",
     "require": {
-        "foresi/tenancy": "*"
+        "foresi/instance": "*"
     },
     "extra": {
         "foresi": {

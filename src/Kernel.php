@@ -24,6 +24,17 @@ class Kernel extends BaseKernel
     }
 
     /**
+     * Resolves the settings that must be right before anything runs, so a wrong
+     * one stops the instance with its reason instead of shifting its dates:
+     * APP_TIMEZONE.
+     */
+    public function boot(): void
+    {
+        parent::boot();
+        $this->getContainer()->getParameter('app.timezone');
+    }
+
+    /**
      * The configuration files, then the integration code of each module whose
      * optional dependency is installed (ADR 0033). The container is rebuilt
      * when Composer installs or removes a package, so adding a module turns

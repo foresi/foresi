@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Architecture rules (see docs/adr/0002-modular-monolith.md). Domain depends on
-# the shared kernel only: Shared Domain plus the Tenancy and Audit domain
+# the shared kernel only: Shared Domain plus the Instance and Audit domain
 # contracts (TenantOwned/TenantId, Audited/AuditExcluded), and Doctrine ORM
 # mapping attributes. A module's Domain may reference another module's Domain
-# only where declared below (Identity -> Party). Tenancy and Audit, the base
+# only where declared below (Identity -> Party). Instance and Audit, the base
 # modules, never depend on the modules built on them. Raw DBAL connections are
 # allowed in Infrastructure only.
 deptrac:
@@ -27,35 +27,35 @@ deptrac:
       collectors:
         - type: directory
           value: src/Shared/Infrastructure/.*
-    - name: TenancyDomain
+    - name: InstanceDomain
       collectors:
         - type: directory
-          value: src/Tenancy/Domain/.*
-    - name: TenancyApplication
+          value: src/Instance/Domain/.*
+    - name: InstanceApplication
       collectors:
         - type: directory
-          value: src/Tenancy/Application/.*
-    - name: TenancyInfrastructure
+          value: src/Instance/Application/.*
+    - name: InstanceInfrastructure
       collectors:
         - type: bool
           must:
             - type: directory
-              value: src/Tenancy/Infrastructure/.*
+              value: src/Instance/Infrastructure/.*
           must_not:
             - type: classLike
-              value: ^App\\Tenancy\\Infrastructure\\Doctrine\\TenantFilterBypass$
+              value: ^App\\Instance\\Infrastructure\\Doctrine\\TenantFilterBypass$
             - type: classLike
-              value: ^App\\Tenancy\\Infrastructure\\Messenger\\TenantStamp$
-    # The sanctioned cross-tenant read; the only Tenancy infrastructure other modules may use.
+              value: ^App\\Instance\\Infrastructure\\Messenger\\TenantStamp$
+    # The sanctioned cross-tenant read; the only Instance infrastructure other modules may use.
     - name: TenantFilterBypass
       collectors:
         - type: classLike
-          value: ^App\\Tenancy\\Infrastructure\\Doctrine\\TenantFilterBypass$
+          value: ^App\\Instance\\Infrastructure\\Doctrine\\TenantFilterBypass$
     # The tenant a queued message belongs to, which a listener outside the handler reads.
     - name: TenantStamp
       collectors:
         - type: classLike
-          value: ^App\\Tenancy\\Infrastructure\\Messenger\\TenantStamp$
+          value: ^App\\Instance\\Infrastructure\\Messenger\\TenantStamp$
     - name: PartyDomain
       collectors:
         - type: directory
@@ -287,6 +287,8 @@ deptrac:
             - type: classLike
               value: ^Symfony\\Component\\Uid\\
             - type: classLike
+              value: ^Symfony\\Component\\Clock\\ClockInterface$
+            - type: classLike
               value: ^Symfony\\Component\\HtmlSanitizer\\
             - type: classLike
               value: ^Symfony\\AI\\McpBundle\\
@@ -300,6 +302,11 @@ deptrac:
       collectors:
         - type: classLike
           value: ^(OpenApi|Nelmio\\ApiDocBundle)\\
+    # The clock contract with withTimeZone(); the instance clock in Instance Application builds on it.
+    - name: VendorClock
+      collectors:
+        - type: classLike
+          value: ^Symfony\\Component\\Clock\\ClockInterface$
     # symfony/uid is an internal detail of App\Shared\Domain\Id only.
     - name: VendorUid
       collectors:
@@ -394,20 +401,21 @@ deptrac:
       - VendorDoctrineOrmMapping
       - VendorDbalConnection
       - VendorComposer
-    TenancyDomain:
+    InstanceDomain:
       - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
-    TenancyApplication:
+    InstanceApplication:
       - Contract
-      - TenancyDomain
+      - VendorClock
+      - InstanceDomain
       - SharedDomain
       - SharedApplication
-    TenancyInfrastructure:
+    InstanceInfrastructure:
       - Contract
       - SharedInfrastructure
-      - TenancyDomain
-      - TenancyApplication
+      - InstanceDomain
+      - InstanceApplication
       - VendorSymfony
       - VendorUid
       - VendorDoctrine
@@ -418,7 +426,7 @@ deptrac:
       - TenantStamp
     TenantFilterBypass:
       - VendorDoctrine
-      - TenancyInfrastructure
+      - InstanceInfrastructure
     TenantStamp:
       - VendorSymfony
     PartyDomain:
@@ -426,24 +434,24 @@ deptrac:
       - VendorDoctrineOrmMapping
       - SharedDomain
       # TenantOwned / TenantId are the tenant-scoping contract of owned entities.
-      - TenancyDomain
+      - InstanceDomain
       # Party is audited: it implements the Audited marker.
       - AuditDomain
     PartyApplication:
       - Contract
       - PartyDomain
       # The image store is keyed by tenant.
-      - TenancyDomain
+      - InstanceDomain
       - SharedDomain
       - SharedApplication
-      - TenancyApplication
+      - InstanceApplication
       - IdentityApplication
       - AuditApplication
     PartyInfrastructure:
       - Contract
       - SharedInfrastructure
       - PartyDomain
-      - TenancyDomain
+      - InstanceDomain
       - PartyApplication
       - VendorSymfony
       - VendorOpenApi
@@ -453,7 +461,7 @@ deptrac:
       - VendorDbalConnection
       - SharedDomain
       - SharedApplication
-      - TenancyApplication
+      - InstanceApplication
       - IdentityApplication
       - AuditApplication
       # The history of a party reads its audit entries.
@@ -469,23 +477,23 @@ deptrac:
       - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
-      - TenancyDomain
+      - InstanceDomain
       - AuditDomain
     ImportApplication:
       - Contract
       - ImportDomain
       # The file store is keyed by tenant.
-      - TenancyDomain
+      - InstanceDomain
       - SharedDomain
       - SharedApplication
-      - TenancyApplication
+      - InstanceApplication
       - IdentityApplication
       - AuditApplication
     ImportInfrastructure:
       - Contract
       - SharedInfrastructure
       - ImportDomain
-      - TenancyDomain
+      - InstanceDomain
       - ImportApplication
       - VendorSymfony
       - VendorUid
@@ -495,7 +503,7 @@ deptrac:
       - VendorOpenSpout
       - SharedDomain
       - SharedApplication
-      - TenancyApplication
+      - InstanceApplication
       - IdentityApplication
       - IdentityDomain
       - AuditApplication
@@ -505,7 +513,7 @@ deptrac:
       - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
-      - TenancyDomain
+      - InstanceDomain
       - AuditDomain
       # The credentials and the snapshot belong to a firm.
       - PartyDomain
@@ -513,7 +521,7 @@ deptrac:
       - Contract
       - IdokladDomain
       - SharedDomain
-      - TenancyDomain
+      - InstanceDomain
       - PartyDomain
       - PartyApplication
       # The client secret is sealed with the keys of the mail server passwords,
@@ -524,14 +532,15 @@ deptrac:
       - ImportApplication
       - ImportDomain
       # The jobs of the move run in the tenant that asked for them.
-      - TenancyApplication
+      - InstanceApplication
     IdokladInfrastructure:
       - Contract
       - IdokladDomain
       - IdokladApplication
       # The import transaction binds the tenant again after a failure.
-      - TenancyApplication
+      - InstanceApplication
       - VendorSymfony
+      - VendorClock
       - VendorDoctrine
       - SharedDomain
       - PartyDomain
@@ -544,16 +553,16 @@ deptrac:
       - VendorDoctrineOrmMapping
       - SharedDomain
       # Membership is tenant-owned and may link the party a user represents.
-      - TenancyDomain
+      - InstanceDomain
       - PartyDomain
       - AuditDomain
     IdentityApplication:
       - Contract
       - IdentityDomain
-      - TenancyDomain
+      - InstanceDomain
       - SharedDomain
       - SharedApplication
-      - TenancyApplication
+      - InstanceApplication
       - PartyApplication
       - AuditApplication
       # An invitation and a membership link the contact a guest represents.
@@ -573,9 +582,9 @@ deptrac:
       - VendorDbalConnection
       - SharedDomain
       - SharedApplication
-      - TenancyDomain
+      - InstanceDomain
       - TenantFilterBypass
-      - TenancyApplication
+      - InstanceApplication
       - PartyApplication
       - AuditApplication
       # The audit actor names its kind.
@@ -589,13 +598,13 @@ deptrac:
       - VendorDoctrineOrmMapping
       - SharedDomain
       # AuditEntry is tenant-owned.
-      - TenancyDomain
+      - InstanceDomain
     AuditApplication:
       - Contract
       - AuditDomain
       - SharedDomain
       - SharedApplication
-      - TenancyApplication
+      - InstanceApplication
       - PartyApplication
       - IdentityApplication
     AuditInfrastructure:
@@ -603,23 +612,24 @@ deptrac:
       - SharedInfrastructure
       - AuditDomain
       # The created-entry path honours the tenant of TenantOwned entities.
-      - TenancyDomain
+      - InstanceDomain
       - AuditApplication
       - VendorSymfony
+      - VendorClock
       - VendorUid
       - VendorDoctrine
       - VendorDoctrineOrmMapping
       - VendorDbalConnection
       - SharedDomain
       - SharedApplication
-      - TenancyApplication
+      - InstanceApplication
       - PartyApplication
       - IdentityApplication
     InvoicingDomain:
       - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
-      - TenancyDomain
+      - InstanceDomain
       - AuditDomain
       - PartyDomain
     InvoicingApplication:
@@ -627,7 +637,7 @@ deptrac:
       - InvoicingDomain
       - SharedDomain
       - SharedApplication
-      - TenancyApplication
+      - InstanceApplication
       - IdentityApplication
       - AuditApplication
       - AuditDomain
@@ -646,9 +656,9 @@ deptrac:
       - VendorDbalConnection
       - SharedDomain
       - SharedApplication
-      # Also implements the Tenancy port TenantZoneFallback (FirmCountryZones):
-      # Invoicing knows the firms and their countries, Tenancy never depends on it.
-      - TenancyApplication
+      # Also implements the Instance port TenantZoneFallback (FirmCountryZones):
+      # Invoicing knows the firms and their countries, Instance never depends on it.
+      - InstanceApplication
       - IdentityApplication
       - AuditApplication
       - AuditDomain
@@ -658,7 +668,7 @@ deptrac:
       - VendorTecnick
       - VendorOpenSpout
       # A failed delivery is recorded in the tenant of its message.
-      - TenancyDomain
+      - InstanceDomain
       - TenantStamp
       # The public link page reads the frozen data of a send across tenants.
       - TenantFilterBypass
@@ -668,7 +678,7 @@ deptrac:
       - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
-      - TenancyDomain
+      - InstanceDomain
       - AuditDomain
       - PartyDomain
       - InvoicingDomain
@@ -677,8 +687,8 @@ deptrac:
       - BankingDomain
       - SharedDomain
       - SharedApplication
-      - TenancyDomain
-      - TenancyApplication
+      - InstanceDomain
+      - InstanceApplication
       - AuditDomain
       - AuditApplication
       - PartyDomain
@@ -698,8 +708,8 @@ deptrac:
       - VendorZbateson
       - SharedDomain
       - SharedApplication
-      - TenancyDomain
-      - TenancyApplication
+      - InstanceDomain
+      - InstanceApplication
       - AuditDomain
       - AuditApplication
       - PartyDomain
@@ -725,7 +735,7 @@ deptrac:
       - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
-      - TenancyDomain
+      - InstanceDomain
       - AuditDomain
       - PartyDomain
       - IdentityDomain
@@ -734,8 +744,8 @@ deptrac:
       - WorkDomain
       - SharedDomain
       - SharedApplication
-      - TenancyDomain
-      - TenancyApplication
+      - InstanceDomain
+      - InstanceApplication
       - AuditDomain
       - AuditApplication
       - PartyDomain
@@ -754,8 +764,8 @@ deptrac:
       - VendorDbalConnection
       - SharedDomain
       - SharedApplication
-      - TenancyDomain
-      - TenancyApplication
+      - InstanceDomain
+      - InstanceApplication
       - AuditDomain
       - AuditApplication
       - PartyDomain
@@ -776,7 +786,7 @@ deptrac:
       - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
-      - TenancyDomain
+      - InstanceDomain
       - AuditDomain
       - WorkDomain
       - PartyDomain
@@ -787,8 +797,8 @@ deptrac:
       - TimesheetDomain
       - SharedDomain
       - SharedApplication
-      - TenancyDomain
-      - TenancyApplication
+      - InstanceDomain
+      - InstanceApplication
       - AuditDomain
       - AuditApplication
       - WorkDomain
@@ -811,8 +821,8 @@ deptrac:
       - VendorDbalConnection
       - SharedDomain
       - SharedApplication
-      - TenancyDomain
-      - TenancyApplication
+      - InstanceDomain
+      - InstanceApplication
       - AuditDomain
       - AuditApplication
       - WorkDomain
@@ -824,21 +834,21 @@ deptrac:
       - InvoicingDomain
       - InvoicingApplication
       - Ui
-    # Attachments build on Tenancy and Audit only; modules plug into them with
+    # Attachments build on Instance and Audit only; modules plug into them with
     # AttachmentAccess (Work -> Attachment), never the other way round.
     AttachmentDomain:
       - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
-      - TenancyDomain
+      - InstanceDomain
       - AuditDomain
     AttachmentApplication:
       - Contract
       - AttachmentDomain
       - SharedDomain
       - SharedApplication
-      - TenancyDomain
-      - TenancyApplication
+      - InstanceDomain
+      - InstanceApplication
       - AuditDomain
       - AuditApplication
     # Its controller is open to guests (Identity's OpenToGuest marker): what a
@@ -851,8 +861,8 @@ deptrac:
       - SharedDomain
       - SharedApplication
       - SharedInfrastructure
-      - TenancyDomain
-      - TenancyApplication
+      - InstanceDomain
+      - InstanceApplication
       - VendorSymfony
       - VendorDoctrine
       - VendorDoctrineOrmMapping
@@ -863,7 +873,7 @@ deptrac:
       - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
-      - TenancyDomain
+      - InstanceDomain
       - AuditDomain
       - PartyDomain
     CashFlowApplication:
@@ -871,8 +881,8 @@ deptrac:
       - CashFlowDomain
       - SharedDomain
       - SharedApplication
-      - TenancyDomain
-      - TenancyApplication
+      - InstanceDomain
+      - InstanceApplication
       - AuditDomain
       - AuditApplication
       - PartyDomain
@@ -891,7 +901,7 @@ deptrac:
       - VendorOpenApi
       - SharedDomain
       - SharedApplication
-      - TenancyApplication
+      - InstanceApplication
       - PartyDomain
       - IdentityApplication
     # Purchasing builds on Party (firms and suppliers), Identity (people), the
@@ -902,7 +912,7 @@ deptrac:
       - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
-      - TenancyDomain
+      - InstanceDomain
       - AuditDomain
       - PartyDomain
     PurchasingApplication:
@@ -910,8 +920,8 @@ deptrac:
       - PurchasingDomain
       - SharedDomain
       - SharedApplication
-      - TenancyDomain
-      - TenancyApplication
+      - InstanceDomain
+      - InstanceApplication
       - AuditDomain
       - AuditApplication
       - PartyDomain
@@ -936,8 +946,8 @@ deptrac:
       - VendorDbalConnection
       - SharedDomain
       - SharedApplication
-      - TenancyDomain
-      - TenancyApplication
+      - InstanceDomain
+      - InstanceApplication
       - AuditDomain
       - AuditApplication
       - PartyDomain
@@ -969,7 +979,7 @@ deptrac:
       - EventsDomain
       - SharedDomain
       - SharedApplication
-      - TenancyApplication
+      - InstanceApplication
     # The catalogue reads the installed modules and reflects their event classes;
     # the recorder writes the log on the connection of the use case, with the
     # tenant, the correlation and the actor of the audit; the relay stamps each
@@ -981,7 +991,7 @@ deptrac:
       - SharedDomain
       - SharedApplication
       - SharedInfrastructure
-      - TenancyApplication
+      - InstanceApplication
       - TenantStamp
       - AuditApplication
       - VendorSymfony
@@ -997,15 +1007,15 @@ deptrac:
     # entry in the sidebar.
     WebhooksDomain:
       - SharedDomain
-      - TenancyDomain
+      - InstanceDomain
       - AuditDomain
       - VendorDoctrineOrmMapping
     WebhooksApplication:
       - WebhooksDomain
       - SharedDomain
       - SharedApplication
-      - TenancyDomain
-      - TenancyApplication
+      - InstanceDomain
+      - InstanceApplication
       - AuditApplication
     WebhooksInfrastructure:
       - WebhooksDomain
@@ -1013,8 +1023,8 @@ deptrac:
       - SharedDomain
       - SharedApplication
       - SharedInfrastructure
-      - TenancyDomain
-      - TenancyApplication
+      - InstanceDomain
+      - InstanceApplication
       - TenantStamp
       - EventsApplication
       - EventsInfrastructure
@@ -1046,10 +1056,10 @@ deptrac:
       - VendorDoctrine
       - VendorDoctrineOrmMapping
       - VendorDbalConnection
-    # The operator task contract lives in Tenancy's application layer.
+    # The operator task contract lives in Instance's application layer.
     ExchangeRateSchedule:
       - ExchangeRateApplication
-      - TenancyApplication
+      - InstanceApplication
     # Symfony and Twig only: Ui never reaches into a module's Domain.
     Ui:
       - VendorSymfony

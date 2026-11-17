@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
-use App\Tenancy\Application\TenantScopedMessage;
+use App\Instance\Application\TenantScopedMessage;
 
 /**
  * Issues and sends what one recurring template has due, as the daily run would,

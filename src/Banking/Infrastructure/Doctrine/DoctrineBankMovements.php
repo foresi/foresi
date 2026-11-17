@@ -15,10 +15,10 @@ use App\Banking\Application\UnknownBankMovement;
 use App\Banking\Domain\BankMovement;
 use App\Banking\Domain\MovementDirection;
 use App\Banking\Domain\MovementState;
+use App\Instance\Application\TenantContext;
 use App\Invoicing\Domain\Payment;
 use App\Invoicing\Domain\PaymentAllocation;
 use App\Party\Domain\FirmBankAccount;
-use App\Tenancy\Application\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
 

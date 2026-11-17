@@ -43,7 +43,7 @@ final class InvoicingAccessTest extends InvoicingReadTestCase
 
     public function testAnOwnerOfAnotherOrganisationIsRefused(): void
     {
-        $this->switchTo(\App\Tenancy\Domain\TenantId::generate());
+        $this->switchTo(\App\Instance\Domain\TenantId::generate());
 
         $this->expectException(InvoicingNotAllowed::class);
         $this->access()->denyUnlessStaff();

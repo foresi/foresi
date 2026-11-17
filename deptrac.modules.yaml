@@ -87,6 +87,14 @@ deptrac:
       collectors:
         - type: classLike
           value: ^App\\Import\\Contract\\.*
+    - name: instance
+      collectors:
+        - type: classLike
+          value: ^App\\Instance\\(?!Contract\\|Integration\\).*
+    - name: instance_contract
+      collectors:
+        - type: classLike
+          value: ^App\\Instance\\Contract\\.*
     - name: invoicing
       collectors:
         - type: classLike
@@ -127,14 +135,6 @@ deptrac:
       collectors:
         - type: classLike
           value: ^App\\Shared\\Contract\\.*
-    - name: tenancy
-      collectors:
-        - type: classLike
-          value: ^App\\Tenancy\\(?!Contract\\|Integration\\).*
-    - name: tenancy_contract
-      collectors:
-        - type: classLike
-          value: ^App\\Tenancy\\Contract\\.*
     - name: timesheet
       collectors:
         - type: classLike
@@ -174,44 +174,44 @@ deptrac:
       - audit_contract
       - identity
       - identity_contract
+      - instance
+      - instance_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
     attachment_contract:
       - audit
       - audit_contract
       - identity
       - identity_contract
+      - instance
+      - instance_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
     audit:
       - audit_contract
+      - instance
+      - instance_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
     audit_contract:
+      - instance
+      - instance_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
     banking:
       - audit
       - audit_contract
       - banking_contract
       - identity
       - identity_contract
+      - instance
+      - instance_contract
       - invoicing
       - invoicing_contract
       - party
       - party_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
       - ui
       - ui_contract
     banking_contract:
@@ -219,12 +219,12 @@ deptrac:
       - audit_contract
       - identity
       - identity_contract
+      - instance
+      - instance_contract
       - invoicing_contract
       - party_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
       - ui_contract
     banking_integration_cash_flow:
       - audit
@@ -234,14 +234,14 @@ deptrac:
       - cash_flow_contract
       - identity
       - identity_contract
+      - instance
+      - instance_contract
       - invoicing
       - invoicing_contract
       - party
       - party_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
       - ui
       - ui_contract
     cash_flow:
@@ -252,23 +252,23 @@ deptrac:
       - exchange_rate_contract
       - identity
       - identity_contract
+      - instance
+      - instance_contract
       - party
       - party_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
     cash_flow_contract:
       - audit
       - audit_contract
       - exchange_rate_contract
       - identity
       - identity_contract
+      - instance
+      - instance_contract
       - party_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
     country:
       - banking
       - banking_contract
@@ -292,44 +292,44 @@ deptrac:
       - audit
       - audit_contract
       - events_contract
+      - instance
+      - instance_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
     events_contract:
       - audit
       - audit_contract
+      - instance
+      - instance_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
     exchange_rate:
       - exchange_rate_contract
-      - tenancy
-      - tenancy_contract
+      - instance
+      - instance_contract
     exchange_rate_contract:
-      - tenancy
-      - tenancy_contract
+      - instance
+      - instance_contract
     identity:
       - audit
       - audit_contract
       - identity_contract
+      - instance
+      - instance_contract
       - party
       - party_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
       - ui
       - ui_contract
     identity_contract:
       - audit
       - audit_contract
+      - instance
+      - instance_contract
       - party_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
       - ui_contract
     idoklad:
       - audit
@@ -339,36 +339,36 @@ deptrac:
       - idoklad_contract
       - import
       - import_contract
+      - instance
+      - instance_contract
       - invoicing
       - invoicing_contract
       - party
       - party_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
     idoklad_contract:
       - audit
       - audit_contract
       - identity
       - identity_contract
       - import_contract
+      - instance
+      - instance_contract
       - invoicing_contract
       - party_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
     import:
       - audit
       - audit_contract
       - identity
       - identity_contract
       - import_contract
+      - instance
+      - instance_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
       - ui
       - ui_contract
     import_contract:
@@ -376,23 +376,30 @@ deptrac:
       - audit_contract
       - identity
       - identity_contract
+      - instance
+      - instance_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
       - ui_contract
+    instance:
+      - instance_contract
+      - shared
+      - shared_contract
+    instance_contract:
+      - shared
+      - shared_contract
     invoicing:
       - audit
       - audit_contract
       - identity
       - identity_contract
+      - instance
+      - instance_contract
       - invoicing_contract
       - party
       - party_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
       - ui
       - ui_contract
     invoicing_contract:
@@ -400,11 +407,11 @@ deptrac:
       - audit_contract
       - identity
       - identity_contract
+      - instance
+      - instance_contract
       - party_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
       - ui_contract
     invoicing_integration_cash_flow:
       - audit
@@ -412,14 +419,14 @@ deptrac:
       - cash_flow_contract
       - identity
       - identity_contract
+      - instance
+      - instance_contract
       - invoicing
       - invoicing_contract
       - party
       - party_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
       - ui
       - ui_contract
     party:
@@ -429,11 +436,11 @@ deptrac:
       - identity_contract
       - import
       - import_contract
+      - instance
+      - instance_contract
       - party_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
       - ui
       - ui_contract
     party_contract:
@@ -442,10 +449,10 @@ deptrac:
       - identity
       - identity_contract
       - import_contract
+      - instance
+      - instance_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
       - ui_contract
     purchasing:
       - attachment
@@ -456,13 +463,13 @@ deptrac:
       - exchange_rate_contract
       - identity
       - identity_contract
+      - instance
+      - instance_contract
       - party
       - party_contract
       - purchasing_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
       - ui
       - ui_contract
     purchasing_contract:
@@ -473,11 +480,11 @@ deptrac:
       - exchange_rate_contract
       - identity
       - identity_contract
+      - instance
+      - instance_contract
       - party_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
       - ui_contract
     purchasing_integration_cash_flow:
       - attachment
@@ -489,39 +496,32 @@ deptrac:
       - exchange_rate_contract
       - identity
       - identity_contract
+      - instance
+      - instance_contract
       - party
       - party_contract
       - purchasing
       - purchasing_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
       - ui
       - ui_contract
     shared:
       - shared_contract
     shared_contract: []
-    tenancy:
-      - shared
-      - shared_contract
-      - tenancy_contract
-    tenancy_contract:
-      - shared
-      - shared_contract
     timesheet:
       - audit
       - audit_contract
       - identity
       - identity_contract
+      - instance
+      - instance_contract
       - invoicing
       - invoicing_contract
       - party
       - party_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
       - timesheet_contract
       - work
       - work_contract
@@ -530,12 +530,12 @@ deptrac:
       - audit_contract
       - identity
       - identity_contract
+      - instance
+      - instance_contract
       - invoicing_contract
       - party_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
       - work_contract
     ui:
       - shared
@@ -551,10 +551,10 @@ deptrac:
       - events_contract
       - identity
       - identity_contract
+      - instance
+      - instance_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
       - ui
       - ui_contract
       - webhooks_contract
@@ -565,10 +565,10 @@ deptrac:
       - events_contract
       - identity
       - identity_contract
+      - instance
+      - instance_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
       - ui_contract
     work:
       - attachment
@@ -577,12 +577,12 @@ deptrac:
       - audit_contract
       - identity
       - identity_contract
+      - instance
+      - instance_contract
       - party
       - party_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
       - ui
       - ui_contract
       - work_contract
@@ -593,9 +593,9 @@ deptrac:
       - audit_contract
       - identity
       - identity_contract
+      - instance
+      - instance_contract
       - party_contract
       - shared
       - shared_contract
-      - tenancy
-      - tenancy_contract
       - ui_contract

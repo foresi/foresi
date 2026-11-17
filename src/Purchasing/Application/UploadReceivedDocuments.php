@@ -11,11 +11,11 @@ namespace App\Purchasing\Application;
 use App\Attachment\Application\AttachmentRefused;
 use App\Attachment\Application\AttachmentUpload;
 use App\Attachment\Application\UploadAttachment;
+use App\Instance\Application\TenantClock;
 use App\Party\Application\UnknownLegalEntity;
 use App\Purchasing\Domain\ReceivedDocument;
 use App\Purchasing\Domain\ReceivedDocumentContent;
 use App\Purchasing\Domain\ReceivedDocumentRefused;
-use App\Tenancy\Application\TenantClock;
 use Psr\Clock\ClockInterface;
 
 /**

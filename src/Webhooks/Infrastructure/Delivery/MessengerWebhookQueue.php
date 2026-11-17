@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace App\Webhooks\Infrastructure\Delivery;
 
 use App\Audit\Application\AuditActor;
+use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Shared\Domain\Id;
 use App\Shared\Infrastructure\Api\JsonValues;
-use App\Tenancy\Infrastructure\Messenger\TenantStamp;
 use App\Webhooks\Application\AttemptTrigger;
 use App\Webhooks\Application\QueuedAttempt;
 use App\Webhooks\Application\SendWebhook;

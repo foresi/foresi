@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Party\Application;
 
-use App\Tenancy\Application\TenantScopedMessage;
+use App\Instance\Application\TenantScopedMessage;
 
 /**
  * Asks the public registers about a party again, in the background, after a

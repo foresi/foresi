@@ -10,10 +10,10 @@ namespace App\Tests\Work\Infrastructure\Controller;
 
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Work\Domain\Priority;
 use App\Work\Domain\Project;

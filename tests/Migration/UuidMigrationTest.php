@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Migration;
 
 use App\Identity\Domain\Membership;
+use App\Instance\Infrastructure\Doctrine\TenantIdType;
 use App\Party\Domain\ContactLink;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
@@ -18,7 +19,6 @@ use App\Party\Domain\PartyEmail;
 use App\Party\Infrastructure\Doctrine\VatIdType;
 use App\Shared\Domain\Id;
 use App\Shared\Infrastructure\Doctrine\RefuseMigrationRehearsal;
-use App\Tenancy\Infrastructure\Doctrine\TenantIdType;
 use Doctrine\Common\EventManager;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;

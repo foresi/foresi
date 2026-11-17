@@ -12,10 +12,10 @@ use App\CashFlow\Application\CashFlowRefused;
 use App\CashFlow\Application\PlannedItemReads;
 use App\CashFlow\Domain\PlannedItem;
 use App\CashFlow\Infrastructure\Api\CashFlowJson;
+use App\Instance\Application\TenantClock;
 use App\Shared\Infrastructure\Mcp\ReadTool;
 use App\Shared\Infrastructure\Mcp\ToolArguments;
 use App\Shared\Infrastructure\Mcp\ToolOutput;
-use App\Tenancy\Application\TenantClock;
 
 /**
  * The planned items of a firm, as GET /api/v1/cash-flow/planned-items writes them.

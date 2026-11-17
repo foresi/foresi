@@ -9,4 +9,4 @@ framework:
             webhooks: 'in-memory://'
             failed: 'in-memory://'
         routing:
-            App\Tests\Tenancy\Infrastructure\ScopedProbe: async
+            App\Tests\Instance\Infrastructure\ScopedProbe: async

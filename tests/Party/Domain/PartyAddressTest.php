@@ -8,11 +8,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Party\Domain;
 
+use App\Instance\Domain\TenantId;
 use App\Party\Domain\Address;
 use App\Party\Domain\AddressType;
 use App\Party\Domain\PartyAddress;
 use App\Shared\Domain\Id;
-use App\Tenancy\Domain\TenantId;
 use PHPUnit\Framework\TestCase;
 
 final class PartyAddressTest extends TestCase

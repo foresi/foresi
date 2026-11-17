@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Identity\Application;
 
 use App\Audit\Application\AuditActor;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 
 /**
  * Whether the signed-in user works for the active organisation, as its owner or a

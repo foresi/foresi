@@ -10,7 +10,7 @@ namespace App\Work\Infrastructure\Controller;
 
 use App\Identity\Application\OpenToGuest;
 use App\Identity\Domain\User;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 use App\Work\Application\ManageNotificationPreferences;
 use App\Work\Domain\NotificationKind;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;

@@ -8,11 +8,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure\Support;
 
+use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\InvoiceBalances;
 use App\Invoicing\Infrastructure\Doctrine\OwingInvoiceCondition;
 use App\Invoicing\Infrastructure\Doctrine\PaymentBalances;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantContext;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 

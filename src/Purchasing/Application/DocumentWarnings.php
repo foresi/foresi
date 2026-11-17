@@ -10,13 +10,13 @@ namespace App\Purchasing\Application;
 
 use App\Attachment\Application\Attachments;
 use App\Attachment\Domain\Attachment;
+use App\Instance\Application\TenantClock;
 use App\Party\Domain\Party;
 use App\Purchasing\Domain\ExchangeRate;
 use App\Purchasing\Domain\ReceivedDocument;
 use App\Purchasing\Domain\ReceivedDocumentKind;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantClock;
 
 /**
  * What a person should look at about a saved document, never a reason to

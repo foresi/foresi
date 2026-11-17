@@ -73,7 +73,7 @@ framework:
         buses:
             messenger.bus.default:
                 middleware:
-                    - App\Tenancy\Infrastructure\Messenger\TenantMiddleware
+                    - App\Instance\Infrastructure\Messenger\TenantMiddleware
                     # A delivery waiting for another worker's lease is put back, not retried.
                     - App\Invoicing\Infrastructure\Messenger\WaitForLeaseMiddleware
 
@@ -89,9 +89,9 @@ framework:
             # Imported contacts are checked in the public registers later, at low priority.
             App\Party\Application\RecheckRegistry: registry
             # Timed work: the schedule ticks, and each due job runs in its tenant.
-            App\Tenancy\Application\Schedule\RunScheduledJob: async
+            App\Instance\Application\Schedule\RunScheduledJob: async
             # Operator tasks, such as polling the bank inbox, run with no tenant.
-            App\Tenancy\Application\Schedule\RunOperatorTask: async
+            App\Instance\Application\Schedule\RunOperatorTask: async
             # Inbound bank mail is processed in its tenant after it was stored.
             App\Banking\Application\ProcessInboundMessage: async
             # A recurring template saved or resumed after the day's run, issued at once.

@@ -17,7 +17,7 @@ use App\Identity\Application\Organisation;
 use App\Identity\Domain\ApiScope;
 use App\Identity\Domain\ApiTokenSecret;
 use App\Identity\Domain\Role;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 use App\Tests\Identity\Support\InMemoryApiTokens;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

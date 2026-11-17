@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Identity;
 
 use App\Identity\Domain\User;
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use App\Tests\Identity\Support\IdentityFixtures;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;

@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Identity\Infrastructure\Idempotency;
 
 use App\Identity\Infrastructure\Idempotency\IdempotencyKeyTable as T;
-use App\Tenancy\Application\Schedule\OperatorTask;
+use App\Instance\Application\Schedule\OperatorTask;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
 use Psr\Clock\ClockInterface;

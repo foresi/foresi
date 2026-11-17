@@ -10,7 +10,7 @@ namespace App\Work\Infrastructure\Controller;
 
 use App\Identity\Application\OpenToGuest;
 use App\Identity\Application\StaffCheck;
-use App\Tenancy\Application\TenantClock;
+use App\Instance\Application\TenantClock;
 use App\Work\Application\SharedProject;
 use App\Work\Application\SharedTaskGroup;
 use App\Work\Application\TaskRow;

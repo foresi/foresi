@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Webhooks\Application;
 
-use App\Tenancy\Application\TenantScopedMessage;
+use App\Instance\Application\TenantScopedMessage;
 
 /**
  * Makes one attempt of one stored delivery, in the tenant the message carries.

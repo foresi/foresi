@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace App\Party\Infrastructure\Registry;
 
+use App\Instance\Application\TenantContext;
 use App\Party\Application\PartyQuery;
 use App\Party\Application\RefreshRegistryChecks;
-use App\Tenancy\Application\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;

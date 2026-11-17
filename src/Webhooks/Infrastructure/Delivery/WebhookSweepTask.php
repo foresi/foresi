@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace App\Webhooks\Infrastructure\Delivery;
 
-use App\Tenancy\Application\Schedule\OperatorTask;
-use App\Tenancy\Infrastructure\Messenger\TenantStamp;
+use App\Instance\Application\Schedule\OperatorTask;
+use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Webhooks\Application\AttemptTrigger;
 use App\Webhooks\Application\SendWebhook;
 use Psr\Clock\ClockInterface;

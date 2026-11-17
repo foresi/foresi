@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Events\Application;
 
-use App\Tenancy\Application\TenantScopedMessage;
+use App\Instance\Application\TenantScopedMessage;
 
 /**
  * Hands one stored event to one async listener, in the tenant of the event. The

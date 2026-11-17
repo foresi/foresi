@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Party\Infrastructure\Controller;
 
 use App\Identity\Application\OwnerCheck;
+use App\Instance\Application\TenantContext;
 use App\Party\Application\FirmImages;
 use App\Party\Application\LegalEntities;
 use App\Party\Application\LegalEntityInput;
@@ -20,7 +21,6 @@ use App\Party\Infrastructure\Form\CountryOptions;
 use App\Party\Infrastructure\Form\LegalEntitySubmission;
 use App\Party\Infrastructure\Form\LegalEntitySubmissionReader;
 use App\Shared\Infrastructure\Http\SubmissionTokens;
-use App\Tenancy\Application\TenantContext;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;

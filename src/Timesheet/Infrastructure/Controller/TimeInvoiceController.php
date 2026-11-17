@@ -10,11 +10,11 @@ namespace App\Timesheet\Infrastructure\Controller;
 
 use App\Audit\Application\AuditActor;
 use App\Identity\Application\OwnerCheck;
+use App\Instance\Application\TenantClock;
 use App\Invoicing\Application\NewInvoiceDefaults;
 use App\Party\Application\LegalEntities;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantClock;
 use App\Timesheet\Application\TimeCandidate;
 use App\Timesheet\Application\TimeInvoicing;
 use App\Timesheet\Application\TimeInvoicingRefused;

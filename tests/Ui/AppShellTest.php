@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Ui;
 
-use App\Tenancy\Application\TenantContext;
+use App\Instance\Application\TenantContext;
 use App\Tests\Identity\Support\IdentityFixtures;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Ui\Navigation\NavigationEntry;

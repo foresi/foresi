@@ -8,12 +8,12 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Console;
 
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\ConflictRetry;
 use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\PublicDocuments;
 use App\Party\Application\TransactionalWork;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Domain\TenantId;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;

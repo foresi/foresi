@@ -10,8 +10,8 @@ namespace App\Tests\Work\Infrastructure\Controller;
 
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Tests\Identity\Support\IdentityFixtures;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Work\Application\NotificationMailer;

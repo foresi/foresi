@@ -8,13 +8,13 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
+use App\Instance\Application\TenantClock;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\PeriodText;
 use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\RecurringInvoiceLine;
 use App\Invoicing\Domain\RecurringState;
-use App\Tenancy\Application\TenantClock;
 
 /**
  * Issues the invoice of one occurrence of a recurring template, at most once

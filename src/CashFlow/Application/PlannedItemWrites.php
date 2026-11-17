@@ -16,6 +16,7 @@ use App\CashFlow\Contract\Event\PlannedItemEnded;
 use App\CashFlow\Contract\Event\PlannedItemOccurrenceSkipped;
 use App\CashFlow\Contract\FlowDirection;
 use App\CashFlow\Domain\PlannedItem;
+use App\Instance\Application\TenantClock;
 use App\Party\Application\TransactionalWork;
 use App\Shared\Application\Api\Omitted;
 use App\Shared\Application\Event\EventRecorder;
@@ -24,7 +25,6 @@ use App\Shared\Domain\Schedule\InvalidRecurrence;
 use App\Shared\Domain\Schedule\Recurrence;
 use App\Shared\Domain\Schedule\RecurrenceEnd;
 use App\Shared\Domain\Schedule\RecurringSchedule;
-use App\Tenancy\Application\TenantClock;
 use Psr\Clock\ClockInterface;
 
 /**

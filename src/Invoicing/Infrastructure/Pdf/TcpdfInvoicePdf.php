@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Pdf;
 
+use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\DocumentFormat;
 use App\Invoicing\Application\InvoicePdf;
 use App\Invoicing\Application\InvoicingCountries;
@@ -28,7 +29,6 @@ use App\Invoicing\Infrastructure\Form\AmountText;
 use App\Party\Application\FirmImages;
 use App\Shared\Domain\Countries;
 use App\Shared\Domain\Money;
-use App\Tenancy\Application\TenantContext;
 use Symfony\Component\Translation\LocaleSwitcher;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Environment;

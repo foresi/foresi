@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Identity\Application\Query;
 
 use App\Identity\Application\ApiTokenGrant;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 
 /**
  * Who a token-signed request acts as: the person, the organisation and the token.

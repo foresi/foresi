@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace App\Invoicing\Infrastructure\Navigation;
 
 use App\Identity\Application\StaffCheck;
+use App\Instance\Application\TenantClock;
 use App\Invoicing\Application\MissingTaxDocuments;
 use App\Invoicing\Application\UncorrectedTaxDocuments;
-use App\Tenancy\Application\TenantClock;
 use App\Ui\Notice\ShellNotice;
 use App\Ui\Notice\ShellNoticeProvider;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;

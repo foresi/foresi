@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Webhooks\Infrastructure\Delivery;
 
-use App\Tenancy\Application\Schedule\OperatorTask;
+use App\Instance\Application\Schedule\OperatorTask;
 use App\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;

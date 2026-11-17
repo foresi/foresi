@@ -8,15 +8,15 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Messenger;
 
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
+use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Invoicing\Application\ConflictRetry;
 use App\Invoicing\Application\DeliverInvoiceSend;
 use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\MailRefused;
 use App\Invoicing\Application\UnknownInvoiceSend;
 use App\Party\Application\TransactionalWork;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Domain\TenantId;
-use App\Tenancy\Infrastructure\Messenger\TenantStamp;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;

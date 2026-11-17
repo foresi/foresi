@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Import\Infrastructure;
 
 use App\Import\Application\ImportFiles;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Domain\TenantId;
 use Symfony\Component\Uid\Uuid;
 
 /**

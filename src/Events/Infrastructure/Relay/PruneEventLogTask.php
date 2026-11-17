@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Events\Infrastructure\Relay;
 
 use App\Events\Infrastructure\Dbal\EventLogTable;
-use App\Tenancy\Application\Schedule\OperatorTask;
+use App\Instance\Application\Schedule\OperatorTask;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
 use Psr\Clock\ClockInterface;

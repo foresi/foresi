@@ -10,11 +10,11 @@ namespace App\Tests\Identity;
 
 use App\Identity\Application\SwitchTenant;
 use App\Identity\Infrastructure\Doctrine\DoctrineMembershipDirectory;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Domain\TenantId;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Tests\Identity\Support\IdentityFixtures;
 use App\Tests\Identity\Support\InMemoryActiveTenantStore;
-use App\Tests\Tenancy\Fixtures\TestNote;
+use App\Tests\Instance\Fixtures\TestNote;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 

@@ -8,11 +8,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Party\Infrastructure;
 
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Party\Application\PartyDetails;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyRole;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
