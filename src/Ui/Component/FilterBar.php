@@ -30,7 +30,7 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
  * holds every filter with its button. A list that is empty while nothing
  * narrows it shows no bar.
  *
- * @phpstan-type Option array{value: string, label: string, href: string, checked: bool}
+ * @phpstan-type Option array{label: string, href: string, checked: bool}
  * @phpstan-type Group array{label: ?string, options: list<Option>}
  * @phpstan-type FilterView array{name: string, id: string, label: string, value: string, type: string, options: array<int|string, string|array<int|string, string>>, groups: list<Group>, pinned: bool, set: bool, text: string, clearHref: string}
  */
@@ -61,6 +61,9 @@ final class FilterBar
     /** @var list<FilterView> */
     private array $views = [];
 
+    /** @var array<string, string> the value of each filter that is set, by name */
+    private array $setValues = [];
+
     #[PostMount]
     public function validate(): void
     {
@@ -90,6 +93,12 @@ final class FilterBar
         if ($pinned > self::MAX_PINNED) {
             throw new \InvalidArgumentException(\sprintf('A list pins at most %d filters, %d given.', self::MAX_PINNED, $pinned));
         }
+        foreach ($this->filters as $filter) {
+            $value = $this->text($filter['value'] ?? '');
+            if ($value !== $this->text($filter['default'] ?? '')) {
+                $this->setValues[$this->text($filter['name'])] = $value;
+            }
+        }
         $this->views = array_map($this->view(...), $this->filters);
     }
 
@@ -102,36 +111,34 @@ final class FilterBar
     }
 
     /**
-     * @return list<FilterView>
+     * @return array<int, FilterView>
      */
     public function pinned(): array
     {
-        return array_values(array_filter($this->views, static fn (array $view): bool => $view['pinned']));
+        return array_filter($this->views, static fn (array $view): bool => $view['pinned']);
     }
 
     /**
      * The filters of the sheet only.
      *
-     * @return list<FilterView>
+     * @return array<int, FilterView>
      */
     public function rest(): array
     {
-        return array_values(array_filter($this->views, static fn (array $view): bool => !$view['pinned']));
+        return array_filter($this->views, static fn (array $view): bool => !$view['pinned']);
     }
 
     /**
-     * @return list<FilterView>
+     * @return array<int, FilterView>
      */
     public function set(): array
     {
-        return array_values(array_filter($this->views, static fn (array $view): bool => $view['set']));
+        return array_filter($this->views, static fn (array $view): bool => $view['set']);
     }
 
     public function searchValue(): string
     {
-        $value = $this->search['value'] ?? '';
-
-        return \is_scalar($value) ? (string) $value : '';
+        return $this->text($this->search['value'] ?? '');
     }
 
     /**
@@ -139,7 +146,7 @@ final class FilterBar
      */
     public function narrowed(): bool
     {
-        return [] !== $this->set() || '' !== trim($this->searchValue());
+        return [] !== $this->setValues || '' !== $this->searchValue();
     }
 
     public function shown(): bool
@@ -161,16 +168,11 @@ final class FilterBar
     public function hidden(bool $withSearch, bool $withFilters): array
     {
         $values = $this->kept();
-        if ($withSearch && null !== $this->search && '' !== $this->searchValue()) {
-            $values[$this->text($this->search['name'])] = $this->searchValue();
-        }
-        if ($withFilters) {
-            foreach ($this->set() as $view) {
-                $values[$view['name']] = $view['value'];
-            }
+        if ($withSearch && '' !== $this->searchValue()) {
+            $values[$this->text($this->search['name'] ?? '')] = $this->searchValue();
         }
 
-        return $values;
+        return $withFilters ? $values + $this->setValues : $values;
     }
 
     /**
@@ -181,8 +183,8 @@ final class FilterBar
     private function view(array $filter): array
     {
         $name = $this->text($filter['name']);
-        $value = \is_scalar($filter['value'] ?? null) ? (string) $filter['value'] : '';
-        $default = \is_scalar($filter['default'] ?? null) ? (string) $filter['default'] : '';
+        $value = $this->text($filter['value'] ?? '');
+        $default = $this->text($filter['default'] ?? '');
         /** @var array<int|string, string|array<int|string, string>> $options */
         $options = $filter['options'] ?? [];
         $groups = [];
@@ -227,7 +229,7 @@ final class FilterBar
             if ($key === $value) {
                 $text = $label;
             }
-            $views[] = ['value' => $key, 'label' => $label, 'href' => $this->with($name, $key === $default ? null : $key), 'checked' => $key === $value];
+            $views[] = ['label' => $label, 'href' => $this->with($name, $key === $default ? null : $key), 'checked' => $key === $value];
         }
 
         return $views;
@@ -238,14 +240,7 @@ final class FilterBar
      */
     private function with(string $name, ?string $value): string
     {
-        $query = $this->hidden(true, false);
-        foreach ($this->filters as $filter) {
-            $current = \is_scalar($filter['value'] ?? null) ? (string) $filter['value'] : '';
-            $default = \is_scalar($filter['default'] ?? null) ? (string) $filter['default'] : '';
-            if ($current !== $default) {
-                $query[$this->text($filter['name'])] = $current;
-            }
-        }
+        $query = $this->hidden(true, true);
         unset($query[$name]);
         if (null !== $value) {
             $query[$name] = $value;
@@ -261,8 +256,9 @@ final class FilterBar
     {
         $kept = [];
         foreach ($this->keep as $name => $value) {
-            if (null !== $value && '' !== (string) $value && false !== $value) {
-                $kept[$name] = true === $value ? '1' : (string) $value;
+            $text = true === $value ? '1' : $this->text($value);
+            if ('' !== $text) {
+                $kept[$name] = $text;
             }
         }
 

@@ -283,7 +283,7 @@ final class DataTableTest extends KernelTestCase
 
     public function testUnknownDensityThrows(): void
     {
-        $this->expectException(\Throwable::class);
+        $this->expectExceptionMessageIsOrContains('Unknown density "roomy", expected one of: list, dense.');
         $this->render(['density' => 'roomy']);
     }
 

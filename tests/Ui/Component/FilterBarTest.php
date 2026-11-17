@@ -103,6 +103,7 @@ final class FilterBarTest extends KernelTestCase
         self::assertCount(1, $form->filter('select[name=kind]'));
         self::assertStringContainsString('sm:hidden', (string) $form->filter('select[name=firm]')->closest('div.min-w-0')?->attr('class'), 'A pinned filter has its field in the sheet for the phone only.');
         self::assertSame('list-filters-sheet-form', $sheet->filter('[data-filter-apply]')->attr('form'));
+        self::assertSame('list-filters-kind-field', $form->filter('select[name=kind]')->attr('id'));
     }
 
     public function testAPhoneHasOneFiltersButtonWithTheCount(): void
@@ -156,13 +157,96 @@ final class FilterBarTest extends KernelTestCase
         self::assertCount(0, $chip->filter('[role=menu]'));
     }
 
-    public function testAtMostTwoPinnedFilters(): void
+    /**
+     * @return iterable<string, array{array<string, mixed>, string}>
+     */
+    public static function invalid(): iterable
     {
-        $this->expectException(\Throwable::class);
-        $this->render(['filters' => [
-            ['name' => 'a', 'label' => 'A', 'options' => [], 'value' => '', 'pinned' => true],
-            ['name' => 'b', 'label' => 'B', 'options' => [], 'value' => '', 'pinned' => true],
-            ['name' => 'c', 'label' => 'C', 'options' => [], 'value' => '', 'pinned' => true],
+        $filter = ['name' => 'firm', 'label' => 'Firm', 'options' => self::FIRMS, 'value' => ''];
+        yield 'no id' => [['id' => ''], 'needs an id'];
+        yield 'no address' => [['action' => ''], 'address of its list'];
+        yield 'a search without a name' => [['search' => ['label' => 'Search']], 'search of a filter bar'];
+        yield 'a search without a label' => [['search' => ['name' => 'q']], 'search of a filter bar'];
+        yield 'a filter without a name' => [['filters' => [['name' => null] + $filter]], 'needs a name, a label'];
+        yield 'a filter without a label' => [['filters' => [['label' => null] + $filter]], 'needs a name, a label'];
+        yield 'a select without options' => [['filters' => [['options' => null] + $filter]], 'needs a name, a label'];
+        yield 'an unknown type' => [['filters' => [['type' => 'range'] + $filter]], 'Unknown filter type "range"'];
+        yield 'a pinned date' => [['filters' => [['type' => 'date', 'pinned' => true] + $filter]], 'cannot be pinned'];
+        yield 'three pinned' => [['filters' => [
+            ['name' => 'a', 'pinned' => true] + $filter,
+            ['name' => 'b', 'pinned' => true] + $filter,
+            ['name' => 'c', 'pinned' => true] + $filter,
+        ]], 'pins at most 2 filters, 3 given'];
+    }
+
+    /**
+     * @param array<string, mixed> $props
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('invalid')]
+    public function testAnInvalidBarThrows(array $props, string $message): void
+    {
+        try {
+            $this->render($props);
+        } catch (\Throwable $error) {
+            $messages = [];
+            for ($e = $error; $e instanceof \Throwable; $e = $e->getPrevious()) {
+                $messages[] = $e->getMessage();
+            }
+            self::assertStringContainsString($message, implode(' | ', $messages));
+
+            return;
+        }
+        self::fail('The bar rendered.');
+    }
+
+    public function testAnUnsetDateMayStayOutOfThePinnedChips(): void
+    {
+        $crawler = $this->render(['filters' => [
+            ['name' => 'firm', 'label' => 'Firm', 'options' => self::FIRMS, 'value' => '', 'pinned' => true],
+            ['name' => 'from', 'label' => 'From', 'type' => 'date', 'value' => ''],
         ]]);
+
+        self::assertCount(0, $crawler->filter('[data-filter-chips] [data-filter-chip=from]'));
+        self::assertCount(1, $crawler->filter('[data-filter-more]'));
+    }
+
+    public function testNoMoreFiltersWhenEveryFilterIsPinned(): void
+    {
+        $crawler = $this->render(['filters' => [
+            ['name' => 'firm', 'label' => 'Firm', 'options' => self::FIRMS, 'value' => 'f1', 'pinned' => true],
+        ]]);
+
+        self::assertCount(0, $crawler->filter('[data-filter-more]'));
+        self::assertCount(1, $crawler->filter('[data-filter-chips] [data-filter-chip=firm]'), 'A pinned chip shows once, not again as a set filter.');
+    }
+
+    public function testNumbersAreValuesLikeAnyOther(): void
+    {
+        $crawler = $this->render([
+            'keep' => ['tab' => 'unpaid', 'sort' => 'number', 'toSend' => true, 'trash' => false, 'page' => 2],
+            'filters' => [
+                ['name' => 'year', 'label' => 'Year', 'options' => [0 => 'Any year', 2025 => '2025', 2026 => '2026'], 'value' => 2026, 'default' => 0, 'pinned' => true],
+            ],
+        ]);
+
+        $chip = $crawler->filter('[data-filter-chips] [data-filter-chip=year][data-set]');
+        self::assertStringContainsString('Year: 2026', $chip->filter('button')->text());
+        $links = $chip->filter('[role=menu] a');
+        self::assertSame('true', $links->eq(2)->attr('aria-checked'));
+        self::assertSame('/invoices?tab=unpaid&sort=number&toSend=1&page=2', $links->eq(0)->attr('href'));
+        self::assertSame('/invoices?tab=unpaid&sort=number&toSend=1&page=2&year=2025', $links->eq(1)->attr('href'));
+    }
+
+    public function testTheSheetKeepsTheSearchAndTheSearchKeepsTheFilters(): void
+    {
+        $crawler = $this->render([
+            'search' => ['name' => 'q', 'value' => 'acme', 'label' => 'Search'],
+            'filters' => [['name' => 'kind', 'label' => 'Kind', 'options' => self::KINDS, 'value' => 'invoice']],
+        ]);
+
+        self::assertSame('acme', $crawler->filter('[data-filter-sheet-form] input[type=hidden][name=q]')->attr('value'));
+        self::assertCount(0, $crawler->filter('[data-filter-sheet-form] input[type=hidden][name=kind]'), 'The sheet sends its own field.');
+        self::assertCount(0, $crawler->filter('form[data-filter-search] input[type=hidden][name=q]'));
+        self::assertSame('invoice', $crawler->filter('form[data-filter-search] input[type=hidden][name=kind]')->attr('value'));
     }
 }
