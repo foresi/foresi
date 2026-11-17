@@ -9,13 +9,13 @@ declare(strict_types=1);
 namespace App\Invoicing\Infrastructure\Form;
 
 use App\Invoicing\Application\RecurringInput;
-use App\Invoicing\Domain\Recurrence;
-use App\Invoicing\Domain\RecurrenceEnd;
-use App\Invoicing\Domain\RecurrenceUnit;
 use App\Invoicing\Domain\RecurringDelivery;
 use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\TaxPointRule;
 use App\Shared\Domain\Currency;
+use App\Shared\Domain\Schedule\Recurrence;
+use App\Shared\Domain\Schedule\RecurrenceEnd;
+use App\Shared\Domain\Schedule\RecurrenceUnit;
 use Symfony\Component\HttpFoundation\Request;
 
 /**

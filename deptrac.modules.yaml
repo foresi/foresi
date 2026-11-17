@@ -6,172 +6,497 @@ deptrac:
     - name: attachment
       collectors:
         - type: classLike
-          value: ^App\\Attachment\\.*
+          value: ^App\\Attachment\\(?!Contract\\|Integration\\).*
+    - name: attachment_contract
+      collectors:
+        - type: classLike
+          value: ^App\\Attachment\\Contract\\.*
     - name: audit
       collectors:
         - type: classLike
-          value: ^App\\Audit\\.*
+          value: ^App\\Audit\\(?!Contract\\|Integration\\).*
+    - name: audit_contract
+      collectors:
+        - type: classLike
+          value: ^App\\Audit\\Contract\\.*
     - name: banking
       collectors:
         - type: classLike
-          value: ^App\\Banking\\.*
+          value: ^App\\Banking\\(?!Contract\\|Integration\\).*
+    - name: banking_contract
+      collectors:
+        - type: classLike
+          value: ^App\\Banking\\Contract\\.*
     - name: country
       collectors:
         - type: classLike
-          value: ^App\\Country\\.*
+          value: ^App\\Country\\(?!Contract\\|Integration\\).*
+    - name: country_contract
+      collectors:
+        - type: classLike
+          value: ^App\\Country\\Contract\\.*
     - name: events
       collectors:
         - type: classLike
-          value: ^App\\Events\\.*
+          value: ^App\\Events\\(?!Contract\\|Integration\\).*
+    - name: events_contract
+      collectors:
+        - type: classLike
+          value: ^App\\Events\\Contract\\.*
     - name: exchange_rate
       collectors:
         - type: classLike
-          value: ^App\\ExchangeRate\\.*
+          value: ^App\\ExchangeRate\\(?!Contract\\|Integration\\).*
+    - name: exchange_rate_contract
+      collectors:
+        - type: classLike
+          value: ^App\\ExchangeRate\\Contract\\.*
     - name: identity
       collectors:
         - type: classLike
-          value: ^App\\Identity\\.*
+          value: ^App\\Identity\\(?!Contract\\|Integration\\).*
+    - name: identity_contract
+      collectors:
+        - type: classLike
+          value: ^App\\Identity\\Contract\\.*
     - name: idoklad
       collectors:
         - type: classLike
-          value: ^App\\Idoklad\\.*
+          value: ^App\\Idoklad\\(?!Contract\\|Integration\\).*
+    - name: idoklad_contract
+      collectors:
+        - type: classLike
+          value: ^App\\Idoklad\\Contract\\.*
     - name: import
       collectors:
         - type: classLike
-          value: ^App\\Import\\.*
+          value: ^App\\Import\\(?!Contract\\|Integration\\).*
+    - name: import_contract
+      collectors:
+        - type: classLike
+          value: ^App\\Import\\Contract\\.*
     - name: invoicing
       collectors:
         - type: classLike
-          value: ^App\\Invoicing\\.*
+          value: ^App\\Invoicing\\(?!Contract\\|Integration\\).*
+    - name: invoicing_contract
+      collectors:
+        - type: classLike
+          value: ^App\\Invoicing\\Contract\\.*
     - name: party
       collectors:
         - type: classLike
-          value: ^App\\Party\\.*
+          value: ^App\\Party\\(?!Contract\\|Integration\\).*
+    - name: party_contract
+      collectors:
+        - type: classLike
+          value: ^App\\Party\\Contract\\.*
     - name: purchasing
       collectors:
         - type: classLike
-          value: ^App\\Purchasing\\.*
+          value: ^App\\Purchasing\\(?!Contract\\|Integration\\).*
+    - name: purchasing_contract
+      collectors:
+        - type: classLike
+          value: ^App\\Purchasing\\Contract\\.*
     - name: shared
       collectors:
         - type: classLike
-          value: ^App\\Shared\\.*
+          value: ^App\\Shared\\(?!Contract\\|Integration\\).*
+    - name: shared_contract
+      collectors:
+        - type: classLike
+          value: ^App\\Shared\\Contract\\.*
     - name: tenancy
       collectors:
         - type: classLike
-          value: ^App\\Tenancy\\.*
+          value: ^App\\Tenancy\\(?!Contract\\|Integration\\).*
+    - name: tenancy_contract
+      collectors:
+        - type: classLike
+          value: ^App\\Tenancy\\Contract\\.*
     - name: timesheet
       collectors:
         - type: classLike
-          value: ^App\\Timesheet\\.*
+          value: ^App\\Timesheet\\(?!Contract\\|Integration\\).*
+    - name: timesheet_contract
+      collectors:
+        - type: classLike
+          value: ^App\\Timesheet\\Contract\\.*
     - name: ui
       collectors:
         - type: classLike
-          value: ^App\\Ui\\.*
+          value: ^App\\Ui\\(?!Contract\\|Integration\\).*
+    - name: ui_contract
+      collectors:
+        - type: classLike
+          value: ^App\\Ui\\Contract\\.*
     - name: webhooks
       collectors:
         - type: classLike
-          value: ^App\\Webhooks\\.*
+          value: ^App\\Webhooks\\(?!Contract\\|Integration\\).*
+    - name: webhooks_contract
+      collectors:
+        - type: classLike
+          value: ^App\\Webhooks\\Contract\\.*
     - name: work
       collectors:
         - type: classLike
-          value: ^App\\Work\\.*
+          value: ^App\\Work\\(?!Contract\\|Integration\\).*
+    - name: work_contract
+      collectors:
+        - type: classLike
+          value: ^App\\Work\\Contract\\.*
   ruleset:
     attachment:
+      - attachment_contract
       - audit
+      - audit_contract
       - identity
+      - identity_contract
       - shared
+      - shared_contract
       - tenancy
+      - tenancy_contract
+    attachment_contract:
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - shared
+      - shared_contract
+      - tenancy
+      - tenancy_contract
     audit:
+      - audit_contract
       - shared
+      - shared_contract
       - tenancy
+      - tenancy_contract
+    audit_contract:
+      - shared
+      - shared_contract
+      - tenancy
+      - tenancy_contract
     banking:
       - audit
+      - audit_contract
+      - banking_contract
       - identity
+      - identity_contract
       - invoicing
+      - invoicing_contract
       - party
+      - party_contract
       - shared
+      - shared_contract
       - tenancy
+      - tenancy_contract
       - ui
+      - ui_contract
+    banking_contract:
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - invoicing_contract
+      - party_contract
+      - shared
+      - shared_contract
+      - tenancy
+      - tenancy_contract
+      - ui_contract
     country:
       - banking
+      - banking_contract
+      - country_contract
       - exchange_rate
+      - exchange_rate_contract
       - invoicing
+      - invoicing_contract
       - party
+      - party_contract
       - shared
+      - shared_contract
+    country_contract:
+      - banking_contract
+      - exchange_rate_contract
+      - invoicing_contract
+      - party_contract
+      - shared
+      - shared_contract
     events:
       - audit
+      - audit_contract
+      - events_contract
       - shared
+      - shared_contract
       - tenancy
+      - tenancy_contract
+    events_contract:
+      - audit
+      - audit_contract
+      - shared
+      - shared_contract
+      - tenancy
+      - tenancy_contract
     exchange_rate:
+      - exchange_rate_contract
       - tenancy
+      - tenancy_contract
+    exchange_rate_contract:
+      - tenancy
+      - tenancy_contract
     identity:
       - audit
+      - audit_contract
+      - identity_contract
       - party
+      - party_contract
       - shared
+      - shared_contract
       - tenancy
+      - tenancy_contract
       - ui
+      - ui_contract
+    identity_contract:
+      - audit
+      - audit_contract
+      - party_contract
+      - shared
+      - shared_contract
+      - tenancy
+      - tenancy_contract
+      - ui_contract
     idoklad:
       - audit
+      - audit_contract
       - identity
+      - identity_contract
+      - idoklad_contract
       - import
+      - import_contract
       - invoicing
+      - invoicing_contract
       - party
+      - party_contract
       - shared
+      - shared_contract
       - tenancy
+      - tenancy_contract
+    idoklad_contract:
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - import_contract
+      - invoicing_contract
+      - party_contract
+      - shared
+      - shared_contract
+      - tenancy
+      - tenancy_contract
     import:
       - audit
+      - audit_contract
       - identity
+      - identity_contract
+      - import_contract
       - shared
+      - shared_contract
       - tenancy
+      - tenancy_contract
       - ui
+      - ui_contract
+    import_contract:
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - shared
+      - shared_contract
+      - tenancy
+      - tenancy_contract
+      - ui_contract
     invoicing:
       - audit
+      - audit_contract
       - identity
+      - identity_contract
+      - invoicing_contract
       - party
+      - party_contract
       - shared
+      - shared_contract
       - tenancy
+      - tenancy_contract
       - ui
+      - ui_contract
+    invoicing_contract:
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - party_contract
+      - shared
+      - shared_contract
+      - tenancy
+      - tenancy_contract
+      - ui_contract
     party:
       - audit
+      - audit_contract
       - identity
+      - identity_contract
       - import
+      - import_contract
+      - party_contract
       - shared
+      - shared_contract
       - tenancy
+      - tenancy_contract
       - ui
+      - ui_contract
+    party_contract:
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - import_contract
+      - shared
+      - shared_contract
+      - tenancy
+      - tenancy_contract
+      - ui_contract
     purchasing:
       - attachment
+      - attachment_contract
       - audit
+      - audit_contract
       - exchange_rate
+      - exchange_rate_contract
       - identity
+      - identity_contract
       - party
+      - party_contract
+      - purchasing_contract
       - shared
+      - shared_contract
       - tenancy
+      - tenancy_contract
       - ui
-    shared: []
+      - ui_contract
+    purchasing_contract:
+      - attachment
+      - attachment_contract
+      - audit
+      - audit_contract
+      - exchange_rate_contract
+      - identity
+      - identity_contract
+      - party_contract
+      - shared
+      - shared_contract
+      - tenancy
+      - tenancy_contract
+      - ui_contract
+    shared:
+      - shared_contract
+    shared_contract: []
     tenancy:
       - shared
+      - shared_contract
+      - tenancy_contract
+    tenancy_contract:
+      - shared
+      - shared_contract
     timesheet:
       - audit
+      - audit_contract
       - identity
+      - identity_contract
       - invoicing
+      - invoicing_contract
       - party
+      - party_contract
       - shared
+      - shared_contract
       - tenancy
+      - tenancy_contract
+      - timesheet_contract
       - work
+      - work_contract
+    timesheet_contract:
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - invoicing_contract
+      - party_contract
+      - shared
+      - shared_contract
+      - tenancy
+      - tenancy_contract
+      - work_contract
     ui:
       - shared
+      - shared_contract
+      - ui_contract
+    ui_contract:
+      - shared
+      - shared_contract
     webhooks:
       - audit
+      - audit_contract
       - events
+      - events_contract
       - identity
+      - identity_contract
       - shared
+      - shared_contract
       - tenancy
+      - tenancy_contract
       - ui
+      - ui_contract
+      - webhooks_contract
+    webhooks_contract:
+      - audit
+      - audit_contract
+      - events
+      - events_contract
+      - identity
+      - identity_contract
+      - shared
+      - shared_contract
+      - tenancy
+      - tenancy_contract
+      - ui_contract
     work:
       - attachment
+      - attachment_contract
       - audit
+      - audit_contract
       - identity
+      - identity_contract
       - party
+      - party_contract
       - shared
+      - shared_contract
       - tenancy
+      - tenancy_contract
       - ui
+      - ui_contract
+      - work_contract
+    work_contract:
+      - attachment
+      - attachment_contract
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - party_contract
+      - shared
+      - shared_contract
+      - tenancy
+      - tenancy_contract
+      - ui_contract

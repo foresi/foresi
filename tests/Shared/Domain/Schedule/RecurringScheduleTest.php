@@ -6,14 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Domain;
+namespace App\Tests\Shared\Domain\Schedule;
 
-use App\Invoicing\Domain\InvalidRecurrence;
-use App\Invoicing\Domain\Recurrence;
-use App\Invoicing\Domain\RecurrenceEnd;
-use App\Invoicing\Domain\RecurrenceUnit;
-use App\Invoicing\Domain\RecurringSchedule;
-use App\Invoicing\Domain\TaxPointRule;
+use App\Shared\Domain\Schedule\InvalidRecurrence;
+use App\Shared\Domain\Schedule\Recurrence;
+use App\Shared\Domain\Schedule\RecurrenceEnd;
+use App\Shared\Domain\Schedule\RecurrenceUnit;
+use App\Shared\Domain\Schedule\RecurringSchedule;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -245,22 +244,6 @@ final class RecurringScheduleTest extends TestCase
 
         self::assertFalse(RecurringSchedule::isOver($r, 998, RecurringSchedule::occurrence($r, 998)));
         self::assertCount(30, RecurringSchedule::next($r, 0, new \DateTimeImmutable('2027-01-01'), 30));
-    }
-
-    public function testTaxPointLastDayOfMonth(): void
-    {
-        self::assertSame('2027-02-28', $this->day(TaxPointRule::LastDayOfMonth->for(new \DateTimeImmutable('2027-02-01'))));
-        self::assertSame('2028-02-29', $this->day(TaxPointRule::LastDayOfMonth->for(new \DateTimeImmutable('2028-02-29'))));
-        self::assertSame('2027-12-31', $this->day(TaxPointRule::LastDayOfMonth->for(new \DateTimeImmutable('2027-12-15'))));
-        self::assertSame('2027-04-30', $this->day(TaxPointRule::LastDayOfMonth->for(new \DateTimeImmutable('2027-04-30'))));
-    }
-
-    public function testTaxPointIssueDate(): void
-    {
-        $issued = new \DateTimeImmutable('2027-02-01 13:00', new \DateTimeZone('Europe/Prague'));
-
-        self::assertSame('2027-02-01 00:00:00 Europe/Prague', TaxPointRule::IssueDate->for($issued)->format('Y-m-d H:i:s e'));
-        self::assertSame('2027-02-28 00:00:00 Europe/Prague', TaxPointRule::LastDayOfMonth->for($issued)->format('Y-m-d H:i:s e'));
     }
 
     /**

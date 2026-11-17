@@ -10,13 +10,25 @@ namespace App\Shared\Infrastructure\Module;
 
 use App\Shared\Domain\Module\ModuleGraph;
 use App\Shared\Domain\Module\ModuleId;
+use App\Shared\Domain\Module\ModuleKind;
 
 /**
- * The module-level Deptrac configuration: one layer per installed module, and
- * a module may use only the modules it declares, required or optional and
- * installed. Ids and namespaces are validated, so they are written unquoted.
- * A layer is named by the module id with "_" for "-", as Deptrac reads the
- * ruleset through Symfony Config, which normalizes "-" in keys to "_".
+ * The module-level Deptrac configuration (ADR 0029, ADR 0033). Each installed
+ * module has three kinds of layer:
+ *
+ * - "<id>": the module's own code, everything but Contract and Integration;
+ * - "<id>_contract": App\<Module>\Contract\, what other modules may use;
+ * - "<id>_integration_<other>": App\<Module>\Integration\<Other>\, the code
+ *   for one optional dependency, loaded only when <other> is installed.
+ *
+ * A module may use the modules it requires, whole, as before contracts
+ * existed. An optional dependency it may use only from its integration code
+ * and only through that module's contract. A contract may use the contracts
+ * of the required modules and the core it requires.
+ *
+ * Ids and namespaces are validated, so they are written unquoted. A layer is
+ * named by the module id with "_" for "-", as Deptrac reads the ruleset
+ * through Symfony Config, which normalizes "-" in keys to "_".
  */
 final readonly class DeptracModulesConfig
 {
@@ -25,30 +37,69 @@ final readonly class DeptracModulesConfig
     public function render(ModuleGraph $graph): string
     {
         $lines = [self::HEADER, 'deptrac:', '  paths:', '    - src', '  layers:'];
+        $rules = [];
         foreach ($graph->all() as $module) {
-            $lines[] = '    - name: '.$this->layer($module->id);
-            $lines[] = '      collectors:';
-            $lines[] = '        - type: classLike';
-            $lines[] = '          value: ^'.str_replace('\\', '\\\\', $module->namespace).'.*';
+            $namespace = $this->pattern($module->namespace);
+            $own = $this->layer($module->id);
+            $contract = $own.'_contract';
+            $lines = [...$lines, ...$this->collector($own, $namespace.'(?!Contract\\\\|Integration\\\\).*')];
+            $lines = [...$lines, ...$this->collector($contract, $namespace.'Contract\\\\.*')];
+
+            $required = array_values(array_filter($module->requires, $graph->has(...)));
+            $requiredLayers = [];
+            $requiredContracts = [];
+            foreach ($required as $id) {
+                $requiredLayers[] = $this->layer($id);
+                $requiredLayers[] = $this->layer($id).'_contract';
+                if (ModuleKind::Core === $graph->get($id)->kind) {
+                    $requiredContracts[] = $this->layer($id);
+                }
+                $requiredContracts[] = $this->layer($id).'_contract';
+            }
+            $rules[$own] = [$contract, ...$requiredLayers];
+            $rules[$contract] = $requiredContracts;
+
+            $optional = $module->optional;
+            usort($optional, static fn (ModuleId $a, ModuleId $b): int => $a->value <=> $b->value);
+            foreach ($optional as $id) {
+                $integration = $own.'_integration_'.$this->layer($id);
+                $lines = [...$lines, ...$this->collector($integration, $namespace.'Integration\\\\'.$id->directory().'\\\\.*')];
+                $rules[$integration] = [$own, $contract, ...($graph->has($id) ? [$this->layer($id).'_contract'] : []), ...$requiredLayers];
+            }
         }
+
         $lines[] = '  ruleset:';
-        foreach ($graph->all() as $module) {
-            $allowed = array_map(
-                $this->layer(...),
-                array_filter([...$module->requires, ...$module->optional], $graph->has(...)),
-            );
+        ksort($rules, \SORT_STRING);
+        foreach ($rules as $layer => $allowed) {
+            $allowed = array_values(array_unique($allowed));
             sort($allowed, \SORT_STRING);
             if ([] === $allowed) {
-                $lines[] = '    '.$this->layer($module->id).': []';
+                $lines[] = '    '.$layer.': []';
                 continue;
             }
-            $lines[] = '    '.$this->layer($module->id).':';
+            $lines[] = '    '.$layer.':';
             foreach ($allowed as $id) {
                 $lines[] = '      - '.$id;
             }
         }
 
         return implode("\n", $lines)."\n";
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function collector(string $layer, string $pattern): array
+    {
+        return ['    - name: '.$layer, '      collectors:', '        - type: classLike', '          value: '.$pattern];
+    }
+
+    /**
+     * "App\Invoicing\" as the start of a pattern, "^App\\Invoicing\\".
+     */
+    private function pattern(string $namespace): string
+    {
+        return '^'.str_replace('\\', '\\\\', $namespace);
     }
 
     private function layer(ModuleId $id): string

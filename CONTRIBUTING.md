@@ -45,7 +45,7 @@ CI splits the run so that it takes minutes, with the same thresholds. The `Tests
 - Country-specific terms get international names in the core. Country-specific rules live in country modules.
 - Money is never a `float`.
 - Architecture rules are recorded in [docs/adr](docs/adr). A change that conflicts with an ADR needs a new ADR.
-- A module declares the modules it uses in its own `src/<Module>/composer.json` (ADR 0029). When you add a dependency between modules, add it to `require` (or to `extra.foresi.optional`), run `composer update "foresi/*"` and `bin/console app:modules:deptrac`, and commit the manifest, the lock and `deptrac.modules.yaml`.
+- A module declares the modules it uses in its own `src/<Module>/composer.json` (ADR 0029). When you add a dependency between modules, add it to `require` (or to `extra.foresi.optional`), run `composer update "foresi/*"` and `bin/console app:modules:deptrac`, and commit the manifest, the lock and `deptrac.modules.yaml`. Code a module needs only when an optional module is installed goes in `src/<Module>/Integration/<Other>/` and may use only `App\<Other>\Contract\` (ADR 0033).
 - Add or update tests with every behaviour change. Write the test first when you can.
 
 ## Commits and pull requests
@@ -54,6 +54,11 @@ CI splits the run so that it takes minutes, with the same thresholds. The `Tests
 - Keep pull requests focused. One logical change per pull request.
 - Update [CHANGELOG.md](CHANGELOG.md) under `Unreleased` for user-visible changes.
 - Never commit secrets or personal data. Use obviously fictional data in tests.
+- Pull requests are squash-merged. There is no merge queue, so a green pull request does not merge by itself: maintainers turn on auto-merge as soon as it is opened, and it then merges once the required checks pass:
+
+  ```bash
+  gh pr merge <number> --auto --squash
+  ```
 
 ## Reporting security issues
 

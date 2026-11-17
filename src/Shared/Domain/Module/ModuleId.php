@@ -28,6 +28,15 @@ final readonly class ModuleId
         return new self($id);
     }
 
+    /**
+     * The directory and namespace segment of the module, "exchange-rate" as
+     * "ExchangeRate".
+     */
+    public function directory(): string
+    {
+        return str_replace(' ', '', ucwords(str_replace('-', ' ', $this->value)));
+    }
+
     public function equals(self $other): bool
     {
         return $this->value === $other->value;

@@ -37,7 +37,7 @@
             "App\\Invoicing\\Domain\\SeriesFormat::beyondCounter",
             "App\\Country\\CzechRepublic\\Party\\CzechBankAccount::toIban",
             "App\\Country\\CzechRepublic\\Party\\CzechRegistrationNumberValidator::validate",
-            "App\\Invoicing\\Domain\\RecurringSchedule::estimate",
+            "App\\Shared\\Domain\\Schedule\\RecurringSchedule::estimate",
             "App\\Invoicing\\Domain\\PeriodText::value",
             "App\\Invoicing\\Application\\RecurringPreview::next",
             "App\\Invoicing\\Application\\RecurringAlerts::message",
@@ -57,10 +57,10 @@
         // date when asked for two.
         "DecrementInteger": {"ignore": [
             "App\\Invoicing\\Domain\\Percent::fromString::31",
-            "App\\Invoicing\\Domain\\RecurringSchedule::inMonth::99",
-            "App\\Invoicing\\Domain\\RecurringSchedule::estimate::115",
-            "App\\Invoicing\\Domain\\RecurringSchedule::estimate::118",
-            "App\\Invoicing\\Domain\\RecurringSchedule::estimate::126",
+            "App\\Shared\\Domain\\Schedule\\RecurringSchedule::inMonth::99",
+            "App\\Shared\\Domain\\Schedule\\RecurringSchedule::estimate::115",
+            "App\\Shared\\Domain\\Schedule\\RecurringSchedule::estimate::118",
+            "App\\Shared\\Domain\\Schedule\\RecurringSchedule::estimate::126",
             "App\\Invoicing\\Domain\\RecurringInvoice::__construct::196",
             "App\\Invoicing\\Domain\\RecurringInvoice::firstOccurrenceFrom::212",
             "App\\Invoicing\\Application\\RecurringPreview::next::38",
@@ -79,12 +79,12 @@
         ]},
         // The same, and the length of a month read from its second day instead of its first.
         "IncrementInteger": {"ignore": [
-            "App\\Invoicing\\Domain\\RecurringSchedule::monthLength::82",
-            "App\\Invoicing\\Domain\\RecurringSchedule::inMonth::99",
-            "App\\Invoicing\\Domain\\RecurringSchedule::estimate::118",
-            "App\\Invoicing\\Domain\\RecurringSchedule::estimate::121",
-            "App\\Invoicing\\Domain\\RecurringSchedule::estimate::123",
-            "App\\Invoicing\\Domain\\RecurringSchedule::estimate::126",
+            "App\\Shared\\Domain\\Schedule\\RecurringSchedule::monthLength::82",
+            "App\\Shared\\Domain\\Schedule\\RecurringSchedule::inMonth::99",
+            "App\\Shared\\Domain\\Schedule\\RecurringSchedule::estimate::118",
+            "App\\Shared\\Domain\\Schedule\\RecurringSchedule::estimate::121",
+            "App\\Shared\\Domain\\Schedule\\RecurringSchedule::estimate::123",
+            "App\\Shared\\Domain\\Schedule\\RecurringSchedule::estimate::126",
             "App\\Invoicing\\Domain\\RecurringInvoice::firstOccurrenceFrom::212",
             // A date written as Ymd has eight characters, so a limit of nine cuts nothing more.
             "App\\Country\\CzechRepublic\\Invoicing\\QrPlatba::invoice::94",
@@ -105,8 +105,8 @@
             // Equivalent mutant: a sequence of 1 renders as wide as one of 0, the width being at least one digit.
             "App\\Idoklad\\Application\\Import\\DocumentsStage::fixedLength::616"
         ]},
-        "LessThanOrEqualTo": {"ignore": ["App\\Invoicing\\Domain\\RecurringSchedule::estimate::114"]},
-        "Plus": {"ignore": ["App\\Invoicing\\Domain\\RecurringSchedule::estimate::118"]},
+        "LessThanOrEqualTo": {"ignore": ["App\\Shared\\Domain\\Schedule\\RecurringSchedule::estimate::114"]},
+        "Plus": {"ignore": ["App\\Shared\\Domain\\Schedule\\RecurringSchedule::estimate::118"]},
         // Equivalent mutants: a day equal to the one compared with sets the same day again.
         "LessThan": {"ignore": [
             "App\\Invoicing\\Domain\\RecurringInvoice::nextOccurrenceUnder::224",
@@ -203,7 +203,7 @@
         // nothing; a part of an address that is missing has no earlier error to keep; role keys are plain ASCII. The
         // one
         // caller of RecurringSchedule::inMonth() without a last-day flag, PeriodText, reads only the month and year.
-        "FalseValue": {"ignore": ["App\\Party\\Application\\ImportPartyValues::input", "App\\Invoicing\\Domain\\RecurringSchedule::inMonth"]},
+        "FalseValue": {"ignore": ["App\\Party\\Application\\ImportPartyValues::input", "App\\Shared\\Domain\\Schedule\\RecurringSchedule::inMonth"]},
         "AssignCoalesce": {"ignore": ["App\\Party\\Application\\ImportPartyValues::address"]},
         "MBString": {"ignore": [
             "App\\Party\\Application\\ImportPartyValues::roles",
@@ -244,7 +244,7 @@
         ]},
         // Equivalent mutants: an end on a date always has that date (Recurrence checks it), and a staff member is a
         // stored user.
-        "NullSafeMethodCall": {"ignore": ["App\\Invoicing\\Domain\\RecurringSchedule::isOver", "App\\Invoicing\\Application\\RecurringAlerts::recipient"]},
+        "NullSafeMethodCall": {"ignore": ["App\\Shared\\Domain\\Schedule\\RecurringSchedule::isOver", "App\\Invoicing\\Application\\RecurringAlerts::recipient"]},
         // Equivalent mutants: ids hold letters and digits only, so the XML escape flags change nothing, and the
         // parser flags only back up the checks above them (no DTD is let through, errors are collected internally).
         "BitwiseOr": {"ignore": [

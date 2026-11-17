@@ -11,6 +11,7 @@ namespace App\Invoicing\Domain;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\Party;
 use App\Party\Domain\PaymentMethod;
+use App\Shared\Domain\Schedule\Recurrence;
 
 /**
  * What a person sets on a recurring template, on creation and on every edit.

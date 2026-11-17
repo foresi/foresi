@@ -8,10 +8,36 @@ declare(strict_types=1);
 
 namespace App;
 
+use App\Shared\Infrastructure\Module\InstalledModules;
+use App\Shared\Infrastructure\Module\ModuleIntegrations;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
+use Symfony\Component\Config\Loader\LoaderInterface;
+use Symfony\Component\Config\Resource\FileResource;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Kernel as BaseKernel;
 
 class Kernel extends BaseKernel
 {
-    use MicroKernelTrait;
+    use MicroKernelTrait {
+        configureContainer as private configureContainerFromFiles;
+    }
+
+    /**
+     * The configuration files, then the integration code of each module whose
+     * optional dependency is installed (ADR 0033). The container is rebuilt
+     * when Composer installs or removes a package, so adding a module turns
+     * its integrations on.
+     */
+    private function configureContainer(ContainerConfigurator $container, LoaderInterface $loader, ContainerBuilder $builder): void
+    {
+        $this->configureContainerFromFiles($container);
+
+        $projectDir = $this->getProjectDir();
+        new ModuleIntegrations($projectDir.'/src')->register(new InstalledModules($projectDir)->graph(), $container);
+        $installed = $projectDir.'/vendor/composer/installed.php';
+        if (is_file($installed)) {
+            $builder->addResource(new FileResource($installed));
+        }
+    }
 }
