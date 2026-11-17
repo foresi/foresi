@@ -12,14 +12,12 @@ use App\Events\Application\DeliverEvent;
 use App\Events\Infrastructure\Catalogue\EventCatalogue;
 use App\Events\Infrastructure\Dbal\EventLogTable;
 use App\Events\Infrastructure\Payload\EventPayloads;
-use App\Instance\Application\TenantContext;
 use App\Shared\Application\Event\DomainEventListener;
 use App\Shared\Application\Event\RecordedEvent;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
 
 /**
  * Hands a stored event to one async listener, once. The consumption is recorded
@@ -41,7 +39,6 @@ final readonly class DeliverEventHandler
         private EventPayloads $payloads,
         private DeliveryWork $work,
         private EventConsumptions $consumptions,
-        private TenantContext $tenant,
         private LoggerInterface $logger,
     ) {
     }
@@ -69,9 +66,6 @@ final readonly class DeliverEventHandler
             $this->logger->warning('The event {event} was not delivered to {listener}: it was pruned from the log.', ['event' => $message->eventId, 'listener' => $message->listener]);
 
             return;
-        }
-        if ($this->tenant->current()->toString() !== $row[EventLogTable::TENANT_ID]) {
-            throw new UnrecoverableMessageHandlingException(\sprintf('The event %s belongs to another tenant than its delivery.', $message->eventId));
         }
 
         // Only a collision on this record means another worker; one from inside the listener is its own failure.

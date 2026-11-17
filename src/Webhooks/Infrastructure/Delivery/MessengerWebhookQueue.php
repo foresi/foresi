@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace App\Webhooks\Infrastructure\Delivery;
 
 use App\Audit\Application\AuditActor;
-use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Shared\Domain\Id;
 use App\Shared\Infrastructure\Api\JsonValues;
 use App\Webhooks\Application\AttemptTrigger;
@@ -18,14 +17,13 @@ use App\Webhooks\Application\SendWebhook;
 use App\Webhooks\Application\WebhookQueue;
 use App\Webhooks\Domain\WebhookEndpoint;
 use App\Webhooks\Infrastructure\Api\WebhookEndpointApiController;
-use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * Stores a ping as a delivery of its own and queues its one attempt, or queues
- * one more attempt of a stored delivery, on the webhooks transport with the
- * tenant of the endpoint. The ping has the envelope of an event without a
+ * one more attempt of a stored delivery, on the webhooks transport; the tenant
+ * middleware stamps it with the active tenant. The ping has the envelope of an event without a
  * position, and is encoded once, so the attempt signs the bytes it sends.
  */
 final readonly class MessengerWebhookQueue implements WebhookQueue
@@ -42,7 +40,6 @@ final readonly class MessengerWebhookQueue implements WebhookQueue
 
     public function ping(WebhookEndpoint $endpoint, \DateTimeImmutable $now): QueuedAttempt
     {
-        $tenantId = $endpoint->tenantId()->toString();
         $pingId = Id::generate();
         $body = json_encode([
             'id' => $pingId,
@@ -58,20 +55,20 @@ final readonly class MessengerWebhookQueue implements WebhookQueue
             'correlation_id' => null,
             'actor' => ['kind' => $this->actor->kind()->value],
         ], \JSON_THROW_ON_ERROR);
-        $deliveryId = $this->deliveries->addPing($tenantId, $endpoint->id(), $pingId, $body, $now);
+        $deliveryId = $this->deliveries->addPing($endpoint->id(), $pingId, $body, $now);
 
-        return $this->queue($tenantId, $deliveryId, AttemptTrigger::Ping);
+        return $this->queue($deliveryId, AttemptTrigger::Ping);
     }
 
-    public function redeliver(string $tenantId, string $deliveryId): QueuedAttempt
+    public function redeliver(string $deliveryId): QueuedAttempt
     {
-        return $this->queue($tenantId, $deliveryId, AttemptTrigger::Manual);
+        return $this->queue($deliveryId, AttemptTrigger::Manual);
     }
 
-    private function queue(string $tenantId, string $deliveryId, AttemptTrigger $trigger): QueuedAttempt
+    private function queue(string $deliveryId, AttemptTrigger $trigger): QueuedAttempt
     {
         $attemptId = Id::generate();
-        $this->bus->dispatch(new Envelope(new SendWebhook($deliveryId, $trigger, $attemptId), [new TenantStamp($tenantId)]));
+        $this->bus->dispatch(new SendWebhook($deliveryId, $trigger, $attemptId));
 
         return new QueuedAttempt($deliveryId, $attemptId);
     }

@@ -106,17 +106,10 @@ final class AttachmentTest extends TestCase
     {
         $uploader = Id::generate();
         $at = new \DateTimeImmutable('2026-11-08 09:00');
-        $attachment = new Attachment(self::ID, 'task', Id::generate(), 'a.pdf', 'application/pdf', 3, hash('sha256', 'abc'), 'tenant/key', $uploader, $at);
+        $attachment = new Attachment(self::ID, 'task', Id::generate(), 'a.pdf', 'application/pdf', 3, hash('sha256', 'abc'), 'key', $uploader, $at);
 
-        self::assertSame([self::ID, 'tenant/key', $uploader, $at, null], [$attachment->id(), $attachment->storageKey(), $attachment->uploadedBy(), $attachment->createdAt(), $attachment->deletedAt()]);
+        self::assertSame([self::ID, 'key', $uploader, $at, null], [$attachment->id(), $attachment->storageKey(), $attachment->uploadedBy(), $attachment->createdAt(), $attachment->deletedAt()]);
         self::assertSame(3, $attachment->size());
-    }
-
-    public function testWithoutATenantStampedOnPersistThereIsNoTenant(): void
-    {
-        $this->expectException(\LogicException::class);
-
-        $this->attachment()->tenantId();
     }
 
     /**

@@ -16,7 +16,6 @@ final readonly class ClaimedDelivery
 {
     public function __construct(
         public string $id,
-        public string $tenantId,
         public string $endpointId,
         public string $eventId,
         public string $body,

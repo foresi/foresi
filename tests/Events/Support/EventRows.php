@@ -18,11 +18,10 @@ use Doctrine\DBAL\Types\Types;
  */
 final class EventRows
 {
-    public static function insert(Connection $db, string $id, string $tenant, string $occurredAt = '2026-11-12 10:00:00', ?int $position = null, string $name = 'invoicing.invoice.issued'): void
+    public static function insert(Connection $db, string $id, string $occurredAt = '2026-11-12 10:00:00', ?int $position = null, string $name = 'invoicing.invoice.issued'): void
     {
         $db->insert(EventLogTable::LOG, [
             EventLogTable::ID => $id,
-            EventLogTable::TENANT_ID => $tenant,
             EventLogTable::NAME => $name,
             EventLogTable::VERSION => 1,
             EventLogTable::OCCURRED_AT => new \DateTimeImmutable($occurredAt, new \DateTimeZone('UTC')),

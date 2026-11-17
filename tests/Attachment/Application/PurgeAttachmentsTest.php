@@ -12,9 +12,6 @@ use App\Attachment\Application\AttachmentFiles;
 use App\Attachment\Application\Attachments;
 use App\Attachment\Application\PurgeAttachments;
 use App\Attachment\Domain\Attachment;
-use App\Instance\Application\TenantContext;
-use App\Instance\Application\TenantScope;
-use App\Instance\Domain\TenantId;
 use App\Shared\Domain\Id;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;
@@ -58,19 +55,17 @@ final class PurgeAttachmentsTest extends TestCase
      */
     private function purge(): array
     {
-        $context = new TenantContext(self::createStub(TenantScope::class));
-        $context->switchTo(TenantId::generate());
         $attachments = new PurgedAttachments();
         $files = new PurgedFiles();
         $logger = new WarningLogger();
 
-        return [new PurgeAttachments($attachments, $files, $context, $logger), $attachments, $files, $logger];
+        return [new PurgeAttachments($attachments, $files, $logger), $attachments, $files, $logger];
     }
 
     private function attachment(string $kind, string $ownerId, bool $deleted = false): Attachment
     {
         $id = Id::generate();
-        $attachment = new Attachment($id, $kind, $ownerId, 'notes.txt', 'text/plain', 5, str_repeat('a', 64), 'tenant/'.$id, Id::generate(), new \DateTimeImmutable());
+        $attachment = new Attachment($id, $kind, $ownerId, 'notes.txt', 'text/plain', 5, str_repeat('a', 64), $id, Id::generate(), new \DateTimeImmutable());
         if ($deleted) {
             $attachment->delete(new \DateTimeImmutable());
         }
@@ -122,22 +117,22 @@ final class PurgedFiles implements AttachmentFiles
     /** @var list<string> */
     public array $failing = [];
 
-    public function store(string $tenantId, string $attachmentId, string $sourcePath): string
+    public function store(string $attachmentId, string $sourcePath): string
     {
         throw new \LogicException('Not stored here.');
     }
 
-    public function read(string $tenantId, string $key, string $sha256): string
+    public function read(string $attachmentId, string $key, string $sha256): string
     {
         throw new \LogicException('Not read here.');
     }
 
-    public function locate(string $tenantId, string $key): string
+    public function locate(string $attachmentId, string $key): string
     {
         throw new \LogicException('Not read here.');
     }
 
-    public function remove(string $tenantId, string $key): void
+    public function remove(string $key): void
     {
         if (\in_array($key, $this->failing, true)) {
             throw new \RuntimeException('Permission denied.');

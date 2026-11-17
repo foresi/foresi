@@ -275,7 +275,7 @@ final class SendWebhookHandlerTest extends KernelTestCase
     {
         $endpoint = $this->endpoint();
         $deliveries = self::getContainer()->get(WebhookDeliveries::class);
-        $ping = $deliveries->addPing($this->tenant->toString(), $endpoint, Id::generate(), '{"type":"webhooks.endpoint.ping"}', $this->clock->now());
+        $ping = $deliveries->addPing($endpoint, Id::generate(), '{"type":"webhooks.endpoint.ping"}', $this->clock->now());
         $stored = $this->rows->delivery($ping);
         self::assertSame(T::KIND_PING, $stored[T::KIND]);
         self::assertNull($stored[T::NEXT_ATTEMPT_AT], 'A ping is never swept.');
@@ -311,7 +311,7 @@ final class SendWebhookHandlerTest extends KernelTestCase
         self::assertStringNotContainsString($this->sealed, $stored);
         $attempt = json_encode($attempts, \JSON_THROW_ON_ERROR);
         self::assertStringNotContainsString('body-marker', $attempt, 'An attempt does not copy the body it sent.');
-        self::assertSame([T::ID, T::TENANT_ID, T::DELIVERY_ID, T::ATTEMPTED_AT, T::DURATION_MS, T::STATUS_CODE, T::ERROR, T::TRIGGER], array_keys($attempts[0]));
+        self::assertSame([T::ID, T::DELIVERY_ID, T::ATTEMPTED_AT, T::DURATION_MS, T::STATUS_CODE, T::ERROR, T::TRIGGER], array_keys($attempts[0]));
     }
 
     public function testSecretThatCannotBeOpenedFailsTheAttemptAndKeepsTheSchedule(): void
@@ -443,7 +443,7 @@ final class SendWebhookHandlerTest extends KernelTestCase
 
     private function delivery(string $endpoint, string $status = T::STATUS_PENDING, int $attempts = 0, ?string $nextAttemptAt = self::NOW): string
     {
-        return $this->rows->insert($this->tenant->toString(), $endpoint, $status, $attempts, $nextAttemptAt);
+        return $this->rows->insert($endpoint, $status, $attempts, $nextAttemptAt);
     }
 
     /**

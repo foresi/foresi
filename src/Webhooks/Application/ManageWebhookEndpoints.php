@@ -234,7 +234,7 @@ final readonly class ManageWebhookEndpoints
             throw DeliveryNotRedeliverable::pending();
         }
 
-        return $this->work->run(fn (): QueuedAttempt => $this->queue->redeliver($endpoint->tenantId()->toString(), $delivery->id));
+        return $this->work->run(fn (): QueuedAttempt => $this->queue->redeliver($delivery->id));
     }
 
     private function activeEndpoint(string $id): WebhookEndpoint

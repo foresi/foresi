@@ -11,7 +11,7 @@ namespace App\Attachment\Application;
 use App\Attachment\Domain\Attachment;
 
 /**
- * The attachments of the active tenant. Deleted ones are not found, except by
+ * The attachments of the instance. Deleted ones are not found, except by
  * the purge, which removes them for good.
  */
 interface Attachments

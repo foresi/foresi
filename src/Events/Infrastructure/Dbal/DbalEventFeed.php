@@ -12,22 +12,19 @@ use App\Events\Application\Query\EventFeed;
 use App\Events\Application\Query\EventRow;
 use App\Events\Application\Query\EventSlice;
 use App\Events\Infrastructure\Relay\PruneEventLogTask;
-use App\Instance\Application\TenantContext;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
 use Psr\Clock\ClockInterface;
 
 /**
- * Reads the feed from the log. DBAL has no tenant filter, so the organisation is
- * part of the query. Events older than the log keeps them are left out even if
+ * Reads the feed from the log. Events older than the log keeps them are left out even if
  * the prune has not run yet, so the feed answers the same before and after it.
  */
 final readonly class DbalEventFeed implements EventFeed
 {
     public function __construct(
         private Connection $connection,
-        private TenantContext $tenant,
         private ClockInterface $clock,
     ) {
     }
@@ -42,13 +39,11 @@ final readonly class DbalEventFeed implements EventFeed
         $rows = $this->connection->createQueryBuilder()
             ->select(...EventRowReader::COLUMNS)
             ->from(EventLogTable::LOG)
-            ->where(EventLogTable::TENANT_ID.' = :tenant')
-            ->andWhere(EventLogTable::POSITION.' > :after')
+            ->where(EventLogTable::POSITION.' > :after')
             ->andWhere(EventLogTable::OCCURRED_AT.' >= :since')
             ->andWhere(EventLogTable::NAME.' IN (:names)')
             ->orderBy(EventLogTable::POSITION, 'ASC')
             ->setMaxResults($limit + 1)
-            ->setParameter('tenant', $this->tenant->current()->toString())
             ->setParameter('after', $afterPosition ?? 0, Types::BIGINT)
             ->setParameter('since', $this->clock->now()->modify(\sprintf('-%d days', PruneEventLogTask::KEEP_DAYS)), Types::DATETIME_IMMUTABLE)
             ->setParameter('names', $names, ArrayParameterType::STRING)

@@ -19,5 +19,5 @@ interface WebhookQueue
 {
     public function ping(WebhookEndpoint $endpoint, \DateTimeImmutable $now): QueuedAttempt;
 
-    public function redeliver(string $tenantId, string $deliveryId): QueuedAttempt;
+    public function redeliver(string $deliveryId): QueuedAttempt;
 }

@@ -12,25 +12,27 @@ use App\Attachment\Application\AttachmentFiles;
 use App\Attachment\Application\AttachmentFileUnreadable;
 
 /**
- * Attachments under one directory per tenant, never below public/, each file
- * named by its attachment id only. Back the directory up with the database: an
- * attachment without its file cannot be opened.
+ * Attachments in one private directory, never below public/, each file named
+ * by its attachment id only. Back the directory up with the database: an
+ * attachment without its file cannot be opened. Files uploaded while an
+ * instance had tenants lie one directory deeper, under the tenant's id.
  */
 final readonly class DiskAttachmentFiles implements AttachmentFiles
 {
-    private const string KEY = '/^([0-9a-f-]{36})\/([0-9a-f-]{36})$/D';
+    private const string ID = '/^[0-9a-f-]{36}$/D';
+    private const string KEY = '/^(?:[0-9a-f-]{36}\/)?([0-9a-f-]{36})$/D';
 
     public function __construct(private string $root)
     {
     }
 
-    public function store(string $tenantId, string $attachmentId, string $sourcePath): string
+    public function store(string $attachmentId, string $sourcePath): string
     {
-        $key = $tenantId.'/'.$attachmentId;
-        if (1 !== preg_match(self::KEY, $key)) {
-            throw new \InvalidArgumentException('A tenant and an attachment are named by their ids.');
+        if (1 !== preg_match(self::ID, $attachmentId)) {
+            throw new \InvalidArgumentException('An attachment is named by its id.');
         }
-        $directory = $this->root.'/'.$tenantId;
+        $key = $attachmentId;
+        $directory = $this->root;
         if (!is_dir($directory) && !mkdir($directory, 0o700, true) && !is_dir($directory)) {
             throw new \RuntimeException('The directory of attachments cannot be created.');
         }
@@ -53,9 +55,9 @@ final readonly class DiskAttachmentFiles implements AttachmentFiles
         return $key;
     }
 
-    public function read(string $tenantId, string $key, string $sha256): string
+    public function read(string $attachmentId, string $key, string $sha256): string
     {
-        $path = $this->locate($tenantId, $key);
+        $path = $this->locate($attachmentId, $key);
         $actual = hash_file('sha256', $path);
         if (false === $actual) {
             throw new AttachmentFileUnreadable('The attachment is missing.');
@@ -67,10 +69,10 @@ final readonly class DiskAttachmentFiles implements AttachmentFiles
         return $path;
     }
 
-    public function locate(string $tenantId, string $key): string
+    public function locate(string $attachmentId, string $key): string
     {
-        if (1 !== preg_match(self::KEY, $key, $parts) || $parts[1] !== $tenantId) {
-            throw new AttachmentFileUnreadable('The attachment does not belong to the tenant.');
+        if (1 !== preg_match(self::KEY, $key, $parts) || $parts[1] !== $attachmentId) {
+            throw new AttachmentFileUnreadable('The file does not belong to the attachment.');
         }
         $path = $this->root.'/'.$key;
         if (!is_file($path)) {
@@ -80,9 +82,9 @@ final readonly class DiskAttachmentFiles implements AttachmentFiles
         return $path;
     }
 
-    public function remove(string $tenantId, string $key): void
+    public function remove(string $key): void
     {
-        if (1 === preg_match(self::KEY, $key, $parts) && $parts[1] === $tenantId && is_file($this->root.'/'.$key)) {
+        if (1 === preg_match(self::KEY, $key) && is_file($this->root.'/'.$key)) {
             unlink($this->root.'/'.$key);
         }
     }

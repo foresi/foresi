@@ -22,7 +22,6 @@ final class WebhookDeliveryTable
     public const string ATTEMPT = 'webhook_delivery_attempt';
 
     public const string ID = 'id';
-    public const string TENANT_ID = 'tenant_id';
     public const string ENDPOINT_ID = 'endpoint_id';
     public const string EVENT_ID = 'event_id';
     public const string EVENT_TYPE = 'event_type';
@@ -58,7 +57,6 @@ final class WebhookDeliveryTable
         if (!$schema->hasTable(self::DELIVERY)) {
             $delivery = $schema->createTable(self::DELIVERY);
             $delivery->addColumn(self::ID, Types::GUID);
-            $delivery->addColumn(self::TENANT_ID, 'tenant_id');
             $delivery->addColumn(self::ENDPOINT_ID, Types::GUID);
             $delivery->addColumn(self::EVENT_ID, Types::GUID);
             $delivery->addColumn(self::EVENT_TYPE, Types::STRING, ['length' => 128]);
@@ -79,7 +77,6 @@ final class WebhookDeliveryTable
         if (!$schema->hasTable(self::ATTEMPT)) {
             $attempt = $schema->createTable(self::ATTEMPT);
             $attempt->addColumn(self::ID, Types::GUID);
-            $attempt->addColumn(self::TENANT_ID, 'tenant_id');
             $attempt->addColumn(self::DELIVERY_ID, Types::GUID);
             $attempt->addColumn(self::ATTEMPTED_AT, Types::DATETIME_IMMUTABLE);
             $attempt->addColumn(self::DURATION_MS, Types::INTEGER);

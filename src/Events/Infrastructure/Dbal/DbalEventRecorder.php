@@ -14,7 +14,6 @@ use App\Audit\Application\TokenAuditActor;
 use App\Events\Application\RelayEvents;
 use App\Events\Infrastructure\Catalogue\EventCatalogue;
 use App\Events\Infrastructure\Payload\EventPayloads;
-use App\Instance\Application\TenantContext;
 use App\Shared\Application\Event\EventOutbox;
 use App\Shared\Application\Event\EventRecorder;
 use App\Shared\Domain\Event\DomainEventPayload;
@@ -44,7 +43,6 @@ final class DbalEventRecorder implements EventRecorder, EventOutbox
         private readonly Connection $connection,
         private readonly EventCatalogue $catalogue,
         private readonly EventPayloads $payloads,
-        private readonly TenantContext $tenant,
         private readonly AuditCorrelation $correlation,
         private readonly AuditActor $actor,
         private readonly ClockInterface $clock,
@@ -64,7 +62,6 @@ final class DbalEventRecorder implements EventRecorder, EventOutbox
         $subject = $event->subject();
         $this->connection->insert(EventLogTable::LOG, [
             EventLogTable::ID => Id::generate(),
-            EventLogTable::TENANT_ID => $this->tenant->current()->toString(),
             EventLogTable::NAME => $type->name,
             EventLogTable::VERSION => $type->version,
             EventLogTable::OCCURRED_AT => $this->clock->now(),

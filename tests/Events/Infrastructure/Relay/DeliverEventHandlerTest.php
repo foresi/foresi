@@ -34,7 +34,6 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\Messenger\Exception\RecoverableExceptionInterface;
-use Symfony\Component\Messenger\Exception\UnrecoverableExceptionInterface;
 
 /**
  * A delivery runs its listener at most once per event, in a transaction of its
@@ -45,7 +44,6 @@ final class DeliverEventHandlerTest extends KernelTestCase
 {
     private Connection $db;
     private TenantContext $context;
-    private TenantId $tenant;
     private RecordingListener $listener;
     /** @var AbstractLogger&object{messages: list<string>} */
     private AbstractLogger $logger;
@@ -62,8 +60,8 @@ final class DeliverEventHandlerTest extends KernelTestCase
 
         $this->db = $em->getConnection();
         $this->context = $container->get(TenantContext::class);
-        $this->tenant = TenantId::generate();
-        $this->context->set($this->tenant);
+        $tenant = TenantId::generate();
+        $this->context->set($tenant);
         $this->listener = new RecordingListener('invoicing.invoice.issued');
         $this->logger = new class extends AbstractLogger {
             /** @var list<string> */
@@ -79,7 +77,7 @@ final class DeliverEventHandlerTest extends KernelTestCase
     public function testRunsListenerOnce(): void
     {
         $id = Id::generate();
-        EventRows::insert($this->db, $id, $this->tenant->toString(), position: 1);
+        EventRows::insert($this->db, $id, position: 1);
         $handler = $this->handler();
 
         $handler(new DeliverEvent($id, 'test.listener'));
@@ -97,7 +95,7 @@ final class DeliverEventHandlerTest extends KernelTestCase
     public function testListenerFailureRollsBackConsumption(): void
     {
         $id = Id::generate();
-        EventRows::insert($this->db, $id, $this->tenant->toString(), position: 1);
+        EventRows::insert($this->db, $id, position: 1);
         $this->listener = new RecordingListener('invoicing.invoice.issued', failures: 1);
         $handler = $this->handler();
 
@@ -118,7 +116,7 @@ final class DeliverEventHandlerTest extends KernelTestCase
     public function testAUniqueViolationOfTheListenerIsItsOwnFailure(): void
     {
         $id = Id::generate();
-        EventRows::insert($this->db, $id, $this->tenant->toString(), position: 1);
+        EventRows::insert($this->db, $id, position: 1);
         // The listener's own insert collides with a row it wrote itself.
         $this->listener = new RecordingListener('invoicing.invoice.issued', during: function (): void {
             $this->db->insert('event_consumption', ['listener' => 'test.own', 'event_id' => Id::generate(), 'consumed_at' => '2026-11-12 10:00:00']);
@@ -159,22 +157,12 @@ final class DeliverEventHandlerTest extends KernelTestCase
     public function testAListenerThatIsGoneIsAcked(): void
     {
         $id = Id::generate();
-        EventRows::insert($this->db, $id, $this->tenant->toString(), position: 1);
+        EventRows::insert($this->db, $id, position: 1);
 
         $this->handler()(new DeliverEvent($id, 'test.removed'));
 
         self::assertSame(0, $this->consumptions());
         self::assertCount(1, $this->logger->messages);
-    }
-
-    public function testAnEventOfAnotherTenantIsRefused(): void
-    {
-        $id = Id::generate();
-        EventRows::insert($this->db, $id, TenantId::generate()->toString(), position: 1);
-
-        $this->expectException(UnrecoverableExceptionInterface::class);
-
-        $this->handler()(new DeliverEvent($id, 'test.listener'));
     }
 
     private function handler(): DeliverEventHandler
@@ -198,7 +186,6 @@ final class DeliverEventHandlerTest extends KernelTestCase
             new EventPayloads(),
             new DeliveryWork($container->get(EntityManagerInterface::class), $container->get(ManagerRegistry::class), $this->context, $outbox),
             $this->consumptionRecord(),
-            $this->context,
             $this->logger,
         );
     }

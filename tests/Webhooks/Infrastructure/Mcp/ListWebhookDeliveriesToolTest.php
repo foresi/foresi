@@ -20,10 +20,9 @@ final class ListWebhookDeliveriesToolTest extends WebhookToolTestCase
     public function testItAnswersAsTheRestApiDoesAndPages(): void
     {
         $id = $this->stored($this->tenant);
-        $tenant = $this->tenant->toString();
-        $older = $this->rows->insert($tenant, $id, T::STATUS_FAILED, attempts: 2, nextAttemptAt: null, createdAt: '2026-11-13 08:00:00');
-        $newer = $this->rows->insert($tenant, $id, T::STATUS_SUCCEEDED, attempts: 1, nextAttemptAt: null, createdAt: '2026-11-13 09:00:00');
-        $this->rows->insert($tenant, $this->stored($this->tenant), T::STATUS_FAILED);
+        $older = $this->rows->insert($id, T::STATUS_FAILED, attempts: 2, nextAttemptAt: null, createdAt: '2026-11-13 08:00:00');
+        $newer = $this->rows->insert($id, T::STATUS_SUCCEEDED, attempts: 1, nextAttemptAt: null, createdAt: '2026-11-13 09:00:00');
+        $this->rows->insert($this->stored($this->tenant), T::STATUS_FAILED);
 
         $output = $this->call(ListWebhookDeliveriesTool::class, ['endpoint_id' => $id]);
 
@@ -40,14 +39,6 @@ final class ListWebhookDeliveriesToolTest extends WebhookToolTestCase
         $refusal = $this->refusal(ListWebhookDeliveriesTool::class, ['endpoint_id' => Id::generate()]);
 
         self::assertSame('not_found', $refusal->errorCode);
-    }
-
-    public function testAnEndpointOfAnotherOrganisationIsNotFound(): void
-    {
-        $other = $this->fixtures->tenant('Other Organisation');
-        $foreign = $this->stored($other);
-
-        self::assertSame('not_found', $this->refusal(ListWebhookDeliveriesTool::class, ['endpoint_id' => $foreign])->errorCode);
     }
 
     public function testTheEndpointIsRequired(): void

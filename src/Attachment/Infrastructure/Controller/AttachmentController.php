@@ -84,14 +84,13 @@ final class AttachmentController extends AbstractController
     public function download(string $id, Request $request): Response
     {
         $attachment = $this->attachments->get($id) ?? throw new NotFoundHttpException('No such attachment.');
-        $tenant = $attachment->tenantId()->toString();
         try {
             // A video seeks with many range requests, and hashing a large file for each would
             // read it whole every time. A part is served from the stored file as it is: the whole
             // is proved against its SHA-256 on every full read, and was when it was uploaded.
             $path = $request->headers->has('Range')
-                ? $this->files->locate($tenant, $attachment->storageKey())
-                : $this->files->read($tenant, $attachment->storageKey(), $attachment->sha256());
+                ? $this->files->locate($attachment->id(), $attachment->storageKey())
+                : $this->files->read($attachment->id(), $attachment->storageKey(), $attachment->sha256());
         } catch (AttachmentFileUnreadable $unreadable) {
             throw new NotFoundHttpException('The file of the attachment cannot be read.', $unreadable);
         }

@@ -43,7 +43,6 @@ final class DbalEventRecorderTest extends KernelTestCase
     private DbalEventRecorder $recorder;
     private DoctrineTransactionalWork $work;
     private InMemoryTransport $relay;
-    private TenantId $tenant;
     private AuditCorrelation $correlation;
 
     protected function setUp(): void
@@ -58,8 +57,8 @@ final class DbalEventRecorderTest extends KernelTestCase
 
         $this->db = $em->getConnection();
         $context = $container->get(TenantContext::class);
-        $this->tenant = TenantId::generate();
-        $context->set($this->tenant);
+        $tenant = TenantId::generate();
+        $context->set($tenant);
         $this->correlation = new AuditCorrelation();
         $this->listeners = new EventDispatcher();
         $relay = $container->get('messenger.transport.events');
@@ -71,7 +70,6 @@ final class DbalEventRecorderTest extends KernelTestCase
             $this->db,
             $catalogue,
             new EventPayloads(),
-            $context,
             $this->correlation,
             $container->get(AuditActor::class),
             new MockClock('2026-11-12 10:00:00', 'UTC'),
@@ -96,7 +94,7 @@ final class DbalEventRecorderTest extends KernelTestCase
         $rows = $this->rows();
         self::assertCount(1, $rows);
         self::assertNull($rows[0]['position']);
-        self::assertSame($this->tenant->toString(), $rows[0]['tenant_id']);
+        self::assertArrayNotHasKey('tenant_id', $rows[0]);
         self::assertSame('work:test', $rows[0]['correlation_id']);
         self::assertSame('system', $rows[0]['actor_kind']);
         self::assertSame('invoicing.invoice.issued', $rows[0]['name']);
@@ -175,7 +173,6 @@ final class DbalEventRecorderTest extends KernelTestCase
             $this->db,
             EventCatalogue::scan([[ModuleId::of('invoicing'), 'App\Tests\Events\Fixtures\Valid\\', \dirname(__DIR__, 2).'/Fixtures/Valid']]),
             new EventPayloads(),
-            self::getContainer()->get(TenantContext::class),
             $this->correlation,
             self::getContainer()->get(AuditActor::class),
             new MockClock('2026-11-12 10:00:00', 'UTC'),

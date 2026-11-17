@@ -114,14 +114,6 @@ final class ListEventsToolTest extends ReadToolTestCase
         self::assertSame(['items' => [], 'next_cursor' => null], $none->data);
     }
 
-    public function testOtherTenantsEventsAreInvisible(): void
-    {
-        $this->events->record($this->foreignTenant(), RecordedEvents::issued(Id::generate()));
-        $this->events->number();
-
-        self::assertSame([], $this->call(ListEventsTool::class)->data['items']);
-    }
-
     /**
      * @return list<mixed>
      */

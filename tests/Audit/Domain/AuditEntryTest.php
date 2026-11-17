@@ -40,12 +40,6 @@ final class AuditEntryTest extends TestCase
         self::assertSame('019a0000-0000-7000-8000-0000000000aa', $entry->apiTokenId());
     }
 
-    public function testTenantIsStampedOnPersist(): void
-    {
-        $this->expectException(\LogicException::class);
-        new AuditEntry('App\\Thing', '7', AuditAction::Created, [], null, ActorKind::System, new \DateTimeImmutable())->tenantId();
-    }
-
     /**
      * @param array<string, array<mixed>> $changes
      */
