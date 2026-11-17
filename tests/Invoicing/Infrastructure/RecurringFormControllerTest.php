@@ -507,16 +507,6 @@ final class RecurringFormControllerTest extends WebTestCase
         self::assertSame('Saved elsewhere', $this->templateRow($template->id())['description']);
     }
 
-    public function testAnotherTenantsTemplateIs404(): void
-    {
-        $this->signedIn();
-        $template = $this->foreignTemplate();
-
-        $this->client->request('GET', '/invoices/recurring/'.$template->id().'/edit');
-
-        self::assertResponseStatusCodeSame(404);
-    }
-
     public function testThePreviewShowsFiveDatesForMonthlyOn31st(): void
     {
         $this->signedIn();
@@ -722,29 +712,6 @@ final class RecurringFormControllerTest extends WebTestCase
 
             return self::getContainer()->get(SaveRecurringInvoice::class)->create(new RecurringInput($this->firm->id(), $this->series->id(), $this->customer->id(), PaymentMethod::BankTransfer, self::IBAN, '', '', 'Hosting {month/year}', '', '', DocumentLanguage::Czech, [$line], $recurrence, TaxPointRule::IssueDate, 14, RecurringDelivery::Send));
         });
-    }
-
-    private function foreignTemplate(): RecurringInvoice
-    {
-        $own = [$this->tenant, $this->firm, $this->series, $this->customer];
-        $this->tenant = $this->browser->fixtures->tenant('Foreign Tenant '.bin2hex(random_bytes(2)));
-        $this->scoped(function (): void {
-            $this->firm = new LegalEntity('Example Foreign s.r.o.', new RegistrationNumber('CZ', '12345679'), VatId::fromString('CZ12345679'), new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Register');
-            $this->em()->persist($this->firm);
-            FirmAccounts::add($this->em(), $this->firm, self::IBAN);
-            $this->series = new Series($this->firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
-            $this->series->markDefault();
-            $this->em()->persist($this->series);
-            $this->customer = new Party(PartyKind::Company, 'Foreign Customer a.s.', new RegistrationNumber('CZ', '87654320'), null, '');
-            $this->em()->persist($this->customer);
-            $this->em()->persist(new PartyAddress($this->customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
-            $this->em()->flush();
-        });
-        try {
-            return $this->template();
-        } finally {
-            [$this->tenant, $this->firm, $this->series, $this->customer] = $own;
-        }
     }
 
     private function onlyTemplate(): RecurringInvoice

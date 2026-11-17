@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Doctrine;
 
-use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\RemindableInvoice;
 use App\Invoicing\Application\RemindableInvoices;
 use App\Invoicing\Domain\DocumentKind;
@@ -28,8 +27,7 @@ use Doctrine\DBAL\ParameterType;
  * its own for the firm when it has any, else the shared ones, as SendDraft picks
  * them. Times of earlier reminders are stored in the server's zone and compared
  * against the start of the firm's day, so the previous reminder counts on the
- * firm's own date. Every table is read in the active tenant, the joined ones too,
- * so a row of another tenant that names the same contact never counts.
+ * firm's own date.
  *
  * Invoices that owe nothing are left out in SQL by the balances' own condition,
  * and so are those whose payable in the minimum's currency is below the minimum:
@@ -42,16 +40,15 @@ final readonly class DoctrineRemindableInvoices implements RemindableInvoices
     private const string SQL = <<<'SQL'
         SELECT i.id, r.steps, r.last_at
         FROM invoice i
-        INNER JOIN party p ON p.id = i.customer_id AND p.tenant_id = :tenant
-        LEFT JOIN party_firm_settings s ON s.party_id = i.customer_id AND s.legal_entity_id = i.legal_entity_id AND s.tenant_id = :tenant
+        INNER JOIN party p ON p.id = i.customer_id
+        LEFT JOIN party_firm_settings s ON s.party_id = i.customer_id AND s.legal_entity_id = i.legal_entity_id
         LEFT JOIN (
             SELECT invoice_id, MAX(reminder_step) AS steps, MAX(created_at) AS last_at
             FROM invoice_send
-            WHERE tenant_id = :tenant AND purpose = :reminder
+            WHERE purpose = :reminder
             GROUP BY invoice_id
         ) r ON r.invoice_id = i.id
-        WHERE i.tenant_id = :tenant
-            AND i.legal_entity_id = :firm
+        WHERE i.legal_entity_id = :firm
             AND i.deleted_at IS NULL
             AND i.delivered_at IS NOT NULL
             AND i.due_date >= :enabledOn
@@ -67,11 +64,11 @@ final readonly class DoctrineRemindableInvoices implements RemindableInvoices
                 (i.customer_email IS NOT NULL AND i.customer_email <> '')
                 OR EXISTS (
                     SELECT 1 FROM party_email e
-                    WHERE e.tenant_id = :tenant AND e.party_id = i.customer_id AND e.purpose = :invoices
+                    WHERE e.party_id = i.customer_id AND e.purpose = :invoices
                         AND (
                             e.legal_entity_id = i.legal_entity_id
                             OR (e.legal_entity_id IS NULL AND NOT EXISTS (
-                                SELECT 1 FROM party_email o WHERE o.tenant_id = :tenant AND o.party_id = i.customer_id AND o.legal_entity_id = i.legal_entity_id
+                                SELECT 1 FROM party_email o WHERE o.party_id = i.customer_id AND o.legal_entity_id = i.legal_entity_id
                             ))
                         )
                 )
@@ -79,13 +76,13 @@ final readonly class DoctrineRemindableInvoices implements RemindableInvoices
         SQL;
     private const string AFTER = <<<'SQL'
         AND (
-            i.due_date > (SELECT a.due_date FROM invoice a WHERE a.tenant_id = :tenant AND a.id = :after)
-            OR (i.due_date = (SELECT a.due_date FROM invoice a WHERE a.tenant_id = :tenant AND a.id = :after) AND i.id > :after)
+            i.due_date > (SELECT a.due_date FROM invoice a WHERE a.id = :after)
+            OR (i.due_date = (SELECT a.due_date FROM invoice a WHERE a.id = :after) AND i.id > :after)
         )
         SQL;
     private const string MINIMUM = ' AND (i.currency <> :minimumCurrency OR i.payable_minor >= :minimum)';
 
-    public function __construct(private Connection $connection, private TenantContext $context, private OwingInvoiceCondition $owing)
+    public function __construct(private Connection $connection, private OwingInvoiceCondition $owing)
     {
     }
 
@@ -116,7 +113,6 @@ final readonly class DoctrineRemindableInvoices implements RemindableInvoices
         $rows = $this->connection->fetchAllAssociative(
             $sql.' ORDER BY i.due_date, i.id LIMIT '.$limit,
             $parameters + [
-                'tenant' => $this->context->current()->toString(),
                 'firm' => $firm->id(),
                 'reminder' => SendPurpose::Reminder->value,
                 'invoices' => EmailPurpose::Invoices->value,

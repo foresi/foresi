@@ -54,13 +54,6 @@ final class MailTemplateTest extends TestCase
         yield 'body' => ['Subject', str_repeat('č', MailTemplate::MAX_BODY + 1)];
     }
 
-    public function testTheTenantIsKnownOnlyOnceStored(): void
-    {
-        $this->expectException(\LogicException::class);
-
-        $this->template('Invoice {number}', 'Body')->tenantId();
-    }
-
     private function template(string $subject, string $body): MailTemplate
     {
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');

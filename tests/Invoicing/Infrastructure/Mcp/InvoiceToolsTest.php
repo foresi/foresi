@@ -193,21 +193,6 @@ final class InvoiceToolsTest extends ReadToolTestCase
         self::assertCount(1, self::itemIds($this->call(SearchInvoicesTool::class, ['cursor' => ''])));
     }
 
-    public function testAnInvoiceOfAnotherOrganisationIsNotFound(): void
-    {
-        $theirs = $this->inTenant($this->foreignTenant(), function (): Invoice {
-            [$firm, $series, $customer] = $this->firmWithCustomer();
-
-            return $this->invoice(firmId: $firm, seriesId: $series, customerId: $customer);
-        });
-
-        self::assertSame([], self::itemIds($this->call(SearchInvoicesTool::class)));
-        foreach ([$theirs->id(), Id::generate(), 'not-an-id', ''] as $id) {
-            $this->assertRefused('not_found', 'The organisation has no document with this id. Find the id with foresi_search_invoices.', GetInvoiceTool::class, ['id' => $id]);
-        }
-        $this->assertRefused('not_found', 'The organisation has no document with this id. Find the id with foresi_search_invoices.', GetInvoiceTool::class);
-    }
-
     public function testAGuestReadsNoInvoices(): void
     {
         $invoice = $this->inTenant($this->tenant, fn (): Invoice => $this->invoice());

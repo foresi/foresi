@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 use App\Audit\Application\AuditActor;
-use App\Instance\Application\TenantContext;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\DocumentParty;
 use App\Invoicing\Domain\DocumentTotals;
@@ -66,7 +65,6 @@ final readonly class ImportIssuedDocument
         private AuditActor $actor,
         private ClockInterface $clock,
         private ContactSettingsForFirm $contacts,
-        private TenantContext $tenants,
         private AdvanceDeductions $deductions,
         private AdvanceDocuments $advances,
         private InvoicePayments $payments,
@@ -149,10 +147,9 @@ final readonly class ImportIssuedDocument
      */
     private function stored(ImportedDocumentInput $import, LegalEntity $firm, Series $series, InvoiceChange $content, array $lines, Currency $home, DocumentTotals $totals): string
     {
-        $tenant = $this->tenants->current()->toString();
         $invoice = null;
         try {
-            return $this->work->run(function () use ($import, $firm, $series, $content, $lines, $home, $totals, &$invoice, $tenant): string {
+            return $this->work->run(function () use ($import, $firm, $series, $content, $lines, $home, $totals, &$invoice): string {
                 $input = $import->document;
                 $number = $this->numbers->allocate($series, $firm, $input->issueDate, $input->typedNumber, null);
                 $invoice = new Invoice($firm, $series, $number, $import->regime, $import->rounding, $home, $import->issuer, $content, $this->actor->userId(), $import->createdAt);
@@ -167,7 +164,7 @@ final readonly class ImportIssuedDocument
                 }
                 $invoice->importedFrom($import->source, $import->externalId, $import->runId, \DateTimeImmutable::createFromInterface($this->clock->now()), $import->deliveredAt, $import->exportedAt);
                 if (null !== $import->originalPdf) {
-                    $invoice->keepOriginal($this->originals->store($tenant, $invoice->id(), $import->originalPdf), hash('sha256', $import->originalPdf));
+                    $invoice->keepOriginal($this->originals->store($invoice->id(), $import->originalPdf), hash('sha256', $import->originalPdf));
                 }
                 $this->contacts->makeCustomer($content->customerParty, $firm);
 
@@ -176,7 +173,7 @@ final readonly class ImportIssuedDocument
         } catch (\Throwable $failure) {
             // What was written beside the database goes with the transaction that failed.
             if ($invoice instanceof Invoice && null !== $import->originalPdf) {
-                $this->originals->remove($tenant, $invoice->id());
+                $this->originals->remove($invoice->id());
             }
 
             throw $failure;

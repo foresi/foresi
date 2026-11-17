@@ -41,6 +41,7 @@ use App\Shared\Domain\Money;
 use App\Tests\Import\Support\RunMessages;
 use App\Tests\Support\Mail\RecordingMailGateway;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -73,7 +74,7 @@ final class SendInvoiceTest extends SendingTestCase
         self::assertSame(121000, self::integer($row, 'amount_minor'));
         self::assertSame('CZK', $row['currency']);
         self::assertSame('2026-11-15', substr(self::text($row, 'due_date'), 0, 10));
-        self::assertSame($this->tenant->toString().'/'.$send->id().'.pdf', $row['pdf_key']);
+        self::assertSame($send->id().'.pdf', $row['pdf_key']);
 
         $file = $this->sentDocumentsDir().'/'.self::text($row, 'pdf_key');
         self::assertFileExists($file);
@@ -377,23 +378,6 @@ final class SendInvoiceTest extends SendingTestCase
         self::assertSame(2, self::integer($this->row($second->id()), 'invoice_version'));
     }
 
-    public function testAnotherTenantsSendIsNotFound(): void
-    {
-        $invoice = $this->issue->issue($this->input());
-        $send = $this->sent($invoice);
-        $context = self::getContainer()->get(TenantContext::class);
-        $context->switchTo(\App\Instance\Domain\TenantId::generate());
-        $this->em->clear();
-
-        try {
-            $this->sends->lock($send->id());
-            self::fail('Another tenant cannot take the row.');
-        } catch (\App\Invoicing\Application\UnknownInvoiceSend) {
-        }
-        $this->expectException(\App\Invoicing\Application\UnknownInvoice::class);
-        $this->sent($invoice);
-    }
-
     public function testStuckQueuedRowsAreDispatchedAgainOncePerPeriod(): void
     {
         $invoice = $this->issue->issue($this->input());
@@ -635,6 +619,45 @@ final class SendInvoiceTest extends SendingTestCase
         self::assertSame([null, null], [$creditRow['domestic_account'], $creditRow['payment_code']]);
         self::assertNotNull($debitRow['domestic_account']);
         self::assertStringStartsWith('SPD*', self::text($debitRow, 'payment_code'));
+    }
+
+    public function testTheFileOfASendThatWasNeverStoredIsRemoved(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $marker = '%PDF-1.7 never stored '.bin2hex(random_bytes(8));
+        self::getContainer()->set(InvoicePdf::class, new readonly class($marker) implements InvoicePdf {
+            public function __construct(private string $marker)
+            {
+            }
+
+            public function render(IssuedDocument $document): RenderedPdf
+            {
+                return new RenderedPdf($this->marker, $document->number.'.pdf');
+            }
+        });
+        $postgres = $this->connection->getDatabasePlatform() instanceof PostgreSQLPlatform;
+        if ($postgres) {
+            $this->connection->executeStatement("CREATE OR REPLACE FUNCTION test_no_send() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'no send'; END $$ LANGUAGE plpgsql");
+            $this->connection->executeStatement('CREATE TRIGGER test_no_send BEFORE INSERT ON invoice_send FOR EACH ROW EXECUTE FUNCTION test_no_send()');
+        } else {
+            $this->connection->executeStatement("CREATE TRIGGER test_no_send BEFORE INSERT ON invoice_send BEGIN SELECT RAISE(ABORT, 'no send'); END");
+        }
+
+        try {
+            $this->sent($invoice);
+            self::fail('Expected the insert of the send to fail.');
+        } catch (\Throwable $failure) {
+            self::assertStringContainsString('no send', $failure->getMessage());
+        } finally {
+            $this->connection->executeStatement($postgres ? 'DROP TRIGGER test_no_send ON invoice_send' : 'DROP TRIGGER test_no_send');
+        }
+
+        $left = glob($this->sentDocumentsDir().'/*.pdf');
+        self::assertIsArray($left);
+        foreach ($left as $file) {
+            self::assertNotSame($marker, @file_get_contents($file), 'The file of the send that failed is left behind.');
+        }
+        $this->assertNothingStoredOrQueued();
     }
 
     private function assertNothingStoredOrQueued(): void

@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Application;
 
 use App\Audit\Application\AuditActor;
-use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\AdvanceDeductions;
 use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\ConflictRetry;
@@ -277,8 +276,7 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
     public function testAnOriginalThatChangedIsNotShown(): void
     {
         $invoice = $this->stored($this->import->import($this->imported(pdf: self::PDF)));
-        $tenant = self::getContainer()->get(TenantContext::class)->current()->toString();
-        self::getContainer()->get(OriginalDocuments::class)->store($tenant, $invoice->id(), 'something else');
+        self::getContainer()->get(OriginalDocuments::class)->store($invoice->id(), 'something else');
 
         $this->expectException(UndrawableDocument::class);
         self::getContainer()->get(InvoicePdf::class)->render(self::getContainer()->get(IssuedDocumentFactory::class)->of($invoice->id()));
@@ -338,17 +336,17 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
             /** @var list<string> */
             public array $removed = [];
 
-            public function store(string $tenantId, string $invoiceId, string $bytes): string
+            public function store(string $invoiceId, string $bytes): string
             {
-                return $tenantId.'/'.$invoiceId.'.pdf';
+                return $invoiceId.'.pdf';
             }
 
-            public function read(string $tenantId, string $key, string $sha256): string
+            public function read(string $invoiceId, string $key, string $sha256): string
             {
                 return '';
             }
 
-            public function remove(string $tenantId, string $invoiceId): void
+            public function remove(string $invoiceId): void
             {
                 $this->removed[] = $invoiceId;
             }
@@ -370,7 +368,6 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
             $container->get(AuditActor::class),
             $container->get(ClockInterface::class),
             $container->get(ContactSettingsForFirm::class),
-            $container->get(TenantContext::class),
             $container->get(AdvanceDeductions::class),
             $container->get(AdvanceDocuments::class),
             $container->get(InvoicePayments::class),
@@ -390,15 +387,16 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
         $first = $this->stored($this->import->import($this->imported(pdf: self::PDF)));
         $this->import->import($this->imported(document: ['typedNumber' => '20240008'], overrides: ['externalId' => '4712']));
         $other = $this->import->import($this->imported(document: ['typedNumber' => '20240009'], overrides: ['externalId' => '4713', 'runId' => '0192f0a0-0000-7000-8000-000000000002']));
-        $tenant = self::getContainer()->get(TenantContext::class)->current()->toString();
         $key = (string) $first->originalPdfKey();
+        $originals = self::getContainer()->get(OriginalDocuments::class);
+        self::assertSame(self::PDF, $originals->read($first->id(), $key, hash('sha256', self::PDF)));
 
         self::assertSame([], $this->undo->undo(self::RUN));
 
         self::assertSame(1, $this->invoiceCount());
         self::assertSame($other->invoiceId, $this->em->createQuery('SELECT i.id FROM '.Invoice::class.' i')->getSingleScalarResult());
         $this->expectException(\App\Invoicing\Application\OriginalDocumentUnreadable::class);
-        self::getContainer()->get(OriginalDocuments::class)->read($tenant, $key, hash('sha256', self::PDF));
+        $originals->read($first->id(), $key, hash('sha256', self::PDF));
     }
 
     public function testARunIsKeptWhileAnythingStandsOnIt(): void

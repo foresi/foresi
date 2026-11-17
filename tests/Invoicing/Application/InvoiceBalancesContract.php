@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Application;
 
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\InvoiceBalances;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Shared\Domain\Currency;
@@ -100,16 +98,6 @@ abstract class InvoiceBalancesContract extends InvoiceTestCase
 
         self::assertCount(12, $outstanding);
         self::assertSame(1, $used, 'Queries used: '.$used);
-    }
-
-    public function testAnotherTenantsInvoiceIsUnknown(): void
-    {
-        $mine = $this->issue->issue($this->input());
-        $this->em->clear();
-        self::getContainer()->get(TenantContext::class)->switchTo(TenantId::generate());
-
-        $this->expectException(UnknownInvoice::class);
-        $this->balances()->outstanding([$mine->id()]);
     }
 
     public function testAnIdThatDoesNotExistIsUnknown(): void

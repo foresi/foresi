@@ -11,7 +11,6 @@ namespace App\Invoicing\Infrastructure\Controller;
 use App\Audit\Application\AuditActor;
 use App\Identity\Application\MembershipDirectory;
 use App\Identity\Application\OpenToGuest;
-use App\Identity\Application\Organisation;
 use App\Invoicing\Application\DocumentFormat;
 use App\Invoicing\Application\LinkTokens;
 use App\Invoicing\Application\PaymentState;
@@ -194,7 +193,7 @@ final class PublicDocumentController extends AbstractController
             return $this->unavailable($request, $document);
         }
         try {
-            $bytes = $this->files->read($document->tenantId, $document->pdfKey, $document->pdfSha256);
+            $bytes = $this->files->read($document->sendId, $document->pdfKey, $document->pdfSha256);
         } catch (SentFileUnreadable $unreadable) {
             $this->logger->error('The kept PDF of the send {send} was not served: {reason}', ['send' => $document->sendId, 'reason' => $unreadable->getMessage()]);
 
@@ -272,17 +271,17 @@ final class PublicDocumentController extends AbstractController
             && !\in_array($headers->get('Sec-Fetch-Dest'), ['object', 'embed', 'iframe', 'frame'], true)
             && '?0' !== $headers->get('Sec-Fetch-User')
             && LinkAudience::Customer === $document->audience
-            && !$this->isMemberOf($document->tenantId);
+            && !$this->isMember();
     }
 
-    private function isMemberOf(string $tenantId): bool
+    private function isMember(): bool
     {
         $userId = $this->actor->userId();
         if (null === $userId) {
             return false;
         }
 
-        return array_any($this->memberships->organisationsOf($userId), static fn (Organisation $organisation): bool => $organisation->id->toString() === $tenantId);
+        return [] !== $this->memberships->organisationsOf($userId);
     }
 
     private function stylesheet(): string

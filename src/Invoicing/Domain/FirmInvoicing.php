@@ -10,8 +10,6 @@ namespace App\Invoicing\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditRooted;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
@@ -22,16 +20,12 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'firm_invoicing')]
-#[ORM\Index(name: 'idx_firm_invoicing_tenant', columns: ['tenant_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_firm_invoicing_firm', columns: ['legal_entity_id'])]
-class FirmInvoicing implements TenantOwned, Audited, AuditRooted
+class FirmInvoicing implements Audited, AuditRooted
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'string', length: 16, enumType: TotalRounding::class)]
     private TotalRounding $rounding = TotalRounding::WholeUnit;
@@ -126,10 +120,5 @@ class FirmInvoicing implements TenantOwned, Audited, AuditRooted
     public function contactWeb(): string
     {
         return $this->contactWeb;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

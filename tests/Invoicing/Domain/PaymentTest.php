@@ -47,13 +47,6 @@ final class PaymentTest extends TestCase
         $this->payment($amount);
     }
 
-    public function testTheTenantIsKnownOnlyOnceStored(): void
-    {
-        $this->expectExceptionObject(new \LogicException('The tenant is stamped on persist.'));
-
-        $this->payment('10.00')->tenantId();
-    }
-
     private function payment(string $amount): Payment
     {
         $firm = new LegalEntity('Example Firm', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');

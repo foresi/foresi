@@ -256,7 +256,7 @@ final class InvoiceSendController extends AbstractController
         $sends = array_filter($this->sends->ofInvoice($this->invoice($id)), static fn (InvoiceSend $send): bool => $send->id() === $sendId);
         $send = array_shift($sends) ?? throw new NotFoundHttpException();
         try {
-            $bytes = $this->files->read($send->tenantId()->toString(), $send->pdfKey(), $send->pdfSha256());
+            $bytes = $this->files->read($send->id(), $send->pdfKey(), $send->pdfSha256());
         } catch (SentFileUnreadable) {
             throw new NotFoundHttpException('The kept PDF cannot be read.');
         }

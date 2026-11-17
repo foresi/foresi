@@ -77,13 +77,6 @@ final class FirmRemindersTest extends TestCase
         $this->reminders(Money::ofMinor(0, Currency::CZK));
     }
 
-    public function testTheSettingsAreStampedWithTheirTenantOnPersist(): void
-    {
-        $this->expectException(\LogicException::class);
-
-        $this->reminders(null)->tenantId();
-    }
-
     private function reminders(?Money $minimum): FirmReminders
     {
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '10000', 'CZ'), VatStatus::NotRegistered, '');

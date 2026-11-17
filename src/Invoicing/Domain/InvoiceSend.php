@@ -11,8 +11,6 @@ namespace App\Invoicing\Domain;
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditExcluded;
 use App\Audit\Domain\AuditRooted;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Currency;
@@ -32,13 +30,12 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'invoice_send')]
-#[ORM\Index(name: 'idx_invoice_send_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_invoice_send_invoice', columns: ['invoice_id'])]
-#[ORM\Index(name: 'idx_invoice_send_status', columns: ['tenant_id', 'status', 'created_at'])]
+#[ORM\Index(name: 'idx_invoice_send_status', columns: ['status', 'created_at'])]
 #[ORM\UniqueConstraint(name: 'uniq_invoice_send_token', columns: ['token_hash'])]
 #[ORM\UniqueConstraint(name: 'uniq_invoice_send_copy_token', columns: ['copy_token_hash'])]
-#[ORM\UniqueConstraint(name: 'uniq_send_reminder_step', columns: ['tenant_id', 'invoice_id', 'reminder_step'])]
-class InvoiceSend implements TenantOwned, Audited, AuditRooted
+#[ORM\UniqueConstraint(name: 'uniq_send_reminder_step', columns: ['invoice_id', 'reminder_step'])]
+class InvoiceSend implements Audited, AuditRooted
 {
     /** To and Cc together, as iDoklad's own limit of other recipients plus the contact's addresses. */
     public const int MAX_RECIPIENTS = 15;
@@ -46,9 +43,6 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
     public const int MAX_BODY = 10000;
     public const int MAX_ERROR = 500;
     public const int MAX_CODE = 32;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'string', length: 16, enumType: SendStatus::class)]
     private SendStatus $status = SendStatus::Queued;
@@ -655,11 +649,6 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
     public function requeuedAt(): ?\DateTimeImmutable
     {
         return $this->requeuedAt;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The send has no tenant yet.');
     }
 
     private function shortened(string $reason): string

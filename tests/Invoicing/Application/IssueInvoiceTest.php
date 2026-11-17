@@ -23,11 +23,8 @@ use App\Invoicing\Application\StoredInvoice;
 use App\Invoicing\Domain\AbandonedNumber;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\DocumentParty;
-use App\Invoicing\Domain\FirmInvoicing;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceLine;
-use App\Invoicing\Domain\LineAmounts;
-use App\Invoicing\Domain\LineValues;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
@@ -1171,26 +1168,6 @@ final class IssueInvoiceTest extends InvoiceTestCase
                 self::fail('Expected the guard.');
             } catch (\LogicException $guard) {
                 self::assertStringContainsString('IssueRules refuses', $guard->getMessage());
-            }
-        }
-    }
-
-    public function testAnEntityHasNoTenantBeforeItIsStored(): void
-    {
-        $firm = $this->secondFirm(VatStatus::Registered, 'CZ27074358');
-        $series = new Series($firm, 'Unsaved', SeriesFormat::fromString('A{NNN}'), DocumentKind::Invoice);
-        $copy = DocumentParty::ofCustomer($this->customer, self::address(), null);
-        $invoice = new Invoice($firm, $series, 'A1', VatRegime::Payer, TotalRounding::None, Currency::CZK, $copy, $this->input()->change($this->customer, $copy, DocumentKind::Invoice), null, new \DateTimeImmutable('2026-11-01'));
-        $zero = Money::ofMinor(0, Currency::CZK);
-        $values = new LineValues($zero, Quantity::fromString('1'), PriceType::WithoutVat, TaxTreatment::Exempt, null, Percent::fromString('0'));
-        $line = new InvoiceLine($invoice, 0, 'x', 'h', null, null, $values, new LineAmounts($zero, $zero, $zero, $zero));
-
-        foreach ([$series, $invoice, $line, new AbandonedNumber($invoice, 'A0'), FirmInvoicing::standard($firm)] as $entity) {
-            try {
-                $entity->tenantId();
-                self::fail('Expected the guard.');
-            } catch (\LogicException $guard) {
-                self::assertSame('The tenant is stamped on persist.', $guard->getMessage());
             }
         }
     }

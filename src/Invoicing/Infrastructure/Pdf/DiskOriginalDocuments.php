@@ -14,7 +14,7 @@ use App\Invoicing\Application\SentFileUnreadable;
 use App\Invoicing\Infrastructure\Mail\DiskSentFiles;
 
 /**
- * Original PDFs under one directory per tenant, never below public/, kept the way
+ * Original PDFs in one directory, never below public/, kept the way
  * sent PDFs are: an invoice id names the file as a send id does there. Back the
  * directory up with the database.
  */
@@ -27,22 +27,22 @@ final readonly class DiskOriginalDocuments implements OriginalDocuments
         $this->files = new DiskSentFiles($root);
     }
 
-    public function store(string $tenantId, string $invoiceId, string $bytes): string
+    public function store(string $invoiceId, string $bytes): string
     {
-        return $this->files->store($tenantId, $invoiceId, $bytes);
+        return $this->files->store($invoiceId, $bytes);
     }
 
-    public function read(string $tenantId, string $key, string $sha256): string
+    public function read(string $invoiceId, string $key, string $sha256): string
     {
         try {
-            return $this->files->read($tenantId, $key, $sha256);
+            return $this->files->read($invoiceId, $key, $sha256);
         } catch (SentFileUnreadable $unreadable) {
             throw new OriginalDocumentUnreadable($unreadable->getMessage(), 0, $unreadable);
         }
     }
 
-    public function remove(string $tenantId, string $invoiceId): void
+    public function remove(string $invoiceId): void
     {
-        $this->files->remove($tenantId, $invoiceId);
+        $this->files->remove($invoiceId);
     }
 }

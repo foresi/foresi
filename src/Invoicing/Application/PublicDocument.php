@@ -16,7 +16,7 @@ use App\Shared\Domain\Currency;
 
 /**
  * What the public page of a sent document shows, as frozen when it was sent:
- * scalars only, read across tenants without making one active. The payment state
+ * scalars only, read without an active tenant. The payment state
  * and what remains to pay are today's, of the invoice as it stands now; a tax
  * document on payment is paid by its payment, as its PDF says, and an invoice its
  * advances cover in full is settled by them. A corrective tax document shows what
@@ -27,7 +27,6 @@ final readonly class PublicDocument
 {
     public function __construct(
         public string $sendId,
-        public string $tenantId,
         public LinkAudience $audience,
         public string $issuerName,
         public string $number,

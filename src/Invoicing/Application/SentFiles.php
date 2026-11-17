@@ -10,26 +10,25 @@ namespace App\Invoicing\Application;
 
 /**
  * Port: the PDFs exactly as they were sent, kept beside the database. Every key
- * starts with the tenant's id, so a row can never point into another tenant's
- * files.
+ * names its send, so a row can never point at the file of another send.
  */
 interface SentFiles
 {
     /**
-     * @return string the key of the file, "{tenant}/{sendId}.pdf"
+     * @return string the key of the file, "{sendId}.pdf"
      */
-    public function store(string $tenantId, string $sendId, string $bytes): string;
+    public function store(string $sendId, string $bytes): string;
 
     /**
-     * The bytes, after checking that the key lies in the tenant's storage and the
+     * The bytes, after checking that the key is the send's and the
      * file still has the hash it was stored with.
      *
      * @throws SentFileUnreadable
      */
-    public function read(string $tenantId, string $key, string $sha256): string;
+    public function read(string $sendId, string $key, string $sha256): string;
 
     /**
      * Removes the file of a send that was never stored. Missing is fine.
      */
-    public function remove(string $tenantId, string $sendId): void;
+    public function remove(string $sendId): void;
 }

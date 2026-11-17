@@ -445,25 +445,6 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSelectorTextNotContains('main', 'No invoices here');
     }
 
-    public function testAnotherTenantSeesNothing(): void
-    {
-        $this->signedIn();
-        $invoice = $this->issue('2026-11-01', '2026-12-01');
-        $other = $this->foreignInvoice();
-
-        $crawler = $this->client->request('GET', '/invoices');
-
-        self::assertSame([$invoice->number()], $this->numbers($crawler));
-        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 0', 'To refund 0', 'Trash 0'], $this->tabs($crawler));
-
-        $this->client->request('GET', '/invoices/'.$other->id().'/history');
-        self::assertResponseStatusCodeSame(404);
-        foreach (['trash', 'restore', 'delivered', 'clear-export'] as $path) {
-            $this->client->request('POST', '/invoices/'.$other->id().'/'.$path, ['_token' => $this->token(), 'reason' => 'Mine']);
-            self::assertResponseStatusCodeSame(404);
-        }
-    }
-
     public function testOnlyStaffSeeInvoices(): void
     {
         $this->signedIn(Role::Guest);
@@ -542,16 +523,6 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertResponseRedirects('/invoices');
         $this->client->followRedirect();
         self::assertSelectorTextContains('[role="alert"]', $invoice->number());
-    }
-
-    public function testAnotherTenantsPdfIs404(): void
-    {
-        $this->signedIn();
-        $other = $this->foreignInvoice();
-
-        $this->client->request('GET', '/invoices/'.$other->id().'/pdf');
-
-        self::assertResponseStatusCodeSame(404);
     }
 
     public function testAGuestGetsNoPdf(): void
@@ -1562,29 +1533,6 @@ final class InvoiceListControllerTest extends WebTestCase
             $this->em()->flush();
 
             return $firm;
-        } finally {
-            $this->context->reset();
-        }
-    }
-
-    private function foreignInvoice(): Invoice
-    {
-        $tenant = $this->browser->fixtures->tenant('Foreign Tenant '.bin2hex(random_bytes(2)));
-        $this->context->switchTo($tenant);
-        try {
-            $firm = new LegalEntity('Example Foreign s.r.o.', new RegistrationNumber('CZ', '12345679'), VatId::fromString('CZ12345679'), new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Register');
-            $this->em()->persist($firm);
-            FirmAccounts::add($this->em(), $firm, self::IBAN);
-            $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
-            $series->markDefault();
-            $this->em()->persist($series);
-            $customer = new Party(PartyKind::Company, 'Foreign Customer a.s.', new RegistrationNumber('CZ', '87654320'), null, '');
-            $this->em()->persist($customer);
-            $this->em()->persist(new PartyAddress($customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
-            $this->em()->flush();
-            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
-
-            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($firm->id(), $series->id(), null, $customer->id(), null, new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-12-01'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Foreign', '', '', DocumentLanguage::Czech, [$line], true));
         } finally {
             $this->context->reset();
         }

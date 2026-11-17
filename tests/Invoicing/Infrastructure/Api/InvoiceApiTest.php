@@ -268,24 +268,6 @@ final class InvoiceApiTest extends ApiTestCase
         self::assertResponseIsSuccessful();
     }
 
-    public function testAnInvoiceOfAnotherOrganisationIsNotFound(): void
-    {
-        $foreign = $this->foreignTenant();
-        $theirs = $this->inTenant($foreign, function (): Invoice {
-            [$firm, $series, $customer] = $this->firmWithCustomer();
-
-            return $this->invoice(firmId: $firm, seriesId: $series, customerId: $customer);
-        });
-
-        $this->get('/api/v1/invoices');
-        self::assertSame([], $this->ids());
-
-        foreach ([$theirs->id(), Id::generate(), 'not-an-id'] as $id) {
-            $this->get('/api/v1/invoices/'.$id);
-            $this->assertProblem(404, 'not_found', ['detail' => 'No such invoice.']);
-        }
-    }
-
     public function testATokenScopedToAnotherResourceReadsNothing(): void
     {
         $invoice = $this->inTenant($this->tenant, fn (): Invoice => $this->invoice());

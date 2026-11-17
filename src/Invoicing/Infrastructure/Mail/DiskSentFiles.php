@@ -12,24 +12,23 @@ use App\Invoicing\Application\SentFiles;
 use App\Invoicing\Application\SentFileUnreadable;
 
 /**
- * Sent PDFs under one directory per tenant, never below public/. Back the
- * directory up with the database: a send without its file shows no document.
+ * Sent PDFs in one directory, never below public/. Back the directory up with
+ * the database: a send without its file shows no document. PDFs stored while an
+ * instance had tenants lie one directory deeper, under the tenant's id.
  */
 final readonly class DiskSentFiles implements SentFiles
 {
-    private const string KEY = '/^([0-9a-f-]{36})\/([0-9a-f-]{36})\.pdf$/D';
+    private const string ID = '/^[0-9a-f-]{36}$/D';
+    private const string KEY = '/^(?:[0-9a-f-]{36}\/)?([0-9a-f-]{36})\.pdf$/D';
 
     public function __construct(private string $root)
     {
     }
 
-    public function store(string $tenantId, string $sendId, string $bytes): string
+    public function store(string $sendId, string $bytes): string
     {
-        $key = $tenantId.'/'.$sendId.'.pdf';
-        if (1 !== preg_match(self::KEY, $key)) {
-            throw new \InvalidArgumentException('A tenant and a send are named by their ids.');
-        }
-        $directory = $this->root.'/'.$tenantId;
+        $key = $this->key($sendId);
+        $directory = $this->root;
         if (!is_dir($directory) && !mkdir($directory, 0o700, true) && !is_dir($directory)) {
             throw new \RuntimeException('The directory of sent documents cannot be created.');
         }
@@ -45,10 +44,10 @@ final readonly class DiskSentFiles implements SentFiles
         return $key;
     }
 
-    public function read(string $tenantId, string $key, string $sha256): string
+    public function read(string $sendId, string $key, string $sha256): string
     {
-        if (1 !== preg_match(self::KEY, $key, $parts) || $parts[1] !== $tenantId) {
-            throw new SentFileUnreadable('The sent document does not belong to the tenant.');
+        if (1 !== preg_match(self::KEY, $key, $parts) || $parts[1] !== $sendId) {
+            throw new SentFileUnreadable('The sent document does not belong to the send.');
         }
         $path = $this->root.'/'.$key;
         $bytes = is_file($path) ? file_get_contents($path) : false;
@@ -62,11 +61,20 @@ final readonly class DiskSentFiles implements SentFiles
         return $bytes;
     }
 
-    public function remove(string $tenantId, string $sendId): void
+    public function remove(string $sendId): void
     {
-        $key = $tenantId.'/'.$sendId.'.pdf';
-        if (1 === preg_match(self::KEY, $key) && is_file($this->root.'/'.$key)) {
-            unlink($this->root.'/'.$key);
+        $path = $this->root.'/'.$this->key($sendId);
+        if (is_file($path)) {
+            unlink($path);
         }
+    }
+
+    private function key(string $sendId): string
+    {
+        if (1 !== preg_match(self::ID, $sendId)) {
+            throw new \InvalidArgumentException('A send is named by its id.');
+        }
+
+        return $sendId.'.pdf';
     }
 }

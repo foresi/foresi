@@ -9,10 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Audit\Domain\AuditEntry;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\RecurringFilter;
-use App\Invoicing\Application\UnknownRecurringInvoice;
 use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\RecurringInvoiceLine;
 use App\Invoicing\Domain\RecurringState;
@@ -51,23 +48,6 @@ final class RecurringPersistenceTest extends RecurringTestCase
         self::assertSame([RecurringInvoice::class => 1, RecurringInvoiceLine::class => 1], array_count_values($roots[$other->id()]));
         $versionChanges = array_filter($entries, static fn (AuditEntry $entry): bool => isset($entry->changes()['version']));
         self::assertSame([], $versionChanges, 'the version is technical');
-    }
-
-    public function testAnotherTenantsTemplateIsUnknown(): void
-    {
-        $template = $this->save->create($this->recurringInput());
-        $this->em->clear();
-        self::getContainer()->get(TenantContext::class)->switchTo(TenantId::generate());
-
-        self::assertSame([], $this->templates->due(new \DateTimeImmutable('2027-12-31')));
-        self::assertSame(0, $this->templates->page(new RecurringFilter(null, null, false, 1))->total);
-        try {
-            $this->templates->get($template->id());
-            self::fail('Expected the template to be unknown.');
-        } catch (UnknownRecurringInvoice) {
-        }
-        $this->expectException(UnknownRecurringInvoice::class);
-        self::getContainer()->get(TransactionalWork::class)->run(fn (): RecurringInvoice => $this->templates->lock($template->id()));
     }
 
     public function testThePageFiltersByFirmStateAndFailure(): void

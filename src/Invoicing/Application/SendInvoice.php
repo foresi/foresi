@@ -11,7 +11,6 @@ namespace App\Invoicing\Application;
 use App\Audit\Application\AuditActor;
 use App\Identity\Application\StaffCheck;
 use App\Identity\Application\UserRepository;
-use App\Instance\Application\TenantContext;
 use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceSend;
@@ -62,7 +61,6 @@ final readonly class SendInvoice
         private UserRepository $users,
         private StaffCheck $staff,
         private AuditActor $actor,
-        private TenantContext $context,
         private TransactionalWork $work,
         private ConflictRetry $retry,
         private ClockInterface $clock,
@@ -153,10 +151,9 @@ final readonly class SendInvoice
      */
     private function store(SendRequest $request, int $drawnVersion, ?Money $drawnOwed, array $to, array $cc, ?string $copyTo, string $subject, string $body, ?string $userId, string $pdf, array $payment): ?InvoiceSend
     {
-        $tenant = $this->context->current()->toString();
         $id = Id::generate();
         try {
-            return $this->retry->run(fn (): ?InvoiceSend => $this->work->run(function () use ($request, $drawnVersion, $drawnOwed, $to, $cc, $copyTo, $subject, $body, $userId, $pdf, $payment, $tenant, $id): ?InvoiceSend {
+            return $this->retry->run(fn (): ?InvoiceSend => $this->work->run(function () use ($request, $drawnVersion, $drawnOwed, $to, $cc, $copyTo, $subject, $body, $userId, $pdf, $payment, $id): ?InvoiceSend {
                 $invoice = $this->store->lock($request->invoiceId);
                 if ($invoice->isTrashed()) {
                     throw new SendRefused(SendRefused::TRASHED);
@@ -169,7 +166,7 @@ final readonly class SendInvoice
                 if ($invoice->version() !== $drawnVersion || $this->owed($request)?->minor() !== $drawnOwed?->minor()) {
                     return null;
                 }
-                $key = $this->files->store($tenant, $id, $pdf);
+                $key = $this->files->store($id, $pdf);
                 $send = $this->queued($id, $invoice, $to, $cc, $copyTo, $subject, $body, $userId, $key, hash('sha256', $pdf), $payment, $request);
                 $this->sends->add($send);
 
@@ -177,7 +174,7 @@ final readonly class SendInvoice
             }));
         } catch (\Throwable $failure) {
             // The file of a send that was never stored.
-            $this->files->remove($tenant, $id);
+            $this->files->remove($id);
 
             throw $failure;
         }

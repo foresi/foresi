@@ -175,13 +175,6 @@ final class InvoiceSendTest extends TestCase
         self::assertEquals(new \DateTimeImmutable('2026-11-03 10:00'), $send->revokedAt());
     }
 
-    public function testTheTenantIsKnownOnlyOnceStored(): void
-    {
-        $this->expectException(\LogicException::class);
-
-        $this->queued()->tenantId();
-    }
-
     /**
      * @return list<string>
      */

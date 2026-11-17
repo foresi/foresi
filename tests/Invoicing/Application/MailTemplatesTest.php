@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Application;
 
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\MailTemplates;
 use App\Invoicing\Application\UnknownMailVariables;
 use App\Invoicing\Domain\InvalidMailTemplate;
@@ -123,19 +121,6 @@ final class MailTemplatesTest extends InvoiceTestCase
         $this->expectException(InvalidMailTemplate::class);
 
         $this->templates->save($this->firm, MailTemplateKind::Invoice, DocumentLanguage::Czech, '  ', 'Body');
-    }
-
-    public function testAnotherTenantsTemplateIsNotFound(): void
-    {
-        $this->templates->save($this->firm, MailTemplateKind::Invoice, DocumentLanguage::Czech, 'Ours {number}', 'Ours');
-        $this->em->flush();
-        $this->em->clear();
-
-        // The firm as another tenant would name it: by its id alone.
-        self::getContainer()->get(TenantContext::class)->switchTo(TenantId::generate());
-
-        self::assertNotSame('Ours {number}', $this->templates->textFor($this->firm, MailTemplateKind::Invoice, DocumentLanguage::Czech)->subject);
-        self::assertFalse($this->templates->isCustom($this->firm, MailTemplateKind::Invoice, DocumentLanguage::Czech));
     }
 
     private function connection(): Connection

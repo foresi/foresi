@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure;
 
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Invoicing\Application\DeliverInvoiceSend;
 use App\Invoicing\Application\InvoiceBalances;
@@ -37,6 +35,7 @@ use App\Shared\Domain\Id;
 use App\Tests\Invoicing\Application\SendingTestCase;
 use App\Tests\Invoicing\Infrastructure\Support\SettledBalances;
 use App\Tests\Support\Mail\RecordingMailGateway;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;
@@ -403,19 +402,6 @@ final class DeliverInvoiceSendTest extends SendingTestCase
         self::assertSame([], $this->gateway->attempts());
     }
 
-    public function testAMessageOfAnotherTenantFindsNothing(): void
-    {
-        $invoice = $this->issue->issue($this->input());
-        $send = $this->sent($invoice);
-        self::getContainer()->get(TenantContext::class)->reset();
-
-        self::getContainer()->get(MessageBusInterface::class)->dispatch(new Envelope(new DeliverInvoiceSend($send->id()), [new ReceivedStamp('mail'), new TenantStamp(TenantId::generate()->toString())]));
-
-        self::assertSame([], $this->gateway->attempts());
-        self::getContainer()->get(TenantContext::class)->switchTo($this->tenant);
-        self::assertSame('queued', $this->row($send->id())['status']);
-    }
-
     public function testTrashDuringDeliveryLeavesTheInvoiceTrashed(): void
     {
         $invoice = $this->issue->issue($this->input());
@@ -447,7 +433,7 @@ final class DeliverInvoiceSendTest extends SendingTestCase
 
         self::mockTime('2026-11-03 10:05:00');
         $failure = $this->deliveryFailure(redeliver: true);
-        $this->showAgain('invoice', $invoice->id());
+        $this->showAgain('invoice');
 
         self::assertNotInstanceOf(SendLeaseHeld::class, $failure);
         $row = $this->row($send->id());
@@ -476,7 +462,7 @@ final class DeliverInvoiceSendTest extends SendingTestCase
         $send = $this->sent($invoice);
         $this->hideWhileSending('invoice', $invoice->id());
         $failure = $this->deliveryFailure();
-        $this->showAgain('invoice', $invoice->id());
+        $this->showAgain('invoice');
 
         // The queue gives up.
         self::mockTime('2026-11-03 15:00:00');
@@ -508,7 +494,7 @@ final class DeliverInvoiceSendTest extends SendingTestCase
         });
 
         $this->deliveryFailure();
-        $this->showAgain('invoice_send', $send->id());
+        $this->showAgain('invoice_send');
         self::mockTime('2026-11-03 10:06:00');
         $this->worker->redeliver($this->worker->last());
 
@@ -565,7 +551,7 @@ final class DeliverInvoiceSendTest extends SendingTestCase
 
     public function testDeliveryCancelsAReminderPaidMeanwhile(): void
     {
-        $balances = SettledBalances::install(self::getContainer(), $this->connection, self::getContainer()->get(TenantContext::class));
+        $balances = SettledBalances::install(self::getContainer(), $this->connection);
         [$invoice, $reminder] = $this->queuedReminder();
         $balances->pay($invoice->id());
 
@@ -624,7 +610,7 @@ final class DeliverInvoiceSendTest extends SendingTestCase
 
     public function testAnOwedReminderIsDelivered(): void
     {
-        SettledBalances::install(self::getContainer(), $this->connection, self::getContainer()->get(TenantContext::class));
+        SettledBalances::install(self::getContainer(), $this->connection);
         [, $reminder] = $this->queuedReminder();
 
         $this->worker->run();
@@ -655,7 +641,7 @@ final class DeliverInvoiceSendTest extends SendingTestCase
 
     public function testAReminderUnderWayWaitsAndIsCheckedAgainWhenItsTurnComes(): void
     {
-        $balances = SettledBalances::install(self::getContainer(), $this->connection, self::getContainer()->get(TenantContext::class));
+        $balances = SettledBalances::install(self::getContainer(), $this->connection);
         [$invoice, $reminder] = $this->queuedReminder();
         $this->connection->executeStatement('UPDATE invoice_send SET claimed_at = ? WHERE id = ?', ['2026-11-03 09:58:00', $reminder->id()]);
 
@@ -701,7 +687,7 @@ final class DeliverInvoiceSendTest extends SendingTestCase
     public function testAReminderCheckThatCannotBeMadeCountsAsATryOfTheSend(): void
     {
         // The balances answer while the reminder is queued and fail when the worker asks.
-        $balances = new class(new PaymentBalances($this->connection, self::getContainer()->get(TenantContext::class))) implements InvoiceBalances {
+        $balances = new class(new PaymentBalances($this->connection)) implements InvoiceBalances {
             public bool $failing = false;
 
             public function __construct(private readonly InvoiceBalances $inner)
@@ -739,7 +725,7 @@ final class DeliverInvoiceSendTest extends SendingTestCase
     public function testAReminderWhoseInvoiceCannotBeFoundFailsAtOnceWithoutRetries(): void
     {
         // The balances answer while the reminder is queued and fail when the worker asks.
-        $balances = new class(new PaymentBalances($this->connection, self::getContainer()->get(TenantContext::class))) implements InvoiceBalances {
+        $balances = new class(new PaymentBalances($this->connection)) implements InvoiceBalances {
             public bool $failing = false;
 
             public function __construct(private readonly InvoiceBalances $inner)
@@ -774,7 +760,7 @@ final class DeliverInvoiceSendTest extends SendingTestCase
 
     public function testAnInvoiceSendToAPaidInvoiceStillGoes(): void
     {
-        $balances = SettledBalances::install(self::getContainer(), $this->connection, self::getContainer()->get(TenantContext::class));
+        $balances = SettledBalances::install(self::getContainer(), $this->connection);
         $invoice = $this->issue->issue($this->input());
         $send = $this->sent($invoice);
         $balances->pay($invoice->id());
@@ -820,26 +806,34 @@ final class DeliverInvoiceSendTest extends SendingTestCase
     }
 
     /**
-     * Moves a row to another tenant during the next send, so whatever is written
-     * about it next fails.
+     * Puts a row out of reach during the next send: from then on every write of
+     * it fails, so whatever is written about it next fails.
      */
     private function hideWhileSending(string $table, string $id): void
     {
         $connection = $this->connection;
-        $move = static function () use ($connection, $table, $id): void {
-            $connection->executeStatement(\sprintf("UPDATE %s SET tenant_id = '00000000-0000-0000-0000-000000000000' WHERE id = ?", $table), [$id]);
+        $hide = static function () use ($connection, $table, $id): void {
+            if ($connection->getDatabasePlatform() instanceof PostgreSQLPlatform) {
+                $connection->executeStatement("CREATE OR REPLACE FUNCTION test_out_of_reach() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'out of reach'; END $$ LANGUAGE plpgsql");
+                $connection->executeStatement(\sprintf("CREATE TRIGGER test_out_of_reach BEFORE UPDATE ON %s FOR EACH ROW WHEN (OLD.id = '%s') EXECUTE FUNCTION test_out_of_reach()", $table, $id));
+
+                return;
+            }
+            $connection->executeStatement(\sprintf("CREATE TRIGGER test_out_of_reach BEFORE UPDATE ON %s WHEN OLD.id = '%s' BEGIN SELECT RAISE(ABORT, 'out of reach'); END", $table, $id));
         };
         if ('invoice_send' === $table) {
-            $move();
+            $hide();
 
             return;
         }
-        RecordingMailGateway::whileSending($move);
+        RecordingMailGateway::whileSending($hide);
     }
 
-    private function showAgain(string $table, string $id): void
+    private function showAgain(string $table): void
     {
-        $this->connection->executeStatement(\sprintf('UPDATE %s SET tenant_id = ? WHERE id = ?', $table), [$this->tenant->toString(), $id]);
+        $this->connection->executeStatement($this->connection->getDatabasePlatform() instanceof PostgreSQLPlatform
+            ? 'DROP TRIGGER test_out_of_reach ON '.$table
+            : 'DROP TRIGGER test_out_of_reach');
         $this->em->clear();
     }
 

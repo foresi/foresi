@@ -208,25 +208,6 @@ final class InvoiceListExportControllerTest extends WebTestCase
         self::assertSame([-121.05, 0, -121.05], \array_slice($this->xlsx([])[1], 13, 3));
     }
 
-    public function testADocumentOfAnotherTenantNeverShows(): void
-    {
-        $this->signedIn();
-        $own = $this->issue('2026-10-05', ['21' => '100.00']);
-        $foreignTenant = $this->browser->fixtures->tenant('Foreign Tenant '.bin2hex(random_bytes(2)));
-        $this->context->switchTo($foreignTenant);
-        try {
-            $foreign = $this->world('Example Foreign s.r.o.');
-            $this->em()->flush();
-            $this->issueIn($foreign, '2026-10-06', ['21' => '100.00']);
-        } finally {
-            $this->context->reset();
-        }
-
-        self::assertSame([$own->number()], $this->numbers($this->csv([])));
-        // A firm of another tenant filters nothing, as on the list.
-        self::assertSame([$own->number()], $this->numbers($this->csv(['firm' => $foreign['firm']->id()])));
-    }
-
     public function testTheListOffersItWithItsFilter(): void
     {
         $this->signedIn();

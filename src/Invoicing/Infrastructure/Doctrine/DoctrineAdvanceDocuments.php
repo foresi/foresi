@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Doctrine;
 
-use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
@@ -20,23 +19,23 @@ use Doctrine\ORM\EntityManagerInterface;
 
 final readonly class DoctrineAdvanceDocuments implements AdvanceDocuments
 {
-    public function __construct(private EntityManagerInterface $em, private TenantContext $context)
+    public function __construct(private EntityManagerInterface $em)
     {
     }
 
     public function claimDeduction(string $documentId, string $invoiceId): bool
     {
         return 1 === $this->em->getConnection()->executeStatement(
-            'UPDATE invoice SET deducted_by_invoice_id = :invoice WHERE id = :id AND tenant_id = :tenant AND (deducted_by_invoice_id IS NULL OR deducted_by_invoice_id = :invoice)',
-            ['invoice' => $invoiceId, 'id' => $documentId, 'tenant' => $this->context->current()->toString()],
+            'UPDATE invoice SET deducted_by_invoice_id = :invoice WHERE id = :id AND (deducted_by_invoice_id IS NULL OR deducted_by_invoice_id = :invoice)',
+            ['invoice' => $invoiceId, 'id' => $documentId],
         );
     }
 
     public function releaseDeductions(string $invoiceId, array $keep): void
     {
         $this->em->getConnection()->executeStatement(
-            'UPDATE invoice SET deducted_by_invoice_id = NULL WHERE tenant_id = :tenant AND deducted_by_invoice_id = :invoice'.([] === $keep ? '' : ' AND id NOT IN (:keep)'),
-            ['invoice' => $invoiceId, 'tenant' => $this->context->current()->toString(), 'keep' => $keep],
+            'UPDATE invoice SET deducted_by_invoice_id = NULL WHERE deducted_by_invoice_id = :invoice'.([] === $keep ? '' : ' AND id NOT IN (:keep)'),
+            ['invoice' => $invoiceId, 'keep' => $keep],
             ['keep' => ArrayParameterType::STRING],
         );
     }

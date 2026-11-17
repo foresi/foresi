@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Doctrine;
 
-use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\InvoiceBalances;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Domain\DocumentKind;
@@ -34,13 +33,13 @@ use Doctrine\DBAL\Connection;
 final readonly class PaymentBalances implements InvoiceBalances, OwingInvoiceCondition
 {
     private const string PAID = '(SELECT COALESCE(SUM(pa.amount_minor + pa.settlement_minor), 0) FROM payment_allocation pa'
-        .' INNER JOIN payment pp ON pp.id = pa.payment_id AND pp.tenant_id = pa.tenant_id'
-        .' WHERE pa.invoice_id = %1$s.id AND pa.tenant_id = %1$s.tenant_id AND pp.cancelled_at IS NULL)';
+        .' INNER JOIN payment pp ON pp.id = pa.payment_id'
+        .' WHERE pa.invoice_id = %1$s.id AND pp.cancelled_at IS NULL)';
 
     private const string CORRECTIONS = '(SELECT COALESCE(SUM(pc.payable_minor), 0) FROM invoice pc'
-        .' WHERE pc.corrected_invoice_id = %1$s.id AND pc.tenant_id = %1$s.tenant_id AND pc.deleted_at IS NULL)';
+        .' WHERE pc.corrected_invoice_id = %1$s.id AND pc.deleted_at IS NULL)';
 
-    public function __construct(private Connection $connection, private TenantContext $context)
+    public function __construct(private Connection $connection)
     {
     }
 
@@ -53,8 +52,8 @@ final readonly class PaymentBalances implements InvoiceBalances, OwingInvoiceCon
         /** @var list<array{id: string, kind: string, payable_minor: int|string, paid_minor: int|string, corrections_minor: int|string, currency: string, deleted_at: ?string}> $rows */
         $rows = $this->connection->fetchAllAssociative(
             'SELECT i.id, i.kind, i.payable_minor, i.currency, i.deleted_at, '.\sprintf(self::PAID, 'i').' AS paid_minor, '.\sprintf(self::CORRECTIONS, 'i').' AS corrections_minor'
-            .' FROM invoice i WHERE i.tenant_id = :tenant AND i.id IN (:ids)',
-            ['tenant' => $this->context->current()->toString(), 'ids' => $ids],
+            .' FROM invoice i WHERE i.id IN (:ids)',
+            ['ids' => $ids],
             ['ids' => ArrayParameterType::STRING],
         );
         $owed = [];

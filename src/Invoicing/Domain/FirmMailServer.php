@@ -11,8 +11,6 @@ namespace App\Invoicing\Domain;
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditExcluded;
 use App\Audit\Domain\AuditRooted;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
@@ -25,9 +23,8 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'firm_mail_server')]
-#[ORM\Index(name: 'idx_firm_mail_server_tenant', columns: ['tenant_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_firm_mail_server_firm', columns: ['legal_entity_id'])]
-class FirmMailServer implements TenantOwned, Audited, AuditRooted
+class FirmMailServer implements Audited, AuditRooted
 {
     /** Submission ports only: 25 is for servers talking to servers, and often blocked. */
     public const array PORTS = [465, 587, 2525];
@@ -37,9 +34,6 @@ class FirmMailServer implements TenantOwned, Audited, AuditRooted
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'string', length: 253)]
     private string $host;
@@ -237,11 +231,6 @@ class FirmMailServer implements TenantOwned, Audited, AuditRooted
     public function verifiedAt(): ?\DateTimeImmutable
     {
         return $this->verifiedAt;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     /**

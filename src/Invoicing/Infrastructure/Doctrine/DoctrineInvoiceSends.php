@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Doctrine;
 
-use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\SendLogFilter;
 use App\Invoicing\Application\SendLogPage;
@@ -23,14 +22,14 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Sends through the tenant filter. Trash and restore change the rows one by one,
+ * Sends. Trash and restore change the rows one by one,
  * so the audit log records them.
  */
 final readonly class DoctrineInvoiceSends implements InvoiceSends
 {
-    private const string LOCK = 'UPDATE invoice_send SET attempts = attempts WHERE id = :id AND tenant_id = :tenant';
+    private const string LOCK = 'UPDATE invoice_send SET attempts = attempts WHERE id = :id';
 
-    public function __construct(private EntityManagerInterface $em, private TenantContext $context)
+    public function __construct(private EntityManagerInterface $em)
     {
     }
 
@@ -41,7 +40,7 @@ final readonly class DoctrineInvoiceSends implements InvoiceSends
 
     public function lock(string $id): InvoiceSend
     {
-        $locked = $this->em->getConnection()->executeStatement(self::LOCK, ['id' => $id, 'tenant' => $this->context->current()->toString()]);
+        $locked = $this->em->getConnection()->executeStatement(self::LOCK, ['id' => $id]);
         if (1 !== $locked) {
             throw new UnknownInvoiceSend();
         }
@@ -260,8 +259,8 @@ final readonly class DoctrineInvoiceSends implements InvoiceSends
         }
         // Bookkeeping of the job, past the audit log.
         $this->em->getConnection()->executeStatement(
-            'UPDATE invoice_send SET requeued_at = :at WHERE tenant_id = :tenant AND id IN (:ids)',
-            ['at' => $at, 'tenant' => $this->context->current()->toString(), 'ids' => $ids],
+            'UPDATE invoice_send SET requeued_at = :at WHERE id IN (:ids)',
+            ['at' => $at, 'ids' => $ids],
             ['at' => 'datetime_immutable', 'ids' => ArrayParameterType::STRING],
         );
     }

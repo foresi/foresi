@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure\Support;
 
-use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\InvoiceBalances;
 use App\Invoicing\Infrastructure\Doctrine\OwingInvoiceCondition;
 use App\Invoicing\Infrastructure\Doctrine\PaymentBalances;
@@ -34,9 +33,9 @@ final class SettledBalances implements InvoiceBalances, OwingInvoiceCondition
     /**
      * Replaces the bound balances of the test container; call it before anything uses them.
      */
-    public static function install(ContainerInterface $container, Connection $connection, TenantContext $context): self
+    public static function install(ContainerInterface $container, Connection $connection): self
     {
-        $balances = new self(new PaymentBalances($connection, $context));
+        $balances = new self(new PaymentBalances($connection));
         $container->set(PaymentBalances::class, $balances);
 
         return $balances;

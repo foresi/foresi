@@ -10,8 +10,6 @@ namespace App\Invoicing\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditExcluded;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
@@ -39,7 +37,7 @@ use Doctrine\ORM\Mapping as ORM;
  * alone: a form opened before an export still saves.
  *
  * An invoice issued from a recurring template names the template and the date of
- * its occurrence, unique in a tenant, so no occurrence is ever issued twice. The
+ * its occurrence, unique, so no occurrence is ever issued twice. The
  * trash keeps both, so trashing never lets the occurrence come again. Ordinary
  * invoices hold null in both, which repeats freely.
  *
@@ -50,20 +48,19 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'invoice')]
-#[ORM\Index(name: 'idx_invoice_tenant', columns: ['tenant_id'])]
-#[ORM\Index(name: 'idx_invoice_firm_date', columns: ['tenant_id', 'legal_entity_id', 'issue_date'])]
-#[ORM\Index(name: 'idx_invoice_firm_tax_point', columns: ['tenant_id', 'legal_entity_id', 'tax_point_date'])]
+#[ORM\Index(name: 'idx_invoice_firm_date', columns: ['legal_entity_id', 'issue_date'])]
+#[ORM\Index(name: 'idx_invoice_firm_tax_point', columns: ['legal_entity_id', 'tax_point_date'])]
 #[ORM\Index(name: 'idx_invoice_series', columns: ['series_id'])]
 #[ORM\Index(name: 'idx_invoice_customer', columns: ['customer_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_invoice_number', columns: ['legal_entity_id', 'number_key'])]
-#[ORM\UniqueConstraint(name: 'uniq_invoice_occurrence', columns: ['tenant_id', 'recurring_invoice_id', 'recurring_occurrence'])]
+#[ORM\UniqueConstraint(name: 'uniq_invoice_occurrence', columns: ['recurring_invoice_id', 'recurring_occurrence'])]
 #[ORM\UniqueConstraint(name: 'uniq_invoice_taxed_payment', columns: ['advance_invoice_id', 'payment_id'])]
 #[ORM\Index(name: 'idx_invoice_payment', columns: ['payment_id'])]
 #[ORM\Index(name: 'idx_invoice_deducted_by', columns: ['deducted_by_invoice_id'])]
 #[ORM\Index(name: 'idx_invoice_corrected', columns: ['corrected_invoice_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_invoice_import', columns: ['legal_entity_id', 'import_source', 'import_external_id'])]
 #[ORM\Index(name: 'idx_invoice_import_run', columns: ['import_run_id'])]
-class Invoice implements TenantOwned, Audited
+class Invoice implements Audited
 {
     /** The longest format of a series with the longest sequence it can hold. */
     public const int MAX_NUMBER_LENGTH = 80;
@@ -80,9 +77,6 @@ class Invoice implements TenantOwned, Audited
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     // Goes up with every save, so a form can tell it was opened before the last one. A technical
     // value, so left out of the audit log: a save that changes nothing leaves no entry.
@@ -835,11 +829,6 @@ class Invoice implements TenantOwned, Audited
     public function createdAt(): \DateTimeImmutable
     {
         return $this->createdAt;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     private function applyContent(InvoiceChange $content): void

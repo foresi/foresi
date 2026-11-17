@@ -80,8 +80,6 @@ final class InvoicingDashboardTest extends WebTestCase
     public function testWithoutDocumentsThePlaceholderStays(): void
     {
         $this->signedIn();
-        // Another tenant's documents show nowhere.
-        $this->foreignInvoice();
 
         $crawler = $this->client->request('GET', '/');
 
@@ -95,7 +93,6 @@ final class InvoicingDashboardTest extends WebTestCase
         $this->signedIn();
         $this->issue('2026-11-02', '2026-11-15', '1000.00');
         $this->issue('2026-10-05', '2026-12-31', '2000.00');
-        $this->foreignInvoice();
 
         $crawler = $this->client->request('GET', '/');
 
@@ -245,28 +242,6 @@ final class InvoicingDashboardTest extends WebTestCase
 
             return $firm;
         });
-    }
-
-    private function foreignInvoice(): void
-    {
-        $tenant = $this->browser->fixtures->tenant('Foreign Tenant '.bin2hex(random_bytes(2)));
-        $this->context->switchTo($tenant);
-        try {
-            $firm = new LegalEntity('Example Foreign s.r.o.', new RegistrationNumber('CZ', '12345679'), VatId::fromString('CZ12345679'), new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Register');
-            $this->em()->persist($firm);
-            FirmAccounts::add($this->em(), $firm, self::IBAN);
-            $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
-            $series->markDefault();
-            $this->em()->persist($series);
-            $customer = new Party(PartyKind::Company, 'Foreign Customer a.s.', new RegistrationNumber('CZ', '87654320'), null, '');
-            $this->em()->persist($customer);
-            $this->em()->persist(new PartyAddress($customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
-            $this->em()->flush();
-            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
-            self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($firm->id(), $series->id(), null, $customer->id(), null, new \DateTimeImmutable('2026-10-01'), new \DateTimeImmutable('2026-10-01'), new \DateTimeImmutable('2026-10-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Foreign', '', '', DocumentLanguage::Czech, [$line], true));
-        } finally {
-            $this->context->reset();
-        }
     }
 
     private function signedIn(Role $role = Role::Owner, string $locale = 'en'): void
