@@ -12,12 +12,15 @@ use App\Party\Domain\Address;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatStatus;
+use App\Instance\Application\ConfiguredZone;
+use App\Instance\Application\InstanceClock;
 use App\Instance\Application\Schedule\TenantDirectory;
 use App\Instance\Application\TenantClock;
 use App\Instance\Application\TenantContext;
 use App\Instance\Application\TenantZoneFallback;
 use App\Instance\Domain\Tenant;
 use App\Instance\Domain\TenantId;
+use App\Instance\Infrastructure\Clock\TimezoneEnvVarProcessor;
 use App\Instance\Infrastructure\Console\TenantTimezoneCommand;
 use App\Instance\Infrastructure\Schedule\DoctrineTenantDirectory;
 use App\Tests\Support\Registry\RecordingLogger;
@@ -32,6 +35,7 @@ use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Console\Tester\CommandTester;
+use Symfony\Component\DependencyInjection\Exception\RuntimeException;
 
 final class TenantClockTest extends KernelTestCase
 {
@@ -174,7 +178,7 @@ final class TenantClockTest extends KernelTestCase
         $this->firm($tenant, 'CZ');
         self::getContainer()->get(Connection::class)->executeStatement("UPDATE tenant SET timezone = 'Europe/Atlantis' WHERE id = :id", ['id' => $tenant->toString()]);
         $logger = new RecordingLogger();
-        $directory = new DoctrineTenantDirectory(self::getContainer()->get(Connection::class), self::getContainer()->get(TenantZoneFallback::class), $logger);
+        $directory = new DoctrineTenantDirectory(self::getContainer()->get(Connection::class), self::getContainer()->get(TenantZoneFallback::class), $logger, new ConfiguredZone(''));
 
         self::assertSame('Europe/Prague', $directory->zones()[$tenant->toString()]->getName());
         self::assertSame('Europe/Prague', $directory->zone($tenant)->getName());
@@ -218,6 +222,101 @@ final class TenantClockTest extends KernelTestCase
         if (\in_array('US/Eastern', \DateTimeZone::listIdentifiers(\DateTimeZone::ALL_WITH_BC), true)) {
             self::assertFalse(Tenant::isNamed(new \DateTimeZone('US/Eastern')));
         }
+    }
+
+    public function testTheConfiguredZoneComesAfterAStoredOneAndBeforeTheFirmsCountry(): void
+    {
+        $stored = $this->tenant('Europe/Prague');
+        $czech = $this->tenant(null);
+        $this->firm($czech, 'CZ');
+        $this->em->clear();
+        $directory = $this->configuredDirectory('America/New_York');
+
+        $before = $this->queryCount();
+        $zones = $directory->zones();
+
+        self::assertSame(1, $this->queryCount() - $before, 'With a configured zone the fallback is never asked.');
+        self::assertSame('Europe/Prague', $zones[$stored->toString()]->getName());
+        self::assertSame('America/New_York', $zones[$czech->toString()]->getName());
+        self::assertSame('America/New_York', $directory->zone($czech)->getName());
+    }
+
+    public function testAnEmptyConfiguredZoneKeepsTheFirmsCountry(): void
+    {
+        $tenant = $this->tenant(null);
+        $this->firm($tenant, 'CZ');
+
+        self::assertSame('Europe/Prague', $this->configuredDirectory('')->zone($tenant)->getName());
+        self::assertSame('', self::getContainer()->getParameter('app.timezone'), 'The tests run with APP_TIMEZONE empty.');
+    }
+
+    public function testTheInstanceClockFollowsItsTenant(): void
+    {
+        $tenant = $this->tenant(null);
+        $this->firm($tenant, 'CZ');
+        $clock = self::getContainer()->get(InstanceClock::class);
+
+        self::assertSame('Europe/Prague', $clock->timezone()->getName());
+        self::assertSame('2027-01-01 00:00:00 Europe/Prague', $clock->today()->format('Y-m-d H:i:s e'));
+        self::assertSame('2027-01-01 00:30:00 Europe/Prague', $clock->clock()->now()->format('Y-m-d H:i:s e'));
+    }
+
+    public function testTheInstanceClockWithoutATenantIsTheConfiguredZoneElseUtc(): void
+    {
+        $symfonyClock = self::getContainer()->get(\Symfony\Component\Clock\ClockInterface::class);
+
+        self::assertSame('UTC', new InstanceClock($this->configuredDirectory(''), new ConfiguredZone(''), $symfonyClock)->timezone()->getName());
+        $configured = new InstanceClock($this->configuredDirectory('America/New_York'), new ConfiguredZone('America/New_York'), $symfonyClock);
+        self::assertSame('America/New_York', $configured->timezone()->getName());
+        self::assertSame('2026-12-31 00:00:00 America/New_York', $configured->today()->format('Y-m-d H:i:s e'));
+    }
+
+    public function testTheConfiguredZoneTakesCanonicalNamesOnly(): void
+    {
+        self::assertNull(new ConfiguredZone('')->zone());
+        self::assertSame('Europe/Prague', new ConfiguredZone('Europe/Prague')->zone()?->getName());
+        foreach (['+01:00', 'CET', 'US/Eastern', 'Europe/Atlantis', 'europe/prague'] as $name) {
+            try {
+                new ConfiguredZone($name);
+                self::fail(\sprintf('"%s" must be refused.', $name));
+            } catch (\InvalidArgumentException $e) {
+                self::assertStringContainsString($name, $e->getMessage());
+            }
+        }
+    }
+
+    public function testTheEnvironmentProcessorNamesTheVariableOfAWrongZone(): void
+    {
+        $processor = new TimezoneEnvVarProcessor();
+
+        self::assertSame('Europe/Prague', $processor->getEnv('timezone', 'APP_TIMEZONE', static fn (): string => ' Europe/Prague '));
+        self::assertSame('', $processor->getEnv('timezone', 'APP_TIMEZONE', static fn (): string => ''));
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/APP_TIMEZONE.*Europe\/Atlantis/');
+        $processor->getEnv('timezone', 'APP_TIMEZONE', static fn (): string => 'Europe/Atlantis');
+    }
+
+    public function testAWrongConfiguredZoneStopsTheKernelAtBoot(): void
+    {
+        // A kernel of its own: the one of the test case would be booted again to shut it down.
+        $kernel = self::createKernel();
+        $_SERVER['APP_TIMEZONE'] = $_ENV['APP_TIMEZONE'] = 'Europe/Atlantis';
+        try {
+            $kernel->boot();
+            self::fail('A wrong APP_TIMEZONE must stop the boot.');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('APP_TIMEZONE', $e->getMessage());
+        } finally {
+            unset($_SERVER['APP_TIMEZONE'], $_ENV['APP_TIMEZONE']);
+        }
+    }
+
+    private function configuredDirectory(string $zone): DoctrineTenantDirectory
+    {
+        $container = self::getContainer();
+
+        return new DoctrineTenantDirectory($container->get(Connection::class), $container->get(TenantZoneFallback::class), new RecordingLogger(), new ConfiguredZone($zone));
     }
 
     private function tenant(?string $zone): TenantId

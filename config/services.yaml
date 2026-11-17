@@ -11,6 +11,10 @@ parameters:
     app.product_name: Foresi
     # The released version, named as the issuing system in electronic documents. A release sets it.
     app.version: 0.4.0
+    # The zone of the instance's days, a canonical tz name such as Europe/Prague;
+    # empty follows the country of the first active firm, else UTC. Checked at boot.
+    env(APP_TIMEZONE): ''
+    app.timezone: '%env(timezone:APP_TIMEZONE)%'
     # Uploaded import sources; never below public/, tenant directories inside.
     app.import_files_dir: '%kernel.project_dir%/var/imports'
     # Logos and stamps; never below public/. From the kernel, not from the environment
@@ -372,6 +376,10 @@ services:
         tags:
             - { name: kernel.reset, method: reset }
 
+    App\Instance\Application\ConfiguredZone:
+        arguments:
+            $name: '%app.timezone%'
+
 when@dev:
     parameters:
         app.mail.allow_local_links: true
@@ -718,6 +726,8 @@ when@test:
             public: true
         # Nothing uses the tenant's clock yet; the jobs that will are on their way.
         App\Instance\Application\TenantClock: { public: true }
+        # Nothing uses the instance's clock yet; it takes over from the tenant's clock (ADR 0035).
+        App\Instance\Application\InstanceClock: { public: true }
         # The MCP server on stdio will sign in with it; until then only the tests do.
         App\Identity\Infrastructure\Security\ApiTokenLogin: { public: true }
 

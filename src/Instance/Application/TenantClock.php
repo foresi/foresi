@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Instance\Application;
 
 use App\Instance\Application\Schedule\TenantDirectory;
-use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\ClockInterface;
 
 /**
  * The zone and the date of today in the active tenant. The zone is read each
@@ -39,6 +39,6 @@ final readonly class TenantClock
      */
     public function today(): \DateTimeImmutable
     {
-        return \DateTimeImmutable::createFromInterface($this->clock->now())->setTimezone($this->timezone())->setTime(0, 0);
+        return $this->clock->withTimeZone($this->timezone())->now()->setTime(0, 0);
     }
 }

@@ -287,6 +287,8 @@ deptrac:
             - type: classLike
               value: ^Symfony\\Component\\Uid\\
             - type: classLike
+              value: ^Symfony\\Component\\Clock\\ClockInterface$
+            - type: classLike
               value: ^Symfony\\Component\\HtmlSanitizer\\
             - type: classLike
               value: ^Symfony\\AI\\McpBundle\\
@@ -300,6 +302,11 @@ deptrac:
       collectors:
         - type: classLike
           value: ^(OpenApi|Nelmio\\ApiDocBundle)\\
+    # The clock contract with withTimeZone(); the instance clock in Instance Application builds on it.
+    - name: VendorClock
+      collectors:
+        - type: classLike
+          value: ^Symfony\\Component\\Clock\\ClockInterface$
     # symfony/uid is an internal detail of App\Shared\Domain\Id only.
     - name: VendorUid
       collectors:
@@ -400,6 +407,7 @@ deptrac:
       - SharedDomain
     InstanceApplication:
       - Contract
+      - VendorClock
       - InstanceDomain
       - SharedDomain
       - SharedApplication
