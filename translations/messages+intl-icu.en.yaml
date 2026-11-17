@@ -3535,6 +3535,7 @@ work:
     new_status: New status
     add_status: Add a status
     status_removed: 'The status {name} is removed.'
+    workflow_applied: 'The statuses of the project now follow the {name} template.'
     move_up: 'Move up: {name}'
     move_down: 'Move down: {name}'
     remove: Remove
@@ -3542,6 +3543,12 @@ work:
     remove_section:
       title: 'Remove the section {name}?'
       text: Tasks of the section move to No section.
+    apply_workflow:
+      open: Apply workflow template
+      title: Apply a workflow template
+      template: Template
+      text: 'The statuses of the project are replaced by those of the template, custom names included. Every task moves to the first status of the same type; closed tasks go to done when the template has no closed status. Finished tasks stay finished.'
+      submit: Replace the statuses
     remove_status:
       title: 'Remove the status {name}'
       text: 'The tasks in {name} move to another status.'
@@ -3738,7 +3745,6 @@ work:
       client_help: Any contact of the address book.
       client_placeholder: Type the name of a contact
       client_empty: No contact found
-      workflow: Workflow
       description: Description
       billable: Bill time
       billable_help: New time on this project starts as billable.

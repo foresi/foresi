@@ -1,0 +1,41 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A workflow template applied to a project: the choice of the template and what it does to the statuses and
+    the tasks, confirmed in one step. A dialog over the settings; the same URL is a page of its own.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: project.name, href: path('app_project', {id: project.id})}, {label: 'work.settings.title'|trans, href: path('app_project_settings', {id: project.id})}, {label: 'work.settings.apply_workflow.title'|trans}] %}
+{% set form_invalid = error is not null %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ 'work.settings.apply_workflow.title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="workflow-apply-form" action="{{ path('app_project_workflow', {id: project.id}) }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\ProjectSettingsController::TOKEN')) }}">
+        {% if error %}<twig:Ui:Alert tone="error" tabindex="-1" data-error-summary :autofocus="true">{{ error }}</twig:Ui:Alert>{% endif %}
+        <twig:Ui:RadioCards name="workflow" id="workflow" :legend="'work.settings.apply_workflow.template'|trans" :value="value" :options="workflows" />
+        <twig:Ui:Alert tone="warning">
+            <p class="m-0">{{ 'work.settings.apply_workflow.text'|trans }}</p>
+        </twig:Ui:Alert>
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="workflow-apply-form" variant="danger">{{ 'work.settings.apply_workflow.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set form %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'work.settings.apply_workflow.title'|trans" icon="circle-check" class="max-w-2xl">
+        {{ form }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_project_settings', {id: project.id})">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="workflow-apply-form" variant="danger">{{ 'work.settings.apply_workflow.submit'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

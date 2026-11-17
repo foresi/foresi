@@ -1,7 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    A new project: its name, the client it is for, the workflow its statuses start from and what it
-    is about. A dialog over the projects; the same URL is a page of its own.
+    A new project: its name, the client it is for and what it is about. It starts with the simple
+    workflow, changed later in its settings. A dialog over the projects; the same URL is a page of its own.
 #}
 {% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
 
@@ -24,7 +24,7 @@
                     {% for field, message in errors %}
                         <li>
                             {%- if field == 'form' %}{{ message }}
-                            {%- else %}<a href="#{{ field == 'workflow' ? 'workflow-simple' : field }}" class="text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ ('work.project.field.' ~ field)|trans }}</a>: {{ message }}
+                            {%- else %}<a href="#{{ field }}" class="text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ ('work.project.field.' ~ field)|trans }}</a>: {{ message }}
                             {%- endif -%}
                         </li>
                     {% endfor %}
@@ -34,7 +34,6 @@
 
         <twig:Ui:TextInput name="name" id="name" :label="'work.project.field.name'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="200" required autocomplete="off" />
         <twig:Ui:Combobox name="clientId" id="client" textName="clientQuery" :label="'work.project.field.client'|trans" :help="'work.project.field.client_help'|trans" :placeholder="'work.project.field.client_placeholder'|trans" :value="values.clientId" :text="values.clientQuery" :url="path('app_project_clients')" :emptyText="'work.project.field.client_empty'|trans" :error="errors.client|default(null)" />
-        <twig:Ui:RadioCards name="workflow" id="workflow" :legend="'work.project.field.workflow'|trans" :value="values.workflow" :options="workflows" :error="errors.workflow|default(null)" />
         <twig:Ui:Textarea name="description" id="description" :label="'work.project.field.description'|trans" :value="values.description" :rows="3" />
     </form>
 {% endblock %}

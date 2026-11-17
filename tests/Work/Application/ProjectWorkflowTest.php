@@ -97,6 +97,52 @@ final class ProjectWorkflowTest extends WorkTestCase
         $this->assertRefused('not_allowed', fn (): Project => $this->projects->create('Mine', null, WorkflowTemplate::Simple));
     }
 
+    public function testATemplateReplacesTheStatusesAndMovesEveryTaskByItsType(): void
+    {
+        $project = $this->project(WorkflowTemplate::Development);
+        [$open, , $review, , , $done, $closed] = $this->statuses($project);
+        $reviewed = $this->tasks->create($project->id(), 'Review the copy', statusId: $review->id());
+        $subtask = $this->tasks->create($project->id(), 'Check the links', parentId: $reviewed->id(), statusId: $open->id());
+        $finished = $this->tasks->create($project->id(), 'Ship the site', statusId: $done->id());
+        $shut = $this->tasks->create($project->id(), 'Old idea', statusId: $closed->id());
+        $trashed = $this->tasks->create($project->id(), 'Dropped', statusId: $closed->id());
+        $this->tasks->delete($trashed->id());
+        $finishedAt = $this->task($finished)->completedAt();
+        $shutAt = $this->task($shut)->completedAt();
+        self::assertNotNull($finishedAt);
+        self::assertNotNull($shutAt);
+
+        $this->workflow->applyTemplate($project->id(), WorkflowTemplate::Simple);
+
+        $statuses = $this->statuses($project);
+        self::assertSame([['K udělání', StatusType::Open, 0], ['Probíhá', StatusType::Active, 1], ['Hotovo', StatusType::Done, 2]], array_map(static fn (ProjectStatus $status): array => [$status->name(), $status->type(), $status->position()], $statuses));
+        self::assertSame(WorkflowTemplate::Simple, $this->em->find(Project::class, $project->id())?->workflowTemplate());
+        [$toDo, $inProgress, $newDone] = $statuses;
+        self::assertSame($inProgress->id(), $this->task($reviewed)->status()->id());
+        self::assertSame($toDo->id(), $this->task($subtask)->status()->id());
+        self::assertSame($newDone->id(), $this->task($finished)->status()->id());
+        self::assertSame($newDone->id(), $this->task($shut)->status()->id());
+        self::assertSame($newDone->id(), $this->task($trashed)->status()->id());
+        self::assertNull($this->task($reviewed)->completedAt());
+        self::assertEquals($finishedAt, $this->task($finished)->completedAt());
+        self::assertEquals($shutAt, $this->task($shut)->completedAt());
+    }
+
+    public function testOnlyTheStaffApplyATemplate(): void
+    {
+        $project = $this->project();
+        $this->signIn($this->guest);
+
+        $this->assertRefused('unknown', fn () => $this->workflow->applyTemplate($project->id(), WorkflowTemplate::Development));
+    }
+
+    private function task(Task $task): Task
+    {
+        $this->em->clear();
+
+        return $this->em->find(Task::class, $task->id()) ?? throw new \LogicException('Task.');
+    }
+
     private function assertRefused(string $reason, callable $change): void
     {
         try {

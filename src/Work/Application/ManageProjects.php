@@ -33,12 +33,12 @@ final readonly class ManageProjects
     }
 
     /**
-     * A new project with the statuses of its template, named in the language
-     * of the person creating it.
+     * A new project with the statuses of its template, the simple one unless
+     * told otherwise, named in the language of the person creating it.
      *
      * @throws WorkRefused
      */
-    public function create(string $name, ?string $clientId, WorkflowTemplate $template, string $description = ''): Project
+    public function create(string $name, ?string $clientId, WorkflowTemplate $template = WorkflowTemplate::Simple, string $description = ''): Project
     {
         $this->work->assertManager();
         $userId = $this->actor->userId() ?? throw new WorkRefused('not_allowed');
