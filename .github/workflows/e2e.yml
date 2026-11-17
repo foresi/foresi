@@ -50,6 +50,13 @@ jobs:
           key: composer-${{ hashFiles('composer.lock') }}
           restore-keys: composer-
 
+      # The importmap packages come from cdn.jsdelivr.net, which times out now and then.
+      # Composer's auto-scripts run importmap:install, which downloads only what is missing.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: assets/vendor
+          key: importmap-${{ hashFiles('importmap.php') }}
+
       # Dev dependencies are needed: the e2e environment uses the registry fakes of the test suite.
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
