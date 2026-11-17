@@ -353,6 +353,31 @@ final class NavigationRegistryTest extends TestCase
         self::assertSame(1, $registry->areas(null, true)[0]['groups'][0]['items'][0]->count);
     }
 
+    public function testCurrentIsTheItemWhoseOwnRouteThePageIsBeforeAnyPrefix(): void
+    {
+        $registry = $this->registry(
+            new NavigationItem('work', 'projects', 'columns-3', 'app_projects', routePrefixes: ['app_project', 'app_task']),
+            new NavigationItem('work', 'mine', 'square-check-big', 'app_project_mine'),
+        );
+
+        self::assertSame('projects', $registry->current('app_task')?->labelKey);
+        self::assertSame('mine', $registry->current('app_project_mine')?->labelKey);
+        self::assertNull($registry->current('app_login'));
+        self::assertNull($registry->current(null));
+    }
+
+    public function testCurrentRunsNoCount(): void
+    {
+        $count = new class implements NavigationCountProvider {
+            public function count(): int
+            {
+                throw new \LogicException('The page title must not run a count.');
+            }
+        };
+
+        self::assertSame('inbox', $this->registry(new NavigationItem('main', 'inbox', 'inbox', 'app_inbox', $count))->current('app_inbox')?->labelKey);
+    }
+
     private function registry(NavigationItem ...$items): NavigationRegistry
     {
         return new NavigationRegistry([$this->provider(...$items)]);

@@ -232,7 +232,7 @@ final class AppShellTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSame($title, $crawler->filter('main h1')->text());
-        self::assertSame($title, $crawler->filter('title')->text());
+        self::assertSame($title.' · Foresi', $crawler->filter('title')->text());
         self::assertStringNotContainsString('&amp;amp;', (string) $this->client->getResponse()->getContent());
         self::assertStringNotContainsString('&amp;quot;', (string) $this->client->getResponse()->getContent());
     }

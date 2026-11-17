@@ -10,6 +10,8 @@
 #}
 {% extends 'base.html.twig' %}
 
+{% block document_title %}{{ page_title(block('title')|striptags|html_decode|trim, app.current_route) }}{% endblock %}
+
 {% block body %}
     {% set shell = shell() %}
     {% set pageTitle = block('title')|striptags|html_decode|trim %}

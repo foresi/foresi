@@ -3,6 +3,8 @@
     A page whose form came back with errors sets "form_invalid" to true (a top-level set in the page
     template): the title then starts with "Error:" (WCAG 3.3.1), and the form-errors controller on the
     body moves the focus to the first invalid field.
+    The document title runs from the specific to the general, "Page · Section · Foresi" (page_title);
+    a frame overrides the block "document_title" to give the section, or to leave the product out.
 #}
 <html lang="{{ app.request.locale }}">
     <head>
@@ -15,7 +17,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
         {# Turbo cross-fades the content panel between pages; the shell sets which part moves. #}
         <meta name="view-transition" content="same-origin">
-        <title>{% if form_invalid|default(false) %}{{ 'form.title_error'|trans }} {% endif %}{% block title %}{% endblock %}</title>
+        {# The block "title" is the page's heading; it is defined here and read where it is needed. #}
+        {% set heading %}{% block title %}{% endblock %}{% endset %}
+        <title>{% if form_invalid|default(false) %}{{ 'form.title_error'|trans }} {% endif %}{% block document_title %}{{ page_title(heading|striptags|html_decode|trim) }}{% endblock %}</title>
         {% block head %}{% endblock %}
         {% block stylesheets %}{% endblock %}
         {% block javascripts %}{% block importmap %}{{ importmap('app') }}{% endblock %}{% endblock %}
