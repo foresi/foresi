@@ -1,0 +1,1302 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+series:
+  title: Number series
+  new: New series
+  edit: Edit series
+  card: Series
+  default: Default
+  first: 'No series yet. The first invoice of this firm gets the number {number} in a standard series.'
+  name:
+    standard: Standard
+    standard_advance: Advance invoices
+    standard_payment_tax_document: Tax documents on payment
+    standard_correction_document: Corrective documents
+  kind:
+    invoice: Invoice
+    advance: Advance invoice
+    payment_tax_document: Tax document on payment
+    correction_document: Corrective tax document
+  column:
+    name: Name
+    kind: Documents
+    format: Format
+    next: Next number
+    default: Default
+  field:
+    kind: Documents
+    kind_help: The kind of document this series numbers
+    kind_locked_help: The kind of documents of a series stays
+    name: Name
+    format: Format
+    format_help: "Tokens '{YYYY} {YY} {MM} {DD}' and one '{NNNN}'"
+    format_locked_help: This series has numbers, so its format is locked
+    nextNumber: Next number
+    nextNumber_help: Empty keeps the count. Skipped numbers are not used
+    startYear: Year
+    startYear_help: A format without a year ignores it
+    default: Default series for new documents of its kind
+    default_help: Takes over from the current default series
+    default_kept_help: To change it, make another series the default
+  flash:
+    saved: The series is saved.
+  error:
+    format: "Use only letters, digits, . _ / - and the tokens '{YYYY} {YY} {MM} {DD}' with one '{NNNN}'."
+    format_locked: This series has numbers, so its format cannot change.
+    format_too_long: 'Numbers of this series would be longer than a document can carry: 40 characters at most.'
+    format_taken: 'Numbers would clash with the series {name}.'
+    name_taken: Another series of this firm has this name.
+    next_number: Enter a whole number from 1 to 2147483647.
+    start_year: Enter a year from 2000 to 2099.
+    next_below_counter: 'This number is already used. The next free one is {next}.'
+    kind: Choose the kind of documents.
+invoice:
+  links:
+    title: Links
+    advance: Advance invoice
+    payments: Payments
+    final: Final invoice
+    none: No payment yet
+    no_tax_document: no tax document
+    not_settled: Not settled yet
+  deduction:
+    pick_first: The firm has advances to deduct. Pick the customer, then show theirs.
+    show: "Show the customer's advances"
+    label: Deduct an advance
+    help: Each tax document once, deducted per rate
+    add: Deduct
+    option: '{same, select, yes {Advance {number}} other {Tax document {number}, advance {advance}}}, {amount}'
+  public:
+    title: '{kind, select, advance {Advance invoice {number}} payment_tax_document {Tax document {number}} correction_document {Corrective tax document {number}} other {Invoice {number}}}'
+    from: From
+    for: 'For {customer}'
+    paid: Paid
+    amount: Amount to pay
+    amount_paid: Total paid
+    settled_by_advances: Settled by advances
+    settled_by_advances_note: Settled by advances, nothing to pay
+    to_refund: Difference to refund
+    to_return: To be refunded
+    due: Due date
+    remaining: Left to pay
+    payment:
+      title: Pay by bank transfer
+      account: Account number
+      iban: IBAN
+      variable_symbol: Variable symbol
+      amount: Amount
+      qr: Scan in your banking app (QR Platba)
+    open: Open PDF
+    download: Download
+    download_paid: '{kind, select, advance {Download advance invoice (paid)} payment_tax_document {Download tax document} other {Download invoice (paid)}}'
+    paid_note: 'Paid {date}, nothing to pay'
+    do_not_pay: Do not pay, the document is already paid
+    credit_note_note: 'It lowers the amount to pay on document {number}. Do not pay it.'
+    credit_note_refund_note: We will refund the amount to you.
+    viewer: '{kind, select, advance {Advance invoice {number} as PDF} payment_tax_document {Tax document {number} as PDF} correction_document {Corrective tax document {number} as PDF} other {Invoice {number} as PDF}}'
+    fallback: This browser cannot show the PDF on the page. Open it with the button.
+    notice: 'This link from {issuer} is meant for you: anyone who has it can open the document, so please do not forward it.'
+    gone:
+      title: This link is not available
+      text: The link is not valid, or the sender has ended it. If you need the document, ask whoever sent it to you.
+    limited:
+      title: Too many requests
+      text: Please try again in a minute.
+  mail:
+    default:
+      subject: 'Invoice {number}'
+      body: |-
+        Based on your order I am sending invoice no. {number} for {amount_total}, due on {due_date}.
+
+        Thank you,
+        {sender_name}
+
+        {link}
+  mark:
+    queued: Sending
+    sent: Sent
+    read: Read
+    failed: Failed
+    hint:
+      queued: Waiting in the queue to be sent
+      sent: Sent to the customer
+      read: The customer opened the document
+      failed: The e-mail could not be sent
+  changed_after_send: 'This invoice changed after it was sent on {date}. The customer''s link shows the version sent, so send it again.'
+  imported_original: 'This document was imported. Its PDF is the original from {source}.'
+  import_source:
+    idoklad: iDoklad
+  send_failure:
+    password_unreadable: The mail server password cannot be opened with the configured keys. Enter it again in the e-mail settings.
+    bad_address: An address of the message is not valid.
+    login_refused: '{smtp, select, none {The mail server refused the login.} other {The mail server refused the login (SMTP {smtp}).}}'
+    message_refused: '{smtp, select, none {The mail server refused the message.} other {The mail server refused the message (SMTP {smtp}).}}'
+    recipient_refused: '{smtp, select, none {The mail server refused the recipient {recipient}.} other {The mail server refused the recipient {recipient} (SMTP {smtp}).}}'
+    try_later: '{smtp, select, none {The mail server asks to try again later.} other {The mail server asks to try again later (SMTP {smtp}).}}'
+    unexpected_answer: The mail server gave an unexpected answer.
+    secure_connection: 'The secure connection to the mail server failed: check the encryption, the port and the host name.'
+    unreachable: The mail server could not be reached or the connection broke.
+    unresolved: The mail server name could not be resolved.
+    host_not_allowed: The mail server address is not allowed.
+    no_server: The firm has no mail server. Add one in the e-mail settings.
+    unbuildable: The message could not be built from the stored send.
+    not_handed_over: The message could not be handed to the mail server.
+    copy_unknown: The copy was handed to the mail server, but its answer was not recorded.
+    gave_up: The message could not be delivered.
+    link_changed: 'The link of this send no longer opens: the application secret changed after it was queued. Send it again.'
+    no_recipient: The contact has no e-mail address for invoices any more, so the reminder was not sent.
+    check_failed: Before the reminder left, it could not be checked whether its invoice is still unpaid.
+  sends:
+    title: Sent e-mails
+    views: Send states
+    tab:
+      all: All
+      sent: Sent
+      queued: Waiting
+      failed: Failed
+    column:
+      when: When
+      firm: Firm
+      number: Document
+      customer: Customer
+      recipients: Recipients
+      status: Status
+      error: Error
+    status:
+      queued: Waiting
+      sent: Sent
+      failed: Failed
+      cancelled: Cancelled
+    summary: '{total, plural, one {# e-mail} other {# e-mails}}'
+    action:
+      again: Send again
+    empty:
+      title: Nothing sent yet
+      text: Send an invoice from its menu in the invoice list, or with Send and save.
+      filtered_title: No e-mail matches
+      reset: Clear the filter
+    notice:
+      failed: '{count, plural, one {An invoice could not be sent.} other {# invoices could not be sent.}}'
+      stuck: '{count, plural, one {An e-mail has} other {# e-mails have}} been waiting to be sent for more than {minutes} minutes. Check that the queue worker runs on the server.'
+      retrying: '{count, plural, one {An e-mail is being tried again: the mail server has not taken it yet.} other {# e-mails are being tried again: the mail server has not taken them yet.}}'
+      link: Show
+  send:
+    title: 'Send invoice {number}'
+    card: E-mail
+    back: Back
+    submit: Send
+    edit: Edit text
+    message: Message
+    close: Close
+    errors_title: The e-mail has not been sent
+    sent_before: 'This invoice was sent on {date}. Sending it again gives the recipient a new link.'
+    from_document: The contact has no e-mail for invoices, so the address on the document is offered.
+    no_address: The contact has no e-mail. Type an address under other recipients.
+    others_help: 'Up to {max} addresses, separated by commas.'
+    copy_to_me: 'Send a copy to me at {address}'
+    body_help: '{token} marks the link. Without it, the link goes last.'
+    trashed: 'Invoice {number} is in the trash, so it cannot be sent.'
+    no_server_title: The firm has no mail server
+    no_server_text: 'Invoices of {firm} leave through its own mail server. Until the firm has one, nothing can be sent.'
+    no_server_open: Set up the mail server
+    no_server_owner: The owner of the organisation sets up the server in the firm's e-mail settings.
+    recipient:
+      invoices: '{address}'
+      copy: '{address} (copy)'
+      general: '{address}'
+      document: '{address}'
+    field:
+      from: From
+      recipients: To
+      others: Other recipients
+      subject: Subject
+      body: E-mail text
+    flash:
+      queued: 'Invoice {number} is queued for sending to {recipients}.'
+      already_queued: 'Invoice {number} is already queued for sending.'
+    error:
+      no_recipient: Tick or type at least one recipient.
+      too_many_recipients: 'There can be at most {max} recipients.'
+      too_many_others: 'There can be at most {max} other recipients.'
+      bad_address: '{address} is not a valid e-mail address.'
+      bad_subject: The subject cannot be empty, longer than 255 characters or hold the link.
+      bad_body: The e-mail text is too long.
+      trashed: The invoice has been moved to the trash meanwhile.
+      no_server: The firm has lost its mail server meanwhile.
+      local_link_base: The link would lead to this computer. The administrator sets the public address of the installation in DEFAULT_URI.
+      insecure_link_base: The link would go over unencrypted http. The administrator sets an https address in DEFAULT_URI.
+      rate_limited: Too many sends in a short time. Try again in a moment.
+      undrawable: The invoice cannot be drawn as a PDF, so it cannot be sent.
+      reminder_taken: This reminder of the invoice has been queued already.
+  export_state:
+    label: Accountant export
+    all: All
+    not_exported: Not exported
+    exported: Exported
+    changed: Changed after export
+    hint:
+      exported: 'Exported for the accountant {date}'
+      changed: 'Edited {date}, after the export for the accountant'
+  export:
+    incomplete: 'Documents {numbers} cannot be drawn, so no ZIP was made. Without them the accountant would not have the whole month.'
+    title: Documents for the accountant
+    link: For the accountant
+    intro: Downloads a ZIP of the PDFs and ISDOC of one month with a list of them. Tax documents fall in the month of their tax point, advance invoices in the month of their issue. Documents in the trash stay out. Nothing is sent anywhere; the documents are marked exported.
+    month: Month
+    month_help: By tax point; advance invoices by issue date
+    scope:
+      legend: Documents
+      pending: Not yet exported
+      pending_text: New documents and those edited after their export
+      all: All of the month
+      all_text: Also those the accountant has already had
+    counts: In the ZIP
+    count_total: Total
+    refresh: Count again
+    submit: Download ZIP
+    empty: No documents of this firm to export in this month.
+    month_invalid: Enter a valid month.
+    folder:
+      invoice: invoices
+      advance: advance-invoices
+      payment_tax_document: tax-documents
+      correction_document: corrective-documents
+    currency: '{code}'
+    list_file: list.xlsx
+    sheet:
+      documents: Documents
+      recap: VAT recap
+    column:
+      number: Number
+      kind: Kind
+      customer: Customer
+      registration: Registration number
+      vat_id: VAT number
+      issue_date: Issue date
+      tax_point: Tax point
+      due_date: Due date
+      currency: Currency
+      exchange_rate: Exchange rate
+      base: Base
+      vat: VAT
+      total: Total
+      payable: To pay
+      state: Export state before
+    recap:
+      treatment: Treatment
+      rate: Rate (%)
+      base: 'Base ({currency})'
+      vat: 'VAT ({currency})'
+      total: 'Total ({currency})'
+      sum: Total
+  list_export:
+    button: Export
+    csv: Export as CSV
+    xlsx: 'Export as Excel (XLSX)'
+    all_months: all
+    decimal: '.'
+    paid: Paid
+    left: Left to pay
+    state: Export state
+    rate: '{rate, number} %'
+    rate_base: 'Base {label}'
+    rate_vat: 'VAT {label}'
+  pdf:
+    undrawable: 'Invoice {number} cannot be printed: its values do not fit the table even in the smallest type.'
+    footer: '{title} · Page {page}/{pages}'
+    unsupported_country: 'Invoice {number} cannot be printed: this installation has no rules for the country of its issuer.'
+    trashed: IN THE TRASH – NOT A VALID DOCUMENT
+    document_title: '{kind, select, advance {Advance invoice} payment_tax_document {Tax document} correction_document {Corrective tax document} other {Invoice}} {number}'
+    title_tax: Invoice - tax document
+    title: Invoice
+    title_advance: Advance invoice
+    title_payment_tax_document: Tax document on received payment
+    title_correction_document: Corrective tax document
+    credit_note: credit note
+    debit_note: debit note
+    corrects: 'Corrects document no. {number}'
+    correction_reason: 'Reason for correction: {reason}'
+    decisive_date: 'Date of the decisive fact: {date}'
+    difference_base: Difference in tax base
+    difference_vat: Difference in tax
+    difference_total: Total difference
+    to_return: To be refunded
+    advance_recap_note: VAT breakdown is informative only, this is not a tax document.
+    supplier: Supplier
+    customer: Customer
+    registration_number: Reg. No.
+    vat_id: VAT ID
+    issue_date: Issue date
+    tax_point: Tax point date
+    supply_date: Date of supply
+    due_date: Due date
+    bank_account: Bank account
+    payment_method: Payment method
+    variable_symbol: Variable symbol
+    constant_symbol: Constant symbol
+    order_number: Order number
+    payable: Total to pay
+    left_to_pay: Left to pay
+    do_not_pay: Do not pay, the document is already paid
+    to_refund: Difference to refund
+    settled_by_advances: Settled by advances, nothing to pay
+    total_paid: Total paid
+    for_advance: 'To advance invoice {number}'
+    tax_point_payment: Date of receipt of payment (tax point)
+    tax_document_line: 'Tax document on received payment of advance invoice {number}, variable symbol {symbol}'
+    deduction_line: '{document, select, none {Deduction of advance invoice {number}, variable symbol {symbol}} other {Deduction of advance, variable symbol {symbol} (tax document {document})}}'
+    item: Description
+    quantity: Qty
+    unit: Unit
+    unit_price: Unit price excl. VAT
+    unit_price_plain: Unit price
+    discount: Discount
+    rate: VAT %
+    base: Base
+    vat: VAT
+    total: Total
+    rounding: Rounding
+    recap_rate: VAT rate
+    recap_total: Total
+    recap:
+      reverse_charge: Reverse charge
+      exempt: Exempt
+    stamp: Stamp and signature
+    stamp_alt: 'Stamp and signature: {name}'
+    qr_label: QR Platba+F
+    qr_alt: 'QR Platba+F of invoice {number}'
+    note:
+      reverse_charge: 'Reverse charge. The customer accounts for the tax (daň odvede zákazník).{code, select, none {} other { Supply code: {code}.}}'
+      exempt: The supply is exempt from VAT.
+  billed_work:
+    gone: The time chosen no longer waits for this invoice. Open the invoicing of time again.
+  copy:
+    firm_archived: This firm is archived, so it issues no new documents. Choose another firm.
+    series_archived: The series of the original is archived, so this copy uses the default series.
+    customer_archived: The firm no longer invoices the customer of the original. Choose another customer.
+    line_dates: The lines hold a date or a month from the original. Check that it still applies.
+  list:
+    title: Invoices
+    title_invoice: Invoices
+    title_advance: Advance invoices
+    title_payment_tax_document: Tax documents on payment
+    title_correction_document: Corrective documents
+    views: Invoice lists
+    more_views: More views
+    all_firms: All firms
+    search_label: Search invoices
+    search_placeholder: Number, customer or description
+    summary: '{kind, select, advance {{total, plural, one {# advance invoice} other {# advance invoices}}} payment_tax_document {{total, plural, one {# tax document} other {# tax documents}}} correction_document {{total, plural, one {# corrective document} other {# corrective documents}}} other {{total, plural, one {# invoice} other {# invoices}}}}'
+    reason_missing: Say why the invoice is being deleted.
+    delete_delivered: A delivered document cannot be deleted.
+    not_in_trash: This invoice is not in the trash.
+    not_exported: This document has no export state.
+    already_trashed: This invoice is in the trash already.
+    delivered_trashed: This invoice is in the trash. Restore it first.
+    delivered_confirm: 'Mark invoice {number} as delivered?'
+    delivered_confirm_text: A delivered invoice can no longer be deleted.
+    delivered_confirm_accept: Mark as delivered
+    tab:
+      all: All
+      paid: Paid
+      unpaid: Unpaid
+      overdue: Overdue
+      settled: Settled
+      unsettled: Unsettled
+      to_refund: To refund
+      trash: Trash
+    column:
+      sent: E-mail
+      entries_count: '{count, plural, one {# entry} other {# entries}}'
+      export: Export
+      number: Number
+      firm: Firm
+      customer: Customer
+      issueDate: Issued
+      dueDate: Due
+      payable: Total
+      status: Status
+      deletedBy: Deleted by
+      deletedAt: Deleted
+      reason: Reason
+    status:
+      settled_by_advances: Settled by advances
+      issued: Issued
+      delivered: Delivered
+      partly_paid: Partly paid
+      overdue: Overdue
+      paid: Paid
+      overpaid: Overpaid
+      to_refund: To refund
+      trashed: In the trash
+    action:
+      edit: Edit
+      send: Send
+      pay: Pay
+      pdf: PDF
+      copy: Copy
+      correct: Issue a corrective document
+      delivered: Mark as delivered
+      history: History
+      delete: Delete
+      restore: Restore
+      clear_export: Clear export state
+    empty:
+      title: No invoices yet
+      text: Issue the first one. Saving gives it its number.
+      all_title: No invoices here
+      all_title_invoice: No invoices here
+      all_title_advance: No advance invoices here
+      all_title_payment_tax_document: No tax documents here
+      all_title_correction_document: No corrective documents here
+      filtered_title: No invoice matches
+      filtered_text: Try other words or another firm.
+      reset: Show all invoices
+      overdue_title: Nothing is overdue
+      trash_title: The trash is empty
+      paid_title: Nothing is paid yet
+      paid_text: Paid invoices show here once you record a payment.
+      unpaid_title: Everything is paid
+      unpaid_text: No invoice is waiting for its money.
+      settled_title: Nothing is settled yet
+      settled_text: A tax document shows here once a final invoice deducts it.
+      unsettled_title: Everything is settled
+      unsettled_text: Nothing paid waits to be deducted on a final invoice.
+  trash:
+    title: 'Delete invoice {number}'
+    keeps: It moves to the trash and keeps its number, which is never used again.
+    reason: Reason
+    reason_help: Stays in the history of the invoice.
+    submit: Move to the trash
+  history:
+    title: 'History of invoice {number}'
+    card: History
+    system: The system
+    created: '{who} created the invoice'
+    issued_recurring: '{who} issued the invoice from a recurring invoice'
+    changed: '{who} changed the invoice'
+    trashed: '{who} moved the invoice to the trash: {reason}'
+    restored: '{who} restored the invoice'
+    delivered: '{who} marked the invoice as delivered'
+    exported: '{who} exported the invoice for the accountant'
+    export_cleared: '{who} cleared the export state'
+    paid: '{who}: payment of {amount} recorded'
+    payment_cancelled: '{who}: payment of {amount} removed'
+    send: '{who} sent an e-mail to {recipients}'
+    send_copy: 'copy to {address}'
+    send_show: Show the e-mail
+    send_subject: Subject
+    send_pdf: PDF as sent
+    send_read: 'Read {date}'
+    send_again: Send again
+    line_added: 'Line {number} ({text}) added'
+    line_removed: 'Line {number} ({text}) removed'
+    line_changed: 'Line {number} ({text}): {fields}'
+    line_text: 'Line {number}: {text}'
+    field:
+      number: Number
+      series: Series
+      customer: Customer
+      issueDate: Issue date
+      taxPointDate: Tax point
+      dueDate: Due date
+      paymentMethod: Payment method
+      bankAccount: Bank account
+      variableSymbol: Variable symbol
+      constantSymbol: Constant symbol
+      orderNumber: Order number
+      description: Description
+      textBefore: Text before the lines
+      textAfter: Text after the lines
+      language: Language
+      payableMinor: Total
+      text: Text
+      quantity: Quantity
+      unit: Unit
+      priceMinor: Price
+      priceType: Price type
+      treatment: VAT
+      supplyCode: Supply code
+      rateKind: VAT rate
+      discount: Discount
+  new: New invoice
+  title: 'Invoice {number}'
+  reload: Reload the invoice
+  cancel: Cancel
+  save: Save
+  save_send: Send and save
+  save_pdf: PDF and save
+  more_actions: More actions
+  due_on: 'due {date}'
+  more: More details
+  more_show: Show more details
+  firm_apply: Use this firm
+  month:
+    this_month: This month
+    last_month: Last month
+    this_quarter: This quarter
+    this_year: This year
+    by_month: By month
+    label: Month
+    all: All months
+  rate: '{rate}%'
+  errors_title: The invoice cannot be saved yet
+  cut_off: The form was too large to arrive whole, so nothing was saved.
+  cut_off_retry: Open the form again
+  line_limit: 'An invoice has at most 100 lines.'
+  errors_close: Close the list
+  firm_changed: The firm changed, so series, number and variable symbol start over.
+  currency_notice: 'This contact prefers {contact}. The document stays in {document}.'
+  opens_new_tab: opens in a new tab
+  blocked:
+    no_firm_title: Add your own firm first
+    no_firm_text: One of your own firms issues every invoice.
+    add_firm: Add a firm
+    no_series_title: The firm has no active series
+    no_series_text: Add a number series in the invoicing settings of the firm.
+    open_firm: Open the firm settings
+  flash:
+    saved: 'Invoice {number} is saved.'
+    renumbered: 'Invoice saved as {number}: {preview} was taken meanwhile.'
+    number_changed: 'Invoice saved as {number}. The number changed.'
+    already_saved: This form was saved already.
+    trashed: 'Invoice {number} is in the trash.'
+    restored: 'Invoice {number} is back in the list.'
+    delivered: 'Invoice {number} is marked as delivered.'
+    export_cleared: 'Document {number} has no export state now; the next export takes it.'
+  card:
+    issuer: Issuer
+    customer: Customer
+    payment: Dates and payment
+    lines: Lines
+    delete: Delete the invoice
+  number:
+    edit: Change the number
+    label: Invoice number
+    help: Save gives the next free number unless you change it.
+  customer:
+    placeholder: Name, registration number or e-mail
+    empty: Nothing found. Use the plus or the address book.
+    none_yet: No customers yet. Use the plus or the address book.
+    add: Add
+    picked: 'Customer {name} is filled in with their defaults. Check the form and save.'
+    candidates: Matching customers
+    edit_here: Edit on this document
+    edit_contact: Edit the contact
+  field:
+    payment_state: Payment state
+    settlement: Settlement
+    firm: Firm
+    series: Series
+    customer: Customer
+    customerName: Name on the document
+    registrationNumber: Reg. no.
+    vatId: VAT ID
+    street: Street
+    city: City
+    postalCode: Postal code
+    countryCode: Country
+    email: E-mail
+    orderNumber: Order number
+    description: Description
+    description_help: Left empty, it takes the text of the first line.
+    variableSymbol: Variable symbol
+    variableSymbol_help: Follows the number until you change it.
+    constantSymbol: Constant symbol
+    language: Document language
+    textBefore: Text above the lines
+    textAfter: Text below the lines
+    issueDate: Issue date
+    taxPointDate: Tax point
+    supplyDate: Date of supply
+    dueDate: Due date
+    paymentMethod: Payment
+    bankAccount: Bank account
+    bankAccount_none: The firm has no bank account yet.
+    bankAccount_add: Add one in the bank settings
+    currency: Currency
+  field_label:
+    form: Form
+    firm: Firm
+    document: Document
+    series: Series
+    number: Number
+    customer: Customer
+    orderNumber: Order number
+    description: Description
+    variableSymbol: Variable symbol
+    constantSymbol: Constant symbol
+    language: Language
+    textBefore: Text above the lines
+    textAfter: Text below the lines
+    issueDate: Issue date
+    taxPointDate: Date of supply
+    dueDate: Due date
+    paymentMethod: Payment
+    bankAccount: Bank account
+    lines: Lines
+  line:
+    label: 'Line {number}'
+    text: Item
+    price: Price
+    quantity: Quantity
+    unit: Unit
+    priceType: Price type
+    vat: VAT
+    rate: VAT
+    treatment: VAT
+    supplyCode: Supply code
+    supplyCode_choose: Choose a code
+    discount: Discount
+    total: Total
+    total_with_vat: Total with VAT
+    discount_add: Add a discount
+    discount_remove: Remove the discount
+    actions: Actions
+    add: New line
+    drag: Drag to reorder
+    up: Move the line up
+    down: Move the line down
+    remove: Remove the line
+  price_type:
+    with_vat: With VAT
+    without_vat: Without VAT
+    base_only: Base only
+  vat:
+    base: Base rate
+    reduced: Reduced rate
+    second_reduced: Second reduced rate
+    standard: Standard
+    reverse_charge: Reverse charge
+    exempt: Exempt
+    not_applicable: Outside VAT
+  payment:
+    refused:
+      refund_too_large: The refund is more than is to refund on the invoice.
+      has_payments: This invoice has payments. Remove the payments first.
+      cancelled: The payment of this tax document is cancelled, so it stays in the trash.
+      no_allocation: The payment pays no invoice.
+      amount_mismatch: The parts of the payment do not add up to its amount.
+      not_positive: Enter an amount above zero.
+      wrong_firm: The invoice belongs to another firm.
+      currency_mismatch: The payment is in another currency than the invoice.
+      trashed: The invoice is in the trash.
+      not_payable: A tax document on payment is paid by its payment already.
+      future_date: A payment cannot come from the future.
+      settlement_not_allowed: The difference changed meanwhile, so it was not written off. Check the amount and try again.
+      note_too_long: 'Keep the note under {max} characters.'
+      no_movement: The payment needs its bank movement.
+    error:
+      date: Enter a valid date.
+      amount: 'Enter an amount, such as 1,210.50.'
+      method: Choose how it was paid.
+      note_too_long: 'Keep the note under {max} characters.'
+      settle_too_large: 'Only a difference of up to {limit} can be written off.'
+      settle_none: A difference in this currency is not written off.
+    title: 'Pay invoice {number}'
+    page_card: Payment
+    submit: Record payment
+    field:
+      receivedOn: Date paid
+      amount: Amount
+      method: Method
+      note: Note
+      settle: Close the invoice and write off the difference
+    payable: '{payable} to pay'
+    remaining_of: 'Remaining {remaining} of {payable}'
+    settled: This invoice is paid already. Another payment overpays it.
+    overpay: 'The invoice will be overpaid by {over}.'
+    settle_difference: '{difference} is written off, so the invoice is paid exactly.'
+    trashed: 'Invoice {number} is in the trash. Restore it first.'
+    nothing_due: 'Invoice {number} has nothing to pay.'
+    left: '{amount} left to pay'
+    to_refund: '{amount} to refund'
+    refund:
+      title: 'Refund on invoice {number}'
+      page_card: Refund
+      date: Date refunded
+      submit: Record refund
+      nothing: 'Invoice {number} has nothing to refund.'
+    panel:
+      refund: Record refund
+      title: Payments
+      movement: Show the bank movement
+      pay: Pay
+      empty: No payments yet.
+      paid: Paid
+      remaining: Left to pay
+      overpaid: Overpaid by
+      to_refund: To refund
+      written_off: 'written off {amount}'
+      bank: Bank movement
+      remove: Remove
+      remove_label: 'Remove the payment of {amount} from {date}'
+      remove_confirm: 'Remove the payment of {amount}?'
+      remove_text: The invoice counts as unpaid again by that amount.
+      remove_text_bank: The invoice counts as unpaid again by that amount, and the bank movement goes back among the unmatched ones.
+      remove_text_shared: 'The payment also pays {count, plural, one {invoice} other {invoices}} {numbers}. It is removed from all of them, and each counts as unpaid again by its part.'
+      remove_text_shared_bank: 'The payment also pays {count, plural, one {invoice} other {invoices}} {numbers}. It is removed from all of them, each counts as unpaid again by its part, and the bank movement goes back among the unmatched ones.'
+      remove_accept: Remove payment
+      keep: Keep it
+    flash:
+      refunded: 'Refund of {amount} on invoice {number} recorded.'
+      recorded: 'A payment of {amount} was recorded for invoice {number}.'
+      settled: 'A payment of {amount} was recorded for invoice {number}. The difference of {difference} was written off.'
+      overpaid: 'A payment of {amount} was recorded. Invoice {number} is overpaid by {over}.'
+      already_recorded: This payment is recorded already.
+      removed: 'The payment of {amount} was removed.'
+      removed_shared: 'The payment of {amount} was removed from invoices {numbers}.'
+      already_removed: This payment was removed already.
+    bank_transfer: Bank transfer
+    cash: Cash
+    card: Card
+  language:
+    cs: Czech
+    en: English
+  total:
+    base: 'Base {rate}'
+    rate_vat: 'VAT {rate}'
+    net: Without VAT
+    vat: VAT
+    rounding: Rounding
+    payable: Total
+    stale: These totals are out of date. Check the lines.
+  supply_code:
+    '1': Gold
+    1a: Gold, brokering of investment gold
+    '3': Supply of immovable property
+    3a: Supply of immovable property in a forced sale
+    '4': Construction and assembly work
+    4a: Construction and assembly work, provision of workers
+    '5': Goods listed in Annex 5
+    '6': Supply of goods originally given as security
+    '7': Supply of goods after assignment of retention of title
+    '11': Greenhouse gas emission allowances
+    '12': Cereals and industrial crops
+    '13': Metals
+    '14': Mobile phones
+    '15': Integrated circuits
+    '16': Portable data processing devices
+    '17': Video game consoles
+    '18': Supply of electricity certificates
+    '19': Supply of electricity through networks to a trader
+    '20': Supply of gas through networks to a trader
+    '21': Defined electronic communications services
+  problem:
+    number_not_accepted: A number has at most 40 characters and no * or %, or its QR code could not be made.
+    firm_identified_person: 'An identified person cannot issue documents yet: the rules for it are under review.'
+    unprintable: 'This text holds characters the invoice cannot print: {characters}'
+    unprintable_part: '{part, select, name {Name} street {Street} city {City} postal_code {Postal code} registration_number {Registration number} vat_id {VAT ID} register_entry {Register entry} email {Email} phone {Phone} web {Web} other {A value}} holds characters the invoice cannot print: {characters}'
+    country_invalid: Choose a country from the list.
+    email_invalid: Enter a valid e-mail address.
+    constant_symbol_invalid: The constant symbol has digits only.
+    too_many_lines: 'An invoice has at most 100 lines.'
+    amount_out_of_range: An amount is too large to count.
+    bank_account_foreign: Choose a bank account of the firm.
+    changed_meanwhile: Someone saved this invoice meanwhile, so yours was not saved.
+    currency_not_home: The price must be in the currency of the firm.
+    customer_address_incomplete: The customer needs a complete billing address.
+    customer_archived: This contact is archived for the firm.
+    customer_unknown: Choose a customer.
+    customer_vat_id_invalid: The VAT ID of the customer is not valid.
+    date_invalid: This date does not exist.
+    discount_invalid: Enter a discount from 0 to 100, with up to two decimals.
+    due_date_missing: Enter the due date.
+    firm_archived: This firm is archived, so it issues no new documents.
+    firm_country_unsupported: Invoices are not available for the country of this firm yet.
+    firm_locked: The firm of an issued document cannot change.
+    firm_register_entry_missing: 'Add in the settings of the firm where it is registered. A company gives its register and file number, a sole trader the register or record it is entered in.'
+    firm_vat_id_missing: Add the VAT ID in the settings of the firm.
+    issue_date_missing: Enter the issue date.
+    language_invalid: Choose a document language.
+    line_rate_missing: This line needs a VAT rate valid on the tax point.
+    line_text_missing: Enter the text of the item.
+    no_lines: Add at least one line.
+    number_invalid: Enter a number with at least one letter or digit, up to 80 characters.
+    number_locked: Series and number cannot change once the document is delivered.
+    number_locked_sending: Series and number cannot change while the document is being sent.
+    number_locked_sent: Series and number cannot change once the customer got the document by e-mail.
+    number_out_of_range: This number is beyond what the series can count.
+    number_taken: This number has been used in this firm already.
+    import_number_missing: An imported document needs its series and number.
+    import_issuer_incomplete: The supplier on the imported document has no complete name and address.
+    import_kind_unsupported: This kind of document is not imported yet.
+    numbers_exhausted: This series has no numbers left.
+    payable_negative: The total must not be negative.
+    billed_work_gone: The work chosen for this invoice is no longer there to bill. Open its billing again.
+    correction_kind: Only a corrective tax document names a corrected document.
+    correction_link_missing: Choose the invoice this document corrects.
+    correction_link_locked: A corrective document keeps the invoice it corrects.
+    correction_original_invalid: Only an issued invoice that is not in the trash, or a delivered tax document on payment, can be corrected.
+    correction_deducted: A final invoice deducts this tax document. Release the deduction first by moving the final invoice to the trash or removing the deduction from it.
+    correction_payment_change: A tax document on payment is corrected as a change after the supply, on the day the payment was cancelled or refunded.
+    correction_firm: The correction must be issued by the firm of the invoice.
+    correction_customer: The correction must be for the customer of the invoice.
+    correction_reason_missing: Say why the invoice is being corrected.
+    correction_type_missing: Choose whether this is a change after issue or an error on the document.
+    correction_decisive_date_missing: Enter the decisive date.
+    correction_tax_point: The tax point of a change is its decisive date; that of an error is the tax point of the invoice.
+    correction_rate_unknown: Use a VAT rate that is on the corrected invoice.
+    correction_over_original: This would credit more than the invoice and its corrections leave at one of its VAT rates.
+    payment_method_invalid: Choose a payment method.
+    price_invalid: Enter a price with up to two decimals.
+    price_type_invalid: Choose a price type.
+    quantity_invalid: Enter a quantity with up to four decimals.
+    reverse_charge_customer_vat_id: Reverse charge needs a customer with a VAT ID.
+    reverse_charge_payer: Reverse charge needs an issuer who pays VAT.
+    series_archived: This series is archived.
+    series_kind: This series numbers another kind of document.
+    tax_document_fixed: A tax document on payment follows its payment and cannot be changed.
+    already_deducted: An advance on this invoice is deducted by another invoice already.
+    deduction_invalid: 'This advance cannot be deducted here: it belongs to another customer, is deducted elsewhere, or is not paid.'
+    tax_document_exists: This payment has its tax document already.
+    tax_document_with_vat: The lines of a tax document on payment are priced with VAT.
+    no_tax_on_receipt: No VAT arose on this payment, so it gets no tax document.
+    payment_unknown: This payment is not a payment of the advance invoice, or it was cancelled.
+    series_of_another_firm: This series belongs to another firm.
+    series_unknown: Choose a series.
+    supply_code_invalid: Choose a supply code from the list, or leave it empty.
+    supply_code_not_allowed: A customer from another country has no supply code.
+    tax_point_missing: Enter the date.
+    too_long: This text is too long.
+    trashed: This invoice is in the trash. Restore it to change it.
+    variable_symbol_invalid: The variable symbol has 1 to 10 digits.
+    vat_invalid: Choose the VAT of the line.
+recurring:
+  notice:
+    failing: '{count, plural, one {A recurring invoice could not be issued or sent.} other {# recurring invoices could not be issued or sent.}}'
+    review: '{count, plural, one {An invoice from a recurring template is waiting for you to send it.} other {# invoices from recurring templates are waiting for you to send them.}}'
+    unfinished: 'Today''s recurring invoices have not been issued yet, although it is past {hour}:00. Check that the queue worker and the scheduler run on the server.'
+    link: Show
+  problem:
+    name_missing: Enter a template name.
+    name_too_long: A template name has at most 120 characters.
+    due_days_invalid: An invoice is due 0 to 365 days after it is issued.
+    ended: This recurring invoice has ended and cannot be changed.
+    first_issue_past: The first invoice cannot be issued in the past.
+    issued: This recurring invoice has issued invoices, so it can only be ended.
+    no_occurrence_left: With this schedule no invoice is left to issue.
+    choice_invalid: Choose one of the options.
+    first_issue_missing: Enter the date of the first issue.
+    every_invalid: Enter a whole number from 1 to 99.
+    end_on_missing: Enter the date of the last issue.
+    end_on_before_first: The last issue cannot come before the first.
+    end_after_invalid: Enter a number from 1 to 999.
+  form:
+    new_title: New recurring invoice
+    edit_title: Recurring invoice
+    save: Save
+    apply: Update the preview
+    from_invoice: Recurring invoice
+  card:
+    main: Invoice template
+    schedule: Repeat issuing
+    sending: Sending the invoice
+    dates: Dates
+    payment: My payment details
+  field:
+    paymentMethod: Payment method
+    name: Template name
+    name_help: The recurring invoice is listed under this name.
+    sendToCustomer: To the customer
+    copyToMe: A copy to my e-mail
+    copyToOthers: To other recipients on the contact
+    firstIssueOn: First issue
+    unit: Repeat
+    every: Repeat every
+    every_help: For example 3 means every third day, week, month or year.
+    onLastDayOfMonth: Issue on the last day of the month
+    taxPoint: Tax point
+    dueDays: Due in (days)
+    dueDays_help: Days from the issue date.
+    end: End repeating
+    endOn: Last issue
+    endAfter: Number of issues
+    series_help: Each invoice takes the next number of this series.
+    state: State
+  unit:
+    day: Daily
+    week: Weekly
+    month: Monthly
+    year: Yearly
+  tax_point:
+    issue_date: On the issue date
+    last_day_of_month: Last day of the month
+  supply_point:
+    issue_date: On the issue date
+    last_day_of_month: Last day of the month
+  end:
+    never: Never
+    on_date: On a date
+    after_count: After a number of issues
+  sending:
+    legend: 'After issuing, send:'
+    held: The invoice is only issued and waits in the To send list.
+    no_email: no e-mail filled in
+  step:
+    less: 'Decrease: {field}'
+    more: 'Increase: {field}'
+  payment:
+    account_number: Account number
+    iban: IBAN
+  variables:
+    title: Variables
+    help: Goes into the last field – description, text or item.
+  variable:
+    day: Day
+    month: Month
+    year: Year
+    quarter: Quarter
+    month_year: Month/year
+    document_number: Invoice number
+  preview:
+    unknown: 'The next issue cannot be worked out yet:'
+    next: 'The next invoice will be issued on {date}'
+    next_now: The next invoice will be issued right after saving
+    next_now_review: The next invoice will be issued right after saving and will wait for your review
+    next_morning: The next invoice will be issued today at 5:00
+    next_morning_review: The next invoice will be issued today at 5:00 and will wait for your review
+    all: Overview of future issues
+    ends: Repeating ends here.
+    document_number: '[invoice number]'
+  flash:
+    saved: 'The recurring invoice is saved. The next invoice is issued on {date}.'
+    already_saved: This recurring invoice is saved already.
+    paused: 'The recurring invoice for {customer} is paused. Nothing is issued until you resume it.'
+    resumed: 'The recurring invoice is resumed. The next invoice is issued on {date}.'
+    resumed_ended: The recurring invoice is resumed, but its schedule has no invoice left, so it has ended.
+    skipped: '{count, plural, one {Skipped date:} other {Skipped dates:}} {dates}.'
+    ended: 'The recurring invoice for {customer} has ended.'
+    deleted: 'The recurring invoice for {customer} is deleted.'
+    issued: 'Invoice {number} is issued.'
+    issued_sent: 'Invoice {number} is issued and on its way to the customer.'
+    issued_review: 'Invoice {number} is issued and waits under To send.'
+    issued_refused: 'Invoice {number} is issued but could not be sent: {reason} It waits under To send.'
+    already_issued: This date is already issued; nothing more was issued.
+    not_active: The recurring invoice is not active, so nothing was issued.
+    changed_meanwhile: The recurring invoice changed meanwhile. Please try again.
+    issue_refused: 'The invoice cannot be issued: {problems}'
+  to_send:
+    label: To send
+    hint: Invoices from recurring invoices that nobody has sent yet.
+  alert:
+    subject:
+      issue: A recurring invoice could not be issued
+      send: A recurring invoice was issued but not sent
+    opening:
+      issue: 'A recurring invoice of {firm} for {customer} could not be issued on {date}.'
+      send: 'A recurring invoice of {firm} for {customer} was issued on {date} but not sent. It waits among the invoices to send.'
+    closing:
+      issue: The next run tries again tomorrow at 5:00. Fix the cause in Foresi under recurring invoices.
+      send: Once fixed, send it in Foresi from the list of invoices.
+    digest:
+      subject: '{count, plural, one {# recurring invoice could not be issued or sent} other {# recurring invoices could not be issued or sent}}'
+      subject_send: '{count, plural, one {# recurring invoice was issued but not sent} other {# recurring invoices were issued but not sent}}'
+      opening: 'Recurring invoices of {firm} could not be issued or sent on {date}:'
+      closing: The issued invoices wait among the invoices to send. The next run tries the others again tomorrow at 5:00.
+    link: 'Recurring invoices in Foresi: {url}'
+    reason:
+      other: 'The rules refused it (code {code}).'
+      issue:
+        refused: The rules refused to issue the invoice.
+      invoice:
+        problem:
+          customer_archived: The customer is archived for this firm.
+          customer_unknown: The customer no longer exists.
+          customer_address_incomplete: The customer has no complete invoicing address.
+          line_rate_missing: The kind of VAT rate of a line does not exist on the tax point.
+          firm_archived: The firm is archived.
+          firm_country_unsupported: The rules of the firm's country are not available.
+      send:
+        no_server: The firm has no mail server set up.
+        no_recipient: The customer has no e-mail address for invoices.
+        bad_address: An e-mail address of the customer is not valid.
+        rate_limited: The firm has used up its daily budget of e-mails.
+        undrawable: The invoice cannot be drawn as a PDF.
+        unexpected: Sending failed on an unexpected error.
+  failure:
+    other: The last run could not issue or send it.
+    send:
+      no_server: The firm has no mail server set up.
+      no_recipient: The customer has no e-mail address for invoices.
+      bad_address: An e-mail address of the customer is not valid.
+      rate_limited: The firm has used up its daily budget of e-mails.
+      undrawable: The invoice cannot be drawn as a PDF.
+      unexpected: Sending failed on an unexpected error. Send the invoice from the To send list.
+  list:
+    title: Recurring invoices
+    views: Recurring invoice lists
+    failed: 'Failed: {reason}'
+    fix:
+      mail: Set up the mail server
+      contact: Edit the contact
+      to_send: Send from the invoices to send
+      edit: Edit the recurring invoice
+    summary: '{total, plural, one {# recurring invoice} other {# recurring invoices}}'
+    tab:
+      active: Active
+      paused: Paused
+      ended: Ended
+      failing: Failing
+    column:
+      name: Template name
+      customer: Customer
+      description: Description
+      firm: Firm
+      interval: Repeats
+      next: Next issue
+      end: Ends
+      delivery: After issue
+      amount: Amount
+      state: State
+    delivery:
+      send: Send
+      review: Review
+    interval:
+      day: '{every, plural, one {Daily} other {Every # days}}'
+      week: '{every, plural, one {Weekly} other {Every # weeks}}'
+      month: '{every, plural, one {Monthly} other {Every # months}}'
+      year: '{every, plural, one {Yearly} other {Every # years}}'
+      last_day: ', on the last day of the month'
+    end:
+      never: no end
+      on_date: 'until {date}'
+      after_count: '{left, plural, =0 {no more} other {# more}}'
+      ended: 'ended {date}'
+    action:
+      edit: Edit
+      issue_now: Issue now
+      pause: Pause
+      resume: Resume
+      end: End
+      delete: Delete
+    empty:
+      title: No recurring invoices yet
+      text: Create a new one, or make one from an issued invoice with Recurring invoice in its menu.
+      from_invoice: Pick an invoice
+      filtered_title: Nothing here for this firm
+      reset: Show all firms
+      active: No active recurring invoice
+      paused: Nothing is paused
+      ended: Nothing has ended
+      failing: Everything issues without trouble
+  pause:
+    title: Pause the recurring invoice
+    text: 'Neither the invoice due on {date} nor any later one is issued until you resume it.'
+    text_no_date: No further invoice is issued until you resume it.
+    resume_hint: On resume, the dates of the pause are skipped.
+    not_active: Only an active recurring invoice can be paused.
+  resume:
+    title: Resume the recurring invoice
+    skipped: '{count, plural, one {This date fell in the pause and is not issued:} other {These dates fell in the pause and are not issued:}}'
+    next: 'The next invoice is issued on {date}.'
+    ends: The schedule has no invoice left, so resuming ends the recurring invoice.
+    not_paused: This recurring invoice is not paused.
+  ending:
+    title: End the recurring invoice
+    text: No further invoice is issued. An ended recurring invoice cannot be started again.
+    keeps: The invoices already issued stay as they are.
+  delete:
+    title: Delete the recurring invoice
+    text: It has not issued any invoice yet, so it is deleted entirely.
+  issue_now:
+    title: Issue the invoice now
+    text: 'The invoice for {occurrence} is issued with these dates:'
+    issue_date: Issue date
+    due_date: Due date
+    submit: Issue
+    not_active: Only an active recurring invoice can be issued now.
+    delivery:
+      send: Then it goes by e-mail to the customer, with a copy to you. The next date moves on.
+      review: Then it waits under To send for your review. The next date moves on.
+reminder:
+  card:
+    template: Reminder
+    settings: Automatic reminders
+  templates_help: Reminders go out in the language of the document.
+  mail:
+    default:
+      subject: 'Reminder: invoice {number}'
+      body: |-
+        Hello,
+
+        this is a friendly reminder that invoice {number}, due on {due_date}, has not been paid yet. The amount due is {amount_due}.
+
+        If you have paid it in the meantime, please disregard this message.
+
+        Thank you,
+        {firm_name}
+
+        {link}
+  variable:
+    days_overdue: Days overdue
+    reminder_step: Reminder number
+    amount_due: Amount due
+  field:
+    advances: Remind advance invoices too
+    advances_help: Tax documents on payment are never reminded
+    enabled: Send reminders automatically
+    enabled_help: Only invoices due from the switch-on day get reminders.
+    first: First reminder
+    first_help: Days after the due date
+    every: Next reminders
+    every_help: Days after the previous reminder
+    minimum: 'Minimum amount ({currency})'
+    minimum_help: Lower amounts get no reminder. Leave blank for no minimum.
+  gate: Automatic reminders start once payments are recorded.
+  at_most: 'Up to {count} reminders per invoice.'
+  date_format: 'j M Y'
+  tomorrow:
+    title: Reminded tomorrow
+    off: Reminders are off.
+    none: No reminder goes out tomorrow.
+    due: 'due {date}'
+  planned:
+    title: If you switched reminders on today
+    intro: 'These first reminders would go out over the next {days} days:'
+    none: 'No first reminder would go out over the next {days} days.'
+    'on': 'reminder on {date}'
+  error:
+    gate: Automatic reminders start once payments are recorded.
+    days: 'Enter a whole number of days from {min} to {max}.'
+    minimum: Enter an amount such as 500 or 500.50.
+  contact:
+    send: Send reminders
+    send_help: When the firm reminds overdue invoices automatically.
+  log:
+    column: Type
+    all: All types
+    purpose:
+      invoice: Invoice
+      reminder: Reminder
+    step: 'Reminder {step}'
+    again: Send another reminder
+  history:
+    sent: '{who} sent reminder {step} to {recipients}'
+    again: Send another reminder
+  list:
+    action: Send reminder
+    last: 'Last reminder {date}'
+    count: '{count, plural, one {# reminder} other {# reminders}}'
+  manual:
+    title: 'Reminder {step} for invoice {number}'
+    submit: Send reminder
+    intro: '{days, plural, one {# day} other {# days}} overdue, reminder {step} of at most {max}.'
+    queued: 'Reminder {step} of invoice {number} is queued for sending to {recipients}.'
+    already_queued: 'Reminder {step} of invoice {number} is already queued for sending.'
+    not_overdue: 'Invoice {number} is not overdue, so it gets no reminder.'
+    limit: 'Invoice {number} has had {max} reminders, the most there can be.'
+    settled: 'Invoice {number} has nothing left to pay, so it gets no reminder.'
+    taken: 'Reminder {taken} was queued meanwhile. Check the text of reminder {step} and send it.'
+advance:
+  missing:
+    tab: Needs tax document
+    title: Paid advances without a tax document
+    intro: A payment of an advance on which VAT arose needs a tax document within 15 days of the payment, or of the end of its month when the supply takes place abroad.
+    empty: Every paid advance has its tax document.
+    issue: Issue tax document
+    issued: 'Tax document {number} is issued.'
+    days_left: '{days, plural, =0 {Due today} one {# day left} other {# days left}}'
+    days_late: '{days, plural, one {# day late} other {# days late}}'
+    notice: '{late, select, yes {{count, plural, one {A paid advance is} other {# paid advances are}} past the deadline for a tax document.} other {{count, plural, one {A paid advance waits} other {# paid advances wait}} for a tax document, the first by {date}.}}'
+    notice_link: Show them
+    column:
+      number: Advance invoice
+      customer: Customer
+      receivedOn: Paid on
+      received: Amount
+      deadline: Deadline
+      daysLeft: Days left
+  tax_on_receipt:
+    label: Tax document on payment
+    rules: By the rules
+    issue: Issue on every payment
+    skip: None, the supply is not known yet
+    help: None for a private person or a domestic reverse charge
+    now_arises: '{crossBorder, select, yes {Each payment gets a tax document, due within 15 days after the end of the month of the payment.} other {Each payment gets a tax document, due within 15 days of the payment.}}'
+    now_none:
+      non_payer: No tax document, the firm is no VAT payer.
+      unknown_supply: No tax document, the supply is not known yet.
+      consumer: No tax document, the customer is a private person.
+      domestic_reverse_charge: No tax document, the customer accounts for the VAT at supply.
+  new: New advance invoice
+  title: 'Advance invoice {number}'
+  card:
+    template: Advance invoice
+  templates_help: An advance invoice goes out in the language of the document.
+  mail:
+    default:
+      subject: 'Advance invoice {number}'
+      body: |-
+        Based on our agreement I am sending advance invoice no. {number} for {amount_total}, due on {due_date}. Once the payment arrives you will get a tax document for it.
+
+        Thank you,
+        {sender_name}
+
+        {link}
+correction:
+  title: 'Corrective tax document {number}'
+  new: New corrective tax document
+  card: Correction
+  corrects: 'Corrects document no. {number}'
+  field:
+    reason: Reason for the correction
+    reason_help: Printed on the document, up to 500 characters.
+    type: Type of correction
+    decisive_date: Decisive date
+    decisive_date_help: The day of the fact that changed the supply.
+  type:
+    change: Change after issue
+    change_text: Something changed after the supply; taxed on the decisive date.
+    error: Error on the document
+    error_text: The invoice was wrong; taxed in its original period.
+  variable:
+    original_number: Number of the corrected document
+  mail:
+    card: Corrective tax document
+    templates_help: A correction goes out in the language of the document.
+    default:
+      subject: 'Corrective tax document {number}'
+      body: |-
+        I am sending corrective tax document no. {number} to document no. {original_number} for {amount_total}.
+
+        Thank you,
+        {sender_name}
+
+        {link}
+tax_document:
+  waiting_notice: '{late, select, yes {{count, plural, one {A document is} other {# documents are}} past the deadline for a tax or corrective document.} other {{count, plural, one {A document waits} other {# documents wait}} for a tax or corrective document, the first by {date}.}}'
+  needs_correction: The payment of this tax document was cancelled or refunded after the customer got it. It needs a corrective tax document.
+  correct: Issue a corrective document
+  refunded_reason: The payment it taxed was refunded before the customer got it.
+  correction:
+    cancelled: Advance payment cancelled
+    refunded: Advance payment refunded
+  uncorrected:
+    tab: Waiting for correction
+    title: Tax documents on payment waiting for correction
+    intro: When an advance payment is cancelled or refunded after the customer got its tax document, a corrective tax document is issued within 15 days of the cancellation or refund. A document a final invoice deducts is corrected once the deduction is released.
+    empty: No tax document is waiting for correction.
+    deducted: deducted on a final invoice
+    notice: '{late, select, yes {{count, plural, one {A tax document is} other {# tax documents are}} past the deadline for correction.} other {{count, plural, one {A tax document waits} other {# tax documents wait}} for a corrective document, the first by {date}.}}'
+    column:
+      number: Tax document
+      customer: Customer
+      decisiveDate: Decisive date
+      amount: Amount
+      deadline: Deadline
+      daysLeft: Days left
+  cancelled_reason: The payment it taxed was cancelled.
+  title: 'Tax document {number}'
+  card:
+    template: Tax document on payment
+  templates_help: A tax document goes out in the language of the document.
+  mail:
+    default:
+      subject: 'Tax document {number}'
+      body: |-
+        Thank you for your payment. I am sending tax document no. {number} for the payment of {amount_total}. It is paid already; there is nothing more to pay.
+
+        Thank you,
+        {sender_name}
+
+        {link}

@@ -181,12 +181,69 @@ final class TranslationsTest extends TestCase
         return $keys;
     }
 
+    public function testNoKeyIsInTwoCatalogs(): void
+    {
+        foreach (['cs', 'en'] as $locale) {
+            $owners = [];
+            foreach ($this->catalogs($locale) as $file) {
+                foreach (array_keys($this->flatten($this->parse($file))) as $key) {
+                    self::assertArrayNotHasKey($key, $owners, sprintf('%s is in %s and %s.', $key, $owners[$key] ?? '', $file));
+                    $owners[$key] = $file;
+                }
+            }
+        }
+    }
+
+    public function testEveryCatalogHasBothLanguages(): void
+    {
+        foreach ($this->catalogs('cs') as $file) {
+            $english = str_replace('.cs.yaml', '.en.yaml', $file);
+            self::assertFileExists($english);
+            $czech = array_keys($this->flatten($this->parse($file)));
+            $other = array_keys($this->flatten($this->parse($english)));
+            sort($czech);
+            sort($other);
+            self::assertSame($czech, $other, $file);
+        }
+    }
+
     /**
+     * The messages of the application and of every module, merged as the
+     * translator merges them.
+     *
      * @return array<mixed>
      */
     private function load(string $locale): array
     {
-        $parsed = Yaml::parseFile(\dirname(__DIR__, 2).sprintf('/translations/messages+intl-icu.%s.yaml', $locale));
+        $merged = [];
+        foreach ($this->catalogs($locale) as $file) {
+            $merged = array_replace_recursive($merged, $this->parse($file));
+        }
+
+        return $merged;
+    }
+
+    /**
+     * The application's catalog and each module's, from src/<Module>/translations.
+     *
+     * @return list<string>
+     */
+    private function catalogs(string $locale): array
+    {
+        $root = \dirname(__DIR__, 2);
+        $name = sprintf('messages+intl-icu.%s.yaml', $locale);
+        $modules = glob($root.'/src/*/translations/'.$name) ?: [];
+        sort($modules);
+
+        return [$root.'/translations/'.$name, ...$modules];
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    private function parse(string $file): array
+    {
+        $parsed = Yaml::parseFile($file);
         self::assertIsArray($parsed);
 
         return $parsed;

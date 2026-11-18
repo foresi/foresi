@@ -1,0 +1,290 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+login:
+  title: Přihlášení
+  email: E-mail
+  password: Heslo
+  submit: Přihlásit se
+auth:
+  logout: Odhlásit se
+two_factor:
+  code:
+    title: Ověřovací kód
+    intro: Zadejte kód z ověřovací aplikace, nebo jeden ze záchranných kódů.
+    label: Kód
+    help: 6 číslic z aplikace, nebo záchranný kód
+    trusted: Zapamatovat si tento prohlížeč na 30 dní
+    submit: Ověřit
+    cancel: Odhlásit se
+    invalid: Tento kód neplatí. Zadejte aktuální.
+  setup:
+    title: Nastavení dvoufázového přihlášení
+    intro: Každé přihlášení si vyžádá kód z ověřovací aplikace. Naskenujte aplikací QR kód a zadejte kód, který zobrazí.
+    qr_label: QR kód pro ověřovací aplikaci
+    manual: Nebo zadejte do aplikace tento klíč ručně
+    code: Kód z aplikace
+    code_help: 6 číslic, které aplikace právě ukazuje
+    submit: Zapnout
+    code_invalid: Kód nesouhlasí. Zadejte kód, který aplikace ukazuje právě teď.
+    unavailable: 'Dvoufázové přihlášení nejde nastavit: server nemá klíč k zapečetění tajemství. Požádejte správce o nastavení MAIL_SECRET_KEYS.'
+  recovery:
+    title: Záchranné kódy
+    enabled: Dvoufázové přihlášení je zapnuté.
+    intro: Kódy si uložte na bezpečné místo. Každý vás jednou přihlásí, když přijdete o telefon. Zobrazují se jen teď.
+    continue: Pokračovat
+people:
+  title: Lidé
+  tab:
+    people: Lidé
+    invitations: Pozvánky
+  invite: Pozvat
+  invite_title: Pozvat člověka
+  invite_card: Koho zvete
+  invite_submit: Odeslat pozvánku
+  edit_title: 'Upravit {name}'
+  edit_card: Role a kontakt
+  cancel: Zrušit
+  save: Uložit
+  field:
+    email: E-mail
+    name: Jméno
+    name_help: Jak se člověk v organizaci zobrazí
+    role: Role
+    role_help: Host vidí jen to, co s ním sdílíte
+    locale: Jazyk e-mailu
+    locale_help: V tomto jazyce bude pozvánka napsaná
+    contact: Kontakt
+    contact_help: Povinný pro hosta
+    contact_edit_help: Povinný pro hosta; prázdný kontakt odpojí
+    contact_placeholder: Začněte psát jméno
+    contact_empty: Žádný kontakt nenalezen
+    rate: Hodinová sazba
+    rate_help: Platí, když sazbu nemá projekt ani klient
+    rate_currency: Měna
+  column:
+    name: Jméno
+    email: E-mail
+    role: Role
+    contact: Kontakt
+    two_factor: Dvoufázové
+    status: Stav
+    expires: Platí do
+  two_factor:
+    'on': Zapnuto
+    'off': Vypnuto
+  status:
+    active: Aktivní
+    deactivated: Deaktivovaný
+  action:
+    edit: Upravit
+    deactivate: Deaktivovat
+    reactivate: Znovu aktivovat
+    reset_two_factor: Obnovit dvoufázové přihlášení
+    resend: Poslat znovu
+    revoke: Zrušit pozvánku
+  confirm:
+    deactivate:
+      title: 'Deaktivovat {name}?'
+      text: Do této organizace se už nepřihlásí. Jeho historie zůstane.
+    reset_two_factor:
+      title: 'Obnovit dvoufázové přihlášení pro {name}?'
+      text: Při příštím přihlášení si ho nastaví znovu; důvěryhodné prohlížeče se zapomenou.
+    revoke:
+      title: 'Zrušit pozvánku pro {email}?'
+      text: Odkaz okamžitě přestane fungovat.
+  invitations:
+    empty:
+      title: Žádné čekající pozvánky
+      text: Pozvěte člena týmu nebo hosta, se kterým sdílíte práci.
+  link:
+    title: Odkaz pozvánky
+    unconfigured: Tato instalace zatím neumí posílat e-maily, takže pozvánka neodešla. Předejte odkaz sami.
+    text: 'Odkaz zve {name} ({email}) a funguje jednou, do {date}.'
+    field: Odkaz
+    copy: Kopírovat odkaz
+    copied: Zkopírováno
+    copy_failed: Kopírování selhalo; odkaz je označený, stiskněte Ctrl+C.
+    secret: Kdokoli s odkazem se může připojit jako tento člověk. Pošlete ho jen jemu.
+    done: Hotovo
+  flash:
+    invited: 'Pozvánka je na cestě na {email}.'
+    revoked: Pozvánka je zrušená.
+    changed: '{name} je upraven.'
+    deactivated: Člověk se už do této organizace nepřihlásí.
+    reactivated: Člověk se do této organizace může znovu přihlásit.
+    two_factor_reset: Dvoufázové přihlášení je obnovené.
+  refused:
+    rate: Zadejte sazbu, třeba 1500 nebo 1500,50.
+    email: Zadejte platnou e-mailovou adresu.
+    name: Zadejte jméno člověka.
+    role: Vyberte člena týmu nebo hosta.
+    contact: Vyberte kontakt, který člověk zastupuje.
+    member: Tento člověk už do organizace patří.
+    unknown: Tento člověk nebo pozvánka už neexistuje.
+    not_pending: Tato pozvánka už byla přijata nebo zrušena.
+    user_exists: Tato e-mailová adresa už má účet.
+    other_user: Tato pozvánka je pro jiný účet.
+    last_owner: Organizace musí mít alespoň jednoho aktivního vlastníka.
+    self: Sami sebe deaktivovat nemůžete.
+  mail:
+    subject: '{inviter} vás zve do {organisation} v {product}'
+    intro: '{inviter} vás zve ke spolupráci s {organisation} v {product}.'
+    action: Přijmout pozvánku
+    validity: '{days, plural, one {Odkaz funguje jednou, # den.} few {Odkaz funguje jednou, # dny.} other {Odkaz funguje jednou, # dní.}}'
+    ignore: Pokud jste pozvánku nečekali, e-mail ignorujte.
+api_tokens:
+  title: API a MCP
+  new: Nový token
+  mine: Moje tokeny
+  others: Tokeny ostatních lidí
+  others_empty: Ostatní lidé nemají žádné tokeny.
+  create: Vytvořit token
+  cancel: Zrušit
+  never: Nikdy
+  column:
+    name: Název
+    person: Osoba
+    email: E-mail
+    access: Přístup
+    token: Token
+    created: Vytvořen
+    expires: Platí do
+    last_used: Naposledy použit
+  scope:
+    read: Číst vše
+    write: Číst a měnit vše
+    resource_read: '{resource}: číst'
+    resource_write: '{resource}: číst a měnit'
+  resource:
+    contacts: Kontakty
+    invoices: Faktury
+    payments: Platby
+    webhooks: Webhooky
+    events: Události
+    cashflow: Cash flow
+    received_documents: Přijaté doklady
+  state:
+    expired: Vypršel
+    revoked: Zrušen
+  field:
+    name: Název
+    name_help: Kde ho použijete, třeba Reporting
+    expiry: Platnost
+    access: Přístup
+    access_help: Jen to, co program potřebuje. Kdo mění, smí i číst.
+  expiry: '{days, plural, one {# den} few {# dny} many {# dne} other {# dní}}'
+  action:
+    revoke: Zrušit token
+  confirm:
+    revoke:
+      title: 'Zrušit token {name}?'
+      text: Programy, které ho používají, přestanou hned fungovat. Nejde to vrátit.
+  empty:
+    title: Žádné tokeny
+    text: Token dovolí jinému programu číst vaše data bez hesla.
+  two_factor:
+    text: Token jde vytvořit jen s dvoufázovým přihlášením.
+    link: Nastavit dvoufázové přihlášení
+  created:
+    title: Váš nový token
+    once: Zkopírujte si token teď. Zobrazí se jen jednou a už ho neuvidíte.
+    text: 'Token {name} platí do {date}.'
+    field: Token
+    copy: Kopírovat token
+    copied: Zkopírováno
+    copy_failed: Kopírování selhalo; token je označený, stiskněte Ctrl+C.
+    use: Použijte ho jako bearer token v hlavičce Authorization pro MCP server nebo REST API. Chraňte ho jako heslo.
+    claude_code: Příkaz pro Claude Code s tímto tokenem
+    guide: Návod pro další klienty
+    done: Hotovo
+  flash:
+    revoked: Token je zrušený.
+  refused:
+    two_factor_required: Token jde vytvořit jen s dvoufázovým přihlášením.
+    name: Zadejte název dlouhý nejvýše 80 znaků.
+    expiry: Vyberte, jak dlouho token platí.
+    scopes: Vyberte, co smí token dělat.
+  tab:
+    tokens: Tokeny
+    connect: Připojení
+  connect:
+    intro: Foresi má MCP server. Claude a další AI klienti s ním čtou a mění vaše data pod tokenem, který tady vytvoříte. Každý klient potřebuje adresu serveru a token v hlavičce Authorization.
+    server: Adresa MCP serveru
+    copy: Kopírovat
+    copied: Zkopírováno
+    copy_failed: Kopírování selhalo; text je označený, stiskněte Ctrl+C.
+    steps:
+      title: Postup
+      token: Vytvořte token. Pro Clauda na začátek stačí jen čtení.
+      client: Přidejte server do svého klienta podle návodu níže a místo <token> vložte svůj token. Okno nového tokenu ukáže příkaz pro Claude Code i s tokenem.
+      check: Ověřte spojení prvním promptem.
+    clients: Návod pro klienty
+    client:
+      claude_code:
+        title: Claude Code
+        text: Spusťte příkaz v terminálu. Pak v Claude Code napište /mcp a zkontrolujte, že je server foresi připojený.
+      claude_ai:
+        title: claude.ai a Claude Desktop
+        text: V Claude otevřete Nastavení → Konektory → Přidat vlastní konektor. Zadejte název Foresi a adresu serveru, přihlášení přes OAuth nevybírejte a v části Request headers přidejte hlavičku níže. Claude Desktop konektory z claude.ai převezme.
+        header: Hlavička
+      desktop:
+        title: Claude Desktop přes konfigurační soubor
+        text: Když vlastní konektor použít nemůžete, otevřete v Claude Desktop Nastavení → Vývojář → Upravit konfiguraci a do claude_desktop_config.json přidejte server přes most mcp-remote (potřebuje Node.js). Pak Claude Desktop ukončete a spusťte znovu.
+      cursor:
+        title: Cursor
+        text: Přidejte server do ~/.cursor/mcp.json, nebo do .cursor/mcp.json v projektu.
+      vscode:
+        title: VS Code
+        text: Přidejte server do .vscode/mcp.json. VS Code má klíč servers, ne mcpServers, a token si vyžádá při prvním spuštění, takže v souboru nezůstane.
+      other:
+        title: Jiný MCP klient
+        text: Transport Streamable HTTP, adresa serveru výše a v každém požadavku tato hlavička.
+    check:
+      title: První prompt pro Clauda
+      text: Vložte ho do nového chatu. Claude zavolá nástroj whoami a řekne, kdo je přihlášený a co token smí.
+      prompt: Použij MCP server Foresi. Nejdřív zavolej whoami a řekni mi, za koho jsi přihlášený a jaká práva má token. Pak mi ukaž pět posledních neuhrazených faktur. Nic neměň, dokud tě o to výslovně nepožádám.
+    scopes:
+      title: Co smí token
+      text: Práva vyberete při vytvoření tokenu a později je změnit nejde; pro jiná práva vytvořte nový token. Změna vždy zahrnuje čtení. Nástroj, na který token nemá právo, odpoví odmítnutím.
+      hint: Pro Clauda začněte s právem „Číst vše“. Zápis přidejte jen u toho, co má opravdu měnit.
+      list: Práva, která token může dostat
+    safety:
+      title: Bezpečnost
+      secret: Token je jako heslo. Nevkládejte ho do chatu ani do souborů, které sdílíte nebo ukládáte do gitu.
+      approve: V klientovi nechte zapnuté schvalování nástrojů, hlavně u zápisů.
+      injection: Data z jiných zdrojů, třeba e-maily nebo webové stránky, mohou obsahovat pokyny pro AI. Klient s právem zápisu by je mohl provést.
+      revoke: Token, který už nepotřebujete nebo mohl uniknout, zrušte v záložce Tokeny. Přestane platit okamžitě.
+    docs: Podrobný popis nástrojů a REST API
+invitation:
+  title: 'Připojit se k {organisation}'
+  field:
+    name: Vaše jméno
+    password: Heslo
+    password_help: 'Alespoň {min} znaků'
+    password_repeat: Heslo znovu
+  new_account:
+    intro: 'Zvolte heslo pro {email}. Touto adresou se budete přihlašovat.'
+    submit: Vytvořit účet a připojit se
+  sign_in:
+    text: '{email} už má účet. Přihlaste se a vrátíte se sem pozvánku přijmout.'
+    submit: Přihlásit se
+  accept:
+    text: 'Připojit se k {organisation} jako {role}?'
+    submit: Přijmout pozvánku
+  other_user:
+    title: Pozvánka pro jiný účet
+    text: 'Jste přihlášeni jako {signed_in}, ale pozvánka je pro {email}. Odhlaste se a otevřete odkaz znovu.'
+  member:
+    title: Sem už patříte
+    text: Váš účet už je členem této organizace.
+  unknown:
+    title: Pozvánka nenalezena
+    text: Tento odkaz nevede k žádné pozvánce. Požádejte vlastníka organizace o novou.
+  expired:
+    title: Platnost pozvánky vypršela
+    text: Platnost této pozvánky vypršela. Požádejte vlastníka organizace, ať ji pošle znovu.
+  revoked:
+    title: Pozvánka zrušena
+    text: Tato pozvánka byla zrušena. Požádejte vlastníka organizace o novou.
+  accepted:
+    title: Pozvánka použita
+    text: Tato pozvánka už byla přijata. Přihlaste se do organizace.
