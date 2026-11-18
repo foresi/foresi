@@ -432,8 +432,6 @@ deptrac:
     party:
       - audit
       - audit_contract
-      - identity
-      - identity_contract
       - import
       - import_contract
       - instance
@@ -446,8 +444,6 @@ deptrac:
     party_contract:
       - audit
       - audit_contract
-      - identity
-      - identity_contract
       - import_contract
       - instance
       - instance_contract

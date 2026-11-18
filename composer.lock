@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c50c2e6d31a784e2a818e071808af3cf",
+    "content-hash": "fed9cd89e9d46ad95d4ab4a9b39ef319",
     "packages": [
         {
             "name": "brick/math",
@@ -2004,11 +2004,10 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "ee6b5fa65b4034bf415bd032fe4bc6ee5cce7470"
+                "reference": "209cffc1a3da84dcbb984a524476305ec3a7a6ce"
             },
             "require": {
                 "foresi/audit": "*",
-                "foresi/identity": "*",
                 "foresi/import": "*",
                 "foresi/instance": "*",
                 "foresi/shared": "*",

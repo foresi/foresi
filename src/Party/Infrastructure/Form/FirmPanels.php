@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Party\Infrastructure\Form;
 
-use Foresi\Identity\Application\OwnerCheck;
 use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Domain\EmailPurpose;
 use Foresi\Party\Domain\InvoicingDefaults;
@@ -16,6 +15,7 @@ use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyEmail;
 use Foresi\Party\Domain\PartyRole;
+use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Infrastructure\Http\TypedAmount;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -32,7 +32,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final readonly class FirmPanels
 {
-    public function __construct(private ContactSettingsForFirm $settings, private TranslatorInterface $translator, private OwnerCheck $owner)
+    public function __construct(private ContactSettingsForFirm $settings, private TranslatorInterface $translator, private ActorRole $role)
     {
     }
 
@@ -164,7 +164,7 @@ final readonly class FirmPanels
             'paymentMethod' => $defaults->paymentMethod->value,
             'reverseCharge' => $defaults->reverseCharge ? '1' : '',
             'sendReminders' => $defaults->sendReminders ? '1' : '',
-        ] + ($this->owner->isOwner() ? [
+        ] + ($this->role->isOwner() ? [
             'hourlyRate' => TypedAmount::field($defaults->hourlyRate(), $this->translator->getLocale()),
             'hourlyRateCurrency' => ($defaults->hourlyRate()?->currency() ?? $defaults->currency)->value,
         ] : []);
