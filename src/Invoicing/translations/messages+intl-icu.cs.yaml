@@ -229,7 +229,6 @@ invoice:
       reminder_taken: Tahle upomínka faktury už je ve frontě k odeslání.
   export_state:
     label: Export pro účetní
-    all: Vše
     not_exported: Neexportováno
     exported: Exportováno
     changed: Změněno po exportu
