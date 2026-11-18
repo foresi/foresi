@@ -1,6 +1,15 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     How to connect Claude and other MCP clients to this installation: the server's address, a
+    copy-ready setup for each client, a first prompt that checks the connection, what the access
+    means and how to keep it safe. Clients sign in with OAuth (ADR 0036): they open Foresi in the
+    browser, where the person signs in and approves the access on a consent screen. A token in the
+    Authorization header remains for scripts and clients without OAuth; it is <token> here, and the
+    window of a new token shows the Claude Code command with the real one. docs/mcp.md says the
+    same at length. Variables: canIssue, server, scopes (scope => label).
+#}
+{#
+    How to connect Claude and other MCP clients to this installation: the server's address, a
     copy-ready setup for each client, a first prompt that checks the connection, what the access of a
     token means and how to keep it safe. The token itself is <token> here; the window of a new token
     shows the Claude Code command with the real one. docs/mcp.md says the same at length.
@@ -19,10 +28,13 @@
 {% block content %}
     {% set token = '<token>' %}
     {% set header = 'Authorization: Bearer ' ~ token %}
-    {% set claudeCode = 'claude mcp add --transport http foresi ' ~ server ~ ' --header "' ~ header ~ '"' %}
-    {% set desktop = {mcpServers: {foresi: {command: 'npx', args: ['-y', 'mcp-remote', server, '--header', 'Authorization:${FORESI_AUTH}'], env: {FORESI_AUTH: 'Bearer ' ~ token}}}} %}
-    {% set cursor = {mcpServers: {foresi: {url: server, headers: {Authorization: 'Bearer ' ~ token}}}} %}
-    {% set vscode = {inputs: [{type: 'promptString', id: 'foresi-token', description: 'Foresi API token', password: true}], servers: {foresi: {type: 'http', url: server, headers: {Authorization: 'Bearer ${input:foresi-token}'}}}} %}
+    {% set claudeCode = 'claude mcp add --transport http foresi ' ~ server %}
+    {% set cursor = {mcpServers: {foresi: {url: server}}} %}
+    {% set vscode = {servers: {foresi: {type: 'http', url: server}}} %}
+    {% set tokenClaudeCode = claudeCode ~ ' --header "' ~ header ~ '"' %}
+    {% set tokenDesktop = {mcpServers: {foresi: {command: 'npx', args: ['-y', 'mcp-remote', server, '--header', 'Authorization:${FORESI_AUTH}'], env: {FORESI_AUTH: 'Bearer ' ~ token}}}} %}
+    {% set tokenCursor = {mcpServers: {foresi: {url: server, headers: {Authorization: 'Bearer ' ~ token}}}} %}
+    {% set tokenVscode = {inputs: [{type: 'promptString', id: 'foresi-token', description: 'Foresi API token', password: true}], servers: {foresi: {type: 'http', url: server, headers: {Authorization: 'Bearer ${input:foresi-token}'}}}} %}
     {% set json = constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_SLASHES') b-or constant('JSON_UNESCAPED_UNICODE') %}
 
     <div class="mb-4">{% include '@Identity/api/_tabs.html.twig' with {active: 'connect'} only %}</div>
@@ -40,8 +52,8 @@
                 <section aria-labelledby="api-connect-steps-title" class="grid gap-2">
                     <h2 id="api-connect-steps-title" class="m-0 text-heading font-semibold text-ink">{{ 'api_tokens.connect.steps.title'|trans }}</h2>
                     <ol class="m-0 grid list-decimal gap-1 pl-5 text-text">
-                        <li>{{ 'api_tokens.connect.steps.token'|trans }}</li>
                         <li>{{ 'api_tokens.connect.steps.client'|trans }}</li>
+                        <li>{{ 'api_tokens.connect.steps.sign_in'|trans }}</li>
                         <li>{{ 'api_tokens.connect.steps.check'|trans }}</li>
                     </ol>
                 </section>
@@ -58,24 +70,24 @@
 
         <section aria-labelledby="api-connect-clients-title" class="grid gap-3">
             <h2 id="api-connect-clients-title" class="m-0 text-heading font-semibold text-ink">{{ 'api_tokens.connect.clients'|trans }}</h2>
-            {% for client in [
+            {{ _self.clients('api_tokens.connect.client.', [
                 {key: 'claude_code', snippets: [{id: 'mcp-claude-code', text: claudeCode, language: 'bash'}]},
-                {key: 'claude_ai', snippets: [{id: 'mcp-claude-ai-url', label: 'api_tokens.connect.server'|trans, text: server}, {id: 'mcp-claude-ai-header', label: 'api_tokens.connect.client.claude_ai.header'|trans, text: header}]},
-                {key: 'desktop', snippets: [{id: 'mcp-claude-desktop', text: desktop|json_encode(json), language: 'json'}]},
+                {key: 'claude_ai', snippets: [{id: 'mcp-claude-ai-url', label: 'api_tokens.connect.server'|trans, text: server}]},
                 {key: 'cursor', snippets: [{id: 'mcp-cursor', text: cursor|json_encode(json), language: 'json'}]},
                 {key: 'vscode', snippets: [{id: 'mcp-vscode', text: vscode|json_encode(json), language: 'json'}]},
-                {key: 'other', snippets: [{id: 'mcp-other', label: 'api_tokens.connect.client.claude_ai.header'|trans, text: header}]},
-            ] %}
-                {% set title = ('api_tokens.connect.client.' ~ client.key ~ '.title')|trans %}
-                <twig:Ui:Card :title="title" data-mcp-client="{{ client.key }}">
-                    <div class="grid gap-3">
-                        <p class="m-0 text-text">{{ ('api_tokens.connect.client.' ~ client.key ~ '.text')|trans }}</p>
-                        {% for snippet in client.snippets %}
-                            <twig:Ui:CodeBlock :id="snippet.id" :label="snippet.label ?? title" :code="snippet.text" :language="snippet.language ?? 'text'" />
-                        {% endfor %}
-                    </div>
-                </twig:Ui:Card>
-            {% endfor %}
+            ]) }}
+        </section>
+
+        <section aria-labelledby="api-connect-token-title" class="grid gap-3" data-api-connect-token>
+            <h2 id="api-connect-token-title" class="m-0 text-heading font-semibold text-ink">{{ 'api_tokens.connect.token.title'|trans }}</h2>
+            <p class="m-0 text-text">{{ 'api_tokens.connect.token.text'|trans }}</p>
+            {{ _self.clients('api_tokens.connect.token.client.', [
+                {key: 'claude_code', snippets: [{id: 'mcp-token-claude-code', text: tokenClaudeCode, language: 'bash'}]},
+                {key: 'desktop', snippets: [{id: 'mcp-claude-desktop', text: tokenDesktop|json_encode(json), language: 'json'}]},
+                {key: 'cursor', snippets: [{id: 'mcp-token-cursor', text: tokenCursor|json_encode(json), language: 'json'}]},
+                {key: 'vscode', snippets: [{id: 'mcp-token-vscode', text: tokenVscode|json_encode(json), language: 'json'}]},
+                {key: 'other', snippets: [{id: 'mcp-other', label: 'api_tokens.connect.token.header'|trans, text: header}]},
+            ], 'token-') }}
         </section>
 
         <twig:Ui:Card :title="'api_tokens.connect.check.title'|trans">
@@ -98,9 +110,24 @@
 
         <twig:Ui:Card :title="'api_tokens.connect.safety.title'|trans">
             <ul class="m-0 grid list-disc gap-1 pl-5 text-text">
-                {% for key in ['secret', 'approve', 'injection', 'revoke'] %}<li>{{ ('api_tokens.connect.safety.' ~ key)|trans }}</li>{% endfor %}
+                {% for key in ['consent', 'secret', 'approve', 'injection', 'disconnect', 'revoke'] %}<li>{{ ('api_tokens.connect.safety.' ~ key)|trans }}</li>{% endfor %}
             </ul>
             <p class="m-0 mt-3 text-small text-muted">{{ 'api_tokens.connect.docs'|trans }}: <a href="https://github.com/foresi/foresi/blob/main/docs/mcp.md" class="font-medium text-green underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">docs/mcp.md</a>, <a href="https://github.com/foresi/foresi/blob/main/docs/api.md" class="font-medium text-green underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">docs/api.md</a></p>
         </twig:Ui:Card>
     </div>
 {% endblock %}
+
+{# One card for each client: its name, what to do and the copy-ready setup. #}
+{% macro clients(prefix, clients, data = '') %}
+    {% for client in clients %}
+        {% set title = (prefix ~ client.key ~ '.title')|trans %}
+        <twig:Ui:Card :title="title" data-mcp-client="{{ data ~ client.key }}">
+            <div class="grid gap-3">
+                <p class="m-0 text-text">{{ (prefix ~ client.key ~ '.text')|trans }}</p>
+                {% for snippet in client.snippets %}
+                    <twig:Ui:CodeBlock :id="snippet.id" :label="snippet.label ?? title" :code="snippet.text" :language="snippet.language ?? 'text'" />
+                {% endfor %}
+            </div>
+        </twig:Ui:Card>
+    {% endfor %}
+{% endmacro %}

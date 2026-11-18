@@ -5,10 +5,16 @@
     "license": "AGPL-3.0-only",
     "require": {
         "foresi/audit": "*",
+        "foresi/instance": "*",
         "foresi/party": "*",
         "foresi/shared": "*",
-        "foresi/instance": "*",
-        "foresi/ui": "*"
+        "foresi/ui": "*",
+        "tecnickcom/tc-lib-barcode": "^2.17.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\Identity\\": ""
+        }
     },
     "extra": {
         "foresi": {

@@ -4,12 +4,17 @@
     "type": "foresi-module",
     "license": "AGPL-3.0-only",
     "require": {
-        "foresi/shared": "*",
-        "foresi/instance": "*",
         "foresi/audit": "*",
         "foresi/events": "*",
         "foresi/identity": "*",
+        "foresi/instance": "*",
+        "foresi/shared": "*",
         "foresi/ui": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\Webhooks\\": ""
+        }
     },
     "extra": {
         "foresi": {

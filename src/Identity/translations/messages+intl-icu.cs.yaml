@@ -137,11 +137,19 @@ api_tokens:
   mine: Moje tokeny
   others: Tokeny ostatních lidí
   others_empty: Ostatní lidé nemají žádné tokeny.
+  connections: Připojené aplikace
+  connections_empty: Zatím není žádná aplikace připojená přes přihlášení OAuth.
+  connections_how: Jak aplikaci připojit
+  others_connections: Aplikace připojené ostatními lidmi
+  others_connections_empty: Ostatní lidé nemají připojené žádné aplikace.
+  connection:
+    unverified: Neověřeno
   create: Vytvořit token
   cancel: Zrušit
   never: Nikdy
   column:
     name: Název
+    app: Aplikace
     person: Osoba
     email: E-mail
     access: Přístup
@@ -149,6 +157,8 @@ api_tokens:
     created: Vytvořen
     expires: Platí do
     last_used: Naposledy použit
+    verified_by: Ověřeno doménou
+    connected: Připojena
   scope:
     read: Číst vše
     write: Číst a měnit vše
@@ -174,10 +184,14 @@ api_tokens:
   expiry: '{days, plural, one {# den} few {# dny} many {# dne} other {# dní}}'
   action:
     revoke: Zrušit token
+    disconnect: Odpojit
   confirm:
     revoke:
       title: 'Zrušit token {name}?'
       text: Programy, které ho používají, přestanou hned fungovat. Nejde to vrátit.
+    disconnect:
+      title: 'Odpojit {name}?'
+      text: Aplikace hned ztratí přístup. Když ji budete chtít znovu používat, musíte ji připojit znovu.
   empty:
     title: Žádné tokeny
     text: Token dovolí jinému programu číst vaše data bez hesla.
@@ -198,6 +212,7 @@ api_tokens:
     done: Hotovo
   flash:
     revoked: Token je zrušený.
+    disconnected: Aplikace je odpojená.
   refused:
     two_factor_required: Token jde vytvořit jen s dvoufázovým přihlášením.
     name: Zadejte název dlouhý nejvýše 80 znaků.
@@ -207,12 +222,12 @@ api_tokens:
     tokens: Tokeny
     connect: MCP
   connect:
-    intro: Foresi má MCP server. Claude a další AI klienti s ním čtou a mění vaše data pod tokenem, který tady vytvoříte. Každý klient potřebuje adresu serveru a token v hlavičce Authorization.
+    intro: Foresi má MCP server. Claude a další AI klienti s ním čtou a mění vaše data. Přidejte adresu serveru do svého klienta; ten otevře Foresi v prohlížeči, kde se přihlásíte a vyberete, co smí. Skripty a klienti bez přihlášení přes OAuth místo toho použijí token.
     server: Adresa MCP serveru
     steps:
       title: Postup
-      token: Vytvořte token. Pro Clauda na začátek stačí jen čtení.
-      client: Přidejte server do svého klienta podle návodu níže a místo <token> vložte svůj token. Okno nového tokenu ukáže příkaz pro Claude Code i s tokenem.
+      client: Přidejte adresu serveru do svého klienta podle návodu níže.
+      sign_in: Klient při připojení otevře Foresi v prohlížeči. Přihlaste se, zkontrolujte, o co klient žádá, a povolte to. Pro Clauda na začátek stačí jen čtení.
       check: Ověřte spojení prvním promptem.
     install:
       title: Instalace promptem
@@ -223,37 +238,52 @@ api_tokens:
     client:
       claude_code:
         title: Claude Code
-        text: Spusťte příkaz v terminálu. Pak v Claude Code napište /mcp a zkontrolujte, že je server foresi připojený.
+        text: Spusťte příkaz v terminálu. Pak v Claude Code napište /mcp, vyberte foresi a přihlaste se v prohlížeči.
       claude_ai:
         title: claude.ai a Claude Desktop
-        text: V Claude otevřete Nastavení → Konektory → Přidat vlastní konektor. Zadejte název Foresi a adresu serveru, přihlášení přes OAuth nevybírejte a v části Request headers přidejte hlavičku níže. Claude Desktop konektory z claude.ai převezme.
-        header: Hlavička
-      desktop:
-        title: Claude Desktop přes konfigurační soubor
-        text: Když vlastní konektor použít nemůžete, otevřete v Claude Desktop Nastavení → Vývojář → Upravit konfiguraci a do claude_desktop_config.json přidejte server přes most mcp-remote (potřebuje Node.js). Pak Claude Desktop ukončete a spusťte znovu.
+        text: V Claude otevřete Nastavení → Konektory → Přidat vlastní konektor. Zadejte název Foresi a adresu serveru, pole pro OAuth nechte prázdná. Při připojení vás Foresi přihlásí a zeptá se, co smí Claude dělat. Claude Desktop konektory z claude.ai převezme.
       cursor:
         title: Cursor
-        text: Přidejte server do ~/.cursor/mcp.json, nebo do .cursor/mcp.json v projektu.
+        text: Přidejte server do ~/.cursor/mcp.json, nebo do .cursor/mcp.json v projektu. Cursor se při prvním připojení přihlásí přes OAuth.
       vscode:
         title: VS Code
-        text: Přidejte server do .vscode/mcp.json. VS Code má klíč servers, ne mcpServers, a token si vyžádá při prvním spuštění, takže v souboru nezůstane.
-      other:
-        title: Jiný MCP klient
-        text: Transport Streamable HTTP, adresa serveru výše a v každém požadavku tato hlavička.
+        text: Přidejte server do .vscode/mcp.json. VS Code má klíč servers, ne mcpServers, a při prvním spuštění serveru se přihlásí přes OAuth.
+    token:
+      title: Místo toho použít token
+      text: Pro skripty a klienty bez přihlášení přes OAuth vytvořte token v záložce Tokeny a posílejte ho v hlavičce Authorization. Místo <token> vložte svůj token; okno nového tokenu ukáže příkaz pro Claude Code i s tokenem.
+      header: Hlavička
+      client:
+        claude_code:
+          title: Claude Code s tokenem
+          text: Spusťte příkaz v terminálu. Pak v Claude Code napište /mcp a zkontrolujte, že je server foresi připojený.
+        desktop:
+          title: Claude Desktop přes konfigurační soubor
+          text: V Claude Desktop otevřete Nastavení → Vývojář → Upravit konfiguraci a do claude_desktop_config.json přidejte server přes most mcp-remote (potřebuje Node.js). Pak Claude Desktop ukončete a spusťte znovu.
+        cursor:
+          title: Cursor s tokenem
+          text: Přidejte server s hlavičkou do ~/.cursor/mcp.json, nebo do .cursor/mcp.json v projektu.
+        vscode:
+          title: VS Code s tokenem
+          text: Přidejte server do .vscode/mcp.json. VS Code si token vyžádá při prvním spuštění serveru, takže v souboru nezůstane.
+        other:
+          title: Skript nebo jiný MCP klient
+          text: Transport Streamable HTTP, adresa serveru výše a v každém požadavku tato hlavička.
     check:
       title: První prompt pro Clauda
-      text: Vložte ho do nového chatu. Claude zavolá nástroj whoami a řekne, kdo je přihlášený a co token smí.
-      prompt: Použij MCP server Foresi. Nejdřív zavolej whoami a řekni mi, za koho jsi přihlášený a jaká práva má token. Pak mi ukaž pět posledních neuhrazených faktur. Nic neměň, dokud tě o to výslovně nepožádám.
+      text: Vložte ho do nového chatu. Claude zavolá nástroj whoami a řekne, kdo je přihlášený a co klient smí.
+      prompt: Použij MCP server Foresi. Nejdřív zavolej whoami a řekni mi, za koho jsi přihlášený a co smíš dělat. Pak mi ukaž pět posledních neuhrazených faktur. Nic neměň, dokud tě o to výslovně nepožádám.
     scopes:
-      title: Co smí token
-      text: Práva vyberete při vytvoření tokenu a později je změnit nejde; pro jiná práva vytvořte nový token. Změna vždy zahrnuje čtení. Nástroj, na který token nemá právo, odpoví odmítnutím.
+      title: Co smí klient
+      text: Práva vyberete na obrazovce souhlasu při připojení klienta, nebo při vytvoření tokenu. Pro jiná práva klienta připojte znovu, nebo vytvořte nový token. Změna vždy zahrnuje čtení. Nástroj, na který klient nemá právo, odpoví odmítnutím.
       hint: Pro Clauda začněte s právem „Číst vše“. Zápis přidejte jen u toho, co má opravdu měnit.
-      list: Práva, která token může dostat
+      list: Práva, která klient může dostat
     safety:
       title: Bezpečnost
+      consent: Připojujte jen klienty, které znáte. Obrazovka souhlasu ukáže, jestli je název aplikace ověřený její doménou, nebo ho aplikace jen uvádí.
       secret: Token je jako heslo. Nevkládejte ho do chatu ani do souborů, které sdílíte nebo ukládáte do gitu.
       approve: V klientovi nechte zapnuté schvalování nástrojů, hlavně u zápisů.
       injection: Data z jiných zdrojů, třeba e-maily nebo webové stránky, mohou obsahovat pokyny pro AI. Klient s právem zápisu by je mohl provést.
+      disconnect: Aplikaci, kterou už nepoužíváte, odpojte v Nastavení → API a MCP. Přístup ztratí okamžitě.
       revoke: Token, který už nepotřebujete nebo mohl uniknout, zrušte v záložce Tokeny. Přestane platit okamžitě.
     docs: Podrobný popis nástrojů a REST API
 invitation:
@@ -290,3 +320,21 @@ invitation:
   accepted:
     title: Pozvánka použita
     text: Tato pozvánka už byla přijata. Přihlaste se do organizace.
+oauth:
+  consent:
+    title: 'Připojit {client}'
+    intro: '{client} chce používat Foresi vaším jménem přes MCP server.'
+    verified: 'Název ověřuje doména {host}.'
+    unverified: Tento název si aplikace uvedla sama a Foresi ho nemůže ověřit. Povolte ji, jen pokud jste ji právě sami připojovali.
+    redirect: 'Po rozhodnutí se vrátíte na {host}.'
+    access: Přístup
+    access_help: Jen to, co aplikace potřebuje. Úpravy zahrnují čtení.
+    required: nutné
+    two_factor: Aplikaci lze připojit jen s dvoufázovým přihlášením.
+    revoke: Aplikaci můžete kdykoli odpojit v Nastavení → API a MCP.
+    allow: Povolit
+    deny: Zamítnout
+  error:
+    title: Aplikaci nelze připojit
+    text: Požadavek aplikace není platný, a proto vás Foresi zpět do ní nepošle.
+    back: Zpět do Foresi

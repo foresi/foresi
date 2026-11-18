@@ -1,0 +1,66 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The consent screen of an OAuth client (ADR 0036): who asks, where the person goes back to and what
+    the client may do. Read access the client asked for stays ticked (it is sent as a hidden field), the
+    rest can be changed, as on Cloudflare's consent screen.
+#}
+{% extends 'layout/auth.html.twig' %}
+
+{% set form_invalid = error is not null %}
+
+{% block title %}{{ 'oauth.consent.title'|trans({client: client.name}) }}{% endblock %}
+
+{% block content %}
+    <div class="grid gap-4">
+        <p class="m-0 text-small text-muted">{{ 'oauth.consent.intro'|trans({client: client.name}) }}</p>
+
+        {% if verifiedHost %}
+            <p class="m-0 text-small text-muted">{{ 'oauth.consent.verified'|trans({host: verifiedHost}) }}</p>
+        {% else %}
+            <twig:Ui:Alert tone="warning">{{ 'oauth.consent.unverified'|trans }}</twig:Ui:Alert>
+        {% endif %}
+        <p class="m-0 text-small text-muted">{{ 'oauth.consent.redirect'|trans({host: redirectHost}) }}</p>
+
+        {% if not canConnect %}
+            <twig:Ui:Alert tone="warning">
+                <span>{{ 'oauth.consent.two_factor'|trans }}</span>
+                <a href="{{ path(constant('Foresi\\Identity\\Infrastructure\\Controller\\TwoFactorSetupController::SETUP_ROUTE')) }}" data-turbo="false" class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'api_tokens.two_factor.link'|trans }}</a>
+            </twig:Ui:Alert>
+        {% endif %}
+
+        {# The answer redirects to the client, another site or an app: never through Turbo. #}
+        <form method="post" id="oauth-consent" action="{{ path('oauth_authorize') }}" class="grid gap-4" data-turbo="false" novalidate>
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Identity\\Infrastructure\\OAuth\\OAuthAuthorizeController::TOKEN')) }}">
+            {% for name, value in parameters %}
+                <input type="hidden" name="{{ name }}" value="{{ value }}">
+            {% endfor %}
+
+            {% if error %}<twig:Ui:Alert tone="error">{{ error }}</twig:Ui:Alert>{% endif %}
+
+            {% if canConnect %}
+                <fieldset class="m-0 grid gap-2 border-0 p-0">
+                    <legend class="mb-2 p-0 text-small font-semibold text-ink">{{ 'oauth.consent.access'|trans }}</legend>
+                    <p class="m-0 text-small text-muted">{{ 'oauth.consent.access_help'|trans }}</p>
+                    {% for scope in scopes %}
+                        {% set id = 'scope-' ~ scope.value|replace({':': '-'}) %}
+                        {% if scope.required %}
+                            <input type="hidden" name="scopes[]" value="{{ scope.value }}">
+                            <twig:Ui:Checkbox name="" :id="id" :value="scope.value" :label="scope.label ~ ' · ' ~ 'oauth.consent.required'|trans" :checked="true" :disabled="true" />
+                        {% else %}
+                            <twig:Ui:Checkbox name="scopes[]" :id="id" :value="scope.value" :label="scope.label" :checked="scope.checked" />
+                        {% endif %}
+                    {% endfor %}
+                </fieldset>
+            {% endif %}
+
+            <p class="m-0 text-small text-muted">{{ 'oauth.consent.revoke'|trans }}</p>
+
+            <div class="grid gap-2">
+                {% if canConnect %}
+                    <twig:Ui:Button type="submit" name="decision" value="allow" variant="primary" class="w-full">{{ 'oauth.consent.allow'|trans }}</twig:Ui:Button>
+                {% endif %}
+                <twig:Ui:Button type="submit" name="decision" value="deny" class="w-full">{{ 'oauth.consent.deny'|trans }}</twig:Ui:Button>
+            </div>
+        </form>
+    </div>
+{% endblock %}

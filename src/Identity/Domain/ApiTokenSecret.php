@@ -17,12 +17,28 @@ final class ApiTokenSecret
 {
     public const string PREFIX = 'foresi_pat_';
 
-    /** The prefix and the length of 32 bytes in unpadded base64url. */
-    public const string PATTERN = 'foresi_pat_[A-Za-z0-9_-]{43}';
+    /** The access token of an OAuth client (ADR 0036); it signs in on /mcp only. */
+    public const string OAUTH_PREFIX = 'foresi_oat_';
+
+    /** Either prefix and the length of 32 bytes in unpadded base64url. */
+    public const string PATTERN = 'foresi_[po]at_[A-Za-z0-9_-]{43}';
 
     public static function generate(): string
     {
-        return self::PREFIX.rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+        return self::PREFIX.self::random();
+    }
+
+    public static function generateOAuth(): string
+    {
+        return self::OAUTH_PREFIX.self::random();
+    }
+
+    /**
+     * 32 random bytes in unpadded base64url: 43 characters.
+     */
+    public static function random(): string
+    {
+        return rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
     }
 
     public static function hash(#[\SensitiveParameter] string $secret): string

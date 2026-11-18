@@ -1,0 +1,13 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# An authorization request Foresi cannot trust enough to send the person back to the client (ADR 0036). #}
+{% extends 'layout/auth.html.twig' %}
+
+{% block title %}{{ 'oauth.error.title'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="grid gap-3">
+        <p class="m-0 text-small text-muted">{{ 'oauth.error.text'|trans }}</p>
+        <twig:Ui:Alert tone="error">{{ description }}</twig:Ui:Alert>
+        <twig:Ui:Button :href="path('app_dashboard')" class="w-full">{{ 'oauth.error.back'|trans }}</twig:Ui:Button>
+    </div>
+{% endblock %}

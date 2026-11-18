@@ -7,9 +7,14 @@
         "foresi/audit": "*",
         "foresi/exchange-rate": "*",
         "foresi/identity": "*",
+        "foresi/instance": "*",
         "foresi/party": "*",
-        "foresi/shared": "*",
-        "foresi/instance": "*"
+        "foresi/shared": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\CashFlow\\": ""
+        }
     },
     "extra": {
         "foresi": {

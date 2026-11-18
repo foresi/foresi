@@ -7,10 +7,16 @@
         "foresi/attachment": "*",
         "foresi/audit": "*",
         "foresi/identity": "*",
+        "foresi/instance": "*",
         "foresi/party": "*",
         "foresi/shared": "*",
-        "foresi/instance": "*",
-        "foresi/ui": "*"
+        "foresi/ui": "*",
+        "openspout/openspout": "^5.12"
+    },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\Work\\": ""
+        }
     },
     "extra": {
         "foresi": {

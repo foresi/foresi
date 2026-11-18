@@ -6,12 +6,17 @@
     "require": {
         "foresi/audit": "*",
         "foresi/identity": "*",
+        "foresi/instance": "*",
         "foresi/invoicing": "*",
         "foresi/party": "*",
         "foresi/shared": "*",
-        "foresi/instance": "*",
         "foresi/ui": "*",
         "foresi/work": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\Timesheet\\": ""
+        }
     },
     "extra": {
         "foresi": {

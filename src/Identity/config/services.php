@@ -10,6 +10,7 @@ use Foresi\Audit\Application\AuditActor;
 use Foresi\Audit\Application\TokenAuditActor;
 use Foresi\Identity\Infrastructure\Console\McpStdioSignIn;
 use Foresi\Identity\Infrastructure\Idempotency\DbalIdempotencyKeys;
+use Foresi\Identity\Infrastructure\Security\ApiTokenHandler;
 use Foresi\Identity\Infrastructure\Security\ApiTokenLogin;
 use Foresi\Identity\Infrastructure\Security\MembershipActorRole;
 use Foresi\Identity\Infrastructure\Security\SecurityAuditActor;
@@ -40,6 +41,9 @@ return static function (ContainerConfigurator $container): void {
     $services->alias(IdempotencyKeys::class, DbalIdempotencyKeys::class);
     $services->alias(ScopeGuard::class, TokenScopeGuard::class);
     $services->alias(ToolCaller::class, McpStdioSignIn::class);
+
+    // The mcp firewall also accepts the access tokens of OAuth clients (ADR 0036); the api firewall does not.
+    $services->set('foresi.mcp_token_handler', ApiTokenHandler::class)->arg('$acceptsOAuth', true);
 
     if ('test' === $container->env()) {
         // The MCP server on stdio will sign in with it; until then only the tests do.

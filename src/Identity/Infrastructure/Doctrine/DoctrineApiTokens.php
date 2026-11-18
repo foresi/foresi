@@ -19,7 +19,7 @@ use Foresi\Identity\Domain\ApiToken;
  */
 final readonly class DoctrineApiTokens implements ApiTokens
 {
-    private const string RECORD = 'SELECT t.id AS id, t.userId AS userId, t.name AS name, t.scopes AS scopes, t.lastFour AS lastFour, t.createdAt AS createdAt, t.expiresAt AS expiresAt, t.lastUsedAt AS lastUsedAt, t.revokedAt AS revokedAt FROM '.ApiToken::class.' t';
+    private const string RECORD = 'SELECT t.id AS id, t.userId AS userId, t.name AS name, t.scopes AS scopes, t.lastFour AS lastFour, t.createdAt AS createdAt, t.expiresAt AS expiresAt, t.lastUsedAt AS lastUsedAt, t.revokedAt AS revokedAt, t.oauthClientId AS oauthClientId FROM '.ApiToken::class.' t';
 
     public function __construct(private EntityManagerInterface $entityManager)
     {
@@ -37,12 +37,41 @@ final readonly class DoctrineApiTokens implements ApiTokens
 
     public function ofUser(string $userId): array
     {
-        return $this->entityManager->getRepository(ApiToken::class)->findBy(['userId' => $userId], ['id' => 'DESC']);
+        return $this->entityManager->getRepository(ApiToken::class)->findBy(['userId' => $userId, 'oauthClientId' => null], ['id' => 'DESC']);
     }
 
     public function all(): array
     {
-        return $this->entityManager->getRepository(ApiToken::class)->findBy([], ['id' => 'DESC']);
+        return $this->entityManager->getRepository(ApiToken::class)->findBy(['oauthClientId' => null], ['id' => 'DESC']);
+    }
+
+    public function connections(?string $userId): array
+    {
+        $query = $this->entityManager->createQueryBuilder()
+            ->select('t')->from(ApiToken::class, 't')
+            ->where('t.oauthClientId IS NOT NULL')
+            ->orderBy('t.id', 'DESC');
+        if (null !== $userId) {
+            $query->andWhere('t.userId = :user')->setParameter('user', $userId);
+        }
+        /** @var list<ApiToken> $tokens */
+        $tokens = $query->getQuery()->getResult();
+
+        return $tokens;
+    }
+
+    /**
+     * An update query, not a change of the entity: it writes no audit entry.
+     */
+    public function rotate(string $id, string $tokenHash, string $lastFour, \DateTimeImmutable $expiresAt): void
+    {
+        $this->entityManager
+            ->createQuery('UPDATE '.ApiToken::class.' t SET t.tokenHash = :hash, t.lastFour = :lastFour, t.expiresAt = :expires WHERE t.id = :id AND t.oauthClientId IS NOT NULL')
+            ->setParameter('hash', $tokenHash)
+            ->setParameter('lastFour', $lastFour)
+            ->setParameter('expires', $expiresAt, 'datetime_immutable')
+            ->setParameter('id', $id)
+            ->execute();
     }
 
     public function byHash(string $tokenHash): ?ApiTokenRecord
@@ -78,7 +107,7 @@ final readonly class DoctrineApiTokens implements ApiTokens
     /**
      * @param array<string, array{mixed, ?string}> $parameters value and type by name
      *
-     * @return list<array{id: string, userId: string, name: string, scopes: list<string>, lastFour: string, createdAt: string, expiresAt: string, lastUsedAt: ?string, revokedAt: ?string}>
+     * @return list<array{id: string, userId: string, name: string, scopes: list<string>, lastFour: string, createdAt: string, expiresAt: string, lastUsedAt: ?string, revokedAt: ?string, oauthClientId: ?string}>
      */
     private function rows(string $where, array $parameters): array
     {
@@ -89,7 +118,7 @@ final readonly class DoctrineApiTokens implements ApiTokens
         /** @var list<array<string, mixed>> $result */
         $result = $query->getArrayResult();
 
-        /** @var \Closure(array<mixed>): array{id: string, userId: string, name: string, scopes: list<string>, lastFour: string, createdAt: string, expiresAt: string, lastUsedAt: ?string, revokedAt: ?string} $record */
+        /** @var \Closure(array<mixed>): array{id: string, userId: string, name: string, scopes: list<string>, lastFour: string, createdAt: string, expiresAt: string, lastUsedAt: ?string, revokedAt: ?string, oauthClientId: ?string} $record */
         $record = static fn (array $row): array => array_map(self::scalar(...), $row);
 
         return array_map($record, $result);
@@ -109,7 +138,7 @@ final readonly class DoctrineApiTokens implements ApiTokens
     }
 
     /**
-     * @param array{id: string, userId: string, name: string, scopes: list<string>, lastFour: string, createdAt: string, expiresAt: string, lastUsedAt: ?string, revokedAt: ?string} $row
+     * @param array{id: string, userId: string, name: string, scopes: list<string>, lastFour: string, createdAt: string, expiresAt: string, lastUsedAt: ?string, revokedAt: ?string, oauthClientId: ?string} $row
      */
     private function record(array $row): ApiTokenRecord
     {
@@ -123,6 +152,7 @@ final readonly class DoctrineApiTokens implements ApiTokens
             new \DateTimeImmutable($row['expiresAt']),
             null === $row['lastUsedAt'] ? null : new \DateTimeImmutable($row['lastUsedAt']),
             null === $row['revokedAt'] ? null : new \DateTimeImmutable($row['revokedAt']),
+            $row['oauthClientId'],
         );
     }
 }

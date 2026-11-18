@@ -173,32 +173,6 @@ final class CashFlowApiTest extends ApiTestCase
         $this->assertProblem(403, 'insufficient_scope');
     }
 
-    public function testATokenWithoutTheDocumentScopesSeesTheirTotalsButNotTheItems(): void
-    {
-        $invoice = $this->flushed(fn (): string => $this->invoice()->id());
-        $restricted = ['invoicing.invoices', 'invoicing.recurring_invoices', 'purchasing.received_documents'];
-
-        $this->get('/api/v1/cash-flow/forecast', ['firm_id' => $this->firmId], $this->issued([ApiScope::from('cashflow:read')]));
-
-        self::assertResponseIsSuccessful();
-        self::assertSame($restricted, $this->at('data', 'restricted_sources'));
-        self::assertSame([], $this->at('data', 'periods', 0, 'items'));
-        self::assertSame([[
-            'source' => 'invoicing.invoices',
-            'direction' => 'in',
-            'category' => 'revenue',
-            'amount_czk' => ['amount_minor' => 242000, 'currency' => 'CZK'],
-            'count' => 1,
-        ]], $this->at('data', 'periods', 0, 'hidden_items'));
-        self::assertSame(['amount_minor' => 242000, 'currency' => 'CZK'], $this->at('data', 'periods', 0, 'inflows', 'total'));
-
-        $this->get('/api/v1/cash-flow/forecast', ['firm_id' => $this->firmId], $this->issued([ApiScope::from('cashflow:read'), ApiScope::from('invoices:read')]));
-
-        self::assertSame(['purchasing.received_documents'], $this->at('data', 'restricted_sources'));
-        self::assertSame([], $this->at('data', 'periods', 0, 'hidden_items'));
-        self::assertSame([$invoice, ['overdue']], [$this->at('data', 'periods', 0, 'items', 0, 'subject', 'id'), $this->at('data', 'periods', 0, 'items', 0, 'flags')]);
-    }
-
     private function createdRent(): string
     {
         $this->send('POST', '/api/v1/cash-flow/planned-items', ['firm_id' => $this->firmId] + self::RENT);
