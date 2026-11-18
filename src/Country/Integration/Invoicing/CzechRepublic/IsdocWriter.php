@@ -63,7 +63,7 @@ final readonly class IsdocWriter
     private const string NOT_XML = '/[^\x{9}\x{A}\x{D}\x{20}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u';
 
     public function __construct(
-        #[Autowire('%app.product_name% %app.version%')]
+        #[Autowire(param: 'country.isdoc_issuing_system')]
         private string $issuingSystem = 'Foresi',
     ) {
     }

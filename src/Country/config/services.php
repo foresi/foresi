@@ -19,4 +19,7 @@ return static function (ContainerConfigurator $container): void {
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\Country\\', '../')
         ->exclude(['../config/', '../Integration/', '../CountryBundle.php']);
+
+    // The product an ISDOC file names as its issuer (IsdocWriter, in Integration/Invoicing/).
+    $container->parameters()->set('country.isdoc_issuing_system', '%app.product_name% %app.version%');
 };

@@ -23,8 +23,8 @@ final class InstalledRateSourceTest extends TestCase
         $source = new InstalledRateSource([]);
 
         self::assertSame(InstalledRateSource::NONE, $source->name());
-        self::assertTrue('23:59' < $source->expectedAt());
-        self::assertTrue('23:59' < $source->settledAt());
+        self::assertLessThan($source->expectedAt(), '23:59');
+        self::assertLessThan($source->settledAt(), '23:59');
         self::assertNull($source->fetch(new \DateTimeImmutable('2026-11-10')));
     }
 
