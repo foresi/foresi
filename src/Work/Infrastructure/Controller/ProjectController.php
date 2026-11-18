@@ -17,7 +17,17 @@ use Foresi\Identity\Application\StaffCheck;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\PartyRow;
+use Foresi\Shared\Application\View\FilterRows;
+use Foresi\Shared\Application\View\ListView;
+use Foresi\Shared\Application\View\ListViews;
+use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Application\View\WorkingFilter;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
+use Foresi\Ui\Column\RememberedDisplay;
+use Foresi\Ui\Column\WorkingDisplay;
+use Foresi\Ui\Column\WorkingState;
 use Foresi\Ui\Component\DataTable;
+use Foresi\Ui\View\ViewBar;
 use Foresi\Work\Application\DueBucket;
 use Foresi\Work\Application\LabelBadge;
 use Foresi\Work\Application\ManageProjects;
@@ -32,11 +42,14 @@ use Foresi\Work\Application\TaskRow;
 use Foresi\Work\Application\TimeQueries;
 use Foresi\Work\Application\TimeTarget;
 use Foresi\Work\Application\TrashedTask;
+use Foresi\Work\Application\View\ProjectTaskLists;
+use Foresi\Work\Application\View\TaskConditions;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Domain\Priority;
-use Foresi\Work\Domain\StatusType;
 use Foresi\Work\Domain\WorkflowTemplate;
+use Foresi\Work\Infrastructure\Column\ProjectTaskColumns;
+use Foresi\Work\Infrastructure\View\ProjectTaskViews;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -63,6 +76,7 @@ final class ProjectController extends AbstractController
     public const string ROUTE = 'app_projects';
     public const string PROJECT_ROUTE = 'app_project';
     public const string BOARD_ROUTE = 'app_project_board';
+    public const string PEOPLE_ROUTE = 'app_project_people';
     public const string TRASH_ROUTE = 'app_project_trash';
     /** The menu forms of a card and the drop on the board share it. */
     public const string MOVE_TOKEN = 'work_task_move';
@@ -88,6 +102,11 @@ final class ProjectController extends AbstractController
         private readonly TimeQueries $time,
         private readonly OwnerCheck $owner,
         private readonly InlineTaskEdits $edits,
+        private readonly ProjectTaskViews $taskViews,
+        private readonly ProjectTaskColumns $taskColumns,
+        private readonly RememberedDisplay $rememberedDisplay,
+        private readonly ViewBar $viewBar,
+        private readonly FilterSheet $filterSheet,
     ) {
     }
 
@@ -171,41 +190,89 @@ final class ProjectController extends AbstractController
         ], $page->rows)]);
     }
 
+    /**
+     * A project's tasks on saved views (spec D3, D7): All, which leaves out the
+     * finished tasks as the list always did, the person's own tasks and the
+     * finished ones ship as views, with the person's own beside them. Who is
+     * responsible, the status and the due date are conditions of "+ Filter"
+     * (D11); the views are the same in every project. List and Board stay a
+     * switch of the layout above the views. A guest sees the views and filters
+     * but does not save them, as only the staff keep views.
+     */
     #[OpenToGuest]
     #[Route('/projects/{id}', name: self::PROJECT_ROUTE, requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
     public function show(string $id, Request $request): Response
     {
-        $query = $this->filterQuery($request->query);
-        $list = $this->queries->projectList($id, $this->filter($query)) ?? throw new NotFoundHttpException();
-        $seeds = $this->seeds();
-        $edits = $this->editsOf($list->project, array_merge(...array_map(static fn (SectionTasks $section): array => self::withSubtasks($section->tasks), $list->sections)), $request);
+        $input = $request->query;
+        // The builder's rows (spec D11) become the list's working filter, in its address.
+        if ($input->has(FilterRows::MARKER)) {
+            return $this->redirectToRoute(self::PROJECT_ROUTE, ['id' => $id] + $this->builtQuery($input), Response::HTTP_SEE_OTHER);
+        }
+        [$views, $view, $shown] = $this->taskViews->of($input);
+        $list = $this->queries->projectList($id, new TaskFilter(conditions: new TaskConditions($shown, $this->myMembership(), $this->clock->today()))) ?? throw new NotFoundHttpException();
+        $definition = ProjectTaskLists::list();
+        $query = array_filter([
+            'view' => $view->isAll() ? null : $view->key,
+            WorkingFilter::PARAM => WorkingFilter::param($shown, $view->filter),
+        ], static fn (?string $value): bool => null !== $value);
+        $context = [
+            ProjectTaskColumns::SEEDS => $this->seeds(),
+            ProjectTaskColumns::EDITS => $this->editsOf($list->project, array_merge(...array_map(static fn (SectionTasks $section): array => self::withSubtasks($section->tasks), $list->sections)), $request),
+        ];
+        // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $working = $this->rememberedDisplay->read(ProjectTaskColumns::LIST, $context, $definition->key, $view, $input->all());
+        $query += $working->query;
+        $bar = $this->viewBar->of($definition, $views, $view, $shown, '', '', $working, self::PROJECT_ROUTE, ['id' => $id]);
         $sections = [];
         foreach ($list->sections as $section) {
             // The tasks in no section only when there are some.
             if (null === $section->id && [] === $section->tasks) {
                 continue;
             }
-            $sections[] = $this->sectionView($section, $seeds, $edits);
+            $sections[] = $this->sectionView($section, $working);
         }
 
         return $this->render('@Work/projects/show.html.twig', [
             'project' => $list->project,
             'sections' => $sections,
-            'query' => $query,
-            'filtered' => '' !== $query['responsible'] || 'open' !== $query['status'] || '' !== $query['due'],
-            'responsibles' => $this->responsibles(),
-            'statuses' => [
-                'open' => $this->translator->trans('work.filter.status_open'),
-                'all' => $this->translator->trans('work.filter.status_all'),
-                'finished' => $this->translator->trans('work.filter.status_finished'),
-            ],
-            'dues' => $this->dues(),
-            'columns' => $this->taskColumns(),
+            'filtered' => [] !== $shown->conditions,
+            'view' => $view->isAll() ? '' : $view->key,
+            'working' => $query[WorkingFilter::PARAM] ?? '',
+            'workingQuery' => $working->query,
+            // Only the staff keep views: a guest filters and changes the columns, and saves nothing.
+            'viewsEditable' => $this->staff->isStaff(),
+            ...$this->filterSheet->of($definition, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::PROJECT_ROUTE, ['id' => $id, WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references()),
+            ...$bar,
+            ...$this->tabs($id, $views, $view->key, $bar['viewBar']['modified']),
+            'columns' => $working->display->table(),
+            'density' => $working->tableDensity(),
+            'picker' => $this->picker($id, $working, $query),
             'trashCount' => $this->queries->trashCount($id),
             'timeLoggable' => $this->time->projectTarget($id) instanceof TimeTarget,
             // Only an owner sees rates, so only an owner sees the actions that bill time.
             'timeBilling' => $this->owner->isOwner(),
         ]);
+    }
+
+    /**
+     * The people a responsible condition picks from, found by their name: whom the
+     * filter of the list offered, and "Me" when the text fits it or the person's own name.
+     */
+    #[OpenToGuest]
+    #[Route('/projects/people', name: self::PEOPLE_ROUTE, methods: ['GET'])]
+    public function people(Request $request): JsonResponse
+    {
+        $text = mb_strtolower(trim(mb_substr($request->query->getString('q'), 0, self::MAX_QUERY)));
+        $me = $this->myMembership();
+        $results = [];
+        foreach ($this->responsibles() as $value => $name) {
+            $names = mb_strtolower(ProjectTaskLists::ME === $value ? $name.' '.$this->personName($me) : $name);
+            if ('' !== $value && str_contains($names, $text)) {
+                $results[] = ['id' => $value, 'label' => $name, 'hint' => ''];
+            }
+        }
+
+        return $this->json(['results' => $results]);
     }
 
     /**
@@ -398,8 +465,8 @@ final class ProjectController extends AbstractController
     }
 
     /**
-     * The list or the board of the project with the filters it had, from the
-     * path a form was opened from; anything else is the list.
+     * The list or the board of the project with the view and the filters it had,
+     * from the path a form was opened from; anything else is the list.
      */
     private function returnPath(string $projectId, string $return): string
     {
@@ -419,8 +486,13 @@ final class ProjectController extends AbstractController
         if ($board || 'open' === $query['status']) {
             unset($query['status']);
         }
+        // The list's view, its working filter and its columns.
+        $view = [];
+        foreach ($board ? [] : ['view', WorkingFilter::PARAM, ...WorkingDisplay::KEYS] as $name) {
+            $view[$name] = $field($name);
+        }
 
-        return $this->generateUrl($board ? self::BOARD_ROUTE : self::PROJECT_ROUTE, ['id' => $projectId] + array_filter($query, static fn (string $value): bool => '' !== $value));
+        return $this->generateUrl($board ? self::BOARD_ROUTE : self::PROJECT_ROUTE, ['id' => $projectId] + array_filter($view + $query, static fn (string $value): bool => '' !== $value));
     }
 
     /**
@@ -454,9 +526,8 @@ final class ProjectController extends AbstractController
     {
         $responsible = $query['responsible'];
         if ('me' === $responsible) {
-            $userId = $this->actor->userId();
             // Someone without a membership is responsible for nothing.
-            $responsible = (null === $userId ? null : $this->people->membershipOf($userId)?->id()) ?? 'nobody';
+            $responsible = $this->myMembership() ?? 'nobody';
         }
 
         return new TaskFilter(
@@ -516,7 +587,7 @@ final class ProjectController extends AbstractController
                 'name' => $task->responsibleName,
                 'seed' => $seeds[$task->responsibleId] ?? $task->responsibleId,
             ],
-            'due' => $this->due($task),
+            'due' => $this->taskColumns->due($task),
             'priority' => Priority::None === $task->priority ? null : $this->translator->trans('work.priority.'.$task->priority->value),
             'labels' => array_map(static fn (LabelBadge $label): array => ['label' => $label->name, 'tone' => $label->colour->value], $task->labels),
             'subtasks' => 0 === $task->subtaskCount ? null : ['done' => $done, 'total' => $task->subtaskCount],
@@ -598,17 +669,15 @@ final class ProjectController extends AbstractController
     }
 
     /**
-     * @param array<string, string> $seeds user ids by membership id, for the avatar colours the people screen uses
-     *
      * @return array{id: ?string, key: string, name: string, count: int, private: bool, rows: list<array<string, mixed>>}
      */
-    private function sectionView(SectionTasks $section, array $seeds, ?TaskEdits $edits): array
+    private function sectionView(SectionTasks $section, WorkingState $working): array
     {
         $rows = [];
         foreach ($section->tasks as $task) {
-            $rows[] = $this->taskRow($task, $seeds, false, $edits);
+            $rows[] = $this->taskRow($task, false, $working);
             foreach ($task->subtasks as $subtask) {
-                $rows[] = $this->taskRow($subtask, $seeds, true, $edits);
+                $rows[] = $this->taskRow($subtask, true, $working);
             }
         }
 
@@ -623,28 +692,11 @@ final class ProjectController extends AbstractController
     }
 
     /**
-     * @return list<array<string, mixed>>
-     */
-    private function taskColumns(): array
-    {
-        return [
-            ['key' => 'title', 'label' => $this->translator->trans('work.task.field.title'), 'truncate' => true],
-            ['key' => 'status', 'label' => $this->translator->trans('work.task.field.status')],
-            ['key' => 'responsible', 'label' => $this->translator->trans('work.task.field.responsible'), 'truncate' => true, 'phone' => false],
-            ['key' => 'due', 'label' => $this->translator->trans('work.task.field.due_on'), 'phone' => false],
-            ['key' => 'priority', 'label' => $this->translator->trans('work.task.field.priority'), 'phone' => false],
-            ['key' => 'labels', 'label' => $this->translator->trans('work.task.field.labels'), 'phone' => false, 'wide' => true],
-        ];
-    }
-
-    /**
-     * @param array<string, string> $seeds
-     *
      * @return array<string, mixed>
      */
-    private function taskRow(TaskRow $task, array $seeds, bool $child, ?TaskEdits $edits): array
+    private function taskRow(TaskRow $task, bool $child, WorkingState $working): array
     {
-        $due = $this->due($task);
+        $due = $this->taskColumns->due($task);
 
         return [
             'id' => $task->id,
@@ -654,14 +706,7 @@ final class ProjectController extends AbstractController
             'child' => $child,
             // A phone hides the columns of who and when: the line under the title says them, and lets a long title wrap.
             'secondary' => implode(' · ', array_filter([$task->responsibleName ?? $this->translator->trans('work.task.nobody'), \is_array($due) ? $due['text'] : $due], \is_string(...))),
-            'cells' => [
-                'title' => $task->private ? ['text' => $task->title, 'flag' => $this->privateFlag()] : $task->title,
-                'status' => TaskEdits::cell($this->statusBadge($task->statusName, $task->statusType), $edits?->status($task)),
-                'responsible' => TaskEdits::cell(null === $task->responsibleId || null === $task->responsibleName ? null : ['avatar' => $seeds[$task->responsibleId] ?? $task->responsibleId, 'text' => $task->responsibleName], $edits?->responsible($task)),
-                'due' => TaskEdits::cell($due, $edits?->due($task)),
-                'priority' => TaskEdits::cell(Priority::None === $task->priority ? null : $this->translator->trans('work.priority.'.$task->priority->value), $edits?->priority($task)),
-                'labels' => [] === $task->labels ? null : ['badges' => array_map(static fn (LabelBadge $label): array => ['label' => $label->name, 'tone' => $label->colour->value], $task->labels)],
-            ],
+            'cells' => $working->display->cells($task),
             'actions' => $task->deletable ? [[
                 'label' => $this->translator->trans('work.trash.delete'),
                 'href' => $this->generateUrl('app_task_delete', ['id' => $task->id]),
@@ -672,39 +717,96 @@ final class ProjectController extends AbstractController
     }
 
     /**
-     * The badge after the title of a task only the people it is shared with see.
+     * The views of the list as tabs and its "More views" menu (spec D7); no tab counts (D9).
+     * A view opens with its own filter and columns (D10).
      *
-     * @return array{label: string, tone: string, icon: string}
+     * @param list<ListView> $views
+     *
+     * @return array{tabs: list<array<string, mixed>>, moreViews: list<array<string, mixed>>}
      */
-    private function privateFlag(): array
+    private function tabs(string $id, array $views, string $active, bool $modified): array
     {
-        return ['label' => $this->translator->trans('work.sharing.private_badge'), 'tone' => 'gray', 'icon' => 'lock'];
+        [$primary, $overflow] = ListViews::placed($views);
+        $link = fn (ListView $view): array => [
+            'label' => $view->translated ? $this->translator->trans($view->name) : $view->name,
+            'href' => $this->generateUrl(self::PROJECT_ROUTE, ['id' => $id, 'view' => $view->isAll() ? null : $view->key]),
+            'active' => $view->key === $active,
+            'modified' => $modified && $view->key === $active,
+            'private' => $view->private,
+        ];
+
+        return ['tabs' => array_map($link, $primary), 'moreViews' => array_map($link, $overflow)];
     }
 
     /**
-     * @return array{text: string, tone: string}
+     * @param array<string, string> $query
+     *
+     * @return array<string, mixed>
      */
-    private function statusBadge(string $name, StatusType $type): array
+    private function picker(string $id, WorkingState $working, array $query): array
     {
-        return ['text' => $name, 'tone' => self::STATUS_TONES[$type->value]];
+        $kept = array_diff_key($query, array_flip(WorkingDisplay::KEYS));
+
+        return [
+            'keep' => $kept,
+            'columns' => $working->picker(),
+            'density' => $working->density,
+            // An empty density names the view's own display, which forgets the one remembered (D-display-3).
+            'resetHref' => $this->generateUrl(self::PROJECT_ROUTE, ['id' => $id] + $kept + [WorkingDisplay::DENSITY => '']),
+            'modified' => $working->modified,
+        ];
     }
 
     /**
-     * A plain date; an unfinished task past it says so in words on the red tone.
+     * The list's address after the builder's Apply: what the sheet sent, its rows read
+     * into the working filter, which is left out when it is the view's own. The old
+     * filters are in the rows by then.
      *
-     * @return string|array{text: string, tone: string}|null
+     * @param InputBag<string> $input
+     *
+     * @return array<string, mixed>
      */
-    private function due(TaskRow $task): string|array|null
+    private function builtQuery(InputBag $input): array
     {
-        if (!$task->dueOn instanceof \DateTimeImmutable) {
-            return null;
-        }
-        $date = $this->date($task->dueOn);
-        if (!$task->done && $task->dueOn->format('Y-m-d') < $this->clock->today()->format('Y-m-d')) {
-            return ['text' => $this->translator->trans('work.list.overdue', ['date' => $date]), 'tone' => 'red'];
+        [, $view] = $this->taskViews->of($input);
+        $query = array_diff_key($input->all(), [FilterRows::PARAM => true, FilterRows::MARKER => true, WorkingFilter::PARAM => true, 'view' => true] + ProjectTaskViews::OLD_PARAMS);
+
+        return array_filter($query + ['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), ProjectTaskLists::list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
+    }
+
+    /**
+     * The people a responsible condition picks from and names: "Me", or anyone the
+     * organisation has had, though no longer active.
+     *
+     * @return array<string, array{url: string, name: \Closure(string): ?string}>
+     */
+    private function references(): array
+    {
+        return [ProjectTaskLists::PERSON => [
+            'url' => $this->generateUrl(self::PEOPLE_ROUTE),
+            'name' => fn (string $membership): ?string => ProjectTaskLists::ME === $membership ? $this->translator->trans('work.filter.responsible_me') : $this->personName($membership),
+        ]];
+    }
+
+    private function personName(?string $membership): ?string
+    {
+        foreach ($this->people->all() as $person) {
+            if ($person->membershipId === $membership) {
+                return $person->name;
+            }
         }
 
-        return $date;
+        return null;
+    }
+
+    /**
+     * The membership of the person looking; someone without one is responsible for nothing.
+     */
+    private function myMembership(): ?string
+    {
+        $userId = $this->actor->userId();
+
+        return null === $userId ? null : $this->people->membershipOf($userId)?->id();
     }
 
     /**

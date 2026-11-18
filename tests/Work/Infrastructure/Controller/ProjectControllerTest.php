@@ -213,33 +213,119 @@ final class ProjectControllerTest extends WebTestCase
         self::assertSelectorTextContains('[data-section="'.$this->sectionId($id, 'Build').'"]', 'No tasks yet.');
     }
 
-    public function testTheFiltersNarrowTheTopLevelTasks(): void
+    public function testTheViewsAreTabsUnderListAndBoardAndAllShowsTheUnfinishedTasks(): void
+    {
+        // Saved views, D7 and D12: All leaves out the finished tasks, as the list's default did.
+        $this->signIn();
+        $id = $this->seedList();
+
+        $crawler = $this->client->request('GET', '/projects/'.$id);
+        self::assertSame(['List', 'Board'], $crawler->filter('nav[aria-label="Project views"] a')->each(static fn (Crawler $tab): string => trim($tab->text())));
+        self::assertSame(['All', 'Mine', 'Finished'], $this->tabs($crawler));
+        self::assertSame(['/projects/'.$id, '/projects/'.$id.'?view=mine', '/projects/'.$id.'?view=finished'], $crawler->filter('nav[aria-label="Task views"] a')->each(static fn (Crawler $tab): string => (string) $tab->attr('href')));
+        self::assertSame('page', $crawler->filter('nav[aria-label="Task views"] a')->eq(0)->attr('aria-current'));
+        self::assertSame(['Brief', 'Wireframes', 'Logo'], $this->titles($crawler));
+        // No fixed select sits above "+ Filter" (spec D11), and no view is changed.
+        self::assertCount(0, $crawler->filter('main select[name="responsible"], main select[name="status"], main select[name="due"]'));
+        self::assertCount(0, $crawler->filter('[data-view-actions]'));
+        self::assertCount(1, $crawler->filter('#view-save-as'));
+
+        $crawler = $this->client->request('GET', '/projects/'.$id.'?view=mine');
+        self::assertSame(['Wireframes', 'Logo'], $this->titles($crawler));
+        self::assertSame('page', $crawler->filter('nav[aria-label="Task views"] a')->eq(1)->attr('aria-current'));
+        self::assertStringContainsString('Responsible: Me', $crawler->filter('main')->text());
+
+        $crawler = $this->client->request('GET', '/projects/'.$id.'?view=finished');
+        self::assertSame(['Launch'], $this->titles($crawler));
+        // The tasks in no section are left out when none of them is shown.
+        self::assertCount(0, $crawler->filter('[data-section="none"]'));
+    }
+
+    public function testTheOldFiltersAreConditionsOfTheBuilder(): void
     {
         $this->signIn();
         $id = $this->seedList();
 
-        $crawler = $this->client->request('GET', '/projects/'.$id.'?status=finished');
-        self::assertSame(['Launch'], $this->titles($crawler));
-        // The tasks in no section are left out when none of them is shown.
-        self::assertCount(0, $crawler->filter('[data-section="none"]'));
-        self::assertSame('finished', $crawler->filter('[data-filter-sheet-form] select[name=status] option[selected]')->attr('value'));
-
-        $crawler = $this->client->request('GET', '/projects/'.$id.'?status=all');
-        self::assertSame(['Brief', 'Wireframes', 'Logo', 'Launch'], $this->titles($crawler));
-
-        $crawler = $this->client->request('GET', '/projects/'.$id.'?responsible=me');
-        self::assertSame(['Wireframes', 'Logo'], $this->titles($crawler));
-
-        $crawler = $this->client->request('GET', '/projects/'.$id.'?due=overdue');
-        self::assertSame(['Wireframes', 'Logo'], $this->titles($crawler));
-
-        $crawler = $this->client->request('GET', '/projects/'.$id.'?due=none');
-        self::assertSame(['Brief'], $this->titles($crawler));
+        foreach ([
+            'status=finished' => ['Launch'],
+            'status=all' => ['Brief', 'Wireframes', 'Logo', 'Launch'],
+            'responsible=me' => ['Wireframes', 'Logo'],
+            'due=overdue' => ['Wireframes', 'Logo'],
+            'due=none' => ['Brief'],
+            'status=all&due=next_7_days' => ['Launch'],
+        ] as $old => $titles) {
+            $crawler = $this->client->request('GET', '/projects/'.$id.'?'.$old);
+            self::assertSame($titles, $this->titles($crawler), $old);
+            self::assertSame('All, unsaved changes', $this->tabs($crawler)[0], $old);
+        }
         self::assertSelectorTextContains('[data-section="'.$this->sectionId($id, 'Design').'"]', 'No task matches the filters.');
+        $crawler = $this->client->request('GET', '/projects/'.$id.'?responsible='.$this->membershipId());
+        self::assertSame(['Wireframes', 'Logo'], $this->titles($crawler));
+        self::assertStringContainsString('Responsible: Example Company', $crawler->filter('main')->text());
 
-        // Values it does not know are no filter.
-        $crawler = $this->client->request('GET', '/projects/'.$id.'?status=nonsense&due=later&responsible=nobody');
-        self::assertSame(['Brief', 'Wireframes', 'Logo'], $this->titles($crawler));
+        // Values it does not know are no filter; ?status=open was the default.
+        foreach (['status=nonsense&due=later&responsible=nobody', 'status=open'] as $old) {
+            $crawler = $this->client->request('GET', '/projects/'.$id.'?'.$old);
+            self::assertSame(['Brief', 'Wireframes', 'Logo'], $this->titles($crawler), $old);
+            self::assertSame(['All', 'Mine', 'Finished'], $this->tabs($crawler), $old);
+        }
+    }
+
+    public function testTheBuilderNarrowsTheListAndItsChangesAreSavedAsANewView(): void
+    {
+        $this->signIn();
+        $id = $this->seedList();
+
+        $this->client->request('GET', '/projects/'.$id.'?'.http_build_query(['view' => 'all', 'due' => 'overdue', 'conditions' => '1', 'c' => [
+            ['field' => 'responsible', 'op' => 'is_empty'],
+            ['field' => 'status', 'op' => 'is_any_of', 'values' => ['open', 'finished']],
+        ]]));
+        self::assertResponseStatusCodeSame(303);
+        $location = (string) $this->client->getResponse()->headers->get('Location');
+        self::assertStringStartsWith('/projects/'.$id.'?f=', $location);
+        self::assertStringNotContainsString('due=', $location);
+        self::assertStringNotContainsString('view=', $location, 'All is the bare list.');
+        $crawler = $this->client->followRedirect();
+
+        self::assertSame(['Brief', 'Launch'], $this->titles($crawler));
+        self::assertSame('All, unsaved changes', $this->tabs($crawler)[0]);
+        self::assertStringContainsString('Responsible: empty', $crawler->filter('main')->text());
+        self::assertCount(1, $crawler->filter('[data-view-actions] [data-view-reset][href="/projects/'.$id.'?density="]'));
+        $this->client->submit($crawler->filter('[data-view-save-as-form]')->form(['name' => 'Nobody\'s']));
+        $crawler = $this->client->followRedirect();
+        self::assertSame(['Brief', 'Launch'], $this->titles($crawler));
+        self::assertContains('Nobody\'s', $this->tabs($crawler));
+
+        // The views are the same in every project.
+        $other = $this->createProject('Shop');
+        $crawler = $this->client->request('GET', '/projects/'.$other);
+        self::assertContains('Nobody\'s', $this->tabs($crawler));
+    }
+
+    public function testThePeopleOfAResponsibleConditionAreFoundByName(): void
+    {
+        $this->signIn();
+
+        $this->client->request('GET', '/projects/people?q=exam');
+        self::assertResponseIsSuccessful();
+        self::assertSame([['id' => 'me', 'label' => 'Me', 'hint' => ''], ['id' => $this->membershipId(), 'label' => 'Example Company', 'hint' => '']], $this->results());
+        $this->client->request('GET', '/projects/people?q=ME');
+        self::assertSame(['me'], array_column($this->results(), 'id'));
+        $this->client->request('GET', '/projects/people?q=nobody');
+        self::assertSame([], $this->results());
+    }
+
+    public function testTheColumnsSheetHidesAColumnAndKeepsTheView(): void
+    {
+        $this->signIn();
+        $id = $this->seedList();
+
+        $crawler = $this->client->request('GET', '/projects/'.$id.'?view=mine&cols=title,due');
+
+        self::assertSame(['Title', 'Due date', 'Actions'], $crawler->filter('[data-section]')->eq(0)->filter('thead th')->each(static fn (Crawler $th): string => trim($th->text())));
+        self::assertSame(['Wireframes', 'Logo'], $this->titles($crawler));
+        self::assertSame('Mine, unsaved changes', $this->tabs($crawler)[1]);
+        self::assertStringStartsWith('Due date: Overdue ', $this->shown($crawler->filter('[data-section] tbody tr')->eq(0)->filter('td')->eq(1)));
     }
 
     public function testTheHeaderOfTheListAndTheBoardOpensTheDialogOfANewTask(): void
@@ -287,6 +373,21 @@ final class ProjectControllerTest extends WebTestCase
         self::assertSelectorTextContains('main', 'The task “Colours” is added.');
         self::assertSame(['Wireframes', 'Logo', 'Colours'], $crawler->filter('[data-section="'.$design.'"] tbody tr td:first-child [data-row-link]')->each(static fn (Crawler $cell): string => trim($cell->text())));
         self::assertSame('To do', $this->statusOf('Colours'));
+    }
+
+    public function testTheDialogGoesBackToTheViewWithItsFilterAndColumns(): void
+    {
+        $this->signIn();
+        $id = $this->seedList();
+        $dialog = ['HTTP_'.str_replace('-', '_', strtoupper(DialogRequest::HEADER)) => '1'];
+        $from = '/projects/'.$id.'?view=mine&f=abc&cols=title&density=&page=2&status=open&due=today';
+
+        $crawler = $this->client->request('GET', '/projects/'.$id.'/tasks/new?return='.rawurlencode($from), server: $dialog);
+
+        self::assertSame('/projects/'.$id.'?view=mine&f=abc&cols=title&due=today', $crawler->filter('form#task-new-form input[name="return"]')->attr('value'));
+        // The board keeps only its own filters.
+        $crawler = $this->client->request('GET', '/projects/'.$id.'/tasks/new?return='.rawurlencode('/projects/'.$id.'/board?view=mine&due=today'), server: $dialog);
+        self::assertSame('/projects/'.$id.'/board?due=today', $crawler->filter('form#task-new-form input[name="return"]')->attr('value'));
     }
 
     public function testWithoutJavaScriptTheDialogIsAPageThatAddsToNoSectionByDefault(): void
@@ -632,6 +733,38 @@ final class ProjectControllerTest extends WebTestCase
         });
 
         return $columns;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function tabs(Crawler $crawler): array
+    {
+        return $crawler->filter('nav[aria-label="Task views"] a')->each(static fn (Crawler $tab): string => trim((string) preg_replace('/\s+/', ' ', $tab->text())));
+    }
+
+    /**
+     * The results of the last JSON answer.
+     *
+     * @phpstan-impure
+     *
+     * @return list<array<mixed>>
+     */
+    private function results(): array
+    {
+        $json = json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR);
+        self::assertIsArray($json);
+        self::assertIsArray($json['results'] ?? null);
+
+        return array_values(array_filter($json['results'], \is_array(...)));
+    }
+
+    private function membershipId(): string
+    {
+        $id = $this->em->getConnection()->fetchOne('SELECT id FROM membership LIMIT 1');
+        self::assertIsString($id);
+
+        return $id;
     }
 
     /**

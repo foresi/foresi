@@ -577,6 +577,11 @@ work:
     due_next_7_days: Příštích 7 dní
     due_none: Bez termínu
   list:
+    views: Pohledy na úkoly
+    tab:
+      all: Vše
+      mine: Moje
+      finished: Hotové
     no_section: Bez sekce
     loose_caption: 'Úkoly projektu {project}'
     empty: Zatím žádné úkoly.

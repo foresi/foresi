@@ -51,6 +51,7 @@ use Foresi\Work\Application\TaskRow;
 use Foresi\Work\Application\Tasks;
 use Foresi\Work\Application\TrashedTask;
 use Foresi\Work\Application\TrashPermission;
+use Foresi\Work\Application\View\TaskConditions;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkScope;
 use Foresi\Work\Application\WorkVisibility;
@@ -726,6 +727,9 @@ final readonly class DoctrineWorkQueries implements WorkQueries
                 return false;
             }
             if (null !== $filter->finished && $row->done !== $filter->finished) {
+                return false;
+            }
+            if ($filter->conditions instanceof TaskConditions && !$filter->conditions->matches($row)) {
                 return false;
             }
             $due = $row->dueOn?->format('Y-m-d');
