@@ -1,0 +1,242 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+party:
+  quick:
+    title: Nový zákazník
+    intro: Stačí název a sídlo, ostatní doplníte později.
+    full: Otevřít celý formulář
+    create: Vytvořit zákazníka
+    errors_title: Zákazník zatím není uložený
+    contact:
+      title: Nový kontakt
+      create: Vytvořit kontakt
+      errors_title: Kontakt zatím není uložený
+  header:
+    import: Importovat
+    export: Exportovat
+    export_csv: Exportovat jako CSV
+    export_xlsx: 'Exportovat jako Excel (XLSX)'
+  imported_by:
+    create: 'Kontakty, které vytvořil import souboru {name}.'
+    update: 'Kontakty, které aktualizoval import souboru {name}.'
+    restore: 'Kontakty, které obnovil z archivu import souboru {name}.'
+    archive: 'Kontakty, které archivoval import souboru {name}.'
+    changed_after_import: 'Kontakty z importu souboru {name}, které někdo po importu změnil.'
+    summary: Souhrn importu
+  title: Adresář
+  new: Nový kontakt
+  edit: Upravit
+  save: Uložit
+  cancel: Zrušit
+  archive: Archivovat
+  restore: Obnovit
+  archived: Archivováno
+  yes: Ano
+  no: Ne
+  views: Zobrazení kontaktů
+  sections: Části kontaktu
+  empty:
+    title: V adresáři zatím nic není
+    text: Přidejte první kontakt a najdete ho tu spolu se zákazníky a dodavateli.
+  empty_filtered:
+    title: Nic nenalezeno
+    text: Zkuste jiné hledání nebo zrušte filtr.
+    reset: Zrušit filtr
+  view:
+    all: Všechny
+    customers: Zákazníci
+    suppliers: Dodavatelé
+    archived: Archivované
+  search:
+    label: Hledat v kontaktech
+    placeholder: Název, IČO, DIČ nebo e-mail
+  pagination:
+    summary: '{total, plural, one {# kontakt} few {# kontakty} other {# kontaktů}}'
+  bulk:
+    archive: Archivovat
+    export: Exportovat CSV
+  column:
+    name: Název
+    kind: Druh
+    roles: Role
+    registration: IČO
+    vat: DIČ
+    email: E-mail
+    status: Stav
+    position: Pozice
+    primary: Hlavní
+    type: Typ
+    label: Popisek
+    address: Adresa
+    iban: IBAN
+    bic: BIC
+  kind:
+    person: Osoba
+    sole_trader: OSVČ
+    company: Firma
+  role:
+    customer: Zákazník
+    supplier: Dodavatel
+    partner: Partner
+    authority: Úřad
+  address_type:
+    billing: Fakturační
+    delivery: Dodací
+    postal: Poštovní
+    other: Jiná
+  tab:
+    overview: Přehled
+    contacts: Kontaktní osoby
+    addresses: Adresy
+    bank-accounts: Bankovní účty
+    history: Historie
+  card:
+    identification: Identifikace
+    contact: Kontakt
+    billing: Fakturační adresa
+    roles: Role a poznámka
+    checks: Kontroly v rejstřících
+    defaults: Výchozí údaje pro doklady
+    note: Soukromá poznámka
+    note_empty: Poznámka není vyplněna.
+  field:
+    kind: Druh
+    displayName: Název
+    registrationCountry: Země registru
+    registrationNumber: IČO
+    vatId: DIČ
+    vatId_help: Například CZ12345678
+    email: E-mail
+    phone: Telefon
+    mobile: Mobil
+    website: Web
+    street: Ulice a číslo
+    city: Město
+    postalCode: PSČ
+    countryCode: Země
+    roles: Role
+    privateNote: Soukromá poznámka
+    privateNote_help: Poznámku vidí jen vaše organizace.
+    address: Adresa
+    purpose: Účel
+    label: Popisek
+    iban: IBAN
+    bic: BIC
+    position: Pozice
+    primary: Hlavní
+    type: Typ
+    archivedAt: Archivace
+    unreliablePayerResult: Nespolehlivý plátce
+    viesResult: VIES
+    invoicingDefaults: Výchozí údaje pro doklady
+    invoicingDueDays: Splatnost
+    legalEntity: Firma
+    invoicingCurrency: Měna
+    invoicingLanguage: Jazyk dokladů
+    invoicingPaymentMethod: Způsob úhrady
+    invoicingReverseCharge: Přenesená daňová povinnost
+  lookup:
+    label: Najít v rejstříku
+    help: IČO nebo alespoň tři písmena názvu
+    existing: Už v adresáři
+    empty: V rejstříku nic nenalezeno.
+    limited: Příliš mnoho hledání. Zkuste to za minutu.
+  duplicate:
+    title: Takový kontakt už máte
+    text: Kontakt se stejným IČO nebo DIČ už v adresáři je. Uložit i tak můžete.
+    confirm: Uložit i tak
+  check:
+    vies: VIES
+    unreliable_payer: Registr nespolehlivých plátců
+    at: 'zkontrolováno {time}'
+  checks:
+    no_vat_id: Kontakt nemá DIČ, není co kontrolovat.
+    never: Kontrola zatím neproběhla. Spustí se po uložení.
+    accounts: 'Zveřejněné účty plátce:'
+    refresh: Zkontrolovat znovu
+  contacts:
+    empty: Zatím tu není žádná kontaktní osoba.
+    empty_person: Tato osoba zatím není kontaktem žádné firmy.
+    add: Přidat kontaktní osobu
+    person: Osoba
+    primary: Hlavní kontaktní osoba
+    link: Přidat osobu
+    no_candidates: V adresáři není žádná další osoba. Nejdřív ji přidejte jako nový kontakt s druhem Osoba.
+    person_invalid: Vyberte osobu, která u firmy ještě není uvedena.
+  accounts:
+    empty: Zatím tu není žádný bankovní účet.
+  defaults:
+    due_days: Splatnost
+    days: '{count, plural, one {# den} few {# dny} other {# dní}}'
+    currency: Měna
+    language: Jazyk dokladů
+    reverse_charge: Přenesená daňová povinnost
+  scope:
+    all_firms: Všechny firmy
+    own: vlastní
+    applies_to: Platí pro
+    set: Nastavit pro tuto firmu
+    reset: Vrátit na společné
+    reset_confirm: Vrátit na společné hodnoty?
+    reset_confirm_text: Vlastní hodnoty této firmy se po uložení smažou.
+    reset_confirm_accept: Vrátit na společné
+    reset_confirm_cancel: Ponechat vlastní
+    emails: Fakturační e-maily
+    archive: Stav archivace
+    invoice_emails: E-maily pro faktury
+    copy_emails: Kopie faktur
+    emails_help: Jedna adresa na řádek.
+    archived_all: Archivováno pro všechny firmy
+    archived_firm: Archivováno pro tuto firmu
+    archived_help: Archivace pro všechny firmy má přednost.
+  firm_settings:
+    due_days: Splatnost ve dnech
+    due_days_help: Platí pro nové doklady.
+    currency: Měna
+    language: Jazyk dokladů
+    payment_method: Způsob úhrady
+    reverse_charge: Přenesená daňová povinnost
+    hourly_rate: Hodinová sazba
+    hourly_rate_help: Platí pro projekty klienta bez vlastní sazby.
+    hourly_rate_currency: Měna sazby
+  payment_method:
+    bank_transfer: Převodem
+    cash: Hotově
+    card: Kartou
+  history:
+    empty: Zatím tu není žádná změna.
+    entry: '{action}: {subject} ({fields})'
+    action:
+      created: Vytvořeno
+      updated: Změněno
+      deleted: Odstraněno
+    subject:
+      party: kontakt
+      address: adresa
+      email: e-mail
+      bank_account: bankovní účet
+      contact: kontaktní osoba
+      firm_settings: nastavení pro firmu
+  flash:
+    created: Kontakt je uložen.
+    updated: Změny jsou uloženy.
+    archived: Kontakt je archivován.
+    archived_many: '{count, plural, one {Archivován # kontakt.} few {Archivovány # kontakty.} other {Archivováno # kontaktů.}}'
+    restored: Kontakt je obnoven.
+    linked: Kontaktní osoba je přidána.
+    checks_refreshed: Kontroly v rejstřících jsou aktualizovány.
+    checks_recent: 'Kontroly se dělaly nedávno ({time}), zobrazujeme jejich výsledky. Rejstříky se znovu ptáme nejdřív po 24 hodinách.'
+    checks_rate_limited: Příliš mnoho obnovení kontrol. Zkuste to za minutu.
+  error:
+    required: Vyplňte toto pole.
+    too_long: Hodnota je příliš dlouhá.
+    kind: Vyberte druh kontaktu.
+    country: Vyberte zemi ze seznamu.
+    email: Zadejte platný e-mail.
+    registration_number: Neplatné IČO. Zkontrolujte číslo.
+    vat_id: Neplatné DIČ. Zadejte například CZ12345678.
+    company_identifier: Firma potřebuje IČO nebo DIČ.
+    save_failed: Kontakt se nepodařilo uložit. Zkontrolujte údaje a zkuste to znovu.
+    expired: Formulář vypršel. Zkontrolujte údaje a odešlete ho znovu.
+    due_days: Zadejte celý počet dní od 0 do 365.
+    choice: Vyberte jednu z možností.
+    hourly_rate: Zadejte sazbu, třeba 1500 nebo 1500,50.

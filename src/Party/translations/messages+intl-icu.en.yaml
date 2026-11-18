@@ -1,0 +1,242 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+party:
+  quick:
+    title: New customer
+    intro: A name and a seat are enough; the rest can follow later.
+    full: Open the full form
+    create: Create customer
+    errors_title: The customer is not saved yet
+    contact:
+      title: New contact
+      create: Create contact
+      errors_title: The contact is not saved yet
+  header:
+    import: Import
+    export: Export
+    export_csv: Export as CSV
+    export_xlsx: 'Export as Excel (XLSX)'
+  imported_by:
+    create: 'Contacts the import of {name} created.'
+    update: 'Contacts the import of {name} updated.'
+    restore: 'Contacts the import of {name} restored from the archive.'
+    archive: 'Contacts the import of {name} archived.'
+    changed_after_import: 'Contacts of the import of {name} that someone changed after the import.'
+    summary: Import summary
+  title: Address book
+  new: New contact
+  edit: Edit
+  save: Save
+  cancel: Cancel
+  archive: Archive
+  restore: Restore
+  archived: Archived
+  yes: Yes
+  no: 'No'
+  views: Contact views
+  sections: Contact sections
+  empty:
+    title: Your address book is empty
+    text: Add your first contact and it will show up here with your customers and suppliers.
+  empty_filtered:
+    title: Nothing found
+    text: Try another search or clear the filter.
+    reset: Clear filter
+  view:
+    all: All
+    customers: Customers
+    suppliers: Suppliers
+    archived: Archived
+  search:
+    label: Search contacts
+    placeholder: Name, registration number, VAT ID or e-mail
+  pagination:
+    summary: '{total, plural, one {# contact} other {# contacts}}'
+  bulk:
+    archive: Archive
+    export: Export CSV
+  column:
+    name: Name
+    kind: Kind
+    roles: Roles
+    registration: Reg. no.
+    vat: VAT ID
+    email: E-mail
+    status: Status
+    position: Position
+    primary: Primary
+    type: Type
+    label: Label
+    address: Address
+    iban: IBAN
+    bic: BIC
+  kind:
+    person: Person
+    sole_trader: Sole trader
+    company: Company
+  role:
+    customer: Customer
+    supplier: Supplier
+    partner: Partner
+    authority: Authority
+  address_type:
+    billing: Billing
+    delivery: Delivery
+    postal: Postal
+    other: Other
+  tab:
+    overview: Overview
+    contacts: Contact persons
+    addresses: Addresses
+    bank-accounts: Bank accounts
+    history: History
+  card:
+    identification: Identification
+    contact: Contact
+    billing: Billing address
+    roles: Roles and note
+    checks: Register checks
+    defaults: Document defaults
+    note: Private note
+    note_empty: No note yet.
+  field:
+    kind: Kind
+    displayName: Name
+    registrationCountry: Register country
+    registrationNumber: Registration number
+    vatId: VAT ID
+    vatId_help: For example CZ12345678
+    email: E-mail
+    phone: Phone
+    mobile: Mobile
+    website: Website
+    street: Street and number
+    city: City
+    postalCode: Postal code
+    countryCode: Country
+    roles: Roles
+    privateNote: Private note
+    privateNote_help: Only your organisation sees the note.
+    address: Address
+    purpose: Purpose
+    label: Label
+    iban: IBAN
+    bic: BIC
+    position: Position
+    primary: Primary
+    type: Type
+    archivedAt: Archived at
+    unreliablePayerResult: Unreliable payer
+    viesResult: VIES
+    invoicingDefaults: Document defaults
+    invoicingDueDays: Due period
+    legalEntity: Firm
+    invoicingCurrency: Currency
+    invoicingLanguage: Document language
+    invoicingPaymentMethod: Payment method
+    invoicingReverseCharge: Reverse charge
+  lookup:
+    label: Find in a register
+    help: Registration number or at least three letters of a name
+    existing: Already in your address book
+    empty: Nothing found in the register.
+    limited: Too many searches. Try again in a minute.
+  duplicate:
+    title: You already have this contact
+    text: A contact with the same registration number or VAT ID is in the address book already. You can still save this one.
+    confirm: Save anyway
+  check:
+    vies: VIES
+    unreliable_payer: Unreliable payer register
+    at: 'checked {time}'
+  checks:
+    no_vat_id: This contact has no VAT ID, so there is nothing to check.
+    never: Not checked yet. The check runs after saving.
+    accounts: 'Bank accounts published by the payer:'
+    refresh: Check again
+  contacts:
+    empty: There is no contact person yet.
+    empty_person: This person is not a contact of any company yet.
+    add: Add a contact person
+    person: Person
+    primary: Primary contact person
+    link: Add person
+    no_candidates: There is no other person in the address book. Add one as a new contact of kind Person first.
+    person_invalid: Choose a person who is not listed for the company yet.
+  accounts:
+    empty: There is no bank account yet.
+  defaults:
+    due_days: Due period
+    days: '{count, plural, one {# day} other {# days}}'
+    currency: Currency
+    language: Document language
+    reverse_charge: Reverse charge
+  scope:
+    all_firms: All firms
+    own: own
+    applies_to: Applies to
+    set: Set for this firm
+    reset: Back to shared
+    reset_confirm: Go back to the shared values?
+    reset_confirm_text: "This firm's own values are deleted when you save."
+    reset_confirm_accept: Go back to shared
+    reset_confirm_cancel: Keep own values
+    emails: Invoicing e-mails
+    archive: Archive state
+    invoice_emails: E-mails for invoices
+    copy_emails: Invoice copies
+    emails_help: One address per line.
+    archived_all: Archived for all firms
+    archived_firm: Archived for this firm
+    archived_help: Archiving for all firms takes precedence.
+  firm_settings:
+    due_days: Due period in days
+    due_days_help: Applies to new documents.
+    currency: Currency
+    language: Document language
+    payment_method: Payment method
+    reverse_charge: Reverse charge
+    hourly_rate: Hourly rate
+    hourly_rate_help: For the client's projects without a rate of their own.
+    hourly_rate_currency: Rate currency
+  payment_method:
+    bank_transfer: Bank transfer
+    cash: Cash
+    card: Card
+  history:
+    empty: There is no change yet.
+    entry: '{action}: {subject} ({fields})'
+    action:
+      created: Created
+      updated: Changed
+      deleted: Removed
+    subject:
+      party: contact
+      address: address
+      email: e-mail
+      bank_account: bank account
+      contact: contact person
+      firm_settings: firm settings
+  flash:
+    created: The contact is saved.
+    updated: The changes are saved.
+    archived: The contact is archived.
+    archived_many: '{count, plural, one {# contact archived.} other {# contacts archived.}}'
+    restored: The contact is restored.
+    linked: The contact person is added.
+    checks_refreshed: The register checks are updated.
+    checks_recent: 'The registers were checked recently ({time}), so these are their answers. They are asked again after 24 hours at the earliest.'
+    checks_rate_limited: Too many refreshes. Try again in a minute.
+  error:
+    required: Fill in this field.
+    too_long: The value is too long.
+    kind: Choose the kind of contact.
+    country: Choose a country from the list.
+    email: Enter a valid e-mail address.
+    registration_number: Invalid registration number. Check the digits.
+    vat_id: Invalid VAT ID. Enter for example CZ12345678.
+    company_identifier: A company needs a registration number or a VAT ID.
+    save_failed: The contact could not be saved. Check the details and try again.
+    expired: The form has expired. Check the details and send it again.
+    due_days: Enter a whole number of days from 0 to 365.
+    choice: Choose one of the options.
+    hourly_rate: Enter a rate, such as 1500 or 1500.50.

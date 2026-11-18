@@ -1,0 +1,1302 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+series:
+  title: Číselné řady
+  new: Nová číselná řada
+  edit: Upravit číselnou řadu
+  card: Číselná řada
+  default: Výchozí
+  first: 'Zatím tu není žádná řada. První faktura této firmy dostane číslo {number} ve standardní řadě.'
+  name:
+    standard: Standardní
+    standard_advance: Zálohové faktury
+    standard_payment_tax_document: Daňové doklady k platbě
+    standard_correction_document: Opravné doklady
+  kind:
+    invoice: Faktura
+    advance: Zálohová faktura
+    payment_tax_document: Daňový doklad k přijaté platbě
+    correction_document: Opravný daňový doklad
+  column:
+    name: Název
+    kind: Doklady
+    format: Formát
+    next: Další číslo
+    default: Výchozí
+  field:
+    kind: Doklady
+    kind_help: Jaký druh dokladů řada čísluje
+    kind_locked_help: Druh dokladů řady se nemění
+    name: Název
+    format: Formát
+    format_help: "Značky '{YYYY} {YY} {MM} {DD}' a jedna '{NNNN}'"
+    format_locked_help: Řada už má čísla, proto je formát uzamčený
+    nextNumber: Další číslo
+    nextNumber_help: Prázdné nic nemění. Přeskočená čísla se nepoužijí
+    startYear: Rok
+    startYear_help: Formát bez roku ho nepoužije
+    default: Výchozí řada pro nové doklady svého druhu
+    default_help: Převezme to po dosavadní výchozí řadě
+    default_kept_help: Změníte to, když nastavíte výchozí jinou řadu
+  flash:
+    saved: Číselná řada je uložená.
+  error:
+    format: "Použijte jen písmena, číslice, . _ / - a značky '{YYYY} {YY} {MM} {DD}' s jednou '{NNNN}'."
+    format_locked: Řada už má čísla, formát proto nejde změnit.
+    format_too_long: 'Čísla této řady by byla delší, než doklad unese: nejvýše 40 znaků.'
+    format_taken: 'Čísla by se střetla s řadou {name}.'
+    name_taken: Tento název už má jiná řada této firmy.
+    next_number: Zadejte celé číslo od 1 do 2147483647.
+    start_year: Zadejte rok od 2000 do 2099.
+    next_below_counter: 'Toto číslo je už použité. Další volné je {next}.'
+    kind: Vyberte druh dokladů.
+invoice:
+  links:
+    title: Vazby
+    advance: Zálohová faktura
+    payments: Platby
+    final: Vyúčtovací faktura
+    none: Zatím žádná platba
+    no_tax_document: bez daňového dokladu
+    not_settled: Zatím nevyúčtováno
+  deduction:
+    pick_first: Firma má zálohy k odečtení. Vyberte odběratele a zobrazte jeho zálohy.
+    show: "Zobrazit zálohy odběratele"
+    label: Odečíst zálohu
+    help: Každý daňový doklad jednou, odečtený po sazbách
+    add: Odečíst
+    option: '{same, select, yes {Záloha {number}} other {Daňový doklad {number}, záloha {advance}}}, {amount}'
+  public:
+    title: '{kind, select, advance {Zálohová faktura {number}} payment_tax_document {Daňový doklad {number}} correction_document {Opravný daňový doklad {number}} other {Faktura {number}}}'
+    from: Od
+    for: 'Pro {customer}'
+    paid: Uhrazeno
+    amount: K úhradě
+    amount_paid: Celkem uhrazeno
+    settled_by_advances: Uhrazeno zálohami
+    settled_by_advances_note: Uhrazeno zálohami, nic nehraďte
+    to_refund: Rozdíl k vrácení
+    to_return: K vrácení
+    due: Splatnost
+    remaining: Zbývá uhradit
+    payment:
+      title: Platba převodem
+      account: Číslo účtu
+      iban: IBAN
+      variable_symbol: Variabilní symbol
+      amount: Částka
+      qr: Naskenujte v aplikaci banky (QR Platba)
+    open: Otevřít PDF
+    download: Stáhnout
+    download_paid: '{kind, select, advance {Stáhnout zálohovou fakturu (uhrazená)} payment_tax_document {Stáhnout daňový doklad} other {Stáhnout fakturu (uhrazená)}}'
+    paid_note: 'Uhrazeno {date}, není co platit'
+    do_not_pay: Neplaťte, doklad je již uhrazen
+    credit_note_note: 'Snižuje částku k úhradě dokladu {number}. Nic neplaťte.'
+    credit_note_refund_note: Částku vám vrátíme.
+    viewer: '{kind, select, advance {Zálohová faktura {number} jako PDF} payment_tax_document {Daňový doklad {number} jako PDF} correction_document {Opravný daňový doklad {number} jako PDF} other {Faktura {number} jako PDF}}'
+    fallback: Prohlížeč neumí PDF zobrazit přímo na stránce. Otevřete ho tlačítkem.
+    notice: 'Odkaz od firmy {issuer} je určený vám: kdo ho má, může doklad otevřít, proto ho prosím nepřeposílejte.'
+    gone:
+      title: Odkaz není k dispozici
+      text: Odkaz je neplatný, nebo ho odesílatel zrušil. Pokud doklad potřebujete, obraťte se na toho, kdo vám ho poslal.
+    limited:
+      title: Příliš mnoho požadavků
+      text: Zkuste to prosím znovu za minutu.
+  mail:
+    default:
+      subject: 'Faktura {number}'
+      body: |-
+        Na základě Vaší objednávky Vám zasílám fakturu č. {number} na částku {amount_total} se splatností {due_date}.
+
+        Děkuji,
+        {sender_name}
+
+        {link}
+  mark:
+    queued: Odesílá se
+    sent: Odesláno
+    read: Přečteno
+    failed: Neodešlo
+    hint:
+      queued: Čeká ve frontě na odeslání
+      sent: Odesláno odběrateli
+      read: Odběratel otevřel doklad
+      failed: E-mail se nepodařilo odeslat
+  changed_after_send: 'Faktura se od odeslání {date} změnila. Odkaz u odběratele ukazuje odeslanou verzi, proto ji pošlete znovu.'
+  imported_original: 'Doklad je importovaný. PDF je originál z {source}.'
+  import_source:
+    idoklad: iDokladu
+  send_failure:
+    password_unreadable: Heslo k poštovnímu serveru nejde s nastavenými klíči otevřít. Zadejte ho v nastavení e-mailů znovu.
+    bad_address: Některá adresa zprávy není platná.
+    login_refused: '{smtp, select, none {Poštovní server odmítl přihlášení.} other {Poštovní server odmítl přihlášení (SMTP {smtp}).}}'
+    message_refused: '{smtp, select, none {Poštovní server zprávu odmítl.} other {Poštovní server zprávu odmítl (SMTP {smtp}).}}'
+    recipient_refused: '{smtp, select, none {Poštovní server odmítl adresáta {recipient}.} other {Poštovní server odmítl adresáta {recipient} (SMTP {smtp}).}}'
+    try_later: '{smtp, select, none {Poštovní server žádá zkusit to později.} other {Poštovní server žádá zkusit to později (SMTP {smtp}).}}'
+    unexpected_answer: Poštovní server odpověděl neočekávaně.
+    secure_connection: 'Zabezpečené spojení se serverem selhalo: zkontrolujte šifrování, port a název serveru.'
+    unreachable: Poštovní server nejde zastihnout, nebo se spojení přerušilo.
+    unresolved: Název poštovního serveru nejde přeložit na adresu.
+    host_not_allowed: Adresa poštovního serveru není povolená.
+    no_server: Firma nemá poštovní server. Přidejte ho v nastavení e-mailů.
+    unbuildable: Z uložených údajů nejde zprávu sestavit.
+    not_handed_over: Zprávu se nepodařilo předat poštovnímu serveru.
+    copy_unknown: Kopie odešla na server, ale jeho odpověď se nezaznamenala.
+    gave_up: Zprávu se nepodařilo doručit.
+    link_changed: 'Odkaz tohoto odeslání už nejde otevřít, protože se po zařazení do fronty změnil tajný klíč aplikace. Odešlete doklad znovu.'
+    no_recipient: Kontakt už nemá e-mailovou adresu pro faktury, upomínka proto neodešla.
+    check_failed: Před odesláním upomínky se nepodařilo ověřit, zda je faktura stále neuhrazená.
+  sends:
+    title: Odeslané e-maily
+    views: Stavy odeslání
+    tab:
+      all: Vše
+      sent: Odesláno
+      queued: Čeká
+      failed: Neodešlo
+    column:
+      when: Kdy
+      firm: Firma
+      number: Doklad
+      customer: Zákazník
+      recipients: Příjemci
+      status: Stav
+      error: Chyba
+    status:
+      queued: Čeká
+      sent: Odesláno
+      failed: Neodešlo
+      cancelled: Zrušeno
+    summary: '{total, plural, one {# e-mail} few {# e-maily} other {# e-mailů}}'
+    action:
+      again: Odeslat znovu
+    empty:
+      title: Zatím nic neodešlo
+      text: Fakturu pošlete z její nabídky v seznamu faktur, nebo tlačítkem Odeslat a uložit.
+      filtered_title: Žádný e-mail neodpovídá
+      reset: Zrušit filtr
+    notice:
+      failed: '{count, plural, one {Fakturu se nepodařilo odeslat.} few {# faktury se nepodařilo odeslat.} other {# faktur se nepodařilo odeslat.}}'
+      stuck: '{count, plural, one {E-mail čeká} few {# e-maily čekají} other {# e-mailů čeká}} na odeslání déle než {minutes} minut. Zkontrolujte, že na serveru běží zpracování fronty.'
+      retrying: '{count, plural, one {E-mail se zkouší odeslat znovu: poštovní server ho zatím nepřevzal.} few {# e-maily se zkoušejí odeslat znovu: poštovní server je zatím nepřevzal.} other {# e-mailů se zkouší odeslat znovu: poštovní server je zatím nepřevzal.}}'
+      link: Zobrazit
+  send:
+    title: 'Odeslat fakturu {number}'
+    card: E-mail
+    back: Zpět
+    submit: Odeslat
+    edit: Upravit text
+    message: Zpráva
+    close: Zavřít
+    errors_title: E-mail zatím neodešel
+    sent_before: 'Faktura už odešla {date}. Když ji pošlete znovu, příjemce dostane nový odkaz.'
+    from_document: Kontakt nemá e-mail pro faktury, proto se nabízí adresa z dokladu.
+    no_address: Kontakt nemá žádný e-mail. Napište adresu do dalších příjemců.
+    others_help: 'Nejvýše {max} adres oddělených čárkou.'
+    copy_to_me: 'Poslat kopii i mně na {address}'
+    body_help: '{token} je místo pro odkaz. Bez něj bude odkaz na konci.'
+    trashed: 'Faktura {number} je v koši, takže ji nejde odeslat.'
+    no_server_title: Firma nemá poštovní server
+    no_server_text: 'Faktury firmy {firm} odcházejí přes její vlastní poštovní server. Dokud ho firma nemá, nejde nic odeslat.'
+    no_server_open: Nastavit poštovní server
+    no_server_owner: Server nastaví vlastník organizace v e-mailech firmy.
+    recipient:
+      invoices: '{address}'
+      copy: '{address} (kopie)'
+      general: '{address}'
+      document: '{address}'
+    field:
+      from: Od
+      recipients: Komu
+      others: Další příjemci
+      subject: Předmět
+      body: Text e-mailu
+    flash:
+      queued: 'Faktura {number} je zařazená k odeslání na {recipients}.'
+      already_queued: 'Faktura {number} už je zařazená k odeslání.'
+    error:
+      no_recipient: Zaškrtněte nebo napište aspoň jednoho příjemce.
+      too_many_recipients: 'Příjemců může být nejvýše {max}.'
+      too_many_others: 'Dalších příjemců může být nejvýše {max}.'
+      bad_address: '{address} není platná e-mailová adresa.'
+      bad_subject: Předmět nesmí být prázdný, delší než 255 znaků ani obsahovat odkaz.
+      bad_body: Text e-mailu je příliš dlouhý.
+      trashed: Faktura je mezitím v koši.
+      no_server: Firma mezitím přišla o poštovní server.
+      local_link_base: Odkaz by vedl na tento počítač. Správce nastaví veřejnou adresu instalace v DEFAULT_URI.
+      insecure_link_base: Odkaz by vedl přes nešifrované http. Správce nastaví v DEFAULT_URI adresu s https.
+      rate_limited: Příliš mnoho odeslání za krátkou dobu. Zkuste to za chvíli.
+      undrawable: Fakturu nejde vytisknout do PDF, a proto ani odeslat.
+      reminder_taken: Tahle upomínka faktury už je ve frontě k odeslání.
+  export_state:
+    label: Export pro účetní
+    all: Vše
+    not_exported: Neexportováno
+    exported: Exportováno
+    changed: Změněno po exportu
+    hint:
+      exported: 'Exportováno účetní {date}'
+      changed: 'Upraveno {date}, po exportu pro účetní'
+  export:
+    incomplete: 'Doklady {numbers} nejde vytvořit, proto ZIP nevznikl. Bez nich by účetní neměl celý měsíc.'
+    title: Doklady pro účetní
+    link: Pro účetní
+    intro: Stáhne ZIP s PDF a ISDOC dokladů jednoho měsíce a jejich seznamem. Daňové doklady patří do měsíce data zdanitelného plnění, zálohové faktury do měsíce vystavení. Doklady v koši zůstávají stranou. Nic se nikam neodesílá; doklady se označí jako exportované.
+    month: Měsíc
+    month_help: Podle DUZP, zálohové faktury podle vystavení
+    scope:
+      legend: Doklady
+      pending: Dosud neexportované
+      pending_text: Nové doklady a ty upravené po exportu
+      all: Všechny za měsíc
+      all_text: I ty, které už účetní má
+    counts: V ZIPu
+    count_total: Celkem
+    refresh: Spočítat znovu
+    submit: Stáhnout ZIP
+    empty: Tato firma nemá v tomto měsíci žádné doklady k exportu.
+    month_invalid: Zadejte platný měsíc.
+    folder:
+      invoice: faktury
+      advance: zalohove-faktury
+      payment_tax_document: danove-doklady
+      correction_document: opravne-doklady
+    currency: '{code, select, CZK {Kc} other {{code}}}'
+    list_file: seznam.xlsx
+    sheet:
+      documents: Doklady
+      recap: Rekapitulace DPH
+    column:
+      number: Číslo
+      kind: Druh
+      customer: Odběratel
+      registration: IČO
+      vat_id: DIČ
+      issue_date: Datum vystavení
+      tax_point: DUZP
+      due_date: Splatnost
+      currency: Měna
+      exchange_rate: Kurz
+      base: Základ
+      vat: DPH
+      total: Celkem
+      payable: K úhradě
+      state: Stav exportu předtím
+    recap:
+      treatment: Režim
+      rate: Sazba (%)
+      base: 'Základ ({currency})'
+      vat: 'DPH ({currency})'
+      total: 'Celkem ({currency})'
+      sum: Celkem
+  list_export:
+    button: Exportovat
+    csv: Exportovat jako CSV
+    xlsx: 'Exportovat jako Excel (XLSX)'
+    all_months: vse
+    decimal: ','
+    paid: Uhrazeno
+    left: Zbývá uhradit
+    state: Stav exportu
+    rate: '{rate, number} %'
+    rate_base: 'Základ {label}'
+    rate_vat: 'DPH {label}'
+  pdf:
+    undrawable: 'Fakturu {number} nejde vytisknout: její hodnoty se nevejdou do tabulky ani nejmenším písmem.'
+    footer: '{title} · Strana {page}/{pages}'
+    unsupported_country: 'Fakturu {number} nelze vytisknout: pravidla země vystavitele tato instalace nezná.'
+    trashed: V KOŠI – DOKLAD NEPLATÍ
+    document_title: '{kind, select, advance {Zálohová faktura} payment_tax_document {Daňový doklad} correction_document {Opravný daňový doklad} other {Faktura}} {number}'
+    title_tax: Faktura - daňový doklad
+    title: Faktura
+    title_advance: Zálohová faktura
+    title_payment_tax_document: Daňový doklad k přijaté platbě
+    title_correction_document: Opravný daňový doklad
+    credit_note: dobropis
+    debit_note: vrubopis
+    corrects: 'Opravuje doklad č. {number}'
+    correction_reason: 'Důvod opravy: {reason}'
+    decisive_date: 'Datum rozhodné skutečnosti: {date}'
+    difference_base: Rozdíl základu daně
+    difference_vat: Rozdíl daně
+    difference_total: Rozdíl celkem
+    to_return: K vrácení
+    advance_recap_note: Rekapitulace DPH je pouze informativní, nejedná se o daňový doklad.
+    supplier: Dodavatel
+    customer: Odběratel
+    registration_number: IČO
+    vat_id: DIČ
+    issue_date: Datum vystavení
+    tax_point: Datum zdanitelného plnění
+    supply_date: Datum uskutečnění
+    due_date: Datum splatnosti
+    bank_account: Bankovní účet
+    payment_method: Způsob platby
+    variable_symbol: Variabilní symbol
+    constant_symbol: Konstantní symbol
+    order_number: Číslo objednávky
+    payable: Celkem k úhradě
+    left_to_pay: Zbývá uhradit
+    do_not_pay: Neplaťte, doklad je již uhrazen
+    to_refund: Rozdíl k vrácení
+    settled_by_advances: Uhrazeno zálohami, nic nehraďte
+    total_paid: Celkem uhrazeno
+    for_advance: 'K zálohové faktuře {number}'
+    tax_point_payment: Datum přijetí platby (DUZP)
+    tax_document_line: 'Daňový doklad k přijaté platbě zálohové faktury {number}, VS {symbol}'
+    deduction_line: '{document, select, none {Odpočet zálohové faktury {number}, VS {symbol}} other {Odpočet zálohy VS {symbol} (daňový doklad {document})}}'
+    item: Označení dodávky
+    quantity: Počet
+    unit: MJ
+    unit_price: Cena za MJ bez DPH
+    unit_price_plain: Cena za MJ
+    discount: Sleva
+    rate: DPH %
+    base: Základ
+    vat: DPH
+    total: Celkem
+    rounding: Zaokrouhlení
+    recap_rate: Sazba DPH
+    recap_total: Celkem
+    recap:
+      reverse_charge: Přenesení daňové povinnosti
+      exempt: Osvobozeno
+    stamp: Razítko a podpis
+    stamp_alt: 'Razítko a podpis: {name}'
+    qr_label: QR Platba+F
+    qr_alt: 'QR Platba+F faktury {number}'
+    note:
+      reverse_charge: 'Přenesení daňové povinnosti: daň odvede zákazník.{code, select, none {} other { Kód předmětu plnění: {code}.}}'
+      exempt: Plnění je osvobozeno od daně.
+  billed_work:
+    gone: Vybraný čas už na tuto fakturu nečeká. Otevřete znovu fakturaci času.
+  copy:
+    firm_archived: Tato firma je archivovaná, takže nové doklady nevystavuje. Vyberte jinou firmu.
+    series_archived: Řada původní faktury je archivovaná, kopie proto používá výchozí řadu.
+    customer_archived: Firma už zákazníkovi z původní faktury nefakturuje. Vyberte jiného zákazníka.
+    line_dates: Položky obsahují datum nebo měsíc z původní faktury. Zkontrolujte, zda stále platí.
+  list:
+    title: Faktury
+    title_invoice: Faktury
+    title_advance: Zálohové faktury
+    title_payment_tax_document: Daňové doklady k platbě
+    title_correction_document: Opravné doklady
+    views: Seznamy faktur
+    more_views: Další pohledy
+    all_firms: Všechny firmy
+    search_label: Hledat ve fakturách
+    search_placeholder: Číslo, zákazník nebo popis
+    summary: '{kind, select, advance {{total, plural, one {# zálohová faktura} few {# zálohové faktury} other {# zálohových faktur}}} payment_tax_document {{total, plural, one {# daňový doklad} few {# daňové doklady} other {# daňových dokladů}}} correction_document {{total, plural, one {# opravný doklad} few {# opravné doklady} other {# opravných dokladů}}} other {{total, plural, one {# faktura} few {# faktury} other {# faktur}}}}'
+    reason_missing: Napište, proč fakturu mažete.
+    delete_delivered: Doručený doklad nelze smazat.
+    not_in_trash: Tato faktura v koši není.
+    not_exported: Tento doklad nemá příznak exportu.
+    already_trashed: Tato faktura už je v koši.
+    delivered_trashed: Tato faktura je v koši. Nejdřív ji obnovte.
+    delivered_confirm: 'Označit fakturu {number} jako doručenou?'
+    delivered_confirm_text: Doručenou fakturu už nepůjde smazat.
+    delivered_confirm_accept: Označit jako doručenou
+    tab:
+      all: Vše
+      paid: Uhrazené
+      unpaid: Neuhrazené
+      overdue: Po splatnosti
+      settled: Vyúčtované
+      unsettled: Nevyúčtované
+      to_refund: K vrácení
+      trash: Koš
+    column:
+      sent: E-mail
+      entries_count: '{count, plural, one {# záznam} few {# záznamy} other {# záznamů}}'
+      export: Export
+      number: Číslo
+      firm: Firma
+      customer: Zákazník
+      issueDate: Vystaveno
+      dueDate: Splatnost
+      payable: Celkem
+      status: Stav
+      deletedBy: Smazal(a)
+      deletedAt: Smazáno
+      reason: Důvod
+    status:
+      settled_by_advances: Uhrazeno zálohami
+      issued: Vystaveno
+      delivered: Doručeno
+      partly_paid: Částečně uhrazeno
+      overdue: Po splatnosti
+      paid: Uhrazeno
+      overpaid: Přeplaceno
+      to_refund: K vrácení
+      trashed: V koši
+    action:
+      edit: Upravit
+      send: Odeslat
+      pay: Uhradit
+      pdf: PDF
+      copy: Kopírovat
+      correct: Vystavit opravný doklad
+      delivered: Označit jako doručené
+      history: Historie
+      delete: Smazat
+      restore: Obnovit
+      clear_export: Zrušit příznak exportu
+    empty:
+      title: Zatím žádné faktury
+      text: Vystavte první. Uložením dostane své číslo.
+      all_title: Tady žádné faktury nejsou
+      all_title_invoice: Tady žádné faktury nejsou
+      all_title_advance: Tady žádné zálohové faktury nejsou
+      all_title_payment_tax_document: Tady žádné daňové doklady nejsou
+      all_title_correction_document: Tady žádné opravné doklady nejsou
+      filtered_title: Žádná faktura neodpovídá
+      filtered_text: Zkuste jiná slova nebo jinou firmu.
+      reset: Zobrazit všechny faktury
+      overdue_title: Nic není po splatnosti
+      trash_title: Koš je prázdný
+      paid_title: Zatím nic není uhrazeno
+      paid_text: Uhrazené faktury se tu objeví, jakmile zaznamenáte úhradu.
+      unpaid_title: Vše je uhrazeno
+      unpaid_text: Žádná faktura nečeká na peníze.
+      settled_title: Zatím nic není vyúčtováno
+      settled_text: Daňový doklad se tu objeví, jakmile ho odečte konečná faktura.
+      unsettled_title: Vše je vyúčtováno
+      unsettled_text: Nic uhrazeného nečeká na odečtení v konečné faktuře.
+  trash:
+    title: 'Smazat fakturu {number}'
+    keeps: Přesune se do koše a nechá si číslo, které se už nikdy nepoužije.
+    reason: Důvod
+    reason_help: Zůstane v historii faktury.
+    submit: Přesunout do koše
+  history:
+    title: 'Historie faktury {number}'
+    card: Historie
+    system: Systém
+    created: '{who}: faktura vytvořena'
+    issued_recurring: '{who}: faktura vystavena z pravidelné faktury'
+    changed: '{who}: faktura upravena'
+    trashed: '{who}: faktura přesunuta do koše: {reason}'
+    restored: '{who}: faktura obnovena'
+    delivered: '{who}: faktura označena jako doručená'
+    exported: '{who}: faktura exportována pro účetní'
+    export_cleared: '{who}: příznak exportu zrušen'
+    paid: '{who}: úhrada {amount} zaznamenána'
+    payment_cancelled: '{who}: úhrada {amount} odebrána'
+    send: '{who}: e-mail na {recipients}'
+    send_copy: 'kopie na {address}'
+    send_show: Zobrazit e-mail
+    send_subject: Předmět
+    send_pdf: PDF, jak odešlo
+    send_read: 'Přečteno {date}'
+    send_again: Odeslat znovu
+    line_added: 'Položka {number} ({text}) přidána'
+    line_removed: 'Položka {number} ({text}) odebrána'
+    line_changed: 'Položka {number} ({text}): {fields}'
+    line_text: 'Položka {number}: {text}'
+    field:
+      number: Číslo
+      series: Řada
+      customer: Zákazník
+      issueDate: Datum vystavení
+      taxPointDate: DUZP
+      dueDate: Splatnost
+      paymentMethod: Způsob platby
+      bankAccount: Bankovní účet
+      variableSymbol: Variabilní symbol
+      constantSymbol: Konstantní symbol
+      orderNumber: Číslo objednávky
+      description: Popis
+      textBefore: Text před položkami
+      textAfter: Text za položkami
+      language: Jazyk
+      payableMinor: Celkem
+      text: Text
+      quantity: Množství
+      unit: Jednotka
+      priceMinor: Cena
+      priceType: Typ ceny
+      treatment: DPH
+      supplyCode: Kód plnění
+      rateKind: Sazba DPH
+      discount: Sleva
+  new: Nová faktura
+  title: 'Faktura {number}'
+  reload: Načíst fakturu znovu
+  cancel: Zrušit
+  save: Uložit
+  save_send: Odeslat a uložit
+  save_pdf: PDF a uložit
+  more_actions: Další akce
+  due_on: 'splatnost {date}'
+  more: Další údaje
+  more_show: Zobrazit více detailů
+  firm_apply: Použít tuto firmu
+  month:
+    this_month: Tento měsíc
+    last_month: Minulý měsíc
+    this_quarter: Toto čtvrtletí
+    this_year: Tento rok
+    by_month: Podle měsíce
+    label: Měsíc
+    all: Všechny měsíce
+  rate: '{rate} %'
+  errors_title: Fakturu zatím nelze uložit
+  cut_off: Formulář byl příliš velký a nedorazil celý, takže se nic neuložilo.
+  cut_off_retry: Otevřít formulář znovu
+  line_limit: 'Faktura má nejvýše 100 řádků.'
+  errors_close: Zavřít seznam
+  firm_changed: Firma se změnila, proto se řada, číslo a variabilní symbol nastavily znovu.
+  currency_notice: 'Tento kontakt má nastavenou měnu {contact}. Doklad zůstává v {document}.'
+  opens_new_tab: otevře se v nové kartě
+  blocked:
+    no_firm_title: Nejdřív přidejte svou firmu
+    no_firm_text: Každou fakturu vystavuje jedna z vašich firem.
+    add_firm: Přidat firmu
+    no_series_title: Firma nemá aktivní řadu
+    no_series_text: Přidejte číselnou řadu v nastavení fakturace firmy.
+    open_firm: Otevřít nastavení firmy
+  flash:
+    saved: 'Faktura {number} je uložená.'
+    renumbered: 'Faktura je uložená pod číslem {number}: {preview} mezitím získal jiný doklad.'
+    number_changed: 'Faktura je uložená pod číslem {number}. Číslo se změnilo.'
+    already_saved: Tento formulář už byl uložen.
+    trashed: 'Faktura {number} je v koši.'
+    restored: 'Faktura {number} je zpět v seznamu.'
+    delivered: 'Faktura {number} je označená jako doručená.'
+    export_cleared: 'Doklad {number} už nemá příznak exportu, další export ho zahrne.'
+  card:
+    issuer: Vystavitel
+    customer: Odběratel
+    payment: Data a platba
+    lines: Položky
+    delete: Smazat fakturu
+  number:
+    edit: Změnit číslo
+    label: Číslo faktury
+    help: Uložení dá další volné číslo, pokud ho nezměníte.
+  customer:
+    placeholder: Název, IČO nebo e-mail
+    empty: Nic nenalezeno. Použijte plus nebo adresář.
+    none_yet: Zatím žádní zákazníci. Použijte plus nebo adresář.
+    add: Přidat
+    picked: 'Doplnili jsme odběratele {name} s jeho výchozími údaji. Zkontrolujte formulář a uložte.'
+    candidates: Nalezení odběratelé
+    edit_here: Upravit jen na tomto dokladu
+    edit_contact: Upravit kontakt
+  field:
+    payment_state: Stav úhrady
+    settlement: Vyúčtování
+    firm: Firma
+    series: Číselná řada
+    customer: Odběratel
+    customerName: Název na dokladu
+    registrationNumber: IČO
+    vatId: DIČ
+    street: Ulice
+    city: Město
+    postalCode: PSČ
+    countryCode: Země
+    email: E-mail
+    orderNumber: Číslo objednávky
+    description: Popis
+    description_help: Když ho nevyplníte, převezme text první položky.
+    variableSymbol: Variabilní symbol
+    variableSymbol_help: Sleduje číslo, dokud ho nezměníte.
+    constantSymbol: Konstantní symbol
+    language: Jazyk dokladu
+    textBefore: Text nad položkami
+    textAfter: Text pod položkami
+    issueDate: Datum vystavení
+    taxPointDate: Datum zdanitelného plnění
+    supplyDate: Datum uskutečnění
+    dueDate: Datum splatnosti
+    paymentMethod: Platba
+    bankAccount: Bankovní účet
+    bankAccount_none: Firma zatím nemá bankovní účet.
+    bankAccount_add: Přidat v nastavení banky
+    currency: Měna
+  field_label:
+    form: Formulář
+    firm: Firma
+    document: Doklad
+    series: Číselná řada
+    number: Číslo
+    customer: Odběratel
+    orderNumber: Číslo objednávky
+    description: Popis
+    variableSymbol: Variabilní symbol
+    constantSymbol: Konstantní symbol
+    language: Jazyk
+    textBefore: Text nad položkami
+    textAfter: Text pod položkami
+    issueDate: Datum vystavení
+    taxPointDate: Datum uskutečnění
+    dueDate: Datum splatnosti
+    paymentMethod: Platba
+    bankAccount: Bankovní účet
+    lines: Položky
+  line:
+    label: 'Řádek {number}'
+    text: Položka
+    price: Cena
+    quantity: Množství
+    unit: Jednotka
+    priceType: Typ ceny
+    vat: DPH
+    rate: DPH
+    treatment: DPH
+    supplyCode: Kód plnění
+    supplyCode_choose: Vyberte kód
+    discount: Sleva
+    total: Celkem
+    total_with_vat: Celkem s DPH
+    discount_add: Přidat slevu
+    discount_remove: Odebrat slevu
+    actions: Akce
+    add: Nový řádek
+    drag: Přetažením změníte pořadí
+    up: Posunout řádek nahoru
+    down: Posunout řádek dolů
+    remove: Odebrat řádek
+  price_type:
+    with_vat: S DPH
+    without_vat: Bez DPH
+    base_only: Pouze základ
+  vat:
+    base: Základní sazba
+    reduced: Snížená sazba
+    second_reduced: Druhá snížená sazba
+    standard: Běžné plnění
+    reverse_charge: Přenesená daň
+    exempt: Osvobozeno
+    not_applicable: Mimo DPH
+  payment:
+    refused:
+      refund_too_large: Vrácení je vyšší, než kolik je na faktuře k vrácení.
+      has_payments: Faktura má úhrady. Nejdřív úhrady odeberte.
+      cancelled: Platba tohoto daňového dokladu je zrušená, doklad proto zůstane v koši.
+      no_allocation: Úhrada nehradí žádnou fakturu.
+      amount_mismatch: Části úhrady nedávají dohromady její částku.
+      not_positive: Zadejte částku větší než nula.
+      wrong_firm: Faktura patří jiné firmě.
+      currency_mismatch: Úhrada je v jiné měně než faktura.
+      trashed: Faktura je v koši.
+      not_payable: Daňový doklad k platbě je uhrazený svou platbou.
+      future_date: Úhrada nemůže mít datum v budoucnosti.
+      settlement_not_allowed: Rozdíl se mezitím změnil, proto se neodepsal. Zkontrolujte částku a zkuste to znovu.
+      note_too_long: 'Poznámka může mít nejvýše {max} znaků.'
+      no_movement: Úhrada potřebuje svůj bankovní pohyb.
+    error:
+      date: Zadejte platné datum.
+      amount: 'Zadejte částku, například 1 210,50.'
+      method: Vyberte způsob úhrady.
+      note_too_long: 'Poznámka může mít nejvýše {max} znaků.'
+      settle_too_large: 'Odepsat lze jen rozdíl do {limit}.'
+      settle_none: Rozdíl v této měně se neodepisuje.
+    title: 'Uhradit fakturu {number}'
+    page_card: Úhrada
+    submit: Zaznamenat úhradu
+    field:
+      receivedOn: Datum úhrady
+      amount: Částka
+      method: Způsob úhrady
+      note: Poznámka
+      settle: Uzavřít fakturu a rozdíl odepsat
+    payable: 'K úhradě {payable}'
+    remaining_of: 'Zbývá {remaining} z {payable}'
+    settled: Faktura je už uhrazená. Další úhrada ji přeplatí.
+    overpay: 'Faktura bude přeplacená o {over}.'
+    settle_difference: 'Odepíše se {difference}, aby byla faktura uhrazená přesně.'
+    trashed: 'Faktura {number} je v koši. Nejdřív ji obnovte.'
+    nothing_due: 'Faktura {number} nemá nic k úhradě.'
+    left: 'zbývá {amount}'
+    to_refund: 'k vrácení {amount}'
+    refund:
+      title: 'Vrácení k faktuře {number}'
+      page_card: Vrácení
+      date: Datum vrácení
+      submit: Zaznamenat vrácení
+      nothing: 'Faktura {number} nemá nic k vrácení.'
+    panel:
+      refund: Zaznamenat vrácení
+      title: Úhrady
+      movement: Zobrazit bankovní pohyb
+      pay: Uhradit
+      empty: Zatím žádné úhrady.
+      paid: Uhrazeno
+      remaining: Zbývá uhradit
+      overpaid: Přeplaceno o
+      to_refund: K vrácení
+      written_off: 'odepsáno {amount}'
+      bank: Bankovní pohyb
+      remove: Odebrat
+      remove_label: 'Odebrat úhradu {amount} ze dne {date}'
+      remove_confirm: 'Odebrat úhradu {amount}?'
+      remove_text: Faktura bude o tuto částku znovu neuhrazená.
+      remove_text_bank: Faktura bude o tuto částku znovu neuhrazená a bankovní pohyb se vrátí mezi nespárované.
+      remove_text_shared: 'Úhrada platí i {count, plural, one {fakturu} other {faktury}} {numbers}. Odebere se ze všech a každá bude o svou část znovu neuhrazená.'
+      remove_text_shared_bank: 'Úhrada platí i {count, plural, one {fakturu} other {faktury}} {numbers}. Odebere se ze všech, každá bude o svou část znovu neuhrazená a bankovní pohyb se vrátí mezi nespárované.'
+      remove_accept: Odebrat úhradu
+      keep: Ponechat
+    flash:
+      refunded: 'Vrácení {amount} k faktuře {number} je zaznamenané.'
+      recorded: 'Úhrada {amount} k faktuře {number} je zaznamenaná.'
+      settled: 'Úhrada {amount} k faktuře {number} je zaznamenaná. Rozdíl {difference} se odepsal.'
+      overpaid: 'Úhrada {amount} je zaznamenaná. Faktura {number} je přeplacená o {over}.'
+      already_recorded: Tato úhrada už je zaznamenaná.
+      removed: 'Úhrada {amount} je odebraná.'
+      removed_shared: 'Úhrada {amount} je odebraná z faktur {numbers}.'
+      already_removed: Tato úhrada už byla odebrána.
+    bank_transfer: Převodem
+    cash: Hotově
+    card: Kartou
+  language:
+    cs: Čeština
+    en: Angličtina
+  total:
+    base: 'Základ {rate}'
+    rate_vat: 'DPH {rate}'
+    net: Bez DPH
+    vat: DPH
+    rounding: Zaokrouhlení
+    payable: Celkem
+    stale: Součty nejsou aktuální. Zkontrolujte řádky.
+  supply_code:
+    '1': Zlato
+    1a: Zlato, zprostředkování dodání investičního zlata
+    '3': Dodání nemovité věci
+    3a: Dodání nemovité věci v nuceném prodeji
+    '4': Stavební a montážní práce
+    4a: Stavební a montážní práce, poskytnutí pracovníků
+    '5': Zboží uvedené v příloze č. 5
+    '6': Dodání zboží poskytnutého původně jako záruka
+    '7': Dodání zboží po postoupení výhrady vlastnictví
+    '11': Povolenky na emise skleníkových plynů
+    '12': Obiloviny a technické plodiny
+    '13': Kovy
+    '14': Mobilní telefony
+    '15': Integrované obvody
+    '16': Přenosná zařízení pro automatizované zpracování dat
+    '17': Videoherní konzole
+    '18': Dodání certifikátů elektřiny
+    '19': Dodání elektřiny soustavami nebo sítěmi obchodníkovi
+    '20': Dodání plynu soustavami nebo sítěmi obchodníkovi
+    '21': Poskytnutí vymezených služeb elektronických komunikací
+  problem:
+    number_not_accepted: Číslo může mít nejvýše 40 znaků a nesmí obsahovat * ani %, jinak by nešel vytvořit QR kód.
+    firm_identified_person: Pro identifikovanou osobu zatím nelze vystavovat doklady, pravidla pro ni čekají na posouzení.
+    unprintable: 'Tento text obsahuje znaky, které faktura nevytiskne: {characters}'
+    unprintable_part: '{part, select, name {Název} street {Ulice} city {Město} postal_code {PSČ} registration_number {IČO} vat_id {DIČ} register_entry {Zápis v rejstříku} email {E-mail} phone {Telefon} web {Web} other {Údaj}} obsahuje znaky, které faktura nevytiskne: {characters}'
+    country_invalid: Vyberte zemi ze seznamu.
+    email_invalid: Zadejte platnou e-mailovou adresu.
+    constant_symbol_invalid: Konstantní symbol obsahuje jen číslice.
+    too_many_lines: 'Faktura má nejvýše 100 řádků.'
+    amount_out_of_range: Částka je příliš velká.
+    bank_account_foreign: Vyberte bankovní účet firmy.
+    changed_meanwhile: Někdo tuto fakturu mezitím uložil, takže vaše změny se neuložily.
+    currency_not_home: Cena musí být v měně firmy.
+    customer_address_incomplete: Odběratel potřebuje úplnou fakturační adresu.
+    customer_archived: Tento kontakt je pro firmu archivovaný.
+    customer_unknown: Vyberte odběratele.
+    customer_vat_id_invalid: DIČ odběratele není platné.
+    date_invalid: Toto datum neexistuje.
+    discount_invalid: Zadejte slevu od 0 do 100, nejvýše na dvě desetinná místa.
+    due_date_missing: Zadejte datum splatnosti.
+    firm_archived: Tato firma je archivovaná, nové doklady nevystavuje.
+    firm_country_unsupported: Pro zemi této firmy zatím faktury nejsou k dispozici.
+    firm_locked: Firmu vystaveného dokladu nelze změnit.
+    firm_register_entry_missing: 'Doplňte v nastavení firmy, kde je zapsaná. Společnost uvádí spisovou značku, živnostníkovi stačí „Zapsán v živnostenském rejstříku“.'
+    firm_vat_id_missing: Doplňte DIČ v nastavení firmy.
+    issue_date_missing: Zadejte datum vystavení.
+    language_invalid: Vyberte jazyk dokladu.
+    line_rate_missing: Řádek potřebuje sazbu DPH platnou k datu plnění.
+    line_text_missing: Zadejte text položky.
+    no_lines: Přidejte alespoň jeden řádek.
+    number_invalid: Zadejte číslo s alespoň jedním písmenem nebo číslicí, nejvýše 80 znaků.
+    number_locked: Řadu a číslo nelze po doručení dokladu změnit.
+    number_locked_sending: Řadu a číslo nelze měnit, dokud se doklad odesílá.
+    number_locked_sent: Řadu a číslo nelze změnit, odběratel už doklad dostal e-mailem.
+    number_out_of_range: Toto číslo je mimo rozsah řady.
+    number_taken: Toto číslo už bylo v této firmě použito.
+    import_number_missing: Importovaný doklad musí mít řadu i číslo.
+    import_issuer_incomplete: Dodavatel na importovaném dokladu nemá úplný název a adresu.
+    import_kind_unsupported: Tento druh dokladu se zatím neimportuje.
+    numbers_exhausted: V této řadě už nezbývají čísla.
+    payable_negative: Celková částka nesmí být záporná.
+    billed_work_gone: Práce vybraná k této faktuře už k fakturaci není. Otevřete její fakturaci znovu.
+    correction_kind: Opravovaný doklad uvádí jen opravný daňový doklad.
+    correction_link_missing: Vyberte fakturu, kterou tento doklad opravuje.
+    correction_link_locked: Opravný doklad zůstává u faktury, kterou opravuje.
+    correction_original_invalid: Opravit lze jen vystavenou fakturu, která není v koši, nebo doručený daňový doklad k platbě.
+    correction_deducted: Daňový doklad je odečtený na konečné faktuře. Nejdřív odečet uvolněte, tedy konečnou fakturu přesuňte do koše nebo odečet z ní odeberte.
+    correction_payment_change: Daňový doklad k platbě se opravuje jako změna po vystavení, ke dni zrušení nebo vrácení platby.
+    correction_firm: Opravu musí vystavit firma faktury.
+    correction_customer: Oprava musí být pro odběratele faktury.
+    correction_reason_missing: Uveďte důvod opravy.
+    correction_type_missing: Vyberte, zda jde o změnu po vystavení, nebo o chybu na dokladu.
+    correction_decisive_date_missing: Vyplňte rozhodné datum.
+    correction_tax_point: DUZP změny je její rozhodné datum, DUZP chyby je DUZP faktury.
+    correction_rate_unknown: Použijte sazbu DPH, která je na opravované faktuře.
+    correction_over_original: Dobropis by u některé sazby DPH přesáhl, co zbývá z faktury a jejích oprav.
+    payment_method_invalid: Vyberte způsob platby.
+    price_invalid: Zadejte cenu nejvýše na dvě desetinná místa.
+    price_type_invalid: Vyberte typ ceny.
+    quantity_invalid: Zadejte množství nejvýše na čtyři desetinná místa.
+    reverse_charge_customer_vat_id: Přenesená daň vyžaduje odběratele s DIČ.
+    reverse_charge_payer: Přenesená daň vyžaduje vystavitele, který je plátcem DPH.
+    series_archived: Tato řada je archivovaná.
+    series_kind: Tato řada čísluje jiný druh dokladů.
+    tax_document_fixed: Daňový doklad k platbě odpovídá své platbě a nelze ho měnit.
+    already_deducted: Záloha z této faktury je už odečtená na jiné faktuře.
+    deduction_invalid: 'Tuto zálohu tu nelze odečíst: patří jinému odběrateli, je odečtená jinde, nebo není uhrazená.'
+    tax_document_exists: Tato platba už svůj daňový doklad má.
+    tax_document_with_vat: Řádky daňového dokladu k platbě mají cenu s DPH.
+    no_tax_on_receipt: Z této platby DPH nevznikla, daňový doklad proto nedostane.
+    payment_unknown: Tato platba nepatří k zálohové faktuře, nebo byla zrušena.
+    series_of_another_firm: Tato řada patří jiné firmě.
+    series_unknown: Vyberte číselnou řadu.
+    supply_code_invalid: Vyberte kód plnění ze seznamu, nebo pole nechte prázdné.
+    supply_code_not_allowed: Odběratel z jiné země kód plnění nemá.
+    tax_point_missing: Zadejte datum.
+    too_long: Text je příliš dlouhý.
+    trashed: Tato faktura je v koši. Pro změny ji obnovte.
+    variable_symbol_invalid: Variabilní symbol má 1 až 10 číslic.
+    vat_invalid: Vyberte DPH řádku.
+recurring:
+  notice:
+    failing: '{count, plural, one {Pravidelnou fakturu se nepodařilo vystavit nebo odeslat.} few {# pravidelné faktury se nepodařilo vystavit nebo odeslat.} other {# pravidelných faktur se nepodařilo vystavit nebo odeslat.}}'
+    review: '{count, plural, one {Faktura z pravidelné faktury čeká, až ji odešlete.} few {# faktury z pravidelných faktur čekají, až je odešlete.} other {# faktur z pravidelných faktur čeká, až je odešlete.}}'
+    unfinished: 'Dnešní pravidelné faktury ještě nejsou vystavené, ač už je po {hour}:00. Zkontrolujte, že na serveru běží fronta i plánovač.'
+    link: Zobrazit
+  problem:
+    name_missing: Zadejte název vzoru.
+    name_too_long: Název vzoru může mít nejvýš 120 znaků.
+    due_days_invalid: Splatnost je 0 až 365 dní od vystavení.
+    ended: Tato pravidelná faktura je ukončená a nedá se změnit.
+    first_issue_past: První fakturu nejde vystavit v minulosti.
+    issued: Z této pravidelné faktury už vznikly faktury, dá se jen ukončit.
+    no_occurrence_left: S tímto rozvrhem nezbývá žádná faktura k vystavení.
+    choice_invalid: Vyberte jednu z možností.
+    first_issue_missing: Zadejte datum prvního vystavení.
+    every_invalid: Zadejte celé číslo od 1 do 99.
+    end_on_missing: Zadejte datum posledního vystavení.
+    end_on_before_first: Poslední vystavení nemůže být před prvním.
+    end_after_invalid: Zadejte počet od 1 do 999.
+  form:
+    new_title: Nová pravidelná faktura
+    edit_title: Pravidelná faktura
+    save: Uložit
+    apply: Přepočítat náhled
+    from_invoice: Pravidelná faktura
+  card:
+    main: Vzor faktury
+    schedule: Opakování vystavení
+    sending: Odesílání faktury
+    dates: Datumy
+    payment: Moje platební údaje
+  field:
+    paymentMethod: Způsob úhrady
+    name: Název vzoru
+    name_help: Pod tímto názvem pravidelnou fakturu najdete v přehledu.
+    sendToCustomer: Odběrateli
+    copyToMe: Kopie na můj e-mail
+    copyToOthers: Dalším příjemcům na kontaktu
+    firstIssueOn: První vystavení
+    unit: Opakování
+    every: Opakovat každý
+    every_help: Např. 3 znamená každý třetí den, týden, měsíc či rok.
+    onLastDayOfMonth: Vystavovat poslední den v měsíci
+    taxPoint: DUZP
+    dueDays: Splatnost (dní)
+    dueDays_help: Počet dní od vystavení faktury.
+    end: Ukončit opakování
+    endOn: Poslední vystavení
+    endAfter: Počet vystavení
+    series_help: Každá faktura dostane další číslo této řady.
+    state: Stav
+  unit:
+    day: Denně
+    week: Týdně
+    month: Měsíčně
+    year: Ročně
+  tax_point:
+    issue_date: V den vystavení
+    last_day_of_month: Poslední den v měsíci
+  supply_point:
+    issue_date: V den vystavení
+    last_day_of_month: Poslední den v měsíci
+  end:
+    never: Nikdy
+    on_date: K datu
+    after_count: Po počtu vystavení
+  sending:
+    legend: 'Po vystavení odeslat:'
+    held: Faktura se jen vystaví a počká v seznamu K odeslání.
+    no_email: e-mail není vyplněn
+  step:
+    less: 'Snížit: {field}'
+    more: 'Zvýšit: {field}'
+  payment:
+    account_number: Číslo účtu
+    iban: IBAN
+  variables:
+    title: Proměnné
+    help: Vloží se do posledního pole – popisu, textu či položky.
+  variable:
+    day: Den
+    month: Měsíc
+    year: Rok
+    quarter: Čtvrtletí
+    month_year: Měsíc/rok
+    document_number: Číslo faktury
+  preview:
+    unknown: 'Další vystavení zatím nejde spočítat:'
+    next: 'Další faktura bude vystavena {date}'
+    next_now: Další faktura bude vystavena hned po uložení
+    next_now_review: Další faktura bude vystavena hned po uložení a počká na vaši kontrolu
+    next_morning: Další faktura bude vystavena dnes v 5:00
+    next_morning_review: Další faktura bude vystavena dnes v 5:00 a počká na vaši kontrolu
+    all: Přehled budoucích vystavení
+    ends: Tím opakování končí.
+    document_number: '[číslo faktury]'
+  flash:
+    saved: 'Pravidelná faktura je uložená. Další faktura se vystaví {date}.'
+    already_saved: Tato pravidelná faktura už je uložená.
+    paused: 'Pravidelná faktura pro {customer} je pozastavená. Dokud ji neobnovíte, nic se nevystaví.'
+    resumed: 'Pravidelná faktura je obnovená. Další faktura se vystaví {date}.'
+    resumed_ended: Pravidelná faktura je obnovená, ale podle rozvrhu už žádná faktura nezbývá, takže skončila.
+    skipped: '{count, plural, one {Přeskočený termín:} other {Přeskočené termíny:}} {dates}.'
+    ended: 'Pravidelná faktura pro {customer} je ukončená.'
+    deleted: 'Pravidelná faktura pro {customer} je smazaná.'
+    issued: 'Faktura {number} je vystavená.'
+    issued_sent: 'Faktura {number} je vystavená a odesílá se odběrateli.'
+    issued_review: 'Faktura {number} je vystavená a čeká v seznamu K odeslání.'
+    issued_refused: 'Faktura {number} je vystavená, ale nešla odeslat: {reason} Čeká v seznamu K odeslání.'
+    already_issued: Tento termín už je vystavený, nic dalšího se nevystavilo.
+    not_active: Pravidelná faktura není aktivní, proto se nic nevystavilo.
+    changed_meanwhile: Pravidelná faktura se mezitím změnila. Zkuste to prosím znovu.
+    issue_refused: 'Fakturu nejde vystavit: {problems}'
+  to_send:
+    label: K odeslání
+    hint: Faktury z pravidelných faktur, které ještě nikdo neodeslal.
+  alert:
+    subject:
+      issue: Pravidelnou fakturu se nepodařilo vystavit
+      send: Pravidelná faktura se vystavila, ale neodeslala
+    opening:
+      issue: 'Pravidelnou fakturu firmy {firm} pro {customer} se {date} nepodařilo vystavit.'
+      send: 'Pravidelná faktura firmy {firm} pro {customer} se {date} vystavila, ale neodeslala. Čeká mezi fakturami k odeslání.'
+    closing:
+      issue: Další běh to zkusí znovu zítra v 5:00. Příčinu opravte ve Foresi v pravidelných fakturách.
+      send: Po opravě ji odešlete ve Foresi z přehledu faktur.
+    digest:
+      subject: '{count, plural, one {# pravidelnou fakturu se nepodařilo vystavit nebo odeslat} few {# pravidelné faktury se nepodařilo vystavit nebo odeslat} other {# pravidelných faktur se nepodařilo vystavit nebo odeslat}}'
+      subject_send: '{count, plural, one {# pravidelná faktura se vystavila, ale neodeslala} few {# pravidelné faktury se vystavily, ale neodeslaly} other {# pravidelných faktur se vystavilo, ale neodeslalo}}'
+      opening: 'Pravidelné faktury firmy {firm} se {date} nepodařilo vystavit nebo odeslat:'
+      closing: Vystavené faktury čekají mezi fakturami k odeslání. Nevystavené zkusí další běh znovu zítra v 5:00.
+    link: 'Pravidelné faktury ve Foresi: {url}'
+    reason:
+      other: 'Pravidla to nedovolila (kód {code}).'
+      issue:
+        refused: Pravidla vystavení fakturu odmítla.
+      invoice:
+        problem:
+          customer_archived: Odběratel je pro tuto firmu archivovaný.
+          customer_unknown: Odběratel už neexistuje.
+          customer_address_incomplete: Odběratel nemá úplnou fakturační adresu.
+          line_rate_missing: Druh sazby DPH některé položky k datu zdanitelného plnění neexistuje.
+          firm_archived: Firma je archivovaná.
+          firm_country_unsupported: Pravidla země firmy nejsou k dispozici.
+      send:
+        no_server: Firma nemá nastavený poštovní server.
+        no_recipient: Odběratel nemá e-mail pro faktury.
+        bad_address: E-mail odběratele není platný.
+        rate_limited: Firma vyčerpala denní limit odeslaných e-mailů.
+        undrawable: Fakturu nejde vykreslit do PDF.
+        unexpected: Odeslání selhalo kvůli neočekávané chybě.
+  failure:
+    other: Poslední vystavení nebo odeslání se nepovedlo.
+    send:
+      no_server: Firma nemá nastavený poštovní server.
+      no_recipient: Odběratel nemá e-mail pro faktury.
+      bad_address: E-mail odběratele není platný.
+      rate_limited: Firma vyčerpala denní limit odeslaných e-mailů.
+      undrawable: Fakturu nejde vykreslit do PDF.
+      unexpected: Odeslání selhalo kvůli neočekávané chybě. Fakturu odešlete ze seznamu K odeslání.
+  list:
+    title: Pravidelné faktury
+    views: Seznamy pravidelných faktur
+    failed: 'Selhalo: {reason}'
+    fix:
+      mail: Nastavit poštovní server
+      contact: Upravit kontakt
+      to_send: Odeslat z faktur k odeslání
+      edit: Upravit pravidelnou fakturu
+    summary: '{total, plural, one {# pravidelná faktura} few {# pravidelné faktury} other {# pravidelných faktur}}'
+    tab:
+      active: Aktivní
+      paused: Pozastavené
+      ended: Ukončené
+      failing: Selhaly
+    column:
+      name: Název vzoru
+      customer: Odběratel
+      description: Popis
+      firm: Firma
+      interval: Opakování
+      next: Další vystavení
+      end: Konec
+      delivery: Po vystavení
+      amount: Částka
+      state: Stav
+    delivery:
+      send: Odeslat
+      review: Ke kontrole
+    interval:
+      day: '{every, plural, one {Denně} few {Každé # dny} other {Každých # dní}}'
+      week: '{every, plural, one {Týdně} few {Každé # týdny} other {Každých # týdnů}}'
+      month: '{every, plural, one {Měsíčně} few {Každé # měsíce} other {Každých # měsíců}}'
+      year: '{every, plural, one {Ročně} few {Každé # roky} other {Každých # let}}'
+      last_day: ', poslední den v měsíci'
+    end:
+      never: bez konce
+      on_date: 'do {date}'
+      after_count: '{left, plural, =0 {žádná další} other {ještě #×}}'
+      ended: 'ukončeno {date}'
+    action:
+      edit: Upravit
+      issue_now: Vystavit nyní
+      pause: Pozastavit
+      resume: Obnovit
+      end: Ukončit
+      delete: Smazat
+    empty:
+      title: Zatím žádné pravidelné faktury
+      text: Založte novou, nebo ji vytvořte z vystavené faktury přes položku Pravidelná faktura v jejím menu.
+      from_invoice: Vybrat fakturu
+      filtered_title: Pro tuto firmu tu nic není
+      reset: Zobrazit všechny firmy
+      active: Žádná aktivní pravidelná faktura
+      paused: Nic není pozastavené
+      ended: Nic není ukončené
+      failing: Všechno se vystavuje bez potíží
+  pause:
+    title: Pozastavit pravidelnou fakturu
+    text: 'Faktura plánovaná na {date} ani další se nevystaví, dokud pravidelnou fakturu neobnovíte.'
+    text_no_date: Žádná další faktura se nevystaví, dokud pravidelnou fakturu neobnovíte.
+    resume_hint: Po obnovení se termíny z doby pozastavení přeskočí.
+    not_active: Pozastavit jde jen aktivní pravidelnou fakturu.
+  resume:
+    title: Obnovit pravidelnou fakturu
+    skipped: '{count, plural, one {Tento termín připadl na dobu pozastavení a nevystaví se:} other {Tyto termíny připadly na dobu pozastavení a nevystaví se:}}'
+    next: 'Další faktura se vystaví {date}.'
+    ends: Podle rozvrhu už žádná faktura nezbývá, pravidelná faktura obnovením skončí.
+    not_paused: Tato pravidelná faktura není pozastavená.
+  ending:
+    title: Ukončit pravidelnou fakturu
+    text: Žádná další faktura se už nevystaví. Ukončenou pravidelnou fakturu nejde znovu spustit.
+    keeps: Vystavené faktury zůstanou beze změny.
+  delete:
+    title: Smazat pravidelnou fakturu
+    text: Zatím z ní nevznikla žádná faktura, smaže se celá.
+  issue_now:
+    title: Vystavit fakturu nyní
+    text: 'Vystaví se faktura za termín {occurrence}, s těmito daty:'
+    issue_date: Datum vystavení
+    due_date: Splatnost
+    submit: Vystavit
+    not_active: Vystavit nyní jde jen aktivní pravidelnou fakturu.
+    delivery:
+      send: Pak odejde e-mailem odběrateli a kopie vám. Další termín se posune.
+      review: Pak počká v seznamu K odeslání na vaši kontrolu. Další termín se posune.
+reminder:
+  card:
+    template: Upomínka
+    settings: Automatické upomínky
+  templates_help: Upomínka k faktuře po splatnosti se posílá v jazyce dokladu.
+  mail:
+    default:
+      subject: 'Upomínka: faktura {number}'
+      body: |-
+        Dobrý den,
+
+        dovolujeme si Vás upozornit, že faktura č. {number} se splatností {due_date} zatím není uhrazená. Zbývá uhradit {amount_due}.
+
+        Pokud jste ji mezitím zaplatili, považujte prosím tuto zprávu za bezpředmětnou.
+
+        Děkujeme,
+        {firm_name}
+
+        {link}
+  variable:
+    days_overdue: Dní po splatnosti
+    reminder_step: Pořadí upomínky
+    amount_due: Zbývá uhradit
+  field:
+    advances: Upomínat i zálohové faktury
+    advances_help: Daňové doklady k platbě upomínky nedostávají
+    enabled: Posílat upomínky automaticky
+    enabled_help: Upomínky dostanou jen faktury se splatností ode dne zapnutí.
+    first: První upomínka
+    first_help: Dní po splatnosti
+    every: Další upomínky
+    every_help: Dní po předchozí upomínce
+    minimum: 'Nejnižší částka ({currency})'
+    minimum_help: Nižší částka upomínku nedostane. Prázdné pole je bez minima.
+  gate: Automatické upomínky půjdou zapnout, až se budou evidovat platby.
+  at_most: 'Nejvýš {count} upomínek k jedné faktuře.'
+  date_format: 'j. n. Y'
+  tomorrow:
+    title: Zítra dostanou upomínku
+    off: Upomínky jsou vypnuté.
+    none: Zítra nepůjde žádná upomínka.
+    due: 'splatnost {date}'
+  planned:
+    title: Kdybyste upomínky zapnuli dnes
+    intro: 'V příštích {days} dnech by odešly tyto první upomínky:'
+    none: 'V příštích {days} dnech by neodešla žádná první upomínka.'
+    'on': 'upomínka {date}'
+  error:
+    gate: Automatické upomínky půjdou zapnout, až se budou evidovat platby.
+    days: 'Zadejte celý počet dní od {min} do {max}.'
+    minimum: Zadejte částku, třeba 500 nebo 500,50.
+  contact:
+    send: Posílat upomínky
+    send_help: Když firma posílá upomínky po splatnosti automaticky.
+  log:
+    column: Druh
+    all: Všechny druhy
+    purpose:
+      invoice: Faktura
+      reminder: Upomínka
+    step: 'Upomínka {step}'
+    again: Poslat další upomínku
+  history:
+    sent: '{who}: upomínka {step} na {recipients}'
+    again: Poslat další upomínku
+  list:
+    action: Poslat upomínku
+    last: 'Poslední upomínka {date}'
+    count: '{count, plural, one {# upomínka} few {# upomínky} other {# upomínek}}'
+  manual:
+    title: 'Upomínka {step} k faktuře {number}'
+    submit: Odeslat upomínku
+    intro: '{days, plural, one {# den} few {# dny} other {# dní}} po splatnosti, upomínka {step} z nejvýš {max}.'
+    queued: 'Upomínka {step} k faktuře {number} je ve frontě k odeslání na {recipients}.'
+    already_queued: 'Upomínka {step} k faktuře {number} už je ve frontě k odeslání.'
+    not_overdue: 'Faktura {number} není po splatnosti, upomínku proto nedostane.'
+    limit: 'Faktura {number} už má {max} upomínek, víc jich být nemůže.'
+    settled: 'Faktura {number} je uhrazená, upomínku proto nedostane.'
+    taken: 'Mezitím odešla do fronty upomínka {taken}. Zkontrolujte text upomínky {step} a odešlete ji.'
+advance:
+  missing:
+    tab: Chybí daňový doklad
+    title: Uhrazené zálohy bez daňového dokladu
+    intro: Z platby zálohy, ze které vznikla DPH, se vystavuje daňový doklad do 15 dnů od přijetí platby, nebo od konce měsíce, je-li místo plnění v zahraničí.
+    empty: Každá uhrazená záloha má svůj daňový doklad.
+    issue: Vystavit daňový doklad
+    issued: 'Daňový doklad {number} je vystavený.'
+    days_left: '{days, plural, =0 {Termín dnes} one {Zbývá # den} few {Zbývají # dny} other {Zbývá # dní}}'
+    days_late: '{days, plural, one {# den po termínu} few {# dny po termínu} other {# dní po termínu}}'
+    notice: '{late, select, yes {{count, plural, one {Uhrazená záloha je} few {# uhrazené zálohy jsou} other {# uhrazených záloh je}} po termínu daňového dokladu.} other {{count, plural, one {Uhrazená záloha čeká} few {# uhrazené zálohy čekají} other {# uhrazených záloh čeká}} na daňový doklad, první do {date}.}}'
+    notice_link: Zobrazit
+    column:
+      number: Zálohová faktura
+      customer: Odběratel
+      receivedOn: Uhrazeno
+      received: Částka
+      deadline: Termín
+      daysLeft: Zbývá dní
+  tax_on_receipt:
+    label: Daňový doklad k platbě
+    rules: Podle pravidel
+    issue: Vystavit ke každé platbě
+    skip: Žádný, plnění ještě není známé
+    help: Nevzniká u soukromé osoby a tuzemského přenesení daně
+    now_arises: '{crossBorder, select, yes {Každá platba dostane daňový doklad do 15 dnů od konce měsíce platby.} other {Každá platba dostane daňový doklad do 15 dnů od přijetí platby.}}'
+    now_none:
+      non_payer: Bez daňového dokladu, firma není plátce DPH.
+      unknown_supply: Bez daňového dokladu, plnění ještě není známé.
+      consumer: Bez daňového dokladu, odběratel je soukromá osoba.
+      domestic_reverse_charge: Bez daňového dokladu, DPH přizná odběratel při plnění.
+  new: Nová zálohová faktura
+  title: 'Zálohová faktura {number}'
+  card:
+    template: Zálohová faktura
+  templates_help: Zálohová faktura odchází v jazyce dokladu.
+  mail:
+    default:
+      subject: 'Zálohová faktura {number}'
+      body: |-
+        Na základě naší dohody Vám zasílám zálohovou fakturu č. {number} na částku {amount_total} se splatností {due_date}. Po přijetí platby Vám zašlu daňový doklad.
+
+        Děkuji,
+        {sender_name}
+
+        {link}
+correction:
+  title: 'Opravný daňový doklad {number}'
+  new: Nový opravný daňový doklad
+  card: Oprava
+  corrects: 'Opravuje doklad č. {number}'
+  field:
+    reason: Důvod opravy
+    reason_help: Tiskne se na doklad, nejvýše 500 znaků.
+    type: Druh opravy
+    decisive_date: Rozhodné datum
+    decisive_date_help: Den skutečnosti, která změnila plnění.
+  type:
+    change: Změna po vystavení
+    change_text: Po uskutečnění plnění se něco změnilo; daní se k rozhodnému datu.
+    error: Chyba na dokladu
+    error_text: Faktura byla chybná; daní se v původním období.
+  variable:
+    original_number: Číslo opravovaného dokladu
+  mail:
+    card: Opravný daňový doklad
+    templates_help: Opravný daňový doklad odchází v jazyce dokladu.
+    default:
+      subject: 'Opravný daňový doklad {number}'
+      body: |-
+        Zasílám Vám opravný daňový doklad č. {number} k dokladu č. {original_number} na částku {amount_total}.
+
+        Děkuji,
+        {sender_name}
+
+        {link}
+tax_document:
+  waiting_notice: '{late, select, yes {{count, plural, one {Doklad je} few {# doklady jsou} other {# dokladů je}} po termínu daňového nebo opravného dokladu.} other {{count, plural, one {Doklad čeká} few {# doklady čekají} other {# dokladů čeká}} na daňový nebo opravný doklad, první do {date}.}}'
+  needs_correction: Platba tohoto daňového dokladu byla zrušena nebo vrácena poté, co ho odběratel dostal. Je potřeba opravný daňový doklad.
+  correct: Vystavit opravný doklad
+  refunded_reason: Platba, ke které byl vystaven, byla vrácena dřív, než ho odběratel dostal.
+  correction:
+    cancelled: Zrušení platby zálohy
+    refunded: Vrácení platby zálohy
+  uncorrected:
+    tab: Čeká na opravu
+    title: Daňové doklady k platbě, které čekají na opravu
+    intro: Když se platba zálohy zruší nebo vrátí poté, co odběratel dostal daňový doklad, vystaví se opravný daňový doklad do 15 dnů ode dne zrušení nebo vrácení. Doklad odečtený na konečné faktuře se opraví až po uvolnění odečtu.
+    empty: Žádný daňový doklad na opravu nečeká.
+    deducted: odečtený na konečné faktuře
+    notice: '{late, select, yes {{count, plural, one {Daňový doklad je} few {# daňové doklady jsou} other {# daňových dokladů je}} po termínu opravy.} other {{count, plural, one {Daňový doklad čeká} few {# daňové doklady čekají} other {# daňových dokladů čeká}} na opravný doklad, první do {date}.}}'
+    column:
+      number: Daňový doklad
+      customer: Odběratel
+      decisiveDate: Rozhodné datum
+      amount: Částka
+      deadline: Termín
+      daysLeft: Zbývá dní
+  cancelled_reason: Platba, ke které byl vystaven, byla zrušena.
+  title: 'Daňový doklad {number}'
+  card:
+    template: Daňový doklad k platbě
+  templates_help: Daňový doklad k přijaté platbě odchází v jazyce dokladu.
+  mail:
+    default:
+      subject: 'Daňový doklad {number}'
+      body: |-
+        Děkuji za platbu. Zasílám Vám daňový doklad k přijaté platbě č. {number} na částku {amount_total}. Doklad je již uhrazen, nic dalšího neplaťte.
+
+        Děkuji,
+        {sender_name}
+
+        {link}

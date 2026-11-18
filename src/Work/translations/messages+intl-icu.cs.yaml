@@ -1,0 +1,600 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+shared_with_me:
+  title: Sdíleno se mnou
+  projects: Projekty
+  tasks: Samostatné úkoly
+  whole_project: Celý projekt
+  column:
+    shared: Sdíleno
+  empty:
+    title: Zatím s vámi nikdo nic nesdílí
+    text: Až s vámi organizace začne sdílet práci, najdete ji tady.
+work:
+  status:
+    to_do: K udělání
+    in_progress: Probíhá
+    done: Hotovo
+    open: Otevřeno
+    review: Kontrola
+    testing: Testování
+    blocked: Blokováno
+    closed: Uzavřeno
+  task:
+    field:
+      title: Název
+      description: Popis
+      section: Sekce
+      status: Stav
+      responsible: Odpovědná osoba
+      due_on: Termín
+      priority: Priorita
+      labels: Štítky
+      project: Projekt
+      watchers: Sledující
+      estimate: Odhad
+      worked_on: Den
+      duration: Doba
+      note: Poznámka
+      billable: Fakturovatelné
+      task: Úkol
+    no_description: Bez popisu.
+    no_subtasks: Zatím žádné podúkoly.
+    subtasks: Podúkoly
+    new: Nový úkol
+    create: Přidat úkol
+    added: 'Úkol „{title}“ je přidaný.'
+    new_subtask: Nový podúkol
+    create_subtask: Přidat podúkol
+    subtask_added: 'Podúkol „{title}“ je přidaný.'
+    details: Podrobnosti
+    edit: Upravit
+    nobody: Nikdo
+    due_clear: Smazat
+    no_due: Bez termínu
+    labels_edit: Vybrat štítky
+    labels_title: Štítky úkolu
+    labels_none: Organizace zatím nemá žádné štítky.
+    labels_search: Hledat štítky
+    labels_no_match: Žádný štítek neodpovídá.
+    labels_create: 'Vytvořit štítek «{name}»'
+    labels_new: Nový štítek
+    labels_new_help: Vytvoří šedý štítek a přidá ho k úkolu.
+    created_by: 'Vytvořil(a) {name} {date}'
+    created: 'Vytvořeno {date}'
+    watchers:
+      none: Úkol nikdo nesleduje.
+      watch: Sledovat
+      unwatch: Přestat sledovat
+      add: Přidat sledujícího
+      choose: Vyberte člověka
+    error:
+      title_required: Zadejte název úkolu.
+      section: Vyberte sekci tohoto projektu.
+      due: Zadejte termín jako datum.
+  refused:
+    unknown: Tento projekt, úkol nebo štítek už neexistuje.
+    not_allowed: Tohle mohou jen lidé z organizace.
+    name: Zadejte název, který není příliš dlouhý.
+    client: Jako klienta vyberte existující kontakt.
+    archived: Projekt je archivovaný. Nejdřív ho obnovte.
+    parent: Podúkol patří pod úkol stejného projektu, který sám není podúkolem.
+    responsible: Jako odpovědnou osobu vyberte aktivního člověka z organizace.
+    watcher: Vyberte aktivního člověka z organizace, který bude úkol sledovat.
+    last_open: Projekt musí mít aspoň jeden stav typu otevřený.
+    last_done: Projekt musí mít aspoň jeden stav typu hotový.
+    target_status: Pro jeho úkoly vyberte jiný stav stejného projektu.
+    label_taken: Štítek s tímto názvem už existuje.
+    comment_empty: Nejdřív něco napište.
+    comment_too_long: Komentář může mít nejvýš 20 000 znaků.
+    comment_not_yours: Tento komentář může měnit jen jeho autor.
+    comment_deleted: Tento komentář byl smazán.
+    task_not_yours: Úkol smaže nebo obnoví jen jeho autor nebo vlastník organizace.
+    parent_in_trash: Nejdřív je potřeba obnovit nadřazený úkol.
+    share_person: Vyberte aktivního člověka z organizace, se kterým chcete sdílet.
+    duration: Zadejte čas jako 1:30, 1,5 nebo 1h 30m, alespoň minutu a nejvýš den, nebo začátek a konec po něm.
+    time_note: Poznámka může mít nejvýš 2 000 znaků.
+    time_task: Vyberte úkol tohoto projektu.
+    time_not_yours: Čas může změnit nebo smazat jen ten, kdo ho zapsal, nebo vlastník organizace.
+    time_invoiced: Tento čas je vyfakturovaný a už ho nelze měnit.
+    timer_running: Nejdřív zastavte časovač.
+    estimate: Zadejte odhad alespoň minutu a nejvýš 9 999 hodin.
+  time:
+    title: Čas
+    log: Zapsat čas
+    edit: Upravit čas
+    edit_label: 'Upravit čas ze dne {date}'
+    delete: Smazat
+    delete_label: 'Smazat čas ze dne {date}'
+    delete_confirm:
+      title: Smazat zapsaný čas?
+      text: Tohle nejde vrátit.
+    none: Zatím žádný zapsaný čas.
+    hours: '{hours} h'
+    minutes: '{minutes} min'
+    total_of: '{total} z {estimate}'
+    running: Běží
+    billable: Fakturovatelné
+    invoiced: Vyfakturováno
+    invoice_time: Vyfakturovat čas
+    invoiced_by: 'Faktura {number}'
+    duration_help: Třeba 1:30, 1,5 nebo 1h 30m.
+    estimate_help: Třeba 5 h nebo 2h 30m.
+    logged: 'Zapsáno {duration}.'
+    edited: Čas je upravený.
+    deleted: Čas je smazaný.
+    stopped: 'Časovač je zastavený, zapsáno {duration} na „{title}“.'
+    error:
+      worked_on: Zadejte den jako datum.
+      project: Vyberte projekt.
+      task: Vyberte úkol, nebo žádný.
+    timer:
+      start: Spustit časovač
+      stop: Zastavit časovač
+      stop_short: Zastavit
+      region: Běžící časovač
+      started: Časovač běží.
+    choose_project: Vyberte projekt
+    no_task: Bez úkolu, na projekt
+    pick_project: Zobrazit jeho úkoly
+    tab:
+      week: Týden
+      report: Výkaz
+    views: Pohledy na čas
+    previous_week: Předchozí týden
+    next_week: Další týden
+    this_week: Tento týden
+    week_range: '{from} – {until}'
+    week_total: 'Za týden'
+    today: Dnes
+    person: Osoba
+    person_me: Já
+    person_inactive: '{name} (neaktivní)'
+    report:
+      title: Výkaz
+      period:
+        label: Období
+        this_month: Tento měsíc
+        last_month: Minulý měsíc
+        custom: Vlastní
+      from: Od
+      until: Do
+      group: Součty podle
+      by:
+        project: Projekt
+        person: Osoba
+        task: Úkol
+      totals:
+        project: Součty po projektech
+        person: Součty po lidech
+        task: Součty po úkolech
+      any: Vše
+      billable:
+        all: Vše
+        'yes': Fakturovatelné
+        'no': Nefakturovatelné
+      invoiced:
+        all: Vše
+        'yes': Vyfakturované
+        'no': Nevyfakturované
+      total: Celkem
+      billable_total: Fakturovatelné
+      unbillable_total: Nefakturovatelné
+      entries: Záznamy
+      column:
+        work: Práce
+        person: Osoba
+        date: Den
+        time: Čas
+      export: Exportovat CSV
+      file: vykaz-casu
+      archived: '{name} (archivovaný)'
+      empty_title: V tomto období žádný čas
+      empty_text: Zvolte jiné období nebo filtr, nebo zapište čas na úkol.
+      csv:
+        date: Datum
+        person: Osoba
+        client: Klient
+        project: Projekt
+        task: Úkol
+        minutes: Minuty
+        hours: Hodiny
+        billable: Fakturovatelné
+        note: Poznámka
+        decimal: ','
+        'yes': ano
+        'no': ne
+  cancel: Zrušit
+  save: Uložit
+  history:
+    entry: '{who}: {what}'
+    system: Systém
+    none: žádný
+    created: Úkol vytvořen
+    status: 'Stav {from} → {to}'
+    responsible: 'Odpovědná osoba {from} → {to}'
+    fields: 'Změna: {fields}'
+    watchers_added: '{count, plural, one {Přidán sledující} other {Přidáni sledující}}: {names}'
+    watchers_removed: '{count, plural, one {Odebrán sledující} other {Odebráni sledující}}: {names}'
+    labels_added: '{count, plural, one {Přidán štítek} other {Přidány štítky}}: {names}'
+    labels_removed: '{count, plural, one {Odebrán štítek} other {Odebrány štítky}}: {names}'
+    due: 'Termín {from} → {to}'
+    priority: 'Priorita {from} → {to}'
+    no_date: —
+    shared: 'Sdíleno s: {names}'
+    unshared: 'Sdílení odebráno: {names}'
+    private:
+      tasks:
+        closed: Úkol nastaven jako soukromý
+        opened: Úkol už není soukromý
+      sections:
+        closed: Sekce nastavena jako soukromá
+        opened: Sekce už není soukromá
+      projects:
+        closed: Projekt vidí jen vybraní lidé
+        opened: Projekt vidí celá organizace
+  sharing:
+    open: Sdílet
+    open_section: 'Sdílení'
+    open_section_named: 'Sdílení sekce {name}'
+    title:
+      projects: Sdílet projekt
+      sections: Sdílet sekci
+      tasks: Sdílet úkol
+    visibility:
+      legend: Kdo projekt vidí
+      organisation: Celá organizace
+      organisation_text: Všichni členové týmu. Hosté jen to, co s nimi sdílíte.
+      chosen: Jen vybraní lidé
+      chosen_text: Jen lidé ze seznamu níže a vlastníci organizace.
+    private:
+      sections: Soukromá sekce
+      sections_help: Sekci a její úkoly uvidí jen lidé ze seznamu a vlastníci.
+      tasks: Soukromý úkol
+      tasks_help: Úkol a jeho podúkoly uvidí jen lidé ze seznamu a vlastníci.
+    people: Sdíleno s
+    people_empty: Zatím s nikým nesdíleno.
+    owners: Vlastníci organizace vidí vše, sdílet s nimi není potřeba.
+    remove: Odebrat
+    remove_named: 'Odebrat {name}'
+    add: Přidat osobu
+    choose: Vyberte osobu
+    add_submit: Přidat
+    no_candidates: Všichni aktivní lidé organizace už jsou v seznamu.
+    history: Historie sdílení
+    done: Hotovo
+    private_badge: Soukromé
+    chosen_badge: Jen vybraní lidé
+    shared: 'Sdíleno s osobou {name}.'
+    unshared: 'Osoba {name} už nemá přístup.'
+    projects:
+      closed: Projekt teď vidí jen vybraní lidé.
+      opened: Projekt teď vidí celá organizace.
+    sections:
+      closed: Sekce je teď soukromá.
+      opened: Sekce už není soukromá.
+    tasks:
+      closed: Úkol je teď soukromý.
+      opened: Úkol už není soukromý.
+    error:
+      visibility: Vyberte, kdo projekt vidí.
+  discussion:
+    title: Diskuse a historie
+    filter:
+      label: Zobrazit v diskusi
+      all: Vše
+      comments: Komentáře
+      history: Historie
+    empty: Zatím se nic nestalo.
+    no_comments: Zatím žádné komentáře.
+    internal: Interní
+    edited: upraveno
+    edited_at: 'Upraveno {date}'
+    deleted: Komentář byl smazán
+    actions: 'Akce komentáře od {name}'
+    delete: Smazat
+    delete_confirm:
+      title: Smazat komentář?
+      text: Tuto akci nelze vrátit.
+    edit_label: Upravit komentář
+    composer: Komentář
+    internal_switch: Interní
+    audience:
+      everyone: Komentář uvidí všichni, kdo mají k úkolu přístup.
+      staff: Komentář uvidí jen lidé z vaší organizace.
+    submit: Přidat komentář
+  settings:
+    title: Nastavení
+    saved: Uloženo.
+    general: Obecné
+    archive: Archivovat
+    restore: Obnovit
+    archived: Projekt je archivovaný.
+    restored: Projekt je obnovený.
+    archive_confirm:
+      title: 'Archivovat projekt {name}?'
+      text: Zmizí z aktivních projektů. Kdykoli ho obnovíte.
+    restore_confirm:
+      title: 'Obnovit projekt {name}?'
+      text: Vrátí se mezi aktivní projekty.
+    sections: Sekce
+    sections_empty: Projekt zatím nemá žádné sekce.
+    section_name: Název sekce
+    add_section: Přidat sekci
+    statuses: Stavy
+    status_name: Název stavu
+    status_type: Typ
+    add_status: Přidat stav
+    section_added: 'Sekce {name} je přidaná.'
+    status_added: 'Stav {name} je přidaný.'
+    error:
+      section_name: Zadejte název sekce.
+      status_name: Zadejte název stavu.
+      status_type: Vyberte typ stavu.
+    status_removed: 'Stav {name} je odebraný.'
+    workflow_applied: 'Stavy projektu jsou teď podle šablony {name}.'
+    move_up: 'Posunout nahoru: {name}'
+    move_down: 'Posunout dolů: {name}'
+    remove: Odebrat
+    remove_named: 'Odebrat: {name}'
+    remove_section:
+      title: 'Odebrat sekci {name}?'
+      text: Úkoly sekce se přesunou do Bez sekce.
+    apply_workflow:
+      open: Použít šablonu postupu
+      title: Použít šablonu postupu
+      template: Šablona
+      text: 'Stavy projektu se nahradí stavy šablony, i s vlastními názvy. Každý úkol přejde do prvního stavu stejného typu; uzavřené úkoly do hotových, když šablona uzavřený stav nemá. Hotové úkoly zůstanou hotové.'
+      submit: Nahradit stavy
+    remove_status:
+      title: 'Odebrat stav {name}'
+      text: 'Úkoly ve stavu {name} se přesunou do jiného stavu.'
+      target: Přesunout úkoly do
+      submit: Odebrat stav
+    type:
+      open: Otevřený
+      active: Aktivní
+      done: Hotový
+      closed: Uzavřený
+  trash:
+    title: Koš
+    link: '{count, plural, =0 {Koš} other {Koš (#)}}'
+    delete: Smazat úkol
+    deleted: 'Úkol „{title}“ je v koši.'
+    undo: Vrátit zpět
+    restore: Obnovit
+    restored: 'Úkol „{title}“ je zpět.'
+    purge: '{days, plural, one {Úkoly v koši se po # dni smažou natrvalo.} other {Úkoly v koši se po # dnech smažou natrvalo.}}'
+    subtask_of: 'Podúkol úkolu {title}'
+    column:
+      parent: Nadřazený úkol
+      deleted_by: Kdo smazal
+      deleted_at: Smazáno
+    empty:
+      title: Koš je prázdný
+      text: Smazané úkoly tu čekají, než zmizí natrvalo.
+  labels:
+    title: Štítky
+    new: Nový štítek
+    edit: Upravit
+    edit_title: 'Upravit štítek {name}'
+    delete: Smazat
+    saved: 'Štítek {name} je uložený.'
+    deleted: 'Štítek {name} je smazaný.'
+    column:
+      name: Název
+      preview: Vzhled
+      tasks: Úkoly
+    field:
+      name: Název
+      colour: Barva
+    colour:
+      gray: Šedá
+      green: Zelená
+      amber: Oranžová
+      red: Červená
+    delete_confirm:
+      title: 'Smazat štítek {name}?'
+      text: '{count, plural, =0 {Štítek není na žádném úkolu.} one {Odebere se z jednoho úkolu.} other {Odebere se z úkolů: #.}}'
+    empty:
+      title: Zatím žádné štítky
+      text: Štítky třídí úkoly napříč projekty.
+    error:
+      name_required: Zadejte název štítku.
+      colour: Vyberte barvu.
+  my_tasks:
+    title: Moje úkoly
+    views: Pohledy na moje úkoly
+    tab:
+      assigned: Přiřazené mně
+      watching: Sledované
+    client: Klient
+    client_any: Všichni klienti
+    group:
+      overdue: Po termínu
+      today: Dnes
+      upcoming: Příštích 7 dní
+      later: Později
+      no_date: Bez termínu
+    empty:
+      assigned_title: Nemáte žádné nehotové úkoly
+      assigned_text: Úkoly, za které odpovídáte, uvidíte tady.
+      watching_title: Nesledujete žádné nehotové úkoly
+      watching_text: Úkol začnete sledovat na jeho stránce.
+      filtered: Pro tohoto klienta tu nic není.
+  notifications:
+    settings: Nastavení
+    title: Oznámení
+    views: Pohledy na oznámení
+    read_all: Označit vše jako přečtené
+    tab:
+      new: Nové
+      done: Hotové
+    filter:
+      label: Zobrazit
+      all: Vše
+      mentions: Zmínky
+      assigned: Přiřazené
+    column:
+      task: Úkol
+      event: Co se stalo
+      at: Kdy
+    event:
+      mentioned: Zmínka v komentáři
+      assigned: Úkol přiřazen vám
+      commented: Nový komentář
+      status_changed: Změna stavu
+      shared: Úkol sdílen s vámi
+    more: '{event} {count, plural, one {(+# další)} few {(+# další)} other {(+# dalších)}}'
+    done: Hotovo
+    undone: Vrátit do nových
+    kept: Hotová oznámení se uchovávají 3 měsíce, pak se smažou.
+    empty:
+      new_title: Žádná nová oznámení
+      new_text: Zmínky, přiřazené úkoly a novinky ve sledovaných úkolech uvidíte tady.
+      done_title: Zatím nic hotového
+      done_text: Oznámení, která označíte jako hotová, tu zůstanou 3 měsíce.
+      filtered: S tímto filtrem tu nic není.
+  notification_settings:
+    title: Nastavení oznámení
+    email_card: E-maily
+    intro: Oznámení máte vždy v aplikaci. Tady vyberete, o čem vám přijde i e-mail.
+    event:
+      mentioned: Zmínky v komentářích
+      assigned: Přiřazené úkoly
+      commented: Komentáře ve sledovaných úkolech
+      status_changed: Změny stavu sledovaných úkolů
+      shared: Úkoly sdílené s vámi
+    delivery:
+      immediate: Hned
+      digest: V denním souhrnu
+      'off': Nic
+    digest_card: Denní souhrn
+    digest_hour: Čas souhrnu
+    digest_hour_help: Čas organizace. Souhrn přijde, jen když je co nového.
+    no_email: Nechci žádné e-maily
+    no_email_help: Oznámení zůstanou jen v aplikaci.
+    unavailable: Tato instalace zatím neposílá e-maily, oznámení jsou pro všechny jen v aplikaci.
+    save: Uložit
+    cancel: Zrušit
+    saved: Nastavení oznámení je uložené.
+  notification_mail:
+    subject:
+      mentioned: 'Zmínka v úkolu „{task}“'
+      assigned: 'Přiřazený úkol „{task}“'
+      digest: '{count, plural, one {Denní souhrn: # novinka} few {Denní souhrn: # novinky} other {Denní souhrn: # novinek}}'
+    task: Úkol
+    project: Projekt
+    open_task: Otevřít úkol
+    open_inbox: Otevřít oznámení
+    digest_intro: '{count, plural, one {# novinka ve vašich úkolech} few {# novinky ve vašich úkolech} other {# novinek ve vašich úkolech}}'
+    settings: Nastavení oznámení
+    unsubscribe:
+      mentioned: Neposílat e-maily o zmínkách
+      assigned: Neposílat e-maily o přiřazených úkolech
+      digest: Neposílat denní souhrn
+  unsubscribe:
+    title: Vypnout e-maily
+    done_title: E-maily vypnuté
+    question:
+      mentioned: Vypnout e-maily o zmínkách v komentářích?
+      assigned: Vypnout e-maily o úkolech, které vám někdo přiřadí?
+      commented: Vypnout e-maily o komentářích ve sledovaných úkolech?
+      status_changed: Vypnout e-maily o změnách stavu sledovaných úkolů?
+      shared: Vypnout e-maily o úkolech sdílených s vámi?
+      digest: Vypnout denní souhrn oznámení?
+    done:
+      mentioned: E-maily o zmínkách už nepřijdou.
+      assigned: E-maily o přiřazených úkolech už nepřijdou.
+      commented: E-maily o komentářích už nepřijdou.
+      status_changed: E-maily o změnách stavu už nepřijdou.
+      shared: E-maily o sdílených úkolech už nepřijdou.
+      digest: Denní souhrn už nepřijde.
+    submit: Vypnout
+    inbox: Oznámení dál uvidíte v aplikaci a e-maily znovu zapnete v nastavení oznámení.
+  projects:
+    title: Projekty
+    views: Pohledy na projekty
+    new: Nový projekt
+    tab:
+      active: Aktivní
+      archived: Archivované
+    column:
+      name: Název
+      client: Klient
+      open: Otevřené úkoly
+      due: Nejbližší termín
+    empty:
+      title: Zatím žádné projekty
+      text: Založte projekt a přidejte do něj úkoly.
+      archived_title: Žádné archivované projekty
+  project:
+    create: Založit projekt
+    archived: Archivovaný
+    views: Pohledy na projekt
+    errors_title: 'Opravte prosím:'
+    tab:
+      list: Seznam
+      board: Nástěnka
+    field:
+      name: Název
+      client: Klient
+      client_help: Jakýkoli kontakt z adresáře.
+      client_placeholder: Napište jméno kontaktu
+      client_empty: Žádný kontakt nenalezen
+      description: Popis
+      billable: Fakturovat čas
+      billable_help: Nový zápis času na tomto projektu je předem fakturovatelný.
+      rate: Hodinová sazba
+      rate_help: Má přednost před sazbou klienta i člověka.
+      rate_currency: Měna
+    error:
+      name_required: Zadejte název projektu.
+      workflow: Vyberte jeden z postupů.
+      rate: Zadejte sazbu, třeba 1500 nebo 1500,50.
+  workflow:
+    simple: Jednoduchý
+    simple_text: K udělání, Probíhá, Hotovo
+    development: Vývoj
+    development_text: Otevřeno, Probíhá, Kontrola, Testování, Blokováno, Hotovo, Uzavřeno
+  priority:
+    none: Bez priority
+    low: Nízká
+    medium: Střední
+    high: Vysoká
+    urgent: Naléhavá
+  filter:
+    responsible: Odpovědná osoba
+    responsible_anyone: Kdokoli
+    responsible_me: Já
+    status: Stav
+    status_open: Nehotové
+    status_all: Vše
+    status_finished: Hotové
+    due: Termín
+    due_any: Kdykoli
+    due_overdue: Po termínu
+    due_today: Dnes
+    due_next_7_days: Příštích 7 dní
+    due_none: Bez termínu
+  list:
+    no_section: Bez sekce
+    loose_caption: 'Úkoly projektu {project}'
+    empty: Zatím žádné úkoly.
+    empty_filtered: Filtrům neodpovídá žádný úkol.
+    empty_title: Zatím žádné úkoly
+    empty_text: Přidejte první úkol projektu.
+    overdue: 'Po termínu {date}'
+  board:
+    columns: Sloupce stavů
+    type:
+      open: 'Typ: otevřený'
+      active: 'Typ: rozpracovaný'
+      done: 'Typ: hotový'
+      closed: 'Typ: uzavřený'
+    drag: 'Přetáhnout {title}'
+    move_to: Přesunout do
+    move_to_status: 'Přesunout do: {status}'
+    move_up: Posunout nahoru
+    move_down: Posunout dolů
+    moved: 'Přesunuto do: {status}, pozice {position} z {count}'
+    subtasks: 'Hotové podúkoly: {done} z {total}'

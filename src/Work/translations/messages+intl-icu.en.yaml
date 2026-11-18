@@ -1,0 +1,600 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+shared_with_me:
+  title: Shared with me
+  projects: Projects
+  tasks: Single tasks
+  whole_project: Whole project
+  column:
+    shared: Shared
+  empty:
+    title: Nothing is shared with you yet
+    text: Once the organisation shares work with you, you will find it here.
+work:
+  status:
+    to_do: To do
+    in_progress: In progress
+    done: Done
+    open: Open
+    review: Review
+    testing: Testing
+    blocked: Blocked
+    closed: Closed
+  task:
+    field:
+      title: Title
+      description: Description
+      section: Section
+      status: Status
+      responsible: Responsible
+      due_on: Due date
+      priority: Priority
+      labels: Labels
+      project: Project
+      watchers: Watchers
+      estimate: Estimate
+      worked_on: Day
+      duration: Duration
+      note: Note
+      billable: Billable
+      task: Task
+    no_description: No description.
+    no_subtasks: No subtasks yet.
+    subtasks: Subtasks
+    new: New task
+    create: Add task
+    added: 'The task “{title}” is added.'
+    new_subtask: New subtask
+    create_subtask: Add subtask
+    subtask_added: 'The subtask “{title}” is added.'
+    details: Details
+    edit: Edit
+    nobody: Nobody
+    due_clear: Clear
+    no_due: No due date
+    labels_edit: Choose labels
+    labels_title: Labels of the task
+    labels_none: The organisation has no labels yet.
+    labels_search: Search labels
+    labels_no_match: No label matches.
+    labels_create: 'Create label “{name}”'
+    labels_new: New label
+    labels_new_help: Creates a gray label and adds it to the task.
+    created_by: 'Created by {name} on {date}'
+    created: 'Created on {date}'
+    watchers:
+      none: Nobody watches the task.
+      watch: Watch
+      unwatch: Stop watching
+      add: Add a watcher
+      choose: Choose a person
+    error:
+      title_required: Enter the title of the task.
+      section: Choose a section of this project.
+      due: Enter the due date as a date.
+  refused:
+    unknown: This project, task or label no longer exists.
+    not_allowed: Only people of the organisation can do this.
+    name: Enter a name that is not too long.
+    client: Choose an existing contact as the client.
+    archived: The project is archived. Restore it first.
+    parent: A subtask goes under a task of the same project that is not a subtask itself.
+    responsible: Choose an active person of the organisation as responsible.
+    watcher: Choose an active person of the organisation to follow the task.
+    last_open: The project must keep at least one status of type open.
+    last_done: The project must keep at least one status of type done.
+    target_status: Choose another status of the same project for its tasks.
+    label_taken: A label of this name exists already.
+    comment_empty: Write something first.
+    comment_too_long: A comment can have at most 20,000 characters.
+    comment_not_yours: Only the author can change this comment.
+    comment_deleted: This comment has been deleted.
+    task_not_yours: Only whoever created the task or an owner of the organisation can delete or restore it.
+    parent_in_trash: The parent task has to be restored first.
+    share_person: Choose an active person of the organisation to share with.
+    duration: Enter the time as 1:30, 1,5 or 1h 30m, at least a minute and at most a day, or a start and an end after it.
+    time_note: A note can have at most 2,000 characters.
+    time_task: Choose a task of this project.
+    time_not_yours: Only whoever logged the time or an owner of the organisation can change or delete it.
+    time_invoiced: This time has been invoiced and can no longer be changed.
+    timer_running: Stop the timer first.
+    estimate: Enter an estimate of at least a minute and at most 9,999 hours.
+  time:
+    title: Time
+    log: Log time
+    edit: Edit time
+    edit_label: 'Edit the time of {date}'
+    delete: Delete
+    delete_label: 'Delete the time of {date}'
+    delete_confirm:
+      title: Delete the logged time?
+      text: This cannot be undone.
+    none: No time logged yet.
+    hours: '{hours} h'
+    minutes: '{minutes} min'
+    total_of: '{total} of {estimate}'
+    running: Running
+    billable: Billable
+    invoiced: Invoiced
+    invoice_time: Invoice time
+    invoiced_by: 'Invoice {number}'
+    duration_help: For example 1:30, 1.5 or 1h 30m.
+    estimate_help: For example 5 h or 2h 30m.
+    logged: '{duration} logged.'
+    edited: The time is changed.
+    deleted: The time is deleted.
+    stopped: 'The timer is stopped, {duration} logged on “{title}”.'
+    error:
+      worked_on: Enter the day as a date.
+      project: Choose a project.
+      task: Choose a task, or none.
+    timer:
+      start: Start timer
+      stop: Stop timer
+      stop_short: Stop
+      region: Running timer
+      started: The timer is running.
+    choose_project: Choose a project
+    no_task: No task, the project itself
+    pick_project: Show its tasks
+    tab:
+      week: Week
+      report: Report
+    views: Views of time
+    previous_week: Previous week
+    next_week: Next week
+    this_week: This week
+    week_range: '{from} – {until}'
+    week_total: 'Week total'
+    today: Today
+    person: Person
+    person_me: Me
+    person_inactive: '{name} (inactive)'
+    report:
+      title: Time report
+      period:
+        label: Period
+        this_month: This month
+        last_month: Last month
+        custom: Custom
+      from: From
+      until: Until
+      group: Totals by
+      by:
+        project: Project
+        person: Person
+        task: Task
+      totals:
+        project: Totals by project
+        person: Totals by person
+        task: Totals by task
+      any: Any
+      billable:
+        all: All
+        'yes': Billable
+        'no': Not billable
+      invoiced:
+        all: All
+        'yes': Invoiced
+        'no': Not invoiced
+      total: Total time
+      billable_total: Billable time
+      unbillable_total: Not billable
+      entries: Entries
+      column:
+        work: Work
+        person: Person
+        date: Day
+        time: Time
+      export: Export CSV
+      file: time-report
+      archived: '{name} (archived)'
+      empty_title: No time in this period
+      empty_text: Choose another period or filter, or log time on a task.
+      csv:
+        date: Date
+        person: Person
+        client: Client
+        project: Project
+        task: Task
+        minutes: Minutes
+        hours: Hours
+        billable: Billable
+        note: Note
+        decimal: '.'
+        'yes': 'yes'
+        'no': 'no'
+  cancel: Cancel
+  save: Save
+  history:
+    entry: '{who}: {what}'
+    system: System
+    none: none
+    created: Created the task
+    status: 'Status {from} → {to}'
+    responsible: 'Responsible {from} → {to}'
+    fields: 'Changed {fields}'
+    watchers_added: '{count, plural, one {Watcher added} other {Watchers added}}: {names}'
+    watchers_removed: '{count, plural, one {Watcher removed} other {Watchers removed}}: {names}'
+    labels_added: '{count, plural, one {Label added} other {Labels added}}: {names}'
+    labels_removed: '{count, plural, one {Label removed} other {Labels removed}}: {names}'
+    due: 'Due date {from} → {to}'
+    priority: 'Priority {from} → {to}'
+    no_date: —
+    shared: 'Shared with: {names}'
+    unshared: 'Stopped sharing with: {names}'
+    private:
+      tasks:
+        closed: Made the task private
+        opened: Made the task open again
+      sections:
+        closed: Made the section private
+        opened: Made the section open again
+      projects:
+        closed: Only chosen people see the project
+        opened: The whole organisation sees the project
+  sharing:
+    open: Share
+    open_section: Sharing
+    open_section_named: 'Sharing of the section {name}'
+    title:
+      projects: Share the project
+      sections: Share the section
+      tasks: Share the task
+    visibility:
+      legend: Who sees the project
+      organisation: The whole organisation
+      organisation_text: All team members. Guests only what you share with them.
+      chosen: Only chosen people
+      chosen_text: Only the people listed below and the owners of the organisation.
+    private:
+      sections: Private section
+      sections_help: Only the people listed and the owners see it and its tasks.
+      tasks: Private task
+      tasks_help: Only those listed and the owners see it and its subtasks.
+    people: Shared with
+    people_empty: Not shared with anyone yet.
+    owners: The owners of the organisation see everything; no need to share with them.
+    remove: Remove
+    remove_named: 'Remove {name}'
+    add: Add a person
+    choose: Choose a person
+    add_submit: Add
+    no_candidates: Every active person of the organisation is listed already.
+    history: Sharing history
+    done: Done
+    private_badge: Private
+    chosen_badge: Only chosen people
+    shared: 'Shared with {name}.'
+    unshared: '{name} no longer has access.'
+    projects:
+      closed: Only chosen people see the project now.
+      opened: The whole organisation sees the project now.
+    sections:
+      closed: The section is private now.
+      opened: The section is no longer private.
+    tasks:
+      closed: The task is private now.
+      opened: The task is no longer private.
+    error:
+      visibility: Choose who sees the project.
+  discussion:
+    title: Discussion and history
+    filter:
+      label: Show in the discussion
+      all: All
+      comments: Comments
+      history: History
+    empty: Nothing has happened yet.
+    no_comments: No comments yet.
+    internal: Internal
+    edited: edited
+    edited_at: 'Edited {date}'
+    deleted: This comment was deleted
+    actions: 'Actions for the comment by {name}'
+    delete: Delete
+    delete_confirm:
+      title: Delete the comment?
+      text: This cannot be undone.
+    edit_label: Edit comment
+    composer: Comment
+    internal_switch: Internal
+    audience:
+      everyone: Everyone with access to this task will see the comment.
+      staff: Only people of your organisation will see the comment.
+    submit: Add comment
+  settings:
+    title: Settings
+    saved: Saved.
+    general: General
+    archive: Archive
+    restore: Restore
+    archived: The project is archived.
+    restored: The project is restored.
+    archive_confirm:
+      title: 'Archive the project {name}?'
+      text: It leaves the active projects. You can restore it any time.
+    restore_confirm:
+      title: 'Restore the project {name}?'
+      text: It goes back among the active projects.
+    sections: Sections
+    sections_empty: The project has no sections yet.
+    section_name: Section name
+    add_section: Add a section
+    statuses: Statuses
+    status_name: Status name
+    status_type: Type
+    add_status: Add a status
+    section_added: 'The section {name} is added.'
+    status_added: 'The status {name} is added.'
+    error:
+      section_name: Enter a name for the section.
+      status_name: Enter a name for the status.
+      status_type: Choose a type for the status.
+    status_removed: 'The status {name} is removed.'
+    workflow_applied: 'The statuses of the project now follow the {name} template.'
+    move_up: 'Move up: {name}'
+    move_down: 'Move down: {name}'
+    remove: Remove
+    remove_named: 'Remove: {name}'
+    remove_section:
+      title: 'Remove the section {name}?'
+      text: Tasks of the section move to No section.
+    apply_workflow:
+      open: Apply workflow template
+      title: Apply a workflow template
+      template: Template
+      text: 'The statuses of the project are replaced by those of the template, custom names included. Every task moves to the first status of the same type; closed tasks go to done when the template has no closed status. Finished tasks stay finished.'
+      submit: Replace the statuses
+    remove_status:
+      title: 'Remove the status {name}'
+      text: 'The tasks in {name} move to another status.'
+      target: Move the tasks to
+      submit: Remove the status
+    type:
+      open: Open
+      active: Active
+      done: Done
+      closed: Closed
+  trash:
+    title: Trash
+    link: '{count, plural, =0 {Trash} other {Trash (#)}}'
+    delete: Delete task
+    deleted: 'The task “{title}” is in the trash.'
+    undo: Undo
+    restore: Restore
+    restored: 'The task “{title}” is back.'
+    purge: '{days, plural, one {Tasks in the trash are deleted for good after # day.} other {Tasks in the trash are deleted for good after # days.}}'
+    subtask_of: 'Subtask of {title}'
+    column:
+      parent: Parent task
+      deleted_by: Deleted by
+      deleted_at: Deleted
+    empty:
+      title: The trash is empty
+      text: Deleted tasks wait here before they go for good.
+  labels:
+    title: Labels
+    new: New label
+    edit: Edit
+    edit_title: 'Edit the label {name}'
+    delete: Delete
+    saved: 'The label {name} is saved.'
+    deleted: 'The label {name} is deleted.'
+    column:
+      name: Name
+      preview: Preview
+      tasks: Tasks
+    field:
+      name: Name
+      colour: Colour
+    colour:
+      gray: Gray
+      green: Green
+      amber: Amber
+      red: Red
+    delete_confirm:
+      title: 'Delete the label {name}?'
+      text: '{count, plural, =0 {The label is on no task.} one {Removes the label from # task.} other {Removes the label from # tasks.}}'
+    empty:
+      title: No labels yet
+      text: Labels sort tasks across projects.
+    error:
+      name_required: Enter the name of the label.
+      colour: Choose a colour.
+  my_tasks:
+    title: My tasks
+    views: Views of my tasks
+    tab:
+      assigned: Assigned to me
+      watching: Watching
+    client: Client
+    client_any: All clients
+    group:
+      overdue: Overdue
+      today: Today
+      upcoming: Next 7 days
+      later: Later
+      no_date: No date
+    empty:
+      assigned_title: You have no unfinished tasks
+      assigned_text: The tasks you are responsible for show here.
+      watching_title: You watch no unfinished tasks
+      watching_text: Watch a task from its page.
+      filtered: Nothing here for this client.
+  notifications:
+    settings: Settings
+    title: Notifications
+    views: Notification views
+    read_all: Mark all as read
+    tab:
+      new: New
+      done: Done
+    filter:
+      label: Show
+      all: All
+      mentions: Mentions
+      assigned: Assigned
+    column:
+      task: Task
+      event: What happened
+      at: When
+    event:
+      mentioned: Mentioned you in a comment
+      assigned: Assigned the task to you
+      commented: New comment
+      status_changed: Changed the status
+      shared: Shared the task with you
+    more: '{event} {count, plural, other {(+# more)}}'
+    done: Done
+    undone: Back to new
+    kept: Done notifications are kept for 3 months, then deleted.
+    empty:
+      new_title: No new notifications
+      new_text: Mentions, tasks assigned to you and news on the tasks you watch show up here.
+      done_title: Nothing done yet
+      done_text: Notifications you mark as done stay here for 3 months.
+      filtered: Nothing here with this filter.
+  notification_settings:
+    title: Notification settings
+    email_card: E-mails
+    intro: Your notifications are always in the app. Choose here what also comes by e-mail.
+    event:
+      mentioned: Mentions in comments
+      assigned: Tasks assigned to you
+      commented: Comments on tasks you watch
+      status_changed: Status changes of tasks you watch
+      shared: Tasks shared with you
+    delivery:
+      immediate: Right away
+      digest: In the daily digest
+      'off': Never
+    digest_card: Daily digest
+    digest_hour: Digest time
+    digest_hour_help: The organisation's time. Sent only when there is news.
+    no_email: No e-mails at all
+    no_email_help: Notifications stay in the app only.
+    unavailable: This installation does not send e-mail yet, so notifications are in the app only, for everyone.
+    save: Save
+    cancel: Cancel
+    saved: Notification settings saved.
+  notification_mail:
+    subject:
+      mentioned: 'Mentioned in “{task}”'
+      assigned: 'Assigned to you: “{task}”'
+      digest: '{count, plural, one {Daily digest: # update} other {Daily digest: # updates}}'
+    task: Task
+    project: Project
+    open_task: Open the task
+    open_inbox: Open notifications
+    digest_intro: '{count, plural, one {# update on your tasks} other {# updates on your tasks}}'
+    settings: Notification settings
+    unsubscribe:
+      mentioned: Stop e-mails about mentions
+      assigned: Stop e-mails about assigned tasks
+      digest: Stop the daily digest
+  unsubscribe:
+    title: Stop e-mails
+    done_title: E-mails stopped
+    question:
+      mentioned: Stop e-mails about mentions in comments?
+      assigned: Stop e-mails about tasks assigned to you?
+      commented: Stop e-mails about comments on tasks you watch?
+      status_changed: Stop e-mails about status changes of tasks you watch?
+      shared: Stop e-mails about tasks shared with you?
+      digest: Stop the daily digest of notifications?
+    done:
+      mentioned: No more e-mails about mentions.
+      assigned: No more e-mails about assigned tasks.
+      commented: No more e-mails about comments.
+      status_changed: No more e-mails about status changes.
+      shared: No more e-mails about shared tasks.
+      digest: No more daily digest.
+    submit: Stop
+    inbox: You still see your notifications in the app, and you can turn e-mails back on in the notification settings.
+  projects:
+    title: Projects
+    views: Project views
+    new: New project
+    tab:
+      active: Active
+      archived: Archived
+    column:
+      name: Name
+      client: Client
+      open: Open tasks
+      due: Nearest due date
+    empty:
+      title: No projects yet
+      text: Start a project and add its tasks.
+      archived_title: No archived projects
+  project:
+    create: Create project
+    archived: Archived
+    views: Project views
+    errors_title: 'Please fix:'
+    tab:
+      list: List
+      board: Board
+    field:
+      name: Name
+      client: Client
+      client_help: Any contact of the address book.
+      client_placeholder: Type the name of a contact
+      client_empty: No contact found
+      description: Description
+      billable: Bill time
+      billable_help: New time on this project starts as billable.
+      rate: Hourly rate
+      rate_help: Comes before the rate of the client and of the person.
+      rate_currency: Currency
+    error:
+      name_required: Enter the name of the project.
+      workflow: Choose one of the workflows.
+      rate: Enter a rate, such as 1500 or 1500.50.
+  workflow:
+    simple: Simple
+    simple_text: To do, In progress, Done
+    development: Development
+    development_text: Open, In progress, Review, Testing, Blocked, Done, Closed
+  priority:
+    none: No priority
+    low: Low
+    medium: Medium
+    high: High
+    urgent: Urgent
+  filter:
+    responsible: Responsible
+    responsible_anyone: Anyone
+    responsible_me: Me
+    status: Status
+    status_open: Unfinished
+    status_all: All
+    status_finished: Finished
+    due: Due
+    due_any: Any time
+    due_overdue: Overdue
+    due_today: Today
+    due_next_7_days: Next 7 days
+    due_none: No date
+  list:
+    no_section: No section
+    loose_caption: 'Tasks of {project}'
+    empty: No tasks yet.
+    empty_filtered: No task matches the filters.
+    empty_title: No tasks yet
+    empty_text: Add the first task of the project.
+    overdue: 'Overdue {date}'
+  board:
+    columns: Status columns
+    type:
+      open: 'Type: open'
+      active: 'Type: in progress'
+      done: 'Type: done'
+      closed: 'Type: closed'
+    drag: 'Drag {title}'
+    move_to: Move to
+    move_to_status: 'Move to {status}'
+    move_up: Move up
+    move_down: Move down
+    moved: 'Moved to {status}, position {position} of {count}'
+    subtasks: '{done} of {total} subtasks done'
