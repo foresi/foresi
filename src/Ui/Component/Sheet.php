@@ -40,7 +40,7 @@ final class Sheet
         'cancel->dialog#cancelled', 'close->dialog#closed', 'click->dialog#clicked', 'submit->dialog#submit',
         'input->dialog#changed', 'change->dialog#changed', 'turbo:before-morph-attribute->dialog#keepOpen',
         'turbo:before-cache@document->dialog#reset', 'turbo:before-render@document->dialog#reset', 'popstate@window->dialog#popped',
-        'dialog:opened->sheet#opened', 'resize@window->sheet#fit',
+        'dialog:opened->sheet#opened', 'dialog:filled->sheet#fit', 'resize@window->sheet#fit',
     ];
 
     public string $id;

@@ -22,6 +22,9 @@ const FULL_KEY = 'foresi.sheet.full';
  * A record's Full screen toggle (aria-pressed, APG Button) widens the sheet over
  * the whole content panel, from its left edge to the right of the window, and is
  * remembered like the width; the grip takes the sheet back to a width of its own.
+ * A record marked data-sheet-full (a form with lines, docs/design/overlays.md) is
+ * full screen while it shows, on opening and on each step loaded in place, and
+ * nothing is remembered; the toggle or the grip ends it for that record.
  */
 export default class extends Controller {
     static targets = ['grip', 'full'];
@@ -40,7 +43,7 @@ export default class extends Controller {
             this.element.style.removeProperty('width');
             return;
         }
-        const full = this.hasFullTarget && this.remembered(FULL_KEY) === '1';
+        const full = this.hasFullTarget && (this.element.hasAttribute('data-sheet-full') || this.remembered(FULL_KEY) === '1');
         this.press(full);
         if (full) {
             this.element.style.width = `${this.panel()}px`;
@@ -58,6 +61,7 @@ export default class extends Controller {
 
     toggleFull() {
         const full = !(this.hasFullTarget && this.fullTarget.getAttribute('aria-pressed') === 'true');
+        this.element.removeAttribute('data-sheet-full');
         this.remember(FULL_KEY, full ? '1' : '0');
         this.fit();
     }
@@ -70,6 +74,7 @@ export default class extends Controller {
 
     // A width of its own again, from the grip.
     own() {
+        this.element.removeAttribute('data-sheet-full');
         if (this.hasFullTarget && this.fullTarget.getAttribute('aria-pressed') === 'true') {
             this.remember(FULL_KEY, '0');
             this.press(false);
@@ -132,6 +137,8 @@ export default class extends Controller {
 
     describe(width) {
         if (this.hasGripTarget) {
+            // A loaded record brings the grip of its own sheet: it controls this host.
+            this.gripTarget.setAttribute('aria-controls', this.element.id);
             this.gripTarget.setAttribute('aria-valuemin', String(MIN));
             this.gripTarget.setAttribute('aria-valuemax', String(this.max()));
             this.gripTarget.setAttribute('aria-valuenow', String(Math.round(width)));

@@ -34,8 +34,10 @@ A record picked from a list opens in place, over the list, never as a jump to an
   `overlay()` in Twig answers `sheet`, `dialog` or `null` (the page); `in_dialog()` is true for both.
 - The detail and its edit form extend `layout/record.html.twig` once and fill the blocks of the page
   (`title`, `actions`, `content`). Set `record_overlay` to `dialog` for a small record and
-  `record_fields` to true for a form. Asked by its own layer, the template is the overlay; otherwise
-  it is the page.
+  `record_fields` to true for a form. Set `record_full` to true for a form with lines: the sheet
+  fills the content panel while it shows and keeps the width it remembers for the next record; the
+  Full screen toggle or the grip ends it. Asked by its own layer, the template is the overlay;
+  otherwise it is the page.
 - Inside a record, a link in a `data-in-place` area (Edit, Cancel, the tabs) and the answer of a form
   load in the same host. A form that saves answers with a redirect, as on the page; the host loads its
   target in place and loads the list under it again once it closes.

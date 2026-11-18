@@ -1,8 +1,11 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{% extends 'layout/app.html.twig' %}
+{# A record's form (layout/record.html.twig): a row of the list opens it in the sheet, which fills the content panel while the lines are edited (record_full). #}
+{% extends 'layout/record.html.twig' %}
 
 {# The invoice form without a number and dates, laid out as iDoklad's recurring invoice on the invoice form's primitives: the template and its customer, the schedule beside the sending, the dates beside the payment, then the same line rows and controller as the invoice form. #}
 {% set crumbs = [] %}
+{% set record_fields = true %}
+{% set record_full = true %}
 {% set editing = template|default(null) is not null %}
 {% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 

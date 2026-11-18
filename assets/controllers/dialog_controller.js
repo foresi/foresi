@@ -166,7 +166,14 @@ export default class extends Controller {
                 await this.leave(location || url);
                 return;
             }
-            if (!response.ok || !isType(response, 'text/html')) {
+            if (response.ok && !isType(response, 'text/html')) {
+                // A file (the PDF of save and PDF) is no step of the record: the browser opens it.
+                this.loading = false;
+                this.element.removeAttribute('aria-busy');
+                await this.leave(url, 'advance');
+                return;
+            }
+            if (!response.ok) {
                 throw new Error(`The dialog answered ${response.status}.`);
             }
             html = await response.text();
@@ -258,6 +265,8 @@ export default class extends Controller {
             this.reload = true;
             this.dirty = false;
         }
+        // The sheet fits its width to what it shows now (a form with lines fills the panel).
+        this.dispatch('filled');
     }
 
     focusInitial() {
@@ -425,7 +434,8 @@ export default class extends Controller {
 
     async submit(event) {
         const form = event.target;
-        if (!this.remoteValue || !(form instanceof HTMLFormElement)) {
+        // A form's own controller may stop a submit (a second click on Save).
+        if (!this.remoteValue || !(form instanceof HTMLFormElement) || event.defaultPrevented) {
             return;
         }
         event.preventDefault();

@@ -65,7 +65,7 @@
                                         {% for row in rows %}
                                             <li class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 py-2 text-small">
                                                 <span class="flex min-w-0 flex-wrap items-baseline gap-x-2">
-                                                    <a href="{{ row.href }}" class="font-medium text-ink underline underline-offset-2 hover:text-green {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ row.number }}</a>
+                                                    <a href="{{ row.href }}" data-sheet aria-haspopup="dialog" class="font-medium text-ink underline underline-offset-2 hover:text-green {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ row.number }}</a>
                                                     <span class="min-w-0 truncate text-text">{{ row.customer }}</span>
                                                 </span>
                                                 <span class="flex flex-wrap items-baseline gap-x-3 text-muted">

@@ -325,6 +325,29 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertContains('Firm', $this->headers($crawler));
     }
 
+    public function testTheDetailIsAPageAndARecordInTheSheet(): void
+    {
+        $this->signedIn();
+        $this->issue('2026-11-01', '2026-12-01');
+        $href = (string) $this->client->request('GET', '/invoices')->filter('tbody tr a[data-row-link]')->first()->attr('href');
+
+        $page = $this->client->request('GET', $href);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('20260001', $page->filter('h1')->text());
+        self::assertCount(1, $page->filter('[data-invoice-lines] tbody tr'));
+        self::assertSame($href.'/edit', $page->filter('a[data-invoice-edit]')->attr('href'));
+
+        $sheet = $this->client->request('GET', $href, server: ['HTTP_X_FORESI_DIALOG' => 'sheet']);
+        $record = $sheet->filter('dialog#sheet-page[data-overlay-record]');
+        self::assertCount(1, $record);
+        self::assertNull($record->attr('data-sheet-full'), 'the detail keeps the width the sheet remembers');
+        self::assertNotNull($sheet->filter('a[data-invoice-edit]')->attr('data-in-place'));
+
+        $form = $this->client->request('GET', $href.'/edit', server: ['HTTP_X_FORESI_DIALOG' => 'sheet']);
+        self::assertNotNull($form->filter('dialog#sheet-page')->attr('data-sheet-full'), 'the form with lines fills the content panel');
+        self::assertSame($href, $form->filter('#invoice-cancel')->attr('href'));
+    }
+
     public function testARowShowsItsFacts(): void
     {
         $this->signedIn();
@@ -334,8 +357,9 @@ final class InvoiceListControllerTest extends WebTestCase
 
         $row = $crawler->filter('tbody tr')->first();
         self::assertSame('20260001', $row->filter('a[data-row-link]')->text());
-        self::assertSame('false', $row->filter('a[data-row-link]')->attr('data-turbo'));
-        self::assertStringEndsWith('/edit', (string) $row->filter('a[data-row-link]')->attr('href'));
+        // The row opens the read-only detail in the sheet (docs/design/overlays.md).
+        self::assertNotNull($row->filter('a[data-row-link]')->attr('data-sheet'));
+        self::assertMatchesRegularExpression('~^/invoices/[0-9a-f-]{36}$~', (string) $row->filter('a[data-row-link]')->attr('href'));
         self::assertStringContainsString('Example Customer a.s.', $row->text());
         self::assertStringContainsString('2026-11-01', $row->text());
         self::assertStringContainsString('2026-12-01', $row->text());

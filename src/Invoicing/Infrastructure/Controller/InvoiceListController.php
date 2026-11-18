@@ -69,8 +69,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The invoice list, its trash and the history of a document, for staff. An action on a
- * row comes back to the list it started from. Links into the form leave Turbo: the form
- * is a plain page. Send, reminder and delete open in a dialog over the list; each is also a
+ * row comes back to the list it started from. A row opens the document's detail in the
+ * sheet (docs/design/overlays.md); links into the form leave Turbo: the form page is plain. Send, reminder and delete open in a dialog over the list; each is also a
  * page of its own, which works without JavaScript. An overdue row counts the reminders that
  * went out or wait to, read for the whole page in one query.
  *
@@ -243,8 +243,8 @@ final class InvoiceListController extends AbstractController
             'columns' => $columns,
             'rows' => array_map(fn (MissingTaxDocument $row): array => [
                 'id' => $row->advanceId.'-'.$row->paymentId,
-                'href' => $this->generateUrl('app_invoice_edit', ['id' => $row->advanceId]),
-                'plain' => true,
+                'href' => $this->generateUrl('app_invoice_show', ['id' => $row->advanceId]),
+                'opens' => 'sheet',
                 'label' => $row->advanceNumber,
                 'secondary' => $this->joined([$row->customerName, $this->amounts->shown($row->received), $this->daysLeft($row)]),
                 'cells' => [
@@ -282,8 +282,8 @@ final class InvoiceListController extends AbstractController
             'columns' => $columns,
             'rows' => array_map(fn (UncorrectedTaxDocument $row): array => [
                 'id' => $row->documentId,
-                'href' => $this->generateUrl('app_invoice_edit', ['id' => $row->documentId]),
-                'plain' => true,
+                'href' => $this->generateUrl('app_invoice_show', ['id' => $row->documentId]),
+                'opens' => 'sheet',
                 'label' => $row->number,
                 'secondary' => $this->joined([$row->customerName, $this->amounts->shown($row->amount), $this->daysLeftOf($row->daysLeft)]),
                 'cells' => [
@@ -650,8 +650,8 @@ final class InvoiceListController extends AbstractController
 
         return [
             'id' => $row->id,
-            'href' => $this->generateUrl('app_invoice_edit', ['id' => $row->id]),
-            'plain' => true,
+            'href' => $this->generateUrl('app_invoice_show', ['id' => $row->id]),
+            'opens' => 'sheet',
             'label' => $row->number,
             'secondary' => $secondary,
             'cells' => $cells,
