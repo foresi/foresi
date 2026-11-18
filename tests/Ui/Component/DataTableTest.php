@@ -172,6 +172,20 @@ final class DataTableTest extends KernelTestCase
         self::assertNull($plain->attr('data-sheet'));
     }
 
+    public function testALinkOfACellOpensWhereItSays(): void
+    {
+        $rows = [['id' => 'a1', 'cells' => ['name' => ['links' => [
+            ['text' => 'FV1', 'href' => '/invoices/1', 'opens' => 'sheet'],
+            ['text' => 'FV2', 'href' => '/invoices/2'],
+        ]]]]];
+        $crawler = new Crawler($this->render(['rows' => $rows]));
+
+        self::assertCount(1, $crawler->filter('a[data-chip][href="/invoices/1"][data-sheet][aria-haspopup="dialog"]'));
+        $page = $crawler->filter('a[data-chip][href="/invoices/2"]');
+        self::assertNull($page->attr('data-sheet'));
+        self::assertNull($page->attr('data-dialog'));
+    }
+
     public function testARowOpensOnlyAsAKnownOverlay(): void
     {
         $this->expectException(\InvalidArgumentException::class);
