@@ -29,15 +29,12 @@ final readonly class WorkingFilter
      */
     public static function decode(string $param, ListDefinition $list): ?ViewFilter
     {
-        if ('' === $param) {
-            return null;
-        }
         $json = base64_decode(strtr($param, '-_', '+/'), true);
         if (false === $json) {
             return null;
         }
         try {
-            return ViewFilter::parse(json_decode($json, true, 16, \JSON_THROW_ON_ERROR), $list);
+            return ViewFilter::parse(json_decode($json, true, flags: \JSON_THROW_ON_ERROR), $list);
         } catch (\JsonException|InvalidFilter) {
             return null;
         }
