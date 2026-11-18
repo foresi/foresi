@@ -87,8 +87,8 @@ final readonly class InstalledModules
         $optional = self::strings($extra['optional'] ?? [], \sprintf('Package %s: extra.foresi.optional must be a list of module ids.', $package));
         $scopes = self::strings($extra['scopes'] ?? [], \sprintf('Package %s: extra.foresi.scopes must be a list of resources.', $package));
         $bundle = $extra['bundle'] ?? null;
-        if (null !== $bundle && !\is_string($bundle)) {
-            throw new InvalidManifest(\sprintf('Package %s: extra.foresi.bundle must be a class name.', $package));
+        if (!\is_string($bundle)) {
+            throw new InvalidManifest(\sprintf('Package %s has no extra.foresi.bundle, the class of its bundle such as "Foresi\\\\Timesheet\\\\TimesheetBundle".', $package));
         }
         $require = \is_array($composer['require'] ?? null) ? array_keys($composer['require']) : [];
         $requires = array_values(array_filter(

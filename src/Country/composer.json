@@ -15,6 +15,7 @@
             "module": "country",
             "kind": "module",
             "namespace": "Foresi\\Country\\",
+            "bundle": "Foresi\\Country\\CountryBundle",
             "optional": []
         }
     }

@@ -12,6 +12,7 @@ use Foresi\Shared\Domain\Module\InvalidManifest;
 use Foresi\Shared\Domain\Module\ModuleKind;
 use Foresi\Shared\Domain\Module\ModuleManifest;
 use Foresi\Shared\Infrastructure\Module\InstalledModules;
+use Foresi\Timesheet\TimesheetBundle;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -67,21 +68,12 @@ final class InstalledModulesTest extends TestCase
 
     public function testReadsTheBundle(): void
     {
-        $composer = array_replace_recursive(self::composer(), ['extra' => ['foresi' => ['bundle' => 'Foresi\\Timesheet\\TimesheetBundle']]]);
-
-        self::assertSame('Foresi\\Timesheet\\TimesheetBundle', InstalledModules::manifestFrom($composer, [])->bundle);
-        self::assertNull(InstalledModules::manifestFrom(self::composer(), [])->bundle);
+        self::assertSame(TimesheetBundle::class, InstalledModules::manifestFrom(self::composer(), [])->bundle);
     }
 
-    /**
-     * The core and ui modules have their bundle; the business modules get theirs next.
-     */
-    public function testTheCoreModulesNameTheirBundle(): void
+    public function testEveryModuleNamesItsBundle(): void
     {
         foreach ($this->modules()->graph()->all() as $module) {
-            if (ModuleKind::Module === $module->kind) {
-                continue;
-            }
             $directory = substr($module->namespace, \strlen('Foresi\\'), -1);
             self::assertSame($module->namespace.$directory.'Bundle', $module->bundle, $module->id->value);
         }
@@ -119,6 +111,7 @@ final class InstalledModulesTest extends TestCase
         yield 'scopes not a list' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['scopes' => 'hours']]])];
         yield 'a scope that is not a word' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['scopes' => ['Hours:read']]]])];
         yield 'optional not a list of ids' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['optional' => 'invoicing']]])];
+        yield 'bundle missing' => [self::composer(bundle: false)];
         yield 'bundle not a class name' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['bundle' => ['TimesheetBundle']]]])];
         yield 'bundle outside the namespace' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['bundle' => 'Foresi\\Work\\TimesheetBundle']]])];
         yield 'bundle below the root of the namespace' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['bundle' => 'Foresi\\Timesheet\\Infrastructure\\TimesheetBundle']]])];
@@ -167,7 +160,7 @@ final class InstalledModulesTest extends TestCase
     /**
      * @return array<string, mixed>
      */
-    private static function composer(): array
+    private static function composer(bool $bundle = true): array
     {
         return [
             'name' => 'foresi/timesheet',
@@ -178,7 +171,7 @@ final class InstalledModulesTest extends TestCase
                 'kind' => 'module',
                 'namespace' => 'Foresi\\Timesheet\\',
                 'optional' => ['invoicing'],
-            ]],
+            ] + ($bundle ? ['bundle' => TimesheetBundle::class] : [])],
         ];
     }
 

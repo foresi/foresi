@@ -15,7 +15,7 @@ use Foresi\Shared\Domain\Money;
  * before they are queued and again before they are delivered.
  *
  * PaymentBalances answers from the recorded payments and is authoritative; it is
- * bound by the alias in config/services.yaml. An implementation that cannot tell
+ * bound by the alias in src/Invoicing/config/services.php. An implementation that cannot tell
  * a paid invoice from an open one answers false from isAuthoritative(), which
  * keeps automatic reminders off. Any implementation must pass
  * InvoiceBalancesContract.
