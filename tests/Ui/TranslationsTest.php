@@ -232,7 +232,8 @@ final class TranslationsTest extends TestCase
     {
         $root = \dirname(__DIR__, 2);
         $name = sprintf('messages+intl-icu.%s.yaml', $locale);
-        $modules = glob($root.'/src/*/translations/'.$name) ?: [];
+        $found = glob($root.'/src/*/translations/'.$name);
+        $modules = false === $found ? [] : $found;
         sort($modules);
 
         return [$root.'/translations/'.$name, ...$modules];
