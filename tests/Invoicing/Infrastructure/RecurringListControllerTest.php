@@ -514,7 +514,7 @@ final class RecurringListControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/invoices/recurring?tab=failing');
 
-        self::assertSame('/settings/firms/'.$this->firm->id().'/mail', $crawler->filter('tbody [data-row-alert] a')->attr('href'));
+        self::assertSame('/settings/firm/mail', $crawler->filter('tbody [data-row-alert] a')->attr('href'));
     }
 
     public function testEveryDialogWorksAsAPage(): void

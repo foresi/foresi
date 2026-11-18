@@ -26,10 +26,9 @@ use Foresi\Invoicing\Application\MailSecrets;
 use Foresi\Invoicing\Application\UnsupportedCountry;
 use Foresi\Party\Application\BankAccountRefused;
 use Foresi\Party\Application\FirmBankAccounts;
-use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\ManageFirmBankAccounts;
 use Foresi\Party\Application\UnknownFirmBankAccount;
-use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Party\Contract\BankAccountUsage;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\LegalEntity;
@@ -73,7 +72,7 @@ final class FirmBankController extends AbstractController
     ];
 
     public function __construct(
-        private readonly LegalEntities $firms,
+        private readonly InstanceFirm $instanceFirm,
         private readonly FirmBankAccounts $accounts,
         private readonly ManageFirmBankAccounts $manage,
         private readonly BankAccountUsage $usage,
@@ -90,16 +89,16 @@ final class FirmBankController extends AbstractController
     ) {
     }
 
-    #[Route('/settings/firms/{id}/bank', name: 'app_firm_bank', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
-    public function settings(string $id, Request $request): Response
+    #[Route('/settings/firm/bank', name: 'app_firm_bank', methods: ['GET'])]
+    public function settings(Request $request): Response
     {
         $this->denyUnlessOwner();
-        $firm = $this->firm($id);
+        $firm = $this->firm();
         $tab = self::PAIRING === $request->query->getString('tab') ? self::PAIRING : self::ACCOUNTS;
         $all = $this->accounts->of($firm, withArchived: true);
         $feeds = $this->feeds->ofAccounts(array_map(static fn (FirmBankAccount $account): string => $account->id(), $all));
         $rules = $this->pairing->for($firm);
-        $url = $this->generateUrl('app_firm_bank', ['id' => $firm->id()]);
+        $url = $this->generateUrl('app_firm_bank');
 
         return $this->render('@Banking/firm/bank.html.twig', parameters: [
             'firm' => $firm,
@@ -114,17 +113,17 @@ final class FirmBankController extends AbstractController
             'autoPairing' => $rules->autoPairing,
             'smallDifference' => $rules->smallDifference,
             'unavailable' => $this->unavailable(),
-            'newUrl' => $this->generateUrl('app_firm_bank_account_new', ['id' => $firm->id()]),
-            'pairingAction' => $this->generateUrl('app_firm_bank_pairing', ['id' => $firm->id()]),
-            'cancel' => $this->generateUrl('app_firm_edit', ['id' => $firm->id()]),
+            'newUrl' => $this->generateUrl('app_firm_bank_account_new'),
+            'pairingAction' => $this->generateUrl('app_firm_bank_pairing'),
+            'cancel' => $this->generateUrl('app_firm'),
         ], response: self::PAIRING === $tab ? $this->unstored() : null);
     }
 
-    #[Route('/settings/firms/{id}/bank/accounts/new', name: 'app_firm_bank_account_new', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
-    public function new(string $id, Request $request): Response
+    #[Route('/settings/firm/bank/accounts/new', name: 'app_firm_bank_account_new', methods: ['GET', 'POST'])]
+    public function new(Request $request): Response
     {
         $this->denyUnlessOwner();
-        $firm = $this->firm($id);
+        $firm = $this->firm();
         $first = [] === $this->accounts->of($firm);
         $values = ['number' => '', 'currency' => Currency::CZK->value, 'label' => '', 'primary' => $first ? '1' : ''];
         if (!$request->isMethod('POST')) {
@@ -155,14 +154,14 @@ final class FirmBankController extends AbstractController
         }
         $this->addFlash('success', $this->translator->trans('bank.account.flash.created', ['name' => $this->name($firm, $account)]));
 
-        return $this->redirectToRoute('app_firm_bank', ['id' => $firm->id()]);
+        return $this->redirectToRoute('app_firm_bank');
     }
 
-    #[Route('/settings/firms/{id}/bank/accounts/{account}/edit', name: 'app_firm_bank_account_edit', requirements: ['id' => Requirement::UUID_V7, 'account' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
-    public function edit(string $id, string $account, Request $request): Response
+    #[Route('/settings/firm/bank/accounts/{account}/edit', name: 'app_firm_bank_account_edit', requirements: ['account' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
+    public function edit(string $account, Request $request): Response
     {
         $this->denyUnlessOwner();
-        $firm = $this->firm($id);
+        $firm = $this->firm();
         $stored = $this->account($firm, $account);
         $values = ['number' => $stored->iban(), 'currency' => $stored->currency()->value, 'label' => $stored->label(), 'primary' => $stored->isPrimary() ? '1' : ''];
         if (!$request->isMethod('POST')) {
@@ -186,14 +185,14 @@ final class FirmBankController extends AbstractController
         }
         $this->addFlash('success', $this->translator->trans('bank.account.flash.updated', ['name' => $this->name($firm, $changed)]));
 
-        return $this->redirectToRoute('app_firm_bank', ['id' => $firm->id()]);
+        return $this->redirectToRoute('app_firm_bank');
     }
 
-    #[Route('/settings/firms/{id}/bank/accounts/{account}/primary', name: 'app_firm_bank_account_primary', requirements: ['id' => Requirement::UUID_V7, 'account' => Requirement::UUID_V7], methods: ['POST'])]
-    public function primary(string $id, string $account, Request $request): RedirectResponse
+    #[Route('/settings/firm/bank/accounts/{account}/primary', name: 'app_firm_bank_account_primary', requirements: ['account' => Requirement::UUID_V7], methods: ['POST'])]
+    public function primary(string $account, Request $request): RedirectResponse
     {
         $this->denyUnlessOwner();
-        $firm = $this->firm($id);
+        $firm = $this->firm();
         $stored = $this->account($firm, $account);
         $this->checkToken($request, self::ACTION_TOKEN);
         try {
@@ -203,44 +202,44 @@ final class FirmBankController extends AbstractController
             $this->addFlash('error', $this->translator->trans($refused->getMessage()));
         }
 
-        return $this->redirectToRoute('app_firm_bank', ['id' => $firm->id()]);
+        return $this->redirectToRoute('app_firm_bank');
     }
 
-    #[Route('/settings/firms/{id}/bank/accounts/{account}/archive', name: 'app_firm_bank_account_archive', requirements: ['id' => Requirement::UUID_V7, 'account' => Requirement::UUID_V7], methods: ['POST'])]
-    public function archive(string $id, string $account, Request $request): RedirectResponse
+    #[Route('/settings/firm/bank/accounts/{account}/archive', name: 'app_firm_bank_account_archive', requirements: ['account' => Requirement::UUID_V7], methods: ['POST'])]
+    public function archive(string $account, Request $request): RedirectResponse
     {
         $this->denyUnlessOwner();
-        $firm = $this->firm($id);
+        $firm = $this->firm();
         $stored = $this->account($firm, $account);
         $this->checkToken($request, self::ACTION_TOKEN);
         $this->manage->archive($stored->id());
         $this->addFlash('success', $this->translator->trans('bank.account.flash.archived', ['name' => $this->name($firm, $stored)]));
 
-        return $this->redirectToRoute('app_firm_bank', ['id' => $firm->id()]);
+        return $this->redirectToRoute('app_firm_bank');
     }
 
-    #[Route('/settings/firms/{id}/bank/accounts/{account}/restore', name: 'app_firm_bank_account_restore', requirements: ['id' => Requirement::UUID_V7, 'account' => Requirement::UUID_V7], methods: ['POST'])]
-    public function restore(string $id, string $account, Request $request): RedirectResponse
+    #[Route('/settings/firm/bank/accounts/{account}/restore', name: 'app_firm_bank_account_restore', requirements: ['account' => Requirement::UUID_V7], methods: ['POST'])]
+    public function restore(string $account, Request $request): RedirectResponse
     {
         $this->denyUnlessOwner();
-        $firm = $this->firm($id);
+        $firm = $this->firm();
         $stored = $this->account($firm, $account);
         $this->checkToken($request, self::ACTION_TOKEN);
         $this->manage->restore($stored->id());
         $this->addFlash('success', $this->translator->trans('bank.account.flash.restored', ['name' => $this->name($firm, $stored)]));
 
-        return $this->redirectToRoute('app_firm_bank', ['id' => $firm->id()]);
+        return $this->redirectToRoute('app_firm_bank');
     }
 
     /**
      * GET: the address of the account with the steps that set the bank up. POST:
      * a new address, which replaces the old one at once; it is shown on the tab.
      */
-    #[Route('/settings/firms/{id}/bank/accounts/{account}/address', name: 'app_firm_bank_address', requirements: ['id' => Requirement::UUID_V7, 'account' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
-    public function address(string $id, string $account, Request $request): Response
+    #[Route('/settings/firm/bank/accounts/{account}/address', name: 'app_firm_bank_address', requirements: ['account' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
+    public function address(string $account, Request $request): Response
     {
         $this->denyUnlessOwner();
-        $firm = $this->firm($id);
+        $firm = $this->firm();
         $stored = $this->account($firm, $account);
         if (!$request->isMethod('POST')) {
             return $this->render('@Banking/firm/address.html.twig', [
@@ -248,12 +247,12 @@ final class FirmBankController extends AbstractController
                 'account' => $this->feedView($firm, $stored, $this->feeds->ofAccount($stored->id())),
                 'unavailable' => $this->unavailable(),
                 'guide' => self::GUIDE,
-                'cancel' => $this->generateUrl('app_firm_bank', ['id' => $firm->id(), 'tab' => self::PAIRING]),
+                'cancel' => $this->generateUrl('app_firm_bank', ['tab' => self::PAIRING]),
             ], $this->unstored());
         }
 
         $this->checkToken($request, self::ADDRESS_TOKEN);
-        $back = $this->redirectToRoute('app_firm_bank', ['id' => $firm->id(), 'tab' => self::PAIRING]);
+        $back = $this->redirectToRoute('app_firm_bank', ['tab' => self::PAIRING]);
         try {
             $this->generate->generate($stored->id());
         } catch (AddressRefused $refused) {
@@ -271,11 +270,11 @@ final class FirmBankController extends AbstractController
         return $back;
     }
 
-    #[Route('/settings/firms/{id}/bank/pairing', name: 'app_firm_bank_pairing', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
-    public function pairing(string $id, Request $request): RedirectResponse
+    #[Route('/settings/firm/bank/pairing', name: 'app_firm_bank_pairing', methods: ['POST'])]
+    public function pairing(Request $request): RedirectResponse
     {
         $this->denyUnlessOwner();
-        $firm = $this->firm($id);
+        $firm = $this->firm();
         $this->checkToken($request, self::PAIRING_TOKEN);
         try {
             $this->changePairing->change($firm->id(), '1' === $request->request->getString('autoPairing'), '1' === $request->request->getString('smallDifference'));
@@ -283,11 +282,11 @@ final class FirmBankController extends AbstractController
             // Another request stored the firm's first switches meanwhile.
             $this->addFlash('error', $this->translator->trans('bank.account.pairing.save_failed'));
 
-            return $this->redirectToRoute('app_firm_bank', ['id' => $firm->id(), 'tab' => self::PAIRING]);
+            return $this->redirectToRoute('app_firm_bank', ['tab' => self::PAIRING]);
         }
         $this->addFlash('success', $this->translator->trans('bank.account.pairing.saved'));
 
-        return $this->redirectToRoute('app_firm_bank', ['id' => $firm->id(), 'tab' => self::PAIRING]);
+        return $this->redirectToRoute('app_firm_bank', ['tab' => self::PAIRING]);
     }
 
     /**
@@ -308,9 +307,9 @@ final class FirmBankController extends AbstractController
             'domestic' => $account instanceof FirmBankAccount ? $this->domestic($firm, $account->iban()) : null,
             'iban' => $account instanceof FirmBankAccount ? $this->grouped($account->iban()) : null,
             'action' => $account instanceof FirmBankAccount
-                ? $this->generateUrl('app_firm_bank_account_edit', ['id' => $firm->id(), 'account' => $account->id()])
-                : $this->generateUrl('app_firm_bank_account_new', ['id' => $firm->id()]),
-            'cancel' => $this->generateUrl('app_firm_bank', ['id' => $firm->id()]),
+                ? $this->generateUrl('app_firm_bank_account_edit', ['account' => $account->id()])
+                : $this->generateUrl('app_firm_bank_account_new'),
+            'cancel' => $this->generateUrl('app_firm_bank'),
         ], new Response(status: $status));
     }
 
@@ -333,7 +332,7 @@ final class FirmBankController extends AbstractController
      */
     private function row(LegalEntity $firm, FirmBankAccount $account, ?BankFeed $feed): array
     {
-        $ids = ['id' => $firm->id(), 'account' => $account->id()];
+        $ids = ['account' => $account->id()];
         $name = $this->name($firm, $account);
         $actions = [];
         if (!$account->isArchived()) {
@@ -402,7 +401,7 @@ final class FirmBankController extends AbstractController
             'address' => $address,
             'lastReceivedAt' => $feed?->lastReceivedAt(),
             'check' => $feed instanceof BankFeed ? $this->checkView($this->checks->lastOf($feed->id())) : null,
-            'url' => $this->generateUrl('app_firm_bank_address', ['id' => $firm->id(), 'account' => $account->id()]),
+            'url' => $this->generateUrl('app_firm_bank_address', ['account' => $account->id()]),
             'archived' => $account->isArchived(),
         ];
     }
@@ -482,13 +481,12 @@ final class FirmBankController extends AbstractController
         return [self::FIELD_OF_REFUSAL[$refused->reason->value] => $refused->getMessage()];
     }
 
-    private function firm(string $id): LegalEntity
+    /**
+     * The firm of this instance; before the first-run setup there is none to set up.
+     */
+    private function firm(): LegalEntity
     {
-        try {
-            return $this->firms->get($id);
-        } catch (UnknownLegalEntity) {
-            throw new NotFoundHttpException();
-        }
+        return $this->instanceFirm->find() ?? throw new NotFoundHttpException();
     }
 
     /**

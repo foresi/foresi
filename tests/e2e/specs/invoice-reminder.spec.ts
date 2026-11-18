@@ -164,31 +164,22 @@ test.describe.serial('reminders of overdue invoices', () => {
     }
   });
 
+  // The preview while reminders are off is covered by FirmMailControllerTest::testThePreviewSaysWhatSwitchingOnTodayWouldSendWhileOff.
   test('the mail settings preview names each invoice with its dates @a11y @layout', async ({ page }) => {
-    for (const firm of ['Example Reminding s.r.o.', 'Example Manual s.r.o.']) {
-      for (const [name, size] of SIZES) {
-        await page.setViewportSize(size);
-        await page.goto('/settings/firms');
-        await page.getByRole('link', { name: firm, exact: true }).click();
-        await page.getByRole('navigation', { name: 'Části firmy' }).getByRole('link', { name: 'E-maily' }).click();
-        const preview = page.locator('#reminders-preview');
-        await expect(preview).toBeVisible();
-        if (firm === 'Example Reminding s.r.o.') {
-          await expect(preview.getByRole('heading', { name: 'Zítra dostanou upomínku' })).toBeVisible();
-          await expect(preview.locator('li')).toHaveCount(1);
-          await expect(preview.locator('li')).toContainText('R0002');
-          await expect(preview.locator('li')).toContainText(/splatnost \d{1,2}\. \d{1,2}\. \d{4}/);
-        } else {
-          await expect(preview.getByRole('heading', { name: 'Kdybyste upomínky zapnuli dnes' })).toBeVisible();
-          await expect(preview.locator('li')).toHaveCount(1);
-          await expect(preview.locator('li')).toContainText('S0002');
-          await expect(preview.locator('li')).toContainText(/upomínka \d{1,2}\. \d{1,2}\. \d{4}/);
-        }
-        await preview.scrollIntoViewIfNeeded();
-        await expectNoSeriousViolations(page);
-        await expectNoSidewaysScroll(page);
-        await preview.screenshot({ path: `${SHOTS}/reminder-preview-${firm === 'Example Manual s.r.o.' ? 'off' : 'on'}-${name}.png` });
-      }
+    for (const [name, size] of SIZES) {
+      await page.setViewportSize(size);
+      await page.goto('/settings/firm');
+      await page.getByRole('navigation', { name: 'Části firmy' }).getByRole('link', { name: 'E-maily' }).click();
+      const preview = page.locator('#reminders-preview');
+      await expect(preview).toBeVisible();
+      await expect(preview.getByRole('heading', { name: 'Zítra dostanou upomínku' })).toBeVisible();
+      await expect(preview.locator('li')).toHaveCount(1);
+      await expect(preview.locator('li')).toContainText('R0002');
+      await expect(preview.locator('li')).toContainText(/splatnost \d{1,2}\. \d{1,2}\. \d{4}/);
+      await preview.scrollIntoViewIfNeeded();
+      await expectNoSeriousViolations(page);
+      await expectNoSidewaysScroll(page);
+      await preview.screenshot({ path: `${SHOTS}/reminder-preview-on-${name}.png` });
     }
   });
 });

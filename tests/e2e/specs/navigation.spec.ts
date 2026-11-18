@@ -76,7 +76,7 @@ test.describe('navigation', () => {
       ['Nákup', 'purchasing', [/Náklady/]],
       ['Kontakty', 'contacts', [/Adresář/]],
       ['Projekty', 'projects', [/Projekty/, /Moje úkoly/, /Čas/]],
-      ['Nastavení', 'settings', ['Lidé', 'Moje firmy', 'Štítky', 'API a MCP', 'Webhooky', 'Import a export']],
+      ['Nastavení', 'settings', ['Lidé', 'Firma', 'Štítky', 'API a MCP', 'Webhooky', 'Import a export']],
     ] as const) {
       await openArea(page, label);
       await openMenuOnPhone(page);
@@ -120,22 +120,20 @@ test.describe('navigation', () => {
   });
 
   test('opens the settings of a firm as tabs on the firm page @layout @a11y', async ({ page }) => {
-    await page.goto('/settings/firms');
+    await page.goto('/settings/firm');
     await openMenuOnPhone(page);
-    await expect(page.locator('#sidebar [aria-current="page"]')).toHaveText(/Moje firmy/);
-    await page.goto('/settings/firms');
-    await page.getByRole('link', { name: 'Example Payer s.r.o.' }).first().click();
+    await expect(page.locator('#sidebar [aria-current="page"]')).toHaveText(/Firma/);
 
     const tabs = page.getByRole('navigation', { name: 'Části firmy' });
     await expect(tabs.getByRole('link')).toHaveText(['Údaje', 'Fakturace', 'E-maily', 'Banka']);
     await expect(tabs.locator('[aria-current="page"]')).toHaveText('Údaje');
-    await expect(page).toHaveURL(/\/settings\/firms\/[0-9a-f-]+\/edit$/);
+    await expect(page).toHaveURL(/\/settings\/firm$/);
     await expectNoSeriousViolations(page);
     await expectNoSidewaysScroll(page);
     await shot(page, 'firm-details-tab');
 
     await tabs.getByRole('link', { name: 'Fakturace' }).click();
-    await expect(page).toHaveURL(/\/settings\/firms\/[0-9a-f-]+\/invoicing$/);
+    await expect(page).toHaveURL(/\/settings\/firm\/invoicing$/);
     await expect(tabs.locator('[aria-current="page"]')).toHaveText('Fakturace');
     // The series are inside the invoicing tab and keep their address.
     await expect(page.getByRole('heading', { name: 'Číselné řady' })).toBeVisible();
@@ -145,6 +143,6 @@ test.describe('navigation', () => {
     await shot(page, 'firm-invoicing-tab');
 
     await openMenuOnPhone(page);
-    await expect(page.locator('#sidebar [aria-current="page"]')).toHaveText(/Moje firmy/);
+    await expect(page.locator('#sidebar [aria-current="page"]')).toHaveText(/Firma/);
   });
 });

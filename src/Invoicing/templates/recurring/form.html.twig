@@ -20,7 +20,7 @@
 {% block content %}
     {% if blocked|default(null) == 'no_firm' %}
         <twig:Ui:EmptyState icon="building-2" :title="'invoice.blocked.no_firm_title'|trans" :text="'invoice.blocked.no_firm_text'|trans">
-            <twig:Ui:Button :href="path('app_firm_new')" variant="primary" icon="plus">{{ 'invoice.blocked.add_firm'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button :href="path('app_firm')" variant="primary" icon="plus">{{ 'invoice.blocked.add_firm'|trans }}</twig:Ui:Button>
         </twig:Ui:EmptyState>
     {% elseif blocked|default(null) == 'cut_off' %}
         <twig:Ui:Alert tone="error" role="alert" data-cut-off>

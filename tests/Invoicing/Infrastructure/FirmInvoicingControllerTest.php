@@ -145,7 +145,7 @@ final class FirmInvoicingControllerTest extends WebTestCase
         $this->browser->signIn();
 
         foreach (['/invoicing', '/invoicing/series/new'] as $path) {
-            $this->client->request('GET', '/settings/firms/'.$firm->id().$path);
+            $this->client->request('GET', '/settings/firm'.$path);
             self::assertResponseStatusCodeSame(403);
         }
     }
@@ -174,7 +174,7 @@ final class FirmInvoicingControllerTest extends WebTestCase
     {
         $firm = $this->signedInFirm();
 
-        $this->client->request('GET', '/settings/firms/'.$firm->id().'/edit');
+        $this->client->request('GET', '/settings/firm');
 
         self::assertSelectorExists('a[href="'.$this->settingsUrl($firm).'"]');
     }
@@ -687,7 +687,7 @@ final class FirmInvoicingControllerTest extends WebTestCase
 
     private function settingsUrl(LegalEntity $firm): string
     {
-        return '/settings/firms/'.$firm->id().'/invoicing';
+        return '/settings/firm/invoicing';
     }
 
     private function editUrl(LegalEntity $firm, Series $series): string

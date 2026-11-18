@@ -656,9 +656,9 @@ final class InvoiceController extends AbstractController
         foreach ($errors as $error) {
             $errorFields[$error['id']] = $error['message'];
         }
-        $firmUrl = $this->generateUrl('app_firm_edit', ['id' => $firm->id()]);
+        $firmUrl = $this->generateUrl('app_firm');
         // The bank tab is the owner's: staff learn the account is missing, not where to add it.
-        $bankUrl = $this->owner->isOwner() ? $this->generateUrl('app_firm_bank', ['id' => $firm->id()]) : null;
+        $bankUrl = $this->owner->isOwner() ? $this->generateUrl('app_firm_bank') : null;
         $targets = new InvoiceErrorTargets($context->isPayer(), $invoice?->isDelivered() ?? false, [] !== $this->bankAccounts($context), '' !== $values['customerId'], $firmUrl, $bankUrl);
 
         return $this->render('@Invoicing/form.html.twig', [

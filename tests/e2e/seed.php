@@ -63,6 +63,8 @@ const WORLDS = [
     'dialogs' => ['Example Dialogs', 'dialogs@example.com', 'Dialogs Example'],
     'bank' => ['Example Bank', 'bank@example.com', 'Bank Example'],
     'reminders' => ['Example Reminders', 'reminders@example.com', 'Reminders Example'],
+    // One firm, a non-payer without a mail server, for the e-mail settings spec.
+    'firm-mail' => ['Example Firm Mail', 'firm-mail@example.com', 'Firm Mail Example'],
     // The people spec invites into its own organisation, which has no system mail.
     'people' => ['Example People', 'people@example.com', 'People Example'],
     // The API token spec turns two-factor sign-in on for this owner and issues a token.

@@ -46,77 +46,73 @@ final class LegalEntityControllerTest extends WebTestCase
         parent::tearDown();
     }
 
-    public function testTheOwnerListsTheFirms(): void
+    public function testTheOwnerOpensTheFirmStraightAway(): void
     {
         $this->signIn();
         $this->firm('Example Firm s.r.o.', '12345695');
 
-        $this->client->request('GET', '/settings/firms');
+        $crawler = $this->client->request('GET', '/settings/firm');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('h1', 'My firms');
-        self::assertSelectorTextContains('main table', 'Example Firm s.r.o.');
-        self::assertSelectorTextContains('main table', '12345695');
+        self::assertSelectorTextContains('h1', 'Firm');
+        self::assertSelectorNotExists('main table');
+        self::assertSame('Example Firm s.r.o.', $crawler->filter('#name')->attr('value'));
+        self::assertSame('12345695', $crawler->filter('#registrationNumber')->attr('value'));
+        self::assertSelectorNotExists('#lookup');
     }
 
-    public function testAnInstanceWithoutFirmsIsToldHowToStart(): void
+    public function testAnInstanceWithoutAFirmSetsItUpOnTheSamePage(): void
     {
         $this->signIn();
 
-        $this->client->request('GET', '/settings/firms');
+        $crawler = $this->client->request('GET', '/settings/firm');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorNotExists('main table');
-        self::assertSelectorExists('main a[href="/settings/firms/new"]');
+        self::assertSelectorTextContains('h1', 'Set up the firm');
+        self::assertSelectorExists('#lookup');
+        self::assertSame('/settings/firm', $crawler->filter('main form[data-controller]')->attr('action'));
+        self::assertSelectorNotExists('main nav[aria-label="Firm sections"]');
     }
 
-    public function testTheSidebarOffersFirmsToTheOwner(): void
+    public function testTheSidebarOffersTheFirmToTheOwner(): void
     {
         $this->signIn();
 
         $this->client->request('GET', '/');
 
-        self::assertSelectorTextContains('#sidebar [data-nav-group="settings"]', 'My firms');
+        self::assertSelectorTextContains('#sidebar [data-nav-group="settings"]', 'Firm');
     }
 
-    public function testTheSettingsGroupHoldsPeopleFirmsLabelsApiAccessAndTheImportHistory(): void
+    public function testTheSettingsGroupHoldsPeopleFirmLabelsApiAccessAndTheImportHistory(): void
     {
         $this->signIn();
 
         $crawler = $this->client->request('GET', '/');
 
         $links = $crawler->filter('#sidebar [data-nav-group="settings"] a')->each(static fn ($a): string => $a->attr('href').' '.trim($a->text()));
-        self::assertSame(['/settings/people People', '/settings/firms My firms', '/settings/labels Labels', '/settings/api API and MCP', '/settings/webhooks Webhooks', '/imports Import and export'], $links);
+        self::assertSame(['/settings/people People', '/settings/firm Firm', '/settings/labels Labels', '/settings/api API and MCP', '/settings/webhooks Webhooks', '/imports Import and export'], $links);
     }
 
-    public function testTheFirmPageHasTabsForDetailsInvoicingMailAndBankAndKeepsFirmsMarkedInTheSidebar(): void
+    public function testTheFirmPageHasTabsForDetailsInvoicingMailAndBankAndKeepsTheFirmMarkedInTheSidebar(): void
     {
         $this->signIn();
-        $id = $this->firm('Example Firm', '12345695')->id();
+        $this->firm('Example Firm', '12345695');
 
-        $crawler = $this->client->request('GET', '/settings/firms/'.$id.'/edit');
+        $crawler = $this->client->request('GET', '/settings/firm');
 
         self::assertSame(['Details', 'Invoicing', 'E-mail', 'Bank'], $crawler->filter('main nav[aria-label="Firm sections"] a')->each(static fn ($a): string => trim($a->text())));
+        self::assertSame(['/settings/firm', '/settings/firm/invoicing', '/settings/firm/mail', '/settings/firm/bank'], $crawler->filter('main nav[aria-label="Firm sections"] a')->each(static fn ($a): string => (string) $a->attr('href')));
         self::assertSame('Details', trim($crawler->filter('main nav[aria-label="Firm sections"] [aria-current="page"]')->text()));
-        self::assertSame('/settings/firms', $crawler->filter('#sidebar [aria-current="page"]')->attr('href'));
+        self::assertSame('/settings/firm', $crawler->filter('#sidebar [aria-current="page"]')->attr('href'));
 
-        $crawler = $this->client->request('GET', '/settings/firms/'.$id.'/invoicing');
+        $crawler = $this->client->request('GET', '/settings/firm/invoicing');
 
         self::assertResponseIsSuccessful();
         self::assertSame('Invoicing', trim($crawler->filter('main nav[aria-label="Firm sections"] [aria-current="page"]')->text()));
-        self::assertSame('/settings/firms', $crawler->filter('#sidebar [aria-current="page"]')->attr('href'));
+        self::assertSame('/settings/firm', $crawler->filter('#sidebar [aria-current="page"]')->attr('href'));
     }
 
-    public function testANewFirmHasNoTabs(): void
-    {
-        $this->signIn();
-
-        $this->client->request('GET', '/settings/firms/new');
-
-        self::assertSelectorNotExists('main nav[aria-label="Firm sections"]');
-    }
-
-    public function testTheSidebarHidesFirmsFromOtherRoles(): void
+    public function testTheSidebarHidesTheFirmFromOtherRoles(): void
     {
         $this->browser->seed(role: Role::Member);
         $this->browser->signIn();
@@ -124,24 +120,25 @@ final class LegalEntityControllerTest extends WebTestCase
         $this->client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorNotExists('#sidebar [data-nav-group="settings"] a[href="/settings/firms"]');
+        self::assertSelectorNotExists('#sidebar [data-nav-group="settings"] a[href="/settings/firm"]');
     }
 
     public function testTheScreensAreTranslated(): void
     {
         $this->signIn('cs');
+        $this->firm('Example Firm', '12345695');
 
-        $this->client->request('GET', '/settings/firms');
+        $this->client->request('GET', '/settings/firm');
 
-        self::assertSelectorTextContains('h1', 'Moje firmy');
-        self::assertSelectorTextContains('#sidebar', 'Moje firmy');
+        self::assertSelectorTextContains('h1', 'Firma');
+        self::assertSelectorTextContains('#sidebar [data-nav-group="settings"]', 'Firma');
     }
 
-    public function testTheFormOffersTheRegistryLookupOfTheContactForm(): void
+    public function testTheSetupFormOffersTheRegistryLookupOfTheContactForm(): void
     {
         $this->signIn();
 
-        $crawler = $this->client->request('GET', '/settings/firms/new');
+        $crawler = $this->client->request('GET', '/settings/firm');
 
         self::assertResponseIsSuccessful();
         $form = $crawler->filter('main form');
@@ -153,7 +150,7 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSelectorExists('main [data-action-bar]');
     }
 
-    public function testTheOwnerCreatesAFirm(): void
+    public function testTheOwnerSetsUpTheFirm(): void
     {
         $this->signIn();
 
@@ -164,10 +161,11 @@ final class LegalEntityControllerTest extends WebTestCase
             'registerEntry' => 'Register entry C 1234',
         ]);
 
-        self::assertResponseRedirects('/settings/firms');
-        $this->client->followRedirect();
+        self::assertResponseRedirects('/settings/firm');
+        $crawler = $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'The firm is saved.');
-        self::assertSelectorTextContains('main table', 'Example Company s.r.o.');
+        self::assertSame('Example Company s.r.o.', $crawler->filter('#name')->attr('value'));
+        self::assertSelectorExists('main nav[aria-label="Firm sections"]');
 
         $firm = $this->storedFirm();
         self::assertSame('12345687', $firm->registrationNumber()->value);
@@ -184,7 +182,7 @@ final class LegalEntityControllerTest extends WebTestCase
 
         $this->submitNew(['name' => 'Example Trader', 'vatStatus' => 'not_registered', 'vatId' => '']);
 
-        self::assertResponseRedirects('/settings/firms');
+        self::assertResponseRedirects('/settings/firm');
         $firm = $this->storedFirm();
         self::assertSame(VatStatus::NotRegistered, $firm->vatStatus());
         self::assertNull($firm->vatId());
@@ -226,16 +224,18 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSelectorExists('#registrationNumber[aria-invalid="true"]');
     }
 
-    public function testSubmittingTheSameFormTwiceCreatesOneFirm(): void
+    public function testSubmittingTheSameSetupFormTwiceCreatesOneFirm(): void
     {
         $this->signIn();
         $form = $this->newForm();
 
         $this->client->submit($form);
-        self::assertResponseRedirects('/settings/firms');
+        self::assertResponseRedirects('/settings/firm');
         $this->client->submit($form);
 
-        self::assertResponseRedirects('/settings/firms');
+        self::assertResponseRedirects('/settings/firm');
+        $this->client->followRedirect();
+        self::assertSelectorTextNotContains('main', 'Foresi keeps one firm per instance.');
         self::assertSame(1, $this->firmCount());
     }
 
@@ -250,23 +250,25 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSame(0, $this->firmCount());
     }
 
-    public function testTheOwnerEditsAFirm(): void
+    public function testTheOwnerEditsTheFirm(): void
     {
         $this->signIn();
         $firm = $this->firm('Example Firm', '12345695');
         FirmAccounts::add($this->em(), self::getContainer()->get(LegalEntities::class)->get($firm->id()), self::IBAN);
         $this->em()->flush();
 
-        $crawler = $this->client->request('GET', '/settings/firms/'.$firm->id().'/edit');
+        $crawler = $this->client->request('GET', '/settings/firm');
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists('#lookup');
+        self::assertSelectorNotExists('form[action$="/archive"]');
         self::assertSame('12345695', $crawler->filter('#registrationNumber')->attr('value'));
         self::assertSelectorNotExists('#bankAccounts');
         self::assertSelectorTextContains('#bank-accounts-note', 'The firm\'s bank accounts are kept in its bank settings.');
+        self::assertSame('/settings/firm/bank', $crawler->filter('#bank-accounts-note a')->attr('href'));
 
         $this->client->submit($crawler->filter('main form[data-controller]')->form(['name' => 'Renamed Firm', 'vatStatus' => 'not_registered', 'vatId' => '']));
 
-        self::assertResponseRedirects('/settings/firms');
+        self::assertResponseRedirects('/settings/firm');
         $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'The changes are saved.');
         $stored = $this->storedFirm();
@@ -280,12 +282,17 @@ final class LegalEntityControllerTest extends WebTestCase
     {
         $this->browser->seed(role: $role);
         $this->browser->signIn();
-        $id = $this->firm('Example Firm', '12345695')->id();
 
-        foreach ([['GET', '/settings/firms'], ['GET', '/settings/firms/new'], ['POST', '/settings/firms/new'], ['GET', '/settings/firms/'.$id.'/edit'], ['POST', '/settings/firms/'.$id.'/edit'], ['POST', '/settings/firms/'.$id.'/archive']] as [$method, $url]) {
-            $this->client->request($method, $url);
+        foreach (['GET', 'POST'] as $method) {
+            $this->client->request($method, '/settings/firm');
 
-            self::assertResponseStatusCodeSame(403, $method.' '.$url);
+            self::assertResponseStatusCodeSame(403, $method);
+        }
+        $this->firm('Example Firm', '12345695');
+        foreach (['GET', 'POST'] as $method) {
+            $this->client->request($method, '/settings/firm');
+
+            self::assertResponseStatusCodeSame(403, $method.' with a firm');
         }
     }
 
@@ -298,57 +305,44 @@ final class LegalEntityControllerTest extends WebTestCase
         yield 'guest' => [Role::Guest];
     }
 
-    public function testAnInstanceWithAFirmIsRefusedAnother(): void
-    {
-        $this->signIn();
-        $this->firm('Example Firm', '12345695');
-        $this->client->request('GET', '/settings/firms');
-        self::assertSelectorNotExists('main a[href="/settings/firms/new"]');
-        self::assertSelectorNotExists('header a[href="/settings/firms/new"]');
-
-        foreach (['GET', 'POST'] as $method) {
-            $this->client->request($method, '/settings/firms/new', ['name' => 'Second Firm', 'registrationNumber' => '12345687']);
-
-            self::assertResponseRedirects('/settings/firms');
-            $this->client->followRedirect();
-            self::assertSelectorTextContains('main', 'Foresi keeps one firm per instance.');
-        }
-        self::assertSame(1, $this->firmCount());
-    }
-
-    public function testAnArchivedFirmStillTakesTheInstancesPlace(): void
-    {
-        $this->signIn();
-        $firm = $this->firm('Old Firm', '12345687');
-        $this->archive($firm);
-
-        $this->client->request('GET', '/settings/firms/new');
-
-        self::assertResponseRedirects('/settings/firms');
-        self::assertSame(1, $this->firmCount());
-    }
-
-    public function testLosingTheRaceForTheFirstRunIsRefused(): void
+    public function testASetupFormFromBeforeTheFirmWasSetUpAddsNoSecondFirm(): void
     {
         $this->signIn();
         $form = $this->newForm();
-        // Another request sets up the firm between the form and its submission.
+        // Another tab or request sets up the firm between the form and its submission.
         $this->firm('Example Firm', '12345695');
 
         $this->client->submit($form);
 
-        self::assertResponseRedirects('/settings/firms');
+        self::assertResponseRedirects('/settings/firm');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'Foresi keeps one firm per instance.');
         self::assertSame(1, $this->firmCount());
+        self::assertSame('Example Firm', $this->storedFirm()->name());
     }
 
-    public function testAFirmCannotTakeTheNumberOfAnotherOne(): void
+    public function testAnArchivedFirmIsStillTheFirmOfTheInstance(): void
     {
         $this->signIn();
-        $this->firm('Example Firm', '12345695');
-        $other = $this->firm('Other Firm', '12345687');
+        $this->archive($this->firm('Old Firm', '12345687'));
 
-        $crawler = $this->client->request('GET', '/settings/firms/'.$other->id().'/edit');
-        $this->client->submit($crawler->filter('main form[data-controller]')->form(['registrationNumber' => '12345695']));
+        $crawler = $this->client->request('GET', '/settings/firm');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('Old Firm', $crawler->filter('#name')->attr('value'));
+        self::assertSelectorNotExists('#lookup');
+    }
+
+    public function testTheFirmCannotTakeTheNumberOfAnotherOne(): void
+    {
+        $this->signIn();
+        // Several firms remain only in old data; the page edits the oldest active one.
+        $this->firm('Example Firm', '12345695');
+        $this->firm('Other Firm', '12345687');
+
+        $crawler = $this->client->request('GET', '/settings/firm');
+        self::assertSame('Example Firm', $crawler->filter('#name')->attr('value'));
+        $this->client->submit($crawler->filter('main form[data-controller]')->form(['registrationNumber' => '12345687']));
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('#registrationNumber[aria-invalid="true"]');
@@ -358,99 +352,16 @@ final class LegalEntityControllerTest extends WebTestCase
     {
         $this->signIn();
         $this->firm('Example Firm', '12345687');
+        $crawler = $this->client->request('GET', '/settings/firm');
+        $this->firm('Other Firm', '12345695');
         RacingLegalEntities::$blind = true;
-        $form = $this->newForm();
 
-        $this->client->submit($form);
+        $this->client->submit($crawler->filter('main form[data-controller]')->form(['registrationNumber' => '12345695']));
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('#registrationNumber[aria-invalid="true"]');
         RacingLegalEntities::$blind = false;
-        self::assertSame(1, $this->firmCount());
-    }
-
-    public function testArchivingMovesAFirmToTheArchivedView(): void
-    {
-        $this->signIn();
-        $firm = $this->firm('Example Firm', '12345695');
-        $this->firm('Other Firm', '12345687');
-
-        $crawler = $this->client->request('GET', '/settings/firms/'.$firm->id().'/edit');
-        $this->client->submit($crawler->filter('form[action$="/archive"]')->form());
-
-        self::assertResponseRedirects('/settings/firms');
-        $this->client->followRedirect();
-        self::assertSelectorTextContains('main', 'The firm is archived.');
-        self::assertSelectorTextNotContains('main table', 'Example Firm');
-
-        $this->client->request('GET', '/settings/firms?view=archived');
-        self::assertSelectorTextContains('main table', 'Example Firm');
-        self::assertSelectorTextNotContains('main table', 'Other Firm');
-    }
-
-    public function testTheArchiveButtonAsksForConfirmationNamingTheOutcome(): void
-    {
-        $this->signIn();
-        $firm = $this->firm('Example Firm', '12345695');
-
-        $crawler = $this->client->request('GET', '/settings/firms/'.$firm->id().'/edit');
-
-        $form = $crawler->filter('form[action$="/archive"]');
-        self::assertSame('Archive firm Example Firm?', $form->attr('data-turbo-confirm'));
-        self::assertSame('An archived firm cannot be restored.', $form->attr('data-confirm-text'));
-        self::assertSame('Archive firm', $form->attr('data-confirm-accept'));
-        self::assertSame('Keep firm', $form->attr('data-confirm-cancel'));
-        self::assertSame('danger', $form->attr('data-confirm-tone'));
-    }
-
-    public function testTheLastActiveFirmCannotBeArchived(): void
-    {
-        $this->signIn();
-        $firm = $this->firm('Example Firm', '12345695');
-
-        $this->client->request('POST', '/settings/firms/'.$firm->id().'/archive', ['_token' => $this->actionToken($firm)]);
-
-        self::assertResponseRedirects('/settings/firms');
-        $this->client->followRedirect();
-        self::assertSelectorTextContains('main', 'The last active firm cannot be archived.');
-        self::assertSelectorTextNotContains('main', 'The firm is archived.');
-        self::assertFalse($this->storedFirm()->isArchived());
-    }
-
-    public function testTheRefusalIsTranslated(): void
-    {
-        $this->signIn('cs');
-        $firm = $this->firm('Example Firm', '12345695');
-
-        $this->client->request('POST', '/settings/firms/'.$firm->id().'/archive', ['_token' => $this->actionToken($firm)]);
-        $this->client->followRedirect();
-
-        self::assertSelectorTextContains('main', 'Poslední aktivní firmu nelze archivovat.');
-    }
-
-    public function testAnArchivedFirmDoesNotKeepTheLastActiveOneArchivable(): void
-    {
-        $this->signIn();
-        $this->archive($this->firm('Old Firm', '12345687'));
-        $firm = $this->firm('Example Firm', '12345695');
-
-        $this->client->request('POST', '/settings/firms/'.$firm->id().'/archive', ['_token' => $this->actionToken($firm)]);
-
-        self::assertFalse($this->stored($firm)->isArchived());
-    }
-
-    public function testArchivingStopsAtTheLastActiveFirm(): void
-    {
-        $this->signIn();
-        $first = $this->firm('Example Firm', '12345695');
-        $second = $this->firm('Other Firm', '12345687');
-        $token = $this->actionToken($first);
-
-        $this->client->request('POST', '/settings/firms/'.$first->id().'/archive', ['_token' => $token]);
-        $this->client->request('POST', '/settings/firms/'.$second->id().'/archive', ['_token' => $token]);
-
-        self::assertTrue($this->stored($first)->isArchived());
-        self::assertFalse($this->stored($second)->isArchived());
+        self::assertSame('12345687', $this->stored($this->firmNamed('Example Firm'))->registrationNumber()->value);
     }
 
     public function testActiveFirmsAreLockedOnlyInsideATransaction(): void
@@ -466,33 +377,43 @@ final class LegalEntityControllerTest extends WebTestCase
         $firms->lockActive();
     }
 
-    public function testAForgedArchiveIsRefused(): void
-    {
-        $this->signIn();
-        $firm = $this->firm('Example Firm', '12345695');
-
-        $this->client->request('POST', '/settings/firms/'.$firm->id().'/archive', ['_token' => 'forged']);
-
-        self::assertResponseStatusCodeSame(403);
-        self::assertFalse($this->storedFirm()->isArchived());
-    }
-
     public function testAForgedSaveIsRefused(): void
     {
         $this->signIn();
 
-        $this->client->request('POST', '/settings/firms/new', ['_token' => 'forged']);
-
+        $this->client->request('POST', '/settings/firm', ['_token' => 'forged']);
         self::assertResponseStatusCodeSame(403);
+
+        $this->firm('Example Firm', '12345695');
+        $this->client->request('POST', '/settings/firm', ['_token' => 'forged', 'name' => 'Forged']);
+        self::assertResponseStatusCodeSame(403);
+        self::assertSame('Example Firm', $this->storedFirm()->name());
     }
 
-    public function testAnIdThatIsNotAUuidIsNotARoute(): void
+    /**
+     * @return iterable<string, array{string, string, string}>
+     */
+    public static function oldAddresses(): iterable
+    {
+        $id = '019a0000-0000-7000-8000-000000000001';
+        yield 'the list' => ['GET', '/settings/firms', '/settings/firm'];
+        yield 'the archived view' => ['GET', '/settings/firms?view=archived', '/settings/firm?view=archived'];
+        yield 'the new-firm screen' => ['GET', '/settings/firms/new', '/settings/firm'];
+        yield 'the form' => ['GET', '/settings/firms/'.$id.'/edit', '/settings/firm'];
+        yield 'a tab with its section' => ['GET', '/settings/firms/'.$id.'/bank?tab=pairing', '/settings/firm/bank?tab=pairing'];
+        yield 'a series' => ['GET', '/settings/firms/'.$id.'/invoicing/series/new', '/settings/firm/invoicing/series/new'];
+        yield 'a form sent from an old page' => ['POST', '/settings/firms/'.$id.'/mail', '/settings/firm/mail'];
+    }
+
+    #[DataProvider('oldAddresses')]
+    public function testTheOldAddressesLeadToTheFirmPage(string $method, string $old, string $new): void
     {
         $this->signIn();
 
-        $this->client->request('GET', '/settings/firms/12/edit');
+        $this->client->request($method, $old);
 
-        self::assertResponseStatusCodeSame(404);
+        self::assertResponseStatusCodeSame(308);
+        self::assertResponseRedirects($new);
     }
 
     private function signIn(string $locale = 'en'): void
@@ -521,7 +442,7 @@ final class LegalEntityControllerTest extends WebTestCase
 
     private function newForm(): Form
     {
-        $crawler = $this->client->request('GET', '/settings/firms/new');
+        $crawler = $this->client->request('GET', '/settings/firm');
 
         return $crawler->filter('main form')->form([
             'name' => 'Example Company s.r.o.',
@@ -543,14 +464,7 @@ final class LegalEntityControllerTest extends WebTestCase
     {
         $form = $this->newForm();
         // Posted directly, to send what the select does not offer.
-        $this->client->request('POST', '/settings/firms/new', $values + $form->getPhpValues());
-    }
-
-    private function actionToken(LegalEntity $firm): string
-    {
-        $crawler = $this->client->request('GET', '/settings/firms/'.$firm->id().'/edit');
-
-        return (string) $crawler->filter('form[action$="/archive"] input[name="_token"]')->attr('value');
+        $this->client->request('POST', '/settings/firm', $values + $form->getPhpValues());
     }
 
     private function storedFirm(): LegalEntity
@@ -570,6 +484,11 @@ final class LegalEntityControllerTest extends WebTestCase
         $em->clear();
 
         return $em->getRepository(LegalEntity::class)->find($firm->id()) ?? throw new \LogicException('The firm is missing.');
+    }
+
+    private function firmNamed(string $name): LegalEntity
+    {
+        return $this->em()->getRepository(LegalEntity::class)->findOneBy(['name' => $name]) ?? throw new \LogicException('The firm is missing.');
     }
 
     private function firmCount(): int

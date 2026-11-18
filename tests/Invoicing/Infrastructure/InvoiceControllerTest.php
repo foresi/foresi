@@ -878,8 +878,8 @@ final class InvoiceControllerTest extends WebTestCase
             $this->withoutBankAccounts();
         }
         $crawler = $this->client->request('GET', '/invoices/new');
-        $firmUrl = '/settings/firms/'.$this->firm->id().'/edit';
-        $bankUrl = '/settings/firms/'.$this->firm->id().'/bank';
+        $firmUrl = '/settings/firm';
+        $bankUrl = '/settings/firm/bank';
         $targets = new InvoiceErrorTargets(VatStatus::Registered === $status, false, $account, true, $firmUrl, $bankUrl);
 
         $problems = $this->problemsInTheCode();
@@ -946,7 +946,7 @@ final class InvoiceControllerTest extends WebTestCase
         }
         // The register entry is fixed in the firm's details, the missing account on its bank tab.
         sort($hrefs);
-        self::assertSame(['/settings/firms/'.$this->firm->id().'/bank', '/settings/firms/'.$this->firm->id().'/edit'], $hrefs);
+        self::assertSame(['/settings/firm', '/settings/firm/bank'], $hrefs);
     }
 
     public function testAFirmWithoutAnAccountSaysSoBeforeTheSave(): void
@@ -957,14 +957,14 @@ final class InvoiceControllerTest extends WebTestCase
         $this->client->request('GET', '/invoices/new');
 
         self::assertSelectorTextContains('[data-bank-note]', $this->text('invoice.field.bankAccount_none'));
-        self::assertSelectorExists('#bank-account-settings[target="_blank"][href$="/settings/firms/'.$this->firm->id().'/bank"]');
+        self::assertSelectorExists('#bank-account-settings[target="_blank"][href$="/settings/firm/bank"]');
     }
 
     public function testAMemberIsToldOfTheMissingAccountWithoutALinkToTheOwnersBankTab(): void
     {
         $this->signedIn(Role::Member);
         $this->withoutBankAccounts();
-        $bankUrl = '/settings/firms/'.$this->firm->id().'/bank';
+        $bankUrl = '/settings/firm/bank';
 
         $this->client->request('GET', '/invoices/new');
 
@@ -1010,7 +1010,7 @@ final class InvoiceControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main', $this->text('invoice.blocked.no_firm_title'));
-        self::assertSelectorExists('main a[href="/settings/firms/new"]');
+        self::assertSelectorExists('main a[href="/settings/firm"]');
         self::assertSelectorNotExists('#invoice-form');
     }
 
@@ -1025,7 +1025,7 @@ final class InvoiceControllerTest extends WebTestCase
         $this->client->request('GET', '/invoices/new');
 
         self::assertSelectorTextContains('main', $this->text('invoice.blocked.no_series_title'));
-        self::assertSelectorExists('main a[href="/settings/firms/'.$this->firm->id().'/invoicing"]');
+        self::assertSelectorExists('main a[href="/settings/firm/invoicing"]');
         self::assertSelectorNotExists('#invoice-form');
     }
 

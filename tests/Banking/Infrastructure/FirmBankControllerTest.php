@@ -83,7 +83,7 @@ final class FirmBankControllerTest extends WebTestCase
     {
         $firm = $this->signedInFirm();
 
-        $crawler = $this->client->request('GET', '/settings/firms/'.$firm->id().'/edit');
+        $crawler = $this->client->request('GET', '/settings/firm');
 
         self::assertSame($this->url($firm), $crawler->filter('#bank-accounts-note a')->attr('href'));
     }
@@ -447,7 +447,7 @@ final class FirmBankControllerTest extends WebTestCase
 
     private function url(LegalEntity $firm, ?string $tab = null): string
     {
-        return '/settings/firms/'.$firm->id().'/bank'.(null === $tab ? '' : '?tab='.$tab);
+        return '/settings/firm/bank'.(null === $tab ? '' : '?tab='.$tab);
     }
 
     /**

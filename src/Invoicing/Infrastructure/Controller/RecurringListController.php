@@ -289,7 +289,7 @@ final class RecurringListController extends AbstractController
     private function fix(RecurringInvoice $template, string $code): array
     {
         [$href, $action] = match (true) {
-            'send.no_server' === $code => $this->owner->isOwner() ? [$this->generateUrl('app_firm_mail', ['id' => $template->firm()->id()]), 'mail'] : [null, null],
+            'send.no_server' === $code => $this->owner->isOwner() ? [$this->generateUrl('app_firm_mail'), 'mail'] : [null, null],
             \in_array($code, ['send.no_recipient', 'send.bad_address', 'invoice.problem.customer_address_incomplete', 'invoice.problem.customer_archived'], true) => [$this->generateUrl('app_contact_show', ['id' => $template->customer()->id()]), 'contact'],
             str_starts_with($code, 'send.') => [$this->generateUrl('app_invoices', ['toSend' => 1]), 'to_send'],
             default => [$this->generateUrl('app_recurring_edit', ['id' => $template->id()]), 'edit'],

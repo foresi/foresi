@@ -804,7 +804,7 @@ final class FirmMailControllerTest extends WebTestCase
 
     private function url(LegalEntity $firm, ?string $tab = null): string
     {
-        return '/settings/firms/'.$firm->id().'/mail'.(null === $tab ? '' : '?tab='.$tab);
+        return '/settings/firm/mail'.(null === $tab ? '' : '?tab='.$tab);
     }
 
     /**

@@ -126,6 +126,7 @@ Planned as 0.5.0: the first release with invoices.
 
 ### Changed
 
+- Settings › Firm (was My firms) opens the instance's firm straight away, with its tabs for details, invoicing, e-mails and bank ([ADR 0039](docs/adr/0039-one-firm-per-instance.md)). The firm list, archiving a firm and the new-firm screen are gone; before the first-run setup the same page sets the firm up. The pages move from `/settings/firms/{id}/…` to `/settings/firm/…`, and the old addresses redirect to the new ones.
 - For modules: an integration, `Integration/<Other>/`, may hold `templates/`, `translations/` and `assets/controllers/`. The module's bundle registers them only when `<Other>` is installed, the templates under the module's own Twig namespace ([ADR 0038](docs/adr/0038-core-screens-in-integrations.md)). This is the first step of moving the screens of Identity, Party and Webhooks into `Integration/Ui/`, so the core installs without `foresi/ui`.
 - A dialog asked for while the page under it was loading again (right after the window of a new API token closed, say) no longer locks the dialogs and sheets until a full reload.
 - Every page title runs from the specific to the general: the page, the section of the navigation it belongs to, and the product, as "Fix the login · Projects · Foresi". A list page names its section once, the login page has no section, and the public document pages keep the issuer instead of the product.

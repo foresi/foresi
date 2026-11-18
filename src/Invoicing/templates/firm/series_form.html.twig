@@ -6,7 +6,7 @@
 {% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
 
 {% set editing = series is not null %}
-{% set crumbs = [{label: 'firm.title'|trans, href: firmsUrl}, {label: firm.name, href: firmUrl}, {label: 'firm.invoicing.title'|trans, href: settings}, {label: editing ? seriesName : 'series.new'|trans}] %}
+{% set crumbs = [{label: 'firm.title'|trans, href: firmUrl}, {label: 'firm.invoicing.title'|trans, href: settings}, {label: editing ? seriesName : 'series.new'|trans}] %}
 {% set form_invalid = errors is not empty %}
 {% set dialog_size = 'md' %}
 

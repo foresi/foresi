@@ -81,7 +81,7 @@ final class FirmLogoTest extends WebTestCase
 
         $this->saveFirm($firm, [$field => $this->upload($bytes, 'image.'.$extension)]);
 
-        self::assertResponseRedirects('/settings/firms');
+        self::assertResponseRedirects('/settings/firm');
         $stored = $this->stored($firm);
         $name = 'logo' === $field ? $stored->logo() : $stored->stamp();
         self::assertSame(hash('sha256', $bytes).'.'.$extension, $name);
@@ -94,7 +94,7 @@ final class FirmLogoTest extends WebTestCase
 
         $this->saveFirm($firm, ['logo' => $this->upload(str_pad($this->png(), self::MEGABYTE, "\0"), 'large.png')]);
 
-        self::assertResponseRedirects('/settings/firms');
+        self::assertResponseRedirects('/settings/firm');
     }
 
     /**
@@ -230,12 +230,12 @@ final class FirmLogoTest extends WebTestCase
     {
         // PHP drops such a body, so no token and no file reach the application.
         // The first-run setup first: once the firm exists, the new-firm screen is closed.
-        $this->client->request('POST', '/settings/firms/new', [], [], ['CONTENT_LENGTH' => '9000000']);
+        $this->client->request('POST', '/settings/firm', [], [], ['CONTENT_LENGTH' => '9000000']);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#logo-error', '1 MB');
 
         $firm = $this->firm();
-        $this->client->request('POST', '/settings/firms/'.$firm->id().'/edit', [], [], ['CONTENT_LENGTH' => '9000000']);
+        $this->client->request('POST', '/settings/firm', [], [], ['CONTENT_LENGTH' => '9000000']);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#logo-error', '1 MB');
         self::assertSelectorExists('#name[value="Example Firm s.r.o."]');
@@ -290,12 +290,12 @@ final class FirmLogoTest extends WebTestCase
 
     public function testANewFirmCanBringItsImages(): void
     {
-        $crawler = $this->client->request('GET', '/settings/firms/new');
+        $crawler = $this->client->request('GET', '/settings/firm');
         $form = $crawler->filter('main form')->form(['name' => 'Example Company s.r.o.', 'registrationNumber' => '12345687', 'vatStatus' => 'not_registered', 'street' => 'Example Street 1', 'city' => 'Example City', 'postalCode' => '100 00']);
 
-        $this->client->request('POST', '/settings/firms/new', $form->getPhpValues(), ['logo' => $this->upload($this->png(), 'logo.png')]);
+        $this->client->request('POST', '/settings/firm', $form->getPhpValues(), ['logo' => $this->upload($this->png(), 'logo.png')]);
 
-        self::assertResponseRedirects('/settings/firms');
+        self::assertResponseRedirects('/settings/firm');
         $this->em()->clear();
         $firms = $this->em()->getRepository(LegalEntity::class)->findAll();
         self::assertSame(hash('sha256', $this->png()).'.png', $firms[0]->logo());
@@ -305,13 +305,13 @@ final class FirmLogoTest extends WebTestCase
     {
         $firm = $this->firm();
 
-        $crawler = $this->client->request('GET', '/settings/firms/'.$firm->id().'/edit');
+        $crawler = $this->client->request('GET', '/settings/firm');
         self::assertSame('multipart/form-data', $crawler->filter('main form')->last()->attr('enctype'));
         self::assertSame('image/png,image/jpeg', $crawler->filter('#logo')->attr('accept'));
         self::assertSelectorNotExists('#removeLogo');
 
         $this->saveFirm($firm, ['logo' => $this->upload($this->png(), 'logo.png')]);
-        $this->client->request('GET', '/settings/firms/'.$firm->id().'/edit');
+        $this->client->request('GET', '/settings/firm');
         self::assertSelectorExists('#removeLogo');
         self::assertSelectorNotExists('#removeStamp');
     }
@@ -322,7 +322,7 @@ final class FirmLogoTest extends WebTestCase
         $bytes = $this->png();
         $this->saveFirm($firm, ['stamp' => $this->upload($bytes, 'stamp.png')]);
 
-        $this->client->request('GET', '/settings/firms/'.$firm->id().'/edit');
+        $this->client->request('GET', '/settings/firm');
 
         self::assertStringNotContainsString(hash('sha256', $bytes), (string) $this->client->getResponse()->getContent());
     }
@@ -467,9 +467,9 @@ final class FirmLogoTest extends WebTestCase
      */
     private function saveFirm(LegalEntity $firm, array $files, array $values = []): void
     {
-        $crawler = $this->client->request('GET', '/settings/firms/'.$firm->id().'/edit');
+        $crawler = $this->client->request('GET', '/settings/firm');
         $form = $crawler->filter('main form')->last()->form();
-        $this->client->request('POST', '/settings/firms/'.$firm->id().'/edit', $values + $form->getPhpValues(), $files);
+        $this->client->request('POST', '/settings/firm', $values + $form->getPhpValues(), $files);
     }
 
     private function upload(string $bytes, string $name): UploadedFile

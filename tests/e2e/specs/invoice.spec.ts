@@ -798,7 +798,7 @@ test.describe.serial('an invoice', () => {
     await expect(link).toBeVisible();
     await page.screenshot({ path: `${SHOTS}/error-links.png`, fullPage: true });
     const [tab] = await Promise.all([context.waitForEvent('page'), link.click()]);
-    await expect(tab).toHaveURL(/\/settings\/firms\/[0-9a-f-]+\/edit$/);
+    await expect(tab).toHaveURL(/\/settings\/firm$/);
     await tab.close();
     await expect(page.locator('#lines-0-text')).toHaveValue('Zůstane');
     for (const anchor of await page.locator('[data-error-summary] a[data-error-link]:not([target])').all()) {

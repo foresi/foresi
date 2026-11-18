@@ -68,7 +68,7 @@ nav:
     advances: Advance invoices
     tax_documents: Tax documents
     corrections: Corrective documents
-    firms: My firms
+    firm: Firm
     import: Import and export
     sent_mail: Sent e-mails
     recurring: Recurring invoices
@@ -343,31 +343,14 @@ format:
   date: 'Y-m-d'
   datetime: 'Y-m-d H:i'
 firm:
-  title: My firms
-  new: New firm
-  edit: Edit firm
-  views: Firm views
+  title: Firm
+  new: Set up the firm
   sections: Firm sections
   tab:
     details: Details
     invoicing: Invoicing
     mail: E-mail
     bank: Bank
-  empty:
-    title: No firms yet
-    text: Your own companies that issue documents.
-  empty_view:
-    title: Nothing here
-    text: None of your own firms is in this view.
-  view:
-    active: Active
-    archived: Archived
-  summary: '{total, plural, one {# firm} other {# firms}}'
-  column:
-    name: Name
-    registration: Reg. no.
-    vat: VAT ID
-    vat_status: VAT status
   card:
     tax: VAT
     seat: Registered office
@@ -390,21 +373,14 @@ firm:
     registered: VAT payer
     not_registered: Non-payer
     identified_person: Identified person
-  confirm:
-    archive: 'Archive firm {name}?'
-    archive_text: An archived firm cannot be restored.
-    archive_accept: Archive firm
-    archive_cancel: Keep firm
   flash:
     created: The firm is saved.
     updated: The changes are saved.
-    archived: The firm is archived.
   error:
     registration_taken: Another firm already has this registration number.
     vat_status: Choose the VAT status.
     vat_id_required: Enter the VAT ID of this firm.
     save_failed: The firm could not be saved. Check the details and try again.
-    last_active: The last active firm cannot be archived.
     one_per_instance: Foresi keeps one firm per instance. Another firm needs an instance of its own.
     image_type: Upload a PNG or JPEG image.
     image_size: The image must be 1 MB or smaller.

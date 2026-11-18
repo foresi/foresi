@@ -34,7 +34,7 @@
 
     {% if noAccounts %}
         <twig:Ui:EmptyState icon="landmark" :title="'bank.movement.empty.no_accounts_title'|trans" :text="'bank.movement.empty.no_accounts_text'|trans">
-            <twig:Ui:Button :href="path('app_firm_index')">{{ 'bank.movement.empty.no_accounts_link'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button :href="path('app_firm_bank')">{{ 'bank.movement.empty.no_accounts_link'|trans }}</twig:Ui:Button>
         </twig:Ui:EmptyState>
     {% else %}
         <div class="grid grid-cols-1 gap-4">

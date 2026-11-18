@@ -71,8 +71,7 @@ test.describe('e-mail settings', () => {
   test.use({ storageState: INVOICING_OWNER_STATE });
 
   async function open(page: Page, tab: string): Promise<void> {
-    await page.goto('/settings/firms');
-    await page.getByRole('link', { name: 'Example Payer s.r.o.', exact: true }).click();
+    await page.goto('/settings/firm');
     await page.getByRole('navigation', { name: 'Části firmy' }).getByRole('link', { name: 'E-maily' }).click();
     await page.waitForURL(/\/mail$/);
     if (tab === 'Poštovní server') {

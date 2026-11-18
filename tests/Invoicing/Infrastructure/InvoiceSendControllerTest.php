@@ -228,7 +228,7 @@ final class InvoiceSendControllerTest extends WebTestCase
         self::assertSame('false', $crawler->filter('dialog')->attr('data-dialog-fields-value'));
         self::assertStringContainsString('The firm has no mail server', $crawler->filter('dialog')->text());
         self::assertSame('dialog#dismiss', $crawler->filter('footer button')->attr('data-action'));
-        self::assertSame('/settings/firms/'.$this->firm->id().'/mail?tab=server', $crawler->filter('footer a')->attr('href'));
+        self::assertSame('/settings/firm/mail?tab=server', $crawler->filter('footer a')->attr('href'));
     }
 
     public function testADraftIsInTheDocumentLanguage(): void
@@ -463,7 +463,7 @@ final class InvoiceSendControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists('form #subject');
         self::assertSelectorTextContains('main', 'The firm has no mail server');
-        self::assertSame('/settings/firms/'.$this->firm->id().'/mail?tab=server', $crawler->selectLink('Set up the mail server')->attr('href'));
+        self::assertSame('/settings/firm/mail?tab=server', $crawler->selectLink('Set up the mail server')->attr('href'));
     }
 
     public function testAMemberSeesNoLinkToTheOwnersSettings(): void

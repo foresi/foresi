@@ -461,9 +461,9 @@ final class RecurringFormController extends AbstractController
         foreach ($errors as $error) {
             $errorFields[$error['id']] = $error['message'];
         }
-        $firmUrl = $this->generateUrl('app_firm_edit', ['id' => $firm->id()]);
+        $firmUrl = $this->generateUrl('app_firm');
         // Accounts are kept on the firm's bank tab, which only an owner may open.
-        $bankUrl = $this->owner->isOwner() ? $this->generateUrl('app_firm_bank', ['id' => $firm->id()]) : null;
+        $bankUrl = $this->owner->isOwner() ? $this->generateUrl('app_firm_bank') : null;
         $bankAccounts = $this->options->bankAccounts($firm, $template?->bankAccount());
         $targets = new InvoiceErrorTargets($context->isPayer(), false, [] !== $bankAccounts, '' !== $values['customerId'], $firmUrl, $bankUrl);
         $links = array_map(fn (array $error): array => $error + ['link' => \in_array($error['id'], self::WITHOUT_LINK, true) ? null : $targets->of($error['id'], $error['key'])], $errors);
