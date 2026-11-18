@@ -75,10 +75,7 @@
                                         {% elseif entry.editable or entry.deletable %}
                                             <div class="flex shrink-0 items-center gap-1">
                                                 {% if entry.editable %}<twig:Ui:IconButton icon="pencil" size="sm" variant="ghost" :label="'work.time.edit_label'|trans({date: entry.date})" :href="entry.editUrl" data-dialog aria-haspopup="dialog" data-time-edit />{% endif %}
-                                                <form method="post" action="{{ path('app_time_delete', {id: entry.id}) }}"
-                                                      data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
-                                                      data-confirm-title="{{ 'work.time.delete_confirm.title'|trans }}" data-confirm-text="{{ 'work.time.delete_confirm.text'|trans }}"
-                                                      data-confirm-accept="{{ 'work.time.delete'|trans }}" data-confirm-cancel="{{ 'work.cancel'|trans }}" data-confirm-tone="danger" data-time-delete>
+                                                <form method="post" action="{{ path('app_time_delete', {id: entry.id}) }}" data-time-delete>
                                                     <input type="hidden" name="_token" value="{{ timeToken }}">
                                                     <input type="hidden" name="return" value="{{ here }}">
                                                     <twig:Ui:IconButton type="submit" icon="trash-2" size="sm" variant="ghost" :label="'work.time.delete_label'|trans({date: entry.date})" />

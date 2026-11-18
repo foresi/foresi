@@ -205,12 +205,12 @@ final class ManageTimeTest extends WorkTestCase
         self::assertSame([null, 50], [$mine->task(), $mine->minutes()]);
         $this->time->delete($mine->id());
 
-        // Deleting a running timer discards it.
+        // Deleting a running timer stops it and puts it in the trash.
         $this->signIn($this->member);
         $this->time->delete($timer->id());
         $this->em->clear();
-        self::assertNull($this->em->find(TimeEntry::class, $mine->id()));
-        self::assertNull($this->em->find(TimeEntry::class, $timer->id()));
+        self::assertTrue($this->em->find(TimeEntry::class, $mine->id())?->isDeleted());
+        self::assertTrue($this->em->find(TimeEntry::class, $timer->id())?->isDeleted());
         self::assertNull($this->timeQueries->running());
     }
 
@@ -260,7 +260,7 @@ final class ManageTimeTest extends WorkTestCase
         $underTask = array_values(array_filter($trail->rootHistory(Task::class, $this->task->id()), static fn (AuditEntry $entry): bool => TimeEntry::class === $entry->entityClass()));
         $underProject = array_values(array_filter($trail->rootHistory(Project::class, $this->project->id()), static fn (AuditEntry $entry): bool => TimeEntry::class === $entry->entityClass()));
         self::assertSame([[$onTask->id(), AuditAction::Created]], array_map(static fn (AuditEntry $entry): array => [$entry->entityId(), $entry->action()], $underTask));
-        self::assertSame([[$onProject->id(), AuditAction::Created], [$onProject->id(), AuditAction::Deleted]], array_map(static fn (AuditEntry $entry): array => [$entry->entityId(), $entry->action()], $underProject));
+        self::assertSame([[$onProject->id(), AuditAction::Created], [$onProject->id(), AuditAction::Updated]], array_map(static fn (AuditEntry $entry): array => [$entry->entityId(), $entry->action()], $underProject));
         self::assertContains('work.task.field.estimate', $this->taskHistoryFields());
     }
 

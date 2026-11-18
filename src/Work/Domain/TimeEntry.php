@@ -32,6 +32,10 @@ use Foresi\Shared\Domain\Money;
  * the invoice, the line, the rate it was billed at and the minutes billed,
  * rounded as the invoice took them; its own minutes stay as worked. An invoice
  * going to the trash releases its time, which is then unbilled again (Clockify).
+ *
+ * Deleting an entry puts it in the trash, from which it is restored or, after
+ * 30 days, removed for good (ClickUp). An entry in the trash counts nowhere and
+ * is never billed; invoiced time is never put there (Harvest).
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'time_entry')]
@@ -39,6 +43,7 @@ use Foresi\Shared\Domain\Money;
 #[ORM\Index(name: 'idx_time_entry_task', columns: ['task_id'])]
 #[ORM\Index(name: 'idx_time_entry_membership', columns: ['membership_id', 'worked_on'])]
 #[ORM\Index(name: 'idx_time_entry_invoice', columns: ['invoice_id'])]
+#[ORM\Index(name: 'idx_time_entry_deleted', columns: ['project_id', 'deleted_at'])]
 #[ORM\UniqueConstraint(name: 'uniq_time_entry_running', columns: ['running_for'])]
 class TimeEntry implements Audited, AuditRooted
 {
@@ -89,6 +94,13 @@ class TimeEntry implements Audited, AuditRooted
     /** The minutes billed: the minutes worked, rounded up as the invoice asked. */
     #[ORM\Column(name: 'invoiced_minutes', type: 'integer', nullable: true)]
     private ?int $invoicedMinutes = null;
+
+    #[ORM\Column(name: 'deleted_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $deletedAt = null;
+
+    /** The user who put the entry in the trash. */
+    #[ORM\Column(name: 'deleted_by', type: 'guid', nullable: true)]
+    private ?string $deletedBy = null;
 
     private function __construct(
         #[ORM\ManyToOne(targetEntity: Project::class)]
@@ -209,6 +221,9 @@ class TimeEntry implements Audited, AuditRooted
         if ($this->isInvoiced()) {
             throw new \DomainException('An invoiced entry cannot be changed.');
         }
+        if ($this->isDeleted()) {
+            throw new \DomainException('An entry in the trash is restored before it is changed.');
+        }
         $note = self::checkedNote($note);
         $this->moveToTask($task);
         $this->time($minutes, $startedAt, $endedAt);
@@ -221,10 +236,13 @@ class TimeEntry implements Audited, AuditRooted
      * Billed on the line of the invoice, at the rate, for the minutes: those
      * worked or more, as rounding up makes them.
      *
-     * @throws \DomainException when the timer runs, the entry is invoiced already or fewer minutes are billed than worked
+     * @throws \DomainException when the timer runs, the entry is invoiced already or in the trash, or fewer minutes are billed than worked
      */
     public function invoice(string $invoiceId, string $lineId, Money $rate, int $minutes): void
     {
+        if ($this->isDeleted()) {
+            throw new \DomainException('An entry in the trash is not invoiced.');
+        }
         // Only a running timer has no minutes.
         if (null === $this->minutes) {
             throw new \DomainException('A running timer is not invoiced.');
@@ -275,6 +293,46 @@ class TimeEntry implements Audited, AuditRooted
     public function leaveTask(): void
     {
         $this->task = null;
+    }
+
+    /**
+     * Puts the entry in the trash; a running timer is stopped first, so what
+     * comes back is the time it ran. Trashing it again changes nothing.
+     *
+     * @throws \DomainException when the entry is invoiced
+     */
+    public function trash(string $userId, \DateTimeImmutable $now): void
+    {
+        if ($this->isInvoiced()) {
+            throw new \DomainException('Invoiced time is not put in the trash.');
+        }
+        if ($this->isDeleted()) {
+            return;
+        }
+        $this->stop($now);
+        $this->deletedAt = $now;
+        $this->deletedBy = $userId;
+    }
+
+    public function restore(): void
+    {
+        $this->deletedAt = null;
+        $this->deletedBy = null;
+    }
+
+    public function isDeleted(): bool
+    {
+        return $this->deletedAt instanceof \DateTimeImmutable;
+    }
+
+    public function deletedAt(): ?\DateTimeImmutable
+    {
+        return $this->deletedAt;
+    }
+
+    public function deletedBy(): ?string
+    {
+        return $this->deletedBy;
     }
 
     public function isRunning(): bool

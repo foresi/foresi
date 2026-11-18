@@ -32,11 +32,13 @@ use Foresi\Work\Application\TaskRow;
 use Foresi\Work\Application\TimeQueries;
 use Foresi\Work\Application\TimeTarget;
 use Foresi\Work\Application\TrashedTask;
+use Foresi\Work\Application\TrashedTime;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Domain\Priority;
 use Foresi\Work\Domain\StatusType;
 use Foresi\Work\Domain\WorkflowTemplate;
+use Foresi\Work\Infrastructure\Twig\TimeFunctions;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -88,6 +90,7 @@ final class ProjectController extends AbstractController
         private readonly TimeQueries $time,
         private readonly OwnerCheck $owner,
         private readonly InlineTaskEdits $edits,
+        private readonly TimeFunctions $timeFormat,
     ) {
     }
 
@@ -201,7 +204,7 @@ final class ProjectController extends AbstractController
             ],
             'dues' => $this->dues(),
             'columns' => $this->taskColumns(),
-            'trashCount' => $this->queries->trashCount($id),
+            'trashCount' => $this->queries->trashCount($id) + $this->time->trashCount($id),
             'timeLoggable' => $this->time->projectTarget($id) instanceof TimeTarget,
             // Only an owner sees rates, so only an owner sees the actions that bill time.
             'timeBilling' => $this->owner->isOwner(),
@@ -248,15 +251,18 @@ final class ProjectController extends AbstractController
     }
 
     /**
-     * The tasks deleted from the project, the last first: those deleted with
-     * their task are restored with it, so only it is listed. Restoring is
-     * offered to whom may restore each one.
+     * The tasks and the time deleted from the project, the last first: the
+     * subtasks deleted with their task are restored with it, so only it is
+     * listed. Restoring is offered to whom may restore each one.
      */
     #[Route('/projects/{id}/trash', name: self::TRASH_ROUTE, requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
     public function trash(string $id): Response
     {
         $this->denyUnlessStaff();
         $trash = $this->queries->trash($id) ?? throw new NotFoundHttpException();
+        $here = $this->generateUrl(self::TRASH_ROUTE, ['id' => $id]);
+        $deletedBy = ['key' => 'deletedBy', 'label' => $this->translator->trans('work.trash.column.deleted_by'), 'truncate' => true, 'phone' => false];
+        $deletedAt = ['key' => 'deletedAt', 'label' => $this->translator->trans('work.trash.column.deleted_at')];
 
         return $this->render('@Work/projects/trash.html.twig', [
             'project' => $trash->project,
@@ -264,8 +270,8 @@ final class ProjectController extends AbstractController
             'columns' => [
                 ['key' => 'title', 'label' => $this->translator->trans('work.task.field.title'), 'truncate' => true],
                 ['key' => 'parent', 'label' => $this->translator->trans('work.trash.column.parent'), 'truncate' => true, 'phone' => false],
-                ['key' => 'deletedBy', 'label' => $this->translator->trans('work.trash.column.deleted_by'), 'truncate' => true, 'phone' => false],
-                ['key' => 'deletedAt', 'label' => $this->translator->trans('work.trash.column.deleted_at')],
+                $deletedBy,
+                $deletedAt,
             ],
             'rows' => array_map(fn (TrashedTask $task): array => [
                 'id' => $task->id,
@@ -285,6 +291,34 @@ final class ProjectController extends AbstractController
                     'fields' => ['from' => 'trash', 'project' => $trash->project->id],
                 ]] : [],
             ], $trash->tasks),
+            'timeColumns' => [
+                ['key' => 'workedOn', 'label' => $this->translator->trans('work.time.trash.column.worked_on')],
+                ['key' => 'person', 'label' => $this->translator->trans('work.time.trash.column.person'), 'truncate' => true, 'phone' => false],
+                ['key' => 'duration', 'label' => $this->translator->trans('work.time.trash.column.duration'), 'align' => 'right'],
+                ['key' => 'task', 'label' => $this->translator->trans('work.time.trash.column.task'), 'truncate' => true, 'phone' => false],
+                $deletedBy,
+                $deletedAt,
+            ],
+            'timeRows' => array_map(fn (TrashedTime $time): array => [
+                'id' => $time->id,
+                'label' => $this->timeFormat->duration($time->minutes).' · '.$time->workedOn->format($this->translator->trans('format.date')),
+                'secondary' => $time->taskTitle,
+                'cells' => [
+                    'workedOn' => $time->workedOn->format($this->translator->trans('format.date')),
+                    'person' => $time->personName,
+                    'duration' => $this->timeFormat->duration($time->minutes),
+                    'task' => $time->taskTitle,
+                    'deletedBy' => $time->deletedByName,
+                    'deletedAt' => $time->deletedAt->format($this->translator->trans('format.datetime')),
+                ],
+                'actions' => $time->restorable ? [[
+                    'label' => $this->translator->trans('work.trash.restore'),
+                    'href' => $this->generateUrl('app_time_restore', ['id' => $time->id]),
+                    'method' => 'POST',
+                    'icon' => 'archive-restore',
+                    'fields' => ['return' => $here],
+                ]] : [],
+            ], $this->time->trash($id)),
         ]);
     }
 
