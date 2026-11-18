@@ -447,7 +447,7 @@ export default class extends Controller {
 
     async submit(event) {
         const form = event.target;
-        // A form's own controller may stop a submit (a second click on Save).
+        // A form's own controller may hold its submit back: confirm-submit until the answer, a second click on Save.
         if (!this.remoteValue || !(form instanceof HTMLFormElement) || event.defaultPrevented) {
             return;
         }

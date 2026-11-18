@@ -141,7 +141,11 @@ test.describe.serial('sending an invoice', () => {
     }
 
     await page.setViewportSize(DESKTOP);
+    // The history of a send is a small record: it opens in a modal over the log; its page is a step away.
     await page.locator('tbody tr').getByRole('link', { name: '20260002' }).click();
+    const modal = page.getByRole('dialog', { name: 'Historie faktury 20260002' });
+    await expect(modal.locator('[data-send-entry]')).toContainText('SMTP 550');
+    await modal.getByRole('link', { name: 'Otevřít jako stránku' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Historie faktury 20260002' })).toBeVisible();
     const entry = page.locator('[data-send-entry]');
     await expect(entry).toContainText('refuse@example.com');

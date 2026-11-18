@@ -87,7 +87,7 @@ final class IdokladImportController extends AbstractController
 
         return $this->render('idoklad/firms.html.twig', [
             'columns' => [['key' => 'name', 'label' => $this->translator->trans('idoklad.firms.column.name')]],
-            'rows' => array_map(fn (LegalEntity $firm): array => ['id' => $firm->id(), 'href' => $this->generateUrl('app_idoklad', ['id' => $firm->id()]), 'cells' => ['name' => $firm->name()]], $firms),
+            'rows' => array_map(fn (LegalEntity $firm): array => ['id' => $firm->id(), 'href' => $this->generateUrl('app_idoklad', ['id' => $firm->id()]), 'opens' => 'page', 'cells' => ['name' => $firm->name()]], $firms),
         ]);
     }
 

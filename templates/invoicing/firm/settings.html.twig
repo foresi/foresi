@@ -17,7 +17,7 @@
         <section class="grid grid-cols-1 gap-3">
             <div class="flex items-center justify-between gap-2">
                 <h2 class="m-0 text-body font-semibold text-ink">{{ 'series.title'|trans }}</h2>
-                <twig:Ui:Button size="sm" icon="plus" :href="path('app_series_new', {id: firm.id})">{{ 'series.new'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button size="sm" icon="plus" :href="path('app_series_new', {id: firm.id})" data-dialog aria-haspopup="dialog">{{ 'series.new'|trans }}</twig:Ui:Button>
             </div>
             {% if rows is empty %}
                 <twig:Ui:Card><p class="m-0 text-small text-muted">{{ 'series.first'|trans({number: firstNumber}) }}</p></twig:Ui:Card>

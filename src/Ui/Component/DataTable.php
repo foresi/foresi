@@ -12,7 +12,7 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, opens: string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string}>, avatar: ?array{name: string, seed: string}, badges: list<array{label: string, tone: string}>, flag: ?array{label: string, tone: string, icon: ?string}, edit: ?array<array-key, mixed>}
+ * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, opens: string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string, opens: string}>, avatar: ?array{name: string, seed: string}, badges: list<array{label: string, tone: string}>, flag: ?array{label: string, tone: string, icon: ?string}, edit: ?array<array-key, mixed>}
  * @phpstan-type Confirm array{title: string, text: ?string, accept: ?string, cancel: ?string, tone: ?string}
  * @phpstan-type Action array{label: string, href: string, method: string, confirm: ?Confirm, icon: ?string, plain: bool, dialog: bool, fields: array<string, string>}
  * @phpstan-type RowAlert array{text: string, column: string, href: ?string, action: ?string}
@@ -50,7 +50,7 @@ final class DataTable
     /**
      * @var list<array<string, mixed>> each with cells keyed by column key, optional id, href, plain (the link leaves Turbo), label,
      *                                 opens (sheet, dialog or page: where the row's
-     *                                 record opens, docs/design/overlays.md; page by default), selected, child (a row under the row before it, such as a subtask: its first cell
+     *                                 record opens, docs/design/overlays.md; the sheet by default, a page for a plain row), selected, child (a row under the row before it, such as a subtask: its first cell
      *                                 indented, its text smaller), unread (true marks a row not read yet, as an inbox
      *                                 does: a dot before the first cell, said to a screen reader too, and its link in
      *                                 bold; false keeps the room of the dot and sets the link in normal weight), secondary (the line a phone shows under the first cell), alert (what went wrong
@@ -233,7 +233,9 @@ final class DataTable
         $href = isset($row['href']) && is_string($row['href']) ? $row['href'] : null;
         Style::href($href);
         $plain = true === ($row['plain'] ?? false);
-        $opens = $row['opens'] ?? self::OPENS_PAGE;
+        // A row opens its record in the side sheet over the list unless it says otherwise; a plain
+        // row leaves Turbo, so it is a page (docs/design/overlays.md).
+        $opens = $row['opens'] ?? ($plain ? self::OPENS_PAGE : self::OPENS_SHEET);
         if (!in_array($opens, self::OPENS, true)) {
             throw new \InvalidArgumentException(sprintf('A row opens as one of: %s.', implode(', ', self::OPENS)));
         }
@@ -459,7 +461,7 @@ final class DataTable
     }
 
     /**
-     * @return list<array{text: string, href: string}>
+     * @return list<array{text: string, href: string, opens: string}>
      */
     private function links(mixed $links): array
     {
@@ -473,7 +475,12 @@ final class DataTable
             }
             $href = Style::requireString($link, 'href', 'A link of a cell');
             Style::href($href);
-            $views[] = ['text' => Style::requireString($link, 'text', 'A link of a cell'), 'href' => $href];
+            // A chip opens its record where it says (sheet, dialog or page, the default), as a row does.
+            $opens = $link['opens'] ?? self::OPENS_PAGE;
+            if (!in_array($opens, self::OPENS, true)) {
+                throw new \InvalidArgumentException(sprintf('A link of a cell opens as one of: %s.', implode(', ', self::OPENS)));
+            }
+            $views[] = ['text' => Style::requireString($link, 'text', 'A link of a cell'), 'href' => $href, 'opens' => $opens];
         }
 
         return $views;

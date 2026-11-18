@@ -17,6 +17,7 @@ use Foresi\Invoicing\Application\UnsupportedCountry;
 use Foresi\Invoicing\Domain\SendPurpose;
 use Foresi\Invoicing\Domain\SendStatus;
 use Foresi\Invoicing\Infrastructure\Form\SendFailureText;
+use Foresi\Ui\Component\DataTable;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -154,6 +155,8 @@ final class SendLogController extends AbstractController
         return [
             'id' => $row->sendId,
             'href' => $this->generateUrl('app_invoice_history', $id),
+            // The history of a send is a small record: it opens in a modal over the log (docs/design/overlays.md).
+            'opens' => DataTable::OPENS_DIALOG,
             'label' => $row->documentNumber,
             'secondary' => implode(' · ', array_filter([$reminder ? $purpose : null, $when, $recipients, $error], static fn (?string $part): bool => null !== $part && '' !== $part)),
             'cells' => $cells,

@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Work\Infrastructure\Controller;
 
 use Foresi\Identity\Application\StaffCheck;
+use Foresi\Ui\Component\DataTable;
 use Foresi\Work\Application\LabelBadge;
 use Foresi\Work\Application\ManageLabels;
 use Foresi\Work\Application\WorkQueries;
@@ -153,6 +154,8 @@ final class LabelController extends AbstractController
         return [
             'id' => $label->id,
             'href' => $edit,
+            // A label is a small record: it opens in a modal over the list (docs/design/overlays.md).
+            'opens' => DataTable::OPENS_DIALOG,
             'label' => $label->name,
             'cells' => [
                 'name' => $label->name,

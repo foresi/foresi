@@ -367,6 +367,8 @@ final readonly class IdokladScreens
             $rows[] = ['at' => $run->startedAt(), 'row' => [
                 'id' => $run->id(),
                 'href' => $this->urls->generate('app_idoklad_run', ['id' => $firm->id(), 'run' => $run->id()]),
+                // A run is a small record: it opens in a modal over the history (docs/design/overlays.md).
+                'opens' => 'dialog',
                 'label' => $label,
                 'cells' => [
                     'when' => $this->dateTime($run->startedAt()),
