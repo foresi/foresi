@@ -191,7 +191,8 @@ final class ProjectSettingsControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/projects/'.$id.'/settings');
         self::assertCount(0, $crawler->filter('#rate, [data-project-rate]'));
-        self::assertStringNotContainsString('1500', (string) $this->client->getResponse()->getContent());
+        // Only the visible text: tokens and ids in the markup can contain these digits by chance.
+        self::assertDoesNotMatchRegularExpression('/1[\s\x{a0}\x{202f}]?500/u', $crawler->filter('main')->text());
 
         $token = $crawler->filter('#project-settings-form input[name="_token"]')->attr('value');
         $this->client->request('POST', '/projects/'.$id.'/settings', ['_token' => $token, 'name' => 'Website', 'rate' => '1', 'rateCurrency' => 'USD']);
