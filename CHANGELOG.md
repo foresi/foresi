@@ -4,9 +4,11 @@ All notable changes to Foresi are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and Foresi adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+This file ends at 0.5.0. Since then every merged change that users notice is released on its own, and its notes are on the [GitHub releases](https://github.com/foresi/foresi/releases) and at [foresi.app](https://foresi.app/).
 
-Planned as 0.5.0: the first release with invoices.
+## [0.5.0] - 2026-11-18
+
+The first release with invoices.
 
 ### Upgrading
 
