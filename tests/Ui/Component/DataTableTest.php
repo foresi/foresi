@@ -316,6 +316,34 @@ final class DataTableTest extends KernelTestCase
         return (string) $this->renderTwigComponent('Ui:DataTable', $props + ['columns' => self::COLUMNS, 'rows' => $this->rows(), 'caption' => 'Contacts'], null, $blocks);
     }
 
+    public function testWithoutWidthsTheTableHasNoColgroup(): void
+    {
+        self::assertCount(0, new Crawler($this->render())->filter('colgroup'));
+    }
+
+    public function testColumnWidthsGoInAColgroupFromTheSmBreakpointUp(): void
+    {
+        $columns = self::COLUMNS;
+        $columns[0]['width'] = 160;
+        $columns[1]['phone'] = false;
+        $cols = new Crawler($this->render(['columns' => $columns]))->filter('colgroup col');
+
+        self::assertCount(3, $cols);
+        self::assertSame('--col-w: 160px', $cols->eq(0)->attr('style'));
+        self::assertContains('sm:w-(--col-w)', explode(' ', (string) $cols->eq(0)->attr('class')));
+        self::assertNull($cols->eq(1)->attr('style'));
+        self::assertContains('max-sm:hidden', explode(' ', (string) $cols->eq(1)->attr('class')));
+    }
+
+    public function testRefusesAWidthThatIsNotAPositiveNumber(): void
+    {
+        $columns = self::COLUMNS;
+        $columns[0]['width'] = '160px';
+
+        $this->expectException(\Throwable::class);
+        $this->render(['columns' => $columns]);
+    }
+
     public function testListRowsAre56PxDenseRows44AndTheHeader44OnTheTint(): void
     {
         $list = new Crawler($this->render());

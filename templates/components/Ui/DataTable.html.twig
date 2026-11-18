@@ -23,6 +23,16 @@
             <div class="overflow-x-auto">
                 <table class="w-full border-collapse">
                     <caption class="sr-only">{{ caption ?: 'ui.table.caption'|trans }}</caption>
+                    {#- The widths a view gives its columns, from the sm breakpoint up; a column with none sizes to its content. A col leaves the table where its column does, so the rest keep their place. -#}
+                    {% if this.hasWidths %}
+                        <colgroup>
+                            {%- if selectable %}<col class="w-12">{% endif -%}
+                            {%- for column in this.columnViews -%}
+                                <col{% if column.width %} style="--col-w: {{ column.width }}px"{% endif %} class="{{ column.width ? 'sm:w-(--col-w)' : '' }}{{ column.phone ? '' : ' max-sm:hidden' }}{{ column.wide ? ' max-xl:hidden' : '' }}" data-column="{{ column.key }}">
+                            {%- endfor -%}
+                            {%- if this.hasActions %}<col>{% endif -%}
+                        </colgroup>
+                    {% endif %}
                     <thead>
                         <tr>
                             {% if selectable %}

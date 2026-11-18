@@ -35,9 +35,11 @@ use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\RegistryCheck;
 use Foresi\Party\Domain\RegistryResult;
 use Foresi\Party\Domain\VatId;
+use Foresi\Party\Infrastructure\Column\ContactColumns;
 use Foresi\Party\Infrastructure\Form\PartySubmissionReader;
 use Foresi\Party\Infrastructure\Http\WebsiteLink;
 use Foresi\Shared\Domain\Id;
+use Foresi\Ui\Column\ListColumnRegistry;
 use Foresi\Ui\Component\DataTable;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -85,6 +87,8 @@ final class PartyController extends AbstractController
         private readonly Imports $imports,
         #[Autowire(service: 'limiter.party_refresh_checks')]
         private readonly RateLimiterFactory $refreshLimiter,
+        private readonly ListColumnRegistry $listColumns,
+        private readonly ContactColumns $contactColumns,
     ) {
     }
 
@@ -398,27 +402,7 @@ final class PartyController extends AbstractController
      */
     private function columns(string $sort, array $query): array
     {
-        $columns = [];
-        foreach (['name' => true, 'kind' => true, 'roles' => false, 'registration' => true, 'vat' => true, 'email' => false, 'status' => false] as $key => $sortable) {
-            // The name and the e-mail give way, cut short with their full text in a title. A phone
-            // shows the name and the state; the rest goes in the line under the name.
-            $column = [
-                'key' => $key,
-                'label' => $this->translator->trans('party.column.'.$key),
-                'truncate' => \in_array($key, ['name', 'email'], true),
-                'phone' => \in_array($key, ['name', 'status'], true),
-            ];
-            if ($sortable) {
-                $column += [
-                    'sortable' => true,
-                    'sort' => $sort === $key ? 'asc' : ($sort === '-'.$key ? 'desc' : null),
-                    'href' => $this->generateUrl('app_contacts', ['sort' => $sort === $key ? '-'.$key : $key, 'page' => null] + $query),
-                ];
-            }
-            $columns[] = $column;
-        }
-
-        return $columns;
+        return $this->listColumns->display(ContactColumns::LIST)->table($sort, fn (string $next): string => $this->generateUrl('app_contacts', ['sort' => $next, 'page' => null] + $query));
     }
 
     /**
@@ -426,14 +410,10 @@ final class PartyController extends AbstractController
      */
     private function rows(PartyPage $page): array
     {
-        return array_map(function (PartyRow $row): array {
-            $status = match (true) {
-                $row->unreliablePayer => ['label' => $this->translator->trans('registry.result.unreliable'), 'tone' => 'red'],
-                $row->archived => ['label' => $this->translator->trans('party.archived'), 'tone' => 'gray'],
-                default => null,
-            };
+        $display = $this->listColumns->display(ContactColumns::LIST);
 
-            $roles = implode(', ', array_map(fn (PartyRole $role): string => $this->translator->trans('party.role.'.$role->value), $row->roles));
+        return array_map(function (PartyRow $row) use ($display): array {
+            $cells = $display->cells($row);
 
             return [
                 'id' => $row->id,
@@ -441,16 +421,8 @@ final class PartyController extends AbstractController
                 'href' => $this->generateUrl('app_contact_show', ['id' => $row->id]),
                 // The contact opens in the side sheet over the list (docs/design/overlays.md).
                 'opens' => DataTable::OPENS_SHEET,
-                'secondary' => implode(' · ', array_filter([$roles, $row->registrationNumber, $row->email], static fn (?string $part): bool => null !== $part && '' !== $part)),
-                'cells' => [
-                    'name' => $row->displayName,
-                    'kind' => $this->translator->trans('party.kind.'.$row->kind->value),
-                    'roles' => $roles,
-                    'registration' => $row->registrationNumber,
-                    'vat' => $row->vatId,
-                    'email' => $row->email,
-                    'status' => $status,
-                ],
+                'secondary' => implode(' · ', array_filter([$this->contactColumns->roles($row), $row->registrationNumber, $row->email], static fn (?string $part): bool => null !== $part && '' !== $part)),
+                'cells' => $cells,
             ];
         }, $page->rows);
     }
