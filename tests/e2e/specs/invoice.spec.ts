@@ -523,6 +523,8 @@ test.describe.serial('an invoice', () => {
 
     await page.goto('/contacts?q=Example%20Vendor');
     await page.getByRole('link', { name: 'Example Vendor' }).first().click();
+    // The contact opens in the side sheet with its own URL.
+    await expect(page).toHaveURL(/\/contacts\/[0-9a-f-]{36}$/);
     await page.goto(`${page.url()}/edit`);
     await expect(page.locator('input[type=checkbox][value=customer]:checked')).not.toHaveCount(0);
   });
