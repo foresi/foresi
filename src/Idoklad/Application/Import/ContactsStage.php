@@ -6,25 +6,25 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application\Import;
+namespace Foresi\Idoklad\Application\Import;
 
-use App\Idoklad\Domain\IdokladResource;
-use App\Idoklad\Domain\ImportOutcome;
-use App\Import\Application\Target\ImportTarget;
-use App\Import\Application\Target\RecordMatch;
-use App\Import\Application\Target\TargetRegistry;
-use App\Import\Domain\BlankCells;
-use App\Import\Domain\FieldDefinition;
-use App\Import\Domain\NormalisationOptions;
-use App\Import\Domain\RowError;
-use App\Import\Domain\ValueNormaliser;
-use App\Party\Application\ContactSettingsForFirm;
-use App\Party\Application\ImportPartyValues;
-use App\Party\Application\PartyDetails;
-use App\Party\Application\PartyQuery;
-use App\Party\Domain\InvoicingDefaults;
-use App\Party\Domain\Party;
-use App\Shared\Domain\Countries;
+use Foresi\Idoklad\Domain\IdokladResource;
+use Foresi\Idoklad\Domain\ImportOutcome;
+use Foresi\Import\Application\Target\ImportTarget;
+use Foresi\Import\Application\Target\RecordMatch;
+use Foresi\Import\Application\Target\TargetRegistry;
+use Foresi\Import\Domain\BlankCells;
+use Foresi\Import\Domain\FieldDefinition;
+use Foresi\Import\Domain\NormalisationOptions;
+use Foresi\Import\Domain\RowError;
+use Foresi\Import\Domain\ValueNormaliser;
+use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Application\ImportPartyValues;
+use Foresi\Party\Application\PartyDetails;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Domain\InvoicingDefaults;
+use Foresi\Party\Domain\Party;
+use Foresi\Shared\Domain\Countries;
 
 /**
  * iDoklad contacts as Foresi contacts, written by the contact import target as
@@ -127,7 +127,7 @@ final readonly class ContactsStage implements ImportStage
             }
 
             $row = $this->reader->read($values);
-            $found = $this->find($target, $values, $byName[$this->fold($row->displayName)] ?? [], $row->registrationNumber instanceof \App\Party\Domain\RegistrationNumber);
+            $found = $this->find($target, $values, $byName[$this->fold($row->displayName)] ?? [], $row->registrationNumber instanceof \Foresi\Party\Domain\RegistrationNumber);
             if (\count($found) > 1) {
                 $this->refuse($context, $id, [new RowError('display_name', self::AMBIGUOUS, ['value' => $row->displayName])]);
 
@@ -245,7 +245,7 @@ final readonly class ContactsStage implements ImportStage
             return $parties;
         }
 
-        return array_values(array_filter($parties, static fn (Party $party): bool => !$registered || !$party->registrationNumber() instanceof \App\Party\Domain\RegistrationNumber));
+        return array_values(array_filter($parties, static fn (Party $party): bool => !$registered || !$party->registrationNumber() instanceof \Foresi\Party\Domain\RegistrationNumber));
     }
 
     /**
@@ -261,16 +261,16 @@ final readonly class ContactsStage implements ImportStage
         $has = [
             'display_name' => true,
             'due_days' => true,
-            'registration_number' => $party->registrationNumber() instanceof \App\Party\Domain\RegistrationNumber,
-            'vat_id' => $party->vatId() instanceof \App\Party\Domain\VatId,
-            'email' => $this->details->generalEmail($party) instanceof \App\Party\Domain\PartyEmail,
+            'registration_number' => $party->registrationNumber() instanceof \Foresi\Party\Domain\RegistrationNumber,
+            'vat_id' => $party->vatId() instanceof \Foresi\Party\Domain\VatId,
+            'email' => $this->details->generalEmail($party) instanceof \Foresi\Party\Domain\PartyEmail,
             'phone' => '' !== $party->phone(),
             'mobile' => '' !== $party->mobile(),
             'website' => '' !== $party->website(),
             'private_note' => '' !== $party->privateNote(),
         ];
         $billing = $this->details->billingAddress($party)?->address();
-        $has += array_fill_keys(self::BILLING, $billing instanceof \App\Party\Domain\Address && '' !== $billing->street.$billing->city.$billing->postalCode);
+        $has += array_fill_keys(self::BILLING, $billing instanceof \Foresi\Party\Domain\Address && '' !== $billing->street.$billing->city.$billing->postalCode);
         $has += array_fill_keys(self::BANK, [] !== $this->details->bankAccounts($party));
         $has += array_fill_keys(self::CONTACT_PERSON, [] !== $this->details->contactLinks($party));
 

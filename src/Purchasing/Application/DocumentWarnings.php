@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application;
+namespace Foresi\Purchasing\Application;
 
-use App\Attachment\Application\Attachments;
-use App\Attachment\Domain\Attachment;
-use App\Instance\Application\InstanceClock;
-use App\Party\Domain\Party;
-use App\Purchasing\Domain\ExchangeRate;
-use App\Purchasing\Domain\ReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocumentKind;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Attachment\Application\Attachments;
+use Foresi\Attachment\Domain\Attachment;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Party\Domain\Party;
+use Foresi\Purchasing\Domain\ExchangeRate;
+use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 
 /**
  * What a person should look at about a saved document, never a reason to

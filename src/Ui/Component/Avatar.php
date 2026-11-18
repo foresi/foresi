@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Ui\Component;
+namespace Foresi\Ui\Component;
 
-use App\Ui\Avatar as Initials;
+use Foresi\Ui\Avatar as Initials;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
  * A person as a circle with the initials of their name on a colour of the brand that "seed",
- * such as the user id, always picks the same (App\Ui\Avatar). A circle is a person and a
+ * such as the user id, always picks the same (Foresi\Ui\Avatar). A circle is a person and a
  * square is a project or a firm (Atlassian Avatar); the initials stand in for a photo
  * (Polaris Avatar).
  *

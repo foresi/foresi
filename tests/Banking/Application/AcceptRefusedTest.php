@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Application;
 
-use App\Banking\Application\AcceptRefused;
+use Foresi\Banking\Application\AcceptRefused;
 use PHPUnit\Framework\TestCase;
 
 final class AcceptRefusedTest extends TestCase

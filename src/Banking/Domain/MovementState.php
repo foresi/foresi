@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Domain;
+namespace Foresi\Banking\Domain;
 
 /**
  * Where a bank movement stands. Only an unmatched movement waits for a pairing;

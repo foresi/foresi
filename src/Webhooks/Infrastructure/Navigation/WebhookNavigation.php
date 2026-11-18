@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Navigation;
+namespace Foresi\Webhooks\Infrastructure\Navigation;
 
-use App\Ui\Navigation\NavigationArea;
-use App\Ui\Navigation\NavigationItem;
-use App\Ui\Navigation\NavigationItemProvider;
-use App\Webhooks\Application\WebhookAccess;
-use App\Webhooks\Infrastructure\Controller\WebhookEndpointController;
+use Foresi\Ui\Navigation\NavigationArea;
+use Foresi\Ui\Navigation\NavigationItem;
+use Foresi\Ui\Navigation\NavigationItemProvider;
+use Foresi\Webhooks\Application\WebhookAccess;
+use Foresi\Webhooks\Infrastructure\Controller\WebhookEndpointController;
 
 /**
  * The webhook endpoints in the settings, next to the API access, for a person

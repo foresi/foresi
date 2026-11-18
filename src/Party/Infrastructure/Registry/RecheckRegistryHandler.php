@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Registry;
+namespace Foresi\Party\Infrastructure\Registry;
 
-use App\Audit\Application\AuditCorrelation;
-use App\Party\Application\PartyQuery;
-use App\Party\Application\RecheckRegistry;
-use App\Party\Application\RefreshRegistryChecks;
-use App\Party\Domain\Party;
-use App\Party\Domain\VatId;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Audit\Application\AuditCorrelation;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Application\RecheckRegistry;
+use Foresi\Party\Application\RefreshRegistryChecks;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\VatId;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;

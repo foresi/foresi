@@ -6,28 +6,28 @@
 
 declare(strict_types=1);
 
-use App\ExchangeRate\Application\PublishedRates;
-use App\ExchangeRate\Application\Quote;
-use App\ExchangeRate\Application\RateStore;
-use App\Identity\Domain\User;
-use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Party\Application\PartyInput;
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
-use App\Party\Domain\VatStatus;
-use App\Purchasing\Application\ReceivedDocumentInput;
-use App\Purchasing\Application\RecordReceivedDocument;
-use App\Purchasing\Domain\PurchaseTaxTreatment;
-use App\Purchasing\Domain\ReceivedDocumentKind;
-use App\Purchasing\Domain\VatRate;
-use App\Purchasing\Domain\VatRecapLine;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\ExchangeRate\Application\PublishedRates;
+use Foresi\ExchangeRate\Application\Quote;
+use Foresi\ExchangeRate\Application\RateStore;
+use Foresi\Identity\Domain\User;
+use Foresi\Identity\Infrastructure\Security\SecurityUser;
+use Foresi\Party\Application\PartyInput;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Purchasing\Application\ReceivedDocumentInput;
+use Foresi\Purchasing\Application\RecordReceivedDocument;
+use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
+use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Purchasing\Domain\VatRate;
+use Foresi\Purchasing\Domain\VatRecapLine;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 
 // Received documents: one VAT payer, a supplier in the United States (a SaaS vendor, no VAT ID, a US

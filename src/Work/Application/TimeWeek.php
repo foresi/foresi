@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
 /**
  * A person's week of time, Monday to Sunday (Clockify, Costlocker timesheet).

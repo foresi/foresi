@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure\Mail;
+namespace Foresi\Tests\Invoicing\Infrastructure\Mail;
 
-use App\Invoicing\Application\MailSecrets;
-use App\Invoicing\Application\MailServers;
-use App\Invoicing\Domain\FirmMailServer;
-use App\Invoicing\Domain\MailEncryption;
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Invoicing\Application\MailSecrets;
+use Foresi\Invoicing\Application\MailServers;
+use Foresi\Invoicing\Domain\FirmMailServer;
+use Foresi\Invoicing\Domain\MailEncryption;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class MailServerStorageTest extends KernelTestCase

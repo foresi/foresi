@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Infrastructure;
+namespace Foresi\Tests\Banking\Infrastructure;
 
-use App\Banking\Application\MailboxItem;
-use App\Banking\Infrastructure\Imap\ImapInboundMailbox;
-use App\Banking\Infrastructure\Imap\NamespacedImapConnection;
-use App\Tests\Banking\Support\InboundMailKit;
 use DirectoryTree\ImapEngine\Connection\Streams\FakeStream;
+use Foresi\Banking\Application\MailboxItem;
+use Foresi\Banking\Infrastructure\Imap\ImapInboundMailbox;
+use Foresi\Banking\Infrastructure\Imap\NamespacedImapConnection;
+use Foresi\Tests\Banking\Support\InboundMailKit;
 use PHPUnit\Framework\TestCase;
 
 /**

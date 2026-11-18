@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: AGPL-3.0-only
-# Logging; see docs/logging.md. Every record passes App\Shared\Infrastructure\Logging\RedactSecrets
+# Logging; see docs/logging.md. Every record passes Foresi\Shared\Infrastructure\Logging\RedactSecrets
 # first, which blanks secrets and personal data.
 monolog:
     channels:
@@ -78,7 +78,7 @@ when@prod:
                 process_psr_3_messages: true
             operator_mail:
                 type: service
-                id: App\Shared\Infrastructure\Logging\OperatorMailHandler
+                id: Foresi\Shared\Infrastructure\Logging\OperatorMailHandler
             console:
                 type: console
                 process_psr_3_messages: false

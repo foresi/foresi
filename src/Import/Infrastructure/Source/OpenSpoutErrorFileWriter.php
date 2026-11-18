@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Source;
+namespace Foresi\Import\Infrastructure\Source;
 
-use App\Import\Application\ErrorFileWriter;
-use App\Import\Application\Source\SourceFormat;
-use App\Import\Application\Source\SourceSettings;
-use App\Import\Domain\Import;
-use App\Import\Domain\RowError;
+use Foresi\Import\Application\ErrorFileWriter;
+use Foresi\Import\Application\Source\SourceFormat;
+use Foresi\Import\Application\Source\SourceSettings;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\RowError;
 use OpenSpout\Common\Entity\Cell\StringCell;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Common\Entity\Style\Style;

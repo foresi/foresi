@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application;
+namespace Foresi\Import\Application;
 
 /** Serialises short decisions across requests and workers, for example which import of a target may run. */
 interface ImportLock

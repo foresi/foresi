@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Work\Domain\Section;
-use App\Work\Domain\WorkShare;
+use Foresi\Work\Domain\Section;
+use Foresi\Work\Domain\WorkShare;
 use Psr\Clock\ClockInterface;
 
 /**

@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Events\Support;
+namespace Foresi\Tests\Events\Support;
 
-use App\Events\Infrastructure\Relay\EventRelay;
-use App\Invoicing\Contract\Event\DocumentKindValue;
-use App\Invoicing\Contract\Event\InvoiceIssued;
-use App\Invoicing\Contract\Event\InvoicePaid;
-use App\Invoicing\Contract\Event\InvoiceTrashed;
-use App\Invoicing\Contract\Event\PaidState;
-use App\Invoicing\Contract\Event\PaymentDirection;
-use App\Invoicing\Contract\Event\PaymentRecorded;
-use App\Shared\Application\Event\EventRecorder;
-use App\Shared\Domain\Event\DomainEventPayload;
-use App\Shared\Domain\Id;
 use Doctrine\DBAL\Connection;
+use Foresi\Events\Infrastructure\Relay\EventRelay;
+use Foresi\Invoicing\Contract\Event\DocumentKindValue;
+use Foresi\Invoicing\Contract\Event\InvoiceIssued;
+use Foresi\Invoicing\Contract\Event\InvoicePaid;
+use Foresi\Invoicing\Contract\Event\InvoiceTrashed;
+use Foresi\Invoicing\Contract\Event\PaidState;
+use Foresi\Invoicing\Contract\Event\PaymentDirection;
+use Foresi\Invoicing\Contract\Event\PaymentRecorded;
+use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Domain\Event\DomainEventPayload;
+use Foresi\Shared\Domain\Id;
 
 /**
  * Real contract events recorded as a use case records them, and numbered by

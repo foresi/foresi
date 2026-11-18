@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Api;
+namespace Foresi\Webhooks\Infrastructure\Api;
 
-use App\Shared\Infrastructure\Api\JsonValues;
-use App\Webhooks\Application\Query\AttemptRow;
-use App\Webhooks\Application\Query\DeliveryDetail;
-use App\Webhooks\Application\Query\DeliveryRow;
+use Foresi\Shared\Infrastructure\Api\JsonValues;
+use Foresi\Webhooks\Application\Query\AttemptRow;
+use Foresi\Webhooks\Application\Query\DeliveryDetail;
+use Foresi\Webhooks\Application\Query\DeliveryRow;
 
 /**
  * A delivery as the API and MCP show it, and with its attempts in the detail.

@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Infrastructure\Api;
+namespace Foresi\Tests\Webhooks\Infrastructure\Api;
 
-use App\Identity\Domain\ApiScope;
-use App\Identity\Infrastructure\Idempotency\IdempotencyKeyTable;
-use App\Identity\Infrastructure\Idempotency\PruneIdempotencyKeysTask;
 use Doctrine\DBAL\Types\Types;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Identity\Infrastructure\Idempotency\IdempotencyKeyTable;
+use Foresi\Identity\Infrastructure\Idempotency\PruneIdempotencyKeysTask;
 use Symfony\Component\Clock\NativeClock;
 
 /**

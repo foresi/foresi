@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\AllocationRequest;
-use App\Invoicing\Application\PaymentRequest;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\Payment;
-use App\Invoicing\Domain\PaymentDirection;
-use App\Invoicing\Domain\PaymentSource;
-use App\Party\Domain\PaymentMethod;
+use Foresi\Invoicing\Application\AllocationRequest;
+use Foresi\Invoicing\Application\PaymentRequest;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Payment;
+use Foresi\Invoicing\Domain\PaymentDirection;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Party\Domain\PaymentMethod;
 
 /**
  * An invoice is paid once, when a payment, or the cancelling of one, moves it

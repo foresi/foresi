@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Form;
+namespace Foresi\Invoicing\Infrastructure\Form;
 
-use App\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Application\LineInput;
 
 /**
  * The lines of a form on their own, row for row, for a recount.

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
-use App\Identity\Domain\ApiScope;
+use Foresi\Identity\Domain\ApiScope;
 
 /**
  * The request's token does not have the scope the work needs, or the request

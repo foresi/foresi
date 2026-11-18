@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Doctrine;
+namespace Foresi\Purchasing\Infrastructure\Doctrine;
 
-use App\Purchasing\Application\EvidenceNumbers;
-use App\Purchasing\Application\EvidenceNumbersExhausted;
-use App\Purchasing\Domain\EvidenceNumberFormat;
-use App\Purchasing\Domain\EvidenceSeries;
-use App\Shared\Domain\Id;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\DriverException;
+use Foresi\Purchasing\Application\EvidenceNumbers;
+use Foresi\Purchasing\Application\EvidenceNumbersExhausted;
+use Foresi\Purchasing\Domain\EvidenceNumberFormat;
+use Foresi\Purchasing\Domain\EvidenceSeries;
+use Foresi\Shared\Domain\Id;
 
 /**
  * One atomic statement per number, the same on SQLite and PostgreSQL, as the

@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Domain;
+namespace Foresi\Tests\Invoicing\Domain;
 
-use App\Invoicing\Domain\DocumentParty;
-use App\Invoicing\Domain\FirmReminders;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceSend;
-use App\Invoicing\Domain\SendPurpose;
-use App\Invoicing\Domain\SendStatus;
-use App\Party\Domain\Address;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Domain\FirmReminders;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceSend;
+use Foresi\Invoicing\Domain\SendPurpose;
+use Foresi\Invoicing\Domain\SendStatus;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Relay;
+namespace Foresi\Events\Infrastructure\Relay;
 
-use App\Shared\Application\Event\DomainEventListener;
+use Foresi\Shared\Application\Event\DomainEventListener;
 use Symfony\Component\DependencyInjection\Attribute\AutowireLocator;
 use Symfony\Contracts\Service\ServiceProviderInterface;
 

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Events\Fixtures\Valid\Contract;
+namespace Foresi\Tests\Events\Fixtures\Valid\Contract;
 
 enum Kind: string
 {

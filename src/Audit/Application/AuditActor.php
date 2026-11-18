@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Audit\Application;
+namespace Foresi\Audit\Application;
 
-use App\Audit\Domain\ActorKind;
+use Foresi\Audit\Domain\ActorKind;
 
 /**
  * Tells the audit log who is acting. Null when nobody is signed in, for

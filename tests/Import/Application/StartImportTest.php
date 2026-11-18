@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Import\Application;
+namespace Foresi\Tests\Import\Application;
 
-use App\Import\Application\ImportFiles;
-use App\Import\Application\ImportJobs;
-use App\Import\Application\Imports;
-use App\Import\Application\ProfileRepository;
-use App\Import\Application\StartImport;
-use App\Import\Application\Target\TargetRegistry;
-use App\Import\Domain\Import;
-use App\Import\Infrastructure\LocalImportFiles;
-use App\Party\Infrastructure\Import\PartyImportTarget;
+use Foresi\Import\Application\ImportFiles;
+use Foresi\Import\Application\ImportJobs;
+use Foresi\Import\Application\Imports;
+use Foresi\Import\Application\ProfileRepository;
+use Foresi\Import\Application\StartImport;
+use Foresi\Import\Application\Target\TargetRegistry;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Infrastructure\LocalImportFiles;
+use Foresi\Party\Infrastructure\Import\PartyImportTarget;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Filesystem\Filesystem;

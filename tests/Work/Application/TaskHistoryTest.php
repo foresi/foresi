@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Work\Application;
+namespace Foresi\Tests\Work\Application;
 
-use App\Audit\Application\AuditCorrelation;
-use App\Work\Application\TaskHistory;
-use App\Work\Application\TaskHistoryEntry;
-use App\Work\Domain\LabelColour;
-use App\Work\Domain\Priority;
-use App\Work\Domain\Task;
-use App\Work\Domain\WorkflowTemplate;
+use Foresi\Audit\Application\AuditCorrelation;
+use Foresi\Work\Application\TaskHistory;
+use Foresi\Work\Application\TaskHistoryEntry;
+use Foresi\Work\Domain\LabelColour;
+use Foresi\Work\Domain\Priority;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\WorkflowTemplate;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 final class TaskHistoryTest extends WorkTestCase

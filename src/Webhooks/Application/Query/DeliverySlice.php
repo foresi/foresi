@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Application\Query;
+namespace Foresi\Webhooks\Application\Query;
 
 /**
  * A slice of the deliveries of an endpoint, newest first, and whether more

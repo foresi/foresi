@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application;
+namespace Foresi\Purchasing\Application;
 
-use App\Audit\Application\AuditCorrelation;
-use App\Party\Application\TransactionalWork;
-use App\Shared\Domain\Id;
+use Foresi\Audit\Application\AuditCorrelation;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Domain\Id;
 
 /**
  * One action of a person on received documents, stored in one transaction

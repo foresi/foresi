@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Catalogue;
+namespace Foresi\Events\Infrastructure\Catalogue;
 
-use App\Shared\Domain\Event\DomainEvent;
-use App\Shared\Domain\Event\DomainEventPayload;
-use App\Shared\Domain\Module\ModuleGraph;
-use App\Shared\Domain\Module\ModuleId;
-use App\Shared\Infrastructure\Module\InstalledModules;
+use Foresi\Shared\Domain\Event\DomainEvent;
+use Foresi\Shared\Domain\Event\DomainEventPayload;
+use Foresi\Shared\Domain\Module\ModuleGraph;
+use Foresi\Shared\Domain\Module\ModuleId;
+use Foresi\Shared\Infrastructure\Module\InstalledModules;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
@@ -50,7 +50,7 @@ final class EventCatalogue
     /**
      * A catalogue of the given modules instead of the installed ones.
      *
-     * @param list<array{ModuleId, string, string}> $sources the module, its namespace ("App\Invoicing\") and its directory
+     * @param list<array{ModuleId, string, string}> $sources the module, its namespace ("Foresi\Invoicing\") and its directory
      */
     public static function scan(array $sources): self
     {

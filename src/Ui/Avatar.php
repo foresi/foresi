@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Ui;
+namespace Foresi\Ui;
 
 /**
  * The small initials avatar of a person: up to two letters of the name on a

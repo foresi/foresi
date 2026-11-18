@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Api;
+namespace Foresi\Events\Infrastructure\Api;
 
-use App\Shared\Infrastructure\Api\Cursor;
-use App\Shared\Infrastructure\Api\InvalidParameter;
+use Foresi\Shared\Infrastructure\Api\Cursor;
+use Foresi\Shared\Infrastructure\Api\InvalidParameter;
 
 /**
  * The opaque cursor of the feed: the position of the last event of a slice, as

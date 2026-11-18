@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Support\Registry;
+namespace Foresi\Tests\Support\Registry;
 
 use Psr\Log\AbstractLogger;
 

@@ -6,27 +6,27 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Country\CzechRepublic\Invoicing\CzechInvoicing;
-use App\Invoicing\Application\InvoiceInput;
-use App\Invoicing\Application\InvoicePdf;
-use App\Invoicing\Application\IssuedDocumentFactory;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Application\SendDraft;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\DocumentParty;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\TotalRounding;
-use App\Invoicing\Domain\VatRateKind;
-use App\Invoicing\Domain\VatRegime;
-use App\Party\Domain\Address;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\VatStatus;
-use App\Shared\Domain\Currency;
-use App\Tests\Support\PdfTools;
+use Foresi\Country\CzechRepublic\Invoicing\CzechInvoicing;
+use Foresi\Invoicing\Application\InvoiceInput;
+use Foresi\Invoicing\Application\InvoicePdf;
+use Foresi\Invoicing\Application\IssuedDocumentFactory;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Application\SendDraft;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\TotalRounding;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Tests\Support\PdfTools;
 
 /**
  * An advance invoice asks for payment before the supply: no tax document, so no

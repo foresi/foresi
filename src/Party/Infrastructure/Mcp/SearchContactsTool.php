@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Mcp;
+namespace Foresi\Party\Infrastructure\Mcp;
 
-use App\Party\Application\PartyNotAllowed;
-use App\Party\Application\Query\ContactList;
-use App\Party\Domain\PartyRole;
-use App\Party\Infrastructure\Api\ContactJson;
-use App\Party\Infrastructure\Api\ContactListQuery;
-use App\Shared\Infrastructure\Mcp\ReadTool;
-use App\Shared\Infrastructure\Mcp\ToolArguments;
-use App\Shared\Infrastructure\Mcp\ToolOutput;
-use App\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Party\Application\PartyNotAllowed;
+use Foresi\Party\Application\Query\ContactList;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Party\Infrastructure\Api\ContactJson;
+use Foresi\Party\Infrastructure\Api\ContactListQuery;
+use Foresi\Shared\Infrastructure\Mcp\ReadTool;
+use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
+use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 
 /**
  * The address book of the organisation, narrowed and paged as GET

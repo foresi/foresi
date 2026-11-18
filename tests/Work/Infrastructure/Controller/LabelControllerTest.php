@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Work\Infrastructure\Controller;
+namespace Foresi\Tests\Work\Infrastructure\Controller;
 
-use App\Identity\Domain\Role;
-use App\Tests\Identity\Support\SignedInBrowser;
-use App\Ui\Dialog\DialogRequest;
-use App\Work\Domain\Label;
-use App\Work\Domain\LabelColour;
-use App\Work\Domain\Project;
-use App\Work\Domain\ProjectStatus;
-use App\Work\Domain\Task;
-use App\Work\Domain\TaskLabel;
-use App\Work\Domain\WorkflowTemplate;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Domain\Role;
+use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Ui\Dialog\DialogRequest;
+use Foresi\Work\Domain\Label;
+use Foresi\Work\Domain\LabelColour;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\ProjectStatus;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TaskLabel;
+use Foresi\Work\Domain\WorkflowTemplate;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;

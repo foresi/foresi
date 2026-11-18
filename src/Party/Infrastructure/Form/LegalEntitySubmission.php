@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Form;
+namespace Foresi\Party\Infrastructure\Form;
 
-use App\Party\Application\LegalEntityInput;
+use Foresi\Party\Application\LegalEntityInput;
 
 /**
  * What came in from the firm form: the values to show again, a message per

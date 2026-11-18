@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\InboundChannel;
-use App\Banking\Domain\MessageTrust;
+use Foresi\Banking\Domain\InboundChannel;
+use Foresi\Banking\Domain\MessageTrust;
 
 /**
  * What the owner needs to set up trust, of the last message an account got:

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Import\Infrastructure\Source;
+namespace Foresi\Tests\Import\Infrastructure\Source;
 
-use App\Import\Infrastructure\Source\DelimiterDetector;
+use Foresi\Import\Infrastructure\Source\DelimiterDetector;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application\Query;
+namespace Foresi\Tests\Invoicing\Application\Query;
 
-use App\Invoicing\Application\InvoicingAccess;
-use App\Invoicing\Application\InvoicingNotAllowed;
+use Foresi\Invoicing\Application\InvoicingAccess;
+use Foresi\Invoicing\Application\InvoicingNotAllowed;
 
 final class InvoicingAccessTest extends InvoicingReadTestCase
 {

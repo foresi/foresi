@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Mcp;
+namespace Foresi\Webhooks\Infrastructure\Mcp;
 
-use App\Shared\Infrastructure\Mcp\ToolArguments;
-use App\Shared\Infrastructure\Mcp\ToolOutput;
-use App\Shared\Infrastructure\Mcp\WriteTool;
-use App\Webhooks\Application\ManageWebhookEndpoints;
-use App\Webhooks\Infrastructure\Api\EndpointView;
+use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
+use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Infrastructure\Mcp\WriteTool;
+use Foresi\Webhooks\Application\ManageWebhookEndpoints;
+use Foresi\Webhooks\Infrastructure\Api\EndpointView;
 
 /**
  * Changes a webhook endpoint, as PATCH /api/v1/webhook-endpoints/{id} does:
@@ -75,7 +75,7 @@ final readonly class UpdateWebhookEndpointTool implements WriteTool
         // Left out keeps the description, null or blank clears it.
         $description = ToolArguments::text($arguments, 'description') ?? (\array_key_exists('description', $arguments) ? '' : null);
 
-        $endpoint = WebhookToolErrors::refuse(fn (): \App\Webhooks\Domain\WebhookEndpoint => $this->manage->update(
+        $endpoint = WebhookToolErrors::refuse(fn (): \Foresi\Webhooks\Domain\WebhookEndpoint => $this->manage->update(
             $id,
             ToolArguments::text($arguments, 'url'),
             $description,

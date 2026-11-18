@@ -6,38 +6,38 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application\Import;
+namespace Foresi\Idoklad\Application\Import;
 
-use App\Idoklad\Domain\IdokladResource;
-use App\Idoklad\Domain\ImportOutcome;
-use App\Invoicing\Application\InvoicingCountries;
-use App\Invoicing\Application\IssueProblem;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Application\PreviewRow;
-use App\Invoicing\Application\RecurringHistory;
-use App\Invoicing\Application\RecurringInput;
-use App\Invoicing\Application\RecurringPreview;
-use App\Invoicing\Application\RecurringRefused;
-use App\Invoicing\Application\SaveRecurringInvoice;
-use App\Invoicing\Application\UnsupportedCountry;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Quantity;
-use App\Invoicing\Domain\RecurringDelivery;
-use App\Invoicing\Domain\RecurringInvoice;
-use App\Invoicing\Domain\TaxPointRule;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Invoicing\Domain\VatRegime;
-use App\Party\Application\FirmBankAccounts;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Shared\Domain\Schedule\InvalidRecurrence;
-use App\Shared\Domain\Schedule\Recurrence;
-use App\Shared\Domain\Schedule\RecurrenceEnd;
-use App\Shared\Domain\Schedule\RecurrenceUnit;
+use Foresi\Idoklad\Domain\IdokladResource;
+use Foresi\Idoklad\Domain\ImportOutcome;
+use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Invoicing\Application\IssueProblem;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Application\PreviewRow;
+use Foresi\Invoicing\Application\RecurringHistory;
+use Foresi\Invoicing\Application\RecurringInput;
+use Foresi\Invoicing\Application\RecurringPreview;
+use Foresi\Invoicing\Application\RecurringRefused;
+use Foresi\Invoicing\Application\SaveRecurringInvoice;
+use Foresi\Invoicing\Application\UnsupportedCountry;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Invoicing\Domain\RecurringDelivery;
+use Foresi\Invoicing\Domain\RecurringInvoice;
+use Foresi\Invoicing\Domain\TaxPointRule;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\Schedule\InvalidRecurrence;
+use Foresi\Shared\Domain\Schedule\Recurrence;
+use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
+use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
 
 /**
  * iDoklad recurring invoices as Foresi templates, stored paused so a template

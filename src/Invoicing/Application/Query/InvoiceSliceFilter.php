@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application\Query;
+namespace Foresi\Invoicing\Application\Query;
 
-use App\Invoicing\Application\InvoiceFilter;
-use App\Invoicing\Domain\DocumentKind;
-use App\Shared\Domain\Id;
+use Foresi\Invoicing\Application\InvoiceFilter;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Shared\Domain\Id;
 
 /**
  * Which documents a slice holds, for the API and MCP: of one kind or of every kind, of one firm

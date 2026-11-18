@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application\Query;
+namespace Foresi\Party\Application\Query;
 
 /**
  * One firm of the organisation as a list shows it.

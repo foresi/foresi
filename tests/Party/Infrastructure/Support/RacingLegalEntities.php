@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Infrastructure\Support;
+namespace Foresi\Tests\Party\Infrastructure\Support;
 
-use App\Party\Application\LegalEntities;
-use App\Party\Domain\LegalEntity;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Domain\LegalEntity;
 use Symfony\Component\DependencyInjection\Attribute\AutowireDecorated;
 
 /**

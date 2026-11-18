@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Domain;
+namespace Foresi\Work\Domain;
 
 /**
  * The colour of a label: the badge tones of the user interface, so a label

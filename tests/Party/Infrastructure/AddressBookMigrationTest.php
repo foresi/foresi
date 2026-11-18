@@ -6,9 +6,8 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Infrastructure;
+namespace Foresi\Tests\Party\Infrastructure;
 
-use App\Party\Infrastructure\Doctrine\VatIdType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Types\Type;
@@ -17,6 +16,7 @@ use Doctrine\Migrations\Configuration\Migration\ConfigurationArray;
 use Doctrine\Migrations\DependencyFactory;
 use Doctrine\Migrations\MigratorConfiguration;
 use Doctrine\Migrations\Version\Version;
+use Foresi\Party\Infrastructure\Doctrine\VatIdType;
 use PHPUnit\Framework\TestCase;
 
 /**

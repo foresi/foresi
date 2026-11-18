@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure\Mime;
+namespace Foresi\Banking\Infrastructure\Mime;
 
-use App\Banking\Application\InboundMail;
-use App\Banking\Application\MailReader;
+use Foresi\Banking\Application\InboundMail;
+use Foresi\Banking\Application\MailReader;
 use ZBateson\MailMimeParser\Header\AddressHeader;
 use ZBateson\MailMimeParser\Header\DateHeader;
 use ZBateson\MailMimeParser\IMessage;

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\MessageTrust;
+use Foresi\Banking\Domain\MessageTrust;
 
 /**
  * How far a message is trusted, and the one result the decision rests on.

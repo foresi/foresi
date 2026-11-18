@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application;
+namespace Foresi\Import\Application;
 
-use App\Import\Application\Message\ReadImportFile;
-use App\Import\Application\Source\SourceSettings;
-use App\Import\Application\Target\TargetRegistry;
-use App\Import\Domain\FieldDefinition;
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportMode;
-use App\Import\Domain\ImportOptions;
-use App\Import\Domain\ImportProfile;
-use App\Import\Domain\ImportState;
-use App\Import\Domain\Mapping;
-use App\Import\Domain\ReplaceScope;
+use Foresi\Import\Application\Message\ReadImportFile;
+use Foresi\Import\Application\Source\SourceSettings;
+use Foresi\Import\Application\Target\TargetRegistry;
+use Foresi\Import\Domain\FieldDefinition;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\ImportMode;
+use Foresi\Import\Domain\ImportOptions;
+use Foresi\Import\Domain\ImportProfile;
+use Foresi\Import\Domain\ImportState;
+use Foresi\Import\Domain\Mapping;
+use Foresi\Import\Domain\ReplaceScope;
 use Psr\Clock\ClockInterface;
 
 /**

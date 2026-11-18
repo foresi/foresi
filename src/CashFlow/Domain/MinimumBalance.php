@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Domain;
+namespace Foresi\CashFlow\Domain;
 
-use App\Audit\Domain\Audited;
-use App\Party\Domain\LegalEntity;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Id;
-use App\Shared\Domain\Money;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Domain\Money;
 
 /**
  * The balance a firm wants to keep, in CZK. The forecast answers the first day

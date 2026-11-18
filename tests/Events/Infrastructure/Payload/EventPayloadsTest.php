@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Events\Infrastructure\Payload;
+namespace Foresi\Tests\Events\Infrastructure\Payload;
 
-use App\Events\Infrastructure\Catalogue\EventCatalogue;
-use App\Events\Infrastructure\Payload\EventPayloads;
-use App\Shared\Domain\Module\ModuleId;
-use App\Tests\Events\Fixtures\Valid\Contract\Event\InvoiceIssued;
-use App\Tests\Events\Fixtures\Valid\Contract\Kind;
+use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
+use Foresi\Events\Infrastructure\Payload\EventPayloads;
+use Foresi\Shared\Domain\Module\ModuleId;
+use Foresi\Tests\Events\Fixtures\Valid\Contract\Event\InvoiceIssued;
+use Foresi\Tests\Events\Fixtures\Valid\Contract\Kind;
 use PHPUnit\Framework\TestCase;
 
 final class EventPayloadsTest extends TestCase
@@ -21,7 +21,7 @@ final class EventPayloadsTest extends TestCase
     {
         $payloads = new EventPayloads();
         $event = new InvoiceIssued('0192f0a0-0000-7000-8000-000000000001', 2, true, null, Kind::CreditNote, ['A1', 'B2']);
-        $type = EventCatalogue::scan([[ModuleId::of('invoicing'), 'App\Tests\Events\Fixtures\Valid\\', \dirname(__DIR__, 2).'/Fixtures/Valid']])->byName('invoicing.invoice.issued', 1);
+        $type = EventCatalogue::scan([[ModuleId::of('invoicing'), 'Foresi\Tests\Events\Fixtures\Valid\\', \dirname(__DIR__, 2).'/Fixtures/Valid']])->byName('invoicing.invoice.issued', 1);
 
         $data = $payloads->normalise($event);
 

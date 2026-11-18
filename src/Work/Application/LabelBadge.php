@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Work\Domain\LabelColour;
+use Foresi\Work\Domain\LabelColour;
 
 final readonly class LabelBadge
 {

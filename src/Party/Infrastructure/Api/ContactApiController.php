@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Api;
+namespace Foresi\Party\Infrastructure\Api;
 
-use App\Party\Application\Query\ContactDetails;
-use App\Party\Application\Query\ContactList;
-use App\Shared\Application\Api\ScopeGuard;
-use App\Shared\Infrastructure\Api\Cursor;
+use Foresi\Party\Application\Query\ContactDetails;
+use Foresi\Party\Application\Query\ContactList;
+use Foresi\Shared\Application\Api\ScopeGuard;
+use Foresi\Shared\Infrastructure\Api\Cursor;
 use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Attribute\AsController;

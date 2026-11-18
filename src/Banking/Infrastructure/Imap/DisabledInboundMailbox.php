@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure\Imap;
+namespace Foresi\Banking\Infrastructure\Imap;
 
-use App\Banking\Application\InboundMailbox;
+use Foresi\Banking\Application\InboundMailbox;
 
 /**
  * No operator mailbox is set (BANK_INBOX_HOST is empty): polling finds nothing,

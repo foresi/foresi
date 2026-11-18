@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Domain;
+namespace Foresi\Banking\Domain;
 
 /**
  * Why a movement did not pay an invoice, or an outgoing one refund one, by itself.

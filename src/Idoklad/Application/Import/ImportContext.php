@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application\Import;
+namespace Foresi\Idoklad\Application\Import;
 
-use App\Idoklad\Application\IdokladSnapshot;
-use App\Idoklad\Domain\IdokladLink;
-use App\Idoklad\Domain\IdokladRecord;
-use App\Idoklad\Domain\IdokladResource;
-use App\Idoklad\Domain\ImportMode;
-use App\Idoklad\Domain\ImportOptions;
-use App\Idoklad\Domain\ImportOutcome;
-use App\Idoklad\Domain\ImportReport;
-use App\Party\Domain\LegalEntity;
+use Foresi\Idoklad\Application\IdokladSnapshot;
+use Foresi\Idoklad\Domain\IdokladLink;
+use Foresi\Idoklad\Domain\IdokladRecord;
+use Foresi\Idoklad\Domain\IdokladResource;
+use Foresi\Idoklad\Domain\ImportMode;
+use Foresi\Idoklad\Domain\ImportOptions;
+use Foresi\Idoklad\Domain\ImportOutcome;
+use Foresi\Idoklad\Domain\ImportReport;
+use Foresi\Party\Domain\LegalEntity;
 
 /**
  * What a stage works with: the firm and its snapshot, the options of the run,

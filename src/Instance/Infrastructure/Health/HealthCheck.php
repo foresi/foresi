@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Instance\Infrastructure\Health;
+namespace Foresi\Instance\Infrastructure\Health;
 
-use App\Instance\Application\Schedule\Heartbeats;
-use App\Shared\Application\SystemMailer;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception as DbalException;
+use Foresi\Instance\Application\Schedule\Heartbeats;
+use Foresi\Shared\Application\SystemMailer;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Messenger\Exception\TransportException;

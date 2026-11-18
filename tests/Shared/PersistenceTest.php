@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared;
+namespace Foresi\Tests\Shared;
 
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Shared\Fixtures\TestPrice;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Shared\Fixtures\TestPrice;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class PersistenceTest extends KernelTestCase

@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Instance\Application\ZoneFallback;
-use App\Invoicing\Application\InvoicingCountries;
-use App\Invoicing\Application\UnsupportedCountry;
 use Doctrine\DBAL\Connection;
+use Foresi\Instance\Application\ZoneFallback;
+use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Invoicing\Application\UnsupportedCountry;
 
 /**
  * The zone of the instance without APP_TIMEZONE: that of the country of its

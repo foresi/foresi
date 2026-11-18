@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Contract\Event;
+namespace Foresi\Party\Contract\Event;
 
-use App\Shared\Domain\Event\DomainEvent;
-use App\Shared\Domain\Event\DomainEventPayload;
-use App\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Domain\Event\DomainEvent;
+use Foresi\Shared\Domain\Event\DomainEventPayload;
+use Foresi\Shared\Domain\Event\EventSubject;
 
 /**
  * A contact was added to the address book, by a person, an import or a client of the API. Names, e-mails and notes may identify a person, so they are no facts.

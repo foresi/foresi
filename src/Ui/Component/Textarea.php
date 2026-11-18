@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Ui\Component;
+namespace Foresi\Ui\Component;
 
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 

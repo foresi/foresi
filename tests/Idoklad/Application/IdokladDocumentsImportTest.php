@@ -6,30 +6,30 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Idoklad\Application;
+namespace Foresi\Tests\Idoklad\Application;
 
-use App\Idoklad\Application\IdokladFiles;
-use App\Idoklad\Application\Import\DocumentsStage;
-use App\Idoklad\Application\Import\RunIdokladImport;
-use App\Idoklad\Domain\IdokladImportRun;
-use App\Idoklad\Domain\IdokladPull;
-use App\Idoklad\Domain\IdokladRecord;
-use App\Idoklad\Domain\IdokladResource;
-use App\Idoklad\Domain\ImportMode;
-use App\Idoklad\Domain\ImportOptions;
-use App\Invoicing\Application\NumberCounter;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\TotalRounding;
-use App\Invoicing\Domain\VatRegime;
-use App\Party\Domain\Address;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\PaymentMethod;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Idoklad\Application\IdokladFiles;
+use Foresi\Idoklad\Application\Import\DocumentsStage;
+use Foresi\Idoklad\Application\Import\RunIdokladImport;
+use Foresi\Idoklad\Domain\IdokladImportRun;
+use Foresi\Idoklad\Domain\IdokladPull;
+use Foresi\Idoklad\Domain\IdokladRecord;
+use Foresi\Idoklad\Domain\IdokladResource;
+use Foresi\Idoklad\Domain\ImportMode;
+use Foresi\Idoklad\Domain\ImportOptions;
+use Foresi\Invoicing\Application\NumberCounter;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\TotalRounding;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**

@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Events;
+namespace Foresi\Invoicing\Infrastructure\Events;
 
-use App\Identity\Application\StaffCheck;
-use App\Invoicing\Application\InvoicingAccess;
-use App\Invoicing\Application\InvoicingNotAllowed;
-use App\Invoicing\Application\Query\PaymentAccess;
-use App\Invoicing\Application\Query\PaymentsNotAllowed;
-use App\Shared\Application\Event\EventReadAccess;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Invoicing\Application\InvoicingAccess;
+use Foresi\Invoicing\Application\InvoicingNotAllowed;
+use Foresi\Invoicing\Application\Query\PaymentAccess;
+use Foresi\Invoicing\Application\Query\PaymentsNotAllowed;
+use Foresi\Shared\Application\Event\EventReadAccess;
 
 /**
  * The events of invoicing tell about invoices and payments, so they are read by

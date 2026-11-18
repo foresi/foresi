@@ -78,6 +78,6 @@
                 <twig:Ui:IconButton type="submit" name="_action" :value="'remove_row:' ~ i" icon="x" variant="ghost" :label="'purchasing.recap.remove'|trans({number: i + 1})" data-recap-remove />
             </div>
         {% endfor %}
-        <div><twig:Ui:Button type="submit" name="_action" value="add_row" icon="plus" size="sm" :disabled="values.recap|length >= constant('App\\Purchasing\\Domain\\VatRecap::MAX_ROWS')" data-recap-add>{{ 'purchasing.recap.add'|trans }}</twig:Ui:Button></div>
+        <div><twig:Ui:Button type="submit" name="_action" value="add_row" icon="plus" size="sm" :disabled="values.recap|length >= constant('Foresi\\Purchasing\\Domain\\VatRecap::MAX_ROWS')" data-recap-add>{{ 'purchasing.recap.add'|trans }}</twig:Ui:Button></div>
     </section>
 </fieldset>

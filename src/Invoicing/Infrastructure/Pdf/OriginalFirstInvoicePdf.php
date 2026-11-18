@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Pdf;
+namespace Foresi\Invoicing\Infrastructure\Pdf;
 
-use App\Invoicing\Application\InvoicePdf;
-use App\Invoicing\Application\InvoiceStore;
-use App\Invoicing\Application\IssuedDocument;
-use App\Invoicing\Application\OriginalDocuments;
-use App\Invoicing\Application\OriginalDocumentUnreadable;
-use App\Invoicing\Application\RenderedPdf;
-use App\Invoicing\Application\UndrawableDocument;
-use App\Invoicing\Domain\NumberKey;
+use Foresi\Invoicing\Application\InvoicePdf;
+use Foresi\Invoicing\Application\InvoiceStore;
+use Foresi\Invoicing\Application\IssuedDocument;
+use Foresi\Invoicing\Application\OriginalDocuments;
+use Foresi\Invoicing\Application\OriginalDocumentUnreadable;
+use Foresi\Invoicing\Application\RenderedPdf;
+use Foresi\Invoicing\Application\UndrawableDocument;
+use Foresi\Invoicing\Domain\NumberKey;
 
 /**
  * An imported document that kept the PDF its source drew is that PDF, wherever the

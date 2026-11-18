@@ -6,26 +6,26 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Import\Infrastructure;
+namespace Foresi\Tests\Import\Infrastructure;
 
-use App\Import\Application\Imports;
-use App\Import\Application\ProfileRepository;
-use App\Import\Domain\BlankCells;
-use App\Import\Domain\DateOrder;
-use App\Import\Domain\DecimalSeparator;
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportMode;
-use App\Import\Domain\ImportOptions;
-use App\Import\Domain\ImportProfile;
-use App\Import\Domain\ImportRow;
-use App\Import\Domain\ImportState;
-use App\Import\Domain\Mapping;
-use App\Import\Domain\ReplaceScope;
-use App\Import\Domain\RowError;
-use App\Import\Domain\RowOutcome;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Import\Application\Imports;
+use Foresi\Import\Application\ProfileRepository;
+use Foresi\Import\Domain\BlankCells;
+use Foresi\Import\Domain\DateOrder;
+use Foresi\Import\Domain\DecimalSeparator;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\ImportMode;
+use Foresi\Import\Domain\ImportOptions;
+use Foresi\Import\Domain\ImportProfile;
+use Foresi\Import\Domain\ImportRow;
+use Foresi\Import\Domain\ImportState;
+use Foresi\Import\Domain\Mapping;
+use Foresi\Import\Domain\ReplaceScope;
+use Foresi\Import\Domain\RowError;
+use Foresi\Import\Domain\RowOutcome;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class ImportPersistenceTest extends KernelTestCase

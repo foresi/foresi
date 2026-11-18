@@ -13,7 +13,7 @@
 
 {% block dialog_body %}
     <form method="post" id="status-new-form" action="{{ path('app_project_status_add', {id: project.id}) }}" class="grid gap-4" novalidate data-settings-status-new>
-        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\ProjectSettingsController::TOKEN')) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\ProjectSettingsController::TOKEN')) }}">
         <twig:Ui:TextInput name="name" id="status-name" :label="'work.settings.status_name'|trans" :value="name" :error="error" maxlength="80" required autocomplete="off" />
         <twig:Ui:Select name="type" id="status-type" :label="'work.settings.status_type'|trans" :options="types" :value="type" />
     </form>

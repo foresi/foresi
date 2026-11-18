@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Domain\Schedule;
+namespace Foresi\Shared\Domain\Schedule;
 
 /**
  * The step a recurrence repeats by. Yearly and "every 12 months" give the

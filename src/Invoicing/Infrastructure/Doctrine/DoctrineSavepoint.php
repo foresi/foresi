@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Invoicing\Application\Savepoint;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Invoicing\Application\Savepoint;
 
 /**
  * A nested transaction of DBAL is a savepoint. The session is cleared after a

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Ui\Twig;
+namespace Foresi\Ui\Twig;
 
-use App\Ui\Dialog\DialogRequest;
+use Foresi\Ui\Dialog\DialogRequest;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Twig\Attribute\AsTwigFunction;

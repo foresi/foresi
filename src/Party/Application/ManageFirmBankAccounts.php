@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
-use App\Party\Domain\DomesticBankAccount;
-use App\Party\Domain\FirmBankAccount;
-use App\Party\Domain\Iban;
-use App\Party\Domain\InvalidIban;
-use App\Party\Domain\LegalEntity;
-use App\Shared\Domain\Currency;
+use Foresi\Party\Domain\DomesticBankAccount;
+use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Party\Domain\Iban;
+use Foresi\Party\Domain\InvalidIban;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Domain\Currency;
 use Psr\Clock\ClockInterface;
 
 /**

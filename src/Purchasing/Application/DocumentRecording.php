@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application;
+namespace Foresi\Purchasing\Application;
 
-use App\Party\Application\ContactSettingsForFirm;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyRole;
-use App\Purchasing\Contract\Event\ReceivedDocumentRecorded;
-use App\Purchasing\Domain\EvidenceSeries;
-use App\Purchasing\Domain\ReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocumentContent;
-use App\Purchasing\Domain\ReceivedDocumentRefused;
-use App\Shared\Application\Event\EventRecorder;
-use App\Shared\Domain\Money;
+use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Purchasing\Contract\Event\ReceivedDocumentRecorded;
+use Foresi\Purchasing\Domain\EvidenceSeries;
+use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentContent;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Domain\Money;
 use Psr\Clock\ClockInterface;
 
 /**

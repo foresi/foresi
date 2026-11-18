@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\StaffCheck;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\StaffCheck;
 
 /**
  * Who reads and changes the address book: the owners and the members of the

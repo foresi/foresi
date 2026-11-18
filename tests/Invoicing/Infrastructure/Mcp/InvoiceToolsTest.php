@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure\Mcp;
+namespace Foresi\Tests\Invoicing\Infrastructure\Mcp;
 
-use App\Invoicing\Application\TrashInvoice;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Infrastructure\Mcp\GetInvoiceTool;
-use App\Invoicing\Infrastructure\Mcp\SearchInvoicesTool;
-use App\Shared\Domain\Id;
-use App\Shared\Infrastructure\Api\Cursor;
-use App\Tests\Shared\Infrastructure\Mcp\ReadToolTestCase;
+use Foresi\Invoicing\Application\TrashInvoice;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Infrastructure\Mcp\GetInvoiceTool;
+use Foresi\Invoicing\Infrastructure\Mcp\SearchInvoicesTool;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Infrastructure\Api\Cursor;
+use Foresi\Tests\Shared\Infrastructure\Mcp\ReadToolTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application\Import;
+namespace Foresi\Idoklad\Application\Import;
 
 /**
  * One step of an iDoklad import: it reads one kind of record from the snapshot,

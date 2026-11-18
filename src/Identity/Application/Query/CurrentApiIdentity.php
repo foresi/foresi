@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application\Query;
+namespace Foresi\Identity\Application\Query;
 
-use App\Identity\Application\ApiTokenContext;
-use App\Identity\Application\InsufficientScope;
-use App\Identity\Application\UserRepository;
-use App\Identity\Domain\ApiScope;
-use App\Identity\Domain\User;
+use Foresi\Identity\Application\ApiTokenContext;
+use Foresi\Identity\Application\InsufficientScope;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Identity\Domain\User;
 
 /**
  * The person and token of the current token-signed request, for

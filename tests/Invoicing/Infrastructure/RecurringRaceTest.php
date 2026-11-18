@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure;
+namespace Foresi\Tests\Invoicing\Infrastructure;
 
-use App\Invoicing\Domain\PeriodText;
-use App\Tests\Invoicing\Infrastructure\Support\RecurringWorker;
+use Foresi\Invoicing\Domain\PeriodText;
+use Foresi\Tests\Invoicing\Infrastructure\Support\RecurringWorker;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;

@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Module;
+namespace Foresi\Tests\Shared\Infrastructure\Module;
 
-use App\Shared\Domain\Module\InvalidManifest;
-use App\Shared\Domain\Module\ModuleGraph;
-use App\Shared\Domain\Module\ModuleId;
-use App\Shared\Domain\Module\ModuleKind;
-use App\Shared\Domain\Module\ModuleManifest;
-use App\Shared\Infrastructure\Module\InstalledModules;
-use App\Shared\Infrastructure\Module\ModuleIntegration;
-use App\Shared\Infrastructure\Module\ModuleIntegrations;
-use App\Tests\Shared\Fixtures\ModuleIntegration\Alpha\Integration\Beta\BetaGreeting;
+use Foresi\Shared\Domain\Module\InvalidManifest;
+use Foresi\Shared\Domain\Module\ModuleGraph;
+use Foresi\Shared\Domain\Module\ModuleId;
+use Foresi\Shared\Domain\Module\ModuleKind;
+use Foresi\Shared\Domain\Module\ModuleManifest;
+use Foresi\Shared\Infrastructure\Module\InstalledModules;
+use Foresi\Shared\Infrastructure\Module\ModuleIntegration;
+use Foresi\Shared\Infrastructure\Module\ModuleIntegrations;
+use Foresi\Tests\Shared\Fixtures\ModuleIntegration\Alpha\Integration\Beta\BetaGreeting;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -30,7 +30,7 @@ use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
  */
 final class ModuleIntegrationsTest extends TestCase
 {
-    private const string ROOT = 'App\\Tests\\Shared\\Fixtures\\ModuleIntegration\\';
+    private const string ROOT = 'Foresi\\Tests\\Shared\\Fixtures\\ModuleIntegration\\';
 
     public function testTheIntegrationIsLoadedWhenTheOptionalDependencyIsInstalled(): void
     {
@@ -114,7 +114,7 @@ final class ModuleIntegrationsTest extends TestCase
             ModuleId::of($id),
             ModuleKind::Module,
             'foresi/'.$id,
-            'App\\'.ucfirst($id).'\\',
+            'Foresi\\'.ucfirst($id).'\\',
             [],
             array_map(ModuleId::of(...), $optional),
         );

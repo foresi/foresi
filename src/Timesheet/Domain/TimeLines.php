@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Domain;
+namespace Foresi\Timesheet\Domain;
 
 /**
  * The lines an invoice of time gets: entries grouped as chosen, each rounded

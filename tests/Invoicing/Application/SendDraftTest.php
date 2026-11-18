@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Identity\Domain\User;
-use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Invoicing\Application\DeliverInvoiceSend;
-use App\Invoicing\Application\SendDraft;
-use App\Invoicing\Application\SendRecipient;
-use App\Invoicing\Domain\DocumentParty;
-use App\Invoicing\Domain\FirmMailServer;
-use App\Invoicing\Domain\Invoice;
-use App\Party\Domain\Address;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\EmailPurpose;
-use App\Party\Domain\PartyEmail;
+use Foresi\Identity\Domain\User;
+use Foresi\Identity\Infrastructure\Security\SecurityUser;
+use Foresi\Invoicing\Application\DeliverInvoiceSend;
+use Foresi\Invoicing\Application\SendDraft;
+use Foresi\Invoicing\Application\SendRecipient;
+use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Domain\FirmMailServer;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\EmailPurpose;
+use Foresi\Party\Domain\PartyEmail;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
@@ -155,8 +155,8 @@ final class SendDraftTest extends SendingTestCase
 
     public function testTheFirmsOwnTemplateIsUsed(): void
     {
-        $templates = self::getContainer()->get(\App\Invoicing\Application\MailTemplates::class);
-        $templates->save($this->firm, \App\Invoicing\Domain\MailTemplateKind::Invoice, DocumentLanguage::Czech, 'Doklad {number}', "Dobrý den,\n{customer_name}\n{link}");
+        $templates = self::getContainer()->get(\Foresi\Invoicing\Application\MailTemplates::class);
+        $templates->save($this->firm, \Foresi\Invoicing\Domain\MailTemplateKind::Invoice, DocumentLanguage::Czech, 'Doklad {number}', "Dobrý den,\n{customer_name}\n{link}");
         $this->em->flush();
         $invoice = $this->issue->issue($this->input());
 
@@ -168,8 +168,8 @@ final class SendDraftTest extends SendingTestCase
 
     public function testTheSubjectIsOneLineWithoutSpacesAround(): void
     {
-        $templates = self::getContainer()->get(\App\Invoicing\Application\MailTemplates::class);
-        $templates->save($this->firm, \App\Invoicing\Domain\MailTemplateKind::Invoice, DocumentLanguage::Czech, 'Doklad {number} {order_number}', '{link}');
+        $templates = self::getContainer()->get(\Foresi\Invoicing\Application\MailTemplates::class);
+        $templates->save($this->firm, \Foresi\Invoicing\Domain\MailTemplateKind::Invoice, DocumentLanguage::Czech, 'Doklad {number} {order_number}', '{link}');
         $this->em->flush();
         $invoice = $this->issue->issue($this->input(overrides: ['orderNumber' => '']));
 

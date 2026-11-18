@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Idempotency;
+namespace Foresi\Identity\Infrastructure\Idempotency;
 
-use App\Identity\Infrastructure\Idempotency\IdempotencyKeyTable as T;
-use App\Instance\Application\Schedule\OperatorTask;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
+use Foresi\Identity\Infrastructure\Idempotency\IdempotencyKeyTable as T;
+use Foresi\Instance\Application\Schedule\OperatorTask;
 use Psr\Clock\ClockInterface;
 
 /**

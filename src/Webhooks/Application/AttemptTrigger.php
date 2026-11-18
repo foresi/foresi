@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Application;
+namespace Foresi\Webhooks\Application;
 
 /**
  * What asked for an attempt: the schedule of the delivery (the first attempt and

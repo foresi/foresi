@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Ui\Notice;
+namespace Foresi\Ui\Notice;
 
-use App\Ui\Component\Style;
+use Foresi\Ui\Component\Style;
 
 /**
  * A message the app shell shows above the page content, with a link to where

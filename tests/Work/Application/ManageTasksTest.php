@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Work\Application;
+namespace Foresi\Tests\Work\Application;
 
-use App\Work\Application\Choice;
-use App\Work\Application\StatusTasks;
-use App\Work\Application\TaskGroup;
-use App\Work\Application\TaskRow;
-use App\Work\Application\WorkRefused;
-use App\Work\Domain\Project;
-use App\Work\Domain\Task;
-use App\Work\Domain\TaskWatcher;
+use Foresi\Work\Application\Choice;
+use Foresi\Work\Application\StatusTasks;
+use Foresi\Work\Application\TaskGroup;
+use Foresi\Work\Application\TaskRow;
+use Foresi\Work\Application\WorkRefused;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TaskWatcher;
 
 final class ManageTasksTest extends WorkTestCase
 {

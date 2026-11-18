@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Relay;
+namespace Foresi\Events\Infrastructure\Relay;
 
-use App\Instance\Application\Schedule\OperatorTask;
+use Foresi\Instance\Application\Schedule\OperatorTask;
 
 /**
  * Sweeps the log on every tick of the schedule, for rows no nudge announced: a

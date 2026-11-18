@@ -6,25 +6,25 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Domain;
+namespace Foresi\Tests\Invoicing\Domain;
 
-use App\Invoicing\Domain\RecurringContent;
-use App\Invoicing\Domain\RecurringDelivery;
-use App\Invoicing\Domain\RecurringInvoice;
-use App\Invoicing\Domain\RecurringState;
-use App\Invoicing\Domain\TaxPointRule;
-use App\Party\Domain\Address;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PaymentMethod;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Schedule\Recurrence;
-use App\Shared\Domain\Schedule\RecurrenceEnd;
-use App\Shared\Domain\Schedule\RecurrenceUnit;
+use Foresi\Invoicing\Domain\RecurringContent;
+use Foresi\Invoicing\Domain\RecurringDelivery;
+use Foresi\Invoicing\Domain\RecurringInvoice;
+use Foresi\Invoicing\Domain\RecurringState;
+use Foresi\Invoicing\Domain\TaxPointRule;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Schedule\Recurrence;
+use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
+use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
 use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
 

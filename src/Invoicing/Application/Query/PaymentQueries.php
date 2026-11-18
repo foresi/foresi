@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application\Query;
+namespace Foresi\Invoicing\Application\Query;
 
 /**
  * Reads the payments for the API. Call it through PaymentList and PaymentDetails,

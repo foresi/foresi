@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application\Query;
+namespace Foresi\Purchasing\Application\Query;
 
-use App\Purchasing\Application\PaymentBalance;
-use App\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Application\PaymentBalance;
+use Foresi\Purchasing\Domain\ReceivedDocument;
 
 /**
  * A received document with what its payments add up to.

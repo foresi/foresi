@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application\Message;
+namespace Foresi\Import\Application\Message;
 
 /** Archives one chunk of the records a full replace did not find in the source. Safe to handle twice. */
 final readonly class ArchiveMissing

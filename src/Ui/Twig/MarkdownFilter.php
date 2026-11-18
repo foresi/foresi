@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Ui\Twig;
+namespace Foresi\Ui\Twig;
 
-use App\Shared\Application\Markdown;
+use Foresi\Shared\Application\Markdown;
 use Twig\Attribute\AsTwigFilter;
 
 final readonly class MarkdownFilter

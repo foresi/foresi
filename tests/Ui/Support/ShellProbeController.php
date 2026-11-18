@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui\Support;
+namespace Foresi\Tests\Ui\Support;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;

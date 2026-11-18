@@ -6,32 +6,32 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application\Query;
+namespace Foresi\Tests\Invoicing\Application\Query;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\StaffCheck;
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Invoicing\Application\Query\PaymentAccess;
-use App\Invoicing\Application\Query\PaymentsNotAllowed;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\Payment;
-use App\Invoicing\Domain\PaymentAllocation;
-use App\Invoicing\Domain\PaymentDirection;
-use App\Invoicing\Domain\PaymentSource;
-use App\Invoicing\Infrastructure\Doctrine\DoctrinePaymentQueries;
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PaymentMethod;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Invoicing\Application\InvoiceTestCase;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Identity\Infrastructure\Security\SecurityUser;
+use Foresi\Invoicing\Application\Query\PaymentAccess;
+use Foresi\Invoicing\Application\Query\PaymentsNotAllowed;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Payment;
+use Foresi\Invoicing\Domain\PaymentAllocation;
+use Foresi\Invoicing\Domain\PaymentDirection;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Invoicing\Infrastructure\Doctrine\DoctrinePaymentQueries;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Invoicing\Application\InvoiceTestCase;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 

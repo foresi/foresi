@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Domain;
+namespace Foresi\Party\Domain;
 
 /**
  * The language a party's documents are issued in.

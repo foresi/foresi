@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application\Query;
+namespace Foresi\Purchasing\Application\Query;
 
-use App\Attachment\Domain\Attachment;
-use App\Purchasing\Domain\ReceivedDocument;
+use Foresi\Attachment\Domain\Attachment;
+use Foresi\Purchasing\Domain\ReceivedDocument;
 
 /**
  * A received document as its page shows it: the document, its original file,

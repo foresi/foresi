@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Mail;
+namespace Foresi\Invoicing\Infrastructure\Mail;
 
-use App\Invoicing\Application\SentFiles;
-use App\Invoicing\Application\SentFileUnreadable;
+use Foresi\Invoicing\Application\SentFiles;
+use Foresi\Invoicing\Application\SentFileUnreadable;
 
 /**
  * Sent PDFs in one directory, never below public/. Back the directory up with

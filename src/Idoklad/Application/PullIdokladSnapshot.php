@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application;
+namespace Foresi\Idoklad\Application;
 
-use App\Idoklad\Domain\IdokladPull;
-use App\Idoklad\Domain\IdokladRecord;
-use App\Idoklad\Domain\IdokladResource;
-use App\Invoicing\Application\MailSecrets;
-use App\Party\Application\TransactionalWork;
-use App\Party\Domain\LegalEntity;
+use Foresi\Idoklad\Domain\IdokladPull;
+use Foresi\Idoklad\Domain\IdokladRecord;
+use Foresi\Idoklad\Domain\IdokladResource;
+use Foresi\Invoicing\Application\MailSecrets;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\LegalEntity;
 use Psr\Clock\ClockInterface;
 
 /**

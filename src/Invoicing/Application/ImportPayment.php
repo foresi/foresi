@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Invoicing\Domain\Payment;
-use App\Invoicing\Domain\PaymentAllocation;
-use App\Invoicing\Domain\PaymentSource;
-use App\Party\Application\LegalEntities;
-use App\Party\Application\TransactionalWork;
-use App\Party\Application\UnknownLegalEntity;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Invoicing\Domain\Payment;
+use Foresi\Invoicing\Domain\PaymentAllocation;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Application\UnknownLegalEntity;
 use Psr\Clock\ClockInterface;
 
 /**

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Domain;
+namespace Foresi\Shared\Domain;
 
 use Brick\Math\Exception\IntegerOverflowException;
 use Brick\Math\Exception\MathException;

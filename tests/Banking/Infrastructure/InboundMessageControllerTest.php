@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Infrastructure;
+namespace Foresi\Tests\Banking\Infrastructure;
 
-use App\Banking\Application\ProcessMessage;
-use App\Banking\Domain\InboundMessage;
-use App\Identity\Domain\Role;
-use App\Party\Domain\FirmBankAccount;
-use App\Tests\Banking\Support\BankScreenTestCase;
-use App\Tests\Banking\Support\FailingInboundFiles;
-use App\Tests\Banking\Support\Scalars;
+use Foresi\Banking\Application\ProcessMessage;
+use Foresi\Banking\Domain\InboundMessage;
+use Foresi\Identity\Domain\Role;
+use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Tests\Banking\Support\BankScreenTestCase;
+use Foresi\Tests\Banking\Support\FailingInboundFiles;
+use Foresi\Tests\Banking\Support\Scalars;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**

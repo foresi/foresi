@@ -1,7 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {% extends 'import/_flow.html.twig' %}
 
-{% set token = csrf_token(constant('App\\Import\\Infrastructure\\Controller\\ImportController::TOKEN')) %}
+{% set token = csrf_token(constant('Foresi\\Import\\Infrastructure\\Controller\\ImportController::TOKEN')) %}
 {% set form_invalid = confirmationError|default(null) is not null %}
 
 {% block title %}{{ import.originalName }}{% endblock %}
@@ -53,7 +53,7 @@
                 {% else %}
                     <twig:Ui:DataTable :caption="'import.check.preview'|trans" :columns="screen.preview.columns" :rows="screen.preview.rows" />
                 {% endif %}
-                {% if screen.preview.more %}<p class="mb-0 mt-2 text-small text-muted">{{ 'import.check.preview_more'|trans({count: constant('App\\Import\\Infrastructure\\Controller\\ImportScreens::PREVIEW_ROWS')}) }}</p>{% endif %}
+                {% if screen.preview.more %}<p class="mb-0 mt-2 text-small text-muted">{{ 'import.check.preview_more'|trans({count: constant('Foresi\\Import\\Infrastructure\\Controller\\ImportScreens::PREVIEW_ROWS')}) }}</p>{% endif %}
             </twig:Ui:Card>
         {% endif %}
 

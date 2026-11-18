@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Domain;
+namespace Foresi\Identity\Domain;
 
-use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Shared\Domain\Id;
 
 /**
  * A person who can log in. What they may do in the organisation is decided

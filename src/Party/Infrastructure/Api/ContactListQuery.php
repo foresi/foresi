@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Api;
+namespace Foresi\Party\Infrastructure\Api;
 
-use App\Party\Application\Query\ContactSliceFilter;
-use App\Party\Domain\PartyRole;
+use Foresi\Party\Application\Query\ContactSliceFilter;
+use Foresi\Party\Domain\PartyRole;
 use Symfony\Component\Serializer\Attribute\SerializedName;
 use Symfony\Component\Validator\Constraints as Assert;
 

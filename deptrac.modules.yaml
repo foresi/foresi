@@ -6,167 +6,167 @@ deptrac:
     - name: attachment
       collectors:
         - type: classLike
-          value: ^App\\Attachment\\(?!Contract\\|Integration\\).*
+          value: ^Foresi\\Attachment\\(?!Contract\\|Integration\\).*
     - name: attachment_contract
       collectors:
         - type: classLike
-          value: ^App\\Attachment\\Contract\\.*
+          value: ^Foresi\\Attachment\\Contract\\.*
     - name: audit
       collectors:
         - type: classLike
-          value: ^App\\Audit\\(?!Contract\\|Integration\\).*
+          value: ^Foresi\\Audit\\(?!Contract\\|Integration\\).*
     - name: audit_contract
       collectors:
         - type: classLike
-          value: ^App\\Audit\\Contract\\.*
+          value: ^Foresi\\Audit\\Contract\\.*
     - name: banking
       collectors:
         - type: classLike
-          value: ^App\\Banking\\(?!Contract\\|Integration\\).*
+          value: ^Foresi\\Banking\\(?!Contract\\|Integration\\).*
     - name: banking_contract
       collectors:
         - type: classLike
-          value: ^App\\Banking\\Contract\\.*
+          value: ^Foresi\\Banking\\Contract\\.*
     - name: banking_integration_cash_flow
       collectors:
         - type: classLike
-          value: ^App\\Banking\\Integration\\CashFlow\\.*
+          value: ^Foresi\\Banking\\Integration\\CashFlow\\.*
     - name: cash_flow
       collectors:
         - type: classLike
-          value: ^App\\CashFlow\\(?!Contract\\|Integration\\).*
+          value: ^Foresi\\CashFlow\\(?!Contract\\|Integration\\).*
     - name: cash_flow_contract
       collectors:
         - type: classLike
-          value: ^App\\CashFlow\\Contract\\.*
+          value: ^Foresi\\CashFlow\\Contract\\.*
     - name: country
       collectors:
         - type: classLike
-          value: ^App\\Country\\(?!Contract\\|Integration\\).*
+          value: ^Foresi\\Country\\(?!Contract\\|Integration\\).*
     - name: country_contract
       collectors:
         - type: classLike
-          value: ^App\\Country\\Contract\\.*
+          value: ^Foresi\\Country\\Contract\\.*
     - name: events
       collectors:
         - type: classLike
-          value: ^App\\Events\\(?!Contract\\|Integration\\).*
+          value: ^Foresi\\Events\\(?!Contract\\|Integration\\).*
     - name: events_contract
       collectors:
         - type: classLike
-          value: ^App\\Events\\Contract\\.*
+          value: ^Foresi\\Events\\Contract\\.*
     - name: exchange_rate
       collectors:
         - type: classLike
-          value: ^App\\ExchangeRate\\(?!Contract\\|Integration\\).*
+          value: ^Foresi\\ExchangeRate\\(?!Contract\\|Integration\\).*
     - name: exchange_rate_contract
       collectors:
         - type: classLike
-          value: ^App\\ExchangeRate\\Contract\\.*
+          value: ^Foresi\\ExchangeRate\\Contract\\.*
     - name: identity
       collectors:
         - type: classLike
-          value: ^App\\Identity\\(?!Contract\\|Integration\\).*
+          value: ^Foresi\\Identity\\(?!Contract\\|Integration\\).*
     - name: identity_contract
       collectors:
         - type: classLike
-          value: ^App\\Identity\\Contract\\.*
+          value: ^Foresi\\Identity\\Contract\\.*
     - name: idoklad
       collectors:
         - type: classLike
-          value: ^App\\Idoklad\\(?!Contract\\|Integration\\).*
+          value: ^Foresi\\Idoklad\\(?!Contract\\|Integration\\).*
     - name: idoklad_contract
       collectors:
         - type: classLike
-          value: ^App\\Idoklad\\Contract\\.*
+          value: ^Foresi\\Idoklad\\Contract\\.*
     - name: import
       collectors:
         - type: classLike
-          value: ^App\\Import\\(?!Contract\\|Integration\\).*
+          value: ^Foresi\\Import\\(?!Contract\\|Integration\\).*
     - name: import_contract
       collectors:
         - type: classLike
-          value: ^App\\Import\\Contract\\.*
+          value: ^Foresi\\Import\\Contract\\.*
     - name: instance
       collectors:
         - type: classLike
-          value: ^App\\Instance\\(?!Contract\\|Integration\\).*
+          value: ^Foresi\\Instance\\(?!Contract\\|Integration\\).*
     - name: instance_contract
       collectors:
         - type: classLike
-          value: ^App\\Instance\\Contract\\.*
+          value: ^Foresi\\Instance\\Contract\\.*
     - name: invoicing
       collectors:
         - type: classLike
-          value: ^App\\Invoicing\\(?!Contract\\|Integration\\).*
+          value: ^Foresi\\Invoicing\\(?!Contract\\|Integration\\).*
     - name: invoicing_contract
       collectors:
         - type: classLike
-          value: ^App\\Invoicing\\Contract\\.*
+          value: ^Foresi\\Invoicing\\Contract\\.*
     - name: invoicing_integration_cash_flow
       collectors:
         - type: classLike
-          value: ^App\\Invoicing\\Integration\\CashFlow\\.*
+          value: ^Foresi\\Invoicing\\Integration\\CashFlow\\.*
     - name: party
       collectors:
         - type: classLike
-          value: ^App\\Party\\(?!Contract\\|Integration\\).*
+          value: ^Foresi\\Party\\(?!Contract\\|Integration\\).*
     - name: party_contract
       collectors:
         - type: classLike
-          value: ^App\\Party\\Contract\\.*
+          value: ^Foresi\\Party\\Contract\\.*
     - name: purchasing
       collectors:
         - type: classLike
-          value: ^App\\Purchasing\\(?!Contract\\|Integration\\).*
+          value: ^Foresi\\Purchasing\\(?!Contract\\|Integration\\).*
     - name: purchasing_contract
       collectors:
         - type: classLike
-          value: ^App\\Purchasing\\Contract\\.*
+          value: ^Foresi\\Purchasing\\Contract\\.*
     - name: purchasing_integration_cash_flow
       collectors:
         - type: classLike
-          value: ^App\\Purchasing\\Integration\\CashFlow\\.*
+          value: ^Foresi\\Purchasing\\Integration\\CashFlow\\.*
     - name: shared
       collectors:
         - type: classLike
-          value: ^App\\Shared\\(?!Contract\\|Integration\\).*
+          value: ^Foresi\\Shared\\(?!Contract\\|Integration\\).*
     - name: shared_contract
       collectors:
         - type: classLike
-          value: ^App\\Shared\\Contract\\.*
+          value: ^Foresi\\Shared\\Contract\\.*
     - name: timesheet
       collectors:
         - type: classLike
-          value: ^App\\Timesheet\\(?!Contract\\|Integration\\).*
+          value: ^Foresi\\Timesheet\\(?!Contract\\|Integration\\).*
     - name: timesheet_contract
       collectors:
         - type: classLike
-          value: ^App\\Timesheet\\Contract\\.*
+          value: ^Foresi\\Timesheet\\Contract\\.*
     - name: ui
       collectors:
         - type: classLike
-          value: ^App\\Ui\\(?!Contract\\|Integration\\).*
+          value: ^Foresi\\Ui\\(?!Contract\\|Integration\\).*
     - name: ui_contract
       collectors:
         - type: classLike
-          value: ^App\\Ui\\Contract\\.*
+          value: ^Foresi\\Ui\\Contract\\.*
     - name: webhooks
       collectors:
         - type: classLike
-          value: ^App\\Webhooks\\(?!Contract\\|Integration\\).*
+          value: ^Foresi\\Webhooks\\(?!Contract\\|Integration\\).*
     - name: webhooks_contract
       collectors:
         - type: classLike
-          value: ^App\\Webhooks\\Contract\\.*
+          value: ^Foresi\\Webhooks\\Contract\\.*
     - name: work
       collectors:
         - type: classLike
-          value: ^App\\Work\\(?!Contract\\|Integration\\).*
+          value: ^Foresi\\Work\\(?!Contract\\|Integration\\).*
     - name: work_contract
       collectors:
         - type: classLike
-          value: ^App\\Work\\Contract\\.*
+          value: ^Foresi\\Work\\Contract\\.*
   ruleset:
     attachment:
       - attachment_contract

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Domain;
+namespace Foresi\Import\Domain;
 
 /** How the text of a source cell is read for a target field. */
 enum FieldType: string

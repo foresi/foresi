@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Application;
+namespace Foresi\CashFlow\Application;
 
-use App\CashFlow\Contract\FlowCategory;
-use App\CashFlow\Domain\MatchRule;
-use App\CashFlow\Domain\PlannedItem;
-use App\CashFlow\Domain\PlannedItemTerms;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Shared\Domain\Schedule\InvalidRecurrence;
-use App\Shared\Domain\Schedule\Recurrence;
-use App\Shared\Domain\Schedule\RecurrenceEnd;
-use App\Shared\Domain\Schedule\RecurrenceUnit;
+use Foresi\CashFlow\Contract\FlowCategory;
+use Foresi\CashFlow\Domain\MatchRule;
+use Foresi\CashFlow\Domain\PlannedItem;
+use Foresi\CashFlow\Domain\PlannedItemTerms;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\Schedule\InvalidRecurrence;
+use Foresi\Shared\Domain\Schedule\Recurrence;
+use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
+use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
 
 /**
  * Checks a planned item as a client sent it and turns it into its terms, or

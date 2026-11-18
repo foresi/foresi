@@ -6,22 +6,22 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Form;
+namespace Foresi\Purchasing\Infrastructure\Form;
 
-use App\Party\Domain\Party;
-use App\Purchasing\Application\Query\SupplierChoices;
-use App\Purchasing\Application\Query\SupplierOption;
-use App\Purchasing\Application\ReceivedDocumentInput;
-use App\Purchasing\Domain\ExchangeRate;
-use App\Purchasing\Domain\PurchaseTaxTreatment;
-use App\Purchasing\Domain\ReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocumentKind;
-use App\Purchasing\Domain\ReceivedDocumentRefused;
-use App\Purchasing\Domain\VatRate;
-use App\Purchasing\Domain\VatRecap;
-use App\Purchasing\Domain\VatRecapLine;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Party\Domain\Party;
+use Foresi\Purchasing\Application\Query\SupplierChoices;
+use Foresi\Purchasing\Application\Query\SupplierOption;
+use Foresi\Purchasing\Application\ReceivedDocumentInput;
+use Foresi\Purchasing\Domain\ExchangeRate;
+use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
+use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Purchasing\Domain\VatRate;
+use Foresi\Purchasing\Domain\VatRecap;
+use Foresi\Purchasing\Domain\VatRecapLine;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use Symfony\Component\HttpFoundation\Request;
 
 /**

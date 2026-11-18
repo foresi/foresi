@@ -6,21 +6,21 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Operation;
+namespace Foresi\Tests\Shared\Infrastructure\Operation;
 
-use App\Shared\Application\Api\Omitted;
-use App\Shared\Application\RefusalKind;
-use App\Shared\Infrastructure\Mcp\ToolRefusal;
-use App\Shared\Infrastructure\Operation\ConfirmationRequired;
-use App\Shared\Infrastructure\Operation\InputMapper;
-use App\Shared\Infrastructure\Operation\InputSchema;
-use App\Shared\Infrastructure\Operation\InvalidInput;
-use App\Shared\Infrastructure\Operation\OperationDefinition;
-use App\Shared\Infrastructure\Operation\OperationErrors;
-use App\Shared\Infrastructure\Operation\OperationRunner;
-use App\Shared\Infrastructure\Operation\Operations;
-use App\Shared\Infrastructure\Operation\OperationTool;
-use App\Tests\Shared\Infrastructure\Mcp\FakeScopes;
+use Foresi\Shared\Application\Api\Omitted;
+use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Infrastructure\Operation\ConfirmationRequired;
+use Foresi\Shared\Infrastructure\Operation\InputMapper;
+use Foresi\Shared\Infrastructure\Operation\InputSchema;
+use Foresi\Shared\Infrastructure\Operation\InvalidInput;
+use Foresi\Shared\Infrastructure\Operation\OperationDefinition;
+use Foresi\Shared\Infrastructure\Operation\OperationErrors;
+use Foresi\Shared\Infrastructure\Operation\OperationRunner;
+use Foresi\Shared\Infrastructure\Operation\Operations;
+use Foresi\Shared\Infrastructure\Operation\OperationTool;
+use Foresi\Tests\Shared\Infrastructure\Mcp\FakeScopes;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -39,8 +39,8 @@ final class OperationTest extends TestCase
         $definition = OperationDefinition::of(new ThingHandler());
 
         self::assertSame('api_v1_operation_things.change', $definition->route());
-        self::assertSame(['thing_id', 'name', 'note', 'colour', 'tags', 'count', 'shiny'], array_map(static fn (\App\Shared\Infrastructure\Operation\OperationField $field): string => $field->wire, $definition->fields));
-        self::assertSame(['name', 'note', 'colour', 'tags', 'count', 'shiny'], array_map(static fn (\App\Shared\Infrastructure\Operation\OperationField $field): string => $field->wire, $definition->bodyFields()));
+        self::assertSame(['thing_id', 'name', 'note', 'colour', 'tags', 'count', 'shiny'], array_map(static fn (\Foresi\Shared\Infrastructure\Operation\OperationField $field): string => $field->wire, $definition->fields));
+        self::assertSame(['name', 'note', 'colour', 'tags', 'count', 'shiny'], array_map(static fn (\Foresi\Shared\Infrastructure\Operation\OperationField $field): string => $field->wire, $definition->bodyFields()));
         self::assertTrue($definition->fields[0]->inPath);
         self::assertTrue($definition->fields[1]->required);
         self::assertFalse($definition->fields[2]->required);

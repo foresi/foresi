@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Doctrine;
+namespace Foresi\Work\Infrastructure\Doctrine;
 
-use App\Identity\Domain\Membership;
-use App\Work\Application\WorkShares;
-use App\Work\Domain\Project;
-use App\Work\Domain\Section;
-use App\Work\Domain\Task;
-use App\Work\Domain\WorkShare;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Work\Application\WorkShares;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\Section;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\WorkShare;
 
 final readonly class DoctrineWorkShares implements WorkShares
 {

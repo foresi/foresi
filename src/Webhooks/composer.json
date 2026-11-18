@@ -15,7 +15,7 @@
         "foresi": {
             "module": "webhooks",
             "kind": "core",
-            "namespace": "App\\Webhooks\\",
+            "namespace": "Foresi\\Webhooks\\",
             "optional": [],
             "scopes": [
                 "webhooks"

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Instance\Application;
+namespace Foresi\Instance\Application;
 
 /**
  * Port: the zone of the instance when APP_TIMEZONE is not set, from what a

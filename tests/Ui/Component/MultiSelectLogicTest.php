@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui\Component;
+namespace Foresi\Tests\Ui\Component;
 
-use App\Ui\Component\MultiSelect;
-use App\Ui\Component\Style;
+use Foresi\Ui\Component\MultiSelect;
+use Foresi\Ui\Component\Style;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

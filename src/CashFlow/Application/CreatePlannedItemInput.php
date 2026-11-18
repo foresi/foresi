@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Application;
+namespace Foresi\CashFlow\Application;
 
-use App\CashFlow\Domain\PlannedItem;
-use App\Shared\Application\Api\Field;
-use App\Shared\Application\Api\Operation;
+use Foresi\CashFlow\Domain\PlannedItem;
+use Foresi\Shared\Application\Api\Field;
+use Foresi\Shared\Application\Api\Operation;
 
 /**
  * A new planned item over the API and MCP (ADR 0032): one-off on its day, or

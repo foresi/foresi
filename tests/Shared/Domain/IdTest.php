@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Domain;
+namespace Foresi\Tests\Shared\Domain;
 
-use App\Shared\Domain\Id;
+use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\TestCase;
 
 final class IdTest extends TestCase

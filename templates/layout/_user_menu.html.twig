@@ -6,7 +6,7 @@
     below it, kept inside the viewport by the dropdown controller (Android Developers, "Menus").
     Variables: shell (ShellView).
 #}
-{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 {% set orgName = shell.organisation ? shell.organisation.name : 'shell.organisation.none'|trans %}
 <twig:Ui:Menu id="user-menu" buttonId="user-menu-button" :label="'shell.user_menu.label'|trans" :menuLabel="'shell.user_menu.label'|trans" placement="above" align="start" :float="true" menuClass="min-w-60 max-w-[min(340px,calc(100vw-24px))]" class="shell:mt-1.5">
     <twig:block name="trigger">
@@ -33,7 +33,7 @@
             <twig:Ui:MenuItem :href="path('app_api_tokens')" icon="key-round">{{ 'shell.user_menu.api_access'|trans }}</twig:Ui:MenuItem>
         {% endif %}
         <form method="post" action="{{ path('app_account_language') }}" data-turbo="false" role="none">
-            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Identity\\Infrastructure\\Controller\\LanguageController::TOKEN_ID')) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Identity\\Infrastructure\\Controller\\LanguageController::TOKEN_ID')) }}">
             <input type="hidden" name="locale" value="{{ shell.otherLocale }}">
             <input type="hidden" name="redirect" value="{{ app.request.requestUri }}" data-nav-sync>
             <twig:Ui:MenuItem type="submit" icon="languages">{{ 'shell.user_menu.language'|trans({language: ('locale.' ~ shell.otherLocale)|trans}) }}</twig:Ui:MenuItem>

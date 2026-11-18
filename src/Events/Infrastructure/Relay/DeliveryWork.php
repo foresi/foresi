@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Relay;
+namespace Foresi\Events\Infrastructure\Relay;
 
-use App\Shared\Application\Event\EventOutbox;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
+use Foresi\Shared\Application\Event\EventOutbox;
 
 /**
  * The transaction of one delivery, with the semantics of the unit of work of

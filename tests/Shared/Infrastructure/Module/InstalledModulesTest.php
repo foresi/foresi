@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Module;
+namespace Foresi\Tests\Shared\Infrastructure\Module;
 
-use App\Shared\Domain\Module\InvalidManifest;
-use App\Shared\Domain\Module\ModuleKind;
-use App\Shared\Domain\Module\ModuleManifest;
-use App\Shared\Infrastructure\Module\InstalledModules;
+use Foresi\Shared\Domain\Module\InvalidManifest;
+use Foresi\Shared\Domain\Module\ModuleKind;
+use Foresi\Shared\Domain\Module\ModuleManifest;
+use Foresi\Shared\Infrastructure\Module\InstalledModules;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -47,8 +47,8 @@ final class InstalledModulesTest extends TestCase
     public function testNamespaceMatchesDirectory(): void
     {
         foreach ($this->modules()->graph()->all() as $module) {
-            self::assertMatchesRegularExpression('/^App\\\\([A-Za-z]+)\\\\$/', $module->namespace);
-            $directory = substr($module->namespace, 4, -1);
+            self::assertMatchesRegularExpression('/^Foresi\\\\([A-Za-z]+)\\\\$/', $module->namespace);
+            $directory = substr($module->namespace, \strlen('Foresi\\'), -1);
             self::assertDirectoryExists($this->projectDir().'/src/'.$directory);
             self::assertFileExists($this->projectDir().'/src/'.$directory.'/composer.json');
             self::assertSame('foresi/'.$module->id->value, $module->package);
@@ -59,10 +59,10 @@ final class InstalledModulesTest extends TestCase
     {
         $manifest = InstalledModules::manifestFrom(self::composer(), ['foresi/shared', 'foresi/work', 'foresi/timesheet']);
 
-        self::assertSame(['shared', 'work'], array_map(static fn (\App\Shared\Domain\Module\ModuleId $id): string => $id->value, $manifest->requires));
-        self::assertSame(['invoicing'], array_map(static fn (\App\Shared\Domain\Module\ModuleId $id): string => $id->value, $manifest->optional));
+        self::assertSame(['shared', 'work'], array_map(static fn (\Foresi\Shared\Domain\Module\ModuleId $id): string => $id->value, $manifest->requires));
+        self::assertSame(['invoicing'], array_map(static fn (\Foresi\Shared\Domain\Module\ModuleId $id): string => $id->value, $manifest->optional));
         self::assertSame(ModuleKind::Module, $manifest->kind);
-        self::assertSame('App\\Timesheet\\', $manifest->namespace);
+        self::assertSame('Foresi\\Timesheet\\', $manifest->namespace);
     }
 
     public function testTheInstalledModulesDeclareTheirApiResources(): void
@@ -70,7 +70,7 @@ final class InstalledModulesTest extends TestCase
         $graph = new InstalledModules(\dirname(__DIR__, 4))->graph();
 
         self::assertSame(['cashflow', 'contacts', 'events', 'invoices', 'payments', 'received_documents', 'webhooks'], $graph->resources());
-        self::assertSame(['contacts'], $graph->get(\App\Shared\Domain\Module\ModuleId::of('party'))->scopes);
+        self::assertSame(['contacts'], $graph->get(\Foresi\Shared\Domain\Module\ModuleId::of('party'))->scopes);
         self::assertSame([], InstalledModules::manifestFrom(self::composer(), [])->scopes);
     }
 
@@ -150,7 +150,7 @@ final class InstalledModulesTest extends TestCase
             'extra' => ['foresi' => [
                 'module' => 'timesheet',
                 'kind' => 'module',
-                'namespace' => 'App\\Timesheet\\',
+                'namespace' => 'Foresi\\Timesheet\\',
                 'optional' => ['invoicing'],
             ]],
         ];

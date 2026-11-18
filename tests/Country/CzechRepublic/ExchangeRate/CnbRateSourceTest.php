@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Country\CzechRepublic\ExchangeRate;
+namespace Foresi\Tests\Country\CzechRepublic\ExchangeRate;
 
-use App\Country\CzechRepublic\ExchangeRate\CnbRateSource;
-use App\Tests\Support\Registry\RegistryTestKit;
+use Foresi\Country\CzechRepublic\ExchangeRate\CnbRateSource;
+use Foresi\Tests\Support\Registry\RegistryTestKit;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpClient\Response\MockResponse;
 

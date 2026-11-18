@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui;
+namespace Foresi\Tests\Ui;
 
-use App\Ui\FileSize;
+use Foresi\Ui\FileSize;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

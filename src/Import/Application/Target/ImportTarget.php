@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application\Target;
+namespace Foresi\Import\Application\Target;
 
-use App\Import\Domain\BlankCells;
-use App\Import\Domain\FieldDefinition;
-use App\Import\Domain\RowError;
+use Foresi\Import\Domain\BlankCells;
+use Foresi\Import\Domain\FieldDefinition;
+use Foresi\Import\Domain\RowError;
 
 /**
  * Something the import can fill with records. A module implements this to be

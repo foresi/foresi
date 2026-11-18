@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Relay;
+namespace Foresi\Events\Infrastructure\Relay;
 
-use App\Events\Infrastructure\Dbal\EventLogTable;
-use App\Instance\Application\Schedule\OperatorTask;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
+use Foresi\Events\Infrastructure\Dbal\EventLogTable;
+use Foresi\Instance\Application\Schedule\OperatorTask;
 use Psr\Clock\ClockInterface;
 
 /**

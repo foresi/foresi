@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Mcp;
+namespace Foresi\Tests\Shared\Infrastructure\Mcp;
 
-use App\Shared\Infrastructure\Api\Cursor;
-use App\Shared\Infrastructure\Mcp\ToolArguments;
-use App\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Infrastructure\Api\Cursor;
+use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
+use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validation;

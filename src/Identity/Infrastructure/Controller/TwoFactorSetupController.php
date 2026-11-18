@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Controller;
+namespace Foresi\Identity\Infrastructure\Controller;
 
-use App\Identity\Application\OpenToGuest;
-use App\Identity\Application\UserRepository;
-use App\Identity\Infrastructure\Security\RecoveryCodes;
-use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Identity\Infrastructure\Security\TotpQrCode;
-use App\Shared\Application\Sealer;
-use App\Shared\Application\SealerUnavailable;
+use Foresi\Identity\Application\OpenToGuest;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Infrastructure\Security\RecoveryCodes;
+use Foresi\Identity\Infrastructure\Security\SecurityUser;
+use Foresi\Identity\Infrastructure\Security\TotpQrCode;
+use Foresi\Shared\Application\Sealer;
+use Foresi\Shared\Application\SealerUnavailable;
 use Psr\Log\LoggerInterface;
 use Scheb\TwoFactorBundle\Security\TwoFactor\Provider\Totp\TotpAuthenticatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;

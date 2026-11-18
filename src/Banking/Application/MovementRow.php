@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\MessageTrust;
-use App\Banking\Domain\MovementDirection;
-use App\Banking\Domain\MovementState;
-use App\Banking\Domain\UnmatchedReason;
-use App\Shared\Domain\Money;
+use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Banking\Domain\MovementDirection;
+use Foresi\Banking\Domain\MovementState;
+use Foresi\Banking\Domain\UnmatchedReason;
+use Foresi\Shared\Domain\Money;
 
 /**
  * One movement as the bank screen lists it, with the invoices its payment pays.

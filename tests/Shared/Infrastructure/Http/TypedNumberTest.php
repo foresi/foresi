@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Http;
+namespace Foresi\Tests\Shared\Infrastructure\Http;
 
-use App\Shared\Infrastructure\Http\TypedNumber;
+use Foresi\Shared\Infrastructure\Http\TypedNumber;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

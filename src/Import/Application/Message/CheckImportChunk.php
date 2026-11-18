@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application\Message;
+namespace Foresi\Import\Application\Message;
 
 /** Checks one chunk of staged rows without writing anything. Safe to handle twice. */
 final readonly class CheckImportChunk

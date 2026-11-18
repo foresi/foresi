@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Application\Event;
+namespace Foresi\Shared\Application\Event;
 
-use App\Shared\Domain\Event\DomainEventPayload;
+use Foresi\Shared\Domain\Event\DomainEventPayload;
 
 /**
  * Records a contract event in the transaction that makes its fact true, so the

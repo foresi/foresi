@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Api;
+namespace Foresi\Shared\Infrastructure\Api;
 
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;

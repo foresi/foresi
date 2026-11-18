@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\TotalRounding;
-use App\Invoicing\Domain\VatRateKind;
-use App\Invoicing\Domain\VatRegime;
-use App\Party\Domain\InvalidVatId;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\VatId;
-use App\Party\Domain\VatStatus;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\TotalRounding;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Party\Domain\InvalidVatId;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\VatId;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Domain\Money;
 
 /**
  * The checks an invoice and a recurring template share: whether the firm may

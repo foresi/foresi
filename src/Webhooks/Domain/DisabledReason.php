@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Domain;
+namespace Foresi\Webhooks\Domain;
 
 /**
  * Why an endpoint stopped receiving: it answered 410 Gone, it failed for five

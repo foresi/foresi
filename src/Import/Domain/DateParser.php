@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Domain;
+namespace Foresi\Import\Domain;
 
 /** Reads a date written as text; ISO dates are always understood. */
 final class DateParser

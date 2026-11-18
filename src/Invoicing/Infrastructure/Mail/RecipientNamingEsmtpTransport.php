@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Mail;
+namespace Foresi\Invoicing\Infrastructure\Mail;
 
 use Symfony\Component\Mailer\Exception\UnexpectedResponseException;
 use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;

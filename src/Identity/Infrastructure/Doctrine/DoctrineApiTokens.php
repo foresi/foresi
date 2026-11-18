@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Doctrine;
+namespace Foresi\Identity\Infrastructure\Doctrine;
 
-use App\Identity\Application\ApiTokenRecord;
-use App\Identity\Application\ApiTokens;
-use App\Identity\Domain\ApiScope;
-use App\Identity\Domain\ApiToken;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Application\ApiTokenRecord;
+use Foresi\Identity\Application\ApiTokens;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Identity\Domain\ApiToken;
 
 /**
  * The records are read as scalars, without loading the entities.

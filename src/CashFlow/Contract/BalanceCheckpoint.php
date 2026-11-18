@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Contract;
+namespace Foresi\CashFlow\Contract;
 
-use App\Shared\Domain\Money;
+use Foresi\Shared\Domain\Money;
 
 /**
  * The balance of a firm's bank account at the end of a day, as someone or a

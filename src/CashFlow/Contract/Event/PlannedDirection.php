@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Contract\Event;
+namespace Foresi\CashFlow\Contract\Event;
 
 /**
  * Whether a planned item brings money in or takes it out.

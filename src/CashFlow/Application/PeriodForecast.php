@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Application;
+namespace Foresi\CashFlow\Application;
 
-use App\CashFlow\Contract\ForecastPeriod;
-use App\Shared\Domain\Money;
+use Foresi\CashFlow\Contract\ForecastPeriod;
+use Foresi\Shared\Domain\Money;
 
 /**
  * One period of the forecast with its balances and its lines, in CZK.

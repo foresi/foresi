@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Party\Application\ContactSettingsForFirm;
-use App\Party\Application\PartyDetails;
-use App\Party\Application\PartyQuery;
-use App\Party\Application\PartyRow;
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
+use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Application\PartyDetails;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Application\PartyRow;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
 
 /**
  * The contacts a firm can invoice, found by name, identifier or e-mail: everyone not

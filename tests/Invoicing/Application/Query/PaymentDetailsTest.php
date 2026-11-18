@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application\Query;
+namespace Foresi\Tests\Invoicing\Application\Query;
 
-use App\Invoicing\Application\Query\PaymentDetails;
-use App\Invoicing\Application\Query\PaymentsNotAllowed;
-use App\Invoicing\Application\UnknownPayment;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\PaymentAllocation;
-use App\Invoicing\Domain\PaymentSource;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Id;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Application\Query\PaymentDetails;
+use Foresi\Invoicing\Application\Query\PaymentsNotAllowed;
+use Foresi\Invoicing\Application\UnknownPayment;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\PaymentAllocation;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Domain\Money;
 
 final class PaymentDetailsTest extends PaymentReadTestCase
 {
@@ -76,7 +76,7 @@ final class PaymentDetailsTest extends PaymentReadTestCase
     {
         $payment = $this->payment(amount: '100');
 
-        $this->assertRefusedForGuestAndNobody(fn (): \App\Invoicing\Application\Query\PaymentRow => $this->details()->of($payment->id()));
+        $this->assertRefusedForGuestAndNobody(fn (): \Foresi\Invoicing\Application\Query\PaymentRow => $this->details()->of($payment->id()));
         // Refused, not "not found", even for a payment that does not exist.
         $this->signIn($this->guest);
         $this->expectException(PaymentsNotAllowed::class);

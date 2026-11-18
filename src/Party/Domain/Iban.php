@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Domain;
+namespace Foresi\Party\Domain;
 
 /**
  * An IBAN, validated by format and the ISO 7064 mod 97 checksum.

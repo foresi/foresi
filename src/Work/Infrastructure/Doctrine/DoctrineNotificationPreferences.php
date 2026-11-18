@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Doctrine;
+namespace Foresi\Work\Infrastructure\Doctrine;
 
-use App\Identity\Domain\Membership;
-use App\Work\Application\NotificationPreferences;
-use App\Work\Domain\NotificationPreference;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Work\Application\NotificationPreferences;
+use Foresi\Work\Domain\NotificationPreference;
 
 final readonly class DoctrineNotificationPreferences implements NotificationPreferences
 {

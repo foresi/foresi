@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Invoicing\Application\InvoicingCountries;
-use App\Invoicing\Application\Receivable;
-use App\Invoicing\Application\Receivables;
-use App\Invoicing\Application\UnsupportedCountry;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Invoicing\Application\Receivable;
+use Foresi\Invoicing\Application\Receivables;
+use Foresi\Invoicing\Application\UnsupportedCountry;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use Psr\Clock\ClockInterface;
 
 /**

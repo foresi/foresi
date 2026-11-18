@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Http;
+namespace Foresi\Party\Infrastructure\Http;
 
 /**
  * The link a stored website gets on a page: an http or https URL as it is, a

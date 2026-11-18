@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Domain;
+namespace Foresi\Tests\Identity\Domain;
 
-use App\Identity\Domain\ApiScope;
+use Foresi\Identity\Domain\ApiScope;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

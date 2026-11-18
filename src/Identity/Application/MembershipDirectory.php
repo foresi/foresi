@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
-use App\Identity\Domain\Role;
+use Foresi\Identity\Domain\Role;
 
 /**
  * Answers what a user is in the instance: one membership per person (ADR 0035).

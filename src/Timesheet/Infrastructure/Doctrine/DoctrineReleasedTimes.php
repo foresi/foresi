@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Infrastructure\Doctrine;
+namespace Foresi\Timesheet\Infrastructure\Doctrine;
 
-use App\Shared\Domain\Id;
-use App\Timesheet\Application\ReleasedTimes;
-use App\Timesheet\Domain\ReleasedTime;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Shared\Domain\Id;
+use Foresi\Timesheet\Application\ReleasedTimes;
+use Foresi\Timesheet\Domain\ReleasedTime;
 
 final readonly class DoctrineReleasedTimes implements ReleasedTimes
 {

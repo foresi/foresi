@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Domain\Module;
+namespace Foresi\Tests\Shared\Domain\Module;
 
-use App\Shared\Domain\Module\InvalidManifest;
-use App\Shared\Domain\Module\ModuleId;
+use Foresi\Shared\Domain\Module\InvalidManifest;
+use Foresi\Shared\Domain\Module\ModuleId;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\FirmMailServer;
+use Foresi\Invoicing\Domain\FirmMailServer;
 
 /**
  * Hands a message to a firm's mail server. Returning means the server accepted

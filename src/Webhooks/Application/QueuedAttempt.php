@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Application;
+namespace Foresi\Webhooks\Application;
 
 /**
  * An attempt that is queued and not yet made: the delivery it is of, and the

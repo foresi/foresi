@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceChange;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\VariableSymbol;
-use App\Party\Application\ContactSettingsForFirm;
-use App\Party\Application\PartyQuery;
-use App\Party\Application\TransactionalWork;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceChange;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\VariableSymbol;
+use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -91,7 +91,7 @@ final readonly class EditInvoice
         }
         $number = $this->numbers->allocate($series, $invoice->firm(), $input->issueDate, $input->typedNumber, $invoice);
         $abandoned = $invoice->changeNumber($series, $number);
-        if ($abandoned instanceof \App\Invoicing\Domain\AbandonedNumber) {
+        if ($abandoned instanceof \Foresi\Invoicing\Domain\AbandonedNumber) {
             $this->store->addAbandoned($abandoned);
         }
     }

@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Api;
+namespace Foresi\Party\Infrastructure\Api;
 
-use App\Party\Application\Query\ContactAddress;
-use App\Party\Application\Query\ContactBankAccount;
-use App\Party\Application\Query\ContactDetail;
-use App\Party\Application\Query\ContactEmail;
-use App\Party\Application\Query\ContactPersonLink;
-use App\Party\Application\Query\ContactRow;
-use App\Party\Domain\Address;
-use App\Party\Domain\PartyRole;
+use Foresi\Party\Application\Query\ContactAddress;
+use Foresi\Party\Application\Query\ContactBankAccount;
+use Foresi\Party\Application\Query\ContactDetail;
+use Foresi\Party\Application\Query\ContactEmail;
+use Foresi\Party\Application\Query\ContactPersonLink;
+use Foresi\Party\Application\Query\ContactRow;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\PartyRole;
 
 /**
  * Contacts of the address book as the REST API and the MCP tools write them. The

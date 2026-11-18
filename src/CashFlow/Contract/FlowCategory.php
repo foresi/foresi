@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Contract;
+namespace Foresi\CashFlow\Contract;
 
 /**
  * The fixed categories of the forecast. A document takes the category of its

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Logging;
+namespace Foresi\Tests\Shared\Infrastructure\Logging;
 
-use App\Shared\Infrastructure\Logging\OperatorMailHandler;
+use Foresi\Shared\Infrastructure\Logging\OperatorMailHandler;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Yaml\Yaml;
 

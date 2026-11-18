@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Purchasing\Application\Query;
+namespace Foresi\Tests\Purchasing\Application\Query;
 
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Purchasing\Application\PurchasingNotAllowed;
-use App\Purchasing\Application\Query\SupplierChoices;
-use App\Purchasing\Application\Query\SupplierOption;
-use App\Tests\Purchasing\Application\PurchasingTestCase;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Purchasing\Application\PurchasingNotAllowed;
+use Foresi\Purchasing\Application\Query\SupplierChoices;
+use Foresi\Purchasing\Application\Query\SupplierOption;
+use Foresi\Tests\Purchasing\Application\PurchasingTestCase;
 
 final class SupplierChoicesTest extends PurchasingTestCase
 {

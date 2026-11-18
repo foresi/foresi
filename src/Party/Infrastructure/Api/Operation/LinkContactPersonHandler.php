@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Api\Operation;
+namespace Foresi\Party\Infrastructure\Api\Operation;
 
-use App\Party\Application\Contact\ContactWrites;
-use App\Party\Application\Contact\LinkContactPersonInput;
-use App\Shared\Infrastructure\Operation\OperationHandler;
-use App\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Party\Application\Contact\ContactWrites;
+use Foresi\Party\Application\Contact\LinkContactPersonInput;
+use Foresi\Shared\Infrastructure\Operation\OperationHandler;
+use Foresi\Shared\Infrastructure\Operation\OperationOutput;
 
 /**
  * contacts.link_person: the company with its contact persons.

@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure\Support;
+namespace Foresi\Tests\Invoicing\Infrastructure\Support;
 
-use App\Shared\Domain\Id;
 use Doctrine\DBAL\Connection;
+use Foresi\Shared\Domain\Id;
 
 /**
  * Many invoice rows at once, copied in SQL from one issued invoice, for tests that

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Purchasing\Application;
+namespace Foresi\Tests\Purchasing\Application;
 
-use App\Purchasing\Application\PurchasingRefused;
-use App\Purchasing\Domain\ReceivedDocumentRefused;
-use App\Shared\Application\RefusalKind;
+use Foresi\Purchasing\Application\PurchasingRefused;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Shared\Application\RefusalKind;
 use PHPUnit\Framework\TestCase;
 
 /**

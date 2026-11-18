@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui\Dashboard;
+namespace Foresi\Tests\Ui\Dashboard;
 
-use App\Ui\Dashboard\DashboardSection;
-use App\Ui\Dashboard\DashboardSectionProvider;
-use App\Ui\Dashboard\DashboardSections;
+use Foresi\Ui\Dashboard\DashboardSection;
+use Foresi\Ui\Dashboard\DashboardSectionProvider;
+use Foresi\Ui\Dashboard\DashboardSections;
 use PHPUnit\Framework\TestCase;
 
 final class DashboardSectionsTest extends TestCase

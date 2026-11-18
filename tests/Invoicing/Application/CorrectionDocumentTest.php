@@ -6,37 +6,37 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\CorrectInvoice;
-use App\Invoicing\Application\CorrectionInput;
-use App\Invoicing\Application\CorrectionRules;
-use App\Invoicing\Application\EditInvoice;
-use App\Invoicing\Application\InvoiceFilter;
-use App\Invoicing\Application\InvoiceInput;
-use App\Invoicing\Application\InvoicePage;
-use App\Invoicing\Application\InvoiceStore;
-use App\Invoicing\Application\InvoiceSums;
-use App\Invoicing\Application\IssueInvoice;
-use App\Invoicing\Application\IssueRules;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Application\LinePricing;
-use App\Invoicing\Application\StoredInvoice;
-use App\Invoicing\Domain\AbandonedNumber;
-use App\Invoicing\Domain\CorrectionType;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Quantity;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\VatStatus;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Party\Support\FirmAccounts;
+use Foresi\Invoicing\Application\CorrectInvoice;
+use Foresi\Invoicing\Application\CorrectionInput;
+use Foresi\Invoicing\Application\CorrectionRules;
+use Foresi\Invoicing\Application\EditInvoice;
+use Foresi\Invoicing\Application\InvoiceFilter;
+use Foresi\Invoicing\Application\InvoiceInput;
+use Foresi\Invoicing\Application\InvoicePage;
+use Foresi\Invoicing\Application\InvoiceStore;
+use Foresi\Invoicing\Application\InvoiceSums;
+use Foresi\Invoicing\Application\IssueInvoice;
+use Foresi\Invoicing\Application\IssueRules;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Application\LinePricing;
+use Foresi\Invoicing\Application\StoredInvoice;
+use Foresi\Invoicing\Domain\AbandonedNumber;
+use Foresi\Invoicing\Domain\CorrectionType;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Party\Support\FirmAccounts;
 
 /**
  * Credit and debit notes of an invoice of 1 000 at 21 % and 500 at 12 %, taxed on

@@ -3,7 +3,7 @@
     The chain of a document, as iDoklad's "Links" dialog shows it: the advance invoice, its payments
     with their tax documents, and the invoice that deducts them. The document on screen is not a link.
 #}
-{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 {% set dateFormat = 'format.date'|trans %}
 <twig:Ui:Card :title="'invoice.links.title'|trans" icon="link-2" class="mt-4" data-links="">
     <div class="grid gap-4">

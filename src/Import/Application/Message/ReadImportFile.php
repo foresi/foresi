@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application\Message;
+namespace Foresi\Import\Application\Message;
 
 /** Reads the uploaded file of an import, stages its rows and proposes the mapping. Safe to handle twice. */
 final readonly class ReadImportFile

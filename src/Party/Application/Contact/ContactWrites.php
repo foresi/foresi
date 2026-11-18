@@ -6,28 +6,28 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application\Contact;
+namespace Foresi\Party\Application\Contact;
 
-use App\Party\Application\ArchiveParty;
-use App\Party\Application\CreateParty;
-use App\Party\Application\DuplicateFinder;
-use App\Party\Application\DuplicateMatch;
-use App\Party\Application\LinkContactPerson;
-use App\Party\Application\PartyAccess;
-use App\Party\Application\PartyDetails;
-use App\Party\Application\PartyDraft;
-use App\Party\Application\PartyInput;
-use App\Party\Application\PartyNotAllowed;
-use App\Party\Application\PartyRefused;
-use App\Party\Application\PartyRules;
-use App\Party\Application\Query\ContactDetails;
-use App\Party\Application\UnknownParty;
-use App\Party\Application\UnlinkContactPerson;
-use App\Party\Application\UpdateParty;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyRole;
-use App\Party\Domain\RegistrationNumber;
-use App\Shared\Application\Api\Omitted;
+use Foresi\Party\Application\ArchiveParty;
+use Foresi\Party\Application\CreateParty;
+use Foresi\Party\Application\DuplicateFinder;
+use Foresi\Party\Application\DuplicateMatch;
+use Foresi\Party\Application\LinkContactPerson;
+use Foresi\Party\Application\PartyAccess;
+use Foresi\Party\Application\PartyDetails;
+use Foresi\Party\Application\PartyDraft;
+use Foresi\Party\Application\PartyInput;
+use Foresi\Party\Application\PartyNotAllowed;
+use Foresi\Party\Application\PartyRefused;
+use Foresi\Party\Application\PartyRules;
+use Foresi\Party\Application\Query\ContactDetails;
+use Foresi\Party\Application\UnknownParty;
+use Foresi\Party\Application\UnlinkContactPerson;
+use Foresi\Party\Application\UpdateParty;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Shared\Application\Api\Omitted;
 
 /**
  * The contact writes of the API and MCP (ADR 0032): each input goes through the

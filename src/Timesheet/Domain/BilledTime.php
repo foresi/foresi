@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Domain;
+namespace Foresi\Timesheet\Domain;
 
 /**
  * An entry on its line, with the minutes billed after rounding.

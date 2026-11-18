@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Mail;
+namespace Foresi\Work\Infrastructure\Mail;
 
-use App\Identity\Application\MembershipDirectory;
-use App\Identity\Domain\Membership;
-use App\Shared\Application\Markdown;
-use App\Shared\Application\SystemMail;
-use App\Shared\Application\SystemMailer;
-use App\Work\Application\ManageNotificationPreferences;
-use App\Work\Application\NotificationMailer;
-use App\Work\Domain\Notification;
-use App\Work\Domain\NotificationKind;
-use App\Work\Domain\TaskComment;
+use Foresi\Identity\Application\MembershipDirectory;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Shared\Application\Markdown;
+use Foresi\Shared\Application\SystemMail;
+use Foresi\Shared\Application\SystemMailer;
+use Foresi\Work\Application\ManageNotificationPreferences;
+use Foresi\Work\Application\NotificationMailer;
+use Foresi\Work\Domain\Notification;
+use Foresi\Work\Domain\NotificationKind;
+use Foresi\Work\Domain\TaskComment;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Environment;
 

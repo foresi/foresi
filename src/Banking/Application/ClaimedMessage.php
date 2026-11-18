@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\InboundChannel;
+use Foresi\Banking\Domain\InboundChannel;
 
 /**
  * An inbound message one worker took for processing, with what processing

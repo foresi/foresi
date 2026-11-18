@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Domain;
+namespace Foresi\Work\Domain;
 
-use App\Audit\Domain\Audited;
-use App\Audit\Domain\AuditRooted;
-use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Audit\Domain\AuditRooted;
+use Foresi\Shared\Domain\Id;
 
 /**
  * A group of tasks in the list of a project, independent of their status: a

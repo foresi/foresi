@@ -6,48 +6,48 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\AdvanceDeductions;
-use App\Invoicing\Application\CorrectionInput;
-use App\Invoicing\Application\EditInvoice;
-use App\Invoicing\Application\InvoiceInput;
-use App\Invoicing\Application\InvoiceStore;
-use App\Invoicing\Application\IssueInvoice;
-use App\Invoicing\Application\IssueRefused;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Application\MarkDelivered;
-use App\Invoicing\Application\NumberCounter;
-use App\Invoicing\Application\SeriesCatalog;
-use App\Invoicing\Application\TrashInvoice;
-use App\Invoicing\Domain\CorrectionType;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Quantity;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\SeriesFormat;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Party\Domain\Address;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\EmailPurpose;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyEmail;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PaymentMethod;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
-use App\Party\Domain\VatStatus;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Party\Support\FirmAccounts;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Invoicing\Application\AdvanceDeductions;
+use Foresi\Invoicing\Application\CorrectionInput;
+use Foresi\Invoicing\Application\EditInvoice;
+use Foresi\Invoicing\Application\InvoiceInput;
+use Foresi\Invoicing\Application\InvoiceStore;
+use Foresi\Invoicing\Application\IssueInvoice;
+use Foresi\Invoicing\Application\IssueRefused;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Application\MarkDelivered;
+use Foresi\Invoicing\Application\NumberCounter;
+use Foresi\Invoicing\Application\SeriesCatalog;
+use Foresi\Invoicing\Application\TrashInvoice;
+use Foresi\Invoicing\Domain\CorrectionType;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\EmailPurpose;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Party\Support\FirmAccounts;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -221,7 +221,7 @@ abstract class InvoiceTestCase extends KernelTestCase
         try {
             $save();
         } catch (IssueRefused $refused) {
-            return array_map(static fn (\App\Invoicing\Application\IssueProblem $problem): string => $problem->key, $refused->problems);
+            return array_map(static fn (\Foresi\Invoicing\Application\IssueProblem $problem): string => $problem->key, $refused->problems);
         }
         self::fail('Expected the save to be refused.');
     }

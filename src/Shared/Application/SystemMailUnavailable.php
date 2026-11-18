@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Application;
+namespace Foresi\Shared\Application;
 
 /**
  * The installation has no system mailer (SYSTEM_MAILER_DSN) or no sender

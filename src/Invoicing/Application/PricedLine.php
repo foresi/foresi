@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\LineAmounts;
-use App\Invoicing\Domain\LineValues;
+use Foresi\Invoicing\Domain\LineAmounts;
+use Foresi\Invoicing\Domain\LineValues;
 
 /**
  * A line after the regime and the tax point had their say: what is stored.

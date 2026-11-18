@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application;
+namespace Foresi\Import\Application;
 
-use App\Import\Domain\ImportState;
+use Foresi\Import\Domain\ImportState;
 
 /**
  * Runs a checked import: it starts at once when no other import

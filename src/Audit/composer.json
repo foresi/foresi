@@ -11,7 +11,7 @@
         "foresi": {
             "module": "audit",
             "kind": "core",
-            "namespace": "App\\Audit\\",
+            "namespace": "Foresi\\Audit\\",
             "optional": []
         }
     }

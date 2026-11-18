@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
 /**
  * Why a change to the people of the organisation is not made; the reason is the

@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Country\CzechRepublic\Party;
+namespace Foresi\Country\CzechRepublic\Party;
 
-use App\Party\Domain\InvalidRegistrationNumber;
-use App\Party\Domain\RegistrationNumberValidator;
+use Foresi\Party\Domain\InvalidRegistrationNumber;
+use Foresi\Party\Domain\RegistrationNumberValidator;
 
 /**
  * Czech IČO: eight digits, the last one a modulo 11 check digit.

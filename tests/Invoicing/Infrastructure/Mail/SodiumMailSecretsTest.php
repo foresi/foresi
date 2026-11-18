@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure\Mail;
+namespace Foresi\Tests\Invoicing\Infrastructure\Mail;
 
-use App\Invoicing\Application\MailSecretsUnavailable;
-use App\Invoicing\Infrastructure\Mail\SodiumMailSecrets;
+use Foresi\Invoicing\Application\MailSecretsUnavailable;
+use Foresi\Invoicing\Infrastructure\Mail\SodiumMailSecrets;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

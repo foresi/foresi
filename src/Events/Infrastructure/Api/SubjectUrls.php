@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Api;
+namespace Foresi\Events\Infrastructure\Api;
 
-use App\Shared\Application\Event\EventSubjectUrl;
-use App\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Application\Event\EventSubjectUrl;
+use Foresi\Shared\Domain\Event\EventSubject;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**

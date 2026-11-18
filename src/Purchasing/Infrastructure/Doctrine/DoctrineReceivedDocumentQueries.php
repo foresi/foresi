@@ -6,23 +6,23 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Doctrine;
+namespace Foresi\Purchasing\Infrastructure\Doctrine;
 
-use App\Purchasing\Application\Query\ReceivedDocumentFilter;
-use App\Purchasing\Application\Query\ReceivedDocumentQueries;
-use App\Purchasing\Application\Query\ReceivedDocumentRow;
-use App\Purchasing\Application\Query\ReceivedDocumentSliceFilter;
-use App\Purchasing\Domain\PurchaseTaxTreatment;
-use App\Purchasing\Domain\ReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocumentKind;
-use App\Purchasing\Domain\ReceivedDocumentPayment;
-use App\Purchasing\Domain\ReceivedDocumentState;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Id;
-use App\Shared\Domain\Money;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentFilter;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentQueries;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentRow;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentSliceFilter;
+use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
+use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Purchasing\Domain\ReceivedDocumentPayment;
+use Foresi\Purchasing\Domain\ReceivedDocumentState;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Domain\Money;
 
 /**
  * The lists of received documents in DQL over scalar columns, so a page loads

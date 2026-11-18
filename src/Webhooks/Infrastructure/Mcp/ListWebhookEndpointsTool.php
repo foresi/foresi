@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Mcp;
+namespace Foresi\Webhooks\Infrastructure\Mcp;
 
-use App\Shared\Infrastructure\Mcp\ReadTool;
-use App\Shared\Infrastructure\Mcp\ToolArguments;
-use App\Shared\Infrastructure\Mcp\ToolOutput;
-use App\Webhooks\Application\Query\WebhookEndpointList;
-use App\Webhooks\Infrastructure\Api\EndpointView;
-use App\Webhooks\Infrastructure\Api\WebhookListQuery;
+use Foresi\Shared\Infrastructure\Mcp\ReadTool;
+use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
+use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Webhooks\Application\Query\WebhookEndpointList;
+use Foresi\Webhooks\Infrastructure\Api\EndpointView;
+use Foresi\Webhooks\Infrastructure\Api\WebhookListQuery;
 
 /**
  * The webhook endpoints of the organisation, listed as GET /api/v1/webhook-endpoints

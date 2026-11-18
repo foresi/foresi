@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application;
+namespace Foresi\Idoklad\Application;
 
-use App\Idoklad\Application\Message\ProcessIdokladJob;
+use Foresi\Idoklad\Application\Message\ProcessIdokladJob;
 
 /** Port: hands a job to a worker. */
 interface IdokladQueue

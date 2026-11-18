@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Attachment\Application;
+namespace Foresi\Attachment\Application;
 
 /**
  * Why a file was not attached or removed. The reason names the message

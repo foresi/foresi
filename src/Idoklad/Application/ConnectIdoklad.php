@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application;
+namespace Foresi\Idoklad\Application;
 
-use App\Idoklad\Domain\IdokladConnection;
-use App\Idoklad\Domain\InvalidIdokladConnection;
-use App\Invoicing\Application\MailSecrets;
-use App\Party\Application\TransactionalWork;
-use App\Party\Domain\LegalEntity;
+use Foresi\Idoklad\Domain\IdokladConnection;
+use Foresi\Idoklad\Domain\InvalidIdokladConnection;
+use Foresi\Invoicing\Application\MailSecrets;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\LegalEntity;
 
 /**
  * Stores, replaces and deletes the iDoklad API credentials of a firm. The
@@ -30,7 +30,7 @@ final readonly class ConnectIdoklad
 
     /**
      * @throws InvalidIdokladConnection
-     * @throws \App\Invoicing\Application\MailSecretsUnavailable when no key is configured
+     * @throws \Foresi\Invoicing\Application\MailSecretsUnavailable when no key is configured
      */
     public function connect(LegalEntity $firm, string $clientId, #[\SensitiveParameter] string $clientSecret): IdokladConnection
     {

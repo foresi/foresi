@@ -30,7 +30,7 @@
             {% else %}
                 <twig:Ui:Menu :id="view.id ~ '-menu'" :label="view.label ~ ': ' ~ view.text" variant="chip-set" align="start" :menuLabel="view.label" menuClass="max-h-80 min-w-56 overflow-y-auto">{{ items }}</twig:Ui:Menu>
             {% endif %}
-            <a href="{{ view.clearHref }}" aria-label="{{ 'ui.filter_bar.clear_one'|trans({label: view.label}) }}" class="mr-1 grid size-7 shrink-0 place-items-center rounded-control text-green no-underline hover:bg-white/60 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}" data-filter-clear>{{ ux_icon('lucide:x', {class: 'size-4', 'aria-hidden': 'true'}) }}</a>
+            <a href="{{ view.clearHref }}" aria-label="{{ 'ui.filter_bar.clear_one'|trans({label: view.label}) }}" class="mr-1 grid size-7 shrink-0 place-items-center rounded-control text-green no-underline hover:bg-white/60 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" data-filter-clear>{{ ux_icon('lucide:x', {class: 'size-4', 'aria-hidden': 'true'}) }}</a>
         </span>
     {% else %}
         <twig:Ui:Menu :id="view.id ~ '-menu'" :label="view.label" icon="plus" variant="chip" align="start" :menuLabel="view.label" menuClass="max-h-80 min-w-56 overflow-y-auto" data-filter-chip="{{ view.name }}">{{ items }}</twig:Ui:Menu>
@@ -53,13 +53,13 @@
                     {% if bar.rest is not empty %}
                         <twig:Ui:Button variant="ghost" icon="list-filter" aria-haspopup="dialog" :aria-controls="id ~ '-sheet'" data-action="filter-bar#open" data-filter-more>{{ 'ui.filter_bar.more'|trans }}</twig:Ui:Button>
                     {% endif %}
-                    {% if bar.narrowed %}<a href="{{ bar.clearHref }}" class="px-2 font-medium text-green no-underline hover:underline {{ constant('App\\Ui\\Component\\Style::FOCUS') }}" data-filter-clear-all>{{ 'ui.filter_bar.clear_all'|trans }}</a>{% endif %}
+                    {% if bar.narrowed %}<a href="{{ bar.clearHref }}" class="px-2 font-medium text-green no-underline hover:underline {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" data-filter-clear-all>{{ 'ui.filter_bar.clear_all'|trans }}</a>{% endif %}
                 </div>
                 <twig:Ui:Button icon="list-filter" aria-haspopup="dialog" :aria-controls="id ~ '-sheet'" data-action="filter-bar#open" class="sm:hidden {{ noJs }}" data-filter-open>
                     {{- 'ui.filter_bar.filters'|trans }}{% if setCount > 0 %} <span class="num">({{ setCount }})</span>{% endif -%}
                 </twig:Ui:Button>
             {% elseif bar.narrowed %}
-                <a href="{{ bar.clearHref }}" class="px-2 font-medium text-green no-underline hover:underline {{ constant('App\\Ui\\Component\\Style::FOCUS') }}" data-filter-clear-all>{{ 'ui.filter_bar.clear_all'|trans }}</a>
+                <a href="{{ bar.clearHref }}" class="px-2 font-medium text-green no-underline hover:underline {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" data-filter-clear-all>{{ 'ui.filter_bar.clear_all'|trans }}</a>
             {% endif %}
             {% block end %}{% endblock %}
         </div>
@@ -69,7 +69,7 @@
                 {% for view in bar.set %}
                     <span class="inline-flex h-control max-w-full items-center gap-1 rounded-control border border-green bg-green-tint pl-3 text-green">
                         <span class="truncate font-medium">{{ view.label }}: {{ view.text }}</span>
-                        <a href="{{ view.clearHref }}" aria-label="{{ 'ui.filter_bar.clear_one'|trans({label: view.label}) }}" class="mr-1 grid size-7 shrink-0 place-items-center rounded-control text-green no-underline {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ ux_icon('lucide:x', {class: 'size-4', 'aria-hidden': 'true'}) }}</a>
+                        <a href="{{ view.clearHref }}" aria-label="{{ 'ui.filter_bar.clear_one'|trans({label: view.label}) }}" class="mr-1 grid size-7 shrink-0 place-items-center rounded-control text-green no-underline {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ ux_icon('lucide:x', {class: 'size-4', 'aria-hidden': 'true'}) }}</a>
                     </span>
                 {% endfor %}
             </div>

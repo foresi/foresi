@@ -6,25 +6,25 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\IssueProblem;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Application\RecurringHistory;
-use App\Invoicing\Application\RecurringRefused;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\RecurringInvoice;
-use App\Invoicing\Domain\RecurringState;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\SeriesFormat;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Party\Application\ContactSettingsForFirm;
-use App\Party\Application\TransactionalWork;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Id;
-use App\Shared\Domain\Schedule\RecurrenceEnd;
-use App\Shared\Domain\Schedule\RecurrenceUnit;
+use Foresi\Invoicing\Application\IssueProblem;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Application\RecurringHistory;
+use Foresi\Invoicing\Application\RecurringRefused;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\RecurringInvoice;
+use Foresi\Invoicing\Domain\RecurringState;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
+use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
 
 final class SaveRecurringInvoiceTest extends RecurringTestCase
 {

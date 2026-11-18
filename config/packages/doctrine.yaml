@@ -2,7 +2,7 @@ doctrine:
     dbal:
         url: '%env(resolve:DATABASE_URL)%'
         types:
-            vat_id: App\Party\Infrastructure\Doctrine\VatIdType
+            vat_id: Foresi\Party\Infrastructure\Doctrine\VatIdType
 
         profiling_collect_backtrace: '%kernel.debug%'
     orm:
@@ -14,101 +14,101 @@ doctrine:
                 type: attribute
                 is_bundle: false
                 dir: '%kernel.project_dir%/src/Shared/Domain'
-                prefix: 'App\Shared\Domain'
+                prefix: 'Foresi\Shared\Domain'
                 alias: Shared
             Instance:
                 type: attribute
                 is_bundle: false
                 dir: '%kernel.project_dir%/src/Instance/Domain'
-                prefix: 'App\Instance\Domain'
+                prefix: 'Foresi\Instance\Domain'
                 alias: Instance
             Party:
                 type: attribute
                 is_bundle: false
                 dir: '%kernel.project_dir%/src/Party/Domain'
-                prefix: 'App\Party\Domain'
+                prefix: 'Foresi\Party\Domain'
                 alias: Party
             Invoicing:
                 type: attribute
                 is_bundle: false
                 dir: '%kernel.project_dir%/src/Invoicing/Domain'
-                prefix: 'App\Invoicing\Domain'
+                prefix: 'Foresi\Invoicing\Domain'
                 alias: Invoicing
             Banking:
                 type: attribute
                 is_bundle: false
                 dir: '%kernel.project_dir%/src/Banking/Domain'
-                prefix: 'App\Banking\Domain'
+                prefix: 'Foresi\Banking\Domain'
                 alias: Banking
             Import:
                 type: attribute
                 is_bundle: false
                 dir: '%kernel.project_dir%/src/Import/Domain'
-                prefix: 'App\Import\Domain'
+                prefix: 'Foresi\Import\Domain'
                 alias: Import
             Idoklad:
                 type: attribute
                 is_bundle: false
                 dir: '%kernel.project_dir%/src/Idoklad/Domain'
-                prefix: 'App\Idoklad\Domain'
+                prefix: 'Foresi\Idoklad\Domain'
                 alias: Idoklad
             Identity:
                 type: attribute
                 is_bundle: false
                 dir: '%kernel.project_dir%/src/Identity/Domain'
-                prefix: 'App\Identity\Domain'
+                prefix: 'Foresi\Identity\Domain'
                 alias: Identity
             Audit:
                 type: attribute
                 is_bundle: false
                 dir: '%kernel.project_dir%/src/Audit/Domain'
-                prefix: 'App\Audit\Domain'
+                prefix: 'Foresi\Audit\Domain'
                 alias: Audit
             Work:
                 type: attribute
                 is_bundle: false
                 dir: '%kernel.project_dir%/src/Work/Domain'
-                prefix: 'App\Work\Domain'
+                prefix: 'Foresi\Work\Domain'
                 alias: Work
             Timesheet:
                 type: attribute
                 is_bundle: false
                 dir: '%kernel.project_dir%/src/Timesheet/Domain'
-                prefix: 'App\Timesheet\Domain'
+                prefix: 'Foresi\Timesheet\Domain'
                 alias: Timesheet
             Attachment:
                 type: attribute
                 is_bundle: false
                 dir: '%kernel.project_dir%/src/Attachment/Domain'
-                prefix: 'App\Attachment\Domain'
+                prefix: 'Foresi\Attachment\Domain'
                 alias: Attachment
             CashFlow:
                 type: attribute
                 is_bundle: false
                 dir: '%kernel.project_dir%/src/CashFlow/Domain'
-                prefix: 'App\CashFlow\Domain'
+                prefix: 'Foresi\CashFlow\Domain'
                 alias: CashFlow
             Purchasing:
                 type: attribute
                 is_bundle: false
                 dir: '%kernel.project_dir%/src/Purchasing/Domain'
-                prefix: 'App\Purchasing\Domain'
+                prefix: 'Foresi\Purchasing\Domain'
                 alias: Purchasing
             ExchangeRate:
                 type: attribute
                 is_bundle: false
                 dir: '%kernel.project_dir%/src/ExchangeRate/Domain'
-                prefix: 'App\ExchangeRate\Domain'
+                prefix: 'Foresi\ExchangeRate\Domain'
                 alias: ExchangeRate
             Webhooks:
                 type: attribute
                 is_bundle: false
                 dir: '%kernel.project_dir%/src/Webhooks/Domain'
-                prefix: 'App\Webhooks\Domain'
+                prefix: 'Foresi\Webhooks\Domain'
                 alias: Webhooks
         dql:
             string_functions:
-                CAST_TEXT: App\Party\Infrastructure\Doctrine\CastTextFunction
+                CAST_TEXT: Foresi\Party\Infrastructure\Doctrine\CastTextFunction
 
 when@test:
     doctrine:
@@ -118,13 +118,13 @@ when@test:
                     type: attribute
                     is_bundle: false
                     dir: '%kernel.project_dir%/tests/Shared/Fixtures'
-                    prefix: 'App\Tests\Shared\Fixtures'
+                    prefix: 'Foresi\Tests\Shared\Fixtures'
                     alias: SharedFixtures
                 AuditFixtures:
                     type: attribute
                     is_bundle: false
                     dir: '%kernel.project_dir%/tests/Audit/Fixtures'
-                    prefix: 'App\Tests\Audit\Fixtures'
+                    prefix: 'Foresi\Tests\Audit\Fixtures'
                     alias: AuditFixtures
 
 # The end-to-end environment (tests/e2e) owns its databases, one SQLite file per world under

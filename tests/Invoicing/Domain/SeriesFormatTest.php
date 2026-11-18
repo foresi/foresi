@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Domain;
+namespace Foresi\Tests\Invoicing\Domain;
 
-use App\Invoicing\Domain\InvalidSeriesFormat;
-use App\Invoicing\Domain\NumberKey;
-use App\Invoicing\Domain\SeriesFormat;
-use App\Invoicing\Domain\VariableSymbol;
+use Foresi\Invoicing\Domain\InvalidSeriesFormat;
+use Foresi\Invoicing\Domain\NumberKey;
+use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Invoicing\Domain\VariableSymbol;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Controller;
+namespace Foresi\Work\Infrastructure\Controller;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\OwnerCheck;
-use App\Identity\Application\People;
-use App\Identity\Application\Person;
-use App\Identity\Domain\Role;
-use App\Instance\Application\InstanceClock;
-use App\Work\Application\TimeDay;
-use App\Work\Application\TimeEntryRow;
-use App\Work\Application\TimeQueries;
-use App\Work\Application\TimeWeek;
-use App\Work\Infrastructure\Twig\TimeFunctions;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\OwnerCheck;
+use Foresi\Identity\Application\People;
+use Foresi\Identity\Application\Person;
+use Foresi\Identity\Domain\Role;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Work\Application\TimeDay;
+use Foresi\Work\Application\TimeEntryRow;
+use Foresi\Work\Application\TimeQueries;
+use Foresi\Work\Application\TimeWeek;
+use Foresi\Work\Infrastructure\Twig\TimeFunctions;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

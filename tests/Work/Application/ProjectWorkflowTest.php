@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Work\Application;
+namespace Foresi\Tests\Work\Application;
 
-use App\Work\Application\SectionTasks;
-use App\Work\Application\TaskRow;
-use App\Work\Application\WorkRefused;
-use App\Work\Domain\Label;
-use App\Work\Domain\LabelColour;
-use App\Work\Domain\Project;
-use App\Work\Domain\ProjectStatus;
-use App\Work\Domain\StatusType;
-use App\Work\Domain\Task;
-use App\Work\Domain\WorkflowTemplate;
+use Foresi\Work\Application\SectionTasks;
+use Foresi\Work\Application\TaskRow;
+use Foresi\Work\Application\WorkRefused;
+use Foresi\Work\Domain\Label;
+use Foresi\Work\Domain\LabelColour;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\ProjectStatus;
+use Foresi\Work\Domain\StatusType;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\WorkflowTemplate;
 
 final class ProjectWorkflowTest extends WorkTestCase
 {

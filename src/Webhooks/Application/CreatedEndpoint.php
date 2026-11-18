@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Application;
+namespace Foresi\Webhooks\Application;
 
-use App\Webhooks\Domain\WebhookEndpoint;
-use App\Webhooks\Domain\WebhookSecret;
+use Foresi\Webhooks\Domain\WebhookEndpoint;
+use Foresi\Webhooks\Domain\WebhookSecret;
 
 /**
  * A new endpoint and its signing secret, which the receiver needs to verify

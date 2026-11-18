@@ -6,25 +6,25 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Controller;
+namespace Foresi\Webhooks\Infrastructure\Controller;
 
-use App\Webhooks\Application\DeliveryNotRedeliverable;
-use App\Webhooks\Application\InvalidWebhookEndpoint;
-use App\Webhooks\Application\InvalidWebhookUrl;
-use App\Webhooks\Application\ManageWebhookEndpoints;
-use App\Webhooks\Application\Query\AttemptRow;
-use App\Webhooks\Application\Query\DeliveryRow;
-use App\Webhooks\Application\Query\WebhookDeliveryLog;
-use App\Webhooks\Application\Query\WebhookEndpointList;
-use App\Webhooks\Application\SubscribableEvents;
-use App\Webhooks\Application\UnknownWebhookDelivery;
-use App\Webhooks\Application\UnknownWebhookEndpoint;
-use App\Webhooks\Application\WebhookAccess;
-use App\Webhooks\Application\WebhookEndpointDisabled;
-use App\Webhooks\Application\WebhookNotAllowed;
-use App\Webhooks\Application\WebhookSecretsUnavailable;
-use App\Webhooks\Domain\WebhookEndpoint;
-use App\Webhooks\Domain\WebhookSecret;
+use Foresi\Webhooks\Application\DeliveryNotRedeliverable;
+use Foresi\Webhooks\Application\InvalidWebhookEndpoint;
+use Foresi\Webhooks\Application\InvalidWebhookUrl;
+use Foresi\Webhooks\Application\ManageWebhookEndpoints;
+use Foresi\Webhooks\Application\Query\AttemptRow;
+use Foresi\Webhooks\Application\Query\DeliveryRow;
+use Foresi\Webhooks\Application\Query\WebhookDeliveryLog;
+use Foresi\Webhooks\Application\Query\WebhookEndpointList;
+use Foresi\Webhooks\Application\SubscribableEvents;
+use Foresi\Webhooks\Application\UnknownWebhookDelivery;
+use Foresi\Webhooks\Application\UnknownWebhookEndpoint;
+use Foresi\Webhooks\Application\WebhookAccess;
+use Foresi\Webhooks\Application\WebhookEndpointDisabled;
+use Foresi\Webhooks\Application\WebhookNotAllowed;
+use Foresi\Webhooks\Application\WebhookSecretsUnavailable;
+use Foresi\Webhooks\Domain\WebhookEndpoint;
+use Foresi\Webhooks\Domain\WebhookSecret;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -285,7 +285,7 @@ final class WebhookEndpointController extends AbstractController
     #[Route('/settings/webhooks/{id}/ping', name: self::PING_ROUTE, requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function ping(string $id, Request $request): RedirectResponse
     {
-        return $this->act($request, $id, fn (): \App\Webhooks\Application\QueuedAttempt => $this->manage->ping($id), 'webhooks.flash.pinged');
+        return $this->act($request, $id, fn (): \Foresi\Webhooks\Application\QueuedAttempt => $this->manage->ping($id), 'webhooks.flash.pinged');
     }
 
     #[Route('/settings/webhooks/{id}/delete', name: self::DELETE_ROUTE, requirements: ['id' => Requirement::UUID], methods: ['POST'])]
@@ -305,7 +305,7 @@ final class WebhookEndpointController extends AbstractController
         $this->denyUnlessAnyModule();
         $endpoint = $this->endpoint($id);
         try {
-            $detail = $this->guarded(fn (): \App\Webhooks\Application\Query\DeliveryDetail => $this->deliveries->delivery($id, $deliveryId));
+            $detail = $this->guarded(fn (): \Foresi\Webhooks\Application\Query\DeliveryDetail => $this->deliveries->delivery($id, $deliveryId));
         } catch (UnknownWebhookDelivery $unknown) {
             throw new NotFoundHttpException($unknown->getMessage(), $unknown);
         }
@@ -338,7 +338,7 @@ final class WebhookEndpointController extends AbstractController
     public function redeliver(string $id, string $deliveryId, Request $request): RedirectResponse
     {
         try {
-            return $this->act($request, $id, fn (): \App\Webhooks\Application\QueuedAttempt => $this->manage->redeliver($id, $deliveryId), 'webhooks.flash.redelivered');
+            return $this->act($request, $id, fn (): \Foresi\Webhooks\Application\QueuedAttempt => $this->manage->redeliver($id, $deliveryId), 'webhooks.flash.redelivered');
         } catch (UnknownWebhookDelivery $unknown) {
             throw new NotFoundHttpException($unknown->getMessage(), $unknown);
         }

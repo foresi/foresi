@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Infrastructure\Api;
+namespace Foresi\Tests\Webhooks\Infrastructure\Api;
 
-use App\Tests\Shared\Infrastructure\Api\ApiTestCase;
-use App\Tests\Webhooks\Support\WebhookApi;
+use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
+use Foresi\Tests\Webhooks\Support\WebhookApi;
 
 /**
  * A test case of the webhook API: see WebhookApi.

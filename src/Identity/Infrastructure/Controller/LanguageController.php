@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Controller;
+namespace Foresi\Identity\Infrastructure\Controller;
 
-use App\Identity\Application\ChangeLocale;
-use App\Identity\Application\OpenToGuest;
-use App\Identity\Domain\User;
-use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Shared\Infrastructure\Http\LocalPath;
+use Foresi\Identity\Application\ChangeLocale;
+use Foresi\Identity\Application\OpenToGuest;
+use Foresi\Identity\Domain\User;
+use Foresi\Identity\Infrastructure\Security\SecurityUser;
+use Foresi\Shared\Infrastructure\Http\LocalPath;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;

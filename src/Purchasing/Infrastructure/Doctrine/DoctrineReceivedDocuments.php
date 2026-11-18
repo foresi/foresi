@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Doctrine;
+namespace Foresi\Purchasing\Infrastructure\Doctrine;
 
-use App\Purchasing\Application\ReceivedDocuments;
-use App\Purchasing\Application\UnknownReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocumentPayment;
-use App\Shared\Domain\Id;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Purchasing\Application\ReceivedDocuments;
+use Foresi\Purchasing\Application\UnknownReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentPayment;
+use Foresi\Shared\Domain\Id;
 
 final readonly class DoctrineReceivedDocuments implements ReceivedDocuments
 {

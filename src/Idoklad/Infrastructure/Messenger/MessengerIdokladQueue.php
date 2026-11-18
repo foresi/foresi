@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Infrastructure\Messenger;
+namespace Foresi\Idoklad\Infrastructure\Messenger;
 
-use App\Idoklad\Application\IdokladQueue;
-use App\Idoklad\Application\Message\ProcessIdokladJob;
+use Foresi\Idoklad\Application\IdokladQueue;
+use Foresi\Idoklad\Application\Message\ProcessIdokladJob;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /** Sends jobs through Messenger. */

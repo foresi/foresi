@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application\Source;
+namespace Foresi\Import\Application\Source;
 
 /**
  * How a source file is read. Every part except the format may be left null to

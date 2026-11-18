@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Doctrine;
+namespace Foresi\Purchasing\Infrastructure\Doctrine;
 
-use App\Attachment\Domain\Attachment;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Purchasing\Application\DuplicateDocuments;
-use App\Purchasing\Domain\ReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocumentState;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Attachment\Domain\Attachment;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Purchasing\Application\DuplicateDocuments;
+use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentState;
 
 final readonly class DoctrineDuplicateDocuments implements DuplicateDocuments
 {

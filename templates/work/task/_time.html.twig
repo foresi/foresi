@@ -6,7 +6,7 @@
     and deletes it from its line, until it is invoiced; an invoiced entry names its invoice instead.
     A running timer shows as running.
 #}
-{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 <section class="grid gap-2" aria-labelledby="task-time-title" data-task-time>
     <div class="flex flex-wrap items-center justify-between gap-2">
         <h2 id="task-time-title" class="m-0 text-heading font-semibold text-ink">{{ 'work.time.title'|trans }} <span class="num font-normal text-muted" data-task-time-total>{{ time.total }}</span></h2>

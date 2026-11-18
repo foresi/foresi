@@ -6,24 +6,24 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\CustomerOption;
-use App\Invoicing\Application\CustomerPicker;
-use App\Party\Application\ContactSettingsForFirm;
-use App\Party\Domain\Address;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\EmailPurpose;
-use App\Party\Domain\InvoicingDefaults;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyEmail;
-use App\Party\Domain\PartyFirmSettings;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
+use Foresi\Invoicing\Application\CustomerOption;
+use Foresi\Invoicing\Application\CustomerPicker;
+use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\EmailPurpose;
+use Foresi\Party\Domain\InvoicingDefaults;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Domain\PartyFirmSettings;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
 
 final class CustomerPickerTest extends InvoiceTestCase
 {
@@ -252,7 +252,7 @@ final class CustomerPickerTest extends InvoiceTestCase
         $this->customer->assignRoles([PartyRole::Supplier]);
         $this->em->flush();
 
-        $this->assertRefusedFor('invoice.problem.no_lines', fn (): \App\Invoicing\Domain\Invoice => $this->issue->issue($this->input(lines: [])));
+        $this->assertRefusedFor('invoice.problem.no_lines', fn (): \Foresi\Invoicing\Domain\Invoice => $this->issue->issue($this->input(lines: [])));
 
         self::assertSame([PartyRole::Supplier], $this->customer->roles());
     }
@@ -302,7 +302,7 @@ final class CustomerPickerTest extends InvoiceTestCase
      *
      * @return list<string>
      */
-    private function names(string $text, \App\Party\Domain\LegalEntity $firm, array $without = []): array
+    private function names(string $text, \Foresi\Party\Domain\LegalEntity $firm, array $without = []): array
     {
         $names = array_map(static fn (CustomerOption $option): string => $option->name, $this->picker->search($text, $firm));
 

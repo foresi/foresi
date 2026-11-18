@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Controller;
+namespace Foresi\Work\Infrastructure\Controller;
 
-use App\Identity\Application\OpenToGuest;
-use App\Identity\Domain\User;
-use App\Work\Application\ManageNotificationPreferences;
-use App\Work\Domain\NotificationKind;
+use Foresi\Identity\Application\OpenToGuest;
+use Foresi\Identity\Domain\User;
+use Foresi\Work\Application\ManageNotificationPreferences;
+use Foresi\Work\Domain\NotificationKind;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

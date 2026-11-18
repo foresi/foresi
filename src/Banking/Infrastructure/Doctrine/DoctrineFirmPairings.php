@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure\Doctrine;
+namespace Foresi\Banking\Infrastructure\Doctrine;
 
-use App\Banking\Application\FirmPairingRules;
-use App\Banking\Application\FirmPairings;
-use App\Banking\Application\PairingRules;
-use App\Banking\Domain\FirmPairing;
-use App\Party\Domain\LegalEntity;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Banking\Application\FirmPairingRules;
+use Foresi\Banking\Application\FirmPairings;
+use Foresi\Banking\Application\PairingRules;
+use Foresi\Banking\Domain\FirmPairing;
+use Foresi\Party\Domain\LegalEntity;
 
 /**
  * Through the ORM. A firm without a stored row has the defaults.

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\DocumentLanguage;
 
 /**
  * Port: the subject and text of a mail about recurring templates a run could not

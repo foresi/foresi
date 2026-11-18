@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Application;
 
-use App\Invoicing\Application\AllocationRequest;
-use App\Invoicing\Application\PaymentRefused;
-use App\Invoicing\Application\PaymentRequest;
-use App\Invoicing\Application\RecordPayment;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\PaymentSource;
-use App\Party\Domain\PaymentMethod;
-use App\Tests\Banking\Support\BankingTestCase;
+use Foresi\Invoicing\Application\AllocationRequest;
+use Foresi\Invoicing\Application\PaymentRefused;
+use Foresi\Invoicing\Application\PaymentRequest;
+use Foresi\Invoicing\Application\RecordPayment;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Tests\Banking\Support\BankingTestCase;
 
 /**
  * A bank payment of an advance invoice gets its tax document in the transaction

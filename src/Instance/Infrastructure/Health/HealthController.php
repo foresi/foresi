@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Instance\Infrastructure\Health;
+namespace Foresi\Instance\Infrastructure\Health;
 
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;

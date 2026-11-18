@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Security;
+namespace Foresi\Identity\Infrastructure\Security;
 
-use App\Identity\Application\GuestCheck;
-use App\Identity\Application\OpenToGuest;
+use Foresi\Identity\Application\GuestCheck;
+use Foresi\Identity\Application\OpenToGuest;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpKernel\Event\ControllerEvent;
 use Symfony\Component\HttpKernel\KernelEvents;

@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application;
+namespace Foresi\Purchasing\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\StaffCheck;
-use App\Party\Application\LegalEntities;
-use App\Party\Application\UnknownLegalEntity;
-use App\Party\Domain\LegalEntity;
-use App\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
 
 /**
  * Who works with received documents: the owners and the members of the

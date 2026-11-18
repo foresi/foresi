@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure;
+namespace Foresi\Tests\Invoicing\Infrastructure;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Api;
+namespace Foresi\Webhooks\Infrastructure\Api;
 
-use App\Webhooks\Application\ManageWebhookEndpoints;
+use Foresi\Webhooks\Application\ManageWebhookEndpoints;
 use Symfony\Component\Serializer\Attribute\SerializedName;
 
 /**

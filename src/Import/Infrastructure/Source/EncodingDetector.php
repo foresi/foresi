@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Source;
+namespace Foresi\Import\Infrastructure\Source;
 
-use App\Import\Application\Source\Encoding;
+use Foresi\Import\Application\Source\Encoding;
 
 /**
  * Tells the encoding of a CSV sample: a byte order mark, valid UTF-8, or one

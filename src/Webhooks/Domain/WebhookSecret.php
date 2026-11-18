@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Domain;
+namespace Foresi\Webhooks\Domain;
 
 /**
  * The signing secret of an endpoint as Standard Webhooks writes it: "whsec_"

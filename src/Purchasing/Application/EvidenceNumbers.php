@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application;
+namespace Foresi\Purchasing\Application;
 
-use App\Purchasing\Domain\EvidenceSeries;
+use Foresi\Purchasing\Domain\EvidenceSeries;
 
 /**
  * Gives the evidence numbers of a series. A number is never reused: the counter

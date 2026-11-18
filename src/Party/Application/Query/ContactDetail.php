@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application\Query;
+namespace Foresi\Party\Application\Query;
 
 /**
  * One contact with what belongs to it. The private note and the history stay

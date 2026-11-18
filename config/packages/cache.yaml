@@ -19,5 +19,5 @@ framework:
             #my.dedicated.cache: null
         pools:
             # Answers of the public registers (ARES, VIES, ADIS) for 24 hours. The data is
-            # public; see App\Shared\Infrastructure\Registry.
+            # public; see Foresi\Shared\Infrastructure\Registry.
             cache.registry: ~

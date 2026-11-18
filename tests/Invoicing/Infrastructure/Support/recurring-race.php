@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-use App\Tests\Invoicing\Infrastructure\Support\RecurringWorker;
+use Foresi\Tests\Invoicing\Infrastructure\Support\RecurringWorker;
 
 /*
  * One process of the parallel recurring tests, run from the repository root with

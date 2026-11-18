@@ -1602,7 +1602,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Attachment",
-                "reference": "25b3a2387c4395caf8534dc78880c940cccecc6d"
+                "reference": "6cb390cf234c330139d370fb061c2c74681ebf5f"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1615,7 +1615,7 @@
                 "foresi": {
                     "module": "attachment",
                     "kind": "core",
-                    "namespace": "App\\Attachment\\",
+                    "namespace": "Foresi\\Attachment\\",
                     "optional": []
                 }
             },
@@ -1634,7 +1634,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Audit",
-                "reference": "1252514d5e8dff25f41a2448c35b3716aeb6f4fe"
+                "reference": "fc292185e5f5b787d2bed56d376a18a0721e18e7"
             },
             "require": {
                 "foresi/instance": "*",
@@ -1645,7 +1645,7 @@
                 "foresi": {
                     "module": "audit",
                     "kind": "core",
-                    "namespace": "App\\Audit\\",
+                    "namespace": "Foresi\\Audit\\",
                     "optional": []
                 }
             },
@@ -1664,7 +1664,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Banking",
-                "reference": "257aa9d1b5b66a159e1bb905b824f1d2755be062"
+                "reference": "d472915e7a50df5d975e162bac04f3e3303638b0"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1680,7 +1680,7 @@
                 "foresi": {
                     "module": "banking",
                     "kind": "module",
-                    "namespace": "App\\Banking\\",
+                    "namespace": "Foresi\\Banking\\",
                     "optional": [
                         "cash-flow"
                     ]
@@ -1701,7 +1701,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/CashFlow",
-                "reference": "72306421adeab9f15531c99e48e47970b5b881d1"
+                "reference": "6359ee650534700cae7b70d2098f1b4af3c93c3d"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1716,7 +1716,7 @@
                 "foresi": {
                     "module": "cash-flow",
                     "kind": "module",
-                    "namespace": "App\\CashFlow\\",
+                    "namespace": "Foresi\\CashFlow\\",
                     "optional": [],
                     "scopes": [
                         "cashflow"
@@ -1738,7 +1738,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Country",
-                "reference": "4c82228b21bd4c6a1f846d7c19529b46d18b19a2"
+                "reference": "e0ff6f5527060a31b5a578834005c1dc9d274af6"
             },
             "require": {
                 "foresi/banking": "*",
@@ -1752,7 +1752,7 @@
                 "foresi": {
                     "module": "country",
                     "kind": "module",
-                    "namespace": "App\\Country\\",
+                    "namespace": "Foresi\\Country\\",
                     "optional": []
                 }
             },
@@ -1771,7 +1771,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Events",
-                "reference": "e6e57b34899c052d6524d46471922bdc64aad7fb"
+                "reference": "437f761649fe3727f4125b4b61f1d3bcc910e78d"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1783,7 +1783,7 @@
                 "foresi": {
                     "module": "events",
                     "kind": "core",
-                    "namespace": "App\\Events\\",
+                    "namespace": "Foresi\\Events\\",
                     "optional": [],
                     "scopes": [
                         "events"
@@ -1805,7 +1805,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/ExchangeRate",
-                "reference": "fd42bc7525e369b833825f39a3009d99f070dc56"
+                "reference": "4194c843097bec2db067f12d17358a40718b333f"
             },
             "require": {
                 "foresi/instance": "*"
@@ -1815,7 +1815,7 @@
                 "foresi": {
                     "module": "exchange-rate",
                     "kind": "module",
-                    "namespace": "App\\ExchangeRate\\",
+                    "namespace": "Foresi\\ExchangeRate\\",
                     "optional": []
                 }
             },
@@ -1834,7 +1834,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Identity",
-                "reference": "02c6b6adf0593c25c7d910444451e2a02d57259a"
+                "reference": "c8fded3acae739377b811afa2a8512a0a5b379c2"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1848,7 +1848,7 @@
                 "foresi": {
                     "module": "identity",
                     "kind": "core",
-                    "namespace": "App\\Identity\\",
+                    "namespace": "Foresi\\Identity\\",
                     "optional": []
                 }
             },
@@ -1867,7 +1867,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Idoklad",
-                "reference": "376ac5cd19cf5ddd6cb5a6170a7ca563b84a636d"
+                "reference": "0722888bca14fd8b3ba86292a2c35bcd9e5f4e09"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1883,7 +1883,7 @@
                 "foresi": {
                     "module": "idoklad",
                     "kind": "module",
-                    "namespace": "App\\Idoklad\\",
+                    "namespace": "Foresi\\Idoklad\\",
                     "optional": []
                 }
             },
@@ -1902,7 +1902,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Import",
-                "reference": "f9b6dcdd9cf2cf38a1758c492b53941b0cc10e82"
+                "reference": "6fe291a9efb23f473e0765390d43760295651e7a"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1916,7 +1916,7 @@
                 "foresi": {
                     "module": "import",
                     "kind": "module",
-                    "namespace": "App\\Import\\",
+                    "namespace": "Foresi\\Import\\",
                     "optional": []
                 }
             },
@@ -1935,7 +1935,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Instance",
-                "reference": "01204f9bf9ebb64499fd0de79da975b962da4961"
+                "reference": "e44584ff06e2d93a9123601bdf53ae6ddc9e3081"
             },
             "require": {
                 "foresi/shared": "*"
@@ -1945,14 +1945,14 @@
                 "foresi": {
                     "module": "instance",
                     "kind": "core",
-                    "namespace": "App\\Instance\\",
+                    "namespace": "Foresi\\Instance\\",
                     "optional": []
                 }
             },
             "license": [
                 "AGPL-3.0-only"
             ],
-            "description": "The instance: its clock, schedule, operator tasks and health, and for now the tenant of each request.",
+            "description": "The instance: its clock, schedule, operator tasks and health.",
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -1964,7 +1964,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Invoicing",
-                "reference": "389c6997c771b15b35e7b8a8400de4e6eabb9835"
+                "reference": "9febfe09a104dc3d8dc640ba8b454708451dfb8e"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1979,7 +1979,7 @@
                 "foresi": {
                     "module": "invoicing",
                     "kind": "module",
-                    "namespace": "App\\Invoicing\\",
+                    "namespace": "Foresi\\Invoicing\\",
                     "optional": [
                         "cash-flow"
                     ],
@@ -2004,7 +2004,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "9be07971cf6882099e46a91d648ada49b612a3f6"
+                "reference": "ee6b5fa65b4034bf415bd032fe4bc6ee5cce7470"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2019,7 +2019,7 @@
                 "foresi": {
                     "module": "party",
                     "kind": "module",
-                    "namespace": "App\\Party\\",
+                    "namespace": "Foresi\\Party\\",
                     "optional": [],
                     "scopes": [
                         "contacts"
@@ -2041,7 +2041,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Purchasing",
-                "reference": "d082b32510cd83b40d8b134dfeb3aa87b7c74caf"
+                "reference": "6211e9314aacf95b3c281a32c63bf5a50942a37a"
             },
             "require": {
                 "foresi/attachment": "*",
@@ -2058,7 +2058,7 @@
                 "foresi": {
                     "module": "purchasing",
                     "kind": "module",
-                    "namespace": "App\\Purchasing\\",
+                    "namespace": "Foresi\\Purchasing\\",
                     "optional": [
                         "cash-flow"
                     ],
@@ -2082,14 +2082,14 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "ff44d583696882d50c614dce55f61e9efc0cb22b"
+                "reference": "6d642bbf3f5573cfadeaa345e573b44ac516c99a"
             },
             "type": "foresi-module",
             "extra": {
                 "foresi": {
                     "module": "shared",
                     "kind": "core",
-                    "namespace": "App\\Shared\\",
+                    "namespace": "Foresi\\Shared\\",
                     "optional": []
                 }
             },
@@ -2108,7 +2108,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Timesheet",
-                "reference": "8931b2316f2e6e658745405474c7c02e95f42a7c"
+                "reference": "37e99c819ff23855ae1e46f7a88ca05447d04a62"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2124,7 +2124,7 @@
                 "foresi": {
                     "module": "timesheet",
                     "kind": "module",
-                    "namespace": "App\\Timesheet\\",
+                    "namespace": "Foresi\\Timesheet\\",
                     "optional": []
                 }
             },
@@ -2143,7 +2143,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Ui",
-                "reference": "44c60efcd29405f3d520e5690d8eb70bc8f9a821"
+                "reference": "b5cd25adf8e98e286faa61dd878e43513b6951dd"
             },
             "require": {
                 "foresi/shared": "*"
@@ -2153,7 +2153,7 @@
                 "foresi": {
                     "module": "ui",
                     "kind": "ui",
-                    "namespace": "App\\Ui\\",
+                    "namespace": "Foresi\\Ui\\",
                     "optional": []
                 }
             },
@@ -2172,7 +2172,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Webhooks",
-                "reference": "21fbe127bff1bb909a346b092fb5d5f07003aa55"
+                "reference": "21f1ffa03ba9b1c7952605d6bd072f6943621343"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2187,7 +2187,7 @@
                 "foresi": {
                     "module": "webhooks",
                     "kind": "core",
-                    "namespace": "App\\Webhooks\\",
+                    "namespace": "Foresi\\Webhooks\\",
                     "optional": [],
                     "scopes": [
                         "webhooks"
@@ -2209,7 +2209,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Work",
-                "reference": "48453b8defafc9e82819f2d7ddeda17e7e122aef"
+                "reference": "2d455e4f78b43dd1667cfb756ecde301a4441201"
             },
             "require": {
                 "foresi/attachment": "*",
@@ -2225,7 +2225,7 @@
                 "foresi": {
                     "module": "work",
                     "kind": "module",
-                    "namespace": "App\\Work\\",
+                    "namespace": "Foresi\\Work\\",
                     "optional": []
                 }
             },

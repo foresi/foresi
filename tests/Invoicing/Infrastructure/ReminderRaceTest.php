@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure;
+namespace Foresi\Tests\Invoicing\Infrastructure;
 
-use App\Tests\Invoicing\Infrastructure\Support\ReminderWorker;
+use Foresi\Tests\Invoicing\Infrastructure\Support\ReminderWorker;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;

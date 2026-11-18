@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Navigation;
+namespace Foresi\Party\Infrastructure\Navigation;
 
-use App\Party\Application\PartyQuery;
-use App\Ui\Navigation\NavigationCountProvider;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Ui\Navigation\NavigationCountProvider;
 
 final readonly class PartyNavigationCount implements NavigationCountProvider
 {

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\LinkedMailBody;
+use Foresi\Invoicing\Application\LinkedMailBody;
 use PHPUnit\Framework\TestCase;
 
 final class LinkedMailBodyTest extends TestCase

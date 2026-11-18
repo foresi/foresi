@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application;
+namespace Foresi\Idoklad\Application;
 
-use App\Idoklad\Application\Import\RunIdokladImport;
-use App\Idoklad\Domain\IdokladJob;
-use App\Idoklad\Domain\IdokladJobKind;
-use App\Idoklad\Domain\IdokladPull;
-use App\Idoklad\Domain\ImportMode;
-use App\Invoicing\Application\ReminderSettings;
-use App\Party\Application\LegalEntities;
-use App\Party\Application\TransactionalWork;
+use Foresi\Idoklad\Application\Import\RunIdokladImport;
+use Foresi\Idoklad\Domain\IdokladJob;
+use Foresi\Idoklad\Domain\IdokladJobKind;
+use Foresi\Idoklad\Domain\IdokladPull;
+use Foresi\Idoklad\Domain\ImportMode;
+use Foresi\Invoicing\Application\ReminderSettings;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 
 /**

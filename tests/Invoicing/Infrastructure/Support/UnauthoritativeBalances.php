@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure\Support;
+namespace Foresi\Tests\Invoicing\Infrastructure\Support;
 
-use App\Invoicing\Application\InvoiceBalances;
+use Foresi\Invoicing\Application\InvoiceBalances;
 
 /**
  * Balances that cannot tell a paid invoice from an open one, as a module binding

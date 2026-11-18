@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\DocumentKind;
-use App\Party\Domain\LegalEntity;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Party\Domain\LegalEntity;
 use Psr\Log\LoggerInterface;
 
 /**

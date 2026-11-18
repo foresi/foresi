@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Application;
+namespace Foresi\Timesheet\Application;
 
-use App\Work\Application\TimeEntryRow;
-use App\Work\Domain\TimeEntry;
+use Foresi\Work\Application\TimeEntryRow;
+use Foresi\Work\Domain\TimeEntry;
 
 /**
  * What an entry said when it was chosen for an invoice: an edit since then

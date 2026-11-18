@@ -6,21 +6,21 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Instance\Infrastructure;
+namespace Foresi\Tests\Instance\Infrastructure;
 
-use App\Instance\Application\ConfiguredZone;
-use App\Instance\Application\InstanceClock;
-use App\Instance\Application\ZoneFallback;
-use App\Instance\Infrastructure\Clock\TimezoneEnvVarProcessor;
-use App\Invoicing\Application\InvoicingCountries;
-use App\Invoicing\Infrastructure\Doctrine\FirmCountryZones;
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Instance\Application\ConfiguredZone;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Instance\Application\ZoneFallback;
+use Foresi\Instance\Infrastructure\Clock\TimezoneEnvVarProcessor;
+use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Invoicing\Infrastructure\Doctrine\FirmCountryZones;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;

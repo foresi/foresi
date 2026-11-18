@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Mail;
+namespace Foresi\Invoicing\Infrastructure\Mail;
 
-use App\Invoicing\Application\SendLimits;
+use Foresi\Invoicing\Application\SendLimits;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application;
+namespace Foresi\Import\Application;
 
 /** Hands work to the background workers. */
 interface ImportJobs

@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Controller;
+namespace Foresi\Identity\Infrastructure\Controller;
 
-use App\Identity\Application\AcceptInvitation;
-use App\Identity\Application\InvitationRefused;
-use App\Identity\Application\OpenInvitation;
-use App\Identity\Application\OpenToGuest;
-use App\Identity\Domain\InvitationState;
-use App\Identity\Domain\InvitationToken;
-use App\Identity\Domain\User;
-use App\Identity\Infrastructure\Security\SecurityUser;
+use Foresi\Identity\Application\AcceptInvitation;
+use Foresi\Identity\Application\InvitationRefused;
+use Foresi\Identity\Application\OpenInvitation;
+use Foresi\Identity\Application\OpenToGuest;
+use Foresi\Identity\Domain\InvitationState;
+use Foresi\Identity\Domain\InvitationToken;
+use Foresi\Identity\Domain\User;
+use Foresi\Identity\Infrastructure\Security\SecurityUser;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;

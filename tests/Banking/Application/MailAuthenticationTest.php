@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Application;
 
-use App\Banking\Application\AuthenticationResultsParser;
-use App\Banking\Application\InboundMail;
-use App\Banking\Application\MailAuthentication;
-use App\Banking\Application\TrustSettings;
-use App\Banking\Application\TrustVerdict;
-use App\Banking\Domain\InboundChannel;
-use App\Banking\Domain\MessageTrust;
-use App\Banking\Infrastructure\Mime\ZbatesonMailReader;
+use Foresi\Banking\Application\AuthenticationResultsParser;
+use Foresi\Banking\Application\InboundMail;
+use Foresi\Banking\Application\MailAuthentication;
+use Foresi\Banking\Application\TrustSettings;
+use Foresi\Banking\Application\TrustVerdict;
+use Foresi\Banking\Domain\InboundChannel;
+use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Banking\Infrastructure\Mime\ZbatesonMailReader;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

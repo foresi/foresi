@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Operation;
+namespace Foresi\Shared\Infrastructure\Operation;
 
 /**
  * The JSON Schema of an operation's input, from its fields and their #[Field]:
@@ -58,7 +58,7 @@ final class InputSchema
         if (null !== $describe?->format) {
             $property['format'] = $describe->format;
         }
-        if ($describe instanceof \App\Shared\Application\Api\Field) {
+        if ($describe instanceof \Foresi\Shared\Application\Api\Field) {
             $property['description'] = $describe->description;
         }
 

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Audit\Application;
+namespace Foresi\Audit\Application;
 
 /**
  * The correlation id that groups the audit entries written while a unit of

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Application\Query;
+namespace Foresi\Events\Application\Query;
 
 /**
  * A slice of the feed in ascending order of position. When more events follow,

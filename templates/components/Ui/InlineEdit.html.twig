@@ -27,7 +27,7 @@
                 <twig:Ui:Menu :id="menuId" :buttonId="buttonId" :label="label" :menuLabel="label" align="start" :float="true" class="min-w-0" menuClass="max-h-80 min-w-48 overflow-y-auto">
                     <twig:block name="trigger">
                         {# Named by its own text, the label first (WCAG 2.5.3), as Ui:PersonPicker is. #}
-                        <button type="button" id="{{ buttonId }}" aria-haspopup="menu" aria-expanded="false" aria-controls="{{ menuId }}" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" class="{{ constant('App\\Ui\\Component\\InlineEdit::TRIGGER') }}" data-inline-edit-trigger><span class="sr-only">{{ label }}: </span>{{ read }}</button>
+                        <button type="button" id="{{ buttonId }}" aria-haspopup="menu" aria-expanded="false" aria-controls="{{ menuId }}" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" class="{{ constant('Foresi\\Ui\\Component\\InlineEdit::TRIGGER') }}" data-inline-edit-trigger><span class="sr-only">{{ label }}: </span>{{ read }}</button>
                     </twig:block>
                     {% for option in edit.rows %}
                         <twig:Ui:MenuItem type="submit" :name="name" :value="option.value" :checked="option.value == value" data-action="dropdown#close" data-inline-edit-option="{{ option.value }}">
@@ -38,9 +38,9 @@
                 </twig:Ui:Menu>
             {% else %}
                 <span class="relative flex min-w-0">
-                    <button type="button" id="{{ buttonId }}" class="{{ constant('App\\Ui\\Component\\InlineEdit::TRIGGER') }}" data-inline-date-target="button" data-action="inline-date#open" data-inline-edit-trigger><span class="sr-only">{{ label }}: </span>{{ read }}</button>
+                    <button type="button" id="{{ buttonId }}" class="{{ constant('Foresi\\Ui\\Component\\InlineEdit::TRIGGER') }}" data-inline-date-target="button" data-action="inline-date#open" data-inline-edit-trigger><span class="sr-only">{{ label }}: </span>{{ read }}</button>
                     {# The browser's date picker opens from the button; the field itself stays out of the way until a browser has no picker to open. #}
-                    <input type="date" name="{{ name }}" value="{{ value }}" id="{{ id }}" aria-label="{{ label }}" tabindex="-1" class="sr-only h-control-sm rounded-option border border-control-line bg-white px-1.5 text-small text-ink {{ constant('App\\Ui\\Component\\Style::FIELD_FOCUS') }}" data-inline-date-target="input" data-action="change->inline-date#save">
+                    <input type="date" name="{{ name }}" value="{{ value }}" id="{{ id }}" aria-label="{{ label }}" tabindex="-1" class="sr-only h-control-sm rounded-option border border-control-line bg-white px-1.5 text-small text-ink {{ constant('Foresi\\Ui\\Component\\Style::FIELD_FOCUS') }}" data-inline-date-target="input" data-action="change->inline-date#save">
                 </span>
             {% endif %}
         </div>

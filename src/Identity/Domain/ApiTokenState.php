@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Domain;
+namespace Foresi\Identity\Domain;
 
 /**
  * Where a personal API token stands. A revoked token stays revoked once it has

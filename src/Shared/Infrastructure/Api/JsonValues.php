@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Api;
+namespace Foresi\Shared\Infrastructure\Api;
 
-use App\Shared\Domain\Money;
+use Foresi\Shared\Domain\Money;
 
 /**
  * How the API writes money, days and moments (ADR 0027): money in minor units with

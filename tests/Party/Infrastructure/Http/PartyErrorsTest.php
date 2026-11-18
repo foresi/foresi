@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Infrastructure\Http;
+namespace Foresi\Tests\Party\Infrastructure\Http;
 
-use App\Party\Application\PartyNotAllowed;
-use App\Party\Application\UnknownParty;
-use App\Party\Infrastructure\Http\PartyErrors;
+use Foresi\Party\Application\PartyNotAllowed;
+use Foresi\Party\Application\UnknownParty;
+use Foresi\Party\Infrastructure\Http\PartyErrors;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;

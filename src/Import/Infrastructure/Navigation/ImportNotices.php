@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Navigation;
+namespace Foresi\Import\Infrastructure\Navigation;
 
-use App\Audit\Application\AuditActor;
-use App\Import\Application\Imports;
-use App\Import\Domain\ImportState;
-use App\Ui\Notice\ShellNotice;
-use App\Ui\Notice\ShellNoticeProvider;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Import\Application\Imports;
+use Foresi\Import\Domain\ImportState;
+use Foresi\Ui\Notice\ShellNotice;
+use Foresi\Ui\Notice\ShellNoticeProvider;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 

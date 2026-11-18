@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Instance\Infrastructure;
+namespace Foresi\Tests\Instance\Infrastructure;
 
-use App\Instance\Application\Schedule\Claim;
-use App\Instance\Application\Schedule\RunScheduledJob;
-use App\Instance\Application\Schedule\ScheduledJobRuns;
-use App\Instance\Infrastructure\Schedule\ForesiSchedule;
-use App\Instance\Infrastructure\Schedule\ScheduleTick;
-use App\Tests\Import\Support\RunMessages;
-use App\Tests\Instance\Support\CountingJob;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Instance\Application\Schedule\Claim;
+use Foresi\Instance\Application\Schedule\RunScheduledJob;
+use Foresi\Instance\Application\Schedule\ScheduledJobRuns;
+use Foresi\Instance\Infrastructure\Schedule\ForesiSchedule;
+use Foresi\Instance\Infrastructure\Schedule\ScheduleTick;
+use Foresi\Tests\Import\Support\RunMessages;
+use Foresi\Tests\Instance\Support\CountingJob;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\Messenger\Envelope;

@@ -6,26 +6,26 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure;
+namespace Foresi\Tests\Invoicing\Infrastructure;
 
-use App\Invoicing\Application\AllocationRequest;
-use App\Invoicing\Application\CancelPayment;
-use App\Invoicing\Application\InvoiceFilter;
-use App\Invoicing\Application\InvoicePage;
-use App\Invoicing\Application\InvoicePayments;
-use App\Invoicing\Application\InvoiceRow;
-use App\Invoicing\Application\InvoiceStore;
-use App\Invoicing\Application\PaymentRequest;
-use App\Invoicing\Application\PaymentState;
-use App\Invoicing\Application\RecordPayment;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\Payment;
-use App\Invoicing\Domain\PaymentSource;
-use App\Invoicing\Domain\PriceType;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Invoicing\Application\InvoiceTestCase;
+use Foresi\Invoicing\Application\AllocationRequest;
+use Foresi\Invoicing\Application\CancelPayment;
+use Foresi\Invoicing\Application\InvoiceFilter;
+use Foresi\Invoicing\Application\InvoicePage;
+use Foresi\Invoicing\Application\InvoicePayments;
+use Foresi\Invoicing\Application\InvoiceRow;
+use Foresi\Invoicing\Application\InvoiceStore;
+use Foresi\Invoicing\Application\PaymentRequest;
+use Foresi\Invoicing\Application\PaymentState;
+use Foresi\Invoicing\Application\RecordPayment;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Payment;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Invoicing\Application\InvoiceTestCase;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;

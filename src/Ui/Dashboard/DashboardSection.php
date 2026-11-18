@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Ui\Dashboard;
+namespace Foresi\Ui\Dashboard;
 
 /**
  * A part of the start page a module contributes: the template it renders with

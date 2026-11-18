@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Events;
+namespace Foresi\Invoicing\Infrastructure\Events;
 
-use App\Invoicing\Infrastructure\Api\InvoiceApiController;
-use App\Invoicing\Infrastructure\Api\PaymentApiController;
-use App\Shared\Application\Event\EventSubjectUrl;
-use App\Shared\Domain\Event\EventSubject;
+use Foresi\Invoicing\Infrastructure\Api\InvoiceApiController;
+use Foresi\Invoicing\Infrastructure\Api\PaymentApiController;
+use Foresi\Shared\Application\Event\EventSubjectUrl;
+use Foresi\Shared\Domain\Event\EventSubject;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

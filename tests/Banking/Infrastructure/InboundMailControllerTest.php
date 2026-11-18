@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Infrastructure;
+namespace Foresi\Tests\Banking\Infrastructure;
 
-use App\Banking\Application\GenerateAddress;
-use App\Banking\Application\ReceiveInboundMail;
-use App\Tests\Banking\Support\InboundMailKit;
-use App\Tests\Banking\Support\Scalars;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Banking\Application\GenerateAddress;
+use Foresi\Banking\Application\ReceiveInboundMail;
+use Foresi\Tests\Banking\Support\InboundMailKit;
+use Foresi\Tests\Banking\Support\Scalars;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Request;

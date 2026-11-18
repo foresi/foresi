@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
-use App\Identity\Domain\ApiScope;
+use Foresi\Identity\Domain\ApiScope;
 
 /**
  * What a valid personal API token lets a request do: act as its person within its

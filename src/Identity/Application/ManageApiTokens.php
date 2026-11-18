@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Domain\ApiScope;
-use App\Identity\Domain\ApiToken;
-use App\Identity\Domain\ApiTokenSecret;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Shared\Application\Api\ApiResources;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Identity\Domain\ApiToken;
+use Foresi\Identity\Domain\ApiTokenSecret;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Shared\Application\Api\ApiResources;
 use Psr\Clock\ClockInterface;
 
 /**

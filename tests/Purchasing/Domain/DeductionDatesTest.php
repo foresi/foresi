@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Purchasing\Domain;
+namespace Foresi\Tests\Purchasing\Domain;
 
-use App\Purchasing\Domain\DeductionDates;
-use App\Purchasing\Domain\PurchaseTaxTreatment;
+use Foresi\Purchasing\Domain\DeductionDates;
+use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

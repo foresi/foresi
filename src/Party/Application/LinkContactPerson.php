@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
-use App\Party\Domain\ContactLink;
-use App\Party\Domain\Party;
+use Foresi\Party\Domain\ContactLink;
+use Foresi\Party\Domain\Party;
 
 /**
  * Links a contact person to a company or sole trader. A primary link demotes

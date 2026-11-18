@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Application;
+namespace Foresi\Tests\Party\Application;
 
-use App\Party\Application\CompanyRegistry;
-use App\Party\Application\RefreshRegistryChecks;
-use App\Party\Application\VatPayerReliability;
-use App\Party\Application\VatRegistry;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\RegistryCheck;
-use App\Party\Domain\RegistryResult;
-use App\Party\Domain\VatId;
-use App\Tests\Party\Domain\PartyFactory;
-use App\Tests\Support\Registry\FakeCompanyRegistry;
+use Foresi\Party\Application\CompanyRegistry;
+use Foresi\Party\Application\RefreshRegistryChecks;
+use Foresi\Party\Application\VatPayerReliability;
+use Foresi\Party\Application\VatRegistry;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\RegistryCheck;
+use Foresi\Party\Domain\RegistryResult;
+use Foresi\Party\Domain\VatId;
+use Foresi\Tests\Party\Domain\PartyFactory;
+use Foresi\Tests\Support\Registry\FakeCompanyRegistry;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class RegistryCheckFlowTest extends KernelTestCase

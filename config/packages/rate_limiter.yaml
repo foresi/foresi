@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 framework:
     rate_limiter:
-        # Requests of the REST API and of MCP over HTTP, per personal API token (ADR 0027); see App\Shared\Infrastructure\Api\ApiRateLimit.
+        # Requests of the REST API and of MCP over HTTP, per personal API token (ADR 0027); see Foresi\Shared\Infrastructure\Api\ApiRateLimit.
         api_token:
             policy: sliding_window
             limit: 600
             interval: '10 minutes'
-        # Writes over REST and MCP, per token, on top of the requests above (ADR 0032); see App\Shared\Infrastructure\Api\WriteBudget.
+        # Writes over REST and MCP, per token, on top of the requests above (ADR 0032); see Foresi\Shared\Infrastructure\Api\WriteBudget.
         api_token_write:
             policy: sliding_window
             limit: 120

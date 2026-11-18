@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Form;
+namespace Foresi\Invoicing\Infrastructure\Form;
 
-use App\Invoicing\Application\InvoicingCountry;
-use App\Invoicing\Application\SeriesCatalog;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\VatRateKind;
-use App\Party\Application\FirmBankAccounts;
-use App\Party\Application\LegalEntities;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\PaymentMethod;
+use Foresi\Invoicing\Application\InvoicingCountry;
+use Foresi\Invoicing\Application\SeriesCatalog;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\PaymentMethod;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**

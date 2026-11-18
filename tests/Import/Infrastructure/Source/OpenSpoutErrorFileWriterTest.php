@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Import\Infrastructure\Source;
+namespace Foresi\Tests\Import\Infrastructure\Source;
 
-use App\Import\Application\Source\SourceFormat;
-use App\Import\Application\Source\SourceSettings;
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportOptions;
-use App\Import\Domain\ImportRow;
-use App\Import\Domain\Mapping;
-use App\Import\Domain\RowError;
-use App\Import\Domain\RowOutcome;
-use App\Import\Infrastructure\Source\OpenSpoutErrorFileWriter;
-use App\Import\Infrastructure\Source\OpenSpoutSourceReader;
+use Foresi\Import\Application\Source\SourceFormat;
+use Foresi\Import\Application\Source\SourceSettings;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\ImportOptions;
+use Foresi\Import\Domain\ImportRow;
+use Foresi\Import\Domain\Mapping;
+use Foresi\Import\Domain\RowError;
+use Foresi\Import\Domain\RowOutcome;
+use Foresi\Import\Infrastructure\Source\OpenSpoutErrorFileWriter;
+use Foresi\Import\Infrastructure\Source\OpenSpoutSourceReader;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Translation\IdentityTranslator;
 

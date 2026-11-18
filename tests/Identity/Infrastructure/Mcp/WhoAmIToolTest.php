@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Infrastructure\Mcp;
+namespace Foresi\Tests\Identity\Infrastructure\Mcp;
 
-use App\Identity\Application\ApiTokenContext;
-use App\Identity\Application\ApiTokenGrant;
-use App\Identity\Application\Query\CurrentApiIdentity;
-use App\Identity\Application\UserRepository;
-use App\Identity\Domain\ApiScope;
-use App\Identity\Domain\User;
-use App\Identity\Infrastructure\Mcp\WhoAmITool;
-use App\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Identity\Application\ApiTokenContext;
+use Foresi\Identity\Application\ApiTokenGrant;
+use Foresi\Identity\Application\Query\CurrentApiIdentity;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Identity\Domain\User;
+use Foresi\Identity\Infrastructure\Mcp\WhoAmITool;
+use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 use PHPUnit\Framework\TestCase;
 
 /**

@@ -6,9 +6,8 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Migration;
+namespace Foresi\Tests\Migration;
 
-use App\Party\Infrastructure\Doctrine\VatIdType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
@@ -20,6 +19,7 @@ use Doctrine\Migrations\DependencyFactory;
 use Doctrine\Migrations\Exception\AbortMigration;
 use Doctrine\Migrations\MigratorConfiguration;
 use Doctrine\Migrations\Version\Version;
+use Foresi\Party\Infrastructure\Doctrine\VatIdType;
 use PHPUnit\Framework\TestCase;
 
 /**

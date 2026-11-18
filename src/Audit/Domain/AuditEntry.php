@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Audit\Domain;
+namespace Foresi\Audit\Domain;
 
-use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Shared\Domain\Id;
 
 /**
  * One line of the append-only audit log: who changed which entity, when, and

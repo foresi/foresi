@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application\Query;
+namespace Foresi\Party\Application\Query;
 
-use App\Party\Domain\Address;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
 
 /**
  * One contact as a list shows it.

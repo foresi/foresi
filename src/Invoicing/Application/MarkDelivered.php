@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Contract\Event\DeliveryChannel;
-use App\Invoicing\Contract\Event\InvoiceDelivered;
-use App\Invoicing\Domain\Invoice;
-use App\Party\Application\TransactionalWork;
-use App\Shared\Application\Event\EventRecorder;
+use Foresi\Invoicing\Contract\Event\DeliveryChannel;
+use Foresi\Invoicing\Contract\Event\InvoiceDelivered;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 
 /**

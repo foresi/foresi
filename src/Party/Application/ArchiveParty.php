@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
-use App\Party\Contract\Event\ContactArchived;
-use App\Party\Contract\Event\ContactKind;
-use App\Party\Contract\Event\ContactRestored;
-use App\Party\Domain\Party;
-use App\Shared\Application\Event\EventRecorder;
+use Foresi\Party\Contract\Event\ContactArchived;
+use Foresi\Party\Contract\Event\ContactKind;
+use Foresi\Party\Contract\Event\ContactRestored;
+use Foresi\Party\Domain\Party;
+use Foresi\Shared\Application\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 
 /**

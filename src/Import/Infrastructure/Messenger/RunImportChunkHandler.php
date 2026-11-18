@@ -6,27 +6,27 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Messenger;
+namespace Foresi\Import\Infrastructure\Messenger;
 
-use App\Audit\Application\AuditCorrelation;
-use App\Import\Application\ImportCompletion;
-use App\Import\Application\ImportGate;
-use App\Import\Application\ImportJobs;
-use App\Import\Application\Imports;
-use App\Import\Application\Message\ArchiveMissing;
-use App\Import\Application\Message\RunImportChunk;
-use App\Import\Application\RowReader;
-use App\Import\Application\Target\ImportTarget;
-use App\Import\Application\Target\TargetRegistry;
-use App\Import\Application\Target\WriteResult;
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportMode;
-use App\Import\Domain\ImportRow;
-use App\Import\Domain\ImportState;
-use App\Import\Domain\RowError;
-use App\Import\Domain\RowOutcome;
-use App\Import\Domain\ValueNormaliser;
-use App\Import\Infrastructure\Doctrine\RowSavepoint;
+use Foresi\Audit\Application\AuditCorrelation;
+use Foresi\Import\Application\ImportCompletion;
+use Foresi\Import\Application\ImportGate;
+use Foresi\Import\Application\ImportJobs;
+use Foresi\Import\Application\Imports;
+use Foresi\Import\Application\Message\ArchiveMissing;
+use Foresi\Import\Application\Message\RunImportChunk;
+use Foresi\Import\Application\RowReader;
+use Foresi\Import\Application\Target\ImportTarget;
+use Foresi\Import\Application\Target\TargetRegistry;
+use Foresi\Import\Application\Target\WriteResult;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\ImportMode;
+use Foresi\Import\Domain\ImportRow;
+use Foresi\Import\Domain\ImportState;
+use Foresi\Import\Domain\RowError;
+use Foresi\Import\Domain\RowOutcome;
+use Foresi\Import\Domain\ValueNormaliser;
+use Foresi\Import\Infrastructure\Doctrine\RowSavepoint;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;

@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Application;
 
-use App\Banking\Application\MovementInput;
-use App\Banking\Application\ParsedMovement;
-use App\Banking\Domain\BankMovement;
-use App\Banking\Domain\MovementDirection;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Banking\Application\MovementInput;
+use Foresi\Banking\Application\ParsedMovement;
+use Foresi\Banking\Domain\BankMovement;
+use Foresi\Banking\Domain\MovementDirection;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use PHPUnit\Framework\TestCase;
 
 final class MovementInputTest extends TestCase

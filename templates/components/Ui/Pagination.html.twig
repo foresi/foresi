@@ -1,6 +1,6 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {% if pages > 1 %}
-    {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+    {% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
     {% set box = 'inline-grid h-control-sm min-w-control-sm place-items-center rounded-control border px-1.5 no-underline ' %}
     <nav {{ attributes.defaults({class: 'flex'}) }} aria-label="{{ 'ui.pagination.label'|trans }}">
         <ul class="flex list-none items-center gap-1 p-0">

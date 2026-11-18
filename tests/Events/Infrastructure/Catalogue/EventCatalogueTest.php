@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Events\Infrastructure\Catalogue;
+namespace Foresi\Tests\Events\Infrastructure\Catalogue;
 
-use App\Events\Infrastructure\Catalogue\EventCatalogue;
-use App\Events\Infrastructure\Catalogue\EventType;
-use App\Events\Infrastructure\Catalogue\UnknownEventType;
-use App\Shared\Domain\Module\ModuleGraph;
-use App\Shared\Domain\Module\ModuleId;
-use App\Shared\Domain\Module\ModuleKind;
-use App\Shared\Domain\Module\ModuleManifest;
+use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
+use Foresi\Events\Infrastructure\Catalogue\EventType;
+use Foresi\Events\Infrastructure\Catalogue\UnknownEventType;
+use Foresi\Shared\Domain\Module\ModuleGraph;
+use Foresi\Shared\Domain\Module\ModuleId;
+use Foresi\Shared\Domain\Module\ModuleKind;
+use Foresi\Shared\Domain\Module\ModuleManifest;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -37,7 +37,7 @@ final class EventCatalogueTest extends TestCase
 
     public function testEventsOutsideInstalledModulesAreNeverRead(): void
     {
-        $namespace = 'App\Tests\Events\Fixtures\Project\src\\';
+        $namespace = 'Foresi\Tests\Events\Fixtures\Project\src\\';
         $directory = \dirname(__DIR__, 2).'/Fixtures/Project';
         self::assertFileExists($directory.'/src/Stranger/Contract/Event/Stray.php');
         $graph = new ModuleGraph([new ModuleManifest(ModuleId::of('invoicing'), ModuleKind::Module, 'foresi/invoicing', $namespace.'Invoicing\\', [], [])]);
@@ -62,8 +62,8 @@ final class EventCatalogueTest extends TestCase
         $catalogue = $this->scan('BadNames');
 
         self::assertSame([
-            'name:'.\App\Tests\Events\Fixtures\BadNames\Contract\Event\Capitalised::class,
-            'name:'.\App\Tests\Events\Fixtures\BadNames\Contract\Event\TwoParts::class,
+            'name:'.\Foresi\Tests\Events\Fixtures\BadNames\Contract\Event\Capitalised::class,
+            'name:'.\Foresi\Tests\Events\Fixtures\BadNames\Contract\Event\TwoParts::class,
         ], $catalogue->problems());
     }
 
@@ -88,16 +88,16 @@ final class EventCatalogueTest extends TestCase
         $catalogue = $this->scan('Shape');
 
         self::assertSame([
-            'shape:'.\App\Tests\Events\Fixtures\Shape\Contract\Event\NoPayload::class,
-            'shape:'.\App\Tests\Events\Fixtures\Shape\Contract\Event\NotFinal::class,
-            'shape:'.\App\Tests\Events\Fixtures\Shape\Contract\Event\NotReadonly::class,
+            'shape:'.\Foresi\Tests\Events\Fixtures\Shape\Contract\Event\NoPayload::class,
+            'shape:'.\Foresi\Tests\Events\Fixtures\Shape\Contract\Event\NotFinal::class,
+            'shape:'.\Foresi\Tests\Events\Fixtures\Shape\Contract\Event\NotReadonly::class,
         ], $catalogue->problems());
     }
 
     public function testFactTypesAreLimited(): void
     {
         $catalogue = $this->scan('Facts');
-        $namespace = 'App\Tests\Events\Fixtures\Facts\Contract\Event\\';
+        $namespace = 'Foresi\Tests\Events\Fixtures\Facts\Contract\Event\\';
 
         self::assertSame([
             'fact:'.$namespace.'ArrayFact::value',
@@ -118,14 +118,14 @@ final class EventCatalogueTest extends TestCase
 
         self::assertSame(['invoice_id', 'line_count', 'delivered', 'due_on', 'kind', 'line_codes'], $type->fields);
         self::assertSame('invoicing', $type->module->value);
-        self::assertSame(\App\Tests\Events\Fixtures\Valid\Contract\Event\InvoiceIssued::class, $type->class);
+        self::assertSame(\Foresi\Tests\Events\Fixtures\Valid\Contract\Event\InvoiceIssued::class, $type->class);
     }
 
     public function testFindsATypeByClass(): void
     {
         $catalogue = $this->scan('Valid');
 
-        self::assertSame('invoicing.invoice.paid', $catalogue->byClass(\App\Tests\Events\Fixtures\Valid\Contract\Event\InvoicePaid::class)->name);
+        self::assertSame('invoicing.invoice.paid', $catalogue->byClass(\Foresi\Tests\Events\Fixtures\Valid\Contract\Event\InvoicePaid::class)->name);
     }
 
     public function testUnknownTypesAreRefused(): void
@@ -156,7 +156,7 @@ final class EventCatalogueTest extends TestCase
     {
         return EventCatalogue::scan([[
             ModuleId::of('invoicing'),
-            'App\Tests\Events\Fixtures\\'.$fixture.'\\',
+            'Foresi\Tests\Events\Fixtures\\'.$fixture.'\\',
             \dirname(__DIR__, 2).'/Fixtures/'.$fixture,
         ]]);
     }

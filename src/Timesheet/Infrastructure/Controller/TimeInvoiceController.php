@@ -6,25 +6,25 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Infrastructure\Controller;
+namespace Foresi\Timesheet\Infrastructure\Controller;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\OwnerCheck;
-use App\Instance\Application\InstanceClock;
-use App\Invoicing\Application\NewInvoiceDefaults;
-use App\Party\Application\LegalEntities;
-use App\Party\Domain\LegalEntity;
-use App\Shared\Domain\Money;
-use App\Timesheet\Application\TimeCandidate;
-use App\Timesheet\Application\TimeInvoicing;
-use App\Timesheet\Application\TimeInvoicingRefused;
-use App\Timesheet\Application\TimeScope;
-use App\Timesheet\Domain\BillableTime;
-use App\Timesheet\Domain\LineGrouping;
-use App\Timesheet\Domain\TimeLine;
-use App\Timesheet\Domain\TimeLines;
-use App\Timesheet\Domain\TimeRounding;
-use App\Work\Application\ProjectRow;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\OwnerCheck;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Invoicing\Application\NewInvoiceDefaults;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Domain\Money;
+use Foresi\Timesheet\Application\TimeCandidate;
+use Foresi\Timesheet\Application\TimeInvoicing;
+use Foresi\Timesheet\Application\TimeInvoicingRefused;
+use Foresi\Timesheet\Application\TimeScope;
+use Foresi\Timesheet\Domain\BillableTime;
+use Foresi\Timesheet\Domain\LineGrouping;
+use Foresi\Timesheet\Domain\TimeLine;
+use Foresi\Timesheet\Domain\TimeLines;
+use Foresi\Timesheet\Domain\TimeRounding;
+use Foresi\Work\Application\ProjectRow;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\Request;

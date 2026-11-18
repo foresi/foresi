@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui;
+namespace Foresi\Tests\Ui;
 
-use App\Kernel;
+use Foresi\Kernel;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
@@ -27,7 +27,7 @@ final class CatalogueTest extends WebTestCase
         $files = glob(\dirname(__DIR__, 2).'/src/Ui/Component/*.php');
         self::assertIsArray($files);
         foreach ($files as $file) {
-            $class = 'App\\Ui\\Component\\'.basename($file, '.php');
+            $class = 'Foresi\\Ui\\Component\\'.basename($file, '.php');
             self::assertTrue(class_exists($class), sprintf('%s should be loadable.', $class));
             $reflection = new \ReflectionClass($class);
             if ($reflection->isAbstract() || [] === $reflection->getAttributes(AsTwigComponent::class)) {

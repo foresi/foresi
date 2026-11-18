@@ -6,21 +6,21 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Attachment\Application;
+namespace Foresi\Tests\Attachment\Application;
 
-use App\Attachment\Application\AttachmentAccess;
-use App\Attachment\Application\AttachmentFiles;
-use App\Attachment\Application\AttachmentPermissions;
-use App\Attachment\Application\AttachmentRefused;
-use App\Attachment\Application\Attachments;
-use App\Attachment\Application\AttachmentUpload;
-use App\Attachment\Application\DeleteAttachment;
-use App\Attachment\Application\UploadAttachment;
-use App\Attachment\Domain\Attachment;
-use App\Audit\Application\AuditActor;
-use App\Audit\Application\AuditCorrelation;
-use App\Audit\Domain\ActorKind;
-use App\Shared\Domain\Id;
+use Foresi\Attachment\Application\AttachmentAccess;
+use Foresi\Attachment\Application\AttachmentFiles;
+use Foresi\Attachment\Application\AttachmentPermissions;
+use Foresi\Attachment\Application\AttachmentRefused;
+use Foresi\Attachment\Application\Attachments;
+use Foresi\Attachment\Application\AttachmentUpload;
+use Foresi\Attachment\Application\DeleteAttachment;
+use Foresi\Attachment\Application\UploadAttachment;
+use Foresi\Attachment\Domain\Attachment;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Audit\Application\AuditCorrelation;
+use Foresi\Audit\Domain\ActorKind;
+use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;

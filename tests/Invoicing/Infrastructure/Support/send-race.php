@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-use App\Tests\Invoicing\Infrastructure\Support\SendWorker;
+use Foresi\Tests\Invoicing\Infrastructure\Support\SendWorker;
 
 /*
  * One process of the parallel sending tests, run from the repository root with

@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Idoklad\Application;
+namespace Foresi\Tests\Idoklad\Application;
 
-use App\Idoklad\Application\IdokladSnapshot;
-use App\Idoklad\Application\Import\IdokladLinks;
-use App\Idoklad\Application\Import\ImportContext;
-use App\Idoklad\Domain\ImportMode;
-use App\Idoklad\Domain\ImportReport;
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
+use Foresi\Idoklad\Application\IdokladSnapshot;
+use Foresi\Idoklad\Application\Import\IdokladLinks;
+use Foresi\Idoklad\Application\Import\ImportContext;
+use Foresi\Idoklad\Domain\ImportMode;
+use Foresi\Idoklad\Domain\ImportReport;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
 use PHPUnit\Framework\TestCase;
 
 final class ImportContextTest extends TestCase

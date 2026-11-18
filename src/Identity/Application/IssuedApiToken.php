@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
-use App\Identity\Domain\ApiToken;
+use Foresi\Identity\Domain\ApiToken;
 
 /**
  * A new token and its secret, which is shown this once and kept nowhere.

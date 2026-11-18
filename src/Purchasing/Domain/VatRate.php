@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Domain;
+namespace Foresi\Purchasing\Domain;
 
 /**
  * A VAT rate as the document prints it, in percent with at most two decimals:

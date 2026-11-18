@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application;
+namespace Foresi\Import\Application;
 
 /**
  * The name of an uploaded file as the import keeps and shows it: no path, no

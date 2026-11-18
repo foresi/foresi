@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Application;
 
-use App\Banking\Application\BankMessageParser;
-use App\Banking\Application\BankMessageParsers;
-use App\Banking\Application\InboundMail;
-use App\Banking\Application\ParseFailed;
-use App\Banking\Application\ParseFailure;
-use App\Banking\Application\ParseResult;
+use Foresi\Banking\Application\BankMessageParser;
+use Foresi\Banking\Application\BankMessageParsers;
+use Foresi\Banking\Application\InboundMail;
+use Foresi\Banking\Application\ParseFailed;
+use Foresi\Banking\Application\ParseFailure;
+use Foresi\Banking\Application\ParseResult;
 use PHPUnit\Framework\TestCase;
 
 final class BankMessageParsersTest extends TestCase

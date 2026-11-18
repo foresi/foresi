@@ -6,22 +6,22 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\CashFlow\Application;
+namespace Foresi\Tests\CashFlow\Application;
 
-use App\CashFlow\Application\CashFlowRefused;
-use App\CashFlow\Application\ChangePlannedItemInput;
-use App\CashFlow\Application\DeletePlannedItemInput;
-use App\CashFlow\Application\EndPlannedItemInput;
-use App\CashFlow\Application\PlannedItemReads;
-use App\CashFlow\Application\SkipPlannedOccurrenceInput;
-use App\CashFlow\Contract\FlowCategory;
-use App\CashFlow\Contract\FlowDirection;
-use App\CashFlow\Domain\PlannedItem;
-use App\Shared\Application\RefusalKind;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Schedule\RecurrenceEnd;
-use App\Shared\Domain\Schedule\RecurrenceUnit;
-use App\Tests\CashFlow\Support\CashFlowTestCase;
+use Foresi\CashFlow\Application\CashFlowRefused;
+use Foresi\CashFlow\Application\ChangePlannedItemInput;
+use Foresi\CashFlow\Application\DeletePlannedItemInput;
+use Foresi\CashFlow\Application\EndPlannedItemInput;
+use Foresi\CashFlow\Application\PlannedItemReads;
+use Foresi\CashFlow\Application\SkipPlannedOccurrenceInput;
+use Foresi\CashFlow\Contract\FlowCategory;
+use Foresi\CashFlow\Contract\FlowDirection;
+use Foresi\CashFlow\Domain\PlannedItem;
+use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
+use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
+use Foresi\Tests\CashFlow\Support\CashFlowTestCase;
 
 /**
  * Planned items over the API and MCP (C5): one-off or recurring, changed in
@@ -53,7 +53,7 @@ final class PlannedItemWritesTest extends CashFlowTestCase
 
     public function testCreatesARecurringItemWithItsScheduleAndMatchRule(): void
     {
-        $item = $this->writes()->create(new \App\CashFlow\Application\CreatePlannedItemInput(
+        $item = $this->writes()->create(new \Foresi\CashFlow\Application\CreatePlannedItemInput(
             $this->firm->id(), 'in', 'Retainer', 'revenue', '1500.5', '2026-11-30', 'EUR', 'month', 2, true, null, 6, null, false, ' 123-456/0100 ', '0042', '1.25',
         ));
 
@@ -99,7 +99,7 @@ final class PlannedItemWritesTest extends CashFlowTestCase
         $this->assertRefused('recurrence_invalid', 'repeat', fn (): PlannedItem => $this->planned(repeat: 'week', lastDayOfMonth: true));
         $this->assertRefused('counterparty_unknown', 'counterpartyId', fn (): PlannedItem => $this->planned(counterpartyId: '0198a4f0-8b1e-7000-8000-000000000001'));
         $this->assertRefused('direction_unknown', 'direction', fn (): PlannedItem => $this->planned(direction: 'sideways'));
-        $this->assertRefused('not_found', null, fn (): PlannedItem => $this->writes()->create(new \App\CashFlow\Application\CreatePlannedItemInput('0198a4f0-8b1e-7000-8000-000000000001', 'out', 'Rent', 'rent', '1.00', '2026-11-20')));
+        $this->assertRefused('not_found', null, fn (): PlannedItem => $this->writes()->create(new \Foresi\CashFlow\Application\CreatePlannedItemInput('0198a4f0-8b1e-7000-8000-000000000001', 'out', 'Rent', 'rent', '1.00', '2026-11-20')));
         self::assertSame([], $this->events('cash-flow.planned_item.created'));
     }
 
@@ -321,7 +321,7 @@ final class PlannedItemWritesTest extends CashFlowTestCase
 
     private function match(?string $account, ?string $symbol, ?string $tolerance): PlannedItem
     {
-        return $this->writes()->create(new \App\CashFlow\Application\CreatePlannedItemInput($this->firm->id(), 'out', 'Insurance', 'insurance', '5005.00', '2026-11-30', matchAccount: $account, matchVariableSymbol: $symbol, matchTolerance: $tolerance));
+        return $this->writes()->create(new \Foresi\CashFlow\Application\CreatePlannedItemInput($this->firm->id(), 'out', 'Insurance', 'insurance', '5005.00', '2026-11-30', matchAccount: $account, matchVariableSymbol: $symbol, matchTolerance: $tolerance));
     }
 
     private function lastDayOfMonthStored(PlannedItem $item): bool

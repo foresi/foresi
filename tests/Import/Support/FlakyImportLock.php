@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Import\Support;
+namespace Foresi\Tests\Import\Support;
 
-use App\Import\Application\ImportLock;
+use Foresi\Import\Application\ImportLock;
 
 /**
  * Wraps the real lock and fails the next few acquisitions, as a lock store or

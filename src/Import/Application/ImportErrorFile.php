@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application;
+namespace Foresi\Import\Application;
 
-use App\Import\Application\Source\SourceFormat;
-use App\Import\Application\Source\SourceSettings;
-use App\Import\Domain\RowOutcome;
+use Foresi\Import\Application\Source\SourceFormat;
+use Foresi\Import\Application\Source\SourceSettings;
+use Foresi\Import\Domain\RowOutcome;
 
 /** The error file of a checked or finished import. */
 final readonly class ImportErrorFile

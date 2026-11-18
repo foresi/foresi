@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application\Query;
+namespace Foresi\Party\Application\Query;
 
-use App\Party\Domain\PartyRole;
+use Foresi\Party\Domain\PartyRole;
 
 /**
  * What a slice of the address book is narrowed to. Every field narrows; the

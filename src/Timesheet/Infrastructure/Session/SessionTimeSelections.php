@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Infrastructure\Session;
+namespace Foresi\Timesheet\Infrastructure\Session;
 
-use App\Timesheet\Application\TimeSelection;
-use App\Timesheet\Application\TimeSelections;
+use Foresi\Timesheet\Application\TimeSelection;
+use Foresi\Timesheet\Application\TimeSelections;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**

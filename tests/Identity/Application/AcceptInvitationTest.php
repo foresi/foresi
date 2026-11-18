@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Application;
+namespace Foresi\Tests\Identity\Application;
 
-use App\Identity\Application\AcceptInvitation;
-use App\Identity\Application\InvitationRefused;
-use App\Identity\Application\Invitations;
-use App\Identity\Application\MembershipDirectory;
-use App\Identity\Application\Organisation;
-use App\Identity\Application\People;
-use App\Identity\Application\UserRepository;
-use App\Identity\Domain\Invitation;
-use App\Identity\Domain\InvitationToken;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Shared\Domain\Id;
+use Foresi\Identity\Application\AcceptInvitation;
+use Foresi\Identity\Application\InvitationRefused;
+use Foresi\Identity\Application\Invitations;
+use Foresi\Identity\Application\MembershipDirectory;
+use Foresi\Identity\Application\Organisation;
+use Foresi\Identity\Application\People;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Domain\Invitation;
+use Foresi\Identity\Domain\InvitationToken;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 use Psr\Clock\ClockInterface;

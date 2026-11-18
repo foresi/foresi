@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Doctrine;
+namespace Foresi\Party\Infrastructure\Doctrine;
 
-use App\Party\Application\FirmBankAccounts;
-use App\Party\Application\UnknownFirmBankAccount;
-use App\Party\Domain\FirmBankAccount;
-use App\Party\Domain\LegalEntity;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
+use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Application\UnknownFirmBankAccount;
+use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Party\Domain\LegalEntity;
 
 final readonly class DoctrineFirmBankAccounts implements FirmBankAccounts
 {

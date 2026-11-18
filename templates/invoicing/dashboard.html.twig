@@ -1,5 +1,5 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{# The invoicing section of the start page (App\Invoicing\Infrastructure\Dashboard\InvoicingDashboard). #}
+{# The invoicing section of the start page (Foresi\Invoicing\Infrastructure\Dashboard\InvoicingDashboard). #}
 <section data-dashboard-invoicing aria-labelledby="dashboard-invoicing-title" class="grid grid-cols-1 gap-3">
     <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -15,7 +15,7 @@
             {% for reminder in pending %}
                 <twig:Ui:Alert tone="warning">
                     <span>{{ reminder.text }}</span>
-                    <a href="{{ reminder.href }}" class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'dashboard.invoicing.pending_link'|trans }}</a>
+                    <a href="{{ reminder.href }}" class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'dashboard.invoicing.pending_link'|trans }}</a>
                 </twig:Ui:Alert>
             {% endfor %}
         </div>
@@ -29,7 +29,7 @@
             <ol data-dashboard-debtors class="m-0 grid list-none gap-0 p-0">
                 {% for debtor in debtors %}
                     <li class="flex min-w-0 items-baseline gap-3 border-b border-divider py-2 text-small last:border-b-0">
-                        <a href="{{ debtor.href }}" class="min-w-0 flex-1 truncate font-medium text-ink underline decoration-control-line underline-offset-2 hover:decoration-ink {{ constant('App\\Ui\\Component\\Style::FOCUS') }}" title="{{ debtor.name }}">{{ debtor.name }}</a>
+                        <a href="{{ debtor.href }}" class="min-w-0 flex-1 truncate font-medium text-ink underline decoration-control-line underline-offset-2 hover:decoration-ink {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" title="{{ debtor.name }}">{{ debtor.name }}</a>
                         <span class="shrink-0 text-caption text-muted">{{ debtor.count }}</span>
                         <span class="num shrink-0 font-semibold text-ink">{{ debtor.amount }}</span>
                     </li>

@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Infrastructure\Api\Operation;
+namespace Foresi\CashFlow\Infrastructure\Api\Operation;
 
-use App\CashFlow\Application\BalanceWrites;
-use App\CashFlow\Application\SetExpectedDateInput;
-use App\CashFlow\Infrastructure\Api\CashFlowJson;
-use App\Shared\Infrastructure\Operation\OperationHandler;
-use App\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\CashFlow\Application\BalanceWrites;
+use Foresi\CashFlow\Application\SetExpectedDateInput;
+use Foresi\CashFlow\Infrastructure\Api\CashFlowJson;
+use Foresi\Shared\Infrastructure\Operation\OperationHandler;
+use Foresi\Shared\Infrastructure\Operation\OperationOutput;
 
 final readonly class SetExpectedDateHandler implements OperationHandler
 {

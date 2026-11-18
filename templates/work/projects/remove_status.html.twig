@@ -13,7 +13,7 @@
 
 {% block dialog_body %}
     <form method="post" id="status-remove-form" action="{{ path('app_project_status_remove', {id: project.id, statusId: status.id}) }}" class="grid gap-4" novalidate>
-        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\ProjectSettingsController::TOKEN')) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\ProjectSettingsController::TOKEN')) }}">
         {% if error %}<twig:Ui:Alert tone="error" tabindex="-1" data-error-summary :autofocus="true">{{ error }}</twig:Ui:Alert>{% endif %}
         <p class="m-0 text-text">{{ 'work.settings.remove_status.text'|trans({name: status.name}) }}</p>
         <twig:Ui:Select name="target" id="target" :label="'work.settings.remove_status.target'|trans" :options="targets" :value="target" />

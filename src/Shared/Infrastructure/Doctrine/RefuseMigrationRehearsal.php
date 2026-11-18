@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Doctrine;
+namespace Foresi\Shared\Infrastructure\Doctrine;
 
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\Migrations\Event\MigrationsEventArgs;

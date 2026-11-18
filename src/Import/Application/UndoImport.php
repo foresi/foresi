@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application;
+namespace Foresi\Import\Application;
 
-use App\Import\Application\Message\UndoImportChunk;
-use App\Import\Domain\ImportState;
+use Foresi\Import\Application\Message\UndoImportChunk;
+use Foresi\Import\Domain\ImportState;
 use Psr\Clock\ClockInterface;
 
 /**

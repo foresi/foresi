@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Invoicing\Contract\Event\InvoiceRestored;
-use App\Invoicing\Contract\Event\InvoiceTrashed;
-use App\Invoicing\Domain\InvalidDeletionReason;
-use App\Invoicing\Domain\Invoice;
-use App\Party\Application\TransactionalWork;
-use App\Shared\Application\Event\EventRecorder;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Invoicing\Contract\Event\InvoiceRestored;
+use Foresi\Invoicing\Contract\Event\InvoiceTrashed;
+use Foresi\Invoicing\Domain\InvalidDeletionReason;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 
 /**

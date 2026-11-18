@@ -6,21 +6,21 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Application\Query;
+namespace Foresi\Tests\Party\Application\Query;
 
-use App\Party\Application\PartyAccess;
-use App\Party\Application\PartyQuery;
-use App\Party\Application\Query\ContactList;
-use App\Party\Application\Query\ContactQueries;
-use App\Party\Application\Query\ContactRow;
-use App\Party\Application\Query\ContactSlice;
-use App\Party\Application\Query\ContactSliceFilter;
-use App\Party\Domain\Address;
-use App\Party\Domain\EmailPurpose;
-use App\Party\Domain\PartyEmail;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
-use App\Shared\Domain\Id;
+use Foresi\Party\Application\PartyAccess;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Application\Query\ContactList;
+use Foresi\Party\Application\Query\ContactQueries;
+use Foresi\Party\Application\Query\ContactRow;
+use Foresi\Party\Application\Query\ContactSlice;
+use Foresi\Party\Application\Query\ContactSliceFilter;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\EmailPurpose;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Shared\Domain\Id;
 
 final class ContactListTest extends ContactTestCase
 {
@@ -29,8 +29,8 @@ final class ContactListTest extends ContactTestCase
         $this->contact('Alpha Example');
 
         $this->assertRefusedForGuestAndNobody(fn (): ContactSlice => $this->list()->slice(new ContactSliceFilter()));
-        $this->assertRefusedForGuestAndNobody(fn (): \App\Party\Application\PartyPage => $this->list()->search('', null, false, 'name', 1));
-        $this->assertRefusedForGuestAndNobody(fn (): \App\Party\Application\PartyCounts => $this->list()->counts());
+        $this->assertRefusedForGuestAndNobody(fn (): \Foresi\Party\Application\PartyPage => $this->list()->search('', null, false, 'name', 1));
+        $this->assertRefusedForGuestAndNobody(fn (): \Foresi\Party\Application\PartyCounts => $this->list()->counts());
     }
 
     public function testOwnersAndMembersRead(): void
@@ -246,7 +246,7 @@ final class ContactListTest extends ContactTestCase
         $page = $this->list()->search('', PartyRole::Supplier, true, 'name', 1);
         $counts = $this->list()->counts();
 
-        self::assertSame(['Beta Example'], array_map(static fn (\App\Party\Application\PartyRow $row): string => $row->displayName, $page->rows));
+        self::assertSame(['Beta Example'], array_map(static fn (\Foresi\Party\Application\PartyRow $row): string => $row->displayName, $page->rows));
         self::assertSame([1, 1, 0, 0, 2], [$counts->all, $counts->customers, $counts->suppliers, $counts->unreliablePayers, $counts->archived]);
     }
 

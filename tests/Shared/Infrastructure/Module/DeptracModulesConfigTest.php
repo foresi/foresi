@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Module;
+namespace Foresi\Tests\Shared\Infrastructure\Module;
 
-use App\Shared\Domain\Module\ModuleGraph;
-use App\Shared\Domain\Module\ModuleId;
-use App\Shared\Domain\Module\ModuleKind;
-use App\Shared\Domain\Module\ModuleManifest;
-use App\Shared\Infrastructure\Module\DeptracModulesConfig;
+use Foresi\Shared\Domain\Module\ModuleGraph;
+use Foresi\Shared\Domain\Module\ModuleId;
+use Foresi\Shared\Domain\Module\ModuleKind;
+use Foresi\Shared\Domain\Module\ModuleManifest;
+use Foresi\Shared\Infrastructure\Module\DeptracModulesConfig;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -31,39 +31,39 @@ final class DeptracModulesConfigTest extends TestCase
             - name: invoicing
               collectors:
                 - type: classLike
-                  value: ^App\\Invoicing\\(?!Contract\\|Integration\\).*
+                  value: ^Foresi\\Invoicing\\(?!Contract\\|Integration\\).*
             - name: invoicing_contract
               collectors:
                 - type: classLike
-                  value: ^App\\Invoicing\\Contract\\.*
+                  value: ^Foresi\\Invoicing\\Contract\\.*
             - name: shared
               collectors:
                 - type: classLike
-                  value: ^App\\Shared\\(?!Contract\\|Integration\\).*
+                  value: ^Foresi\\Shared\\(?!Contract\\|Integration\\).*
             - name: shared_contract
               collectors:
                 - type: classLike
-                  value: ^App\\Shared\\Contract\\.*
+                  value: ^Foresi\\Shared\\Contract\\.*
             - name: timesheet
               collectors:
                 - type: classLike
-                  value: ^App\\Timesheet\\(?!Contract\\|Integration\\).*
+                  value: ^Foresi\\Timesheet\\(?!Contract\\|Integration\\).*
             - name: timesheet_contract
               collectors:
                 - type: classLike
-                  value: ^App\\Timesheet\\Contract\\.*
+                  value: ^Foresi\\Timesheet\\Contract\\.*
             - name: timesheet_integration_invoicing
               collectors:
                 - type: classLike
-                  value: ^App\\Timesheet\\Integration\\Invoicing\\.*
+                  value: ^Foresi\\Timesheet\\Integration\\Invoicing\\.*
             - name: work
               collectors:
                 - type: classLike
-                  value: ^App\\Work\\(?!Contract\\|Integration\\).*
+                  value: ^Foresi\\Work\\(?!Contract\\|Integration\\).*
             - name: work_contract
               collectors:
                 - type: classLike
-                  value: ^App\\Work\\Contract\\.*
+                  value: ^Foresi\\Work\\Contract\\.*
           ruleset:
             invoicing:
               - invoicing_contract
@@ -111,7 +111,7 @@ final class DeptracModulesConfigTest extends TestCase
     {
         $config = new DeptracModulesConfig()->render(new ModuleGraph($this->modules()));
 
-        self::assertStringContainsString("          value: ^App\\\\Timesheet\\\\Integration\\\\Invoicing\\\\.*\n", $config);
+        self::assertStringContainsString("          value: ^Foresi\\\\Timesheet\\\\Integration\\\\Invoicing\\\\.*\n", $config);
         self::assertStringContainsString("    timesheet_integration_invoicing:\n      - invoicing_contract\n      - timesheet\n", $config);
         self::assertStringNotContainsString("      - invoicing\n", substr($config, (int) strpos($config, '    timesheet:')));
     }
@@ -145,7 +145,7 @@ final class DeptracModulesConfigTest extends TestCase
         self::assertStringContainsString("    - name: exchange_rate\n", $config);
         self::assertStringContainsString("    exchange_rate:\n      - exchange_rate_contract\n      - shared\n", $config);
         self::assertStringContainsString("    party:\n      - exchange_rate\n      - exchange_rate_contract\n", $config);
-        self::assertStringContainsString("    - name: purchasing_integration_exchange_rate\n      collectors:\n        - type: classLike\n          value: ^App\\\\Purchasing\\\\Integration\\\\ExchangeRate\\\\.*\n", $config);
+        self::assertStringContainsString("    - name: purchasing_integration_exchange_rate\n      collectors:\n        - type: classLike\n          value: ^Foresi\\\\Purchasing\\\\Integration\\\\ExchangeRate\\\\.*\n", $config);
         self::assertStringContainsString("    purchasing_integration_exchange_rate:\n      - exchange_rate_contract\n", $config);
         self::assertStringNotContainsString('exchange-rate', $config);
     }
@@ -173,7 +173,7 @@ final class DeptracModulesConfigTest extends TestCase
             ModuleId::of($id),
             $kind,
             'foresi/'.$id,
-            'App\\'.$directory.'\\',
+            'Foresi\\'.$directory.'\\',
             array_map(ModuleId::of(...), $requires),
             array_map(ModuleId::of(...), $optional),
         );

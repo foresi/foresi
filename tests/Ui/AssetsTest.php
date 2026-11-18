@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui;
+namespace Foresi\Tests\Ui;
 
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\UX\Icons\IconRendererInterface;

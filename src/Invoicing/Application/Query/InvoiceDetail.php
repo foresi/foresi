@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application\Query;
+namespace Foresi\Invoicing\Application\Query;
 
-use App\Invoicing\Application\InvoiceHistoryEntry;
-use App\Invoicing\Application\InvoicePaymentLine;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Application\InvoiceHistoryEntry;
+use Foresi\Invoicing\Application\InvoicePaymentLine;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Shared\Domain\Money;
 
 /**
  * One invoice with what belongs to it. Paid is what its payments allocated, corrections what

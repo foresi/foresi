@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Api;
+namespace Foresi\Shared\Infrastructure\Api;
 
-use App\Shared\Domain\Id;
+use Foresi\Shared\Domain\Id;
 
 /**
  * The opaque cursor of a list: the id of the last row of a slice, in base64url

@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure;
+namespace Foresi\Banking\Infrastructure;
 
-use App\Banking\Application\BankMovements;
-use App\Party\Application\BankAccountUsage;
+use Foresi\Banking\Application\BankMovements;
+use Foresi\Party\Application\BankAccountUsage;
 
 /**
  * A firm's bank account is used once a movement in its currency is recorded on it:

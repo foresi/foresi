@@ -6,27 +6,27 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Audit;
+namespace Foresi\Tests\Audit;
 
-use App\Audit\Domain\ActorKind;
-use App\Audit\Domain\AuditAction;
-use App\Audit\Domain\AuditEntry;
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Party\Application\PartyDetails;
-use App\Party\Application\PartyHistoryEntry;
-use App\Party\Domain\Address;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\ContactLink;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
-use App\Party\Domain\RegistrationNumber;
-use App\Tests\Audit\Fixtures\AuditedSecret;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Audit\Domain\ActorKind;
+use Foresi\Audit\Domain\AuditAction;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Party\Application\PartyDetails;
+use Foresi\Party\Application\PartyHistoryEntry;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\ContactLink;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Tests\Audit\Fixtures\AuditedSecret;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class AuditRootTest extends KernelTestCase

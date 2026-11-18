@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Instance\Infrastructure\Schedule;
+namespace Foresi\Instance\Infrastructure\Schedule;
 
-use App\Instance\Application\Schedule\OperatorTask;
-use App\Instance\Application\Schedule\RunOperatorTask;
+use Foresi\Instance\Application\Schedule\OperatorTask;
+use Foresi\Instance\Application\Schedule\RunOperatorTask;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\Component\Lock\LockFactory;

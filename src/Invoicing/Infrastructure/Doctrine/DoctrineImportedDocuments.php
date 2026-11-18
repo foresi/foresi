@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Invoicing\Application\ImportedDocuments;
-use App\Invoicing\Application\UndoBlocker;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Invoicing\Domain\InvoiceSend;
-use App\Invoicing\Domain\Payment;
-use App\Invoicing\Domain\PaymentAllocation;
-use App\Party\Domain\LegalEntity;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Invoicing\Application\ImportedDocuments;
+use Foresi\Invoicing\Application\UndoBlocker;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Invoicing\Domain\InvoiceSend;
+use Foresi\Invoicing\Domain\Payment;
+use Foresi\Invoicing\Domain\PaymentAllocation;
+use Foresi\Party\Domain\LegalEntity;
 
 /**
  * Queries of the ORM. Every table that names an invoice

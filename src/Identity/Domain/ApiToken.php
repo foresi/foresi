@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Domain;
+namespace Foresi\Identity\Domain;
 
-use App\Audit\Domain\Audited;
-use App\Audit\Domain\AuditExcluded;
-use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Audit\Domain\AuditExcluded;
+use Foresi\Shared\Domain\Id;
 
 /**
  * A personal API token: a person's access to one organisation from another

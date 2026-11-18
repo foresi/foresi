@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
-use App\Identity\Domain\Invitation;
-use App\Shared\Application\SystemMailUnavailable;
+use Foresi\Identity\Domain\Invitation;
+use Foresi\Shared\Application\SystemMailUnavailable;
 
 /**
  * Sends the link of an invitation to the invited person.

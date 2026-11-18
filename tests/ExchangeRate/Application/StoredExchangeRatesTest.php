@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\ExchangeRate\Application;
+namespace Foresi\Tests\ExchangeRate\Application;
 
-use App\ExchangeRate\Domain\RateNotAvailable;
-use App\Tests\ExchangeRate\Support\RateWorld;
+use Foresi\ExchangeRate\Domain\RateNotAvailable;
+use Foresi\Tests\ExchangeRate\Support\RateWorld;
 use PHPUnit\Framework\TestCase;
 
 final class StoredExchangeRatesTest extends TestCase

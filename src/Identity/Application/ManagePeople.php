@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\Role;
-use App\Party\Application\PartyQuery;
-use App\Party\Domain\Party;
-use App\Shared\Domain\Money;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Role;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Domain\Party;
+use Foresi\Shared\Domain\Money;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 

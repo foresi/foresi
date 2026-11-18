@@ -6,22 +6,22 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\DeductibleAdvances;
-use App\Invoicing\Application\DocumentChain;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Quantity;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Party\Domain\DocumentLanguage;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Application\DeductibleAdvances;
+use Foresi\Invoicing\Application\DocumentChain;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 
@@ -82,7 +82,7 @@ final class AdvanceChainTest extends AdvanceTestCase
         self::assertSame(['Z920260001', 'D820260001', '2026-12-30'], [$advance->number(), $document->number(), $document->taxPointDate()?->format('Y-m-d')]);
         $stored = $this->reloaded($final);
         self::assertSame(['20270001', 500000, 105000, 605000], [$stored->number(), $stored->net()->minor(), $stored->vat()->minor(), $stored->payable()->minor()]);
-        self::assertSame([$document->id()], array_values(array_filter(array_map(static fn (\App\Invoicing\Domain\InvoiceLine $line): ?string => $line->deducts(), $this->store->lines($stored)), \is_string(...))));
+        self::assertSame([$document->id()], array_values(array_filter(array_map(static fn (\Foresi\Invoicing\Domain\InvoiceLine $line): ?string => $line->deducts(), $this->store->lines($stored)), \is_string(...))));
         $ids = $this->store->idsForPeriod($this->firm, new \DateTimeImmutable('2026-12-01'), new \DateTimeImmutable('2026-12-31'));
         self::assertSame([$document->id()], $ids, 'December holds the tax document only');
     }

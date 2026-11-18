@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Console;
+namespace Foresi\Import\Infrastructure\Console;
 
-use App\Import\Application\ImportGate;
-use App\Import\Application\Imports;
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportState;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
+use Foresi\Import\Application\ImportGate;
+use Foresi\Import\Application\Imports;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\ImportState;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;

@@ -13,7 +13,7 @@
 {% block content %}
     {{ include('work/_flashes.html.twig') }}
     <form method="post" action="{{ path('app_notification_settings') }}" class="grid max-w-4xl gap-4" novalidate data-notification-settings>
-        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\NotificationSettingsController::TOKEN')) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\NotificationSettingsController::TOKEN')) }}">
 
         {% if not configured %}
             <p class="m-0 text-small text-muted" data-notification-settings-unavailable>{{ 'work.notification_settings.unavailable'|trans }}</p>

@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Events;
+namespace Foresi\Party\Infrastructure\Events;
 
-use App\Identity\Application\StaffCheck;
-use App\Party\Application\PartyAccess;
-use App\Party\Application\PartyNotAllowed;
-use App\Shared\Application\Event\EventReadAccess;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Party\Application\PartyAccess;
+use Foresi\Party\Application\PartyNotAllowed;
+use Foresi\Shared\Application\Event\EventReadAccess;
 
 /**
  * The events of the address book tell about contacts, so they are read by those

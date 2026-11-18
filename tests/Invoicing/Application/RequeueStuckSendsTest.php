@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\InvoiceSendQueue;
-use App\Invoicing\Application\InvoiceSends;
-use App\Invoicing\Application\RequeueStuckSends;
+use Foresi\Invoicing\Application\InvoiceSendQueue;
+use Foresi\Invoicing\Application\InvoiceSends;
+use Foresi\Invoicing\Application\RequeueStuckSends;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;
 

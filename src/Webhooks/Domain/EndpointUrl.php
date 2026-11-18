@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Domain;
+namespace Foresi\Webhooks\Domain;
 
 /**
  * The address an endpoint is sent to: https, with a host, without user info and

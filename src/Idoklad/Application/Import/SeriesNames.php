@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application\Import;
+namespace Foresi\Idoklad\Application\Import;
 
-use App\Invoicing\Application\SeriesCatalog;
-use App\Invoicing\Domain\Series;
-use App\Party\Domain\LegalEntity;
+use Foresi\Invoicing\Application\SeriesCatalog;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Party\Domain\LegalEntity;
 
 /**
  * A name for a series an import creates. Names are the firm's, across the kinds

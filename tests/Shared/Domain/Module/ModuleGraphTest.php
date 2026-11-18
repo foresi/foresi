@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Domain\Module;
+namespace Foresi\Tests\Shared\Domain\Module;
 
-use App\Shared\Domain\Module\GraphProblem;
-use App\Shared\Domain\Module\InvalidManifest;
-use App\Shared\Domain\Module\ModuleGraph;
-use App\Shared\Domain\Module\ModuleId;
-use App\Shared\Domain\Module\ModuleKind;
-use App\Shared\Domain\Module\ModuleManifest;
+use Foresi\Shared\Domain\Module\GraphProblem;
+use Foresi\Shared\Domain\Module\InvalidManifest;
+use Foresi\Shared\Domain\Module\ModuleGraph;
+use Foresi\Shared\Domain\Module\ModuleId;
+use Foresi\Shared\Domain\Module\ModuleKind;
+use Foresi\Shared\Domain\Module\ModuleManifest;
 use PHPUnit\Framework\TestCase;
 
 final class ModuleGraphTest extends TestCase
@@ -179,7 +179,7 @@ final class ModuleGraphTest extends TestCase
      */
     private function module(string $id, ModuleKind $kind = ModuleKind::Module, array $requires = [], array $optional = [], array $scopes = []): ModuleManifest
     {
-        $namespace = 'App\\'.str_replace('-', '', ucwords($id, '-')).'\\';
+        $namespace = 'Foresi\\'.str_replace('-', '', ucwords($id, '-')).'\\';
 
         return new ModuleManifest(
             ModuleId::of($id),

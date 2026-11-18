@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\FirmInvoicing;
-use App\Party\Domain\LegalEntity;
+use Foresi\Invoicing\Domain\FirmInvoicing;
+use Foresi\Party\Domain\LegalEntity;
 
 /**
  * The invoicing settings of the firms. Call save() inside

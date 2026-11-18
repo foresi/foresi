@@ -14,7 +14,7 @@
         "foresi": {
             "module": "country",
             "kind": "module",
-            "namespace": "App\\Country\\",
+            "namespace": "Foresi\\Country\\",
             "optional": []
         }
     }

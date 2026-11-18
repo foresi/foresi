@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Import\Domain;
+namespace Foresi\Tests\Import\Domain;
 
-use App\Import\Domain\DateOrder;
-use App\Import\Domain\DateParser;
-use App\Import\Domain\DecimalSeparator;
-use App\Import\Domain\FieldDefinition;
-use App\Import\Domain\FieldType;
-use App\Import\Domain\NormalisationOptions;
-use App\Import\Domain\RowError;
-use App\Import\Domain\Text;
-use App\Import\Domain\ValueNormaliser;
-use App\Shared\Domain\Countries;
+use Foresi\Import\Domain\DateOrder;
+use Foresi\Import\Domain\DateParser;
+use Foresi\Import\Domain\DecimalSeparator;
+use Foresi\Import\Domain\FieldDefinition;
+use Foresi\Import\Domain\FieldType;
+use Foresi\Import\Domain\NormalisationOptions;
+use Foresi\Import\Domain\RowError;
+use Foresi\Import\Domain\Text;
+use Foresi\Import\Domain\ValueNormaliser;
+use Foresi\Shared\Domain\Countries;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

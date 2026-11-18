@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\ExportState;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\ExportState;
 
 /**
  * Which documents a list shows: of one kind, of one firm or all, in which tab, matching what text,

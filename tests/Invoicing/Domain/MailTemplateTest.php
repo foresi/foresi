@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Domain;
+namespace Foresi\Tests\Invoicing\Domain;
 
-use App\Invoicing\Domain\InvalidMailTemplate;
-use App\Invoicing\Domain\MailTemplate;
-use App\Invoicing\Domain\MailTemplateKind;
-use App\Party\Domain\Address;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
+use Foresi\Invoicing\Domain\InvalidMailTemplate;
+use Foresi\Invoicing\Domain\MailTemplate;
+use Foresi\Invoicing\Domain\MailTemplateKind;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

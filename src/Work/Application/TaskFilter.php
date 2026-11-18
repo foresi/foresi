@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Work\Domain\StatusType;
+use Foresi\Work\Domain\StatusType;
 
 /**
  * What the list and the board narrow their top-level tasks to; null is no narrowing.

@@ -12,7 +12,7 @@
         "foresi": {
             "module": "events",
             "kind": "core",
-            "namespace": "App\\Events\\",
+            "namespace": "Foresi\\Events\\",
             "optional": [],
             "scopes": [
                 "events"

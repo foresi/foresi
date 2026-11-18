@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Mcp;
+namespace Foresi\Shared\Infrastructure\Mcp;
 
-use App\Shared\Application\Api\ScopeGuard;
+use Foresi\Shared\Application\Api\ScopeGuard;
 use Mcp\Capability\RegistryInterface;
 use Mcp\Schema\JsonRpc\Request;
 use Mcp\Schema\JsonRpc\Response;

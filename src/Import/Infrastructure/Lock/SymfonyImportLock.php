@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Lock;
+namespace Foresi\Import\Infrastructure\Lock;
 
-use App\Import\Application\ImportLock;
+use Foresi\Import\Application\ImportLock;
 use Symfony\Component\Lock\LockFactory;
 
 /**

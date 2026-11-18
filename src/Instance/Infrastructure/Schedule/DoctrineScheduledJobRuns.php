@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Instance\Infrastructure\Schedule;
+namespace Foresi\Instance\Infrastructure\Schedule;
 
-use App\Instance\Application\Schedule\Claim;
-use App\Instance\Application\Schedule\ScheduledJobRuns;
-use App\Shared\Domain\Id;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Types\Types;
+use Foresi\Instance\Application\Schedule\Claim;
+use Foresi\Instance\Application\Schedule\ScheduledJobRuns;
+use Foresi\Shared\Domain\Id;
 use Psr\Clock\ClockInterface;
 
 /**

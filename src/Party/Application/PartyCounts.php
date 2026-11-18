@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
 /**
  * The numbers above the address book list. Everything except "archived"

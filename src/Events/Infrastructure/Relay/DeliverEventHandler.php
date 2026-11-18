@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Relay;
+namespace Foresi\Events\Infrastructure\Relay;
 
-use App\Events\Application\DeliverEvent;
-use App\Events\Infrastructure\Catalogue\EventCatalogue;
-use App\Events\Infrastructure\Dbal\EventLogTable;
-use App\Events\Infrastructure\Payload\EventPayloads;
-use App\Shared\Application\Event\DomainEventListener;
-use App\Shared\Application\Event\RecordedEvent;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
+use Foresi\Events\Application\DeliverEvent;
+use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
+use Foresi\Events\Infrastructure\Dbal\EventLogTable;
+use Foresi\Events\Infrastructure\Payload\EventPayloads;
+use Foresi\Shared\Application\Event\DomainEventListener;
+use Foresi\Shared\Application\Event\RecordedEvent;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 

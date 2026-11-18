@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Work\Infrastructure\Controller;
+namespace Foresi\Tests\Work\Infrastructure\Controller;
 
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\Role;
-use App\Tests\Identity\Support\SignedInBrowser;
-use App\Work\Domain\EmailDelivery;
-use App\Work\Domain\NotificationKind;
-use App\Work\Domain\NotificationPreference;
-use App\Work\Infrastructure\Mail\NotificationLinks;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Role;
+use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Work\Domain\EmailDelivery;
+use Foresi\Work\Domain\NotificationKind;
+use Foresi\Work\Domain\NotificationPreference;
+use Foresi\Work\Infrastructure\Mail\NotificationLinks;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 

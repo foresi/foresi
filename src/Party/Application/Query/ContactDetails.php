@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application\Query;
+namespace Foresi\Party\Application\Query;
 
-use App\Party\Application\PartyAccess;
-use App\Party\Application\PartyDetails;
-use App\Party\Application\PartyNotAllowed;
-use App\Party\Application\PartyQuery;
-use App\Party\Application\UnknownParty;
-use App\Party\Domain\ContactLink;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyBankAccount;
-use App\Party\Domain\PartyEmail;
-use App\Party\Domain\RegistryResult;
-use App\Shared\Domain\Id;
+use Foresi\Party\Application\PartyAccess;
+use Foresi\Party\Application\PartyDetails;
+use Foresi\Party\Application\PartyNotAllowed;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Application\UnknownParty;
+use Foresi\Party\Domain\ContactLink;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyBankAccount;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Domain\RegistryResult;
+use Foresi\Shared\Domain\Id;
 
 /**
  * One contact with its addresses, e-mails, bank accounts and contact persons,

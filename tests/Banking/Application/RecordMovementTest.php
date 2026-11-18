@@ -6,37 +6,37 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Application;
 
-use App\Banking\Application\FirmPairingRules;
-use App\Banking\Application\MovementFilter;
-use App\Banking\Application\MovementInput;
-use App\Banking\Application\PairingChoices;
-use App\Banking\Application\PairingRules;
-use App\Banking\Application\ParsedMovement;
-use App\Banking\Application\RecordMovement;
-use App\Banking\Domain\MessageTrust;
-use App\Banking\Domain\MovementDirection;
-use App\Banking\Domain\MovementState;
-use App\Banking\Domain\UnmatchedReason;
-use App\Country\CzechRepublic\Party\CzechBankAccount;
-use App\Invoicing\Application\ConflictRetry;
-use App\Invoicing\Application\PaymentState;
-use App\Party\Application\BankAccountRefusal;
-use App\Party\Application\BankAccountRefused;
-use App\Party\Application\BankAccountUsage;
-use App\Party\Application\FirmBankAccounts;
-use App\Party\Application\LegalEntities;
-use App\Party\Application\ManageFirmBankAccounts;
-use App\Party\Application\TransactionalWork;
-use App\Party\Domain\LegalEntity;
-use App\Shared\Application\Event\EventRecorder;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Banking\Support\BankingTestCase;
-use App\Tests\Banking\Support\LoggingBankMovements;
-use App\Tests\Invoicing\Application\ReadsEventLog;
-use App\Tests\Party\Support\FirmAccounts;
+use Foresi\Banking\Application\FirmPairingRules;
+use Foresi\Banking\Application\MovementFilter;
+use Foresi\Banking\Application\MovementInput;
+use Foresi\Banking\Application\PairingChoices;
+use Foresi\Banking\Application\PairingRules;
+use Foresi\Banking\Application\ParsedMovement;
+use Foresi\Banking\Application\RecordMovement;
+use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Banking\Domain\MovementDirection;
+use Foresi\Banking\Domain\MovementState;
+use Foresi\Banking\Domain\UnmatchedReason;
+use Foresi\Country\CzechRepublic\Party\CzechBankAccount;
+use Foresi\Invoicing\Application\ConflictRetry;
+use Foresi\Invoicing\Application\PaymentState;
+use Foresi\Party\Application\BankAccountRefusal;
+use Foresi\Party\Application\BankAccountRefused;
+use Foresi\Party\Application\BankAccountUsage;
+use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\ManageFirmBankAccounts;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Banking\Support\BankingTestCase;
+use Foresi\Tests\Banking\Support\LoggingBankMovements;
+use Foresi\Tests\Invoicing\Application\ReadsEventLog;
+use Foresi\Tests\Party\Support\FirmAccounts;
 use Psr\Clock\ClockInterface;
 
 final class RecordMovementTest extends BankingTestCase
@@ -94,7 +94,7 @@ final class RecordMovementTest extends BankingTestCase
 
         $stored = $this->storedMovement($movement->id());
         self::assertSame([MovementState::Unmatched, UnmatchedReason::Unverified, MessageTrust::Unverified, 'no-results', null], [$stored->state(), $stored->unmatchedReason(), $stored->trust(), $stored->trustBasis(), $stored->paymentId()]);
-        self::assertSame([$invoice->id()], array_map(static fn (\App\Banking\Application\Candidate $candidate): string => $candidate->invoiceId, $this->matcher->candidates($stored)));
+        self::assertSame([$invoice->id()], array_map(static fn (\Foresi\Banking\Application\Candidate $candidate): string => $candidate->invoiceId, $this->matcher->candidates($stored)));
         self::assertSame(PaymentState::Unpaid, $this->stateOf($invoice));
         self::assertSame(0, $this->paymentCount());
     }
@@ -185,7 +185,7 @@ final class RecordMovementTest extends BankingTestCase
 
         self::assertSame(
             [MovementState::Paired, MovementState::Paired, MovementState::PossibleDuplicate, MovementState::Paired],
-            array_map(fn (\App\Banking\Domain\BankMovement $movement): MovementState => $this->storedMovement($movement->id())->state(), [$first, $sameMessage, $otherMessage, $otherDay]),
+            array_map(fn (\Foresi\Banking\Domain\BankMovement $movement): MovementState => $this->storedMovement($movement->id())->state(), [$first, $sameMessage, $otherMessage, $otherDay]),
         );
         self::assertSame(30000, $this->payments->paidOf($this->reloaded($invoice))->minor());
     }

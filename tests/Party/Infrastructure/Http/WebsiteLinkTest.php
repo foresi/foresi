@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Infrastructure\Http;
+namespace Foresi\Tests\Party\Infrastructure\Http;
 
-use App\Party\Infrastructure\Http\WebsiteLink;
-use App\Ui\Component\Style;
+use Foresi\Party\Infrastructure\Http\WebsiteLink;
+use Foresi\Ui\Component\Style;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

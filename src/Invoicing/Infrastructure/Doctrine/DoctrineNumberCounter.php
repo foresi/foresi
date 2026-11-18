@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Invoicing\Application\NumberCounter;
-use App\Invoicing\Application\SequenceOutOfRange;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\SeriesFormat;
-use App\Shared\Domain\Id;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\ParameterType;
+use Foresi\Invoicing\Application\NumberCounter;
+use Foresi\Invoicing\Application\SequenceOutOfRange;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Shared\Domain\Id;
 
 /**
  * One atomic statement per change, the same on SQLite and PostgreSQL. The row lock

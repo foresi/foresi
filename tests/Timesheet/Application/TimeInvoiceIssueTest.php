@@ -6,48 +6,48 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Timesheet\Application;
+namespace Foresi\Tests\Timesheet\Application;
 
-use App\Invoicing\Application\BilledLine;
-use App\Invoicing\Application\BilledWork;
-use App\Invoicing\Application\BilledWorkDraft;
-use App\Invoicing\Application\InvoiceInput;
-use App\Invoicing\Application\IssueInvoice;
-use App\Invoicing\Application\IssueProblem;
-use App\Invoicing\Application\IssueRefused;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Quantity;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Party\Domain\Address;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PaymentMethod;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
-use App\Party\Domain\VatStatus;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Party\Support\FirmAccounts;
-use App\Tests\Work\Application\WorkTestCase;
-use App\Timesheet\Application\TimeInvoicing;
-use App\Timesheet\Application\TimeInvoicingRefused;
-use App\Timesheet\Application\TimeScope;
-use App\Timesheet\Domain\LineGrouping;
-use App\Timesheet\Domain\TimeRounding;
-use App\Work\Application\ManageTime;
-use App\Work\Application\WorkRefused;
-use App\Work\Domain\Project;
-use App\Work\Domain\Task;
-use App\Work\Domain\TimeEntry;
+use Foresi\Invoicing\Application\BilledLine;
+use Foresi\Invoicing\Application\BilledWork;
+use Foresi\Invoicing\Application\BilledWorkDraft;
+use Foresi\Invoicing\Application\InvoiceInput;
+use Foresi\Invoicing\Application\IssueInvoice;
+use Foresi\Invoicing\Application\IssueProblem;
+use Foresi\Invoicing\Application\IssueRefused;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Party\Support\FirmAccounts;
+use Foresi\Tests\Work\Application\WorkTestCase;
+use Foresi\Timesheet\Application\TimeInvoicing;
+use Foresi\Timesheet\Application\TimeInvoicingRefused;
+use Foresi\Timesheet\Application\TimeScope;
+use Foresi\Timesheet\Domain\LineGrouping;
+use Foresi\Timesheet\Domain\TimeRounding;
+use Foresi\Work\Application\ManageTime;
+use Foresi\Work\Application\WorkRefused;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TimeEntry;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
@@ -95,7 +95,7 @@ final class TimeInvoiceIssueTest extends WorkTestCase
         $this->em->persist(new PartyAddress($this->customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
         $this->em->flush();
 
-        $this->website = $this->projects->create('Website', $this->customer->id(), \App\Work\Domain\WorkflowTemplate::Simple);
+        $this->website = $this->projects->create('Website', $this->customer->id(), \Foresi\Work\Domain\WorkflowTemplate::Simple);
         $this->homepage = $this->tasks->create($this->website->id(), 'Design the homepage');
         $this->time->setProjectHourlyRate($this->website->id(), Money::of('1000', Currency::CZK));
     }
@@ -138,7 +138,7 @@ final class TimeInvoiceIssueTest extends WorkTestCase
                 self::assertSame('time_invoiced', $refused->reason);
             }
         }
-        self::assertSame([$planning], array_map(static fn (\App\Timesheet\Application\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($this->scope())));
+        self::assertSame([$planning], array_map(static fn (\Foresi\Timesheet\Application\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($this->scope())));
     }
 
     public function testTheFirstOfTwoCopiesOfARowBillsItsTime(): void
@@ -224,7 +224,7 @@ final class TimeInvoiceIssueTest extends WorkTestCase
 
         $refusal = function (): string {
             try {
-                $this->invoicing->lines($this->scope(), array_map(static fn (\App\Timesheet\Application\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($this->scope())), LineGrouping::Task, TimeRounding::None);
+                $this->invoicing->lines($this->scope(), array_map(static fn (\Foresi\Timesheet\Application\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($this->scope())), LineGrouping::Task, TimeRounding::None);
             } catch (TimeInvoicingRefused $refused) {
                 return $refused->reason;
             }
@@ -239,12 +239,12 @@ final class TimeInvoiceIssueTest extends WorkTestCase
 
         $this->owner->changeHourlyRate(Money::of('1000', Currency::CZK));
         $this->time->setProjectHourlyRate($this->website->id(), null);
-        $other = $this->projects->create('Shop', $this->customer->id(), \App\Work\Domain\WorkflowTemplate::Simple);
+        $other = $this->projects->create('Shop', $this->customer->id(), \Foresi\Work\Domain\WorkflowTemplate::Simple);
         $this->time->setProjectHourlyRate($other->id(), Money::of('40', Currency::EUR));
         $this->time->log($other->id(), null, new \DateTimeImmutable('2026-10-08'), 30, billable: true);
         $mixed = new TimeScope($this->firm->id(), $this->customer->id(), [$this->website->id(), $other->id()], new \DateTimeImmutable('2026-10-01'), new \DateTimeImmutable('2026-10-31'));
         try {
-            $this->invoicing->lines($mixed, array_map(static fn (\App\Timesheet\Application\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($mixed)), LineGrouping::Task, TimeRounding::None);
+            $this->invoicing->lines($mixed, array_map(static fn (\Foresi\Timesheet\Application\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($mixed)), LineGrouping::Task, TimeRounding::None);
             self::fail('A mix of currencies is refused.');
         } catch (TimeInvoicingRefused $refused) {
             self::assertSame('currencies', $refused->reason);
@@ -263,7 +263,7 @@ final class TimeInvoiceIssueTest extends WorkTestCase
     private function chosen(TimeRounding $rounding): BilledWorkDraft
     {
         $scope = $this->scope();
-        $ids = array_map(static fn (\App\Timesheet\Application\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($scope));
+        $ids = array_map(static fn (\Foresi\Timesheet\Application\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($scope));
         $reference = $this->invoicing->select($scope, $this->invoicing->lines($scope, $ids, LineGrouping::Task, $rounding), 'hod', 'j. n. Y');
 
         return $this->billed->draft($reference) ?? throw new \LogicException('The time chosen waits.');

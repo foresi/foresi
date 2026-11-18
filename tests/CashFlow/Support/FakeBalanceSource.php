@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\CashFlow\Support;
+namespace Foresi\Tests\CashFlow\Support;
 
-use App\CashFlow\Contract\AccountBalance;
-use App\CashFlow\Contract\BalanceCheckpoint;
-use App\CashFlow\Contract\BalanceSource;
-use App\Shared\Domain\Money;
+use Foresi\CashFlow\Contract\AccountBalance;
+use Foresi\CashFlow\Contract\BalanceCheckpoint;
+use Foresi\CashFlow\Contract\BalanceSource;
+use Foresi\Shared\Domain\Money;
 
 /**
  * A balance source that adds a fixed amount to the checkpoint, knows nothing, or fails.

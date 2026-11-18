@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application\Import;
+namespace Foresi\Idoklad\Application\Import;
 
-use App\Idoklad\Domain\IdokladNumberFormat;
-use App\Idoklad\Domain\IdokladResource;
-use App\Idoklad\Domain\ImportOutcome;
-use App\Invoicing\Application\NumberCounter;
-use App\Invoicing\Application\SeriesCatalog;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\InvalidSeriesFormat;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\SeriesFormat;
+use Foresi\Idoklad\Domain\IdokladNumberFormat;
+use Foresi\Idoklad\Domain\IdokladResource;
+use Foresi\Idoklad\Domain\ImportOutcome;
+use Foresi\Invoicing\Application\NumberCounter;
+use Foresi\Invoicing\Application\SeriesCatalog;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\InvalidSeriesFormat;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\SeriesFormat;
 
 /**
  * iDoklad numeric sequences as Foresi series. iDoklad keeps a sequence per

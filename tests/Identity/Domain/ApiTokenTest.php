@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Domain;
+namespace Foresi\Tests\Identity\Domain;
 
-use App\Identity\Domain\ApiScope;
-use App\Identity\Domain\ApiToken;
-use App\Identity\Domain\ApiTokenSecret;
-use App\Identity\Domain\ApiTokenState;
-use App\Shared\Domain\Id;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Identity\Domain\ApiToken;
+use Foresi\Identity\Domain\ApiTokenSecret;
+use Foresi\Identity\Domain\ApiTokenState;
+use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

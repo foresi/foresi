@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure;
+namespace Foresi\Banking\Infrastructure;
 
-use App\Banking\Application\PollFailures;
+use Foresi\Banking\Application\PollFailures;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 

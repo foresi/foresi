@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Messenger;
+namespace Foresi\Invoicing\Infrastructure\Messenger;
 
-use App\Invoicing\Application\DeliverInvoiceSend;
-use App\Invoicing\Application\InvoiceSendQueue;
+use Foresi\Invoicing\Application\DeliverInvoiceSend;
+use Foresi\Invoicing\Application\InvoiceSendQueue;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 

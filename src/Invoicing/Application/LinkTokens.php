@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\LinkAudience;
+use Foresi\Invoicing\Domain\LinkAudience;
 
 /**
  * The secret part of a link to a sent document: 43 characters, 256 bits, derived

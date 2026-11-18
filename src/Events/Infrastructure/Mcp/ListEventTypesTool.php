@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Mcp;
+namespace Foresi\Events\Infrastructure\Mcp;
 
-use App\Events\Infrastructure\Api\ReadableEvents;
-use App\Events\Infrastructure\Catalogue\EventType;
-use App\Shared\Infrastructure\Mcp\ReadTool;
-use App\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Events\Infrastructure\Api\ReadableEvents;
+use Foresi\Events\Infrastructure\Catalogue\EventType;
+use Foresi\Shared\Infrastructure\Mcp\ReadTool;
+use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
 
 /**
  * The kinds of event the organisation's feed can hold, and the facts each one

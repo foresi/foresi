@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure\Imap;
+namespace Foresi\Banking\Infrastructure\Imap;
 
 use DirectoryTree\ImapEngine\Connection\ImapConnection;
 use DirectoryTree\ImapEngine\Connection\Responses\Data\ListData;

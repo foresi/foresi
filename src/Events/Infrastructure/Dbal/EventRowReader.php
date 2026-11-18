@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Dbal;
+namespace Foresi\Events\Infrastructure\Dbal;
 
-use App\Events\Application\Query\EventRow;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
+use Foresi\Events\Application\Query\EventRow;
 
 /**
  * Turns a positioned row of the log, as DBAL fetched it, into an event row, for

@@ -11,7 +11,7 @@
         {% if kind == 'invoice' %}<twig:Ui:Button icon="download" :href="path('app_invoice_export')">{{ 'invoice.export.link'|trans }}</twig:Ui:Button>{% endif %}
         {# Downloads what the list shows, on all its pages, as the address book exports. #}
         <form method="post" action="{{ path('app_invoices_list_export') }}" data-turbo="false" data-list-export>
-            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN')) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN')) }}">
             <input type="hidden" name="kind" value="{{ kind }}">
             {% for name, value in {tab: tab, firm: firm, q: text, sort: sort, toSend: toSend ? '1' : '', export: export, month: month} %}
                 {% if value != '' %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endif %}
@@ -56,7 +56,7 @@
                 </div>
             {% endif %}
 
-            <twig:Ui:DataTable :caption="titleKey|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN'))">
+            <twig:Ui:DataTable :caption="titleKey|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN'))">
                 <twig:block name="empty">
                     {% if filtered %}
                         <twig:Ui:EmptyState icon="search" :title="'invoice.list.empty.filtered_title'|trans" :text="'invoice.list.empty.filtered_text'|trans">

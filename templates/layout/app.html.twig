@@ -59,7 +59,7 @@
                         {% for notice in notices %}
                             <twig:Ui:Alert :tone="notice.tone">
                                 <span class="block">{{ notice.text }}</span>
-                                <a href="{{ notice.href }}" class="mt-0.5 inline-block font-semibold text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ notice.linkLabel }}</a>
+                                <a href="{{ notice.href }}" class="mt-0.5 inline-block font-semibold text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ notice.linkLabel }}</a>
                             </twig:Ui:Alert>
                         {% endfor %}
                     </div>

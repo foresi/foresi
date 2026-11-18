@@ -16,7 +16,7 @@
         "foresi": {
             "module": "timesheet",
             "kind": "module",
-            "namespace": "App\\Timesheet\\",
+            "namespace": "Foresi\\Timesheet\\",
             "optional": []
         }
     }

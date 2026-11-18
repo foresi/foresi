@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Domain;
+namespace Foresi\Timesheet\Domain;
 
 /**
  * How each entry of time is rounded before the entries of a line are summed:

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\CashFlow\Support;
+namespace Foresi\Tests\CashFlow\Support;
 
 use Psr\Log\AbstractLogger;
 

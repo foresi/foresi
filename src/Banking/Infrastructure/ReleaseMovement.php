@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure;
+namespace Foresi\Banking\Infrastructure;
 
-use App\Banking\Application\BankMovements;
-use App\Banking\Application\UnknownBankMovement;
-use App\Invoicing\Application\PaymentSourceRelease;
-use App\Invoicing\Domain\Payment;
+use Foresi\Banking\Application\BankMovements;
+use Foresi\Banking\Application\UnknownBankMovement;
+use Foresi\Invoicing\Application\PaymentSourceRelease;
+use Foresi\Invoicing\Domain\Payment;
 
 /**
  * A bank payment was cancelled, on the invoice or by unpairing: its movement is

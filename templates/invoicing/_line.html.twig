@@ -1,8 +1,8 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {# One row of the lines table (see _lines.html.twig for its columns), a card below the wide layout. Also rendered with index "__INDEX__" as the template of a new row. The line the row came from, a line of time or a stored line, is its data-source; the sources go as one field, see _lines.html.twig. A recurring template's form passes textAttributes, which its variable chips need on the text cell. #}
-{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
-{# The field look of App\\Ui\\Component\\Style::field(), which a cell of this grid repeats. #}
-{% macro classes(invalid) %}w-full rounded-control border bg-white px-3 text-ink placeholder:text-muted transition-colors {{ invalid ? 'border-badge-red-text' : 'border-control-line' }} {{ constant('App\\Ui\\Component\\Style::FIELD_FOCUS') }}{% endmacro %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{# The field look of Foresi\\Ui\\Component\\Style::field(), which a cell of this grid repeats. #}
+{% macro classes(invalid) %}w-full rounded-control border bg-white px-3 text-ink placeholder:text-muted transition-colors {{ invalid ? 'border-badge-red-text' : 'border-control-line' }} {{ constant('Foresi\\Ui\\Component\\Style::FIELD_FOCUS') }}{% endmacro %}
 {% macro input(index, cell, label, value, errorFields, extra, numeric) %}
     {% set id = 'lines-' ~ index ~ '-' ~ cell %}
     {% set error = errorFields[id]|default(null) %}

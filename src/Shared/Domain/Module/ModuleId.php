@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Domain\Module;
+namespace Foresi\Shared\Domain\Module;
 
 /**
  * The id of a module, such as "timesheet": kebab case, the package name

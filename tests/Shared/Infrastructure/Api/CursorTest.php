@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Api;
+namespace Foresi\Tests\Shared\Infrastructure\Api;
 
-use App\Shared\Domain\Id;
-use App\Shared\Infrastructure\Api\Cursor;
-use App\Shared\Infrastructure\Api\InvalidParameter;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Infrastructure\Api\Cursor;
+use Foresi\Shared\Infrastructure\Api\InvalidParameter;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

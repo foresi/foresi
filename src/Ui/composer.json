@@ -10,7 +10,7 @@
         "foresi": {
             "module": "ui",
             "kind": "ui",
-            "namespace": "App\\Ui\\",
+            "namespace": "Foresi\\Ui\\",
             "optional": []
         }
     }

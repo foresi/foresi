@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Attachment\Domain;
+namespace Foresi\Attachment\Domain;
 
-use App\Audit\Domain\Audited;
-use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Shared\Domain\Id;
 
 /**
  * A file kept for a record of any module, named by the kind of the record and

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Messenger;
+namespace Foresi\Work\Infrastructure\Messenger;
 
-use App\Work\Application\NotificationMailer;
-use App\Work\Application\NotificationMailQueue;
-use App\Work\Application\SendNotificationMail;
+use Foresi\Work\Application\NotificationMailer;
+use Foresi\Work\Application\NotificationMailQueue;
+use Foresi\Work\Application\SendNotificationMail;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Messenger\MessageBusInterface;

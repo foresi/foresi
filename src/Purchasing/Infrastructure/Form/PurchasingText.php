@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Form;
+namespace Foresi\Purchasing\Infrastructure\Form;
 
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Shared\Infrastructure\Http\TypedNumber;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Infrastructure\Http\TypedNumber;
 use Symfony\Component\Translation\LocaleSwitcher;
 
 /**

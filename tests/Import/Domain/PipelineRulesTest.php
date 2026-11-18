@@ -6,26 +6,26 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Import\Domain;
+namespace Foresi\Tests\Import\Domain;
 
-use App\Import\Domain\BlankCells;
-use App\Import\Domain\ColumnProposal;
-use App\Import\Domain\DateOrder;
-use App\Import\Domain\DecimalSeparator;
-use App\Import\Domain\IllegalTransition;
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportAmbiguousMatch;
-use App\Import\Domain\ImportMissingRecord;
-use App\Import\Domain\ImportMode;
-use App\Import\Domain\ImportOptions;
-use App\Import\Domain\ImportProfile;
-use App\Import\Domain\ImportRow;
-use App\Import\Domain\ImportState;
-use App\Import\Domain\Mapping;
-use App\Import\Domain\MatchReason;
-use App\Import\Domain\ReplaceScope;
-use App\Import\Domain\RowOutcome;
-use App\Shared\Domain\Id;
+use Foresi\Import\Domain\BlankCells;
+use Foresi\Import\Domain\ColumnProposal;
+use Foresi\Import\Domain\DateOrder;
+use Foresi\Import\Domain\DecimalSeparator;
+use Foresi\Import\Domain\IllegalTransition;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\ImportAmbiguousMatch;
+use Foresi\Import\Domain\ImportMissingRecord;
+use Foresi\Import\Domain\ImportMode;
+use Foresi\Import\Domain\ImportOptions;
+use Foresi\Import\Domain\ImportProfile;
+use Foresi\Import\Domain\ImportRow;
+use Foresi\Import\Domain\ImportState;
+use Foresi\Import\Domain\Mapping;
+use Foresi\Import\Domain\MatchReason;
+use Foresi\Import\Domain\ReplaceScope;
+use Foresi\Import\Domain\RowOutcome;
+use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

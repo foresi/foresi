@@ -6,8 +6,8 @@
 
 declare(strict_types=1);
 
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
 
 $inputs = [];
 // Named parties the specs rely on.

@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Doctrine;
+namespace Foresi\Purchasing\Infrastructure\Doctrine;
 
-use App\Party\Domain\LegalEntity;
-use App\Purchasing\Application\EvidenceSeriesCatalog;
-use App\Purchasing\Domain\EvidenceSeries;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Purchasing\Application\EvidenceSeriesCatalog;
+use Foresi\Purchasing\Domain\EvidenceSeries;
 
 final readonly class DoctrineEvidenceSeriesCatalog implements EvidenceSeriesCatalog
 {

@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Application;
+namespace Foresi\Tests\Identity\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\ManagePeople;
-use App\Identity\Application\People;
-use App\Identity\Application\PeopleRefused;
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Party\Application\PartyQuery;
-use App\Shared\Domain\Id;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\ManagePeople;
+use Foresi\Identity\Application\People;
+use Foresi\Identity\Application\PeopleRefused;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 use Psr\Clock\ClockInterface;

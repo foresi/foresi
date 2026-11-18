@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Doctrine;
+namespace Foresi\Party\Infrastructure\Doctrine;
 
-use App\Party\Application\FirmSettings;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyEmail;
-use App\Party\Domain\PartyFirmSettings;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Party\Application\FirmSettings;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Domain\PartyFirmSettings;
 
 final readonly class DoctrineFirmSettings implements FirmSettings
 {

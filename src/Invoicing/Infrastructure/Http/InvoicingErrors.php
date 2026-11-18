@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Http;
+namespace Foresi\Invoicing\Infrastructure\Http;
 
-use App\Invoicing\Application\InvoicingNotAllowed;
-use App\Invoicing\Application\Query\PaymentsNotAllowed;
-use App\Invoicing\Application\UnknownInvoice;
-use App\Invoicing\Application\UnknownPayment;
+use Foresi\Invoicing\Application\InvoicingNotAllowed;
+use Foresi\Invoicing\Application\Query\PaymentsNotAllowed;
+use Foresi\Invoicing\Application\UnknownInvoice;
+use Foresi\Invoicing\Application\UnknownPayment;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;

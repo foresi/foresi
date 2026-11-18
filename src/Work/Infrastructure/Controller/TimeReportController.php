@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Controller;
+namespace Foresi\Work\Infrastructure\Controller;
 
-use App\Identity\Application\OwnerCheck;
-use App\Identity\Application\People;
-use App\Identity\Domain\Role;
-use App\Instance\Application\InstanceClock;
-use App\Work\Application\TimeEntryRow;
-use App\Work\Application\TimeGrouping;
-use App\Work\Application\TimeQueries;
-use App\Work\Application\TimeReportFilter;
-use App\Work\Application\TimeTotal;
-use App\Work\Application\WorkQueries;
-use App\Work\Infrastructure\Export\TimeReportCsv;
-use App\Work\Infrastructure\Twig\TimeFunctions;
+use Foresi\Identity\Application\OwnerCheck;
+use Foresi\Identity\Application\People;
+use Foresi\Identity\Domain\Role;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Work\Application\TimeEntryRow;
+use Foresi\Work\Application\TimeGrouping;
+use Foresi\Work\Application\TimeQueries;
+use Foresi\Work\Application\TimeReportFilter;
+use Foresi\Work\Application\TimeTotal;
+use Foresi\Work\Application\WorkQueries;
+use Foresi\Work\Infrastructure\Export\TimeReportCsv;
+use Foresi\Work\Infrastructure\Twig\TimeFunctions;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\InputBag;

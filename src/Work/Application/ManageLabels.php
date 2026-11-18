@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Work\Domain\Label;
-use App\Work\Domain\LabelColour;
+use Foresi\Work\Domain\Label;
+use Foresi\Work\Domain\LabelColour;
 
 /**
  * The labels of the organisation. A name is taken whatever its case, so

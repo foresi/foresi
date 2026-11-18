@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
 /**
  * Why an invitation cannot be made, sent or accepted; the reason is the last

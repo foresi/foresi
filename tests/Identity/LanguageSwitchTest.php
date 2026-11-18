@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity;
+namespace Foresi\Tests\Identity;
 
-use App\Identity\Domain\User;
-use App\Tests\Identity\Support\IdentityFixtures;
-use App\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Identity\Domain\User;
+use Foresi\Tests\Identity\Support\IdentityFixtures;
+use Foresi\Tests\Identity\Support\SignedInBrowser;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;

@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Infrastructure\Security;
+namespace Foresi\Tests\Identity\Infrastructure\Security;
 
-use App\Identity\Application\ApiTokenGrant;
-use App\Identity\Application\ApiTokenRefused;
-use App\Identity\Application\InsufficientScope;
-use App\Identity\Domain\ApiScope;
-use App\Identity\Infrastructure\Security\ApiTokenRejected;
-use App\Identity\Infrastructure\Security\SecurityApiTokenContext;
-use App\Identity\Infrastructure\Security\SecurityUser;
+use Foresi\Identity\Application\ApiTokenGrant;
+use Foresi\Identity\Application\ApiTokenRefused;
+use Foresi\Identity\Application\InsufficientScope;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Identity\Infrastructure\Security\ApiTokenRejected;
+use Foresi\Identity\Infrastructure\Security\SecurityApiTokenContext;
+use Foresi\Identity\Infrastructure\Security\SecurityUser;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Security\Core\Authentication\Token\NullToken;

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure;
+namespace Foresi\Import\Infrastructure;
 
-use App\Import\Application\ImportFiles;
+use Foresi\Import\Application\ImportFiles;
 use Symfony\Component\Uid\Uuid;
 
 /**

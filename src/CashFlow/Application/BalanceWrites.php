@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Application;
+namespace Foresi\CashFlow\Application;
 
-use App\CashFlow\Domain\Checkpoint;
-use App\CashFlow\Domain\ExpectedDate;
-use App\CashFlow\Domain\MinimumBalance;
-use App\Instance\Application\InstanceClock;
-use App\Party\Application\TransactionalWork;
-use App\Shared\Domain\Currency;
+use Foresi\CashFlow\Domain\Checkpoint;
+use Foresi\CashFlow\Domain\ExpectedDate;
+use Foresi\CashFlow\Domain\MinimumBalance;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Domain\Currency;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -110,7 +110,7 @@ final readonly class BalanceWrites
         return $this->transaction->run(function () use ($input, $amount): ?MinimumBalance {
             $firm = $this->access->firm($input->firmId);
             $minimum = $this->store->minimumBalance($firm->id());
-            if (!$amount instanceof \App\Shared\Domain\Money) {
+            if (!$amount instanceof \Foresi\Shared\Domain\Money) {
                 if ($minimum instanceof MinimumBalance) {
                     $this->store->remove($minimum);
                 }

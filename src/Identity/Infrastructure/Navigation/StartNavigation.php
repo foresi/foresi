@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Navigation;
+namespace Foresi\Identity\Infrastructure\Navigation;
 
-use App\Identity\Application\GuestCheck;
-use App\Identity\Infrastructure\Controller\DashboardController;
-use App\Ui\Navigation\CoreNavigationAreas;
-use App\Ui\Navigation\NavigationItem;
-use App\Ui\Navigation\NavigationItemProvider;
+use Foresi\Identity\Application\GuestCheck;
+use Foresi\Identity\Infrastructure\Controller\DashboardController;
+use Foresi\Ui\Navigation\CoreNavigationAreas;
+use Foresi\Ui\Navigation\NavigationItem;
+use Foresi\Ui\Navigation\NavigationItemProvider;
 
 /**
  * The start page in the sidebar: the dashboard for the staff, what is shared

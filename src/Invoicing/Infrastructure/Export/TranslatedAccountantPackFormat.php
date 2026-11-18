@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Export;
+namespace Foresi\Invoicing\Infrastructure\Export;
 
-use App\Invoicing\Application\AccountantDocument;
-use App\Invoicing\Application\AccountantPackFormat;
-use App\Invoicing\Application\IssuedDocument;
-use App\Invoicing\Application\VatRecap;
-use App\Invoicing\Application\VatRecapLine;
-use App\Invoicing\Domain\DocumentKind;
-use App\Party\Domain\LegalEntity;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Application\AccountantDocument;
+use Foresi\Invoicing\Application\AccountantPackFormat;
+use Foresi\Invoicing\Application\IssuedDocument;
+use Foresi\Invoicing\Application\VatRecap;
+use Foresi\Invoicing\Application\VatRecapLine;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use OpenSpout\Common\Entity\Cell\NumericCell;
 use OpenSpout\Common\Entity\Cell\StringCell;
 use OpenSpout\Common\Entity\Row;

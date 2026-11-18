@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Application;
+namespace Foresi\Timesheet\Application;
 
-use App\Shared\Domain\Money;
-use App\Work\Application\TimeEntryRow;
+use Foresi\Shared\Domain\Money;
+use Foresi\Work\Application\TimeEntryRow;
 
 /**
  * An entry that may go on the invoice, with the rate the firm bills it at;

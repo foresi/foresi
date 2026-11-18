@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Domain;
+namespace Foresi\Purchasing\Domain;
 
 /**
  * When the VAT of a received document can be deducted (ADR 0028), for a firm

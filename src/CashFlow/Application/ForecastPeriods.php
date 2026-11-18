@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Application;
+namespace Foresi\CashFlow\Application;
 
-use App\CashFlow\Contract\ForecastPeriod;
-use App\CashFlow\Contract\PeriodKind;
+use Foresi\CashFlow\Contract\ForecastPeriod;
+use Foresi\CashFlow\Contract\PeriodKind;
 
 /**
  * The columns of a forecast: ISO weeks from its first day up to the week that

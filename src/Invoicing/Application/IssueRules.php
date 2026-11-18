@@ -6,23 +6,23 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\DocumentParty;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\NumberKey;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\VatRegime;
-use App\Party\Application\ContactSettingsForFirm;
-use App\Party\Application\FirmBankAccounts;
-use App\Party\Application\PartyQuery;
-use App\Party\Domain\Iban;
-use App\Party\Domain\InvalidIban;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PaymentMethod;
-use App\Party\Domain\VatId;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\NumberKey;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Domain\Iban;
+use Foresi\Party\Domain\InvalidIban;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Party\Domain\VatId;
 
 /**
  * What a document must be to be saved, on every path. It reads and never writes,

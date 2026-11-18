@@ -15,7 +15,7 @@
 {% endblock %}
 
 {% block content %}
-    {% set token = csrf_token(constant('App\\Identity\\Infrastructure\\Controller\\ApiTokenController::TOKEN')) %}
+    {% set token = csrf_token(constant('Foresi\\Identity\\Infrastructure\\Controller\\ApiTokenController::TOKEN')) %}
     {% for tone in ['success', 'error'] %}
         {% for message in app.flashes(tone) %}
             <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
@@ -24,7 +24,7 @@
     {% if not canIssue %}
         <twig:Ui:Alert tone="warning" class="mb-4" data-api-token-two-factor>
             <span>{{ 'api_tokens.two_factor.text'|trans }}</span>
-            <a href="{{ path(constant('App\\Identity\\Infrastructure\\Controller\\TwoFactorSetupController::SETUP_ROUTE')) }}" class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'api_tokens.two_factor.link'|trans }}</a>
+            <a href="{{ path(constant('Foresi\\Identity\\Infrastructure\\Controller\\TwoFactorSetupController::SETUP_ROUTE')) }}" class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'api_tokens.two_factor.link'|trans }}</a>
         </twig:Ui:Alert>
     {% endif %}
     <div class="grid gap-6">

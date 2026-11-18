@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Controller;
+namespace Foresi\Work\Infrastructure\Controller;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\OpenToGuest;
-use App\Identity\Application\People;
-use App\Identity\Domain\Membership;
-use App\Work\Application\ManageNotifications;
-use App\Work\Application\NotificationFilter;
-use App\Work\Application\NotificationQueries;
-use App\Work\Application\NotificationRow;
-use App\Work\Application\WorkRefused;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\OpenToGuest;
+use Foresi\Identity\Application\People;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Work\Application\ManageNotifications;
+use Foresi\Work\Application\NotificationFilter;
+use Foresi\Work\Application\NotificationQueries;
+use Foresi\Work\Application\NotificationRow;
+use Foresi\Work\Application\WorkRefused;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;

@@ -13,7 +13,7 @@
 
 {% block dialog_body %}
     <form method="post" id="task-new-form" action="{{ path('app_project_task_new', {id: project.id}) }}" class="grid gap-4" novalidate data-task-new>
-        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\ProjectController::TASK_TOKEN')) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\ProjectController::TASK_TOKEN')) }}">
         <input type="hidden" name="return" value="{{ return }}">
         {{ include('work/_form_errors.html.twig', {prefix: 'task-new-'}) }}
         <twig:Ui:TextInput name="title" id="task-new-title" :label="'work.task.field.title'|trans" :value="values.title" :error="errors.title|default(null)" maxlength="500" required autocomplete="off" />

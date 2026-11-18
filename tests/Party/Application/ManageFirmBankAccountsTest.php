@@ -6,26 +6,26 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Application;
+namespace Foresi\Tests\Party\Application;
 
-use App\Audit\Application\AuditTrail;
-use App\Audit\Domain\AuditAction;
-use App\Audit\Domain\AuditEntry;
-use App\Country\CzechRepublic\Party\CzechBankAccount;
-use App\Party\Application\BankAccountRefusal;
-use App\Party\Application\BankAccountRefused;
-use App\Party\Application\BankAccountUsage;
-use App\Party\Application\FirmBankAccounts;
-use App\Party\Application\LegalEntities;
-use App\Party\Application\ManageFirmBankAccounts;
-use App\Party\Application\TransactionalWork;
-use App\Party\Domain\Address;
-use App\Party\Domain\FirmBankAccount;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Audit\Application\AuditTrail;
+use Foresi\Audit\Domain\AuditAction;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Country\CzechRepublic\Party\CzechBankAccount;
+use Foresi\Party\Application\BankAccountRefusal;
+use Foresi\Party\Application\BankAccountRefused;
+use Foresi\Party\Application\BankAccountUsage;
+use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\ManageFirmBankAccounts;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 

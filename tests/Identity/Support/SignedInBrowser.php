@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Support;
+namespace Foresi\Tests\Identity\Support;
 
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 
 /**

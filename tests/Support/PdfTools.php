@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Support;
+namespace Foresi\Tests\Support;
 
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\SkippedWithMessageException;

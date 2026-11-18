@@ -6,31 +6,31 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Work\Application;
+namespace Foresi\Tests\Work\Application;
 
-use App\Attachment\Application\AttachmentPermissions;
-use App\Attachment\Domain\Attachment;
-use App\Shared\Domain\Id;
-use App\Work\Application\Choice;
-use App\Work\Application\Comments;
-use App\Work\Application\DiscussionFilter;
-use App\Work\Application\DiscussionItem;
-use App\Work\Application\ManageComments;
-use App\Work\Application\ManageSharing;
-use App\Work\Application\MentionCandidate;
-use App\Work\Application\ProjectRow;
-use App\Work\Application\StatusChoice;
-use App\Work\Application\TaskRow;
-use App\Work\Application\TrashedTask;
-use App\Work\Application\WorkRefused;
-use App\Work\Application\WorkVisibility;
-use App\Work\Domain\CommentMention;
-use App\Work\Domain\Project;
-use App\Work\Domain\ProjectVisibility;
-use App\Work\Domain\Section;
-use App\Work\Domain\Task;
-use App\Work\Domain\WorkflowTemplate;
-use App\Work\Infrastructure\Doctrine\ScopedDql;
+use Foresi\Attachment\Application\AttachmentPermissions;
+use Foresi\Attachment\Domain\Attachment;
+use Foresi\Shared\Domain\Id;
+use Foresi\Work\Application\Choice;
+use Foresi\Work\Application\Comments;
+use Foresi\Work\Application\DiscussionFilter;
+use Foresi\Work\Application\DiscussionItem;
+use Foresi\Work\Application\ManageComments;
+use Foresi\Work\Application\ManageSharing;
+use Foresi\Work\Application\MentionCandidate;
+use Foresi\Work\Application\ProjectRow;
+use Foresi\Work\Application\StatusChoice;
+use Foresi\Work\Application\TaskRow;
+use Foresi\Work\Application\TrashedTask;
+use Foresi\Work\Application\WorkRefused;
+use Foresi\Work\Application\WorkVisibility;
+use Foresi\Work\Domain\CommentMention;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\ProjectVisibility;
+use Foresi\Work\Domain\Section;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\WorkflowTemplate;
+use Foresi\Work\Infrastructure\Doctrine\ScopedDql;
 
 /**
  * The rule of WorkScope as the queries and commands apply it, on the

@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Application;
 
-use App\Banking\Application\DismissInboundMessage;
-use App\Banking\Application\UnknownInboundMessage;
-use App\Banking\Domain\InboundStatus;
-use App\Shared\Domain\Id;
-use App\Tests\Banking\Support\InboundTestCase;
+use Foresi\Banking\Application\DismissInboundMessage;
+use Foresi\Banking\Application\UnknownInboundMessage;
+use Foresi\Banking\Domain\InboundStatus;
+use Foresi\Shared\Domain\Id;
+use Foresi\Tests\Banking\Support\InboundTestCase;
 
 /**
  * Setting a message aside says whether it did: once, and never for a message still in the queue.

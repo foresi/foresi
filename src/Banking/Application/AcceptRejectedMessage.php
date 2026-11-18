@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\InboundMessage;
-use App\Banking\Domain\InboundStatus;
+use Foresi\Banking\Domain\InboundMessage;
+use Foresi\Banking\Domain\InboundStatus;
 
 /**
  * "Record anyway" on a message rejected because its sender could not be trusted,

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application;
+namespace Foresi\Purchasing\Application;
 
-use App\Purchasing\Domain\ReceivedDocumentRefused;
-use App\Shared\Application\RefusalKind;
-use App\Shared\Application\Refused;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Application\Refused;
 
 /**
  * What the received documents refuse over the API and MCP (ADR 0032): the

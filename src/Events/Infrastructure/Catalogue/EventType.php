@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Catalogue;
+namespace Foresi\Events\Infrastructure\Catalogue;
 
-use App\Shared\Domain\Event\DomainEventPayload;
-use App\Shared\Domain\Module\ModuleId;
+use Foresi\Shared\Domain\Event\DomainEventPayload;
+use Foresi\Shared\Domain\Module\ModuleId;
 
 /**
  * One contract event as the catalogue knows it: its name and version, the

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Import;
+namespace Foresi\Party\Infrastructure\Import;
 
-use App\Import\Domain\RowOutcome;
-use App\Import\Infrastructure\Controller\TargetPages;
-use App\Party\Application\ImportedBy;
+use Foresi\Import\Domain\RowOutcome;
+use Foresi\Import\Infrastructure\Controller\TargetPages;
+use Foresi\Party\Application\ImportedBy;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /** The address book, as the import screens link to it. */

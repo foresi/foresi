@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Contract\Event;
+namespace Foresi\Party\Contract\Event;
 
 /**
  * The kind of a contact, as its events say it.

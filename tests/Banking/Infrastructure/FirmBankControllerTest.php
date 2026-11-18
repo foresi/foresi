@@ -6,27 +6,27 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Infrastructure;
+namespace Foresi\Tests\Banking\Infrastructure;
 
-use App\Banking\Application\GenerateAddress;
-use App\Banking\Application\InboundAddresses;
-use App\Banking\Application\InboundToken;
-use App\Banking\Application\ProcessMessage;
-use App\Banking\Application\ReceiveInboundMail;
-use App\Banking\Application\ReceiveOutcome;
-use App\Banking\Domain\InboundChannel;
-use App\Banking\Infrastructure\Doctrine\DoctrineBankFeedDirectory;
-use App\Identity\Domain\Role;
-use App\Invoicing\Application\MailSecrets;
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
-use App\Tests\Banking\Support\Scalars;
-use App\Tests\Identity\Support\SignedInBrowser;
-use App\Tests\Party\Support\FirmAccounts;
-use App\Ui\Dialog\DialogRequest;
 use Doctrine\DBAL\Connection;
+use Foresi\Banking\Application\GenerateAddress;
+use Foresi\Banking\Application\InboundAddresses;
+use Foresi\Banking\Application\InboundToken;
+use Foresi\Banking\Application\ProcessMessage;
+use Foresi\Banking\Application\ReceiveInboundMail;
+use Foresi\Banking\Application\ReceiveOutcome;
+use Foresi\Banking\Domain\InboundChannel;
+use Foresi\Banking\Infrastructure\Doctrine\DoctrineBankFeedDirectory;
+use Foresi\Identity\Domain\Role;
+use Foresi\Invoicing\Application\MailSecrets;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Tests\Banking\Support\Scalars;
+use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Tests\Party\Support\FirmAccounts;
+use Foresi\Ui\Dialog\DialogRequest;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Clock;

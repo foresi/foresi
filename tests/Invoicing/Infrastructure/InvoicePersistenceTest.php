@@ -6,32 +6,32 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure;
+namespace Foresi\Tests\Invoicing\Infrastructure;
 
-use App\Invoicing\Application\ConflictRetry;
-use App\Invoicing\Application\InvoiceFilter;
-use App\Invoicing\Application\IssuedDocumentFactory;
-use App\Invoicing\Application\UnknownInvoice;
-use App\Invoicing\Domain\AbandonedNumber;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\SeriesFormat;
-use App\Party\Application\TransactionalWork;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
-use App\Party\Domain\VatStatus;
-use App\Tests\Invoicing\Application\InvoiceTestCase;
-use App\Tests\Party\Support\FirmAccounts;
 use Doctrine\DBAL\Driver\Exception as DriverFailure;
 use Doctrine\DBAL\Exception\DeadlockException;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\ParameterType;
+use Foresi\Invoicing\Application\ConflictRetry;
+use Foresi\Invoicing\Application\InvoiceFilter;
+use Foresi\Invoicing\Application\IssuedDocumentFactory;
+use Foresi\Invoicing\Application\UnknownInvoice;
+use Foresi\Invoicing\Domain\AbandonedNumber;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Tests\Invoicing\Application\InvoiceTestCase;
+use Foresi\Tests\Party\Support\FirmAccounts;
 
 final class InvoicePersistenceTest extends InvoiceTestCase
 {
@@ -59,7 +59,7 @@ final class InvoicePersistenceTest extends InvoiceTestCase
 
     public function testTheIssuedDocumentShowsWhatIsStored(): void
     {
-        $invoice = $this->reloaded($this->issue->issue($this->input([$this->line('10.40'), $this->line('10.00', kind: \App\Invoicing\Domain\VatRateKind::Reduced)])));
+        $invoice = $this->reloaded($this->issue->issue($this->input([$this->line('10.40'), $this->line('10.00', kind: \Foresi\Invoicing\Domain\VatRateKind::Reduced)])));
 
         $document = self::getContainer()->get(IssuedDocumentFactory::class)->of($invoice->id());
 
@@ -92,7 +92,7 @@ final class InvoicePersistenceTest extends InvoiceTestCase
         $id = $this->issue->issue($this->input())->id();
         $customer = $this->customer();
 
-        foreach ([fn (): Invoice => $this->store->lock($id), fn (): \App\Invoicing\Application\StoredInvoice => $this->store->snapshot($id)] as $read) {
+        foreach ([fn (): Invoice => $this->store->lock($id), fn (): \Foresi\Invoicing\Application\StoredInvoice => $this->store->snapshot($id)] as $read) {
             try {
                 $read();
                 self::fail('Expected a refusal.');
@@ -231,7 +231,7 @@ final class InvoicePersistenceTest extends InvoiceTestCase
         $foreign = $this->issue->issue($this->input(overrides: ['firmId' => $other->id(), 'seriesId' => null]));
 
         $page = $this->store->page(new InvoiceFilter(null, 'all', '', '-issueDate', 1));
-        self::assertSame([$second->id(), $foreign->id(), $first->id()], array_map(static fn (\App\Invoicing\Application\InvoiceRow $row): string => $row->id, $page->rows));
+        self::assertSame([$second->id(), $foreign->id(), $first->id()], array_map(static fn (\Foresi\Invoicing\Application\InvoiceRow $row): string => $row->id, $page->rows));
         self::assertSame(3, $page->total);
         self::assertSame(1, $page->page);
         self::assertSame(1, $page->pages);
@@ -245,8 +245,8 @@ final class InvoicePersistenceTest extends InvoiceTestCase
         self::assertFalse($row->delivered);
         self::assertFalse($row->trashed);
 
-        self::assertSame([$foreign->id()], array_map(static fn (\App\Invoicing\Application\InvoiceRow $row): string => $row->id, $this->store->page(new InvoiceFilter($other->id(), 'all', '', '-issueDate', 1))->rows));
-        self::assertSame([$trashed->id()], array_map(static fn (\App\Invoicing\Application\InvoiceRow $row): string => $row->id, $this->store->page(new InvoiceFilter(null, 'trash', '', '-issueDate', 1))->rows));
+        self::assertSame([$foreign->id()], array_map(static fn (\Foresi\Invoicing\Application\InvoiceRow $row): string => $row->id, $this->store->page(new InvoiceFilter($other->id(), 'all', '', '-issueDate', 1))->rows));
+        self::assertSame([$trashed->id()], array_map(static fn (\Foresi\Invoicing\Application\InvoiceRow $row): string => $row->id, $this->store->page(new InvoiceFilter(null, 'trash', '', '-issueDate', 1))->rows));
     }
 
     public function testThePageStaysInRange(): void

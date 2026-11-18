@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Form;
+namespace Foresi\Party\Infrastructure\Form;
 
-use App\Party\Application\PartyInput;
+use Foresi\Party\Application\PartyInput;
 
 /**
  * What came in from the party form: the values to show again, a translation

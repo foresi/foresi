@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Domain;
+namespace Foresi\Work\Domain;
 
-use App\Audit\Domain\Audited;
-use App\Audit\Domain\AuditRooted;
-use App\Identity\Domain\Membership;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Id;
-use App\Shared\Domain\Money;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Audit\Domain\AuditRooted;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Domain\Money;
 
 /**
  * Time a person worked on a project, on one of its tasks or on none (spec P11:

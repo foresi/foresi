@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Controller;
+namespace Foresi\Work\Infrastructure\Controller;
 
-use App\Identity\Application\StaffCheck;
-use App\Work\Application\LabelBadge;
-use App\Work\Application\ManageLabels;
-use App\Work\Application\WorkQueries;
-use App\Work\Application\WorkRefused;
-use App\Work\Domain\LabelColour;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Work\Application\LabelBadge;
+use Foresi\Work\Application\ManageLabels;
+use Foresi\Work\Application\WorkQueries;
+use Foresi\Work\Application\WorkRefused;
+use Foresi\Work\Domain\LabelColour;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;

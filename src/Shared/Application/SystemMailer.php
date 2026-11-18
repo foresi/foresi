@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Application;
+namespace Foresi\Shared\Application;
 
 /**
  * Sends mail of the installation, such as invitations, through the operator's

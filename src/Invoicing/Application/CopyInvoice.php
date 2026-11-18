@@ -6,21 +6,21 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VariableSymbol;
-use App\Invoicing\Domain\VatRateKind;
-use App\Invoicing\Domain\VatRegime;
-use App\Party\Application\ContactSettingsForFirm;
-use App\Party\Application\FirmBankAccounts;
-use App\Party\Domain\InvoicingDefaults;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VariableSymbol;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Domain\InvoicingDefaults;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
 
 /**
  * What the form opens with for a copy. It writes nothing: only Save issues, as a new

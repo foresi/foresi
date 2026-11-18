@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Attachment\Application;
+namespace Foresi\Attachment\Application;
 
 /**
  * The private store of the bytes of attachments. Every key ends with the

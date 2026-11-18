@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Mcp;
+namespace Foresi\Webhooks\Infrastructure\Mcp;
 
-use App\Shared\Infrastructure\Mcp\ToolArguments;
-use App\Shared\Infrastructure\Mcp\ToolOutput;
-use App\Shared\Infrastructure\Mcp\WriteTool;
-use App\Webhooks\Application\ManageWebhookEndpoints;
+use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
+use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Infrastructure\Mcp\WriteTool;
+use Foresi\Webhooks\Application\ManageWebhookEndpoints;
 
 /**
  * Deletes a webhook endpoint with its deliveries and attempts, as

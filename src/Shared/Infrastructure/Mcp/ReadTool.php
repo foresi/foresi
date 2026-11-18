@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Mcp;
+namespace Foresi\Shared\Infrastructure\Mcp;
 
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 

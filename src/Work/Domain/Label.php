@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Domain;
+namespace Foresi\Work\Domain;
 
-use App\Audit\Domain\Audited;
-use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Shared\Domain\Id;
 
 /**
  * A label of the organisation, shared by all its projects, so one filter finds

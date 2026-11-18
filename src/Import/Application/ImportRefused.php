@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application;
+namespace Foresi\Import\Application;
 
 /**
  * An import action the current state or the user's input does not allow. The

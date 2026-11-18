@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Export;
+namespace Foresi\Invoicing\Infrastructure\Export;
 
-use App\Invoicing\Application\DocumentListWriter;
-use App\Invoicing\Application\InvoiceSumLine;
-use App\Invoicing\Application\ListedDocument;
-use App\Invoicing\Application\ListFileFormat;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\RateSummary;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Application\DocumentListWriter;
+use Foresi\Invoicing\Application\InvoiceSumLine;
+use Foresi\Invoicing\Application\ListedDocument;
+use Foresi\Invoicing\Application\ListFileFormat;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\RateSummary;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Shared\Domain\Money;
 use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Cell\NumericCell;
 use OpenSpout\Common\Entity\Cell\StringCell;

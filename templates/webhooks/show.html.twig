@@ -9,7 +9,7 @@
 {% extends 'layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'webhooks.title'|trans, href: path('app_webhooks')}, {label: title}] %}
-{% set token = csrf_token(constant('App\\Webhooks\\Infrastructure\\Controller\\WebhookEndpointController::TOKEN')) %}
+{% set token = csrf_token(constant('Foresi\\Webhooks\\Infrastructure\\Controller\\WebhookEndpointController::TOKEN')) %}
 
 {% block title %}{{ title }}{% endblock %}
 

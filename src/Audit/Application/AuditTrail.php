@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Audit\Application;
+namespace Foresi\Audit\Application;
 
-use App\Audit\Domain\AuditEntry;
+use Foresi\Audit\Domain\AuditEntry;
 
 /**
  * Read access to the audit log for features that must know whether an entity

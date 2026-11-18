@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
 /**
  * Narrows the address book to the parties one import gave an outcome, for

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Events;
+namespace Foresi\Purchasing\Infrastructure\Events;
 
-use App\Purchasing\Infrastructure\Api\ReceivedDocumentApiController;
-use App\Shared\Application\Event\EventSubjectUrl;
-use App\Shared\Domain\Event\EventSubject;
+use Foresi\Purchasing\Infrastructure\Api\ReceivedDocumentApiController;
+use Foresi\Shared\Application\Event\EventSubjectUrl;
+use Foresi\Shared\Domain\Event\EventSubject;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

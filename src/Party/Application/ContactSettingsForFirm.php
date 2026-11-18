@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
-use App\Party\Domain\EmailPurpose;
-use App\Party\Domain\InvoicingDefaults;
-use App\Party\Domain\InvoicingEmail;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyEmail;
-use App\Party\Domain\PartyFirmSettings;
-use App\Party\Domain\PartyRole;
+use Foresi\Party\Domain\EmailPurpose;
+use Foresi\Party\Domain\InvoicingDefaults;
+use Foresi\Party\Domain\InvoicingEmail;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Domain\PartyFirmSettings;
+use Foresi\Party\Domain\PartyRole;
 use Psr\Clock\ClockInterface;
 
 /**

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Country\CzechRepublic\Party;
+namespace Foresi\Country\CzechRepublic\Party;
 
-use App\Party\Domain\DomesticBankAccount;
-use App\Party\Domain\Iban;
-use App\Party\Domain\InvalidIban;
+use Foresi\Party\Domain\DomesticBankAccount;
+use Foresi\Party\Domain\Iban;
+use Foresi\Party\Domain\InvalidIban;
 
 /**
  * Czech domestic account: an optional prefix of up to 6 digits, a number of

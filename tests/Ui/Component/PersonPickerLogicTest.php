@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui\Component;
+namespace Foresi\Tests\Ui\Component;
 
-use App\Ui\Component\PersonPicker;
+use Foresi\Ui\Component\PersonPicker;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -71,7 +71,7 @@ final class PersonPickerLogicTest extends TestCase
         $picker = $this->picker();
         $picker->compact = true;
 
-        self::assertSame(\App\Ui\Component\InlineEdit::TRIGGER, $picker->triggerClasses());
+        self::assertSame(\Foresi\Ui\Component\InlineEdit::TRIGGER, $picker->triggerClasses());
     }
 
     /**

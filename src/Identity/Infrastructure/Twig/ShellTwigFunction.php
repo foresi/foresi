@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Twig;
+namespace Foresi\Identity\Infrastructure\Twig;
 
-use App\Identity\Application\MembershipDirectory;
-use App\Identity\Application\Organisation;
-use App\Identity\Application\UserRepository;
-use App\Identity\Domain\User;
-use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Ui\Avatar;
+use Foresi\Identity\Application\MembershipDirectory;
+use Foresi\Identity\Application\Organisation;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Domain\User;
+use Foresi\Identity\Infrastructure\Security\SecurityUser;
+use Foresi\Ui\Avatar;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Twig\Attribute\AsTwigFunction;
 

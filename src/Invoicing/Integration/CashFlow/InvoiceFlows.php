@@ -6,23 +6,23 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Integration\CashFlow;
+namespace Foresi\Invoicing\Integration\CashFlow;
 
-use App\CashFlow\Contract\ActualFlow;
-use App\CashFlow\Contract\ActualFlowSource;
-use App\CashFlow\Contract\CashFlowSource;
-use App\CashFlow\Contract\ExpectedFlow;
-use App\CashFlow\Contract\FlowCategory;
-use App\CashFlow\Contract\FlowCertainty;
-use App\CashFlow\Contract\FlowDirection;
-use App\CashFlow\Contract\FlowSubject;
-use App\Invoicing\Application\InvoiceFilter;
-use App\Invoicing\Application\Query\InvoiceList;
-use App\Invoicing\Application\Query\InvoiceListItem;
-use App\Invoicing\Application\Query\InvoiceSliceFilter;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Infrastructure\Api\InvoiceApiController;
-use App\Shared\Domain\Money;
+use Foresi\CashFlow\Contract\ActualFlow;
+use Foresi\CashFlow\Contract\ActualFlowSource;
+use Foresi\CashFlow\Contract\CashFlowSource;
+use Foresi\CashFlow\Contract\ExpectedFlow;
+use Foresi\CashFlow\Contract\FlowCategory;
+use Foresi\CashFlow\Contract\FlowCertainty;
+use Foresi\CashFlow\Contract\FlowDirection;
+use Foresi\CashFlow\Contract\FlowSubject;
+use Foresi\Invoicing\Application\InvoiceFilter;
+use Foresi\Invoicing\Application\Query\InvoiceList;
+use Foresi\Invoicing\Application\Query\InvoiceListItem;
+use Foresi\Invoicing\Application\Query\InvoiceSliceFilter;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Infrastructure\Api\InvoiceApiController;
+use Foresi\Shared\Domain\Money;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

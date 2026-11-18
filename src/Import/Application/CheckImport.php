@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application;
+namespace Foresi\Import\Application;
 
-use App\Import\Application\Message\CheckImportChunk;
-use App\Import\Application\Target\TargetRegistry;
-use App\Import\Domain\ImportState;
+use Foresi\Import\Application\Message\CheckImportChunk;
+use Foresi\Import\Application\Target\TargetRegistry;
+use Foresi\Import\Domain\ImportState;
 
 /**
  * Starts the dry run: every staged row is normalised, validated and matched in

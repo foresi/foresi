@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Instance\Infrastructure\Schedule;
+namespace Foresi\Instance\Infrastructure\Schedule;
 
-use App\Instance\Application\InstanceClock;
-use App\Instance\Application\Schedule\Heartbeats;
-use App\Instance\Application\Schedule\RunScheduledJob;
-use App\Instance\Application\Schedule\ScheduledJob;
-use App\Instance\Application\Schedule\ScheduledJobRuns;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Instance\Application\Schedule\Heartbeats;
+use Foresi\Instance\Application\Schedule\RunScheduledJob;
+use Foresi\Instance\Application\Schedule\ScheduledJob;
+use Foresi\Instance\Application\Schedule\ScheduledJobRuns;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;

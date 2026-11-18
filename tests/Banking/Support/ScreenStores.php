@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Support;
+namespace Foresi\Tests\Banking\Support;
 
-use App\Banking\Application\BankMovements;
-use App\Banking\Application\ClaimedMessage;
-use App\Banking\Application\InboundMessages;
-use App\Banking\Application\MessageRow;
-use App\Banking\Application\MovementFilter;
-use App\Banking\Application\ProcessingResult;
-use App\Banking\Domain\BankMovement;
-use App\Banking\Domain\InboundMessage;
-use App\Banking\Domain\InboundStatus;
+use Foresi\Banking\Application\BankMovements;
+use Foresi\Banking\Application\ClaimedMessage;
+use Foresi\Banking\Application\InboundMessages;
+use Foresi\Banking\Application\MessageRow;
+use Foresi\Banking\Application\MovementFilter;
+use Foresi\Banking\Application\ProcessingResult;
+use Foresi\Banking\Domain\BankMovement;
+use Foresi\Banking\Domain\InboundMessage;
+use Foresi\Banking\Domain\InboundStatus;
 
 /**
  * The two stores the bank screen reads, holding made-up counts and accounts, and

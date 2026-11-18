@@ -16,7 +16,7 @@
         "foresi": {
             "module": "idoklad",
             "kind": "module",
-            "namespace": "App\\Idoklad\\",
+            "namespace": "Foresi\\Idoklad\\",
             "optional": []
         }
     }

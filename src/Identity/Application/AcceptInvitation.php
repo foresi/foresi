@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
-use App\Identity\Domain\Invitation;
-use App\Identity\Domain\InvitationState;
-use App\Identity\Domain\InvitationToken;
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\User;
+use Foresi\Identity\Domain\Invitation;
+use Foresi\Identity\Domain\InvitationState;
+use Foresi\Identity\Domain\InvitationToken;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\User;
 use Psr\Clock\ClockInterface;
 
 /**

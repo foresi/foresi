@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application\Query;
+namespace Foresi\Invoicing\Application\Query;
 
-use App\Invoicing\Application\InvoiceHistory;
-use App\Invoicing\Application\InvoicePayments;
-use App\Invoicing\Application\InvoiceStore;
-use App\Invoicing\Application\InvoicingAccess;
-use App\Invoicing\Application\InvoicingNotAllowed;
-use App\Invoicing\Application\UnknownInvoice;
-use App\Shared\Domain\Id;
+use Foresi\Invoicing\Application\InvoiceHistory;
+use Foresi\Invoicing\Application\InvoicePayments;
+use Foresi\Invoicing\Application\InvoiceStore;
+use Foresi\Invoicing\Application\InvoicingAccess;
+use Foresi\Invoicing\Application\InvoicingNotAllowed;
+use Foresi\Invoicing\Application\UnknownInvoice;
+use Foresi\Shared\Domain\Id;
 
 /**
  * One invoice for its pages, the API and MCP: the document with its lines, payments,

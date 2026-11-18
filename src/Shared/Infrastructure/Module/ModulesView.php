@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Module;
+namespace Foresi\Shared\Infrastructure\Module;
 
-use App\Shared\Domain\Module\GraphProblem;
-use App\Shared\Domain\Module\ModuleGraph;
-use App\Shared\Domain\Module\ModuleId;
-use App\Shared\Domain\Module\ModuleManifest;
+use Foresi\Shared\Domain\Module\GraphProblem;
+use Foresi\Shared\Domain\Module\ModuleGraph;
+use Foresi\Shared\Domain\Module\ModuleId;
+use Foresi\Shared\Domain\Module\ModuleManifest;
 
 /**
  * The installed modules as plain data, the same for the console and for MCP.

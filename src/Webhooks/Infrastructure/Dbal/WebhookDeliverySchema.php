@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Dbal;
+namespace Foresi\Webhooks\Infrastructure\Dbal;
 
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\Tools\Event\GenerateSchemaEventArgs;

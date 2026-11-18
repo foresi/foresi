@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Navigation;
+namespace Foresi\Work\Infrastructure\Navigation;
 
-use App\Identity\Application\StaffCheck;
-use App\Ui\Navigation\CoreNavigationAreas;
-use App\Ui\Navigation\NavigationArea;
-use App\Ui\Navigation\NavigationItem;
-use App\Ui\Navigation\NavigationItemProvider;
-use App\Work\Infrastructure\Controller\LabelController;
-use App\Work\Infrastructure\Controller\MyTasksController;
-use App\Work\Infrastructure\Controller\NotificationController;
-use App\Work\Infrastructure\Controller\TimeWeekController;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Ui\Navigation\CoreNavigationAreas;
+use Foresi\Ui\Navigation\NavigationArea;
+use Foresi\Ui\Navigation\NavigationItem;
+use Foresi\Ui\Navigation\NavigationItemProvider;
+use Foresi\Work\Infrastructure\Controller\LabelController;
+use Foresi\Work\Infrastructure\Controller\MyTasksController;
+use Foresi\Work\Infrastructure\Controller\NotificationController;
+use Foresi\Work\Infrastructure\Controller\TimeWeekController;
 
 /**
  * The projects in the sidebar for the staff, a task belonging to them too, my

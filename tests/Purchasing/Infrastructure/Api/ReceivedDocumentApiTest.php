@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Purchasing\Infrastructure\Api;
+namespace Foresi\Tests\Purchasing\Infrastructure\Api;
 
-use App\Identity\Domain\ApiScope;
-use App\Shared\Infrastructure\Operation\InputSchema;
-use App\Shared\Infrastructure\Operation\Operations;
-use App\Tests\Shared\Infrastructure\Api\ApiTestCase;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Shared\Infrastructure\Operation\InputSchema;
+use Foresi\Shared\Infrastructure\Operation\Operations;
+use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 
 /**
  * Received documents over REST and MCP (decision C4 of the cash flow spec):

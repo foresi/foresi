@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Purchasing\Application\Query;
+namespace Foresi\Tests\Purchasing\Application\Query;
 
-use App\Audit\Application\AuditTrail;
-use App\Audit\Domain\ActorKind;
-use App\Audit\Domain\AuditAction;
-use App\Audit\Domain\AuditEntry;
-use App\Identity\Application\UserRepository;
-use App\Identity\Domain\User;
-use App\Purchasing\Application\Query\ReceivedDocumentHistory;
-use App\Purchasing\Application\Query\ReceivedDocumentHistoryEntry;
-use App\Purchasing\Application\RestoreReceivedDocument;
-use App\Purchasing\Application\TrashReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocument;
-use App\Tests\Purchasing\Application\PurchasingTestCase;
+use Foresi\Audit\Application\AuditTrail;
+use Foresi\Audit\Domain\ActorKind;
+use Foresi\Audit\Domain\AuditAction;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Domain\User;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentHistory;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentHistoryEntry;
+use Foresi\Purchasing\Application\RestoreReceivedDocument;
+use Foresi\Purchasing\Application\TrashReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Tests\Purchasing\Application\PurchasingTestCase;
 
 final class ReceivedDocumentHistoryTest extends PurchasingTestCase
 {

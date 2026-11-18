@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\ExchangeRate\Application;
+namespace Foresi\ExchangeRate\Application;
 
-use App\ExchangeRate\Domain\ExchangeRate;
-use App\ExchangeRate\Domain\RateNotAvailable;
+use Foresi\ExchangeRate\Domain\ExchangeRate;
+use Foresi\ExchangeRate\Domain\RateNotAvailable;
 
 /**
  * The rate of a currency to CZK on a date. The rate published on a business day

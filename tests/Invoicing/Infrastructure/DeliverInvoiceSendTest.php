@@ -6,34 +6,34 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure;
+namespace Foresi\Tests\Invoicing\Infrastructure;
 
-use App\Invoicing\Application\InvoiceBalances;
-use App\Invoicing\Application\InvoiceSendQueue;
-use App\Invoicing\Application\MailMessage;
-use App\Invoicing\Application\MailRefused;
-use App\Invoicing\Application\RequeueStuckSends;
-use App\Invoicing\Application\UnknownInvoice;
-use App\Invoicing\Domain\FirmReminders;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceSend;
-use App\Invoicing\Domain\LinkAudience;
-use App\Invoicing\Domain\SendPurpose;
-use App\Invoicing\Infrastructure\Doctrine\PaymentBalances;
-use App\Invoicing\Infrastructure\Mail\SymfonyMailGateway;
-use App\Invoicing\Infrastructure\Messenger\MarkSendFailed;
-use App\Invoicing\Infrastructure\Messenger\SendLeaseHeld;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\InvoicingDefaults;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\PartyEmail;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Id;
-use App\Tests\Invoicing\Application\SendingTestCase;
-use App\Tests\Invoicing\Infrastructure\Support\SettledBalances;
-use App\Tests\Support\Mail\RecordingMailGateway;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
+use Foresi\Invoicing\Application\InvoiceBalances;
+use Foresi\Invoicing\Application\InvoiceSendQueue;
+use Foresi\Invoicing\Application\MailMessage;
+use Foresi\Invoicing\Application\MailRefused;
+use Foresi\Invoicing\Application\RequeueStuckSends;
+use Foresi\Invoicing\Application\UnknownInvoice;
+use Foresi\Invoicing\Domain\FirmReminders;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceSend;
+use Foresi\Invoicing\Domain\LinkAudience;
+use Foresi\Invoicing\Domain\SendPurpose;
+use Foresi\Invoicing\Infrastructure\Doctrine\PaymentBalances;
+use Foresi\Invoicing\Infrastructure\Mail\SymfonyMailGateway;
+use Foresi\Invoicing\Infrastructure\Messenger\MarkSendFailed;
+use Foresi\Invoicing\Infrastructure\Messenger\SendLeaseHeld;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\InvoicingDefaults;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Id;
+use Foresi\Tests\Invoicing\Application\SendingTestCase;
+use Foresi\Tests\Invoicing\Infrastructure\Support\SettledBalances;
+use Foresi\Tests\Support\Mail\RecordingMailGateway;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;
@@ -82,7 +82,7 @@ final class DeliverInvoiceSendTest extends SendingTestCase
         self::assertSame('invoices@example.com', $message->from);
         self::assertSame('Example Firm', $message->fromName);
 
-        $raw = new SymfonyMailGateway(self::getContainer()->get(\App\Invoicing\Application\MailSecrets::class), self::getContainer()->get(\App\Invoicing\Application\MailHostPolicy::class))->email($message)->toString();
+        $raw = new SymfonyMailGateway(self::getContainer()->get(\Foresi\Invoicing\Application\MailSecrets::class), self::getContainer()->get(\Foresi\Invoicing\Application\MailHostPolicy::class))->email($message)->toString();
         [$head] = explode("\r\n\r\n", $raw, 2);
         $lines = preg_split('/\r\n(?![ \t])/', $head);
         self::assertIsArray($lines);
@@ -764,7 +764,7 @@ final class DeliverInvoiceSendTest extends SendingTestCase
         $this->remindersOfTheFirm(true);
         $reminder = $this->sent($invoice, ['purpose' => SendPurpose::Reminder, 'reminderStep' => 1]);
         $this->em->clear();
-        $this->customer = $this->em->find(\App\Party\Domain\Party::class, $this->customer->id()) ?? self::fail('No customer.');
+        $this->customer = $this->em->find(\Foresi\Party\Domain\Party::class, $this->customer->id()) ?? self::fail('No customer.');
 
         return [$invoice, $reminder];
     }

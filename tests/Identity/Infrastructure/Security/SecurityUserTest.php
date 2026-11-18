@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Infrastructure\Security;
+namespace Foresi\Tests\Identity\Infrastructure\Security;
 
-use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Shared\Domain\Id;
+use Foresi\Identity\Infrastructure\Security\SecurityUser;
+use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\TestCase;
 
 final class SecurityUserTest extends TestCase

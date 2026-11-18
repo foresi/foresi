@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Delivery;
+namespace Foresi\Webhooks\Infrastructure\Delivery;
 
 /**
  * A delivery as it was when a worker claimed it: what to send where, and how

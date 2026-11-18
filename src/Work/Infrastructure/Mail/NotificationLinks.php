@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Mail;
+namespace Foresi\Work\Infrastructure\Mail;
 
-use App\Identity\Domain\Membership;
-use App\Work\Infrastructure\Controller\NotificationController;
-use App\Work\Infrastructure\Controller\NotificationSettingsController;
-use App\Work\Infrastructure\Controller\TaskController;
-use App\Work\Infrastructure\Controller\UnsubscribeController;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Work\Infrastructure\Controller\NotificationController;
+use Foresi\Work\Infrastructure\Controller\NotificationSettingsController;
+use Foresi\Work\Infrastructure\Controller\TaskController;
+use Foresi\Work\Infrastructure\Controller\UnsubscribeController;
 use Symfony\Component\HttpFoundation\UriSigner;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 

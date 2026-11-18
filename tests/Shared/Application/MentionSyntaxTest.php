@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Application;
+namespace Foresi\Tests\Shared\Application;
 
-use App\Shared\Application\MentionSyntax;
+use Foresi\Shared\Application\MentionSyntax;
 use PHPUnit\Framework\TestCase;
 
 final class MentionSyntaxTest extends TestCase

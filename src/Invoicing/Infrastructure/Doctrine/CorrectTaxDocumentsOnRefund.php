@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Invoicing\Application\AdvanceRefunded;
-use App\Invoicing\Application\CorrectPaymentTaxDocument;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Invoicing\Application\AdvanceRefunded;
+use Foresi\Invoicing\Application\CorrectPaymentTaxDocument;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 
 /**

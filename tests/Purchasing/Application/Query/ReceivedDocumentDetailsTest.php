@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Purchasing\Application\Query;
+namespace Foresi\Tests\Purchasing\Application\Query;
 
-use App\Purchasing\Application\PurchasingNotAllowed;
-use App\Purchasing\Application\Query\ReceivedDocumentDetails;
-use App\Purchasing\Application\TrashReceivedDocument;
-use App\Purchasing\Application\UnknownReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocumentKind;
-use App\Tests\Purchasing\Application\PurchasingTestCase;
+use Foresi\Purchasing\Application\PurchasingNotAllowed;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentDetails;
+use Foresi\Purchasing\Application\TrashReceivedDocument;
+use Foresi\Purchasing\Application\UnknownReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Tests\Purchasing\Application\PurchasingTestCase;
 
 final class ReceivedDocumentDetailsTest extends PurchasingTestCase
 {
@@ -29,7 +29,7 @@ final class ReceivedDocumentDetailsTest extends PurchasingTestCase
         self::assertSame($original, $detail->corrected?->id);
         self::assertSame('FV-2', $detail->corrected->supplierNumber);
         self::assertSame('Supplier Example s.r.o.', $detail->corrected->supplierName);
-        self::assertEqualsCanonicalizing([$other, $original], array_map(static fn (\App\Purchasing\Application\Query\ReceivedDocumentRow $row): string => $row->id, $detail->correctable));
+        self::assertEqualsCanonicalizing([$other, $original], array_map(static fn (\Foresi\Purchasing\Application\Query\ReceivedDocumentRow $row): string => $row->id, $detail->correctable));
         self::assertNotEmpty($detail->history);
         self::assertNotNull($detail->document->originalAttachmentId());
         self::assertSame($detail->document->originalAttachmentId(), $detail->original?->id());
@@ -92,7 +92,7 @@ final class ReceivedDocumentDetailsTest extends PurchasingTestCase
 
         $rows = $this->details()->correctable($this->firm->id());
 
-        self::assertSame([$second, $first], array_map(static fn (\App\Purchasing\Application\Query\ReceivedDocumentRow $row): string => $row->id, $rows));
+        self::assertSame([$second, $first], array_map(static fn (\Foresi\Purchasing\Application\Query\ReceivedDocumentRow $row): string => $row->id, $rows));
     }
 
     private function details(): ReceivedDocumentDetails

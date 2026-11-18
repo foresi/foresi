@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Country\CzechRepublic\Party;
+namespace Foresi\Country\CzechRepublic\Party;
 
 /**
  * The payment system codes of Czech banks, from the list of the Czech National Bank:

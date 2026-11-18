@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Application;
+namespace Foresi\Timesheet\Application;
 
 /**
  * Port: where time chosen in the dialog waits for the invoice form to issue

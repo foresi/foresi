@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Mcp;
+namespace Foresi\Shared\Infrastructure\Mcp;
 
-use App\Shared\Infrastructure\Api\Idempotency;
-use App\Shared\Infrastructure\Operation\OperationRunner;
-use App\Shared\Infrastructure\Operation\Operations;
-use App\Shared\Infrastructure\Operation\OperationTool;
+use Foresi\Shared\Infrastructure\Api\Idempotency;
+use Foresi\Shared\Infrastructure\Operation\OperationRunner;
+use Foresi\Shared\Infrastructure\Operation\Operations;
+use Foresi\Shared\Infrastructure\Operation\OperationTool;
 use Mcp\Capability\Registry\Loader\LoaderInterface;
 use Mcp\Capability\RegistryInterface;
 use Mcp\Schema\Request\CallToolRequest;

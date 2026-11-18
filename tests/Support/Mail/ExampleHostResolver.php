@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Support\Mail;
+namespace Foresi\Tests\Support\Mail;
 
 /**
  * Resolves host names for the mail host policy and the webhook URL policy in

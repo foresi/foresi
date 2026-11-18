@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Dashboard;
+namespace Foresi\Invoicing\Infrastructure\Dashboard;
 
-use App\Identity\Application\StaffCheck;
-use App\Invoicing\Application\Debtor;
-use App\Invoicing\Application\InvoiceFilter;
-use App\Invoicing\Application\InvoicingOverview;
-use App\Invoicing\Application\InvoicingSummary;
-use App\Invoicing\Application\MonthInvoiced;
-use App\Invoicing\Application\PendingExport;
-use App\Invoicing\Infrastructure\Form\AmountText;
-use App\Ui\Dashboard\DashboardSection;
-use App\Ui\Dashboard\DashboardSectionProvider;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Invoicing\Application\Debtor;
+use Foresi\Invoicing\Application\InvoiceFilter;
+use Foresi\Invoicing\Application\InvoicingOverview;
+use Foresi\Invoicing\Application\InvoicingSummary;
+use Foresi\Invoicing\Application\MonthInvoiced;
+use Foresi\Invoicing\Application\PendingExport;
+use Foresi\Invoicing\Infrastructure\Form\AmountText;
+use Foresi\Ui\Dashboard\DashboardSection;
+use Foresi\Ui\Dashboard\DashboardSectionProvider;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;

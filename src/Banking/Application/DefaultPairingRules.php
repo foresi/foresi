@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\LegalEntity;
 
 /**
  * The switches every firm starts with: automatic pairing on, small-difference

@@ -6,26 +6,26 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Application;
+namespace Foresi\Timesheet\Application;
 
-use App\Identity\Application\OwnerCheck;
-use App\Invoicing\Application\InvoicingCountries;
-use App\Invoicing\Application\UnsupportedCountry;
-use App\Invoicing\Domain\Invoice;
-use App\Party\Application\LegalEntities;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Timesheet\Domain\BillableTime;
-use App\Timesheet\Domain\BilledTime;
-use App\Timesheet\Domain\LineGrouping;
-use App\Timesheet\Domain\TimeLine;
-use App\Timesheet\Domain\TimeLines;
-use App\Timesheet\Domain\TimeRounding;
-use App\Work\Application\ProjectRow;
-use App\Work\Application\TimeEntryRow;
-use App\Work\Application\TimeQueries;
-use App\Work\Application\TimeReportFilter;
-use App\Work\Application\WorkQueries;
+use Foresi\Identity\Application\OwnerCheck;
+use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Invoicing\Application\UnsupportedCountry;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Timesheet\Domain\BillableTime;
+use Foresi\Timesheet\Domain\BilledTime;
+use Foresi\Timesheet\Domain\LineGrouping;
+use Foresi\Timesheet\Domain\TimeLine;
+use Foresi\Timesheet\Domain\TimeLines;
+use Foresi\Timesheet\Domain\TimeRounding;
+use Foresi\Work\Application\ProjectRow;
+use Foresi\Work\Application\TimeEntryRow;
+use Foresi\Work\Application\TimeQueries;
+use Foresi\Work\Application\TimeReportFilter;
+use Foresi\Work\Application\WorkQueries;
 
 /**
  * Taking time to an invoice (Harvest, Clockify): an owner picks the firm, the

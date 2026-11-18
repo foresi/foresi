@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application;
+namespace Foresi\Purchasing\Application;
 
-use App\Attachment\Application\PurgeAttachments;
-use App\Purchasing\Domain\ReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Attachment\Application\PurgeAttachments;
+use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
 
 /**
  * Deletes a draft for good, in the trash or not, together with its file: an

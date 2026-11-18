@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Application;
+namespace Foresi\Tests\Party\Application;
 
-use App\Party\Application\RegistryOutcome;
-use App\Party\Domain\RegistryCheck;
-use App\Party\Domain\RegistryResult;
-use App\Party\Domain\RegistrySource;
+use Foresi\Party\Application\RegistryOutcome;
+use Foresi\Party\Domain\RegistryCheck;
+use Foresi\Party\Domain\RegistryResult;
+use Foresi\Party\Domain\RegistrySource;
 use PHPUnit\Framework\TestCase;
 
 final class RegistryOutcomeTest extends TestCase

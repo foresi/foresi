@@ -6,24 +6,24 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Controller;
+namespace Foresi\Work\Infrastructure\Controller;
 
-use App\Identity\Application\OwnerCheck;
-use App\Identity\Application\StaffCheck;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Shared\Infrastructure\Http\TypedAmount;
-use App\Work\Application\Choice;
-use App\Work\Application\ManageProjects;
-use App\Work\Application\ManageSections;
-use App\Work\Application\ManageTime;
-use App\Work\Application\ManageWorkflow;
-use App\Work\Application\ProjectSettings;
-use App\Work\Application\StatusChoice;
-use App\Work\Application\WorkQueries;
-use App\Work\Application\WorkRefused;
-use App\Work\Domain\StatusType;
-use App\Work\Domain\WorkflowTemplate;
+use Foresi\Identity\Application\OwnerCheck;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Infrastructure\Http\TypedAmount;
+use Foresi\Work\Application\Choice;
+use Foresi\Work\Application\ManageProjects;
+use Foresi\Work\Application\ManageSections;
+use Foresi\Work\Application\ManageTime;
+use Foresi\Work\Application\ManageWorkflow;
+use Foresi\Work\Application\ProjectSettings;
+use Foresi\Work\Application\StatusChoice;
+use Foresi\Work\Application\WorkQueries;
+use Foresi\Work\Application\WorkRefused;
+use Foresi\Work\Domain\StatusType;
+use Foresi\Work\Domain\WorkflowTemplate;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;

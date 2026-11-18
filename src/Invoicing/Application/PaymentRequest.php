@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\PaymentDirection;
-use App\Invoicing\Domain\PaymentSource;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Domain\PaymentDirection;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Money;
 
 /**
  * A payment to record, and how it is split over invoices of the firm.

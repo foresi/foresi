@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Domain;
+namespace Foresi\Idoklad\Domain;
 
-use App\Party\Domain\LegalEntity;
-use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Domain\Id;
 
 /**
  * One pull, check or run of the move from iDoklad, asked for on a screen and

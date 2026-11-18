@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Attachment\Infrastructure\Doctrine;
+namespace Foresi\Attachment\Infrastructure\Doctrine;
 
-use App\Attachment\Application\Attachments;
-use App\Attachment\Domain\Attachment;
-use App\Shared\Domain\Id;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Attachment\Application\Attachments;
+use Foresi\Attachment\Domain\Attachment;
+use Foresi\Shared\Domain\Id;
 
 final readonly class DoctrineAttachments implements Attachments
 {

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Domain;
+namespace Foresi\Tests\Webhooks\Domain;
 
-use App\Webhooks\Domain\WebhookSecret;
+use Foresi\Webhooks\Domain\WebhookSecret;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

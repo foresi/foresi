@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\UnknownMailVariables;
+use Foresi\Invoicing\Application\UnknownMailVariables;
 use PHPUnit\Framework\TestCase;
 
 final class UnknownMailVariablesTest extends TestCase

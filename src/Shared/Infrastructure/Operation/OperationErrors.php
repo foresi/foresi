@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Operation;
+namespace Foresi\Shared\Infrastructure\Operation;
 
-use App\Shared\Application\RefusalKind;
-use App\Shared\Application\Refused;
-use App\Shared\Infrastructure\Api\ApiErrors;
-use App\Shared\Infrastructure\Api\ProblemResponse;
+use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Application\Refused;
+use Foresi\Shared\Infrastructure\Api\ApiErrors;
+use Foresi\Shared\Infrastructure\Api\ProblemResponse;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\KernelEvents;

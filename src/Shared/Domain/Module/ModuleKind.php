@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Domain\Module;
+namespace Foresi\Shared\Domain\Module;
 
 /**
  * What a module is for. The core is what every application needs, the UI is

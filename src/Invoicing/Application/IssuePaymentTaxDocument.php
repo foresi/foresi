@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\Payment;
-use App\Party\Application\FirmBankAccounts;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Payment;
+use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Shared\Domain\Money;
 
 /**
  * Issues the tax document on a payment received on an advance invoice, where VAT

@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\CashFlow\Application;
+namespace Foresi\Tests\CashFlow\Application;
 
-use App\CashFlow\Application\ForecastPeriods;
-use App\CashFlow\Contract\ForecastPeriod;
+use Foresi\CashFlow\Application\ForecastPeriods;
+use Foresi\CashFlow\Contract\ForecastPeriod;
 use PHPUnit\Framework\TestCase;
 
 /**

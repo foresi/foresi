@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Application;
+namespace Foresi\Tests\Party\Application;
 
-use App\Party\Application\LegalEntities;
-use App\Party\Application\TransactionalWork;
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
-use App\Tests\Identity\Support\SignedInBrowser;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class ActiveLegalEntitiesTest extends WebTestCase

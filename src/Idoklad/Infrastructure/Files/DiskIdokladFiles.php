@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Infrastructure\Files;
+namespace Foresi\Idoklad\Infrastructure\Files;
 
-use App\Idoklad\Application\IdokladFiles;
-use App\Idoklad\Application\IdokladFileUnreadable;
+use Foresi\Idoklad\Application\IdokladFiles;
+use Foresi\Idoklad\Application\IdokladFileUnreadable;
 
 /**
  * Pulled PDFs in one private directory, never below public/. Back the directory

@@ -6,22 +6,22 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Messenger;
+namespace Foresi\Import\Infrastructure\Messenger;
 
-use App\Audit\Application\AuditCorrelation;
-use App\Import\Application\ImportGate;
-use App\Import\Application\ImportJobs;
-use App\Import\Application\Imports;
-use App\Import\Application\Message\UndoImportChunk;
-use App\Import\Application\Target\ImportTarget;
-use App\Import\Application\Target\RecordSnapshot;
-use App\Import\Application\Target\TargetRegistry;
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportMissingRecord;
-use App\Import\Domain\ImportRow;
-use App\Import\Domain\ImportState;
-use App\Import\Domain\RowOutcome;
-use App\Import\Infrastructure\Doctrine\RowSavepoint;
+use Foresi\Audit\Application\AuditCorrelation;
+use Foresi\Import\Application\ImportGate;
+use Foresi\Import\Application\ImportJobs;
+use Foresi\Import\Application\Imports;
+use Foresi\Import\Application\Message\UndoImportChunk;
+use Foresi\Import\Application\Target\ImportTarget;
+use Foresi\Import\Application\Target\RecordSnapshot;
+use Foresi\Import\Application\Target\TargetRegistry;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\ImportMissingRecord;
+use Foresi\Import\Domain\ImportRow;
+use Foresi\Import\Domain\ImportState;
+use Foresi\Import\Domain\RowOutcome;
+use Foresi\Import\Infrastructure\Doctrine\RowSavepoint;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 

@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Domain;
+namespace Foresi\Tests\Banking\Domain;
 
-use App\Banking\Domain\BankFeed;
-use App\Party\Domain\Address;
-use App\Party\Domain\FirmBankAccount;
-use App\Party\Domain\Iban;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
-use App\Shared\Domain\Currency;
+use Foresi\Banking\Domain\BankFeed;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Party\Domain\Iban;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Domain\Currency;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

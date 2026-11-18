@@ -6,23 +6,8 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure\Doctrine;
+namespace Foresi\Banking\Infrastructure\Doctrine;
 
-use App\Audit\Application\AuditActor;
-use App\Audit\Application\AuditCorrelation;
-use App\Audit\Domain\AuditAction;
-use App\Audit\Domain\AuditEntry;
-use App\Banking\Application\BankMessageParsers;
-use App\Banking\Application\ClaimedMessage;
-use App\Banking\Application\InboundMessages;
-use App\Banking\Application\MessageRow;
-use App\Banking\Application\MovementFilter;
-use App\Banking\Application\ProcessingResult;
-use App\Banking\Application\TrustVerdict;
-use App\Banking\Domain\InboundChannel;
-use App\Banking\Domain\InboundMessage;
-use App\Banking\Domain\InboundStatus;
-use App\Banking\Domain\MessageTrust;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -30,6 +15,21 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Audit\Application\AuditCorrelation;
+use Foresi\Audit\Domain\AuditAction;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Banking\Application\BankMessageParsers;
+use Foresi\Banking\Application\ClaimedMessage;
+use Foresi\Banking\Application\InboundMessages;
+use Foresi\Banking\Application\MessageRow;
+use Foresi\Banking\Application\MovementFilter;
+use Foresi\Banking\Application\ProcessingResult;
+use Foresi\Banking\Application\TrustVerdict;
+use Foresi\Banking\Domain\InboundChannel;
+use Foresi\Banking\Domain\InboundMessage;
+use Foresi\Banking\Domain\InboundStatus;
+use Foresi\Banking\Domain\MessageTrust;
 use Psr\Clock\ClockInterface;
 
 /**

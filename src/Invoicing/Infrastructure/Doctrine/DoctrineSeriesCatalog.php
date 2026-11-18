@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Invoicing\Application\SeriesCatalog;
-use App\Invoicing\Application\UnknownSeries;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\SeriesCounter;
-use App\Party\Domain\LegalEntity;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Invoicing\Application\SeriesCatalog;
+use Foresi\Invoicing\Application\UnknownSeries;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\SeriesCounter;
+use Foresi\Party\Domain\LegalEntity;
 
 final readonly class DoctrineSeriesCatalog implements SeriesCatalog
 {

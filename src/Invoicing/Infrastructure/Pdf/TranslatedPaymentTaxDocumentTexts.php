@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Pdf;
+namespace Foresi\Invoicing\Infrastructure\Pdf;
 
-use App\Invoicing\Application\PaymentTaxDocumentTexts;
-use App\Invoicing\Domain\Invoice;
-use App\Party\Domain\DocumentLanguage;
+use Foresi\Invoicing\Application\PaymentTaxDocumentTexts;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Party\Domain\DocumentLanguage;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**

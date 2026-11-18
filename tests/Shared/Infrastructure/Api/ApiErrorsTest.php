@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Api;
+namespace Foresi\Tests\Shared\Infrastructure\Api;
 
-use App\Shared\Infrastructure\Api\ApiErrors;
-use App\Shared\Infrastructure\Api\InvalidParameter;
+use Foresi\Shared\Infrastructure\Api\ApiErrors;
+use Foresi\Shared\Infrastructure\Api\InvalidParameter;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

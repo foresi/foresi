@@ -16,7 +16,7 @@
         "foresi": {
             "module": "banking",
             "kind": "module",
-            "namespace": "App\\Banking\\",
+            "namespace": "Foresi\\Banking\\",
             "optional": [
                 "cash-flow"
             ]

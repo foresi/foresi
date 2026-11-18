@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Attachment\Infrastructure;
+namespace Foresi\Tests\Attachment\Infrastructure;
 
-use App\Attachment\Infrastructure\Controller\AttachmentController;
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\Role;
-use App\Shared\Domain\Id;
-use App\Tests\Identity\Support\SignedInBrowser;
-use App\Work\Domain\Project;
-use App\Work\Domain\ProjectStatus;
-use App\Work\Domain\Task;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Attachment\Infrastructure\Controller\AttachmentController;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Role;
+use Foresi\Shared\Domain\Id;
+use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\ProjectStatus;
+use Foresi\Work\Domain\Task;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;

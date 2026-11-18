@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\DocumentKind;
-use App\Party\Application\LegalEntities;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use Psr\Clock\ClockInterface;
 
 /**

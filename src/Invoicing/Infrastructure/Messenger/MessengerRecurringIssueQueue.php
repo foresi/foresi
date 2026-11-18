@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Messenger;
+namespace Foresi\Invoicing\Infrastructure\Messenger;
 
-use App\Invoicing\Application\IssueRecurringTemplate;
-use App\Invoicing\Application\RecurringIssueQueue;
+use Foresi\Invoicing\Application\IssueRecurringTemplate;
+use Foresi\Invoicing\Application\RecurringIssueQueue;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 

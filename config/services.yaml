@@ -58,101 +58,101 @@ services:
 
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name
-    App\:
+    Foresi\:
         resource: '../src/'
         exclude:
             # Development tool: registered, and so routable, in the dev and test environments only.
             - '../src/Ui/Controller/CatalogueController.php'
             # Integration code for an optional dependency: the kernel registers it only
-            # when that module is installed (App\Shared\Infrastructure\Module\ModuleIntegrations).
+            # when that module is installed (Foresi\Shared\Infrastructure\Module\ModuleIntegrations).
             - '../src/*/Integration/'
 
     # Country modules plug into the core through tagged interfaces.
     _instanceof:
-        App\Party\Domain\RegistrationNumberValidator:
+        Foresi\Party\Domain\RegistrationNumberValidator:
             tags: ['app.registration_number_validator']
-        App\Party\Domain\DomesticBankAccount:
+        Foresi\Party\Domain\DomesticBankAccount:
             tags: ['app.domestic_bank_account']
         # A country module plugs into invoicing with its rules.
-        App\Invoicing\Application\InvoicingCountry:
+        Foresi\Invoicing\Application\InvoicingCountry:
             tags: ['app.invoicing_country']
         # Modules plug into the import by implementing its target contract.
-        App\Import\Application\Target\ImportTarget:
+        Foresi\Import\Application\Target\ImportTarget:
             tags: ['app.import_target']
         # ...and contribute presets of the known sources they can read.
-        App\Import\Domain\Preset\SourcePreset:
+        Foresi\Import\Domain\Preset\SourcePreset:
             tags: ['app.import_preset']
-        # Timed work done once per period; see App\Instance\Application\Schedule.
-        App\Instance\Application\Schedule\ScheduledJob:
+        # Timed work done once per period; see Foresi\Instance\Application\Schedule.
+        Foresi\Instance\Application\Schedule\ScheduledJob:
             tags: ['app.scheduled_job']
-        # Timed work of the installation; see App\Instance\Application\Schedule\OperatorTask.
-        App\Instance\Application\Schedule\OperatorTask:
+        # Timed work of the installation; see Foresi\Instance\Application\Schedule\OperatorTask.
+        Foresi\Instance\Application\Schedule\OperatorTask:
             tags: ['app.operator_task']
         # The module that owns a kind of record decides who reaches its attachments.
-        App\Attachment\Application\AttachmentAccess:
+        Foresi\Attachment\Application\AttachmentAccess:
             tags: ['app.attachment_access']
         # A country module plugs into banking with the parsers of its banks' mail.
-        App\Banking\Application\BankMessageParser:
+        Foresi\Banking\Application\BankMessageParser:
             tags: ['app.bank_message_parser']
         # The stages of an iDoklad import; each one orders itself.
-        App\Idoklad\Application\Import\ImportStage:
+        Foresi\Idoklad\Application\Import\ImportStage:
             tags: ['app.idoklad_import_stage']
         # Takes each event the relay numbers, in its transaction, such as the webhooks.
-        App\Events\Application\EventSink:
+        Foresi\Events\Application\EventSink:
             tags: ['app.event_sink']
 
-    App\Party\Application\RegistrationNumberFactory:
+    Foresi\Party\Application\RegistrationNumberFactory:
         arguments:
             $validators: !tagged_iterator app.registration_number_validator
 
-    App\Party\Application\ImportPartyValues:
+    Foresi\Party\Application\ImportPartyValues:
         arguments:
             $domesticAccounts: !tagged_iterator app.domestic_bank_account
 
-    App\Party\Application\ManageFirmBankAccounts:
+    Foresi\Party\Application\ManageFirmBankAccounts:
         arguments:
             $domesticAccounts: !tagged_iterator app.domestic_bank_account
     # Banking records the movements that fix an account's currency.
-    App\Party\Application\BankAccountUsage:
-        alias: App\Banking\Infrastructure\MovementUsage
+    Foresi\Party\Application\BankAccountUsage:
+        alias: Foresi\Banking\Infrastructure\MovementUsage
 
-    App\Invoicing\Application\InvoicingCountries:
+    Foresi\Invoicing\Application\InvoicingCountries:
         arguments:
             $countries: !tagged_iterator app.invoicing_country
 
-    App\CashFlow\Application\Forecasts:
+    Foresi\CashFlow\Application\Forecasts:
         arguments:
             $sources: !tagged_iterator app.cash_flow_source
             $balanceSources: !tagged_iterator app.cash_flow_balance_source
             $actualSources: !tagged_iterator app.cash_flow_actual_source
 
-    App\Banking\Application\BankMessageParsers:
+    Foresi\Banking\Application\BankMessageParsers:
         arguments:
             $parsers: !tagged_iterator app.bank_message_parser
 
-    App\Banking\Application\MailReader:
-        alias: App\Banking\Infrastructure\Mime\ZbatesonMailReader
+    Foresi\Banking\Application\MailReader:
+        alias: Foresi\Banking\Infrastructure\Mime\ZbatesonMailReader
     # Whose authentication results are believed, per channel; empty lists verify no message.
     # The webhook has its own list and never falls back to the mailbox's.
-    App\Banking\Application\TrustSettings:
+    Foresi\Banking\Application\TrustSettings:
         arguments:
             $authservIds: '%env(csv:BANK_INBOX_TRUSTED_AUTHSERV)%'
             $arcSealers: '%env(csv:BANK_INBOX_TRUSTED_ARC)%'
             $webhookAuthservIds: '%env(csv:INBOUND_WEBHOOK_TRUSTED_AUTHSERV)%'
     # A firm's stored switches, or the defaults while it has none.
-    App\Banking\Application\FirmPairingRules:
-        alias: App\Banking\Infrastructure\Doctrine\DoctrineFirmPairings
+    Foresi\Banking\Application\FirmPairingRules:
+        alias: Foresi\Banking\Infrastructure\Doctrine\DoctrineFirmPairings
     # The inbound address of a bank account; empty means bank mail is not set up here.
-    App\Banking\Application\InboundAddresses:
+    Foresi\Banking\Application\InboundAddresses:
         arguments:
             $template: '%env(string:BANK_INBOX_ADDRESS)%'
-    App\Banking\Application\BankMovements:
-        alias: App\Banking\Infrastructure\Doctrine\DoctrineBankMovements
-    App\Banking\Application\Candidates:
-        alias: App\Banking\Infrastructure\Doctrine\DoctrineCandidates
+    Foresi\Banking\Application\BankMovements:
+        alias: Foresi\Banking\Infrastructure\Doctrine\DoctrineBankMovements
+    Foresi\Banking\Application\Candidates:
+        alias: Foresi\Banking\Infrastructure\Doctrine\DoctrineCandidates
     # The operator mailbox bank mail is polled from; none when BANK_INBOX_HOST is empty.
-    App\Banking\Application\InboundMailbox:
-        factory: ['App\Banking\Infrastructure\Imap\ImapInboundMailbox', 'fromSettings']
+    Foresi\Banking\Application\InboundMailbox:
+        factory: ['Foresi\Banking\Infrastructure\Imap\ImapInboundMailbox', 'fromSettings']
         arguments:
             $host: '%env(string:BANK_INBOX_HOST)%'
             $port: '%env(int:BANK_INBOX_PORT)%'
@@ -160,51 +160,51 @@ services:
             $user: '%env(string:BANK_INBOX_USER)%'
             $password: '%env(string:BANK_INBOX_PASSWORD)%'
             $folder: '%env(string:BANK_INBOX_FOLDER)%'
-    App\Banking\Application\InboundMessages:
-        alias: App\Banking\Infrastructure\Doctrine\DoctrineInboundMessages
-    App\Banking\Application\Ownership:
-        alias: App\Banking\Infrastructure\IdentityOwnership
+    Foresi\Banking\Application\InboundMessages:
+        alias: Foresi\Banking\Infrastructure\Doctrine\DoctrineInboundMessages
+    Foresi\Banking\Application\Ownership:
+        alias: Foresi\Banking\Infrastructure\IdentityOwnership
     # How often a message of the operator mailbox failed, across polls.
-    App\Banking\Application\PollFailures:
-        alias: App\Banking\Infrastructure\CachePollFailures
-    App\Banking\Application\InboundFiles:
-        alias: App\Banking\Infrastructure\Files\DiskInboundFiles
-    App\Banking\Application\InboundProcessing:
-        alias: App\Banking\Infrastructure\Messenger\MessengerInboundProcessing
-    App\Banking\Application\PendingChanges:
-        alias: App\Banking\Infrastructure\Doctrine\DoctrinePendingChanges
-    App\Banking\Infrastructure\Files\DiskInboundFiles:
+    Foresi\Banking\Application\PollFailures:
+        alias: Foresi\Banking\Infrastructure\CachePollFailures
+    Foresi\Banking\Application\InboundFiles:
+        alias: Foresi\Banking\Infrastructure\Files\DiskInboundFiles
+    Foresi\Banking\Application\InboundProcessing:
+        alias: Foresi\Banking\Infrastructure\Messenger\MessengerInboundProcessing
+    Foresi\Banking\Application\PendingChanges:
+        alias: Foresi\Banking\Infrastructure\Doctrine\DoctrinePendingChanges
+    Foresi\Banking\Infrastructure\Files\DiskInboundFiles:
         arguments:
             $root: '%app.inbound_mail_dir%'
 
-    App\Country\CzechRepublic\Invoicing\IsdocWriter:
+    Foresi\Country\CzechRepublic\Invoicing\IsdocWriter:
         arguments:
             $issuingSystem: '%app.product_name% %app.version%'
 
-    App\Invoicing\Infrastructure\Pdf\PdfEngine:
+    Foresi\Invoicing\Infrastructure\Pdf\PdfEngine:
         arguments:
             $logoDirectories: ['%app.firm_image_dir%']
 
-    App\Party\Infrastructure\Http\FilesystemFirmImages:
+    Foresi\Party\Infrastructure\Http\FilesystemFirmImages:
         arguments:
             $root: '%app.firm_image_dir%'
 
-    App\Import\Infrastructure\LocalImportFiles:
+    Foresi\Import\Infrastructure\LocalImportFiles:
         arguments:
             $root: '%app.import_files_dir%'
 
-    App\Import\Application\Target\TargetRegistry:
+    Foresi\Import\Application\Target\TargetRegistry:
         arguments:
             $targets: !tagged_iterator app.import_target
 
-    App\Import\Application\PresetRegistry:
+    Foresi\Import\Application\PresetRegistry:
         arguments:
             $presets: !tagged_iterator app.import_preset
 
     # Declared here (private) so PHPStan, which reads the dev container, knows the
     # id used by the wiring test; it is made public in the test env below.
     test.registration_number_factory:
-        alias: App\Party\Application\RegistrationNumberFactory
+        alias: Foresi\Party\Application\RegistrationNumberFactory
     test.invoice_send_firm_limiter:
         alias: limiter.invoice_send_firm
     test.document_link_limiter:
@@ -216,146 +216,146 @@ services:
     test.invitation_link_limiter:
         alias: limiter.invitation_link
     test.invoice_balances:
-        alias: App\Invoicing\Application\InvoiceBalances
+        alias: Foresi\Invoicing\Application\InvoiceBalances
     test.idoklad_import:
-        alias: App\Idoklad\Application\Import\RunIdokladImport
+        alias: Foresi\Idoklad\Application\Import\RunIdokladImport
 
-    App\Shared\Infrastructure\Registry\RegistryCache:
+    Foresi\Shared\Infrastructure\Registry\RegistryCache:
         arguments:
             $registryCache: '@cache.registry'
 
-    App\Shared\Infrastructure\Registry\PublicRegistryClient:
+    Foresi\Shared\Infrastructure\Registry\PublicRegistryClient:
         arguments:
             $registryOutgoingLimiter: '@limiter.registry_outgoing'
 
     # Mail goes out through the firm's own server. Named here so the test and e2e
     # environments can swap the gateway, and PHPStan, which reads the dev container, knows the ids.
-    App\Invoicing\Application\MailGateway:
-        alias: App\Invoicing\Infrastructure\Mail\SymfonyMailGateway
-    App\Invoicing\Application\MailServers:
-        alias: App\Invoicing\Infrastructure\Doctrine\DoctrineMailServers
-    App\Invoicing\Application\MailSecrets:
-        alias: App\Invoicing\Infrastructure\Mail\SodiumMailSecrets
+    Foresi\Invoicing\Application\MailGateway:
+        alias: Foresi\Invoicing\Infrastructure\Mail\SymfonyMailGateway
+    Foresi\Invoicing\Application\MailServers:
+        alias: Foresi\Invoicing\Infrastructure\Doctrine\DoctrineMailServers
+    Foresi\Invoicing\Application\MailSecrets:
+        alias: Foresi\Invoicing\Infrastructure\Mail\SodiumMailSecrets
     # Events are recorded on the connection of the use case; the transaction hooks tell the same object how the unit ended.
-    App\Shared\Application\Event\EventRecorder:
-        alias: App\Events\Infrastructure\Dbal\DbalEventRecorder
-    App\Shared\Application\Event\EventOutbox:
-        alias: App\Events\Infrastructure\Dbal\DbalEventRecorder
-    App\Shared\Application\Sealer:
-        alias: App\Shared\Infrastructure\Crypto\SodiumSealer
-    App\Invoicing\Application\MailHostPolicy:
-        alias: App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy
-    App\Webhooks\Application\WebhookSecrets:
-        alias: App\Webhooks\Infrastructure\Crypto\SodiumWebhookSecrets
-    App\Webhooks\Application\WebhookUrlPolicy:
-        alias: App\Webhooks\Infrastructure\Http\DnsWebhookUrlPolicy
-    App\Webhooks\Application\WebhookEndpoints:
-        alias: App\Webhooks\Infrastructure\Doctrine\DoctrineWebhookEndpoints
-    App\Webhooks\Application\WebhookWork:
-        alias: App\Webhooks\Infrastructure\Doctrine\DoctrineWebhookWork
-    App\Webhooks\Application\WebhookQueue:
-        alias: App\Webhooks\Infrastructure\Delivery\MessengerWebhookQueue
-    App\Webhooks\Application\SubscribableEvents:
-        alias: App\Webhooks\Infrastructure\Events\CatalogueSubscribableEvents
-    App\Webhooks\Application\Query\DeliveryRecords:
-        alias: App\Webhooks\Infrastructure\Dbal\DbalDeliveryRecords
+    Foresi\Shared\Application\Event\EventRecorder:
+        alias: Foresi\Events\Infrastructure\Dbal\DbalEventRecorder
+    Foresi\Shared\Application\Event\EventOutbox:
+        alias: Foresi\Events\Infrastructure\Dbal\DbalEventRecorder
+    Foresi\Shared\Application\Sealer:
+        alias: Foresi\Shared\Infrastructure\Crypto\SodiumSealer
+    Foresi\Invoicing\Application\MailHostPolicy:
+        alias: Foresi\Invoicing\Infrastructure\Mail\DnsMailHostPolicy
+    Foresi\Webhooks\Application\WebhookSecrets:
+        alias: Foresi\Webhooks\Infrastructure\Crypto\SodiumWebhookSecrets
+    Foresi\Webhooks\Application\WebhookUrlPolicy:
+        alias: Foresi\Webhooks\Infrastructure\Http\DnsWebhookUrlPolicy
+    Foresi\Webhooks\Application\WebhookEndpoints:
+        alias: Foresi\Webhooks\Infrastructure\Doctrine\DoctrineWebhookEndpoints
+    Foresi\Webhooks\Application\WebhookWork:
+        alias: Foresi\Webhooks\Infrastructure\Doctrine\DoctrineWebhookWork
+    Foresi\Webhooks\Application\WebhookQueue:
+        alias: Foresi\Webhooks\Infrastructure\Delivery\MessengerWebhookQueue
+    Foresi\Webhooks\Application\SubscribableEvents:
+        alias: Foresi\Webhooks\Infrastructure\Events\CatalogueSubscribableEvents
+    Foresi\Webhooks\Application\Query\DeliveryRecords:
+        alias: Foresi\Webhooks\Infrastructure\Dbal\DbalDeliveryRecords
     # Redirects are never followed and, unless this installation posts to its own network, private addresses are refused.
     webhooks.http_client:
         class: Symfony\Contracts\HttpClient\HttpClientInterface
-        factory: ['App\Webhooks\Infrastructure\Http\WebhookHttpClientFactory', 'create']
+        factory: ['Foresi\Webhooks\Infrastructure\Http\WebhookHttpClientFactory', 'create']
         arguments: ['%app.webhooks.allow_private_hosts%']
-    App\Invoicing\Application\MailTemplates:
-        alias: App\Invoicing\Infrastructure\Doctrine\DoctrineMailTemplates
-    App\Invoicing\Application\DocumentTitles:
-        alias: App\Invoicing\Infrastructure\Pdf\TranslatedDocumentTitles
-    App\Invoicing\Application\RecurringAlertTexts:
-        alias: App\Invoicing\Infrastructure\Mail\TranslatedRecurringAlertTexts
-    App\Invoicing\Application\InvoiceSends:
-        alias: App\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceSends
-    App\Invoicing\Application\SentFiles:
-        alias: App\Invoicing\Infrastructure\Mail\DiskSentFiles
+    Foresi\Invoicing\Application\MailTemplates:
+        alias: Foresi\Invoicing\Infrastructure\Doctrine\DoctrineMailTemplates
+    Foresi\Invoicing\Application\DocumentTitles:
+        alias: Foresi\Invoicing\Infrastructure\Pdf\TranslatedDocumentTitles
+    Foresi\Invoicing\Application\RecurringAlertTexts:
+        alias: Foresi\Invoicing\Infrastructure\Mail\TranslatedRecurringAlertTexts
+    Foresi\Invoicing\Application\InvoiceSends:
+        alias: Foresi\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceSends
+    Foresi\Invoicing\Application\SentFiles:
+        alias: Foresi\Invoicing\Infrastructure\Mail\DiskSentFiles
     # What is still owed on invoices, from the recorded payments; the SQL
     # condition comes from the same implementation, which passes
     # InvoiceBalancesContract and is authoritative, so reminders may be switched on.
-    App\Invoicing\Application\InvoiceBalances:
-        alias: App\Invoicing\Infrastructure\Doctrine\PaymentBalances
-    App\Invoicing\Infrastructure\Doctrine\OwingInvoiceCondition:
-        alias: App\Invoicing\Infrastructure\Doctrine\PaymentBalances
-    App\Invoicing\Application\DocumentLinks:
-        alias: App\Invoicing\Infrastructure\Mail\RouterDocumentLinks
-    App\Invoicing\Application\SendLimits:
-        alias: App\Invoicing\Infrastructure\Mail\RateLimitedSends
-    App\Invoicing\Application\InvoiceSendQueue:
-        alias: App\Invoicing\Infrastructure\Messenger\MessengerInvoiceSendQueue
-    App\Invoicing\Application\RecurringIssueQueue:
-        alias: App\Invoicing\Infrastructure\Messenger\MessengerRecurringIssueQueue
-    App\Invoicing\Application\PublicDocuments:
-        alias: App\Invoicing\Infrastructure\Doctrine\DoctrinePublicDocuments
-    App\Invoicing\Application\InvoicePayments:
-        alias: App\Invoicing\Infrastructure\Doctrine\DoctrineInvoicePayments
+    Foresi\Invoicing\Application\InvoiceBalances:
+        alias: Foresi\Invoicing\Infrastructure\Doctrine\PaymentBalances
+    Foresi\Invoicing\Infrastructure\Doctrine\OwingInvoiceCondition:
+        alias: Foresi\Invoicing\Infrastructure\Doctrine\PaymentBalances
+    Foresi\Invoicing\Application\DocumentLinks:
+        alias: Foresi\Invoicing\Infrastructure\Mail\RouterDocumentLinks
+    Foresi\Invoicing\Application\SendLimits:
+        alias: Foresi\Invoicing\Infrastructure\Mail\RateLimitedSends
+    Foresi\Invoicing\Application\InvoiceSendQueue:
+        alias: Foresi\Invoicing\Infrastructure\Messenger\MessengerInvoiceSendQueue
+    Foresi\Invoicing\Application\RecurringIssueQueue:
+        alias: Foresi\Invoicing\Infrastructure\Messenger\MessengerRecurringIssueQueue
+    Foresi\Invoicing\Application\PublicDocuments:
+        alias: Foresi\Invoicing\Infrastructure\Doctrine\DoctrinePublicDocuments
+    Foresi\Invoicing\Application\InvoicePayments:
+        alias: Foresi\Invoicing\Infrastructure\Doctrine\DoctrineInvoicePayments
     # A cancelled bank payment returns its movement to the unmatched ones.
-    App\Invoicing\Application\PaymentSourceRelease:
-        alias: App\Banking\Infrastructure\ReleaseMovement
+    Foresi\Invoicing\Application\PaymentSourceRelease:
+        alias: Foresi\Banking\Infrastructure\ReleaseMovement
     # Time is the work an invoice may bill; issuing it locks the time.
-    App\Invoicing\Application\BilledWork:
-        alias: App\Timesheet\Application\TimeBilledWork
+    Foresi\Invoicing\Application\BilledWork:
+        alias: Foresi\Timesheet\Application\TimeBilledWork
     # An invoice in the trash frees its time, and restoring it bills the time again.
-    App\Invoicing\Application\BilledWorkRelease:
-        alias: App\Timesheet\Application\ReleaseTime
+    Foresi\Invoicing\Application\BilledWorkRelease:
+        alias: Foresi\Timesheet\Application\ReleaseTime
     # A line of invoiced time names its invoice.
-    App\Work\Application\InvoiceNumbers:
-        alias: App\Timesheet\Infrastructure\Doctrine\DoctrineInvoiceNumbers
+    Foresi\Work\Application\InvoiceNumbers:
+        alias: Foresi\Timesheet\Infrastructure\Doctrine\DoctrineInvoiceNumbers
 
     # Links to sent documents are derived from the application secret, never stored.
-    App\Invoicing\Application\LinkTokens:
+    Foresi\Invoicing\Application\LinkTokens:
         arguments:
             $secret: '%kernel.secret%'
 
-    App\Invoicing\Infrastructure\Mail\DiskSentFiles:
+    Foresi\Invoicing\Infrastructure\Mail\DiskSentFiles:
         arguments:
             $root: '%app.sent_documents_dir%'
-    App\Invoicing\Infrastructure\Pdf\DiskOriginalDocuments:
+    Foresi\Invoicing\Infrastructure\Pdf\DiskOriginalDocuments:
         arguments:
             $root: '%app.original_documents_dir%'
-    App\Attachment\Infrastructure\Storage\DiskAttachmentFiles:
+    Foresi\Attachment\Infrastructure\Storage\DiskAttachmentFiles:
         arguments:
             $root: '%app.attachments_dir%'
-    App\Attachment\Application\AttachmentPermissions:
+    Foresi\Attachment\Application\AttachmentPermissions:
         arguments:
             $accesses: !tagged_iterator app.attachment_access
     # Drawn documents, except an imported one that kept the PDF of its source.
-    App\Invoicing\Application\InvoicePdf:
-        alias: App\Invoicing\Infrastructure\Pdf\TcpdfInvoicePdf
-    App\Invoicing\Infrastructure\Pdf\OriginalFirstInvoicePdf:
-        decorates: App\Invoicing\Application\InvoicePdf
+    Foresi\Invoicing\Application\InvoicePdf:
+        alias: Foresi\Invoicing\Infrastructure\Pdf\TcpdfInvoicePdf
+    Foresi\Invoicing\Infrastructure\Pdf\OriginalFirstInvoicePdf:
+        decorates: Foresi\Invoicing\Application\InvoicePdf
         arguments:
             $drawn: '@.inner'
 
     # The importer reads iDoklad accounts; only GET of read-only paths, see ReadOnlyPaths.
-    App\Idoklad\Application\IdokladClient:
-        alias: App\Idoklad\Infrastructure\Http\HttpIdokladClient
-    App\Idoklad\Application\IdokladConnections:
-        alias: App\Idoklad\Infrastructure\Doctrine\DoctrineIdokladConnections
-    App\Idoklad\Application\IdokladSnapshot:
-        alias: App\Idoklad\Infrastructure\Doctrine\DoctrineIdokladSnapshot
-    App\Idoklad\Application\IdokladFiles:
-        alias: App\Idoklad\Infrastructure\Files\DiskIdokladFiles
-    App\Idoklad\Infrastructure\Files\DiskIdokladFiles:
+    Foresi\Idoklad\Application\IdokladClient:
+        alias: Foresi\Idoklad\Infrastructure\Http\HttpIdokladClient
+    Foresi\Idoklad\Application\IdokladConnections:
+        alias: Foresi\Idoklad\Infrastructure\Doctrine\DoctrineIdokladConnections
+    Foresi\Idoklad\Application\IdokladSnapshot:
+        alias: Foresi\Idoklad\Infrastructure\Doctrine\DoctrineIdokladSnapshot
+    Foresi\Idoklad\Application\IdokladFiles:
+        alias: Foresi\Idoklad\Infrastructure\Files\DiskIdokladFiles
+    Foresi\Idoklad\Infrastructure\Files\DiskIdokladFiles:
         arguments:
             $root: '%app.idoklad_files_dir%'
-    App\Idoklad\Application\IdokladJobs:
-        alias: App\Idoklad\Infrastructure\Doctrine\DoctrineIdokladJobs
-    App\Idoklad\Application\IdokladQueue:
-        alias: App\Idoklad\Infrastructure\Messenger\MessengerIdokladQueue
-    App\Idoklad\Application\Import\IdokladLinks:
-        alias: App\Idoklad\Infrastructure\Doctrine\DoctrineIdokladLinks
-    App\Idoklad\Application\Import\IdokladImportRuns:
-        alias: App\Idoklad\Infrastructure\Doctrine\DoctrineIdokladImportRuns
-    App\Idoklad\Application\Import\ImportTransaction:
-        alias: App\Idoklad\Infrastructure\Doctrine\DoctrineImportTransaction
-    App\Idoklad\Application\Import\ContactNames:
-        alias: App\Idoklad\Infrastructure\Doctrine\DoctrineContactNames
-    App\Idoklad\Application\Import\RunIdokladImport:
+    Foresi\Idoklad\Application\IdokladJobs:
+        alias: Foresi\Idoklad\Infrastructure\Doctrine\DoctrineIdokladJobs
+    Foresi\Idoklad\Application\IdokladQueue:
+        alias: Foresi\Idoklad\Infrastructure\Messenger\MessengerIdokladQueue
+    Foresi\Idoklad\Application\Import\IdokladLinks:
+        alias: Foresi\Idoklad\Infrastructure\Doctrine\DoctrineIdokladLinks
+    Foresi\Idoklad\Application\Import\IdokladImportRuns:
+        alias: Foresi\Idoklad\Infrastructure\Doctrine\DoctrineIdokladImportRuns
+    Foresi\Idoklad\Application\Import\ImportTransaction:
+        alias: Foresi\Idoklad\Infrastructure\Doctrine\DoctrineImportTransaction
+    Foresi\Idoklad\Application\Import\ContactNames:
+        alias: Foresi\Idoklad\Infrastructure\Doctrine\DoctrineContactNames
+    Foresi\Idoklad\Application\Import\RunIdokladImport:
         arguments:
             $stages: !tagged_iterator app.idoklad_import_stage
 
@@ -364,11 +364,11 @@ services:
 
     # Application classes stay framework-free, so the reset tag is declared here:
     # long-running workers and Messenger never carry state into the next job.
-    App\Audit\Application\AuditCorrelation:
+    Foresi\Audit\Application\AuditCorrelation:
         tags:
             - { name: kernel.reset, method: reset }
 
-    App\Instance\Application\ConfiguredZone:
+    Foresi\Instance\Application\ConfiguredZone:
         arguments:
             $name: '%app.timezone%'
 
@@ -377,7 +377,7 @@ when@dev:
         app.mail.allow_local_links: true
 
     services:
-        App\Ui\Controller\CatalogueController:
+        Foresi\Ui\Controller\CatalogueController:
             autowire: true
             autoconfigure: true
 
@@ -398,32 +398,32 @@ when@e2e:
             autowire: true
             autoconfigure: true
 
-        App\Ui\Controller\CatalogueController: ~
+        Foresi\Ui\Controller\CatalogueController: ~
 
         # The seed stores an iDoklad pull; no browser test ever reaches iDoklad. A client with no
         # responses fails every request, so a pull or a key check started in a spec fails at once.
-        App\Idoklad\Infrastructure\Http\HttpIdokladClient:
+        Foresi\Idoklad\Infrastructure\Http\HttpIdokladClient:
             arguments:
                 $http: !service
                     class: Symfony\Component\HttpClient\MockHttpClient
                     arguments: [[]]
 
-        App\Party\Application\CompanyRegistry:
-            alias: App\Tests\Support\Registry\FakeCompanyRegistry
-        App\Party\Application\VatRegistry:
-            alias: App\Tests\Support\Registry\FakeVatRegistry
-        App\Party\Application\VatPayerReliability:
-            alias: App\Tests\Support\Registry\FakeVatPayerReliability
-        App\Tests\Support\Registry\FakeCompanyRegistry: ~
-        App\Tests\Support\Registry\FakeVatRegistry: ~
-        App\Tests\Support\Registry\FakeVatPayerReliability: ~
+        Foresi\Party\Application\CompanyRegistry:
+            alias: Foresi\Tests\Support\Registry\FakeCompanyRegistry
+        Foresi\Party\Application\VatRegistry:
+            alias: Foresi\Tests\Support\Registry\FakeVatRegistry
+        Foresi\Party\Application\VatPayerReliability:
+            alias: Foresi\Tests\Support\Registry\FakeVatPayerReliability
+        Foresi\Tests\Support\Registry\FakeCompanyRegistry: ~
+        Foresi\Tests\Support\Registry\FakeVatRegistry: ~
+        Foresi\Tests\Support\Registry\FakeVatPayerReliability: ~
 
         # Public handles for tests/e2e/seed.php.
         e2e.create_party:
-            alias: App\Party\Application\CreateParty
+            alias: Foresi\Party\Application\CreateParty
             public: true
         e2e.registration_numbers:
-            alias: App\Party\Application\RegistrationNumberFactory
+            alias: Foresi\Party\Application\RegistrationNumberFactory
             public: true
         e2e.password_hashers:
             alias: Symfony\Component\PasswordHasher\Hasher\PasswordHasherFactoryInterface
@@ -433,90 +433,90 @@ when@e2e:
             public: true
 
         # Nothing is ever sent from the browser tests.
-        App\Invoicing\Application\MailGateway:
-            alias: App\Tests\Support\Mail\RecordingMailGateway
+        Foresi\Invoicing\Application\MailGateway:
+            alias: Foresi\Tests\Support\Mail\RecordingMailGateway
             public: true
-        App\Tests\Support\Mail\RecordingMailGateway: ~
+        Foresi\Tests\Support\Mail\RecordingMailGateway: ~
         # ...and no browser test asks a real DNS server for a mail host.
-        App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy:
+        Foresi\Invoicing\Infrastructure\Mail\DnsMailHostPolicy:
             arguments:
-                $resolver: !closure '@App\Tests\Support\Mail\ExampleHostResolver'
+                $resolver: !closure '@Foresi\Tests\Support\Mail\ExampleHostResolver'
         # ...nor for a webhook host.
-        App\Webhooks\Infrastructure\Http\DnsWebhookUrlPolicy:
+        Foresi\Webhooks\Infrastructure\Http\DnsWebhookUrlPolicy:
             arguments:
-                $resolver: !closure '@App\Tests\Support\Mail\ExampleHostResolver'
-        App\Tests\Support\Mail\ExampleHostResolver: ~
+                $resolver: !closure '@Foresi\Tests\Support\Mail\ExampleHostResolver'
+        Foresi\Tests\Support\Mail\ExampleHostResolver: ~
         e2e.mail_secrets:
-            alias: App\Invoicing\Application\MailSecrets
+            alias: Foresi\Invoicing\Application\MailSecrets
             public: true
         e2e.issue_invoice:
-            alias: App\Invoicing\Application\IssueInvoice
+            alias: Foresi\Invoicing\Application\IssueInvoice
             public: true
         e2e.send_invoice:
-            alias: App\Invoicing\Application\SendInvoice
+            alias: Foresi\Invoicing\Application\SendInvoice
             public: true
         e2e.link_tokens:
-            alias: App\Invoicing\Application\LinkTokens
+            alias: Foresi\Invoicing\Application\LinkTokens
             public: true
         e2e.record_payment:
-            alias: App\Invoicing\Application\RecordPayment
+            alias: Foresi\Invoicing\Application\RecordPayment
             public: true
         e2e.record_movement:
-            alias: App\Banking\Application\RecordMovement
+            alias: Foresi\Banking\Application\RecordMovement
             public: true
         e2e.pair_movement:
-            alias: App\Banking\Application\PairMovement
+            alias: Foresi\Banking\Application\PairMovement
             public: true
         e2e.generate_address:
-            alias: App\Banking\Application\GenerateAddress
+            alias: Foresi\Banking\Application\GenerateAddress
             public: true
         e2e.receive_inbound_mail:
-            alias: App\Banking\Application\ReceiveInboundMail
+            alias: Foresi\Banking\Application\ReceiveInboundMail
             public: true
         e2e.save_recurring:
-            alias: App\Invoicing\Application\SaveRecurringInvoice
+            alias: Foresi\Invoicing\Application\SaveRecurringInvoice
             public: true
         e2e.recurring_lifecycle:
-            alias: App\Invoicing\Application\RecurringLifecycle
+            alias: Foresi\Invoicing\Application\RecurringLifecycle
             public: true
         e2e.issue_recurring:
-            alias: App\Invoicing\Application\IssueRecurringOccurrence
+            alias: Foresi\Invoicing\Application\IssueRecurringOccurrence
             public: true
         e2e.instance_clock:
-            alias: App\Instance\Application\InstanceClock
+            alias: Foresi\Instance\Application\InstanceClock
             public: true
         e2e.manage_projects:
-            alias: App\Work\Application\ManageProjects
+            alias: Foresi\Work\Application\ManageProjects
             public: true
         e2e.manage_sections:
-            alias: App\Work\Application\ManageSections
+            alias: Foresi\Work\Application\ManageSections
             public: true
         e2e.manage_tasks:
-            alias: App\Work\Application\ManageTasks
+            alias: Foresi\Work\Application\ManageTasks
             public: true
         e2e.manage_labels:
-            alias: App\Work\Application\ManageLabels
+            alias: Foresi\Work\Application\ManageLabels
             public: true
         e2e.manage_comments:
-            alias: App\Work\Application\ManageComments
+            alias: Foresi\Work\Application\ManageComments
             public: true
         e2e.manage_sharing:
-            alias: App\Work\Application\ManageSharing
+            alias: Foresi\Work\Application\ManageSharing
             public: true
         e2e.manage_time:
-            alias: App\Work\Application\ManageTime
+            alias: Foresi\Work\Application\ManageTime
             public: true
         e2e.upload_attachment:
-            alias: App\Attachment\Application\UploadAttachment
+            alias: Foresi\Attachment\Application\UploadAttachment
             public: true
         e2e.token_storage:
             alias: security.token_storage
             public: true
         e2e.rate_store:
-            alias: App\ExchangeRate\Application\RateStore
+            alias: Foresi\ExchangeRate\Application\RateStore
             public: true
         e2e.record_received_document:
-            alias: App\Purchasing\Application\RecordReceivedDocument
+            alias: Foresi\Purchasing\Application\RecordReceivedDocument
             public: true
 
 when@test:
@@ -595,243 +595,243 @@ when@test:
 
         # The generic audit query; the fake import target answers changedSince()
         # with it, while targets of the application check their own entities.
-        App\Audit\Application\AuditTrail:
-            alias: App\Audit\Infrastructure\Doctrine\DoctrineAuditTrail
+        Foresi\Audit\Application\AuditTrail:
+            alias: Foresi\Audit\Infrastructure\Doctrine\DoctrineAuditTrail
             public: true
 
         # Lets a test make the gate's lock fail once.
-        App\Tests\Import\Support\FlakyImportLock:
-            decorates: App\Import\Application\ImportLock
+        Foresi\Tests\Import\Support\FlakyImportLock:
+            decorates: Foresi\Import\Application\ImportLock
 
         # A target living in memory, for the pipeline tests.
-        App\Tests\Import\Support\FakeTarget:
+        Foresi\Tests\Import\Support\FakeTarget:
             public: true
             tags: ['app.import_target']
 
         # The tests drive the import services directly, not only through the screens.
-        App\Import\Application\StartImport: { public: true }
-        App\Import\Application\ExportRecords: { public: true }
-        App\Import\Application\ConfigureImport: { public: true }
-        App\Import\Application\CheckImport: { public: true }
-        App\Import\Application\RunImport: { public: true }
-        App\Import\Application\UndoImport: { public: true }
-        App\Import\Application\CancelImport: { public: true }
-        App\Import\Application\ImportErrorFile: { public: true }
+        Foresi\Import\Application\StartImport: { public: true }
+        Foresi\Import\Application\ExportRecords: { public: true }
+        Foresi\Import\Application\ConfigureImport: { public: true }
+        Foresi\Import\Application\CheckImport: { public: true }
+        Foresi\Import\Application\RunImport: { public: true }
+        Foresi\Import\Application\UndoImport: { public: true }
+        Foresi\Import\Application\CancelImport: { public: true }
+        Foresi\Import\Application\ImportErrorFile: { public: true }
 
         # Public for the tests, which use the ports directly.
-        App\Import\Application\Imports:
-            alias: App\Import\Infrastructure\Doctrine\DoctrineImports
+        Foresi\Import\Application\Imports:
+            alias: Foresi\Import\Infrastructure\Doctrine\DoctrineImports
             public: true
-        App\Import\Application\ProfileRepository:
-            alias: App\Import\Infrastructure\Doctrine\DoctrineProfileRepository
+        Foresi\Import\Application\ProfileRepository:
+            alias: Foresi\Import\Infrastructure\Doctrine\DoctrineProfileRepository
             public: true
-        App\Import\Application\ImportFiles:
-            alias: App\Import\Infrastructure\LocalImportFiles
+        Foresi\Import\Application\ImportFiles:
+            alias: Foresi\Import\Infrastructure\LocalImportFiles
             public: true
 
         # Public for the tests and the worker of the parallel counter test, which use the ports directly.
-        App\Invoicing\Application\NumberCounter:
-            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineNumberCounter
+        Foresi\Invoicing\Application\NumberCounter:
+            alias: Foresi\Invoicing\Infrastructure\Doctrine\DoctrineNumberCounter
             public: true
-        App\Invoicing\Application\SeriesCatalog:
-            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineSeriesCatalog
+        Foresi\Invoicing\Application\SeriesCatalog:
+            alias: Foresi\Invoicing\Infrastructure\Doctrine\DoctrineSeriesCatalog
             public: true
-        App\Party\Application\TransactionalWork:
-            alias: App\Party\Infrastructure\Doctrine\DoctrineTransactionalWork
+        Foresi\Party\Application\TransactionalWork:
+            alias: Foresi\Party\Infrastructure\Doctrine\DoctrineTransactionalWork
             public: true
-        App\Invoicing\Application\FirmInvoicingSettings:
-            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineFirmInvoicingSettings
+        Foresi\Invoicing\Application\FirmInvoicingSettings:
+            alias: Foresi\Invoicing\Infrastructure\Doctrine\DoctrineFirmInvoicingSettings
             public: true
-        App\Invoicing\Application\InvoiceStore:
-            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceStore
+        Foresi\Invoicing\Application\InvoiceStore:
+            alias: Foresi\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceStore
             public: true
-        App\Invoicing\Application\InvoiceBalances:
-            alias: App\Invoicing\Infrastructure\Doctrine\PaymentBalances
+        Foresi\Invoicing\Application\InvoiceBalances:
+            alias: Foresi\Invoicing\Infrastructure\Doctrine\PaymentBalances
             public: true
         test.invoice_balances:
-            alias: App\Invoicing\Application\InvoiceBalances
+            alias: Foresi\Invoicing\Application\InvoiceBalances
             public: true
-        App\Invoicing\Application\ConflictRetry:
-            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineConflictRetry
+        Foresi\Invoicing\Application\ConflictRetry:
+            alias: Foresi\Invoicing\Infrastructure\Doctrine\DoctrineConflictRetry
             public: true
-        App\Invoicing\Application\IssueInvoice: { public: true }
-        App\Invoicing\Application\EditInvoice: { public: true }
-        App\Party\Application\ContactSettingsForFirm: { public: true }
-        App\Invoicing\Application\NewInvoiceDefaults: { public: true }
-        App\Invoicing\Application\CustomerPicker: { public: true }
-        App\Invoicing\Application\TrashInvoice: { public: true }
-        App\Invoicing\Application\MarkDelivered: { public: true }
-        App\Invoicing\Application\IssuedDocumentFactory: { public: true }
-        App\Invoicing\Application\IssueRules: { public: true }
-        App\Invoicing\Application\CustomerCopies: { public: true }
-        App\Invoicing\Application\LinePricing: { public: true }
-        App\Invoicing\Application\NumberAllocator: { public: true }
+        Foresi\Invoicing\Application\IssueInvoice: { public: true }
+        Foresi\Invoicing\Application\EditInvoice: { public: true }
+        Foresi\Party\Application\ContactSettingsForFirm: { public: true }
+        Foresi\Invoicing\Application\NewInvoiceDefaults: { public: true }
+        Foresi\Invoicing\Application\CustomerPicker: { public: true }
+        Foresi\Invoicing\Application\TrashInvoice: { public: true }
+        Foresi\Invoicing\Application\MarkDelivered: { public: true }
+        Foresi\Invoicing\Application\IssuedDocumentFactory: { public: true }
+        Foresi\Invoicing\Application\IssueRules: { public: true }
+        Foresi\Invoicing\Application\CustomerCopies: { public: true }
+        Foresi\Invoicing\Application\LinePricing: { public: true }
+        Foresi\Invoicing\Application\NumberAllocator: { public: true }
         # The recurring templates and their daily run, for the tests that drive them directly.
-        App\Invoicing\Application\SaveRecurringInvoice: { public: true }
-        App\Invoicing\Application\IssueRecurringInvoices: { public: true, tags: ['app.scheduled_job'] }
-        App\Invoicing\Application\RecurringLifecycle: { public: true }
-        App\Invoicing\Application\IssueRecurringOccurrence: { public: true }
-        App\Invoicing\Application\RecurringInvoices:
-            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineRecurringInvoices
+        Foresi\Invoicing\Application\SaveRecurringInvoice: { public: true }
+        Foresi\Invoicing\Application\IssueRecurringInvoices: { public: true, tags: ['app.scheduled_job'] }
+        Foresi\Invoicing\Application\RecurringLifecycle: { public: true }
+        Foresi\Invoicing\Application\IssueRecurringOccurrence: { public: true }
+        Foresi\Invoicing\Application\RecurringInvoices:
+            alias: Foresi\Invoicing\Infrastructure\Doctrine\DoctrineRecurringInvoices
             public: true
 
         # A scheduled job that counts its runs, and the run records it is claimed through.
-        App\Tests\Instance\Support\CountingJob:
+        Foresi\Tests\Instance\Support\CountingJob:
             tags: ['app.scheduled_job']
-        App\Tests\Instance\Support\CountingOperatorTask:
+        Foresi\Tests\Instance\Support\CountingOperatorTask:
             tags: ['app.operator_task']
 
         # The operator mailbox in memory, and an inbound file store a test can make fail.
-        App\Tests\Support\Mail\FakeInboundMailbox: ~
-        App\Banking\Application\InboundMailbox:
-            alias: App\Tests\Support\Mail\FakeInboundMailbox
+        Foresi\Tests\Support\Mail\FakeInboundMailbox: ~
+        Foresi\Banking\Application\InboundMailbox:
+            alias: Foresi\Tests\Support\Mail\FakeInboundMailbox
             public: true
-        App\Tests\Banking\Support\FailingInboundFiles:
-            decorates: App\Banking\Application\InboundFiles
+        Foresi\Tests\Banking\Support\FailingInboundFiles:
+            decorates: Foresi\Banking\Application\InboundFiles
         # The poller's failure counts in memory, so no test leaves them for the next.
-        App\Banking\Infrastructure\CachePollFailures:
+        Foresi\Banking\Infrastructure\CachePollFailures:
             arguments:
                 $cache: !service { class: Symfony\Component\Cache\Adapter\ArrayAdapter }
-        App\Instance\Application\Schedule\ScheduledJobRuns:
-            alias: App\Instance\Infrastructure\Schedule\DoctrineScheduledJobRuns
+        Foresi\Instance\Application\Schedule\ScheduledJobRuns:
+            alias: Foresi\Instance\Infrastructure\Schedule\DoctrineScheduledJobRuns
             public: true
         # The tests drive the work services directly; the screens come next.
-        App\Work\Application\ManageProjects: { public: true }
-        App\Work\Application\ManageSections: { public: true }
-        App\Work\Application\ManageWorkflow: { public: true }
-        App\Work\Application\ManageTasks: { public: true }
-        App\Work\Application\ManageLabels: { public: true }
-        App\Work\Application\TaskHistory: { public: true }
-        App\Work\Application\ManageComments: { public: true }
-        App\Work\Application\PurgeDeletedTasks: { public: true }
-        App\Work\Application\ManageSharing: { public: true }
-        App\Work\Application\ManageTime: { public: true }
-        App\Work\Application\TimeQueries:
-            alias: App\Work\Infrastructure\Doctrine\DoctrineTimeQueries
+        Foresi\Work\Application\ManageProjects: { public: true }
+        Foresi\Work\Application\ManageSections: { public: true }
+        Foresi\Work\Application\ManageWorkflow: { public: true }
+        Foresi\Work\Application\ManageTasks: { public: true }
+        Foresi\Work\Application\ManageLabels: { public: true }
+        Foresi\Work\Application\TaskHistory: { public: true }
+        Foresi\Work\Application\ManageComments: { public: true }
+        Foresi\Work\Application\PurgeDeletedTasks: { public: true }
+        Foresi\Work\Application\ManageSharing: { public: true }
+        Foresi\Work\Application\ManageTime: { public: true }
+        Foresi\Work\Application\TimeQueries:
+            alias: Foresi\Work\Infrastructure\Doctrine\DoctrineTimeQueries
             public: true
-        App\Work\Application\WorkVisibility:
-            alias: App\Work\Application\SharedWorkVisibility
+        Foresi\Work\Application\WorkVisibility:
+            alias: Foresi\Work\Application\SharedWorkVisibility
             public: true
-        App\Work\Application\WorkQueries:
-            alias: App\Work\Infrastructure\Doctrine\DoctrineWorkQueries
+        Foresi\Work\Application\WorkQueries:
+            alias: Foresi\Work\Infrastructure\Doctrine\DoctrineWorkQueries
             public: true
-        App\Instance\Application\InstanceClock: { public: true }
+        Foresi\Instance\Application\InstanceClock: { public: true }
         # The MCP server on stdio will sign in with it; until then only the tests do.
-        App\Identity\Infrastructure\Security\ApiTokenLogin: { public: true }
+        Foresi\Identity\Infrastructure\Security\ApiTokenLogin: { public: true }
 
         # Tests never send mail: the gateway records instead.
-        App\Invoicing\Application\MailGateway:
-            alias: App\Tests\Support\Mail\RecordingMailGateway
+        Foresi\Invoicing\Application\MailGateway:
+            alias: Foresi\Tests\Support\Mail\RecordingMailGateway
             public: true
-        App\Tests\Support\Mail\RecordingMailGateway: ~
-        App\Invoicing\Application\MailServers:
-            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineMailServers
+        Foresi\Tests\Support\Mail\RecordingMailGateway: ~
+        Foresi\Invoicing\Application\MailServers:
+            alias: Foresi\Invoicing\Infrastructure\Doctrine\DoctrineMailServers
             public: true
-        App\Invoicing\Application\MailSecrets:
-            alias: App\Invoicing\Infrastructure\Mail\SodiumMailSecrets
+        Foresi\Invoicing\Application\MailSecrets:
+            alias: Foresi\Invoicing\Infrastructure\Mail\SodiumMailSecrets
             public: true
-        App\Invoicing\Application\MailHostPolicy:
-            alias: App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy
+        Foresi\Invoicing\Application\MailHostPolicy:
+            alias: Foresi\Invoicing\Infrastructure\Mail\DnsMailHostPolicy
             public: true
         # No test asks a real DNS server for a mail host.
-        App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy:
+        Foresi\Invoicing\Infrastructure\Mail\DnsMailHostPolicy:
             arguments:
-                $resolver: !closure '@App\Tests\Support\Mail\ExampleHostResolver'
+                $resolver: !closure '@Foresi\Tests\Support\Mail\ExampleHostResolver'
         # ...nor for a webhook host.
-        App\Webhooks\Infrastructure\Http\DnsWebhookUrlPolicy:
+        Foresi\Webhooks\Infrastructure\Http\DnsWebhookUrlPolicy:
             arguments:
-                $resolver: !closure '@App\Tests\Support\Mail\ExampleHostResolver'
-        App\Tests\Support\Mail\ExampleHostResolver: ~
-        App\Invoicing\Application\MailTemplates:
-            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineMailTemplates
+                $resolver: !closure '@Foresi\Tests\Support\Mail\ExampleHostResolver'
+        Foresi\Tests\Support\Mail\ExampleHostResolver: ~
+        Foresi\Invoicing\Application\MailTemplates:
+            alias: Foresi\Invoicing\Infrastructure\Doctrine\DoctrineMailTemplates
             public: true
-        App\Invoicing\Application\MailVariables: { public: true }
-        App\Invoicing\Application\SendInvoice: { public: true }
-        App\Invoicing\Application\LinkTokens:
+        Foresi\Invoicing\Application\MailVariables: { public: true }
+        Foresi\Invoicing\Application\SendInvoice: { public: true }
+        Foresi\Invoicing\Application\LinkTokens:
             public: true
             arguments:
                 $secret: '%kernel.secret%'
-        App\Invoicing\Application\InvoiceSends:
-            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceSends
+        Foresi\Invoicing\Application\InvoiceSends:
+            alias: Foresi\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceSends
             public: true
-        App\Invoicing\Application\DocumentLinks:
-            alias: App\Invoicing\Infrastructure\Mail\RouterDocumentLinks
+        Foresi\Invoicing\Application\DocumentLinks:
+            alias: Foresi\Invoicing\Infrastructure\Mail\RouterDocumentLinks
             public: true
-        App\Invoicing\Application\SentFiles:
-            alias: App\Invoicing\Infrastructure\Mail\DiskSentFiles
+        Foresi\Invoicing\Application\SentFiles:
+            alias: Foresi\Invoicing\Infrastructure\Mail\DiskSentFiles
             public: true
-        App\Invoicing\Application\ImportIssuedDocument: { public: true }
-        App\Invoicing\Application\UndoImportedDocuments: { public: true }
-        App\Invoicing\Application\OriginalDocuments:
-            alias: App\Invoicing\Infrastructure\Pdf\DiskOriginalDocuments
+        Foresi\Invoicing\Application\ImportIssuedDocument: { public: true }
+        Foresi\Invoicing\Application\UndoImportedDocuments: { public: true }
+        Foresi\Invoicing\Application\OriginalDocuments:
+            alias: Foresi\Invoicing\Infrastructure\Pdf\DiskOriginalDocuments
             public: true
-        App\Invoicing\Application\ImportedDocuments:
-            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineImportedDocuments
+        Foresi\Invoicing\Application\ImportedDocuments:
+            alias: Foresi\Invoicing\Infrastructure\Doctrine\DoctrineImportedDocuments
             public: true
         # Public for the iDoklad tests, which pull through a mocked HTTP client.
-        App\Idoklad\Application\IdokladConnections:
-            alias: App\Idoklad\Infrastructure\Doctrine\DoctrineIdokladConnections
+        Foresi\Idoklad\Application\IdokladConnections:
+            alias: Foresi\Idoklad\Infrastructure\Doctrine\DoctrineIdokladConnections
             public: true
-        App\Idoklad\Application\IdokladSnapshot:
-            alias: App\Idoklad\Infrastructure\Doctrine\DoctrineIdokladSnapshot
+        Foresi\Idoklad\Application\IdokladSnapshot:
+            alias: Foresi\Idoklad\Infrastructure\Doctrine\DoctrineIdokladSnapshot
             public: true
-        App\Idoklad\Application\IdokladFiles:
-            alias: App\Idoklad\Infrastructure\Files\DiskIdokladFiles
+        Foresi\Idoklad\Application\IdokladFiles:
+            alias: Foresi\Idoklad\Infrastructure\Files\DiskIdokladFiles
             public: true
-        App\Idoklad\Application\ConnectIdoklad: { public: true }
-        App\Invoicing\Application\InvoicePayments:
-            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineInvoicePayments
+        Foresi\Idoklad\Application\ConnectIdoklad: { public: true }
+        Foresi\Invoicing\Application\InvoicePayments:
+            alias: Foresi\Invoicing\Infrastructure\Doctrine\DoctrineInvoicePayments
             public: true
-        App\Invoicing\Application\RecordPayment: { public: true }
-        App\Invoicing\Application\CancelPayment: { public: true }
+        Foresi\Invoicing\Application\RecordPayment: { public: true }
+        Foresi\Invoicing\Application\CancelPayment: { public: true }
 
         # Public for the banking tests and the worker of the pairing race, which drive them directly.
-        App\Banking\Application\BankMovements:
-            alias: App\Banking\Infrastructure\Doctrine\DoctrineBankMovements
+        Foresi\Banking\Application\BankMovements:
+            alias: Foresi\Banking\Infrastructure\Doctrine\DoctrineBankMovements
             public: true
-        App\Banking\Application\RecordMovement: { public: true }
-        App\Banking\Application\PairMovement: { public: true }
-        App\Banking\Application\UnpairMovement: { public: true }
-        App\Banking\Application\Matcher: { public: true }
-        App\Party\Application\BankAccountUsage:
-            alias: App\Banking\Infrastructure\MovementUsage
+        Foresi\Banking\Application\RecordMovement: { public: true }
+        Foresi\Banking\Application\PairMovement: { public: true }
+        Foresi\Banking\Application\UnpairMovement: { public: true }
+        Foresi\Banking\Application\Matcher: { public: true }
+        Foresi\Party\Application\BankAccountUsage:
+            alias: Foresi\Banking\Infrastructure\MovementUsage
             public: true
 
         # Stands in for a plugin adding a sidebar item.
-        App\Tests\Ui\Support\TestNavigationProvider: ~
-        App\Tests\Ui\Support\ShellProbeController: ~
-        App\Ui\Controller\CatalogueController: ~
+        Foresi\Tests\Ui\Support\TestNavigationProvider: ~
+        Foresi\Tests\Ui\Support\ShellProbeController: ~
+        Foresi\Ui\Controller\CatalogueController: ~
 
         # Registry adapters are replaced by fixture-backed fakes: no test ever calls a live register.
-        App\Party\Application\CompanyRegistry:
-            alias: App\Tests\Support\Registry\FakeCompanyRegistry
+        Foresi\Party\Application\CompanyRegistry:
+            alias: Foresi\Tests\Support\Registry\FakeCompanyRegistry
             public: true
-        App\Party\Application\VatRegistry:
-            alias: App\Tests\Support\Registry\FakeVatRegistry
+        Foresi\Party\Application\VatRegistry:
+            alias: Foresi\Tests\Support\Registry\FakeVatRegistry
             public: true
-        App\Party\Application\VatPayerReliability:
-            alias: App\Tests\Support\Registry\FakeVatPayerReliability
+        Foresi\Party\Application\VatPayerReliability:
+            alias: Foresi\Tests\Support\Registry\FakeVatPayerReliability
             public: true
-        App\Tests\Support\Registry\FakeCompanyRegistry: ~
-        App\Tests\Support\Registry\FakeVatRegistry: ~
-        App\Tests\Support\Registry\FakeVatPayerReliability: ~
+        Foresi\Tests\Support\Registry\FakeCompanyRegistry: ~
+        Foresi\Tests\Support\Registry\FakeVatRegistry: ~
+        Foresi\Tests\Support\Registry\FakeVatPayerReliability: ~
 
         # Lets a test make storing a party fail with a domain error after it was written.
-        App\Tests\Party\Infrastructure\Support\RejectingParties:
-            decorates: App\Party\Application\Parties
+        Foresi\Tests\Party\Infrastructure\Support\RejectingParties:
+            decorates: Foresi\Party\Application\Parties
 
         # Lets a test lose the race for a registration number: the form check sees no other firm.
-        App\Tests\Party\Infrastructure\Support\RacingLegalEntities:
-            decorates: App\Party\Application\LegalEntities
+        Foresi\Tests\Party\Infrastructure\Support\RacingLegalEntities:
+            decorates: Foresi\Party\Application\LegalEntities
 
         # Public alias in the test env only, so the wiring of the factory can be tested.
         test.registration_number_factory:
-            alias: App\Party\Application\RegistrationNumberFactory
+            alias: Foresi\Party\Application\RegistrationNumberFactory
             public: true
 
         # Nothing calls the iDoklad import yet; the screens that will are on their way.
         test.idoklad_import:
-            alias: App\Idoklad\Application\Import\RunIdokladImport
+            alias: Foresi\Idoklad\Application\Import\RunIdokladImport
             public: true
 
         # The default logger writes to stderr. Tests log expected errors (404, invalid CSRF), and

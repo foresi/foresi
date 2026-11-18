@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Events;
+namespace Foresi\Purchasing\Infrastructure\Events;
 
-use App\Identity\Application\StaffCheck;
-use App\Purchasing\Application\PurchasingAccess;
-use App\Purchasing\Application\PurchasingNotAllowed;
-use App\Shared\Application\Event\EventReadAccess;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Purchasing\Application\PurchasingAccess;
+use Foresi\Purchasing\Application\PurchasingNotAllowed;
+use Foresi\Shared\Application\Event\EventReadAccess;
 
 /**
  * The events of received documents tell about the costs of the firms, so they

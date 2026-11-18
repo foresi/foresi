@@ -6,22 +6,22 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\IssueProblem;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Application\RecurringInput;
-use App\Invoicing\Application\RecurringInvoices;
-use App\Invoicing\Application\RecurringLifecycle;
-use App\Invoicing\Application\RecurringRefused;
-use App\Invoicing\Application\SaveRecurringInvoice;
-use App\Invoicing\Domain\RecurringDelivery;
-use App\Invoicing\Domain\TaxPointRule;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Schedule\Recurrence;
-use App\Shared\Domain\Schedule\RecurrenceEnd;
-use App\Shared\Domain\Schedule\RecurrenceUnit;
+use Foresi\Invoicing\Application\IssueProblem;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Application\RecurringInput;
+use Foresi\Invoicing\Application\RecurringInvoices;
+use Foresi\Invoicing\Application\RecurringLifecycle;
+use Foresi\Invoicing\Application\RecurringRefused;
+use Foresi\Invoicing\Application\SaveRecurringInvoice;
+use Foresi\Invoicing\Domain\RecurringDelivery;
+use Foresi\Invoicing\Domain\TaxPointRule;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Schedule\Recurrence;
+use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
+use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 
 /**

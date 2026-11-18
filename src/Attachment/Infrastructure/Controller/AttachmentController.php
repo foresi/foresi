@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Attachment\Infrastructure\Controller;
+namespace Foresi\Attachment\Infrastructure\Controller;
 
-use App\Attachment\Application\AttachmentFiles;
-use App\Attachment\Application\AttachmentFileUnreadable;
-use App\Attachment\Application\AttachmentRefused;
-use App\Attachment\Application\AttachmentUpload;
-use App\Attachment\Application\DeleteAttachment;
-use App\Attachment\Application\UploadAttachment;
-use App\Attachment\Application\VisibleAttachments;
-use App\Attachment\Domain\FileName;
-use App\Identity\Application\OpenToGuest;
+use Foresi\Attachment\Application\AttachmentFiles;
+use Foresi\Attachment\Application\AttachmentFileUnreadable;
+use Foresi\Attachment\Application\AttachmentRefused;
+use Foresi\Attachment\Application\AttachmentUpload;
+use Foresi\Attachment\Application\DeleteAttachment;
+use Foresi\Attachment\Application\UploadAttachment;
+use Foresi\Attachment\Application\VisibleAttachments;
+use Foresi\Attachment\Domain\FileName;
+use Foresi\Identity\Application\OpenToGuest;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\File\UploadedFile;

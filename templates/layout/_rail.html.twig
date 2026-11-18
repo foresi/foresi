@@ -7,9 +7,9 @@
     ids stay unique.
     Variables: shell (ShellView), areas (nav_areas()).
 #}
-{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
-{% set notifications = constant('App\\Work\\Infrastructure\\Controller\\NotificationController::ROUTE') %}
-{% set settings = constant('App\\Ui\\Navigation\\NavigationArea::SETTINGS') %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{% set notifications = constant('Foresi\\Work\\Infrastructure\\Controller\\NotificationController::ROUTE') %}
+{% set settings = constant('Foresi\\Ui\\Navigation\\NavigationArea::SETTINGS') %}
 {% set commands = [] %}
 {% for entry in areas %}
     {% for group in entry.groups %}

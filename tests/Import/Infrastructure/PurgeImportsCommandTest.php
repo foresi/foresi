@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Import\Infrastructure;
+namespace Foresi\Tests\Import\Infrastructure;
 
-use App\Import\Application\Imports;
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportAmbiguousMatch;
-use App\Import\Domain\ImportMissingRecord;
-use App\Import\Domain\ImportRow;
-use App\Import\Domain\ImportState;
-use App\Import\Infrastructure\Console\PurgeImportsCommand;
-use App\Import\Infrastructure\LocalImportFiles;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Import\Application\Imports;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\ImportAmbiguousMatch;
+use Foresi\Import\Domain\ImportMissingRecord;
+use Foresi\Import\Domain\ImportRow;
+use Foresi\Import\Domain\ImportState;
+use Foresi\Import\Infrastructure\Console\PurgeImportsCommand;
+use Foresi\Import\Infrastructure\LocalImportFiles;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;

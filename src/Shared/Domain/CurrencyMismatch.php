@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Domain;
+namespace Foresi\Shared\Domain;
 
 /**
  * Raised when an operation combines amounts of different currencies.

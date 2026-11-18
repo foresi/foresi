@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Application;
+namespace Foresi\Timesheet\Application;
 
 /**
  * Whose time an invoice may take: the invoicing firm, the client, some of its

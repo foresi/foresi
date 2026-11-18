@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Events\Infrastructure\Api;
+namespace Foresi\Tests\Events\Infrastructure\Api;
 
-use App\Events\Application\Query\EventFeed;
-use App\Events\Application\Query\EventSlice;
-use App\Events\Infrastructure\Api\EventView;
-use App\Events\Infrastructure\Api\ReadableEvents;
-use App\Events\Infrastructure\Api\SubjectUrls;
-use App\Events\Infrastructure\Catalogue\EventCatalogue;
-use App\Events\Infrastructure\Payload\EventPayloads;
-use App\Shared\Application\Event\EventReadAccess;
-use App\Shared\Infrastructure\Module\InstalledModules;
+use Foresi\Events\Application\Query\EventFeed;
+use Foresi\Events\Application\Query\EventSlice;
+use Foresi\Events\Infrastructure\Api\EventView;
+use Foresi\Events\Infrastructure\Api\ReadableEvents;
+use Foresi\Events\Infrastructure\Api\SubjectUrls;
+use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
+use Foresi\Events\Infrastructure\Payload\EventPayloads;
+use Foresi\Shared\Application\Event\EventReadAccess;
+use Foresi\Shared\Infrastructure\Module\InstalledModules;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -62,7 +62,7 @@ final class ReadableEventsTest extends TestCase
     {
         $events = $this->events($this->empty(), $this->access('invoicing', true));
 
-        self::assertSame(['invoicing.invoice.delivered', 'invoicing.invoice.issued', 'invoicing.invoice.paid', 'invoicing.invoice.restored', 'invoicing.invoice.trashed', 'invoicing.payment.recorded'], array_map(static fn (\App\Events\Infrastructure\Catalogue\EventType $type): string => $type->name, $events->types()));
+        self::assertSame(['invoicing.invoice.delivered', 'invoicing.invoice.issued', 'invoicing.invoice.paid', 'invoicing.invoice.restored', 'invoicing.invoice.trashed', 'invoicing.payment.recorded'], array_map(static fn (\Foresi\Events\Infrastructure\Catalogue\EventType $type): string => $type->name, $events->types()));
     }
 
     private function empty(): EventFeed

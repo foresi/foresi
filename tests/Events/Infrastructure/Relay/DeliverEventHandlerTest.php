@@ -6,27 +6,27 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Events\Infrastructure\Relay;
+namespace Foresi\Tests\Events\Infrastructure\Relay;
 
-use App\Events\Application\DeliverEvent;
-use App\Events\Infrastructure\Catalogue\EventCatalogue;
-use App\Events\Infrastructure\Payload\EventPayloads;
-use App\Events\Infrastructure\Relay\DeliverEventHandler;
-use App\Events\Infrastructure\Relay\DeliveryWork;
-use App\Events\Infrastructure\Relay\EventConsumptions;
-use App\Events\Infrastructure\Relay\EventListeners;
-use App\Shared\Application\Event\EventOutbox;
-use App\Shared\Domain\Id;
-use App\Shared\Domain\Module\ModuleId;
-use App\Tests\Events\Fixtures\Listeners\RecordingListener;
-use App\Tests\Events\Fixtures\Valid\Contract\Event\InvoiceIssued;
-use App\Tests\Events\Fixtures\Valid\Contract\Kind;
-use App\Tests\Events\Support\EventRows;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\Persistence\ManagerRegistry;
+use Foresi\Events\Application\DeliverEvent;
+use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
+use Foresi\Events\Infrastructure\Payload\EventPayloads;
+use Foresi\Events\Infrastructure\Relay\DeliverEventHandler;
+use Foresi\Events\Infrastructure\Relay\DeliveryWork;
+use Foresi\Events\Infrastructure\Relay\EventConsumptions;
+use Foresi\Events\Infrastructure\Relay\EventListeners;
+use Foresi\Shared\Application\Event\EventOutbox;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Domain\Module\ModuleId;
+use Foresi\Tests\Events\Fixtures\Listeners\RecordingListener;
+use Foresi\Tests\Events\Fixtures\Valid\Contract\Event\InvoiceIssued;
+use Foresi\Tests\Events\Fixtures\Valid\Contract\Kind;
+use Foresi\Tests\Events\Support\EventRows;
 use Psr\Log\AbstractLogger;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
@@ -176,7 +176,7 @@ final class DeliverEventHandlerTest extends KernelTestCase
         return new DeliverEventHandler(
             $this->db,
             new EventListeners(new ServiceLocator(['test.listener' => static fn (): RecordingListener => $listener])),
-            EventCatalogue::scan([[ModuleId::of('invoicing'), 'App\Tests\Events\Fixtures\Valid\\', \dirname(__DIR__, 2).'/Fixtures/Valid']]),
+            EventCatalogue::scan([[ModuleId::of('invoicing'), 'Foresi\Tests\Events\Fixtures\Valid\\', \dirname(__DIR__, 2).'/Fixtures/Valid']]),
             new EventPayloads(),
             new DeliveryWork($container->get(EntityManagerInterface::class), $container->get(ManagerRegistry::class), $outbox),
             $this->consumptionRecord(),

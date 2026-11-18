@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Contract\Event\DocumentKindValue;
-use App\Invoicing\Contract\Event\PaymentDirection as PaymentDirectionValue;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\PaymentDirection;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Contract\Event\DocumentKindValue;
+use Foresi\Invoicing\Contract\Event\PaymentDirection as PaymentDirectionValue;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\PaymentDirection;
+use Foresi\Shared\Domain\Money;
 
 /**
  * How the events of this module write what they state: amounts as decimal strings

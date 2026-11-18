@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Domain;
+namespace Foresi\Idoklad\Domain;
 
 /**
  * The number format of an iDoklad numeric sequence in the tokens of a Foresi

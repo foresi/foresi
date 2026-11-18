@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Security;
+namespace Foresi\Identity\Infrastructure\Security;
 
-use App\Identity\Application\UserRepository;
-use App\Identity\Domain\User;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Domain\User;
 use Psr\Log\LoggerInterface;
 use Scheb\TwoFactorBundle\Security\TwoFactor\Backup\BackupCodeManagerInterface;
 

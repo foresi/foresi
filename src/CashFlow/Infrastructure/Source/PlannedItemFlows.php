@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Infrastructure\Source;
+namespace Foresi\CashFlow\Infrastructure\Source;
 
-use App\CashFlow\Application\CashFlowStore;
-use App\CashFlow\Contract\CashFlowSource;
-use App\CashFlow\Contract\ExpectedFlow;
-use App\CashFlow\Contract\FlowCertainty;
-use App\CashFlow\Contract\FlowSubject;
-use App\CashFlow\Domain\PlannedItem;
-use App\Shared\Domain\Schedule\Recurrence;
-use App\Shared\Domain\Schedule\RecurringSchedule;
+use Foresi\CashFlow\Application\CashFlowStore;
+use Foresi\CashFlow\Contract\CashFlowSource;
+use Foresi\CashFlow\Contract\ExpectedFlow;
+use Foresi\CashFlow\Contract\FlowCertainty;
+use Foresi\CashFlow\Contract\FlowSubject;
+use Foresi\CashFlow\Domain\PlannedItem;
+use Foresi\Shared\Domain\Schedule\Recurrence;
+use Foresi\Shared\Domain\Schedule\RecurringSchedule;
 
 /**
  * The planned items of Cash flow itself as a source of the forecast: every

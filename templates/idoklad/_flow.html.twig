@@ -5,7 +5,7 @@
 #}
 {% extends 'layout/app.html.twig' %}
 
-{% set token = csrf_token(constant('App\\Idoklad\\Infrastructure\\Controller\\IdokladImportController::TOKEN')) %}
+{% set token = csrf_token(constant('Foresi\\Idoklad\\Infrastructure\\Controller\\IdokladImportController::TOKEN')) %}
 
 {% block actions %}
     <twig:Ui:Button icon="history" :href="path('app_idoklad_history', {id: firm.id})">{{ 'idoklad.history.title'|trans }}</twig:Ui:Button>

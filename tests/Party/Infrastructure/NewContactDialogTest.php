@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Infrastructure;
+namespace Foresi\Tests\Party\Infrastructure;
 
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyRole;
-use App\Tests\Identity\Support\SignedInBrowser;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;

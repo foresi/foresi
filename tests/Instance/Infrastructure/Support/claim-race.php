@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-use App\Tests\Instance\Infrastructure\Support\ClaimWorker;
+use Foresi\Tests\Instance\Infrastructure\Support\ClaimWorker;
 
 /*
  * One process of the claim race, run from the repository root with DATABASE_URL set.

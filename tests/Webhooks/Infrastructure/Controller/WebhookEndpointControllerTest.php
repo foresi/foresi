@@ -6,28 +6,28 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Infrastructure\Controller;
+namespace Foresi\Tests\Webhooks\Infrastructure\Controller;
 
-use App\Banking\Infrastructure\Events\BankingEventAccess;
-use App\CashFlow\Infrastructure\Events\CashFlowEventAccess;
-use App\Identity\Application\UserRepository;
-use App\Identity\Domain\Role;
-use App\Invoicing\Infrastructure\Events\InvoicingEventAccess;
-use App\Party\Infrastructure\Events\PartyEventAccess;
-use App\Purchasing\Infrastructure\Events\PurchasingEventAccess;
-use App\Shared\Application\Event\EventReadAccess;
-use App\Shared\Domain\Id;
-use App\Tests\Identity\Support\IdentityFixtures;
-use App\Tests\Identity\Support\SignedInBrowser;
-use App\Tests\Webhooks\Support\DeliveryRows;
-use App\Webhooks\Domain\DisabledReason;
-use App\Webhooks\Domain\EndpointUrl;
-use App\Webhooks\Domain\EventTypes;
-use App\Webhooks\Domain\WebhookEndpoint;
-use App\Webhooks\Domain\WebhookSecret;
-use App\Webhooks\Infrastructure\Crypto\SodiumWebhookSecrets;
-use App\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Banking\Infrastructure\Events\BankingEventAccess;
+use Foresi\CashFlow\Infrastructure\Events\CashFlowEventAccess;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Domain\Role;
+use Foresi\Invoicing\Infrastructure\Events\InvoicingEventAccess;
+use Foresi\Party\Infrastructure\Events\PartyEventAccess;
+use Foresi\Purchasing\Infrastructure\Events\PurchasingEventAccess;
+use Foresi\Shared\Application\Event\EventReadAccess;
+use Foresi\Shared\Domain\Id;
+use Foresi\Tests\Identity\Support\IdentityFixtures;
+use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Tests\Webhooks\Support\DeliveryRows;
+use Foresi\Webhooks\Domain\DisabledReason;
+use Foresi\Webhooks\Domain\EndpointUrl;
+use Foresi\Webhooks\Domain\EventTypes;
+use Foresi\Webhooks\Domain\WebhookEndpoint;
+use Foresi\Webhooks\Domain\WebhookSecret;
+use Foresi\Webhooks\Infrastructure\Crypto\SodiumWebhookSecrets;
+use Foresi\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;

@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Purchasing\Domain;
+namespace Foresi\Tests\Purchasing\Domain;
 
-use App\Purchasing\Domain\EvidenceNumberFormat;
-use App\Purchasing\Domain\InvalidEvidenceFormat;
+use Foresi\Purchasing\Domain\EvidenceNumberFormat;
+use Foresi\Purchasing\Domain\InvalidEvidenceFormat;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

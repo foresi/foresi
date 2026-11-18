@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application\Import;
+namespace Foresi\Idoklad\Application\Import;
 
-use App\Idoklad\Domain\IdokladImportRun;
-use App\Idoklad\Domain\IdokladResource;
-use App\Idoklad\Domain\ImportMode;
-use App\Invoicing\Application\RecurringInvoices;
-use App\Invoicing\Application\UndoBlocker;
-use App\Invoicing\Application\UndoImportedDocuments;
-use App\Invoicing\Application\UnknownRecurringInvoice;
-use App\Invoicing\Domain\RecurringInvoice;
-use App\Party\Application\LegalEntities;
+use Foresi\Idoklad\Domain\IdokladImportRun;
+use Foresi\Idoklad\Domain\IdokladResource;
+use Foresi\Idoklad\Domain\ImportMode;
+use Foresi\Invoicing\Application\RecurringInvoices;
+use Foresi\Invoicing\Application\UndoBlocker;
+use Foresi\Invoicing\Application\UndoImportedDocuments;
+use Foresi\Invoicing\Application\UnknownRecurringInvoice;
+use Foresi\Invoicing\Domain\RecurringInvoice;
+use Foresi\Party\Application\LegalEntities;
 use Psr\Clock\ClockInterface;
 
 /**

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Events\Fixtures\WrongPrefix\Contract\Event;
+namespace Foresi\Tests\Events\Fixtures\WrongPrefix\Contract\Event;
 
-use App\Shared\Domain\Event\DomainEvent;
-use App\Shared\Domain\Event\DomainEventPayload;
-use App\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Domain\Event\DomainEvent;
+use Foresi\Shared\Domain\Event\DomainEventPayload;
+use Foresi\Shared\Domain\Event\EventSubject;
 
 #[DomainEvent('party.invoice.issued')]
 final readonly class Issued implements DomainEventPayload

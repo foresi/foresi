@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Api;
+namespace Foresi\Invoicing\Infrastructure\Api;
 
-use App\Invoicing\Application\Query\PaymentAllocationRow;
-use App\Invoicing\Application\Query\PaymentRow;
-use App\Shared\Infrastructure\Api\JsonValues;
+use Foresi\Invoicing\Application\Query\PaymentAllocationRow;
+use Foresi\Invoicing\Application\Query\PaymentRow;
+use Foresi\Shared\Infrastructure\Api\JsonValues;
 
 /**
  * Payments as the REST API and the MCP tools write them, in a list and alone

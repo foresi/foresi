@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Infrastructure;
+namespace Foresi\Tests\Party\Infrastructure;
 
-use App\Party\Application\FirmImages;
-use App\Party\Application\FirmImageType;
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
-use App\Party\Infrastructure\Http\FilesystemFirmImages;
-use App\Shared\Domain\Id;
-use App\Tests\Identity\Support\SignedInBrowser;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Party\Application\FirmImages;
+use Foresi\Party\Application\FirmImageType;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Party\Infrastructure\Http\FilesystemFirmImages;
+use Foresi\Shared\Domain\Id;
+use Foresi\Tests\Identity\Support\SignedInBrowser;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;

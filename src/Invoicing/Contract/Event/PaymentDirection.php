@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Contract\Event;
+namespace Foresi\Invoicing\Contract\Event;
 
 /**
  * Whether a payment brought money in or sent it back.

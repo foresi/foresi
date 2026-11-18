@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Support;
+namespace Foresi\Tests\Banking\Support;
 
-use App\Banking\Application\GenerateAddress;
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
-use App\Tests\Party\Support\FirmAccounts;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Banking\Application\GenerateAddress;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Tests\Party\Support\FirmAccounts;
 
 /**
  * A fresh schema with one firm whose account has an inbound address, and

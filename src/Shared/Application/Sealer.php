@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Application;
+namespace Foresi\Shared\Application;
 
 /**
  * Seals secrets kept in the database with keys held outside it, so a copy of

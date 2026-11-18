@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Domain;
+namespace Foresi\Party\Domain;
 
-use App\Audit\Domain\Audited;
-use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Shared\Domain\Id;
 
 /**
  * A person or organisation the firm does business with: a customer, a

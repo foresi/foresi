@@ -6,23 +6,23 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Infrastructure;
+namespace Foresi\Tests\Banking\Infrastructure;
 
-use App\Banking\Application\BankFeedDirectory;
-use App\Banking\Application\BankFeeds;
-use App\Banking\Application\InboundAddresses;
-use App\Banking\Application\InboundFiles;
-use App\Banking\Application\InboundMessages;
-use App\Banking\Application\InboundProcessing;
-use App\Banking\Application\MailReader;
-use App\Banking\Application\ProcessInboundMessage;
-use App\Banking\Application\ReceiveInboundMail;
-use App\Banking\Application\ReceiveOutcome;
-use App\Banking\Domain\InboundChannel;
-use App\Invoicing\Application\PaymentState;
-use App\Party\Application\TransactionalWork;
-use App\Tests\Banking\Support\InboundTestCase;
-use App\Tests\Banking\Support\Scalars;
+use Foresi\Banking\Application\BankFeedDirectory;
+use Foresi\Banking\Application\BankFeeds;
+use Foresi\Banking\Application\InboundAddresses;
+use Foresi\Banking\Application\InboundFiles;
+use Foresi\Banking\Application\InboundMessages;
+use Foresi\Banking\Application\InboundProcessing;
+use Foresi\Banking\Application\MailReader;
+use Foresi\Banking\Application\ProcessInboundMessage;
+use Foresi\Banking\Application\ReceiveInboundMail;
+use Foresi\Banking\Application\ReceiveOutcome;
+use Foresi\Banking\Domain\InboundChannel;
+use Foresi\Invoicing\Application\PaymentState;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Tests\Banking\Support\InboundTestCase;
+use Foresi\Tests\Banking\Support\Scalars;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;

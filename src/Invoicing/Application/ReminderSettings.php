@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\FirmReminders;
-use App\Party\Domain\LegalEntity;
+use Foresi\Invoicing\Domain\FirmReminders;
+use Foresi\Party\Domain\LegalEntity;
 
 /**
  * The reminder settings of the firms. Call save() inside

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Membership;
 
 /**
  * The inbox of a person. Only rows of tasks the person sees now count: a task

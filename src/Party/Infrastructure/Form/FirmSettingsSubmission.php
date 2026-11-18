@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Form;
+namespace Foresi\Party\Infrastructure\Form;
 
-use App\Party\Domain\InvoicingDefaults;
-use App\Party\Domain\InvoicingEmail;
-use App\Party\Domain\PartyRole;
+use Foresi\Party\Domain\InvoicingDefaults;
+use Foresi\Party\Domain\InvoicingEmail;
+use Foresi\Party\Domain\PartyRole;
 
 /**
  * What came in for the scoped panels of the contact form, by scope: the id of

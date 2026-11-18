@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Domain;
+namespace Foresi\Banking\Domain;
 
 /**
  * How an inbound message reached the server.

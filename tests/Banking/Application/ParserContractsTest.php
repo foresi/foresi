@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Application;
 
-use App\Banking\Application\DefaultPairingRules;
-use App\Banking\Application\ParsedMovement;
-use App\Banking\Application\ParseResult;
-use App\Banking\Application\TrustVerdict;
-use App\Banking\Domain\MessageTrust;
-use App\Banking\Domain\MovementDirection;
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Banking\Application\DefaultPairingRules;
+use Foresi\Banking\Application\ParsedMovement;
+use Foresi\Banking\Application\ParseResult;
+use Foresi\Banking\Application\TrustVerdict;
+use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Banking\Domain\MovementDirection;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Infrastructure\Http;
+namespace Foresi\Idoklad\Infrastructure\Http;
 
-use App\Idoklad\Application\IdokladAccessDenied;
-use App\Idoklad\Application\IdokladFailure;
-use App\Idoklad\Application\IdokladSession;
-use App\Idoklad\Application\IdokladTariffWithoutApi;
-use App\Idoklad\Domain\ReadOnlyPaths;
+use Foresi\Idoklad\Application\IdokladAccessDenied;
+use Foresi\Idoklad\Application\IdokladFailure;
+use Foresi\Idoklad\Application\IdokladSession;
+use Foresi\Idoklad\Application\IdokladTariffWithoutApi;
+use Foresi\Idoklad\Domain\ReadOnlyPaths;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;

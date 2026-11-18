@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
-use App\Identity\Domain\ApiScope;
+use Foresi\Identity\Domain\ApiScope;
 
 /**
  * The personal API token the current request or process signed in with; none

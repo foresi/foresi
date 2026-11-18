@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Export;
+namespace Foresi\Work\Infrastructure\Export;
 
-use App\Work\Application\TimeEntryRow;
+use Foresi\Work\Application\TimeEntryRow;
 use OpenSpout\Common\Entity\Cell\StringCell;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\CSV\Options;

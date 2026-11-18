@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Purchasing\Application\Query;
+namespace Foresi\Tests\Purchasing\Application\Query;
 
-use App\Party\Application\LegalEntities;
-use App\Purchasing\Application\PurchasingAccess;
-use App\Purchasing\Application\PurchasingNotAllowed;
-use App\Purchasing\Application\Query\ReceivedDocumentFilter;
-use App\Purchasing\Application\Query\ReceivedDocumentList;
-use App\Purchasing\Application\Query\ReceivedDocumentQueries;
-use App\Purchasing\Application\Query\ReceivedDocumentSliceFilter;
-use App\Purchasing\Domain\PurchaseTaxTreatment;
-use App\Purchasing\Domain\ReceivedDocumentKind;
-use App\Tests\Purchasing\Application\PurchasingTestCase;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Purchasing\Application\PurchasingAccess;
+use Foresi\Purchasing\Application\PurchasingNotAllowed;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentFilter;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentList;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentQueries;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentSliceFilter;
+use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
+use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Tests\Purchasing\Application\PurchasingTestCase;
 
 final class ReceivedDocumentListTest extends PurchasingTestCase
 {

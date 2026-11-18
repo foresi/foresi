@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Doctrine;
+namespace Foresi\Party\Infrastructure\Doctrine;
 
-use App\Party\Application\PartyBankAccounts;
-use App\Party\Domain\PartyBankAccount;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Party\Application\PartyBankAccounts;
+use Foresi\Party\Domain\PartyBankAccount;
 
 final readonly class DoctrinePartyBankAccounts implements PartyBankAccounts
 {

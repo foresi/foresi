@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Application;
+namespace Foresi\Tests\Party\Application;
 
-use App\Party\Application\RegistrationNumberFactory;
-use App\Party\Domain\InvalidRegistrationNumber;
+use Foresi\Party\Application\RegistrationNumberFactory;
+use Foresi\Party\Domain\InvalidRegistrationNumber;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class RegistrationNumberWiringTest extends KernelTestCase

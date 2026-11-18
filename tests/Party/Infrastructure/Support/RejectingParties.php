@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Infrastructure\Support;
+namespace Foresi\Tests\Party\Infrastructure\Support;
 
-use App\Party\Application\Parties;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyEmail;
+use Foresi\Party\Application\Parties;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyEmail;
 use Symfony\Component\DependencyInjection\Attribute\AutowireDecorated;
 
 /**

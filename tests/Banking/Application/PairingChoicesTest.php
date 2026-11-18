@@ -6,26 +6,26 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Application;
 
-use App\Banking\Application\Candidate;
-use App\Banking\Application\Candidates;
-use App\Banking\Application\FirmPairingRules;
-use App\Banking\Application\Matcher;
-use App\Banking\Application\PairingChoice;
-use App\Banking\Application\PairingChoices;
-use App\Banking\Application\PairingOptions;
-use App\Banking\Application\PairingRules;
-use App\Banking\Domain\BankMovement;
-use App\Banking\Domain\MessageTrust;
-use App\Banking\Domain\MovementDirection;
-use App\Banking\Domain\MovementState;
-use App\Banking\Domain\UnmatchedReason;
-use App\Invoicing\Application\InvoicingCountries;
-use App\Party\Domain\LegalEntity;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Banking\Support\BankingTestCase;
+use Foresi\Banking\Application\Candidate;
+use Foresi\Banking\Application\Candidates;
+use Foresi\Banking\Application\FirmPairingRules;
+use Foresi\Banking\Application\Matcher;
+use Foresi\Banking\Application\PairingChoice;
+use Foresi\Banking\Application\PairingChoices;
+use Foresi\Banking\Application\PairingOptions;
+use Foresi\Banking\Application\PairingRules;
+use Foresi\Banking\Domain\BankMovement;
+use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Banking\Domain\MovementDirection;
+use Foresi\Banking\Domain\MovementState;
+use Foresi\Banking\Domain\UnmatchedReason;
+use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Banking\Support\BankingTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**

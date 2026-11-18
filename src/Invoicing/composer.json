@@ -15,7 +15,7 @@
         "foresi": {
             "module": "invoicing",
             "kind": "module",
-            "namespace": "App\\Invoicing\\",
+            "namespace": "Foresi\\Invoicing\\",
             "optional": [
                 "cash-flow"
             ],

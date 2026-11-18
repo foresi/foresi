@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Domain;
+namespace Foresi\Purchasing\Domain;
 
-use App\Party\Domain\Address;
-use App\Party\Domain\Party;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\Party;
 
 /**
  * The supplier as the document names it, frozen on the document: editing the

@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Attachment\Infrastructure\Storage;
+namespace Foresi\Attachment\Infrastructure\Storage;
 
-use App\Attachment\Application\AttachmentFiles;
-use App\Attachment\Application\AttachmentFileUnreadable;
+use Foresi\Attachment\Application\AttachmentFiles;
+use Foresi\Attachment\Application\AttachmentFileUnreadable;
 
 /**
  * Attachments in one private directory, never below public/, each file named

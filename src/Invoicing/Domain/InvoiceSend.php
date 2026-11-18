@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Domain;
+namespace Foresi\Invoicing\Domain;
 
-use App\Audit\Domain\Audited;
-use App\Audit\Domain\AuditExcluded;
-use App\Audit\Domain\AuditRooted;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Audit\Domain\AuditExcluded;
+use Foresi\Audit\Domain\AuditRooted;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
 
 /**
  * One sending of a document by e-mail: what was sent, to whom, and how it went.

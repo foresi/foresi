@@ -27,7 +27,7 @@
         </section>
 
         <form method="post" action="{{ action }}" class="grid grid-cols-1 gap-4" novalidate>
-            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\FirmInvoicingController::SETTINGS_TOKEN')) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\FirmInvoicingController::SETTINGS_TOKEN')) }}">
 
             {% if errors.form is defined %}
                 <twig:Ui:Alert tone="error">{{ errors.form }}</twig:Ui:Alert>

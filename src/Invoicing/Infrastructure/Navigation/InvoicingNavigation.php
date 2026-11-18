@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Navigation;
+namespace Foresi\Invoicing\Infrastructure\Navigation;
 
-use App\Identity\Application\StaffCheck;
-use App\Ui\Navigation\CoreNavigationAreas;
-use App\Ui\Navigation\NavigationItem;
-use App\Ui\Navigation\NavigationItemProvider;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Ui\Navigation\CoreNavigationAreas;
+use Foresi\Ui\Navigation\NavigationItem;
+use Foresi\Ui\Navigation\NavigationItemProvider;
 
 /**
  * Invoices, advance invoices, tax documents on payment and corrective tax documents, the recurring invoices they are issued from and the e-mails they were

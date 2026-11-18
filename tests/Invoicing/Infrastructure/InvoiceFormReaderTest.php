@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure;
+namespace Foresi\Tests\Invoicing\Infrastructure;
 
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Invoicing\Infrastructure\Form\InvoiceFormReader;
-use App\Invoicing\Infrastructure\Form\InvoiceSubmission;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Invoicing\Infrastructure\Form\InvoiceFormReader;
+use Foresi\Invoicing\Infrastructure\Form\InvoiceSubmission;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\ExchangeRate\Application;
+namespace Foresi\ExchangeRate\Application;
 
 /**
  * Everything a source published on one day.

@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Application;
+namespace Foresi\Timesheet\Application;
 
-use App\Invoicing\Application\IssueOrigin;
-use App\Invoicing\Application\IssueProblem;
-use App\Invoicing\Application\IssueRefused;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Work\Application\TimeEntries;
-use App\Work\Domain\TimeEntry;
+use Foresi\Invoicing\Application\IssueOrigin;
+use Foresi\Invoicing\Application\IssueProblem;
+use Foresi\Invoicing\Application\IssueRefused;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Work\Application\TimeEntries;
+use Foresi\Work\Domain\TimeEntry;
 
 /**
  * Time chosen in the dialog, as what issues its invoice: in the transaction

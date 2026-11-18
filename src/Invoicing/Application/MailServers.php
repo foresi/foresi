@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\FirmMailServer;
-use App\Party\Domain\LegalEntity;
+use Foresi\Invoicing\Domain\FirmMailServer;
+use Foresi\Party\Domain\LegalEntity;
 
 interface MailServers
 {

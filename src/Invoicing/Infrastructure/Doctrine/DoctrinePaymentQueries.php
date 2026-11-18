@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Invoicing\Application\Query\PaymentAllocationRow;
-use App\Invoicing\Application\Query\PaymentQueries;
-use App\Invoicing\Application\Query\PaymentRow;
-use App\Invoicing\Application\Query\PaymentSliceFilter;
-use App\Invoicing\Domain\Payment;
-use App\Invoicing\Domain\PaymentAllocation;
-use App\Shared\Domain\Money;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Invoicing\Application\Query\PaymentAllocationRow;
+use Foresi\Invoicing\Application\Query\PaymentQueries;
+use Foresi\Invoicing\Application\Query\PaymentRow;
+use Foresi\Invoicing\Application\Query\PaymentSliceFilter;
+use Foresi\Invoicing\Domain\Payment;
+use Foresi\Invoicing\Domain\PaymentAllocation;
+use Foresi\Shared\Domain\Money;
 
 /**
  * Every read goes through the ORM, for the payments and their allocations both.
@@ -43,15 +43,15 @@ final readonly class DoctrinePaymentQueries implements PaymentQueries
             $where[] = 'p.id IN (SELECT IDENTITY(pa.payment) FROM '.PaymentAllocation::class.' pa WHERE IDENTITY(pa.invoice) = :invoice)';
             $parameters['invoice'] = [$filter->invoiceId, null];
         }
-        if ($filter->direction instanceof \App\Invoicing\Domain\PaymentDirection) {
+        if ($filter->direction instanceof \Foresi\Invoicing\Domain\PaymentDirection) {
             $where[] = 'p.direction = :direction';
             $parameters['direction'] = [$filter->direction, null];
         }
-        if ($filter->source instanceof \App\Invoicing\Domain\PaymentSource) {
+        if ($filter->source instanceof \Foresi\Invoicing\Domain\PaymentSource) {
             $where[] = 'p.source = :source';
             $parameters['source'] = [$filter->source, null];
         }
-        if ($filter->method instanceof \App\Party\Domain\PaymentMethod) {
+        if ($filter->method instanceof \Foresi\Party\Domain\PaymentMethod) {
             $where[] = 'p.method = :method';
             $parameters['method'] = [$filter->method, null];
         }

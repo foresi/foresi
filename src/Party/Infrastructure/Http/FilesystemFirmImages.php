@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Http;
+namespace Foresi\Party\Infrastructure\Http;
 
-use App\Party\Application\FirmImages;
-use App\Party\Application\FirmImageType;
+use Foresi\Party\Application\FirmImages;
+use Foresi\Party\Application\FirmImageType;
 
 /**
  * Stores images as <root>/<name> with mode 0600 (directories 0700). The

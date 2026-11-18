@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\DocumentKind;
-use App\Shared\Domain\CurrencyMismatch;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Shared\Domain\CurrencyMismatch;
+use Foresi\Shared\Domain\Money;
 
 /**
  * How far a document is paid, derived from what its allocations add up to and never

@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Mcp;
+namespace Foresi\Events\Infrastructure\Mcp;
 
-use App\Events\Infrastructure\Api\EventListQuery;
-use App\Events\Infrastructure\Api\ReadableEvents;
-use App\Shared\Infrastructure\Api\InvalidParameter;
-use App\Shared\Infrastructure\Mcp\ReadTool;
-use App\Shared\Infrastructure\Mcp\ToolArguments;
-use App\Shared\Infrastructure\Mcp\ToolOutput;
-use App\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Events\Infrastructure\Api\EventListQuery;
+use Foresi\Events\Infrastructure\Api\ReadableEvents;
+use Foresi\Shared\Infrastructure\Api\InvalidParameter;
+use Foresi\Shared\Infrastructure\Mcp\ReadTool;
+use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
+use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**

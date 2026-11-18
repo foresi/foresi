@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Console;
+namespace Foresi\Events\Infrastructure\Console;
 
-use App\Events\Infrastructure\Catalogue\EventCatalogue;
-use App\Events\Infrastructure\Catalogue\EventType;
+use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
+use Foresi\Events\Infrastructure\Catalogue\EventType;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;

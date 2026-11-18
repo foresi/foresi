@@ -6,21 +6,21 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\CashFlow\Application;
+namespace Foresi\Tests\CashFlow\Application;
 
-use App\CashFlow\Application\BalanceWrites;
-use App\CashFlow\Application\CashFlowRefused;
-use App\CashFlow\Application\CashFlowStore;
-use App\CashFlow\Application\ClearExpectedDateInput;
-use App\CashFlow\Application\RecordCheckpointInput;
-use App\CashFlow\Application\SetExpectedDateInput;
-use App\CashFlow\Application\SetMinimumBalanceInput;
-use App\CashFlow\Domain\Checkpoint;
-use App\CashFlow\Domain\ExpectedDate;
-use App\CashFlow\Domain\MinimumBalance;
-use App\Shared\Application\RefusalKind;
-use App\Shared\Domain\Currency;
-use App\Tests\CashFlow\Support\CashFlowTestCase;
+use Foresi\CashFlow\Application\BalanceWrites;
+use Foresi\CashFlow\Application\CashFlowRefused;
+use Foresi\CashFlow\Application\CashFlowStore;
+use Foresi\CashFlow\Application\ClearExpectedDateInput;
+use Foresi\CashFlow\Application\RecordCheckpointInput;
+use Foresi\CashFlow\Application\SetExpectedDateInput;
+use Foresi\CashFlow\Application\SetMinimumBalanceInput;
+use Foresi\CashFlow\Domain\Checkpoint;
+use Foresi\CashFlow\Domain\ExpectedDate;
+use Foresi\CashFlow\Domain\MinimumBalance;
+use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Tests\CashFlow\Support\CashFlowTestCase;
 
 /**
  * The balance side of the cash flow (C6, C7, C14): a checkpoint per account

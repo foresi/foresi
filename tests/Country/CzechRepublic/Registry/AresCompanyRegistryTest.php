@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Country\CzechRepublic\Registry;
+namespace Foresi\Tests\Country\CzechRepublic\Registry;
 
-use App\Country\CzechRepublic\Registry\AresCompanyRegistry;
-use App\Party\Application\RegistryRecord;
-use App\Party\Domain\Address;
-use App\Party\Domain\RegistrationNumber;
-use App\Tests\Support\Registry\RegistryTestKit;
+use Foresi\Country\CzechRepublic\Registry\AresCompanyRegistry;
+use Foresi\Party\Application\RegistryRecord;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Tests\Support\Registry\RegistryTestKit;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpClient\Response\MockResponse;
 

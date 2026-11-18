@@ -12,8 +12,8 @@
 {% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: project.name, href: path('app_project', {id: project.id})}, {label: 'work.settings.title'|trans}] %}
 {% if project.archivedAt %}{% set badge = {label: 'work.project.archived'|trans, tone: 'gray'} %}{% endif %}
 {% set form_invalid = errors is not empty %}
-{% set token = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\ProjectSettingsController::TOKEN')) %}
-{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set token = csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\ProjectSettingsController::TOKEN')) %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 {% if project.visibility.value == 'chosen' %}{% set badges = [{label: 'work.sharing.chosen_badge'|trans, tone: 'gray', icon: 'lock'}] %}{% endif %}
 
 {% block title %}{{ 'work.settings.title'|trans }} · {{ project.name }}{% endblock %}

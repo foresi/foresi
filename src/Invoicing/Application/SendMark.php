@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\SendStatus;
+use Foresi\Invoicing\Domain\SendStatus;
 
 /**
  * What the invoice list says about the sending of an invoice: the state of its

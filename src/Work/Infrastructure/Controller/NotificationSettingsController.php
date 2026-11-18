@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Controller;
+namespace Foresi\Work\Infrastructure\Controller;
 
-use App\Identity\Application\OpenToGuest;
-use App\Work\Application\ManageNotificationPreferences;
-use App\Work\Application\NotificationMailer;
-use App\Work\Application\WorkRefused;
-use App\Work\Domain\EmailDelivery;
-use App\Work\Domain\NotificationKind;
-use App\Work\Domain\NotificationPreference;
+use Foresi\Identity\Application\OpenToGuest;
+use Foresi\Work\Application\ManageNotificationPreferences;
+use Foresi\Work\Application\NotificationMailer;
+use Foresi\Work\Application\WorkRefused;
+use Foresi\Work\Domain\EmailDelivery;
+use Foresi\Work\Domain\NotificationKind;
+use Foresi\Work\Domain\NotificationPreference;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

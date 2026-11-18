@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Form;
+namespace Foresi\Party\Infrastructure\Form;
 
-use App\Shared\Domain\Countries;
+use Foresi\Shared\Domain\Countries;
 
 /**
  * The countries the address book offers, named in the language of the user

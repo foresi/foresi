@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\LinkTokens;
-use App\Invoicing\Domain\LinkAudience;
+use Foresi\Invoicing\Application\LinkTokens;
+use Foresi\Invoicing\Domain\LinkAudience;
 use PHPUnit\Framework\TestCase;
 
 final class LinkTokensTest extends TestCase

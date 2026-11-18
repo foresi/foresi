@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\Series;
 
 /**
  * Gives the numbers of a series. A number is never reused: the counter only goes

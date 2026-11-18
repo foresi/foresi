@@ -6,34 +6,34 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\CorrectionInput;
-use App\Invoicing\Application\CorrectionRules;
-use App\Invoicing\Application\InvoiceInput;
-use App\Invoicing\Application\InvoiceStore;
-use App\Invoicing\Application\InvoicingCountries;
-use App\Invoicing\Application\InvoicingCountry;
-use App\Invoicing\Application\IssueProblem;
-use App\Invoicing\Application\IssueRefused;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Application\LinePricing;
-use App\Invoicing\Domain\CorrectionType;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\DocumentParty;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Quantity;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\SeriesFormat;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\TotalRounding;
-use App\Invoicing\Domain\VatRateKind;
-use App\Invoicing\Domain\VatRegime;
-use App\Party\Domain\Address;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Application\CorrectionInput;
+use Foresi\Invoicing\Application\CorrectionRules;
+use Foresi\Invoicing\Application\InvoiceInput;
+use Foresi\Invoicing\Application\InvoiceStore;
+use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Invoicing\Application\InvoicingCountry;
+use Foresi\Invoicing\Application\IssueProblem;
+use Foresi\Invoicing\Application\IssueRefused;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Application\LinePricing;
+use Foresi\Invoicing\Domain\CorrectionType;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\TotalRounding;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Party\Domain\Address;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 
 /**
  * The rules of a corrective tax document asked one by one, on an invoice of

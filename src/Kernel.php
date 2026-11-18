@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App;
+namespace Foresi;
 
-use App\Shared\Infrastructure\Module\InstalledModules;
-use App\Shared\Infrastructure\Module\ModuleIntegrations;
+use Foresi\Shared\Infrastructure\Module\InstalledModules;
+use Foresi\Shared\Infrastructure\Module\ModuleIntegrations;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\Config\Resource\FileResource;

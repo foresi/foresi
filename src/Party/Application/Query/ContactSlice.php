@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application\Query;
+namespace Foresi\Party\Application\Query;
 
 /**
  * A slice of the address book, newest first, and whether more follows it. The

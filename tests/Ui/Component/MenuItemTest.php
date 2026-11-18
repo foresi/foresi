@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui\Component;
+namespace Foresi\Tests\Ui\Component;
 
-use App\Ui\Component\Menu;
-use App\Ui\Component\MenuItem;
-use App\Ui\Component\Style;
+use Foresi\Ui\Component\Menu;
+use Foresi\Ui\Component\MenuItem;
+use Foresi\Ui\Component\Style;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

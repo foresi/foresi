@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Application\Api;
+namespace Foresi\Shared\Application\Api;
 
 /**
  * Whether the token the request or process signed in with has a scope, such as

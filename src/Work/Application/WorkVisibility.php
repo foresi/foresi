@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Identity\Domain\Membership;
-use App\Work\Domain\Project;
-use App\Work\Domain\Section;
-use App\Work\Domain\Task;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\Section;
+use Foresi\Work\Domain\Task;
 
 /**
  * The one place that decides what of the work of the organisation the

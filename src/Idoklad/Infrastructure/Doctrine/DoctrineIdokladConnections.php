@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Infrastructure\Doctrine;
+namespace Foresi\Idoklad\Infrastructure\Doctrine;
 
-use App\Idoklad\Application\IdokladConnections;
-use App\Idoklad\Domain\IdokladConnection;
-use App\Party\Domain\LegalEntity;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Idoklad\Application\IdokladConnections;
+use Foresi\Idoklad\Domain\IdokladConnection;
+use Foresi\Party\Domain\LegalEntity;
 
 final readonly class DoctrineIdokladConnections implements IdokladConnections
 {

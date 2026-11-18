@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Domain\Event;
+namespace Foresi\Tests\Shared\Domain\Event;
 
-use App\Shared\Domain\Event\EventSubject;
-use App\Shared\Domain\Id;
+use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

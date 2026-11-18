@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Infrastructure\Mcp;
+namespace Foresi\Tests\Webhooks\Infrastructure\Mcp;
 
-use App\Shared\Domain\Id;
-use App\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
-use App\Webhooks\Infrastructure\Mcp\ListWebhookDeliveriesTool;
+use Foresi\Shared\Domain\Id;
+use Foresi\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
+use Foresi\Webhooks\Infrastructure\Mcp\ListWebhookDeliveriesTool;
 
 /**
  * foresi_list_webhook_deliveries answers what the deliveries route of the REST API answers.

@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Controller;
+namespace Foresi\Invoicing\Infrastructure\Controller;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\StaffCheck;
-use App\Invoicing\Application\BundleIncomplete;
-use App\Invoicing\Application\DocumentMonths;
-use App\Invoicing\Application\InvoiceBundle;
-use App\Invoicing\Application\NewInvoiceDefaults;
-use App\Party\Application\LegalEntities;
-use App\Party\Application\UnknownLegalEntity;
-use App\Party\Domain\LegalEntity;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Invoicing\Application\BundleIncomplete;
+use Foresi\Invoicing\Application\DocumentMonths;
+use Foresi\Invoicing\Application\InvoiceBundle;
+use Foresi\Invoicing\Application\NewInvoiceDefaults;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Party\Domain\LegalEntity;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;

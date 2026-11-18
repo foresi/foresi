@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure\Support;
+namespace Foresi\Tests\Invoicing\Infrastructure\Support;
 
-use App\Invoicing\Application\InvoiceBalances;
-use App\Invoicing\Infrastructure\Doctrine\OwingInvoiceCondition;
-use App\Invoicing\Infrastructure\Doctrine\PaymentBalances;
-use App\Shared\Domain\Money;
 use Doctrine\DBAL\Connection;
+use Foresi\Invoicing\Application\InvoiceBalances;
+use Foresi\Invoicing\Infrastructure\Doctrine\OwingInvoiceCondition;
+use Foresi\Invoicing\Infrastructure\Doctrine\PaymentBalances;
+use Foresi\Shared\Domain\Money;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**

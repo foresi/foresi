@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Dbal;
+namespace Foresi\Events\Infrastructure\Dbal;
 
-use App\Audit\Application\AuditActor;
-use App\Audit\Application\AuditCorrelation;
-use App\Audit\Application\TokenAuditActor;
-use App\Events\Application\RelayEvents;
-use App\Events\Infrastructure\Catalogue\EventCatalogue;
-use App\Events\Infrastructure\Payload\EventPayloads;
-use App\Shared\Application\Event\EventOutbox;
-use App\Shared\Application\Event\EventRecorder;
-use App\Shared\Domain\Event\DomainEventPayload;
-use App\Shared\Domain\Id;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Audit\Application\AuditCorrelation;
+use Foresi\Audit\Application\TokenAuditActor;
+use Foresi\Events\Application\RelayEvents;
+use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
+use Foresi\Events\Infrastructure\Payload\EventPayloads;
+use Foresi\Shared\Application\Event\EventOutbox;
+use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Domain\Event\DomainEventPayload;
+use Foresi\Shared\Domain\Id;
 use Psr\Clock\ClockInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;

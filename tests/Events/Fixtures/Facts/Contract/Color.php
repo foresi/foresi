@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Events\Fixtures\Facts\Contract;
+namespace Foresi\Tests\Events\Fixtures\Facts\Contract;
 
 enum Color: string
 {

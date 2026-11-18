@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Work\Domain\CommentMention;
-use App\Work\Domain\Task;
-use App\Work\Domain\TaskComment;
+use Foresi\Work\Domain\CommentMention;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TaskComment;
 
 /**
  * The comments on tasks with the people they mention.

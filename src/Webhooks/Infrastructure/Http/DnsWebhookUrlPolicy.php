@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Http;
+namespace Foresi\Webhooks\Infrastructure\Http;
 
-use App\Webhooks\Application\InvalidWebhookUrl;
-use App\Webhooks\Application\WebhookUrlPolicy;
-use App\Webhooks\Domain\EndpointUrl;
+use Foresi\Webhooks\Application\InvalidWebhookUrl;
+use Foresi\Webhooks\Application\WebhookUrlPolicy;
+use Foresi\Webhooks\Domain\EndpointUrl;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\IpUtils;
 

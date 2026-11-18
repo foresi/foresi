@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Domain;
+namespace Foresi\Tests\Invoicing\Domain;
 
-use App\Invoicing\Domain\ExportState;
+use Foresi\Invoicing\Domain\ExportState;
 use PHPUnit\Framework\TestCase;
 
 final class ExportStateTest extends TestCase

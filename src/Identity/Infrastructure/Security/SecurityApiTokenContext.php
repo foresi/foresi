@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Security;
+namespace Foresi\Identity\Infrastructure\Security;
 
-use App\Identity\Application\ApiTokenContext;
-use App\Identity\Application\ApiTokenGrant;
-use App\Identity\Application\InsufficientScope;
-use App\Identity\Domain\ApiScope;
+use Foresi\Identity\Application\ApiTokenContext;
+use Foresi\Identity\Application\ApiTokenGrant;
+use Foresi\Identity\Application\InsufficientScope;
+use Foresi\Identity\Domain\ApiScope;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 

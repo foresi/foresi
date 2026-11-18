@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Mail;
+namespace Foresi\Tests\Shared\Infrastructure\Mail;
 
-use App\Shared\Application\SystemMail;
-use App\Shared\Application\SystemMailer;
+use Foresi\Shared\Application\SystemMail;
+use Foresi\Shared\Application\SystemMailer;
 
 /**
  * A system mailer that keeps what it was given, or throws the given failure.

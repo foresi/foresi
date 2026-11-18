@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Registry;
+namespace Foresi\Party\Infrastructure\Registry;
 
-use App\Party\Application\CompanyRegistry;
-use App\Party\Application\RegistrationNumberFactory;
-use App\Party\Application\RegistryRecord;
-use App\Party\Domain\InvalidRegistrationNumber;
+use Foresi\Party\Application\CompanyRegistry;
+use Foresi\Party\Application\RegistrationNumberFactory;
+use Foresi\Party\Application\RegistryRecord;
+use Foresi\Party\Domain\InvalidRegistrationNumber;
 
 /**
  * Turns what a user typed into registry records: a Czech registration number

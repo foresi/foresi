@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\CashFlow\Support;
+namespace Foresi\Tests\CashFlow\Support;
 
-use App\CashFlow\Contract\CashFlowSource;
-use App\CashFlow\Contract\ExpectedFlow;
+use Foresi\CashFlow\Contract\CashFlowSource;
+use Foresi\CashFlow\Contract\ExpectedFlow;
 
 /**
  * A source that answers the flows it was given, or fails after the first one.

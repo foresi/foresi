@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Domain;
+namespace Foresi\Idoklad\Domain;
 
 /**
  * Every path of the iDoklad API the importer may read, as the API documents

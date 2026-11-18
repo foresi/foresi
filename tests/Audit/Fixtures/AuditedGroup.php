@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Audit\Fixtures;
+namespace Foresi\Tests\Audit\Fixtures;
 
-use App\Audit\Domain\Audited;
-use App\Shared\Domain\Id;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Shared\Domain\Id;
 
 /**
  * Test-only audited entity that owns a to-many association.

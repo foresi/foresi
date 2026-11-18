@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\InboundChannel;
-use App\Instance\Application\Schedule\OperatorTask;
+use Foresi\Banking\Domain\InboundChannel;
+use Foresi\Instance\Application\Schedule\OperatorTask;
 use Psr\Log\LoggerInterface;
 
 /**

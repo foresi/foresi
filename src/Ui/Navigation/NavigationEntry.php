@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Ui\Navigation;
+namespace Foresi\Ui\Navigation;
 
 /**
  * An item as the sidebar shows it: resolved count and current-page flag.

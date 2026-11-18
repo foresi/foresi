@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Idoklad\Domain;
+namespace Foresi\Tests\Idoklad\Domain;
 
-use App\Idoklad\Domain\IdokladPull;
-use App\Idoklad\Domain\IdokladResource;
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
+use Foresi\Idoklad\Domain\IdokladPull;
+use Foresi\Idoklad\Domain\IdokladResource;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
 use PHPUnit\Framework\TestCase;
 
 final class IdokladPullTest extends TestCase

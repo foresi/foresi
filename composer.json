@@ -93,12 +93,12 @@
     },
     "autoload": {
         "psr-4": {
-            "App\\": "src/"
+            "Foresi\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "App\\Tests\\": "tests/"
+            "Foresi\\Tests\\": "tests/"
         }
     },
     "replace": {

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Attachment\Application;
+namespace Foresi\Attachment\Application;
 
-use App\Attachment\Domain\Attachment;
+use Foresi\Attachment\Domain\Attachment;
 
 /**
  * The attachments the person may see: of a record they may see, and one by

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\BankMovement;
+use Foresi\Banking\Domain\BankMovement;
 
 /**
  * The bank movements. Call the writing methods inside TransactionalWork, which

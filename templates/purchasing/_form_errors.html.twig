@@ -11,7 +11,7 @@
             {% for item in summary %}
                 <li>
                     {%- if item.field is null %}{{ item.message }}
-                    {%- else %}<a href="{{ item.href }}" class="text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ item.field }}</a>: {{ item.message }}
+                    {%- else %}<a href="{{ item.href }}" class="text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ item.field }}</a>: {{ item.message }}
                     {%- endif -%}
                 </li>
             {% endfor %}

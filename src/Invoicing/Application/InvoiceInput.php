@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\DocumentParty;
-use App\Invoicing\Domain\InvoiceChange;
-use App\Invoicing\Domain\TaxOnReceiptChoice;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\Iban;
-use App\Party\Domain\Party;
-use App\Party\Domain\PaymentMethod;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Domain\InvoiceChange;
+use Foresi\Invoicing\Domain\TaxOnReceiptChoice;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\Iban;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PaymentMethod;
 
 /**
  * What a save asks for, on a new invoice and on an edit alike. Dates are calendar

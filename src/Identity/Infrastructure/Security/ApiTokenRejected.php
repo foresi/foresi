@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Security;
+namespace Foresi\Identity\Infrastructure\Security;
 
-use App\Identity\Application\ApiTokenRefused;
+use Foresi\Identity\Application\ApiTokenRefused;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 
 /**
