@@ -53,6 +53,8 @@ final class Dialog
     public bool $fields = false;
     public ?bool $dismissable = null;
     public bool $remote = false;
+    /** The URL of the record it shows (docs/design/overlays.md): adds Open as page to the header. */
+    public ?string $page = null;
     /** Shows the question about unsaved changes instead of the buttons, for the catalogue. */
     public bool $asking = false;
 

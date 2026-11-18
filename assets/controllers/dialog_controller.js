@@ -44,7 +44,13 @@ const isType = (response, type) => (response.headers.get('Content-Type') || '').
  * - The confirm variant answers data-turbo-confirm and dialog:confirm events.
  * - Ui:Sheet runs on the same code in the layer "sheet": its remote host follows
  *   a[data-sheet] links and takes dialog#sheet-page from the answer. A dialog may
- *   open over a sheet; Escape, Back and the focus belong to the top one.
+ *   open over a sheet; Escape, Back and the focus belong to the top one. The
+ *   header names the layer that asks: "sheet" or "1" (a dialog).
+ * - A record (layout/record.html.twig, data-overlay-record; docs/design/overlays.md)
+ *   puts its own URL in the address bar while it is open, on every screen, and Back
+ *   closes it. Its links in a [data-in-place] area and the answers of its forms load
+ *   in the same host (edit in place); Open as page closes it and visits the URL; the
+ *   page under it is loaded again once it closes after a change.
  */
 export default class extends Controller {
     static targets = ['title', 'body', 'actions', 'discard', 'keep', 'text', 'accept', 'reject'];
@@ -111,7 +117,7 @@ export default class extends Controller {
         }
         this.loading = true;
         try {
-            const response = await fetch(url, { headers: { [HEADER]: '1', Accept: 'text/html, application/json' }, credentials: 'same-origin' });
+            const response = await fetch(url, { headers: { [HEADER]: this.layerHeader(), Accept: 'text/html, application/json' }, credentials: 'same-origin' });
             if (response.ok && isType(response, 'application/json')) {
                 // Nothing to ask (a trashed invoice, say): go where the server sends, its message waits there.
                 const { location } = await response.json();
@@ -122,6 +128,7 @@ export default class extends Controller {
                 throw new Error(`The dialog answered ${response.status}.`);
             }
             this.fill(await response.text());
+            this.url = url;
         } catch {
             // The page itself still works.
             window.location.assign(url);
@@ -130,6 +137,82 @@ export default class extends Controller {
             this.loading = false;
         }
         this.open(opener);
+    }
+
+    layerHeader() {
+        return this.layerValue === 'sheet' ? 'sheet' : '1';
+    }
+
+    // The host shows a record of layout/record.html.twig.
+    get record() {
+        return this.remoteValue && this.element.hasAttribute('data-overlay-record');
+    }
+
+    // Loads a URL into this open host in place of what it shows: the next step of a record
+    // (its edit form, the detail again after saving, another tab). An answer that is no
+    // record of this layer is a page: the host closes and the browser goes there.
+    async swap(url) {
+        if (this.loading) {
+            return;
+        }
+        this.loading = true;
+        this.element.setAttribute('aria-busy', 'true');
+        let html = null;
+        try {
+            const response = await fetch(url, { headers: { [HEADER]: this.layerHeader(), Accept: 'text/html, application/json' }, credentials: 'same-origin' });
+            if (response.ok && isType(response, 'application/json')) {
+                const { location } = await response.json();
+                this.loading = false;
+                await this.leave(location || url);
+                return;
+            }
+            if (!response.ok || !isType(response, 'text/html')) {
+                throw new Error(`The dialog answered ${response.status}.`);
+            }
+            html = await response.text();
+        } catch {
+            this.loading = false;
+            this.element.removeAttribute('aria-busy');
+            this.fail();
+            return;
+        }
+        this.loading = false;
+        this.element.removeAttribute('aria-busy');
+        if (new DOMParser().parseFromString(html, 'text/html').querySelector(this.sourceValue) === null) {
+            await this.leave(url);
+            return;
+        }
+        this.fill(html);
+        this.url = url;
+        this.dirty = false;
+        if (this.pushed) {
+            history.replaceState(history.state, '', url);
+        }
+        this.focusInitial();
+    }
+
+    // Closes the host and visits a URL as a page of its own, after the host's history entry.
+    async leave(url, action = 'replace') {
+        this.dirty = false;
+        this.navigating = true;
+        this.close();
+        await this.popHistory();
+        const drive = document.body.dataset.turbo !== 'false';
+        if (drive) {
+            visit(url, { action });
+        } else {
+            action === 'replace' ? window.location.replace(url) : window.location.assign(url);
+        }
+    }
+
+    // Open as page: the record's URL as the page, a step after the list in the history.
+    openPage(event) {
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+            return;
+        }
+        const link = event.currentTarget;
+        event.preventDefault();
+        this.leave(link.href, 'advance');
     }
 
     open(opener = document.activeElement) {
@@ -271,6 +354,14 @@ export default class extends Controller {
     }
 
     clicked(event) {
+        const step = this.record && event.button === 0 && !event.defaultPrevented && !(event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+            && event.target instanceof Element ? event.target.closest('a[href]') : null;
+        const area = step ? step.closest('[data-in-place]') : null;
+        if (step && area && this.element.contains(area) && step.origin === window.location.origin && !step.hasAttribute('download') && !step.target) {
+            event.preventDefault();
+            this.swap(step.href);
+            return;
+        }
         const link = event.target instanceof Element ? event.target.closest('a[href^="#"]') : null;
         if (link && this.element.contains(link)) {
             // An error summary links to its fields: move there inside the dialog, leave the URL alone.
@@ -348,7 +439,7 @@ export default class extends Controller {
             data.append(event.submitter.name, event.submitter.value);
         }
         try {
-            const response = await fetch(form.action, { method: 'POST', body: data, headers: { [HEADER]: '1', Accept: 'application/json, text/html' }, credentials: 'same-origin' });
+            const response = await fetch(form.action, { method: 'POST', body: data, headers: { [HEADER]: this.layerHeader(), Accept: 'application/json, text/html' }, credentials: 'same-origin' });
             if (isType(response, 'application/json') && response.ok) {
                 await this.finish(await response.json());
             } else if (isType(response, 'text/html') && (response.ok || response.status === 422)) {
@@ -367,6 +458,13 @@ export default class extends Controller {
 
     async finish(result) {
         this.dirty = false;
+        if (this.record && !result.event && result.location) {
+            // Edit in place: the record shows what the server sends next (the detail again) in
+            // the same host; the list under it takes the change once the host closes.
+            this.reload = true;
+            await this.swap(result.location);
+            return;
+        }
         if (result.event) {
             // The opener's page takes the result, the dialog closes over it.
             document.dispatchEvent(new CustomEvent(result.event, { detail: result.detail || {} }));
@@ -414,10 +512,13 @@ export default class extends Controller {
     // History: one entry on a phone, so Back closes the dialog
 
     pushHistory() {
-        if (!window.matchMedia(PHONE).matches) {
+        const record = this.record && this.url;
+        if (!record && !window.matchMedia(PHONE).matches) {
             return;
         }
-        history.pushState({ ...(history.state || {}), foresiDialog: true }, '');
+        // A record's own URL: a reload, a new tab or a bookmark is its page. Turbo's state stays,
+        // so a Back onto this entry after leaving by another link restores the record's page.
+        history.pushState({ ...(history.state || {}), foresiDialog: true }, '', record ? this.url : undefined);
         this.pushed = true;
         // While the entry is there, a step back out of it is the dialog's, not a Turbo
         // restoration visit, which would render the page again and lose the focus.

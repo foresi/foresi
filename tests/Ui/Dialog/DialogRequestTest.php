@@ -25,6 +25,20 @@ final class DialogRequestTest extends TestCase
         self::assertFalse(DialogRequest::is(Request::create('/invoices/1/send')));
     }
 
+    public function testTheHeaderNamesTheLayerThatAsks(): void
+    {
+        $sheet = Request::create('/contacts/1');
+        $sheet->headers->set(DialogRequest::HEADER, 'sheet');
+        $unknown = Request::create('/contacts/1');
+        $unknown->headers->set(DialogRequest::HEADER, 'drawer');
+
+        self::assertSame(DialogRequest::SHEET, DialogRequest::layer($sheet));
+        self::assertTrue(DialogRequest::is($sheet));
+        self::assertSame(DialogRequest::DIALOG, DialogRequest::layer($this->dialogRequest()));
+        self::assertNull(DialogRequest::layer($unknown), 'An unknown layer is the page.');
+        self::assertNull(DialogRequest::layer(Request::create('/contacts/1')));
+    }
+
     public function testARedirectAnsweringADialogBecomesWhereToGoNext(): void
     {
         $response = $this->respond($this->dialogRequest(), new RedirectResponse('/invoices?tab=unpaid'));

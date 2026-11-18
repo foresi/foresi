@@ -12,7 +12,7 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string}>, avatar: ?array{name: string, seed: string}, badges: list<array{label: string, tone: string}>, flag: ?array{label: string, tone: string, icon: ?string}, edit: ?array<array-key, mixed>}
+ * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, opens: string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string}>, avatar: ?array{name: string, seed: string}, badges: list<array{label: string, tone: string}>, flag: ?array{label: string, tone: string, icon: ?string}, edit: ?array<array-key, mixed>}
  * @phpstan-type Confirm array{title: string, text: ?string, accept: ?string, cancel: ?string, tone: ?string}
  * @phpstan-type Action array{label: string, href: string, method: string, confirm: ?Confirm, icon: ?string, plain: bool, dialog: bool, fields: array<string, string>}
  * @phpstan-type RowAlert array{text: string, column: string, href: ?string, action: ?string}
@@ -24,6 +24,10 @@ final class DataTable
 {
     /** Values longer than this get their full text in a title attribute. */
     private const int TITLE_FROM_LENGTH = 24;
+    public const string OPENS_SHEET = 'sheet';
+    public const string OPENS_DIALOG = 'dialog';
+    public const string OPENS_PAGE = 'page';
+    private const array OPENS = [self::OPENS_SHEET, self::OPENS_DIALOG, self::OPENS_PAGE];
     private const array ALIGNS = ['left', 'right', 'center'];
     private const array ROW_HEIGHTS = ['list' => 'h-row-list', 'dense' => 'h-row'];
     /**
@@ -45,7 +49,8 @@ final class DataTable
 
     /**
      * @var list<array<string, mixed>> each with cells keyed by column key, optional id, href, plain (the link leaves Turbo), label,
-     *                                 selected, child (a row under the row before it, such as a subtask: its first cell
+     *                                 opens (sheet, dialog or page: where the row's
+     *                                 record opens, docs/design/overlays.md; page by default), selected, child (a row under the row before it, such as a subtask: its first cell
      *                                 indented, its text smaller), unread (true marks a row not read yet, as an inbox
      *                                 does: a dot before the first cell, said to a screen reader too, and its link in
      *                                 bold; false keeps the room of the dot and sets the link in normal weight), secondary (the line a phone shows under the first cell), alert (what went wrong
@@ -228,11 +233,18 @@ final class DataTable
         $href = isset($row['href']) && is_string($row['href']) ? $row['href'] : null;
         Style::href($href);
         $plain = true === ($row['plain'] ?? false);
+        $opens = $row['opens'] ?? self::OPENS_PAGE;
+        if (!in_array($opens, self::OPENS, true)) {
+            throw new \InvalidArgumentException(sprintf('A row opens as one of: %s.', implode(', ', self::OPENS)));
+        }
+        if ($plain && self::OPENS_PAGE !== $opens) {
+            throw new \InvalidArgumentException('A plain row leaves Turbo, so it opens as a page.');
+        }
 
         $views = [];
         $first = true;
         foreach ($this->columnViews as $column) {
-            $views[] = $this->cell($column, $cells[$column['key']] ?? null, $first && null !== $href ? $href : null, $plain);
+            $views[] = $this->cell($column, $cells[$column['key']] ?? null, $first && null !== $href ? $href : null, $plain, $opens);
             $first = false;
         }
         $label = isset($row['label']) && is_string($row['label']) ? $row['label'] : ($views[0]['text'] ?? $id);
@@ -351,7 +363,7 @@ final class DataTable
      *
      * @return Cell
      */
-    private function cell(array $column, mixed $value, ?string $link, bool $plain): array
+    private function cell(array $column, mixed $value, ?string $link, bool $plain, string $opens = self::OPENS_PAGE): array
     {
         $tone = null;
         $hint = null;
@@ -418,6 +430,7 @@ final class DataTable
             // A truncating column can be cut short at any length, so its text is always in a title.
             'title' => null === $icon && ($column['truncate'] ? '' !== $text : mb_strlen($text) > self::TITLE_FROM_LENGTH) ? $text : null,
             'link' => $link,
+            'opens' => $opens,
             'hint' => $hint,
             'phone' => $column['phone'],
             'wide' => $column['wide'],

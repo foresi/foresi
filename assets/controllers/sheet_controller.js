@@ -8,6 +8,7 @@ const MIN = 420;
 const GAP = 180;
 const STEP = 16;
 const KEY = 'foresi.sheet.width';
+const FULL_KEY = 'foresi.sheet.full';
 
 /**
  * The width of a resizable Ui:Sheet; the dialog controller on the same element
@@ -17,9 +18,13 @@ const KEY = 'foresi.sheet.width';
  * arrow keys on the focused grip move it by 16 px (WCAG 2.5.7), Home and End go
  * to the ends (APG window splitter). On a phone the sheet fills the screen and
  * keeps no width.
+ *
+ * A record's Full screen toggle (aria-pressed, APG Button) widens the sheet over
+ * the whole content panel, from its left edge to the right of the window, and is
+ * remembered like the width; the grip takes the sheet back to a width of its own.
  */
 export default class extends Controller {
-    static targets = ['grip'];
+    static targets = ['grip', 'full'];
     static values = { resizable: Boolean };
 
     opened() {
@@ -35,6 +40,13 @@ export default class extends Controller {
             this.element.style.removeProperty('width');
             return;
         }
+        const full = this.hasFullTarget && this.remembered(FULL_KEY) === '1';
+        this.press(full);
+        if (full) {
+            this.element.style.width = `${this.panel()}px`;
+            this.describe(this.panel());
+            return;
+        }
         const stored = this.stored();
         if (stored === null) {
             this.element.style.removeProperty('width');
@@ -44,11 +56,40 @@ export default class extends Controller {
         this.apply(stored);
     }
 
+    toggleFull() {
+        const full = !(this.hasFullTarget && this.fullTarget.getAttribute('aria-pressed') === 'true');
+        this.remember(FULL_KEY, full ? '1' : '0');
+        this.fit();
+    }
+
+    press(full) {
+        if (this.hasFullTarget) {
+            this.fullTarget.setAttribute('aria-pressed', full ? 'true' : 'false');
+        }
+    }
+
+    // A width of its own again, from the grip.
+    own() {
+        if (this.hasFullTarget && this.fullTarget.getAttribute('aria-pressed') === 'true') {
+            this.remember(FULL_KEY, '0');
+            this.press(false);
+        }
+    }
+
+    // From the left edge of the content panel to the right of the window.
+    panel() {
+        const main = document.getElementById('main');
+        const left = main ? Math.max(0, main.getBoundingClientRect().left) : 0;
+
+        return Math.round(window.innerWidth - left);
+    }
+
     grab(event) {
         if (event.button !== 0 || !this.hasGripTarget) {
             return;
         }
         event.preventDefault();
+        this.own();
         const grip = this.gripTarget;
         grip.setPointerCapture(event.pointerId);
         this.element.setAttribute('data-resizing', '');
@@ -78,6 +119,7 @@ export default class extends Controller {
             return;
         }
         event.preventDefault();
+        this.own();
         this.apply(next);
         this.store();
     }
@@ -102,6 +144,23 @@ export default class extends Controller {
         const room = panel ? panel.getBoundingClientRect().width : window.innerWidth;
 
         return Math.max(MIN, Math.round(Math.min(room, window.innerWidth) - GAP));
+    }
+
+    remembered(key) {
+        try {
+            return window.localStorage.getItem(key);
+        } catch {
+            return this.element.dataset.sheetFull || null;
+        }
+    }
+
+    remember(key, value) {
+        try {
+            window.localStorage.setItem(key, value);
+        } catch {
+            // Without storage the choice lasts until the page changes.
+            this.element.dataset.sheetFull = value;
+        }
     }
 
     stored() {

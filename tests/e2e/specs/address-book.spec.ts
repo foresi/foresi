@@ -9,6 +9,8 @@ test.use({ storageState: OWNER_STATE });
 async function openContact(page: Page, name: string): Promise<void> {
   await page.goto('/contacts');
   await page.getByRole('link', { name, exact: true }).click();
+  // The row opens the contact in the side sheet; the page is a click further.
+  await page.locator('dialog#sheet').getByRole('link', { name: 'Otevřít jako stránku' }).click();
   await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
 }
 

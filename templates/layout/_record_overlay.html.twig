@@ -1,0 +1,23 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A record in an overlay (layout/record.html.twig): the sheet or the dialog the host takes from the
+    answer. data-overlay-record tells the host it shows a record: it gives it the record's URL, loads
+    its links marked data-in-place and the answers of its forms in the same host, and loads the list
+    under it again once it closes.
+#}
+{% set recordTitle %}{% block title %}{% endblock %}{% endset %}
+{% set recordActions %}{% block actions %}{% endblock %}{% endset %}
+{% set recordBody %}{% block content %}{% endblock %}{% endset %}
+{% set recordName = recordTitle|striptags|html_decode|trim %}
+{% set recordPage = app.request.requestUri %}
+{% if overlay() == 'sheet' %}
+    <twig:Ui:Sheet id="sheet-page" :title="recordName" size="md" :fields="record_fields ?? false" :page="recordPage" data-overlay-record>
+        {{ recordBody }}
+        <twig:block name="actions">{{ recordActions }}</twig:block>
+    </twig:Ui:Sheet>
+{% else %}
+    <twig:Ui:Dialog id="dialog-page" :title="recordName" :size="record_size|default('md')" :fields="record_fields ?? false" :page="recordPage" data-overlay-record>
+        {{ recordBody }}
+        <twig:block name="actions">{{ recordActions }}</twig:block>
+    </twig:Ui:Dialog>
+{% endif %}
