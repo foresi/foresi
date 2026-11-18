@@ -97,7 +97,7 @@ test.describe('the guest', () => {
     await expect(discussion).toContainText('Looks good, the pitch reads well.');
     await expect(discussion).not.toContainText('First sketch is ready');
     await expect(page.locator('#comment-internal')).toHaveCount(0);
-    await expect(page.locator('[data-comment-visibility]')).toHaveText('Komentář uvidí všichni, kdo vidí tento úkol.');
+    await expect(page.locator('[data-comment-visibility]')).toHaveText('Komentář uvidí všichni, kdo mají k úkolu přístup.');
     await page.locator('[data-comment-composer] #comment-body').fill('Could the green be a little darker?');
     await page.locator('[data-comment-composer]').getByRole('button', { name: 'Přidat komentář' }).click();
     const mine = page.locator('[data-comment]').filter({ hasText: 'Could the green be a little darker?' });

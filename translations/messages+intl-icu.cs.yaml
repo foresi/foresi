@@ -3493,7 +3493,6 @@ work:
     empty: Zatím se nic nestalo.
     no_comments: Zatím žádné komentáře.
     internal: Interní
-    public: Veřejný komentář – uvidí ho i hosté
     edited: upraveno
     edited_at: 'Upraveno {date}'
     deleted: Komentář byl smazán
@@ -3504,9 +3503,10 @@ work:
       text: Tuto akci nelze vrátit.
     edit_label: Upravit komentář
     composer: Komentář
-    guest_visibility: Komentář uvidí všichni, kdo vidí tento úkol.
-    internal_switch: Interní komentář
-    internal_help: Hosté interní komentáře neuvidí.
+    internal_switch: Interní
+    audience:
+      everyone: Komentář uvidí všichni, kdo mají k úkolu přístup.
+      staff: Komentář uvidí jen lidé z vaší organizace.
     submit: Přidat komentář
   settings:
     title: Nastavení

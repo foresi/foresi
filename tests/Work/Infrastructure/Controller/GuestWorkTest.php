@@ -184,7 +184,7 @@ final class GuestWorkTest extends WebTestCase
         self::assertStringContainsString('Looks good to the client.', $crawler->filter('[data-task-discussion]')->text());
         self::assertStringNotContainsString('Internal note on the budget.', $crawler->filter('main')->text());
         self::assertCount(0, $crawler->filter('#comment-internal'));
-        self::assertSelectorTextContains('[data-comment-composer]', 'Everyone who sees this task will see the comment.');
+        self::assertSelectorTextContains('[data-comment-composer]', 'Everyone with access to this task will see the comment.');
 
         $form = $crawler->filter('form[data-comment-composer]')->form(['body' => 'Please make the logo **bigger**.']);
         $values = $form->getPhpValues();

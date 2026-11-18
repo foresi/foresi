@@ -137,7 +137,7 @@ final class TaskController extends AbstractController
     }
 
     /**
-     * A comment on the task, internal unless the switch is turned off. A text
+     * A comment on the task, public unless the Internal switch is on. A text
      * it cannot have is told next to the field, which keeps what was typed.
      */
     #[OpenToGuest]
@@ -568,7 +568,7 @@ final class TaskController extends AbstractController
         return $this->render('work/task/show.html.twig', [
             'task' => $task,
             'edit' => $edit,
-            'values' => $values + ['title' => $row->title, 'description' => $task->description, 'comment' => '', 'comment_internal' => '1'],
+            'values' => $values + ['title' => $row->title, 'description' => $task->description, 'comment' => '', 'comment_internal' => ''],
             'errors' => array_filter($errors, \is_string(...)),
             'statusTone' => self::STATUS_TONES[$row->statusType->value],
             'statuses' => $statuses,

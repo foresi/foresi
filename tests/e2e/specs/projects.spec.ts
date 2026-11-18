@@ -284,4 +284,31 @@ test.describe('projects', () => {
     await expect(description).toBeHidden();
     expect(await page.evaluate(() => (window as unknown as { kept?: boolean }).kept)).toBe(true);
   });
+
+  test('a comment draft outlives the refresh after another change on the task', async ({ page }) => {
+    await openWebsite(page);
+    const title = 'Draft the press note';
+    await page.getByRole('link', { name: 'Nový úkol' }).click();
+    await page.getByRole('dialog').getByLabel('Název').fill(title);
+    await page.getByRole('dialog').getByRole('button', { name: 'Přidat úkol' }).click();
+    await page.locator('[data-section] tbody tr').filter({ hasText: title }).getByRole('link', { name: title, exact: true }).click();
+    const heading = page.getByRole('heading', { level: 1 });
+    await expect(heading).toHaveText(title);
+
+    const body = page.locator('[data-comment-composer] #comment-body');
+    await body.fill('Half a thought');
+    // Saving the title morphs the page; the unsent comment stays as typed.
+    await heading.click();
+    const field = page.getByRole('textbox', { name: 'Název' });
+    await field.fill('Draft and send the press note');
+    await field.press('Enter');
+    await expect(heading).toHaveText('Draft and send the press note');
+    await expect(page.locator('[data-task-history]')).toContainText('Změna: Název');
+    await expect(body).toHaveValue('Half a thought');
+
+    await page.locator('[data-comment-composer]').getByRole('button', { name: 'Přidat komentář' }).click();
+    const added = page.locator('[data-comment]').filter({ hasText: 'Half a thought' });
+    await expect(added).toBeVisible();
+    await expect(added.locator('[data-comment-internal]')).toHaveCount(0);
+  });
 });

@@ -3493,7 +3493,6 @@ work:
     empty: Nothing has happened yet.
     no_comments: No comments yet.
     internal: Internal
-    public: Public comment – guests will see it too
     edited: edited
     edited_at: 'Edited {date}'
     deleted: This comment was deleted
@@ -3504,9 +3503,10 @@ work:
       text: This cannot be undone.
     edit_label: Edit comment
     composer: Comment
-    guest_visibility: Everyone who sees this task will see the comment.
-    internal_switch: Internal comment
-    internal_help: Guests will not see internal comments.
+    internal_switch: Internal
+    audience:
+      everyone: Everyone with access to this task will see the comment.
+      staff: Only people of your organisation will see the comment.
     submit: Add comment
   settings:
     title: Settings

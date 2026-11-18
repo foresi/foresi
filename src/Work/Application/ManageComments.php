@@ -20,9 +20,10 @@ use App\Work\Domain\TaskWatcher;
 use Psr\Clock\ClockInterface;
 
 /**
- * Writing on a task. Whoever sees a task comments on it. A comment of the
- * people of the organisation is internal unless said otherwise; a guest never
- * reads an internal comment, nor writes one. The author alone edits or
+ * Writing on a task. Whoever sees a task comments on it. A comment is public
+ * unless said otherwise, as in Linear, Asana and Zendesk: everyone who sees the
+ * task reads it. The people of the organisation may make one internal; a guest
+ * never reads an internal comment, nor writes one. The author alone edits or
  * deletes a comment; an owner of the organisation may also delete one, to
  * moderate, but never puts words in someone else's mouth. Whoever comments
  * follows the task, as in ClickUp and Asana, and so does whoever it mentions,
@@ -52,7 +53,7 @@ final readonly class ManageComments
     /**
      * @throws WorkRefused
      */
-    public function add(string $taskId, string $body, bool $internal = true): TaskComment
+    public function add(string $taskId, string $body, bool $internal = false): TaskComment
     {
         $task = $this->work->task($taskId);
         $author = $this->commenter($task);
