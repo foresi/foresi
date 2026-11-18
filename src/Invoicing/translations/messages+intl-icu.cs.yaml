@@ -463,10 +463,10 @@ invoice:
       unsettled_text: Nic uhrazeného nečeká na odečtení v konečné faktuře.
   trash:
     title: 'Smazat fakturu {number}'
-    keeps: Přesune se do koše a nechá si číslo, které se už nikdy nepoužije.
+    keeps: Přesune se do koše a nechá si číslo, které se už nikdy nepoužije. Z koše ji jde obnovit.
     reason: Důvod
     reason_help: Zůstane v historii faktury.
-    submit: Přesunout do koše
+    submit: Smazat fakturu
   history:
     title: 'Historie faktury {number}'
     card: Historie
@@ -560,7 +560,7 @@ invoice:
     number_changed: 'Faktura je uložená pod číslem {number}. Číslo se změnilo.'
     already_saved: Tento formulář už byl uložen.
     trashed: 'Faktura {number} je v koši.'
-    restored: 'Faktura {number} je zpět v seznamu.'
+    restored: 'Faktura {number} je obnovená.'
     delivered: 'Faktura {number} je označená jako doručená.'
     export_cleared: 'Doklad {number} už nemá příznak exportu, další export ho zahrne.'
   card:
