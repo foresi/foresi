@@ -5,7 +5,7 @@
     for a bank payment says the movement goes back among the unmatched ones.
 #}
 {% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
-<twig:Ui:Card :title="'invoice.payment.panel.title'|trans" icon="banknote" class="mt-4" data-payments="">
+<twig:Ui:Card :title="'invoice.payment.panel.title'|trans" icon="banknote" class="{{ spaced ?? true ? 'mt-4' : '' }}" data-payments="">
     <div class="grid gap-3">
         {% if payments.lines is empty %}
             <p class="m-0 text-muted" data-payments-empty>{{ 'invoice.payment.panel.empty'|trans }}</p>

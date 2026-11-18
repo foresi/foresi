@@ -8,6 +8,7 @@ declare(strict_types=1);
 use Rector\Config\RectorConfig;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPrivateMethodParameterRector;
 use Rector\PHPUnit\CodeQuality\Rector\Class_\PreferPHPUnitThisCallRector;
+use Rector\Renaming\Rector\Name\RenameClassRector;
 
 return RectorConfig::configure()
     ->withPaths([__DIR__.'/src', __DIR__.'/tests'])
@@ -19,6 +20,8 @@ return RectorConfig::configure()
         PreferPHPUnitThisCallRector::class,
         // MicroKernelTrait passes the configurator, the loader and the builder by position.
         RemoveUnusedPrivateMethodParameterRector::class => [__DIR__.'/src/Kernel.php'],
+        // registerBundles() yields the HttpKernel bundle interface, which extends the one the rename points to.
+        RenameClassRector::class => [__DIR__.'/src/Kernel.php'],
     ])
     ->withPhpSets(php84: true)
     ->withComposerBased(twig: true, doctrine: true, phpunit: true, symfony: true)

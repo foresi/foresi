@@ -8,9 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
+use Foresi\Instance\Application\InstanceClock;
 use Foresi\Invoicing\Application\DocumentMonths;
 use Foresi\Invoicing\Application\InvoiceFilter;
 use Foresi\Invoicing\Application\InvoicePage;
@@ -32,6 +34,7 @@ use Foresi\Invoicing\Application\SendMark;
 use Foresi\Invoicing\Application\StoredInvoice;
 use Foresi\Invoicing\Application\UnknownInvoice;
 use Foresi\Invoicing\Application\UnsupportedCountry;
+use Foresi\Invoicing\Application\View\InvoiceLists;
 use Foresi\Invoicing\Domain\AbandonedNumber;
 use Foresi\Invoicing\Domain\DocumentKind;
 use Foresi\Invoicing\Domain\ExportState;
@@ -47,9 +50,13 @@ use Foresi\Invoicing\Domain\SendPurpose;
 use Foresi\Invoicing\Domain\SendStatus;
 use Foresi\Invoicing\Domain\TaxTreatment;
 use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Application\View\ListDefinition;
+use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Infrastructure\View\DqlConditions;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -70,6 +77,8 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
 {
     private const string LOCK = 'UPDATE invoice SET version = version WHERE id = :id';
     private const string COUNTRY = 'i.issuer.address.countryCode';
+    /** The column of each date a list can be filtered by. */
+    private const array DATE_COLUMNS = [InvoiceLists::ISSUE_DATE => 'i.issueDate', InvoiceLists::TAX_POINT_DATE => 'i.taxPointDate', InvoiceLists::DUE_DATE => 'i.dueDate'];
     private const array ORDER = [
         'number' => ['i.numberKey'],
         'customer' => ['LOWER(i.customer.name)', 'i.numberKey'],
@@ -84,6 +93,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
         private ClockInterface $clock,
         private InvoiceSends $sends,
         private InvoicePayments $payments,
+        private InstanceClock $instanceClock,
     ) {
     }
 
@@ -198,17 +208,23 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
         [$overdue, $overdueParameters] = $this->overdue($todays);
         [$where, $parameters] = $this->narrowed($filter, $firms);
 
-        // Each kind counts its own tabs; a tab it lacks lists the whole kind.
-        $tabs = InvoiceFilter::tabsOf($filter->kind);
-        $tab = $this->tabOf($filter);
-        $sums = array_map(fn (string $key, int $index): string => 'SUM(CASE WHEN '.$this->inTab($key, $filter->kind, 'c'.$index, $overdue).' THEN 1 ELSE 0 END)', $tabs, array_keys($tabs));
+        // One query counts the views the list shows a count for, and the one it lists (spec D9).
+        $counted = [...$this->counted($filter), '' => $this->viewOf($filter)];
+        $sums = [];
+        $counting = $parameters;
+        $today = $this->today();
+        foreach (array_values($counted) as $index => $view) {
+            [$condition, $bound] = $this->inView($view, $filter->kind, 'c'.$index, $overdue, $overdueParameters, $today);
+            $sums[] = 'SUM(CASE WHEN '.$condition.' THEN 1 ELSE 0 END)';
+            $counting += $bound;
+        }
         $counts = $this->em->createQuery('SELECT '.implode(', ', $sums).' FROM '.Invoice::class.' i WHERE '.$where);
-        $this->bind($counts, \in_array(InvoiceFilter::OVERDUE, $tabs, true) ? [...$parameters, ...$overdueParameters] : $parameters);
-        /** @var list<numeric-string|int|null> $values */
-        $values = array_values((array) $counts->getSingleResult(Query::HYDRATE_ARRAY));
-        $tabCounts = array_combine($tabs, array_map(intval(...), $values));
-
-        $total = $tabCounts[$tab];
+        $this->bind($counts, $counting);
+        /** @var list<numeric-string|int|null> $results */
+        $results = array_values((array) $counts->getSingleResult(Query::HYDRATE_ARRAY));
+        $values = array_map(static fn (int|string|null $value): int => (int) $value, $results);
+        $total = (int) array_pop($values);
+        $tabCounts = array_combine(array_map(strval(...), array_keys(\array_slice($counted, 0, -1, true))), $values);
         $pages = max(1, (int) ceil($total / self::PER_PAGE));
         $page = max(1, min($filter->page, $pages));
 
@@ -556,7 +572,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
     /**
      * @param array<string, \DateTimeImmutable> $todays by country
      *
-     * @return array{string, array<string, array{mixed, string|null}>}
+     * @return array{string, array<string, array{mixed, string|ArrayParameterType|null}>}
      */
     private function overdue(array $todays): array
     {
@@ -663,18 +679,99 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
     }
 
     /**
+     * What a filter keeps: its view, or the default view of its tab.
+     */
+    private function viewOf(InvoiceFilter $filter): ViewFilter
+    {
+        return $filter->view ?? $this->listOf($filter->kind)->default($this->tabOf($filter))->filter ?? new ViewFilter();
+    }
+
+    /**
+     * The views a page counts: those the filter names, or the kind's tabs.
+     *
+     * @return array<string, ViewFilter>
+     */
+    private function counted(InvoiceFilter $filter): array
+    {
+        if ([] !== $filter->counted) {
+            return $filter->counted;
+        }
+        $views = [];
+        foreach ($this->listOf($filter->kind)->defaults as $default) {
+            $views[$default->slug] = $default->filter;
+        }
+
+        return $views;
+    }
+
+    /**
+     * The instance's today for relative dates, read once and only when a date needs it.
+     *
+     * @return \Closure(): \DateTimeImmutable
+     */
+    private function today(): \Closure
+    {
+        $day = null;
+
+        return function () use (&$day): \DateTimeImmutable {
+            return $day ??= $this->instanceClock->today();
+        };
+    }
+
+    private function listOf(DocumentKind $kind): ListDefinition
+    {
+        /** @var array<string, ListDefinition> $lists */
+        static $lists = [];
+
+        return $lists[$kind->value] ??= InvoiceLists::of($kind);
+    }
+
+    /**
+     * The documents a view holds, compiled for the query (spec D3): the dates are
+     * columns; the payment, overdue and settlement are the SQL the tabs counted with,
+     * each value of a field under its own suffix, so its subqueries never share an alias.
+     * Out of the trash unless the view asks for it.
+     *
+     * @param array<string, array{mixed, string|ArrayParameterType|null}> $overdueParameters
+     * @param \Closure(): \DateTimeImmutable                              $today
+     *
+     * @return array{string, array<string, array{mixed, string|ArrayParameterType|null}>}
+     */
+    private function inView(ViewFilter $view, DocumentKind $kind, string $suffix, string $overdue, array $overdueParameters, \Closure $today): array
+    {
+        $derived = (fn (Condition $condition, string $name): array => match ($condition->field) {
+            InvoiceLists::TRASHED => [DqlConditions::derivedBoolean($condition, 'i.deletedAt IS NOT NULL'), []],
+            InvoiceLists::PAYMENT => [DqlConditions::derivedEnum($condition, [
+                InvoiceFilter::PAID => $this->paid($name.'p'),
+                InvoiceFilter::UNPAID => $this->unpaid($name.'u'),
+                InvoiceFilter::TO_REFUND => DocumentKind::CorrectionDocument === $kind ? $this->toRefund($name.'r') : $this->overpaid($name.'r'),
+            ]), []],
+            InvoiceLists::OVERDUE => [DqlConditions::derivedBoolean($condition, $overdue.' AND '.$this->unpaid($name)), $overdueParameters],
+            InvoiceLists::SETTLEMENT => [DqlConditions::derivedEnum($condition, [
+                InvoiceFilter::SETTLED => 'i.deductedByInvoiceId IS NOT NULL',
+                InvoiceFilter::UNSETTLED => 'i.deductedByInvoiceId IS NULL AND '.$this->deductible($kind, $name),
+            ]), []],
+            default => throw new \LogicException(\sprintf('The field "%s" of the documents has no SQL.', $condition->field)),
+        });
+        $compiler = new DqlConditions($this->listOf($kind), self::DATE_COLUMNS, $derived(...));
+        [$condition, $parameters] = $compiler->compile($view, $today, $suffix);
+
+        return [([] === $view->on(InvoiceLists::TRASHED) ? 'i.deletedAt IS NULL AND ' : '').$condition, $parameters];
+    }
+
+    /**
      * What a list shows, the same for its page and its sums: what narrowed() leaves, in the tab.
      *
-     * @param array<string, array{mixed, string|null}> $parameters
-     * @param array<string, array{mixed, string|null}> $overdueParameters
+     * @param array<string, array{mixed, string|ArrayParameterType|null}> $parameters
+     * @param array<string, array{mixed, string|ArrayParameterType|null}> $overdueParameters
      *
-     * @return array{string, array<string, array{mixed, string|null}>}
+     * @return array{string, array<string, array{mixed, string|ArrayParameterType|null}>}
      */
     private function listed(InvoiceFilter $filter, string $where, array $parameters, string $overdue, array $overdueParameters): array
     {
-        $tab = $this->tabOf($filter);
+        [$condition, $bound] = $this->inView($this->viewOf($filter), $filter->kind, 'l', $overdue, $overdueParameters, $this->today());
 
-        return [$where.' AND '.$this->inTab($tab, $filter->kind, 'l', $overdue), InvoiceFilter::OVERDUE === $tab ? [...$parameters, ...$overdueParameters] : $parameters];
+        return [$where.' AND '.$condition, $parameters + $bound];
     }
 
     /**
@@ -682,7 +779,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
      *
      * @param array<string, string> $firms
      *
-     * @return array{string, array<string, array{mixed, string|null}>}
+     * @return array{string, array<string, array{mixed, string|ArrayParameterType|null}>}
      */
     private function narrowed(InvoiceFilter $filter, array $firms): array
     {
@@ -705,12 +802,13 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
             ExportState::Changed => ' AND i.changedAfterExportAt IS NOT NULL',
             null => '',
         };
-        if (null !== $filter->month) {
+        $month = InvoiceFilter::monthValue($filter->month);
+        if (null !== $month) {
             // A tax document belongs to the month of its tax point, an advance to that of its issue.
-            $start = new \DateTimeImmutable($filter->month.'-01');
-            $where .= \sprintf(' AND %1$s >= :monthStart AND %1$s < :monthEnd', $filter->kind->isTaxDocument() ? 'i.taxPointDate' : 'i.issueDate');
-            $parameters['monthStart'] = [$start, Types::DATE_IMMUTABLE];
-            $parameters['monthEnd'] = [$start->modify('first day of next month'), Types::DATE_IMMUTABLE];
+            $compiler = new DqlConditions($this->listOf($filter->kind), self::DATE_COLUMNS, static fn (): never => throw new \LogicException('A month is a date.'));
+            [$condition, $bound] = $compiler->compile(ViewFilter::all(new Condition(InvoiceLists::monthField($filter->kind), 'is', $month)), $this->today(), 'month');
+            $where .= ' AND '.$condition;
+            $parameters += $bound;
         }
         [$text, $textParameters] = $this->textCondition($filter->text);
 
@@ -720,7 +818,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
     /**
      * What a search text matches: the number, the customer, the variable symbol or the description.
      *
-     * @return array{string|null, array<string, array{mixed, string|null}>} null for no text
+     * @return array{string|null, array<string, array{mixed, string|ArrayParameterType|null}>} null for no text
      */
     private function textCondition(string $text): array
     {
@@ -748,8 +846,8 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
     }
 
     /**
-     * @param Query<mixed, mixed>                      $query
-     * @param array<string, array{mixed, string|null}> $parameters
+     * @param Query<mixed, mixed>                                         $query
+     * @param array<string, array{mixed, string|ArrayParameterType|null}> $parameters
      */
     private function bind(Query $query, array $parameters): void
     {

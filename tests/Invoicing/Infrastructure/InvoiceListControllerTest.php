@@ -62,11 +62,13 @@ use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Tests\Import\Support\RunMessages;
 use Foresi\Tests\Party\Support\FirmAccounts;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
+use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -335,6 +337,16 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('20260001', $page->filter('h1')->text());
         self::assertCount(1, $page->filter('[data-invoice-lines] tbody tr'));
+        self::assertCount(1, $page->filter('[data-invoice-lines-stacked] li'), 'a phone stacks the same line');
+        // Whom it bills and how much is due by when lead, the status next to the amount.
+        self::assertSame('Example Customer a.s.', $page->filter('[data-invoice-summary] [data-invoice-customer]')->text());
+        self::assertSame($this->nbsp('1,210.00 Kč'), $page->filter('[data-invoice-summary] [data-invoice-payable]')->text());
+        self::assertCount(1, $page->filter('[data-invoice-summary] [data-invoice-status]'));
+        self::assertStringContainsString('2026-12-01', $page->filter('[data-invoice-summary]')->text());
+        // The dates and symbols as label and value.
+        $labels = $page->filter('[data-invoice-details] dt')->each(static fn ($dt): string => trim($dt->text()));
+        self::assertContains('Issue date', $labels);
+        self::assertContains('Due date', $labels);
         self::assertSame($href.'/edit', $page->filter('a[data-invoice-edit]')->attr('href'));
 
         $sheet = $this->client->request('GET', $href, server: ['HTTP_X_FORESI_DIALOG' => 'sheet']);
@@ -765,11 +777,12 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices?tab=overdue&q=2026');
 
         $return = $crawler->filter('tbody tr form[action$="/delivered"] input[name="return"]')->attr('value');
-        self::assertSame('tab=overdue&q=2026', $return);
+        // The tab of an old link opens its view, and the list names the view (saved views, D12).
+        self::assertSame('view=overdue&q=2026', $return);
 
         $this->client->request('POST', '/invoices/'.$invoice->id().'/delivered', ['_token' => $this->token(), 'return' => $return]);
 
-        self::assertResponseRedirects('/invoices?tab=overdue&q=2026');
+        self::assertResponseRedirects('/invoices?view=overdue&q=2026');
     }
 
     public function testAReturnAddressStaysOnTheList(): void
@@ -885,7 +898,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices?export=exported');
         self::assertSame([$exported->number()], $this->numbers($crawler));
         self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 0', 'To refund 0', 'Trash 0'], $this->tabs($crawler));
-        self::assertSame('/invoices?tab=unpaid&export=exported', $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(2)->attr('href'));
+        self::assertSame('/invoices?view=unpaid&export=exported', $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(2)->attr('href'));
         self::assertSame('exported', $crawler->filter('[data-filter-sheet-form] select[name="export"] option[selected]')->attr('value'));
         self::assertSame(['', 'not_exported', 'exported', 'changed'], $crawler->filter('[data-filter-sheet-form] select[name="export"] option')->each(static fn (Crawler $option): string => $option->attr('value') ?? ''));
         self::assertSame(['All', 'Not exported', 'Exported', 'Changed after export'], $crawler->filter('[data-filter-sheet-form] select[name="export"] option')->each(static fn (Crawler $option): string => $option->text()));
@@ -1236,10 +1249,10 @@ final class InvoiceListControllerTest extends WebTestCase
 
         self::assertSame([$october->number()], $this->numbers($crawler));
         self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 1', 'To refund 0', 'Trash 0'], $this->tabs($crawler));
-        self::assertSame('/invoices?tab=unpaid&sort=number&month=2026-10', $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(2)->attr('href'));
+        self::assertSame('/invoices?view=unpaid&sort=number&month=2026-10', $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(2)->attr('href'));
         // A list of the months with a document, not a native month field that overflows and Safari lacks.
         self::assertSame(['select', 'Month'], [$crawler->filter('#invoice-filters-month-field')->nodeName(), $crawler->filter('label[for="invoice-filters-month-field"]')->text()]);
-        self::assertSame(['' => 'All months', '2026-11' => 'November 2026', '2026-10' => 'October 2026'], $this->monthOptions($crawler));
+        self::assertSame(['' => 'All months', 'this_month' => 'This month', 'last_month' => 'Last month', 'this_quarter' => 'This quarter', 'this_year' => 'This year', '2026-11' => 'November 2026', '2026-10' => 'October 2026'], $this->monthOptions($crawler));
         self::assertSame('2026-10', $crawler->filter('#invoice-filters-month-field option[selected]')->attr('value'));
         self::assertStringContainsString('month=2026-10', $crawler->filter('thead a')->first()->attr('href') ?? '');
         $return = $crawler->filter('tr[data-id="'.$october->id().'"] form input[name="return"]')->first()->attr('value');
@@ -1253,11 +1266,63 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSelectorTextContains('main', 'No invoice matches');
         self::assertCount(0, $crawler->filter('[data-list-sums]'));
         // A month without a document stays chosen, so the filter it shows is the one applied.
-        self::assertSame(['' => 'All months', '2026-11' => 'November 2026', '2026-10' => 'October 2026', '2026-09' => 'September 2026'], $this->monthOptions($crawler));
+        self::assertSame(['' => 'All months', 'this_month' => 'This month', 'last_month' => 'Last month', 'this_quarter' => 'This quarter', 'this_year' => 'This year', '2026-11' => 'November 2026', '2026-10' => 'October 2026', '2026-09' => 'September 2026'], $this->monthOptions($crawler));
         self::assertSame('2026-09', $crawler->filter('#invoice-filters-month-field option[selected]')->attr('value'));
 
         $crawler = $this->client->request('GET', '/invoices');
         self::assertSame('', $crawler->filter('#invoice-filters-month-field option[selected]')->attr('value'));
+    }
+
+    public function testLastMonthIsTheMonthBeforeTodayWhenTheListOpens(): void
+    {
+        // Saved views, D5: a relative month resolves when the query runs, in the instance's zone.
+        $this->signedIn();
+        $september = $this->issue('2026-09-30', '2026-10-15');
+        $october = $this->issue('2026-10-01', '2026-11-15');
+        $november = $this->issue('2026-11-02', '2026-12-01');
+
+        $crawler = $this->client->request('GET', '/invoices?month=last_month');
+
+        self::assertSame([$october->number()], $this->numbers($crawler));
+        self::assertSame('last_month', $crawler->filter('#invoice-filters-month-field option[selected]')->attr('value'));
+        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 1', 'To refund 0', 'Trash 0'], $this->tabs($crawler));
+        self::assertSame('/invoices?view=unpaid&month=last_month', $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(2)->attr('href'));
+        self::assertSame([$november->number()], $this->numbers($this->client->request('GET', '/invoices?month=this_month')));
+        self::assertSame([$november->number(), $october->number()], $this->numbers($this->client->request('GET', '/invoices?month=this_quarter')));
+        self::assertSame([$november->number(), $october->number(), $september->number()], $this->numbers($this->client->request('GET', '/invoices?month=this_year')));
+
+        // The same address a month on lists the month that is now the last one.
+        Clock::set(new MockClock('2026-12-02 12:00:00', 'UTC'));
+        self::assertSame([$november->number()], $this->numbers($this->client->request('GET', '/invoices?month=last_month')));
+    }
+
+    public function testAViewIsNamedByItsSlugAndTheTabOfAnOldLinkOpensIt(): void
+    {
+        $this->signedIn();
+        $this->issue('2026-11-02', '2026-11-10');
+
+        $byView = $this->client->request('GET', '/invoices?view=overdue');
+        $byTab = $this->client->request('GET', '/invoices?tab=overdue');
+
+        self::assertSame($this->numbers($byView), $this->numbers($byTab));
+        self::assertCount(1, $this->numbers($byView));
+        self::assertSelectorExists('nav[aria-label="Invoice lists"] a[href="/invoices?view=overdue"][aria-current="page"]');
+        // A view the list does not have shows the whole list.
+        $this->client->request('GET', '/invoices?view=nothing');
+        self::assertSelectorExists('nav[aria-label="Invoice lists"] a[href="/invoices"][aria-current="page"]');
+    }
+
+    public function testStoredDefaultViewsCountAsTheDeclaredOnes(): void
+    {
+        $this->signedIn();
+        $this->issue('2026-10-15', '2026-11-15');
+        $before = $this->tabs($this->client->request('GET', '/invoices'));
+
+        $tester = new CommandTester(new Application(self::$kernel ?? throw new \LogicException('A kernel runs.'))->find('app:views:sync'));
+        self::assertSame(0, $tester->execute([]));
+
+        self::assertSame($before, $this->tabs($this->client->request('GET', '/invoices')));
+        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 1', 'To refund 0', 'Trash 0'], $before);
     }
 
     public function testTheMonthsOfferedAreThoseOfTheListKindAndFirm(): void
@@ -1271,9 +1336,9 @@ final class InvoiceListControllerTest extends WebTestCase
         $advance = $this->issue('2026-08-20', '2026-09-01');
         self::getContainer()->get(Connection::class)->executeStatement("UPDATE invoice SET kind = 'advance', tax_point_date = '2026-07-31' WHERE id = ?", [$advance->id()]);
 
-        self::assertSame(['' => 'All months', '2026-11' => 'November 2026', '2026-09' => 'September 2026'], $this->monthOptions($this->client->request('GET', '/invoices')));
-        self::assertSame(['' => 'All months', '2026-08' => 'August 2026'], $this->monthOptions($this->client->request('GET', '/advances')));
-        self::assertSame(['' => 'All months', '2026-09' => 'September 2026'], $this->monthOptions($this->client->request('GET', '/invoices?firm='.$this->firm->id())));
+        self::assertSame(['' => 'All months', 'this_month' => 'This month', 'last_month' => 'Last month', 'this_quarter' => 'This quarter', 'this_year' => 'This year', '2026-11' => 'November 2026', '2026-09' => 'September 2026'], $this->monthOptions($this->client->request('GET', '/invoices')));
+        self::assertSame(['' => 'All months', 'this_month' => 'This month', 'last_month' => 'Last month', 'this_quarter' => 'This quarter', 'this_year' => 'This year', '2026-08' => 'August 2026'], $this->monthOptions($this->client->request('GET', '/advances')));
+        self::assertSame(['' => 'All months', 'this_month' => 'This month', 'last_month' => 'Last month', 'this_quarter' => 'This quarter', 'this_year' => 'This year', '2026-09' => 'September 2026'], $this->monthOptions($this->client->request('GET', '/invoices?firm='.$this->firm->id())));
         // An empty list that nothing narrows has no filter bar.
         self::assertSame([], $this->monthOptions($this->client->request('GET', '/corrections')));
     }

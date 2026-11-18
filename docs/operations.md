@@ -180,8 +180,8 @@ also by e-mail, through the same system mailer as invitations. Without them the
 inbox is the only channel and the notification settings say so; nothing fails.
 
 - A mention or a task assigned to someone is queued on the `async` transport
-  with a delay of two minutes (`app.notification_mail_delay` in
-  `config/services.yaml`, in seconds) and sent only if the inbox row is still
+  with a delay of two minutes (`app.notification_mail_delay`, in seconds, set by
+  the Work module and overridable in `config/services.yaml`) and sent only if the inbox row is still
   unread then, so it needs the worker consuming `async` as well as `mail`.
 - Everything else goes into a **daily digest**: the job `notification-digest`
   of the schedule runs once an hour in each organisation and sends each person
@@ -379,8 +379,9 @@ whatever was written since is lost.
 3. Take a backup (`ops/backup.sh --tag pre-upgrade`) and confirm
    `/var/lib/foresi/backup.status` says `result=ok`.
 4. Deploy the new tag. The deploy dumps again before the migrations, migrates
-   with `doctrine:migrations:migrate`, and ends with `messenger:stop-workers`,
-   so the supervisor starts the workers on the new code.
+   with `doctrine:migrations:migrate`, stores the default views of the lists
+   with `app:views:sync`, and ends with `messenger:stop-workers`, so the
+   supervisor starts the workers on the new code.
 5. Check `/health`, sign in, and watch the log and the `failed` queue for an
    hour.
 

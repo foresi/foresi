@@ -13,6 +13,7 @@
             "module": "events",
             "kind": "core",
             "namespace": "Foresi\\Events\\",
+            "bundle": "Foresi\\Events\\EventsBundle",
             "optional": [],
             "scopes": [
                 "events"

@@ -316,6 +316,56 @@ final class DataTableTest extends KernelTestCase
         return (string) $this->renderTwigComponent('Ui:DataTable', $props + ['columns' => self::COLUMNS, 'rows' => $this->rows(), 'caption' => 'Contacts'], null, $blocks);
     }
 
+    public function testWithoutWidthsTheTableHasNoColgroup(): void
+    {
+        self::assertCount(0, new Crawler($this->render())->filter('colgroup'));
+    }
+
+    public function testColumnWidthsGoInAColgroupFromTheSmBreakpointUp(): void
+    {
+        $columns = self::COLUMNS;
+        $columns[0]['width'] = 160;
+        $columns[1]['phone'] = false;
+        $cols = new Crawler($this->render(['columns' => $columns]))->filter('colgroup col');
+
+        self::assertCount(3, $cols);
+        self::assertSame('--col-w: 160px', $cols->eq(0)->attr('style'));
+        self::assertContains('sm:w-(--col-w)', explode(' ', (string) $cols->eq(0)->attr('class')));
+        self::assertNull($cols->eq(1)->attr('style'));
+        self::assertContains('max-sm:hidden', explode(' ', (string) $cols->eq(1)->attr('class')));
+    }
+
+    public function testAWidthOfOnePxIsAccepted(): void
+    {
+        $columns = self::COLUMNS;
+        $columns[0]['width'] = 1;
+
+        self::assertSame('--col-w: 1px', new Crawler($this->render(['columns' => $columns]))->filter('colgroup col')->eq(0)->attr('style'));
+    }
+
+    /**
+     * @return iterable<string, array{mixed}>
+     */
+    public static function invalidWidths(): iterable
+    {
+        yield 'text' => ['160px'];
+        yield 'zero' => [0];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('invalidWidths')]
+    public function testRefusesAWidthThatIsNotAPositiveNumber(mixed $width): void
+    {
+        $columns = self::COLUMNS;
+        $columns[0]['width'] = $width;
+
+        try {
+            $this->render(['columns' => $columns]);
+            self::fail('The table accepted a width that is not a positive number.');
+        } catch (\Throwable $e) {
+            self::assertStringContainsString('A column width is a positive number of px.', $e->getMessage());
+        }
+    }
+
     public function testListRowsAre56PxDenseRows44AndTheHeader44OnTheTint(): void
     {
         $list = new Crawler($this->render());

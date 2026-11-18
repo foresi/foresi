@@ -4,13 +4,15 @@
     "type": "foresi-module",
     "license": "AGPL-3.0-only",
     "require": {
-        "foresi/instance": "*"
+        "foresi/instance": "*",
+        "foresi/shared": "*"
     },
     "extra": {
         "foresi": {
             "module": "exchange-rate",
             "kind": "module",
             "namespace": "Foresi\\ExchangeRate\\",
+            "bundle": "Foresi\\ExchangeRate\\ExchangeRateBundle",
             "optional": []
         }
     }

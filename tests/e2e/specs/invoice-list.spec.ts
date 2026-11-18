@@ -156,7 +156,7 @@ test.describe.serial('the invoice list', () => {
     await page.locator('tbody tr').getByRole('button', { name: /Další akce/ }).click();
     await page.locator('tbody tr').getByRole('menuitem', { name: 'Obnovit' }).click();
     await expect(page.getByText(/je zpět v seznamu\./)).toBeVisible();
-    await expect(page).toHaveURL(/tab=trash/);
+    await expect(page).toHaveURL(/view=trash/);
     await expect(page.getByRole('heading', { name: 'Koš je prázdný' })).toBeVisible();
   });
 

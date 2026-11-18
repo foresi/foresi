@@ -46,9 +46,23 @@
 {% block title %}{{ row.title }}{% endblock %}
 
 {% block actions %}
-    {# A new subtask is the secondary button, sharing sits in "⋯", deleting last; the timer, the task's main action, stays last on every screen. #}
+    {# The timer, the task's main action, comes first on every screen; a new subtask is the secondary button, sharing sits in "⋯", deleting last. #}
     {% set subtaskable = not task.parent and not task.projectArchived %}
     <twig:Ui:MoreActions menuId="task-menu" :menuSize="record_action_size" data-task-menu>
+        <twig:block name="primary">
+            {% if timerHere %}
+                <form method="post" action="{{ path('app_timer_stop') }}" data-task-timer="stop">
+                    <input type="hidden" name="_token" value="{{ timeToken }}">
+                    <input type="hidden" name="return" value="{{ taskUrl }}">
+                    <twig:Ui:Button type="submit" icon="square" :size="record_action_size">{{ 'work.time.timer.stop'|trans }}</twig:Ui:Button>
+                </form>
+            {% elseif timeLoggable %}
+                <form method="post" action="{{ path('app_task_timer_start', {id: row.id}) }}" data-task-timer="start">
+                    <input type="hidden" name="_token" value="{{ timeToken }}">
+                    <twig:Ui:Button type="submit" icon="play" :size="record_action_size">{{ 'work.time.timer.start'|trans }}</twig:Ui:Button>
+                </form>
+            {% endif %}
+        </twig:block>
         <twig:block name="buttons">{% if subtaskable %}<twig:Ui:Button icon="plus" :size="record_action_size" :href="path('app_task_subtask_new', {id: row.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-subtask-new-open>{{ 'work.task.new_subtask'|trans }}</twig:Ui:Button>{% endif %}</twig:block>
         <twig:block name="phone">{% if subtaskable %}<twig:Ui:MenuItem :href="path('app_task_subtask_new', {id: row.id})" icon="plus" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-menu-subtask>{{ 'work.task.new_subtask'|trans }}</twig:Ui:MenuItem>{% endif %}</twig:block>
         {% if task.shareable %}<twig:Ui:MenuItem :href="path('app_sharing', {kind: 'tasks', id: row.id})" icon="share-2" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-share>{{ 'work.sharing.open'|trans }}</twig:Ui:MenuItem>{% endif %}
@@ -62,18 +76,6 @@
             {% endif %}
         </twig:block>
     </twig:Ui:MoreActions>
-    {% if timerHere %}
-        <form method="post" action="{{ path('app_timer_stop') }}" data-task-timer="stop">
-            <input type="hidden" name="_token" value="{{ timeToken }}">
-            <input type="hidden" name="return" value="{{ taskUrl }}">
-            <twig:Ui:Button type="submit" icon="square" :size="record_action_size">{{ 'work.time.timer.stop'|trans }}</twig:Ui:Button>
-        </form>
-    {% elseif timeLoggable %}
-        <form method="post" action="{{ path('app_task_timer_start', {id: row.id}) }}" data-task-timer="start">
-            <input type="hidden" name="_token" value="{{ timeToken }}">
-            <twig:Ui:Button type="submit" icon="play" :size="record_action_size">{{ 'work.time.timer.start'|trans }}</twig:Ui:Button>
-        </form>
-    {% endif %}
 {% endblock %}
 
 {% block content %}

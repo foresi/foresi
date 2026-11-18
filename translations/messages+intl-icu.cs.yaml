@@ -1415,6 +1415,7 @@ invoice:
     title_payment_tax_document: Daňové doklady k platbě
     title_correction_document: Opravné doklady
     views: Seznamy faktur
+    more_views: Další pohledy
     all_firms: Všechny firmy
     search_label: Hledat ve fakturách
     search_placeholder: Číslo, zákazník nebo popis
@@ -1559,10 +1560,16 @@ invoice:
   save_send: Odeslat a uložit
   save_pdf: PDF a uložit
   more_actions: Další akce
+  due_on: 'splatnost {date}'
   more: Další údaje
   more_show: Zobrazit více detailů
   firm_apply: Použít tuto firmu
   month:
+    this_month: Tento měsíc
+    last_month: Minulý měsíc
+    this_quarter: Toto čtvrtletí
+    this_year: Tento rok
+    by_month: Podle měsíce
     label: Měsíc
     all: Všechny měsíce
   rate: '{rate} %'
@@ -1610,6 +1617,8 @@ invoice:
     edit_here: Upravit jen na tomto dokladu
     edit_contact: Upravit kontakt
   field:
+    payment_state: Stav úhrady
+    settlement: Vyúčtování
     firm: Firma
     series: Číselná řada
     customer: Odběratel

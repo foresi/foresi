@@ -20,7 +20,8 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  * The modules of this application: every package of type "foresi-module"
  * Composer installed. Being installed is being enabled; there is no other
  * switch. Each module's manifest is its composer.json: hard dependencies in
- * "require", the rest in "extra.foresi", its API resources in "scopes".
+ * "require", the rest in "extra.foresi", its API resources in "scopes" and
+ * its Symfony bundle in "bundle".
  */
 final readonly class InstalledModules
 {
@@ -85,6 +86,10 @@ final readonly class InstalledModules
         }
         $optional = self::strings($extra['optional'] ?? [], \sprintf('Package %s: extra.foresi.optional must be a list of module ids.', $package));
         $scopes = self::strings($extra['scopes'] ?? [], \sprintf('Package %s: extra.foresi.scopes must be a list of resources.', $package));
+        $bundle = $extra['bundle'] ?? null;
+        if (!\is_string($bundle)) {
+            throw new InvalidManifest(\sprintf('Package %s has no extra.foresi.bundle, the class of its bundle such as "Foresi\\\\Timesheet\\\\TimesheetBundle".', $package));
+        }
         $require = \is_array($composer['require'] ?? null) ? array_keys($composer['require']) : [];
         $requires = array_values(array_filter(
             array_map(strval(...), $require),
@@ -99,6 +104,7 @@ final readonly class InstalledModules
             array_map(static fn (string $name): ModuleId => ModuleId::of(substr($name, \strlen('foresi/'))), $requires),
             array_map(ModuleId::of(...), $optional),
             $scopes,
+            $bundle,
         );
     }
 

@@ -28,6 +28,8 @@ rm -rf var/cache/e2e var/e2e
 mkdir -p var/e2e
 # Migrated once, into the template every world starts from.
 E2E_WORLD=template php bin/console doctrine:migrations:migrate --no-interaction --quiet
+# The default views of the lists, as the deploy stores them (app:views:sync).
+E2E_WORLD=template php bin/console app:views:sync --no-interaction --quiet
 worlds="$(php tests/e2e/seed.php --worlds)"
 for world in ${worlds}; do
   cp var/e2e/template.db "var/e2e/${world}.db"

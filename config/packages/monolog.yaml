@@ -15,8 +15,8 @@ when@dev:
                 level: warning
                 channels: ['!event', '!deprecation']
 
-# The application logger of the tests is the plain one of services.yaml, which writes to
-# the cache directory; the framework's channels write there too, never to stderr.
+# The application logger of the tests is the plain one below, which writes to the cache
+# directory; the framework's channels write there too, never to stderr.
 when@test:
     monolog:
         handlers:
@@ -25,6 +25,15 @@ when@test:
                 path: '%kernel.cache_dir%/test.log'
                 level: info
                 channels: ['!event', '!deprecation']
+
+    services:
+        # The default logger writes to stderr. Tests log expected errors (404, invalid CSRF), and
+        # Infection aborts its initial test run on any stderr output, so the test log goes to a file.
+        logger:
+            class: Symfony\Component\HttpKernel\Log\Logger
+            arguments:
+                $minLevel: info
+                $output: '%kernel.cache_dir%/test.log'
 
 when@prod:
     monolog:

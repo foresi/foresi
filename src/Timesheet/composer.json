@@ -17,6 +17,7 @@
             "module": "timesheet",
             "kind": "module",
             "namespace": "Foresi\\Timesheet\\",
+            "bundle": "Foresi\\Timesheet\\TimesheetBundle",
             "optional": []
         }
     }

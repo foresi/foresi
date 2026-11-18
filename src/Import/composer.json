@@ -15,6 +15,7 @@
             "module": "import",
             "kind": "module",
             "namespace": "Foresi\\Import\\",
+            "bundle": "Foresi\\Import\\ImportBundle",
             "optional": []
         }
     }

@@ -16,6 +16,9 @@
 
 {% block actions %}
     <twig:Ui:MoreActions menuId="webhook-actions">
+        <twig:block name="primary">
+            <twig:Ui:Button variant="primary" icon="pencil" :size="record_action_size" :href="path('app_webhook_edit', {id: endpoint.id})" data-dialog aria-haspopup="dialog" data-in-place>{{ 'webhooks.action.edit'|trans }}</twig:Ui:Button>
+        </twig:block>
         <twig:block name="buttons">
             {% if endpoint.active %}
                 <form method="post" action="{{ path('app_webhook_ping', {id: endpoint.id}) }}">
@@ -54,7 +57,6 @@
             </form>
         </twig:block>
     </twig:Ui:MoreActions>
-    <twig:Ui:Button variant="primary" icon="pencil" :size="record_action_size" :href="path('app_webhook_edit', {id: endpoint.id})" data-dialog aria-haspopup="dialog" data-in-place>{{ 'webhooks.action.edit'|trans }}</twig:Ui:Button>
 {% endblock %}
 
 {% block content %}

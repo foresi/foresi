@@ -12,6 +12,7 @@
             "module": "audit",
             "kind": "core",
             "namespace": "Foresi\\Audit\\",
+            "bundle": "Foresi\\Audit\\AuditBundle",
             "optional": []
         }
     }

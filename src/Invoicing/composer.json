@@ -16,6 +16,7 @@
             "module": "invoicing",
             "kind": "module",
             "namespace": "Foresi\\Invoicing\\",
+            "bundle": "Foresi\\Invoicing\\InvoicingBundle",
             "optional": [
                 "cash-flow"
             ],

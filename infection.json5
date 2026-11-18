@@ -26,8 +26,9 @@
     "minCoveredMsi": 90,
     "mutators": {
         "@default": true,
-        // Column lengths and join columns in mapping attributes are verified by doctrine:schema:validate.
-        "global-ignoreSourceCodeByRegex": [".*#\\[ORM\\\\.*\\blength: .*", ".*#\\[ORM\\\\JoinColumn\\(.*"],
+        // Column lengths and join columns in mapping attributes are verified by doctrine:schema:validate; the jsonb
+        // option only picks PostgreSQL's column type, which the migrations create, and the tests run on SQLite.
+        "global-ignoreSourceCodeByRegex": [".*#\\[ORM\\\\.*\\blength: .*", ".*#\\[ORM\\\\.*'jsonb' => .*", ".*#\\[ORM\\\\JoinColumn\\(.*"],
         // Equivalent mutants: a numeric string added to an int yields the same value, and so it does when
         // compared with an int or taken by max(); false from strrpos() plus one is one, cast or not.
         "CastInt": {"ignore": [
@@ -47,7 +48,9 @@
             "Foresi\\Banking\\Application\\InboundToken::generate::32",
             "Foresi\\Invoicing\\Application\\InvoiceHistory::minor::135",
             // The year and the digits compared with it are numeric strings.
-            "Foresi\\Idoklad\\Application\\Import\\DocumentsStage::shapeOf"
+            "Foresi\\Idoklad\\Application\\Import\\DocumentsStage::shapeOf",
+            // The month number subtracted from is a numeric string.
+            "Foresi\\Shared\\Application\\View\\DateRange::quarter"
         ]},
         // Equivalent mutants: the whole match of a percentage reads as a number up to its dot, which is the same
         // integer part. Of recurring dates: RecurringSchedule::estimate() only has to stay at or before the first
