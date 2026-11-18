@@ -1371,7 +1371,9 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertInstanceOf(SavedView::class, $view);
         self::assertSame(Visibility::Shared, $view->visibility());
         self::assertFalse($view->showCount());
-        self::assertSame(['payment', 'due_date'], array_column($view->filters()['conditions'], 'field'));
+        $conditions = $view->filters()['conditions'];
+        self::assertIsArray($conditions);
+        self::assertSame(['payment', 'due_date'], array_column($conditions, 'field'));
         self::assertResponseRedirects('/invoices?view='.$view->id(), 303);
         $crawler = $this->client->followRedirect();
         self::assertSame([$late->number()], $this->numbers($crawler));
@@ -1523,7 +1525,7 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame(['Number', 'Customer'], array_slice($this->headers($crawler), 0, 2));
 
         self::assertSame('Overdue, unsaved changes 1', $this->tabs($crawler)[3]);
-        self::assertSame('dense', json_decode((string) $crawler->filter('[data-view-save-as-form] input[name="display"]')->attr('value'), true)['density']);
+        self::assertStringContainsString('"density":"dense"', (string) $crawler->filter('[data-view-save-as-form] input[name="display"]')->attr('value'));
         self::assertCount(1, $crawler->filter('[data-view-save-as-form] input[name="displayChanged"]'));
         // Another view opens with its own display.
         self::assertCount(0, $this->client->request('GET', '/invoices?view=paid')->filter('[data-tab-modified]'));
@@ -1538,16 +1540,18 @@ final class InvoiceListControllerTest extends WebTestCase
         $this->issue('2026-10-01', '2026-11-10');
         $crawler = $this->client->request('GET', '/invoices?view=overdue&sort=number');
         $form = $crawler->filter('[data-view-save-as-form]')->form();
+        $token = (string) $crawler->filter('[data-view-save-as-form] input[name="_token"]')->attr('value');
+        $filter = (string) $crawler->filter('[data-view-save-as-form] input[name="f"]')->attr('value');
 
         // A name of more than 60 characters, and a return to another site.
         $this->client->submit($form, ['name' => str_repeat('x', 61), 'return' => '//example.com/invoices']);
         self::assertResponseRedirects('/', 303);
         // A member changing a view a module ships.
-        $this->client->request('POST', '/views/save', ['_token' => $form->get('_token')->getValue(), 'ref' => 'invoicing.invoices.overdue', 'f' => $form->get('f')->getValue(), 'sort' => '[]', 'return' => '/invoices?view=overdue']);
+        $this->client->request('POST', '/views/save', ['_token' => $token, 'ref' => 'invoicing.invoices.overdue', 'f' => $filter, 'sort' => '[]', 'return' => '/invoices?view=overdue']);
         $crawler = $this->client->followRedirect();
         self::assertSame(['A view\'s name has 1 to 60 characters.', 'Only its creator or an owner changes this view. Save your changes as a new view instead.'], $crawler->filter('[role="alert"]')->each(static fn (Crawler $alert): string => trim($alert->text())));
         // A filter the list does not accept.
-        $this->client->request('POST', '/views/new', ['_token' => $form->get('_token')->getValue(), 'list' => 'invoicing.invoices', 'name' => 'Broken', 'f' => 'not-a-filter', 'return' => '/invoices']);
+        $this->client->request('POST', '/views/new', ['_token' => $token, 'list' => 'invoicing.invoices', 'name' => 'Broken', 'f' => 'not-a-filter', 'return' => '/invoices']);
         self::assertContains('The view could not be saved. Check its filters and try again.', $this->client->followRedirect()->filter('[role="alert"]')->each(static fn (Crawler $alert): string => trim($alert->text())));
         // Without the form's token.
         $this->client->request('POST', '/views/delete', ['_token' => 'wrong', 'ref' => 'invoicing.invoices.overdue', 'return' => '/invoices']);
