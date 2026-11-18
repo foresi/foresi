@@ -44,9 +44,11 @@ async function tabThrough(page: Page, ids: string[]): Promise<void> {
 }
 
 // A save lands on the list: the row of the number leads to the document, the newest of that number first.
+// The row opens the read-only detail in the sheet; these checks read the form as a page.
 async function openFromList(page: Page, number: string): Promise<void> {
   await page.goto(`/invoices?q=${encodeURIComponent(number)}`);
-  await page.getByRole('link', { name: number, exact: true }).first().click();
+  const detail = await page.getByRole('link', { name: number, exact: true }).first().getAttribute('href');
+  await page.goto(`${detail}/edit`);
   await expect(page).toHaveURL(/\/invoices\/[0-9a-f-]+\/edit$/);
 }
 
