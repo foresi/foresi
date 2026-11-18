@@ -370,7 +370,7 @@ final class SendLogControllerTest extends WebTestCase
         // The tabs keep the purpose, so a status narrows the reminders.
         self::assertSame('/invoices/sent?status=queued&purpose=reminder', $crawler->filter('nav[aria-label="Send states"] a')->eq(2)->attr('href'));
         // A reminder row offers the next reminder, not the invoice again.
-        self::assertStringEndsWith('/invoices/'.$invoice->id().'/remind', (string) $crawler->filter('tbody tr a[data-dialog]')->first()->attr('href'));
+        self::assertStringEndsWith('/invoices/'.$invoice->id().'/remind', (string) $crawler->filter('tbody tr a[data-dialog]:not([data-row-link])')->first()->attr('href'));
 
         $crawler = $this->client->request('GET', '/invoices/sent?purpose=invoice');
         self::assertSame(['Invoice'], $crawler->filter('tbody tr [data-icon-cell]')->each(static fn (Crawler $cell): string => trim($cell->text())));
