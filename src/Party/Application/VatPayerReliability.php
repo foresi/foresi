@@ -9,13 +9,11 @@ declare(strict_types=1);
 namespace Foresi\Party\Application;
 
 use Foresi\Party\Domain\VatId;
-use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
  * The tax authority's register of unreliable VAT payers. Never throws: an
  * unreachable register gives a check with the result Unavailable.
  */
-#[AutoconfigureTag(self::TAG)]
 interface VatPayerReliability
 {
     public const string TAG = 'app.vat_payer_reliability';

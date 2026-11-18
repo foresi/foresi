@@ -100,6 +100,19 @@ services:
         # Takes each event the relay numbers, in its transaction, such as the webhooks.
         Foresi\Events\Application\EventSink:
             tags: ['app.event_sink']
+        # Ports served by other modules; each collects its providers (ADR 0034, rule 3).
+        Foresi\Instance\Application\ZoneFallback:
+            tags: ['app.zone_fallback']
+        Foresi\Invoicing\Application\BilledWork:
+            tags: ['app.billed_work']
+        Foresi\Invoicing\Application\BilledWorkRelease:
+            tags: ['app.billed_work_release']
+        Foresi\Invoicing\Application\PaymentSourceRelease:
+            tags: ['app.payment_source_release']
+        Foresi\Party\Application\CompanyRegistry:
+            tags: ['app.company_registry']
+        Foresi\Party\Application\VatPayerReliability:
+            tags: ['app.vat_payer_reliability']
 
     Foresi\Party\Application\RegistrationNumberFactory:
         arguments:

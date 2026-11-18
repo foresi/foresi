@@ -8,14 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Instance\Application;
 
-use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
-
 /**
  * Port: the zone of the instance when APP_TIMEZONE is not set, from what a
  * module built on Instance knows. Implemented by Invoicing, from the country of
  * the first active firm; Instance never depends on it in return.
  */
-#[AutoconfigureTag(self::TAG)]
 interface ZoneFallback
 {
     public const string TAG = 'app.zone_fallback';

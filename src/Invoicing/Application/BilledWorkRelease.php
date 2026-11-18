@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Application;
 
 use Foresi\Invoicing\Domain\Invoice;
-use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
  * Told when an invoice goes to the trash and when it comes back, and when the
@@ -18,7 +17,6 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
  * it with its line. Invoicing declares the port and knows nothing of what is
  * behind it.
  */
-#[AutoconfigureTag(self::TAG)]
 interface BilledWorkRelease
 {
     public const string TAG = 'app.billed_work_release';

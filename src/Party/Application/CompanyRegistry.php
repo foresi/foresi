@@ -9,13 +9,11 @@ declare(strict_types=1);
 namespace Foresi\Party\Application;
 
 use Foresi\Party\Domain\RegistrationNumber;
-use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
  * A public company register. Lookups never throw: an unknown subject and an
  * unreachable register both come back empty (the adapter logs the latter).
  */
-#[AutoconfigureTag(self::TAG)]
 interface CompanyRegistry
 {
     public const string TAG = 'app.company_registry';

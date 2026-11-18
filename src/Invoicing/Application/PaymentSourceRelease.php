@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Application;
 
 use Foresi\Invoicing\Domain\Payment;
-use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
  * Told when a payment that came from a bank movement is cancelled, inside the same
@@ -20,7 +19,6 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
  * and unpairing take them in too, so a cancellation never waits on one of them
  * while it holds what that one waits for.
  */
-#[AutoconfigureTag(self::TAG)]
 interface PaymentSourceRelease
 {
     public const string TAG = 'app.payment_source_release';
