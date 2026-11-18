@@ -18,13 +18,12 @@ interface PartyQuery
 {
     public const int PER_PAGE = 25;
 
-    /** Sort keys; a leading "-" sorts descending. */
-    public const array SORTS = ['name', 'kind', 'registration', 'vat'];
-
     /**
      * Matches the name, the registration number (ignoring spaces and
      * punctuation), the VAT id and the e-mail addresses. Archived parties are
-     * listed only when asked for. An unknown sort falls back to the name.
+     * listed only when asked for. A sort is the key of an attribute of the contact list that
+     * its query sorts by, such as "vat_id", a leading "-" for descending; an unknown sort falls
+     * back to the name.
      * Narrowed to an import, the list shows its parties whether archived or
      * not, since an import can archive them.
      */

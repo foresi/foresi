@@ -47,7 +47,7 @@
                 {name: 'month', label: 'invoice.month.label'|trans, options: months, value: month, pinned: true},
                 {name: 'export', label: 'invoice.export_state.label'|trans, options: exportStates, value: export},
             ]) %}
-            <twig:Ui:FilterBar id="invoice-filters" :action="path(route)" :keep="{view: view != '' ? view : null, sort: sort != '-issueDate' ? sort : null, toSend: toSend ? '1' : null}|merge(workingQuery)"
+            <twig:Ui:FilterBar id="invoice-filters" :action="path(route)" :keep="{view: view != '' ? view : null, sort: sort != constant('Foresi\\Invoicing\\Application\\InvoiceFilter::DEFAULT_SORT') ? sort : null, toSend: toSend ? '1' : null}|merge(workingQuery)"
                 :search="{name: 'q', value: text, label: 'invoice.list.search_label'|trans, placeholder: 'invoice.list.search_placeholder'|trans}"
                 :filters="invoiceFilters" :empty="rows is empty">
                 <twig:block name="end">

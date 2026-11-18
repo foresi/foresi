@@ -8,13 +8,13 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Ui\Column;
 
-use Foresi\Ui\Column\ListColumnRegistry;
+use Foresi\Shared\Domain\View\AttributeType;
+use Foresi\Tests\Ui\Support\TestColumns;
 use Foresi\Ui\Column\ResolvedColumn;
 use Foresi\Ui\Column\WorkingDisplay;
-use Foresi\Ui\Contract\Column;
-use Foresi\Ui\Contract\ListColumns;
+use Foresi\Ui\Contract\Attribute;
+use Foresi\Ui\Contract\DataSource;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Translation\IdentityTranslator;
 
 final class WorkingDisplayTest extends TestCase
 {
@@ -67,6 +67,22 @@ final class WorkingDisplayTest extends TestCase
 
         self::assertSame(['name', 'email'], $state->display->keys());
         self::assertSame(['cols' => 'name,email'], $state->query);
+    }
+
+    public function testAnOlderKeyInTheAddressShowsItsColumnAndIsWrittenBackUnderItsKey(): void
+    {
+        $state = $this->working()->read(self::LIST, ['archived' => true], null, ['cols' => 'name,archivedAt']);
+
+        self::assertSame(['name', 'archived_at'], $state->display->keys());
+        self::assertSame(['cols' => 'name,archived_at'], $state->query);
+    }
+
+    public function testAnOlderKeyInTheViewsStoredDisplayShowsItsColumn(): void
+    {
+        $state = $this->working()->read(self::LIST, ['archived' => true], ['columns' => [['key' => 'name'], ['key' => 'archivedAt', 'width' => 120]]], ['density' => 'dense']);
+
+        self::assertSame(['name', 'archived_at'], $state->display->keys());
+        self::assertSame([null, 120], array_map(static fn (ResolvedColumn $column): ?int => $column->width, $state->display->columns));
     }
 
     public function testAWorkingStateThatShowsTheViewIsNoChangeAndLeavesTheAddress(): void
@@ -129,7 +145,7 @@ final class WorkingDisplayTest extends TestCase
         $working = $this->working();
 
         self::assertSame(['name', 'kind', 'email', 'phone'], array_column($working->read(self::LIST, [], null, [])->picker(), 'key'));
-        self::assertSame(['name', 'kind', 'email', 'phone', 'archivedAt'], array_column($working->read(self::LIST, ['archived' => true], null, [])->picker(), 'key'));
+        self::assertSame(['name', 'kind', 'email', 'phone', 'archived_at'], array_column($working->read(self::LIST, ['archived' => true], null, [])->picker(), 'key'));
     }
 
     public function testTheLockedColumnLeadsWhereverTheAddressPutsIt(): void
@@ -191,8 +207,8 @@ final class WorkingDisplayTest extends TestCase
 
     public function working(): WorkingDisplay
     {
-        $provider = new class implements ListColumns {
-            public function columns(string $list): iterable
+        $provider = new class implements DataSource {
+            public function attributes(string $list): iterable
             {
                 if ('party.contacts' !== $list) {
                     return [];
@@ -200,15 +216,15 @@ final class WorkingDisplayTest extends TestCase
                 $text = static fn (string $key): \Closure => static fn (array $row): string => \is_string($row[$key] ?? null) ? $row[$key] : '';
 
                 return [
-                    new Column('name', 'party.column.name', $text('name'), defaultPosition: 10, locked: true),
-                    new Column('kind', 'party.column.kind', $text('kind'), defaultPosition: 20),
-                    new Column('email', 'party.column.email', $text('email'), defaultPosition: 30),
-                    new Column('phone', 'party.column.phone', $text('phone'), defaultVisible: false, defaultPosition: 40),
-                    new Column('archivedAt', 'party.column.archivedAt', $text('archivedAt'), defaultVisible: false, defaultPosition: 50, available: static fn (array $context): bool => true === ($context['archived'] ?? false)),
+                    new Attribute('name', 'party.column.name', AttributeType::Text, $text('name'), defaultVisible: true, defaultPosition: 10, locked: true),
+                    new Attribute('kind', 'party.column.kind', AttributeType::Text, $text('kind'), defaultVisible: true, defaultPosition: 20),
+                    new Attribute('email', 'party.column.email', AttributeType::Text, $text('email'), defaultVisible: true, defaultPosition: 30),
+                    new Attribute('phone', 'party.column.phone', AttributeType::Text, $text('phone'), defaultPosition: 40),
+                    new Attribute('archived_at', 'party.column.archived_at', AttributeType::Text, $text('archived_at'), aliases: ['archivedAt'], defaultPosition: 50, available: static fn (array $context): bool => true === ($context['archived'] ?? false)),
                 ];
             }
         };
 
-        return new WorkingDisplay(new ListColumnRegistry([$provider], new IdentityTranslator()));
+        return new WorkingDisplay(TestColumns::registry($provider));
     }
 }

@@ -58,10 +58,26 @@ party:
     name: Name
     kind: Kind
     roles: Roles
-    registration: Reg. no.
-    vat: VAT ID
+    registration_number: Reg. no.
+    vat_id: VAT ID
     email: E-mail
     status: Status
+    phone: Phone
+    mobile: Mobile
+    website: Website
+    registration_country: Register country
+    billing_city: Billing city
+    billing_country: Billing country
+    default_due_days: Due period (days)
+    currency: Currency
+    payment_method: Payment method
+    language: Document language
+    reverse_charge: Reverse charge
+    reminders: Payment reminders
+    hourly_rate: Hourly rate
+    vies_result: VIES
+    unreliable_payer: Unreliable payer register
+    archived_at: Archived at
     position: Position
     primary: Primary
     type: Type
@@ -202,6 +218,9 @@ party:
     bank_transfer: Bank transfer
     cash: Cash
     card: Card
+  language:
+    cs: Czech
+    en: English
   history:
     empty: There is no change yet.
     entry: '{action}: {subject} ({fields})'

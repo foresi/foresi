@@ -15,13 +15,16 @@ use Foresi\Party\Application\PartyCounts;
 use Foresi\Party\Application\PartyPage;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\PartyRow;
+use Foresi\Party\Domain\AddressType;
 use Foresi\Party\Domain\ContactLink;
 use Foresi\Party\Domain\EmailPurpose;
 use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyEmail;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\RegistryResult;
+use Foresi\Party\Infrastructure\Column\ContactSource;
 
 /**
  * Roles live in a JSON column, so the role filter and the counts
@@ -30,16 +33,12 @@ use Foresi\Party\Domain\RegistryResult;
  */
 final readonly class DoctrinePartyQuery implements PartyQuery
 {
-    private const array ORDER = [
-        'name' => ['LOWER(p.displayName)'],
-        'kind' => ['p.kind', 'LOWER(p.displayName)'],
-        'registration' => ['p.registrationKey', 'LOWER(p.displayName)'],
-        'vat' => ['p.vatId', 'LOWER(p.displayName)'],
-    ];
+    /** What the list sorts by when a sort names nothing it can sort by, and what breaks a tie. */
+    private const string ORDER_NAME = 'LOWER(p.displayName)';
 
     private const int MAX_TEXT = 100;
 
-    public function __construct(private EntityManagerInterface $em, private PartyConditions $conditions)
+    public function __construct(private EntityManagerInterface $em, private PartyConditions $conditions, private ContactSource $source)
     {
     }
 
@@ -55,8 +54,9 @@ final readonly class DoctrinePartyQuery implements PartyQuery
         $pages = max(1, (int) ceil($total / self::PER_PAGE));
         $page = max(1, min($page, $pages));
 
+        // By the expression the data source gives the attribute (spec DS10), then by the name.
         $descending = str_starts_with($sort, '-');
-        $order = self::ORDER[ltrim($sort, '-')] ?? self::ORDER['name'];
+        $order = array_values(array_unique([$this->source->sorts()[ltrim($sort, '-')] ?? self::ORDER_NAME, self::ORDER_NAME]));
         $ids = $this->em->createQuery(
             'SELECT p.id FROM '.Party::class.' p WHERE '.$where.' ORDER BY '
             .implode(', ', array_map(static fn (string $column, int $index): string => $column.($descending && 0 === $index ? ' DESC' : ''), $order, array_keys($order))).', p.id',
@@ -152,6 +152,14 @@ final readonly class DoctrinePartyQuery implements PartyQuery
             }
         }
 
+        $billing = [];
+        /** @var list<PartyAddress> $addresses */
+        $addresses = $this->em->createQuery('SELECT a FROM '.PartyAddress::class.' a WHERE a.party IN (:ids) AND a.type = :type')
+            ->setParameter('ids', $ids)->setParameter('type', AddressType::Billing)->getResult();
+        foreach ($addresses as $address) {
+            $billing[$address->party()->id()] = $address->address();
+        }
+
         $byId = [];
         foreach ($this->findMany($ids) as $party) {
             $id = $party->id();
@@ -166,6 +174,8 @@ final readonly class DoctrinePartyQuery implements PartyQuery
                 $party->phone(),
                 $party->isArchived(),
                 RegistryResult::Unreliable === $party->unreliablePayerCheck()?->result,
+                $party,
+                $billing[$id] ?? null,
             );
         }
 
