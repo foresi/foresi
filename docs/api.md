@@ -164,7 +164,11 @@ Query parameters of `GET /api/v1/contacts`:
 | `archived` | `true` lists archived contacts. Default `false`. |
 | `registration_number` | Company registration number. |
 | `vat_id` | VAT id. |
+| `view` | The id of a saved view of the list `party.contacts`, or the system key of one it ships, such as `party.contacts.suppliers`: only the contacts it holds. Needs `views:read` too. |
+| `filter` | Conditions as JSON in the format of [Saved views](#saved-views), such as `{"conditions": [{"field": "role", "op": "is", "value": "supplier"}]}`. A condition on `archived` decides it instead of the `archived` parameter. |
 | `limit`, `cursor` | Paging, as above. |
+
+The answer has `data`, `next_cursor` and `applied_view`, and refuses a view or filter as the invoices do; a view of another list is refused with `parameter` `view`.
 
 ### Payments
 

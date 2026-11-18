@@ -128,6 +128,53 @@ final class PartyControllerTest extends WebTestCase
         self::assertSelectorCount(0, 'main [data-kpi]');
     }
 
+    public function testTheTabsAreTheShippedViewsCountedWithinTheSearch(): void
+    {
+        // Saved views, D12: the tabs it had, with the same counts (D9), which count within the search.
+        $this->signIn();
+        $this->party('Customer Only', roles: [PartyRole::Customer]);
+        $this->party('Supplier Only', roles: [PartyRole::Supplier]);
+        $this->party('Both Roles', roles: [PartyRole::Customer, PartyRole::Supplier]);
+        $this->archive($this->party('Archived Supplier', roles: [PartyRole::Supplier]));
+
+        $crawler = $this->client->request('GET', '/contacts');
+        self::assertSame(['All3', 'Customers2', 'Suppliers2', 'Archived1'], $this->tabs($crawler));
+        self::assertSame('/contacts?view=suppliers', $crawler->filter('nav[aria-label="Contact views"] a')->eq(2)->attr('href'));
+        self::assertCount(1, $crawler->filter('[data-filter-sheet-form]'));
+
+        $crawler = $this->client->request('GET', '/contacts?view=suppliers&q=only');
+        self::assertSame(['All2', 'Customers1', 'Suppliers1', 'Archived0'], $this->tabs($crawler));
+        self::assertSelectorCount(1, 'main tbody tr');
+        self::assertSelectorTextContains('main table', 'Supplier Only');
+        // An unknown view is the whole list.
+        $this->client->request('GET', '/contacts?view=friends');
+        self::assertSelectorCount(3, 'main tbody tr');
+    }
+
+    public function testTheBuilderNarrowsTheViewAndItsChangesAreSavedAsANewView(): void
+    {
+        $this->signIn();
+        $this->party('Person Supplier', kind: PartyKind::Person, roles: [PartyRole::Supplier]);
+        $this->party('Company Supplier', roles: [PartyRole::Supplier]);
+
+        $this->client->request('GET', '/contacts?'.http_build_query(['view' => 'suppliers', 'conditions' => '1', 'c' => [
+            ['field' => 'role', 'op' => 'is', 'values' => ['supplier']],
+            ['field' => 'kind', 'op' => 'is', 'values' => ['person']],
+        ]]));
+        self::assertResponseStatusCodeSame(303);
+        $crawler = $this->client->followRedirect();
+
+        self::assertSelectorCount(1, 'main tbody tr');
+        self::assertSelectorTextContains('main table', 'Person Supplier');
+        self::assertSame('Suppliers, unsaved changes2', $this->tabs($crawler)[2]);
+        // The export holds what the list shows.
+        self::assertCount(1, $crawler->filter('form[action="/contacts/export"] input[name="f"]'));
+        $this->client->submit($crawler->filter('[data-view-save-as-form]')->form(['name' => 'Supplier persons']));
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorCount(1, 'main tbody tr');
+        self::assertContains('Supplier persons', $this->tabs($crawler));
+    }
+
     public function testSearchCoversNameRegistrationNumberVatIdAndEmail(): void
     {
         $this->signIn();
@@ -813,6 +860,14 @@ final class PartyControllerTest extends WebTestCase
         $this->client->request('GET', '/contacts');
 
         self::assertResponseRedirects('http://localhost/login');
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function tabs(Crawler $crawler): array
+    {
+        return $crawler->filter('nav[aria-label="Contact views"] a')->each(static fn (Crawler $tab): string => trim((string) preg_replace('/\s+/', ' ', $tab->text())));
     }
 
     private function signIn(string $locale = 'en', Role $role = Role::Owner): void

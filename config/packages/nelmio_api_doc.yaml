@@ -232,6 +232,7 @@ nelmio_api_doc:
                     properties:
                         data: { type: array, items: { $ref: '#/components/schemas/Contact' } }
                         next_cursor: { type: string, nullable: true }
+                        applied_view: { allOf: [{ $ref: '#/components/schemas/SavedView' }], nullable: true, description: 'The saved view the view parameter named; null without one.' }
                 Payment:
                     type: object
                     properties:
