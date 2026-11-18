@@ -52,7 +52,6 @@ final readonly class ListColumnRegistry
                 $columns[$column->key] = $column;
             }
         }
-        $columns = array_values($columns);
         // usort is stable since PHP 8.0, so equal positions keep the declared order.
         usort($columns, static fn (Column $a, Column $b): int => $a->defaultPosition <=> $b->defaultPosition);
 
@@ -65,7 +64,7 @@ final readonly class ListColumnRegistry
      */
     public function display(string $list, array $context = [], ?array $display = null): ListDisplay
     {
-        $available = array_values(array_filter($this->columns($list), static fn (Column $column): bool => $column->available($context)));
+        $available = array_filter($this->columns($list), static fn (Column $column): bool => $column->available($context));
         $byKey = array_column(array_map(static fn (Column $column): array => [$column->key, $column], $available), 1, 0);
         $wanted = null === $display ? null : ($display['columns'] ?? null);
 
@@ -82,7 +81,7 @@ final readonly class ListColumnRegistry
                 $width = \is_array($entry) && \is_int($entry['width'] ?? null) && $entry['width'] > 0 ? max($entry['width'], $column->minWidth) : null;
                 $columns[$key] = $this->resolved($column, $width);
             }
-            $locked = array_map(fn (Column $column): ResolvedColumn => $this->resolved($column, $column->defaultWidth), array_values(array_filter($available, static fn (Column $column): bool => $column->locked && !isset($columns[$column->key]))));
+            $locked = array_map(fn (Column $column): ResolvedColumn => $this->resolved($column, $column->defaultWidth), array_filter($available, static fn (Column $column): bool => $column->locked && !isset($columns[$column->key])));
             $columns = [...$locked, ...array_values($columns)];
         }
 

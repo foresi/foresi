@@ -335,13 +335,35 @@ final class DataTableTest extends KernelTestCase
         self::assertContains('max-sm:hidden', explode(' ', (string) $cols->eq(1)->attr('class')));
     }
 
-    public function testRefusesAWidthThatIsNotAPositiveNumber(): void
+    public function testAWidthOfOnePxIsAccepted(): void
     {
         $columns = self::COLUMNS;
-        $columns[0]['width'] = '160px';
+        $columns[0]['width'] = 1;
 
-        $this->expectException(\Throwable::class);
-        $this->render(['columns' => $columns]);
+        self::assertSame('--col-w: 1px', new Crawler($this->render(['columns' => $columns]))->filter('colgroup col')->eq(0)->attr('style'));
+    }
+
+    /**
+     * @return iterable<string, array{mixed}>
+     */
+    public static function invalidWidths(): iterable
+    {
+        yield 'text' => ['160px'];
+        yield 'zero' => [0];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('invalidWidths')]
+    public function testRefusesAWidthThatIsNotAPositiveNumber(mixed $width): void
+    {
+        $columns = self::COLUMNS;
+        $columns[0]['width'] = $width;
+
+        try {
+            $this->render(['columns' => $columns]);
+            self::fail('The table accepted a width that is not a positive number.');
+        } catch (\Throwable $e) {
+            self::assertStringContainsString('A column width is a positive number of px.', $e->getMessage());
+        }
     }
 
     public function testListRowsAre56PxDenseRows44AndTheHeader44OnTheTint(): void

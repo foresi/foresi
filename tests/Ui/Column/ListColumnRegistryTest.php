@@ -63,6 +63,13 @@ final class ListColumnRegistryTest extends TestCase
         self::assertSame([160, 64, null, null], array_map(static fn (ResolvedColumn $column): ?int => $column->width, $display->columns));
     }
 
+    public function testAWidthOfZeroOrLessSizesTheColumnToItsContent(): void
+    {
+        $display = $this->registry()->display(self::LIST, [], ['columns' => [['key' => 'number', 'width' => 0], ['key' => 'customer', 'width' => -5]]]);
+
+        self::assertSame([null, null], array_map(static fn (ResolvedColumn $column): ?int => $column->width, $display->columns));
+    }
+
     public function testDefaultsKeepTheDefaultWidth(): void
     {
         $display = $this->registry()->display(self::LIST);
@@ -77,6 +84,8 @@ final class ListColumnRegistryTest extends TestCase
         self::assertSame(ListDisplay::DENSE, $registry->display(self::LIST, [], ['columns' => [], 'density' => 'dense', 'group_by' => 'status'])->density);
         self::assertSame('status', $registry->display(self::LIST, [], ['columns' => [], 'group_by' => 'status'])->groupBy);
         self::assertNull($registry->display(self::LIST, [], ['columns' => [], 'density' => 'huge'])->density);
+        self::assertNull($registry->display(self::LIST, [], ['columns' => [], 'group_by' => ''])->groupBy);
+        self::assertNull($registry->display(self::LIST, [], ['columns' => [], 'group_by' => 5])->groupBy);
     }
 
     public function testADisplayWithoutColumnsKeepsTheDefaultColumns(): void
@@ -112,6 +121,58 @@ final class ListColumnRegistryTest extends TestCase
         self::assertSame(['key' => 'number', 'label' => 'invoice.list.column.number', 'align' => 'left', 'phone' => true, 'width' => 120, 'sortable' => true, 'sort' => null, 'href' => '/invoices?sort=number'], $table[0]);
         self::assertSame(['key' => 'customer', 'label' => 'invoice.list.column.customer', 'align' => 'left', 'phone' => false, 'truncate' => true], $table[1]);
         self::assertSame(['sortable' => true, 'sort' => 'desc', 'href' => '/invoices?sort=payable'], array_intersect_key($table[3], ['sortable' => 0, 'sort' => 0, 'href' => 0]));
+    }
+
+    public function testTheHeaderOfTheSortedColumnLinksToTheReverseOrder(): void
+    {
+        $table = $this->registry()->display(self::LIST)->table('number', static fn (string $sort): string => '/invoices?sort='.$sort);
+
+        self::assertSame(['sortable' => true, 'sort' => 'asc', 'href' => '/invoices?sort=-number'], array_intersect_key($table[0], ['sortable' => 0, 'sort' => 0, 'href' => 0]));
+    }
+
+    public function testAWideColumnSaysSoToTheTable(): void
+    {
+        $wide = new class implements ListColumns {
+            public function columns(string $list): iterable
+            {
+                return [new Column('issueDate', 'invoice.list.column.issueDate', static fn (): string => '', defaultPosition: 45, wide: true)];
+            }
+        };
+        $table = $this->registry($wide)->display(self::LIST)->table();
+
+        self::assertTrue($table[2]['wide']);
+        self::assertArrayNotHasKey('wide', $table[0]);
+    }
+
+    public function testAColumnWithoutAPositionComesAtZero(): void
+    {
+        $columns = new class implements ListColumns {
+            public function columns(string $list): iterable
+            {
+                return [
+                    new Column('later', 'later', static fn (): string => '', defaultPosition: 1),
+                    new Column('unplaced', 'unplaced', static fn (): string => ''),
+                    new Column('earlier', 'earlier', static fn (): string => '', defaultPosition: -1),
+                ];
+            }
+        };
+
+        self::assertSame(['earlier', 'unplaced', 'later'], array_map(static fn (Column $column): string => $column->key, new ListColumnRegistry([$columns], new IdentityTranslator())->columns('any')));
+    }
+
+    public function testAColumnMayBeAsNarrowAsItsMinimum(): void
+    {
+        $column = new Column('flag', 'label', static fn (): string => '', defaultWidth: 1, minWidth: 1);
+
+        self::assertSame(1, $column->defaultWidth);
+        self::assertSame(64, new Column('note', 'label', static fn (): string => '', defaultWidth: 64)->defaultWidth);
+    }
+
+    public function testRefusesAKeyWithCharactersAfterAnIdentifier(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        new Column('dueDate!', 'label', static fn (): string => '');
     }
 
     public function testTwoColumnsWithOneKeyAreRefused(): void
