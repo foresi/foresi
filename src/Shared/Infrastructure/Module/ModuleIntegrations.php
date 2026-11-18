@@ -18,7 +18,7 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 /**
  * The integration code of the installed modules (ADR 0033): every directory
  * src/<Module>/Integration/<Other>/, where <Other> is a module the manifest
- * lists in extra.foresi.optional. config/services.yaml leaves these
+ * lists in extra.foresi.optional. The module's own services leave these
  * directories out; the kernel registers one only when <Other> is installed,
  * so a module runs unchanged without it and its integration code never meets
  * a missing class.

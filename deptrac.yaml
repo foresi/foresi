@@ -273,6 +273,7 @@ deptrac:
         - type: directory
           value: src/Country/CzechRepublic/.*
     # Presentation shared by all modules (Twig components, layout helpers).
+    # Its bundle wires the module like every module's bundle, outside the layers.
     - name: Ui
       collectors:
         - type: bool
@@ -280,6 +281,8 @@ deptrac:
             - type: directory
               value: src/Ui/.*
           must_not:
+            - type: classLike
+              value: ^Foresi\\Ui\\UiBundle$
             # The Ui contract (list columns) is in the Contract layer, like every module's.
             - type: classLike
               value: ^Foresi\\Ui\\Contract\\.*

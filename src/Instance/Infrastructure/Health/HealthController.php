@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Instance\Infrastructure\Health;
 
+use Foresi\Shared\Infrastructure\Security\PublicRoute;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -37,7 +38,7 @@ final readonly class HealthController
     ) {
     }
 
-    #[Route('/health', name: self::ROUTE, methods: ['GET'])]
+    #[Route('/health', name: self::ROUTE, defaults: [PublicRoute::DEFAULT => true], methods: ['GET'], stateless: true)]
     public function __invoke(Request $request): Response
     {
         if (!$this->limiter->create($request->getClientIp() ?? 'unknown')->consume()->isAccepted()) {

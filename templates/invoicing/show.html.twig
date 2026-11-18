@@ -12,24 +12,36 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block actions %}
-    <twig:Ui:Button icon="file-down" :size="record_action_size" :href="path('app_invoice_pdf', doc)" data-turbo="false">{{ 'invoice.list.action.pdf'|trans }}</twig:Ui:Button>
-    {% if not invoice.trashed %}
-        <twig:Ui:Button icon="send" :size="record_action_size" :href="path('app_invoice_send', doc)" data-dialog aria-haspopup="dialog">{{ 'invoice.list.action.send'|trans }}</twig:Ui:Button>
-    {% endif %}
-    <twig:Ui:Menu id="invoice-detail-more" buttonId="invoice-detail-more-button" :label="'invoice.more_actions'|trans" icon="ellipsis" :iconOnly="true" :size="record_action_size" :float="true">
+    <twig:Ui:MoreActions menuId="invoice-detail-more" :menuLabel="'invoice.more_actions'|trans" :menuSize="record_action_size">
+        <twig:block name="primary">
+            {% if not invoice.trashed %}
+                <twig:Ui:Button variant="primary" icon="pencil" :size="record_action_size" :href="path('app_invoice_edit', doc)" data-in-place data-invoice-edit>{{ 'invoice.list.action.edit'|trans }}</twig:Ui:Button>
+            {% endif %}
+        </twig:block>
+        <twig:block name="buttons">
+            <twig:Ui:Button icon="file-down" :size="record_action_size" :href="path('app_invoice_pdf', doc)" data-turbo="false">{{ 'invoice.list.action.pdf'|trans }}</twig:Ui:Button>
+            {% if not invoice.trashed %}
+                <twig:Ui:Button icon="send" :size="record_action_size" :href="path('app_invoice_send', doc)" data-dialog aria-haspopup="dialog">{{ 'invoice.list.action.send'|trans }}</twig:Ui:Button>
+            {% endif %}
+        </twig:block>
+        <twig:block name="phone">
+            <twig:Ui:MenuItem icon="file-down" :href="path('app_invoice_pdf', doc)" data-turbo="false">{{ 'invoice.list.action.pdf'|trans }}</twig:Ui:MenuItem>
+            {% if not invoice.trashed %}
+                <twig:Ui:MenuItem icon="send" :href="path('app_invoice_send', doc)" data-dialog aria-haspopup="dialog">{{ 'invoice.list.action.send'|trans }}</twig:Ui:MenuItem>
+            {% endif %}
+        </twig:block>
         {% if standsAlone %}
             <twig:Ui:MenuItem :href="path('app_invoice_copy', doc)" data-turbo="false">{{ 'invoice.list.action.copy'|trans }}</twig:Ui:MenuItem>
             {% if not invoice.trashed %}<twig:Ui:MenuItem :href="path('app_recurring_new', {from: invoice.id})" data-turbo="false">{{ 'recurring.form.from_invoice'|trans }}</twig:Ui:MenuItem>{% endif %}
         {% endif %}
         {% if corrects %}<twig:Ui:MenuItem :href="path('app_invoice_correct', doc)" data-turbo="false">{{ 'invoice.list.action.correct'|trans }}</twig:Ui:MenuItem>{% endif %}
         <twig:Ui:MenuItem :href="path('app_invoice_history', doc)">{{ 'invoice.list.action.history'|trans }}</twig:Ui:MenuItem>
-        {% if not invoice.delivered and not invoice.trashed %}
-            <twig:Ui:MenuItem :href="path('app_invoice_trash', doc)" tone="danger" data-dialog aria-haspopup="dialog">{{ 'invoice.list.action.delete'|trans }}</twig:Ui:MenuItem>
-        {% endif %}
-    </twig:Ui:Menu>
-    {% if not invoice.trashed %}
-        <twig:Ui:Button variant="primary" icon="pencil" :size="record_action_size" :href="path('app_invoice_edit', doc)" data-in-place data-invoice-edit>{{ 'invoice.list.action.edit'|trans }}</twig:Ui:Button>
-    {% endif %}
+        <twig:block name="last">
+            {% if not invoice.delivered and not invoice.trashed %}
+                <twig:Ui:MenuItem :href="path('app_invoice_trash', doc)" tone="danger" data-dialog aria-haspopup="dialog">{{ 'invoice.list.action.delete'|trans }}</twig:Ui:MenuItem>
+            {% endif %}
+        </twig:block>
+    </twig:Ui:MoreActions>
 {% endblock %}
 
 {% block content %}

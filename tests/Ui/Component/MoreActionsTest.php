@@ -82,6 +82,28 @@ final class MoreActionsTest extends KernelTestCase
         self::assertCount(0, $crawler->filter('[role="menu"]'));
     }
 
+    public function testThePrimaryActionComesFirstAndTheMenuLast(): void
+    {
+        $crawler = $this->render(self::ITEM, [
+            'primary' => '<a href="/edit" data-primary>Edit</a>',
+            'buttons' => '<a href="/share">Share</a>',
+        ]);
+
+        $children = $crawler->filter('[data-more-actions]')->children();
+        self::assertCount(3, $children);
+        self::assertNotNull($children->eq(0)->attr('data-primary'));
+        self::assertNotNull($children->eq(1)->attr('data-more-actions-buttons'));
+        self::assertNotNull($children->eq(2)->attr('data-more-actions-menu'));
+    }
+
+    public function testAPrimaryActionAloneRendersNoMenu(): void
+    {
+        $crawler = $this->render(null, ['primary' => '<a href="/edit">Edit</a>']);
+
+        self::assertCount(1, $crawler->filter('[data-more-actions] > a[href="/edit"]'));
+        self::assertCount(0, $crawler->filter('[aria-haspopup="menu"]'));
+    }
+
     public function testABlankIdIsRefused(): void
     {
         $actions = new MoreActions();

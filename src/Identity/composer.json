@@ -15,6 +15,7 @@
             "module": "identity",
             "kind": "core",
             "namespace": "Foresi\\Identity\\",
+            "bundle": "Foresi\\Identity\\IdentityBundle",
             "optional": []
         }
     }

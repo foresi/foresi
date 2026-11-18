@@ -27,7 +27,7 @@
         {% if description %}<p id="{{ id }}-description" data-dialog-target="description" class="m-0 mt-1 text-body text-muted">{{ description }}</p>{% endif %}
     </div>
     {% if actions|trim is not empty %}
-        {# The page header's actions, in its order: secondary first, the primary last (Polaris Page). #}
+        {# The page header's actions, in Ui:MoreActions' order: the primary first, the "⋯" menu last. #}
         <div data-overlay-actions class="order-2 flex shrink-0 items-center gap-2 max-sm:order-3 max-sm:basis-full max-sm:justify-end">{{ actions }}</div>
         <span aria-hidden="true" class="order-2 mx-1 h-5 w-px shrink-0 bg-divider max-sm:hidden" data-overlay-divider></span>
     {% endif %}

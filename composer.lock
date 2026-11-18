@@ -1602,7 +1602,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Attachment",
-                "reference": "6cb390cf234c330139d370fb061c2c74681ebf5f"
+                "reference": "e387ac66a35176566055d29d24b3d789fe54aa3d"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1616,6 +1616,7 @@
                     "module": "attachment",
                     "kind": "core",
                     "namespace": "Foresi\\Attachment\\",
+                    "bundle": "Foresi\\Attachment\\AttachmentBundle",
                     "optional": []
                 }
             },
@@ -1634,7 +1635,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Audit",
-                "reference": "fc292185e5f5b787d2bed56d376a18a0721e18e7"
+                "reference": "f05cdfb07bcb446e571194f16c29bf9119cc6580"
             },
             "require": {
                 "foresi/instance": "*",
@@ -1646,6 +1647,7 @@
                     "module": "audit",
                     "kind": "core",
                     "namespace": "Foresi\\Audit\\",
+                    "bundle": "Foresi\\Audit\\AuditBundle",
                     "optional": []
                 }
             },
@@ -1664,7 +1666,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Banking",
-                "reference": "d472915e7a50df5d975e162bac04f3e3303638b0"
+                "reference": "258a97d81d068b7a58c134a09d5ee870365d761f"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1681,6 +1683,7 @@
                     "module": "banking",
                     "kind": "module",
                     "namespace": "Foresi\\Banking\\",
+                    "bundle": "Foresi\\Banking\\BankingBundle",
                     "optional": [
                         "cash-flow"
                     ]
@@ -1701,7 +1704,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/CashFlow",
-                "reference": "6359ee650534700cae7b70d2098f1b4af3c93c3d"
+                "reference": "b0485327d8c12eab2908023d09234d04f30482a8"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1717,6 +1720,7 @@
                     "module": "cash-flow",
                     "kind": "module",
                     "namespace": "Foresi\\CashFlow\\",
+                    "bundle": "Foresi\\CashFlow\\CashFlowBundle",
                     "optional": [],
                     "scopes": [
                         "cashflow"
@@ -1738,7 +1742,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Country",
-                "reference": "e0ff6f5527060a31b5a578834005c1dc9d274af6"
+                "reference": "8a80710af34d4dfeb984de7d1b85369e1e5d2fff"
             },
             "require": {
                 "foresi/banking": "*",
@@ -1753,6 +1757,7 @@
                     "module": "country",
                     "kind": "module",
                     "namespace": "Foresi\\Country\\",
+                    "bundle": "Foresi\\Country\\CountryBundle",
                     "optional": []
                 }
             },
@@ -1771,7 +1776,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Events",
-                "reference": "437f761649fe3727f4125b4b61f1d3bcc910e78d"
+                "reference": "99c8a4a4c499df1c712d273b36ff65ea5e5ad95a"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1784,6 +1789,7 @@
                     "module": "events",
                     "kind": "core",
                     "namespace": "Foresi\\Events\\",
+                    "bundle": "Foresi\\Events\\EventsBundle",
                     "optional": [],
                     "scopes": [
                         "events"
@@ -1805,10 +1811,11 @@
             "dist": {
                 "type": "path",
                 "url": "src/ExchangeRate",
-                "reference": "4194c843097bec2db067f12d17358a40718b333f"
+                "reference": "41d531f9d4d8584401e418516e84a33e182ff46f"
             },
             "require": {
-                "foresi/instance": "*"
+                "foresi/instance": "*",
+                "foresi/shared": "*"
             },
             "type": "foresi-module",
             "extra": {
@@ -1816,6 +1823,7 @@
                     "module": "exchange-rate",
                     "kind": "module",
                     "namespace": "Foresi\\ExchangeRate\\",
+                    "bundle": "Foresi\\ExchangeRate\\ExchangeRateBundle",
                     "optional": []
                 }
             },
@@ -1834,7 +1842,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Identity",
-                "reference": "c8fded3acae739377b811afa2a8512a0a5b379c2"
+                "reference": "e1f58a0ae9e4b1f354f93b48f4e7b0e1465224c0"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1849,6 +1857,7 @@
                     "module": "identity",
                     "kind": "core",
                     "namespace": "Foresi\\Identity\\",
+                    "bundle": "Foresi\\Identity\\IdentityBundle",
                     "optional": []
                 }
             },
@@ -1867,7 +1876,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Idoklad",
-                "reference": "0722888bca14fd8b3ba86292a2c35bcd9e5f4e09"
+                "reference": "dd18d05f15dd0611dca6061c3b993cdd78d57018"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1884,6 +1893,7 @@
                     "module": "idoklad",
                     "kind": "module",
                     "namespace": "Foresi\\Idoklad\\",
+                    "bundle": "Foresi\\Idoklad\\IdokladBundle",
                     "optional": []
                 }
             },
@@ -1902,7 +1912,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Import",
-                "reference": "6fe291a9efb23f473e0765390d43760295651e7a"
+                "reference": "30a8de630782e9359d2d2b161fc2b15a40cffdf3"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1917,6 +1927,7 @@
                     "module": "import",
                     "kind": "module",
                     "namespace": "Foresi\\Import\\",
+                    "bundle": "Foresi\\Import\\ImportBundle",
                     "optional": []
                 }
             },
@@ -1935,7 +1946,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Instance",
-                "reference": "e44584ff06e2d93a9123601bdf53ae6ddc9e3081"
+                "reference": "b40ef240a46ed1fce4f59d181a00c1eacfc92a59"
             },
             "require": {
                 "foresi/shared": "*"
@@ -1946,6 +1957,7 @@
                     "module": "instance",
                     "kind": "core",
                     "namespace": "Foresi\\Instance\\",
+                    "bundle": "Foresi\\Instance\\InstanceBundle",
                     "optional": []
                 }
             },
@@ -1964,7 +1976,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Invoicing",
-                "reference": "9febfe09a104dc3d8dc640ba8b454708451dfb8e"
+                "reference": "72a526e394dd4091016fb6ac5d94de1a541cde57"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1980,6 +1992,7 @@
                     "module": "invoicing",
                     "kind": "module",
                     "namespace": "Foresi\\Invoicing\\",
+                    "bundle": "Foresi\\Invoicing\\InvoicingBundle",
                     "optional": [
                         "cash-flow"
                     ],
@@ -2004,7 +2017,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "209cffc1a3da84dcbb984a524476305ec3a7a6ce"
+                "reference": "cf8246c5b1ef6a22d43bb27011b1c61981566180"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2019,6 +2032,7 @@
                     "module": "party",
                     "kind": "module",
                     "namespace": "Foresi\\Party\\",
+                    "bundle": "Foresi\\Party\\PartyBundle",
                     "optional": [],
                     "scopes": [
                         "contacts"
@@ -2040,7 +2054,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Purchasing",
-                "reference": "6211e9314aacf95b3c281a32c63bf5a50942a37a"
+                "reference": "c724caecb4948da8178eba6f909b33dac3455189"
             },
             "require": {
                 "foresi/attachment": "*",
@@ -2058,6 +2072,7 @@
                     "module": "purchasing",
                     "kind": "module",
                     "namespace": "Foresi\\Purchasing\\",
+                    "bundle": "Foresi\\Purchasing\\PurchasingBundle",
                     "optional": [
                         "cash-flow"
                     ],
@@ -2081,7 +2096,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "6d642bbf3f5573cfadeaa345e573b44ac516c99a"
+                "reference": "7bdf78e1311cee8b9f198363829b19e193806b18"
             },
             "type": "foresi-module",
             "extra": {
@@ -2089,6 +2104,7 @@
                     "module": "shared",
                     "kind": "core",
                     "namespace": "Foresi\\Shared\\",
+                    "bundle": "Foresi\\Shared\\SharedBundle",
                     "optional": []
                 }
             },
@@ -2107,7 +2123,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Timesheet",
-                "reference": "37e99c819ff23855ae1e46f7a88ca05447d04a62"
+                "reference": "f4883aab77fdecbc406642b22bedf2f876c0dd79"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2124,6 +2140,7 @@
                     "module": "timesheet",
                     "kind": "module",
                     "namespace": "Foresi\\Timesheet\\",
+                    "bundle": "Foresi\\Timesheet\\TimesheetBundle",
                     "optional": []
                 }
             },
@@ -2142,7 +2159,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Ui",
-                "reference": "b5cd25adf8e98e286faa61dd878e43513b6951dd"
+                "reference": "d405a63b10a9292442b975d16c3b1340b0e221e6"
             },
             "require": {
                 "foresi/shared": "*"
@@ -2153,6 +2170,7 @@
                     "module": "ui",
                     "kind": "ui",
                     "namespace": "Foresi\\Ui\\",
+                    "bundle": "Foresi\\Ui\\UiBundle",
                     "optional": []
                 }
             },
@@ -2171,7 +2189,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Webhooks",
-                "reference": "21f1ffa03ba9b1c7952605d6bd072f6943621343"
+                "reference": "c3ca0503b75629a8286346298533dde1a37fc89f"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2187,6 +2205,7 @@
                     "module": "webhooks",
                     "kind": "core",
                     "namespace": "Foresi\\Webhooks\\",
+                    "bundle": "Foresi\\Webhooks\\WebhooksBundle",
                     "optional": [],
                     "scopes": [
                         "webhooks"
@@ -2208,7 +2227,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Work",
-                "reference": "2d455e4f78b43dd1667cfb756ecde301a4441201"
+                "reference": "1e65cd9a03d49d2cb25451554d59acab3a3f419b"
             },
             "require": {
                 "foresi/attachment": "*",
@@ -2225,6 +2244,7 @@
                     "module": "work",
                     "kind": "module",
                     "namespace": "Foresi\\Work\\",
+                    "bundle": "Foresi\\Work\\WorkBundle",
                     "optional": []
                 }
             },

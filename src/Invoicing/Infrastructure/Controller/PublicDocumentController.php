@@ -23,6 +23,7 @@ use Foresi\Invoicing\Domain\LinkAudience;
 use Foresi\Invoicing\Infrastructure\Pdf\QrSvg;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Infrastructure\Security\PublicRoute;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
@@ -94,7 +95,7 @@ final class PublicDocumentController extends AbstractController
     ) {
     }
 
-    #[Route('/d/{token}', name: self::PAGE, requirements: ['token' => self::TOKEN], methods: ['GET'])]
+    #[Route('/d/{token}', name: self::PAGE, requirements: ['token' => self::TOKEN], defaults: [PublicRoute::DEFAULT => true], methods: ['GET'])]
     public function page(Request $request, string $token): Response
     {
         $document = $this->found($request, $token);
@@ -154,7 +155,7 @@ final class PublicDocumentController extends AbstractController
     /**
      * The PDF the page embeds. A browser loads it on its own, so it never counts as read.
      */
-    #[Route('/d/{token}/pdf', name: self::PDF, requirements: ['token' => self::TOKEN], methods: ['GET'])]
+    #[Route('/d/{token}/pdf', name: self::PDF, requirements: ['token' => self::TOKEN], defaults: [PublicRoute::DEFAULT => true], methods: ['GET'])]
     public function pdf(Request $request, string $token): Response
     {
         return $this->pdfResponse($request, $token, HeaderUtils::DISPOSITION_INLINE, false);
@@ -163,7 +164,7 @@ final class PublicDocumentController extends AbstractController
     /**
      * The PDF behind the page's "Open PDF" button.
      */
-    #[Route('/d/{token}/open', name: self::OPEN, requirements: ['token' => self::TOKEN], methods: ['GET'])]
+    #[Route('/d/{token}/open', name: self::OPEN, requirements: ['token' => self::TOKEN], defaults: [PublicRoute::DEFAULT => true], methods: ['GET'])]
     public function open(Request $request, string $token): Response
     {
         return $this->pdfResponse($request, $token, HeaderUtils::DISPOSITION_INLINE, true);
@@ -172,7 +173,7 @@ final class PublicDocumentController extends AbstractController
     /**
      * The PDF behind the page's "Download" button.
      */
-    #[Route('/d/{token}/download', name: self::DOWNLOAD, requirements: ['token' => self::TOKEN], methods: ['GET'])]
+    #[Route('/d/{token}/download', name: self::DOWNLOAD, requirements: ['token' => self::TOKEN], defaults: [PublicRoute::DEFAULT => true], methods: ['GET'])]
     public function download(Request $request, string $token): Response
     {
         return $this->pdfResponse($request, $token, HeaderUtils::DISPOSITION_ATTACHMENT, true);
@@ -181,7 +182,7 @@ final class PublicDocumentController extends AbstractController
     /**
      * Any other address under /d/: the same answer as an unknown link, headers included.
      */
-    #[Route('/d/{rest}', name: 'app_document_link_other', requirements: ['rest' => '.*'], methods: ['GET'], priority: -10)]
+    #[Route('/d/{rest}', name: 'app_document_link_other', requirements: ['rest' => '.*'], defaults: [PublicRoute::DEFAULT => true], methods: ['GET'], priority: -10)]
     public function other(Request $request): Response
     {
         return $this->unavailable($request, $this->limiter->create($request->getClientIp() ?? 'unknown')->consume()->isAccepted() ? null : false);

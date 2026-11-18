@@ -70,43 +70,8 @@ framework:
                 options:
                     queue_name: failed
 
-        buses:
-            messenger.bus.default:
-                middleware:
-                    # A delivery waiting for another worker's lease is put back, not retried.
-                    - Foresi\Invoicing\Infrastructure\Messenger\WaitForLeaseMiddleware
-
-        routing:
-            # The import pipeline: one message per chunk, so a crash loses one chunk, not the import.
-            Foresi\Import\Application\Message\ReadImportFile: async
-            Foresi\Import\Application\Message\CheckImportChunk: async
-            Foresi\Import\Application\Message\RunImportChunk: async
-            Foresi\Import\Application\Message\ArchiveMissing: async
-            Foresi\Import\Application\Message\UndoImportChunk: async
-            # The pulls, checks and runs of the move from iDoklad.
-            Foresi\Idoklad\Application\Message\ProcessIdokladJob: async
-            # Imported contacts are checked in the public registers later, at low priority.
-            Foresi\Party\Application\RecheckRegistry: registry
-            # Timed work: the schedule ticks, and each due job runs.
-            Foresi\Instance\Application\Schedule\RunScheduledJob: async
-            # Operator tasks, such as polling the bank inbox.
-            Foresi\Instance\Application\Schedule\RunOperatorTask: async
-            # Inbound bank mail is processed after it was stored.
-            Foresi\Banking\Application\ProcessInboundMessage: async
-            # A recurring template saved or resumed after the day's run, issued at once.
-            Foresi\Invoicing\Application\IssueRecurringTemplate: async
-            # Sending documents by e-mail, on its own queue.
-            Foresi\Invoicing\Application\DeliverInvoiceSend: mail
-            # The delayed e-mail of a mention or an assignment; it queues system mail.
-            Foresi\Work\Application\SendNotificationMail: async
-            # Mail of the installation itself, such as invitations, with the same retries.
-            Foresi\Shared\Application\SystemMail: mail
-            # A commit that recorded events asks the relay to number and enqueue them.
-            Foresi\Events\Application\RelayEvents: events
-            # Each event once to each async listener.
-            Foresi\Events\Application\DeliverEvent: events
-            # Each attempt of a webhook delivery.
-            Foresi\Webhooks\Application\SendWebhook: webhooks
+        # Each module's bundle routes its own messages to these transports and adds its
+        # middleware (Foresi\Shared\Infrastructure\Module\ModuleBundle).
 
 # The end-to-end environment has no worker: messages are handled inline.
 when@e2e:
