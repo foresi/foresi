@@ -275,8 +275,14 @@ deptrac:
     # Presentation shared by all modules (Twig components, layout helpers).
     - name: Ui
       collectors:
-        - type: directory
-          value: src/Ui/.*
+        - type: bool
+          must:
+            - type: directory
+              value: src/Ui/.*
+          must_not:
+            # The Ui contract (list columns) is in the Contract layer, like every module's.
+            - type: classLike
+              value: ^Foresi\\Ui\\Contract\\.*
     - name: VendorSymfony
       collectors:
         - type: bool
@@ -1066,6 +1072,7 @@ deptrac:
       - VendorUid
       - SharedDomain
       - SharedApplication
+      - Contract
     Contract:
       - SharedDomain
       # The autoconfigure tag attribute of a contract port, such as CashFlowSource, that
