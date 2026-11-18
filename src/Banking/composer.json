@@ -17,6 +17,7 @@
             "module": "banking",
             "kind": "module",
             "namespace": "Foresi\\Banking\\",
+            "bundle": "Foresi\\Banking\\BankingBundle",
             "optional": [
                 "cash-flow"
             ]

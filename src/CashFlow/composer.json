@@ -16,6 +16,7 @@
             "module": "cash-flow",
             "kind": "module",
             "namespace": "Foresi\\CashFlow\\",
+            "bundle": "Foresi\\CashFlow\\CashFlowBundle",
             "optional": [],
             "scopes": [
                 "cashflow"

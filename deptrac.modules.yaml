@@ -307,9 +307,13 @@ deptrac:
       - exchange_rate_contract
       - instance
       - instance_contract
+      - shared
+      - shared_contract
     exchange_rate_contract:
       - instance
       - instance_contract
+      - shared
+      - shared_contract
     identity:
       - audit
       - audit_contract

@@ -10,6 +10,7 @@ namespace Foresi\Work\Infrastructure\Controller;
 
 use Foresi\Identity\Application\OpenToGuest;
 use Foresi\Identity\Domain\User;
+use Foresi\Shared\Infrastructure\Security\PublicRoute;
 use Foresi\Work\Application\ManageNotificationPreferences;
 use Foresi\Work\Domain\NotificationKind;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -47,8 +48,8 @@ final class UnsubscribeController extends AbstractController
     {
     }
 
-    #[Route('/unsubscribe/{membership}/{what}', name: self::ROUTE, requirements: ['membership' => Requirement::UUID_V7, 'what' => '[a-z_]{1,32}'], methods: ['GET', 'POST'])]
-    #[Route('/unsubscribe/{legacy}/{membership}/{what}', name: self::LEGACY_ROUTE, requirements: ['legacy' => Requirement::UUID_V7, 'membership' => Requirement::UUID_V7, 'what' => '[a-z_]{1,32}'], methods: ['GET', 'POST'])]
+    #[Route('/unsubscribe/{membership}/{what}', name: self::ROUTE, requirements: ['membership' => Requirement::UUID_V7, 'what' => '[a-z_]{1,32}'], defaults: [PublicRoute::DEFAULT => true], methods: ['GET', 'POST'])]
+    #[Route('/unsubscribe/{legacy}/{membership}/{what}', name: self::LEGACY_ROUTE, requirements: ['legacy' => Requirement::UUID_V7, 'membership' => Requirement::UUID_V7, 'what' => '[a-z_]{1,32}'], defaults: [PublicRoute::DEFAULT => true], methods: ['GET', 'POST'])]
     public function __invoke(Request $request, string $membership, string $what): Response
     {
         if (!$this->signer->checkRequest($request)) {

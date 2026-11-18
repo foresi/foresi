@@ -18,6 +18,7 @@
             "module": "purchasing",
             "kind": "module",
             "namespace": "Foresi\\Purchasing\\",
+            "bundle": "Foresi\\Purchasing\\PurchasingBundle",
             "optional": [
                 "cash-flow"
             ],

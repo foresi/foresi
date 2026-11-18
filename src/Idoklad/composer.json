@@ -17,6 +17,7 @@
             "module": "idoklad",
             "kind": "module",
             "namespace": "Foresi\\Idoklad\\",
+            "bundle": "Foresi\\Idoklad\\IdokladBundle",
             "optional": []
         }
     }

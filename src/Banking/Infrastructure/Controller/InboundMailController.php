@@ -11,6 +11,7 @@ namespace Foresi\Banking\Infrastructure\Controller;
 use Foresi\Banking\Application\ReceiveInboundMail;
 use Foresi\Banking\Application\ReceiveOutcome;
 use Foresi\Banking\Domain\InboundChannel;
+use Foresi\Shared\Infrastructure\Security\PublicRoute;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -50,7 +51,7 @@ final readonly class InboundMailController
     ) {
     }
 
-    #[Route('/inbound/mail', name: self::ROUTE, methods: ['POST'])]
+    #[Route('/inbound/mail', name: self::ROUTE, defaults: [PublicRoute::DEFAULT => true], methods: ['POST'], stateless: true)]
     public function __invoke(Request $request): Response
     {
         if ('' === $this->secret) {
