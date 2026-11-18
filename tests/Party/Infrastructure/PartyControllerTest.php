@@ -73,15 +73,12 @@ final class PartyControllerTest extends WebTestCase
     public function testAnIdThatIsNotAUuidNeverReachesTheDatabase(): void
     {
         $this->signIn();
-        $company = $this->party('Example Company s.r.o.');
+        $this->party('Example Company s.r.o.');
 
         // PostgreSQL refuses such a value for a uuid column, which must not become a server error.
         $this->client->request('GET', '/contacts?import=12&outcome=create');
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main', 'Example Company s.r.o.');
-
-        $this->client->request('POST', '/contacts/'.$company->id().'/link', ['_token' => $this->token('party_action'), 'person' => '12']);
-        self::assertResponseStatusCodeSame(404);
     }
 
     public function testListShowsTheContacts(): void
@@ -705,57 +702,6 @@ final class PartyControllerTest extends WebTestCase
 
         self::assertSelectorTextContains('[role="alert"]', 'Too many refreshes');
         self::assertSame(0, RegistryCalls::$count);
-    }
-
-    public function testContactPersonsCanBeLinkedToACompany(): void
-    {
-        $this->signIn();
-        $company = $this->party('Example Company');
-        $person = $this->party('Test Person', kind: PartyKind::Person);
-
-        $crawler = $this->client->request('GET', '/contacts/'.$company->id().'?tab=contacts');
-        self::assertSelectorTextContains('main', 'There is no contact person yet.');
-        $this->client->submit($crawler->filter('form[action$="/link"]')->form(['person' => $person->id(), 'position' => 'Accountant', 'primary' => '1']));
-        $this->client->followRedirect();
-
-        self::assertSelectorTextContains('main table', 'Test Person');
-        self::assertSelectorTextContains('main table', 'Accountant');
-        self::assertSelectorTextContains('main', 'The contact person is added.');
-
-        // The person sees the company, and the pair cannot be linked twice.
-        $this->client->request('GET', '/contacts/'.$person->id().'?tab=contacts');
-        self::assertSelectorTextContains('main table', 'Example Company');
-        $this->client->request('POST', '/contacts/'.$company->id().'/link', ['_token' => $this->token('party_action'), 'person' => $person->id()]);
-        self::assertResponseStatusCodeSame(422);
-        // No other person is left to offer, so the message stands on its own.
-        self::assertSelectorTextContains('[data-link-error]', 'Choose a person who is not listed for the company yet.');
-    }
-
-    public function testARefusedContactPersonIsShownAgainWithEveryProblemAtItsField(): void
-    {
-        $this->signIn();
-        $company = $this->party('Example Company');
-        $person = $this->party('Test Person', kind: PartyKind::Person);
-        $crawler = $this->client->request('GET', '/contacts/'.$company->id().'?tab=contacts');
-        self::assertNotNull($crawler->filter('form[action$="/link"]')->attr('novalidate'));
-        $form = $crawler->filter('form[action$="/link"]')->form();
-        // The page's maxlength stops typing, not a request: the server checks the length too.
-        $form->disableValidation()->setValues(['person' => '', 'position' => str_repeat('x', 101), 'primary' => '1']);
-
-        $crawler = $this->client->submit($form);
-
-        self::assertResponseStatusCodeSame(422);
-        self::assertSame('Error: Example Company · Address book · Foresi', $crawler->filter('title')->text());
-        self::assertSame(['link-person', 'link-position'], $crawler->filter('[aria-invalid="true"]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
-        self::assertSame(['link-person'], $crawler->filter('[autofocus]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
-        self::assertSame('link-person-error', $crawler->filter('#link-person')->attr('aria-describedby'));
-        self::assertSelectorTextContains('#link-position-error', 'too long');
-        // What was entered is kept and the button is not held back.
-        self::assertSame(str_repeat('x', 101), $crawler->filter('#link-position')->attr('value'));
-        self::assertNotNull($crawler->filter('#link-primary')->attr('checked'));
-        self::assertNull($crawler->selectButton('Add person')->attr('disabled'));
-        self::assertSelectorTextContains('main', 'There is no contact person yet.');
-        self::assertSame($person->id(), $crawler->filter('#link-person option')->attr('value'));
     }
 
     public function testAddressAndBankAccountTabsRender(): void

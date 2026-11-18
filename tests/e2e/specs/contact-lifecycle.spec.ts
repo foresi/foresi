@@ -59,9 +59,12 @@ test.describe('contact life cycle', () => {
     await page.getByRole('link', { name: 'Kontaktní osoby' }).click();
     await expect(page.getByText('Zatím tu není žádná kontaktní osoba.')).toBeVisible();
 
-    await page.locator('#link-person').selectOption({ label: 'Alex Example' });
-    await page.locator('#link-position').fill('Accountant');
-    await page.getByRole('button', { name: 'Přidat osobu' }).click();
+    // The tab adds in a dialog over the contact: a person from the address book, or a new one.
+    await page.getByRole('link', { name: 'Přidat kontaktní osobu' }).click();
+    const dialog = page.locator('dialog#dialog');
+    await dialog.locator('#person').selectOption({ label: 'Alex Example' });
+    await dialog.locator('#position').fill('Accountant');
+    await dialog.getByRole('button', { name: 'Přidat osobu' }).click();
 
     await expect(page.getByRole('status').filter({ hasText: 'Kontaktní osoba je přidána.' })).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Alex Example' })).toBeVisible();

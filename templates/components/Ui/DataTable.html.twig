@@ -13,7 +13,8 @@
 #}
 {% set rowHeight = this.rowHeight %}
 {% macro alert(alert, focus) %}{{ ux_icon('lucide:triangle-alert', {class: 'mt-0.5 size-3.5 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ alert.text }}{% if alert.href %} <a href="{{ alert.href }}" data-turbo="false" class="font-medium text-badge-red-text underline {{ focus }}">{{ alert.action }}</a>{% endif %}</span>{% endmacro %}
-{% macro confirm(confirm) %}{% if confirm %} data-turbo-confirm="{{ confirm.title }}"{% if confirm.text %} data-confirm-text="{{ confirm.text }}"{% endif %}{% if confirm.accept %} data-confirm-accept="{{ confirm.accept }}"{% endif %}{% if confirm.cancel %} data-confirm-cancel="{{ confirm.cancel }}"{% endif %}{% if confirm.tone %} data-confirm-tone="{{ confirm.tone }}"{% endif %}{% endif %}{% endmacro %}
+{# A table in an overlay (a record in the sheet) asks with confirm-submit: its host posts the form itself, so data-turbo-confirm would never ask. #}
+{% macro confirm(confirm) %}{% if confirm %}{% if confirm.overlay %} data-controller="confirm-submit" data-action="submit->confirm-submit#ask" data-confirm-title="{{ confirm.title }}"{% else %} data-turbo-confirm="{{ confirm.title }}"{% endif %}{% if confirm.text %} data-confirm-text="{{ confirm.text }}"{% endif %}{% if confirm.accept %} data-confirm-accept="{{ confirm.accept }}"{% endif %}{% if confirm.cancel %} data-confirm-cancel="{{ confirm.cancel }}"{% endif %}{% if confirm.tone %} data-confirm-tone="{{ confirm.tone }}"{% endif %}{% endif %}{% endmacro %}
 {# A click anywhere on a row follows its first cell's link (row-link); the link stays the one way in for a keyboard. #}
 <div {{ attributes.defaults({class: 'relative' ~ (selectable ? ' pb-24' : '')}) }} data-controller="row-link{{ selectable ? ' table-selection' : '' }}" data-action="click->row-link#click{{ selectable ? ' keydown->table-selection#keydown click->table-selection#rowClick' : '' }}">
     {% if this.rowViews is empty %}
