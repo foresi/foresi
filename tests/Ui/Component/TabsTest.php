@@ -109,4 +109,15 @@ final class TabsTest extends KernelTestCase
         $tabs->more[] = ['label' => 'D', 'href' => '/d', 'active' => true];
         self::assertTrue($tabs->moreActive());
     }
+
+    public function testAModifiedViewHasADotThatIsSaid(): void
+    {
+        $html = (string) $this->renderTwigComponent('Ui:Tabs', ['items' => [
+            ['label' => 'All', 'href' => '/a', 'active' => true, 'modified' => true],
+            ['label' => 'Open', 'href' => '/b'],
+        ]]);
+
+        self::assertSame(1, substr_count($html, 'data-tab-modified'));
+        self::assertStringContainsString('<span class="sr-only">, neuložené změny</span>', $html);
+    }
 }

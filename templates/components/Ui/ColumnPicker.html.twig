@@ -1,0 +1,68 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The Columns button and its sheet: a checkbox per column, each movable by its handle or by Move
+    up / Move down, the density and "Reset to default"; one Apply sends it all to the list.
+#}
+{% set picker = this %}
+{% set sheetId = id ~ '-sheet' %}
+{% set formId = id ~ '-form' %}
+{% set views = picker.views %}
+{% set movable = views|filter(v => not v.locked)|length %}
+<div {{ attributes.defaults({class: 'ml-auto', 'data-controller': 'column-picker', 'data-column-picker-dialog-outlet': '#' ~ sheetId, 'data-column-picker-moved-value': 'ui.column_picker.moved'|trans({label: '{label}', position: '{position}', total: '{total}'})}) }}>
+    <twig:Ui:Button icon="columns-3" aria-haspopup="dialog" :aria-controls="sheetId" data-action="column-picker#open" data-column-picker-open>
+        {{- 'ui.column_picker.button'|trans -}}
+        {%- if modified %}<span class="size-2 shrink-0 rounded-sm bg-green" aria-hidden="true"></span><span class="sr-only">, {{ 'ui.column_picker.modified'|trans }}</span>{% endif -%}
+    </twig:Ui:Button>
+    <twig:Ui:Sheet :id="sheetId" :title="'ui.column_picker.title'|trans" :description="'ui.column_picker.description'|trans" size="sm">
+        <form method="get" action="{{ action }}" id="{{ formId }}" class="grid gap-5" data-column-picker-target="form" data-action="submit->column-picker#submit" data-column-picker-form>
+            {% for name, value in picker.hidden %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+            <input type="hidden" name="cols" value="" disabled data-column-picker-target="keys">
+            <fieldset class="m-0 grid min-w-0 gap-2 border-0 p-0">
+                <legend class="mb-2 p-0 text-small font-medium text-muted">{{ 'ui.column_picker.columns'|trans }}</legend>
+                {% if picker.searchable %}
+                    <twig:Ui:SearchField :id="id ~ '-search'" name="column-search" :label="'ui.column_picker.search'|trans" :placeholder="'ui.column_picker.search'|trans" class="w-full" form="none" data-action="input->column-picker#search" data-column-picker-target="search" />
+                {% endif %}
+                <ol class="m-0 grid list-none gap-0.5 p-0" data-column-picker-target="list">
+                    {% for column in views %}
+                        <li class="flex min-h-touch items-center gap-1 rounded-control bg-white pr-1 data-[dragging]:bg-green-tint data-[dragging]:shadow-overlay" data-column-picker-target="row" data-key="{{ column.key }}" data-label="{{ column.label }}"{% if column.locked %} data-locked{% endif %}>
+                            {% if column.locked %}
+                                <span class="grid size-8 shrink-0 place-items-center text-muted" title="{{ 'ui.column_picker.locked'|trans }}">{{ ux_icon('lucide:lock', {class: 'size-4', 'aria-hidden': 'true'}) }}</span>
+                                {# Always shown: a disabled box is not sent, so the key goes with the form here. #}
+                                <input type="hidden" name="cols[]" value="{{ column.key }}" data-column-picker-target="lockedKey">
+                                <input type="checkbox" id="{{ column.id }}" checked disabled aria-describedby="{{ column.id }}-locked" class="size-4 shrink-0 accent-green">
+                                <label for="{{ column.id }}" class="min-w-0 flex-1 truncate py-2 pl-1.5">{{ column.label }} <span id="{{ column.id }}-locked" class="text-small text-muted">{{ 'ui.column_picker.locked'|trans }}</span></label>
+                            {% else %}
+                                {# The handle is for a pointer; the buttons do the same with one tap or a key (WCAG 2.5.7). #}
+                                <span class="grid size-8 shrink-0 cursor-grab touch-none place-items-center rounded-control text-muted hover:bg-head active:cursor-grabbing" data-action="pointerdown->column-picker#grab" data-column-picker-handle aria-hidden="true">{{ ux_icon('lucide:grip-vertical', {class: 'size-4'}) }}</span>
+                                <input type="checkbox" id="{{ column.id }}" name="cols[]" value="{{ column.key }}"{% if column.visible %} checked{% endif %} class="size-4 shrink-0 accent-green {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" data-column-picker-target="box">
+                                <label for="{{ column.id }}" class="min-w-0 flex-1 truncate py-2 pl-1.5">{{ column.label }}</label>
+                                <twig:Ui:IconButton icon="arrow-up" variant="ghost" size="sm" :label="'ui.column_picker.move_up'|trans({label: column.label})" data-action="column-picker#up" data-column-picker-up="" />
+                                <twig:Ui:IconButton icon="arrow-down" variant="ghost" size="sm" :label="'ui.column_picker.move_down'|trans({label: column.label})" data-action="column-picker#down" data-column-picker-down="" />
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ol>
+                <p class="m-0 text-small text-muted" hidden data-column-picker-target="none">{{ 'ui.column_picker.no_match'|trans }}</p>
+                <p class="sr-only" role="status" aria-live="polite" data-column-picker-target="status"></p>
+            </fieldset>
+            <fieldset class="m-0 grid min-w-0 gap-2 border-0 p-0" data-column-picker-density>
+                <legend class="mb-2 p-0 text-small font-medium text-muted">{{ 'ui.column_picker.density'|trans }}</legend>
+                <div class="grid grid-cols-2 gap-2">
+                    {% for value in ['comfortable', 'dense'] %}
+                        <label class="flex min-h-touch cursor-pointer items-center gap-2 rounded-control border px-3 has-checked:border-green has-checked:bg-green-tint has-checked:text-green has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-green border-control-line">
+                            <input type="radio" name="density" value="{{ value }}"{% if density == value %} checked{% endif %} class="size-4 shrink-0 accent-green">
+                            <span class="grid">
+                                <span class="font-medium">{{ ('ui.column_picker.density_' ~ value)|trans }}</span>
+                                <span class="text-small text-muted">{{ ('ui.column_picker.density_' ~ value ~ '_hint')|trans }}</span>
+                            </span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </fieldset>
+        </form>
+        <twig:block name="footer">
+            <twig:Ui:Button variant="ghost" :href="resetHref" data-column-picker-reset>{{ 'ui.column_picker.reset'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" variant="primary" form="{{ formId }}" data-column-picker-apply>{{ 'ui.column_picker.apply'|trans }}</twig:Ui:Button>
+        </twig:block>
+    </twig:Ui:Sheet>
+</div>

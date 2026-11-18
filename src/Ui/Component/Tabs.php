@@ -15,7 +15,7 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
 final class Tabs
 {
     /**
-     * @var list<array<string, mixed>> each with a string label and href, optional int count and bool active
+     * @var list<array<string, mixed>> each with a string label and href, optional int count, bool active and bool modified (a dot: the view shows unsaved changes)
      */
     public array $items = [];
     public ?string $label = null;

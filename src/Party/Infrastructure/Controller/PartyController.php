@@ -36,7 +36,8 @@ use Foresi\Party\Infrastructure\Column\ContactColumns;
 use Foresi\Party\Infrastructure\Form\PartySubmissionReader;
 use Foresi\Party\Infrastructure\Http\WebsiteLink;
 use Foresi\Shared\Domain\Id;
-use Foresi\Ui\Column\ListColumnRegistry;
+use Foresi\Ui\Column\WorkingDisplay;
+use Foresi\Ui\Column\WorkingState;
 use Foresi\Ui\Component\DataTable;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -81,8 +82,8 @@ final class PartyController extends AbstractController
         private readonly ContactImports $imports,
         #[Autowire(service: 'limiter.party_refresh_checks')]
         private readonly RateLimiterFactory $refreshLimiter,
-        private readonly ListColumnRegistry $listColumns,
         private readonly ContactColumns $contactColumns,
+        private readonly WorkingDisplay $workingDisplay,
     ) {
     }
 
@@ -103,8 +104,11 @@ final class PartyController extends AbstractController
         [$importedBy, $importName] = $this->importedBy($request->query);
         $page = $this->contacts->search($text, $role, 'archived' === $view, $sort, max(1, $request->query->getInt('page', 1)), $importedBy);
         $counts = $this->contacts->counts();
+        // The columns and density changed in the Columns sheet, kept in the address (spec D10); the contacts have no saved views yet.
+        $working = $this->workingDisplay->read(ContactColumns::LIST, [], null, $request->query->all());
         $query = ['view' => 'all' === $view ? null : $view, 'q' => '' === $text ? null : $text, 'sort' => 'name' === $sort ? null : $sort]
-            + ($importedBy instanceof ImportedBy ? ['import' => $importedBy->importId, 'outcome' => $importedBy->outcome] : []);
+            + ($importedBy instanceof ImportedBy ? ['import' => $importedBy->importId, 'outcome' => $importedBy->outcome] : [])
+            + $working->query;
 
         return $this->render('@Party/index.html.twig', [
             'firstRun' => 0 === $counts->all && 0 === $counts->archived,
@@ -112,9 +116,12 @@ final class PartyController extends AbstractController
             'text' => $text,
             'sort' => $sort,
             'page' => $page,
-            'tabs' => $this->tabs($view, $text, $counts->all, $counts->customers, $counts->suppliers, $counts->archived),
-            'columns' => $this->columns($sort, $query),
-            'rows' => $this->rows($page),
+            'tabs' => $this->tabs($view, $text, $counts->all, $counts->customers, $counts->suppliers, $counts->archived, $working),
+            'columns' => $working->display->table($sort, fn (string $next): string => $this->generateUrl('app_contacts', ['sort' => $next, 'page' => null] + $query)),
+            'rows' => $this->rows($page, $working),
+            'density' => $working->tableDensity(),
+            'picker' => $this->picker($working, $query),
+            'workingQuery' => $working->query,
             'baseUrl' => $this->generateUrl('app_contacts', $query),
             'filtered' => '' !== $text || 'all' !== $view || $importedBy instanceof ImportedBy,
             'importedBy' => $importedBy instanceof ImportedBy ? ['text' => $this->translator->trans('party.imported_by.'.$importedBy->outcome, ['name' => $importName]), 'href' => $this->imports->summaryUrl($importedBy->importId)] : null,
@@ -322,15 +329,17 @@ final class PartyController extends AbstractController
     /**
      * @return list<array{label: string, href: string, count: int, active: bool}>
      */
-    private function tabs(string $view, string $text, int $all, int $customers, int $suppliers, int $archived): array
+    private function tabs(string $view, string $text, int $all, int $customers, int $suppliers, int $archived, WorkingState $working): array
     {
         $tabs = [];
         foreach (['all' => $all, 'customers' => $customers, 'suppliers' => $suppliers, 'archived' => $archived] as $key => $count) {
             $tabs[] = [
                 'label' => $this->translator->trans('party.view.'.$key),
-                'href' => $this->generateUrl('app_contacts', ['view' => 'all' === $key ? null : $key, 'q' => '' === $text ? null : $text]),
+                // The tabs share one display, so the columns changed on one stay on the others.
+                'href' => $this->generateUrl('app_contacts', ['view' => 'all' === $key ? null : $key, 'q' => '' === $text ? null : $text] + $working->query),
                 'count' => $count,
                 'active' => $key === $view,
+                'modified' => $key === $view && $working->modified,
             ];
         }
 
@@ -338,21 +347,31 @@ final class PartyController extends AbstractController
     }
 
     /**
+     * The Columns sheet: what it keeps of the list, and the list without the changed columns.
+     *
      * @param array<string, string|null> $query
      *
-     * @return list<array<string, mixed>>
+     * @return array<string, mixed>
      */
-    private function columns(string $sort, array $query): array
+    private function picker(WorkingState $working, array $query): array
     {
-        return $this->listColumns->display(ContactColumns::LIST)->table($sort, fn (string $next): string => $this->generateUrl('app_contacts', ['sort' => $next, 'page' => null] + $query));
+        $kept = array_diff_key($query, array_flip(WorkingDisplay::KEYS));
+
+        return [
+            'keep' => $kept,
+            'columns' => $working->picker(),
+            'density' => $working->density,
+            'resetHref' => $this->generateUrl('app_contacts', $kept),
+            'modified' => $working->modified,
+        ];
     }
 
     /**
      * @return list<array<string, mixed>>
      */
-    private function rows(PartyPage $page): array
+    private function rows(PartyPage $page, WorkingState $working): array
     {
-        $display = $this->listColumns->display(ContactColumns::LIST);
+        $display = $working->display;
 
         return array_map(function (PartyRow $row) use ($display): array {
             $cells = $display->cells($row);

@@ -26,8 +26,12 @@
     {% else %}
         <div class="grid grid-cols-1 gap-4">
             <twig:Ui:Tabs :items="tabs" :label="'party.views'|trans" />
-            <twig:Ui:FilterBar id="contact-filters" :action="path('app_contacts')" :keep="{view: view != 'all' ? view : null, sort: sort != 'name' ? sort : null}"
-                :search="{name: 'q', value: text, label: 'party.search.label'|trans, placeholder: 'party.search.placeholder'|trans}" :empty="rows is empty" />
+            <twig:Ui:FilterBar id="contact-filters" :action="path('app_contacts')" :keep="{view: view != 'all' ? view : null, sort: sort != 'name' ? sort : null}|merge(workingQuery)"
+                :search="{name: 'q', value: text, label: 'party.search.label'|trans, placeholder: 'party.search.placeholder'|trans}" :empty="rows is empty">
+                <twig:block name="end">
+                    <twig:Ui:ColumnPicker id="contact-columns" :action="path('app_contacts')" :keep="picker.keep" :columns="picker.columns" :density="picker.density" :resetHref="picker.resetHref" :modified="picker.modified" />
+                </twig:block>
+            </twig:Ui:FilterBar>
 
             {% if importedBy %}
                 <twig:Ui:Alert tone="info" data-imported-by>
@@ -40,7 +44,7 @@
             {% set bulkActions = slot_items(constant('Foresi\\Party\\Contract\\ContactListActions::BULK'), {view: view}) %}
             <form method="post" action="{{ path('app_contacts_archive') }}" data-turbo="false">
                 <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Party\\Infrastructure\\Controller\\PartyController::ACTION_TOKEN')) }}">
-                <twig:Ui:DataTable :caption="'party.title'|trans" :columns="columns" :rows="rows" :selectable="view != 'archived' or bulkActions is not empty" selectionName="ids[]">
+                <twig:Ui:DataTable :caption="'party.title'|trans" :columns="columns" :rows="rows" :density="density" :selectable="view != 'archived' or bulkActions is not empty" selectionName="ids[]">
                     <twig:block name="empty">
                         <twig:Ui:EmptyState icon="search" :title="'party.empty_filtered.title'|trans" :text="'party.empty_filtered.text'|trans">
                             <twig:Ui:Button :href="path('app_contacts')">{{ 'party.empty_filtered.reset'|trans }}</twig:Ui:Button>

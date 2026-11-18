@@ -8,6 +8,8 @@
         <a href="{{ item.href }}"{% if item.active ?? false %} aria-current="page"{% endif %} class="inline-flex h-control shrink-0 max-shell:h-touch items-center gap-1.5 whitespace-nowrap border-b-2 font-medium no-underline {{ (item.active ?? false) ? 'border-green text-ink' : 'border-transparent text-muted hover:border-control-line hover:text-ink' }} focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-green">
             {%- if item.private ?? false %}{{ ux_icon('lucide:lock', {class: 'size-3.5 shrink-0', 'aria-hidden': 'true'}) }}{% endif -%}
             {{- item.label -}}
+            {#- A view shown with changes nobody saved yet: a dot after its name (GitHub Projects; saved views D10). -#}
+            {%- if item.modified ?? false %}<span class="size-2 shrink-0 rounded-sm bg-green" aria-hidden="true" data-tab-modified></span><span class="sr-only">, {{ 'ui.tabs.modified'|trans }}</span>{% endif -%}
             {%- if item.count is defined and item.count is not null %}<span class="{{ count }} {{ (item.active ?? false) ? 'bg-green-tint text-green' : 'bg-badge-gray text-badge-gray-text' }}">{{ item.count }}</span>{% endif -%}
         </a>
     {%- endfor %}

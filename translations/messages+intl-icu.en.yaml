@@ -94,6 +94,27 @@ ui:
     keep_editing: Keep editing
     discard: Discard
     failed: Something went wrong. Please try again.
+  column_picker:
+    button: Columns
+    modified: changed
+    title: Columns
+    description: Choose which columns the list shows, their order and the row height.
+    columns: Columns shown
+    search: Search columns
+    no_match: No column matches.
+    locked: Always shown
+    move_up: 'Move {label} up'
+    move_down: 'Move {label} down'
+    moved: '{label} moved to position {position} of {total}.'
+    density: Row height
+    density_comfortable: Comfortable
+    density_comfortable_hint: 56 px
+    density_dense: Compact
+    density_dense_hint: 44 px
+    reset: Reset to default
+    apply: Apply
+  tabs:
+    modified: unsaved changes
   filter_bar:
     title: Filters
     description: Choose what narrows the list.
@@ -201,6 +222,7 @@ catalogue:
   mobile_preview: 390 px preview
   interaction_note: Hover and focus are shown by interacting with the live component; the focus ring is always visible on the keyboard.
   state:
+    modified: Changed, not saved
     filtered: Filtered
     dense: Dense rows and footer
     live: Live

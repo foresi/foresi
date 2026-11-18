@@ -1,0 +1,104 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\Ui\Component;
+
+use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
+use Symfony\UX\TwigComponent\Attribute\PostMount;
+
+/**
+ * The Columns button at the right of a list's toolbar and its 400 px side sheet (spec
+ * D-display-4 and D-display-6; Airtable, HubSpot and Attio column pickers):
+ *
+ * - a checkbox per column; the column that names the row is locked, always shown and first;
+ * - each other row has a drag handle and Move up / Move down buttons, so every reorder works
+ *   with a single pointer and a keyboard too (WCAG 2.2 SC 2.5.7, Atlassian's drag and drop
+ *   guidance); each move is said in a live region;
+ * - a search over the columns once there are more than SEARCH_FROM;
+ * - the row density, Comfortable (56 px) or Compact (44 px);
+ * - "Reset to default", back to the view's own display, and one Apply.
+ *
+ * The sheet is a GET form to the list: Apply re-renders it with cols (the checked columns in
+ * order) and density, the working state of WorkingDisplay. Without JavaScript the checkboxes
+ * send cols[] in their order, which the list reads the same way.
+ */
+#[AsTwigComponent]
+final class ColumnPicker
+{
+    public const int SEARCH_FROM = 10;
+    private const array DENSITIES = ['comfortable', 'dense'];
+
+    public string $id = '';
+    /** The list's URL, the form's action. */
+    public string $action = '';
+    /** @var array<string, scalar|null> what the list keeps while its columns change (the view, the filters, the sort): empty values are left out */
+    public array $keep = [];
+    /** @var list<array<string, mixed>> each with key, label, visible and locked, as WorkingState::picker() gives them */
+    public array $columns = [];
+    public string $density = 'comfortable';
+    /** The list as its view shows it, without the working state. */
+    public string $resetHref = '';
+    /** Whether the list shows other columns or density than its view. */
+    public bool $modified = false;
+
+    /** @var list<array{key: string, label: string, visible: bool, locked: bool, id: string}> */
+    private array $views = [];
+
+    #[PostMount]
+    public function validate(): void
+    {
+        if ('' === $this->id || '' === $this->action || '' === $this->resetHref) {
+            throw new \InvalidArgumentException('A column picker needs an id, the list\'s URL and the URL that resets it.');
+        }
+        Style::href($this->action);
+        Style::href($this->resetHref);
+        if (!\in_array($this->density, self::DENSITIES, true)) {
+            throw new \InvalidArgumentException(\sprintf('Unknown density "%s", expected one of: %s.', $this->density, implode(', ', self::DENSITIES)));
+        }
+        foreach ($this->columns as $column) {
+            $key = Style::requireString($column, 'key', 'A column of the picker');
+            $this->views[] = [
+                'key' => $key,
+                'label' => Style::requireString($column, 'label', 'A column of the picker'),
+                'visible' => true === ($column['visible'] ?? false) || true === ($column['locked'] ?? false),
+                'locked' => true === ($column['locked'] ?? false),
+                'id' => $this->id.'-'.preg_replace('/[^A-Za-z0-9_-]/', '-', $key),
+            ];
+        }
+        // The locked columns lead, as the registry puts them first.
+        usort($this->views, static fn (array $a, array $b): int => $b['locked'] <=> $a['locked']);
+    }
+
+    /**
+     * @return list<array{key: string, label: string, visible: bool, locked: bool, id: string}>
+     */
+    public function views(): array
+    {
+        return $this->views;
+    }
+
+    public function searchable(): bool
+    {
+        return \count($this->views) > self::SEARCH_FROM;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function hidden(): array
+    {
+        $hidden = [];
+        foreach ($this->keep as $name => $value) {
+            if (null !== $value && '' !== $value && !\in_array($name, ['cols', 'density', 'page'], true)) {
+                $hidden[$name] = \is_bool($value) ? ($value ? '1' : '0') : (string) $value;
+            }
+        }
+
+        return $hidden;
+    }
+}
