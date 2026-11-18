@@ -4,9 +4,11 @@ All notable changes to Foresi are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and Foresi adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+This file ends at 0.5.0. Since then every merged change that users notice is released on its own, and its notes are on the [GitHub releases](https://github.com/foresi/foresi/releases) and at [foresi.app](https://foresi.app/).
 
-Planned as 0.5.0: the first release with invoices.
+## [0.5.0] - 2026-11-18
+
+The first release with invoices.
 
 ### Upgrading
 
@@ -126,6 +128,7 @@ Planned as 0.5.0: the first release with invoices.
 
 ### Changed
 
+- A firm can no longer be archived: the instance has one firm and the last active firm was never archivable, so the Archive action on the firm page, the Active and Archived views of the firm list and the "An archived firm cannot be restored" confirmation are gone ([ADR 0039](docs/adr/0039-one-firm-per-instance.md)). `POST /settings/firms/{id}/archive` now answers 404.
 - For modules: an integration, `Integration/<Other>/`, may hold `templates/`, `translations/` and `assets/controllers/`. The module's bundle registers them only when `<Other>` is installed, the templates under the module's own Twig namespace ([ADR 0038](docs/adr/0038-core-screens-in-integrations.md)). This is the first step of moving the screens of Identity, Party and Webhooks into `Integration/Ui/`, so the core installs without `foresi/ui`.
 - A dialog asked for while the page under it was loading again (right after the window of a new API token closed, say) no longer locks the dialogs and sheets until a full reload.
 - Every page title runs from the specific to the general: the page, the section of the navigation it belongs to, and the product, as "Fix the login · Projects · Foresi". A list page names its section once, the login page has no section, and the public document pages keep the issuer instead of the product.
