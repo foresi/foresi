@@ -53,7 +53,6 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
