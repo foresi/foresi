@@ -86,7 +86,7 @@ final class MoreActionsTest extends KernelTestCase
     {
         $actions = new MoreActions();
         $actions->menuId = ' ';
-        $this->expectExceptionMessage('A more-actions menu needs an id.');
+        $this->expectExceptionMessageIsOrContains('A more-actions menu needs an id.');
         $actions->validate();
     }
 
@@ -94,7 +94,7 @@ final class MoreActionsTest extends KernelTestCase
     {
         $actions = new MoreActions();
         $actions->menuSize = 'huge';
-        $this->expectExceptionMessage('Unknown size "huge"');
+        $this->expectExceptionMessageIsOrContains('Unknown size "huge"');
         $actions->validate();
     }
 
