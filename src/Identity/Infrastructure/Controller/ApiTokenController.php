@@ -101,6 +101,7 @@ final class ApiTokenController extends AbstractController
         return $this->render('@Identity/api/connect.html.twig', [
             'canIssue' => $this->hasTwoFactor(),
             'server' => $this->mcpServer(),
+            'setup' => $this->generateUrl(McpSetupController::ROUTE, [], UrlGeneratorInterface::ABSOLUTE_URL),
             'scopes' => $this->offeredScopes(),
         ]);
     }

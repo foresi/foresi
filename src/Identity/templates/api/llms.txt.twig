@@ -1,0 +1,17 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The llms.txt of this installation (llmstxt.org): what it is and where an agent starts. Variables: server, setup, tokens, home. #}
+{%- autoescape false -%}
+# Foresi
+
+> Foresi is an open-source business system for small firms: invoices, contacts, payments and work. This installation is at {{ home }}. AI agents use it through its MCP server, signed in with a personal API token.
+
+## MCP
+
+- [Install the Foresi MCP server]({{ setup }}): step-by-step setup for Claude Code, claude.ai, Claude Desktop, Cursor and VS Code
+- [MCP server]({{ server }}): Streamable HTTP, header `Authorization: Bearer <token>`
+- [API tokens]({{ tokens }}): where a person creates a token (sign-in required)
+
+## Optional
+
+- [Foresi on GitHub](https://github.com/foresi/foresi): source code and documentation (docs/mcp.md, docs/api.md)
+{% endautoescape %}
