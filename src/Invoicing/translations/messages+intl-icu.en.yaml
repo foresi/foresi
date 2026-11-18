@@ -618,6 +618,7 @@ invoice:
     edit_contact: Edit the contact
   field:
     payment_state: Payment state
+    total: Total
     settlement: Settlement
     firm: Firm
     series: Series

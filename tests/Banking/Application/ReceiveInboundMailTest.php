@@ -233,15 +233,18 @@ final class ReceiveInboundMailTest extends KernelTestCase
     {
         // The duplicate check still works; only the insert, after the file is written, fails.
         $this->connection->executeStatement('ALTER TABLE inbound_message DROP COLUMN subject');
+        // Marked, so a file another test process writes to the shared directory meanwhile does not count.
+        $marker = bin2hex(random_bytes(8));
 
         try {
-            $this->receive->receive(InboundMailKit::mail($this->kit->address), InboundChannel::Imap);
+            $this->receive->receive(InboundMailKit::mail($this->kit->address, headers: ['X-Test-Run' => $marker]), InboundChannel::Imap);
             self::fail('Storing without the column must fail.');
         } catch (\Throwable $failure) {
             self::assertStringNotContainsString('must fail', $failure->getMessage());
         }
 
-        self::assertSame([], $this->storedFiles());
+        $directory = self::getContainer()->getParameter('app.inbound_mail_dir');
+        self::assertSame([], array_filter($this->storedFiles(), static fn (string $name): bool => str_contains((string) @file_get_contents($directory.'/'.$name), $marker)));
         self::assertSame([], $this->queue->getSent());
     }
 

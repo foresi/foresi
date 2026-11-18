@@ -618,6 +618,7 @@ invoice:
     edit_contact: Upravit kontakt
   field:
     payment_state: Stav úhrady
+    total: Celkem
     settlement: Vyúčtování
     firm: Firma
     series: Číselná řada

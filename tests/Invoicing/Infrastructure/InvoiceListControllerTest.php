@@ -1343,6 +1343,83 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSelectorExists('nav[aria-label="Invoice lists"] a[href="/invoices"][aria-current="page"]');
     }
 
+    public function testTheBuilderAppliesUnpaidAndDueBeforeTodayAsAWorkingFilter(): void
+    {
+        // Saved views, D11: the sheet's rows are a GET form; Apply puts the filter in f=.
+        $this->signedIn();
+        $late = $this->issue('2026-10-01', '2026-11-10');
+        $notDue = $this->issue('2026-11-02', '2026-12-01');
+        $paid = $this->issue('2026-10-02', '2026-11-05');
+        $this->pay($paid, '1210.00');
+
+        $this->client->request('GET', '/invoices?'.http_build_query(['q' => '', 'conditions' => '1', 'c' => [
+            ['field' => 'payment', 'op' => 'is', 'values' => ['unpaid']],
+            ['field' => 'due_date', 'op' => 'before', 'from' => ['rule' => 'today', 'day' => '', 'month' => '', 'n' => '']],
+            // A row left without an operator, as the form without JavaScript sends it, is no condition.
+            ['field' => 'amount', 'op' => '', 'from' => '5'],
+        ]]));
+
+        self::assertResponseStatusCodeSame(303);
+        $location = (string) $this->client->getResponse()->headers->get('Location');
+        parse_str((string) parse_url($location, \PHP_URL_QUERY), $query);
+        self::assertSame(['f'], array_keys($query));
+        $crawler = $this->client->request('GET', $location);
+
+        self::assertSame([$late->number()], $this->numbers($crawler));
+        self::assertNotContains($notDue->number(), $this->numbers($crawler));
+        self::assertSame(['Payment state: Unpaid', 'Due date: before today'], $crawler->filter('[data-filter-chips] [data-filter-condition] span')->each(static fn (Crawler $chip): string => $chip->text()));
+        // The tabs keep their counts and leave the working filter behind.
+        self::assertSame('/invoices?view=paid', $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(1)->attr('href'));
+        // Each chip's ✕ is the list without that condition.
+        $without = $crawler->filter('[data-filter-chips] [data-filter-condition-remove]')->eq(1)->attr('href');
+        self::assertCount(2, $this->numbers($this->client->request('GET', (string) $without)));
+        // The rows come back in the sheet as they were set.
+        self::assertSame('before', $crawler->filter('[data-filter-sheet-form] select[name="c[1][op]"] option[selected]')->attr('value'));
+    }
+
+    public function testABuilderFilterEqualToTheViewLeavesTheAddressClean(): void
+    {
+        $this->signedIn();
+        $this->issue('2026-11-02', '2026-12-01');
+
+        $this->client->request('GET', '/invoices?'.http_build_query(['view' => 'unpaid', 'conditions' => '1', 'c' => [['field' => 'payment', 'op' => 'is', 'values' => ['unpaid']]]]));
+
+        self::assertResponseRedirects('/invoices?view=unpaid', 303);
+        // Removing the view's own condition shows the whole list under that view.
+        $crawler = $this->client->request('GET', '/invoices?view=unpaid');
+        self::assertSame(['Payment state: Unpaid'], $crawler->filter('[data-filter-chips] [data-filter-condition] span')->each(static fn (Crawler $chip): string => $chip->text()));
+        self::assertStringContainsString('f=', (string) $crawler->filter('[data-filter-condition-remove]')->attr('href'));
+    }
+
+    public function testACustomerAndAnAmountFilterTheList(): void
+    {
+        $this->signedIn();
+        $acme = $this->customerNamed('Acme Example');
+        $small = $this->issue('2026-11-02', '2026-12-01', $acme, price: '100.00');
+        $this->issue('2026-11-03', '2026-12-01', $acme, price: '5000.00');
+        $this->issue('2026-11-04', '2026-12-01');
+
+        $this->client->request('GET', '/invoices?'.http_build_query(['conditions' => '1', 'c' => [
+            ['field' => 'customer', 'op' => 'is', 'value' => $acme->id(), 'text' => 'Acme'],
+            ['field' => 'amount', 'op' => 'le', 'from' => '1 000,50'],
+        ]]));
+        $crawler = $this->client->followRedirect();
+
+        self::assertSame([$small->number()], $this->numbers($crawler));
+        self::assertSame(['Customer: Acme Example', 'Total: ≤ 1,000.5'], $crawler->filter('[data-filter-chips] [data-filter-condition] span')->each(static fn (Crawler $chip): string => $chip->text()));
+    }
+
+    public function testAnAddressWithABrokenFilterShowsTheView(): void
+    {
+        $this->signedIn();
+        $this->issue('2026-11-02', '2026-12-01');
+
+        $crawler = $this->client->request('GET', '/invoices?view=unpaid&f=not-a-filter');
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $this->numbers($crawler));
+    }
+
     public function testStoredDefaultViewsCountAsTheDeclaredOnes(): void
     {
         $this->signedIn();

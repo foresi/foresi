@@ -84,6 +84,12 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
     private const string ORDER_FALLBACK = 'i.issueDate';
     private const string ORDER_TIE = 'i.numberKey';
 
+    /**
+     * The stored fields of a view: the dates, the customer, and the amount in whole units
+     * of the currency, which every supported one divides into a hundred (Currency::minorUnits).
+     */
+    private const array VIEW_COLUMNS = self::DATE_COLUMNS + [InvoiceLists::CUSTOMER => 'i.customerParty', InvoiceLists::AMOUNT => 'i.payableMinor'];
+
     public function __construct(
         private EntityManagerInterface $em,
         private InvoicingCountries $countries,
@@ -751,7 +757,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
             ]), []],
             default => throw new \LogicException(\sprintf('The field "%s" of the documents has no SQL.', $condition->field)),
         });
-        $compiler = new DqlConditions($this->listOf($kind), self::DATE_COLUMNS, $derived(...));
+        $compiler = new DqlConditions($this->listOf($kind), self::VIEW_COLUMNS, $derived(...), [InvoiceLists::AMOUNT => 100]);
         [$condition, $parameters] = $compiler->compile($view, $today, $suffix);
 
         return [([] === $view->on(InvoiceLists::TRASHED) ? 'i.deletedAt IS NULL AND ' : '').$condition, $parameters];

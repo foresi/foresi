@@ -37,6 +37,11 @@ final readonly class InvoiceLists implements ListDefinitionSource
     public const string ISSUE_DATE = 'issue_date';
     public const string TAX_POINT_DATE = 'tax_point_date';
     public const string DUE_DATE = 'due_date';
+    public const string CUSTOMER = 'customer';
+    public const string AMOUNT = 'amount';
+
+    /** What a customer reference points to: the builder picks one with the contact picker. */
+    public const string CONTACT = 'contact';
 
     /** The key of each kind's list. */
     public const array KEYS = [
@@ -79,14 +84,18 @@ final readonly class InvoiceLists implements ListDefinitionSource
             DocumentKind::CorrectionDocument => [InvoiceFilter::TO_REFUND],
         };
         if ([] !== $payment) {
-            $fields[] = new Field(self::PAYMENT, FieldType::Enum, 'invoice.field.payment_state', options: $payment);
+            $fields[] = new Field(self::PAYMENT, FieldType::Enum, 'invoice.field.payment_state', options: $payment, optionLabels: self::labels($payment));
         }
         if (\in_array($kind, [DocumentKind::Invoice, DocumentKind::Advance], true)) {
             $fields[] = new Field(self::OVERDUE, FieldType::Boolean, 'invoice.list.tab.overdue');
         }
         if (\in_array($kind, [DocumentKind::Advance, DocumentKind::PaymentTaxDocument], true)) {
-            $fields[] = new Field(self::SETTLEMENT, FieldType::Enum, 'invoice.field.settlement', options: DocumentKind::Advance === $kind ? [InvoiceFilter::UNSETTLED] : [InvoiceFilter::SETTLED, InvoiceFilter::UNSETTLED]);
+            $settlement = DocumentKind::Advance === $kind ? [InvoiceFilter::UNSETTLED] : [InvoiceFilter::SETTLED, InvoiceFilter::UNSETTLED];
+            $fields[] = new Field(self::SETTLEMENT, FieldType::Enum, 'invoice.field.settlement', options: $settlement, optionLabels: self::labels($settlement));
         }
+        $fields[] = new Field(self::CUSTOMER, FieldType::Reference, 'invoice.field.customer', ['is', 'is_not', 'is_any_of'], source: self::CONTACT);
+        // In the document's currency, as the list shows it: the total to pay.
+        $fields[] = new Field(self::AMOUNT, FieldType::Number, 'invoice.field.total');
         $fields[] = new Field(self::ISSUE_DATE, FieldType::Date, 'invoice.field.issueDate');
         if ($kind->isTaxDocument()) {
             $fields[] = new Field(self::TAX_POINT_DATE, FieldType::Date, 'invoice.field.taxPointDate');
@@ -96,6 +105,16 @@ final readonly class InvoiceLists implements ListDefinitionSource
         }
 
         return $fields;
+    }
+
+    /**
+     * @param list<string> $values
+     *
+     * @return array<string, string>
+     */
+    private static function labels(array $values): array
+    {
+        return array_combine($values, array_map(static fn (string $value): string => 'invoice.list.tab.'.$value, $values));
     }
 
     /**
