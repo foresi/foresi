@@ -44,7 +44,7 @@ use Foresi\Import\Domain\MatchReason;
 use Foresi\Import\Domain\ReplaceScope;
 use Foresi\Tests\Import\Support\FakeTarget;
 use Foresi\Tests\Import\Support\FlakyImportLock;
-use Foresi\Tests\Import\Support\RunMessages;
+use Foresi\Tests\Support\Messenger\RunMessages;
 use OpenSpout\Reader\CSV\Options as CsvReaderOptions;
 use OpenSpout\Reader\CSV\Reader as CsvReader;
 use Symfony\Bundle\FrameworkBundle\Console\Application;

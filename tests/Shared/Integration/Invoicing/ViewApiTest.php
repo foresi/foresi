@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Shared\Infrastructure\View;
+namespace Foresi\Tests\Shared\Integration\Invoicing;
 
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Tests\Invoicing\Support\IssuesInvoices;

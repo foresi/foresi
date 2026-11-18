@@ -150,6 +150,10 @@ Planned as 0.5.0: the first release with invoices.
 - The public link page of a paid invoice says Paid and shows no way to pay it again. After a part payment it shows what is left to pay, without the QR code.
 - A plain overpayment is now to refund: the refund in the payment panel and in the bank's pair dialog accepts it, and the invoice list has a **To refund** tab of invoices paid above what is due. A paid advance no final invoice deducts is now offered as a refund in the pair dialog too. Unpairing a refund leaves its movement unmatched, never paired by itself again, instead of recorded.
 
+### Fixed
+
+- The MCP server answers without the Banking module. The PSR-7 library it needs came only through Banking's e-mail parser, so an installation without Banking answered every MCP request with an error; the application now requires `guzzlehttp/psr7` itself.
+
 ## [0.4.0] - 2026-11-01
 
 Breaking release: every record gets a new kind of identifier. Read the upgrade notes before updating.

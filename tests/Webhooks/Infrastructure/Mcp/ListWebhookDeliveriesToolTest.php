@@ -46,7 +46,7 @@ final class ListWebhookDeliveriesToolTest extends WebhookToolTestCase
         self::assertSame('invalid_argument', $this->refusal(ListWebhookDeliveriesTool::class, [])->errorCode);
     }
 
-    public function testAGuestMayNotReadTheDeliveriesOfAnInvoicingEndpoint(): void
+    public function testAGuestMayNotReadTheDeliveriesOfAContactsEndpoint(): void
     {
         $id = $this->stored();
 

@@ -89,8 +89,10 @@ final class ProjectModulesTest extends TestCase
             }
         }
         sort($crossing);
+        // The known ones whose two modules are installed.
+        $known = array_values(array_filter(self::IMPLICIT_PORTS, fn (string $port): bool => [] === array_filter(explode(' -> ', $port), fn (string $class): bool => !$this->moduleOf($graph, $class) instanceof ModuleManifest)));
 
-        self::assertSame(self::IMPLICIT_PORTS, $crossing);
+        self::assertSame($known, $crossing);
     }
 
     /**
