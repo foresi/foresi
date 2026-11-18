@@ -123,7 +123,7 @@ final class ReceivedDocumentController extends AbstractController
             }
         }
 
-        return $this->render('purchasing/trash.html.twig', [
+        return $this->render('@Purchasing/trash.html.twig', [
             'document' => $detail->document,
             'title' => $this->screen->title($detail->document),
             'reason' => $reason,
@@ -183,7 +183,7 @@ final class ReceivedDocumentController extends AbstractController
         $timezone = $this->clock->timezone();
         $format = $this->translator->trans('format.datetime');
 
-        return $this->render('purchasing/show.html.twig', [
+        return $this->render('@Purchasing/show.html.twig', [
             'document' => $document,
             'title' => $this->screen->title($document),
             'badge' => $this->screen->badge($document->isTrashed(), $document->isRecorded()),

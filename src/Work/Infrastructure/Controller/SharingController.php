@@ -69,7 +69,7 @@ final class SharingController extends AbstractController
         // A change made here shows on the page under the dialog, loaded again when it closes.
         $changed = $session instanceof FlashBagAwareSessionInterface && [] !== $session->getFlashBag()->peek('success');
 
-        return $this->render('work/sharing/dialog.html.twig', [
+        return $this->render('@Work/sharing/dialog.html.twig', [
             'view' => $view,
             'kind' => $view->kind->value,
             'return' => $return,

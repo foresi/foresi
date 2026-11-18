@@ -246,7 +246,7 @@ final class InvoicePaymentController extends AbstractController
             $methods[$method->value] = $this->translator->trans('invoice.payment.'.$method->value);
         }
 
-        return $this->render('invoicing/refund.html.twig', [
+        return $this->render('@Invoicing/refund.html.twig', [
             'invoice' => $invoice,
             'values' => $values,
             'errors' => $errors,
@@ -424,7 +424,7 @@ final class InvoicePaymentController extends AbstractController
             $methods[$method->value] = $this->translator->trans('invoice.payment.'.$method->value);
         }
 
-        return $this->render('invoicing/pay.html.twig', [
+        return $this->render('@Invoicing/pay.html.twig', [
             'invoice' => $invoice,
             'values' => $values,
             'errors' => $errors,

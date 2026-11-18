@@ -1,0 +1,35 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    My unfinished tasks: those I am responsible for, or those I watch, in groups by when they are
+    due. A group with nothing in it is left out; the client filter narrows both tabs. The status,
+    the responsible person, the due date and the priority change in the row.
+#}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.my_tasks.title'|trans}] %}
+
+{% block title %}{{ 'work.my_tasks.title'|trans }}{% endblock %}
+
+{# A change made in a row comes back to this page: Turbo morphs it in place and keeps the scroll. #}
+{% block head %}{{ include('@Work/_morph_refresh.html.twig') }}{% endblock %}
+
+{% block content %}
+    {{ include('@Work/_flashes.html.twig') }}
+    <div class="grid grid-cols-1 gap-4">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+            <twig:Ui:Tabs :items="tabs" :label="'work.my_tasks.views'|trans" class="min-w-0 flex-1" />
+            <twig:Ui:FilterBar id="my-tasks-filters" :action="path('app_my_tasks')" :keep="{tab: watching ? 'watching' : null}" :empty="groups is empty" class="w-full sm:w-auto" data-my-tasks-filter
+                :filters="[{name: 'client', label: 'work.my_tasks.client'|trans, options: clients, value: client, pinned: true}]" />
+        </div>
+
+        {% for group in groups %}
+            <section class="grid gap-2" aria-labelledby="group-{{ group.key }}-title" data-task-group="{{ group.key }}">
+                <h2 id="group-{{ group.key }}-title" class="m-0 text-heading font-semibold text-ink">{{ group.name }} <span class="num font-normal text-muted">({{ group.count }})</span></h2>
+                <twig:Ui:DataTable :caption="group.name" :columns="columns" :rows="group.rows" />
+            </section>
+        {% else %}
+            {% set empty = watching ? 'watching' : 'assigned' %}
+            <twig:Ui:EmptyState icon="square-check-big" :title="('work.my_tasks.empty.' ~ empty ~ '_title')|trans" :text="(client ? 'work.my_tasks.empty.filtered' : 'work.my_tasks.empty.' ~ empty ~ '_text')|trans" />
+        {% endfor %}
+    </div>
+{% endblock %}

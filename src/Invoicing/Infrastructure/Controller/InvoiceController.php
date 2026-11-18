@@ -171,19 +171,19 @@ final class InvoiceController extends AbstractController
         $id = $request->query->getString('firm');
         $firm = '' === $id ? $this->defaults->firmFor($this->actor->userId()) : $this->firm($id);
         if (!$firm instanceof LegalEntity) {
-            return $this->render('invoicing/form.html.twig', ['blocked' => 'no_firm']);
+            return $this->render('@Invoicing/form.html.twig', ['blocked' => 'no_firm']);
         }
 
         $kind = InvoiceFormReader::kind($request->query->getString('kind'));
         // No series at all is fine: the first save stores the default. Only archived ones leave nothing to number from.
         if ([] === $this->catalog->forFirm($firm, $kind) && array_any($this->catalog->everyForFirm($firm), static fn (Series $series): bool => $kind === $series->kind())) {
-            return $this->render('invoicing/form.html.twig', ['blocked' => 'no_series', 'firm' => $firm]);
+            return $this->render('@Invoicing/form.html.twig', ['blocked' => 'no_series', 'firm' => $firm]);
         }
 
         try {
             $context = $this->newContext($firm, $kind);
         } catch (UnsupportedCountry) {
-            return $this->render('invoicing/form.html.twig', ['blocked' => 'country']);
+            return $this->render('@Invoicing/form.html.twig', ['blocked' => 'country']);
         }
 
         return $this->form($context, $this->values->ofDraft($this->defaults->for($firm, kind: $kind)), [], [], $this->tokens->issue(), 0, Response::HTTP_OK);
@@ -208,7 +208,7 @@ final class InvoiceController extends AbstractController
             $party = $this->parties->find($work->customerId);
             $draft = $this->defaults->forBilledWork($firm, $work, $party instanceof Party ? $this->picker->option($party, $firm) : null);
         } catch (UnsupportedCountry) {
-            return $this->render('invoicing/form.html.twig', ['blocked' => 'country']);
+            return $this->render('@Invoicing/form.html.twig', ['blocked' => 'country']);
         }
 
         return $this->form($context, $this->values->ofBilledWork($draft, $firm), [], [], $this->tokens->issue(), 0, Response::HTTP_OK);
@@ -241,7 +241,7 @@ final class InvoiceController extends AbstractController
             $context = $this->newContext($source->firm(), $source->kind());
             $draft = $this->copies->valuesFrom($source);
         } catch (UnsupportedCountry) {
-            return $this->render('invoicing/form.html.twig', ['blocked' => 'country']);
+            return $this->render('@Invoicing/form.html.twig', ['blocked' => 'country']);
         }
 
         return $this->form($context, $this->values->ofCopy($draft, $source->firm(), $source), [], [], $this->tokens->issue(), 0, Response::HTTP_OK);
@@ -269,7 +269,7 @@ final class InvoiceController extends AbstractController
             $context = $this->newContext($source->firm(), DocumentKind::CorrectionDocument);
             $draft = $this->corrections->valuesFrom($source);
         } catch (UnsupportedCountry) {
-            return $this->render('invoicing/form.html.twig', ['blocked' => 'country']);
+            return $this->render('@Invoicing/form.html.twig', ['blocked' => 'country']);
         }
         $values = $this->values->ofCopy($draft, $source->firm(), $source, false);
         if (DocumentKind::PaymentTaxDocument === $source->kind()) {
@@ -374,7 +374,7 @@ final class InvoiceController extends AbstractController
         try {
             $context = $this->newContext($firm, InvoiceFormReader::kind($request->request->getString('kind')));
         } catch (UnsupportedCountry) {
-            return $this->render('invoicing/form.html.twig', ['blocked' => 'country']);
+            return $this->render('@Invoicing/form.html.twig', ['blocked' => 'country']);
         }
 
         return $this->submit($request, $context, $token);
@@ -400,7 +400,7 @@ final class InvoiceController extends AbstractController
      */
     private function cutOff(string $retry): Response
     {
-        return $this->render('invoicing/form.html.twig', ['blocked' => 'cut_off', 'retry' => $retry], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
+        return $this->render('@Invoicing/form.html.twig', ['blocked' => 'cut_off', 'retry' => $retry], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
     private function submit(Request $request, InvoiceFormContext $context, string $token): Response
@@ -661,7 +661,7 @@ final class InvoiceController extends AbstractController
         $bankUrl = $this->owner->isOwner() ? $this->generateUrl('app_firm_bank', ['id' => $firm->id()]) : null;
         $targets = new InvoiceErrorTargets($context->isPayer(), $invoice?->isDelivered() ?? false, [] !== $this->bankAccounts($context), '' !== $values['customerId'], $firmUrl, $bankUrl);
 
-        return $this->render('invoicing/form.html.twig', [
+        return $this->render('@Invoicing/form.html.twig', [
             'blocked' => null,
             'invoice' => $invoice,
             'firm' => $firm,

@@ -61,7 +61,7 @@ final class InvoiceDetailController extends AbstractController
         // Overdue by the instance's day, as the reminders count it (ADR 0017).
         $status = InvoiceStatus::ofInvoice($invoice, $this->clock->today(), $detail->paid, $detail->corrections);
 
-        return $this->render('invoicing/show.html.twig', [
+        return $this->render('@Invoicing/show.html.twig', [
             'invoice' => $invoice,
             'title' => $this->translator->trans(self::TITLES[$invoice->kind()->value], ['number' => $invoice->number()]),
             'status' => ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()],

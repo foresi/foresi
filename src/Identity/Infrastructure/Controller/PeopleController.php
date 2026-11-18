@@ -78,7 +78,7 @@ final class PeopleController extends AbstractController
         }
         $owner = $this->owner->isOwner();
 
-        return $this->render('identity/people/index.html.twig', [
+        return $this->render('@Identity/people/index.html.twig', [
             'tab' => 'people',
             'owner' => $owner,
             'columns' => $this->peopleColumns(),
@@ -93,7 +93,7 @@ final class PeopleController extends AbstractController
         $this->denyUnlessOwner();
         $pending = $this->invitations->pending($this->clock->now());
 
-        return $this->render('identity/people/index.html.twig', [
+        return $this->render('@Identity/people/index.html.twig', [
             'tab' => 'invitations',
             'owner' => true,
             'columns' => $this->invitationColumns(),
@@ -129,7 +129,7 @@ final class PeopleController extends AbstractController
             }
         }
 
-        return $this->render('identity/people/invite.html.twig', [
+        return $this->render('@Identity/people/invite.html.twig', [
             'values' => $values,
             'errors' => $errors,
             'roles' => [Role::Member->value => $this->translator->trans('role.member'), Role::Guest->value => $this->translator->trans('role.guest')],
@@ -191,7 +191,7 @@ final class PeopleController extends AbstractController
             }
         }
 
-        return $this->render('identity/people/edit.html.twig', [
+        return $this->render('@Identity/people/edit.html.twig', [
             'person' => $membership->user(),
             'values' => $values,
             'errors' => $errors,
@@ -278,7 +278,7 @@ final class PeopleController extends AbstractController
             return $this->redirectToRoute(self::INVITATIONS_ROUTE);
         }
 
-        return $this->render('identity/people/link.html.twig', [
+        return $this->render('@Identity/people/link.html.twig', [
             'invitation' => $invitation,
             'link' => $link,
             'expires' => $this->date($invitation->expiresAt()),

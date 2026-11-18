@@ -1,0 +1,137 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    An issued document, read only (layout/record.html.twig): a row of its list opens it in the
+    sheet. Edit loads the form in the same sheet, full screen while the lines are edited, and
+    Save or Cancel bring this detail back (docs/design/overlays.md).
+#}
+{% extends 'layout/record.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: ('invoice.list.title_' ~ invoice.kind.value)|trans, href: path(listRoute)}, {label: invoice.number}] %}
+{% set doc = {id: invoice.id} %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:MoreActions menuId="invoice-detail-more" :menuLabel="'invoice.more_actions'|trans" :menuSize="record_action_size">
+        <twig:block name="primary">
+            {% if not invoice.trashed %}
+                <twig:Ui:Button variant="primary" icon="pencil" :size="record_action_size" :href="path('app_invoice_edit', doc)" data-in-place data-invoice-edit>{{ 'invoice.list.action.edit'|trans }}</twig:Ui:Button>
+            {% endif %}
+        </twig:block>
+        <twig:block name="buttons">
+            <twig:Ui:Button icon="file-down" :size="record_action_size" :href="path('app_invoice_pdf', doc)" data-turbo="false">{{ 'invoice.list.action.pdf'|trans }}</twig:Ui:Button>
+            {% if not invoice.trashed %}
+                <twig:Ui:Button icon="send" :size="record_action_size" :href="path('app_invoice_send', doc)" data-dialog aria-haspopup="dialog">{{ 'invoice.list.action.send'|trans }}</twig:Ui:Button>
+            {% endif %}
+        </twig:block>
+        <twig:block name="phone">
+            <twig:Ui:MenuItem icon="file-down" :href="path('app_invoice_pdf', doc)" data-turbo="false">{{ 'invoice.list.action.pdf'|trans }}</twig:Ui:MenuItem>
+            {% if not invoice.trashed %}
+                <twig:Ui:MenuItem icon="send" :href="path('app_invoice_send', doc)" data-dialog aria-haspopup="dialog">{{ 'invoice.list.action.send'|trans }}</twig:Ui:MenuItem>
+            {% endif %}
+        </twig:block>
+        {% if standsAlone %}
+            <twig:Ui:MenuItem :href="path('app_invoice_copy', doc)" data-turbo="false">{{ 'invoice.list.action.copy'|trans }}</twig:Ui:MenuItem>
+            {% if not invoice.trashed %}<twig:Ui:MenuItem :href="path('app_recurring_new', {from: invoice.id})" data-turbo="false">{{ 'recurring.form.from_invoice'|trans }}</twig:Ui:MenuItem>{% endif %}
+        {% endif %}
+        {% if corrects %}<twig:Ui:MenuItem :href="path('app_invoice_correct', doc)" data-turbo="false">{{ 'invoice.list.action.correct'|trans }}</twig:Ui:MenuItem>{% endif %}
+        <twig:Ui:MenuItem :href="path('app_invoice_history', doc)">{{ 'invoice.list.action.history'|trans }}</twig:Ui:MenuItem>
+        <twig:block name="last">
+            {% if not invoice.delivered and not invoice.trashed %}
+                <twig:Ui:MenuItem :href="path('app_invoice_trash', doc)" tone="danger" data-dialog aria-haspopup="dialog">{{ 'invoice.list.action.delete'|trans }}</twig:Ui:MenuItem>
+            {% endif %}
+        </twig:block>
+    </twig:Ui:MoreActions>
+{% endblock %}
+
+{% block content %}
+    <div class="grid grid-cols-1 gap-4" data-invoice-detail>
+        {% set flashes %}
+            {% for type, tone in {success: 'success', warning: 'warning', error: 'error'} %}
+                {% for message in app.flashes(type) %}<twig:Ui:Alert :tone="tone" :role="type == 'error' ? 'alert' : 'status'">{{ message }}</twig:Ui:Alert>{% endfor %}
+            {% endfor %}
+        {% endset %}
+        {% if flashes|trim %}<div class="grid gap-2">{{ flashes }}</div>{% endif %}
+        {% if invoice.trashed %}<twig:Ui:Alert tone="warning">{{ 'invoice.problem.trashed'|trans }}</twig:Ui:Alert>{% endif %}
+
+        {# Whom it bills and how much is due by when first, as Stripe's invoice detail and Fakturoid lead with them; the status next to the amount, as Stripe shows it. #}
+        <twig:Ui:Card data-invoice-summary>
+            <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                <div class="min-w-0">
+                    <p class="m-0 text-caption text-muted">{{ 'invoice.field.customer'|trans }}</p>
+                    <p class="m-0 mt-0.5 text-heading font-semibold text-ink [overflow-wrap:anywhere]" data-invoice-customer>{{ summary.customer }}</p>
+                    {% if summary.address %}<p class="m-0 mt-1 text-small text-muted">{{ summary.address }}</p>{% endif %}
+                    {% if summary.ids %}<p class="m-0 text-small text-muted">{{ summary.ids }}</p>{% endif %}
+                </div>
+                <div class="sm:text-right">
+                    <p class="m-0 text-caption text-muted">{{ 'invoice.total.payable'|trans }}</p>
+                    <div class="mt-0.5 flex flex-wrap items-center gap-2 sm:justify-end">
+                        <p class="num m-0 whitespace-nowrap text-title font-semibold text-ink" data-invoice-payable>{{ summary.payable }}</p>
+                        <twig:Ui:Badge :tone="status.tone" data-invoice-status>{{ status.label }}</twig:Ui:Badge>
+                    </div>
+                    <p class="m-0 mt-1 text-small text-muted">{{ 'invoice.due_on'|trans({date: summary.dueDate}) }}</p>
+                </div>
+            </div>
+        </twig:Ui:Card>
+
+        {# The dates and symbols as label and value, as the form groups them under "Dates and payment". #}
+        <twig:Ui:Card :title="'invoice.card.payment'|trans" icon="calendar" data-invoice-details>
+            <twig:Ui:DescriptionList :items="details" />
+            {% if invoice.description %}
+                <div class="mt-3 border-t border-divider pt-3" data-invoice-description>
+                    <p class="m-0 text-text">{{ 'invoice.field.description'|trans }}</p>
+                    <p class="m-0 mt-0.5 whitespace-pre-line font-medium text-ink [overflow-wrap:anywhere]">{{ invoice.description }}</p>
+                </div>
+            {% endif %}
+        </twig:Ui:Card>
+
+        <twig:Ui:Card :title="'invoice.card.lines'|trans ~ ' (' ~ lines|length ~ ')'" icon="list">
+            {# A phone stacks each line as Shopify's order detail does: the text and the total, under them quantity × price and the rate. #}
+            <ul class="m-0 grid list-none divide-y divide-divider p-0 text-small sm:hidden" data-invoice-lines-stacked>
+                {% for line in lines %}
+                    <li class="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-0.5 py-2 first:pt-0">
+                        <span class="text-ink [overflow-wrap:anywhere]">{{ line.text }}</span>
+                        <span class="num whitespace-nowrap text-right font-medium text-ink">{{ line.total }}</span>
+                        <span class="num col-span-2 text-muted">{{ line.quantity }} × {{ line.price }}{% if line.rate %} · {{ 'invoice.line.rate'|trans }} {{ line.rate }}{% endif %}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+            <div class="overflow-x-auto max-sm:hidden">
+                <table class="w-full border-collapse text-small" data-invoice-lines>
+                    <thead>
+                        <tr class="border-b border-divider text-left text-muted">
+                            <th scope="col" class="py-2 pr-3 font-medium">{{ 'invoice.line.text'|trans }}</th>
+                            <th scope="col" class="py-2 pr-3 text-right font-medium">{{ 'invoice.line.quantity'|trans }}</th>
+                            <th scope="col" class="py-2 pr-3 text-right font-medium">{{ 'invoice.line.price'|trans }}</th>
+                            <th scope="col" class="py-2 pr-3 text-right font-medium">{{ 'invoice.line.rate'|trans }}</th>
+                            <th scope="col" class="py-2 text-right font-medium">{{ 'invoice.line.total'|trans }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-divider">
+                        {% for line in lines %}
+                            <tr>
+                                <td class="py-2 pr-3 text-ink [overflow-wrap:anywhere]">{{ line.text }}</td>
+                                <td class="num whitespace-nowrap py-2 pr-3 text-right">{{ line.quantity }}</td>
+                                <td class="num whitespace-nowrap py-2 pr-3 text-right">{{ line.price }}</td>
+                                <td class="num whitespace-nowrap py-2 pr-3 text-right">{{ line.rate }}</td>
+                                <td class="num whitespace-nowrap py-2 text-right font-medium text-ink">{{ line.total }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <dl class="m-0 ml-auto mt-3 grid w-fit gap-1 text-small" data-invoice-totals>
+                {% if totals.vat %}
+                    <div class="flex justify-end gap-6"><dt class="text-muted">{{ 'invoice.total.net'|trans }}</dt><dd class="num m-0 w-32 text-right">{{ totals.net }}</dd></div>
+                    <div class="flex justify-end gap-6"><dt class="text-muted">{{ 'invoice.total.vat'|trans }}</dt><dd class="num m-0 w-32 text-right">{{ totals.vat }}</dd></div>
+                {% endif %}
+                {% if totals.rounding %}<div class="flex justify-end gap-6"><dt class="text-muted">{{ 'invoice.total.rounding'|trans }}</dt><dd class="num m-0 w-32 text-right">{{ totals.rounding }}</dd></div>{% endif %}
+                <div class="flex justify-end gap-6 text-heading font-semibold text-ink"><dt>{{ 'invoice.total.payable'|trans }}</dt><dd class="num m-0 w-32 text-right">{{ totals.payable }}</dd></div>
+            </dl>
+        </twig:Ui:Card>
+
+        {# The grid spaces the cards here; the form spaces them itself. #}
+        {% if payments %}{{ include('@Invoicing/_payments.html.twig', {spaced: false}) }}{% endif %}
+        {% if chains is not empty %}{{ include('@Invoicing/_links.html.twig', {spaced: false}) }}{% endif %}
+    </div>
+{% endblock %}

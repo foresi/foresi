@@ -384,7 +384,7 @@ final class TaskController extends AbstractController
         }
         $task = $this->detail($id);
 
-        return $this->render('work/task/labels.html.twig', [
+        return $this->render('@Work/task/labels.html.twig', [
             'task' => $task,
             'labels' => $this->queries->labels(),
             'checked' => array_map(static fn (LabelBadge $label): string => $label->id, $task->task->labels),
@@ -472,7 +472,7 @@ final class TaskController extends AbstractController
             }
         }
 
-        return $this->render('work/task/subtask_new.html.twig', [
+        return $this->render('@Work/task/subtask_new.html.twig', [
             'task' => $task,
             'values' => ['title' => $title],
             'errors' => null === $error ? [] : ['title' => $error],
@@ -580,7 +580,7 @@ final class TaskController extends AbstractController
         $time = $task->manageable ? $this->time->ofTask($row->id) : null;
         $timer = $task->manageable ? $this->time->running() : null;
 
-        return $this->render('work/task/show.html.twig', [
+        return $this->render('@Work/task/show.html.twig', [
             'read' => $read,
             'task' => $task,
             'edit' => $edit,

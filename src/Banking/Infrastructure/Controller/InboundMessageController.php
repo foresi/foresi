@@ -76,7 +76,7 @@ final class InboundMessageController extends AbstractController
 
         $body = $this->body($message);
 
-        return $this->render('banking/message.html.twig', [
+        return $this->render('@Banking/message.html.twig', [
             'message' => $message,
             'subject' => $this->addresses->masked($message->subject()),
             'from' => null === $message->fromAddress() ? null : $this->addresses->masked($message->fromAddress()),
@@ -143,7 +143,7 @@ final class InboundMessageController extends AbstractController
             return $this->toList($return);
         }
         if (!$post) {
-            return $this->render('banking/accept.html.twig', ['message' => $message, 'subject' => $this->addresses->masked($message->subject()), 'return' => $return, 'cancel' => $this->listUrl($return)]);
+            return $this->render('@Banking/accept.html.twig', ['message' => $message, 'subject' => $this->addresses->masked($message->subject()), 'return' => $return, 'cancel' => $this->listUrl($return)]);
         }
 
         try {
@@ -179,7 +179,7 @@ final class InboundMessageController extends AbstractController
             return $this->toList($return);
         }
         if (!$post) {
-            return $this->render('banking/dismiss.html.twig', [
+            return $this->render('@Banking/dismiss.html.twig', [
                 'message' => $message,
                 'subject' => $this->addresses->masked($message->subject()),
                 'reason' => $this->text->reason($message->status(), $message->failure(), $this->stuck($message)),

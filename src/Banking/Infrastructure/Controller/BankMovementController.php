@@ -124,7 +124,7 @@ final class BankMovementController extends AbstractController
         $accountColumn = \count($page->accounts) > \count($page->firms);
         $messages = MovementFilter::MESSAGES === $tab;
 
-        return $this->render('banking/movements.html.twig', [
+        return $this->render('@Banking/movements.html.twig', [
             'page' => $page,
             'tab' => $tab,
             'text' => $text,
@@ -216,7 +216,7 @@ final class BankMovementController extends AbstractController
         }
         $numbers = array_values($this->payments->invoiceNumbersOf($paymentId));
         if (!$post) {
-            return $this->render('banking/unpair.html.twig', [
+            return $this->render('@Banking/unpair.html.twig', [
                 'movement' => $movement,
                 'amount' => $this->text->amount($movement->amount()),
                 'numbers' => $numbers,
@@ -409,7 +409,7 @@ final class BankMovementController extends AbstractController
         }
         $line = fn (PairingChoice $choice): array => $this->choiceLine($choice, $values, $errors, $movement);
 
-        return $this->render('banking/pair.html.twig', [
+        return $this->render('@Banking/pair.html.twig', [
             'movement' => $movement,
             'amount' => $this->text->amount($total),
             'amountMinor' => $total->minor(),

@@ -6,6 +6,7 @@
 @import "tailwindcss";
 
 @source "../../templates";
+/* src/ holds the module templates, in src/<Module>/templates. */
 @source "../../src";
 
 @font-face {

@@ -16,6 +16,12 @@ const current = { sheet: null, dialog: null };
 // The controller stepping back out of its own history entry, which no other one answers.
 let popper = null;
 
+// A layer still held by a host that left the page (its close event never reached it) is free.
+const release = (layer) => {
+    if (current[layer] !== null && !current[layer].element.isConnected) {
+        current[layer] = null;
+    }
+};
 const visible = (element) => (typeof element.checkVisibility === 'function' ? element.checkVisibility() : element.getClientRects().length > 0);
 const isType = (response, type) => (response.headers.get('Content-Type') || '').includes(type);
 
@@ -112,6 +118,7 @@ export default class extends Controller {
     }
 
     async load(url, opener) {
+        release(this.layerValue);
         if (current[this.layerValue] !== null || this.blocked() || this.loading) {
             return;
         }
@@ -127,7 +134,13 @@ export default class extends Controller {
             if (!response.ok || !isType(response, 'text/html')) {
                 throw new Error(`The dialog answered ${response.status}.`);
             }
-            this.fill(await response.text());
+            const html = await response.text();
+            if (!this.element.isConnected) {
+                // Turbo rendered another page while the answer was on its way (the reload after
+                // a dialog closed, say): this host is gone, the one on the new page opens next.
+                return;
+            }
+            this.fill(html);
             this.url = url;
         } catch {
             // The page itself still works.
@@ -236,7 +249,9 @@ export default class extends Controller {
     }
 
     open(opener = document.activeElement) {
-        if ((current[this.layerValue] !== null && current[this.layerValue] !== this) || this.blocked()) {
+        // A host taken out of the page never holds the layer: showModal() would throw, and the
+        // layer would stay taken, so that no dialog or sheet opens again until a full reload.
+        if (!this.element.isConnected || (current[this.layerValue] !== null && current[this.layerValue] !== this) || this.blocked()) {
             return false;
         }
         if (this.element.open) {

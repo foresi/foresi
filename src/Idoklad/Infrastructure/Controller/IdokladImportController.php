@@ -85,7 +85,7 @@ final class IdokladImportController extends AbstractController
             return $this->redirectToRoute('app_idoklad', ['id' => $firms[0]->id()]);
         }
 
-        return $this->render('idoklad/firms.html.twig', [
+        return $this->render('@Idoklad/firms.html.twig', [
             'columns' => [['key' => 'name', 'label' => $this->translator->trans('idoklad.firms.column.name')]],
             'rows' => array_map(fn (LegalEntity $firm): array => ['id' => $firm->id(), 'href' => $this->generateUrl('app_idoklad', ['id' => $firm->id()]), 'opens' => 'page', 'cells' => ['name' => $firm->name()]], $firms),
         ]);
@@ -101,7 +101,7 @@ final class IdokladImportController extends AbstractController
         $firm = $this->firm($id);
         $job = $this->jobs->latest($firm);
         if ($job instanceof IdokladJob && $job->state()->isBusy()) {
-            return $this->render('idoklad/progress.html.twig', $this->frame($firm, $job) + [
+            return $this->render('@Idoklad/progress.html.twig', $this->frame($firm, $job) + [
                 'firm' => $firm,
                 'stepper' => $this->screens->stepper($this->screens->stepOf($job)),
                 'crumbs' => $this->screens->crumbs($firm),
@@ -124,7 +124,7 @@ final class IdokladImportController extends AbstractController
     {
         $firm = $this->firm($id);
         $job = $this->jobs->latest($firm) ?? throw new NotFoundHttpException();
-        $response = $this->render('idoklad/_progress.html.twig', $this->frame($firm, $job));
+        $response = $this->render('@Idoklad/_progress.html.twig', $this->frame($firm, $job));
         $response->headers->set('Cache-Control', 'private, no-store');
 
         return $response;
@@ -188,7 +188,7 @@ final class IdokladImportController extends AbstractController
         $connection = $this->connections->for($firm);
         $job = $this->jobs->latest($firm);
 
-        return $this->render('idoklad/pull.html.twig', [
+        return $this->render('@Idoklad/pull.html.twig', [
             'firm' => $firm,
             'connection' => $connection,
             'pull' => $this->screens->pull($this->snapshot->pulls($firm), $this->now()),
@@ -305,7 +305,7 @@ final class IdokladImportController extends AbstractController
     {
         $firm = $this->firm($id);
 
-        return $this->render('idoklad/history.html.twig', [
+        return $this->render('@Idoklad/history.html.twig', [
             'firm' => $firm,
             'columns' => $this->screens->historyColumns(),
             'rows' => $this->screens->history($firm, $this->snapshot->pulls($firm), $this->runs->forFirm($firm)),
@@ -318,7 +318,7 @@ final class IdokladImportController extends AbstractController
      */
     private function connectForm(LegalEntity $firm, string $clientId, array $errors, int $status = Response::HTTP_OK): Response
     {
-        return $this->render('idoklad/connect.html.twig', [
+        return $this->render('@Idoklad/connect.html.twig', [
             'firm' => $firm,
             'connection' => $this->connections->for($firm),
             'clientId' => $clientId,
@@ -345,7 +345,7 @@ final class IdokladImportController extends AbstractController
         $job = $this->jobs->latest($firm);
         $error = fn (string $field): ?string => isset($errors[$field]) ? $this->translator->trans($errors[$field]) : null;
 
-        return $this->render('idoklad/check.html.twig', [
+        return $this->render('@Idoklad/check.html.twig', [
             'firm' => $firm,
             'run' => $check,
             'report' => $this->screens->report($check, $locale, $today),
@@ -366,7 +366,7 @@ final class IdokladImportController extends AbstractController
      */
     private function runScreen(LegalEntity $firm, IdokladImportRun $run, string $locale, array $blockers = [], int $status = Response::HTTP_OK): Response
     {
-        return $this->render('idoklad/run.html.twig', [
+        return $this->render('@Idoklad/run.html.twig', [
             'firm' => $firm,
             'run' => $run,
             'report' => $this->screens->report($run, $locale, $this->instanceClock->today()),

@@ -20,8 +20,8 @@ final readonly class IdentitySlots implements SlotProvider
     public function items(string $slot, array $context): iterable
     {
         return match ($slot) {
-            Slots::USER_MENU => [new SlotItem('identity/_user_menu.html.twig', weight: 20)],
-            Slots::USER_MENU_END => [new SlotItem('identity/_user_menu_end.html.twig')],
+            Slots::USER_MENU => [new SlotItem('@Identity/_user_menu.html.twig', weight: 20)],
+            Slots::USER_MENU_END => [new SlotItem('@Identity/_user_menu_end.html.twig')],
             default => [],
         };
     }

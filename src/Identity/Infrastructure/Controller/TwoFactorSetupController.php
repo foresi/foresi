@@ -56,7 +56,7 @@ final class TwoFactorSetupController extends AbstractController
             return $this->redirectToRoute('app_dashboard');
         }
         if (!$this->sealer->isConfigured()) {
-            return $this->render('identity/two_factor_setup.html.twig', ['unavailable' => true], new Response(status: Response::HTTP_SERVICE_UNAVAILABLE));
+            return $this->render('@Identity/two_factor_setup.html.twig', ['unavailable' => true], new Response(status: Response::HTTP_SERVICE_UNAVAILABLE));
         }
         $session = $request->getSession();
         $secret = $this->pendingSecret($session->get(self::PENDING_SECRET));
@@ -79,7 +79,7 @@ final class TwoFactorSetupController extends AbstractController
             $error = 'two_factor.setup.code_invalid';
         }
 
-        return $this->render('identity/two_factor_setup.html.twig', [
+        return $this->render('@Identity/two_factor_setup.html.twig', [
             'unavailable' => false,
             'qrCode' => $this->qrCode->svg($this->totp->getQRContent($candidate)),
             'manualKey' => implode(' ', str_split($secret, 4)),
@@ -98,7 +98,7 @@ final class TwoFactorSetupController extends AbstractController
             return $this->redirectToRoute('app_dashboard');
         }
 
-        $response = $this->render('identity/two_factor_recovery_codes.html.twig', ['codes' => array_values(array_filter($codes, \is_string(...)))]);
+        $response = $this->render('@Identity/two_factor_recovery_codes.html.twig', ['codes' => array_values(array_filter($codes, \is_string(...)))]);
         $response->headers->set('Cache-Control', 'no-store');
 
         return $response;

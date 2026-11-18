@@ -286,7 +286,7 @@ final class FirmInvoicingController extends AbstractController
     {
         $series = $this->catalog->forFirm($firm);
 
-        return $this->render('invoicing/firm/settings.html.twig', [
+        return $this->render('@Invoicing/firm/settings.html.twig', [
             'firm' => $firm,
             'values' => $values,
             'errors' => $this->messages($errors),
@@ -305,7 +305,7 @@ final class FirmInvoicingController extends AbstractController
      */
     private function seriesForm(LegalEntity $firm, ?Series $series, array $values, array $errors, string $token, int $status): Response
     {
-        return $this->render('invoicing/firm/series_form.html.twig', [
+        return $this->render('@Invoicing/firm/series_form.html.twig', [
             'firm' => $firm,
             'series' => $series,
             'seriesName' => $series instanceof Series ? $this->seriesName($series) : '',

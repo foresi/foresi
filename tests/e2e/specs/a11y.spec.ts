@@ -207,8 +207,15 @@ test.describe('projects and tasks', () => {
   // The e2e owner has no two-factor sign-in, so the page shows the notice and the empty list.
   test('API access has no serious accessibility violations @a11y', async ({ page }) => {
     await page.goto('/settings/api');
-    await expect(page.getByRole('heading', { level: 1, name: 'Přístup k API' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'API a MCP' })).toBeVisible();
     await expect(page.locator('[data-api-token-two-factor]')).toBeVisible();
+    await expectNoSeriousViolations(page);
+  });
+
+  test('the MCP connection guide has no serious accessibility violations @a11y', async ({ page }, testInfo) => {
+    await page.goto('/settings/api/connect');
+    await expect(page.locator('[data-mcp-client="claude_code"]')).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath('connect.png'), fullPage: true });
     await expectNoSeriousViolations(page);
   });
 });
