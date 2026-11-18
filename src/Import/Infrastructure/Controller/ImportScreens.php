@@ -443,9 +443,9 @@ final readonly class ImportScreens
         $details = [
             ['label' => $this->trans('import.summary.target'), 'value' => $this->targetLabel($import->targetKey())],
             ['label' => $this->trans('import.summary.mode'), 'value' => $this->trans('import.mode.'.$import->options()->mode->value.'.label')],
-            ['label' => $this->trans('import.summary.actor'), 'value' => $this->users->findById($import->actorUserId())?->displayName() ?? '—'],
+            ['label' => $this->trans('import.summary.actor'), 'value' => $this->users->findById($import->actorUserId())?->displayName()],
             ['label' => $this->trans('import.summary.started'), 'value' => $this->dateTime($import->startedAt() ?? $import->createdAt())],
-            ['label' => $this->trans('import.summary.finished'), 'value' => $finishedAt instanceof \DateTimeImmutable ? $this->dateTime($finishedAt) : '—'],
+            ['label' => $this->trans('import.summary.finished'), 'value' => $finishedAt instanceof \DateTimeImmutable ? $this->dateTime($finishedAt) : null],
         ];
         if ($this->ran($import)) {
             $details[] = ['label' => $this->trans('import.summary.skipped'), 'value' => $this->number($import->skipped())];
@@ -485,8 +485,8 @@ final readonly class ImportScreens
         $csv = SourceFormat::Csv === $settings->format;
         $items = [['label' => $this->trans('import.file.format'), 'value' => strtoupper($settings->format->value)]];
         if ($csv) {
-            $items[] = ['label' => $this->trans('import.file.encoding'), 'value' => $settings->encoding instanceof Encoding ? $this->trans('import.encoding.'.$settings->encoding->value) : '—'];
-            $items[] = ['label' => $this->trans('import.file.delimiter'), 'value' => null === $settings->delimiter ? '—' : $this->trans('import.delimiter.'.(self::DELIMITERS[$settings->delimiter] ?? 'other'))];
+            $items[] = ['label' => $this->trans('import.file.encoding'), 'value' => $settings->encoding instanceof Encoding ? $this->trans('import.encoding.'.$settings->encoding->value) : null];
+            $items[] = ['label' => $this->trans('import.file.delimiter'), 'value' => null === $settings->delimiter ? null : $this->trans('import.delimiter.'.(self::DELIMITERS[$settings->delimiter] ?? 'other'))];
         } elseif (null !== $settings->sheet) {
             $items[] = ['label' => $this->trans('import.file.sheet'), 'value' => $settings->sheet];
         }

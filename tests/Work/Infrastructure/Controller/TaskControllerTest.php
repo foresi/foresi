@@ -127,7 +127,7 @@ final class TaskControllerTest extends WebTestCase
         $this->client->submit($crawler->filter('[data-task-property="section"]')->form(['section' => '']));
         self::assertSame(['due_on' => null, 'section_id' => null], $this->em->getConnection()->fetchAssociative('SELECT due_on, section_id FROM task WHERE id = ?', [$id]));
         $this->client->request('GET', '/tasks/'.$id);
-        self::assertSelectorTextContains('[data-task-history]', 'Due date 2026-12-24 → —');
+        self::assertSelectorTextContains('[data-task-history]', 'Due date 2026-12-24 → not set');
     }
 
     public function testTheTitleIsEditedInPlaceAndMustNotBeEmpty(): void

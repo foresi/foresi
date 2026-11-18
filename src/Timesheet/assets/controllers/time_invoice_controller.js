@@ -20,7 +20,7 @@ const STEPS = { none: 1, 15: 15, 30: 30 };
  * Whole minor units and hundredths of an hour throughout, never a float sum.
  */
 export default class extends Controller {
-    static targets = ['tick', 'grouping', 'rounding', 'hours', 'amount', 'noRate'];
+    static targets = ['tick', 'grouping', 'rounding', 'hours', 'amount', 'amountEmpty', 'noRate'];
     static values = { locale: String, hours: String };
 
     connect() {
@@ -62,9 +62,15 @@ export default class extends Controller {
         });
         const number = new Intl.NumberFormat(this.localeValue, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         this.hoursTarget.textContent = this.hoursValue.replace('{hours}', number.format(hours / 100));
-        this.amountTarget.textContent = unpriced === 0 && currencies.size === 1
+        // Without one rate and one currency there is no total: the empty badge (Ui:EmptyValue) shows instead.
+        const priced = unpriced === 0 && currencies.size === 1;
+        this.amountTarget.textContent = priced
             ? new Intl.NumberFormat(this.localeValue, { style: 'currency', currency: [...currencies][0] }).format(amount / scale)
-            : '—';
+            : '';
+        this.amountTarget.hidden = !priced;
+        if (this.hasAmountEmptyTarget) {
+            this.amountEmptyTarget.hidden = priced;
+        }
         if (this.hasNoRateTarget) {
             this.noRateTarget.hidden = unpriced === 0;
         }

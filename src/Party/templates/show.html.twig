@@ -94,7 +94,7 @@
                             {{ billing.street }}<br>{{ billing.postalCode }} {{ billing.city }}<br>{{ billing.countryCode }}
                         </address>
                     {% else %}
-                        <p class="text-muted">—</p>
+                        <p><twig:Ui:EmptyValue /></p>
                     {% endif %}
                 </twig:Ui:Card>
 

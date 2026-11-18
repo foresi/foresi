@@ -10,6 +10,8 @@
                 <dd class="m-0 shrink-0 text-right font-medium text-ink">
                     {%- if item.badge -%}
                         <twig:Ui:Badge :tone="item.badge.tone">{{ item.badge.label }}</twig:Ui:Badge>
+                    {%- elseif item.value is null -%}
+                        <twig:Ui:EmptyValue :label="item.empty" />
                     {%- else -%}
                         {{ item.value }}
                     {%- endif -%}

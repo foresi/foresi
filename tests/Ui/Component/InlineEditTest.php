@@ -71,12 +71,12 @@ final class InlineEditTest extends KernelTestCase
         self::assertStringContainsString('bg-badge-amber', (string) $trigger->filter('span')->last()->attr('class'));
     }
 
-    public function testNoValueIsADashAScreenReaderHearsAsTheEmptyLabel(): void
+    public function testNoValueIsTheEmptyBadgeWithTheEmptyLabel(): void
     {
         $trigger = $this->edit(['name' => 'priority', 'value' => '', 'options' => [['value' => 'none', 'label' => 'No priority']], 'tone' => null, 'text' => '', 'emptyLabel' => 'No priority'])->filter('#edit-t1-status-button');
 
-        self::assertSame('—', $trigger->filter('span[aria-hidden=true]')->text());
-        self::assertSame('Status: No priority', preg_replace('/\s+/', ' ', trim(implode(' ', $trigger->filter('.sr-only')->each(static fn (Crawler $span): string => trim($span->text()))))));
+        self::assertSame('No priority', $trigger->filter('[data-empty-value]')->text());
+        self::assertSame('Status: No priority', preg_replace('/\s+/', ' ', trim($trigger->text())));
     }
 
     public function testACardShowsAnIconForNoValue(): void

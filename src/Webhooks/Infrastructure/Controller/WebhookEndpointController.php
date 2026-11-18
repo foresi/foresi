@@ -148,7 +148,7 @@ final class WebhookEndpointController extends AbstractController
             'disabledReason' => $endpoint->disabledReason()?->value,
             'details' => array_filter([
                 ['label' => $this->translator->trans('webhooks.column.url'), 'value' => $endpoint->url()->value],
-                ['label' => $this->translator->trans('webhooks.column.description'), 'value' => $endpoint->description() ?? '—'],
+                ['label' => $this->translator->trans('webhooks.column.description'), 'value' => $endpoint->description()],
                 ['label' => $this->translator->trans('webhooks.column.events'), 'value' => implode(', ', $endpoint->eventTypes()->patterns())],
                 ['label' => $this->translator->trans('webhooks.field.version'), 'value' => (string) $endpoint->version()],
                 ['label' => $this->translator->trans('webhooks.column.status'), 'badge' => $this->status($endpoint)],
@@ -327,9 +327,9 @@ final class WebhookEndpointController extends AbstractController
                 'cells' => [
                     'at' => $this->dateTime($attempt->attemptedAt),
                     'trigger' => $this->translator->trans('webhooks.attempt.trigger.'.$attempt->trigger),
-                    'code' => null === $attempt->statusCode ? '—' : (string) $attempt->statusCode,
+                    'code' => null === $attempt->statusCode ? ['empty' => $this->translator->trans('webhooks.none.response')] : (string) $attempt->statusCode,
                     'duration' => $this->translator->trans('webhooks.attempt.duration', ['ms' => $attempt->durationMs]),
-                    'error' => $attempt->error ?? '—',
+                    'error' => $attempt->error ?? ['empty' => $this->translator->trans('webhooks.none.error')],
                 ],
             ], $detail->attempts),
         ]);
@@ -496,7 +496,7 @@ final class WebhookEndpointController extends AbstractController
             'secondary' => $endpoint->description(),
             'cells' => [
                 'url' => $endpoint->url()->value,
-                'description' => $endpoint->description() ?? '—',
+                'description' => $endpoint->description(),
                 'events' => ['badges' => array_map(static fn (string $pattern): array => ['label' => $pattern, 'tone' => 'gray'], $endpoint->eventTypes()->patterns())],
                 'status' => ['badges' => [$this->status($endpoint)]],
                 'created' => $this->dateTime($endpoint->createdAt()),
@@ -534,9 +534,9 @@ final class WebhookEndpointController extends AbstractController
                     },
                 ]]],
                 'attempts' => (string) $row->attempts,
-                'code' => null === $row->lastStatusCode ? '—' : (string) $row->lastStatusCode,
+                'code' => null === $row->lastStatusCode ? ['empty' => $this->translator->trans('webhooks.none.response')] : (string) $row->lastStatusCode,
                 'created' => $this->dateTime($row->createdAt),
-                'next' => $next instanceof \DateTimeImmutable ? $this->dateTime($next) : '—',
+                'next' => $next instanceof \DateTimeImmutable ? $this->dateTime($next) : ['empty' => $this->translator->trans('webhooks.none.retry')],
             ],
             'actions' => $actions,
         ];

@@ -179,7 +179,7 @@ final class TaskTrashControllerTest extends WebTestCase
         $titles = array_column($cells, 0);
         array_multisort($titles, $cells);
         self::assertSame([
-            ['Brief', '', '—', 'Example Company'],
+            ['Brief', '', 'Not set', 'Example Company'],
             ['Logo', 'Subtask of Wireframes', 'Wireframes', 'Example Company'],
         ], $cells);
         $restore = $rows->reduce(static fn (Crawler $row): bool => str_contains($row->text(), 'Brief'))->filter('[data-row-actions] form')->first();

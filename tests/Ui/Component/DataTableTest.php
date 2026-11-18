@@ -742,7 +742,7 @@ final class DataTableTest extends KernelTestCase
         self::assertSame('/tasks/t1/status', $crawler->filter('form[data-inline-edit]')->first()->attr('action'));
         // A text alone reads as text; an edit alone as no value.
         self::assertSame('Status: Open', preg_replace('/\s+/', ' ', trim($crawler->filter('#edit-t2-email-button')->text())));
-        self::assertSame('—', $crawler->filter('#edit-t1-balance-button span[aria-hidden=true]')->text());
+        self::assertSame('Nezadáno', $crawler->filter('#edit-t1-balance-button [data-empty-value]')->text());
     }
 
     public function testAnEditOfACellMustBeAnArray(): void

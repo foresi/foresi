@@ -80,7 +80,7 @@
                 <p class="m-0 text-small text-badge-red-text" hidden data-time-invoice-target="noRate">{{ 'timesheet.refused.rate_missing'|trans }}</p>
                 <dl class="m-0 flex flex-wrap gap-x-6 gap-y-1 text-body" aria-live="polite" data-time-invoice-totals>
                     <div class="flex gap-2"><dt class="text-muted">{{ 'timesheet.invoice.total_hours'|trans }}</dt><dd class="num m-0 font-semibold text-ink" data-time-invoice-target="hours" data-time-invoice-hours>{{ totals.hours }}</dd></div>
-                    <div class="flex gap-2"><dt class="text-muted">{{ 'timesheet.invoice.total_amount'|trans }}</dt><dd class="num m-0 font-semibold text-ink" data-time-invoice-target="amount" data-time-invoice-amount>{{ totals.amount ?? '—' }}</dd></div>
+                    <div class="flex gap-2"><dt class="text-muted">{{ 'timesheet.invoice.total_amount'|trans }}</dt><dd class="num m-0 font-semibold text-ink"><span data-time-invoice-target="amount" data-time-invoice-amount{% if totals.amount is null %} hidden{% endif %}>{{ totals.amount }}</span><twig:Ui:EmptyValue data-time-invoice-target="amountEmpty" :hidden="totals.amount is not null" /></dd></div>
                 </dl>
             {% endif %}
         </form>

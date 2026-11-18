@@ -474,16 +474,15 @@ final class PartyController extends AbstractController
     }
 
     /**
-     * @return list<array{label: string, value: string}>
+     * @return list<array{label: string, value: ?string}>
      */
     private function facts(Party $party): array
     {
-        $dash = '—';
         $facts = [
-            ['label' => $this->translator->trans('party.field.registrationNumber'), 'value' => $party->registrationNumber()->value ?? $dash],
-            ['label' => $this->translator->trans('party.field.vatId'), 'value' => $party->vatId()?->toString() ?? $dash],
-            ['label' => $this->translator->trans('party.field.email'), 'value' => $this->details->generalEmail($party)?->address() ?? $dash],
-            ['label' => $this->translator->trans('party.field.phone'), 'value' => '' === $party->phone() ? $dash : $party->phone()],
+            ['label' => $this->translator->trans('party.field.registrationNumber'), 'value' => $party->registrationNumber()?->value],
+            ['label' => $this->translator->trans('party.field.vatId'), 'value' => $party->vatId()?->toString()],
+            ['label' => $this->translator->trans('party.field.email'), 'value' => $this->details->generalEmail($party)?->address()],
+            ['label' => $this->translator->trans('party.field.phone'), 'value' => $party->phone()],
         ];
         // Shown only when known, so a contact without them keeps the four facts every contact has.
         if ('' !== $party->mobile()) {
