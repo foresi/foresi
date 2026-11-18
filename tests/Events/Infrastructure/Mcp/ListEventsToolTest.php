@@ -53,10 +53,10 @@ final class ListEventsToolTest extends ReadToolTestCase
 
     public function testItAnswersAsTheRestApiDoes(): void
     {
-        $invoice = Id::generate();
-        $this->events->record(RecordedEvents::issued($invoice));
-        $this->events->record(RecordedEvents::payment(Id::generate(), $invoice));
-        $this->events->record(RecordedEvents::paid($invoice));
+        $contact = Id::generate();
+        $this->events->record(RecordedEvents::created($contact));
+        $this->events->record(RecordedEvents::updated($contact));
+        $this->events->record(RecordedEvents::archived($contact));
         $this->events->number();
 
         $all = $this->call(ListEventsTool::class);
@@ -65,16 +65,16 @@ final class ListEventsToolTest extends ReadToolTestCase
         self::assertSame($this->json()['next_cursor'], $all->data['next_cursor']);
         self::assertSame('3 events, oldest first; call again with the same arguments and next_cursor as cursor to read on.', $all->summary);
 
-        $narrow = $this->call(ListEventsTool::class, ['types' => ['invoicing.payment.recorded', 'invoicing.invoice.paid'], 'limit' => 5]);
-        $this->get('/api/v1/events', ['types' => 'invoicing.payment.recorded,invoicing.invoice.paid', 'limit' => '5']);
+        $narrow = $this->call(ListEventsTool::class, ['types' => ['party.contact.updated', 'party.contact.archived'], 'limit' => 5]);
+        $this->get('/api/v1/events', ['types' => 'party.contact.updated,party.contact.archived', 'limit' => '5']);
         self::assertSame($this->json()['data'], $narrow->data['items']);
-        self::assertSame(['invoicing.payment.recorded', 'invoicing.invoice.paid'], $this->column($narrow, 'type'));
+        self::assertSame(['party.contact.updated', 'party.contact.archived'], $this->column($narrow, 'type'));
     }
 
     public function testTheCursorContinuesAndStaysWhenNothingIsNew(): void
     {
         foreach (range(1, 3) as $ignored) {
-            $this->events->record(RecordedEvents::issued(Id::generate()));
+            $this->events->record(RecordedEvents::created(Id::generate()));
         }
         $this->events->number();
 
@@ -93,21 +93,21 @@ final class ListEventsToolTest extends ReadToolTestCase
 
     public function testBadArgumentsAreRefused(): void
     {
-        $this->assertRefused('invalid_argument', 'The argument "types" must be a list of strings.', ListEventsTool::class, ['types' => 'invoicing.*']);
+        $this->assertRefused('invalid_argument', 'The argument "types" must be a list of strings.', ListEventsTool::class, ['types' => 'party.*']);
         $this->assertRefused('invalid_argument', 'The argument "types" must be a list of strings.', ListEventsTool::class, ['types' => [1]]);
-        $this->assertRefused('invalid_argument', 'The argument "types" cannot be used: The event type "invoicing.invoice.nothing" does not exist. Use an event name or "module.*".', ListEventsTool::class, ['types' => ['invoicing.invoice.nothing']]);
+        $this->assertRefused('invalid_argument', 'The argument "types" cannot be used: The event type "party.contact.nothing" does not exist. Use an event name or "module.*".', ListEventsTool::class, ['types' => ['party.contact.nothing']]);
         $this->assertRefused('invalid_argument', 'The argument "cursor" is not one this tool gave. Pass next_cursor of the previous answer unchanged, or leave cursor out for the first page.', ListEventsTool::class, ['cursor' => Id::generate()]);
         $this->assertRefused('invalid_argument', 'The argument "limit" cannot be used: This value should be between 1 and 100.', ListEventsTool::class, ['limit' => 101]);
         $this->assertRefused('invalid_argument', 'The argument "limit" must be an integer.', ListEventsTool::class, ['limit' => 'ten']);
     }
 
-    public function testNonStaffSees403ForInvoicingTypesAndAnEmptyListWithoutTypes(): void
+    public function testNonStaffSees403ForPartyTypesAndAnEmptyListWithoutTypes(): void
     {
-        $this->events->record(RecordedEvents::issued(Id::generate()));
+        $this->events->record(RecordedEvents::created(Id::generate()));
         $this->events->number();
         $guest = $this->guest();
 
-        $this->assertRefused('forbidden', 'The events of "invoicing" are not yours to read.', ListEventsTool::class, ['types' => ['invoicing.*']], $guest);
+        $this->assertRefused('forbidden', 'The events of "party" are not yours to read.', ListEventsTool::class, ['types' => ['party.*']], $guest);
         $none = $this->call(ListEventsTool::class, [], $guest);
         self::assertSame(['items' => [], 'next_cursor' => null], $none->data);
     }

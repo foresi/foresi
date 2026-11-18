@@ -131,6 +131,7 @@ Planned as 0.5.0: the first release with invoices.
 
 ### Changed
 
+- A firm can no longer be archived: the instance has one firm and the last active firm was never archivable, so the Archive action on the firm page, the Active and Archived views of the firm list and the "An archived firm cannot be restored" confirmation are gone ([ADR 0039](docs/adr/0039-one-firm-per-instance.md)). `POST /settings/firms/{id}/archive` now answers 404.
 - For modules: an integration, `Integration/<Other>/`, may hold `templates/`, `translations/` and `assets/controllers/`. The module's bundle registers them only when `<Other>` is installed, the templates under the module's own Twig namespace ([ADR 0038](docs/adr/0038-core-screens-in-integrations.md)). This is the first step of moving the screens of Identity, Party and Webhooks into `Integration/Ui/`, so the core installs without `foresi/ui`.
 - A dialog asked for while the page under it was loading again (right after the window of a new API token closed, say) no longer locks the dialogs and sheets until a full reload.
 - Every page title runs from the specific to the general: the page, the section of the navigation it belongs to, and the product, as "Fix the login · Projects · Foresi". A list page names its section once, the login page has no section, and the public document pages keep the issuer instead of the product.
@@ -154,6 +155,10 @@ Planned as 0.5.0: the first release with invoices.
 - An invoice with a payment cannot go to the trash; remove the payments first.
 - The public link page of a paid invoice says Paid and shows no way to pay it again. After a part payment it shows what is left to pay, without the QR code.
 - A plain overpayment is now to refund: the refund in the payment panel and in the bank's pair dialog accepts it, and the invoice list has a **To refund** tab of invoices paid above what is due. A paid advance no final invoice deducts is now offered as a refund in the pair dialog too. Unpairing a refund leaves its movement unmatched, never paired by itself again, instead of recorded.
+
+### Fixed
+
+- The MCP server answers without the Banking module. The PSR-7 library it needs came only through Banking's e-mail parser, so an installation without Banking answered every MCP request with an error; the application now requires `guzzlehttp/psr7` itself.
 
 ## [0.4.0] - 2026-11-01
 

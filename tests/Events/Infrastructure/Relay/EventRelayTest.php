@@ -29,7 +29,6 @@ use Foresi\Tests\Events\Fixtures\Listeners\RecordingListener;
 use Foresi\Tests\Events\Fixtures\Valid\Contract\Event\InvoiceIssued;
 use Foresi\Tests\Events\Fixtures\Valid\Contract\Kind;
 use Foresi\Tests\Events\Support\EventRows;
-use Foresi\Work\Infrastructure\Doctrine\DoctrineProjects;
 use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
@@ -195,7 +194,7 @@ final class EventRelayTest extends KernelTestCase
             new NullLogger(),
         );
         // A transaction of its own, which tells no outbox that it committed.
-        new DoctrineProjects($em)->transactional(static fn () => $recorder->record(new InvoiceIssued('a', 1, false, null, Kind::Invoice, [])));
+        $em->wrapInTransaction(static fn () => $recorder->record(new InvoiceIssued('a', 1, false, null, Kind::Invoice, [])));
         foreach ($this->events->getSent() as $envelope) {
             self::assertNotInstanceOf(RelayEvents::class, $envelope->getMessage());
         }

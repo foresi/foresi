@@ -10,19 +10,6 @@
 
 {% block title %}{{ editing ? 'firm.edit'|trans : 'firm.new'|trans }}{% endblock %}
 
-{% block actions %}
-    {% if editing and not firm.archived %}
-        <twig:Ui:MoreActions menuId="firm-actions">
-            <twig:block name="last">
-                <form method="post" action="{{ path('app_firm_archive', {id: firm.id}) }}" role="none" data-turbo-confirm="{{ 'firm.confirm.archive'|trans({name: firm.name}) }}" data-confirm-text="{{ 'firm.confirm.archive_text'|trans }}" data-confirm-accept="{{ 'firm.confirm.archive_accept'|trans }}" data-confirm-cancel="{{ 'firm.confirm.archive_cancel'|trans }}" data-confirm-tone="danger">
-                    <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Party\\Infrastructure\\Controller\\LegalEntityController::ACTION_TOKEN')) }}">
-                    <twig:Ui:MenuItem type="submit" icon="archive">{{ 'party.archive'|trans }}</twig:Ui:MenuItem>
-                </form>
-            </twig:block>
-        </twig:Ui:MoreActions>
-    {% endif %}
-{% endblock %}
-
 {% block content %}
     {% if editing %}<div class="mb-4">{% include '@Party/legal_entity/_tabs.html.twig' with {firm: firm, active: 'details'} only %}</div>{% endif %}
     <form method="post" action="{{ action }}" enctype="multipart/form-data" class="grid max-w-4xl gap-4" novalidate data-controller="party-lookup" data-party-lookup-url-value="{{ path('app_contact_lookup') }}" data-party-lookup-existing-value="{{ 'party.lookup.existing'|trans }}" data-party-lookup-empty-value="{{ 'party.lookup.empty'|trans }}" data-party-lookup-limited-value="{{ 'party.lookup.limited'|trans }}">
