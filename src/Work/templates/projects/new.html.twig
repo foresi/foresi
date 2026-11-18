@@ -3,7 +3,7 @@
     A new project: its name, the client it is for and what it is about. It starts with the simple
     workflow, changed later in its settings. A dialog over the projects; the same URL is a page of its own.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: 'work.projects.new'|trans}] %}
 {% set form_invalid = errors is not empty %}

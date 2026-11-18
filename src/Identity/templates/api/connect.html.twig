@@ -15,7 +15,7 @@
     shows the Claude Code command with the real one. docs/mcp.md says the same at length.
     Variables: canIssue, server, setup (the setup file for an agent), scopes (scope => label).
 #}
-{% extends 'layout/app.html.twig' %}
+{% extends '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'api_tokens.title'|trans, href: path('app_api_tokens')}, {label: 'api_tokens.tab.connect'|trans}] %}
 

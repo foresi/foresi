@@ -4,7 +4,7 @@
     as a page of its own. The IBAN is the account, so it is shown, not edited, once stored; the
     currency is fixed once the account has bank movements.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set editing = account is not null %}
 {% set crumbs = [{label: 'firm.title'|trans, href: path('app_firm_index')}, {label: firm.name, href: path('app_firm_edit', {id: firm.id})}, {label: 'bank.account.title'|trans, href: cancel}, {label: editing ? 'bank.account.edit'|trans : 'bank.account.new'|trans}] %}

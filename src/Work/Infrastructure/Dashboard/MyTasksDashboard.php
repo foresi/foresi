@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Infrastructure\Dashboard;
 
-use Foresi\Ui\Dashboard\DashboardSection;
-use Foresi\Ui\Dashboard\DashboardSectionProvider;
+use Foresi\Ui\Contract\Dashboard\DashboardSection;
+use Foresi\Ui\Contract\Dashboard\DashboardSectionProvider;
 use Foresi\Work\Application\TaskGroup;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Infrastructure\Controller\MyTasksController;

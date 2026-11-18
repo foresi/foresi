@@ -11,11 +11,11 @@ namespace Foresi\Tests\Ui\Column;
 use Foresi\Shared\Domain\View\AttributeType;
 use Foresi\Tests\Ui\Support\TestColumns;
 use Foresi\Ui\Column\ListColumnRegistry;
-use Foresi\Ui\Column\ListDisplay;
-use Foresi\Ui\Column\ResolvedColumn;
 use Foresi\Ui\Contract\Attribute;
 use Foresi\Ui\Contract\Column;
 use Foresi\Ui\Contract\DataSource;
+use Foresi\Ui\Contract\ListDisplay;
+use Foresi\Ui\Contract\ResolvedColumn;
 use PHPUnit\Framework\TestCase;
 
 final class ListColumnRegistryTest extends TestCase

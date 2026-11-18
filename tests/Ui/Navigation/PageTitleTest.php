@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Ui\Navigation;
 
-use Foresi\Ui\Navigation\NavigationItem;
-use Foresi\Ui\Navigation\NavigationItemProvider;
+use Foresi\Ui\Contract\Navigation\NavigationItem;
+use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
 use Foresi\Ui\Navigation\NavigationRegistry;
 use Foresi\Ui\Navigation\PageTitle;
 use PHPUnit\Framework\Attributes\DataProvider;

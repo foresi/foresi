@@ -58,7 +58,7 @@ final class CatalogueController extends AbstractController
             $sections = [$section];
         }
 
-        return $this->render('catalogue/index.html.twig', [
+        return $this->render('@Ui/catalogue/index.html.twig', [
             'sections' => $sections,
             'frame' => $frame,
             'locale' => $locale,
@@ -76,6 +76,6 @@ final class CatalogueController extends AbstractController
         $this->locales->setLocale('cs');
         $size = 'sm' === $request->query->getString('size') ? 'sm' : 'md';
 
-        return $this->render('catalogue/sheet.html.twig', ['sheet_size' => $size]);
+        return $this->render('@Ui/catalogue/sheet.html.twig', ['sheet_size' => $size]);
     }
 }

@@ -8,11 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Ui\Support;
 
-use Foresi\Ui\Navigation\NavigationArea;
-use Foresi\Ui\Navigation\NavigationAreaProvider;
-use Foresi\Ui\Navigation\NavigationCountProvider;
-use Foresi\Ui\Navigation\NavigationItem;
-use Foresi\Ui\Navigation\NavigationItemProvider;
+use Foresi\Ui\Contract\Navigation\NavigationArea;
+use Foresi\Ui\Contract\Navigation\NavigationAreaProvider;
+use Foresi\Ui\Contract\Navigation\NavigationCountProvider;
+use Foresi\Ui\Contract\Navigation\NavigationItem;
+use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
 
 /**
  * Stands in for a plugin: registers an area of its own and an item in it, in
