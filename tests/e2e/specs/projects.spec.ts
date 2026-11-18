@@ -2,6 +2,7 @@
 
 import { expect, test, type Page } from '@playwright/test';
 import { PROJECTS_OWNER_STATE } from '../support/session';
+import { openMoreActions } from '../support/header';
 
 // The signed-in owner of "Example Projects" in tests/e2e/seed.php: the project "Website" of
 // "Example Client s.r.o." with the Development workflow, two sections and six tasks.
@@ -183,7 +184,7 @@ test.describe('projects', () => {
 
   test('the settings add a section and a status', async ({ page }) => {
     await openWebsite(page);
-    await page.locator('[data-project-settings]').click();
+    await (await openMoreActions(page)).locator('[data-project-settings]').click();
     await page.locator('[data-settings-section-add]').click();
     const section = page.getByRole('dialog', { name: 'Přidat sekci' });
     // An empty name is told in the dialog, which stays open.

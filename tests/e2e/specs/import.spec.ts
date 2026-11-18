@@ -5,6 +5,7 @@ import { expect, test, type Page } from '@playwright/test';
 import path from 'node:path';
 import { expectFocusedClearOfActionBar } from '../support/layout';
 import { EMPTY_OWNER_STATE, OWNER_STATE } from '../support/session';
+import { openMoreActions } from '../support/header';
 
 // This spec changes data. It runs in the "lifecycle" project, after the read-only specs.
 test.use({ storageState: OWNER_STATE });
@@ -29,7 +30,7 @@ async function expectNoSeriousViolations(page: Page): Promise<void> {
 
 async function uploadFixture(page: Page): Promise<void> {
   await page.goto('/contacts');
-  await page.getByRole('link', { name: 'Importovat' }).click();
+  await (await openMoreActions(page)).getByRole('menuitem', { name: 'Importovat' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Nový import' })).toBeVisible();
   await page.locator('#file').setInputFiles(FIXTURE);
   await page.getByRole('button', { name: 'Nahrát soubor' }).click();
@@ -134,7 +135,7 @@ test.describe('import of contacts', () => {
 
   test('a guess by a similar name is marked in text and described to its select @a11y', async ({ page }) => {
     await page.goto('/contacts');
-    await page.getByRole('link', { name: 'Importovat' }).click();
+    await (await openMoreActions(page)).getByRole('menuitem', { name: 'Importovat' }).click();
     await page.locator('#file').setInputFiles({ name: 'guess.csv', mimeType: 'text/csv', buffer: Buffer.from('Název,Emial\nExample Company,testing@example.com\n') });
     await page.getByRole('button', { name: 'Nahrát soubor' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'guess.csv' })).toBeVisible();

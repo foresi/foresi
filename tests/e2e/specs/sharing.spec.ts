@@ -2,6 +2,7 @@
 
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { PASSWORD, PROJECTS_GUEST_STATE, PROJECTS_MEMBER, PROJECTS_OWNER_STATE, worldState } from '../support/session';
+import { openMoreActions } from '../support/header';
 
 // The guest of the client in "Example Projects" of tests/e2e/seed.php: the section "Shared with
 // client" of "Website" is shared with them, and so is, on its own, "Sign the lease" of "Office
@@ -67,7 +68,7 @@ test.describe('the guest', () => {
     await expect(crumbs).toContainText('Office move');
     await expect(crumbs.getByRole('link', { name: 'Office move' })).toHaveCount(0);
     await expect(page.locator('main')).not.toContainText('Order the moving boxes');
-    await expect(page.locator('[data-task-share], [data-task-menu]')).toHaveCount(0);
+    await expect(page.locator('[data-task-share], [data-task-delete]')).toHaveCount(0);
   });
 
   test('does not find a task of another section or a project not shared with them', async ({ page, browser }) => {
@@ -114,7 +115,7 @@ test.describe('the owner', () => {
     await page.getByRole('link', { name: 'Website', exact: true }).click();
     await page.getByRole('link', { name: 'Fix the contact form', exact: true }).click();
     await expect(page.locator('main h1')).toHaveText('Fix the contact form');
-    await page.locator('main header').getByRole('link', { name: 'Sdílet' }).click();
+    await (await openMoreActions(page)).getByRole('menuitem', { name: 'Sdílet' }).click();
     const dialog = page.getByRole('dialog', { name: /Sdílet úkol/ });
     await expect(dialog).toBeVisible();
     await dialog.getByLabel('Přidat osobu').selectOption({ label: 'Guest Example' });
@@ -137,7 +138,7 @@ test.describe('the owner', () => {
     await page.getByRole('link', { name: 'Review the cookie banner', exact: true }).click();
     await expect(page.locator('main h1')).toHaveText('Review the cookie banner');
     const address = page.url();
-    await page.locator('main header').getByRole('link', { name: 'Sdílet' }).click();
+    await (await openMoreActions(page)).getByRole('menuitem', { name: 'Sdílet' }).click();
     const dialog = page.getByRole('dialog', { name: /Sdílet úkol/ });
     await dialog.getByLabel('Soukromý úkol').check();
     await expect(dialog.locator('[data-sharing-messages]')).toBeVisible();

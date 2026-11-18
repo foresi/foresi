@@ -4,6 +4,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
 import { PROJECTS_GUEST_STATE, PROJECTS_OWNER_STATE } from '../support/session';
+import { openMoreActions } from '../support/header';
 
 // The time of "Example Projects" in tests/e2e/seed.php, Monday to Sunday. The week before this one:
 // the owner's 2 h on "Design the homepage" on Monday, 45 min on "Fix the contact form" on
@@ -206,7 +207,7 @@ test.describe('the report', () => {
 
     const [download] = await Promise.all([
       page.waitForEvent('download'),
-      page.locator('main header').getByRole('button', { name: 'Exportovat CSV' }).click(),
+      openMoreActions(page).then((menu) => menu.getByRole('menuitem', { name: 'Exportovat CSV' }).click()),
     ]);
     expect(download.suggestedFilename()).toBe(`vykaz-casu_${lastMonday}_${sunday}.csv`);
     const csv = (await readFile((await download.path()) ?? '', 'utf8')).replace(/^﻿/, '').trim().split(/\r?\n/);

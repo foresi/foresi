@@ -14,32 +14,46 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block actions %}
+    <twig:Ui:MoreActions menuId="webhook-actions">
+        <twig:block name="buttons">
+            {% if endpoint.active %}
+                <form method="post" action="{{ path('app_webhook_ping', {id: endpoint.id}) }}">
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:Button type="submit" icon="send">{{ 'webhooks.action.ping'|trans }}</twig:Ui:Button>
+                </form>
+            {% endif %}
+        </twig:block>
+        <twig:block name="phone">
+            {% if endpoint.active %}
+                <form method="post" action="{{ path('app_webhook_ping', {id: endpoint.id}) }}" role="none">
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:MenuItem type="submit" icon="send">{{ 'webhooks.action.ping'|trans }}</twig:Ui:MenuItem>
+                </form>
+            {% endif %}
+        </twig:block>
+        {% if endpoint.active %}
+            <form method="post" action="{{ path('app_webhook_disable', {id: endpoint.id}) }}" role="none">
+                <input type="hidden" name="_token" value="{{ token }}">
+                <twig:Ui:MenuItem type="submit" icon="square">{{ 'webhooks.action.disable'|trans }}</twig:Ui:MenuItem>
+            </form>
+        {% else %}
+            <form method="post" action="{{ path('app_webhook_enable', {id: endpoint.id}) }}" role="none">
+                <input type="hidden" name="_token" value="{{ token }}">
+                <twig:Ui:MenuItem type="submit" icon="play">{{ 'webhooks.action.enable'|trans }}</twig:Ui:MenuItem>
+            </form>
+        {% endif %}
+        <twig:Ui:MenuItem icon="key-round" :href="path('app_webhook_secret', {id: endpoint.id})" data-dialog aria-haspopup="dialog">{{ 'webhooks.action.reveal'|trans }}</twig:Ui:MenuItem>
+        <twig:Ui:MenuItem icon="refresh-cw" :href="path('app_webhook_rotate', {id: endpoint.id})" data-dialog aria-haspopup="dialog">{{ 'webhooks.action.rotate'|trans }}</twig:Ui:MenuItem>
+        <twig:block name="last">
+            <form method="post" action="{{ path('app_webhook_delete', {id: endpoint.id}) }}" role="none" data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
+                data-confirm-title="{{ 'webhooks.confirm.delete.title'|trans({host: endpoint.url.host}) }}" data-confirm-text="{{ 'webhooks.confirm.delete.text'|trans }}"
+                data-confirm-accept="{{ 'webhooks.action.delete'|trans }}" data-confirm-cancel="{{ 'webhooks.cancel'|trans }}" data-confirm-tone="danger">
+                <input type="hidden" name="_token" value="{{ token }}">
+                <twig:Ui:MenuItem type="submit" tone="danger" icon="trash-2">{{ 'webhooks.action.delete'|trans }}</twig:Ui:MenuItem>
+            </form>
+        </twig:block>
+    </twig:Ui:MoreActions>
     <twig:Ui:Button variant="primary" icon="pencil" :href="path('app_webhook_edit', {id: endpoint.id})" data-dialog aria-haspopup="dialog">{{ 'webhooks.action.edit'|trans }}</twig:Ui:Button>
-    {% if endpoint.active %}
-        <form method="post" action="{{ path('app_webhook_ping', {id: endpoint.id}) }}">
-            <input type="hidden" name="_token" value="{{ token }}">
-            <twig:Ui:Button type="submit" icon="send">{{ 'webhooks.action.ping'|trans }}</twig:Ui:Button>
-        </form>
-    {% endif %}
-    <twig:Ui:Button icon="refresh-cw" :href="path('app_webhook_rotate', {id: endpoint.id})" data-dialog aria-haspopup="dialog">{{ 'webhooks.action.rotate'|trans }}</twig:Ui:Button>
-    <twig:Ui:Button icon="key-round" :href="path('app_webhook_secret', {id: endpoint.id})" data-dialog aria-haspopup="dialog">{{ 'webhooks.action.reveal'|trans }}</twig:Ui:Button>
-    {% if endpoint.active %}
-        <form method="post" action="{{ path('app_webhook_disable', {id: endpoint.id}) }}">
-            <input type="hidden" name="_token" value="{{ token }}">
-            <twig:Ui:Button type="submit">{{ 'webhooks.action.disable'|trans }}</twig:Ui:Button>
-        </form>
-    {% else %}
-        <form method="post" action="{{ path('app_webhook_enable', {id: endpoint.id}) }}">
-            <input type="hidden" name="_token" value="{{ token }}">
-            <twig:Ui:Button type="submit" icon="play">{{ 'webhooks.action.enable'|trans }}</twig:Ui:Button>
-        </form>
-    {% endif %}
-    <form method="post" action="{{ path('app_webhook_delete', {id: endpoint.id}) }}" data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
-        data-confirm-title="{{ 'webhooks.confirm.delete.title'|trans({host: endpoint.url.host}) }}" data-confirm-text="{{ 'webhooks.confirm.delete.text'|trans }}"
-        data-confirm-accept="{{ 'webhooks.action.delete'|trans }}" data-confirm-cancel="{{ 'webhooks.cancel'|trans }}" data-confirm-tone="danger">
-        <input type="hidden" name="_token" value="{{ token }}">
-        <twig:Ui:Button type="submit" variant="danger" icon="trash-2">{{ 'webhooks.action.delete'|trans }}</twig:Ui:Button>
-    </form>
 {% endblock %}
 
 {% block content %}

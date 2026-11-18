@@ -168,6 +168,8 @@ ui:
     page: 'Stránka {page}'
   stepper:
     done: hotovo
+  page_header:
+    more_actions: Další akce
   breadcrumb:
     label: Drobečková navigace
   palette:

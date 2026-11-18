@@ -3,6 +3,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { EMPTY_OWNER_STATE, OWNER_STATE } from '../support/session';
+import { openMoreActions } from '../support/header';
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
@@ -104,7 +105,7 @@ test.describe.serial('an owner manages firms', () => {
   test('archives a firm, which releases its number', async ({ page }) => {
     await page.goto('/settings/firms');
     await page.getByRole('link', { name: 'Example Trader Renamed' }).click();
-    await page.getByRole('button', { name: 'Archivovat' }).click();
+    await (await openMoreActions(page)).getByRole('menuitem', { name: 'Archivovat' }).click();
     await page.getByRole('alertdialog').getByRole('button', { name: 'Archivovat firmu' }).click();
 
     await expect(page.getByText('Firma je archivovaná.')).toBeVisible();
@@ -116,7 +117,7 @@ test.describe.serial('an owner manages firms', () => {
   test('keeps the last active firm', async ({ page }) => {
     await page.goto('/settings/firms');
     await page.getByRole('link', { name: 'Example Company s.r.o.' }).click();
-    await page.getByRole('button', { name: 'Archivovat' }).click();
+    await (await openMoreActions(page)).getByRole('menuitem', { name: 'Archivovat' }).click();
     await page.getByRole('alertdialog').getByRole('button', { name: 'Archivovat firmu' }).click();
 
     await expect(page.getByText('Poslední aktivní firmu nelze archivovat.')).toBeVisible();

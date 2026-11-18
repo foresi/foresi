@@ -3,6 +3,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { EMPTY_OWNER_STATE, INVOICING_OWNER_STATE, OWNER_STATE, PROJECTS_OWNER_STATE } from '../support/session';
+import { openMoreActions } from '../support/header';
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
@@ -166,7 +167,7 @@ test.describe('projects and tasks', () => {
   test('project settings have no serious accessibility violations @a11y', async ({ page }) => {
     await page.goto('/projects');
     await page.getByRole('link', { name: 'Website', exact: true }).click();
-    await page.locator('[data-project-settings]').click();
+    await (await openMoreActions(page)).locator('[data-project-settings]').click();
     await expect(page.locator('[data-settings-statuses]')).toBeVisible();
     await expectNoSeriousViolations(page);
   });

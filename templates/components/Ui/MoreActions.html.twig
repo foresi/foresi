@@ -1,0 +1,25 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set buttonsHtml %}{% block buttons %}{% endblock %}{% endset %}
+{% set phoneHtml %}{% block phone %}{% endblock %}{% endset %}
+{% set itemsHtml %}{% block content %}{% endblock %}{% endset %}
+{% set lastHtml %}{% block last %}{% endblock %}{% endset %}
+{% set hasButtons = buttonsHtml|trim is not empty %}
+{% set hasPhone = phoneHtml|trim is not empty %}
+{% set hasItems = itemsHtml|trim is not empty %}
+{% set hasLast = lastHtml|trim is not empty %}
+{# The divider above the last group shows wherever a group above it shows: always after items, only on a phone after phone rows. #}
+{% set lastDivider = hasItems ? 'mt-1 border-t border-divider pt-1' : (hasPhone ? 'max-sm:mt-1 max-sm:border-t max-sm:border-divider max-sm:pt-1' : '') %}
+{% if hasButtons or hasPhone or hasItems or hasLast %}
+<div {{ attributes.defaults({class: 'contents', 'data-more-actions': true}) }}>
+    {%- if hasButtons %}<div class="hidden sm:contents" data-more-actions-buttons>{{ buttonsHtml|raw }}</div>{% endif -%}
+    {%- if hasPhone or hasItems or hasLast -%}
+        <twig:Ui:Menu :id="menuId" :label="menuLabel ?? 'ui.page_header.more_actions'|trans" icon="ellipsis" :iconOnly="true" :float="true" :class="(hasItems or hasLast) ? '' : 'sm:hidden'" data-dropdown-below-value="true" data-more-actions-menu>
+            {%- if hasPhone or hasItems %}<div role="group" data-more-actions-items>
+                {%- if hasPhone %}<div class="contents sm:hidden" data-more-actions-phone>{{ phoneHtml|raw }}</div>{% endif -%}
+                {{- itemsHtml|raw -}}
+            </div>{% endif -%}
+            {%- if hasLast %}<div role="group" class="{{ lastDivider }}" data-more-actions-last>{{ lastHtml|raw }}</div>{% endif -%}
+        </twig:Ui:Menu>
+    {%- endif -%}
+</div>
+{% endif %}

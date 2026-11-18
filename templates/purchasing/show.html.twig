@@ -17,25 +17,30 @@
 
 {% block actions %}
     {% if editable %}
+        <twig:Ui:MoreActions menuId="document-actions">
+            <twig:block name="buttons">{% if draft %}<twig:Ui:Button type="submit" form="received-document-form" name="_action" value="save" data-purchasing-save>{{ 'purchasing.save'|trans }}</twig:Ui:Button>{% endif %}</twig:block>
+            <twig:block name="phone">{% if draft %}<twig:Ui:MenuItem type="submit" form="received-document-form" name="_action" value="save">{{ 'purchasing.save'|trans }}</twig:Ui:MenuItem>{% endif %}</twig:block>
+            <twig:block name="last">
+                <twig:Ui:MenuItem icon="trash-2" :href="path('app_purchasing_trash', {id: document.id})" data-dialog aria-haspopup="dialog" data-purchasing-trash>{{ 'purchasing.trash.open'|trans }}</twig:Ui:MenuItem>
+                {% if draft %}
+                    <form method="post" action="{{ path('app_purchasing_delete', {id: document.id}) }}" role="none" data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
+                        data-confirm-title="{{ 'purchasing.delete.confirm_title'|trans }}" data-confirm-text="{{ 'purchasing.delete.confirm_text'|trans }}"
+                        data-confirm-accept="{{ 'purchasing.delete.submit'|trans }}" data-confirm-cancel="{{ 'purchasing.cancel'|trans }}" data-confirm-tone="danger" data-purchasing-delete>
+                        <input type="hidden" name="_token" value="{{ token }}">
+                        <twig:Ui:MenuItem type="submit" tone="danger" icon="trash-2">{{ 'purchasing.delete.submit'|trans }}</twig:Ui:MenuItem>
+                    </form>
+                {% endif %}
+            </twig:block>
+        </twig:Ui:MoreActions>
         {% if draft %}
-            <twig:Ui:Button type="submit" form="received-document-form" name="_action" value="save" data-purchasing-save>{{ 'purchasing.save'|trans }}</twig:Ui:Button>
             <twig:Ui:Button type="submit" form="received-document-form" name="_action" value="record" variant="primary" icon="circle-check" data-purchasing-record>{{ 'purchasing.record'|trans }}</twig:Ui:Button>
         {% else %}
             <twig:Ui:Button type="submit" form="received-document-form" name="_action" value="save" variant="primary" data-purchasing-save>{{ 'purchasing.save'|trans }}</twig:Ui:Button>
         {% endif %}
-        <twig:Ui:Button icon="trash-2" :href="path('app_purchasing_trash', {id: document.id})" data-dialog aria-haspopup="dialog" data-purchasing-trash>{{ 'purchasing.trash.open'|trans }}</twig:Ui:Button>
     {% else %}
         <form method="post" action="{{ path('app_purchasing_restore', {id: document.id}) }}" data-purchasing-restore>
             <input type="hidden" name="_token" value="{{ token }}">
             <twig:Ui:Button type="submit" icon="archive-restore" variant="primary">{{ 'purchasing.restore'|trans }}</twig:Ui:Button>
-        </form>
-    {% endif %}
-    {% if draft %}
-        <form method="post" action="{{ path('app_purchasing_delete', {id: document.id}) }}" data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
-            data-confirm-title="{{ 'purchasing.delete.confirm_title'|trans }}" data-confirm-text="{{ 'purchasing.delete.confirm_text'|trans }}"
-            data-confirm-accept="{{ 'purchasing.delete.submit'|trans }}" data-confirm-cancel="{{ 'purchasing.cancel'|trans }}" data-confirm-tone="danger" data-purchasing-delete>
-            <input type="hidden" name="_token" value="{{ token }}">
-            <twig:Ui:Button type="submit" variant="danger" icon="trash-2">{{ 'purchasing.delete.submit'|trans }}</twig:Ui:Button>
         </form>
     {% endif %}
 {% endblock %}

@@ -2,6 +2,7 @@
 
 import { expect, test, type Page } from '@playwright/test';
 import { OWNER_STATE } from '../support/session';
+import { openMoreActions } from '../support/header';
 
 // This spec changes data. It runs last (see the "lifecycle" project), so the read-only
 // specs and the screenshots always see the freshly seeded address book.
@@ -70,10 +71,10 @@ test.describe('contact life cycle', () => {
   test('archives and restores the contact', async ({ page }) => {
     await openContact(page, COMPANY);
 
-    await page.getByRole('button', { name: 'Archivovat' }).click();
+    await (await openMoreActions(page)).getByRole('menuitem', { name: 'Archivovat' }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Kontakt je archivován.' })).toBeVisible();
     await expect(page.locator('[data-party-summary]')).toContainText('Archivováno');
-    await expect(page.getByRole('button', { name: 'Obnovit' })).toBeVisible();
+    await expect((await openMoreActions(page)).getByRole('menuitem', { name: 'Obnovit' })).toBeVisible();
 
     await page.goto('/contacts?view=archived');
     await expect(page.getByRole('link', { name: COMPANY, exact: true })).toBeVisible();
@@ -86,6 +87,6 @@ test.describe('contact life cycle', () => {
 
 async function openArchivedAndRestore(page: Page): Promise<void> {
   await page.getByRole('link', { name: COMPANY, exact: true }).click();
-  await page.getByRole('button', { name: 'Obnovit' }).click();
+  await (await openMoreActions(page)).getByRole('menuitem', { name: 'Obnovit' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Kontakt je obnoven.' })).toBeVisible();
 }

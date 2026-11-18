@@ -81,7 +81,7 @@ final class ImportControllerTest extends WebTestCase
 
         $actions = $crawler->filter('[data-page-actions]');
         self::assertSame('/imports/new?target=party', $actions->selectLink('Import')->attr('href'));
-        self::assertCount(1, $actions->filter('form[action="/contacts/export"] #export-button'));
+        self::assertCount(1, $actions->filter('#contacts-actions form[action="/contacts/export"]'));
         self::assertStringContainsString('New contact', $actions->filter('a.bg-green')->text());
     }
 
@@ -105,7 +105,7 @@ final class ImportControllerTest extends WebTestCase
         $this->party('Example Supplies a.s.', [PartyRole::Supplier]);
 
         $crawler = $this->client->request('GET', '/contacts?q=Supplies');
-        $menu = $crawler->filter('[data-page-actions] #export-menu');
+        $menu = $crawler->filter('[data-page-actions] #contacts-actions');
         self::assertSame(['csv', 'xlsx'], $menu->filter('button[name="format"]')->each(static fn (Crawler $item): string => (string) $item->attr('value')));
         $this->client->submit($menu->filter('button[value="xlsx"]')->form());
 

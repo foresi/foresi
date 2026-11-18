@@ -2,6 +2,7 @@
 
 import { expect, test, type Page } from '@playwright/test';
 import { PROJECTS_GUEST_STATE, PROJECTS_OWNER_STATE } from '../support/session';
+import { openMoreActions } from '../support/header';
 
 // The inbox of the owner of "Example Projects" in tests/e2e/seed.php: Jana Example commented on
 // "Design the homepage", mentioned the owner on "Set up the domain" and gave them "Book the launch
@@ -122,7 +123,7 @@ test.describe('the inbox', () => {
 test.describe('the settings', () => {
   test('are reached from the inbox and keep a changed choice', async ({ page }) => {
     await page.goto('/notifications');
-    await page.locator('main header').getByRole('link', { name: 'Nastavení' }).click();
+    await (await openMoreActions(page)).getByRole('menuitem', { name: 'Nastavení' }).click();
     await expect(page).toHaveURL(/\/account\/notifications$/);
     await expect(page.locator('main h1')).toHaveText('Nastavení oznámení');
     await expect(page.getByLabel('Zmínky v komentářích')).toHaveValue('immediate');
