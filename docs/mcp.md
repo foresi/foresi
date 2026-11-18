@@ -73,6 +73,16 @@ A tool acts as the person of the token. It sees what that person sees. Ask the a
 2. Make a **dedicated token** for each assistant, with a name such as `Claude Code on my laptop`, and the shortest expiry that works.
 3. Keep in mind that most clients store the token **in plain text** in their config file or in their list of servers. Anyone who can read that file can read your data as you. Do not share the file, and do not commit it. If you lose a laptop or a config file, revoke the token.
 
+## Install with a prompt
+
+Every installation serves a setup guide for AI agents at `/mcp-setup.md` (Markdown, public, with the installation's own addresses filled in) and an [llms.txt](https://llmstxt.org) at `/llms.txt` that points to it. The **MCP** tab of **Settings > API and MCP** offers a one-line prompt to paste into Claude Code or another agent that can run commands:
+
+```text
+Install the Foresi MCP server by following https://app.example.com/mcp-setup.md — run the commands yourself and ask me only for the API token.
+```
+
+The agent reads the guide, adds the server to its client, calls `whoami` and reports. It asks the person for the token, which they create first (see below). The pattern follows the setup guides of [Context7](https://context7.com/docs/installation) and [Neon](https://neon.com/docs/get-started/with-an-agent).
+
 ## Local: stdio
 
 The stdio server runs on the machine where Foresi is installed, started by the client. It needs PHP, the installation's files and access to its database and environment (`.env.local`), so use it on the server itself, or on a development machine. It signs in with the token in the environment variable `FORESI_API_TOKEN`, which the client sets. The token is never an option of the command, because options end up in the shell history and the process list.

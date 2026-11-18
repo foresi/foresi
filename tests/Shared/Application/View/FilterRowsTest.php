@@ -120,6 +120,67 @@ final class FilterRowsTest extends TestCase
         self::assertNull(WorkingFilter::decode(WorkingFilter::encode(ViewFilter::all(new Condition('due', 'before', 'tomorrow'))), $list));
     }
 
+    public function testAFormKeepsAtMostTheConditionsAViewHolds(): void
+    {
+        $rows = array_fill(0, ViewFilter::MAX_CONDITIONS + 1, ['field' => 'amount', 'op' => 'ge', 'from' => '1']);
+
+        self::assertCount(ViewFilter::MAX_CONDITIONS, FilterRows::parse($rows, $this->list())->conditions);
+    }
+
+    public function testATextAndAReferenceAreReadTrimmedAndSentBack(): void
+    {
+        $filter = FilterRows::parse([
+            ['field' => 'note', 'op' => 'contains', 'value' => 'Česko'],
+            ['field' => 'customer', 'op' => 'is', 'value' => ' c-1 '],
+            ['field' => 'state', 'op' => 'is', 'values' => ['late']],
+        ], $this->list());
+        $list = $this->list();
+
+        self::assertSame([
+            ['field' => 'note', 'op' => 'contains', 'value' => 'Česko'],
+            ['field' => 'customer', 'op' => 'is', 'value' => 'c-1'],
+            ['field' => 'state', 'op' => 'is', 'value' => 'late'],
+        ], $filter->toArray()['conditions']);
+        self::assertSame('Česko', FilterRows::row($filter->conditions[0], $list->fields['note'])['value']);
+        self::assertSame(['late'], FilterRows::row($filter->conditions[2], $list->fields['state'])['values']);
+        $next = FilterRows::row(new Condition('due', 'is', ['relative' => 'next_n_days', 'n' => 7]), $list->fields['due'])['from'];
+        self::assertIsArray($next);
+        self::assertSame('7', $next['n']);
+        self::assertTrue(FilterRows::editable($filter->conditions[1], $list->fields['customer']));
+        self::assertFalse(FilterRows::editable($filter->conditions[0], $list->fields['note']));
+        // The address keeps the text as it is written.
+        $json = base64_decode(strtr(WorkingFilter::encode($filter), '-_', '+/'), true);
+        self::assertIsString($json);
+        self::assertStringContainsString('Česko', $json);
+    }
+
+    public function testABlankRowNamesItsFieldWithNothingSet(): void
+    {
+        $blank = FilterRows::blank($this->list()->fields['due']);
+
+        self::assertSame(['field' => 'due', 'op' => '', 'values' => [], 'value' => ''], array_slice($blank, 0, 4));
+        self::assertIsArray($blank['from']);
+        self::assertSame('today', $blank['from']['rule']);
+        self::assertSame('', FilterRows::blank($this->list()->fields['amount'])['from']);
+    }
+
+    public function testARawRowNeedsAFieldAndAnOperator(): void
+    {
+        $list = $this->list();
+
+        self::assertSame([], FilterRows::parse([[FilterRows::RAW => '"text"'], [FilterRows::RAW => '{"op":"is_empty"}'], [FilterRows::RAW => '{"field":"customer"}']], $list)->conditions);
+        self::assertCount(1, FilterRows::parse([[FilterRows::RAW => '{"field":"customer","op":"is_empty"}']], $list)->conditions);
+    }
+
+    public function testAnEnumOffersTheOperatorsItsFieldAllows(): void
+    {
+        $operators = static fn (string $allowed): array => FilterRows::operators(new Field('only', FieldType::Enum, 'Only', [$allowed], ['a']));
+
+        self::assertSame(['is'], $operators('is'));
+        self::assertSame(['is_not'], $operators('is_not'));
+        self::assertSame(['is_not'], $operators('is_none_of'));
+    }
+
     private function list(): ListDefinition
     {
         return new ListDefinition('test.items', [
@@ -128,6 +189,7 @@ final class FilterRowsTest extends TestCase
             new Field('customer', FieldType::Reference, 'Customer', source: 'contact'),
             new Field('amount', FieldType::Number, 'Amount'),
             new Field('due', FieldType::Date, 'Due'),
+            new Field('note', FieldType::Text, 'Note'),
         ], [new DefaultView('all', 'All', new ViewFilter())]);
     }
 }

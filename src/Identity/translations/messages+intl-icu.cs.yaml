@@ -214,6 +214,11 @@ api_tokens:
       token: Vytvořte token. Pro Clauda na začátek stačí jen čtení.
       client: Přidejte server do svého klienta podle návodu níže a místo <token> vložte svůj token. Okno nového tokenu ukáže příkaz pro Claude Code i s tokenem.
       check: Ověřte spojení prvním promptem.
+    install:
+      title: Instalace promptem
+      text: Vložte prompt do Claude Code nebo jiného agenta, který umí spouštět příkazy. Přečte si nastavení této instalace, přidá server a ověří spojení; od vás chce jen token.
+      prompt: "Nainstaluj MCP server Foresi podle návodu {url} — příkazy spusť sám a ode mě chtěj jen API token."
+      file: Návod pro agenty:
     clients: Návod pro klienty
     client:
       claude_code:

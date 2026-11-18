@@ -1,6 +1,6 @@
 # 34. Module packages
 
-* Status: accepted
+* Status: accepted, amended by [ADR 0038](0038-core-screens-in-integrations.md) (core screens in Ui integrations)
 * Date: 2026-11-17
 * Amends: [ADR 0029](0029-module-registry.md) (core set, namespace, autoloading), [ADR 0033](0033-module-contracts-and-integrations.md) (controllers in integrations)
 

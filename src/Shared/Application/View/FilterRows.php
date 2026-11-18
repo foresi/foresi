@@ -101,8 +101,8 @@ final readonly class FilterRows
                 $row['value'] = \is_string($value) ? $value : '';
                 break;
             case FieldType::Number:
-                $row['from'] = self::number($between ? $value['from'] : $value);
-                $row['to'] = $between ? self::number($value['to']) : '';
+                $row['from'] = self::text($between ? $value['from'] : $value);
+                $row['to'] = $between ? self::text($value['to']) : '';
                 break;
             case FieldType::Date:
                 $row['from'] = self::dateEnd($between ? $value['from'] : $value);
@@ -134,7 +134,7 @@ final readonly class FilterRows
         // A condition the builder shows as it is (FilterSheet), sent back whole.
         if (isset($row[self::RAW])) {
             try {
-                $data = json_decode(self::text($row[self::RAW]), true, 8, \JSON_THROW_ON_ERROR);
+                $data = json_decode(self::text($row[self::RAW]), true, flags: \JSON_THROW_ON_ERROR);
             } catch (\JsonException) {
                 return null;
             }
@@ -215,9 +215,9 @@ final readonly class FilterRows
         if (!is_numeric($text)) {
             return null;
         }
-        $number = (float) $text;
 
-        return floor($number) === $number && abs($number) < \PHP_INT_MAX ? (int) $number : $number;
+        // A whole number stays an integer, as the views shipped in code hold them.
+        return 1 === preg_match('/^-?\d+$/', $text) ? (int) $text : (float) $text;
     }
 
     /**
@@ -246,11 +246,6 @@ final readonly class FilterRows
         }
 
         return \in_array($rule, DateRange::PERIODS, true) ? ['relative' => $rule] : null;
-    }
-
-    private static function number(mixed $value): string
-    {
-        return \is_int($value) || \is_float($value) ? (string) $value : '';
     }
 
     /**

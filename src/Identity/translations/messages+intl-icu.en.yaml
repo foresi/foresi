@@ -214,6 +214,11 @@ api_tokens:
       token: Create a token. For Claude, reading is enough to start with.
       client: Add the server to your client as shown below and put your token in place of <token>. The new token's window shows the Claude Code command with the token in it.
       check: Check the connection with a first prompt.
+    install:
+      title: Install with a prompt
+      text: Paste the prompt into Claude Code or another agent that can run commands. It reads the setup of this installation, adds the server and checks the connection; it asks you only for the token.
+      prompt: "Install the Foresi MCP server by following {url} — run the commands yourself and ask me only for the API token."
+      file: The setup for agents:
     clients: Setup for each client
     client:
       claude_code:
