@@ -36,16 +36,16 @@ final class ManageCommentsTest extends WorkTestCase
         $this->task = $this->tasks->create($this->project()->id(), 'Write the brief');
     }
 
-    public function testANewCommentIsInternalByDefaultAndItsAuthorFollowsTheTask(): void
+    public function testANewCommentIsPublicByDefaultAndItsAuthorFollowsTheTask(): void
     {
         $this->signIn($this->member);
         $comment = $this->comments->add($this->task->id(), '  Started on it  ');
-        $public = $this->comments->add($this->task->id(), 'For the client too', false);
+        $internal = $this->comments->add($this->task->id(), 'Our margin is thin', true);
         $this->comments->add($this->task->id(), 'Once more');
 
         self::assertSame('Started on it', $comment->text());
-        self::assertTrue($comment->isInternal());
-        self::assertFalse($public->isInternal());
+        self::assertFalse($comment->isInternal());
+        self::assertTrue($internal->isInternal());
         self::assertSame(['Marek Member', 'Olga Owner'], $this->watchers());
     }
 
@@ -150,7 +150,7 @@ final class ManageCommentsTest extends WorkTestCase
         self::assertSame(['step:created', 'comment:'.$first->id(), 'step:changed', 'comment:'.$second->id()], array_map($this->describe(...), $all));
         $hello = $all[1]->comment;
         self::assertNotNull($hello);
-        self::assertSame(['Marek Member', 'MM', true, false, false, true], [$hello->authorName, $hello->authorInitials, $hello->internal, $hello->deleted, $hello->canEdit, $hello->canDelete]);
+        self::assertSame(['Marek Member', 'MM', false, false, false, true], [$hello->authorName, $hello->authorInitials, $hello->internal, $hello->deleted, $hello->canEdit, $hello->canDelete]);
         self::assertStringContainsString('<strong>team</strong>', $hello->html);
         $gone = $all[3]->comment;
         self::assertNotNull($gone);

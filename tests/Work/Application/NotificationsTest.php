@@ -119,17 +119,17 @@ final class NotificationsTest extends WorkTestCase
         $this->inbox->markAllRead();
 
         $this->signIn($this->member);
-        $this->comments->add($this->task->id(), sprintf('Internal, about %s', $this->mention($this->guest)));
+        $this->comments->add($this->task->id(), sprintf('Internal, about %s', $this->mention($this->guest)), true);
         self::assertSame(0, $this->notifications->unreadCount($this->guest));
 
-        $this->comments->add($this->task->id(), 'For the client too', false);
+        $this->comments->add($this->task->id(), 'For the client too');
         self::assertSame([['Write the brief', 'Website', 'commented', 'Marek Member', false, 1]], $this->rows($this->guest));
     }
 
     public function testAnInternalCommentStillTellsTheStaffWhoWatch(): void
     {
         $this->signIn($this->member);
-        $this->comments->add($this->task->id(), 'Internal note');
+        $this->comments->add($this->task->id(), 'Internal note', true);
 
         self::assertSame(NotificationKind::Commented, $this->only($this->owner)->kind());
     }

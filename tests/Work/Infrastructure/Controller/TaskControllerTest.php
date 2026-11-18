@@ -628,7 +628,7 @@ final class TaskControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('dialog#attachment-viewer'));
     }
 
-    public function testANewCommentIsInternalUnlessTheSwitchIsTurnedOff(): void
+    public function testANewCommentIsPublicUnlessTheInternalSwitchIsTurnedOn(): void
     {
         $this->signIn();
         $this->seed();
@@ -639,32 +639,36 @@ final class TaskControllerTest extends WebTestCase
         self::assertSame('false', $crawler->filter('form[data-comment-composer]')->attr('data-turbo'));
         $switch = $crawler->filter('#comment-internal');
         self::assertSame('switch', $switch->attr('role'));
-        self::assertNotNull($switch->attr('checked'));
-        self::assertSelectorTextContains('[data-comment-composer]', 'Guests will not see internal comments.');
-        self::assertNull($crawler->filter('[data-comment-form-target="internalLabel"]')->attr('hidden'));
-        self::assertNotNull($crawler->filter('[data-comment-form-target="publicLabel"]')->attr('hidden'));
+        self::assertNull($switch->attr('checked'));
+        self::assertSame('comment-audience', $switch->attr('aria-describedby'));
+        self::assertSame('Everyone with access to this task will see the comment.', trim($crawler->filter('[data-comment-form-target="publicLabel"]')->text()));
+        self::assertNull($crawler->filter('[data-comment-form-target="publicLabel"]')->attr('hidden'));
+        self::assertSame('Only people of your organisation will see the comment.', trim($crawler->filter('[data-comment-form-target="internalLabel"]')->text()));
+        self::assertNotNull($crawler->filter('[data-comment-form-target="internalLabel"]')->attr('hidden'));
 
-        $this->client->submit($crawler->filter('form[data-comment-composer]')->form(['body' => 'Internal one']));
-        $first = $this->fetchId('SELECT id FROM task_comment WHERE body = ?', ['Internal one']);
+        $this->client->submit($crawler->filter('form[data-comment-composer]')->form(['body' => 'Public one']));
+        $first = $this->fetchId('SELECT id FROM task_comment WHERE body = ?', ['Public one']);
         self::assertResponseRedirects('/tasks/'.$id.'#comment-'.$first);
         self::assertResponseStatusCodeSame(303);
 
         $crawler = $this->client->followRedirect();
-        $form = $crawler->filter('form[data-comment-composer]')->form(['body' => 'Public one']);
+        $form = $crawler->filter('form[data-comment-composer]')->form(['body' => 'Internal one']);
         $checkbox = $form['internal'];
         self::assertInstanceOf(\Symfony\Component\DomCrawler\Field\ChoiceFormField::class, $checkbox);
-        $checkbox->untick();
+        $checkbox->tick();
         $this->client->submit($form);
         $crawler = $this->client->followRedirect();
 
         // SQLite answers 1 and 0, PostgreSQL true and false.
         self::assertSame(
-            [['body' => 'Internal one', 'internal' => true], ['body' => 'Public one', 'internal' => false]],
+            [['body' => 'Public one', 'internal' => false], ['body' => 'Internal one', 'internal' => true]],
             array_map(static fn (array $row): array => ['body' => $row['body'], 'internal' => (bool) $row['internal']], $this->em->getConnection()->fetchAllAssociative('SELECT body, internal FROM task_comment ORDER BY created_at, id')),
         );
-        self::assertSame('Internal', trim($crawler->filter('#comment-'.$first.' [data-comment-internal]')->text()));
-        $second = $this->fetchId('SELECT id FROM task_comment WHERE body = ?', ['Public one']);
-        self::assertCount(0, $crawler->filter('#comment-'.$second.' [data-comment-internal]'));
+        self::assertCount(0, $crawler->filter('#comment-'.$first.' [data-comment-internal]'));
+        $second = $this->fetchId('SELECT id FROM task_comment WHERE body = ?', ['Internal one']);
+        self::assertSame('Internal', trim($crawler->filter('#comment-'.$second.' [data-comment-internal]')->text()));
+        // The switch starts off again for the next comment.
+        self::assertNull($crawler->filter('#comment-internal')->attr('checked'));
     }
 
     public function testACommentItCannotHaveKeepsTheTextNextToTheError(): void
@@ -677,11 +681,12 @@ final class TaskControllerTest extends WebTestCase
         $form = $crawler->filter('form[data-comment-composer]')->form(['body' => '   ']);
         $checkbox = $form['internal'];
         self::assertInstanceOf(\Symfony\Component\DomCrawler\Field\ChoiceFormField::class, $checkbox);
-        $checkbox->untick();
+        $checkbox->tick();
         $crawler = $this->client->submit($form);
         self::assertResponseStatusCodeSame(422);
         self::assertSame('Write something first.', trim($crawler->filter('#comment-body-error')->text()));
-        self::assertNull($crawler->filter('#comment-internal')->attr('checked'));
+        self::assertNotNull($crawler->filter('#comment-internal')->attr('checked'));
+        self::assertNull($crawler->filter('[data-comment-form-target="internalLabel"]')->attr('hidden'));
 
         $long = str_repeat('a', TaskComment::MAX_BODY_LENGTH + 1);
         $crawler = $this->client->submit($crawler->filter('form[data-comment-composer]')->form(['body' => $long]));

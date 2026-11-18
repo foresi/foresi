@@ -81,8 +81,12 @@ test.describe('discussion', () => {
     await expect(discussion(page).locator('[data-discussion-step]').first()).toBeVisible();
   });
 
-  test('an internal comment with Markdown is sent with Ctrl+Enter, rendered and shown', async ({ page }) => {
+  test('a comment with Markdown is public, sent with Ctrl+Enter, rendered and shown', async ({ page }) => {
     await openTask(page);
+    const internal = composer(page).getByRole('switch', { name: 'Interní' });
+    await expect(internal).not.toBeChecked();
+    await expect(composer(page).getByText('Komentář uvidí všichni, kdo mají k úkolu přístup.')).toBeVisible();
+    await expect(composer(page).getByText('Komentář uvidí jen lidé z vaší organizace.')).toBeHidden();
     await write(page, 'Checked **the grid** and\n\n- the logo\n- the footer');
     await composer(page).locator('#comment-body').press('ControlOrMeta+Enter');
     await expect(page).toHaveURL(/#comment-[0-9a-f-]+$/);
@@ -90,21 +94,23 @@ test.describe('discussion', () => {
     await expect(added).toBeVisible();
     await expect(added.locator('strong')).toHaveText('the grid');
     await expect(added.locator('li')).toHaveCount(2);
-    await expect(added.locator('[data-comment-internal]')).toHaveText('Interní');
+    await expect(added.locator('[data-comment-internal]')).toHaveCount(0);
     const id = (await added.getAttribute('data-comment')) ?? '';
     expect(page.url()).toContain('#comment-' + id);
     await expect(added).toBeInViewport();
   });
 
-  test('a public comment is added when the switch is off', async ({ page }) => {
+  test('an internal comment is added when the switch is on', async ({ page }) => {
     await openTask(page);
-    await write(page, 'Visible to guests too');
-    await composer(page).getByRole('switch', { name: 'Interní komentář' }).uncheck();
-    await expect(composer(page).getByText('Veřejný komentář – uvidí ho i hosté')).toBeVisible();
+    await write(page, 'Only for the team');
+    await composer(page).getByRole('switch', { name: 'Interní' }).check();
+    await expect(composer(page).getByText('Komentář uvidí jen lidé z vaší organizace.')).toBeVisible();
+    await expect(composer(page).getByText('Komentář uvidí všichni, kdo mají k úkolu přístup.')).toBeHidden();
     await composer(page).getByRole('button', { name: 'Přidat komentář' }).click();
-    const added = comment(page, 'Visible to guests too');
+    const added = comment(page, 'Only for the team');
     await expect(added).toBeVisible();
-    await expect(added.locator('[data-comment-internal]')).toHaveCount(0);
+    await expect(added.locator('[data-comment-internal]')).toHaveText('Interní');
+    await expect(composer(page).getByRole('switch', { name: 'Interní' })).not.toBeChecked();
   });
 
   test('editing one\'s own comment marks it as edited', async ({ page }) => {

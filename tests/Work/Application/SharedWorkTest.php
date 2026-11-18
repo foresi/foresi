@@ -151,8 +151,8 @@ final class SharedWorkTest extends WorkTestCase
 
     public function testAGuestWithASharedProjectSeesItsOpenWorkAndNoInternalComment(): void
     {
-        $internal = $this->comments->add($this->brief->id(), 'Our margin is thin');
-        $public = $this->comments->add($this->brief->id(), 'Hello', false);
+        $internal = $this->comments->add($this->brief->id(), 'Our margin is thin', true);
+        $public = $this->comments->add($this->brief->id(), 'Hello');
         $file = new Attachment(Id::generate(), 'task_comment', $internal->id(), 'margin.pdf', 'application/pdf', 10, str_repeat('a', 64), 'key', $this->owner->user()->id(), $this->clock->now());
         $this->em->persist($file);
         $this->em->flush();
@@ -233,7 +233,7 @@ final class SharedWorkTest extends WorkTestCase
         $this->tasks->assign($this->offer->id(), $this->guest->id());
 
         // An internal comment mentions the people of the organisation alone.
-        $comment = $this->comments->add($this->offer->id(), sprintf('@[Greta Guest](membership:%s) @[Olga Owner](membership:%s)', $this->guest->id(), $this->owner->id()));
+        $comment = $this->comments->add($this->offer->id(), sprintf('@[Greta Guest](membership:%s) @[Olga Owner](membership:%s)', $this->guest->id(), $this->owner->id()), true);
         $mentioned = array_map(static fn (CommentMention $mention): string => $mention->membership()->id(), self::getContainer()->get(Comments::class)->mentions($comment));
         self::assertSame([$this->owner->id()], $mentioned);
     }
