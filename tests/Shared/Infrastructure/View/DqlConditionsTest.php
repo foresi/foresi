@@ -85,7 +85,7 @@ final class DqlConditionsTest extends TestCase
 
     public function testConditionsJoinWithAndAndADerivedFieldIsTheModulesSql(): void
     {
-        $compiler = new DqlConditions(self::list(), self::COLUMNS, static fn (Condition $condition, string $name): array => [DqlConditions::derivedEnum($condition, ['open' => 'o'.$name, 'late' => 'l'.$name]), ['shared' => ['x', null]]]);
+        $compiler = new DqlConditions($this->list(), self::COLUMNS, static fn (Condition $condition, string $name): array => [DqlConditions::derivedEnum($condition, ['open' => 'o'.$name, 'late' => 'l'.$name]), ['shared' => ['x', null]]]);
 
         [$dql, $parameters] = $compiler->compile(ViewFilter::all(new Condition('archived', 'is', false), new Condition('stage', 'is_none_of', ['open', 'late'])), static fn (): \DateTimeImmutable => throw new \LogicException('No date asks for today.'), 'v');
 
@@ -102,14 +102,14 @@ final class DqlConditionsTest extends TestCase
      */
     private function compile(Condition $condition): array
     {
-        $compiler = new DqlConditions(self::list(), self::COLUMNS, static fn (): never => throw new \LogicException('Every field here is stored.'));
+        $compiler = new DqlConditions($this->list(), self::COLUMNS, static fn (): never => throw new \LogicException('Every field here is stored.'));
         $filter = ViewFilter::all($condition);
-        $filter->check(self::list());
+        $filter->check($this->list());
 
         return $compiler->compile($filter, static fn (): \DateTimeImmutable => new \DateTimeImmutable('2026-11-18 00:00', new \DateTimeZone('Europe/Prague')), 'v');
     }
 
-    private static function list(): ListDefinition
+    private function list(): ListDefinition
     {
         return new ListDefinition('test.items', [
             new Field('state', FieldType::Enum, 'State', options: ['open', 'late', 'done']),

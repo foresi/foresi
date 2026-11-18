@@ -39,7 +39,7 @@ final readonly class DateRange
     public static function check(mixed $value, string $path): void
     {
         if (\is_string($value)) {
-            if (null === self::day($value)) {
+            if (!self::day($value) instanceof \DateTimeImmutable) {
                 throw new InvalidFilter($path, 'A day is written YYYY-MM-DD.');
             }
 

@@ -32,7 +32,7 @@ final class SyncViewsCommandTest extends KernelTestCase
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $this->sync = new CommandTester((new Application($kernel))->find('app:views:sync'));
+        $this->sync = new CommandTester(new Application($kernel)->find('app:views:sync'));
     }
 
     public function testItStoresTheDefaultViewsOnceAndAgainChangesNothing(): void
@@ -92,7 +92,7 @@ final class SyncViewsCommandTest extends KernelTestCase
         self::assertSame(['all', 'paid', 'unpaid', 'overdue', 'trash'], array_map(static fn ($view): string => $view->key, $shown));
         self::assertSame(['Owed', false], [$shown[2]->name, $shown[2]->translated]);
         [$primary, $overflow] = ListViews::placed($shown);
-        self::assertSame(['trash'], array_map(static fn ($view): string => $view->key, $overflow));
+        self::assertSame(['trash'], array_map(static fn (\Foresi\Shared\Application\View\ListView $view): string => $view->key, $overflow));
         self::assertCount(4, $primary);
     }
 

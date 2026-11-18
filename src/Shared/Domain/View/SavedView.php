@@ -34,41 +34,12 @@ class SavedView
     #[ORM\Column(type: 'guid')]
     private string $id;
 
-    #[ORM\Column(name: 'owner_id', type: 'guid', nullable: true)]
-    private ?string $ownerId;
-
-    #[ORM\Column(name: 'system_key', type: 'string', length: 120, nullable: true)]
-    private ?string $systemKey;
-
-    #[ORM\Column(type: 'string', length: 16, enumType: Visibility::class)]
-    private Visibility $visibility;
-
-    /** @var array<string, mixed> */
-    #[ORM\Column(type: 'json', options: ['jsonb' => true])]
-    private array $filters;
-
-    /** @var list<array{field: string, dir: string}> */
-    #[ORM\Column(type: 'json', options: ['jsonb' => true])]
-    private array $sort;
-
     /** @var array<string, mixed>|null */
     #[ORM\Column(type: 'json', nullable: true, options: ['jsonb' => true])]
     private ?array $display = null;
 
-    #[ORM\Column(name: 'show_count', type: 'boolean')]
-    private bool $showCount;
-
-    #[ORM\Column(type: 'string', length: 16, enumType: Placement::class)]
-    private Placement $placement;
-
-    #[ORM\Column(type: 'integer')]
-    private int $position;
-
     #[ORM\Column(type: 'boolean')]
     private bool $hidden = false;
-
-    #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
-    private \DateTimeImmutable $createdAt;
 
     #[ORM\Column(name: 'updated_at', type: 'datetime_immutable')]
     private \DateTimeImmutable $updatedAt;
@@ -85,28 +56,28 @@ class SavedView
         private string $listKey,
         #[ORM\Column(type: 'string', length: self::NAME_MAX_LENGTH)]
         private string $name,
-        ?string $ownerId,
-        ?string $systemKey,
-        Visibility $visibility,
-        array $filters,
-        array $sort,
-        bool $showCount,
-        Placement $placement,
-        int $position,
-        \DateTimeImmutable $now,
+        #[ORM\Column(name: 'owner_id', type: 'guid', nullable: true)]
+        private ?string $ownerId,
+        #[ORM\Column(name: 'system_key', type: 'string', length: 120, nullable: true)]
+        private ?string $systemKey,
+        #[ORM\Column(type: 'string', length: 16, enumType: Visibility::class)]
+        private Visibility $visibility,
+        #[ORM\Column(type: 'json', options: ['jsonb' => true])]
+        private array $filters,
+        #[ORM\Column(type: 'json', options: ['jsonb' => true])]
+        private array $sort,
+        #[ORM\Column(name: 'show_count', type: 'boolean')]
+        private bool $showCount,
+        #[ORM\Column(type: 'string', length: 16, enumType: Placement::class)]
+        private Placement $placement,
+        #[ORM\Column(type: 'integer')]
+        private int $position,
+        #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
+        private \DateTimeImmutable $createdAt,
     ) {
-        self::checkName($name);
+        $this->checkName($name);
         $this->id = Id::generate();
-        $this->ownerId = $ownerId;
-        $this->systemKey = $systemKey;
-        $this->visibility = $visibility;
-        $this->filters = $filters;
-        $this->sort = $sort;
-        $this->showCount = $showCount;
-        $this->placement = $placement;
-        $this->position = $position;
-        $this->createdAt = $now;
-        $this->updatedAt = $now;
+        $this->updatedAt = $this->createdAt;
     }
 
     /**
@@ -132,7 +103,7 @@ class SavedView
         if (!$this->isPristine()) {
             return false;
         }
-        self::checkName($name);
+        $this->checkName($name);
         // PostgreSQL's jsonb keeps the keys of an object in its own order: compared as sorted.
         if ([$this->name, self::canonical($this->filters), self::canonical($this->sort), $this->showCount, $this->placement, $this->position] === [$name, self::canonical($filters), self::canonical($sort), $showCount, $placement, $position]) {
             return false;
@@ -252,7 +223,7 @@ class SavedView
         return $value;
     }
 
-    private static function checkName(string $name): void
+    private function checkName(string $name): void
     {
         if ('' === trim($name) || mb_strlen($name) > self::NAME_MAX_LENGTH) {
             throw new \InvalidArgumentException(\sprintf('A view is named in 1 to %d characters.', self::NAME_MAX_LENGTH));

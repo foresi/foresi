@@ -37,7 +37,7 @@ final readonly class ListViews
                 $stored[$saved->systemKey()] = true;
             }
             $view = $this->visible($saved, $list, $userId);
-            if (null !== $view) {
+            if ($view instanceof ListView) {
                 $views[] = [$view, $saved->visibility(), $saved->position()];
             }
         }

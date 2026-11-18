@@ -82,7 +82,7 @@ final readonly class ViewFilter
             if (!\in_array($condition->op, $field->operators, true)) {
                 throw new InvalidFilter($path.'.op', \sprintf('The field "%s" takes %s.', $field->key, implode(', ', $field->operators)));
             }
-            self::checkValue($field, $condition, $path.'.value');
+            $this->checkValue($field, $condition, $path.'.value');
         }
     }
 
@@ -109,7 +109,7 @@ final readonly class ViewFilter
         return new self([...$this->conditions, $condition]);
     }
 
-    private static function checkValue(Field $field, Condition $condition, string $path): void
+    private function checkValue(Field $field, Condition $condition, string $path): void
     {
         $value = $condition->value;
         if (\in_array($condition->op, ['is_empty', 'is_not_empty'], true)) {
@@ -128,19 +128,19 @@ final readonly class ViewFilter
         };
         switch ($field->type) {
             case FieldType::Enum:
-                self::checkEnum($field, $condition, $path);
+                $this->checkEnum($field, $condition, $path);
                 break;
             case FieldType::Reference:
-                'is_any_of' === $condition->op ? self::checkList($value, $path, \is_string(...), 'ids') : self::checkScalar(\is_string($value) && '' !== $value, $path, 'an id');
+                'is_any_of' === $condition->op ? $this->checkList($value, $path, \is_string(...), 'ids') : self::checkScalar(\is_string($value) && '' !== $value, $path, 'an id');
                 break;
             case FieldType::Text:
                 self::checkScalar(\is_string($value) && '' !== $value, $path, 'a text');
                 break;
             case FieldType::Number:
-                $between ? self::checkBetween($value, $path, $number) : $number($value, $path);
+                $between ? $this->checkBetween($value, $path, $number) : $number($value, $path);
                 break;
             case FieldType::Date:
-                $between ? self::checkBetween($value, $path, $date) : $date($value, $path);
+                $between ? $this->checkBetween($value, $path, $date) : $date($value, $path);
                 break;
             case FieldType::Boolean:
                 self::checkScalar(\is_bool($value), $path, 'true or false');
@@ -148,11 +148,11 @@ final readonly class ViewFilter
         }
     }
 
-    private static function checkEnum(Field $field, Condition $condition, string $path): void
+    private function checkEnum(Field $field, Condition $condition, string $path): void
     {
         $known = static fn (mixed $value): bool => \is_string($value) && \in_array($value, $field->options, true);
         if (\in_array($condition->op, ['is_any_of', 'is_none_of'], true)) {
-            self::checkList($condition->value, $path, $known, 'values of '.implode(', ', $field->options));
+            $this->checkList($condition->value, $path, $known, 'values of '.implode(', ', $field->options));
 
             return;
         }
@@ -162,7 +162,7 @@ final readonly class ViewFilter
     /**
      * @param callable(mixed): bool $each
      */
-    private static function checkList(mixed $value, string $path, callable $each, string $what): bool
+    private function checkList(mixed $value, string $path, callable $each, string $what): bool
     {
         if (!\is_array($value) || [] === $value || !array_is_list($value) || \count($value) !== \count(array_filter($value, $each))) {
             throw new InvalidFilter($path, \sprintf('Expected a list of %s.', $what));
@@ -174,7 +174,7 @@ final readonly class ViewFilter
     /**
      * @param callable(mixed, string): bool $each
      */
-    private static function checkBetween(mixed $value, string $path, callable $each): bool
+    private function checkBetween(mixed $value, string $path, callable $each): bool
     {
         if (!\is_array($value) || !\array_key_exists('from', $value) || !\array_key_exists('to', $value) || 2 !== \count($value)) {
             throw new InvalidFilter($path, 'A range is {from, to}.');

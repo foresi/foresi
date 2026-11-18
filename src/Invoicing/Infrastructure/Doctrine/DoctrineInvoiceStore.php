@@ -739,22 +739,20 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
      */
     private function inView(ViewFilter $view, DocumentKind $kind, string $suffix, string $overdue, array $overdueParameters, \Closure $today): array
     {
-        $derived = function (Condition $condition, string $name) use ($kind, $overdue, $overdueParameters): array {
-            return match ($condition->field) {
-                InvoiceLists::TRASHED => [DqlConditions::derivedBoolean($condition, 'i.deletedAt IS NOT NULL'), []],
-                InvoiceLists::PAYMENT => [DqlConditions::derivedEnum($condition, [
-                    InvoiceFilter::PAID => $this->paid($name.'p'),
-                    InvoiceFilter::UNPAID => $this->unpaid($name.'u'),
-                    InvoiceFilter::TO_REFUND => DocumentKind::CorrectionDocument === $kind ? $this->toRefund($name.'r') : $this->overpaid($name.'r'),
-                ]), []],
-                InvoiceLists::OVERDUE => [DqlConditions::derivedBoolean($condition, $overdue.' AND '.$this->unpaid($name)), $overdueParameters],
-                InvoiceLists::SETTLEMENT => [DqlConditions::derivedEnum($condition, [
-                    InvoiceFilter::SETTLED => 'i.deductedByInvoiceId IS NOT NULL',
-                    InvoiceFilter::UNSETTLED => 'i.deductedByInvoiceId IS NULL AND '.$this->deductible($kind, $name),
-                ]), []],
-                default => throw new \LogicException(\sprintf('The field "%s" of the documents has no SQL.', $condition->field)),
-            };
-        };
+        $derived = (fn (Condition $condition, string $name): array => match ($condition->field) {
+            InvoiceLists::TRASHED => [DqlConditions::derivedBoolean($condition, 'i.deletedAt IS NOT NULL'), []],
+            InvoiceLists::PAYMENT => [DqlConditions::derivedEnum($condition, [
+                InvoiceFilter::PAID => $this->paid($name.'p'),
+                InvoiceFilter::UNPAID => $this->unpaid($name.'u'),
+                InvoiceFilter::TO_REFUND => DocumentKind::CorrectionDocument === $kind ? $this->toRefund($name.'r') : $this->overpaid($name.'r'),
+            ]), []],
+            InvoiceLists::OVERDUE => [DqlConditions::derivedBoolean($condition, $overdue.' AND '.$this->unpaid($name)), $overdueParameters],
+            InvoiceLists::SETTLEMENT => [DqlConditions::derivedEnum($condition, [
+                InvoiceFilter::SETTLED => 'i.deductedByInvoiceId IS NOT NULL',
+                InvoiceFilter::UNSETTLED => 'i.deductedByInvoiceId IS NULL AND '.$this->deductible($kind, $name),
+            ]), []],
+            default => throw new \LogicException(\sprintf('The field "%s" of the documents has no SQL.', $condition->field)),
+        });
         $compiler = new DqlConditions($this->listOf($kind), self::DATE_COLUMNS, $derived(...));
         [$condition, $parameters] = $compiler->compile($view, $today, $suffix);
 

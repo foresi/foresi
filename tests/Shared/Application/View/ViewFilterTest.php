@@ -28,8 +28,8 @@ final class ViewFilterTest extends TestCase
             ['field' => 'customer', 'op' => 'is_empty'],
         ]];
 
-        self::assertSame($data, ViewFilter::parse($data, self::list())->toArray());
-        self::assertSame([], ViewFilter::parse([], self::list())->conditions);
+        self::assertSame($data, ViewFilter::parse($data, $this->list())->toArray());
+        self::assertSame([], ViewFilter::parse([], $this->list())->conditions);
     }
 
     /**
@@ -57,7 +57,7 @@ final class ViewFilterTest extends TestCase
     public function testAFilterTheListCannotApplyIsRefusedWithThePathOfItsFault(mixed $data, string $path): void
     {
         try {
-            ViewFilter::parse($data, self::list());
+            ViewFilter::parse($data, $this->list());
             self::fail('The filter is refused.');
         } catch (InvalidFilter $refused) {
             self::assertSame($path, $refused->path);
@@ -67,10 +67,10 @@ final class ViewFilterTest extends TestCase
     public function testAViewHoldsAtMostTwentyConditions(): void
     {
         $condition = ['field' => 'archived', 'op' => 'is', 'value' => false];
-        self::assertCount(20, ViewFilter::parse(['conditions' => array_fill(0, 20, $condition)], self::list())->conditions);
+        self::assertCount(20, ViewFilter::parse(['conditions' => array_fill(0, 20, $condition)], $this->list())->conditions);
 
         $this->expectException(InvalidFilter::class);
-        ViewFilter::parse(['conditions' => array_fill(0, 21, $condition)], self::list());
+        ViewFilter::parse(['conditions' => array_fill(0, 21, $condition)], $this->list());
     }
 
     public function testAListStartsWithItsAllAndChecksTheViewsItShips(): void
@@ -89,7 +89,7 @@ final class ViewFilterTest extends TestCase
         new ListDefinition('test.items', [], [new DefaultView('open', 'Open')]);
     }
 
-    private static function list(): ListDefinition
+    private function list(): ListDefinition
     {
         return new ListDefinition('test.items', [
             new Field('state', FieldType::Enum, 'State', options: ['open', 'late', 'done']),

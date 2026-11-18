@@ -1318,7 +1318,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $this->issue('2026-10-15', '2026-11-15');
         $before = $this->tabs($this->client->request('GET', '/invoices'));
 
-        $tester = new CommandTester((new Application(self::$kernel ?? throw new \LogicException('A kernel runs.')))->find('app:views:sync'));
+        $tester = new CommandTester(new Application(self::$kernel ?? throw new \LogicException('A kernel runs.'))->find('app:views:sync'));
         self::assertSame(0, $tester->execute([]));
 
         self::assertSame($before, $this->tabs($this->client->request('GET', '/invoices')));
