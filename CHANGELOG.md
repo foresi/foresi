@@ -126,6 +126,7 @@ Planned as 0.5.0: the first release with invoices.
 
 ### Changed
 
+- A deleted task comment keeps its text for 30 days: its author or an owner restores it from its place in the discussion or with Undo in the message, without notifying the people it mentions again; others only see that it was deleted. The text and files of a comment deleted 30 days ago are then removed for good by the scheduled job `comment-trash-purge`. Run `bin/console doctrine:migrations:migrate`. See [docs/projects.md](docs/projects.md).
 - For modules: an integration, `Integration/<Other>/`, may hold `templates/`, `translations/` and `assets/controllers/`. The module's bundle registers them only when `<Other>` is installed, the templates under the module's own Twig namespace ([ADR 0038](docs/adr/0038-core-screens-in-integrations.md)). This is the first step of moving the screens of Identity, Party and Webhooks into `Integration/Ui/`, so the core installs without `foresi/ui`.
 - A dialog asked for while the page under it was loading again (right after the window of a new API token closed, say) no longer locks the dialogs and sheets until a full reload.
 - Every page title runs from the specific to the general: the page, the section of the navigation it belongs to, and the product, as "Fix the login · Projects · Foresi". A list page names its section once, the login page has no section, and the public document pages keep the issuer instead of the product.

@@ -203,6 +203,11 @@ final class GuestWorkTest extends WebTestCase
         $this->client->submit($crawler->filter('form[action="/comments/'.$comment.'/delete"]')->form());
         self::assertResponseRedirects('/tasks/'.$homepage.'#comment-'.$comment);
         self::assertSame(1, $this->rows('SELECT COUNT(*) FROM task_comment WHERE id = ? AND deleted_at IS NOT NULL', [$comment]));
+        // A guest restores their own comment too.
+        $crawler = $this->client->request('GET', '/tasks/'.$homepage);
+        $this->client->submit($crawler->filter('form[action="/comments/'.$comment.'/restore"]')->form());
+        self::assertResponseRedirects('/tasks/'.$homepage.'#comment-'.$comment);
+        self::assertSame(1, $this->rows('SELECT COUNT(*) FROM task_comment WHERE id = ? AND deleted_at IS NULL', [$comment]));
     }
 
     public function testAGuestAddsATaskOnlyWhereTheySeeASectionAndASubtaskToATaskSharedWithThem(): void

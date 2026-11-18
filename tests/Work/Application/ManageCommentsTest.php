@@ -15,10 +15,13 @@ use Foresi\Work\Application\DiscussionFilter;
 use Foresi\Work\Application\DiscussionItem;
 use Foresi\Work\Application\ManageComments;
 use Foresi\Work\Application\MentionCandidate;
+use Foresi\Work\Application\PurgeCommentTrashDaily;
+use Foresi\Work\Application\PurgeDeletedComments;
 use Foresi\Work\Application\TaskHistory;
 use Foresi\Work\Application\TaskHistoryEntry;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Domain\CommentMention;
+use Foresi\Work\Domain\Notification;
 use Foresi\Work\Domain\Task;
 use Foresi\Work\Domain\TaskComment;
 use Foresi\Work\Domain\TaskWatcher;
@@ -98,7 +101,7 @@ final class ManageCommentsTest extends WorkTestCase
         $this->assertRefused('comment_not_yours', fn () => $this->comments->edit($theirs->id(), 'No'));
         $this->assertRefused('comment_not_yours', fn () => $this->comments->delete($theirs->id()));
         $this->comments->delete($mine->id());
-        self::assertSame([true, ''], [$mine->isDeleted(), $mine->text()]);
+        self::assertSame([true, 'Mine, edited', $this->member->user()->id()], [$mine->isDeleted(), $mine->text(), $mine->deletedBy()]);
         $this->assertRefused('comment_deleted', fn () => $this->comments->edit($mine->id(), 'Back'));
 
         // An owner moderates.
@@ -154,7 +157,9 @@ final class ManageCommentsTest extends WorkTestCase
         self::assertStringContainsString('<strong>team</strong>', $hello->html);
         $gone = $all[3]->comment;
         self::assertNotNull($gone);
-        self::assertSame([true, '', false, false], [$gone->deleted, $gone->html, $gone->canEdit, $gone->canDelete]);
+        // The owner deleted it and may restore it, yet its text never leaves the server while deleted.
+        self::assertSame([true, '', '', false, false, true], [$gone->deleted, $gone->text, $gone->html, $gone->canEdit, $gone->canDelete, $gone->canRestore]);
+        self::assertFalse($hello->canRestore);
 
         self::assertSame(['comment:'.$first->id(), 'comment:'.$second->id()], array_map($this->describe(...), $this->queries->discussion($this->task->id(), DiscussionFilter::Comments) ?? []));
         self::assertSame(['step:created', 'step:changed'], array_map($this->describe(...), $this->queries->discussion($this->task->id(), DiscussionFilter::History) ?? []));
@@ -164,10 +169,68 @@ final class ManageCommentsTest extends WorkTestCase
         $this->signIn($this->member);
         $mine = $this->queries->discussion($this->task->id(), DiscussionFilter::Comments)[0]->comment ?? null;
         self::assertSame([true, true], [$mine?->canEdit, $mine?->canDelete]);
+        // Someone else's deleted comment reads as deleted, with nothing to restore.
+        $theirs = $this->queries->discussion($this->task->id(), DiscussionFilter::Comments)[1]->comment ?? null;
+        self::assertSame([true, '', '', false], [$theirs?->deleted, $theirs?->text, $theirs?->html, $theirs?->canRestore]);
 
         $this->signIn($this->guest);
         self::assertNull($this->queries->discussion($this->task->id()));
         self::assertNull($this->queries->mentionCandidates($this->task->id()));
+    }
+
+    public function testItsAuthorOrAnOwnerRestoresADeletedCommentWithItsMentionsAndNoNewNotification(): void
+    {
+        $this->signIn($this->member);
+        $comment = $this->comments->add($this->task->id(), sprintf('Ask %s', $this->mention('Olga', $this->owner->id())));
+        $notifications = $this->em->getRepository(Notification::class)->count([]);
+        $this->comments->delete($comment->id());
+        self::assertSame([], $this->mentioned($comment));
+
+        $this->signIn($this->owner);
+        $this->comments->restore($comment->id());
+        self::assertSame([false, null, 'Ask @[Olga](membership:'.$this->owner->id().')'], [$comment->isDeleted(), $comment->deletedBy(), $comment->text()]);
+        self::assertSame(['Olga Owner'], $this->mentioned($comment));
+        self::assertSame($notifications, $this->em->getRepository(Notification::class)->count([]));
+        // Restoring what stands changes nothing.
+        $this->comments->restore($comment->id());
+        self::assertFalse($comment->isDeleted());
+
+        $theirs = $this->comments->add($this->task->id(), 'The owner speaks');
+        $this->comments->delete($theirs->id());
+        $this->signIn($this->member);
+        $this->assertRefused('comment_not_yours', fn () => $this->comments->restore($theirs->id()));
+        $this->signIn($this->guest);
+        $this->assertRefused('unknown', fn () => $this->comments->restore($theirs->id()));
+    }
+
+    public function testThePurgeClearsTheTextAndFilesOfCommentsDeletedMoreThan30DaysAgo(): void
+    {
+        $old = $this->comments->add($this->task->id(), 'Old news');
+        $file = $this->attach($old, $this->owner->user()->id());
+        $fileId = $file->id();
+        $this->comments->delete($old->id());
+        $this->clock->sleep(86400 * 20);
+        $recent = $this->comments->add($this->task->id(), 'Fresh news');
+        $this->comments->delete($recent->id());
+        $standing = $this->comments->add($this->task->id(), 'Still here');
+        $this->clock->sleep(86400 * 11);
+
+        $job = new PurgeCommentTrashDaily(self::getContainer()->get(PurgeDeletedComments::class), $this->clock);
+        self::assertSame('comment-trash-purge', $job->name());
+        $job->run(null);
+        $this->em->clear();
+
+        $old = $this->em->find(TaskComment::class, $old->id());
+        $recent = $this->em->find(TaskComment::class, $recent->id());
+        $standing = $this->em->find(TaskComment::class, $standing->id());
+        self::assertSame([true, '', false], [$old?->isDeleted(), $old?->text(), $old?->isRestorable()]);
+        self::assertSame([true, 'Fresh news'], [$recent?->isDeleted(), $recent?->text()]);
+        self::assertSame([false, 'Still here'], [$standing?->isDeleted(), $standing?->text()]);
+        self::assertNull($this->em->find(Attachment::class, $fileId));
+        self::assertSame(0, self::getContainer()->get(PurgeDeletedComments::class)->run($this->clock->now()));
+
+        self::assertNotNull($old);
+        $this->assertRefused('comment_purged', fn () => $this->comments->restore($old->id()));
     }
 
     public function testTheMentionListHoldsActiveStaffByName(): void

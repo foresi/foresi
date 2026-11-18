@@ -188,7 +188,8 @@ final class TaskController extends AbstractController
     }
 
     /**
-     * The comment stays in its place in the timeline as a note that it was deleted.
+     * The comment stays in its place in the timeline as a note that it was
+     * deleted, with no question first: the message says so and undoes it.
      */
     #[OpenToGuest]
     #[Route('/comments/{id}/delete', name: 'app_task_comment_delete', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
@@ -198,6 +199,32 @@ final class TaskController extends AbstractController
         $taskId = $this->taskOfComment($id);
         try {
             $this->comments->delete($id);
+            $this->addFlash(self::UNDO_FLASH, [
+                'message' => $this->translator->trans('work.discussion.trash.deleted'),
+                'label' => $this->translator->trans('work.trash.undo'),
+                'href' => $this->generateUrl('app_task_comment_restore', ['id' => $id]),
+                'token' => self::TOKEN,
+            ]);
+        } catch (WorkRefused $refused) {
+            $this->notFoundIfUnknown($refused);
+            $this->addFlash('error', $this->translator->trans('work.refused.'.$refused->reason));
+        }
+
+        return $this->toComment($taskId, $id);
+    }
+
+    /**
+     * Brings a deleted comment back in its place in the timeline.
+     */
+    #[OpenToGuest]
+    #[Route('/comments/{id}/restore', name: 'app_task_comment_restore', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function restoreComment(string $id, Request $request): RedirectResponse
+    {
+        $this->checkToken($request);
+        $taskId = $this->taskOfComment($id);
+        try {
+            $this->comments->restore($id);
+            $this->addFlash('success', $this->translator->trans('work.discussion.trash.restored'));
         } catch (WorkRefused $refused) {
             $this->notFoundIfUnknown($refused);
             $this->addFlash('error', $this->translator->trans('work.refused.'.$refused->reason));
@@ -736,6 +763,7 @@ final class TaskController extends AbstractController
             'deleted' => $comment->deleted,
             'canEdit' => $comment->canEdit,
             'canDelete' => $comment->canDelete,
+            'canRestore' => $comment->canRestore,
         ];
     }
 

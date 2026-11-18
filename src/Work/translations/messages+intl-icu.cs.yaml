@@ -88,6 +88,7 @@ work:
     comment_too_long: Komentář může mít nejvýš 20 000 znaků.
     comment_not_yours: Tento komentář může měnit jen jeho autor.
     comment_deleted: Tento komentář byl smazán.
+    comment_purged: Text komentáře už je smazaný natrvalo.
     task_not_yours: Úkol smaže nebo obnoví jen jeho autor nebo vlastník organizace.
     parent_in_trash: Nejdřív je potřeba obnovit nadřazený úkol.
     share_person: Vyberte aktivního člověka z organizace, se kterým chcete sdílet.
@@ -290,11 +291,12 @@ work:
     edited: upraveno
     edited_at: 'Upraveno {date}'
     deleted: Komentář byl smazán
+    trash:
+      mine: Komentář je smazaný
+      deleted: Komentář je smazaný.
+      restored: Komentář je obnovený.
     actions: 'Akce komentáře od {name}'
     delete: Smazat
-    delete_confirm:
-      title: Smazat komentář?
-      text: Tuto akci nelze vrátit.
     edit_label: Upravit komentář
     composer: Komentář
     internal_switch: Interní
