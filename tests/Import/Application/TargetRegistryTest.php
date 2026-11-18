@@ -8,11 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Import\Application;
 
-use Foresi\Import\Application\Target\ImportTarget;
-use Foresi\Import\Application\Target\RecordSnapshot;
 use Foresi\Import\Application\Target\TargetRegistry;
-use Foresi\Import\Application\Target\WriteResult;
-use Foresi\Import\Domain\BlankCells;
+use Foresi\Import\Contract\BlankCells;
+use Foresi\Import\Contract\ImportTarget;
+use Foresi\Import\Contract\RecordSnapshot;
+use Foresi\Import\Contract\WriteResult;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 

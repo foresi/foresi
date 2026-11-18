@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Import\Application;
 
-use Foresi\Import\Application\Source\SourceFormat;
 use Foresi\Import\Application\Source\SourceSettings;
-use Foresi\Import\Domain\RowOutcome;
+use Foresi\Import\Contract\RowOutcome;
+use Foresi\Import\Contract\SourceFormat;
 
 /** The error file of a checked or finished import. */
 final readonly class ImportErrorFile

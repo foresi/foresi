@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Import\Domain;
+namespace Foresi\Import\Contract;
 
 /** What an empty cell does to an existing record. */
 enum BlankCells: string

@@ -16,7 +16,7 @@ use Foresi\Import\Application\StartImport;
 use Foresi\Import\Application\Target\TargetRegistry;
 use Foresi\Import\Domain\Import;
 use Foresi\Import\Infrastructure\LocalImportFiles;
-use Foresi\Party\Infrastructure\Import\PartyImportTarget;
+use Foresi\Party\Integration\Import\PartyImportTarget;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Filesystem\Filesystem;

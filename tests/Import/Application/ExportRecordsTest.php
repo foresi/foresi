@@ -10,14 +10,14 @@ namespace Foresi\Tests\Import\Application;
 
 use Foresi\Import\Application\ExportRecords;
 use Foresi\Import\Application\ExportWriter;
-use Foresi\Import\Application\Source\SourceFormat;
-use Foresi\Import\Application\Target\ImportTarget;
-use Foresi\Import\Application\Target\RecordSnapshot;
 use Foresi\Import\Application\Target\TargetRegistry;
-use Foresi\Import\Application\Target\WriteResult;
-use Foresi\Import\Domain\BlankCells;
-use Foresi\Import\Domain\FieldDefinition;
-use Foresi\Import\Domain\FieldType;
+use Foresi\Import\Contract\BlankCells;
+use Foresi\Import\Contract\FieldDefinition;
+use Foresi\Import\Contract\FieldType;
+use Foresi\Import\Contract\ImportTarget;
+use Foresi\Import\Contract\RecordSnapshot;
+use Foresi\Import\Contract\SourceFormat;
+use Foresi\Import\Contract\WriteResult;
 use PHPUnit\Framework\TestCase;
 
 final class ExportRecordsTest extends TestCase

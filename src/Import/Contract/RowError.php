@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Import\Domain;
+namespace Foresi\Import\Contract;
 
 /** A problem with one field of one source row; the message is a translation key. */
 final readonly class RowError

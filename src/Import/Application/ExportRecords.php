@@ -8,16 +8,17 @@ declare(strict_types=1);
 
 namespace Foresi\Import\Application;
 
-use Foresi\Import\Application\Source\SourceFormat;
-use Foresi\Import\Application\Target\ImportTarget;
 use Foresi\Import\Application\Target\TargetRegistry;
+use Foresi\Import\Contract\ImportTarget;
+use Foresi\Import\Contract\RecordExport;
+use Foresi\Import\Contract\SourceFormat;
 
 /**
  * Exports records of an import target through the target's own field list, in
  * batches so a large address book never sits in memory at once. The columns are
  * the fields the import maps to, which makes the file importable again.
  */
-final readonly class ExportRecords
+final readonly class ExportRecords implements RecordExport
 {
     public const int BATCH = 500;
 
@@ -27,9 +28,6 @@ final readonly class ExportRecords
     ) {
     }
 
-    /**
-     * @param iterable<string> $ids
-     */
     public function write(string $targetKey, iterable $ids, SourceFormat $format, string $path): void
     {
         $target = $this->targets->get($targetKey);

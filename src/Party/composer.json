@@ -5,7 +5,6 @@
     "license": "AGPL-3.0-only",
     "require": {
         "foresi/audit": "*",
-        "foresi/import": "*",
         "foresi/shared": "*",
         "foresi/instance": "*",
         "foresi/ui": "*"
@@ -16,7 +15,9 @@
             "kind": "module",
             "namespace": "Foresi\\Party\\",
             "bundle": "Foresi\\Party\\PartyBundle",
-            "optional": [],
+            "optional": [
+                "import"
+            ],
             "scopes": [
                 "contacts"
             ]

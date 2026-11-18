@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Import\Infrastructure\Controller;
 
-use Foresi\Import\Domain\BlankCells;
+use Foresi\Import\Contract\BlankCells;
 use Foresi\Import\Domain\DateOrder;
 use Foresi\Import\Domain\DecimalSeparator;
 use Foresi\Import\Domain\Import;

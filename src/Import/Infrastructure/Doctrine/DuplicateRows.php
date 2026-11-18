@@ -13,9 +13,9 @@ use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Import\Application\Imports;
 use Foresi\Import\Application\RowReader;
+use Foresi\Import\Contract\RowOutcome;
 use Foresi\Import\Domain\Import;
 use Foresi\Import\Domain\ImportRow;
-use Foresi\Import\Domain\RowOutcome;
 
 /**
  * Finds the rows whose match key an earlier row of the same file already used:

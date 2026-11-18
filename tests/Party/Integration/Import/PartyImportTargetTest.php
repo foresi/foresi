@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Party\Infrastructure\Import;
+namespace Foresi\Tests\Party\Integration\Import;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Foresi\Audit\Application\AuditCorrelation;
 use Foresi\Audit\Domain\AuditEntry;
-use Foresi\Import\Application\Target\RecordMatch;
-use Foresi\Import\Application\Target\RecordSnapshot;
 use Foresi\Import\Application\Target\TargetRegistry;
-use Foresi\Import\Domain\BlankCells;
-use Foresi\Import\Domain\FieldDefinition;
-use Foresi\Import\Domain\FieldType;
+use Foresi\Import\Contract\BlankCells;
+use Foresi\Import\Contract\FieldDefinition;
+use Foresi\Import\Contract\FieldType;
+use Foresi\Import\Contract\RecordMatch;
+use Foresi\Import\Contract\RecordSnapshot;
+use Foresi\Import\Contract\RowError;
 use Foresi\Import\Domain\NormalisationOptions;
-use Foresi\Import\Domain\RowError;
 use Foresi\Import\Domain\ValueNormaliser;
 use Foresi\Party\Application\PartyDetails;
 use Foresi\Party\Application\PartyQuery;
@@ -36,7 +36,7 @@ use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Infrastructure\Import\PartyImportTarget;
+use Foresi\Party\Integration\Import\PartyImportTarget;
 use Foresi\Shared\Domain\Currency;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -619,7 +619,7 @@ final class PartyImportTargetTest extends KernelTestCase
         $id = $this->create($this->values(['email' => ['info@example.com', 'old-copy@example.com']]))->id;
         self::mockTime('2026-10-01 11:00:00');
         $since = new \DateTimeImmutable('2026-10-01 11:00:00');
-        $result = self::getContainer()->get(AuditCorrelation::class)->within('import:2', fn (): \Foresi\Import\Application\Target\WriteResult => $this->target->update($id, ['phone' => '+420 123 456 789'], BlankCells::Keep));
+        $result = self::getContainer()->get(AuditCorrelation::class)->within('import:2', fn (): \Foresi\Import\Contract\WriteResult => $this->target->update($id, ['phone' => '+420 123 456 789'], BlankCells::Keep));
 
         self::mockTime('2026-10-01 12:00:00');
         $this->em->remove($this->details()->emails($this->find($id))[1]);
@@ -676,8 +676,8 @@ final class PartyImportTargetTest extends KernelTestCase
         $values = $this->normalise($rows[0]);
         self::assertSame([], $this->target->validate($values));
         self::assertEquals([new RecordMatch($id, false)], $this->target->match('id', $values));
-        self::getContainer()->get(AuditCorrelation::class)->within('import:2', fn (): \Foresi\Import\Application\Target\WriteResult => $this->target->update($id, $values, BlankCells::Keep));
-        self::getContainer()->get(AuditCorrelation::class)->within('import:3', fn (): \Foresi\Import\Application\Target\WriteResult => $this->target->update($id, $values, BlankCells::Clear));
+        self::getContainer()->get(AuditCorrelation::class)->within('import:2', fn (): \Foresi\Import\Contract\WriteResult => $this->target->update($id, $values, BlankCells::Keep));
+        self::getContainer()->get(AuditCorrelation::class)->within('import:3', fn (): \Foresi\Import\Contract\WriteResult => $this->target->update($id, $values, BlankCells::Clear));
 
         self::assertSame(0, (int) $this->em->createQuery('SELECT COUNT(e.id) FROM '.AuditEntry::class." e WHERE e.correlationId IN ('import:2', 'import:3')")->getSingleScalarResult());
     }
@@ -689,7 +689,7 @@ final class PartyImportTargetTest extends KernelTestCase
 
         $row = [...$this->target->export([$id])][0];
         self::assertSame(['', 'copy@example.com, other@example.com'], [$row['email'], $row['copy_email']]);
-        self::getContainer()->get(AuditCorrelation::class)->within('import:2', fn (): \Foresi\Import\Application\Target\WriteResult => $this->target->update($id, $this->normalise($row), BlankCells::Keep));
+        self::getContainer()->get(AuditCorrelation::class)->within('import:2', fn (): \Foresi\Import\Contract\WriteResult => $this->target->update($id, $this->normalise($row), BlankCells::Keep));
 
         self::assertSame(0, $this->rowCount("SELECT COUNT(*) FROM audit_entry WHERE correlation_id = 'import:2'"));
         self::assertSame([['copy@example.com', EmailPurpose::Copy], ['other@example.com', EmailPurpose::Copy]], self::emails($this->find($id), $this->details()));
@@ -698,17 +698,17 @@ final class PartyImportTargetTest extends KernelTestCase
     /**
      * @param array<string, mixed> $values
      */
-    private function create(array $values): \Foresi\Import\Application\Target\WriteResult
+    private function create(array $values): \Foresi\Import\Contract\WriteResult
     {
-        return self::getContainer()->get(AuditCorrelation::class)->within(self::CORRELATION, fn (): \Foresi\Import\Application\Target\WriteResult => $this->target->create($values));
+        return self::getContainer()->get(AuditCorrelation::class)->within(self::CORRELATION, fn (): \Foresi\Import\Contract\WriteResult => $this->target->create($values));
     }
 
     /**
      * @param array<string, mixed> $values
      */
-    private function update(string $id, array $values): \Foresi\Import\Application\Target\WriteResult
+    private function update(string $id, array $values): \Foresi\Import\Contract\WriteResult
     {
-        return self::getContainer()->get(AuditCorrelation::class)->within(self::CORRELATION, fn (): \Foresi\Import\Application\Target\WriteResult => $this->target->update($id, $values, BlankCells::Keep));
+        return self::getContainer()->get(AuditCorrelation::class)->within(self::CORRELATION, fn (): \Foresi\Import\Contract\WriteResult => $this->target->update($id, $values, BlankCells::Keep));
     }
 
     /**

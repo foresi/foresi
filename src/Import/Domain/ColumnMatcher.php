@@ -8,7 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Import\Domain;
 
-use Foresi\Import\Domain\Preset\SourcePreset;
+use Foresi\Import\Contract\FieldDefinition;
+use Foresi\Import\Contract\HeaderName;
+use Foresi\Import\Contract\RowError;
+use Foresi\Import\Contract\SourcePreset;
 
 /** Proposes the target field of every source column; the user confirms or changes it. */
 final readonly class ColumnMatcher

@@ -8,6 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Import\Domain;
 
+use Foresi\Import\Contract\FieldDefinition;
+use Foresi\Import\Contract\HeaderName;
+
 /**
  * What the user decided about a source: the field of each column (null = do not
  * import it) and what the source values of a field mean.

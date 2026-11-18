@@ -8,6 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Import\Domain;
 
+use Foresi\Import\Contract\FieldDefinition;
+use Foresi\Import\Contract\FieldType;
+use Foresi\Import\Contract\HeaderName;
+use Foresi\Import\Contract\RowError;
 use Foresi\Shared\Domain\Countries;
 use Foresi\Shared\Domain\Id;
 

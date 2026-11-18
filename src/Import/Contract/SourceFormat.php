@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Import\Application\Source;
+namespace Foresi\Import\Contract;
 
 /**
  * The file formats an import can be read from.

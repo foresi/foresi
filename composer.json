@@ -180,8 +180,7 @@
             "accepted-problems": [
                 "core-requires-module:identity>party",
                 "core-requires-module:identity>ui",
-                "core-requires-module:webhooks>ui",
-                "cycle:identity>party>import>identity"
+                "core-requires-module:webhooks>ui"
             ]
         }
     },

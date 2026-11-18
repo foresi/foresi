@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Tests\Import\Infrastructure\Source;
 
 use Foresi\Import\Application\Source\Encoding;
-use Foresi\Import\Application\Source\SourceFormat;
 use Foresi\Import\Application\Source\SourceRejected;
 use Foresi\Import\Application\Source\SourceSettings;
+use Foresi\Import\Contract\SourceFormat;
 use Foresi\Import\Infrastructure\Source\OpenSpoutSourceReader;
 use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Row;

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Import\Domain\Preset;
+namespace Foresi\Import\Contract;
 
 /** Knows the export of one known program: which header means which field of which target. */
 interface SourcePreset
