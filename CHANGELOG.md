@@ -4,9 +4,11 @@ All notable changes to Foresi are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and Foresi adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+This file ends at 0.5.0. Since then every merged change that users notice is released on its own, and its notes are on the [GitHub releases](https://github.com/foresi/foresi/releases) and at [foresi.app](https://foresi.app/).
 
-Planned as 0.5.0: the first release with invoices.
+## [0.5.0] - 2026-11-18
+
+The first release with invoices.
 
 ### Upgrading
 
@@ -58,10 +60,6 @@ Planned as 0.5.0: the first release with invoices.
 
 ### Added
 
-- Saved views on the projects index: its tabs are now the shared default views All (the projects not archived, as Active showed them) and Archived, without counts as before. The index gains More views, "+ Filter" (archived, client, who sees the project, bill the time), Save, Save as new view, Reset, a sort by name either way and the remembered Columns sheet. The old `?tab=archived` and `?tab=active` addresses still open the same projects.
-- Saved views on the notifications: All and Done are shared default views. All leaves out the done notifications, as the address book's All leaves out archived contacts, so `/notifications` still opens on what is new. The Show select moved to the "+ Filter" builder as Reason (mentions, assigned), with Unread, Done and When beside it, and the inbox has the same "More views" menu, Save, Save as new view, Reset and Columns sheet as the other lists; a guest gets the views and the filter without the menu. `?tab=done`, `?filter=mentions` and `?filter=assigned` still open the same notifications. No tab counts.
-- Saved views on the received documents: All, To complete, Recorded and Trash are shared default views, the last three with the same counts, which now count within the firm, the month and the search in one query. The month chip offers This month, Last month, This quarter and This year before the months with a document; the supplier (through the contact picker), the kind and the VAT treatment moved from the filter sheet to the "+ Filter" builder. The list has the same "More views" menu, Save, Save as new view, Reset and Columns sheet as the invoice lists; `/purchasing` opens All, and `?tab=drafts`, `?supplier=`, `?kind=` and `?treatment=` still open the same documents. `GET /api/v1/received-documents` takes `view` and `filter`, and `foresi_search_received_documents` `view_id` and `filter`; the answer adds `applied_view`.
-- Saved views on the address book: its tabs All, Customers, Suppliers and Archived are shared default views with the same counts, which now count within the search, as on the invoice lists. The list has the same "More views" menu, "+ Filter" builder (role, kind, archived, unreliable payer), Save, Save as new view, Reset and Columns sheet; `?view=customers` still opens the same contacts, and the export holds what the list shows. `GET /api/v1/contacts` takes `view` and `filter`, and `foresi_search_contacts` `view_id` and `filter`; the answer adds `applied_view`.
 - Invoice lists: "+ Filter" opens a filter builder in the filter sheet. Each row is a field, an operator and a value: payment state and settlement by ticking values, the customer through the contact picker, the total as an amount, and the dates as a day, a month or a rule relative to today ("before today", "the last 30 days"). Apply puts the working filter in the address as `f=`, so the link can be shared; each condition shows on the bar as a chip with ✕. The form works without JavaScript.
 - Settings > API and MCP is the one place for API and MCP access: its Connect tab shows the address of the MCP server and a copy-ready setup for Claude Code, claude.ai and Claude Desktop, Cursor, VS Code and other clients, a first prompt that checks the connection, what the access of a token means and how to keep it safe. The window of a new token shows the Claude Code command with that token in it. The account menu no longer has an entry of its own.
 - Saved views over the REST API and MCP, with the scopes `views:read` and `views:write` (a new resource on the token form): `GET /api/v1/lists` and `foresi_list_lists` describe each list's fields, operators, values and columns; `GET /api/v1/views?list=`, `GET /api/v1/views/{id}` and `GET /api/v1/views/{id}/count` read views; `POST`, `PATCH` and `DELETE /api/v1/views` and `POST /api/v1/views/restore-defaults` write them, also as `foresi_create_view`, `foresi_update_view`, `foresi_delete_view` and `foresi_restore_default_views`. `GET /api/v1/invoices` takes `view` and `filter` (JSON conditions), and `foresi_search_invoices` `view_id` and `filter`, joined by AND with the other parameters; the answer adds `applied_view`. A condition that cannot be used is refused with its path, such as `filter.conditions[0].op`. The invoice search now compiles its state, trash and conditions with the same code as the invoice lists. See [docs/api.md](docs/api.md#saved-views).
@@ -130,6 +128,7 @@ Planned as 0.5.0: the first release with invoices.
 
 ### Changed
 
+- A firm can no longer be archived: the instance has one firm and the last active firm was never archivable, so the Archive action on the firm page, the Active and Archived views of the firm list and the "An archived firm cannot be restored" confirmation are gone ([ADR 0039](docs/adr/0039-one-firm-per-instance.md)). `POST /settings/firms/{id}/archive` now answers 404.
 - For modules: an integration, `Integration/<Other>/`, may hold `templates/`, `translations/` and `assets/controllers/`. The module's bundle registers them only when `<Other>` is installed, the templates under the module's own Twig namespace ([ADR 0038](docs/adr/0038-core-screens-in-integrations.md)). This is the first step of moving the screens of Identity, Party and Webhooks into `Integration/Ui/`, so the core installs without `foresi/ui`.
 - A dialog asked for while the page under it was loading again (right after the window of a new API token closed, say) no longer locks the dialogs and sheets until a full reload.
 - Every page title runs from the specific to the general: the page, the section of the navigation it belongs to, and the product, as "Fix the login · Projects · Foresi". A list page names its section once, the login page has no section, and the public document pages keep the issuer instead of the product.
@@ -153,6 +152,10 @@ Planned as 0.5.0: the first release with invoices.
 - An invoice with a payment cannot go to the trash; remove the payments first.
 - The public link page of a paid invoice says Paid and shows no way to pay it again. After a part payment it shows what is left to pay, without the QR code.
 - A plain overpayment is now to refund: the refund in the payment panel and in the bank's pair dialog accepts it, and the invoice list has a **To refund** tab of invoices paid above what is due. A paid advance no final invoice deducts is now offered as a refund in the pair dialog too. Unpairing a refund leaves its movement unmatched, never paired by itself again, instead of recorded.
+
+### Fixed
+
+- The MCP server answers without the Banking module. The PSR-7 library it needs came only through Banking's e-mail parser, so an installation without Banking answered every MCP request with an error; the application now requires `guzzlehttp/psr7` itself.
 
 ## [0.4.0] - 2026-11-01
 
