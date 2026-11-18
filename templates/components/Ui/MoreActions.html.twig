@@ -13,7 +13,7 @@
 <div {{ attributes.defaults({class: 'contents', 'data-more-actions': true}) }}>
     {%- if hasButtons %}<div class="hidden sm:contents" data-more-actions-buttons>{{ buttonsHtml|raw }}</div>{% endif -%}
     {%- if hasPhone or hasItems or hasLast -%}
-        <twig:Ui:Menu :id="menuId" :label="menuLabel ?? 'ui.page_header.more_actions'|trans" icon="ellipsis" :iconOnly="true" :float="true" :class="(hasItems or hasLast) ? '' : 'sm:hidden'" data-dropdown-below-value="true" data-more-actions-menu>
+        <twig:Ui:Menu :id="menuId" :label="menuLabel ?? 'ui.page_header.more_actions'|trans" icon="ellipsis" :iconOnly="true" :size="menuSize" :float="true" :class="(hasItems or hasLast) ? '' : 'sm:hidden'" data-dropdown-below-value="true" data-more-actions-menu>
             {%- if hasPhone or hasItems %}<div role="group" data-more-actions-items>
                 {%- if hasPhone %}<div class="contents sm:hidden" data-more-actions-phone>{{ phoneHtml|raw }}</div>{% endif -%}
                 {{- itemsHtml|raw -}}

@@ -36,6 +36,8 @@ final class MoreActions
     public string $menuId = 'page-actions';
     /** The trigger's accessible name; "More actions" when not given. */
     public ?string $menuLabel = null;
+    /** The trigger's size, as the page's own buttons: "sm" in a compact sheet header. */
+    public string $menuSize = 'md';
 
     #[PostMount]
     public function validate(): void
@@ -43,5 +45,6 @@ final class MoreActions
         if ('' === trim($this->menuId)) {
             throw new \InvalidArgumentException('A more-actions menu needs an id.');
         }
+        Style::button('secondary', $this->menuSize);
     }
 }

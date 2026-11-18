@@ -11,7 +11,7 @@
 {% block title %}{{ party.displayName }}{% endblock %}
 
 {% block actions %}
-    <twig:Ui:MoreActions menuId="contact-actions">
+    <twig:Ui:MoreActions menuId="contact-actions" :menuSize="record_action_size">
         <twig:block name="last">
             {% if party.archived %}
                 <form method="post" action="{{ path('app_contact_restore', {id: id}) }}" role="none">
@@ -26,7 +26,7 @@
             {% endif %}
         </twig:block>
     </twig:Ui:MoreActions>
-    <twig:Ui:Button variant="primary" icon="pencil" :href="path('app_contact_edit', {id: id})" data-in-place>{{ 'party.edit'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button variant="primary" icon="pencil" :size="record_action_size" :href="path('app_contact_edit', {id: id})" data-in-place>{{ 'party.edit'|trans }}</twig:Ui:Button>
 {% endblock %}
 
 {% block content %}
