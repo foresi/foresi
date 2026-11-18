@@ -26,7 +26,8 @@
             <twig:Ui:Button icon="copy" data-action="copy#copy"><span data-copy-target="label">{{ 'api_tokens.created.copy'|trans }}</span></twig:Ui:Button>
             <span class="sr-only" aria-live="polite" data-copy-target="status"></span>
         </div>
-        {% include '@Identity/api/_snippet.html.twig' with {id: 'api-token-claude-code', label: 'api_tokens.created.claude_code'|trans, text: 'claude mcp add --transport http foresi ' ~ server ~ ' --header "Authorization: Bearer ' ~ secret ~ '"', rows: 3} only %}
+        {% set command = 'claude mcp add --transport http foresi ' ~ server ~ ' --header "Authorization: Bearer ' ~ secret ~ '"' %}
+        <twig:Ui:CodeBlock id="api-token-claude-code" :label="'api_tokens.created.claude_code'|trans" :code="command" language="bash" />
         <p class="m-0 text-caption text-muted">{{ 'api_tokens.created.use'|trans }} <a href="{{ path('app_api_connect') }}" data-turbo="false" class="font-medium text-green underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'api_tokens.created.guide'|trans }}</a></p>
     </div>
 {% endblock %}

@@ -31,11 +31,11 @@
         "foresi/identity": "dev-main",
         "foresi/idoklad": "dev-main",
         "foresi/import": "dev-main",
+        "foresi/instance": "dev-main",
         "foresi/invoicing": "dev-main",
         "foresi/party": "dev-main",
         "foresi/purchasing": "dev-main",
         "foresi/shared": "dev-main",
-        "foresi/instance": "dev-main",
         "foresi/timesheet": "dev-main",
         "foresi/ui": "dev-main",
         "foresi/webhooks": "dev-main",
@@ -79,6 +79,7 @@
         "symfonycasts/tailwind-bundle": "^1.0",
         "tecnickcom/tc-lib-barcode": "^2.17.2",
         "tecnickcom/tc-lib-pdf": "^8.82.2",
+        "tempest/highlight": "^2.30",
         "zbateson/mail-mime-parser": "^4.0.8"
     },
     "config": {
