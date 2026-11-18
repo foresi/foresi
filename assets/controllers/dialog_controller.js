@@ -438,7 +438,8 @@ export default class extends Controller {
 
     async submit(event) {
         const form = event.target;
-        if (!this.remoteValue || !(form instanceof HTMLFormElement)) {
+        // A form that asks first (confirm-submit) holds its submit back until the answer.
+        if (!this.remoteValue || !(form instanceof HTMLFormElement) || event.defaultPrevented) {
             return;
         }
         event.preventDefault();

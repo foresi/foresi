@@ -715,6 +715,8 @@ final class ProjectController extends AbstractController
         return [
             'id' => $project->id,
             'href' => $this->generateUrl(self::PROJECT_ROUTE, ['id' => $project->id]),
+            // A project is a place to work in, not a record: it opens as a page (docs/design/overlays.md).
+            'opens' => DataTable::OPENS_PAGE,
             'label' => $project->name,
             'secondary' => $project->clientName,
             'cells' => [

@@ -415,7 +415,7 @@ final class IdokladImportControllerTest extends WebTestCase
         $this->em()->getConnection()->executeStatement('UPDATE invoice SET version = 2');
 
         $this->client->request('GET', $this->url('/runs/'.$run));
-        self::assertSelectorExists('form[action$="/undo"][data-turbo-confirm]');
+        self::assertSelectorExists('form[action$="/undo"][data-controller="confirm-submit"][data-confirm-title]');
         $this->client->request('POST', $this->url('/runs/'.$run.'/undo'), ['_token' => $this->token()]);
 
         self::assertResponseStatusCodeSame(409);

@@ -1,19 +1,24 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     The frame of every step of the move from iDoklad: the step indicator, the messages of the last action and the screen.
-    Variables: firm, stepper ({steps, current}), crumbs; screens fill the block "screen".
+    Variables: firm, stepper ({steps, current}), crumbs; screens fill the block "screen". A run opened from the history is
+    a small record (layout/record.html.twig, record_overlay "dialog"): the modal shows the screen without the steps.
 #}
-{% extends 'layout/app.html.twig' %}
+{% extends 'layout/record.html.twig' %}
 
 {% set token = csrf_token(constant('Foresi\\Idoklad\\Infrastructure\\Controller\\IdokladImportController::TOKEN')) %}
 
 {% block actions %}
-    <twig:Ui:Button icon="history" :href="path('app_idoklad_history', {id: firm.id})">{{ 'idoklad.history.title'|trans }}</twig:Ui:Button>
+    {% if overlay() is null %}
+        <twig:Ui:Button icon="history" :href="path('app_idoklad_history', {id: firm.id})">{{ 'idoklad.history.title'|trans }}</twig:Ui:Button>
+    {% endif %}
 {% endblock %}
 
 {% block content %}
     <div class="grid min-w-0 max-w-5xl gap-4 [&>*]:min-w-0">
-        <twig:Ui:Stepper :steps="stepper.steps" :current="stepper.current" :label="'idoklad.steps.label'|trans" class="mb-1" />
+        {% if overlay() is null %}
+            <twig:Ui:Stepper :steps="stepper.steps" :current="stepper.current" :label="'idoklad.steps.label'|trans" class="mb-1" />
+        {% endif %}
         {% for message in app.flashes('error') %}
             <twig:Ui:Alert tone="error">{{ message }}</twig:Ui:Alert>
         {% endfor %}

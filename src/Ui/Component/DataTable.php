@@ -50,7 +50,7 @@ final class DataTable
     /**
      * @var list<array<string, mixed>> each with cells keyed by column key, optional id, href, plain (the link leaves Turbo), label,
      *                                 opens (sheet, dialog or page: where the row's
-     *                                 record opens, docs/design/overlays.md; page by default), selected, child (a row under the row before it, such as a subtask: its first cell
+     *                                 record opens, docs/design/overlays.md; the sheet by default, a page for a plain row), selected, child (a row under the row before it, such as a subtask: its first cell
      *                                 indented, its text smaller), unread (true marks a row not read yet, as an inbox
      *                                 does: a dot before the first cell, said to a screen reader too, and its link in
      *                                 bold; false keeps the room of the dot and sets the link in normal weight), secondary (the line a phone shows under the first cell), alert (what went wrong
@@ -233,7 +233,9 @@ final class DataTable
         $href = isset($row['href']) && is_string($row['href']) ? $row['href'] : null;
         Style::href($href);
         $plain = true === ($row['plain'] ?? false);
-        $opens = $row['opens'] ?? self::OPENS_PAGE;
+        // A row opens its record in the side sheet over the list unless it says otherwise; a plain
+        // row leaves Turbo, so it is a page (docs/design/overlays.md).
+        $opens = $row['opens'] ?? ($plain ? self::OPENS_PAGE : self::OPENS_SHEET);
         if (!in_array($opens, self::OPENS, true)) {
             throw new \InvalidArgumentException(sprintf('A row opens as one of: %s.', implode(', ', self::OPENS)));
         }

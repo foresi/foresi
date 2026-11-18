@@ -39,6 +39,7 @@ use Foresi\Import\Domain\RowError;
 use Foresi\Import\Domain\RowOutcome;
 use Foresi\Import\Domain\ValueNormaliser;
 use Foresi\Shared\Domain\Countries;
+use Foresi\Ui\Component\DataTable;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -179,6 +180,8 @@ final readonly class ImportScreens
             return [
                 'id' => $import->id(),
                 'href' => $this->urls->generate('app_import_show', ['id' => $import->id()]),
+                // An import is a wizard to work through: it opens as a page (docs/design/overlays.md).
+                'opens' => DataTable::OPENS_PAGE,
                 'label' => $import->originalName(),
                 'cells' => [
                     'file' => $import->originalName(),

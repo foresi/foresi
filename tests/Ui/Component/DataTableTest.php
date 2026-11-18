@@ -152,9 +152,10 @@ final class DataTableTest extends KernelTestCase
     public function testARowOpensItsRecordInASheetADialogOrThePage(): void
     {
         $rows = [
-            ['id' => 'a1', 'href' => '/contacts/a1', 'opens' => 'sheet', 'cells' => ['name' => 'Sheet Ltd']],
+            ['id' => 'a1', 'href' => '/contacts/a1', 'cells' => ['name' => 'Sheet Ltd']],
             ['id' => 'a2', 'href' => '/labels/a2', 'opens' => 'dialog', 'cells' => ['name' => 'Dialog Ltd']],
-            ['id' => 'a3', 'href' => '/projects/a3', 'cells' => ['name' => 'Page Ltd']],
+            ['id' => 'a3', 'href' => '/projects/a3', 'opens' => 'page', 'cells' => ['name' => 'Page Ltd']],
+            ['id' => 'a4', 'href' => '/files/a4', 'plain' => true, 'cells' => ['name' => 'Plain Ltd']],
         ];
         $crawler = new Crawler($this->render(['rows' => $rows]));
 
@@ -166,6 +167,9 @@ final class DataTableTest extends KernelTestCase
         self::assertNull($page->attr('data-sheet'));
         self::assertNull($page->attr('data-dialog'));
         self::assertNull($page->attr('aria-haspopup'));
+        $plain = $crawler->filter('a[data-row-link][href="/files/a4"]');
+        self::assertSame('false', $plain->attr('data-turbo'), 'A plain row leaves Turbo, so it opens as a page by default.');
+        self::assertNull($plain->attr('data-sheet'));
     }
 
     public function testARowOpensOnlyAsAKnownOverlay(): void

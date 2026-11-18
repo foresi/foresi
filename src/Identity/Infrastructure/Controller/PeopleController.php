@@ -28,6 +28,7 @@ use Foresi\Party\Application\PartyRow;
 use Foresi\Party\Domain\Party;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Infrastructure\Http\TypedAmount;
+use Foresi\Ui\Component\DataTable;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -323,7 +324,7 @@ final class PeopleController extends AbstractController
     {
         $actions = [];
         if ($owner) {
-            $actions[] = ['label' => $this->translator->trans('people.action.edit'), 'href' => $this->generateUrl('app_people_edit', ['id' => $person->membershipId]), 'icon' => 'pencil'];
+            $actions[] = ['label' => $this->translator->trans('people.action.edit'), 'href' => $this->generateUrl('app_people_edit', ['id' => $person->membershipId]), 'icon' => 'pencil', 'dialog' => true];
             if ($person->twoFactor) {
                 $actions[] = ['label' => $this->translator->trans('people.action.reset_two_factor'), 'href' => $this->generateUrl('app_people_reset_two_factor', ['id' => $person->membershipId]), 'method' => 'POST', 'confirm' => [
                     'title' => $this->translator->trans('people.confirm.reset_two_factor.title', ['name' => $person->name]),
@@ -346,6 +347,9 @@ final class PeopleController extends AbstractController
 
         return [
             'id' => $person->membershipId,
+            // The owner opens a person, a small record, in a modal over the list (docs/design/overlays.md).
+            'href' => $owner ? $this->generateUrl('app_people_edit', ['id' => $person->membershipId]) : null,
+            'opens' => DataTable::OPENS_DIALOG,
             'label' => $person->name,
             'secondary' => $person->email,
             'cells' => [
