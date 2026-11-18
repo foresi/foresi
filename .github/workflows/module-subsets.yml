@@ -10,26 +10,27 @@ name: Module subsets
 # again from the path repositories. Only what the module requires is installed, third-party
 # libraries included, at the versions of composer.lock. Modules that are not installed are
 # deleted from src/ and tests/, so a hidden coupling fails here instead of loading quietly.
+#
+# It does not run on pull requests. The 20 module jobs would take every runner GitHub Free
+# gives the organisation (20 at once) on each pull request, and the CI and E2E jobs of the
+# other pull requests would queue behind them. A pull request runs the full suite in CI; a
+# hidden coupling shows up here after the merge to main or overnight, and a follow-up pull
+# request fixes it.
 
 on:
   push:
     branches: [main]
-  pull_request:
-    paths:
-      - 'src/**'
-      - 'config/**'
-      - 'migrations/**'
-      - 'tests/**'
-      - 'packages/**'
-      - 'composer.json'
-      - 'bin/module-subset'
-      - '.github/workflows/module-subsets.yml'
+  # Every night, so a coupling that came in through a merge shows up by the morning.
+  schedule:
+    - cron: '30 2 * * *'
+  workflow_dispatch:
 
 permissions: {}
 
+# Runs on main are never cancelled; a newer one waits for the one still going.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: false
 
 jobs:
   modules:
