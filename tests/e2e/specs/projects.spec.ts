@@ -96,14 +96,20 @@ test.describe('projects', () => {
   test('a task changes its status and priority and the activity says so', async ({ page }) => {
     await openWebsite(page);
     await page.getByRole('link', { name: 'Fix the contact form', exact: true }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Fix the contact form');
-    await page.locator('#task-status').selectOption({ label: 'Kontrola' });
-    await expect(page.locator('#task-status')).toHaveValue(/.+/);
-    await page.locator('#task-priority').selectOption({ label: 'Nízká' });
-    const activity = page.locator('[data-task-history]');
+    // The row opens the task in the sheet, with its URL; each property saves there in place.
+    const sheet = page.getByRole('dialog', { name: 'Fix the contact form' });
+    await expect(sheet.getByRole('heading', { level: 2, name: 'Fix the contact form' })).toBeFocused();
+    await expect(page).toHaveURL(/\/tasks\/[0-9a-f-]+$/);
+    await sheet.locator('#task-status').selectOption({ label: 'Kontrola' });
+    const activity = sheet.locator('[data-task-history]');
     await expect(activity).toContainText('Kontrola');
+    await sheet.locator('#task-priority').selectOption({ label: 'Nízká' });
     await expect(activity).toContainText('Nízká');
-    await page.reload();
+    // Closing it loads the list again with the change.
+    await sheet.getByRole('button', { name: 'Zavřít' }).click();
+    await expect(page.locator('[data-section] tbody tr').filter({ hasText: 'Fix the contact form' })).toContainText('Kontrola');
+    await page.getByRole('link', { name: 'Fix the contact form', exact: true }).click();
+    await sheet.getByRole('link', { name: 'Otevřít jako stránku' }).click();
     await expect(page.locator('#task-status option:checked')).toHaveText('Kontrola');
     await expect(page.locator('#task-priority option:checked')).toHaveText('Nízká');
   });
@@ -248,6 +254,7 @@ test.describe('projects', () => {
     await page.getByRole('dialog').getByLabel('Název').fill(title);
     await page.getByRole('dialog').getByRole('button', { name: 'Přidat úkol' }).click();
     await page.locator('[data-section] tbody tr').filter({ hasText: title }).getByRole('link', { name: title, exact: true }).click();
+    await page.getByRole('dialog').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     const heading = page.getByRole('heading', { level: 1 });
     await expect(heading).toHaveText(title);
     // The header has no Edit: the title is changed where it is read.
@@ -303,6 +310,7 @@ test.describe('projects', () => {
     await page.getByRole('dialog').getByLabel('Název').fill(title);
     await page.getByRole('dialog').getByRole('button', { name: 'Přidat úkol' }).click();
     await page.locator('[data-section] tbody tr').filter({ hasText: title }).getByRole('link', { name: title, exact: true }).click();
+    await page.getByRole('dialog').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     const heading = page.getByRole('heading', { level: 1 });
     await expect(heading).toHaveText(title);
 
@@ -329,6 +337,7 @@ test.describe('projects', () => {
     await page.getByRole('dialog').getByLabel('Název').fill(title);
     await page.getByRole('dialog').getByRole('button', { name: 'Přidat úkol' }).click();
     await page.locator('[data-section] tbody tr').filter({ hasText: title }).getByRole('link', { name: title, exact: true }).click();
+    await page.getByRole('dialog').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(title);
 
     const labels = page.locator('[data-task-labels]');

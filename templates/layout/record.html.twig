@@ -6,6 +6,8 @@
     page, for a reload, a new tab, a bookmark or no JavaScript. The page fills the blocks of
     layout/app.html.twig once ("title", "actions", "content") and the overlay shows them as its
     title, the row of actions under it and its body. Optional: record_fields (true for a form),
+    record_title_edit (a sheet: the title changed where it is read, Ui:Sheet "titleEdit"),
+    record_reload (a sheet: the list under it loads again once it closes, as sheet_reload),
     record_size (a dialog: sm, md, lg).
 #}
 {% extends overlay() is not null and overlay() == record_overlay|default('sheet') ? 'layout/_record_overlay.html.twig' : 'layout/app.html.twig' %}

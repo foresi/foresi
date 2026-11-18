@@ -39,6 +39,11 @@ A record picked from a list opens in place, over the list, never as a jump to an
 - Inside a record, a link in a `data-in-place` area (Edit, Cancel, the tabs) and the answer of a form
   load in the same host. A form that saves answers with a redirect, as on the page; the host loads its
   target in place and loads the list under it again once it closes.
+- A record whose title changes where it is read (a task) gives `record_title_edit`, the `titleEdit`
+  of its page header: the sheet's header shows the same inline field, and the focus starts on the title.
+- The same record loaded again after a change (a property saved, a comment added) keeps where its body
+  was scrolled and the focus on the field that changed. A dialog that finishes over a record in the
+  sheet (log time, a new subtask, sharing) shows what comes next in the sheet instead of a page.
 
 ## Sources
 

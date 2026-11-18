@@ -83,7 +83,11 @@ test.describe('the inbox', () => {
     await page.goto('/notifications');
     const before = await unreadCount(page);
     await row(page, 'Set up the domain').getByRole('link', { name: 'Set up the domain', exact: true }).click();
-    await expect(page.locator('main h1')).toHaveText('Set up the domain');
+    // The task opens in the sheet; once it closes, the inbox loads again with the row read.
+    const sheet = page.getByRole('dialog', { name: 'Set up the domain' });
+    await expect(sheet).toBeVisible();
+    await sheet.getByRole('button', { name: 'Zavřít' }).click();
+    await expect(row(page, 'Set up the domain').locator('[data-unread]')).toHaveAttribute('data-unread', 'false');
     expect(await unreadCount(page)).toBe(before - 1);
     await page.goto('/notifications');
     await expect(row(page, 'Set up the domain').locator('[data-unread]')).toHaveAttribute('data-unread', 'false');
@@ -151,7 +155,9 @@ test.describe('the guest', () => {
     await expect(row(page, 'Sign the lease')).toContainText('Projects Example: Úkol sdílen s vámi');
     await expect(page.locator('#sidebar [data-nav-group="main"]').getByRole('link')).toHaveText([/Sdíleno se mnou/, /Oznámení/]);
     await row(page, 'Sign the lease').getByRole('link', { name: 'Sign the lease', exact: true }).click();
-    await expect(page.locator('main h1')).toHaveText('Sign the lease');
+    const sheet = page.getByRole('dialog', { name: 'Sign the lease' });
+    await expect(sheet).toBeVisible();
+    await sheet.getByRole('button', { name: 'Zavřít' }).click();
     await expect(badge(page)).toHaveCount(0);
   });
 });

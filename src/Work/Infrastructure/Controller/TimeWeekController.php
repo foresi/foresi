@@ -143,6 +143,8 @@ final class TimeWeekController extends AbstractController
                 'title' => $entry->taskTitle ?? $entry->projectName,
                 'href' => null === $entry->taskId ? $this->generateUrl(ProjectController::PROJECT_ROUTE, ['id' => $entry->projectId]) : $this->generateUrl(TaskController::ROUTE, ['id' => $entry->taskId]),
                 'project' => null === $entry->taskId ? null : $entry->projectName,
+                // A task opens in the sheet; a project is a place of its own, its page.
+                'sheet' => null !== $entry->taskId,
                 'duration' => null === $entry->minutes ? null : $this->format->duration($entry->minutes),
                 'note' => $entry->note,
                 'billable' => $entry->billable,

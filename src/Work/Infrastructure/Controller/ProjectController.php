@@ -17,6 +17,7 @@ use Foresi\Identity\Application\StaffCheck;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\PartyRow;
+use Foresi\Ui\Component\DataTable;
 use Foresi\Work\Application\DueBucket;
 use Foresi\Work\Application\LabelBadge;
 use Foresi\Work\Application\ManageProjects;
@@ -648,6 +649,7 @@ final class ProjectController extends AbstractController
         return [
             'id' => $task->id,
             'href' => $this->generateUrl(TaskController::ROUTE, ['id' => $task->id]),
+            'opens' => DataTable::OPENS_SHEET,
             'label' => $task->title,
             'child' => $child,
             // A phone hides the columns of who and when: the line under the title says them, and lets a long title wrap.

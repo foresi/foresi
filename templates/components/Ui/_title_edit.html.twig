@@ -1,0 +1,24 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A title changed where it is read (`te`, the view of PageHeader::titleEdit()): the heading (`tag`,
+    with optional `headingAttrs`), the pencil and the form that takes their place. Ui:PageHeader and
+    the header of a record in a sheet share it.
+    The read view and the field share the frame and the padding, so the text stays where it is when it turns
+    into the field; the frame shows on hover, as Ui:InlineEdit's trigger does (Atlassian, Inline edit).
+#}
+{% set frame = 'rounded-option border px-1.5 py-0.5 text-title font-semibold text-ink' %}
+{% set editLabel = 'ui.inline_field.edit'|trans({label: te.label|lower}) %}
+<div class="flex min-w-0 max-w-full items-center gap-1" data-controller="inline-field" data-page-title-edit>
+    <{{ tag }}{% if headingAttrs is defined %} {{ headingAttrs|raw }}{% endif %} class="-ml-[7px] m-0 min-w-0 max-w-[60ch] cursor-text truncate border-transparent transition-colors hover:border-control-line {{ frame }}" title="{{ title }}" data-inline-field-target="read" data-action="click->inline-field#open"{% if te.open %} hidden{% endif %}><span data-inline-field-target="text">{{ title }}</span></{{ tag }}>
+    <twig:Ui:IconButton :href="te.href" icon="pencil" variant="ghost" size="sm" :label="editLabel" :hidden="te.open" data-inline-field-target="pencil" data-action="inline-field#open" data-page-title-pencil />
+    <form method="post" action="{{ te.action }}" class="-ml-[7px] grid w-[60ch] max-w-full gap-1.5" novalidate data-inline-field-target="form" data-action="submit->inline-field#submit keydown->inline-field#keydown focusout->inline-field#focusout" data-page-title-form{% if not te.open %} hidden{% endif %}>
+        <input type="hidden" name="_token" value="{{ te.token }}">
+        <label for="{{ te.id }}" class="sr-only">{{ te.label }}</label>
+        <div class="flex min-w-0 items-center gap-1.5">
+            <input type="text" id="{{ te.id }}" name="{{ te.name }}" value="{{ te.value }}" required autocomplete="off"{% if te.maxlength %} maxlength="{{ te.maxlength }}"{% endif %}{% if te.error %} aria-invalid="true" aria-describedby="{{ te.id }}-error"{% elseif te.open %} autofocus{% endif %} class="min-w-0 flex-1 border-control-line bg-white {{ frame }} {{ constant('Foresi\\Ui\\Component\\Style::FIELD_FOCUS') }}" data-inline-field-target="field">
+            <twig:Ui:IconButton type="submit" icon="check" variant="primary" size="sm" :label="'ui.inline_field.save'|trans" data-page-title-save />
+            <twig:Ui:IconButton :href="te.cancelHref" icon="x" size="sm" :label="'ui.inline_field.cancel'|trans" data-action="inline-field#cancel" data-page-title-cancel />
+        </div>
+        {% if te.error %}<p id="{{ te.id }}-error" role="alert" class="m-0 text-small text-badge-red-text">{{ te.error }}</p>{% endif %}
+    </form>
+</div>
