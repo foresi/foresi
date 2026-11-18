@@ -4,9 +4,14 @@
     the right (under it on a narrower screen), the amounts in CZK and the history below. Recording,
     saving, the trash, a restore and deleting a draft sit in the page header; the trash asks for a
     reason in a dialog, deleting a draft asks first. A save that went through tells its warnings, which
-    never stop it; a refusal is told next to its field and in the summary over the form.
+    never stop it; a refusal is told next to its field and in the summary over the form. A row of the
+    list opens it in the side sheet (layout/record.html.twig, docs/design/overlays.md); a document
+    with lines is a form all the time, so the sheet shows it full screen.
 #}
-{% extends 'layout/app.html.twig' %}
+{% extends 'layout/record.html.twig' %}
+
+{% set record_fields = true %}
+{% set record_full = true %}
 
 {% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'purchasing.list.title'|trans, href: path('app_purchasing')}, {label: title}] %}
 {% set form_invalid = errors is not empty %}
@@ -18,7 +23,7 @@
 {% block actions %}
     {% if editable %}
         <twig:Ui:MoreActions menuId="document-actions">
-            <twig:block name="buttons">{% if draft %}<twig:Ui:Button type="submit" form="received-document-form" name="_action" value="save" data-purchasing-save>{{ 'purchasing.save'|trans }}</twig:Ui:Button>{% endif %}</twig:block>
+            <twig:block name="buttons">{% if draft %}<twig:Ui:Button :size="record_action_size" type="submit" form="received-document-form" name="_action" value="save" data-purchasing-save>{{ 'purchasing.save'|trans }}</twig:Ui:Button>{% endif %}</twig:block>
             <twig:block name="phone">{% if draft %}<twig:Ui:MenuItem type="submit" form="received-document-form" name="_action" value="save">{{ 'purchasing.save'|trans }}</twig:Ui:MenuItem>{% endif %}</twig:block>
             <twig:block name="last">
                 <twig:Ui:MenuItem icon="trash-2" :href="path('app_purchasing_trash', {id: document.id})" data-dialog aria-haspopup="dialog" data-purchasing-trash>{{ 'purchasing.trash.open'|trans }}</twig:Ui:MenuItem>
@@ -33,14 +38,14 @@
             </twig:block>
         </twig:Ui:MoreActions>
         {% if draft %}
-            <twig:Ui:Button type="submit" form="received-document-form" name="_action" value="record" variant="primary" icon="circle-check" data-purchasing-record>{{ 'purchasing.record'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button :size="record_action_size" type="submit" form="received-document-form" name="_action" value="record" variant="primary" icon="circle-check" data-purchasing-record>{{ 'purchasing.record'|trans }}</twig:Ui:Button>
         {% else %}
-            <twig:Ui:Button type="submit" form="received-document-form" name="_action" value="save" variant="primary" data-purchasing-save>{{ 'purchasing.save'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button :size="record_action_size" type="submit" form="received-document-form" name="_action" value="save" variant="primary" data-purchasing-save>{{ 'purchasing.save'|trans }}</twig:Ui:Button>
         {% endif %}
     {% else %}
         <form method="post" action="{{ path('app_purchasing_restore', {id: document.id}) }}" data-purchasing-restore>
             <input type="hidden" name="_token" value="{{ token }}">
-            <twig:Ui:Button type="submit" icon="archive-restore" variant="primary">{{ 'purchasing.restore'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button :size="record_action_size" type="submit" icon="archive-restore" variant="primary">{{ 'purchasing.restore'|trans }}</twig:Ui:Button>
         </form>
     {% endif %}
 {% endblock %}
