@@ -173,7 +173,11 @@ final class DesignTokensTest extends TestCase
     {
         $root = dirname(__DIR__, 2);
         $files = [];
-        foreach (['templates', 'src/Ui', 'assets/controllers'] as $dir) {
+        $modules = array_map(
+            static fn (string $directory): string => substr($directory, strlen($root) + 1),
+            [...glob($root.'/src/*/templates', \GLOB_ONLYDIR) ?: [], ...glob($root.'/src/*/assets/controllers', \GLOB_ONLYDIR) ?: []],
+        );
+        foreach (['templates', 'src/Ui', 'assets/controllers', ...$modules] as $dir) {
             $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root.'/'.$dir, \FilesystemIterator::SKIP_DOTS));
             foreach ($iterator as $file) {
                 self::assertInstanceOf(\SplFileInfo::class, $file);

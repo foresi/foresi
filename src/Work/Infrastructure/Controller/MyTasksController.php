@@ -57,7 +57,7 @@ final class MyTasksController extends AbstractController
         $url = $this->generateUrl(self::ROUTE);
         $filter = '' === $client ? [] : ['client' => $client];
 
-        return $this->render('work/my_tasks/index.html.twig', [
+        return $this->render('@Work/my_tasks/index.html.twig', [
             'watching' => $watching,
             'tabs' => [
                 ['label' => $this->translator->trans('work.my_tasks.tab.assigned'), 'href' => $url.$this->query($filter), 'active' => !$watching],

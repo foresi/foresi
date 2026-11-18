@@ -344,7 +344,7 @@ final class FirmMailController extends AbstractController
             ], DocumentLanguage::cases());
         }
 
-        return $this->render('invoicing/firm/mail.html.twig', [
+        return $this->render('@Invoicing/firm/mail.html.twig', [
             'firm' => $firm,
             'tab' => $tab,
             'tabs' => [

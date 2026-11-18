@@ -66,7 +66,7 @@ final readonly class SystemNotificationMailer implements NotificationMailer
             'unsubscribeLabel' => $this->translator->trans('work.notification_mail.unsubscribe.'.$kind->value, [], null, $locale),
         ];
         $subject = $this->translator->trans('work.notification_mail.subject.'.$kind->value, ['task' => $task->title()], null, $locale);
-        $this->send($recipient, $locale, $subject, 'email/work/notification', $context, $unsubscribe);
+        $this->send($recipient, $locale, $subject, '@Work/email/notification', $context, $unsubscribe);
     }
 
     public function digest(Membership $recipient, array $notifications): void
@@ -94,7 +94,7 @@ final readonly class SystemNotificationMailer implements NotificationMailer
             'unsubscribeLabel' => $this->translator->trans('work.notification_mail.unsubscribe.digest', [], null, $locale),
         ];
         $subject = $this->translator->trans('work.notification_mail.subject.digest', ['count' => \count($notifications)], null, $locale);
-        $this->send($recipient, $locale, $subject, 'email/work/digest', $context, $unsubscribe);
+        $this->send($recipient, $locale, $subject, '@Work/email/digest', $context, $unsubscribe);
     }
 
     /**

@@ -138,14 +138,14 @@ final class RecurringFormController extends AbstractController
             default => $this->defaults->firmFor($this->actor->userId()),
         };
         if (!$firm instanceof LegalEntity) {
-            return $this->render('invoicing/recurring/form.html.twig', ['blocked' => 'no_firm']);
+            return $this->render('@Invoicing/recurring/form.html.twig', ['blocked' => 'no_firm']);
         }
 
         try {
             $context = $this->context($firm);
             $values = $source instanceof Invoice ? $this->recurringValues->ofInvoice($source, $this->today()) : $this->recurringValues->ofNew($firm, $this->today());
         } catch (UnsupportedCountry) {
-            return $this->render('invoicing/recurring/form.html.twig', ['blocked' => 'country']);
+            return $this->render('@Invoicing/recurring/form.html.twig', ['blocked' => 'country']);
         }
 
         return $this->form($context, null, $values, [], [], $this->tokens->issue(), 0, Response::HTTP_OK);
@@ -159,7 +159,7 @@ final class RecurringFormController extends AbstractController
         try {
             $context = $this->context($template->firm());
         } catch (UnsupportedCountry) {
-            return $this->render('invoicing/recurring/form.html.twig', ['blocked' => 'country']);
+            return $this->render('@Invoicing/recurring/form.html.twig', ['blocked' => 'country']);
         }
         if ($request->isMethod('POST')) {
             return $this->submitEdit($template, $context, $request);
@@ -189,7 +189,7 @@ final class RecurringFormController extends AbstractController
         $this->withRecipients($request, $recipients);
         $preview = $this->previewOf($this->reader->read($request, $context->currency, $this->today()), $template);
 
-        return $this->render('invoicing/recurring/_live.html.twig', [
+        return $this->render('@Invoicing/recurring/_live.html.twig', [
             'preview' => $preview,
             'recipients' => $recipients,
         ], new Response(status: [] === $preview['problems'] ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
@@ -209,7 +209,7 @@ final class RecurringFormController extends AbstractController
         try {
             $context = $this->context($this->firm($request->request->getString('firmId')));
         } catch (UnsupportedCountry) {
-            return $this->render('invoicing/recurring/form.html.twig', ['blocked' => 'country']);
+            return $this->render('@Invoicing/recurring/form.html.twig', ['blocked' => 'country']);
         }
 
         return $this->submit($request, $context, null, $token);
@@ -233,7 +233,7 @@ final class RecurringFormController extends AbstractController
 
     private function cutOff(string $retry): Response
     {
-        return $this->render('invoicing/recurring/form.html.twig', ['blocked' => 'cut_off', 'retry' => $retry], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
+        return $this->render('@Invoicing/recurring/form.html.twig', ['blocked' => 'cut_off', 'retry' => $retry], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
     private function submit(Request $request, InvoiceFormContext $context, ?RecurringInvoice $template, string $token): Response
@@ -472,7 +472,7 @@ final class RecurringFormController extends AbstractController
         $recipients = $this->recipients($firm, $previewRequest->request->getString('customerId'), $template);
         $this->withRecipients($previewRequest, $recipients);
 
-        return $this->render('invoicing/recurring/form.html.twig', [
+        return $this->render('@Invoicing/recurring/form.html.twig', [
             'blocked' => null,
             'template' => $template,
             'ended' => RecurringState::Ended === $template?->state(),

@@ -101,7 +101,7 @@ final class FirmBankController extends AbstractController
         $rules = $this->pairing->for($firm);
         $url = $this->generateUrl('app_firm_bank', ['id' => $firm->id()]);
 
-        return $this->render('banking/firm/bank.html.twig', parameters: [
+        return $this->render('@Banking/firm/bank.html.twig', parameters: [
             'firm' => $firm,
             'tab' => $tab,
             'tabs' => [
@@ -243,7 +243,7 @@ final class FirmBankController extends AbstractController
         $firm = $this->firm($id);
         $stored = $this->account($firm, $account);
         if (!$request->isMethod('POST')) {
-            return $this->render('banking/firm/address.html.twig', [
+            return $this->render('@Banking/firm/address.html.twig', [
                 'firm' => $firm,
                 'account' => $this->feedView($firm, $stored, $this->feeds->ofAccount($stored->id())),
                 'unavailable' => $this->unavailable(),
@@ -298,7 +298,7 @@ final class FirmBankController extends AbstractController
     {
         $locked = $account instanceof FirmBankAccount && $this->usage->hasMovements($account->id());
 
-        return $this->render('banking/firm/account.html.twig', [
+        return $this->render('@Banking/firm/account.html.twig', [
             'firm' => $firm,
             'account' => $account,
             'values' => $values,

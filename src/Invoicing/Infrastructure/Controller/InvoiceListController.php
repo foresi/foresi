@@ -144,7 +144,7 @@ final class InvoiceListController extends AbstractController
             array_filter($page->rows, static fn (InvoiceRow $row): bool => $row->overdue),
         )));
 
-        return $this->render('invoicing/index.html.twig', [
+        return $this->render('@Invoicing/index.html.twig', [
             'firstRun' => [] === $page->firms,
             'page' => $page,
             'tab' => $tab,
@@ -333,7 +333,7 @@ final class InvoiceListController extends AbstractController
         $date = $this->translator->trans('format.date');
         $columns = array_map(fn (string $key): array => ['key' => $key, 'label' => $this->translator->trans('advance.missing.column.'.$key), 'align' => \in_array($key, ['received', 'daysLeft'], true) ? 'right' : 'left', 'phone' => \in_array($key, ['number', 'daysLeft'], true)], ['number', 'customer', 'receivedOn', 'received', 'deadline', 'daysLeft']);
 
-        return $this->render('invoicing/missing_tax_documents.html.twig', [
+        return $this->render('@Invoicing/missing_tax_documents.html.twig', [
             ...$this->ownListTabs(DocumentKind::Advance, 'app_advances_missing'),
             'columns' => $columns,
             'rows' => array_map(fn (MissingTaxDocument $row): array => [
@@ -371,7 +371,7 @@ final class InvoiceListController extends AbstractController
         $date = $this->translator->trans('format.date');
         $columns = array_map(fn (string $key): array => ['key' => $key, 'label' => $this->translator->trans('tax_document.uncorrected.column.'.$key), 'align' => \in_array($key, ['amount', 'daysLeft'], true) ? 'right' : 'left', 'phone' => \in_array($key, ['number', 'daysLeft'], true)], ['number', 'customer', 'decisiveDate', 'amount', 'deadline', 'daysLeft']);
 
-        return $this->render('invoicing/uncorrected_tax_documents.html.twig', [
+        return $this->render('@Invoicing/uncorrected_tax_documents.html.twig', [
             ...$this->ownListTabs(DocumentKind::PaymentTaxDocument, 'app_tax_documents_uncorrected'),
             'columns' => $columns,
             'rows' => array_map(fn (UncorrectedTaxDocument $row): array => [
@@ -521,7 +521,7 @@ final class InvoiceListController extends AbstractController
         $timezone = $this->timezoneOf($invoice);
         $changes = array_map(fn (InvoiceHistoryEntry $entry): array => $this->timelineItem($entry, $timezone, $invoice->currency()), $detail->history);
 
-        return $this->render('invoicing/history.html.twig', [
+        return $this->render('@Invoicing/history.html.twig', [
             'invoice' => $invoice,
             'badge' => ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()],
             'timeline' => $this->inTime($changes, $this->sendItems($invoice, $timezone, InvoiceStatus::Overdue === $status)),
@@ -537,7 +537,7 @@ final class InvoiceListController extends AbstractController
 
     private function trashForm(Invoice $invoice, string $reason, ?string $error, string $return, int $status): Response
     {
-        return $this->render('invoicing/trash.html.twig', [
+        return $this->render('@Invoicing/trash.html.twig', [
             'invoice' => $invoice,
             'reason' => $reason,
             'error' => $error,

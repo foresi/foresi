@@ -104,7 +104,7 @@ final class ProjectController extends AbstractController
         $archived = self::ARCHIVED === $request->query->getString('tab');
         $url = $this->generateUrl(self::ROUTE);
 
-        return $this->render('work/projects/index.html.twig', [
+        return $this->render('@Work/projects/index.html.twig', [
             'archived' => $archived,
             'tabs' => [
                 ['label' => $this->translator->trans('work.projects.tab.active'), 'href' => $url, 'active' => !$archived],
@@ -149,7 +149,7 @@ final class ProjectController extends AbstractController
             }
         }
 
-        return $this->render('work/projects/new.html.twig', [
+        return $this->render('@Work/projects/new.html.twig', [
             'values' => $values,
             'errors' => $errors,
         ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
@@ -188,7 +188,7 @@ final class ProjectController extends AbstractController
             $sections[] = $this->sectionView($section, $seeds, $edits);
         }
 
-        return $this->render('work/projects/show.html.twig', [
+        return $this->render('@Work/projects/show.html.twig', [
             'project' => $list->project,
             'sections' => $sections,
             'query' => $query,
@@ -223,7 +223,7 @@ final class ProjectController extends AbstractController
         $edits = $this->editsOf($board->project, array_merge(...array_map(static fn (StatusTasks $column): array => $column->tasks, $board->columns)), $request);
         $statuses = array_map(static fn (StatusTasks $column): array => ['id' => $column->id, 'name' => $column->name], $board->columns);
 
-        return $this->render('work/projects/board.html.twig', [
+        return $this->render('@Work/projects/board.html.twig', [
             'project' => $board->project,
             'query' => ['responsible' => $query['responsible'], 'due' => $query['due']],
             'filtered' => '' !== $query['responsible'] || '' !== $query['due'],
@@ -258,7 +258,7 @@ final class ProjectController extends AbstractController
         $this->denyUnlessStaff();
         $trash = $this->queries->trash($id) ?? throw new NotFoundHttpException();
 
-        return $this->render('work/projects/trash.html.twig', [
+        return $this->render('@Work/projects/trash.html.twig', [
             'project' => $trash->project,
             'days' => PurgeDeletedTasks::DAYS,
             'columns' => [
@@ -388,7 +388,7 @@ final class ProjectController extends AbstractController
             }
         }
 
-        return $this->render('work/projects/task_new.html.twig', [
+        return $this->render('@Work/projects/task_new.html.twig', [
             'project' => $list->project,
             'values' => $values,
             'errors' => $errors,

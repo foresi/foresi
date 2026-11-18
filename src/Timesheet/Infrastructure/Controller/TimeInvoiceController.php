@@ -74,7 +74,7 @@ final class TimeInvoiceController extends AbstractController
             $firms[$firm->id()] = $firm->name();
         }
         if ([] === $firms) {
-            return $this->render('timesheet/invoice.html.twig', ['blocked' => 'no_firm']);
+            return $this->render('@Timesheet/invoice.html.twig', ['blocked' => 'no_firm']);
         }
         $posted = $request->isMethod('POST');
         if ($posted && !$this->isCsrfTokenValid(self::TOKEN, $request->request->getString('_token'))) {
@@ -133,7 +133,7 @@ final class TimeInvoiceController extends AbstractController
             }
         }
 
-        return $this->render('timesheet/invoice.html.twig', [
+        return $this->render('@Timesheet/invoice.html.twig', [
             'blocked' => null,
             'action' => $this->generateUrl(self::ROUTE, '' === $project ? [] : ['project' => $project]),
             // Back to the project the dialog was opened from, else to the time report.

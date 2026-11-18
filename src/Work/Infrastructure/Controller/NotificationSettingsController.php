@@ -57,7 +57,7 @@ final class NotificationSettingsController extends AbstractController
         }
         $preference = $this->refused($this->preferences->mine(...));
 
-        return $this->render('work/notifications/settings.html.twig', [
+        return $this->render('@Work/notifications/settings.html.twig', [
             'configured' => $this->mailer->isConfigured(),
             'events' => array_map(fn (NotificationKind $kind): array => [
                 'kind' => $kind->value,
