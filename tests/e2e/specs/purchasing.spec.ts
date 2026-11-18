@@ -3,6 +3,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { PROJECTS_GUEST_STATE, PURCHASING_OWNER_STATE } from '../support/session';
+import { openMoreActions } from '../support/header';
 
 // The signed-in owner of "Example Purchasing" in tests/e2e/seed.php: the VAT payer "Example Buyer
 // s.r.o.", a supplier in the United States ("Example Cloud Inc.") and one in Czechia ("Example Office
@@ -66,7 +67,8 @@ test.describe('received documents', () => {
     // The original beside its values, nothing recorded and no number yet.
     await expect(page.locator('[data-purchasing-preview="pdf"]')).toBeVisible();
     await expect(page.locator('main header').getByRole('button', { name: 'Zaevidovat' })).toBeVisible();
-    await expect(page.locator('main header').getByRole('button', { name: 'Smazat koncept' })).toBeVisible();
+    await expect((await openMoreActions(page)).getByRole('menuitem', { name: 'Smazat koncept' })).toBeVisible();
+    await page.keyboard.press('Escape');
     await expectNoSeriousViolations(page);
   });
 
@@ -151,7 +153,7 @@ test.describe('received documents', () => {
     await page.locator('tbody tr').filter({ hasText: 'FV-7741' }).getByRole('link', { name: 'R20260002' }).click();
     await expect(page.locator('main h1')).toHaveText('R20260002');
 
-    await page.locator('main header').getByRole('link', { name: 'Do koše' }).click();
+    await (await openMoreActions(page)).getByRole('menuitem', { name: 'Do koše' }).click();
     const dialog = page.getByRole('dialog', { name: 'Přesunout R20260002 do koše' });
     await dialog.locator('#trash-reason').fill('Nahráno omylem');
     await dialog.getByRole('button', { name: 'Přesunout do koše' }).click();

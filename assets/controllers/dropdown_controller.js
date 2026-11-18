@@ -16,8 +16,10 @@ export default class extends Controller {
     static targets = ['button', 'menu'];
 
     // When true, the open menu is placed with fixed positioning next to the
-    // button, so a scrolling container (the sidebar) cannot clip it.
-    static values = { float: Boolean };
+    // button, so a scrolling container (the sidebar) cannot clip it. "below"
+    // keeps a floating menu under its button: a page header's menu, which
+    // must not open over the sticky top bar.
+    static values = { float: Boolean, below: Boolean };
 
     connect() {
         this.onDocumentClick = (event) => {
@@ -77,7 +79,7 @@ export default class extends Controller {
         const box = this.menuTarget.getBoundingClientRect();
         style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - box.width - 8))}px`;
         // Above the button, unless the top of the window would cut it: the first row of a table.
-        if (rect.top >= box.height + 16) {
+        if (!this.belowValue && rect.top >= box.height + 16) {
             style.top = 'auto';
             style.bottom = `${window.innerHeight - rect.top + 8}px`;
         } else {

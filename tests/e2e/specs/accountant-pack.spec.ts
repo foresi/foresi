@@ -3,6 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { signIn } from '../support/session';
+import { openMoreActions } from '../support/header';
 
 const DESKTOP = { width: 1440, height: 960 };
 // The world of this spec in tests/e2e/seed.php: in last month invoices {year}0001 of 1 210 Kč
@@ -144,9 +145,8 @@ test.describe.serial('the accountant pack', () => {
 
   test('the list downloads as CSV, named after its kind and month', async ({ page }) => {
     await page.goto(`/invoices?month=${lastMonth}`);
-    const menu = page.locator('#list-export-menu');
-    await page.getByRole('button', { name: 'Exportovat', exact: true }).click();
-    await expect(menu.getByRole('menuitem')).toHaveText(['Exportovat jako CSV', 'Exportovat jako Excel (XLSX)']);
+    const menu = await openMoreActions(page);
+    await expect(menu.getByRole('menuitem')).toHaveText(['Exportovat jako CSV', 'Exportovat jako Excel (XLSX)', 'Pro účetní']);
 
     const downloading = page.waitForEvent('download');
     await menu.getByRole('menuitem', { name: 'Exportovat jako CSV' }).click();

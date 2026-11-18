@@ -237,7 +237,8 @@ final class WebhookEndpointControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $header = $crawler->filter('[data-page-actions]');
         self::assertCount(1, $header->filter('a[href="/settings/webhooks/'.$id.'/edit"][data-dialog]'));
-        self::assertCount(1, $header->filter('form[action="/settings/webhooks/'.$id.'/ping"]'));
+        // Ping is a button on wider screens and the same action in the menu on a phone.
+        self::assertCount(2, $header->filter('form[action="/settings/webhooks/'.$id.'/ping"]'));
         self::assertCount(1, $header->filter('a[href="/settings/webhooks/'.$id.'/rotate"][data-dialog]'));
         self::assertCount(1, $header->filter('a[href="/settings/webhooks/'.$id.'/secret"][data-dialog]'));
         self::assertCount(1, $header->filter('form[action="/settings/webhooks/'.$id.'/disable"]'));

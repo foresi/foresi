@@ -168,6 +168,8 @@ ui:
     page: 'Page {page}'
   stepper:
     done: done
+  page_header:
+    more_actions: More actions
   breadcrumb:
     label: Breadcrumb
   palette:

@@ -6,24 +6,24 @@
 {% block title %}{{ 'party.title'|trans }}{% endblock %}
 
 {% block actions %}
-    <twig:Ui:Button icon="upload" :href="path('app_import_new', {target: 'party'})">{{ 'party.header.import'|trans }}</twig:Ui:Button>
-    {% if not firstRun %}
-        <form method="post" action="{{ path('app_contacts_export') }}" data-turbo="false">
-            <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Party\\Infrastructure\\Controller\\PartyController::ACTION_TOKEN')) }}">
-            <input type="hidden" name="scope" value="view">
-            <input type="hidden" name="view" value="{{ exportQuery.view }}">
-            <input type="hidden" name="q" value="{{ exportQuery.q }}">
-            {% if exportQuery.import is defined %}
-                <input type="hidden" name="import" value="{{ exportQuery.import }}">
-                <input type="hidden" name="outcome" value="{{ exportQuery.outcome }}">
-            {% endif %}
-            <twig:Ui:Menu id="export-menu" buttonId="export-button" :label="'party.header.export'|trans" icon="download" chevron="down" menuClass="min-w-full">
-                <twig:Ui:MenuItem type="submit" name="format" value="csv">{{ 'party.header.export_csv'|trans }}</twig:Ui:MenuItem>
-                <twig:Ui:MenuItem type="submit" name="format" value="xlsx">{{ 'party.header.export_xlsx'|trans }}</twig:Ui:MenuItem>
-            </twig:Ui:Menu>
-        </form>
-        <twig:Ui:Button variant="primary" icon="plus" :href="path('app_contact_new', {for: constant('Foresi\\Party\\Infrastructure\\Controller\\PartyFormController::FOR_CONTACTS')})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-contact-new>{{ 'party.new'|trans }}</twig:Ui:Button>
-    {% endif %}
+    <twig:Ui:MoreActions menuId="contacts-actions">
+        {% if not firstRun %}
+            <form method="post" action="{{ path('app_contacts_export') }}" data-turbo="false" role="none">
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Party\\Infrastructure\\Controller\\PartyController::ACTION_TOKEN')) }}">
+                <input type="hidden" name="scope" value="view">
+                <input type="hidden" name="view" value="{{ exportQuery.view }}">
+                <input type="hidden" name="q" value="{{ exportQuery.q }}">
+                {% if exportQuery.import is defined %}
+                    <input type="hidden" name="import" value="{{ exportQuery.import }}">
+                    <input type="hidden" name="outcome" value="{{ exportQuery.outcome }}">
+                {% endif %}
+                <twig:Ui:MenuItem type="submit" name="format" value="csv" icon="download">{{ 'party.header.export_csv'|trans }}</twig:Ui:MenuItem>
+                <twig:Ui:MenuItem type="submit" name="format" value="xlsx" icon="download">{{ 'party.header.export_xlsx'|trans }}</twig:Ui:MenuItem>
+            </form>
+        {% endif %}
+        <twig:Ui:MenuItem icon="upload" :href="path('app_import_new', {target: 'party'})">{{ 'party.header.import'|trans }}</twig:Ui:MenuItem>
+    </twig:Ui:MoreActions>
+    {% if not firstRun %}<twig:Ui:Button variant="primary" icon="plus" :href="path('app_contact_new', {for: constant('Foresi\\Party\\Infrastructure\\Controller\\PartyFormController::FOR_CONTACTS')})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-contact-new>{{ 'party.new'|trans }}</twig:Ui:Button>{% endif %}
 {% endblock %}
 
 {% block content %}

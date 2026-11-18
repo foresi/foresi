@@ -170,7 +170,7 @@ final class GuestWorkTest extends WebTestCase
         self::assertStringNotContainsString('Pack the boxes', $crawler->filter('main')->text());
         // No section to move it to: the guest sees none of the project.
         self::assertCount(0, $crawler->filter('[data-task-property="section"]'));
-        self::assertCount(0, $crawler->filter('[data-task-share], [data-task-menu]'));
+        self::assertCount(0, $crawler->filter('[data-task-share], [data-task-delete]'));
         // It may be given to the guest, who sees it, and to the people of the organisation.
         self::assertSame(['Nobody', 'Example Company', 'Guest Example'], $crawler->filter('#task-responsible option')->each(static fn (Crawler $option): string => trim($option->text())));
     }

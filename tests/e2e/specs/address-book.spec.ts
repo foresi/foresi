@@ -3,6 +3,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { expectRowControlsAligned } from '../support/layout';
 import { EMPTY_OWNER_STATE, OWNER_STATE } from '../support/session';
+import { openMoreActions } from '../support/header';
 
 test.use({ storageState: OWNER_STATE });
 
@@ -56,10 +57,9 @@ test.describe('list, search and views', () => {
 
   test('offers the export as CSV or Excel from a menu and downloads the file', async ({ page }) => {
     await page.goto('/contacts');
-    const menu = page.getByRole('menu');
-    await expect(menu).toBeHidden();
-    await page.getByRole('button', { name: 'Exportovat' }).click();
-    await expect(menu.getByRole('menuitem')).toHaveText(['Exportovat jako CSV', 'Exportovat jako Excel (XLSX)']);
+    await expect(page.getByRole('menu')).toBeHidden();
+    const menu = await openMoreActions(page);
+    await expect(menu.getByRole('menuitem')).toHaveText(['Exportovat jako CSV', 'Exportovat jako Excel (XLSX)', 'Importovat']);
 
     const download = page.waitForEvent('download');
     await menu.getByRole('menuitem', { name: /Excel/ }).click();
