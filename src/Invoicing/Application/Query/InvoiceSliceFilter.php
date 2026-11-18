@@ -10,6 +10,7 @@ namespace Foresi\Invoicing\Application\Query;
 
 use Foresi\Invoicing\Application\InvoiceFilter;
 use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Domain\Id;
 
 /**
@@ -17,7 +18,9 @@ use Foresi\Shared\Domain\Id;
  * or all, of one customer or all, in one state or any, issued within a period, both days
  * included. The trash stays out unless asked for, and then holds only what is in it. The text
  * is looked for as the list of the screens looks for it: in the number, the customer name, the
- * variable symbol and the description.
+ * variable symbol and the description. A view, a saved one or a filter sent with the request
+ * (spec D13), narrows it further: its conditions are those of the kind's list (InvoiceLists), or
+ * of the invoices' when no kind is given.
  */
 final readonly class InvoiceSliceFilter
 {
@@ -38,6 +41,7 @@ final readonly class InvoiceSliceFilter
         public ?\DateTimeImmutable $issuedFrom = null,
         public ?\DateTimeImmutable $issuedTo = null,
         public string $text = '',
+        public ?ViewFilter $view = null,
     ) {
         if (null !== $state && !\in_array($state, self::STATES, true)) {
             throw new \InvalidArgumentException(\sprintf('Unknown state "%s".', $state));

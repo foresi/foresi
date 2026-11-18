@@ -31,21 +31,26 @@ final class McpServerTest extends ApiTestCase
         'foresi_clear_expected_date',
         'foresi_create_contact',
         'foresi_create_planned_item',
+        'foresi_create_view',
         'foresi_create_webhook_endpoint',
         'foresi_delete_planned_item',
+        'foresi_delete_view',
         'foresi_delete_webhook_endpoint',
         'foresi_end_planned_item',
         'foresi_get_contact',
         'foresi_get_invoice',
         'foresi_get_payment',
         'foresi_get_received_document',
+        'foresi_get_view',
         'foresi_link_contact_person',
         'foresi_list_event_types',
         'foresi_list_events',
         'foresi_list_firms',
+        'foresi_list_lists',
         'foresi_list_modules',
         'foresi_list_planned_items',
         'foresi_list_received_document_payments',
+        'foresi_list_views',
         'foresi_list_webhook_deliveries',
         'foresi_list_webhook_endpoints',
         'foresi_mark_received_document_paid',
@@ -54,6 +59,7 @@ final class McpServerTest extends ApiTestCase
         'foresi_redeliver_webhook',
         'foresi_remove_received_document_payment',
         'foresi_restore_contact',
+        'foresi_restore_default_views',
         'foresi_rotate_webhook_secret',
         'foresi_search_contacts',
         'foresi_search_invoices',
@@ -65,6 +71,7 @@ final class McpServerTest extends ApiTestCase
         'foresi_trash_received_document',
         'foresi_unlink_contact_person',
         'foresi_update_contact',
+        'foresi_update_view',
         'foresi_update_webhook_endpoint',
         'foresi_whoami',
     ];
@@ -77,8 +84,10 @@ final class McpServerTest extends ApiTestCase
         'foresi_clear_expected_date' => false,
         'foresi_create_contact' => false,
         'foresi_create_planned_item' => false,
+        'foresi_create_view' => false,
         'foresi_create_webhook_endpoint' => false,
         'foresi_delete_planned_item' => true,
+        'foresi_delete_view' => true,
         'foresi_delete_webhook_endpoint' => true,
         'foresi_end_planned_item' => false,
         'foresi_link_contact_person' => false,
@@ -88,6 +97,7 @@ final class McpServerTest extends ApiTestCase
         'foresi_redeliver_webhook' => false,
         'foresi_remove_received_document_payment' => true,
         'foresi_restore_contact' => false,
+        'foresi_restore_default_views' => false,
         'foresi_rotate_webhook_secret' => true,
         'foresi_set_expected_date' => false,
         'foresi_set_minimum_balance' => false,
@@ -95,6 +105,7 @@ final class McpServerTest extends ApiTestCase
         'foresi_trash_received_document' => true,
         'foresi_unlink_contact_person' => false,
         'foresi_update_contact' => false,
+        'foresi_update_view' => false,
         'foresi_update_webhook_endpoint' => false,
     ];
 
@@ -163,7 +174,7 @@ final class McpServerTest extends ApiTestCase
 
         self::assertFalse($this->in($call, 'isError'));
         self::assertSame(ReadToolCall::UNTRUSTED_TEXT_NOTICE, $this->in($call, 'structuredContent', 'untrusted_text_notice'));
-        self::assertSame(['items' => $rest, 'next_cursor' => null], $this->in($call, 'structuredContent', 'data'));
+        self::assertSame(['items' => $rest, 'next_cursor' => null, 'applied_view' => null], $this->in($call, 'structuredContent', 'data'));
         self::assertSame($invoice->id(), $this->in($call, 'structuredContent', 'data', 'items', '0', 'id'));
         $text = $this->text($call, 'content', '0', 'text');
         self::assertStringStartsWith(ReadToolCall::UNTRUSTED_TEXT_NOTICE."\n\n1 document, newest first; no more match.\n\n", $text);

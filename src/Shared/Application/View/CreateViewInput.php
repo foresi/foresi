@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Shared\Application\View;
 
 use Foresi\Shared\Application\Api\Field;
+use Foresi\Shared\Application\Api\Operation;
 use Foresi\Shared\Domain\View\SavedView;
 
 /**
@@ -16,6 +17,17 @@ use Foresi\Shared\Domain\View\SavedView;
  * by AND), its sort and its columns, private to the person who makes it or
  * shared with the staff.
  */
+#[Operation(
+    name: 'views.create',
+    method: 'POST',
+    path: '/api/v1/views',
+    tool: 'foresi_create_view',
+    scope: 'views:write',
+    title: 'Create a saved view',
+    description: 'Saves a view of a list, such as "Due this week" on the invoices: filter conditions joined by AND, a sort and columns, private to you or shared with every owner and member. Find the lists, their fields, operators, values and relative date rules with foresi_list_lists, and the views a list has with foresi_list_views. List the records of a view with view_id on the search tools, such as foresi_search_invoices.',
+    status: 201,
+    response: 'SavedView',
+)]
 final readonly class CreateViewInput
 {
     /**
@@ -30,11 +42,11 @@ final readonly class CreateViewInput
         public string $name,
         #[Field('private: only you see it; shared: every owner and member sees it.', enum: ['private', 'shared'])]
         public string $visibility = 'private',
-        #[Field('The filter conditions, all of which a row meets: {field, op, value}, such as {"field": "due_date", "op": "between", "value": [{"relative": "today"}, {"relative": "next_n_days", "n": 7}]}. The fields, their operators and values are in foresi_list_lists.', items: 'object')]
+        #[Field('The filter conditions, all of which a row meets: {field, op, value}, such as {"field": "due_date", "op": "is", "value": {"relative": "next_n_days", "n": 7}}; a range is {"from": …, "to": …} with op between. The fields, their operators and values are in foresi_list_lists.', items: Field::OBJECTS)]
         public array $conditions = [],
-        #[Field('The order of the rows: {field, dir} with dir asc or desc, at most 3.', items: 'object')]
+        #[Field('The order of the rows: {field, dir} with dir asc or desc, at most 3.', items: Field::OBJECTS)]
         public array $sort = [],
-        #[Field('The columns shown, in order: column keys from foresi_list_lists, or {key, width} with the width in px; null shows the list\'s default columns.', items: 'object')]
+        #[Field('The columns shown, in order: column keys from foresi_list_lists, or {key, width} with the width in px; null shows the list\'s default columns.', items: Field::OBJECTS_OR_STRINGS)]
         public ?array $columns = null,
         #[Field('How tight the rows are; null for the list\'s default.', enum: ViewRules::DENSITIES)]
         public ?string $density = null,

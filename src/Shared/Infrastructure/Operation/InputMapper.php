@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Infrastructure\Operation;
 
+use Foresi\Shared\Application\Api\Field;
+
 /**
  * Turns what a client sent, by the names it sends them under, into the input
  * object of an operation. It checks the shape only: every field is known,
@@ -53,11 +55,13 @@ final class InputMapper
             'string' => \is_string($value),
             'int' => \is_int($value),
             'bool' => \is_bool($value),
-            default => \is_array($value) && array_is_list($value) && array_all($value, static fn (mixed $item): bool => \is_string($item)),
+            default => \is_array($value) && array_is_list($value) && array_all($value, static fn (mixed $item): bool => self::isItem($item, $field->describe?->items)),
         };
         if (!$valid) {
             throw new InvalidInput($field->wire, match ($field->type) {
-                'string' => 'must be a string.', 'int' => 'must be a whole number.', 'bool' => 'must be true or false.', default => 'must be a list of strings.',
+                'string' => 'must be a string.', 'int' => 'must be a whole number.', 'bool' => 'must be true or false.', default => match ($field->describe?->items) {
+                    Field::OBJECTS => 'must be a list of objects.', Field::OBJECTS_OR_STRINGS => 'must be a list of objects or strings.', default => 'must be a list of strings.',
+                },
             });
         }
         $longest = $field->describe?->maxLength;
@@ -74,5 +78,20 @@ final class InputMapper
         }
 
         return $value;
+    }
+
+    /**
+     * An item of a list: a string, or for a list of objects a JSON object, which
+     * arrives decoded as an array (an empty one included).
+     */
+    private static function isItem(mixed $item, ?string $items): bool
+    {
+        $object = \is_array($item) && ([] === $item || !array_is_list($item));
+
+        return match ($items) {
+            Field::OBJECTS => $object,
+            Field::OBJECTS_OR_STRINGS => $object || \is_string($item),
+            default => \is_string($item),
+        };
     }
 }

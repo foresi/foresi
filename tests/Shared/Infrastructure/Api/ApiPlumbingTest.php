@@ -132,6 +132,11 @@ final class ApiPlumbingTest extends ApiTestCase
             '/api/v1/received-documents/{documentId}/mark-paid' => ['post' => '200'],
             '/api/v1/received-documents/{documentId}/payments/{paymentId}' => ['delete' => '200'],
             '/api/v1/received-documents/{documentId}/trash' => ['post' => '200'],
+            '/api/v1/lists' => ['get' => '200'],
+            '/api/v1/views' => ['get' => '200', 'post' => '201'],
+            '/api/v1/views/{viewId}' => ['get' => '200', 'delete' => '200', 'patch' => '200'],
+            '/api/v1/views/{viewId}/count' => ['get' => '200'],
+            '/api/v1/views/restore-defaults' => ['post' => '200'],
         ];
         // The document follows the order of the routes, which follows the order the modules load in.
         $expected = array_keys($operations);
@@ -153,7 +158,7 @@ final class ApiPlumbingTest extends ApiTestCase
         }
         $parameters = $this->at('paths', '/api/v1/invoices', 'get', 'parameters');
         self::assertIsArray($parameters);
-        self::assertSame(['kind', 'firm_id', 'customer_id', 'state', 'trashed', 'issued_from', 'issued_to', 'q', 'limit', 'cursor'], array_column($parameters, 'name'));
+        self::assertSame(['kind', 'firm_id', 'customer_id', 'state', 'trashed', 'issued_from', 'issued_to', 'q', 'limit', 'cursor', 'view', 'filter'], array_column($parameters, 'name'));
         self::assertSame('#/components/schemas/InvoicePage', $this->at('paths', '/api/v1/invoices', 'get', 'responses', '200', 'content', 'application/json', 'schema', '$ref'));
         $this->at('components', 'schemas', 'InvoiceDetail');
     }

@@ -65,4 +65,14 @@ final readonly class InvoiceList
 
         return $this->queries->slice($filter, $afterId, $limit);
     }
+
+    /**
+     * @throws InvoicingNotAllowed for anyone but the owners and members of the organisation
+     */
+    public function count(InvoiceSliceFilter $filter): int
+    {
+        $this->access->denyUnlessStaff();
+
+        return $this->queries->count($filter);
+    }
 }

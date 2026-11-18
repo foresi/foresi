@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Infrastructure\Operation;
 
-use Foresi\Shared\Application\RefusalKind;
 use Foresi\Shared\Application\Refused;
 use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
 use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
@@ -64,7 +63,7 @@ final readonly class OperationTool implements WriteTool
         try {
             $output = $this->runner->run($this->definition, $arguments);
         } catch (Refused $refused) {
-            throw RefusalKind::Invalid === $refused->kind() ? new ToolRefusal(ToolRefusal::INVALID_ARGUMENT, $refused->getMessage(), ['parameter' => null === $refused->field() ? null : OperationField::wireName($refused->field()), 'reason' => $refused->reason()] + $refused->details()) : new ToolRefusal($refused->reason(), $refused->getMessage(), $refused->details());
+            throw ToolRefusal::of($refused);
         }
 
         return new ToolOutput($output->data, $output->summary);
