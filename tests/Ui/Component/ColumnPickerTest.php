@@ -8,12 +8,27 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Ui\Component;
 
+use Foresi\Ui\Component\ColumnPicker;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\UX\TwigComponent\Test\InteractsWithTwigComponents;
 
 final class ColumnPickerTest extends KernelTestCase
 {
     use InteractsWithTwigComponents;
+
+    private const array PROPS = [
+        'id' => 'cols',
+        'action' => '/list',
+        'keep' => ['view' => 'paid', 'page' => '2', 'q' => null],
+        'columns' => [
+            ['key' => 'email', 'label' => 'Email', 'visible' => true, 'locked' => false],
+            ['key' => 'number', 'label' => 'Number', 'visible' => true, 'locked' => true],
+            ['key' => 'kind', 'label' => 'Kind', 'visible' => false, 'locked' => false],
+        ],
+        'density' => 'comfortable',
+        'resetHref' => '/list?view=paid',
+    ];
 
     public function testItIsAButtonThatOpensASmallSheetWithAGetFormToTheList(): void
     {
@@ -80,21 +95,70 @@ final class ColumnPickerTest extends KernelTestCase
     }
 
     /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function invalidProps(): iterable
+    {
+        yield 'no id' => [['id' => '']];
+        yield 'no action' => [['action' => '']];
+        yield 'no reset link' => [['resetHref' => '']];
+        yield 'an unsafe action' => [['action' => 'javascript:alert(1)']];
+        yield 'an unsafe reset link' => [['resetHref' => 'javascript:alert(1)']];
+    }
+
+    /**
+     * @param array<string, mixed> $props
+     */
+    #[DataProvider('invalidProps')]
+    public function testItRefusesWhatItCannotRender(array $props): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mount($props);
+    }
+
+    public function testAColumnIsHiddenAndMovableUnlessItSaysOtherwiseAndALockedOneIsAlwaysShown(): void
+    {
+        $picker = $this->mount(['columns' => [
+            ['key' => 'due.date', 'label' => 'Due'],
+            ['key' => 'name', 'label' => 'Name', 'visible' => false, 'locked' => true],
+        ]]);
+
+        self::assertSame([
+            ['key' => 'name', 'label' => 'Name', 'visible' => true, 'locked' => true, 'id' => 'cols-name'],
+            ['key' => 'due.date', 'label' => 'Due', 'visible' => false, 'locked' => false, 'id' => 'cols-due-date'],
+        ], $picker->views());
+    }
+
+    public function testTenColumnsNeedNoSearch(): void
+    {
+        $columns = array_map(static fn (int $i): array => ['key' => 'c'.$i, 'label' => 'C'.$i], range(1, 10));
+
+        self::assertFalse($this->mount(['columns' => $columns])->searchable());
+    }
+
+    public function testTheFormKeepsTheListsStateButNotItsWorkingDisplayOrPage(): void
+    {
+        $picker = $this->mount(['keep' => ['view' => 'paid', 'q' => '', 'archived' => true, 'draft' => false, 'limit' => 5, 'cols' => 'a', 'density' => 'dense', 'page' => '2', 'sort' => null]]);
+
+        self::assertSame(['view' => 'paid', 'archived' => '1', 'draft' => '0', 'limit' => '5'], $picker->hidden());
+    }
+
+    /**
+     * @param array<string, mixed> $props
+     */
+    private function mount(array $props = []): ColumnPicker
+    {
+        $component = $this->mountTwigComponent('Ui:ColumnPicker', $props + self::PROPS);
+        self::assertInstanceOf(ColumnPicker::class, $component);
+
+        return $component;
+    }
+
+    /**
      * @param array<string, mixed> $props
      */
     private function render(array $props = []): string
     {
-        return (string) $this->renderTwigComponent('Ui:ColumnPicker', $props + [
-            'id' => 'cols',
-            'action' => '/list',
-            'keep' => ['view' => 'paid', 'page' => '2', 'q' => null],
-            'columns' => [
-                ['key' => 'email', 'label' => 'Email', 'visible' => true, 'locked' => false],
-                ['key' => 'number', 'label' => 'Number', 'visible' => true, 'locked' => true],
-                ['key' => 'kind', 'label' => 'Kind', 'visible' => false, 'locked' => false],
-            ],
-            'density' => 'comfortable',
-            'resetHref' => '/list?view=paid',
-        ]);
+        return (string) $this->renderTwigComponent('Ui:ColumnPicker', $props + self::PROPS);
     }
 }

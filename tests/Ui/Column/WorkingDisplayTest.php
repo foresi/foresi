@@ -139,6 +139,56 @@ final class WorkingDisplayTest extends TestCase
         self::assertSame(['name', 'email'], $state->display->keys());
     }
 
+    public function testTheColumnsAndTheDensityChangeTogether(): void
+    {
+        $state = $this->working()->read(self::LIST, [], null, ['cols' => 'name,phone', 'density' => 'dense']);
+
+        self::assertTrue($state->modified);
+        self::assertSame(['cols' => 'name,phone', 'density' => 'dense'], $state->query);
+        self::assertSame(['columns' => [['key' => 'name'], ['key' => 'phone']], 'density' => 'dense'], $state->payload);
+    }
+
+    public function testAnUnknownDensityNextToColumnsKeepsTheViewsDensity(): void
+    {
+        $state = $this->working()->read(self::LIST, [], ['density' => 'dense'], ['cols' => 'name,phone', 'density' => 'huge']);
+
+        self::assertSame(['columns' => [['key' => 'name'], ['key' => 'phone']], 'density' => 'dense'], $state->payload);
+        self::assertSame(['cols' => 'name,phone'], $state->query);
+    }
+
+    public function testTheLockedColumnLeadsThePayloadAndTheRestKeepTheirOrder(): void
+    {
+        $state = $this->working()->read(self::LIST, [], null, ['cols' => 'email, name ,,email, kind']);
+
+        self::assertSame(['name', 'email', 'kind'], $state->display->keys());
+        self::assertSame(['columns' => [['key' => 'name'], ['key' => 'email'], ['key' => 'kind']], 'density' => 'comfortable'], $state->payload);
+    }
+
+    public function testAListOfColumnsWithOtherThanTextIsReadLeniently(): void
+    {
+        $state = $this->working()->read(self::LIST, [], null, ['cols' => ['x' => 'phone', 'y' => ['email'], 'z' => 'kind']]);
+
+        self::assertSame(['name', 'phone', 'kind'], $state->display->keys());
+        self::assertSame(['columns' => [['key' => 'name'], ['key' => 'phone'], ['key' => 'kind']], 'density' => 'comfortable'], $state->payload);
+    }
+
+    public function testTheAddressNamesAtMostAHundredColumns(): void
+    {
+        $keys = [...array_map(static fn (int $i): string => 'gone'.$i, range(1, 100)), 'phone'];
+        $state = $this->working()->read(self::LIST, [], null, ['cols' => implode(',', $keys)]);
+
+        self::assertSame(['name'], $state->display->keys());
+    }
+
+    public function testADensityChangeKeepsTheViewsColumnsWidthsAndGrouping(): void
+    {
+        $saved = ['columns' => [['key' => 'name', 'width' => 240], ['key' => 'kind']], 'group_by' => 'kind'];
+        $state = $this->working()->read(self::LIST, [], $saved, ['density' => 'dense']);
+
+        self::assertSame(['columns' => [['key' => 'name', 'width' => 240], ['key' => 'kind']], 'density' => 'dense', 'group_by' => 'kind'], $state->payload);
+        self::assertSame(['density' => 'dense'], $state->query);
+    }
+
     public function working(): WorkingDisplay
     {
         $provider = new class implements ListColumns {

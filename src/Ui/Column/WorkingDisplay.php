@@ -48,9 +48,10 @@ final readonly class WorkingDisplay
         $wanted = \is_string($wanted) && \in_array($wanted, ListDisplay::DENSITIES, true) ? $wanted : null;
 
         if (null !== $keys) {
-            // The column that names the row leads and never moves (the Columns sheet shows it so).
+            // The column that names the row leads and never moves (the Columns sheet shows it so);
+            // the registry drops a locked column the context does not offer.
             $locked = array_map(static fn (Column $column): string => $column->key, array_filter($this->registry->columns($list), static fn (Column $column): bool => $column->locked));
-            $keys = [...array_values(array_intersect($keys, $locked)), ...array_values(array_diff($keys, $locked))];
+            $keys = [...$locked, ...array_diff($keys, $locked)];
         }
         $payload = $saved;
         if (null !== $keys || null !== $wanted) {
@@ -92,8 +93,8 @@ final readonly class WorkingDisplay
         if (!\is_array($value)) {
             return null;
         }
-        $keys = array_values(array_unique(array_filter(array_map(static fn (mixed $key): string => \is_string($key) ? trim($key) : '', $value), static fn (string $key): bool => '' !== $key)));
+        $keys = array_unique(array_filter(array_map(static fn (mixed $key): string => \is_string($key) ? trim($key) : '', $value), static fn (string $key): bool => '' !== $key));
 
-        return \array_slice($keys, 0, self::MAX_COLUMNS);
+        return array_values(\array_slice($keys, 0, self::MAX_COLUMNS));
     }
 }
