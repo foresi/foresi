@@ -142,6 +142,10 @@ else
     log "no pending migrations"
 fi
 
+# The default views of the lists: adds missing ones, leaves edited and hidden ones alone.
+log "syncing default views"
+console app:views:sync
+
 log "switching current to $RELEASE"
 ln -sfn "$RELEASE" "$DEPLOY_ROOT/.current.tmp"
 mv -fT "$DEPLOY_ROOT/.current.tmp" "$CURRENT" 2>/dev/null \
