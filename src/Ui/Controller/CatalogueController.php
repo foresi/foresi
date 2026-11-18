@@ -40,7 +40,7 @@ final class CatalogueController extends AbstractController
     {
     }
 
-    #[Route('/_catalogue', name: 'catalogue', methods: ['GET'], defaults: ['_public' => true])]
+    #[Route('/_catalogue', name: 'catalogue', defaults: ['_public' => true], methods: ['GET'])]
     public function __invoke(Request $request): Response
     {
         $locale = $request->query->getString('locale');
@@ -70,7 +70,7 @@ final class CatalogueController extends AbstractController
      * A page that opens as a sheet from the catalogue (a link with data-sheet), so the
      * real Ui:Sheet can be tried: motion, Escape, the scrim, the resize grip, a phone.
      */
-    #[Route('/_catalogue/sheet', name: 'catalogue_sheet', methods: ['GET'], defaults: ['_public' => true])]
+    #[Route('/_catalogue/sheet', name: 'catalogue_sheet', defaults: ['_public' => true], methods: ['GET'])]
     public function sheet(Request $request): Response
     {
         $this->locales->setLocale('cs');

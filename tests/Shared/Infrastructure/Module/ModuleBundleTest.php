@@ -8,11 +8,17 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Infrastructure\Module;
 
+use Foresi\Attachment\AttachmentBundle;
+use Foresi\Audit\AuditBundle;
+use Foresi\Events\EventsBundle;
+use Foresi\Identity\IdentityBundle;
+use Foresi\Instance\InstanceBundle;
 use Foresi\Shared\Infrastructure\Module\InstalledModules;
 use Foresi\Shared\Infrastructure\Module\ModuleBundle;
 use Foresi\Shared\SharedBundle;
 use Foresi\Ui\UiBundle;
 use Foresi\Webhooks\WebhooksBundle;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -58,12 +64,62 @@ final class ModuleBundleTest extends KernelTestCase
             'orm' => ['mappings' => ['Webhooks' => [
                 'type' => 'attribute',
                 'is_bundle' => false,
-                'dir' => self::projectDir().'/src/Webhooks/Domain',
+                'dir' => $this->projectDir().'/src/Webhooks/Domain',
                 'prefix' => 'Foresi\\Webhooks\\Domain',
                 'alias' => 'Webhooks',
             ]]],
         ]], $doctrine);
-        self::assertSame([['messenger' => ['routing' => ['Foresi\\Webhooks\\Application\\SendWebhook' => 'webhooks']]]], $builder->getExtensionConfig('framework'));
+        self::assertSame([['messenger' => ['routing' => [\Foresi\Webhooks\Application\SendWebhook::class => 'webhooks']]]], $builder->getExtensionConfig('framework'));
+    }
+
+    /**
+     * @param list<string>          $mappings the prepended Doctrine mappings, in order
+     * @param array<string, string> $routing  the transport of each message
+     */
+    #[DataProvider('prepends')]
+    public function testEachBundlePrependsItsMappingsAndRouting(ModuleBundle $bundle, string $env, array $mappings, array $routing): void
+    {
+        $builder = $this->builder($env);
+        $bundle->prependExtension($this->configurator($builder, $env), $builder);
+
+        self::assertSame($mappings, $this->mappings($builder));
+        self::assertSame([] === $routing ? [] : [['messenger' => ['routing' => $routing]]], $builder->getExtensionConfig('framework'));
+        $expected = [];
+        foreach ($mappings as $name) {
+            $tests = str_ends_with($name, 'Fixtures');
+            $module = $tests ? substr($name, 0, -\strlen('Fixtures')) : $name;
+            $expected[] = ['orm' => ['mappings' => [$name => [
+                'type' => 'attribute',
+                'is_bundle' => false,
+                'dir' => $tests ? '%kernel.project_dir%/tests/'.$module.'/Fixtures' : self::projectDir().'/src/'.$module.'/Domain',
+                'prefix' => $tests ? 'Foresi\\Tests\\'.$module.'\\Fixtures' : 'Foresi\\'.$module.'\\Domain',
+                'alias' => $name,
+            ]]]];
+        }
+        self::assertSame($expected, $builder->getExtensionConfig('doctrine'));
+    }
+
+    /**
+     * @return iterable<string, array{ModuleBundle, string, list<string>, array<string, string>}>
+     */
+    public static function prepends(): iterable
+    {
+        yield 'shared in test' => [new SharedBundle(), 'test', ['SharedFixtures', 'Shared'], [\Foresi\Shared\Application\SystemMail::class => 'mail']];
+        yield 'shared in prod' => [new SharedBundle(), 'prod', ['Shared'], [\Foresi\Shared\Application\SystemMail::class => 'mail']];
+        yield 'audit in test' => [new AuditBundle(), 'test', ['AuditFixtures', 'Audit'], []];
+        yield 'audit in prod' => [new AuditBundle(), 'prod', ['Audit'], []];
+        yield 'instance' => [new InstanceBundle(), 'prod', ['Instance'], [
+            \Foresi\Instance\Application\Schedule\RunScheduledJob::class => 'async',
+            \Foresi\Instance\Application\Schedule\RunOperatorTask::class => 'async',
+        ]];
+        yield 'events' => [new EventsBundle(), 'prod', [], [
+            \Foresi\Events\Application\RelayEvents::class => 'events',
+            \Foresi\Events\Application\DeliverEvent::class => 'events',
+        ]];
+        yield 'webhooks' => [new WebhooksBundle(), 'prod', ['Webhooks'], [\Foresi\Webhooks\Application\SendWebhook::class => 'webhooks']];
+        yield 'identity' => [new IdentityBundle(), 'prod', ['Identity'], []];
+        yield 'attachment' => [new AttachmentBundle(), 'prod', ['Attachment'], []];
+        yield 'ui' => [new UiBundle(), 'prod', [], []];
     }
 
     public function testAModuleWithoutEntitiesGetsNoMapping(): void
@@ -119,7 +175,7 @@ final class ModuleBundleTest extends KernelTestCase
         return new ContainerConfigurator($builder, $loader, $instanceof, __FILE__, __FILE__, $env);
     }
 
-    private static function projectDir(): string
+    private function projectDir(): string
     {
         return \dirname(__DIR__, 4);
     }

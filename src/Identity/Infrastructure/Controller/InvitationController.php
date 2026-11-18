@@ -56,7 +56,7 @@ final class InvitationController extends AbstractController
     ) {
     }
 
-    #[Route('/invitation/{token}', name: self::ROUTE, requirements: ['token' => InvitationToken::PATTERN], methods: ['GET', 'POST'], defaults: [PublicRoute::DEFAULT => true])]
+    #[Route('/invitation/{token}', name: self::ROUTE, requirements: ['token' => InvitationToken::PATTERN], defaults: [PublicRoute::DEFAULT => true], methods: ['GET', 'POST'])]
     public function __invoke(string $token, Request $request): Response
     {
         if (!$this->limiter->create($request->getClientIp() ?? 'unknown')->consume()->isAccepted()) {

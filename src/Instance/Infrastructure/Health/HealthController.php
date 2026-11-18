@@ -38,7 +38,7 @@ final readonly class HealthController
     ) {
     }
 
-    #[Route('/health', name: self::ROUTE, methods: ['GET'], defaults: [PublicRoute::DEFAULT => true], stateless: true)]
+    #[Route('/health', name: self::ROUTE, defaults: [PublicRoute::DEFAULT => true], methods: ['GET'], stateless: true)]
     public function __invoke(Request $request): Response
     {
         if (!$this->limiter->create($request->getClientIp() ?? 'unknown')->consume()->isAccepted()) {

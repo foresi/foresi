@@ -51,7 +51,7 @@ return static function (ContainerConfigurator $container): void {
     $services->alias(DeliveryRecords::class, DbalDeliveryRecords::class);
     // Redirects are never followed and, unless this installation posts to its own network, private addresses are refused.
     $services->set('webhooks.http_client', HttpClientInterface::class)
-        ->factory([WebhookHttpClientFactory::class, 'create'])
+        ->factory(WebhookHttpClientFactory::create(...))
         ->args([param('app.webhooks.allow_private_hosts')]);
 
     if (\in_array($container->env(), ['test', 'e2e'], true)) {
