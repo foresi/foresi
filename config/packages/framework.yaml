@@ -83,6 +83,20 @@ framework:
     #esi: true
     #fragments: true
 
+services:
+    # Declared here (private) so PHPStan, which reads the dev container, knows the
+    # ids used by the tests; they are made public in the test env below.
+    test.invoice_send_firm_limiter:
+        alias: limiter.invoice_send_firm
+    test.document_link_limiter:
+        alias: limiter.document_link
+    test.inbound_mail_limiter:
+        alias: limiter.inbound_mail
+    test.inbound_mail_relay_limiter:
+        alias: limiter.inbound_mail_relay
+    test.invitation_link_limiter:
+        alias: limiter.invitation_link
+
 when@test:
     framework:
         rate_limiter:
@@ -113,6 +127,52 @@ when@test:
         test: true
         session:
             storage_factory_id: session.storage.factory.mock_file
+
+    services:
+        # In memory, so the budgets never leak between test runs; login_throttling is the
+        # storage of the sign-in throttle in config/packages/security.yaml.
+        test.party_lookup_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+        test.party_refresh_checks_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+        test.registry_outgoing_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+        test.login_throttling_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+        test.mail_test_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+        test.two_factor_code_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+        test.invoice_send_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+        test.invoice_send_firm_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+        test.document_link_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+        test.inbound_mail_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+        test.inbound_mail_relay_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+        test.health_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+        test.invitation_link_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+        # Lets a test spend the budget of a firm, an address or a link.
+        test.invoice_send_firm_limiter:
+            alias: limiter.invoice_send_firm
+            public: true
+        test.document_link_limiter:
+            alias: limiter.document_link
+            public: true
+        test.inbound_mail_limiter:
+            alias: limiter.inbound_mail
+            public: true
+        test.inbound_mail_relay_limiter:
+            alias: limiter.inbound_mail_relay
+            public: true
+        test.invitation_link_limiter:
+            alias: limiter.invitation_link
+            public: true
 
 when@e2e:
     framework:

@@ -11,7 +11,8 @@ namespace Foresi\Shared\Domain\Module;
 /**
  * What a module declares about itself: hard dependencies it cannot run
  * without, optional ones it uses only when they are installed, and the
- * resources of the API its tokens can be scoped to (ADR 0032).
+ * resources of the API its tokens can be scoped to (ADR 0032), and the
+ * Symfony bundle the kernel registers for it.
  */
 final readonly class ModuleManifest
 {
@@ -22,6 +23,7 @@ final readonly class ModuleManifest
      * @param list<ModuleId> $requires
      * @param list<ModuleId> $optional
      * @param list<string>   $scopes   resources such as "contacts", for the scopes "contacts:read" and "contacts:write"
+     * @param ?string        $bundle   the class of the module's bundle, such as "Foresi\\Work\\WorkBundle"
      */
     public function __construct(
         public ModuleId $id,
@@ -31,7 +33,11 @@ final readonly class ModuleManifest
         public array $requires,
         public array $optional,
         public array $scopes = [],
+        public ?string $bundle = null,
     ) {
+        if (null !== $bundle && 1 !== preg_match('/^'.preg_quote($namespace, '/').'[A-Z][A-Za-z0-9]*Bundle$/', $bundle)) {
+            throw new InvalidManifest(\sprintf('Module %s names the bundle "%s"; a bundle is a class at the root of %s ending in "Bundle".', $id->value, $bundle, $namespace));
+        }
         foreach ($scopes as $scope) {
             if (1 !== preg_match(self::RESOURCE, $scope)) {
                 throw new InvalidManifest(\sprintf('Module %s declares the scope "%s"; a scope is a lowercase word such as "contacts".', $id->value, $scope));

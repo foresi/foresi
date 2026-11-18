@@ -11,6 +11,7 @@
             "module": "instance",
             "kind": "core",
             "namespace": "Foresi\\Instance\\",
+            "bundle": "Foresi\\Instance\\InstanceBundle",
             "optional": []
         }
     }

@@ -17,9 +17,10 @@ use Symfony\Component\Translation\LocaleSwitcher;
 /**
  * Development component catalogue: every Twig component in every state.
  *
- * Registered in the dev and test environments only (see config/services.yaml),
- * so in production neither the service nor the route exists. It shows no data
- * and works without a signed-in person.
+ * Registered outside production only (see src/Ui/config/services.php), so in
+ * production neither the service nor the route exists. It shows no data
+ * and works without a signed-in person: the default _public opens it to anyone
+ * (Foresi\Shared\Infrastructure\Security\PublicRoute).
  */
 final class CatalogueController extends AbstractController
 {
@@ -39,7 +40,7 @@ final class CatalogueController extends AbstractController
     {
     }
 
-    #[Route('/_catalogue', name: 'catalogue', methods: ['GET'])]
+    #[Route('/_catalogue', name: 'catalogue', defaults: ['_public' => true], methods: ['GET'])]
     public function __invoke(Request $request): Response
     {
         $locale = $request->query->getString('locale');
@@ -69,7 +70,7 @@ final class CatalogueController extends AbstractController
      * A page that opens as a sheet from the catalogue (a link with data-sheet), so the
      * real Ui:Sheet can be tried: motion, Escape, the scrim, the resize grip, a phone.
      */
-    #[Route('/_catalogue/sheet', name: 'catalogue_sheet', methods: ['GET'])]
+    #[Route('/_catalogue/sheet', name: 'catalogue_sheet', defaults: ['_public' => true], methods: ['GET'])]
     public function sheet(Request $request): Response
     {
         $this->locales->setLocale('cs');

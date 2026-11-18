@@ -273,10 +273,16 @@ deptrac:
         - type: directory
           value: src/Country/CzechRepublic/.*
     # Presentation shared by all modules (Twig components, layout helpers).
+    # Its bundle wires the module like every module's bundle, outside the layers.
     - name: Ui
       collectors:
-        - type: directory
-          value: src/Ui/.*
+        - type: bool
+          must:
+            - type: directory
+              value: src/Ui/.*
+          must_not:
+            - type: classLike
+              value: ^Foresi\\Ui\\UiBundle$
     - name: VendorSymfony
       collectors:
         - type: bool

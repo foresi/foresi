@@ -8,19 +8,45 @@ declare(strict_types=1);
 
 namespace Foresi;
 
+use Foresi\Shared\Domain\Module\InvalidManifest;
 use Foresi\Shared\Infrastructure\Module\InstalledModules;
+use Foresi\Shared\Infrastructure\Module\ModuleBundle;
 use Foresi\Shared\Infrastructure\Module\ModuleIntegrations;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\Config\Resource\FileResource;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use Symfony\Component\HttpKernel\Bundle\BundleInterface;
 use Symfony\Component\HttpKernel\Kernel as BaseKernel;
 
 class Kernel extends BaseKernel
 {
     use MicroKernelTrait {
         configureContainer as private configureContainerFromFiles;
+        registerBundles as private registerConfiguredBundles;
+    }
+
+    /**
+     * The bundles of config/bundles.php, then the bundle of every installed
+     * module (extra.foresi.bundle), each after the modules it requires. No
+     * module is listed in config/bundles.php: being installed enables it.
+     */
+    public function registerBundles(): iterable
+    {
+        foreach ($this->registerConfiguredBundles() as $bundle) {
+            yield $bundle instanceof BundleInterface ? $bundle : throw new \LogicException('config/bundles.php lists a class that is not a bundle.');
+        }
+
+        $graph = new InstalledModules($this->getProjectDir())->graph();
+        foreach ($graph->dependencyOrder() as $id) {
+            $class = $graph->get($id)->bundle;
+            if (null === $class) {
+                continue;
+            }
+            $bundle = new $class();
+            yield $bundle instanceof ModuleBundle ? $bundle : throw new InvalidManifest(\sprintf('Module %s names the bundle %s, which does not extend %s.', $id->value, $class, ModuleBundle::class));
+        }
     }
 
     /**

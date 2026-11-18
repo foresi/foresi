@@ -16,6 +16,7 @@ use Foresi\Identity\Domain\InvitationState;
 use Foresi\Identity\Domain\InvitationToken;
 use Foresi\Identity\Domain\User;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
+use Foresi\Shared\Infrastructure\Security\PublicRoute;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -55,7 +56,7 @@ final class InvitationController extends AbstractController
     ) {
     }
 
-    #[Route('/invitation/{token}', name: self::ROUTE, requirements: ['token' => InvitationToken::PATTERN], methods: ['GET', 'POST'])]
+    #[Route('/invitation/{token}', name: self::ROUTE, requirements: ['token' => InvitationToken::PATTERN], defaults: [PublicRoute::DEFAULT => true], methods: ['GET', 'POST'])]
     public function __invoke(string $token, Request $request): Response
     {
         if (!$this->limiter->create($request->getClientIp() ?? 'unknown')->consume()->isAccepted()) {

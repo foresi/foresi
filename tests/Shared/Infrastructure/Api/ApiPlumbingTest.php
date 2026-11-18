@@ -133,7 +133,12 @@ final class ApiPlumbingTest extends ApiTestCase
             '/api/v1/received-documents/{documentId}/payments/{paymentId}' => ['delete' => '200'],
             '/api/v1/received-documents/{documentId}/trash' => ['post' => '200'],
         ];
-        self::assertSame(array_keys($operations), array_keys($paths));
+        // The document follows the order of the routes, which follows the order the modules load in.
+        $expected = array_keys($operations);
+        $actual = array_keys($paths);
+        sort($expected);
+        sort($actual);
+        self::assertSame($expected, $actual);
         self::assertSame([['bearer' => []]], $this->at('security'));
         self::assertSame('http', $this->at('components', 'securitySchemes', 'bearer', 'type'));
         self::assertSame('bearer', $this->at('components', 'securitySchemes', 'bearer', 'scheme'));
