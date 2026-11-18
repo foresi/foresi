@@ -60,14 +60,17 @@ use Foresi\Shared\Application\View\FilterRows;
 use Foresi\Shared\Application\View\ListView;
 use Foresi\Shared\Application\View\ListViews;
 use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Application\View\ViewState;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Column\ListColumnRegistry;
 use Foresi\Ui\Column\ListDisplay;
+use Foresi\Ui\Column\RememberedDisplay;
 use Foresi\Ui\Column\WorkingDisplay;
 use Foresi\Ui\Column\WorkingState;
+use Foresi\Ui\View\ViewBar;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\InputBag;
@@ -125,7 +128,8 @@ final class InvoiceListController extends AbstractController
         private readonly ListViews $views,
         private readonly AuditActor $actor,
         private readonly ListColumnRegistry $listColumns,
-        private readonly WorkingDisplay $workingDisplay,
+        private readonly RememberedDisplay $workingDisplay,
+        private readonly ViewBar $viewBar,
         private readonly FilterSheet $filterSheet,
         private readonly CustomerPicker $customers,
         private readonly LegalEntities $firms,
@@ -150,13 +154,18 @@ final class InvoiceListController extends AbstractController
         [$tab, $text, $sort, $firm, $toSend, $export, $month] = [$filter->tab, $filter->text, $filter->sort, $filter->firmId ?? '', $filter->toSend, $filter->export, $filter->month];
         $page = $this->list->page($filter);
         $firm = isset($page->firms[$firm]) ? $firm : '';
-        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'firm' => '' === $firm ? null : $firm, 'q' => '' === $text ? null : $text, 'sort' => InvoiceFilter::DEFAULT_SORT === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null, 'export' => $export?->value, 'month' => $month, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
+        // A view keeps its own order; the address names the sort only when it differs (spec D10).
+        $viewSort = ViewState::sortParam($view->sort, InvoiceFilter::DEFAULT_SORT);
+        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'firm' => '' === $firm ? null : $firm, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null, 'export' => $export?->value, 'month' => $month, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
         // Within the firm the list is filtered by, so the chip counts what pressing it shows.
         $toSendCount = $this->recurring->inReview('' === $firm ? null : $firm);
         $severalFirms = \count($page->firms) > 1;
-        // The columns and density changed in the Columns sheet, kept in the address next to the view (spec D10, D-display-3).
-        $working = $this->workingDisplay->read($this->listKey($kind), ['trash' => InvoiceFilter::TRASH === $tab, 'severalFirms' => $severalFirms], $view->display, $request->query->all());
+        // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $list = InvoiceLists::of($kind);
+        $working = $this->workingDisplay->read($this->listKey($kind), ['trash' => InvoiceFilter::TRASH === $tab, 'severalFirms' => $severalFirms], $list->key, $view, $request->query->all());
         $query += $working->query;
+        $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, InvoiceFilter::DEFAULT_SORT, $working, $route, '' === $text ? [] : ['q' => $text]);
+        $modified = $bar['viewBar']['modified'];
         // What an action carries back names the kind, so it returns to this list.
         $here = (1 === $page->page ? $query : $query + ['page' => (string) $page->page]) + (DocumentKind::Invoice === $kind ? [] : ['kind' => $kind->value]);
         $names = InvoiceFilter::TRASH === $tab ? $this->users->namesOf($this->deletedBy($page)) : [];
@@ -171,9 +180,11 @@ final class InvoiceListController extends AbstractController
             'tab' => $tab,
             'view' => $view->isAll() ? '' : $view->key,
             'working' => $filterParam ?? '',
-            ...$this->filterSheet->of(InvoiceLists::of($kind), $shown, fn (ViewFilter $next): string => $this->generateUrl($route, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references($page->firms, $firm)),
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl($route, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references($page->firms, $firm)),
             'text' => $text,
             'sort' => $sort,
+            'sortKept' => $viewSort === $sort ? null : $sort,
+            ...$bar,
             'firm' => $firm,
             'firms' => $severalFirms ? ['' => $this->translator->trans('invoice.list.all_firms')] + $page->firms : [],
             'export' => $export->value ?? '',
@@ -186,7 +197,7 @@ final class InvoiceListController extends AbstractController
             'titleKey' => 'invoice.list.title_'.$kind->value,
             // A corrective document is issued from the document it corrects, never from a blank form.
             'newHref' => $kind->standsAlone() ? $this->generateUrl('app_invoice_new', DocumentKind::Invoice === $kind ? [] : ['kind' => $kind->value]) : null,
-            ...$this->tabs($views, $view->key, $page, $query, $route, $kind, $this->isModified($working)),
+            ...$this->tabs($views, $view->key, $page, $query, $route, $kind, $modified),
             'columns' => $working->display->table($sort, fn (string $next): string => $this->generateUrl($route, ['sort' => $next] + $query)),
             'rows' => array_map(fn (InvoiceRow $row): array => $this->row($row, $tab, $severalFirms, $names, http_build_query($here), $reminders[$row->id] ?? null, $working->payload), $page->rows),
             'density' => $working->tableDensity(),
@@ -246,7 +257,7 @@ final class InvoiceListController extends AbstractController
         $views = $this->viewsOf($kind);
         $view = ListViews::chosen($views, $input->getString('view', $input->getString('tab')));
         $working = WorkingFilter::decode($input->getString(WorkingFilter::PARAM), InvoiceLists::of($kind)) ?? $view->filter;
-        $sort = $input->getString('sort', InvoiceFilter::DEFAULT_SORT);
+        $sort = $input->getString('sort', ViewState::sortParam($view->sort, InvoiceFilter::DEFAULT_SORT));
         $firm = $input->getString('firm');
 
         return [new InvoiceFilter(
@@ -741,18 +752,11 @@ final class InvoiceListController extends AbstractController
             'keep' => $kept,
             'columns' => $working->picker(),
             'density' => $working->density,
-            'resetHref' => $this->generateUrl($route, $kept),
-            'modified' => $this->isModified($working),
+            // An empty density names the view's own display, which forgets the one remembered (D-display-3).
+            'resetHref' => $this->generateUrl($route, $kept + [WorkingDisplay::DENSITY => '']),
+            // Its own dot weighs the columns and density only; the tab's weighs the whole view (ViewState).
+            'modified' => $working->modified,
         ];
-    }
-
-    /**
-     * Whether the view shows changes nobody saved: the display only, until the saved views'
-     * ViewState::isModified() also weighs the filters and the sort (agreed with that work).
-     */
-    private function isModified(WorkingState $working): bool
-    {
-        return $working->modified;
     }
 
     private function listKey(DocumentKind|string $kind): string

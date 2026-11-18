@@ -14,7 +14,9 @@
         </a>
     {%- endfor %}
 {% endset %}
-{% if more is empty %}
+{#- What the menu offers past the views, such as Save as new view and Manage views (saved views, D7). -#}
+{% set actionsSlot %}{% block actions %}{% endblock %}{% endset %}
+{% if more is empty and actionsSlot|trim is empty %}
 <nav {{ attributes.defaults({class: navClass ~ ' ' ~ rail}) }}{% if label %} aria-label="{{ label }}"{% endif %}>{{ nav }}</nav>
 {% else %}
 {# The views past the tabs, after them in a menu, as Shopify's and HubSpot's view tabs (saved views, D7). It sits outside the scrolling row, so the row never clips it. #}
@@ -28,6 +30,7 @@
                 {%- if item.count is defined and item.count is not null %}<span class="{{ count }} bg-badge-gray text-badge-gray-text">{{ item.count }}</span>{% endif -%}
             </twig:Ui:MenuItem>
         {%- endfor %}
+        {%- if actionsSlot|trim is not empty %}<twig:Ui:MenuSection>{{ actionsSlot }}</twig:Ui:MenuSection>{% endif -%}
     </twig:Ui:Menu>
 </div>
 {% endif %}

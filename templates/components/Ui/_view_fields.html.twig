@@ -1,0 +1,9 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The working state of the list a saved views form posts (saved views D10): its filter, sort and display. #}
+<input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Ui\\Controller\\SavedViewController::TOKEN')) }}">
+<input type="hidden" name="ref" value="{{ viewBar.ref }}">
+<input type="hidden" name="list" value="{{ viewBar.list }}">
+<input type="hidden" name="f" value="{{ viewBar.filter }}">
+<input type="hidden" name="sort" value="{{ viewBar.sort }}">
+<input type="hidden" name="display" value="{{ viewBar.display }}">
+{% if viewBar.displayChanged %}<input type="hidden" name="displayChanged" value="1">{% endif %}
