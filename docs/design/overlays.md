@@ -9,9 +9,11 @@ A record picked from a list opens in place, over the list, never as a jump to an
    resizable). A small record (a label, a number series, a person, a bank account) opens in a modal
    `Ui:Dialog` md. Places you work in, such as the project board and the import wizard, stay pages:
    they are navigation, not records.
-2. **The header of the sheet** holds the title, the same actions as the record's page header, a Full
-   screen toggle (the width of the content panel, remembered per browser), Open as page (the record's
-   URL) and Close.
+2. **The header of the sheet** is one row, as a page header is: the title at the page-title size,
+   cut with an ellipsis (the full text in its `title`), then the same actions as the record's page
+   header in the small size, a divider, a Full screen toggle (the width of the content panel,
+   remembered per browser), Open as page (the record's URL) and Close. On a phone the actions take a
+   row of their own under the title. A record sizes its action buttons with `record_action_size`.
 3. **Edit happens in place.** Edit loads the form into the same surface (sheet, dialog or page);
    Save and Cancel go back to the detail there. A document with lines (an invoice, a recurring
    invoice, a purchase document) widens its sheet to full screen while it is edited.
@@ -44,6 +46,9 @@ A record picked from a list opens in place, over the list, never as a jump to an
   another — https://shopify.dev/docs/api/app-home/web-components/overlays/modal
 - Shopify Polaris, Page: one primary action and up to three secondary ones in the header —
   https://shopify.dev/docs/api/app-home/web-components/layout-and-structure/page
+- GitHub Primer PageHeader: the title, then the trailing actions on the same row; on narrow
+  viewports they become items of an overflow button —
+  https://primer.style/product/components/page-header/guidelines/
 - Atlassian Drawer: a secondary task while staying on the page; focus to the first item on open,
   back to the trigger on close, Escape dismisses — https://atlassian.design/components/drawer/usage
 - Atlassian Modal dialog: not for complex interactions or large tables; dialogs never trigger other

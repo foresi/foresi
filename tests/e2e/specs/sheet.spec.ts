@@ -80,6 +80,14 @@ test.describe('a record in the side sheet', () => {
     // The page header's actions, in the sheet's header.
     const edit = sheet.getByRole('link', { name: 'Upravit' });
     await expect(edit).toBeVisible();
+    // One header row (Polaris Page, Primer PageHeader): the title, the small actions, the window buttons.
+    const title = sheet.getByRole('heading', { name: NAME });
+    const close = sheet.getByRole('button', { name: 'Zavřít' }).first();
+    const middle = async (target: typeof edit) => { const box = await target.boundingBox(); return box ? Math.round(box.y + box.height / 2) : 0; };
+    await expect.poll(async () => Math.abs((await middle(edit)) - (await middle(title)))).toBeLessThanOrEqual(2);
+    await expect.poll(async () => Math.abs((await middle(close)) - (await middle(title)))).toBeLessThanOrEqual(2);
+    await expect.poll(async () => (await edit.boundingBox())?.height).toBe(28);
+    await expect(title).toHaveCSS('font-size', '20px');
 
     // Back closes it and gives the list its URL back.
     await page.goBack();
@@ -141,6 +149,10 @@ test.describe('a record in the side sheet', () => {
     await expect(sheet).toBeVisible();
     await expect.poll(async () => (await sheet.boundingBox())?.width).toBe(390);
     await expect(sheet.getByRole('button', { name: 'Celá obrazovka' })).toBeHidden();
+    // On a phone the actions take a row of their own under the title.
+    const phoneTitle = await sheet.getByRole('heading', { name: NAME }).boundingBox();
+    const phoneEdit = await sheet.getByRole('link', { name: 'Upravit' }).boundingBox();
+    expect((phoneEdit?.y ?? 0)).toBeGreaterThanOrEqual((phoneTitle?.y ?? 0) + (phoneTitle?.height ?? 0));
     await page.goBack();
     await expect(sheet).toBeHidden();
     await expect(page).toHaveURL(/\/contacts$/);
