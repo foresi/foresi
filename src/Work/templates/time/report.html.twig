@@ -14,7 +14,7 @@
 
 {% block actions %}
     <twig:Ui:MoreActions menuId="time-report-actions">
-        <twig:block name="primary">{% if invoiceTime %}<twig:Ui:Button icon="receipt-text" :href="invoiceTime" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-time-invoice-open>{{ 'work.time.invoice_time'|trans }}</twig:Ui:Button>{% endif %}</twig:block>
+        <twig:block name="primary">{% if billing %}{% for item in slot_items(constant('Foresi\\Work\\Contract\\TimeBillingActions::REPORT'), {clientId: billing.clientId}) %}{{ include(item.template, item.data) }}{% endfor %}{% endif %}</twig:block>
         {% if not empty %}
             <form method="post" action="{{ path('app_time_report_export') }}" data-turbo="false" role="none" data-time-report-export>
                 <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TimeReportController::TOKEN')) }}">

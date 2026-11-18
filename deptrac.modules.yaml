@@ -536,6 +536,8 @@ deptrac:
       - shared
       - shared_contract
       - timesheet_contract
+      - ui
+      - ui_contract
       - work
       - work_contract
     timesheet_contract:
@@ -549,6 +551,7 @@ deptrac:
       - party_contract
       - shared
       - shared_contract
+      - ui_contract
       - work_contract
     ui:
       - shared

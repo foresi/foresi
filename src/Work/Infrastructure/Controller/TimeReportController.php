@@ -114,8 +114,8 @@ final class TimeReportController extends AbstractController
             'page' => $report->page,
             'pages' => $report->pages,
             'baseUrl' => $baseUrl,
-            // Only an owner sees rates, so only an owner invoices time; the client of the filter comes along.
-            'invoiceTime' => $this->owner->isOwner() ? $this->generateUrl('app_time_invoice', null === $filter->clientId ? [] : ['client' => $filter->clientId]) : null,
+            // Only an owner sees rates, so only an owner sees the actions that bill time; the client of the filter comes along.
+            'billing' => $this->owner->isOwner() ? ['clientId' => $filter->clientId] : null,
         ]);
     }
 
