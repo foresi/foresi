@@ -50,7 +50,7 @@
             </aside>
         </div>
         <main id="main" tabindex="-1" data-sidebar-target="page" class="min-w-0 bg-white outline-none [view-transition-name:content] shell:my-2.5 shell:mr-2.5 shell:rounded-xl shell:border shell:border-container shell:shadow-raised">
-            {% if shell and shell.member %}{% include 'work/_running_timer.html.twig' %}{% endif %}
+            {% for widget in slot_items(constant('Foresi\\Ui\\Slot\\Slots::SHELL_WIDGETS'), {member: shell ? shell.member : false}) %}{{ include(widget.template, widget.data) }}{% endfor %}
             <twig:Ui:PageHeader :title="pageTitle" :crumbs="crumbs|default([])" :badge="badge|default(null)" :badges="badges|default([])" :titleEdit="titleEdit|default(null)">{{ headerActions }}</twig:Ui:PageHeader>
             <div class="p-6 max-shell:py-3.5 max-shell:pl-[calc(0.875rem+env(safe-area-inset-left,0px))] max-shell:pr-[calc(0.875rem+env(safe-area-inset-right,0px))]">
                 {% set notices = shell_notices(shell ? shell.member : false) %}
