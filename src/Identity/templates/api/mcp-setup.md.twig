@@ -19,7 +19,8 @@ transport: streamable-http
 ## Rules
 
 - Add or replace only the server entry named `foresi`. Leave the person's other MCP servers as they are.
-- The API token is a secret. Never repeat it in the chat, a commit, a log or a file in a repository. Where the client can ask for it or read it from an environment variable, let the person enter it there.
+- Prefer OAuth sign-in: the client gets its access in the browser and no secret passes through you. Use a token only where the client cannot sign in with OAuth.
+- An API token is a secret. Never repeat it in the chat, a commit, a log or a file in a repository. Where the client can ask for it or read it from an environment variable, let the person enter it there.
 - Ask before you change a configuration file the person did not name.
 - Do not call any write tool during the setup.
 
@@ -27,62 +28,64 @@ transport: streamable-http
 
 - Server: {{ server }}
 - Transport: Streamable HTTP
-- Authentication: a personal API token on every request, in the header `Authorization: Bearer <token>`. OAuth sign-in is not offered yet, so do not choose it.
-- Tokens: the person creates one in Foresi under Settings → API and MCP → Tokens ({{ tokens }}). It needs two-factor sign-in. Read-only access is enough to start; the token shows the tools its scopes allow and no others.
+- Authentication: OAuth 2.1 sign-in, the recommended way. The client needs only the server address; on the first connection it opens Foresi in the browser, where the person signs in with two-factor and chooses what the client may do. Reading is enough to start with.
+- Without OAuth: a personal API token on every request, in the header `Authorization: Bearer <token>`. The person creates one in Foresi under Settings → API and MCP → Tokens ({{ tokens }}). It needs two-factor sign-in.
+- Either way, the client sees the tools its access allows and no others.
 
-## 1. Get a token
-
-Ask the person to create a token at {{ tokens }} and to keep it at hand. In a terminal, it can be put into the environment variable `FORESI_TOKEN`, so that the commands below never show it.
-
-## 2. Add the server to the client you run in
+## 1. Add the server to the client you run in
 
 ### Claude Code
+
+```bash
+claude mcp add --transport http foresi {{ server }}
+```
+
+Then the person types `/mcp`, chooses `foresi` and signs in in the browser. A server added during a session may need a new session before its tools load.
+
+### claude.ai and Claude Desktop
+
+The person adds a custom connector: Settings → Connectors → Add custom connector, name `Foresi`, URL `{{ server }}`, and the OAuth fields left empty. When they connect, Foresi signs them in and asks what Claude may do. Claude Desktop takes over the connectors of claude.ai. You cannot do this step for them; tell them what to enter.
+
+### Cursor
+
+Add the server to `~/.cursor/mcp.json`, or to `.cursor/mcp.json` in a project. Cursor signs in with OAuth when it first connects:
+
+```json
+{{ {mcpServers: {foresi: {url: server}}}|json_encode(json) }}
+```
+
+### VS Code
+
+Add the server to `.vscode/mcp.json`. VS Code uses the key `servers`, not `mcpServers`, and signs in with OAuth when it first starts the server:
+
+```json
+{{ {servers: {foresi: {type: 'http', url: server}}}|json_encode(json) }}
+```
+
+### A client without OAuth sign-in
+
+Ask the person to create a token at {{ tokens }} and to keep it at hand. In a terminal, it can be put into the environment variable `FORESI_TOKEN`, so that commands never show it. Then send the header `Authorization: Bearer <token>` on every request. For example, in Claude Code:
 
 ```bash
 claude mcp add --transport http foresi {{ server }} --header "Authorization: Bearer $FORESI_TOKEN"
 ```
 
-Then the person types `/mcp` and checks that `foresi` is connected. A server added during a session may need a new session before its tools load.
-
-### claude.ai and Claude Desktop
-
-The person adds a custom connector: Settings → Connectors → Add custom connector, name `Foresi`, URL `{{ server }}`, no OAuth sign-in, and under Request headers `Authorization` with the value `Bearer <token>`. Claude Desktop takes over the connectors of claude.ai. You cannot do this step for them; tell them what to enter.
-
-If a custom connector is not available, add the server to `claude_desktop_config.json` (Settings → Developer → Edit Config) through the `mcp-remote` bridge, which needs Node.js, and restart Claude Desktop:
-
-```json
-{{ {mcpServers: {foresi: {command: 'npx', args: ['-y', 'mcp-remote', server, '--header', 'Authorization:${FORESI_AUTH}'], env: {FORESI_AUTH: 'Bearer <token>'}}}}|json_encode(json) }}
-```
-
-### Cursor
-
-Add the server to `~/.cursor/mcp.json`, or to `.cursor/mcp.json` in a project:
+or in a client that reads `mcpServers` from a JSON file:
 
 ```json
 {{ {mcpServers: {foresi: {url: server, headers: {Authorization: 'Bearer <token>'}}}}|json_encode(json) }}
 ```
 
-### VS Code
+## 2. Check the connection
 
-Add the server to `.vscode/mcp.json`. VS Code asks for the token when it first starts the server, so the token stays out of the file:
+Call the tool `whoami`. It answers with the person, the organisation and the scopes of the connection.
 
-```json
-{{ {inputs: [{type: 'promptString', id: 'foresi-token', description: 'Foresi API token', password: true}], servers: {foresi: {type: 'http', url: server, headers: {Authorization: 'Bearer ${input:foresi-token}'}}}}|json_encode(json) }}
-```
-
-### Another MCP client
-
-Streamable HTTP, the address {{ server }} and the header `Authorization: Bearer <token>` on every request.
-
-## 3. Check the connection
-
-Call the tool `whoami`. It answers with the person, the organisation and the scopes of the token.
-
-- HTTP 401: the token is missing, wrong, expired or revoked. Ask the person for a new one.
-- HTTP 403 with `insufficient_scope`: the token may not do this; the person adds the scope in a new token.
+- The browser did not open, or the sign-in failed: the person runs `/mcp` (Claude Code) or reconnects the connector, and signs in again.
+- HTTP 401: the sign-in or the token is missing, expired or revoked. Sign in again, or ask the person for a new token.
+- HTTP 403 with `insufficient_scope`: the connection may not do this; the person connects again and allows more, or adds the scope in a new token.
 - No `foresi` tools yet: the client has not loaded the server. Say that a restart or a new session is needed, and report the step as pending.
 
-## 4. Report
+## 3. Report
 
-Tell the person, in a few lines: which client you set up and which file you changed, what `whoami` answered (person, organisation, scopes), and anything left for them to do. Report only what you checked.
+Tell the person, in a few lines: which client you set up and which file you changed, how it signed in, what `whoami` answered (person, organisation, scopes), and anything left for them to do. Report only what you checked.
 {% endautoescape %}
