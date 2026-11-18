@@ -1411,6 +1411,8 @@ final class InvoiceListControllerTest extends WebTestCase
         // A private view carries a lock (D7) and opens in its own order.
         self::assertCount(1, $crawler->filter('[data-more-views] [aria-checked="true"] svg[class*="size-3.5"]'));
         self::assertCount(0, $crawler->filter('[data-tab-modified]'));
+        // Their own view is theirs to change.
+        self::assertCount(1, $crawler->filter('[data-view-manage-row="'.$fork->id().'"] form[action="/views/edit"]'));
         $overdue = $this->em()->getRepository(SavedView::class)->findOneBy(['systemKey' => 'invoicing.invoices.overdue']);
         self::assertInstanceOf(SavedView::class, $overdue);
         self::assertSame([], $overdue->sort());
@@ -1473,6 +1475,13 @@ final class InvoiceListControllerTest extends WebTestCase
 
         $crawler = $this->client->followRedirect();
         self::assertSame('The list already shows six tabs; move another view to More views first.', $crawler->filter('[role="alert"]')->text());
+        // With the trash in More views there is room for it.
+        $this->client->submit($crawler->filter('[data-view-manage-row="trash"] form[action="/views/edit"]')->form(['placement' => 'overflow']));
+        $crawler = $this->client->followRedirect();
+        $row = $crawler->filter('[data-view-manage-list] li')->reduce(static fn (Crawler $li): bool => 'Late' === $li->filter('input[name="name"]')->attr('value'));
+        self::assertStringNotContainsString('six tabs', $row->text());
+        $this->client->submit($row->filter('form[action="/views/edit"]')->form(['placement' => 'primary']));
+        self::assertContains('Late', $this->tabs($this->client->followRedirect()));
     }
 
     public function testRestoreDefaultViewsBringsBackTheShippedOnes(): void
@@ -1500,6 +1509,7 @@ final class InvoiceListControllerTest extends WebTestCase
 
         self::assertCount(0, $crawler->filter('[data-view-restore]'));
         self::assertSame(['Paid', 'Unpaid', 'Overdue', 'To refund', 'Trash'], $crawler->filter('[data-view-manage-list] li p a')->each(static fn (Crawler $a): string => $a->text()));
+        self::assertSame('/invoices?view=paid', $crawler->filter('[data-view-manage-list] li p a')->first()->attr('href'));
     }
 
     public function testTheDisplayAPersonLastUsedOnAViewComesBack(): void
@@ -1508,8 +1518,9 @@ final class InvoiceListControllerTest extends WebTestCase
         $this->signedIn();
         $this->issue('2026-10-01', '2026-11-10');
 
-        $this->client->request('GET', '/invoices?view=overdue&density=dense');
+        $this->client->request('GET', '/invoices?view=overdue&density=dense&cols=number,customer');
         $crawler = $this->client->request('GET', '/invoices?view=overdue');
+        self::assertSame(['Number', 'Customer'], array_slice($this->headers($crawler), 0, 2));
 
         self::assertSame('Overdue, unsaved changes 1', $this->tabs($crawler)[3]);
         self::assertSame('dense', json_decode((string) $crawler->filter('[data-view-save-as-form] input[name="display"]')->attr('value'), true)['density']);

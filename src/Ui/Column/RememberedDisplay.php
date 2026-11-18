@@ -43,11 +43,11 @@ final readonly class RememberedDisplay
             return $this->display->read($columns, $context, $view->display, $query, $density);
         }
         $remembered = $named || null === $view->id ? null : $this->states->display($view->id, $user);
-        $working = $this->display->read($columns, $context, $view->display, null === $remembered ? $query : self::query($remembered) + $query, $density);
+        $working = $this->display->read($columns, $context, $view->display, null === $remembered ? $query : $this->query($remembered) + $query, $density);
         if ($named) {
-            if ($working->modified && \is_array($working->payload)) {
+            if ($working->modified) {
                 // A shipped view nobody stored yet is stored first, so the state has its id.
-                $this->states->remember($view->id ?? $this->views->get($view->ref($list))->id(), $user, $working->payload);
+                $this->states->remember($this->views->get($view->ref($list))->id(), $user, $working->payload ?? []);
             } elseif (null !== $view->id) {
                 $this->states->forget($view->id, $user);
             }
@@ -57,26 +57,24 @@ final readonly class RememberedDisplay
     }
 
     /**
-     * The address of a remembered display payload: its columns in order and its density.
+     * The address of a remembered display payload, which WorkingDisplay wrote: its
+     * columns in order and its density.
      *
      * @param array<array-key, mixed> $display
      *
      * @return array<string, string>
      */
-    public static function query(array $display): array
+    private function query(array $display): array
     {
         $keys = [];
-        foreach (\is_array($display['columns'] ?? null) ? $display['columns'] : [] as $column) {
-            $key = \is_array($column) ? ($column['key'] ?? null) : $column;
-            if (\is_string($key)) {
-                $keys[] = $key;
+        foreach ((array) ($display['columns'] ?? []) as $column) {
+            if (\is_array($column) && \is_string($column['key'] ?? null)) {
+                $keys[] = $column['key'];
             }
         }
         $density = $display['density'] ?? null;
 
-        return array_filter([
-            WorkingDisplay::COLUMNS => [] === $keys ? null : implode(',', $keys),
-            WorkingDisplay::DENSITY => \is_string($density) ? $density : null,
-        ], static fn (?string $value): bool => null !== $value);
+        // An empty density is the view's own.
+        return [WorkingDisplay::COLUMNS => implode(',', $keys), WorkingDisplay::DENSITY => \is_string($density) ? $density : ''];
     }
 }

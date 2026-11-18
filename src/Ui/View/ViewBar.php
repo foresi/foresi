@@ -66,17 +66,18 @@ final readonly class ViewBar
                 'return' => $this->urls->generate($route, $here),
                 'base' => $this->urls->generate($route, $keep),
             ],
-            'manageViews' => $this->manage($list, $views, $route, $keep),
+            'manageViews' => $this->manage($list, $views, $route, $keep, $this->urls->generate($route, $here)),
         ];
     }
 
     /**
      * @param list<ListView>        $views
      * @param array<string, string> $keep
+     * @param string                $return the view shown, which a deleted one falls back from to All
      *
      * @return array<string, mixed>
      */
-    private function manage(ListDefinition $list, array $views, string $route, array $keep): array
+    private function manage(ListDefinition $list, array $views, string $route, array $keep, string $return): array
     {
         $primary = \count(array_filter($views, static fn (ListView $view): bool => $view->isAll() || Placement::Primary === $view->placement));
         $rows = [];
@@ -105,17 +106,14 @@ final readonly class ViewBar
             'primaryFull' => $primary >= ListViews::MAX_PRIMARY,
             'canRestore' => $this->actor->isOwner() && [] !== $list->defaults,
             'list' => $list->key,
-            'return' => $this->urls->generate($route, $keep),
+            'return' => $return,
         ];
     }
 
     private function mayEdit(ListView $view, ListDefinition $list): bool
     {
-        // A shipped view nobody stored yet is owned by no one: only owners change it.
-        if (null === $view->id) {
-            return $this->actor->isOwner();
-        }
         try {
+            // A shipped view nobody stored yet is stored on the way, and is the owners' to change.
             return $this->savedViews->mayEdit($this->savedViews->get($view->ref($list->key)));
         } catch (SavedViewRefused) {
             return false;
