@@ -62,6 +62,11 @@ final class MyTasksDashboardTest extends TestCase
     {
         $reflection = new \ReflectionClass(TaskRow::class);
 
-        return array_map(static fn (): TaskRow => $reflection->newInstanceWithoutConstructor(), range(1, $count));
+        $tasks = [];
+        for ($i = 0; $i < $count; ++$i) {
+            $tasks[] = $reflection->newInstanceWithoutConstructor();
+        }
+
+        return $tasks;
     }
 }
