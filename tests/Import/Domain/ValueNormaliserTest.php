@@ -8,13 +8,13 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Import\Domain;
 
+use Foresi\Import\Contract\FieldDefinition;
+use Foresi\Import\Contract\FieldType;
+use Foresi\Import\Contract\RowError;
 use Foresi\Import\Domain\DateOrder;
 use Foresi\Import\Domain\DateParser;
 use Foresi\Import\Domain\DecimalSeparator;
-use Foresi\Import\Domain\FieldDefinition;
-use Foresi\Import\Domain\FieldType;
 use Foresi\Import\Domain\NormalisationOptions;
-use Foresi\Import\Domain\RowError;
 use Foresi\Import\Domain\Text;
 use Foresi\Import\Domain\ValueNormaliser;
 use Foresi\Shared\Domain\Countries;

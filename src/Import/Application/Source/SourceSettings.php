@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Import\Application\Source;
 
+use Foresi\Import\Contract\SourceFormat;
+
 /**
  * How a source file is read. Every part except the format may be left null to
  * be detected from the file, so the same value serves as a user override and,

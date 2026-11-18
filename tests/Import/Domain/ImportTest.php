@@ -8,7 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Import\Domain;
 
-use Foresi\Import\Domain\BlankCells;
+use Foresi\Import\Contract\BlankCells;
+use Foresi\Import\Contract\RowError;
+use Foresi\Import\Contract\RowOutcome;
 use Foresi\Import\Domain\DateOrder;
 use Foresi\Import\Domain\DecimalSeparator;
 use Foresi\Import\Domain\IllegalTransition;
@@ -20,8 +22,6 @@ use Foresi\Import\Domain\ImportRow;
 use Foresi\Import\Domain\ImportState;
 use Foresi\Import\Domain\Mapping;
 use Foresi\Import\Domain\ReplaceScope;
-use Foresi\Import\Domain\RowError;
-use Foresi\Import\Domain\RowOutcome;
 use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;

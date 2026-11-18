@@ -8,8 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Party\Infrastructure\Doctrine;
 
-use Foresi\Import\Domain\ImportMissingRecord;
-use Foresi\Import\Domain\ImportRow;
+use Foresi\Party\Application\ContactImports;
 use Foresi\Party\Application\ImportedBy;
 use Foresi\Party\Domain\PartyEmail;
 use Foresi\Party\Domain\PartyRole;
@@ -20,6 +19,10 @@ use Foresi\Party\Domain\PartyRole;
  */
 final readonly class PartyConditions
 {
+    public function __construct(private ContactImports $imports)
+    {
+    }
+
     /**
      * @return array{string, array<string, int|string>} the condition and its parameters
      */
@@ -28,15 +31,7 @@ final readonly class PartyConditions
         $where = $archived ? 'p.archivedAt IS NOT NULL' : 'p.archivedAt IS NULL';
         $parameters = [];
         if ($import instanceof ImportedBy) {
-            // The import's rows name the records they wrote; the records a full replace archived are kept apart.
-            $rows = 'p.id IN (SELECT r.recordId FROM '.ImportRow::class.' r WHERE IDENTITY(r.import) = :import AND r.outcome = :outcome)';
-            $missing = 'p.id IN (SELECT m.recordId FROM '.ImportMissingRecord::class.' m WHERE IDENTITY(m.import) = :import AND m.outcome = :outcome)';
-            $where = match ($import->outcome) {
-                'archive' => $missing,
-                'changed_after_import' => '('.$rows.' OR '.$missing.')',
-                default => $rows,
-            };
-            $parameters = ['import' => $import->importId, 'outcome' => $import->outcome];
+            [$where, $parameters] = $this->imports->condition($import, 'p.id');
         }
         if ($role instanceof PartyRole) {
             $where .= ' AND '.$this->role($role->value);

@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Import\Application;
 
-use Foresi\Import\Domain\Preset\SourcePreset;
+use Foresi\Import\Contract\SourcePreset;
 
 /** All presets of known sources; modules contribute theirs by implementing SourcePreset. */
 final readonly class PresetRegistry

@@ -11,12 +11,12 @@ namespace Foresi\Import\Infrastructure\Doctrine;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
-use Foresi\Import\Application\Target\ImportTarget;
+use Foresi\Import\Contract\ImportTarget;
+use Foresi\Import\Contract\RowOutcome;
 use Foresi\Import\Domain\Import;
 use Foresi\Import\Domain\ImportProfile;
 use Foresi\Import\Domain\ImportState;
 use Foresi\Import\Domain\ReplaceScope;
-use Foresi\Import\Domain\RowOutcome;
 
 /**
  * Finds the records a full replace archives: the active records of its scope

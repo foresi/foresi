@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Import\Infrastructure\Source;
 
-use Foresi\Import\Application\Source\SourceFormat;
 use Foresi\Import\Application\Source\SourceSettings;
-use Foresi\Import\Domain\FieldDefinition;
-use Foresi\Import\Domain\FieldType;
+use Foresi\Import\Contract\FieldDefinition;
+use Foresi\Import\Contract\FieldType;
+use Foresi\Import\Contract\SourceFormat;
 use Foresi\Import\Infrastructure\Source\OpenSpoutExportWriter;
 use Foresi\Import\Infrastructure\Source\OpenSpoutSourceReader;
 use PHPUnit\Framework\TestCase;

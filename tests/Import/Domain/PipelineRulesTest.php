@@ -8,7 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Import\Domain;
 
-use Foresi\Import\Domain\BlankCells;
+use Foresi\Import\Contract\BlankCells;
+use Foresi\Import\Contract\RowOutcome;
 use Foresi\Import\Domain\ColumnProposal;
 use Foresi\Import\Domain\DateOrder;
 use Foresi\Import\Domain\DecimalSeparator;
@@ -24,7 +25,6 @@ use Foresi\Import\Domain\ImportState;
 use Foresi\Import\Domain\Mapping;
 use Foresi\Import\Domain\MatchReason;
 use Foresi\Import\Domain\ReplaceScope;
-use Foresi\Import\Domain\RowOutcome;
 use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -419,13 +419,13 @@ final class PipelineRulesTest extends TestCase
     #[DataProvider('matchCounts')]
     public function testTheMatchesDecideTheOutcome(ImportMode $mode, int $matches, bool $archived, RowOutcome $outcome): void
     {
-        self::assertSame($outcome, RowOutcome::forMatches($mode, $matches, $archived));
+        self::assertSame($outcome, $mode->outcomeFor($matches, $archived));
     }
 
     public function testTheNumberOfMatchesMustNotBeNegative(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        RowOutcome::forMatches(ImportMode::Update, -1, false);
+        ImportMode::Update->outcomeFor(-1, false);
     }
 
     public function testOnlyCreateUpdateAndRestoreWroteARecord(): void

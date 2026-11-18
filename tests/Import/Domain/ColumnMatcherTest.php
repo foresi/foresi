@@ -8,16 +8,16 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Import\Domain;
 
+use Foresi\Import\Contract\AbstractSourcePreset;
+use Foresi\Import\Contract\FieldDefinition;
+use Foresi\Import\Contract\FieldType;
+use Foresi\Import\Contract\HeaderName;
+use Foresi\Import\Contract\SourcePreset;
 use Foresi\Import\Domain\ColumnMatcher;
 use Foresi\Import\Domain\ColumnProposal;
-use Foresi\Import\Domain\FieldDefinition;
-use Foresi\Import\Domain\FieldType;
-use Foresi\Import\Domain\HeaderName;
 use Foresi\Import\Domain\Mapping;
 use Foresi\Import\Domain\MatchReason;
 use Foresi\Import\Domain\NormalisationOptions;
-use Foresi\Import\Domain\Preset\AbstractSourcePreset;
-use Foresi\Import\Domain\Preset\SourcePreset;
 use Foresi\Import\Domain\Text;
 use Foresi\Import\Domain\ValueNormaliser;
 use PHPUnit\Framework\Attributes\CoversClass;

@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Import\Application;
 
-use Foresi\Import\Application\Source\SourceFormat;
-use Foresi\Import\Domain\FieldDefinition;
+use Foresi\Import\Contract\FieldDefinition;
+use Foresi\Import\Contract\SourceFormat;
 
 /**
  * Writes exported records as a spreadsheet file. The header is the translated

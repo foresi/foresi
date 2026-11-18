@@ -1,0 +1,290 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+login:
+  title: Sign in
+  email: E-mail
+  password: Password
+  submit: Sign in
+auth:
+  logout: Sign out
+two_factor:
+  code:
+    title: Sign-in code
+    intro: Enter the code from your authenticator app, or one of your recovery codes.
+    label: Code
+    help: 6 digits from the app, or a recovery code
+    trusted: Remember this browser for 30 days
+    submit: Verify
+    cancel: Sign out
+    invalid: This code is not valid. Try the current one.
+  setup:
+    title: Set up two-factor sign-in
+    intro: Every sign-in asks for a code from an authenticator app. Scan the QR code with the app, then enter the code it shows.
+    qr_label: QR code for the authenticator app
+    manual: Or enter this key in the app by hand
+    code: Code from the app
+    code_help: The 6 digits the app shows now
+    submit: Turn on
+    code_invalid: This code does not match. Enter the code the app shows now.
+    unavailable: 'Two-factor sign-in cannot be set up: the server has no key to seal secrets. Ask the operator to set MAIL_SECRET_KEYS.'
+  recovery:
+    title: Recovery codes
+    enabled: Two-factor sign-in is on.
+    intro: Keep these codes somewhere safe. Each one signs you in once if you lose your phone. They are shown only now.
+    continue: Continue
+people:
+  title: People
+  tab:
+    people: People
+    invitations: Invitations
+  invite: Invite
+  invite_title: Invite a person
+  invite_card: Who you invite
+  invite_submit: Send invitation
+  edit_title: 'Edit {name}'
+  edit_card: Role and contact
+  cancel: Cancel
+  save: Save
+  field:
+    email: E-mail
+    name: Name
+    name_help: How the person shows in the organisation
+    role: Role
+    role_help: A guest sees only what you share with them
+    locale: Language of the e-mail
+    locale_help: The invitation is written in this language
+    contact: Contact
+    contact_help: Required for a guest
+    contact_edit_help: Required for a guest; empty unlinks it
+    contact_placeholder: Start typing a name
+    contact_empty: No contact found
+    rate: Hourly rate
+    rate_help: Applies when neither the project nor the client has a rate
+    rate_currency: Currency
+  column:
+    name: Name
+    email: E-mail
+    role: Role
+    contact: Contact
+    two_factor: Two-factor
+    status: Status
+    expires: Expires
+  two_factor:
+    'on': 'On'
+    'off': 'Off'
+  status:
+    active: Active
+    deactivated: Deactivated
+  action:
+    edit: Edit
+    deactivate: Deactivate
+    reactivate: Reactivate
+    reset_two_factor: Reset two-factor sign-in
+    resend: Send again
+    revoke: Revoke
+  confirm:
+    deactivate:
+      title: 'Deactivate {name}?'
+      text: They can no longer sign in to this organisation. Their history stays.
+    reset_two_factor:
+      title: 'Reset the two-factor sign-in of {name}?'
+      text: They set it up again on their next sign-in; trusted browsers are forgotten.
+    revoke:
+      title: 'Revoke the invitation of {email}?'
+      text: The link stops working at once.
+  invitations:
+    empty:
+      title: No pending invitations
+      text: Invite a team member or a guest you share work with.
+  link:
+    title: Invitation link
+    unconfigured: This installation cannot send e-mail yet, so the invitation was not mailed. Pass the link on yourself.
+    text: 'The link invites {name} ({email}) and works once, until {date}.'
+    field: Link
+    copy: Copy link
+    copied: Copied
+    copy_failed: Copying failed; the link is selected, press Ctrl+C.
+    secret: Anyone with the link can join as this person. Send it only to them.
+    done: Done
+  flash:
+    invited: 'The invitation is on its way to {email}.'
+    revoked: The invitation is revoked.
+    changed: '{name} is changed.'
+    deactivated: The person can no longer sign in to this organisation.
+    reactivated: The person can sign in to this organisation again.
+    two_factor_reset: The two-factor sign-in is reset.
+  refused:
+    rate: Enter a rate, such as 1500 or 1500.50.
+    email: Enter a valid e-mail address.
+    name: Enter the name of the person.
+    role: Choose a team member or a guest.
+    contact: Choose the contact the person represents.
+    member: This person already belongs to the organisation.
+    unknown: This person or invitation no longer exists.
+    not_pending: This invitation was accepted or revoked already.
+    user_exists: This e-mail address already has an account.
+    other_user: This invitation is for another account.
+    last_owner: The organisation must keep at least one active owner.
+    self: You cannot deactivate yourself.
+  mail:
+    subject: '{inviter} invites you to {organisation} in {product}'
+    intro: '{inviter} invites you to work with {organisation} in {product}.'
+    action: Accept the invitation
+    validity: '{days, plural, one {The link works once, for # day.} other {The link works once, for # days.}}'
+    ignore: If you did not expect this invitation, ignore this e-mail.
+api_tokens:
+  title: API and MCP
+  new: New token
+  mine: My tokens
+  others: Tokens of other people
+  others_empty: The other people have no tokens.
+  create: Create token
+  cancel: Cancel
+  never: Never
+  column:
+    name: Name
+    person: Person
+    email: E-mail
+    access: Access
+    token: Token
+    created: Created
+    expires: Expires
+    last_used: Last used
+  scope:
+    read: Read everything
+    write: Read and change everything
+    resource_read: '{resource}: read'
+    resource_write: '{resource}: read and change'
+  resource:
+    contacts: Contacts
+    invoices: Invoices
+    payments: Payments
+    webhooks: Webhooks
+    events: Events
+    cashflow: Cash flow
+    received_documents: Received documents
+  state:
+    expired: Expired
+    revoked: Revoked
+  field:
+    name: Name
+    name_help: Where you will use it, such as Reporting
+    expiry: Expires after
+    access: Access
+    access_help: Only what its program needs. Changing includes reading.
+  expiry: '{days, plural, one {# day} other {# days}}'
+  action:
+    revoke: Revoke
+  confirm:
+    revoke:
+      title: 'Revoke the token {name}?'
+      text: Programs that use it stop working at once. This cannot be undone.
+  empty:
+    title: No API tokens
+    text: A token lets another program read your data without your password.
+  two_factor:
+    text: A token can only be created with two-factor sign-in.
+    link: Set up two-factor sign-in
+  created:
+    title: Your new token
+    once: Copy the token now. It is shown only this once and cannot be shown again.
+    text: 'The token {name} works until {date}.'
+    field: Token
+    copy: Copy token
+    copied: Copied
+    copy_failed: Copying failed; the token is selected, press Ctrl+C.
+    use: Use it as a bearer token in the Authorization header of the MCP server or the REST API. Treat it like a password.
+    claude_code: The Claude Code command with this token
+    guide: Setup for other clients
+    done: Done
+  flash:
+    revoked: The token is revoked.
+  refused:
+    two_factor_required: A token can only be created with two-factor sign-in.
+    name: Enter a name of up to 80 characters.
+    expiry: Choose how long the token lasts.
+    scopes: Choose what the token may do.
+  tab:
+    tokens: Tokens
+    connect: Connect
+  connect:
+    intro: Foresi has an MCP server. Claude and other AI clients read and change your data through it, under a token you create here. Every client needs the address of the server and the token in the Authorization header.
+    server: MCP server address
+    copy: Copy
+    copied: Copied
+    copy_failed: Copying failed; the text is selected, press Ctrl+C.
+    steps:
+      title: Steps
+      token: Create a token. For Claude, reading is enough to start with.
+      client: Add the server to your client as shown below and put your token in place of <token>. The new token's window shows the Claude Code command with the token in it.
+      check: Check the connection with a first prompt.
+    clients: Setup for each client
+    client:
+      claude_code:
+        title: Claude Code
+        text: Run the command in a terminal. Then type /mcp in Claude Code and check that the server foresi is connected.
+      claude_ai:
+        title: claude.ai and Claude Desktop
+        text: In Claude, open Settings → Connectors → Add custom connector. Enter the name Foresi and the server address, do not choose OAuth sign-in, and add the header below under Request headers. Claude Desktop takes over the connectors of claude.ai.
+        header: Header
+      desktop:
+        title: Claude Desktop with the configuration file
+        text: If you cannot use a custom connector, open Settings → Developer → Edit Config in Claude Desktop and add the server to claude_desktop_config.json through the mcp-remote bridge (it needs Node.js). Then quit Claude Desktop and start it again.
+      cursor:
+        title: Cursor
+        text: Add the server to ~/.cursor/mcp.json, or to .cursor/mcp.json in a project.
+      vscode:
+        title: VS Code
+        text: Add the server to .vscode/mcp.json. VS Code uses the key servers, not mcpServers, and asks for the token when it first starts the server, so the token stays out of the file.
+      other:
+        title: Another MCP client
+        text: Streamable HTTP transport, the server address above and this header on every request.
+    check:
+      title: A first prompt for Claude
+      text: Paste it into a new chat. Claude calls the tool whoami and says who is signed in and what the token may do.
+      prompt: Use the Foresi MCP server. First call whoami and tell me who you are signed in as and what the token may do. Then show me the five latest unpaid invoices. Do not change anything until I ask you to.
+    scopes:
+      title: What a token may do
+      text: You choose the access when you create a token and cannot change it later; for other access, create a new token. Changing always includes reading. A tool the token has no access to answers with a refusal.
+      hint: For Claude, start with "Read everything". Add writing only for what it really has to change.
+      list: The access a token can be given
+    safety:
+      title: Safety
+      secret: A token is like a password. Do not paste it into a chat or into files you share or commit to git.
+      approve: Keep tool approval on in the client, above all for writes.
+      injection: Data from elsewhere, such as e-mails or web pages, may carry instructions for the AI. A client that may write could carry them out.
+      revoke: Revoke a token you no longer need, or that may have leaked, on the Tokens tab. It stops working at once.
+    docs: The tools and the REST API in detail
+invitation:
+  title: 'Join {organisation}'
+  field:
+    name: Your name
+    password: Password
+    password_help: 'At least {min} characters'
+    password_repeat: Repeat the password
+  new_account:
+    intro: 'Choose a password for {email}. You sign in with this address.'
+    submit: Create account and join
+  sign_in:
+    text: '{email} has an account already. Sign in, and you come back here to accept.'
+    submit: Sign in
+  accept:
+    text: 'Join {organisation} as {role}?'
+    submit: Accept the invitation
+  other_user:
+    title: Invitation for another account
+    text: 'You are signed in as {signed_in}, but the invitation is for {email}. Sign out and open the link again.'
+  member:
+    title: You belong here already
+    text: Your account is a member of this organisation already.
+  unknown:
+    title: Invitation not found
+    text: This link does not lead to an invitation. Ask the owner of the organisation for a new one.
+  expired:
+    title: Invitation expired
+    text: This invitation has expired. Ask the owner of the organisation to send it again.
+  revoked:
+    title: Invitation revoked
+    text: This invitation was revoked. Ask the owner of the organisation for a new one.
+  accepted:
+    title: Invitation used
+    text: This invitation was accepted already. Sign in to the organisation.

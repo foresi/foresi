@@ -9,10 +9,10 @@ declare(strict_types=1);
 namespace Foresi\Import\Infrastructure\Source;
 
 use Foresi\Import\Application\ErrorFileWriter;
-use Foresi\Import\Application\Source\SourceFormat;
 use Foresi\Import\Application\Source\SourceSettings;
+use Foresi\Import\Contract\RowError;
+use Foresi\Import\Contract\SourceFormat;
 use Foresi\Import\Domain\Import;
-use Foresi\Import\Domain\RowError;
 use OpenSpout\Common\Entity\Cell\StringCell;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Common\Entity\Style\Style;

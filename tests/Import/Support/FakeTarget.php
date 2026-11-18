@@ -10,14 +10,14 @@ namespace Foresi\Tests\Import\Support;
 
 use Foresi\Audit\Application\AuditCorrelation;
 use Foresi\Audit\Application\AuditTrail;
-use Foresi\Import\Application\Target\ImportTarget;
-use Foresi\Import\Application\Target\RecordMatch;
-use Foresi\Import\Application\Target\RecordSnapshot;
-use Foresi\Import\Application\Target\WriteResult;
-use Foresi\Import\Domain\BlankCells;
-use Foresi\Import\Domain\FieldDefinition;
-use Foresi\Import\Domain\FieldType;
-use Foresi\Import\Domain\RowError;
+use Foresi\Import\Contract\BlankCells;
+use Foresi\Import\Contract\FieldDefinition;
+use Foresi\Import\Contract\FieldType;
+use Foresi\Import\Contract\ImportTarget;
+use Foresi\Import\Contract\RecordMatch;
+use Foresi\Import\Contract\RecordSnapshot;
+use Foresi\Import\Contract\RowError;
+use Foresi\Import\Contract\WriteResult;
 use Foresi\Shared\Domain\Id;
 
 /**

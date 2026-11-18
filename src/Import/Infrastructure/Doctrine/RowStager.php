@@ -10,8 +10,8 @@ namespace Foresi\Import\Infrastructure\Doctrine;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
+use Foresi\Import\Contract\RowOutcome;
 use Foresi\Import\Domain\Import;
-use Foresi\Import\Domain\RowOutcome;
 use Foresi\Shared\Domain\Id;
 
 /**

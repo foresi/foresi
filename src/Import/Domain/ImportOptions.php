@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Import\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Import\Contract\BlankCells;
 
 /** What the user decided about how an import treats records and values. */
 #[ORM\Embeddable]

@@ -8,13 +8,12 @@ declare(strict_types=1);
 
 namespace Foresi\Import\Infrastructure\Controller;
 
+use Foresi\Import\Contract\TargetPages;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /** The pages of every import target that has some, by target key. */
 final readonly class TargetPagesRegistry
 {
-    public const string TAG = 'app.import_target_pages';
-
     /** @var array<string, TargetPages> */
     private array $pages;
 
@@ -22,7 +21,7 @@ final readonly class TargetPagesRegistry
      * @param iterable<TargetPages> $pages
      */
     public function __construct(
-        #[AutowireIterator(self::TAG)]
+        #[AutowireIterator(TargetPages::TAG)]
         iterable $pages,
     ) {
         $byKey = [];

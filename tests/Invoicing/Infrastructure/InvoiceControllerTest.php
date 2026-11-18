@@ -917,7 +917,7 @@ final class InvoiceControllerTest extends WebTestCase
     {
         $keys = array_column($this->problemsInTheCode(), 1);
         /** @var array{invoice: array{problem: array<string, string>}} $messages */
-        $messages = Yaml::parseFile(\dirname(__DIR__, 3).'/translations/messages+intl-icu.en.yaml');
+        $messages = Yaml::parseFile(\dirname(__DIR__, 3).'/src/Invoicing/translations/messages+intl-icu.en.yaml');
         $translated = array_map(static fn (string $key): string => 'invoice.problem.'.$key, array_keys($messages['invoice']['problem']));
 
         self::assertSame([], array_values(array_diff($translated, $keys, self::REFUSED_ELSEWHERE, self::REFUSED_FOR_CORRECTIONS)));

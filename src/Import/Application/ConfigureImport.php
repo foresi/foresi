@@ -11,7 +11,7 @@ namespace Foresi\Import\Application;
 use Foresi\Import\Application\Message\ReadImportFile;
 use Foresi\Import\Application\Source\SourceSettings;
 use Foresi\Import\Application\Target\TargetRegistry;
-use Foresi\Import\Domain\FieldDefinition;
+use Foresi\Import\Contract\FieldDefinition;
 use Foresi\Import\Domain\Import;
 use Foresi\Import\Domain\ImportMode;
 use Foresi\Import\Domain\ImportOptions;

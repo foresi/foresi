@@ -13,12 +13,12 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
 use Doctrine\Persistence\ManagerRegistry;
 use Foresi\Import\Application\Imports;
+use Foresi\Import\Contract\RowOutcome;
 use Foresi\Import\Domain\Import;
 use Foresi\Import\Domain\ImportAmbiguousMatch;
 use Foresi\Import\Domain\ImportMissingRecord;
 use Foresi\Import\Domain\ImportRow;
 use Foresi\Import\Domain\ImportState;
-use Foresi\Import\Domain\RowOutcome;
 use Foresi\Import\Domain\Text;
 
 /**

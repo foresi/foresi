@@ -10,13 +10,13 @@ namespace Foresi\Idoklad\Application\Import;
 
 use Foresi\Idoklad\Domain\IdokladResource;
 use Foresi\Idoklad\Domain\ImportOutcome;
-use Foresi\Import\Application\Target\ImportTarget;
-use Foresi\Import\Application\Target\RecordMatch;
 use Foresi\Import\Application\Target\TargetRegistry;
-use Foresi\Import\Domain\BlankCells;
-use Foresi\Import\Domain\FieldDefinition;
+use Foresi\Import\Contract\BlankCells;
+use Foresi\Import\Contract\FieldDefinition;
+use Foresi\Import\Contract\ImportTarget;
+use Foresi\Import\Contract\RecordMatch;
+use Foresi\Import\Contract\RowError;
 use Foresi\Import\Domain\NormalisationOptions;
-use Foresi\Import\Domain\RowError;
 use Foresi\Import\Domain\ValueNormaliser;
 use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\ImportPartyValues;
