@@ -75,8 +75,8 @@ Under the task, **Discussion and history** is one timeline, oldest first: every 
 Open **Settings** on a project to:
 
 - change its name, client and description and whether it bills its time, and archive or restore it;
-- add, rename, reorder and remove **sections**. A removed section does not delete its tasks, they move to "No section";
-- add, rename, retype, reorder and remove **statuses**. Removing a status asks where its tasks go.
+- add, rename, reorder and remove **sections**. **Add a section**, in the header of the sections, names a new one in a dialog. A removed section does not delete its tasks, they move to "No section";
+- add, rename, retype, reorder and remove **statuses**. **Add a status**, in the header of the statuses, names a new one and picks its type in a dialog. Removing a status asks where its tasks go.
 - **Apply workflow template**, in the header of the statuses, replaces all the statuses with those of a template after one confirmation in a dialog. Custom names and statuses are gone; every task, subtasks and the trash included, moves to the first status of the same type, as Jira moves work between workflows by status category. A type the template lacks goes to the closest one: closed tasks go to done in the Simple template. Finished tasks stay finished with their completion date. The audit log and the history of each task record the change.
 
 ## Sharing

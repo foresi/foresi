@@ -60,7 +60,9 @@ final class ProjectSettingsControllerTest extends WebTestCase
         self::assertSame('Website', $crawler->filter('#name')->attr('value'));
         self::assertSame(['To do', 'In progress', 'Done'], $this->values($crawler, '[data-settings-status] input[name="name"]'));
         self::assertSame(['open', 'active', 'done'], $crawler->filter('[data-settings-status] select[name="type"] option[selected]')->each(static fn (Crawler $option): string => (string) $option->attr('value')));
-        self::assertSame(['Open', 'Active', 'Done', 'Closed'], $crawler->filter('#status-add-type option')->each(static fn (Crawler $option): string => trim($option->text())));
+        self::assertSame('/projects/'.$id.'/statuses', $crawler->filter('[data-settings-statuses] [data-settings-status-add]')->attr('href'));
+        self::assertSame('/projects/'.$id.'/sections', $crawler->filter('[data-settings-sections] [data-settings-section-add]')->attr('href'));
+        self::assertCount(0, $crawler->filter('main input#section-add, main input#status-add'));
         self::assertSelectorTextContains('[data-settings-sections]', 'The project has no sections yet.');
 
         $this->client->request('GET', '/projects/01900000-0000-7000-8000-000000000000/settings');
@@ -226,12 +228,13 @@ final class ProjectSettingsControllerTest extends WebTestCase
     {
         $this->signIn();
         $id = $this->createProject('Website');
-        foreach (['Design', ' ', 'Build', 'Launch'] as $name) {
-            $crawler = $this->client->request('GET', '/projects/'.$id.'/settings');
-            $this->client->submit($crawler->filter('[data-settings-section-add]')->form(['name' => $name]));
+        foreach (['Design', 'Build', 'Launch'] as $name) {
+            $this->addSection($id, $name);
             self::assertResponseRedirects('/projects/'.$id.'/settings', 303);
         }
         self::assertSame(['Design', 'Build', 'Launch'], $this->sections($id));
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'The section Launch is added.');
 
         $design = $this->sectionId($id, 'Design');
         $crawler = $this->client->request('GET', '/projects/'.$id.'/settings');
@@ -262,10 +265,9 @@ final class ProjectSettingsControllerTest extends WebTestCase
         $this->signIn();
         $website = $this->createProject('Website');
         $other = $this->createProject('Other');
+        $this->addSection($other, 'Elsewhere');
         $crawler = $this->client->request('GET', '/projects/'.$other.'/settings');
-        $this->client->submit($crawler->filter('[data-settings-section-add]')->form(['name' => 'Elsewhere']));
-        $crawler = $this->client->request('GET', '/projects/'.$other.'/settings');
-        $token = (string) $crawler->filter('[data-settings-section-add] input[name="_token"]')->attr('value');
+        $token = (string) $crawler->filter('[data-settings-section] input[name="_token"]')->attr('value');
 
         $this->client->request('POST', '/projects/'.$website.'/sections/'.$this->sectionId($other, 'Elsewhere').'/remove', ['_token' => $token]);
 
@@ -277,8 +279,10 @@ final class ProjectSettingsControllerTest extends WebTestCase
     {
         $this->signIn();
         $id = $this->createProject('Website');
-        $crawler = $this->client->request('GET', '/projects/'.$id.'/settings');
-        $this->client->submit($crawler->filter('[data-settings-status-add]')->form(['name' => 'Review', 'type' => 'active']));
+        $crawler = $this->dialog('/projects/'.$id.'/statuses');
+        self::assertSame(['Open', 'Active', 'Done', 'Closed'], $crawler->filter('#status-type option')->each(static fn (Crawler $option): string => trim($option->text())));
+        self::assertSame('open', $crawler->filter('#status-type option[selected]')->attr('value'));
+        $this->client->submit($crawler->filter('form[data-settings-status-new]')->form(['name' => 'Review', 'type' => 'active']));
         self::assertResponseRedirects('/projects/'.$id.'/settings', 303);
         self::assertSame([['To do', 'open'], ['In progress', 'active'], ['Done', 'done'], ['Review', 'active']], $this->statuses($id));
 
@@ -298,6 +302,67 @@ final class ProjectSettingsControllerTest extends WebTestCase
         $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'The project must keep at least one status of type done.');
         self::assertSame('done', $this->em->getConnection()->fetchOne('SELECT type FROM project_status WHERE id = ?', [$done]));
+    }
+
+    public function testANewSectionAndANewStatusAreNamedInADialogThatKeepsItsErrors(): void
+    {
+        $this->signIn();
+        $id = $this->createProject('Website');
+
+        $crawler = $this->dialog('/projects/'.$id.'/sections');
+        self::assertResponseIsSuccessful();
+        self::assertSame('Add a section', trim($crawler->filter('dialog#dialog-page h2')->text()));
+        self::assertCount(0, $crawler->filter('main'));
+        $this->client->submit($crawler->filter('form[data-settings-section-new]')->form(['name' => '  ']), [], ['HTTP_X_FORESI_DIALOG' => '1']);
+        self::assertResponseStatusCodeSame(422);
+        $crawler = $this->client->getCrawler();
+        self::assertSelectorTextContains('dialog#dialog-page', 'Enter a name for the section.');
+        self::assertSame('true', $crawler->filter('#section-name')->attr('aria-invalid'));
+        self::assertSame([], $this->sections($id));
+
+        // A dialog answer that succeeds names the page to load next, which tells what happened.
+        $this->client->submit($crawler->filter('form[data-settings-section-new]')->form(['name' => 'Design']), [], ['HTTP_X_FORESI_DIALOG' => '1']);
+        self::assertResponseIsSuccessful();
+        self::assertSame(['location' => '/projects/'.$id.'/settings'], json_decode((string) $this->client->getResponse()->getContent(), true));
+        self::assertSame(['Design'], $this->sections($id));
+
+        $crawler = $this->dialog('/projects/'.$id.'/statuses');
+        $this->client->submit($crawler->filter('form[data-settings-status-new]')->form(['name' => '', 'type' => 'done']), [], ['HTTP_X_FORESI_DIALOG' => '1']);
+        self::assertResponseStatusCodeSame(422);
+        $crawler = $this->client->getCrawler();
+        self::assertSelectorTextContains('dialog#dialog-page', 'Enter a name for the status.');
+        self::assertSame('done', $crawler->filter('#status-type option[selected]')->attr('value'));
+        self::assertCount(3, $this->statuses($id));
+
+        // Without JavaScript the same URLs are pages of their own.
+        $this->client->request('GET', '/projects/'.$id.'/statuses');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('main', 'Add a status');
+    }
+
+    public function testAnArchivedProjectRefusesANewSectionInTheDialog(): void
+    {
+        $this->signIn();
+        $id = $this->createProject('Website');
+        $this->em->getConnection()->executeStatement('UPDATE project SET archived_at = ? WHERE id = ?', ['2026-01-01 00:00:00', $id]);
+
+        $crawler = $this->dialog('/projects/'.$id.'/sections');
+        $this->client->submit($crawler->filter('form[data-settings-section-new]')->form(['name' => 'Design']), [], ['HTTP_X_FORESI_DIALOG' => '1']);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('dialog#dialog-page', 'The project is archived.');
+        self::assertSame([], $this->sections($id));
+    }
+
+    public function testAGuestCannotOpenTheNewSectionOrStatusDialog(): void
+    {
+        $this->signIn(Role::Guest);
+        $id = '01900000-0000-7000-8000-000000000000';
+
+        foreach (['/projects/'.$id.'/sections', '/projects/'.$id.'/statuses'] as $url) {
+            $this->client->request('GET', $url);
+            self::assertResponseStatusCodeSame(403, $url);
+        }
     }
 
     public function testARemovedStatusMovesItsTasksToTheChosenOne(): void
@@ -392,6 +457,17 @@ final class ProjectSettingsControllerTest extends WebTestCase
         self::assertIsString($id);
 
         return $id;
+    }
+
+    private function dialog(string $url): Crawler
+    {
+        return $this->client->request('GET', $url, [], [], ['HTTP_X_FORESI_DIALOG' => '1']);
+    }
+
+    private function addSection(string $project, string $name): void
+    {
+        $crawler = $this->client->request('GET', '/projects/'.$project.'/sections');
+        $this->client->submit($crawler->filter('form[data-settings-section-new]')->form(['name' => $name]));
     }
 
     private function move(Crawler $crawler, string $item, string $direction): void

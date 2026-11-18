@@ -13,6 +13,26 @@ async function openContact(page: Page, name: string): Promise<void> {
 }
 
 test.describe('list, search and views', () => {
+  test('creates a contact in a dialog over the list and opens it', async ({ page }) => {
+    await page.goto('/contacts');
+    await page.getByRole('link', { name: 'Nový kontakt' }).first().click();
+    const dialog = page.getByRole('dialog', { name: 'Nový kontakt' });
+    await expect(dialog).toBeVisible();
+    await expect(page).toHaveURL(/\/contacts$/);
+    // A missing name is told in the dialog, which stays open with what was typed.
+    await dialog.getByLabel('IČO').fill('27450911');
+    await dialog.getByRole('button', { name: 'Vytvořit kontakt' }).click();
+    await expect(dialog.getByText('Kontakt zatím není uložený')).toBeVisible();
+    await expect(dialog.getByLabel('IČO')).toHaveValue('27450911');
+    await dialog.locator('#displayName').fill('Example Dialog s.r.o.');
+    await dialog.locator('#street').fill('Example Street 1');
+    await dialog.locator('#city').fill('Example City');
+    await dialog.locator('#postalCode').fill('100 00');
+    await dialog.getByRole('button', { name: 'Vytvořit kontakt' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Example Dialog s.r.o.' })).toBeVisible();
+    await expect(page).toHaveURL(/\/contacts\/[0-9a-f-]{36}$/);
+  });
+
   test('searches the list and clears the search', async ({ page }) => {
     await page.goto('/contacts');
     await page.getByRole('searchbox', { name: 'Hledat v kontaktech' }).fill('Alpha Example');
