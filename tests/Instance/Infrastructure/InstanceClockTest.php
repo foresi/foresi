@@ -16,7 +16,8 @@ use Foresi\Instance\Application\InstanceClock;
 use Foresi\Instance\Application\ZoneFallback;
 use Foresi\Instance\Infrastructure\Clock\TimezoneEnvVarProcessor;
 use Foresi\Invoicing\Application\InvoicingCountries;
-use Foresi\Invoicing\Infrastructure\Doctrine\FirmCountryZones;
+use Foresi\Invoicing\Infrastructure\FirmCountryZones;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\RegistrationNumber;
@@ -171,7 +172,7 @@ final class InstanceClockTest extends KernelTestCase
     {
         $container = self::getContainer();
 
-        return new InstanceClock(new ConfiguredZone($configured), new FirmCountryZones($container->get(Connection::class), $container->get(InvoicingCountries::class)), $container->get(ClockInterface::class));
+        return new InstanceClock(new ConfiguredZone($configured), new FirmCountryZones($container->get(InstanceFirm::class), $container->get(InvoicingCountries::class)), $container->get(ClockInterface::class));
     }
 
     private function firm(string $country): LegalEntity

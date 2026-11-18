@@ -298,29 +298,47 @@ final class LegalEntityControllerTest extends WebTestCase
         yield 'guest' => [Role::Guest];
     }
 
-    public function testARegistrationNumberIsUniqueAmongTheActiveFirms(): void
+    public function testAnInstanceWithAFirmIsRefusedAnother(): void
     {
         $this->signIn();
         $this->firm('Example Firm', '12345695');
+        $this->client->request('GET', '/settings/firms');
+        self::assertSelectorNotExists('main a[href="/settings/firms/new"]');
+        self::assertSelectorNotExists('header a[href="/settings/firms/new"]');
 
-        $this->submitNew(['name' => 'Second Firm', 'registrationNumber' => '1234 5695']);
+        foreach (['GET', 'POST'] as $method) {
+            $this->client->request($method, '/settings/firms/new', ['name' => 'Second Firm', 'registrationNumber' => '12345687']);
 
-        self::assertResponseStatusCodeSame(422);
-        self::assertSelectorExists('#registrationNumber[aria-invalid="true"]');
-        self::assertSelectorTextContains('main', 'Another firm already has this registration number.');
+            self::assertResponseRedirects('/settings/firms');
+            $this->client->followRedirect();
+            self::assertSelectorTextContains('main', 'Foresi keeps one firm per instance.');
+        }
         self::assertSame(1, $this->firmCount());
     }
 
-    public function testAnArchivedFirmReleasesItsRegistrationNumber(): void
+    public function testAnArchivedFirmStillTakesTheInstancesPlace(): void
     {
         $this->signIn();
         $firm = $this->firm('Old Firm', '12345687');
         $this->archive($firm);
 
-        $this->submitNew(['name' => 'New Firm', 'registrationNumber' => '12345687']);
+        $this->client->request('GET', '/settings/firms/new');
 
         self::assertResponseRedirects('/settings/firms');
-        self::assertSame(2, $this->firmCount());
+        self::assertSame(1, $this->firmCount());
+    }
+
+    public function testLosingTheRaceForTheFirstRunIsRefused(): void
+    {
+        $this->signIn();
+        $form = $this->newForm();
+        // Another request sets up the firm between the form and its submission.
+        $this->firm('Example Firm', '12345695');
+
+        $this->client->submit($form);
+
+        self::assertResponseRedirects('/settings/firms');
+        self::assertSame(1, $this->firmCount());
     }
 
     public function testAFirmCannotTakeTheNumberOfAnotherOne(): void
@@ -340,8 +358,8 @@ final class LegalEntityControllerTest extends WebTestCase
     {
         $this->signIn();
         $this->firm('Example Firm', '12345687');
-        $form = $this->newForm();
         RacingLegalEntities::$blind = true;
+        $form = $this->newForm();
 
         $this->client->submit($form);
 

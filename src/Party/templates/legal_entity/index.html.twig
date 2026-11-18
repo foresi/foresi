@@ -5,12 +5,6 @@
 
 {% block title %}{{ 'firm.title'|trans }}{% endblock %}
 
-{% block actions %}
-    {% if not firstRun %}
-        <twig:Ui:Button variant="primary" icon="plus" :href="path('app_firm_new')">{{ 'firm.new'|trans }}</twig:Ui:Button>
-    {% endif %}
-{% endblock %}
-
 {% block content %}
     {% for message in app.flashes('success') %}
         <twig:Ui:Alert tone="success" class="mb-4">{{ message }}</twig:Ui:Alert>

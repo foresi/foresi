@@ -404,7 +404,8 @@ firm:
     vat_status: Vyberte vztah k DPH.
     vat_id_required: Zadejte DIČ této firmy.
     save_failed: Firmu se nepodařilo uložit. Zkontrolujte údaje a zkuste to znovu.
-    last_active: Poslední aktivní firmu nelze archivovat. Nejdřív přidejte jinou firmu.
+    last_active: Poslední aktivní firmu nelze archivovat.
+    one_per_instance: Foresi vede jednu firmu na instanci. Další firma potřebuje vlastní instanci.
     image_type: Nahrajte obrázek PNG nebo JPEG.
     image_size: Obrázek může mít nejvýš 1 MB.
     image_dimensions: Obrázek může mít nejvýš 3000 x 3000 pixelů.

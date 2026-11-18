@@ -1,6 +1,6 @@
 # 35. One instance per customer
 
-* Status: accepted
+* Status: accepted, its firm parts superseded by [ADR 0039](0039-one-firm-per-instance.md) (one firm per instance)
 * Date: 2026-11-17
 * Supersedes: [ADR 0003](0003-row-level-tenancy.md), [ADR 0017](0017-tenant-timezone.md), and the tenant parts of [ADR 0010](0010-several-firms-in-one-tenant.md)
 

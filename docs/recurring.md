@@ -69,7 +69,7 @@ For each active template whose next date has come, the run issues every occurren
 
 ### The organisation's time zone
 
-The day and the 05:00 hour follow the instance's time zone: `APP_TIMEZONE` when it is set (see [operations](operations.md#environment-variables)), else the zone of the country of the first active firm (`Europe/Prague` for a Czech firm), else UTC. Only canonical names of the tz database are accepted. See [ADR 0035](adr/0035-one-instance-per-customer.md). The rows of the invoice list still tell overdue by the zone of the issuing firm's country rather than the organisation's zone, a known gap described in that ADR.
+The day and the 05:00 hour follow the instance's time zone: `APP_TIMEZONE` when it is set (see [operations](operations.md#environment-variables)), else the zone of the country of the firm (`Europe/Prague` for a Czech firm), else UTC. Only canonical names of the tz database are accepted. See [ADR 0035](adr/0035-one-instance-per-customer.md). The rows of the invoice list still tell overdue by the zone of the issuing firm's country rather than the organisation's zone, a known gap described in that ADR.
 
 ### Each occurrence exactly once
 
@@ -151,7 +151,7 @@ A template must never be live in both systems at once, or the customer gets two 
 ### Checklist for the switch day
 
 - The worker runs and consumes `scheduler_foresi`, `mail` and `async`; the notice about an unfinished run stays away after 07:00.
-- The instance's time zone is right (`APP_TIMEZONE`, or the first active firm's country).
+- The instance's time zone is right (`APP_TIMEZONE`, or the firm's country).
 - Every firm that sends has a working mail server and a contact address; send a test e-mail.
 - Every customer of a template has an invoicing e-mail for the firm.
 - The series of each template exists and takes the new year's numbers, if the switch is near 1 January.

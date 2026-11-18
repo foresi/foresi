@@ -228,17 +228,17 @@ final class FirmLogoTest extends WebTestCase
 
     public function testABodyOverThePhpLimitGetsAFormError(): void
     {
-        $firm = $this->firm();
-
         // PHP drops such a body, so no token and no file reach the application.
+        // The first-run setup first: once the firm exists, the new-firm screen is closed.
+        $this->client->request('POST', '/settings/firms/new', [], [], ['CONTENT_LENGTH' => '9000000']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#logo-error', '1 MB');
+
+        $firm = $this->firm();
         $this->client->request('POST', '/settings/firms/'.$firm->id().'/edit', [], [], ['CONTENT_LENGTH' => '9000000']);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#logo-error', '1 MB');
         self::assertSelectorExists('#name[value="Example Firm s.r.o."]');
-
-        $this->client->request('POST', '/settings/firms/new', [], [], ['CONTENT_LENGTH' => '9000000']);
-        self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('#logo-error', '1 MB');
     }
 
     public function testAFailedUploadGetsAFormError(): void

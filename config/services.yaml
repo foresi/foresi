@@ -10,6 +10,6 @@ parameters:
     # The released version, named as the issuing system in electronic documents. A release sets it.
     app.version: 0.4.0
     # The zone of the instance's days, a canonical tz name such as Europe/Prague;
-    # empty follows the country of the first active firm, else UTC. Checked at boot.
+    # empty follows the country of the firm, else UTC. Checked at boot.
     env(APP_TIMEZONE): ''
     app.timezone: '%env(timezone:APP_TIMEZONE)%'
