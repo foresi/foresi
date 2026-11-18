@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
-use Foresi\Invoicing\Domain\LineAmounts;
+use Foresi\Invoicing\Contract\LineAmounts;
 use Foresi\Invoicing\Domain\LineValues;
 
 /**

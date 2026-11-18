@@ -17,11 +17,11 @@ use Foresi\Invoicing\Application\ConflictRetry;
 use Foresi\Invoicing\Application\InvoiceFilter;
 use Foresi\Invoicing\Application\IssuedDocumentFactory;
 use Foresi\Invoicing\Application\UnknownInvoice;
+use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\PriceType;
 use Foresi\Invoicing\Domain\AbandonedNumber;
-use Foresi\Invoicing\Domain\DocumentKind;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceLine;
-use Foresi\Invoicing\Domain\PriceType;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
 use Foresi\Party\Application\TransactionalWork;
@@ -59,7 +59,7 @@ final class InvoicePersistenceTest extends InvoiceTestCase
 
     public function testTheIssuedDocumentShowsWhatIsStored(): void
     {
-        $invoice = $this->reloaded($this->issue->issue($this->input([$this->line('10.40'), $this->line('10.00', kind: \Foresi\Invoicing\Domain\VatRateKind::Reduced)])));
+        $invoice = $this->reloaded($this->issue->issue($this->input([$this->line('10.40'), $this->line('10.00', kind: \Foresi\Invoicing\Contract\VatRateKind::Reduced)])));
 
         $document = self::getContainer()->get(IssuedDocumentFactory::class)->of($invoice->id());
 

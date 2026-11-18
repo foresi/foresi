@@ -11,8 +11,8 @@ namespace Foresi\Invoicing\Infrastructure\Form;
 use Foresi\Invoicing\Application\LineInput;
 use Foresi\Invoicing\Application\LinePricing;
 use Foresi\Invoicing\Application\PricedLine;
-use Foresi\Invoicing\Domain\Percent;
-use Foresi\Invoicing\Domain\RateSummary;
+use Foresi\Invoicing\Contract\Percent;
+use Foresi\Invoicing\Contract\RateSummary;
 use Foresi\Shared\Domain\Money;
 use Symfony\Contracts\Translation\TranslatorInterface;
 

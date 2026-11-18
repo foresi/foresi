@@ -8,16 +8,16 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Invoicing\Application;
 
-use Foresi\Invoicing\Application\IssuedDocument;
 use Foresi\Invoicing\Application\VatRecap;
 use Foresi\Invoicing\Application\VatRecapLine;
-use Foresi\Invoicing\Domain\DocumentKind;
-use Foresi\Invoicing\Domain\DocumentParty;
-use Foresi\Invoicing\Domain\Percent;
-use Foresi\Invoicing\Domain\RateSummary;
-use Foresi\Invoicing\Domain\TaxTreatment;
-use Foresi\Invoicing\Domain\TotalRounding;
-use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentParty;
+use Foresi\Invoicing\Contract\IssuedDocument;
+use Foresi\Invoicing\Contract\Percent;
+use Foresi\Invoicing\Contract\RateSummary;
+use Foresi\Invoicing\Contract\TaxTreatment;
+use Foresi\Invoicing\Contract\TotalRounding;
+use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\PaymentMethod;

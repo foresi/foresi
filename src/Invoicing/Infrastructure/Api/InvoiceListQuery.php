@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Infrastructure\Api;
 
 use Foresi\Invoicing\Application\Query\InvoiceSliceFilter;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Symfony\Component\Serializer\Attribute\SerializedName;
 use Symfony\Component\Validator\Constraints as Assert;
 

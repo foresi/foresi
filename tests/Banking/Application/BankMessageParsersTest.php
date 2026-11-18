@@ -8,12 +8,12 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Banking\Application;
 
-use Foresi\Banking\Application\BankMessageParser;
 use Foresi\Banking\Application\BankMessageParsers;
-use Foresi\Banking\Application\InboundMail;
-use Foresi\Banking\Application\ParseFailed;
-use Foresi\Banking\Application\ParseFailure;
-use Foresi\Banking\Application\ParseResult;
+use Foresi\Banking\Contract\BankMessageParser;
+use Foresi\Banking\Contract\InboundMail;
+use Foresi\Banking\Contract\ParseFailed;
+use Foresi\Banking\Contract\ParseFailure;
+use Foresi\Banking\Contract\ParseResult;
 use PHPUnit\Framework\TestCase;
 
 final class BankMessageParsersTest extends TestCase

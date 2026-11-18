@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Application;
 
+use Foresi\Banking\Contract\BankMessageParser;
 use Foresi\Banking\Domain\InboundStatus;
 
 /**

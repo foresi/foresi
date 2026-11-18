@@ -13,7 +13,7 @@ use Foresi\Invoicing\Application\InvoiceRow;
 use Foresi\Invoicing\Application\InvoiceStatus;
 use Foresi\Invoicing\Application\PaymentState;
 use Foresi\Invoicing\Application\SendMark;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Infrastructure\Form\AmountText;
 use Foresi\Shared\Domain\Money;
 use Foresi\Ui\Contract\Column;

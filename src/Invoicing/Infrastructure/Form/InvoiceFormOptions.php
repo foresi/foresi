@@ -8,12 +8,12 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Infrastructure\Form;
 
-use Foresi\Invoicing\Application\InvoicingCountry;
 use Foresi\Invoicing\Application\SeriesCatalog;
-use Foresi\Invoicing\Domain\DocumentKind;
-use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\InvoicingCountry;
+use Foresi\Invoicing\Contract\PriceType;
+use Foresi\Invoicing\Contract\VatRateKind;
 use Foresi\Invoicing\Domain\Series;
-use Foresi\Invoicing\Domain\VatRateKind;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Domain\DocumentLanguage;

@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 
 /**
  * The months that have a document, for a month to be picked from them.

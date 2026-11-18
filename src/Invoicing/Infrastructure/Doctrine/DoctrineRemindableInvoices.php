@@ -13,7 +13,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Foresi\Invoicing\Application\RemindableInvoice;
 use Foresi\Invoicing\Application\RemindableInvoices;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\FirmReminders;
 use Foresi\Invoicing\Domain\SendPurpose;
 use Foresi\Party\Domain\EmailPurpose;

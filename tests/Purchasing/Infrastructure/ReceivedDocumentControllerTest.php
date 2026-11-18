@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Tests\Purchasing\Infrastructure;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Foresi\ExchangeRate\Application\RateSource;
+use Foresi\ExchangeRate\Contract\RateSource;
 use Foresi\Identity\Domain\Role;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;

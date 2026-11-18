@@ -13,7 +13,7 @@ use Foresi\Invoicing\Application\InvoicingCountries;
 use Foresi\Invoicing\Application\Receivable;
 use Foresi\Invoicing\Application\Receivables;
 use Foresi\Invoicing\Application\UnsupportedCountry;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;

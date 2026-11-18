@@ -6,7 +6,6 @@
 
 declare(strict_types=1);
 
-use Foresi\Banking\Application\BankMessageParser;
 use Foresi\Banking\Application\BankMessageParsers;
 use Foresi\Banking\Application\BankMovements;
 use Foresi\Banking\Application\Candidates;
@@ -27,6 +26,7 @@ use Foresi\Banking\Application\ReceiveInboundMail;
 use Foresi\Banking\Application\RecordMovement;
 use Foresi\Banking\Application\TrustSettings;
 use Foresi\Banking\Application\UnpairMovement;
+use Foresi\Banking\Contract\BankMessageParser;
 use Foresi\Banking\Infrastructure\CachePollFailures;
 use Foresi\Banking\Infrastructure\Doctrine\DoctrineBankMovements;
 use Foresi\Banking\Infrastructure\Doctrine\DoctrineCandidates;

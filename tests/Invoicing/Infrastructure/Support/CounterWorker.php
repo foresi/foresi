@@ -11,7 +11,7 @@ namespace Foresi\Tests\Invoicing\Infrastructure\Support;
 use Doctrine\ORM\Tools\SchemaTool;
 use Foresi\Invoicing\Application\NumberCounter;
 use Foresi\Invoicing\Application\SeriesCatalog;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
 use Foresi\Party\Application\TransactionalWork;

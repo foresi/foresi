@@ -10,8 +10,8 @@ namespace Foresi\Tests\Banking\Application;
 
 use Foresi\Banking\Application\MovementFilter;
 use Foresi\Banking\Application\MovementRow;
+use Foresi\Banking\Contract\MovementDirection;
 use Foresi\Banking\Domain\MessageTrust;
-use Foresi\Banking\Domain\MovementDirection;
 use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Shared\Domain\Currency;

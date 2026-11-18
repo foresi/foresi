@@ -60,7 +60,6 @@ final class ProjectModulesTest extends TestCase
     private const array IMPLICIT_PORTS = [
         'Foresi\\Audit\\Application\\AuditActor -> Foresi\\Identity\\Infrastructure\\Security\\SecurityAuditActor',
         'Foresi\\Audit\\Application\\TokenAuditActor -> Foresi\\Identity\\Infrastructure\\Security\\SecurityAuditActor',
-        'Foresi\\ExchangeRate\\Application\\RateSource -> Foresi\\Country\\CzechRepublic\\ExchangeRate\\CnbRateSource',
         'Foresi\\Identity\\Contract\\GuestHome -> Foresi\\Work\\Infrastructure\\Identity\\SharedWorkGuestHome',
         'Foresi\\Shared\\Application\\ActorRole -> Foresi\\Identity\\Infrastructure\\Security\\MembershipActorRole',
         'Foresi\\Shared\\Application\\Api\\ApiClient -> Foresi\\Identity\\Infrastructure\\Security\\TokenApiClient',

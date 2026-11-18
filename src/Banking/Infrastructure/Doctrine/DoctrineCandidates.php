@@ -12,7 +12,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Banking\Application\Candidate;
 use Foresi\Banking\Application\Candidates;
 use Foresi\Banking\Domain\BankMovement;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\PaymentAllocation;
 use Foresi\Invoicing\Domain\PaymentDirection;

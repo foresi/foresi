@@ -180,7 +180,15 @@ final class ModuleBundleTest extends KernelTestCase
         $builder = $this->builder('prod');
         new InvoicingBundle()->prependExtension($this->configurator($builder, 'prod'), $builder);
 
-        self::assertSame(['Invoicing'], $this->mappings($builder));
+        self::assertSame(['InvoicingContract', 'Invoicing'], $this->mappings($builder));
+        // The frozen party of a document is published in the contract and stored as an embeddable.
+        self::assertSame(['orm' => ['mappings' => ['InvoicingContract' => [
+            'type' => 'attribute',
+            'is_bundle' => false,
+            'dir' => $this->projectDir().'/src/Invoicing/Contract',
+            'prefix' => 'Foresi\\Invoicing\\Contract',
+            'alias' => 'InvoicingContract',
+        ]]]], $builder->getExtensionConfig('doctrine')[0]);
         self::assertSame([
             ['messenger' => ['buses' => ['messenger.bus.default' => ['middleware' => [WaitForLeaseMiddleware::class]]]]],
             ['messenger' => ['routing' => [IssueRecurringTemplate::class => 'async', DeliverInvoiceSend::class => 'mail']]],

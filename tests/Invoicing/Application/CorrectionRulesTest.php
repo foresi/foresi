@@ -13,24 +13,24 @@ use Foresi\Invoicing\Application\CorrectionRules;
 use Foresi\Invoicing\Application\InvoiceInput;
 use Foresi\Invoicing\Application\InvoiceStore;
 use Foresi\Invoicing\Application\InvoicingCountries;
-use Foresi\Invoicing\Application\InvoicingCountry;
 use Foresi\Invoicing\Application\IssueProblem;
 use Foresi\Invoicing\Application\IssueRefused;
 use Foresi\Invoicing\Application\LineInput;
 use Foresi\Invoicing\Application\LinePricing;
+use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\InvoicingCountry;
+use Foresi\Invoicing\Contract\Percent;
+use Foresi\Invoicing\Contract\PriceType;
+use Foresi\Invoicing\Contract\Quantity;
+use Foresi\Invoicing\Contract\TaxTreatment;
+use Foresi\Invoicing\Contract\TotalRounding;
+use Foresi\Invoicing\Contract\VatRateKind;
+use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\CorrectionType;
-use Foresi\Invoicing\Domain\DocumentKind;
-use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Domain\DocumentParties;
 use Foresi\Invoicing\Domain\Invoice;
-use Foresi\Invoicing\Domain\Percent;
-use Foresi\Invoicing\Domain\PriceType;
-use Foresi\Invoicing\Domain\Quantity;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
-use Foresi\Invoicing\Domain\TaxTreatment;
-use Foresi\Invoicing\Domain\TotalRounding;
-use Foresi\Invoicing\Domain\VatRateKind;
-use Foresi\Invoicing\Domain\VatRegime;
 use Foresi\Party\Domain\Address;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
@@ -210,7 +210,7 @@ final class CorrectionRulesTest extends InvoiceTestCase
     public function testATaxDocumentOnPaymentThatTaxesNothingYetIsNotReplaced(): void
     {
         $series = new Series($this->firm, 'Tax documents', SeriesFormat::fromString('D{NNN}'), DocumentKind::PaymentTaxDocument);
-        $copy = DocumentParty::ofCustomer($this->customer, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ'), null);
+        $copy = DocumentParties::ofCustomer($this->customer, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ'), null);
         $document = new Invoice($this->firm, $series, 'D1', VatRegime::Payer, TotalRounding::None, Currency::CZK, $copy, $this->input()->change($this->customer, $copy, DocumentKind::PaymentTaxDocument), null, new \DateTimeImmutable('2026-11-01'));
 
         self::assertFalse($document->isReplaced());

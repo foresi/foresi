@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-use Foresi\ExchangeRate\Application\PublishedRates;
-use Foresi\ExchangeRate\Application\Quote;
 use Foresi\ExchangeRate\Application\RateStore;
+use Foresi\ExchangeRate\Contract\PublishedRates;
+use Foresi\ExchangeRate\Contract\Quote;
 use Foresi\Identity\Domain\User;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
 use Foresi\Party\Application\PartyInput;

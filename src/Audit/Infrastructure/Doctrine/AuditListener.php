@@ -21,6 +21,7 @@ use Foresi\Audit\Domain\Audited;
 use Foresi\Audit\Domain\AuditEntry;
 use Foresi\Audit\Domain\AuditExcluded;
 use Foresi\Audit\Domain\AuditRooted;
+use Foresi\Shared\Domain\View\SavedView;
 use Symfony\Component\Clock\ClockInterface;
 
 /**
@@ -59,19 +60,19 @@ final class AuditListener
         }
 
         foreach ([...$uow->getScheduledCollectionUpdates(), ...$uow->getScheduledCollectionDeletions()] as $collection) {
-            if ($collection->getOwner() instanceof Audited) {
+            if (null !== $collection->getOwner() && $this->audited($collection->getOwner())) {
                 throw new \LogicException('Changes to collections of audited entities are not audited yet.');
             }
         }
 
         $entries = [];
         foreach ($uow->getScheduledEntityInsertions() as $entity) {
-            if ($entity instanceof Audited) {
+            if ($this->audited($entity)) {
                 $entries[] = $this->entry($em, $entity, AuditAction::Created, $this->snapshot($em, $entity, true));
             }
         }
         foreach ($uow->getScheduledEntityUpdates() as $entity) {
-            if ($entity instanceof Audited) {
+            if ($this->audited($entity)) {
                 $changes = $this->updateChanges($em, $entity);
                 if ([] !== $changes) {
                     $entries[] = $this->entry($em, $entity, AuditAction::Updated, $changes);
@@ -79,7 +80,7 @@ final class AuditListener
             }
         }
         foreach ($uow->getScheduledEntityDeletions() as $entity) {
-            if ($entity instanceof Audited) {
+            if ($this->audited($entity)) {
                 $entries[] = $this->entry($em, $entity, AuditAction::Deleted, $this->snapshot($em, $entity, false));
             }
         }
@@ -89,6 +90,15 @@ final class AuditListener
             $em->persist($entry);
             $uow->computeChangeSet($metadata, $entry);
         }
+    }
+
+    /**
+     * The audited entities: those of the modules mark themselves Audited; the
+     * shared kernel cannot know the Audit module, so its saved views are named here.
+     */
+    private function audited(object $entity): bool
+    {
+        return $entity instanceof Audited || $entity instanceof SavedView;
     }
 
     /**

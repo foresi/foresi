@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Infrastructure\Pdf;
 
 use Foresi\Invoicing\Application\DocumentTitles;
-use Foresi\Invoicing\Application\IssuedDocument;
-use Foresi\Invoicing\Domain\DocumentKind;
-use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\IssuedDocument;
+use Foresi\Invoicing\Contract\VatRegime;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**

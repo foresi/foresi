@@ -47,6 +47,18 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Country\\Contract\\.*
+    - name: country_integration_banking
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Country\\Integration\\Banking\\.*
+    - name: country_integration_exchange_rate
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Country\\Integration\\ExchangeRate\\.*
+    - name: country_integration_invoicing
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Country\\Integration\\Invoicing\\.*
     - name: events
       collectors:
         - type: classLike
@@ -276,20 +288,35 @@ deptrac:
       - shared
       - shared_contract
     country:
-      - banking
-      - banking_contract
       - country_contract
-      - exchange_rate
-      - exchange_rate_contract
-      - invoicing
-      - invoicing_contract
       - party
       - party_contract
       - shared
       - shared_contract
     country_contract:
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+    country_integration_banking:
       - banking_contract
+      - country
+      - country_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+    country_integration_exchange_rate:
+      - country
+      - country_contract
       - exchange_rate_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+    country_integration_invoicing:
+      - country
+      - country_contract
       - invoicing_contract
       - party
       - party_contract

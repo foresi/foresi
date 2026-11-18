@@ -10,11 +10,11 @@ namespace Foresi\Tests\Banking\Application;
 
 use Foresi\Banking\Application\BankMessageParsers;
 use Foresi\Banking\Application\InboundMessages;
-use Foresi\Banking\Application\ParseFailed;
-use Foresi\Banking\Application\ParseFailure;
 use Foresi\Banking\Application\ReparseFailedMessages;
+use Foresi\Banking\Contract\ParseFailed;
+use Foresi\Banking\Contract\ParseFailure;
 use Foresi\Banking\Domain\InboundStatus;
-use Foresi\Country\CzechRepublic\Banking\KbNotificationParser;
+use Foresi\Country\Integration\Banking\CzechRepublic\KbNotificationParser;
 use Foresi\Invoicing\Application\PaymentState;
 use Foresi\Tests\Banking\Support\FixedParser;
 use Foresi\Tests\Banking\Support\InboundMailKit;

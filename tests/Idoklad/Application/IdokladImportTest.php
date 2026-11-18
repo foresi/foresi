@@ -25,7 +25,7 @@ use Foresi\Idoklad\Domain\IdokladResource;
 use Foresi\Idoklad\Domain\ImportMode;
 use Foresi\Invoicing\Application\NumberCounter;
 use Foresi\Invoicing\Application\SeriesCatalog;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
 use Foresi\Party\Application\ContactSettingsForFirm;

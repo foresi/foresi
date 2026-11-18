@@ -80,6 +80,10 @@ nav:
     time: Time
     notifications: Notifications
 ui:
+  code_block:
+    copy: Copy
+    copied: Copied
+    copy_failed: "Copying failed; the text is selected, press Ctrl+C."
   inline_field:
     edit: 'Edit {label}'
     save: Save

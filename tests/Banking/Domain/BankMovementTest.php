@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Banking\Domain;
 
+use Foresi\Banking\Contract\MovementDirection;
 use Foresi\Banking\Domain\BankMovement;
 use Foresi\Banking\Domain\MessageTrust;
-use Foresi\Banking\Domain\MovementDirection;
 use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Party\Domain\Address;

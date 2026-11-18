@@ -20,20 +20,21 @@ use Foresi\Invoicing\Application\IssueRules;
 use Foresi\Invoicing\Application\LineInput;
 use Foresi\Invoicing\Application\NumberAllocator;
 use Foresi\Invoicing\Application\StoredInvoice;
+use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentParty;
+use Foresi\Invoicing\Contract\Percent;
+use Foresi\Invoicing\Contract\PriceType;
+use Foresi\Invoicing\Contract\Quantity;
+use Foresi\Invoicing\Contract\TaxTreatment;
+use Foresi\Invoicing\Contract\TotalRounding;
+use Foresi\Invoicing\Contract\VatRateKind;
+use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\AbandonedNumber;
-use Foresi\Invoicing\Domain\DocumentKind;
-use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Domain\DocumentParties;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceLine;
-use Foresi\Invoicing\Domain\Percent;
-use Foresi\Invoicing\Domain\PriceType;
-use Foresi\Invoicing\Domain\Quantity;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
-use Foresi\Invoicing\Domain\TaxTreatment;
-use Foresi\Invoicing\Domain\TotalRounding;
-use Foresi\Invoicing\Domain\VatRateKind;
-use Foresi\Invoicing\Domain\VatRegime;
 use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
@@ -1152,15 +1153,15 @@ final class IssueInvoiceTest extends InvoiceTestCase
     {
         $other = $this->secondFirm(VatStatus::Registered, 'CZ27074358');
         $series = $this->seriesOf($other);
-        $change = $this->input()->change($this->customer, DocumentParty::ofCustomer($this->customer, self::address(), null), DocumentKind::Invoice);
+        $change = $this->input()->change($this->customer, DocumentParties::ofCustomer($this->customer, self::address(), null), DocumentKind::Invoice);
 
         $this->expectExceptionMessageIsOrContains('A document takes a series of its own firm.');
-        new Invoice($this->firm, $series, '1', VatRegime::Payer, TotalRounding::None, Currency::CZK, DocumentParty::ofCustomer($this->customer, self::address(), null), $change, null, new \DateTimeImmutable('2026-11-01'));
+        new Invoice($this->firm, $series, '1', VatRegime::Payer, TotalRounding::None, Currency::CZK, DocumentParties::ofCustomer($this->customer, self::address(), null), $change, null, new \DateTimeImmutable('2026-11-01'));
     }
 
     public function testAnInputWithoutDatesGivesNoChange(): void
     {
-        $copy = DocumentParty::ofCustomer($this->customer, self::address(), null);
+        $copy = DocumentParties::ofCustomer($this->customer, self::address(), null);
 
         foreach (['taxPointDate', 'dueDate'] as $date) {
             try {

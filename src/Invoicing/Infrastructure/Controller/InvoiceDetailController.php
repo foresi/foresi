@@ -146,7 +146,7 @@ final class InvoiceDetailController extends AbstractController
             'text' => $line->text(),
             'quantity' => trim($this->amounts->quantity($line->quantity()->toDecimal()).' '.$line->unit()),
             'price' => $this->amounts->shown($line->price()),
-            'rate' => $rate instanceof \Foresi\Invoicing\Domain\Percent ? $this->amounts->trimmed($rate->decimal()).' %' : '',
+            'rate' => $rate instanceof \Foresi\Invoicing\Contract\Percent ? $this->amounts->trimmed($rate->decimal()).' %' : '',
             'total' => $this->amounts->shown($line->gross()),
         ];
     }

@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Tests\Invoicing\Application;
 
 use Foresi\Invoicing\Application\PaymentState;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\CurrencyMismatch;
 use Foresi\Shared\Domain\Money;

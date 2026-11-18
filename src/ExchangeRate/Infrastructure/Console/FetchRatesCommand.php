@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace Foresi\ExchangeRate\Infrastructure\Console;
 
 use Foresi\ExchangeRate\Application\FetchRates;
-use Foresi\ExchangeRate\Application\PublishedRates;
-use Foresi\ExchangeRate\Application\RateSource;
+use Foresi\ExchangeRate\Contract\PublishedRates;
+use Foresi\ExchangeRate\Contract\RateSource;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;

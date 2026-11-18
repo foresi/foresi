@@ -21,7 +21,7 @@ use Foresi\Invoicing\Application\Query\InvoiceListItem;
 use Foresi\Invoicing\Application\Query\InvoiceSlice;
 use Foresi\Invoicing\Application\Query\InvoiceSliceFilter;
 use Foresi\Invoicing\Application\RecordPayment;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\PaymentSource;
 use Foresi\Party\Domain\Address;

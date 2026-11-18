@@ -14,7 +14,7 @@ use Foresi\CashFlow\Application\CreatePlannedItemInput;
 use Foresi\CashFlow\Application\PlannedItemWrites;
 use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\Events\Infrastructure\Dbal\EventLogTable;
-use Foresi\ExchangeRate\Application\RateSource;
+use Foresi\ExchangeRate\Contract\RateSource;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;

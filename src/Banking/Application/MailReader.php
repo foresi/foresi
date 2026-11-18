@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Application;
 
+use Foresi\Banking\Contract\InboundMail;
+
 /**
  * Reads a raw RFC 5322 message, as fetched from the mailbox or posted to the
  * webhook, into an InboundMail.

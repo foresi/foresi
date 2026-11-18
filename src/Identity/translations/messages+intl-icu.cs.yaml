@@ -205,13 +205,10 @@ api_tokens:
     scopes: Vyberte, co smí token dělat.
   tab:
     tokens: Tokeny
-    connect: Připojení
+    connect: MCP
   connect:
     intro: Foresi má MCP server. Claude a další AI klienti s ním čtou a mění vaše data pod tokenem, který tady vytvoříte. Každý klient potřebuje adresu serveru a token v hlavičce Authorization.
     server: Adresa MCP serveru
-    copy: Kopírovat
-    copied: Zkopírováno
-    copy_failed: Kopírování selhalo; text je označený, stiskněte Ctrl+C.
     steps:
       title: Postup
       token: Vytvořte token. Pro Clauda na začátek stačí jen čtení.

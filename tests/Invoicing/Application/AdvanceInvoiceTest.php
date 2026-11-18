@@ -8,20 +8,20 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Invoicing\Application;
 
-use Foresi\Country\CzechRepublic\Invoicing\CzechInvoicing;
+use Foresi\Country\Integration\Invoicing\CzechRepublic\CzechInvoicing;
 use Foresi\Invoicing\Application\InvoiceInput;
 use Foresi\Invoicing\Application\InvoicePdf;
 use Foresi\Invoicing\Application\IssuedDocumentFactory;
 use Foresi\Invoicing\Application\LineInput;
 use Foresi\Invoicing\Application\SendDraft;
-use Foresi\Invoicing\Domain\DocumentKind;
-use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\TaxTreatment;
+use Foresi\Invoicing\Contract\TotalRounding;
+use Foresi\Invoicing\Contract\VatRateKind;
+use Foresi\Invoicing\Contract\VatRegime;
+use Foresi\Invoicing\Domain\DocumentParties;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceLine;
-use Foresi\Invoicing\Domain\TaxTreatment;
-use Foresi\Invoicing\Domain\TotalRounding;
-use Foresi\Invoicing\Domain\VatRateKind;
-use Foresi\Invoicing\Domain\VatRegime;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\VatStatus;
@@ -93,7 +93,7 @@ final class AdvanceInvoiceTest extends InvoiceTestCase
     public function testTheDocumentRefusesATaxPointOnAnAdvanceAndNoneOnAnInvoice(): void
     {
         $advance = $this->reloaded($this->issue->issue($this->advanceInput()));
-        $copy = DocumentParty::ofCustomer($this->customer, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ'), null);
+        $copy = DocumentParties::ofCustomer($this->customer, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ'), null);
 
         try {
             $advance->change($this->input()->change($this->customer, $copy, DocumentKind::Invoice), new \DateTimeImmutable('2026-11-06 12:00'));

@@ -12,7 +12,7 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Foresi\Invoicing\Application\InvoiceBalances;
 use Foresi\Invoicing\Application\UnknownInvoice;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 

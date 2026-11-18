@@ -11,6 +11,7 @@ namespace Foresi\Invoicing\Domain;
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
 use Foresi\Audit\Domain\AuditRooted;
+use Foresi\Invoicing\Contract\TotalRounding;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Id;
 

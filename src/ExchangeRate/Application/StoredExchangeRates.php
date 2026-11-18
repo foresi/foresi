@@ -8,6 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\ExchangeRate\Application;
 
+use Foresi\ExchangeRate\Contract\PublishedRates;
+use Foresi\ExchangeRate\Contract\Quote;
+use Foresi\ExchangeRate\Contract\RateSource;
 use Foresi\ExchangeRate\Domain\ExchangeRate;
 use Foresi\ExchangeRate\Domain\RateNotAvailable;
 use Psr\Clock\ClockInterface;

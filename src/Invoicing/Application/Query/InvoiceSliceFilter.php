@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Application\Query;
 
 use Foresi\Invoicing\Application\InvoiceFilter;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Shared\Domain\Id;
 
 /**

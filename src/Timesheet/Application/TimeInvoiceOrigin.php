@@ -11,7 +11,7 @@ namespace Foresi\Timesheet\Application;
 use Foresi\Invoicing\Application\IssueOrigin;
 use Foresi\Invoicing\Application\IssueProblem;
 use Foresi\Invoicing\Application\IssueRefused;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceLine;
 use Foresi\Work\Application\TimeEntries;
