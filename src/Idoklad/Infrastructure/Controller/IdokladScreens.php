@@ -26,7 +26,6 @@ use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
-use Foresi\Ui\Component\DataTable;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -369,7 +368,7 @@ final readonly class IdokladScreens
                 'id' => $run->id(),
                 'href' => $this->urls->generate('app_idoklad_run', ['id' => $firm->id(), 'run' => $run->id()]),
                 // A run is a small record: it opens in a modal over the history (docs/design/overlays.md).
-                'opens' => DataTable::OPENS_DIALOG,
+                'opens' => 'dialog',
                 'label' => $label,
                 'cells' => [
                     'when' => $this->dateTime($run->startedAt()),

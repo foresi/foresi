@@ -33,7 +33,6 @@ use Foresi\Invoicing\Application\UndoBlocker;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Party\Domain\LegalEntity;
-use Foresi\Ui\Component\DataTable;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -88,7 +87,7 @@ final class IdokladImportController extends AbstractController
 
         return $this->render('idoklad/firms.html.twig', [
             'columns' => [['key' => 'name', 'label' => $this->translator->trans('idoklad.firms.column.name')]],
-            'rows' => array_map(fn (LegalEntity $firm): array => ['id' => $firm->id(), 'href' => $this->generateUrl('app_idoklad', ['id' => $firm->id()]), 'opens' => DataTable::OPENS_PAGE, 'cells' => ['name' => $firm->name()]], $firms),
+            'rows' => array_map(fn (LegalEntity $firm): array => ['id' => $firm->id(), 'href' => $this->generateUrl('app_idoklad', ['id' => $firm->id()]), 'opens' => 'page', 'cells' => ['name' => $firm->name()]], $firms),
         ]);
     }
 
