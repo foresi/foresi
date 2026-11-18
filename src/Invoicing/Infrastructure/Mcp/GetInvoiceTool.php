@@ -18,7 +18,7 @@ use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
 use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 
 /**
- * One sales document of the organisation, as GET /api/v1/invoices/{id} writes it.
+ * One sales document of the organisation, as GET /api/v1/invoices/{invoiceId} writes it.
  */
 final readonly class GetInvoiceTool implements ReadTool
 {

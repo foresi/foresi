@@ -114,6 +114,6 @@ final readonly class InvoiceFlows implements CashFlowSource, ActualFlowSource
 
     private function subject(string $id): FlowSubject
     {
-        return new FlowSubject('invoice', $id, $this->urls->generate(InvoiceApiController::SHOW, ['id' => $id], UrlGeneratorInterface::ABSOLUTE_PATH));
+        return new FlowSubject('invoice', $id, $this->urls->generate(InvoiceApiController::SHOW, ['invoiceId' => $id], UrlGeneratorInterface::ABSOLUTE_PATH));
     }
 }

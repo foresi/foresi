@@ -14,6 +14,10 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_list_firms` | The firms of the organisation with their ids, for the `firm_id` filter of the other tools. |
 | `foresi_search_invoices` | Searches sales documents, newest first, with filters such as state, firm, customer and issue dates, through a saved view (`view_id`) or conditions (`filter`). |
 | `foresi_get_invoice` | One document with its lines, payments, corrections and balances. |
+| `foresi_create_invoice` | **Write.** Issues an invoice or advance invoice to a customer (`customer_id`) with its `lines`; it gets the next number of its series, or a `number` typed by hand. Foresi has no drafts. |
+| `foresi_update_invoice` | **Write.** Changes the fields given of an invoice (`invoice_id`); `lines` replaces every line. The number is locked once the document was delivered, sent or queued to be sent. |
+| `foresi_trash_invoice` | **Write, destructive.** Moves an invoice (`invoice_id`) that was not delivered to the trash with a `reason`. |
+| `foresi_restore_invoice` | **Write.** Brings an invoice (`invoice_id`) back from the trash. |
 | `foresi_search_contacts` | Searches contacts by text, role, registration number or VAT id. |
 | `foresi_get_contact` | One contact with its addresses, e-mails, bank accounts and contact persons. |
 | `foresi_search_payments` | Searches payments, newest first, with filters such as firm, invoice, direction and dates. |
@@ -69,6 +73,8 @@ The contact tools take the fields of the [REST contact writes](api.md#contact-wr
 
 The cash-flow tools take the fields and parameters of the [REST cash flow](api.md#cash-flow), with the id of a planned item as `planned_item_id`, and answer what the REST API answers. They refuse with `invalid_argument` (it names the argument and the `reason`), `forbidden`, `not_found` and `not_recurring`. See [cash-flow.md](cash-flow.md) for what the forecast counts.
 The saved view tools take the fields of the [REST saved views](api.md#saved-views) and answer the view as `foresi_get_view` does; the read tools need `views:read`, the writes `views:write`. A condition is `{field, op, value}` as `foresi_list_lists` describes the list, such as `{"field": "due_date", "op": "is", "value": {"relative": "next_n_days", "n": 7}}`. A condition that cannot be used is refused with `invalid_argument`, naming its path in `parameter`, such as `conditions[0].op`. `foresi_search_invoices` takes `view_id` (it also needs `views:read`) and `filter`, an object in the same format, joined by AND with its other arguments; its result adds `applied_view`.
+
+The invoice write tools take the fields of the [REST invoice writes](api.md#invoice-writes), with the id of the invoice as `invoice_id`, need `invoices:write`, and answer the document as `foresi_get_invoice` does. What the rules refuse comes back with every problem at once in `structuredContent.error.details.problems`, as `"parameter: reason"`, such as `number: number_locked` or `lines[0].unit_price: number_invalid`; the code is `invalid_argument` for a value, or the reason of a state, such as `number_taken`, `number_locked` or `trashed`.
 
 The received document tools take the fields of the [REST received documents](api.md#received-documents), with the id of the document as `document_id` (`id` for the read tools), and the writes answer the document as `foresi_get_received_document` does. They refuse with the codes of the REST API, such as `invalid_argument` (it names the argument), `not_found`, `overpaid`, `paid` and `not_recorded`.
 

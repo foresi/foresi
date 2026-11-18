@@ -26,7 +26,7 @@ final class ApiPlumbingTest extends ApiTestCase
 
     public function testAWrongMethodIsNotAllowed(): void
     {
-        $this->client->request('POST', '/api/v1/invoices', server: ['HTTP_AUTHORIZATION' => 'Bearer '.$this->secret]);
+        $this->client->request('POST', '/api/v1/payments', server: ['HTTP_AUTHORIZATION' => 'Bearer '.$this->secret]);
 
         $this->assertProblem(405, 'method_not_allowed', ['title' => 'Method Not Allowed']);
         self::assertResponseHeaderSame('Allow', 'GET');
@@ -102,8 +102,10 @@ final class ApiPlumbingTest extends ApiTestCase
             '/api/v1/cash-flow/planned-items/{plannedItemId}' => ['get' => '200', 'delete' => '200', 'patch' => '200'],
             '/api/v1/events' => ['get' => '200'],
             '/api/v1/me' => ['get' => '200'],
-            '/api/v1/invoices' => ['get' => '200'],
-            '/api/v1/invoices/{id}' => ['get' => '200'],
+            '/api/v1/invoices' => ['get' => '200', 'post' => '201'],
+            '/api/v1/invoices/{invoiceId}' => ['get' => '200', 'patch' => '200'],
+            '/api/v1/invoices/{invoiceId}/trash' => ['post' => '200'],
+            '/api/v1/invoices/{invoiceId}/restore' => ['post' => '200'],
             '/api/v1/payments' => ['get' => '200'],
             '/api/v1/payments/{id}' => ['get' => '200'],
             '/api/v1/contacts' => ['get' => '200', 'post' => '201'],
