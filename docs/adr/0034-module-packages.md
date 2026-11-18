@@ -90,7 +90,9 @@ The core is Shared, Audit, Identity, Party, Attachment, Events and Webhooks. Ui 
 
 Party is in the core because every business module and Identity need it: a member is a person contact. The cycle between Identity and Party is broken by a port in Shared, "the role of the current actor in a firm", which Identity implements, so Party no longer uses Identity. Party's use of Import moves to `Party/Integration/Import/`.
 
-Each core module stays a package of its own. The metapackage `foresi/core` requires them all, and an application requires `foresi/core` plus the business modules it wants. Identity and Webhooks requiring Ui stay accepted problems until the screens are separated from the core.
+Each core module stays a package of its own. The metapackage `foresi/core` (in `packages/core/`, outside `src/` so that it is not read as a module) requires them all, and an application requires `foresi/core` plus the business modules it wants.
+
+Until the headless step separates the screens from the core, a core module may require Ui: Identity, Party and Webhooks have screens, and Ui is part of every application today. The module graph does not report a core module requiring Ui as a problem. The headless step removes this exception, and the graph reports such a requirement again.
 
 ### Integrations may hold controllers
 

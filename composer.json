@@ -24,6 +24,7 @@
         "foresi/audit": "dev-main",
         "foresi/banking": "dev-main",
         "foresi/cash-flow": "dev-main",
+        "foresi/core": "dev-main",
         "foresi/country": "dev-main",
         "foresi/events": "dev-main",
         "foresi/exchange-rate": "dev-main",
@@ -177,11 +178,7 @@
             "require": "7.4.*"
         },
         "foresi": {
-            "accepted-problems": [
-                "core-requires-module:identity>party",
-                "core-requires-module:identity>ui",
-                "core-requires-module:webhooks>ui"
-            ]
+            "accepted-problems": []
         }
     },
     "require-dev": {
@@ -204,6 +201,15 @@
         "symfony/process": "7.4.*"
     },
     "repositories": [
+        {
+            "type": "path",
+            "url": "packages/core",
+            "options": {
+                "versions": {
+                    "foresi/core": "dev-main"
+                }
+            }
+        },
         {
             "type": "path",
             "url": "src/*",

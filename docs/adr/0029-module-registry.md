@@ -47,7 +47,7 @@ The root `composer.json` adds a path repository over `src/*` and requires every 
 
 ### Known problems
 
-`extra.foresi.accepted-problems` in the root `composer.json` lists the problem codes the application lives with for now. `app:modules` fails on any other problem, and a test fails when the list and the graph differ either way, so a fixed problem must leave the list too. Today it holds the group of Identity, Party and Import (named by its shortest cycle, Identity and Party), and Identity requiring Party and Ui. Editing the list changes the lock's content hash; refresh it with `composer update "foresi/*"`.
+`extra.foresi.accepted-problems` in the root `composer.json` lists the problem codes the application lives with for now. `app:modules` fails on any other problem, and a test fails when the list and the graph differ either way, so a fixed problem must leave the list too. Since ADR 0034 made Party core and allowed a core module to require Ui, it is empty. Editing the list changes the lock's content hash; refresh it with `composer update "foresi/*"`.
 
 ### Generated Deptrac
 

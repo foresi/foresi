@@ -226,6 +226,7 @@ deptrac:
       - instance
       - instance_contract
       - invoicing_contract
+      - party
       - party_contract
       - shared
       - shared_contract
@@ -270,6 +271,7 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
+      - party
       - party_contract
       - shared
       - shared_contract
@@ -289,6 +291,7 @@ deptrac:
       - banking_contract
       - exchange_rate_contract
       - invoicing_contract
+      - party
       - party_contract
       - shared
       - shared_contract
@@ -335,6 +338,7 @@ deptrac:
       - audit_contract
       - instance
       - instance_contract
+      - party
       - party_contract
       - shared
       - shared_contract
@@ -364,6 +368,7 @@ deptrac:
       - instance
       - instance_contract
       - invoicing_contract
+      - party
       - party_contract
       - shared
       - shared_contract
@@ -417,6 +422,7 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
+      - party
       - party_contract
       - shared
       - shared_contract
@@ -495,6 +501,7 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
+      - party
       - party_contract
       - shared
       - shared_contract
@@ -548,6 +555,7 @@ deptrac:
       - instance
       - instance_contract
       - invoicing_contract
+      - party
       - party_contract
       - shared
       - shared_contract
@@ -611,6 +619,7 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
+      - party
       - party_contract
       - shared
       - shared_contract
