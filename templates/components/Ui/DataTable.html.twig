@@ -14,7 +14,8 @@
 {% set rowHeight = this.rowHeight %}
 {% macro alert(alert, focus) %}{{ ux_icon('lucide:triangle-alert', {class: 'mt-0.5 size-3.5 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ alert.text }}{% if alert.href %} <a href="{{ alert.href }}" data-turbo="false" class="font-medium text-badge-red-text underline {{ focus }}">{{ alert.action }}</a>{% endif %}</span>{% endmacro %}
 {% macro confirm(confirm) %}{% if confirm %} data-turbo-confirm="{{ confirm.title }}"{% if confirm.text %} data-confirm-text="{{ confirm.text }}"{% endif %}{% if confirm.accept %} data-confirm-accept="{{ confirm.accept }}"{% endif %}{% if confirm.cancel %} data-confirm-cancel="{{ confirm.cancel }}"{% endif %}{% if confirm.tone %} data-confirm-tone="{{ confirm.tone }}"{% endif %}{% endif %}{% endmacro %}
-<div {{ attributes.defaults({class: 'relative' ~ (selectable ? ' pb-24' : '')}) }}{% if selectable %} data-controller="table-selection" data-action="keydown->table-selection#keydown click->table-selection#rowClick"{% endif %}>
+{# A click anywhere on a row follows its first cell's link (row-link); the link stays the one way in for a keyboard. #}
+<div {{ attributes.defaults({class: 'relative' ~ (selectable ? ' pb-24' : '')}) }} data-controller="row-link{{ selectable ? ' table-selection' : '' }}" data-action="click->row-link#click{{ selectable ? ' keydown->table-selection#keydown click->table-selection#rowClick' : '' }}">
     {% if this.rowViews is empty %}
         {% if emptySlot %}{{ emptySlot|raw }}{% else %}<twig:Ui:EmptyState />{% endif %}
     {% else %}
@@ -50,31 +51,31 @@
                     </thead>
                     <tbody>
                         {% for row in this.rowViews %}
-                            <tr data-table-selection-target="row" data-id="{{ row.id }}"{% if row.selected %} data-selected="true"{% endif %} class="group scroll-mb-24{{ selectable and row.href ? ' cursor-pointer' : '' }}{{ row.child ? ' text-small' : '' }}"{% if row.child %} data-row-child{% endif %}>
+                            <tr data-table-selection-target="row" data-id="{{ row.id }}"{% if row.selected %} data-selected="true"{% endif %} class="group scroll-mb-24{{ row.href ? ' cursor-pointer' : '' }}{{ row.child ? ' text-small' : '' }}"{% if row.child %} data-row-child{% endif %}>
                                 {% if selectable %}
-                                    <td class="{{ rowHeight }} w-12 border-b border-divider px-4 group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint group-data-[selected=true]:inset-shadow-selected">
+                                    <td class="{{ rowHeight }} w-12 border-b border-divider px-4 group-last:border-b-0 group-hover:bg-frame group-focus-within:bg-frame group-data-[selected=true]:bg-green-tint group-data-[selected=true]:inset-shadow-selected">
                                         <label class="inline-grid size-6 place-items-center max-shell:-m-2.5 max-shell:size-touch">
                                             <input type="checkbox"{% if selectionName %} name="{{ selectionName }}"{% endif %} value="{{ row.id }}" aria-label="{{ 'ui.table.select_row'|trans({label: row.label}) }}"{% if row.selected %} checked{% endif %} data-table-selection-target="check" data-action="click->table-selection#rowCheck change->table-selection#sync" class="size-4 accent-green {{ focus }}">
                                         </label>
                                     </td>
                                 {% endif %}
                                 {% for cell in row.cells %}
-                                    <td class="{{ rowHeight }} whitespace-nowrap border-b border-divider px-4 text-text group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ cell.wide ? ' max-xl:hidden' : '' }}{{ cell.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ (row.secondary or row.alert) and loop.first ? ' max-sm:w-full max-sm:max-w-0 max-sm:py-2' : '' }}{{ row.alert and cell.key == row.alert.column ? ' py-2' : '' }}{{ row.child and loop.first ? ' pl-10' : '' }}">
+                                    <td class="{{ rowHeight }} whitespace-nowrap border-b border-divider px-4 text-text group-last:border-b-0 group-hover:bg-frame group-focus-within:bg-frame group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ cell.wide ? ' max-xl:hidden' : '' }}{{ cell.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ (row.secondary or row.alert) and loop.first ? ' max-sm:w-full max-sm:max-w-0 max-sm:py-2' : '' }}{{ row.alert and cell.key == row.alert.column ? ' py-2' : '' }}{{ row.child and loop.first ? ' pl-10' : '' }}">
                                         {%- set unreadMark = loop.first and row.unread is not null -%}
                                         {%- if unreadMark %}<span class="flex min-w-0 items-center gap-2 [&>*]:min-w-0 {{ row.unread ? '[&_a]:font-semibold' : '[&_a]:font-normal' }}" data-unread="{{ row.unread ? 'true' : 'false' }}"><span class="size-2 shrink-0 rounded-sm{{ row.unread ? ' bg-green' : '' }}" aria-hidden="true"></span>{% if row.unread %}<span class="sr-only">{{ 'ui.table.unread'|trans }}: </span>{% endif %}{% endif -%}
                                         {%- if cell.edit -%}
                                             {{ component('Ui:InlineEdit', cell.edit|merge({id: 'edit-' ~ row.id ~ '-' ~ cell.key, text: cell.edit.kind|default('menu') == 'person' ? null : cell.text, tone: cell.tone})) }}
                                         {%- elseif cell.links -%}
-                                            <span class="block {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate"{% if cell.title %} title="{{ cell.title }}"{% endif %} data-links>
+                                            {#- Each record the row refers to is a chip of its own that opens it, apart from the row's link (Atlassian Tag: interactive metadata). -#}
+                                            <span class="flex min-w-0 {{ cell.truncate ? '' : 'max-w-[32ch] ' }}items-center gap-1 overflow-hidden"{% if cell.title %} title="{{ cell.title }}"{% endif %} data-links>
                                                 {%- for link in cell.links -%}
-                                                    {%- if not loop.first %}, {% endif -%}
-                                                    <a href="{{ link.href }}"{% if cell.plain %} data-turbo="false"{% endif %} class="font-medium text-ink no-underline hover:underline {{ focus }}">{{ link.text }}</a>
+                                                    <a href="{{ link.href }}"{% if cell.plain %} data-turbo="false"{% endif %} data-chip class="inline-flex h-6 min-w-0 max-w-full items-center rounded-sm border border-container bg-white px-2 text-caption font-medium text-ink no-underline transition-colors hover:border-control-line hover:bg-head {{ focus }}"><span class="truncate">{{ link.text }}</span></a>
                                                 {%- endfor -%}
                                             </span>
                                         {%- elseif cell.flag -%}
                                             <span class="flex min-w-0 items-center gap-2" data-flag-cell>
                                                 {%- if cell.link -%}
-                                                    <a href="{{ cell.link }}" data-row-link{% if cell.plain %} data-turbo="false"{% endif %}{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block min-w-0 {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate font-medium text-ink no-underline hover:underline {{ focus }}">{{ cell.text }}</a>
+                                                    <a href="{{ cell.link }}" data-row-link{% if cell.plain %} data-turbo="false"{% endif %}{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block min-w-0 {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate font-medium text-ink no-underline {{ focus }}">{{ cell.text }}</a>
                                                 {%- else -%}
                                                     <span class="block min-w-0 {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate"{% if cell.title %} title="{{ cell.title }}"{% endif %}>{{ cell.text }}</span>
                                                 {%- endif -%}
@@ -88,7 +89,7 @@
                                             <span class="flex min-w-0 items-center gap-2" data-avatar-cell>
                                                 <twig:Ui:Avatar :name="cell.avatar.name" :seed="cell.avatar.seed" />
                                                 {%- if cell.link -%}
-                                                    <a href="{{ cell.link }}" data-row-link{% if cell.plain %} data-turbo="false"{% endif %}{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block min-w-0 max-w-[32ch] truncate font-medium text-ink no-underline hover:underline {{ focus }}">{{ cell.text }}</a>
+                                                    <a href="{{ cell.link }}" data-row-link{% if cell.plain %} data-turbo="false"{% endif %}{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block min-w-0 max-w-[32ch] truncate font-medium text-ink no-underline {{ focus }}">{{ cell.text }}</a>
                                                 {%- else -%}
                                                     <span class="block min-w-0 max-w-[32ch] truncate font-medium text-ink"{% if cell.title %} title="{{ cell.title }}"{% endif %}>{{ cell.text }}</span>
                                                 {%- endif -%}
@@ -98,7 +99,7 @@
                                         {%- elseif cell.tone -%}
                                             <twig:Ui:Badge :tone="cell.tone" :title="cell.hint ?: false">{{ cell.text }}{% if cell.hint %}<span class="sr-only"> · {{ cell.hint }}</span>{% endif %}</twig:Ui:Badge>
                                         {%- elseif cell.link -%}
-                                            <a href="{{ cell.link }}" data-row-link{% if cell.plain %} data-turbo="false"{% endif %}{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate font-medium text-ink no-underline hover:underline {{ focus }}">{{ cell.text }}</a>
+                                            <a href="{{ cell.link }}" data-row-link{% if cell.plain %} data-turbo="false"{% endif %}{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate font-medium text-ink no-underline {{ focus }}">{{ cell.text }}</a>
                                         {%- elseif cell.numeric -%}
                                             <span class="num"{% if cell.title %} title="{{ cell.title }}"{% endif %}>{{ cell.text }}</span>
                                         {%- elseif cell.text is same as('') -%}
@@ -113,7 +114,7 @@
                                     </td>
                                 {% endfor %}
                                 {% if this.hasActions %}
-                                    <td class="{{ rowHeight }} whitespace-nowrap border-b border-divider px-2 text-right group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint" data-row-actions>
+                                    <td class="{{ rowHeight }} whitespace-nowrap border-b border-divider px-2 text-right group-last:border-b-0 group-hover:bg-frame group-focus-within:bg-frame group-data-[selected=true]:bg-green-tint" data-row-actions>
                                         <div class="flex items-center justify-end gap-0.5">
                                             {% set menuId = 'row-menu-' ~ row.id %}
                                             {# Macros of this template are out of reach inside the menu's content block. #}
@@ -124,10 +125,10 @@
                                                         <form method="post" action="{{ action.href }}" role="none"{{ confirms[loop.index0] }}>
                                                             <input type="hidden" name="_token" value="{{ actionToken }}">
                                                             {% for name, value in action.fields %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
-                                                            <twig:Ui:MenuItem type="submit">{{ action.label }}</twig:Ui:MenuItem>
+                                                            <twig:Ui:MenuItem type="submit" size="sm">{{ action.label }}</twig:Ui:MenuItem>
                                                         </form>
                                                     {% else %}
-                                                        <twig:Ui:MenuItem :href="action.href" :data-turbo="action.plain ? 'false' : null" :data-dialog="action.dialog ? true : null" :aria-haspopup="action.dialog ? 'dialog' : null">{{ action.label }}</twig:Ui:MenuItem>
+                                                        <twig:Ui:MenuItem size="sm" :href="action.href" :data-turbo="action.plain ? 'false' : null" :data-dialog="action.dialog ? true : null" :aria-haspopup="action.dialog ? 'dialog' : null">{{ action.label }}</twig:Ui:MenuItem>
                                                     {% endif %}
                                                 {% endfor %}
                                             </twig:Ui:Menu>

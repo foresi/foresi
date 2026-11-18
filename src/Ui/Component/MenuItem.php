@@ -15,6 +15,7 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
  * One row of a Ui:Menu: a link with "href", otherwise a button ("type" submit inside a form).
  * "checked" makes it a radio row (menuitemradio) with a check when on; "tone" danger is the
  * red destructive row; a disabled row is not focusable by click and says so to assistive tech.
+ * "size" sm is the compact row a data table's row menu uses.
  */
 #[AsTwigComponent]
 final class MenuItem
@@ -31,6 +32,8 @@ final class MenuItem
     /** Null for a plain row; true or false for a radio row. */
     public ?bool $checked = null;
     public bool $disabled = false;
+    /** md (the default) or sm, the compact row. */
+    public string $size = 'md';
 
     #[PostMount]
     public function validate(): void
@@ -56,6 +59,12 @@ final class MenuItem
     {
         $tone = self::TONES[$this->tone] ?? throw new \InvalidArgumentException(sprintf('Unknown menu item tone "%s", expected one of: %s.', $this->tone, implode(', ', array_keys(self::TONES))));
 
-        return Menu::OPTION.' '.($this->disabled ? 'cursor-default opacity-60' : $tone).' '.Style::FIELD_FOCUS;
+        $option = match ($this->size) {
+            'md' => Menu::OPTION,
+            'sm' => Menu::OPTION_SM,
+            default => throw new \InvalidArgumentException(sprintf('Unknown menu item size "%s", expected md or sm.', $this->size)),
+        };
+
+        return $option.' '.($this->disabled ? 'cursor-default opacity-60' : $tone).' '.Style::FIELD_FOCUS;
     }
 }

@@ -39,6 +39,8 @@ final readonly class ReceivedDocumentRow
         public ?\DateTimeImmutable $deletedAt,
         public ?string $deletedBy,
         public ?string $deletedReason,
+        /** The contact the supplier was picked from, null for one typed by hand. */
+        public ?string $supplierId = null,
     ) {
     }
 
