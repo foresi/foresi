@@ -21,6 +21,10 @@ interface SavedViewStore
 
     public function bySystemKey(string $systemKey): ?SavedView;
 
+    public function get(string $id): ?SavedView;
+
+    public function remove(SavedView $view): void;
+
     public function add(SavedView $view): void;
 
     public function flush(): void;
