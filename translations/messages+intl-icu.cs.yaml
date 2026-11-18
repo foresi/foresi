@@ -1560,6 +1560,7 @@ invoice:
   save_send: Odeslat a uložit
   save_pdf: PDF a uložit
   more_actions: Další akce
+  due_on: 'splatnost {date}'
   more: Další údaje
   more_show: Zobrazit více detailů
   firm_apply: Použít tuto firmu

@@ -64,8 +64,9 @@ final class InvoiceDetailController extends AbstractController
         return $this->render('invoicing/show.html.twig', [
             'invoice' => $invoice,
             'title' => $this->translator->trans(self::TITLES[$invoice->kind()->value], ['number' => $invoice->number()]),
-            'badge' => ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()],
-            'facts' => $this->facts($invoice),
+            'status' => ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()],
+            'summary' => $this->summary($invoice),
+            'details' => $this->details($invoice),
             'lines' => array_map($this->line(...), $detail->lines),
             'totals' => [
                 'net' => $this->amounts->shown($invoice->net()),
@@ -82,30 +83,56 @@ final class InvoiceDetailController extends AbstractController
     }
 
     /**
-     * @return list<array{label: string, value: string, big?: bool}>
+     * What a reader looks for first (Stripe's invoice detail, Fakturoid): whom it bills, with the
+     * address and identifiers as on the document, and how much is due by when.
+     *
+     * @return array{customer: string, address: string, ids: string, payable: string, dueDate: string}
      */
-    private function facts(Invoice $invoice): array
+    private function summary(Invoice $invoice): array
+    {
+        $customer = $invoice->customer();
+        $address = $customer->address;
+        $ids = [];
+        if (null !== $customer->registrationNumber && '' !== $customer->registrationNumber) {
+            $ids[] = $this->translator->trans('invoice.field.registrationNumber').' '.$customer->registrationNumber;
+        }
+        if (null !== $customer->vatId && '' !== $customer->vatId) {
+            $ids[] = $this->translator->trans('invoice.field.vatId').' '.$customer->vatId;
+        }
+
+        return [
+            'customer' => $customer->name,
+            'address' => implode(', ', array_filter([$address->street, trim($address->postalCode.' '.$address->city)], static fn (string $part): bool => '' !== $part)),
+            'ids' => implode(' · ', $ids),
+            'payable' => $this->amounts->shown($invoice->payable()),
+            'dueDate' => $invoice->dueDate()->format($this->translator->trans('format.date')),
+        ];
+    }
+
+    /**
+     * The dates and symbols, a label and a value each (Ui:DescriptionList), in the order of the
+     * form's "Dates and payment".
+     *
+     * @return list<array{label: string, value: string}>
+     */
+    private function details(Invoice $invoice): array
     {
         $date = $this->translator->trans('format.date');
         $taxPoint = $invoice->taxPointDate();
-        $facts = [
-            ['label' => $this->translator->trans('invoice.field.customer'), 'value' => $invoice->customer()->name],
-            ['label' => $this->translator->trans('invoice.total.payable'), 'value' => $this->amounts->shown($invoice->payable()), 'big' => true],
-            ['label' => $this->translator->trans('invoice.field.issueDate'), 'value' => $invoice->issueDate()->format($date)],
-        ];
+        $details = [['label' => $this->translator->trans('invoice.field.issueDate'), 'value' => $invoice->issueDate()->format($date)]];
         if ($taxPoint instanceof \DateTimeImmutable) {
-            $facts[] = ['label' => $this->translator->trans('invoice.field.taxPointDate'), 'value' => $taxPoint->format($date)];
+            $details[] = ['label' => $this->translator->trans('invoice.field.taxPointDate'), 'value' => $taxPoint->format($date)];
         }
-        $facts[] = ['label' => $this->translator->trans('invoice.field.dueDate'), 'value' => $invoice->dueDate()->format($date)];
-        $facts[] = ['label' => $this->translator->trans('invoice.field.paymentMethod'), 'value' => $this->translator->trans('invoice.payment.'.$invoice->paymentMethod()->value)];
+        $details[] = ['label' => $this->translator->trans('invoice.field.dueDate'), 'value' => $invoice->dueDate()->format($date)];
+        $details[] = ['label' => $this->translator->trans('invoice.field.paymentMethod'), 'value' => $this->translator->trans('invoice.payment.'.$invoice->paymentMethod()->value)];
         if ('' !== $invoice->variableSymbol()) {
-            $facts[] = ['label' => $this->translator->trans('invoice.field.variableSymbol'), 'value' => $invoice->variableSymbol()];
+            $details[] = ['label' => $this->translator->trans('invoice.field.variableSymbol'), 'value' => $invoice->variableSymbol()];
         }
         if ('' !== $invoice->orderNumber()) {
-            $facts[] = ['label' => $this->translator->trans('invoice.field.orderNumber'), 'value' => $invoice->orderNumber()];
+            $details[] = ['label' => $this->translator->trans('invoice.field.orderNumber'), 'value' => $invoice->orderNumber()];
         }
 
-        return $facts;
+        return $details;
     }
 
     /**
