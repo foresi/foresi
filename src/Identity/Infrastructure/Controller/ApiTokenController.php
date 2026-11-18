@@ -186,9 +186,15 @@ final class ApiTokenController extends AbstractController
         return $this->scopeOptions->offered();
     }
 
-    private function scopeLabel(ApiScope $scope): string
+    /**
+     * What a token or a connection may do, as few badges as say it: a scope
+     * another one covers is left out.
+     *
+     * @return array{badges: list<array{label: string, tone: string}>}
+     */
+    private function access(ApiToken $token): array
     {
-        return $this->scopeOptions->label($scope);
+        return ['badges' => array_map(fn (ApiScope $scope): array => ['label' => $this->scopeOptions->label($scope), 'tone' => 'gray'], ApiScope::smallest($token->scopes()))];
     }
 
     /**
@@ -277,7 +283,7 @@ final class ApiTokenController extends AbstractController
             'secondary' => $host ?? $this->translator->trans('api_tokens.connection.unverified'),
             'cells' => $cells + [
                 'verified' => $host ?? ['badges' => [['label' => $this->translator->trans('api_tokens.connection.unverified'), 'tone' => 'amber']]],
-                'access' => ['badges' => array_map(fn (ApiScope $scope): array => ['label' => $this->scopeLabel($scope), 'tone' => 'gray'], $token->scopes())],
+                'access' => $this->access($token),
                 'created' => $this->date($token->createdAt()),
                 'lastUsed' => $lastUsed instanceof \DateTimeImmutable ? $lastUsed->format($this->translator->trans('format.datetime')) : $this->translator->trans('api_tokens.never'),
             ],
@@ -331,7 +337,7 @@ final class ApiTokenController extends AbstractController
             'label' => $token->name(),
             'secondary' => '…'.$token->lastFour(),
             'cells' => $cells + [
-                'access' => ['badges' => array_map(fn (ApiScope $scope): array => ['label' => $this->scopeLabel($scope), 'tone' => 'gray'], $token->scopes())],
+                'access' => $this->access($token),
                 'token' => '…'.$token->lastFour(),
                 'created' => $this->date($token->createdAt()),
                 'expires' => match ($state) {
