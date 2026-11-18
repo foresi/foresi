@@ -1034,6 +1034,7 @@ recurring:
       edit: Upravit pravidelnou fakturu
     summary: '{total, plural, one {# pravidelná faktura} few {# pravidelné faktury} other {# pravidelných faktur}}'
     tab:
+      all: Vše
       active: Aktivní
       paused: Pozastavené
       ended: Ukončené
@@ -1074,8 +1075,10 @@ recurring:
       title: Zatím žádné pravidelné faktury
       text: Založte novou, nebo ji vytvořte z vystavené faktury přes položku Pravidelná faktura v jejím menu.
       from_invoice: Vybrat fakturu
-      filtered_title: Pro tuto firmu tu nic není
-      reset: Zobrazit všechny firmy
+      filtered_title: Filtrům nic neodpovídá
+      reset: Zrušit filtry
+      all: Žádná pravidelná faktura
+      view: Tomuto pohledu nic neodpovídá
       active: Žádná aktivní pravidelná faktura
       paused: Nic není pozastavené
       ended: Nic není ukončené
