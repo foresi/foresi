@@ -18,6 +18,7 @@ use Foresi\Identity\Domain\OAuth\OAuthClient;
 use Foresi\Identity\Domain\OAuth\OAuthClientKind;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
+use Foresi\Identity\Infrastructure\Controller\ApiScopeOptions;
 use Foresi\Shared\Application\Sealer;
 use Foresi\Tests\Identity\Support\IdentityFixtures;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -115,6 +116,20 @@ final class ApiTokenPageTest extends WebTestCase
         self::assertInstanceOf(ApiToken::class, $connection);
         self::assertInstanceOf(\DateTimeImmutable::class, $connection->revokedAt());
         self::assertSame($this->userId(self::MEMBER), $connection->revokedBy());
+    }
+
+    public function testAccessIsShownAsTheFewestScopesThatSayIt(): void
+    {
+        $this->signIn(self::MEMBER, twoFactor: true);
+        $every = array_map(ApiScope::from(...), array_keys(self::getContainer()->get(ApiScopeOptions::class)->offered()));
+        $this->connect(self::MEMBER, new OAuthClient('https://claude.ai/oauth/mcp-client.json', OAuthClientKind::Metadata, 'Claude Code', ['https://claude.ai/api/mcp/auth_callback'], new \DateTimeImmutable('-2 days')), $every);
+        $this->store(self::MEMBER, 'Billing', new \DateTimeImmutable('-1 day'), new \DateTimeImmutable('+10 days'), scopes: [ApiScope::read(), ApiScope::from('invoices:read'), ApiScope::from('invoices:write')]);
+
+        $crawler = $this->client->request('GET', '/settings/api');
+
+        $badges = static fn (string $list): array => $crawler->filter('['.$list.'] tbody [data-badges] > *')->each(static fn (Crawler $badge): string => trim($badge->text()));
+        self::assertSame(['Read and change everything'], $badges('data-api-connections="mine"'), 'Writing everything covers every other scope.');
+        self::assertSame(['Read everything', 'Invoices: read and change'], $badges('data-api-tokens="mine"'));
     }
 
     public function testWithoutConnectedAppsThePageSaysHowToConnectOne(): void
@@ -583,10 +598,13 @@ final class ApiTokenPageTest extends WebTestCase
         return $this->userEntity($email)->id();
     }
 
-    private function store(string $email, string $name, \DateTimeImmutable $created, \DateTimeImmutable $expires, bool $revoked = false): string
+    /**
+     * @param ?list<ApiScope> $scopes reading everything when none are given
+     */
+    private function store(string $email, string $name, \DateTimeImmutable $created, \DateTimeImmutable $expires, bool $revoked = false, ?array $scopes = null): string
     {
         $secret = ApiTokenSecret::generate();
-        $token = new ApiToken($this->userId($email), $name, [ApiScope::read()], ApiTokenSecret::hash($secret), ApiTokenSecret::lastFour($secret), $created, $expires);
+        $token = new ApiToken($this->userId($email), $name, $scopes ?? [ApiScope::read()], ApiTokenSecret::hash($secret), ApiTokenSecret::lastFour($secret), $created, $expires);
         if ($revoked) {
             $token->revoke(null, $created);
         }
@@ -598,13 +616,15 @@ final class ApiTokenPageTest extends WebTestCase
 
     /**
      * A client connected by OAuth: the client and the token row of its connection.
+     *
+     * @param ?list<ApiScope> $scopes reading everything when none are given
      */
-    private function connect(string $email, OAuthClient $client): string
+    private function connect(string $email, OAuthClient $client, ?array $scopes = null): string
     {
         $userId = $this->userId($email);
         $this->em->persist($client);
         $secret = ApiTokenSecret::generate();
-        $token = new ApiToken($userId, $client->name(), [ApiScope::read()], ApiTokenSecret::hash($secret), ApiTokenSecret::lastFour($secret), new \DateTimeImmutable('-1 hour'), new \DateTimeImmutable('+1 hour'), $client->id());
+        $token = new ApiToken($userId, $client->name(), $scopes ?? [ApiScope::read()], ApiTokenSecret::hash($secret), ApiTokenSecret::lastFour($secret), new \DateTimeImmutable('-1 hour'), new \DateTimeImmutable('+1 hour'), $client->id());
         $this->em->persist($token);
         $this->em->flush();
 
