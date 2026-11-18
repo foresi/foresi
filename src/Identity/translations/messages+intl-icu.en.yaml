@@ -205,13 +205,10 @@ api_tokens:
     scopes: Choose what the token may do.
   tab:
     tokens: Tokens
-    connect: Connect
+    connect: MCP
   connect:
     intro: Foresi has an MCP server. Claude and other AI clients read and change your data through it, under a token you create here. Every client needs the address of the server and the token in the Authorization header.
     server: MCP server address
-    copy: Copy
-    copied: Copied
-    copy_failed: Copying failed; the text is selected, press Ctrl+C.
     steps:
       title: Steps
       token: Create a token. For Claude, reading is enough to start with.

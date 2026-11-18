@@ -6,7 +6,8 @@ import { Controller } from '@hotwired/stimulus';
 const SHOWN = 2000;
 
 /**
- * Copies the value of a read-only field to the clipboard and says so: the
+ * Copies the value of a read-only field, or the text of a code block, to the
+ * clipboard and says so: the
  * button label turns into the "copied" text for a moment, and a polite live
  * region announces it. Where the clipboard is refused (an insecure origin, a
  * denied permission) the text is selected instead, so Ctrl+C still works.
@@ -22,12 +23,17 @@ export default class extends Controller {
     static values = { done: String, failed: String };
 
     async copy() {
-        const text = this.sourceTarget.value;
+        const source = this.sourceTarget;
+        const field = 'value' in source;
         try {
-            await navigator.clipboard.writeText(text);
+            await navigator.clipboard.writeText(field ? source.value : source.textContent);
         } catch {
-            this.sourceTarget.focus();
-            this.sourceTarget.select();
+            source.focus();
+            if (field) {
+                source.select();
+            } else {
+                window.getSelection()?.selectAllChildren(source);
+            }
             this.announce(this.failedValue);
             return;
         }
