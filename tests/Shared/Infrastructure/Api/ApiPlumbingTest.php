@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Infrastructure\Api;
 
+use Foresi\Shared\Infrastructure\Module\InstalledModules;
+
 /**
  * What every endpoint of the REST API shares: problem documents for unknown
  * routes and wrong methods, the rate limit of a token and its headers, and the
@@ -26,7 +28,7 @@ final class ApiPlumbingTest extends ApiTestCase
 
     public function testAWrongMethodIsNotAllowed(): void
     {
-        $this->client->request('POST', '/api/v1/payments', server: ['HTTP_AUTHORIZATION' => 'Bearer '.$this->secret]);
+        $this->client->request('POST', '/api/v1/me', server: ['HTTP_AUTHORIZATION' => 'Bearer '.$this->secret]);
 
         $this->assertProblem(405, 'method_not_allowed', ['title' => 'Method Not Allowed']);
         self::assertResponseHeaderSame('Allow', 'GET');
@@ -41,7 +43,7 @@ final class ApiPlumbingTest extends ApiTestCase
         self::assertResponseHeaderSame('RateLimit-Remaining', '599');
         self::assertResponseHeaderSame('RateLimit-Reset', '0');
 
-        $this->get('/api/v1/invoices/nothing');
+        $this->get('/api/v1/contacts/nothing');
 
         $this->assertProblem(404, 'not_found');
         self::assertResponseHeaderSame('RateLimit-Remaining', '598');
@@ -95,51 +97,71 @@ final class ApiPlumbingTest extends ApiTestCase
         self::assertSame('1', $this->at('info', 'version'));
         $paths = $this->at('paths');
         self::assertIsArray($paths);
-        // Each path with its operations and the status each answers when it succeeds.
-        $operations = [
-            '/api/v1/cash-flow/forecast' => ['get' => '200'],
-            '/api/v1/cash-flow/planned-items' => ['get' => '200', 'post' => '201'],
-            '/api/v1/cash-flow/planned-items/{plannedItemId}' => ['get' => '200', 'delete' => '200', 'patch' => '200'],
-            '/api/v1/events' => ['get' => '200'],
-            '/api/v1/me' => ['get' => '200'],
-            '/api/v1/invoices' => ['get' => '200', 'post' => '201'],
-            '/api/v1/invoices/{invoiceId}' => ['get' => '200', 'patch' => '200'],
-            '/api/v1/invoices/{invoiceId}/trash' => ['post' => '200'],
-            '/api/v1/invoices/{invoiceId}/restore' => ['post' => '200'],
-            '/api/v1/payments' => ['get' => '200'],
-            '/api/v1/payments/{id}' => ['get' => '200'],
-            '/api/v1/contacts' => ['get' => '200', 'post' => '201'],
-            '/api/v1/contacts/{contactId}' => ['get' => '200', 'patch' => '200'],
-            '/api/v1/received-documents' => ['get' => '200', 'post' => '201'],
-            '/api/v1/received-documents/{documentId}' => ['get' => '200'],
-            '/api/v1/received-documents/{documentId}/payments' => ['get' => '200', 'post' => '201'],
-            '/api/v1/webhook-endpoints/{id}/deliveries' => ['get' => '200'],
-            '/api/v1/webhook-endpoints/{id}/deliveries/{deliveryId}' => ['get' => '200'],
-            '/api/v1/webhook-endpoints/{id}/deliveries/{deliveryId}/redeliver' => ['post' => '202'],
-            '/api/v1/webhook-endpoints' => ['get' => '200', 'post' => '201'],
-            '/api/v1/webhook-endpoints/{id}' => ['get' => '200', 'delete' => '204', 'patch' => '200'],
-            '/api/v1/webhook-endpoints/{id}/secret/rotate' => ['post' => '200'],
-            '/api/v1/webhook-endpoints/{id}/secret' => ['get' => '200'],
-            '/api/v1/webhook-endpoints/{id}/ping' => ['post' => '202'],
-            '/api/v1/cash-flow/checkpoints' => ['post' => '201'],
-            '/api/v1/cash-flow/expected-dates/{subjectType}/{subjectId}' => ['delete' => '200'],
-            '/api/v1/cash-flow/expected-dates' => ['post' => '200'],
-            '/api/v1/cash-flow/firms/{firmId}/minimum-balance' => ['post' => '200'],
-            '/api/v1/cash-flow/planned-items/{plannedItemId}/end' => ['post' => '200'],
-            '/api/v1/cash-flow/planned-items/{plannedItemId}/skip' => ['post' => '200'],
-            '/api/v1/contacts/{contactId}/archive' => ['post' => '200'],
-            '/api/v1/contacts/{contactId}/contact-persons' => ['post' => '200'],
-            '/api/v1/contacts/{contactId}/restore' => ['post' => '200'],
-            '/api/v1/contacts/{contactId}/contact-persons/{personId}' => ['delete' => '200'],
-            '/api/v1/received-documents/{documentId}/mark-paid' => ['post' => '200'],
-            '/api/v1/received-documents/{documentId}/payments/{paymentId}' => ['delete' => '200'],
-            '/api/v1/received-documents/{documentId}/trash' => ['post' => '200'],
-            '/api/v1/lists' => ['get' => '200'],
-            '/api/v1/views' => ['get' => '200', 'post' => '201'],
-            '/api/v1/views/{viewId}' => ['get' => '200', 'delete' => '200', 'patch' => '200'],
-            '/api/v1/views/{viewId}/count' => ['get' => '200'],
-            '/api/v1/views/restore-defaults' => ['post' => '200'],
+        // Each path with its operations and the status each answers when it succeeds, by the module that serves it.
+        $byModule = [
+            'cash-flow' => [
+                '/api/v1/cash-flow/forecast' => ['get' => '200'],
+                '/api/v1/cash-flow/planned-items' => ['get' => '200', 'post' => '201'],
+                '/api/v1/cash-flow/planned-items/{plannedItemId}' => ['get' => '200', 'delete' => '200', 'patch' => '200'],
+                '/api/v1/cash-flow/checkpoints' => ['post' => '201'],
+                '/api/v1/cash-flow/expected-dates/{subjectType}/{subjectId}' => ['delete' => '200'],
+                '/api/v1/cash-flow/expected-dates' => ['post' => '200'],
+                '/api/v1/cash-flow/firms/{firmId}/minimum-balance' => ['post' => '200'],
+                '/api/v1/cash-flow/planned-items/{plannedItemId}/end' => ['post' => '200'],
+                '/api/v1/cash-flow/planned-items/{plannedItemId}/skip' => ['post' => '200'],
+            ],
+            'events' => [
+                '/api/v1/events' => ['get' => '200'],
+            ],
+            'identity' => [
+                '/api/v1/me' => ['get' => '200'],
+            ],
+            'invoicing' => [
+                '/api/v1/invoices' => ['get' => '200', 'post' => '201'],
+                '/api/v1/invoices/{invoiceId}' => ['get' => '200', 'patch' => '200'],
+                '/api/v1/invoices/{invoiceId}/trash' => ['post' => '200'],
+                '/api/v1/invoices/{invoiceId}/restore' => ['post' => '200'],
+                '/api/v1/payments' => ['get' => '200'],
+                '/api/v1/payments/{id}' => ['get' => '200'],
+            ],
+            'party' => [
+                '/api/v1/contacts' => ['get' => '200', 'post' => '201'],
+                '/api/v1/contacts/{contactId}' => ['get' => '200', 'patch' => '200'],
+                '/api/v1/contacts/{contactId}/archive' => ['post' => '200'],
+                '/api/v1/contacts/{contactId}/contact-persons' => ['post' => '200'],
+                '/api/v1/contacts/{contactId}/restore' => ['post' => '200'],
+                '/api/v1/contacts/{contactId}/contact-persons/{personId}' => ['delete' => '200'],
+            ],
+            'purchasing' => [
+                '/api/v1/received-documents' => ['get' => '200', 'post' => '201'],
+                '/api/v1/received-documents/{documentId}' => ['get' => '200'],
+                '/api/v1/received-documents/{documentId}/payments' => ['get' => '200', 'post' => '201'],
+                '/api/v1/received-documents/{documentId}/mark-paid' => ['post' => '200'],
+                '/api/v1/received-documents/{documentId}/payments/{paymentId}' => ['delete' => '200'],
+                '/api/v1/received-documents/{documentId}/trash' => ['post' => '200'],
+            ],
+            'shared' => [
+                '/api/v1/lists' => ['get' => '200'],
+                '/api/v1/views' => ['get' => '200', 'post' => '201'],
+                '/api/v1/views/{viewId}' => ['get' => '200', 'delete' => '200', 'patch' => '200'],
+                '/api/v1/views/{viewId}/count' => ['get' => '200'],
+                '/api/v1/views/restore-defaults' => ['post' => '200'],
+            ],
+            'webhooks' => [
+                '/api/v1/webhook-endpoints/{id}/deliveries' => ['get' => '200'],
+                '/api/v1/webhook-endpoints/{id}/deliveries/{deliveryId}' => ['get' => '200'],
+                '/api/v1/webhook-endpoints/{id}/deliveries/{deliveryId}/redeliver' => ['post' => '202'],
+                '/api/v1/webhook-endpoints' => ['get' => '200', 'post' => '201'],
+                '/api/v1/webhook-endpoints/{id}' => ['get' => '200', 'delete' => '204', 'patch' => '200'],
+                '/api/v1/webhook-endpoints/{id}/secret/rotate' => ['post' => '200'],
+                '/api/v1/webhook-endpoints/{id}/secret' => ['get' => '200'],
+                '/api/v1/webhook-endpoints/{id}/ping' => ['post' => '202'],
+            ],
         ];
+        $operations = [];
+        foreach (new InstalledModules(\dirname(__DIR__, 4))->graph()->all() as $module) {
+            $operations += $byModule[$module->id->value] ?? [];
+        }
         // The document follows the order of the routes, which follows the order the modules load in.
         $expected = array_keys($operations);
         $actual = array_keys($paths);
@@ -158,10 +180,5 @@ final class ApiPlumbingTest extends ApiTestCase
                 $this->at('paths', $path, $method, 'responses', '401');
             }
         }
-        $parameters = $this->at('paths', '/api/v1/invoices', 'get', 'parameters');
-        self::assertIsArray($parameters);
-        self::assertSame(['kind', 'firm_id', 'customer_id', 'state', 'trashed', 'issued_from', 'issued_to', 'q', 'limit', 'cursor', 'view', 'filter'], array_column($parameters, 'name'));
-        self::assertSame('#/components/schemas/InvoicePage', $this->at('paths', '/api/v1/invoices', 'get', 'responses', '200', 'content', 'application/json', 'schema', '$ref'));
-        $this->at('components', 'schemas', 'InvoiceDetail');
     }
 }
