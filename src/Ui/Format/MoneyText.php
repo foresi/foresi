@@ -45,8 +45,7 @@ final readonly class MoneyText
     {
         $minor = abs($money->minor());
         $formatter = new \NumberFormatter($this->locales->getLocale(), \NumberFormatter::DECIMAL);
-        $whole = (string) $formatter->format(intdiv($minor, 100), \NumberFormatter::TYPE_INT64);
 
-        return \sprintf('%s%s%s%02d', $money->isNegative() ? '-' : '', $whole, $formatter->getSymbol(\NumberFormatter::DECIMAL_SEPARATOR_SYMBOL), $minor % 100);
+        return \sprintf('%s%s%s%02d', $money->isNegative() ? '-' : '', $formatter->format(intdiv($minor, 100), \NumberFormatter::TYPE_INT64), $formatter->getSymbol(\NumberFormatter::DECIMAL_SEPARATOR_SYMBOL), $minor % 100);
     }
 }

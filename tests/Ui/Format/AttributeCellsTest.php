@@ -46,6 +46,19 @@ final class AttributeCellsTest extends TestCase
         yield 'a phone without digits stays text' => [AttributeType::Phone, 'ask reception', 'ask reception'];
         yield 'a web address with its scheme' => [AttributeType::Url, 'https://example.com/a', ['links' => [['text' => 'https://example.com/a', 'href' => 'https://example.com/a', 'opens' => 'page']], 'plain' => true]];
         yield 'a web address without one' => [AttributeType::Url, 'example.com', ['links' => [['text' => 'example.com', 'href' => 'https://example.com', 'opens' => 'page']], 'plain' => true]];
+        yield 'a number as text' => [AttributeType::Text, 42, '42'];
+        yield 'an enum backed by a number as text' => [AttributeType::Text, Fixture\Priority::High, '3'];
+        yield 'a value that reads as text' => [AttributeType::Text, new class implements \Stringable {
+            public function __toString(): string
+            {
+                return 'Example Company';
+            }
+        }, 'Example Company'];
+        yield 'a phone with spaces around it' => [AttributeType::Phone, ' +420 123 ', ['links' => [['text' => ' +420 123 ', 'href' => 'tel:+420123', 'opens' => 'page']], 'plain' => true]];
+        yield 'a plus alone stays text' => [AttributeType::Phone, '+', '+'];
+        yield 'a web address with its scheme in capitals' => [AttributeType::Url, 'HTTPS://example.com', ['links' => [['text' => 'HTTPS://example.com', 'href' => 'HTTPS://example.com', 'opens' => 'page']], 'plain' => true]];
+        yield 'a web address that only mentions a scheme' => [AttributeType::Url, 'example.com/?next=https://example.org', ['links' => [['text' => 'example.com/?next=https://example.org', 'href' => 'https://example.com/?next=https://example.org', 'opens' => 'page']], 'plain' => true]];
+        yield 'a web address with spaces around it' => [AttributeType::Url, ' example.com ', ['links' => [['text' => ' example.com ', 'href' => 'https://example.com', 'opens' => 'page']], 'plain' => true]];
         yield 'nothing' => [AttributeType::Text, null, null];
         yield 'an empty text' => [AttributeType::Email, '', null];
     }

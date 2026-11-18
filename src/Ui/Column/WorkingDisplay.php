@@ -44,7 +44,7 @@ final readonly class WorkingDisplay
     {
         $base = $this->registry->display($list, $context, $saved);
         $baseDensity = $base->density ?? $density;
-        $keys = $this->keys($list, $query[self::COLUMNS] ?? null);
+        $keys = $this->keys($query[self::COLUMNS] ?? null);
         $wanted = $query[self::DENSITY] ?? null;
         $wanted = \is_string($wanted) && \in_array($wanted, ListDisplay::DENSITIES, true) ? $wanted : null;
 
@@ -86,7 +86,7 @@ final readonly class WorkingDisplay
     /**
      * @return list<string>|null null when the query names no columns
      */
-    private function keys(string $list, mixed $value): ?array
+    private function keys(mixed $value): ?array
     {
         if (\is_string($value)) {
             $value = '' === $value ? [] : explode(',', $value);
@@ -94,7 +94,8 @@ final readonly class WorkingDisplay
         if (!\is_array($value)) {
             return null;
         }
-        $keys = array_unique(array_filter(array_map(fn (mixed $key): string => \is_string($key) ? ($this->registry->key($list, trim($key)) ?? trim($key)) : '', $value), static fn (string $key): bool => '' !== $key));
+        // An older key stays as it is: the registry's display names its column under the key.
+        $keys = array_unique(array_filter(array_map(static fn (mixed $key): string => \is_string($key) ? trim($key) : '', $value), static fn (string $key): bool => '' !== $key));
 
         return array_values(\array_slice($keys, 0, self::MAX_COLUMNS));
     }

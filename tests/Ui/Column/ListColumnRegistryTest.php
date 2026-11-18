@@ -290,6 +290,40 @@ final class ListColumnRegistryTest extends TestCase
         new Attribute('Due date', 'label', AttributeType::Text, static fn (): string => '', defaultVisible: true);
     }
 
+    public function testRefusesAnAliasThatIsTheKeyItself(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        new Attribute('number', 'label', AttributeType::Text, static fn (): string => '', aliases: ['number']);
+    }
+
+    public function testRefusesAnAliasThatIsNoOlderKey(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        new Attribute('due_date', 'label', AttributeType::Text, static fn (): string => '', aliases: ['Due date']);
+    }
+
+    public function testEachListIsReadFromItsSourcesOnce(): void
+    {
+        $counting = new class implements DataSource {
+            public int $reads = 0;
+
+            public function attributes(string $list): iterable
+            {
+                ++$this->reads;
+
+                return [];
+            }
+        };
+        $registry = $this->registry($counting);
+
+        $registry->columns(self::LIST);
+        $registry->display(self::LIST);
+
+        self::assertSame(1, $counting->reads);
+    }
+
     public function testRefusesADefaultWidthBelowTheMinimum(): void
     {
         $this->expectException(\InvalidArgumentException::class);

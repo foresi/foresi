@@ -77,6 +77,14 @@ final class WorkingDisplayTest extends TestCase
         self::assertSame(['cols' => 'name,archived_at'], $state->query);
     }
 
+    public function testAnOlderKeyAndItsKeyInTheAddressAreOneColumn(): void
+    {
+        $state = $this->working()->read(self::LIST, ['archived' => true], null, ['cols' => 'name, archivedAt ,archived_at']);
+
+        self::assertSame(['name', 'archived_at'], $state->display->keys());
+        self::assertSame(['cols' => 'name,archived_at'], $state->query);
+    }
+
     public function testAnOlderKeyInTheViewsStoredDisplayShowsItsColumn(): void
     {
         $state = $this->working()->read(self::LIST, ['archived' => true], ['columns' => [['key' => 'name'], ['key' => 'archivedAt', 'width' => 120]]], ['density' => 'dense']);

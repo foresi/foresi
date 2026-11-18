@@ -145,6 +145,16 @@ final class ColumnPickerTest extends KernelTestCase
         self::assertSame([['key' => 'due.date', 'label' => 'Due', 'visible' => false, 'locked' => false, 'id' => 'cols-due-date']], $picker->addable());
     }
 
+    public function testTheShownColumnsAreAListAfterAHiddenOne(): void
+    {
+        $picker = $this->mount(['columns' => [
+            ['key' => 'note', 'label' => 'Note'],
+            ['key' => 'name', 'label' => 'Name', 'visible' => true],
+        ]]);
+
+        self::assertSame([0], array_keys($picker->shown()));
+    }
+
     public function testTenColumnsNeedNoSearch(): void
     {
         $columns = array_map(static fn (int $i): array => ['key' => 'c'.$i, 'label' => 'C'.$i], range(1, 10));

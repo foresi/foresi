@@ -43,7 +43,7 @@ final readonly class AttributeCells
      *
      * @return string|array{links: list<array{text: string, href: string, opens: string}>, plain: true}|null
      */
-    public function format(Attribute $attribute, mixed $value): string|array|null
+    private function format(Attribute $attribute, mixed $value): string|array|null
     {
         if (null === $value || '' === $value) {
             return null;
@@ -67,8 +67,7 @@ final readonly class AttributeCells
     private function text(mixed $value): string
     {
         return match (true) {
-            \is_string($value) => $value,
-            $value instanceof \BackedEnum => (string) $value->value,
+            $value instanceof \BackedEnum => $this->text($value->value),
             \is_scalar($value), $value instanceof \Stringable => (string) $value,
             default => throw new \InvalidArgumentException(\sprintf('A value of type %s cannot be shown as text.', get_debug_type($value))),
         };
