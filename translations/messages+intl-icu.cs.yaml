@@ -124,6 +124,84 @@ ui:
     apply: Použít
     clear_all: Zrušit vše
     clear_one: 'Zrušit filtr {label}'
+  view_filter:
+    add: Filtr
+    add_row: Přidat filtr
+    condition: Podmínka
+    value: Hodnota
+    to: Do
+    days: Počet dní
+    month: Měsíc
+    none: '— nepoužít —'
+    no_match: Nic neodpovídá.
+    remove: 'Odebrat filtr {label}'
+    'yes': Ano
+    'no': Ne
+    unknown: Neznámý
+    chip: '{field}: {condition}'
+    range: '{from} – {to}'
+    op_label:
+      is: je
+      is_not: není
+      is_empty: je prázdné
+      is_not_empty: je vyplněné
+      eq: '='
+      ne: '≠'
+      lt: '<'
+      le: '≤'
+      gt: '>'
+      ge: '≥'
+      between: mezi
+      before: dříve než
+      after: později než
+      on_or_before: nejpozději
+      on_or_after: nejdříve
+      contains: obsahuje
+      does_not_contain: neobsahuje
+    op:
+      is: '{value}'
+      is_not: 'není {value}'
+      is_any_of: '{value}'
+      is_none_of: 'žádné z: {value}'
+      is_empty: prázdné
+      is_not_empty: vyplněné
+      eq: '= {value}'
+      ne: '≠ {value}'
+      lt: '< {value}'
+      le: '≤ {value}'
+      gt: '> {value}'
+      ge: '≥ {value}'
+      between: '{value}'
+      before: 'dříve než {value}'
+      after: 'později než {value}'
+      on_or_before: 'nejpozději {value}'
+      on_or_after: 'nejdříve {value}'
+      contains: 'obsahuje {value}'
+      does_not_contain: 'neobsahuje {value}'
+    rule:
+      day: Přesné datum
+      month: Měsíc
+      last_n_days: Posledních N dní
+      next_n_days: Příštích N dní
+      n_days_ago: Před N dny
+      n_days_from_now: Za N dní
+    relative:
+      today: dnes
+      yesterday: včera
+      tomorrow: zítra
+      this_week: tento týden
+      last_week: minulý týden
+      this_month: tento měsíc
+      last_month: minulý měsíc
+      next_month: příští měsíc
+      this_quarter: toto čtvrtletí
+      last_quarter: minulé čtvrtletí
+      this_year: letos
+      last_year: loni
+      last_n_days: '{n, plural, one {poslední den} few {poslední # dny} other {posledních # dní}}'
+      next_n_days: '{n, plural, one {příští den} few {příští # dny} other {příštích # dní}}'
+      n_days_ago: '{n, plural, one {před # dnem} other {před # dny}}'
+      n_days_from_now: '{n, plural, one {za # den} few {za # dny} other {za # dní}}'
   sheet:
     resize: Změnit šířku panelu
     full_screen: Celá obrazovka

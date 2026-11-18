@@ -34,11 +34,14 @@ final readonly class DqlConditions
     /**
      * @param array<string, string> $columns the DQL expression of each stored field
      * @param Derived               $derived the predicate of a field with no column, given a unique suffix
+     * @param array<string, int>    $scales  what a number field's value is multiplied by to compare with its column, such as
+     *                                       100 for an amount in whole units stored in minor ones; the column is compared as it is
      */
     public function __construct(
         private ListDefinition $list,
         private array $columns,
         private \Closure $derived,
+        private array $scales = [],
     ) {
     }
 
@@ -111,7 +114,7 @@ final readonly class DqlConditions
             },
             FieldType::Boolean => [$column.' = '.$p, [$name => [$value, Types::BOOLEAN]]],
             FieldType::Text => $this->text($op, $column, \is_string($value) ? $value : '', $name),
-            FieldType::Number => $this->number($op, $column, $value, $name),
+            FieldType::Number => $this->number($op, $column, $this->scaled($value, $this->scales[$field->key] ?? 1), $name),
             FieldType::Date => $this->date($op, $column, $value, $today(), $name),
         };
     }
@@ -130,6 +133,18 @@ final readonly class DqlConditions
             'is' => [$column.' = '.$p, [$name => [$value, null]]],
             default => throw new \LogicException('A checked operator compiles.'),
         };
+    }
+
+    private function scaled(mixed $value, int $scale): mixed
+    {
+        if (1 === $scale) {
+            return $value;
+        }
+        if (\is_array($value)) {
+            return array_map(fn (mixed $end): mixed => $this->scaled($end, $scale), $value);
+        }
+
+        return \is_int($value) || \is_float($value) ? (int) round($value * $scale) : $value;
     }
 
     /**

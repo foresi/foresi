@@ -55,6 +55,20 @@ final class FilterBar
      *                                 says it, for a date)
      */
     public array $filters = [];
+    /**
+     * @var list<array{label: string, href: string, removeLabel: string}> the conditions of the list's working filter, each a chip with its ✕
+     */
+    public array $conditions = [];
+
+    /**
+     * The filter builder of the sheet (spec D11): the fields one can add a row for, the rows
+     * of the conditions set, the conditions it sends back as they are (JSON) and the rules
+     * a date end is picked from; null for a list without one.
+     *
+     * @var array{fields: list<array<string, mixed>>, rows: list<array<string, mixed>>, kept: list<string>, rules: array<string, string>}|null
+     */
+    public ?array $builder = null;
+
     /** The list shows nothing: without a filter set there is no bar. */
     public bool $empty = false;
 
@@ -146,7 +160,30 @@ final class FilterBar
      */
     public function narrowed(): bool
     {
-        return [] !== $this->setValues || '' !== $this->searchValue();
+        return [] !== $this->setValues || [] !== $this->conditions || '' !== $this->searchValue();
+    }
+
+    /**
+     * How many filters are set, conditions of the builder among them, for "Filters (n)".
+     */
+    public function setCount(): int
+    {
+        return \count($this->set()) + \count($this->conditions);
+    }
+
+    /**
+     * The fields of the builder by key.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function builderFields(): array
+    {
+        $fields = [];
+        foreach ($this->builder['fields'] ?? [] as $field) {
+            $fields[$this->text($field['key'] ?? '')] = $field;
+        }
+
+        return $fields;
     }
 
     public function shown(): bool

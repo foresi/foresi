@@ -124,6 +124,84 @@ ui:
     apply: Apply
     clear_all: Clear all
     clear_one: 'Clear the filter {label}'
+  view_filter:
+    add: Filter
+    add_row: Add filter
+    condition: Condition
+    value: Value
+    to: To
+    days: Number of days
+    month: Month
+    none: '— not used —'
+    no_match: Nothing matches.
+    remove: 'Remove filter {label}'
+    'yes': 'Yes'
+    'no': 'No'
+    unknown: Unknown
+    chip: '{field}: {condition}'
+    range: '{from} – {to}'
+    op_label:
+      is: is
+      is_not: is not
+      is_empty: is empty
+      is_not_empty: is not empty
+      eq: '='
+      ne: '≠'
+      lt: '<'
+      le: '≤'
+      gt: '>'
+      ge: '≥'
+      between: between
+      before: before
+      after: after
+      on_or_before: on or before
+      on_or_after: on or after
+      contains: contains
+      does_not_contain: does not contain
+    op:
+      is: '{value}'
+      is_not: 'not {value}'
+      is_any_of: '{value}'
+      is_none_of: 'none of {value}'
+      is_empty: empty
+      is_not_empty: not empty
+      eq: '= {value}'
+      ne: '≠ {value}'
+      lt: '< {value}'
+      le: '≤ {value}'
+      gt: '> {value}'
+      ge: '≥ {value}'
+      between: '{value}'
+      before: 'before {value}'
+      after: 'after {value}'
+      on_or_before: 'on or before {value}'
+      on_or_after: 'on or after {value}'
+      contains: 'contains {value}'
+      does_not_contain: 'does not contain {value}'
+    rule:
+      day: Exact date
+      month: Month
+      last_n_days: Last N days
+      next_n_days: Next N days
+      n_days_ago: N days ago
+      n_days_from_now: In N days
+    relative:
+      today: today
+      yesterday: yesterday
+      tomorrow: tomorrow
+      this_week: this week
+      last_week: last week
+      this_month: this month
+      last_month: last month
+      next_month: next month
+      this_quarter: this quarter
+      last_quarter: last quarter
+      this_year: this year
+      last_year: last year
+      last_n_days: '{n, plural, one {the last day} other {the last # days}}'
+      next_n_days: '{n, plural, one {the next day} other {the next # days}}'
+      n_days_ago: '{n, plural, one {# day ago} other {# days ago}}'
+      n_days_from_now: '{n, plural, one {in # day} other {in # days}}'
   sheet:
     resize: Resize the panel
     full_screen: Full screen
