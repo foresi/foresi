@@ -10,6 +10,7 @@ namespace Foresi\Tests\Ui\Column;
 
 use Foresi\Ui\Column\ListColumnRegistry;
 use Foresi\Ui\Column\ListDisplay;
+use Foresi\Ui\Column\ResolvedColumn;
 use Foresi\Ui\Contract\Column;
 use Foresi\Ui\Contract\ListColumns;
 use PHPUnit\Framework\TestCase;
@@ -59,14 +60,14 @@ final class ListColumnRegistryTest extends TestCase
     {
         $display = $this->registry()->display(self::LIST, [], ['columns' => [['key' => 'number', 'width' => 160], ['key' => 'customer', 'width' => 10], ['key' => 'payable', 'width' => 'wide'], ['key' => 'dueDate']]]);
 
-        self::assertSame([160, 64, null, null], array_map(static fn ($column): ?int => $column->width, $display->columns));
+        self::assertSame([160, 64, null, null], array_map(static fn (ResolvedColumn $column): ?int => $column->width, $display->columns));
     }
 
     public function testDefaultsKeepTheDefaultWidth(): void
     {
         $display = $this->registry()->display(self::LIST);
 
-        self::assertSame([120, null, null, null], array_map(static fn ($column): ?int => $column->width, $display->columns));
+        self::assertSame([120, null, null, null], array_map(static fn (ResolvedColumn $column): ?int => $column->width, $display->columns));
     }
 
     public function testDensityAndGroupingAreReadWhenValid(): void
