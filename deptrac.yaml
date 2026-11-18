@@ -393,6 +393,8 @@ deptrac:
     SharedApplication:
       - Contract
       - SharedDomain
+      # The writes of saved views stamp their time.
+      - VendorClock
       # The autoconfigure tag attribute of the listener ports.
       - VendorSymfony
     SharedInfrastructure:
@@ -619,6 +621,8 @@ deptrac:
     AuditInfrastructure:
       - Contract
       - SharedInfrastructure
+      # The audit listener names the saved views of the shared kernel, which cannot know Audit.
+      - SharedDomain
       - AuditDomain
       # The created-entry path honours the tenant of TenantOwned entities.
       - InstanceDomain

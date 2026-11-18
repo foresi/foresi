@@ -16,6 +16,12 @@ namespace Foresi\Shared\Application;
 interface ActorRole
 {
     /**
+     * The id of the signed-in user; null when nobody is signed in, such as in a
+     * console command.
+     */
+    public function userId(): ?string;
+
+    /**
      * Whether the signed-in user owns the organisation.
      */
     public function isOwner(): bool;

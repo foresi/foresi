@@ -31,6 +31,16 @@ final readonly class DoctrineSavedViewStore implements SavedViewStore
         return $this->em->getRepository(SavedView::class)->findOneBy(['systemKey' => $systemKey]);
     }
 
+    public function get(string $id): ?SavedView
+    {
+        return 1 === preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $id) ? $this->em->find(SavedView::class, $id) : null;
+    }
+
+    public function remove(SavedView $view): void
+    {
+        $this->em->remove($view);
+    }
+
     public function add(SavedView $view): void
     {
         $this->em->persist($view);

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Identity\Infrastructure\Security;
 
+use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\OwnerCheck;
 use Foresi\Identity\Application\StaffCheck;
 use Foresi\Shared\Application\ActorRole;
@@ -19,8 +20,13 @@ use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 #[AsAlias(ActorRole::class)]
 final readonly class MembershipActorRole implements ActorRole
 {
-    public function __construct(private OwnerCheck $owner, private StaffCheck $staff)
+    public function __construct(private OwnerCheck $owner, private StaffCheck $staff, private AuditActor $actor)
     {
+    }
+
+    public function userId(): ?string
+    {
+        return $this->actor->userId();
     }
 
     public function isOwner(): bool
