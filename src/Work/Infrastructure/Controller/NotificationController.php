@@ -63,7 +63,7 @@ final class NotificationController extends AbstractController
         $url = $this->generateUrl(self::ROUTE);
         $back = $this->query($done, $filter, $page);
 
-        return $this->render('work/notifications/index.html.twig', [
+        return $this->render('@Work/notifications/index.html.twig', [
             'done' => $done,
             'filter' => $filter->value,
             'unread' => $this->queries->unreadCount($me),

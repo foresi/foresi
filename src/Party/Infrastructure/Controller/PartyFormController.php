@@ -250,7 +250,7 @@ final class PartyFormController extends AbstractController
         $messages = array_map(fn (string $key): string => $this->translator->trans($key), $errors);
 
         // A new contact from a dialog is the short form; the page is the whole one.
-        $template = !$party instanceof Party && DialogRequest::is($request) ? 'party/quick.html.twig' : 'party/form.html.twig';
+        $template = !$party instanceof Party && DialogRequest::is($request) ? '@Party/quick.html.twig' : '@Party/form.html.twig';
 
         $forContacts = !$party instanceof Party && $this->forContacts($request);
 

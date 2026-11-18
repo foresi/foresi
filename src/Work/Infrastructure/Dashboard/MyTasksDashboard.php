@@ -45,7 +45,7 @@ final readonly class MyTasksDashboard implements DashboardSectionProvider
         }
         $href = $this->urls->generate(MyTasksController::ROUTE);
 
-        return [new DashboardSection('work/dashboard.html.twig', [
+        return [new DashboardSection('@Work/dashboard.html.twig', [
             'kpis' => array_map(fn (string $key): array => [
                 'label' => $this->translator->trans('work.my_tasks.group.'.$key),
                 'value' => (string) $counts[$key],

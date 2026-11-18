@@ -21,8 +21,9 @@ use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
  *
  * The bundle loads the module's own services from config/services.php and
  * prepends what the module owns in the configuration of other bundles: the
- * Doctrine mapping of its entities, the Messenger routing of its messages
- * and whatever {@see prepend()} adds. The application's own configuration
+ * Doctrine mapping of its entities, the Messenger routing of its messages,
+ * its Stimulus controllers and whatever {@see prepend()} adds. Templates
+ * (@<Module>) and translations are found by Symfony itself. The application's own configuration
  * is merged after the bundles', so it can still override any of it.
  */
 abstract class ModuleBundle extends AbstractBundle
@@ -71,6 +72,7 @@ abstract class ModuleBundle extends AbstractBundle
                 'alias' => $module,
             ]]]]);
         }
+        $this->prependControllers($builder);
         $routing = $this->messageRouting();
         if ([] !== $routing) {
             $builder->prependExtensionConfig('framework', ['messenger' => ['routing' => $routing]]);
@@ -94,6 +96,23 @@ abstract class ModuleBundle extends AbstractBundle
      */
     protected function prepend(ContainerConfigurator $container, ContainerBuilder $builder): void
     {
+    }
+
+    /**
+     * Maps the module's Stimulus controllers in assets/controllers/ under
+     * the asset namespace @foresi/<module>, and adds the directory to the
+     * controllers Stimulus loads. A controller keeps the name its file gives
+     * it, so board_controller.js is still "board".
+     */
+    private function prependControllers(ContainerBuilder $builder): void
+    {
+        $controllers = $this->getPath().'/assets/controllers';
+        if (!is_dir($controllers) || !$builder->hasExtension('stimulus')) {
+            return;
+        }
+        $namespace = '@foresi/'.str_replace('_', '-', Container::underscore($this->module()));
+        $builder->prependExtensionConfig('framework', ['asset_mapper' => ['paths' => [$controllers => $namespace]]]);
+        $builder->prependExtensionConfig('stimulus', ['controller_paths' => [$controllers]]);
     }
 
     /**

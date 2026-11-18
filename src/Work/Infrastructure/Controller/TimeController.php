@@ -136,7 +136,7 @@ final class TimeController extends AbstractController
             }
         }
 
-        return $this->render('work/time/entry.html.twig', [
+        return $this->render('@Work/time/entry.html.twig', [
             'projectId' => null,
             'projectName' => null,
             'taskId' => null,
@@ -331,7 +331,7 @@ final class TimeController extends AbstractController
     {
         $query = null === $return ? [] : ['return' => $return];
 
-        return $this->render('work/time/entry.html.twig', [
+        return $this->render('@Work/time/entry.html.twig', [
             'projectId' => $projectId,
             'projectName' => $projectName,
             'taskId' => $taskId,

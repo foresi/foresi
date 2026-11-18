@@ -101,7 +101,7 @@ final class ReceivedDocumentListController extends AbstractController
         $severalFirms = \count($page->firms) > 1;
         $firms = $this->list->activeFirms();
 
-        return $this->render('purchasing/index.html.twig', [
+        return $this->render('@Purchasing/index.html.twig', [
             'page' => $page,
             'filter' => $filter,
             'noFirm' => [] === $firms,
@@ -126,7 +126,7 @@ final class ReceivedDocumentListController extends AbstractController
     {
         $firms = $this->list->activeFirms();
         if (!$request->isMethod('POST')) {
-            return $this->render('purchasing/upload.html.twig', ['firms' => $firms, 'firm' => (string) array_key_first($firms)]);
+            return $this->render('@Purchasing/upload.html.twig', ['firms' => $firms, 'firm' => (string) array_key_first($firms)]);
         }
         $json = 'json' === $request->getPreferredFormat();
         // Larger than the web server takes: the body was dropped, the token with it.
@@ -233,7 +233,7 @@ final class ReceivedDocumentListController extends AbstractController
      */
     private function newForm(array $firms, string $firm, array $values, array $errors, int $status): Response
     {
-        return $this->render('purchasing/new.html.twig', [
+        return $this->render('@Purchasing/new.html.twig', [
             'firms' => $firms,
             'firm' => $firm,
             'values' => $values,

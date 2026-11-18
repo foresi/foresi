@@ -22,16 +22,33 @@ use Symfony\Component\Finder\Finder;
  */
 final class HeaderActionOrderTest extends TestCase
 {
-    private const array PARTIALS = ['work/projects/_header_actions.html.twig'];
+    private const array PARTIALS = ['@Work/projects/_header_actions.html.twig'];
 
     /**
      * @return iterable<string, array{string, string}>
      */
     public static function headers(): iterable
     {
-        $root = \dirname(__DIR__, 2).'/templates';
-        foreach (new Finder()->files()->in($root)->name('*.html.twig')->notPath('components/')->sortByName() as $file) {
-            $path = $file->getRelativePathname();
+        $root = \dirname(__DIR__, 2);
+        $directories = ['' => $root.'/templates'];
+        $modules = glob($root.'/src/*/templates', \GLOB_ONLYDIR);
+        foreach (false === $modules ? [] : $modules as $directory) {
+            $directories['@'.basename(\dirname($directory)).'/'] = $directory;
+        }
+        foreach ($directories as $namespace => $directory) {
+            yield from self::headersIn($directory, $namespace);
+        }
+    }
+
+    /**
+     * The headers of the templates in one directory, named as Twig names them.
+     *
+     * @return iterable<string, array{string, string}>
+     */
+    private static function headersIn(string $directory, string $namespace): iterable
+    {
+        foreach (new Finder()->files()->in($directory)->name('*.html.twig')->notPath('components/')->sortByName() as $file) {
+            $path = $namespace.$file->getRelativePathname();
             $source = $file->getContents();
             if (\in_array($path, self::PARTIALS, true)) {
                 yield $path => [$path, $source];
