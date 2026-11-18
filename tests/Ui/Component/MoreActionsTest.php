@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Ui\Component;
 
+use Foresi\Ui\Component\MoreActions;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\UX\TwigComponent\Test\InteractsWithTwigComponents;
@@ -79,5 +80,28 @@ final class MoreActionsTest extends KernelTestCase
 
         self::assertCount(1, $crawler->filter('[data-more-actions-buttons]'));
         self::assertCount(0, $crawler->filter('[role="menu"]'));
+    }
+
+    public function testABlankIdIsRefused(): void
+    {
+        $actions = new MoreActions();
+        $actions->menuId = ' ';
+        $this->expectExceptionMessage('A more-actions menu needs an id.');
+        $actions->validate();
+    }
+
+    public function testAnUnknownSizeIsRefused(): void
+    {
+        $actions = new MoreActions();
+        $actions->menuSize = 'huge';
+        $this->expectExceptionMessage('Unknown size "huge"');
+        $actions->validate();
+    }
+
+    public function testASmallTriggerFollowsTheSheetHeader(): void
+    {
+        $crawler = new Crawler((string) $this->renderTwigComponent('Ui:MoreActions', ['menuSize' => 'sm'], self::ITEM));
+
+        self::assertStringContainsString('h-control-sm', (string) $crawler->filter('[aria-haspopup="menu"]')->attr('class'));
     }
 }

@@ -87,6 +87,8 @@ test.describe('contact life cycle', () => {
 
 async function openArchivedAndRestore(page: Page): Promise<void> {
   await page.getByRole('link', { name: COMPANY, exact: true }).click();
+  // The contact opens in the sheet; its header, not the list's, holds the restore.
+  await expect(page.locator('dialog#sheet [data-more-actions-menu] [aria-haspopup="menu"]')).toBeVisible();
   await (await openMoreActions(page)).getByRole('menuitem', { name: 'Obnovit' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Kontakt je obnoven.' })).toBeVisible();
 }
