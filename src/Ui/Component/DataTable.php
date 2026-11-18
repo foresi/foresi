@@ -17,7 +17,7 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
  * @phpstan-type Action array{label: string, href: string, method: string, confirm: ?Confirm, icon: ?string, plain: bool, dialog: bool, fields: array<string, string>}
  * @phpstan-type RowAlert array{text: string, column: string, href: ?string, action: ?string}
  * @phpstan-type RowView array{id: string, href: ?string, label: string, selected: bool, child: bool, unread: ?bool, cells: list<Cell>, actions: list<Action>, secondary: ?string, alert: ?RowAlert}
- * @phpstan-type ColumnView array{key: string, label: string, align: string, sort: ?string, href: ?string, sortable: bool, phone: bool, wide: bool, truncate: bool}
+ * @phpstan-type ColumnView array{key: string, label: string, align: string, sort: ?string, href: ?string, sortable: bool, phone: bool, wide: bool, truncate: bool, width: ?int}
  */
 #[AsTwigComponent]
 final class DataTable
@@ -43,7 +43,9 @@ final class DataTable
      *                                 phone (false leaves the column out on a phone), wide (true shows the column on a wide
      *                                 screen only, for one of low value) and truncate (true lets a column of long text give
      *                                 way, cut with an ellipsis and its full text in a title, so the table fits its frame;
-     *                                 numbers, badges and the actions never give way)
+     *                                 numbers, badges and the actions never give way) and width (px from the sm breakpoint
+     *                                 up; a phone keeps its own layout). A list declares its columns in a ListColumns
+     *                                 provider and passes ListDisplay::table() here.
      */
     public array $columns = [];
 
@@ -212,7 +214,26 @@ final class DataTable
             'phone' => false !== ($column['phone'] ?? true),
             'wide' => true === ($column['wide'] ?? false),
             'truncate' => true === ($column['truncate'] ?? false),
+            'width' => $this->width($column['width'] ?? null),
         ];
+    }
+
+    /** Whether a column has a width, so the table sets the widths in a colgroup. */
+    public function hasWidths(): bool
+    {
+        return array_any($this->columnViews, static fn (array $column): bool => null !== $column['width']);
+    }
+
+    private function width(mixed $width): ?int
+    {
+        if (null === $width) {
+            return null;
+        }
+        if (!is_int($width) || $width < 1) {
+            throw new \InvalidArgumentException('A column width is a positive number of px.');
+        }
+
+        return $width;
     }
 
     /**

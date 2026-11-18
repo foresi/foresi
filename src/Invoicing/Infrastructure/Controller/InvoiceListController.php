@@ -30,11 +30,9 @@ use Foresi\Invoicing\Application\MarkDelivered;
 use Foresi\Invoicing\Application\MissingTaxDocument;
 use Foresi\Invoicing\Application\MissingTaxDocuments;
 use Foresi\Invoicing\Application\PaymentRefused;
-use Foresi\Invoicing\Application\PaymentState;
 use Foresi\Invoicing\Application\Query\InvoiceDetails;
 use Foresi\Invoicing\Application\Query\InvoiceList;
 use Foresi\Invoicing\Application\RecurringInvoices;
-use Foresi\Invoicing\Application\SendMark;
 use Foresi\Invoicing\Application\TrashInvoice;
 use Foresi\Invoicing\Application\UncorrectedTaxDocument;
 use Foresi\Invoicing\Application\UncorrectedTaxDocuments;
@@ -48,11 +46,14 @@ use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceSend;
 use Foresi\Invoicing\Domain\SendPurpose;
 use Foresi\Invoicing\Domain\SendStatus;
+use Foresi\Invoicing\Infrastructure\Column\IssuedDocumentColumns;
 use Foresi\Invoicing\Infrastructure\Form\AmountText;
 use Foresi\Invoicing\Infrastructure\Form\MailTokenLabels;
 use Foresi\Invoicing\Infrastructure\Form\SendFailureText;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
+use Foresi\Ui\Column\ListColumnRegistry;
+use Foresi\Ui\Column\ListDisplay;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\InputBag;
@@ -79,9 +80,6 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class InvoiceListController extends AbstractController
 {
     public const string ACTION_TOKEN = 'invoice_action';
-    /** The icon of each send mark: its label says the same, so it is never colour alone. */
-    private const array MARK_ICONS = ['queued' => 'clock-3', 'sent' => 'send', 'read' => 'circle-check', 'failed' => 'triangle-alert'];
-    private const array MARK_TONES = ['queued' => 'gray', 'sent' => 'gray', 'read' => 'green', 'failed' => 'red'];
     private const int MAX_TEXT = 100;
     /** The parts of the list's query an action carries back to it. */
     public const array LIST_QUERY = ['tab', 'firm', 'q', 'sort', 'page', 'toSend', 'export', 'month'];
@@ -114,6 +112,7 @@ final class InvoiceListController extends AbstractController
         private readonly DocumentMonths $months,
         private readonly InvoiceList $list,
         private readonly InvoiceDetails $details,
+        private readonly ListColumnRegistry $listColumns,
     ) {
     }
 
@@ -534,10 +533,7 @@ final class InvoiceListController extends AbstractController
     }
 
     /**
-     * The names and the reason give way to the numbers, dates, states and actions, cut short
-     * with their full text in a title, so the table fits its frame with every column shown. A
-     * narrower screen leaves out the issue date and the e-mail mark, the columns of least value
-     * to a list read for what to collect; the invoice still shows both.
+     * The columns of the list as IssuedDocumentColumns declares them for the tab.
      *
      * @param array<string, string> $query
      *
@@ -545,51 +541,24 @@ final class InvoiceListController extends AbstractController
      */
     private function columns(string $tab, string $sort, array $query, bool $severalFirms, string $route): array
     {
-        $trash = InvoiceFilter::TRASH === $tab;
-        $columns = [$this->column('number', $sort, $query, sortable: true, route: $route)];
-        if ($severalFirms) {
-            $columns[] = $this->column('firm', $sort, $query, phone: false) + ['truncate' => true];
-        }
-        $columns[] = $this->column('customer', $sort, $query, sortable: true, phone: false, route: $route) + ['truncate' => true];
-        if ($trash) {
-            $columns[] = $this->column('deletedBy', $sort, $query, phone: false) + ['truncate' => true];
-            $columns[] = $this->column('deletedAt', $sort, $query, phone: false);
-            $columns[] = $this->column('reason', $sort, $query, phone: false) + ['truncate' => true];
-        } else {
-            $columns[] = $this->column('issueDate', $sort, $query, sortable: true, phone: false, route: $route) + ['wide' => true];
-            $columns[] = $this->column('dueDate', $sort, $query, sortable: true, phone: false, route: $route);
-        }
-        $columns[] = $this->column('payable', $sort, $query, sortable: true, align: 'right', route: $route);
-        $columns[] = $this->column('status', $sort, $query, phone: false);
-        if (!$trash) {
-            $columns[] = $this->column('sent', $sort, $query, phone: false) + ['wide' => true];
-            $columns[] = $this->column('export', $sort, $query, phone: false) + ['wide' => true];
-        }
-
-        return $columns;
+        return $this->column((string) array_search($route, self::ROUTES, true), $tab, $severalFirms)->table($sort, fn (string $next): string => $this->generateUrl($route, ['sort' => $next] + $query));
     }
 
     /**
-     * @param array<string, string> $query
+     * How the list of the kind of document shows for the tab: the registry's default columns (no view gives a display yet).
      *
-     * @return array<string, mixed>
+     * @param array<string, string>                                        $names     by user id
+     * @param array<string, array{count: int, lastAt: \DateTimeImmutable}> $reminders by the id of an overdue row
      */
-    private function column(string $key, string $sort, array $query, bool $sortable = false, string $align = 'left', bool $phone = true, string $route = 'app_invoices'): array
+    private function column(string $kind, string $tab, bool $severalFirms, array $names = [], array $reminders = []): ListDisplay
     {
-        $column = ['key' => $key, 'label' => $this->translator->trans('invoice.list.column.'.$key), 'align' => $align, 'phone' => $phone];
-        if (!$sortable) {
-            return $column;
-        }
-        $next = $sort === $key ? '-'.$key : $key;
-
-        return $column + [
-            'sortable' => true,
-            'sort' => $sort === $key ? 'asc' : ($sort === '-'.$key ? 'desc' : null),
-            'href' => $this->generateUrl($route, ['sort' => $next] + $query),
-        ];
+        return $this->listColumns->display(IssuedDocumentColumns::LISTS[$kind] ?? IssuedDocumentColumns::LISTS[DocumentKind::Invoice->value], ['trash' => InvoiceFilter::TRASH === $tab, 'severalFirms' => $severalFirms, 'names' => $names, 'reminders' => $reminders]);
     }
 
     /**
+     * A row of the list; a phone shows the customer, the dates and the marks in the line under
+     * the number, as the cells read.
+     *
      * @param array<string, string>                              $names     by user id
      * @param array{count: int, lastAt: \DateTimeImmutable}|null $reminders of an overdue row
      *
@@ -597,56 +566,16 @@ final class InvoiceListController extends AbstractController
      */
     private function row(InvoiceRow $row, string $tab, bool $severalFirms, array $names, string $return, ?array $reminders = null): array
     {
-        $date = $this->translator->trans('format.date');
-        $status = match (true) {
-            DocumentKind::CorrectionDocument === $row->kind => InvoiceStatus::ofCorrection($row->trashed),
-            $row->settledByAdvances && !$row->trashed => InvoiceStatus::SettledByAdvances,
-            default => InvoiceStatus::of($row->delivered, $row->overdue, $row->trashed, $row->payment),
+        $cells = $this->column($row->kind->value, $tab, $severalFirms, $names, null === $reminders ? [] : [$row->id => $reminders])->cells($row);
+        $text = static function (string $key, string $part = 'text') use ($cells): ?string {
+            $value = \is_array($cells[$key] ?? null) ? ($cells[$key][$part] ?? null) : ('text' === $part ? ($cells[$key] ?? null) : null);
+
+            return \is_string($value) ? $value : null;
         };
-        $badge = $this->translator->trans('invoice.list.status.'.$status->value);
-        // A part payment says what is left; overdue or not, that is what someone acts on. A refund says how much.
-        $left = match (true) {
-            $row->trashed => null,
-            PaymentState::PartlyPaid === $row->payment => $this->translator->trans('invoice.payment.left', ['amount' => $this->amounts->shown($row->remaining())]),
-            PaymentState::ToRefund === $row->payment => $this->translator->trans('invoice.payment.to_refund', ['amount' => $this->amounts->shown(Money::ofMinor(-$row->remaining()->minor(), $row->payable->currency()))]),
-            default => null,
-        };
-        $cells = ['number' => $row->number, 'customer' => $row->customerName, 'payable' => $this->amounts->shown($row->payable), 'status' => ['text' => $badge, 'tone' => $status->tone()] + (null === $left ? [] : ['hint' => $left])];
-        $badge = null === $left ? $badge : $badge.' · '.$left;
-        if ($severalFirms) {
-            $cells['firm'] = $row->firmName;
-        }
-        if (InvoiceFilter::TRASH === $tab) {
-            $who = $this->who($row->deletedBy, $names);
-            $when = $row->deletedAt?->format($this->translator->trans('format.datetime')) ?? '';
-            $cells += ['deletedBy' => $who, 'deletedAt' => $when, 'reason' => $row->deletedReason];
-            $secondary = $this->joined([$row->customerName, $who, $when, $row->deletedReason]);
-        } else {
-            $due = $row->dueDate->format($date);
-            $overdue = $this->translator->trans('invoice.list.status.overdue');
-            $mark = SendMark::None === $row->sendMark ? null : $this->translator->trans('invoice.mark.'.$row->sendMark->value);
-            $sent = null === $mark ? null : ['text' => $mark, 'icon' => self::MARK_ICONS[$row->sendMark->value], 'tone' => self::MARK_TONES[$row->sendMark->value], 'hint' => $this->translator->trans('invoice.mark.hint.'.$row->sendMark->value)];
-            // A reminded row says how many reminders went, in the place of the mark: the newest
-            // e-mail was one of them. A failure keeps its mark, as that is what to act on.
-            if (null !== $reminders && SendMark::Failed !== $row->sendMark) {
-                $last = $this->translator->trans('reminder.list.last', ['date' => $reminders['lastAt']->setTimezone($this->instanceClock->timezone())->format($date)]);
-                $sent = [
-                    'text' => $this->translator->trans('reminder.list.count', ['count' => $reminders['count']]),
-                    'icon' => 'bell-ring',
-                    'tone' => SendMark::Read === $row->sendMark ? 'green' : 'gray',
-                    'hint' => $this->joined([$last, $mark]),
-                ];
-                $mark = $sent['text'];
-            }
-            $export = $this->exportCell($row);
-            $cells += [
-                'issueDate' => $row->issueDate->format($date),
-                'dueDate' => $row->overdue ? ['text' => $due, 'tone' => 'red', 'hint' => $overdue] : $due,
-                'sent' => $sent,
-                'export' => $export,
-            ];
-            $secondary = $this->joined([$row->customerName, $due, $badge, $mark, $export['text'] ?? null]);
-        }
+        $status = $this->joined([$text('status'), $text('status', 'hint')]);
+        $secondary = InvoiceFilter::TRASH === $tab
+            ? $this->joined([$row->customerName, $text('deletedBy'), $text('deletedAt'), $text('reason')])
+            : $this->joined([$row->customerName, $text('dueDate'), $status, $text('sent'), $text('export')]);
 
         return [
             'id' => $row->id,
@@ -656,29 +585,6 @@ final class InvoiceListController extends AbstractController
             'secondary' => $secondary,
             'cells' => $cells,
             'actions' => $this->actions($row, $return, $reminders['count'] ?? 0),
-        ];
-    }
-
-    /**
-     * What the accountant has of the row, with the moment that says so in the instance's time.
-     * A document never exported shows nothing; a change after the export asks for a look.
-     *
-     * @return array{text: string, icon: string, tone: string, hint: string}|null
-     */
-    private function exportCell(InvoiceRow $row): ?array
-    {
-        $moment = $row->changedAfterExportAt ?? $row->exportedAt;
-        if (!$moment instanceof \DateTimeImmutable) {
-            return null;
-        }
-        $changed = $row->changedAfterExportAt instanceof \DateTimeImmutable;
-        $state = $row->exportState()->value;
-
-        return [
-            'text' => $this->translator->trans('invoice.export_state.'.$state),
-            'icon' => $changed ? 'file-pen-line' : 'archive',
-            'tone' => $changed ? 'amber' : 'gray',
-            'hint' => $this->translator->trans('invoice.export_state.hint.'.$state, ['date' => $moment->setTimezone($this->instanceClock->timezone())->format($this->translator->trans('format.datetime'))]),
         ];
     }
 
