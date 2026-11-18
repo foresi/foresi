@@ -430,10 +430,11 @@ work:
       new: Nové
       done: Hotové
     filter:
-      label: Zobrazit
-      all: Vše
       mentions: Zmínky
       assigned: Přiřazené
+    field:
+      reason: Důvod
+      unread: Nepřečtené
     column:
       task: Úkol
       event: Co se stalo
@@ -453,7 +454,9 @@ work:
       new_text: Zmínky, přiřazené úkoly a novinky ve sledovaných úkolech uvidíte tady.
       done_title: Zatím nic hotového
       done_text: Oznámení, která označíte jako hotová, tu zůstanou 3 měsíce.
-      filtered: S tímto filtrem tu nic není.
+      filtered: Filtrům nic neodpovídá.
+      reset: Zrušit filtry
+      view: Tomuto pohledu nic neodpovídá
   notification_settings:
     title: Nastavení oznámení
     email_card: E-maily

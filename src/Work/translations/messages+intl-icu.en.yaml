@@ -430,10 +430,11 @@ work:
       new: New
       done: Done
     filter:
-      label: Show
-      all: All
       mentions: Mentions
       assigned: Assigned
+    field:
+      reason: Reason
+      unread: Unread
     column:
       task: Task
       event: What happened
@@ -453,7 +454,9 @@ work:
       new_text: Mentions, tasks assigned to you and news on the tasks you watch show up here.
       done_title: Nothing done yet
       done_text: Notifications you mark as done stay here for 3 months.
-      filtered: Nothing here with this filter.
+      filtered: Nothing matches the filters.
+      reset: Clear the filters
+      view: Nothing matches this view
   notification_settings:
     title: Notification settings
     email_card: E-mails
