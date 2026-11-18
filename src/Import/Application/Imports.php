@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Import\Application;
 
+use Foresi\Import\Contract\RowOutcome;
 use Foresi\Import\Domain\Import;
 use Foresi\Import\Domain\ImportMissingRecord;
 use Foresi\Import\Domain\ImportRow;
-use Foresi\Import\Domain\RowOutcome;
 
 interface Imports
 {

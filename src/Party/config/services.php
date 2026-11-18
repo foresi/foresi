@@ -6,8 +6,8 @@
 
 declare(strict_types=1);
 
-use Foresi\Import\Infrastructure\Controller\TargetPages;
 use Foresi\Party\Application\CompanyRegistry;
+use Foresi\Party\Application\ContactImports;
 use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\CreateParty;
 use Foresi\Party\Application\ImportPartyValues;
@@ -22,9 +22,9 @@ use Foresi\Party\Contract\BankAccountUsage;
 use Foresi\Party\Domain\DomesticBankAccount;
 use Foresi\Party\Domain\RegistrationNumberValidator;
 use Foresi\Party\Infrastructure\CollectedBankAccountUsage;
+use Foresi\Party\Infrastructure\CollectedContactImports;
 use Foresi\Party\Infrastructure\Doctrine\DoctrineTransactionalWork;
 use Foresi\Party\Infrastructure\Http\FilesystemFirmImages;
-use Foresi\Party\Infrastructure\Import\PartyImportPages;
 use Foresi\Party\Infrastructure\Registry\CollectedCompanyRegistry;
 use Foresi\Party\Infrastructure\Registry\CollectedVatPayerReliability;
 use Foresi\Tests\Party\Infrastructure\Support\RacingLegalEntities;
@@ -57,6 +57,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     // Ports served by other modules; each collects its providers (ADR 0034, rule 3).
     $builder->registerForAutoconfiguration(CompanyRegistry::class)->addTag('app.company_registry');
     $builder->registerForAutoconfiguration(VatPayerReliability::class)->addTag('app.vat_payer_reliability');
+    $builder->registerForAutoconfiguration(ContactImports::class)->addTag(ContactImports::TAG);
 
     $services->set(RegistrationNumberFactory::class)
         ->arg('$validators', tagged_iterator('app.registration_number_validator'));
@@ -69,8 +70,8 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     // Country modules offer their registers; without one, lookups come back empty.
     $services->alias(CompanyRegistry::class, CollectedCompanyRegistry::class);
     $services->alias(VatPayerReliability::class, CollectedVatPayerReliability::class);
-    // Party serves the pages of its import target.
-    $services->alias(TargetPages::class, PartyImportPages::class);
+    // An import module tells which contacts an import wrote; without one, no list is narrowed to an import.
+    $services->alias(ContactImports::class, CollectedContactImports::class);
 
     $services->set(FilesystemFirmImages::class)
         ->arg('$root', param('app.firm_image_dir'));

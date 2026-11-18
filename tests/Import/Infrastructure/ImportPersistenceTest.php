@@ -13,7 +13,9 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Foresi\Import\Application\Imports;
 use Foresi\Import\Application\ProfileRepository;
-use Foresi\Import\Domain\BlankCells;
+use Foresi\Import\Contract\BlankCells;
+use Foresi\Import\Contract\RowError;
+use Foresi\Import\Contract\RowOutcome;
 use Foresi\Import\Domain\DateOrder;
 use Foresi\Import\Domain\DecimalSeparator;
 use Foresi\Import\Domain\Import;
@@ -24,8 +26,6 @@ use Foresi\Import\Domain\ImportRow;
 use Foresi\Import\Domain\ImportState;
 use Foresi\Import\Domain\Mapping;
 use Foresi\Import\Domain\ReplaceScope;
-use Foresi\Import\Domain\RowError;
-use Foresi\Import\Domain\RowOutcome;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class ImportPersistenceTest extends KernelTestCase

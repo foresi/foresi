@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Import\Domain;
+namespace Foresi\Import\Contract;
 
 /** A field of an import target that a source column can be mapped to. */
 final readonly class FieldDefinition

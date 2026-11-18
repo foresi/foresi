@@ -9,11 +9,11 @@ declare(strict_types=1);
 namespace Foresi\Import\Infrastructure\Source;
 
 use Foresi\Import\Application\Source\Encoding;
-use Foresi\Import\Application\Source\SourceFormat;
 use Foresi\Import\Application\Source\SourceInspection;
 use Foresi\Import\Application\Source\SourceReader;
 use Foresi\Import\Application\Source\SourceRejected;
 use Foresi\Import\Application\Source\SourceSettings;
+use Foresi\Import\Contract\SourceFormat;
 use OpenSpout\Common\Exception\IOException;
 use OpenSpout\Reader\XLSX\Options;
 use OpenSpout\Reader\XLSX\Reader as XlsxReader;

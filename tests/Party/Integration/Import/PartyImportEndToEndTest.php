@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Party\Infrastructure\Import;
+namespace Foresi\Tests\Party\Integration\Import;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -16,7 +16,8 @@ use Foresi\Import\Application\Imports;
 use Foresi\Import\Application\RunImport;
 use Foresi\Import\Application\StartImport;
 use Foresi\Import\Application\UndoImport;
-use Foresi\Import\Domain\BlankCells;
+use Foresi\Import\Contract\BlankCells;
+use Foresi\Import\Contract\RowOutcome;
 use Foresi\Import\Domain\ColumnProposal;
 use Foresi\Import\Domain\DateOrder;
 use Foresi\Import\Domain\DecimalSeparator;
@@ -26,7 +27,6 @@ use Foresi\Import\Domain\ImportOptions;
 use Foresi\Import\Domain\ImportRow;
 use Foresi\Import\Domain\ImportState;
 use Foresi\Import\Domain\MatchReason;
-use Foresi\Import\Domain\RowOutcome;
 use Foresi\Party\Application\PartyDetails;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\RecheckRegistry;
@@ -35,8 +35,8 @@ use Foresi\Party\Domain\EmailPurpose;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyEmail;
 use Foresi\Party\Domain\PartyKind;
-use Foresi\Party\Infrastructure\Import\IdokladContactPreset;
-use Foresi\Party\Infrastructure\Import\PartyImportTarget;
+use Foresi\Party\Integration\Import\IdokladContactPreset;
+use Foresi\Party\Integration\Import\PartyImportTarget;
 use Foresi\Tests\Import\Support\RunMessages;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Import\Application\Target;
+namespace Foresi\Import\Contract;
 
 /** The state of a record before an import changed it, enough to put it back. */
 final readonly class RecordSnapshot

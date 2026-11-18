@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Import\Application;
 
-use Foresi\Import\Domain\RowError;
+use Foresi\Import\Contract\RowError;
 
 /** One source row read through the mapping: its values, what is wrong with it and its match key. */
 final readonly class RowEvaluation

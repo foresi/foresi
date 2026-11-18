@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Party\Infrastructure\Import;
+namespace Foresi\Tests\Party\Integration\Import;
 
 use Doctrine\ORM\Tools\SchemaTool;
 use Foresi\Import\Application\CheckImport;
@@ -15,14 +15,14 @@ use Foresi\Import\Application\Imports;
 use Foresi\Import\Application\RunImport;
 use Foresi\Import\Application\StartImport;
 use Foresi\Import\Application\UndoImport;
-use Foresi\Import\Domain\BlankCells;
+use Foresi\Import\Contract\BlankCells;
 use Foresi\Import\Domain\DateOrder;
 use Foresi\Import\Domain\DecimalSeparator;
 use Foresi\Import\Domain\Import;
 use Foresi\Import\Domain\ImportMode;
 use Foresi\Import\Domain\ImportOptions;
 use Foresi\Import\Domain\ImportState;
-use Foresi\Party\Infrastructure\Import\PartyImportTarget;
+use Foresi\Party\Integration\Import\PartyImportTarget;
 use Foresi\Tests\Import\Support\RunMessages;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Import\Application\Target;
+namespace Foresi\Import\Contract;
 
 /** The record an import wrote and what it looked like before. */
 final readonly class WriteResult

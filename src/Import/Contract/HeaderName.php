@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Import\Domain;
+namespace Foresi\Import\Contract;
 
 /** The one way a column header is compared: lower-case ASCII words separated by single spaces. */
 final class HeaderName

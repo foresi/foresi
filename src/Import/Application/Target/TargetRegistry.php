@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Import\Application\Target;
 
+use Foresi\Import\Contract\ImportTarget;
+
 /** All import targets, found by their key. */
 final class TargetRegistry
 {

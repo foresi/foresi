@@ -669,7 +669,7 @@ final class IdokladImportTest extends KernelTestCase
             return $party->id();
         }
         $target = self::getContainer()->get(\Foresi\Import\Application\Target\TargetRegistry::class)->get('party');
-        $target->update($party->id(), ['bank_account_iban' => 'CZ5508000000001234567899', 'contact_name' => 'Old Person'], \Foresi\Import\Domain\BlankCells::Keep);
+        $target->update($party->id(), ['bank_account_iban' => 'CZ5508000000001234567899', 'contact_name' => 'Old Person'], \Foresi\Import\Contract\BlankCells::Keep);
 
         return $party->id();
     }

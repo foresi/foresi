@@ -6,9 +6,8 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Import\Infrastructure\Controller;
+namespace Foresi\Import\Contract;
 
-use Foresi\Import\Domain\RowOutcome;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
@@ -16,9 +15,11 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
  * records, narrowed to what one import did with them. A module implements it
  * next to its ImportTarget (tag "app.import_target_pages").
  */
-#[AutoconfigureTag(TargetPagesRegistry::TAG)]
+#[AutoconfigureTag(self::TAG)]
 interface TargetPages
 {
+    public const string TAG = 'app.import_target_pages';
+
     public function targetKey(): string;
 
     /** Translation key of the name of the list, for example "Address book". */

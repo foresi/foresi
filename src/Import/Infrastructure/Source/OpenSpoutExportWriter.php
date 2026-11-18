@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Import\Infrastructure\Source;
 
 use Foresi\Import\Application\ExportWriter;
-use Foresi\Import\Application\Source\SourceFormat;
+use Foresi\Import\Contract\SourceFormat;
 use OpenSpout\Common\Entity\Cell\StringCell;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Common\Entity\Style\Style;
@@ -38,9 +38,9 @@ final readonly class OpenSpoutExportWriter implements ExportWriter
         $writer = $this->writer($format, $style);
         $writer->openToFile($path);
         try {
-            $writer->addRow($this->row($format, array_map(fn (\Foresi\Import\Domain\FieldDefinition $field): string => $this->translator->trans($field->labelKey), $fields), $style));
+            $writer->addRow($this->row($format, array_map(fn (\Foresi\Import\Contract\FieldDefinition $field): string => $this->translator->trans($field->labelKey), $fields), $style));
             foreach ($rows as $values) {
-                $writer->addRow($this->row($format, array_map(static fn (\Foresi\Import\Domain\FieldDefinition $field): string => $values[$field->key] ?? '', $fields), $style));
+                $writer->addRow($this->row($format, array_map(static fn (\Foresi\Import\Contract\FieldDefinition $field): string => $values[$field->key] ?? '', $fields), $style));
             }
         } finally {
             $writer->close();

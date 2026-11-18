@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Party\Infrastructure\Import;
+namespace Foresi\Tests\Party\Integration\Import;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Foresi\Import\Application\ExportRecords;
-use Foresi\Import\Application\Source\SourceFormat;
 use Foresi\Import\Application\Source\SourceSettings;
+use Foresi\Import\Contract\SourceFormat;
 use Foresi\Import\Domain\ColumnMatcher;
 use Foresi\Import\Domain\ColumnProposal;
 use Foresi\Import\Domain\MatchReason;
@@ -116,7 +116,7 @@ final class PartyExportTest extends KernelTestCase
         foreach (['Firma' => 'company', 'company' => 'company', 'Company' => 'company', 'OSVČ' => 'sole_trader', 'osvc' => 'sole_trader', 'Sole trader' => 'sole_trader', 'Osoba' => 'person', 'person' => 'person'] as $text => $key) {
             self::assertSame($key, $normaliser->normalise($kind, $text, new NormalisationOptions(), []), $text);
         }
-        self::assertInstanceOf(\Foresi\Import\Domain\RowError::class, $normaliser->normalise($kind, 'Spaceship', new NormalisationOptions(), []));
+        self::assertInstanceOf(\Foresi\Import\Contract\RowError::class, $normaliser->normalise($kind, 'Spaceship', new NormalisationOptions(), []));
     }
 
     /**

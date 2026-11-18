@@ -8,14 +8,14 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Import\Infrastructure\Source;
 
-use Foresi\Import\Application\Source\SourceFormat;
 use Foresi\Import\Application\Source\SourceSettings;
+use Foresi\Import\Contract\RowError;
+use Foresi\Import\Contract\RowOutcome;
+use Foresi\Import\Contract\SourceFormat;
 use Foresi\Import\Domain\Import;
 use Foresi\Import\Domain\ImportOptions;
 use Foresi\Import\Domain\ImportRow;
 use Foresi\Import\Domain\Mapping;
-use Foresi\Import\Domain\RowError;
-use Foresi\Import\Domain\RowOutcome;
 use Foresi\Import\Infrastructure\Source\OpenSpoutErrorFileWriter;
 use Foresi\Import\Infrastructure\Source\OpenSpoutSourceReader;
 use PHPUnit\Framework\TestCase;

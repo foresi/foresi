@@ -9,11 +9,8 @@ declare(strict_types=1);
 namespace Foresi\Party\Infrastructure\Controller;
 
 use Foresi\Audit\Application\AuditActor;
-use Foresi\Import\Application\ExportRecords;
-use Foresi\Import\Application\Imports;
-use Foresi\Import\Application\Source\SourceFormat;
-use Foresi\Import\Domain\Import;
 use Foresi\Party\Application\ArchiveParty;
+use Foresi\Party\Application\ContactImports;
 use Foresi\Party\Application\ImportedBy;
 use Foresi\Party\Application\LinkContactPerson;
 use Foresi\Party\Application\PartyDetails;
@@ -44,12 +41,10 @@ use Foresi\Ui\Component\DataTable;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
@@ -67,8 +62,8 @@ final class PartyController extends AbstractController
 
     private const array VIEWS = ['all', 'customers', 'suppliers', 'archived'];
     private const array TABS = ['overview', 'contacts', 'addresses', 'bank-accounts', 'history'];
-    private const int MAX_BULK = 1000;
-    private const int MAX_SEARCH = 100;
+    public const int MAX_BULK = 1000;
+    public const int MAX_SEARCH = 100;
     private const array QUIET_FIELDS = ['registrationKey', 'registrationCountry', 'billingFlag', 'primaryFlag', 'viesCheckedAt', 'unreliablePayerCheckedAt', 'unreliablePayerAccounts', 'party', 'company', 'person'];
 
     public function __construct(
@@ -80,11 +75,10 @@ final class PartyController extends AbstractController
         private readonly LinkContactPerson $linkContactPerson,
         private readonly RefreshRegistryChecks $refreshChecks,
         private readonly TransactionalWork $transaction,
-        private readonly ExportRecords $export,
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
         private readonly AuditActor $actor,
-        private readonly Imports $imports,
+        private readonly ContactImports $imports,
         #[Autowire(service: 'limiter.party_refresh_checks')]
         private readonly RateLimiterFactory $refreshLimiter,
         private readonly ListColumnRegistry $listColumns,
@@ -106,7 +100,7 @@ final class PartyController extends AbstractController
             default => null,
         };
 
-        [$importedBy, $import] = $this->importedBy($request->query);
+        [$importedBy, $importName] = $this->importedBy($request->query);
         $page = $this->contacts->search($text, $role, 'archived' === $view, $sort, max(1, $request->query->getInt('page', 1)), $importedBy);
         $counts = $this->contacts->counts();
         $query = ['view' => 'all' === $view ? null : $view, 'q' => '' === $text ? null : $text, 'sort' => 'name' === $sort ? null : $sort]
@@ -123,8 +117,8 @@ final class PartyController extends AbstractController
             'rows' => $this->rows($page),
             'baseUrl' => $this->generateUrl('app_contacts', $query),
             'filtered' => '' !== $text || 'all' !== $view || $importedBy instanceof ImportedBy,
-            'importedBy' => $importedBy instanceof ImportedBy && $import instanceof Import ? ['text' => $this->translator->trans('party.imported_by.'.$importedBy->outcome, ['name' => $import->originalName()]), 'href' => $this->generateUrl('app_import_show', ['id' => $importedBy->importId])] : null,
-            'exportQuery' => ['view' => $view, 'q' => $text] + ($importedBy instanceof ImportedBy ? ['import' => $importedBy->importId, 'outcome' => $importedBy->outcome] : []),
+            'importedBy' => $importedBy instanceof ImportedBy ? ['text' => $this->translator->trans('party.imported_by.'.$importedBy->outcome, ['name' => $importName]), 'href' => $this->imports->summaryUrl($importedBy->importId)] : null,
+            'listQuery' => ['view' => $view, 'q' => $text] + ($importedBy instanceof ImportedBy ? ['import' => $importedBy->importId, 'outcome' => $importedBy->outcome] : []),
         ]);
     }
 
@@ -217,54 +211,6 @@ final class PartyController extends AbstractController
         return $this->redirectToRoute('app_contacts');
     }
 
-    /**
-     * Exports the selected contacts, or the whole view as it is filtered, through
-     * the import target: the file has the columns the import maps and imports
-     * again. Unknown ids are ignored. The file name carries the date
-     * only, never a name or a number. It is streamed, so a large address book
-     * needs no limit.
-     */
-    #[Route('/contacts/export', name: 'app_contacts_export', methods: ['POST'])]
-    public function export(Request $request): Response
-    {
-        $this->checkToken($request);
-        $format = 'xlsx' === $request->request->getString('format') ? SourceFormat::Xlsx : SourceFormat::Csv;
-        // The header action exports the whole view as it is filtered, not a selection.
-        if ('view' === $request->request->getString('scope')) {
-            $view = $request->request->getString('view', 'all');
-            $role = match ($view) {
-                'customers' => PartyRole::Customer,
-                'suppliers' => PartyRole::Supplier,
-                default => null,
-            };
-            // A list narrowed to an import exports exactly what it shows.
-            [$importedBy] = $this->importedBy($request->request);
-            $ids = $this->parties->matchingIds(trim(mb_substr($request->request->getString('q'), 0, self::MAX_SEARCH)), $role, 'archived' === $view, $importedBy);
-        } else {
-            $selected = $this->selectedIds($request);
-            $found = [] === $selected ? [] : $this->parties->findMany($selected);
-            if ([] === $found) {
-                if ([] === $selected) {
-                    return $this->redirectToRoute('app_contacts');
-                }
-                throw new NotFoundHttpException();
-            }
-            $ids = array_map(static fn (Party $party): string => $party->id(), $found);
-        }
-        if ([] === $ids) {
-            return $this->redirectToRoute('app_contacts');
-        }
-
-        $response = new StreamedResponse(function () use ($ids, $format): void {
-            $this->export->write('party', $ids, $format, 'php://output');
-        });
-        $response->headers->set('Content-Type', SourceFormat::Xlsx === $format ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv; charset=utf-8');
-        $response->headers->set('Content-Disposition', HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, 'contacts-'.$this->clock->now()->format('Ymd').'.'.$format->value));
-        $response->headers->set('Cache-Control', 'private, no-store');
-
-        return $response;
-    }
-
     #[Route('/contacts/{id}/link', name: 'app_contact_link', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function link(string $id, Request $request): Response
     {
@@ -333,21 +279,17 @@ final class PartyController extends AbstractController
     /**
      * The import the list is narrowed to, when the link of an import summary opened it.
      *
-     * @param InputBag<string> $input the query of the list, or the form of its export
+     * @param InputBag<string> $input the query of the list
      *
-     * @return array{?ImportedBy, ?Import}
+     * @return array{ImportedBy, string}|array{null, null} the import and the name of its file
      */
     private function importedBy(InputBag $input): array
     {
-        $id = $input->getString('import');
-        $outcome = $input->getString('outcome', 'create');
-        if (!Id::isValid($id) || !\in_array($outcome, ImportedBy::OUTCOMES, true)) {
-            return [null, null];
-        }
+        $importedBy = ImportedBy::tryFrom($input->getString('import'), $input->getString('outcome', 'create'));
         // An unknown import is not found, so its id narrows nothing.
-        $import = $this->imports->find($id);
+        $name = $importedBy instanceof ImportedBy ? $this->imports->fileName($importedBy->importId) : null;
 
-        return $import instanceof Import ? [new ImportedBy($id, $outcome), $import] : [null, null];
+        return null !== $name ? [$importedBy, $name] : [null, null];
     }
 
     private function party(string $id): Party

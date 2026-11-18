@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Party\Infrastructure\Import;
+namespace Foresi\Party\Integration\Import;
 
-use Foresi\Import\Domain\Preset\AbstractSourcePreset;
+use Foresi\Import\Contract\AbstractSourcePreset;
 
 /**
  * The contact export of iDoklad (UTF-8 with BOM, comma separated, one header

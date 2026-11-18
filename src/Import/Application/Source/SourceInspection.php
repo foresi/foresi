@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Import\Application\Source;
 
+use Foresi\Import\Contract\SourceFormat;
+
 /**
  * What a source file looks like: the detected (or overridden) reading
  * settings, the header and the first data rows for the mapping screen.

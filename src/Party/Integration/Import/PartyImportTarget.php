@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Party\Infrastructure\Import;
+namespace Foresi\Party\Integration\Import;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Audit\Application\AuditCorrelation;
-use Foresi\Import\Application\Target\ImportTarget;
-use Foresi\Import\Application\Target\RecordMatch;
-use Foresi\Import\Application\Target\RecordSnapshot;
-use Foresi\Import\Application\Target\WriteResult;
-use Foresi\Import\Domain\BlankCells;
-use Foresi\Import\Domain\FieldDefinition;
-use Foresi\Import\Domain\FieldType;
-use Foresi\Import\Domain\HeaderName;
-use Foresi\Import\Domain\RowError;
+use Foresi\Import\Contract\BlankCells;
+use Foresi\Import\Contract\FieldDefinition;
+use Foresi\Import\Contract\FieldType;
+use Foresi\Import\Contract\HeaderName;
+use Foresi\Import\Contract\ImportTarget;
+use Foresi\Import\Contract\RecordMatch;
+use Foresi\Import\Contract\RecordSnapshot;
+use Foresi\Import\Contract\RowError;
+use Foresi\Import\Contract\WriteResult;
 use Foresi\Party\Application\ArchiveParty;
 use Foresi\Party\Application\CreateParty;
 use Foresi\Party\Application\ImportedContact;

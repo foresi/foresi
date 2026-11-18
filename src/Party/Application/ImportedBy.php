@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Party\Application;
 
+use Foresi\Shared\Domain\Id;
+
 /**
  * Narrows the address book to the parties one import gave an outcome, for
  * example "the contacts this import created".
@@ -24,5 +26,14 @@ final readonly class ImportedBy
         if (!\in_array($outcome, self::OUTCOMES, true)) {
             throw new \InvalidArgumentException(\sprintf('"%s" is not an outcome a list can be narrowed to.', $outcome));
         }
+    }
+
+    /**
+     * The import a list is narrowed to, from the query of the list or the form of its
+     * export; null for a malformed id or an outcome a list cannot be narrowed to.
+     */
+    public static function tryFrom(string $importId, string $outcome): ?self
+    {
+        return Id::isValid($importId) && \in_array($outcome, self::OUTCOMES, true) ? new self($importId, $outcome) : null;
     }
 }

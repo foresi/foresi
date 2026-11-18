@@ -6,9 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Import\Domain\Preset;
-
-use Foresi\Import\Domain\HeaderName;
+namespace Foresi\Import\Contract;
 
 /** Shares the recognition rule between presets; a preset only lists its columns. */
 abstract class AbstractSourcePreset implements SourcePreset

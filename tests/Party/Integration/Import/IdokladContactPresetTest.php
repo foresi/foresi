@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Party\Infrastructure\Import;
+namespace Foresi\Tests\Party\Integration\Import;
 
 use Foresi\Import\Application\PresetRegistry;
 use Foresi\Import\Application\Target\TargetRegistry;
@@ -15,8 +15,8 @@ use Foresi\Import\Domain\ColumnProposal;
 use Foresi\Import\Domain\MatchReason;
 use Foresi\Import\Domain\NormalisationOptions;
 use Foresi\Import\Domain\ValueNormaliser;
-use Foresi\Party\Infrastructure\Import\IdokladContactPreset;
-use Foresi\Party\Infrastructure\Import\PartyImportTarget;
+use Foresi\Party\Integration\Import\IdokladContactPreset;
+use Foresi\Party\Integration\Import\PartyImportTarget;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 

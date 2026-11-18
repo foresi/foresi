@@ -8,15 +8,15 @@ declare(strict_types=1);
 
 namespace Foresi\Import\Application;
 
-use Foresi\Import\Application\Target\ImportTarget;
-use Foresi\Import\Application\Target\RecordMatch;
-use Foresi\Import\Domain\FieldDefinition;
+use Foresi\Import\Contract\FieldDefinition;
+use Foresi\Import\Contract\ImportTarget;
+use Foresi\Import\Contract\RecordMatch;
+use Foresi\Import\Contract\RowError;
+use Foresi\Import\Contract\RowOutcome;
 use Foresi\Import\Domain\Import;
 use Foresi\Import\Domain\ImportRow;
 use Foresi\Import\Domain\Mapping;
 use Foresi\Import\Domain\NormalisationOptions;
-use Foresi\Import\Domain\RowError;
-use Foresi\Import\Domain\RowOutcome;
 use Foresi\Import\Domain\ValueNormaliser;
 
 /**
@@ -130,7 +130,7 @@ final readonly class RowReader
         if (null === $row->matchValue) {
             return [RowOutcome::Create, []];
         }
-        $outcome = RowOutcome::forMatches($this->import->options()->mode, \count($matches), [] !== $matches && $matches[0]->archived);
+        $outcome = $this->import->options()->mode->outcomeFor(\count($matches), [] !== $matches && $matches[0]->archived);
         if (RowOutcome::Error === $outcome) {
             return [$outcome, [new RowError((string) $this->matchKey, 'import.error.ambiguous_match', ['value' => $row->keyText, 'count' => \count($matches)])]];
         }

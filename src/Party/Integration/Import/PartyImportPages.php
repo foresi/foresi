@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Party\Infrastructure\Import;
+namespace Foresi\Party\Integration\Import;
 
-use Foresi\Import\Domain\RowOutcome;
-use Foresi\Import\Infrastructure\Controller\TargetPages;
+use Foresi\Import\Contract\RowOutcome;
+use Foresi\Import\Contract\TargetPages;
 use Foresi\Party\Application\ImportedBy;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 

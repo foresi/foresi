@@ -542,7 +542,7 @@ final class PartyControllerTest extends WebTestCase
         $path = tempnam(sys_get_temp_dir(), 'foresi-xlsx');
         file_put_contents($path, $content);
         try {
-            $rows = [...new \Foresi\Import\Infrastructure\Source\OpenSpoutSourceReader()->rows($path, new \Foresi\Import\Application\Source\SourceSettings(\Foresi\Import\Application\Source\SourceFormat::Xlsx, headerRow: 1))];
+            $rows = [...new \Foresi\Import\Infrastructure\Source\OpenSpoutSourceReader()->rows($path, new \Foresi\Import\Application\Source\SourceSettings(\Foresi\Import\Contract\SourceFormat::Xlsx, headerRow: 1))];
         } finally {
             unlink($path);
         }

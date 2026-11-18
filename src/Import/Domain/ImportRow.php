@@ -9,6 +9,8 @@ declare(strict_types=1);
 namespace Foresi\Import\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Import\Contract\RowError;
+use Foresi\Import\Contract\RowOutcome;
 use Foresi\Shared\Domain\Id;
 
 /**
