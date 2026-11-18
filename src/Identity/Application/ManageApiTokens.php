@@ -99,11 +99,36 @@ final readonly class ManageApiTokens
     }
 
     /**
-     * Revokes one's own token, or any token of the organisation as its owner.
+     * @return list<ApiToken> the OAuth clients the signed-in person connected, newest first (ADR 0036)
      *
      * @throws ApiTokenRefused
      */
-    public function revoke(string $id): void
+    public function myConnections(): array
+    {
+        return $this->tokens->connections($this->staff());
+    }
+
+    /**
+     * @return list<ApiToken> every OAuth connection of the organisation, newest first; for an owner
+     *
+     * @throws ApiTokenRefused
+     */
+    public function organisationConnections(): array
+    {
+        if (Role::Owner !== $this->roleOf($this->staff())) {
+            throw new ApiTokenRefused(ApiTokenRefused::NOT_YOURS);
+        }
+
+        return $this->tokens->connections(null);
+    }
+
+    /**
+     * Revokes one's own token, or any token of the organisation as its owner.
+     * Revoking an OAuth connection disconnects its client: the refresh token dies with it.
+     *
+     * @throws ApiTokenRefused
+     */
+    public function revoke(string $id): ApiToken
     {
         $userId = $this->staff();
         $token = $this->tokens->find($id) ?? throw new ApiTokenRefused(ApiTokenRefused::UNKNOWN);
@@ -112,6 +137,8 @@ final readonly class ManageApiTokens
         }
         $token->revoke($userId, $this->clock->now());
         $this->tokens->flush();
+
+        return $token;
     }
 
     /**

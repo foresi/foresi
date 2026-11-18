@@ -35,6 +35,9 @@ final class GuestAccessTest extends WebTestCase
         'app_account_language', 'app_two_factor_setup', 'app_two_factor_recovery_codes',
         // Machines: the uptime monitor and the bank mail relay, on firewalls without a session.
         'app_health', 'app_inbound_mail',
+        // OAuth for MCP clients (ADR 0036): metadata, registration and the token endpoint hold no data and
+        // take no session; the consent screen refuses a guest.
+        'oauth_resource_metadata', 'oauth_resource_metadata_root', 'oauth_server_metadata', 'oauth_register', 'oauth_token',
         // The API and MCP, whose firewalls only a personal API token signs in to; a guest gets none.
         'api_v1_me', 'api_v1_invoices', 'api_v1_invoice', 'api_v1_contacts', 'api_v1_contact', 'api_v1_payments', 'api_v1_payment', 'api_v1_events',
         'api_v1_webhook_endpoints', 'api_v1_webhook_endpoint_create', 'api_v1_webhook_endpoint', 'api_v1_webhook_endpoint_update', 'api_v1_webhook_endpoint_delete',
