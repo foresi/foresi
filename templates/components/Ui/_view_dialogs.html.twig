@@ -79,7 +79,7 @@
     </div>
     <twig:block name="footer">
         {% if manageViews.canRestore %}
-            <form method="post" action="{{ path('app_view_restore') }}" class="mr-auto" data-turbo-confirm="{{ 'saved_view.restore_confirm'|trans }}" data-confirm-text="{{ 'saved_view.restore_confirm_text'|trans }}" data-confirm-accept="{{ 'saved_view.restore'|trans }}" data-confirm-cancel="{{ 'saved_view.cancel'|trans }}">
+            <form method="post" action="{{ path('app_view_restore') }}" class="mr-auto max-sm:w-full" data-turbo-confirm="{{ 'saved_view.restore_confirm'|trans }}" data-confirm-text="{{ 'saved_view.restore_confirm_text'|trans }}" data-confirm-accept="{{ 'saved_view.restore'|trans }}" data-confirm-cancel="{{ 'saved_view.cancel'|trans }}">
                 <input type="hidden" name="_token" value="{{ token }}">
                 <input type="hidden" name="list" value="{{ manageViews.list }}">
                 <input type="hidden" name="return" value="{{ manageViews.return }}">
