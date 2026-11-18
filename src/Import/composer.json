@@ -6,9 +6,15 @@
     "require": {
         "foresi/audit": "*",
         "foresi/identity": "*",
-        "foresi/shared": "*",
         "foresi/instance": "*",
-        "foresi/ui": "*"
+        "foresi/shared": "*",
+        "foresi/ui": "*",
+        "openspout/openspout": "^5.12"
+    },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\Import\\": ""
+        }
     },
     "extra": {
         "foresi": {

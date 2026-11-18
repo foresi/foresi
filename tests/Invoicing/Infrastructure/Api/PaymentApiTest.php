@@ -13,6 +13,7 @@ use Foresi\Invoicing\Domain\Payment;
 use Foresi\Invoicing\Domain\PaymentDirection;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Infrastructure\Api\Cursor;
+use Foresi\Tests\Invoicing\Support\IssuesInvoices;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -23,6 +24,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
  */
 final class PaymentApiTest extends ApiTestCase
 {
+    use IssuesInvoices;
+
     public function testAPaymentIsWrittenWithItsAllocationsInTheListAndAlone(): void
     {
         [$invoice, $payment] = $this->flushed(function (): array {

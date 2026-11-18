@@ -12,6 +12,7 @@ use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\StaffCheck;
 use Foresi\Identity\Application\UserRepository;
 use Foresi\Instance\Application\InstanceClock;
+use Foresi\Invoicing\Application\CustomerPicker;
 use Foresi\Invoicing\Application\DocumentExports;
 use Foresi\Invoicing\Application\DocumentMonths;
 use Foresi\Invoicing\Application\ExportDocumentList;
@@ -52,12 +53,17 @@ use Foresi\Invoicing\Infrastructure\Column\IssuedDocumentColumns;
 use Foresi\Invoicing\Infrastructure\Form\AmountText;
 use Foresi\Invoicing\Infrastructure\Form\MailTokenLabels;
 use Foresi\Invoicing\Infrastructure\Form\SendFailureText;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Shared\Application\View\DateRange;
+use Foresi\Shared\Application\View\FilterRows;
 use Foresi\Shared\Application\View\ListView;
 use Foresi\Shared\Application\View\ListViews;
 use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Column\ListColumnRegistry;
 use Foresi\Ui\Column\ListDisplay;
 use Foresi\Ui\Column\WorkingDisplay;
@@ -90,7 +96,7 @@ final class InvoiceListController extends AbstractController
     public const string ACTION_TOKEN = 'invoice_action';
     private const int MAX_TEXT = 100;
     /** The parts of the list's query an action carries back to it. */
-    public const array LIST_QUERY = ['view', 'tab', 'firm', 'q', 'sort', 'page', 'toSend', 'export', 'month', WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY];
+    public const array LIST_QUERY = ['view', 'tab', 'firm', 'q', 'sort', 'page', 'toSend', 'export', 'month', WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY, WorkingFilter::PARAM];
     /** The list of each kind of document, as iDoklad keeps one per kind. */
     public const array ROUTES = ['invoice' => 'app_invoices', 'advance' => 'app_advances', 'payment_tax_document' => 'app_tax_documents', 'correction_document' => 'app_corrections'];
 
@@ -120,6 +126,9 @@ final class InvoiceListController extends AbstractController
         private readonly AuditActor $actor,
         private readonly ListColumnRegistry $listColumns,
         private readonly WorkingDisplay $workingDisplay,
+        private readonly FilterSheet $filterSheet,
+        private readonly CustomerPicker $customers,
+        private readonly LegalEntities $firms,
     ) {
     }
 
@@ -131,11 +140,17 @@ final class InvoiceListController extends AbstractController
     {
         $kind = DocumentKind::from($kind);
         $route = self::ROUTES[$kind->value];
+        // The builder's rows (spec D11) become the list's working filter, in its address.
+        if ($request->query->has(FilterRows::MARKER)) {
+            return $this->redirectToRoute($route, $this->builtQuery($request->query, $kind), Response::HTTP_SEE_OTHER);
+        }
         [$filter, $views, $view] = $this->filterOf($request->query, $kind);
+        $shown = $filter->view ?? $view->filter;
+        $filterParam = WorkingFilter::param($shown, $view->filter);
         [$tab, $text, $sort, $firm, $toSend, $export, $month] = [$filter->tab, $filter->text, $filter->sort, $filter->firmId ?? '', $filter->toSend, $filter->export, $filter->month];
         $page = $this->list->page($filter);
         $firm = isset($page->firms[$firm]) ? $firm : '';
-        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'firm' => '' === $firm ? null : $firm, 'q' => '' === $text ? null : $text, 'sort' => InvoiceFilter::DEFAULT_SORT === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null, 'export' => $export?->value, 'month' => $month], static fn (?string $value): bool => null !== $value);
+        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'firm' => '' === $firm ? null : $firm, 'q' => '' === $text ? null : $text, 'sort' => InvoiceFilter::DEFAULT_SORT === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null, 'export' => $export?->value, 'month' => $month, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
         // Within the firm the list is filtered by, so the chip counts what pressing it shows.
         $toSendCount = $this->recurring->inReview('' === $firm ? null : $firm);
         $severalFirms = \count($page->firms) > 1;
@@ -155,6 +170,8 @@ final class InvoiceListController extends AbstractController
             'page' => $page,
             'tab' => $tab,
             'view' => $view->isAll() ? '' : $view->key,
+            'working' => $filterParam ?? '',
+            ...$this->filterSheet->of(InvoiceLists::of($kind), $shown, fn (ViewFilter $next): string => $this->generateUrl($route, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references($page->firms, $firm)),
             'text' => $text,
             'sort' => $sort,
             'firm' => $firm,
@@ -183,7 +200,7 @@ final class InvoiceListController extends AbstractController
             // The months with a document of the list, and the one asked for, though it has none.
             'months' => $this->monthOptions($kind, '' === $firm ? null : $firm, $month),
             // An empty list adds up to nothing to show, and saves the queries.
-            'filtered' => '' !== $text || '' !== $firm || $toSend || $export instanceof ExportState || null !== $month,
+            'filtered' => '' !== $text || '' !== $firm || $toSend || $export instanceof ExportState || null !== $month || null !== $filterParam,
         ]);
     }
 
@@ -228,12 +245,13 @@ final class InvoiceListController extends AbstractController
     {
         $views = $this->viewsOf($kind);
         $view = ListViews::chosen($views, $input->getString('view', $input->getString('tab')));
+        $working = WorkingFilter::decode($input->getString(WorkingFilter::PARAM), InvoiceLists::of($kind)) ?? $view->filter;
         $sort = $input->getString('sort', InvoiceFilter::DEFAULT_SORT);
         $firm = $input->getString('firm');
 
         return [new InvoiceFilter(
             '' === $firm ? null : $firm,
-            $this->tabOf($view, $kind),
+            $this->tabOf($view, $working, $kind),
             trim(mb_substr($input->getString('q'), 0, self::MAX_TEXT)),
             \in_array(ltrim($sort, '-'), InvoiceFilter::SORTS, true) ? $sort : InvoiceFilter::DEFAULT_SORT,
             max(1, $input->getInt('page', 1)),
@@ -242,7 +260,7 @@ final class InvoiceListController extends AbstractController
             $kind,
             ExportState::tryFrom($input->getString('export')),
             InvoiceFilter::monthOf($input->getString('month')),
-            $view->filter,
+            $working,
             $this->countedOf($views),
         ), $views, $view];
     }
@@ -278,15 +296,64 @@ final class InvoiceListController extends AbstractController
      * The tab a view stands for where the list still asks for one: the trash shows its
      * own columns; any other view is the tab of its slug, or the whole list.
      */
-    private function tabOf(ListView $view, DocumentKind $kind): string
+    private function tabOf(ListView $view, ViewFilter $working, DocumentKind $kind): string
     {
-        foreach ($view->filter->on(InvoiceLists::TRASHED) as $condition) {
+        foreach ($working->on(InvoiceLists::TRASHED) as $condition) {
             if (true === $condition->value) {
                 return InvoiceFilter::TRASH;
             }
         }
+        // A view changed in the builder no longer says what its empty state says.
+        if ($working->toArray() !== $view->filter->toArray()) {
+            return InvoiceFilter::ALL;
+        }
 
         return \in_array($view->slug, InvoiceFilter::tabsOf($kind), true) ? $view->slug : InvoiceFilter::ALL;
+    }
+
+    /**
+     * The list's address after the builder's Apply: what the sheet sent, its rows read
+     * into the working filter, which is left out when it is the view's own.
+     *
+     * @param InputBag<string> $input
+     *
+     * @return array<string, mixed>
+     */
+    private function builtQuery(InputBag $input, DocumentKind $kind): array
+    {
+        $list = InvoiceLists::of($kind);
+        $view = ListViews::chosen($this->viewsOf($kind), $input->getString('view', $input->getString('tab')));
+        $rows = $input->all(FilterRows::PARAM);
+        $query = array_diff_key($input->all(), [FilterRows::PARAM => true, FilterRows::MARKER => true, WorkingFilter::PARAM => true, 'page' => true]);
+
+        return array_filter($query + [WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($rows, $list), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
+    }
+
+    /**
+     * The contacts a customer condition picks from and names: those of the firm the list
+     * is filtered by, or of its first.
+     *
+     * @param array<string, string> $firms
+     *
+     * @return array<string, array{url: string, name: \Closure(string): ?string}>
+     */
+    private function references(array $firms, string $firm): array
+    {
+        $id = '' !== $firm ? $firm : (string) array_key_first($firms);
+        if ('' === $id) {
+            return [];
+        }
+
+        return [InvoiceLists::CONTACT => [
+            'url' => $this->generateUrl('app_invoice_customers', ['firm' => $id]),
+            'name' => function (string $contact) use ($id): ?string {
+                try {
+                    return $this->customers->find($contact, $this->firms->get($id))?->name;
+                } catch (UnknownLegalEntity) {
+                    return null;
+                }
+            },
+        ]];
     }
 
     /**
@@ -613,8 +680,8 @@ final class InvoiceListController extends AbstractController
         [$primary, $overflow] = ListViews::placed($views);
         $link = fn (ListView $view, bool $count): array => [
             'label' => $view->translated ? $this->translator->trans($view->name) : $view->name,
-            // The changed columns belong to the view they were changed on (spec D10): another view opens with its own.
-            'href' => $this->generateUrl($route, ['view' => $view->isAll() ? null : $view->key] + array_diff_key($query, ['view' => true, 'page' => true] + array_flip(WorkingDisplay::KEYS))),
+            // A view opens with its own filter and columns: the changed ones belong to the view they were changed on (spec D10).
+            'href' => $this->generateUrl($route, ['view' => $view->isAll() ? null : $view->key] + array_diff_key($query, ['view' => true, 'page' => true, WorkingFilter::PARAM => true] + array_flip(WorkingDisplay::KEYS))),
             'count' => $count && $view->showCount ? ($page->tabCounts[$view->key] ?? null) : null,
             'active' => $view->key === $active,
             'modified' => $modified && $view->key === $active,

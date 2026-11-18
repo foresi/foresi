@@ -3,6 +3,16 @@
     "description": "Shared kernel: ids, money, mail and infrastructure.",
     "type": "foresi-module",
     "license": "AGPL-3.0-only",
+    "require": {
+        "brick/math": "^1.0",
+        "brick/money": "^0.15.2",
+        "league/commonmark": "^2.10"
+    },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\Shared\\": ""
+        }
+    },
     "extra": {
         "foresi": {
             "module": "shared",

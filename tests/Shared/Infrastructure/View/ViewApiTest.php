@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Tests\Shared\Infrastructure\View;
 
 use Foresi\Identity\Domain\ApiScope;
+use Foresi\Tests\Invoicing\Support\IssuesInvoices;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Clock\Clock;
@@ -22,6 +23,8 @@ use Symfony\Component\Clock\NativeClock;
  */
 final class ViewApiTest extends ApiTestCase
 {
+    use IssuesInvoices;
+
     private const array DUE_THIS_WEEK = ['field' => 'due_date', 'op' => 'is', 'value' => ['relative' => 'next_n_days', 'n' => 7]];
 
     private string $writer;

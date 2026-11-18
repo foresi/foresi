@@ -1,6 +1,6 @@
 # 33. Module contracts and integrations
 
-* Status: accepted, amended by [ADR 0034](0034-module-packages.md) (integrations may hold controllers)
+* Status: accepted, amended by [ADR 0034](0034-module-packages.md) (integrations may hold controllers) and [ADR 0038](0038-core-screens-in-integrations.md) (templates, translations and Stimulus controllers)
 * Date: 2026-11-17
 
 ## Context and problem statement

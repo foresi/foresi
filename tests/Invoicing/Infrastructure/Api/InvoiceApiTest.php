@@ -13,6 +13,7 @@ use Foresi\Invoicing\Application\TrashInvoice;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Infrastructure\Api\Cursor;
+use Foresi\Tests\Invoicing\Support\IssuesInvoices;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -22,6 +23,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
  */
 final class InvoiceApiTest extends ApiTestCase
 {
+    use IssuesInvoices;
+
     public function testAnItemOfTheListIsWrittenAsTheDocumentHoldsIt(): void
     {
         $invoice = $this->flushed(fn (): Invoice => $this->invoice('2026-11-02', '2026-11-30'));
@@ -138,7 +141,8 @@ final class InvoiceApiTest extends ApiTestCase
     {
         [$first, $other, $otherCustomer] = $this->flushed(function (): array {
             $first = $this->invoice();
-            [$firm, $series, $customer] = $this->firmWithCustomer('Other Firm s.r.o.', '25596641');
+            [$firm, $customer] = $this->firmWithCustomer('Other Firm s.r.o.', '25596641');
+            $series = $this->series($firm);
 
             return [$first, $this->invoice(firmId: $firm, seriesId: $series, customerId: $customer), $customer];
         });

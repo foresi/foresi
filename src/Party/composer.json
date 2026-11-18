@@ -5,9 +5,14 @@
     "license": "AGPL-3.0-only",
     "require": {
         "foresi/audit": "*",
-        "foresi/shared": "*",
         "foresi/instance": "*",
+        "foresi/shared": "*",
         "foresi/ui": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\Party\\": ""
+        }
     },
     "extra": {
         "foresi": {

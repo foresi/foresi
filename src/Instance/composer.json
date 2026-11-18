@@ -6,6 +6,11 @@
     "require": {
         "foresi/shared": "*"
     },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\Instance\\": ""
+        }
+    },
     "extra": {
         "foresi": {
             "module": "instance",

@@ -14,6 +14,7 @@ use Foresi\Invoicing\Infrastructure\Mcp\GetInvoiceTool;
 use Foresi\Invoicing\Infrastructure\Mcp\SearchInvoicesTool;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Infrastructure\Api\Cursor;
+use Foresi\Tests\Invoicing\Support\IssuesInvoices;
 use Foresi\Tests\Shared\Infrastructure\Mcp\ReadToolTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -23,6 +24,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
  */
 final class InvoiceToolsTest extends ReadToolTestCase
 {
+    use IssuesInvoices;
+
     public function testTheSearchDescribesItsArguments(): void
     {
         $tool = $this->tool(SearchInvoicesTool::class);
@@ -94,7 +97,8 @@ final class InvoiceToolsTest extends ReadToolTestCase
     {
         [$first, $other, $otherCustomer] = $this->flushed(function (): array {
             $first = $this->invoice();
-            [$firm, $series, $customer] = $this->firmWithCustomer('Other Firm s.r.o.', '25596641');
+            [$firm, $customer] = $this->firmWithCustomer('Other Firm s.r.o.', '25596641');
+            $series = $this->series($firm);
 
             return [$first, $this->invoice(firmId: $firm, seriesId: $series, customerId: $customer), $customer];
         });

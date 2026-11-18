@@ -35,9 +35,14 @@ use Foresi\Party\Infrastructure\Doctrine\CastTextFunction;
 use Foresi\Party\Infrastructure\Doctrine\VatIdType;
 use Foresi\Party\PartyBundle;
 use Foresi\Purchasing\PurchasingBundle;
+use Foresi\Shared\Domain\Module\ModuleGraph;
+use Foresi\Shared\Domain\Module\ModuleId;
+use Foresi\Shared\Domain\Module\ModuleKind;
+use Foresi\Shared\Domain\Module\ModuleManifest;
 use Foresi\Shared\Infrastructure\Module\InstalledModules;
 use Foresi\Shared\Infrastructure\Module\ModuleBundle;
 use Foresi\Shared\SharedBundle;
+use Foresi\Tests\Shared\Fixtures\ModuleIntegration\Alpha\AlphaBundle;
 use Foresi\Timesheet\TimesheetBundle;
 use Foresi\Ui\UiBundle;
 use Foresi\Webhooks\WebhooksBundle;
@@ -45,10 +50,12 @@ use Foresi\Work\Application\SendNotificationMail;
 use Foresi\Work\WorkBundle;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Bundle\TwigBundle\DependencyInjection\TwigExtension;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
+use Symfony\UX\StimulusBundle\DependencyInjection\StimulusExtension;
 
 /**
  * Each module's bundle sits at the module's root, loads the module's own
@@ -215,6 +222,56 @@ final class ModuleBundleTest extends KernelTestCase
         self::assertSame(['Shared'], $this->mappings($prod));
     }
 
+    public function testAnIntegrationRegistersItsTemplatesTranslationsAndControllersWhenItsModuleIsInstalled(): void
+    {
+        $builder = $this->builder('prod');
+        $builder->registerExtension(new TwigExtension());
+        $builder->registerExtension(new StimulusExtension());
+        $bundle = new AlphaBundle(new ModuleGraph([$this->fixture('alpha', ['beta']), $this->fixture('beta')]));
+
+        $bundle->prependExtension($this->configurator($builder, 'prod'), $builder);
+
+        $beta = \dirname(__DIR__, 2).'/Fixtures/ModuleIntegration/Alpha/Integration/Beta';
+        // Under the module's own namespace, so @Alpha/beta/hello.html.twig wherever the template lives.
+        self::assertSame([['paths' => [$beta.'/templates' => 'Alpha']]], $builder->getExtensionConfig('twig'));
+        self::assertSame([['controller_paths' => [$beta.'/assets/controllers']]], $builder->getExtensionConfig('stimulus'));
+        self::assertSame([
+            ['asset_mapper' => ['paths' => [$beta.'/assets/controllers' => '@foresi/alpha/beta']]],
+            ['translator' => ['paths' => [$beta.'/translations']]],
+        ], $builder->getExtensionConfig('framework'));
+        self::assertTrue($bundle->loaded('beta', $builder));
+    }
+
+    public function testAnIntegrationRegistersNothingWhenItsModuleIsAbsent(): void
+    {
+        $builder = $this->builder('prod');
+        $builder->registerExtension(new TwigExtension());
+        $builder->registerExtension(new StimulusExtension());
+        $bundle = new AlphaBundle(new ModuleGraph([$this->fixture('alpha', ['beta'])]));
+
+        $bundle->prependExtension($this->configurator($builder, 'prod'), $builder);
+
+        self::assertSame([], $builder->getExtensionConfig('twig'));
+        self::assertSame([], $builder->getExtensionConfig('stimulus'));
+        self::assertSame([], $builder->getExtensionConfig('framework'));
+        self::assertFalse($bundle->loaded('beta', $builder));
+    }
+
+    public function testAnInstalledModuleThatIsNotOptionalIsNoLoadedIntegration(): void
+    {
+        $bundle = new AlphaBundle(new ModuleGraph([$this->fixture('alpha', []), $this->fixture('beta')]));
+
+        self::assertFalse($bundle->loaded('beta', $this->builder('prod')));
+    }
+
+    /**
+     * @param list<string> $optional
+     */
+    private function fixture(string $id, array $optional = []): ModuleManifest
+    {
+        return new ModuleManifest(ModuleId::of($id), ModuleKind::Module, 'foresi/'.$id, 'Foresi\\'.ucfirst($id).'\\', [], array_map(ModuleId::of(...), $optional));
+    }
+
     /**
      * @return list<string> the names of the prepended Doctrine mappings, in order
      */
@@ -236,6 +293,7 @@ final class ModuleBundleTest extends KernelTestCase
     {
         $builder = new ContainerBuilder();
         $builder->setParameter('kernel.environment', $env);
+        $builder->setParameter('kernel.project_dir', $this->projectDir());
 
         return $builder;
     }

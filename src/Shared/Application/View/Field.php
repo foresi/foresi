@@ -19,8 +19,10 @@ final readonly class Field
     public array $operators;
 
     /**
-     * @param list<string>|null $operators a subset of the type's, or null for all of them
-     * @param list<string>      $options   the values of an enum
+     * @param list<string>|null     $operators    a subset of the type's, or null for all of them
+     * @param list<string>          $options      the values of an enum
+     * @param array<string, string> $optionLabels the translation key of each value of an enum, for the filter builder
+     * @param string|null           $source       what a reference points to, such as "contact": the builder picks one with that picker
      */
     public function __construct(
         public string $key,
@@ -28,6 +30,8 @@ final readonly class Field
         public string $label,
         ?array $operators = null,
         public array $options = [],
+        public array $optionLabels = [],
+        public ?string $source = null,
     ) {
         $all = $type->operators();
         if (null !== $operators && [] !== array_diff($operators, $all)) {

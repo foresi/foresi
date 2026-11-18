@@ -4,14 +4,20 @@
     "type": "foresi-module",
     "license": "AGPL-3.0-only",
     "require": {
+        "brick/math": "^1.0",
         "foresi/attachment": "*",
         "foresi/audit": "*",
         "foresi/exchange-rate": "*",
         "foresi/identity": "*",
+        "foresi/instance": "*",
         "foresi/party": "*",
         "foresi/shared": "*",
-        "foresi/instance": "*",
         "foresi/ui": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\Purchasing\\": ""
+        }
     },
     "extra": {
         "foresi": {
