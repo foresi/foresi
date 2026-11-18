@@ -32,4 +32,9 @@ final readonly class RegistryListColumnCatalog implements ListColumnCatalog
             'locked' => $column->locked,
         ], $this->registry->columns($listKey));
     }
+
+    public function key(string $listKey, string $name): ?string
+    {
+        return $this->registry->key($listKey, $name);
+    }
 }
