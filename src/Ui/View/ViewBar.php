@@ -31,6 +31,7 @@ final readonly class ViewBar
 {
     public function __construct(
         private SavedViews $savedViews,
+        private ListViews $listViews,
         private ActorRole $actor,
         private UrlGeneratorInterface $urls,
     ) {
@@ -71,6 +72,9 @@ final readonly class ViewBar
     }
 
     /**
+     * Manage views (spec D6, D7): the tabs and the views in More views in their order, which
+     * owners change, and for owners the shipped views they hid, to show again.
+     *
      * @param list<ListView>        $views
      * @param array<string, string> $keep
      * @param string                $return the view shown, which a deleted one falls back from to All
@@ -79,34 +83,46 @@ final readonly class ViewBar
      */
     private function manage(ListDefinition $list, array $views, string $route, array $keep, string $return): array
     {
-        $primary = \count(array_filter($views, static fn (ListView $view): bool => $view->isAll() || Placement::Primary === $view->placement));
-        $rows = [];
-        foreach ($views as $view) {
-            if ($view->isAll()) {
-                continue;
-            }
-            $editable = $this->mayEdit($view, $list);
-            $rows[] = [
-                'ref' => $view->ref($list->key),
-                'key' => $view->key,
-                'name' => $view->name,
-                'translated' => $view->translated,
-                'private' => $view->private,
-                'primary' => Placement::Primary === $view->placement,
-                'editable' => $editable,
-                // A view a module ships stays shared and is never deleted, only restored (D6).
-                'shipped' => null !== $view->slug,
-                'href' => $this->urls->generate($route, ['view' => $view->key] + $keep),
-            ];
-        }
+        [$tabs, $more] = ListViews::placed($views);
+        $owner = $this->actor->isOwner();
+        $row = fn (ListView $view): array => $this->row($list, $view, $route, $keep);
+
+        $all = $tabs[0];
 
         return [
-            'rows' => $rows,
+            'all' => ['name' => $all->name, 'translated' => $all->translated],
+            'tabs' => array_values(array_map($row, array_filter($tabs, static fn (ListView $view): bool => !$view->isAll()))),
+            'more' => array_map($row, $more),
+            'hidden' => $owner ? array_map($row, $this->listViews->hidden($list)) : [],
+            // One order for everyone, set by owners (D7).
+            'canReorder' => $owner,
             // At most six tabs, All among them (D7): a seventh waits in More views.
-            'primaryFull' => $primary >= ListViews::MAX_PRIMARY,
-            'canRestore' => $this->actor->isOwner() && [] !== $list->defaults,
+            'maxTabs' => ListViews::MAX_PRIMARY,
+            'primaryFull' => \count($tabs) >= ListViews::MAX_PRIMARY,
+            'canRestore' => $owner && [] !== $list->defaults,
             'list' => $list->key,
             'return' => $return,
+        ];
+    }
+
+    /**
+     * @param array<string, string> $keep
+     *
+     * @return array<string, mixed>
+     */
+    private function row(ListDefinition $list, ListView $view, string $route, array $keep): array
+    {
+        return [
+            'ref' => $view->ref($list->key),
+            'key' => $view->key,
+            'name' => $view->name,
+            'translated' => $view->translated,
+            'private' => $view->private,
+            'primary' => Placement::Primary === $view->placement,
+            'editable' => $this->mayEdit($view, $list),
+            // A view a module ships stays shared and is never deleted, only hidden (D6).
+            'shipped' => null !== $view->slug,
+            'href' => $this->urls->generate($route, ['view' => $view->key] + $keep),
         ];
     }
 

@@ -13,8 +13,9 @@ use Foresi\Shared\Domain\View\SavedView;
 use Foresi\Shared\Domain\View\Visibility;
 
 /**
- * The views a person sees on a list, in order (spec D7): All first, then the shared
- * views in their one order, then the person's private ones. A view the module ships
+ * The views a person sees on a list, in order (spec D7): All first, then the rest in the
+ * one order the owners set in Manage views; a new view, private or shared, comes last
+ * when it is made. A view the module ships
  * and app:views:sync has not stored yet shows as declared, so a list never lacks its
  * defaults. A stored filter the list no longer accepts (a field gone with a module)
  * leaves its view out rather than showing what it does not say.
@@ -44,8 +45,30 @@ final readonly class ListViews
                 $views[] = [new ListView($default->slug, $default->name, true, $default->filter, $default->showCount, $default->placement, slug: $default->slug), $default->position];
             }
         }
-        // false sorts before true: All first, then the shared views, each group by position.
-        usort($views, static fn (array $a, array $b): int => [!$a[0]->isAll(), $a[0]->private, $a[1]] <=> [!$b[0]->isAll(), $b[0]->private, $b[1]]);
+        // false sorts before true: All first, then by position.
+        usort($views, static fn (array $a, array $b): int => [!$a[0]->isAll(), $a[1]] <=> [!$b[0]->isAll(), $b[1]]);
+
+        return array_map(static fn (array $view): ListView => $view[0], $views);
+    }
+
+    /**
+     * The views a module ships that an owner hid, in their order: Manage views shows them
+     * again (spec D6).
+     *
+     * @return list<ListView>
+     */
+    public function hidden(ListDefinition $list): array
+    {
+        $views = [];
+        foreach ($this->store->ofList($list->key) as $saved) {
+            if ($saved->isHidden()) {
+                $view = $this->view($saved, $list);
+                if ($view instanceof ListView) {
+                    $views[] = [$view, $saved->position()];
+                }
+            }
+        }
+        usort($views, static fn (array $a, array $b): int => $a[1] <=> $b[1]);
 
         return array_map(static fn (array $view): ListView => $view[0], $views);
     }
@@ -97,15 +120,32 @@ final readonly class ListViews
         if ($saved->isHidden() || (Visibility::Private === $saved->visibility() && $saved->ownerId() !== $userId)) {
             return null;
         }
+
+        return $this->view($saved, $list);
+    }
+
+    private function view(SavedView $saved, ListDefinition $list): ?ListView
+    {
         try {
             $filter = ViewFilter::parse($saved->filters(), $list);
         } catch (InvalidFilter) {
             return null;
         }
         $slug = null === $saved->systemKey() ? null : substr($saved->systemKey(), \strlen($list->key) + 1);
-        // A shipped view keeps its translated name until someone renames it.
-        $translated = null !== $slug && null === $saved->updatedBy();
+        // A shipped view keeps its translated name until someone renames it, also when it is moved.
+        $translated = null !== $slug && (null === $saved->updatedBy() || $this->shippedName($list, $slug) === $saved->name());
 
         return new ListView($slug ?? $saved->id(), $saved->name(), $translated, $filter, $saved->showCount(), $saved->placement(), Visibility::Private === $saved->visibility(), $slug, $saved->display(), $saved->sort(), $saved->id());
+    }
+
+    private function shippedName(ListDefinition $list, string $slug): ?string
+    {
+        foreach ($list->defaults as $default) {
+            if ($default->slug === $slug) {
+                return $default->name;
+            }
+        }
+
+        return null;
     }
 }
