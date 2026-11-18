@@ -1,0 +1,153 @@
+name: Module subsets
+
+# Each module installed and tested on its own, the way Symfony and Sylius test their
+# packages: nobody knows which modules an instance will have, so every module must
+# work with the core and only what it requires. The full set stays covered by CI.
+#
+# Every job turns the checkout into an application with one module (bin/module-subset):
+# the repository's kernel, config/ and bin/console are the skeleton, composer.json is
+# generated with foresi/core and that module, and Composer resolves the foresi/* packages
+# again from the path repositories. Only what the module requires is installed, third-party
+# libraries included, at the versions of composer.lock. Modules that are not installed are
+# deleted from src/ and tests/, so a hidden coupling fails here instead of loading quietly.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'config/**'
+      - 'migrations/**'
+      - 'tests/**'
+      - 'packages/**'
+      - 'composer.json'
+      - 'bin/module-subset'
+      - '.github/workflows/module-subsets.yml'
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  modules:
+    name: List the modules
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      modules: ${{ steps.list.outputs.modules }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read src/*/composer.json
+        id: list
+        run: echo "modules=$(php bin/module-subset list)" >> "$GITHUB_OUTPUT"
+
+  module:
+    name: Module ${{ matrix.module }}
+    needs: modules
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    # Modules that are not green alone yet; each comes off the list with the fix that
+    # makes it pass. Their jobs run and report, but do not fail the workflow.
+    continue-on-error: ${{ contains(fromJSON('["Banking","Country","Events","Identity","Import","Invoicing","Party","Shared","Webhooks"]'), matrix.module) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJSON(needs.modules.outputs.modules) }}
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      MODULE: ${{ matrix.module }}
+      APP_ENV: test
+      DATABASE_URL: postgresql://app:app@127.0.0.1:5432/app?serverVersion=17&charset=utf8
+      PGPASSWORD: app
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.4'
+          extensions: ctype, dom, gd, iconv, intl, pdo_sqlite, pdo_pgsql, zip
+          coverage: none
+          tools: composer:v2
+          ini-values: upload_max_filesize=64M, post_max_size=64M, max_execution_time=0
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: assets/vendor
+          key: importmap-${{ hashFiles('importmap.php') }}
+
+      - name: An application with this module
+        run: |
+          php bin/module-subset composer "${MODULE}"
+          composer update 'foresi/*' --no-interaction --prefer-dist --no-progress --no-scripts
+          echo "Installed modules: $(php bin/module-subset prune)"
+
+      - name: Boot
+        run: |
+          bin/console cache:clear
+          bin/console importmap:install
+
+      - name: Container
+        run: |
+          bin/console lint:container
+          APP_ENV=dev bin/console lint:container
+
+      - name: Routes
+        run: bin/console debug:router
+
+      - name: Templates
+        run: |
+          # shellcheck disable=SC2046
+          bin/console lint:twig $(php bin/module-subset paths)
+
+      - name: Migrations
+        run: bin/console doctrine:migrations:migrate --no-interaction
+
+      # The tests build their own schema with the schema tool, which cannot drop the
+      # foreign keys the migrations named, so they start from an empty database. ParaTest
+      # runs one process per CPU, each in a database of its own (tests/bootstrap.php).
+      - name: A database for each test process
+        run: |
+          bin/console doctrine:schema:drop --full-database --force
+          for i in $(seq 1 "$(nproc)"); do createdb -h 127.0.0.1 -U app "app_${i}"; done
+
+      - name: Tests of the module
+        run: |
+          php bin/module-subset phpunit "${MODULE}"
+          php -d max_execution_time=0 -d memory_limit=2G vendor/bin/paratest -c phpunit.subset.xml \
+            --passthru-php="'-d' 'max_execution_time=0' '-d' 'memory_limit=2G'"

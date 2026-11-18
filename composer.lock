@@ -1602,7 +1602,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Attachment",
-                "reference": "e387ac66a35176566055d29d24b3d789fe54aa3d"
+                "reference": "296be34a044ee6dce6261c7ec9c688e8781f1108"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1620,6 +1620,11 @@
                     "optional": []
                 }
             },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\Attachment\\": ""
+                }
+            },
             "license": [
                 "AGPL-3.0-only"
             ],
@@ -1635,7 +1640,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Audit",
-                "reference": "f05cdfb07bcb446e571194f16c29bf9119cc6580"
+                "reference": "85b10af35adaf5e8fd154518979b34a61fe1f3f9"
             },
             "require": {
                 "foresi/instance": "*",
@@ -1649,6 +1654,11 @@
                     "namespace": "Foresi\\Audit\\",
                     "bundle": "Foresi\\Audit\\AuditBundle",
                     "optional": []
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\Audit\\": ""
                 }
             },
             "license": [
@@ -1666,16 +1676,18 @@
             "dist": {
                 "type": "path",
                 "url": "src/Banking",
-                "reference": "258a97d81d068b7a58c134a09d5ee870365d761f"
+                "reference": "514ef5c17cabf3ad23093decd7c422af23f0cc47"
             },
             "require": {
+                "directorytree/imapengine": "~1.25.7",
                 "foresi/audit": "*",
                 "foresi/identity": "*",
                 "foresi/instance": "*",
                 "foresi/invoicing": "*",
                 "foresi/party": "*",
                 "foresi/shared": "*",
-                "foresi/ui": "*"
+                "foresi/ui": "*",
+                "zbateson/mail-mime-parser": "^4.0.8"
             },
             "type": "foresi-module",
             "extra": {
@@ -1687,6 +1699,11 @@
                     "optional": [
                         "cash-flow"
                     ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\Banking\\": ""
                 }
             },
             "license": [
@@ -1704,7 +1721,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/CashFlow",
-                "reference": "b0485327d8c12eab2908023d09234d04f30482a8"
+                "reference": "c960e6e20c7b55615489e6f9583b2beb04fb1cbd"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1725,6 +1742,11 @@
                     "scopes": [
                         "cashflow"
                     ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\CashFlow\\": ""
                 }
             },
             "license": [
@@ -1769,7 +1791,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Country",
-                "reference": "471cba776906f8094588974d1d5405c0386ea69a"
+                "reference": "a644eb17771da5d207df71adef0646fbaedbb105"
             },
             "require": {
                 "foresi/party": "*",
@@ -1789,6 +1811,11 @@
                     ]
                 }
             },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\Country\\": ""
+                }
+            },
             "license": [
                 "AGPL-3.0-only"
             ],
@@ -1804,7 +1831,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Events",
-                "reference": "99c8a4a4c499df1c712d273b36ff65ea5e5ad95a"
+                "reference": "d996545403bc12080d78113262753a02bb8db157"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1824,6 +1851,11 @@
                     ]
                 }
             },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\Events\\": ""
+                }
+            },
             "license": [
                 "AGPL-3.0-only"
             ],
@@ -1839,7 +1871,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/ExchangeRate",
-                "reference": "41d531f9d4d8584401e418516e84a33e182ff46f"
+                "reference": "f67650c7035351f14a76b9ce3485b269497153ae"
             },
             "require": {
                 "foresi/instance": "*",
@@ -1853,6 +1885,11 @@
                     "namespace": "Foresi\\ExchangeRate\\",
                     "bundle": "Foresi\\ExchangeRate\\ExchangeRateBundle",
                     "optional": []
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\ExchangeRate\\": ""
                 }
             },
             "license": [
@@ -1870,14 +1907,15 @@
             "dist": {
                 "type": "path",
                 "url": "src/Identity",
-                "reference": "e1f58a0ae9e4b1f354f93b48f4e7b0e1465224c0"
+                "reference": "51d0086885bd61055eb8435d4c21ce6f7c38654b"
             },
             "require": {
                 "foresi/audit": "*",
                 "foresi/instance": "*",
                 "foresi/party": "*",
                 "foresi/shared": "*",
-                "foresi/ui": "*"
+                "foresi/ui": "*",
+                "tecnickcom/tc-lib-barcode": "^2.17.2"
             },
             "type": "foresi-module",
             "extra": {
@@ -1887,6 +1925,11 @@
                     "namespace": "Foresi\\Identity\\",
                     "bundle": "Foresi\\Identity\\IdentityBundle",
                     "optional": []
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\Identity\\": ""
                 }
             },
             "license": [
@@ -1904,7 +1947,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Idoklad",
-                "reference": "dd18d05f15dd0611dca6061c3b993cdd78d57018"
+                "reference": "1b1f2483e289d4e8887e8ab839bc8fc07076317a"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1925,6 +1968,11 @@
                     "optional": []
                 }
             },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\Idoklad\\": ""
+                }
+            },
             "license": [
                 "AGPL-3.0-only"
             ],
@@ -1940,14 +1988,15 @@
             "dist": {
                 "type": "path",
                 "url": "src/Import",
-                "reference": "30a8de630782e9359d2d2b161fc2b15a40cffdf3"
+                "reference": "60861ded475a09814d9b970b7a3e542818f3c733"
             },
             "require": {
                 "foresi/audit": "*",
                 "foresi/identity": "*",
                 "foresi/instance": "*",
                 "foresi/shared": "*",
-                "foresi/ui": "*"
+                "foresi/ui": "*",
+                "openspout/openspout": "^5.12"
             },
             "type": "foresi-module",
             "extra": {
@@ -1957,6 +2006,11 @@
                     "namespace": "Foresi\\Import\\",
                     "bundle": "Foresi\\Import\\ImportBundle",
                     "optional": []
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\Import\\": ""
                 }
             },
             "license": [
@@ -1974,7 +2028,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Instance",
-                "reference": "b40ef240a46ed1fce4f59d181a00c1eacfc92a59"
+                "reference": "c21a31ac707885c08e9d8c2064f9ef19c7d9e586"
             },
             "require": {
                 "foresi/shared": "*"
@@ -1987,6 +2041,11 @@
                     "namespace": "Foresi\\Instance\\",
                     "bundle": "Foresi\\Instance\\InstanceBundle",
                     "optional": []
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\Instance\\": ""
                 }
             },
             "license": [
@@ -2004,7 +2063,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Invoicing",
-                "reference": "72a526e394dd4091016fb6ac5d94de1a541cde57"
+                "reference": "89cccd0544b445d21cf43d963d6a794f450575af"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2012,7 +2071,10 @@
                 "foresi/instance": "*",
                 "foresi/party": "*",
                 "foresi/shared": "*",
-                "foresi/ui": "*"
+                "foresi/ui": "*",
+                "openspout/openspout": "^5.12",
+                "tecnickcom/tc-lib-barcode": "^2.17.2",
+                "tecnickcom/tc-lib-pdf": "^8.82.2"
             },
             "type": "foresi-module",
             "extra": {
@@ -2030,6 +2092,11 @@
                     ]
                 }
             },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\Invoicing\\": ""
+                }
+            },
             "license": [
                 "AGPL-3.0-only"
             ],
@@ -2045,7 +2112,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "324e4bacbab3b38510376bee7946eb57281eefd0"
+                "reference": "e7717ce6d82dc4a2db7b95f6a315c4c6b87fcbad"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2068,6 +2135,11 @@
                     ]
                 }
             },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\Party\\": ""
+                }
+            },
             "license": [
                 "AGPL-3.0-only"
             ],
@@ -2083,9 +2155,10 @@
             "dist": {
                 "type": "path",
                 "url": "src/Purchasing",
-                "reference": "c724caecb4948da8178eba6f909b33dac3455189"
+                "reference": "96fa050ec669828d143b3d2fb8649bfe975ebb0e"
             },
             "require": {
+                "brick/math": "^1.0",
                 "foresi/attachment": "*",
                 "foresi/audit": "*",
                 "foresi/exchange-rate": "*",
@@ -2110,6 +2183,11 @@
                     ]
                 }
             },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\Purchasing\\": ""
+                }
+            },
             "license": [
                 "AGPL-3.0-only"
             ],
@@ -2125,7 +2203,12 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "7bdf78e1311cee8b9f198363829b19e193806b18"
+                "reference": "4e8a9284fedef7c25c56ad285d039725cf5210cb"
+            },
+            "require": {
+                "brick/math": "^1.0",
+                "brick/money": "^0.15.2",
+                "league/commonmark": "^2.10"
             },
             "type": "foresi-module",
             "extra": {
@@ -2135,6 +2218,11 @@
                     "namespace": "Foresi\\Shared\\",
                     "bundle": "Foresi\\Shared\\SharedBundle",
                     "optional": []
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\Shared\\": ""
                 }
             },
             "license": [
@@ -2152,7 +2240,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Timesheet",
-                "reference": "9d112415b1437add96b933dd94be45be355a722e"
+                "reference": "0aefafd3b0246101af8b9b6c069cd3d749a02bfe"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2174,6 +2262,11 @@
                     "optional": []
                 }
             },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\Timesheet\\": ""
+                }
+            },
             "license": [
                 "AGPL-3.0-only"
             ],
@@ -2189,10 +2282,11 @@
             "dist": {
                 "type": "path",
                 "url": "src/Ui",
-                "reference": "d405a63b10a9292442b975d16c3b1340b0e221e6"
+                "reference": "ba42f7867117256da78d93955fb50af983518d56"
             },
             "require": {
-                "foresi/shared": "*"
+                "foresi/shared": "*",
+                "tempest/highlight": "^2.30"
             },
             "type": "foresi-module",
             "extra": {
@@ -2202,6 +2296,11 @@
                     "namespace": "Foresi\\Ui\\",
                     "bundle": "Foresi\\Ui\\UiBundle",
                     "optional": []
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\Ui\\": ""
                 }
             },
             "license": [
@@ -2219,7 +2318,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Webhooks",
-                "reference": "c3ca0503b75629a8286346298533dde1a37fc89f"
+                "reference": "e19963e92198ce4a51f22092ae66d856fd01b939"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2242,6 +2341,11 @@
                     ]
                 }
             },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\Webhooks\\": ""
+                }
+            },
             "license": [
                 "AGPL-3.0-only"
             ],
@@ -2257,7 +2361,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Work",
-                "reference": "1e65cd9a03d49d2cb25451554d59acab3a3f419b"
+                "reference": "5df34c750cfaa9cd389e36d259dfd7584b553de9"
             },
             "require": {
                 "foresi/attachment": "*",
@@ -2266,7 +2370,8 @@
                 "foresi/instance": "*",
                 "foresi/party": "*",
                 "foresi/shared": "*",
-                "foresi/ui": "*"
+                "foresi/ui": "*",
+                "openspout/openspout": "^5.12"
             },
             "type": "foresi-module",
             "extra": {
@@ -2276,6 +2381,11 @@
                     "namespace": "Foresi\\Work\\",
                     "bundle": "Foresi\\Work\\WorkBundle",
                     "optional": []
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\Work\\": ""
                 }
             },
             "license": [

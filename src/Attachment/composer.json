@@ -6,8 +6,13 @@
     "require": {
         "foresi/audit": "*",
         "foresi/identity": "*",
-        "foresi/shared": "*",
-        "foresi/instance": "*"
+        "foresi/instance": "*",
+        "foresi/shared": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\Attachment\\": ""
+        }
     },
     "extra": {
         "foresi": {

@@ -14,6 +14,7 @@ use Foresi\Invoicing\Infrastructure\Mcp\GetPaymentTool;
 use Foresi\Invoicing\Infrastructure\Mcp\SearchPaymentsTool;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Infrastructure\Api\Cursor;
+use Foresi\Tests\Invoicing\Support\IssuesInvoices;
 use Foresi\Tests\Shared\Infrastructure\Mcp\ReadToolTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -23,6 +24,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
  */
 final class PaymentToolsTest extends ReadToolTestCase
 {
+    use IssuesInvoices;
+
     public function testTheSearchDescribesItsArguments(): void
     {
         $tool = $this->tool(SearchPaymentsTool::class);

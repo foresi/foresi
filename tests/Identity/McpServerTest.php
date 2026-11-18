@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Tests\Identity;
 
 use Foresi\Identity\Domain\ApiScope;
-use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Shared\Infrastructure\Mcp\ReadToolCall;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -153,20 +152,19 @@ final class McpServerTest extends ApiTestCase
 
     public function testASearchAnswersTheRestDataMarkedAsData(): void
     {
-        $invoice = $this->flushed(fn (): Invoice => $this->invoice('2026-11-02', '2026-11-30'));
-        $this->get('/api/v1/invoices');
+        $this->get('/api/v1/contacts');
         $rest = $this->at('data');
         $this->rpc('initialize', $this->initialize());
         $this->notify('notifications/initialized');
 
-        $call = $this->in($this->rpc('tools/call', ['name' => 'foresi_search_invoices', 'arguments' => ['firm_id' => $this->firmId, 'limit' => 10]]), 'result');
+        $call = $this->in($this->rpc('tools/call', ['name' => 'foresi_search_contacts', 'arguments' => ['limit' => 10]]), 'result');
 
         self::assertFalse($this->in($call, 'isError'));
         self::assertSame(ReadToolCall::UNTRUSTED_TEXT_NOTICE, $this->in($call, 'structuredContent', 'untrusted_text_notice'));
         self::assertSame(['items' => $rest, 'next_cursor' => null], $this->in($call, 'structuredContent', 'data'));
-        self::assertSame($invoice->id(), $this->in($call, 'structuredContent', 'data', 'items', '0', 'id'));
+        self::assertSame($this->customerId, $this->in($call, 'structuredContent', 'data', 'items', '0', 'id'));
         $text = $this->text($call, 'content', '0', 'text');
-        self::assertStringStartsWith(ReadToolCall::UNTRUSTED_TEXT_NOTICE."\n\n1 document, newest first; no more match.\n\n", $text);
+        self::assertStringStartsWith(ReadToolCall::UNTRUSTED_TEXT_NOTICE."\n\n1 contact, newest first; no more match.\n\n", $text);
         self::assertStringContainsString('"name":"Example Customer a.s."', $text);
     }
 

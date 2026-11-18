@@ -4,13 +4,20 @@
     "type": "foresi-module",
     "license": "AGPL-3.0-only",
     "require": {
+        "directorytree/imapengine": "~1.25.7",
         "foresi/audit": "*",
         "foresi/identity": "*",
+        "foresi/instance": "*",
         "foresi/invoicing": "*",
         "foresi/party": "*",
         "foresi/shared": "*",
-        "foresi/instance": "*",
-        "foresi/ui": "*"
+        "foresi/ui": "*",
+        "zbateson/mail-mime-parser": "^4.0.8"
+    },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\Banking\\": ""
+        }
     },
     "extra": {
         "foresi": {
