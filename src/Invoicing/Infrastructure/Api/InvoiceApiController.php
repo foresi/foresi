@@ -55,7 +55,7 @@ final readonly class InvoiceApiController
         return new JsonResponse([
             'data' => array_map(InvoiceJson::item(...), $slice->items),
             'next_cursor' => Cursor::next($slice->nextAfterId()),
-            'applied_view' => null === $applied->view ? null : $this->json->view($applied->view),
+            'applied_view' => $applied->view instanceof \Foresi\Shared\Domain\View\SavedView ? $this->json->view($applied->view) : null,
         ]);
     }
 

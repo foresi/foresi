@@ -79,7 +79,7 @@ final readonly class ViewJson
                 'options' => $field->options,
             ], array_values($list->fields)),
             'columns' => $this->columns($list->key),
-            'default_views' => array_map(static fn ($default): string => $list->systemKey($default), $list->defaults),
+            'default_views' => array_map($list->systemKey(...), $list->defaults),
         ];
     }
 

@@ -27,7 +27,7 @@ final class ObjectListFieldTest extends TestCase
     public function testListsOfObjectsAreTakenAsSent(): void
     {
         $condition = ['field' => 'due_date', 'op' => 'is', 'value' => ['relative' => 'today']];
-        $input = InputMapper::map(self::definition(), ['list_key' => 'invoicing.invoices', 'name' => 'Due', 'conditions' => [$condition, []], 'columns' => ['number', ['key' => 'customer', 'width' => 200]]]);
+        $input = InputMapper::map($this->definition(), ['list_key' => 'invoicing.invoices', 'name' => 'Due', 'conditions' => [$condition, []], 'columns' => ['number', ['key' => 'customer', 'width' => 200]]]);
 
         self::assertInstanceOf(CreateViewInput::class, $input);
         self::assertSame([$condition, []], $input->conditions);
@@ -52,7 +52,7 @@ final class ObjectListFieldTest extends TestCase
     public function testOtherItemsAreRefused(array $sent, string $field, string $message): void
     {
         try {
-            InputMapper::map(self::definition(), $sent + ['list_key' => 'invoicing.invoices', 'name' => 'Due']);
+            InputMapper::map($this->definition(), $sent + ['list_key' => 'invoicing.invoices', 'name' => 'Due']);
             self::fail('The input was taken.');
         } catch (InvalidInput $invalid) {
             self::assertSame($field, $invalid->wire);
@@ -62,7 +62,7 @@ final class ObjectListFieldTest extends TestCase
 
     public function testTheSchemaSaysWhatTheItemsAre(): void
     {
-        $fields = array_column(self::definition()->fields, null, 'wire');
+        $fields = array_column($this->definition()->fields, null, 'wire');
 
         self::assertSame(['type' => 'object'], InputSchema::property($fields['conditions'])['items']);
         $columns = InputSchema::property($fields['columns']);
@@ -70,7 +70,7 @@ final class ObjectListFieldTest extends TestCase
         self::assertSame(['array', 'null'], $columns['type']);
     }
 
-    private static function definition(): OperationDefinition
+    private function definition(): OperationDefinition
     {
         return OperationDefinition::of(new \ReflectionClass(CreateViewHandler::class)->newInstanceWithoutConstructor());
     }

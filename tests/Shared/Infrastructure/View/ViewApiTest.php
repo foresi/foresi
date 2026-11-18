@@ -50,7 +50,7 @@ final class ViewApiTest extends ApiTestCase
 
         $views = $this->tool('foresi_list_views', ['list' => 'invoicing.invoices']);
         self::assertFalse($this->in($views, 'isError'));
-        $keys = array_column(self::rows($this->in($views, 'structuredContent', 'data', 'views')), 'system_key');
+        $keys = array_column($this->rows($this->in($views, 'structuredContent', 'data', 'views')), 'system_key');
         self::assertContains('invoicing.invoices.overdue', $keys);
 
         $created = $this->tool('foresi_create_view', ['list_key' => 'invoicing.invoices', 'name' => 'Due this week', 'visibility' => 'shared', 'conditions' => [self::DUE_THIS_WEEK]]);
@@ -64,7 +64,7 @@ final class ViewApiTest extends ApiTestCase
 
         $listed = $this->tool('foresi_search_invoices', ['view_id' => $id]);
         self::assertFalse($this->in($listed, 'isError'), (string) json_encode($listed));
-        self::assertSame([$soon->id()], array_column(self::rows($this->in($listed, 'structuredContent', 'data', 'items')), 'id'));
+        self::assertSame([$soon->id()], array_column($this->rows($this->in($listed, 'structuredContent', 'data', 'items')), 'id'));
         self::assertSame($id, $this->in($listed, 'structuredContent', 'data', 'applied_view', 'id'));
 
         $this->get('/api/v1/invoices', ['view' => $id], $this->writer);
@@ -79,12 +79,12 @@ final class ViewApiTest extends ApiTestCase
         $this->get('/api/v1/lists');
 
         self::assertResponseIsSuccessful();
-        $invoices = array_column(self::rows($this->at('data')), null, 'key')['invoicing.invoices'] ?? null;
+        $invoices = array_column($this->rows($this->at('data')), null, 'key')['invoicing.invoices'] ?? null;
         self::assertIsArray($invoices);
-        $fields = array_column(self::rows($invoices['fields']), null, 'key');
+        $fields = array_column($this->rows($invoices['fields']), null, 'key');
         self::assertSame(['key' => 'due_date', 'type' => 'date', 'label' => 'Due date', 'operators' => ['is', 'before', 'after', 'on_or_before', 'on_or_after', 'between', 'is_empty'], 'options' => []], $fields['due_date'] ?? null);
         self::assertSame(['paid', 'unpaid', 'to_refund'], $this->in($fields, 'payment', 'options'));
-        $columns = self::rows($invoices['columns']);
+        $columns = $this->rows($invoices['columns']);
         self::assertNotSame([], $columns);
         self::assertSame(['key', 'label', 'sortable', 'default', 'locked'], array_keys($columns[0]));
         self::assertSame('invoicing.invoices.overdue', $this->in($invoices, 'default_views', 3));
@@ -263,7 +263,7 @@ final class ViewApiTest extends ApiTestCase
     /**
      * @return list<array<array-key, mixed>>
      */
-    private static function rows(mixed $rows): array
+    private function rows(mixed $rows): array
     {
         self::assertIsList($rows);
         $checked = [];

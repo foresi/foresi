@@ -110,7 +110,7 @@ final readonly class SearchInvoicesTool implements ReadTool
             throw ToolRefusal::forbidden('Only the owners and members of the organisation read its invoices.');
         }
         $page = ToolArguments::page(array_map(InvoiceJson::item(...), $slice->items), $slice->nextAfterId(), 'document', 'documents');
-        if (null === $applied->view) {
+        if (!$applied->view instanceof \Foresi\Shared\Domain\View\SavedView) {
             return new ToolOutput($page->data + ['applied_view' => null], $page->summary);
         }
         $view = $this->json->view($applied->view);
