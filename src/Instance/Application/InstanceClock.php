@@ -13,8 +13,8 @@ use Symfony\Component\Clock\ClockInterface;
 /**
  * The zone and the clock of the instance. One instance serves one customer
  * (ADR 0035), so it has one zone: APP_TIMEZONE when it is set, else the
- * fallback's (the country of the first active firm), else UTC. The zone is
- * read each time, as a firm may be added while a worker runs.
+ * fallback's (the country of the firm, ADR 0039), else UTC. The zone is
+ * read each time, as a firm may be set up while a worker runs.
  */
 final readonly class InstanceClock
 {

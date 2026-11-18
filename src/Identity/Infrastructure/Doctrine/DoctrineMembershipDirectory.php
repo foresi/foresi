@@ -8,24 +8,25 @@ declare(strict_types=1);
 
 namespace Foresi\Identity\Infrastructure\Doctrine;
 
-use Doctrine\ORM\AbstractQuery;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Identity\Application\MembershipDirectory;
 use Foresi\Identity\Application\Organisation;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
-use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Application\InstanceFirm;
 
 /**
- * The organisation is named after the first active firm, the oldest by its
- * time-ordered id; before the first firm, after the product.
+ * The organisation is named after the firm of the instance (ADR 0039); before
+ * the first-run setup, after the product.
  */
 final readonly class DoctrineMembershipDirectory implements MembershipDirectory
 {
     private const string PRODUCT_NAME = 'Foresi';
 
-    public function __construct(private EntityManagerInterface $entityManager)
-    {
+    public function __construct(
+        private EntityManagerInterface $entityManager,
+        private InstanceFirm $firm,
+    ) {
     }
 
     /**
@@ -52,11 +53,7 @@ final readonly class DoctrineMembershipDirectory implements MembershipDirectory
         if (!$role instanceof Role) {
             return null;
         }
-        $name = $this->entityManager
-            ->createQuery('SELECT f.name FROM '.LegalEntity::class.' f WHERE f.archivedAt IS NULL ORDER BY f.id ASC')
-            ->setMaxResults(1)
-            ->getOneOrNullResult(AbstractQuery::HYDRATE_SINGLE_SCALAR);
 
-        return new Organisation(\is_string($name) ? $name : self::PRODUCT_NAME, $role);
+        return new Organisation($this->firm->find()?->name() ?? self::PRODUCT_NAME, $role);
     }
 }

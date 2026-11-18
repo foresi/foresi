@@ -404,7 +404,8 @@ firm:
     vat_status: Choose the VAT status.
     vat_id_required: Enter the VAT ID of this firm.
     save_failed: The firm could not be saved. Check the details and try again.
-    last_active: The last active firm cannot be archived. Add another firm first.
+    last_active: The last active firm cannot be archived.
+    one_per_instance: Foresi keeps one firm per instance. Another firm needs an instance of its own.
     image_type: Upload a PNG or JPEG image.
     image_size: The image must be 1 MB or smaller.
     image_dimensions: The image can be at most 3000 x 3000 pixels.

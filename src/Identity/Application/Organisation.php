@@ -12,7 +12,7 @@ use Foresi\Identity\Domain\Role;
 
 /**
  * The organisation of the instance as a user sees it: its name, that of the
- * first active firm (else the product's), and the role the user holds.
+ * firm (else the product's), and the role the user holds.
  */
 final readonly class Organisation
 {
