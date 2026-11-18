@@ -10,12 +10,23 @@ namespace Foresi\Shared\Application\View;
 
 use Foresi\Shared\Application\Api\Field;
 use Foresi\Shared\Application\Api\Omitted;
+use Foresi\Shared\Application\Api\Operation;
 use Foresi\Shared\Domain\View\SavedView;
 
 /**
  * A partial change of a saved view: a field left out keeps its value, columns
  * and density sent as null go back to the list's defaults.
  */
+#[Operation(
+    name: 'views.update',
+    method: 'PATCH',
+    path: '/api/v1/views/{viewId}',
+    tool: 'foresi_update_view',
+    scope: 'views:write',
+    title: 'Change a saved view',
+    description: 'Changes a saved view: only the fields sent change, and conditions, sort and columns sent replace what the view had. A shared view is changed by its creator and the owners, a view a module ships by the owners only; anyone else saves the change as a new view with foresi_create_view. An owner hides a view a module ships with hidden.',
+    response: 'SavedView',
+)]
 final readonly class UpdateViewInput
 {
     /**
@@ -30,11 +41,11 @@ final readonly class UpdateViewInput
         public string|Omitted $name = new Omitted(),
         #[Field('private: only its creator sees it; shared: every owner and member sees it. A view a module ships stays shared.', enum: ['private', 'shared'])]
         public string|Omitted $visibility = new Omitted(),
-        #[Field('The filter conditions, replacing all of them: {field, op, value}, as foresi_list_lists describes them.', items: 'object')]
+        #[Field('The filter conditions, replacing all of them: {field, op, value}, as foresi_list_lists describes them.', items: Field::OBJECTS)]
         public array|Omitted $conditions = new Omitted(),
-        #[Field('The order of the rows, replacing it: {field, dir} with dir asc or desc, at most 3.', items: 'object')]
+        #[Field('The order of the rows, replacing it: {field, dir} with dir asc or desc, at most 3.', items: Field::OBJECTS)]
         public array|Omitted $sort = new Omitted(),
-        #[Field('The columns shown, in order: column keys, or {key, width}; null shows the list\'s default columns.', items: 'object')]
+        #[Field('The columns shown, in order: column keys, or {key, width}; null shows the list\'s default columns.', items: Field::OBJECTS_OR_STRINGS)]
         public array|Omitted|null $columns = new Omitted(),
         #[Field('How tight the rows are; null for the list\'s default.', enum: ViewRules::DENSITIES)]
         public string|Omitted|null $density = new Omitted(),

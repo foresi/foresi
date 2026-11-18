@@ -19,7 +19,10 @@
             "kind": "core",
             "namespace": "Foresi\\Shared\\",
             "bundle": "Foresi\\Shared\\SharedBundle",
-            "optional": []
+            "optional": [],
+            "scopes": [
+                "views"
+            ]
         }
     }
 }

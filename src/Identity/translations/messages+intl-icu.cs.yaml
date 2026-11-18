@@ -172,6 +172,7 @@ api_tokens:
     events: Události
     cashflow: Cash flow
     received_documents: Přijaté doklady
+    views: Uložené pohledy
   state:
     expired: Vypršel
     revoked: Zrušen

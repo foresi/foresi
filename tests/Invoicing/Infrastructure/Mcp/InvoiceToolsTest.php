@@ -38,7 +38,7 @@ final class InvoiceToolsTest extends ReadToolTestCase
         self::assertSame('object', $schema['type']);
         self::assertFalse($schema['additionalProperties']);
         self::assertArrayNotHasKey('required', $schema);
-        self::assertSame(['kind', 'firm_id', 'customer_id', 'state', 'trashed', 'issued_from', 'issued_to', 'query', 'limit', 'cursor'], self::argumentNames($tool));
+        self::assertSame(['kind', 'firm_id', 'customer_id', 'state', 'trashed', 'issued_from', 'issued_to', 'query', 'view_id', 'filter', 'limit', 'cursor'], self::argumentNames($tool));
         self::assertSame(['invoice', 'advance', 'payment_tax_document', 'correction_document'], self::argument($tool, 'kind')['enum']);
         self::assertSame(['unpaid', 'overdue', 'paid'], self::argument($tool, 'state')['enum']);
         self::assertSame(['type' => 'string', 'format' => 'uuid', 'description' => 'Only documents issued by this firm of the organisation.'], self::argument($tool, 'firm_id'));
@@ -72,7 +72,7 @@ final class InvoiceToolsTest extends ReadToolTestCase
 
         $output = $this->call(SearchInvoicesTool::class);
 
-        self::assertSame(['items' => $this->rest('/api/v1/invoices'), 'next_cursor' => null], $output->data);
+        self::assertSame(['items' => $this->rest('/api/v1/invoices'), 'next_cursor' => null, 'applied_view' => null], $output->data);
         self::assertSame([$invoice->id()], self::itemIds($output));
         self::assertSame('1 document, newest first; no more match.', $output->summary);
     }
@@ -143,7 +143,7 @@ final class InvoiceToolsTest extends ReadToolTestCase
         self::assertSame([$middle->id(), $early->id()], self::itemIds($this->call(SearchInvoicesTool::class, ['issued_to' => '2026-11-05'])));
         self::assertSame([$late->id()], self::itemIds($this->call(SearchInvoicesTool::class, ['query' => ' '.$late->number().' '])));
         $none = $this->call(SearchInvoicesTool::class, ['query' => 'Nothing like it']);
-        self::assertSame(['items' => [], 'next_cursor' => null], $none->data);
+        self::assertSame(['items' => [], 'next_cursor' => null, 'applied_view' => null], $none->data);
         self::assertSame('No documents match.', $none->summary);
     }
 

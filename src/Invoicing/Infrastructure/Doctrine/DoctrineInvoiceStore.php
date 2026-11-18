@@ -254,11 +254,57 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
         if (null !== $afterId && !Id::isValid($afterId)) {
             throw new \InvalidArgumentException('An id is not valid.');
         }
+        [$conditions, $parameters, $todays] = $this->sliced($filter);
+        if (null !== $afterId) {
+            $conditions[] = 'i.id < :after';
+            $parameters['after'] = [$afterId, null];
+        }
+
+        $query = $this->em->createQuery('SELECT i, (SELECT COALESCE(SUM(lc.payableMinor), 0) FROM '.Invoice::class.' lc WHERE lc.correctedInvoiceId = i.id AND lc.deletedAt IS NULL) AS corrections'
+            .' FROM '.Invoice::class.' i WHERE '.implode(' AND ', $conditions).' ORDER BY i.id DESC');
+        $this->bind($query, $parameters);
+        // One more than asked tells whether another slice follows.
+        /** @var list<array{0: Invoice, corrections: int|numeric-string}> $results */
+        $results = $query->setMaxResults($limit + 1)->getResult();
+        $kept = \array_slice($results, 0, $limit);
+        $items = [];
+        foreach ($this->rowsOf($kept, $todays) as $index => $row) {
+            $invoice = $kept[$index][0];
+            $items[] = new InvoiceListItem($row, $invoice->firm()->id(), $invoice->customerParty()->id(), $invoice->taxPointDate(), $invoice->createdAt());
+        }
+
+        return new InvoiceSlice($items, \count($results) > $limit);
+    }
+
+    public function count(InvoiceSliceFilter $filter): int
+    {
+        [$conditions, $parameters] = $this->sliced($filter);
+        $query = $this->em->createQuery('SELECT COUNT(i.id) FROM '.Invoice::class.' i WHERE '.implode(' AND ', $conditions));
+        $this->bind($query, $parameters);
+
+        return (int) $query->getSingleScalarResult();
+    }
+
+    /**
+     * What a slice keeps, compiled as the lists compile their views (spec D13): the
+     * state or the trash as the default view of that tab, then the conditions of the
+     * filter's view, all joined by AND, and the other narrowings beside them.
+     *
+     * @return array{list<string>, array<string, array{mixed, string|ArrayParameterType|null}>, array<string, \DateTimeImmutable>}
+     */
+    private function sliced(InvoiceSliceFilter $filter): array
+    {
         [, $todays] = $this->issuers();
         [$overdue, $overdueParameters] = $this->overdue($todays);
-        $tab = $filter->tab();
-        $conditions = [$this->inTab($tab, DocumentKind::Invoice, 's', $overdue)];
-        $parameters = InvoiceFilter::OVERDUE === $tab ? $overdueParameters : [];
+        $view = $filter->trashed
+            ? ViewFilter::all(new Condition(InvoiceLists::TRASHED, 'is', true))
+            : ($this->listOf(DocumentKind::Invoice)->default($filter->tab())->filter ?? new ViewFilter());
+        foreach ($filter->view->conditions ?? [] as $condition) {
+            $view = $view->with($condition);
+        }
+        // Without a kind the states are those of an invoice, which every kind shares.
+        [$condition, $parameters] = $this->inView($view, $filter->kind ?? DocumentKind::Invoice, 's', $overdue, $overdueParameters, $this->today());
+        $conditions = [$condition];
         if ($filter->kind instanceof DocumentKind) {
             $conditions[] = 'i.kind = :kind';
             $parameters['kind'] = [$filter->kind->value, null];
@@ -279,30 +325,13 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
             $conditions[] = 'i.issueDate <= :issuedTo';
             $parameters['issuedTo'] = [$filter->issuedTo, Types::DATE_IMMUTABLE];
         }
-        if (null !== $afterId) {
-            $conditions[] = 'i.id < :after';
-            $parameters['after'] = [$afterId, null];
-        }
         [$text, $textParameters] = $this->textCondition($filter->text);
         if (null !== $text) {
             $conditions[] = $text;
             $parameters += $textParameters;
         }
 
-        $query = $this->em->createQuery('SELECT i, (SELECT COALESCE(SUM(lc.payableMinor), 0) FROM '.Invoice::class.' lc WHERE lc.correctedInvoiceId = i.id AND lc.deletedAt IS NULL) AS corrections'
-            .' FROM '.Invoice::class.' i WHERE '.implode(' AND ', $conditions).' ORDER BY i.id DESC');
-        $this->bind($query, $parameters);
-        // One more than asked tells whether another slice follows.
-        /** @var list<array{0: Invoice, corrections: int|numeric-string}> $results */
-        $results = $query->setMaxResults($limit + 1)->getResult();
-        $kept = \array_slice($results, 0, $limit);
-        $items = [];
-        foreach ($this->rowsOf($kept, $todays) as $index => $row) {
-            $invoice = $kept[$index][0];
-            $items[] = new InvoiceListItem($row, $invoice->firm()->id(), $invoice->customerParty()->id(), $invoice->taxPointDate(), $invoice->createdAt());
-        }
-
-        return new InvoiceSlice($items, \count($results) > $limit);
+        return [$conditions, $parameters, $todays];
     }
 
     /**
@@ -591,23 +620,6 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
         }
 
         return [[] === $conditions ? '1 = 0' : '('.implode(' OR ', $conditions).')', $parameters];
-    }
-
-    /**
-     * What a tab of the list of a kind holds.
-     */
-    private function inTab(string $tab, DocumentKind $kind, string $suffix, string $overdue): string
-    {
-        return match ($tab) {
-            InvoiceFilter::TRASH => 'i.deletedAt IS NOT NULL',
-            InvoiceFilter::PAID => 'i.deletedAt IS NULL AND '.$this->paid($suffix),
-            InvoiceFilter::UNPAID => 'i.deletedAt IS NULL AND '.$this->unpaid($suffix),
-            InvoiceFilter::OVERDUE => 'i.deletedAt IS NULL AND '.$overdue.' AND '.$this->unpaid($suffix),
-            InvoiceFilter::SETTLED => 'i.deletedAt IS NULL AND i.deductedByInvoiceId IS NOT NULL',
-            InvoiceFilter::UNSETTLED => 'i.deletedAt IS NULL AND i.deductedByInvoiceId IS NULL AND '.$this->deductible($kind, $suffix),
-            InvoiceFilter::TO_REFUND => 'i.deletedAt IS NULL AND '.(DocumentKind::CorrectionDocument === $kind ? $this->toRefund($suffix) : $this->overpaid($suffix)),
-            default => 'i.deletedAt IS NULL',
-        };
     }
 
     /**

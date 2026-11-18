@@ -172,6 +172,7 @@ api_tokens:
     events: Events
     cashflow: Cash flow
     received_documents: Received documents
+    views: Saved views
   state:
     expired: Expired
     revoked: Revoked

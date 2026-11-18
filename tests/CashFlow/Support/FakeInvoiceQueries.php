@@ -35,4 +35,9 @@ final class FakeInvoiceQueries implements InvoiceQueries
 
         return new InvoiceSlice($this->slices[$index] ?? [], $index < \count($this->slices) - 1);
     }
+
+    public function count(InvoiceSliceFilter $filter): int
+    {
+        return array_sum(array_map(\count(...), $this->slices));
+    }
 }

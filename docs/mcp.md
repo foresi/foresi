@@ -12,7 +12,7 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | --- | --- |
 | `foresi_whoami` | The person of the connection, and the name, scopes and expiry of its token. Use it first to check the set-up. |
 | `foresi_list_firms` | The firms of the organisation with their ids, for the `firm_id` filter of the other tools. |
-| `foresi_search_invoices` | Searches sales documents, newest first, with filters such as state, firm, customer and issue dates. |
+| `foresi_search_invoices` | Searches sales documents, newest first, with filters such as state, firm, customer and issue dates, through a saved view (`view_id`) or conditions (`filter`). |
 | `foresi_get_invoice` | One document with its lines, payments, corrections and balances. |
 | `foresi_search_contacts` | Searches contacts by text, role, registration number or VAT id. |
 | `foresi_get_contact` | One contact with its addresses, e-mails, bank accounts and contact persons. |
@@ -52,6 +52,13 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_set_expected_date` | **Write.** Sets the day a document is expected to be paid, which replaces its due date in the forecast. |
 | `foresi_clear_expected_date` | **Write.** Removes the expected day of a document. |
 | `foresi_set_minimum_balance` | **Write.** Sets the minimum balance of a firm in CZK, or removes it with `null`. |
+| `foresi_list_lists` | The lists saved views filter, such as `invoicing.invoices`: their fields with operators and values, their columns, and the date values every date field takes. |
+| `foresi_list_views` | The saved views of a list (`list`) you see, shared and private, with whether you may change each. |
+| `foresi_get_view` | One saved view (`view_id`, an id or a system key such as `invoicing.invoices.overdue`). |
+| `foresi_create_view` | **Write.** Saves a view of a list: `list_key`, `name`, `visibility` (`private` or `shared`), `conditions`, `sort`, `columns`. |
+| `foresi_update_view` | **Write.** Changes the fields given of a view (`view_id`); conditions, sort and columns sent replace what it had. |
+| `foresi_delete_view` | **Write, destructive.** Deletes a view for everyone; a view a module ships is hidden instead. |
+| `foresi_restore_default_views` | **Write.** Brings the views a module ships on a list (`list_key`) back to what it declares. Owners only. |
 | `foresi_list_modules` | The modules installed in the application, their dependencies and the known problems of the dependency graph. |
 
 The search tools take the filters of the matching REST list, with the same names (`firm_id`, `customer_id`, `state`, `issued_from`, `role`, `direction` and so on), except that the text search is called `query`, not `q`. They page the same way: a result has `items` and a `next_cursor`; when it is not `null`, call again with the same arguments and `next_cursor` as `cursor`. See [the REST API](api.md#endpoints) for what each filter means. Money, dates and ids have the same formats.
@@ -61,6 +68,8 @@ The webhook tools take the fields of the matching [REST routes](api.md#webhooks)
 The contact tools take the fields of the [REST contact writes](api.md#contact-writes), with the id of the contact as `contact_id`, and answer the contact as `foresi_get_contact` does. They refuse with the codes of the REST API: `invalid_argument` (it names the argument), `not_found`, `not_linked`, `duplicate` (with `existing_ids` in `structuredContent.error.details`) and `already_linked`. There is no upsert: search first with `foresi_search_contacts`, which also matches e-mails, and on `duplicate` update the contact it names.
 
 The cash-flow tools take the fields and parameters of the [REST cash flow](api.md#cash-flow), with the id of a planned item as `planned_item_id`, and answer what the REST API answers. They refuse with `invalid_argument` (it names the argument and the `reason`), `forbidden`, `not_found` and `not_recurring`. See [cash-flow.md](cash-flow.md) for what the forecast counts.
+The saved view tools take the fields of the [REST saved views](api.md#saved-views) and answer the view as `foresi_get_view` does; the read tools need `views:read`, the writes `views:write`. A condition is `{field, op, value}` as `foresi_list_lists` describes the list, such as `{"field": "due_date", "op": "is", "value": {"relative": "next_n_days", "n": 7}}`. A condition that cannot be used is refused with `invalid_argument`, naming its path in `parameter`, such as `conditions[0].op`. `foresi_search_invoices` takes `view_id` (it also needs `views:read`) and `filter`, an object in the same format, joined by AND with its other arguments; its result adds `applied_view`.
+
 The received document tools take the fields of the [REST received documents](api.md#received-documents), with the id of the document as `document_id` (`id` for the read tools), and the writes answer the document as `foresi_get_received_document` does. They refuse with the codes of the REST API, such as `invalid_argument` (it names the argument), `not_found`, `overpaid`, `paid` and `not_recorded`.
 
 Every write tool takes an optional `idempotency_key`, 1 to 255 visible ASCII characters. Send a new one for each change and the same one when you retry it: a retry after the first call finished answers the saved result with `idempotent_replayed: true` in its structured content, and nothing happens twice. The same key with other arguments is refused with `idempotency_key_reused`, and while the first call is still running with `idempotency_key_in_flight`. Keys are kept for 24 hours and never cross tokens or the REST API. The tools stay marked `idempotentHint: false`, as the key is optional.

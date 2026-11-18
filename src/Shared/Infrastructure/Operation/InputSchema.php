@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Infrastructure\Operation;
 
+use Foresi\Shared\Application\Api\Field;
+
 /**
  * The JSON Schema of an operation's input, from its fields and their #[Field]:
  * for the MCP tool all fields, for the REST body those not in the path.
@@ -48,7 +50,11 @@ final class InputSchema
         $describe = $field->describe;
         $property = ['type' => $field->nullable ? [$type, 'null'] : $type];
         if ('array' === $field->type) {
-            $property['items'] = ['type' => $describe->items ?? 'string'] + (null === $describe?->enum ? [] : ['enum' => $describe->enum]);
+            $property['items'] = match ($describe?->items) {
+                Field::OBJECTS => ['type' => 'object'],
+                Field::OBJECTS_OR_STRINGS => ['anyOf' => [['type' => 'object'], ['type' => 'string']]],
+                default => ['type' => $describe->items ?? 'string'] + (null === $describe?->enum ? [] : ['enum' => $describe->enum]),
+            };
         } elseif (null !== $describe?->enum) {
             $property['enum'] = $field->nullable ? [...$describe->enum, null] : $describe->enum;
         }
@@ -58,7 +64,7 @@ final class InputSchema
         if (null !== $describe?->format) {
             $property['format'] = $describe->format;
         }
-        if ($describe instanceof \Foresi\Shared\Application\Api\Field) {
+        if ($describe instanceof Field) {
             $property['description'] = $describe->description;
         }
 

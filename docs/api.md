@@ -59,7 +59,7 @@ A scope says what a token may reach. A token has one or more:
 | `<resource>:read` | Reading one kind of record. |
 | `<resource>:write` | Changing one kind of record, and reading it. |
 
-The resources are `cashflow`, `contacts`, `invoices`, `payments`, `received_documents`, `events` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
+The resources are `cashflow`, `contacts`, `invoices`, `payments`, `received_documents`, `events`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
 
 ## Using the API
 
@@ -109,7 +109,7 @@ A detail answers `{"data": {...}}`.
 
 ## Endpoints
 
-The endpoints below are `GET`. The writes of contacts are under [Contact writes](#contact-writes), those of the cash flow under [Cash flow](#cash-flow), those of received documents under [Received documents](#received-documents), and those of webhooks under [Webhooks](#webhooks).
+The endpoints below are `GET`. The writes of contacts are under [Contact writes](#contact-writes), those of saved views under [Saved views](#saved-views), those of the cash flow under [Cash flow](#cash-flow), those of received documents under [Received documents](#received-documents), and those of webhooks under [Webhooks](#webhooks).
 
 | Endpoint | Scope | What it returns |
 | --- | --- | --- |
@@ -127,6 +127,10 @@ The endpoints below are `GET`. The writes of contacts are under [Contact writes]
 | `/api/v1/cash-flow/forecast` | `cashflow:read` | The cash-flow forecast of a firm; see [Cash flow](#cash-flow). |
 | `/api/v1/cash-flow/planned-items` | `cashflow:read` | The planned items of a firm (`firm_id`, required), oldest first, without paging. |
 | `/api/v1/cash-flow/planned-items/{plannedItemId}` | `cashflow:read` | One planned item. |
+| `/api/v1/lists` | `views:read` | The lists saved views filter, with their fields, operators, values and columns; see [Saved views](#saved-views). |
+| `/api/v1/views?list=` | `views:read` | The saved views of a list the token's person sees. |
+| `/api/v1/views/{viewId}` | `views:read` | One saved view, by its id or the system key of one a module ships. |
+| `/api/v1/views/{viewId}/count` | `views:read` and the list's scope | How many records the view holds now. |
 
 ### Invoices
 
@@ -141,7 +145,11 @@ Query parameters of `GET /api/v1/invoices`. All of them narrow the list.
 | `trashed` | `true` lists documents in the trash. Default `false`. |
 | `issued_from`, `issued_to` | Issue date range, `YYYY-MM-DD`, both ends included. |
 | `q` | Text to search for. |
+| `view` | The id of a saved view of a list of documents, or the system key of one a module ships, such as `invoicing.invoices.overdue`: only the documents it holds. Needs `views:read` too. Without `kind`, the kind of the view's list. |
+| `filter` | Conditions as JSON in the format of [Saved views](#saved-views), such as `{"conditions": [{"field": "due_date", "op": "before", "value": {"relative": "today"}}]}`. Checked against the list of `kind`, or of the invoices without one. |
 | `limit`, `cursor` | Paging, as above. |
+
+All parameters are joined by AND, `view` and `filter` included. The answer has `data`, `next_cursor` and `applied_view`, the saved view `view` named, or `null`. A filter that cannot be used is answered `400 invalid_parameter`, with `parameter` naming its path, such as `filter.conditions[0].op`, and `reason` `filter_invalid`; a view of another list than `kind` is refused the same way with `parameter` `view`. A view the person does not see is `404 not_found`, and one whose conditions its list no longer has is `409 view_outdated`.
 
 A list item has `id`, `number`, `kind`, `firm`, `customer`, `issue_date`, `due_date`, `tax_point_date`, `total`, `paid`, `remaining`, `payment_state` (`unpaid`, `partly_paid`, `paid`, `overpaid` or `to_refund`), `overdue`, `delivered`, `trashed` and `created_at`. The detail adds the customer's identification and address, the currency, the variable symbol, the lines with their VAT, the payments and corrections, and the balances.
 
@@ -183,6 +191,38 @@ Query parameters of `GET /api/v1/payments`:
 An item has `id`, `type`, `version`, `position`, `occurred_at`, `subject` (`type`, `id` and the API path `url` to read it), `data`, `correlation_id` and `actor` (`kind`). The `data` holds ids, codes and amounts as text, and no personal data. The feed is in ascending order of `position`, and the events of the last 30 days are kept. To follow it, store the `next_cursor` of the last answer and call again with it as `cursor`: it continues after the last event you got. A page with fewer items than `limit` means you are caught up; call again later with the same `cursor`, and `next_cursor` stays where it was until something new happens. `next_cursor` is `null` only while you have seen no event at all. Delivery to you is at least once, so handle an `id` you have seen before. A type only gains facts within a `version`.
 
 A value an endpoint cannot use, such as a date that is not a date or a `limit` above 100, is answered `400 invalid_parameter`, with the name of the parameter.
+
+## Saved views
+
+A saved view is a named filter of a list, with its sort and columns, such as "Due this week" on the invoices. It is private to its owner or shared with every owner and member; the views a module ships, such as the tabs of the invoice lists, are shared and have a `system_key`, such as `invoicing.invoices.overdue`, which names them wherever an id does. Guests never see views. The reads need `views:read`, the writes `views:write`, and reading the records of a view also needs the scope of its list, such as `invoices:read`.
+
+`GET /api/v1/lists` describes every list views filter, so a client builds a filter without guessing. Each list has its `key`, its `fields` (`key`, `type`, `label`, the `operators` it takes and, for an enum, its `options`), its `columns` (`key`, `label`, `sortable`, `default`, `locked`) and its `default_views`. `date_values` lists the date values every date field takes.
+
+A filter is `{"match": "all", "conditions": [{"field", "op", "value"}]}`, every condition met, at most 20; `match` may be left out. The operators by type:
+
+| Type | Operators | Value |
+| --- | --- | --- |
+| `enum` | `is`, `is_not`, `is_any_of`, `is_none_of` | One of `options`, or a list of them. |
+| `reference` | `is`, `is_not`, `is_any_of`, `is_empty`, `is_not_empty` | An id, or a list of ids. |
+| `text` | `contains`, `does_not_contain`, `is`, `is_empty` | A text. |
+| `number` | `eq`, `ne`, `lt`, `le`, `gt`, `ge`, `between` | A number. |
+| `date` | `is`, `before`, `after`, `on_or_before`, `on_or_after`, `between`, `is_empty` | A day `YYYY-MM-DD`, a month `{"month": "YYYY-MM"}` or a relative date. |
+| `boolean` | `is` | `true` or `false`. |
+
+`between` takes `{"from": …, "to": …}`, both ends included; `is_empty` and `is_not_empty` take no value. A relative date is resolved when the query runs, in the organisation's time zone: `{"relative": "today"}`, likewise `yesterday`, `tomorrow`, `this_week`, `last_week`, `this_month`, `last_month`, `next_month`, `this_quarter`, `last_quarter`, `this_year` and `last_year`, or a count of days from 1 to 365: `{"relative": "next_n_days", "n": 7}`, `last_n_days`, `n_days_ago` and `n_days_from_now`. A period with `is` covers all of it; `before` is before it starts and `after` after it ends.
+
+A view has `id`, `list`, `name`, `system_key`, `visibility` (`private` or `shared`), `owner_id`, `filters`, `sort`, `display`, `show_count`, `placement` (`primary` or `overflow`), `position`, `hidden`, `may_edit` (whether the token's person may change it), `created_at` and `updated_at`.
+
+| Method and path | Body | What it does |
+| --- | --- | --- |
+| `POST /api/v1/views` | `list_key`, `name`, optional `visibility` (`private`), `conditions`, `sort` (`{field, dir}`, at most 3), `columns` (column keys or `{key, width}`; `null` for the list's default), `density`, `show_count`, `placement` | Creates a view, `201` with its `Location`. Any owner or member may share one. |
+| `PATCH /api/v1/views/{viewId}` | Any of the fields above but `list_key`, plus `position` and `hidden` | Changes the fields sent; `conditions`, `sort` and `columns` replace what the view had. A shared view is changed by its creator and the owners, a view a module ships by the owners only, who also hide it with `hidden`. |
+| `DELETE /api/v1/views/{viewId}` | none | Deletes a view for everyone. A view a module ships is refused with `409 default_view`. |
+| `POST /api/v1/views/restore-defaults` | `list_key` | Brings the views a module ships on a list back to what it declares. Owners only. |
+
+The writes take an `Idempotency-Key` (see [Idempotency](#idempotency)) and are in the audit log. A condition that cannot be used is answered `400 invalid_parameter` with `parameter` naming its path, such as `conditions[1].value.relative`, and `reason` `filter_invalid`; a person who may not change a view gets `403 forbidden`.
+
+Rows as a view shows them, with only its columns, are not served yet; list the records of a view through the endpoint of its list, such as `GET /api/v1/invoices?view=`.
 
 ## Contact writes
 

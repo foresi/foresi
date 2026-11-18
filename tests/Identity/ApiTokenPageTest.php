@@ -241,6 +241,8 @@ final class ApiTokenPageTest extends WebTestCase
         $scopes = $crawler->filter('input[name="scopes[]"]');
         self::assertSame(['read', 'write', 'cashflow:read', 'cashflow:write', 'contacts:read', 'contacts:write'], \array_slice($scopes->each(static fn (Crawler $box): string => (string) $box->attr('value')), 0, 6));
         self::assertContains('webhooks:write', $scopes->each(static fn (Crawler $box): string => (string) $box->attr('value')));
+        self::assertContains('views:write', $scopes->each(static fn (Crawler $box): string => (string) $box->attr('value')), 'The saved views of Shared are a resource of their own.');
+        self::assertSelectorTextContains('label[for="scope-views-read"]', 'Saved views');
         self::assertSame(['read'], $crawler->filter('input[name="scopes[]"][checked]')->each(static fn (Crawler $box): string => (string) $box->attr('value')), 'Reading everything is the default.');
         self::assertSelectorTextContains('label[for="scope-contacts-write"]', 'Contacts: read and change');
         self::assertSame('80', $crawler->filter('input[name="name"]')->attr('maxlength'));

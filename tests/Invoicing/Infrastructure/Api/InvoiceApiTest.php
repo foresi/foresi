@@ -54,6 +54,7 @@ final class InvoiceApiTest extends ApiTestCase
                 'created_at' => $invoice->createdAt()->format(\DATE_ATOM),
             ]],
             'next_cursor' => null,
+            'applied_view' => null,
         ], $this->json());
     }
 
