@@ -285,10 +285,10 @@ final class TimePagesControllerTest extends WebTestCase
         $id = $this->taskId('Wireframes');
 
         $crawler = $this->client->request('GET', '/tasks/'.$id);
-        $actions = $crawler->filter('[data-page-actions]')->children();
-        // Two children, so a phone keeps the menu and the timer on one row: the buttons and the menu share a box-less wrapper.
-        self::assertCount(2, $actions);
-        self::assertSame(['contents', 'form'], $actions->each(static fn (Crawler $child): string => 'form' === $child->nodeName() ? 'form' : (string) $child->attr('class')));
+        // One box-less wrapper holds the timer, the buttons and the menu, so a phone keeps the timer and the menu on one row; the timer, the main action, comes first and the menu last.
+        self::assertCount(1, $crawler->filter('[data-page-actions]')->children());
+        $actions = $crawler->filter('[data-page-actions] > [data-more-actions]')->children();
+        self::assertSame(['form', 'hidden sm:contents', 'menu'], $actions->each(static fn (Crawler $child): string => 'form' === $child->nodeName() ? 'form' : (null !== $child->attr('data-more-actions-menu') ? 'menu' : (string) $child->attr('class'))));
         $menu = $crawler->filter('#task-menu');
         // The title is changed where it is read, so the header has no Edit of its own.
         self::assertCount(0, $menu->filter('[data-task-menu-edit]'));

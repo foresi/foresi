@@ -14,6 +14,11 @@
 
 {% block actions %}
     <twig:Ui:MoreActions menuId="recurring-detail-more" :menuSize="record_action_size">
+        <twig:block name="primary">
+            {% if state != 'ended' %}
+                <twig:Ui:Button variant="primary" icon="pencil" :size="record_action_size" :href="path('app_recurring_edit', doc)" data-in-place data-recurring-edit>{{ 'recurring.list.action.edit'|trans }}</twig:Ui:Button>
+            {% endif %}
+        </twig:block>
         <twig:block name="content">
             {% if state == 'active' %}
                 <twig:Ui:MenuItem :href="path('app_recurring_issue_now', doc)" data-dialog aria-haspopup="dialog">{{ 'recurring.list.action.issue_now'|trans }}</twig:Ui:MenuItem>
@@ -31,9 +36,6 @@
             {% endif %}
         </twig:block>
     </twig:Ui:MoreActions>
-    {% if state != 'ended' %}
-        <twig:Ui:Button variant="primary" icon="pencil" :size="record_action_size" :href="path('app_recurring_edit', doc)" data-in-place data-recurring-edit>{{ 'recurring.list.action.edit'|trans }}</twig:Ui:Button>
-    {% endif %}
 {% endblock %}
 
 {% block content %}
