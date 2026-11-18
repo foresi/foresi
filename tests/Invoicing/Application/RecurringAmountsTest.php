@@ -8,11 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Invoicing\Application;
 
-use Foresi\Country\CzechRepublic\Invoicing\CzechInvoicing;
-use Foresi\Country\CzechRepublic\Invoicing\CzechSupplyCodes;
-use Foresi\Country\CzechRepublic\Invoicing\CzechVatRates;
-use Foresi\Country\CzechRepublic\Invoicing\IsdocWriter;
-use Foresi\Country\CzechRepublic\Invoicing\QrPlatba;
+use Foresi\Country\Integration\Invoicing\CzechRepublic\CzechInvoicing;
+use Foresi\Country\Integration\Invoicing\CzechRepublic\CzechSupplyCodes;
+use Foresi\Country\Integration\Invoicing\CzechRepublic\CzechVatRates;
+use Foresi\Country\Integration\Invoicing\CzechRepublic\IsdocWriter;
+use Foresi\Country\Integration\Invoicing\CzechRepublic\QrPlatba;
 use Foresi\Invoicing\Application\RecurringAmounts;
 use Foresi\Shared\Domain\Money;
 

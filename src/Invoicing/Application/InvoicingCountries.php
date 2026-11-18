@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
+use Foresi\Invoicing\Contract\InvoicingCountry;
+
 /**
  * Finds the invoicing rules of a country among the tagged country modules.
  */

@@ -63,13 +63,23 @@ abstract class ModuleBundle extends AbstractBundle
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
     {
         $module = $this->module();
-        if ($this->hasEntities()) {
+        if ($this->hasEntities('Domain')) {
             $builder->prependExtensionConfig('doctrine', ['orm' => ['mappings' => [$module => [
                 'type' => 'attribute',
                 'is_bundle' => false,
                 'dir' => $this->getPath().'/Domain',
                 'prefix' => 'Foresi\\'.$module.'\\Domain',
                 'alias' => $module,
+            ]]]]);
+        }
+        // A value the module publishes and also stores, such as the frozen party of a document.
+        if ($this->hasEntities('Contract')) {
+            $builder->prependExtensionConfig('doctrine', ['orm' => ['mappings' => [$module.'Contract' => [
+                'type' => 'attribute',
+                'is_bundle' => false,
+                'dir' => $this->getPath().'/Contract',
+                'prefix' => 'Foresi\\'.$module.'\\Contract',
+                'alias' => $module.'Contract',
             ]]]]);
         }
         $this->prependControllers($builder);
@@ -116,12 +126,12 @@ abstract class ModuleBundle extends AbstractBundle
     }
 
     /**
-     * Whether Domain/ holds a Doctrine entity or embeddable, so the module
-     * needs a mapping.
+     * Whether the directory, Domain/ or Contract/, holds a Doctrine entity or
+     * embeddable, so the module needs a mapping of it.
      */
-    private function hasEntities(): bool
+    private function hasEntities(string $directory): bool
     {
-        $domain = $this->getPath().'/Domain';
+        $domain = $this->getPath().'/'.$directory;
         if (!is_dir($domain)) {
             return false;
         }

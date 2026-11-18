@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Banking\Application;
 
-use Foresi\Banking\Application\NotificationLines;
+use Foresi\Banking\Contract\NotificationLines;
 use PHPUnit\Framework\TestCase;
 
 final class NotificationLinesTest extends TestCase

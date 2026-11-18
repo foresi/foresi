@@ -9,13 +9,13 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Application;
 
 use Foresi\Audit\Application\AuditActor;
-use Foresi\Invoicing\Domain\DocumentKind;
-use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentParty;
+use Foresi\Invoicing\Contract\PriceType;
 use Foresi\Invoicing\Domain\DocumentTotals;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceChange;
 use Foresi\Invoicing\Domain\InvoiceLine;
-use Foresi\Invoicing\Domain\PriceType;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\LegalEntities;

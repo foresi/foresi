@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace Foresi\ExchangeRate\Infrastructure\Schedule;
 
 use Foresi\ExchangeRate\Application\FetchRates;
-use Foresi\ExchangeRate\Application\RateSource;
 use Foresi\ExchangeRate\Application\RateStore;
+use Foresi\ExchangeRate\Contract\RateSource;
 use Foresi\Instance\Application\Schedule\OperatorTask;
 use Psr\Clock\ClockInterface;
 

@@ -9,15 +9,16 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Application;
 
 use Foresi\Audit\Application\AuditActor;
+use Foresi\Invoicing\Contract\DocumentParty;
 use Foresi\Invoicing\Contract\Event\InvoiceIssued;
-use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Contract\TotalRounding;
+use Foresi\Invoicing\Contract\VatRegime;
+use Foresi\Invoicing\Domain\DocumentParties;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceChange;
 use Foresi\Invoicing\Domain\InvoiceLine;
 use Foresi\Invoicing\Domain\Series;
-use Foresi\Invoicing\Domain\TotalRounding;
 use Foresi\Invoicing\Domain\VariableSymbol;
-use Foresi\Invoicing\Domain\VatRegime;
 use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\PartyQuery;
@@ -89,7 +90,7 @@ final readonly class IssueInvoice
             $customer = $this->copies->for($input, $party, $firm, null) ?? throw new \LogicException('IssueRules refuses a customer without an address.');
             $settings = $this->settings->for($firm);
             $regime = VatRegime::of($firm->vatStatus());
-            $issuer = DocumentParty::ofIssuer($firm, $settings);
+            $issuer = DocumentParties::ofIssuer($firm, $settings);
             $content = $input->change($party, $customer, $series->kind());
             $rateDate = $this->corrections->rateDate($input) ?? $content->rateDate();
             // A person's corrective tax document names what it corrects in the same transaction, a form of billed work what it bills.

@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Banking\Infrastructure\Mime;
 
-use Foresi\Banking\Application\InboundMail;
+use Foresi\Banking\Contract\InboundMail;
 use Foresi\Banking\Infrastructure\Mime\ZbatesonMailReader;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

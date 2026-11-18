@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Infrastructure\Api;
 
 use Foresi\Invoicing\Application\View\InvoiceLists;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Shared\Application\Api\ScopeGuard;
 use Foresi\Shared\Application\View\InvalidFilter;
 use Foresi\Shared\Application\View\SavedViewRefused;

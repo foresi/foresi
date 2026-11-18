@@ -11,7 +11,7 @@ namespace Foresi\Tests\Timesheet\Infrastructure;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
 use Foresi\Party\Domain\Address;

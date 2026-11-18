@@ -18,7 +18,7 @@ use Foresi\Invoicing\Application\RemindableInvoice;
 use Foresi\Invoicing\Application\RemindableInvoices;
 use Foresi\Invoicing\Application\ReminderPreview;
 use Foresi\Invoicing\Application\ReminderSettings;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\FirmReminders;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceSend;

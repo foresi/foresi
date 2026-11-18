@@ -10,8 +10,8 @@ namespace Foresi\Tests\ExchangeRate\Infrastructure;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
-use Foresi\ExchangeRate\Application\PublishedRates;
-use Foresi\ExchangeRate\Application\Quote;
+use Foresi\ExchangeRate\Contract\PublishedRates;
+use Foresi\ExchangeRate\Contract\Quote;
 use Foresi\ExchangeRate\Domain\StoredRate;
 use Foresi\ExchangeRate\Infrastructure\Doctrine\DoctrineRateStore;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;

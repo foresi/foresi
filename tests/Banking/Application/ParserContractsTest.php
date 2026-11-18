@@ -9,11 +9,11 @@ declare(strict_types=1);
 namespace Foresi\Tests\Banking\Application;
 
 use Foresi\Banking\Application\DefaultPairingRules;
-use Foresi\Banking\Application\ParsedMovement;
-use Foresi\Banking\Application\ParseResult;
 use Foresi\Banking\Application\TrustVerdict;
+use Foresi\Banking\Contract\MovementDirection;
+use Foresi\Banking\Contract\ParsedMovement;
+use Foresi\Banking\Contract\ParseResult;
 use Foresi\Banking\Domain\MessageTrust;
-use Foresi\Banking\Domain\MovementDirection;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\RegistrationNumber;

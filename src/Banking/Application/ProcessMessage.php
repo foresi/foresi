@@ -8,6 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Application;
 
+use Foresi\Banking\Contract\BankMessageParser;
+use Foresi\Banking\Contract\ParsedMovement;
+use Foresi\Banking\Contract\ParseFailed;
 use Foresi\Banking\Domain\InboundStatus;
 use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Invoicing\Application\ConflictRetry;

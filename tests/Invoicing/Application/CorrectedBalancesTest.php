@@ -15,7 +15,7 @@ use Foresi\Invoicing\Application\InvoiceRow;
 use Foresi\Invoicing\Application\PaymentRequest;
 use Foresi\Invoicing\Application\PaymentState;
 use Foresi\Invoicing\Application\RecordPayment;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\PaymentSource;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;

@@ -11,6 +11,7 @@ namespace Foresi\Banking\Domain;
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
 use Foresi\Audit\Domain\AuditExcluded;
+use Foresi\Banking\Contract\MovementDirection;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Currency;

@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Infrastructure\Api;
 
 use Foresi\Invoicing\Application\Query\InvoiceSliceFilter;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Shared\Application\View\ViewFilter;
 use OpenApi\Attributes as OA;
 use Symfony\Component\Serializer\Attribute\SerializedName;

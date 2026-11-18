@@ -12,7 +12,7 @@ use Doctrine\DBAL\Connection;
 use Foresi\Invoicing\Application\PaymentState;
 use Foresi\Invoicing\Application\PublicDocument;
 use Foresi\Invoicing\Application\PublicDocuments;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\LinkAudience;
 use Foresi\Invoicing\Domain\SendStatus;
 use Foresi\Party\Domain\DocumentLanguage;

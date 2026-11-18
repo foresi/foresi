@@ -11,8 +11,8 @@ namespace Foresi\Banking\Infrastructure\Doctrine;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Banking\Application\MovementLedger;
+use Foresi\Banking\Contract\MovementDirection;
 use Foresi\Banking\Domain\BankMovement;
-use Foresi\Banking\Domain\MovementDirection;
 use Foresi\Banking\Domain\MovementState;
 
 /**

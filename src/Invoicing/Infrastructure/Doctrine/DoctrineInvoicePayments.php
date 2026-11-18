@@ -12,7 +12,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Invoicing\Application\InvoicePaymentLine;
 use Foresi\Invoicing\Application\InvoicePayments;
 use Foresi\Invoicing\Application\UnknownPayment;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\Payment;
 use Foresi\Invoicing\Domain\PaymentAllocation;

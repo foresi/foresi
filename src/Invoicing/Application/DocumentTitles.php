@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
+use Foresi\Invoicing\Contract\IssuedDocument;
+
 /**
  * The title a document carries on its PDF, such as "Invoice - tax document", in
  * the document's own language.

@@ -10,7 +10,7 @@ namespace Foresi\Tests\ExchangeRate\Infrastructure;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
-use Foresi\ExchangeRate\Application\RateSource;
+use Foresi\ExchangeRate\Contract\RateSource;
 use Foresi\ExchangeRate\Infrastructure\Doctrine\DoctrineRateStore;
 use Foresi\Tests\ExchangeRate\Support\FakeRateSource;
 use Symfony\Bundle\FrameworkBundle\Console\Application;

@@ -8,14 +8,14 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
+use Foresi\Invoicing\Contract\PriceType;
+use Foresi\Invoicing\Contract\TaxTreatment;
+use Foresi\Invoicing\Contract\VatRateKind;
+use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceLine;
-use Foresi\Invoicing\Domain\PriceType;
 use Foresi\Invoicing\Domain\Series;
-use Foresi\Invoicing\Domain\TaxTreatment;
 use Foresi\Invoicing\Domain\VariableSymbol;
-use Foresi\Invoicing\Domain\VatRateKind;
-use Foresi\Invoicing\Domain\VatRegime;
 use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Domain\InvoicingDefaults;

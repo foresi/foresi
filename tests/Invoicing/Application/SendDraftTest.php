@@ -13,7 +13,7 @@ use Foresi\Identity\Infrastructure\Security\SecurityUser;
 use Foresi\Invoicing\Application\DeliverInvoiceSend;
 use Foresi\Invoicing\Application\SendDraft;
 use Foresi\Invoicing\Application\SendRecipient;
-use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Contract\DocumentParty;
 use Foresi\Invoicing\Domain\FirmMailServer;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Party\Domain\Address;

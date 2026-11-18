@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\ExchangeRate\Domain;
 
-use Foresi\ExchangeRate\Application\Quote;
+use Foresi\ExchangeRate\Contract\Quote;
 use Foresi\ExchangeRate\Domain\ExchangeRate;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

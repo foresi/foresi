@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Invoicing\Domain;
 
-use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Contract\DocumentParty;
 use Foresi\Invoicing\Domain\FirmReminders;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceSend;

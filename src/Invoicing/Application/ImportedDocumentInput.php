@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
-use Foresi\Invoicing\Domain\DocumentParty;
-use Foresi\Invoicing\Domain\TotalRounding;
-use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Invoicing\Contract\DocumentParty;
+use Foresi\Invoicing\Contract\TotalRounding;
+use Foresi\Invoicing\Contract\VatRegime;
 
 /**
  * A document another system issued, as it was there. The document names its series

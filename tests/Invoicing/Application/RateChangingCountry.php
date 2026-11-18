@@ -8,12 +8,12 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Invoicing\Application;
 
-use Foresi\Invoicing\Application\ElectronicFile;
-use Foresi\Invoicing\Application\InvoicingCountry;
-use Foresi\Invoicing\Application\IssuedDocument;
-use Foresi\Invoicing\Domain\Percent;
-use Foresi\Invoicing\Domain\TaxTreatment;
-use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Invoicing\Contract\ElectronicFile;
+use Foresi\Invoicing\Contract\InvoicingCountry;
+use Foresi\Invoicing\Contract\IssuedDocument;
+use Foresi\Invoicing\Contract\Percent;
+use Foresi\Invoicing\Contract\TaxTreatment;
+use Foresi\Invoicing\Contract\VatRateKind;
 use Foresi\Shared\Domain\Currency;
 
 /**

@@ -11,6 +11,13 @@ namespace Foresi\Invoicing\Domain;
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
 use Foresi\Audit\Domain\AuditRooted;
+use Foresi\Invoicing\Contract\DocumentLine;
+use Foresi\Invoicing\Contract\LineAmounts;
+use Foresi\Invoicing\Contract\Percent;
+use Foresi\Invoicing\Contract\PriceType;
+use Foresi\Invoicing\Contract\Quantity;
+use Foresi\Invoicing\Contract\TaxTreatment;
+use Foresi\Invoicing\Contract\VatRateKind;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Money;
 
@@ -30,7 +37,7 @@ use Foresi\Shared\Domain\Money;
 #[ORM\Index(name: 'idx_invoice_line_invoice', columns: ['invoice_id'])]
 #[ORM\Index(name: 'idx_invoice_line_deducts', columns: ['deducts_invoice_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_invoice_line_position', columns: ['invoice_id', 'position'])]
-class InvoiceLine implements Audited, AuditRooted
+class InvoiceLine implements Audited, AuditRooted, DocumentLine
 {
     public const int MAX_UNIT_LENGTH = 32;
 

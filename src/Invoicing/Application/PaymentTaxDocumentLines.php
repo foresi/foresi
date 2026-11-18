@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
+use Foresi\Invoicing\Contract\Percent;
+use Foresi\Invoicing\Contract\PriceType;
+use Foresi\Invoicing\Contract\Quantity;
 use Foresi\Invoicing\Domain\InvoiceLine;
-use Foresi\Invoicing\Domain\Percent;
-use Foresi\Invoicing\Domain\PriceType;
-use Foresi\Invoicing\Domain\Quantity;
 use Foresi\Shared\Domain\Money;
 
 /**

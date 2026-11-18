@@ -1,0 +1,160 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\Tests\Country\Integration\Invoicing\CzechRepublic;
+
+use Foresi\Country\Integration\Invoicing\CzechRepublic\CzechInvoicing;
+use Foresi\Country\Integration\Invoicing\CzechRepublic\CzechSupplyCodes;
+use Foresi\Country\Integration\Invoicing\CzechRepublic\CzechVatRates;
+use Foresi\Country\Integration\Invoicing\CzechRepublic\IsdocWriter;
+use Foresi\Country\Integration\Invoicing\CzechRepublic\QrPlatba;
+use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Invoicing\Application\UnsupportedCountry;
+use Foresi\Invoicing\Contract\SupplyCode;
+use Foresi\Invoicing\Contract\TaxTreatment;
+use Foresi\Invoicing\Contract\VatRateKind;
+use Foresi\Shared\Domain\Currency;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+
+final class CzechVatRatesTest extends TestCase
+{
+    public function testTheBaseRateIs21(): void
+    {
+        self::assertSame('21.00', new CzechVatRates()->rate(VatRateKind::Base, new \DateTimeImmutable('2026-10-31'))->decimal());
+    }
+
+    public function testTheReducedRateIs12(): void
+    {
+        self::assertSame('12.00', new CzechVatRates()->rate(VatRateKind::Reduced, new \DateTimeImmutable('2026-10-31'))->decimal());
+    }
+
+    public function testTheRatesApplyFromTheFirstDay(): void
+    {
+        $rates = new CzechVatRates();
+
+        self::assertSame('21.00', $rates->rate(VatRateKind::Base, new \DateTimeImmutable('2024-01-01'))->decimal());
+        self::assertSame('12.00', $rates->rate(VatRateKind::Reduced, new \DateTimeImmutable('2024-01-01 00:00:00'))->decimal());
+    }
+
+    public function testADateBeforeTheTableIsRefused(): void
+    {
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessageIsOrContains('No base VAT rate is defined for 2012-12-31.');
+
+        new CzechVatRates()->rate(VatRateKind::Base, new \DateTimeImmutable('2012-12-31 23:59:59'));
+    }
+
+    /**
+     * @return iterable<string, array{string, VatRateKind, string}>
+     */
+    public static function history(): iterable
+    {
+        yield 'base from 2013' => ['2013-01-01', VatRateKind::Base, '21.00'];
+        yield 'reduced from 2013' => ['2013-01-01', VatRateKind::Reduced, '15.00'];
+        yield 'base to 2014' => ['2014-12-31', VatRateKind::Base, '21.00'];
+        yield 'reduced to 2014' => ['2014-12-31', VatRateKind::Reduced, '15.00'];
+        yield 'base from 2015' => ['2015-01-01', VatRateKind::Base, '21.00'];
+        yield 'reduced from 2015' => ['2015-01-01', VatRateKind::Reduced, '15.00'];
+        yield 'second reduced from 2015' => ['2015-01-01', VatRateKind::SecondReduced, '10.00'];
+        yield 'second reduced in 2019' => ['2019-06-30', VatRateKind::SecondReduced, '10.00'];
+        yield 'base to 2023' => ['2023-12-31', VatRateKind::Base, '21.00'];
+        yield 'reduced to 2023' => ['2023-12-31 23:59:59', VatRateKind::Reduced, '15.00'];
+        yield 'second reduced to 2023' => ['2023-12-31 23:59:59', VatRateKind::SecondReduced, '10.00'];
+        yield 'base from 2024' => ['2024-01-01', VatRateKind::Base, '21.00'];
+        yield 'reduced from 2024' => ['2024-01-01', VatRateKind::Reduced, '12.00'];
+    }
+
+    #[DataProvider('history')]
+    public function testTheRateOfEachPeriod(string $on, VatRateKind $kind, string $expected): void
+    {
+        self::assertSame($expected, new CzechVatRates()->rate($kind, new \DateTimeImmutable($on))->decimal());
+    }
+
+    public function testTheSecondReducedRateStartsIn2015(): void
+    {
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessageIsOrContains('No second_reduced VAT rate is defined for 2014-12-31.');
+
+        new CzechVatRates()->rate(VatRateKind::SecondReduced, new \DateTimeImmutable('2014-12-31'));
+    }
+
+    public function testTheSecondReducedRateEndsIn2024(): void
+    {
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessageIsOrContains('No second_reduced VAT rate is defined for 2024-01-01.');
+
+        new CzechVatRates()->rate(VatRateKind::SecondReduced, new \DateTimeImmutable('2024-01-01'));
+    }
+
+    public function testTheSecondReducedRateStaysEnded(): void
+    {
+        $this->expectException(\DomainException::class);
+
+        new CzechVatRates()->rate(VatRateKind::SecondReduced, new \DateTimeImmutable('2026-10-31'));
+    }
+
+    public function testTheCountryAnswersForCzechia(): void
+    {
+        $country = new CzechInvoicing(new CzechVatRates(), new CzechSupplyCodes(), new IsdocWriter(), new QrPlatba(new CzechVatRates()));
+
+        self::assertTrue($country->supports('CZ'));
+        self::assertFalse($country->supports('SK'));
+        self::assertSame(Currency::CZK, $country->homeCurrency());
+        self::assertSame('Europe/Prague', $country->timezone()->getName());
+        self::assertSame('21.00', $country->rate(VatRateKind::Base, new \DateTimeImmutable('2026-10-31'))->decimal());
+        self::assertSame('invoice.pdf.note.reverse_charge', $country->noteKey(TaxTreatment::ReverseCharge));
+        self::assertSame('invoice.pdf.note.exempt', $country->noteKey(TaxTreatment::Exempt));
+        self::assertNull($country->noteKey(TaxTreatment::Standard));
+        self::assertNotSame([], $country->supplyCodes(new \DateTimeImmutable('2026-10-31')));
+    }
+
+    public function testTheRegistryFindsTheCountryAndRefusesAnother(): void
+    {
+        $czech = new CzechInvoicing(new CzechVatRates(), new CzechSupplyCodes(), new IsdocWriter(), new QrPlatba(new CzechVatRates()));
+        $countries = new InvoicingCountries([$czech]);
+
+        self::assertSame($czech, $countries->for('CZ'));
+        $this->expectException(UnsupportedCountry::class);
+        $countries->for('SK');
+    }
+
+    public function testSupplyCodesHoldTheKnownRegimes(): void
+    {
+        $codes = array_map(
+            static fn (SupplyCode $code): string => $code->code,
+            new CzechSupplyCodes()->on(new \DateTimeImmutable('2026-10-31')),
+        );
+
+        foreach (['1', '1a', '3', '3a', '4', '4a', '5', '6', '7', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21'] as $expected) {
+            self::assertContains($expected, $codes);
+        }
+        self::assertSame(array_unique($codes), $codes);
+    }
+
+    public function testSupplyCodesAreDated(): void
+    {
+        $codes = new CzechSupplyCodes();
+        $on = static fn (string $date): array => array_map(static fn (SupplyCode $c): string => $c->code, $codes->on(new \DateTimeImmutable($date)));
+
+        self::assertNotContains('4a', $on('2017-06-30'));
+        self::assertContains('4a', $on('2017-07-01'));
+        self::assertNotContains('21', $on('2016-09-30'));
+        self::assertContains('21', $on('2016-10-01'));
+        self::assertNotContains('19', $on('2016-01-31'));
+        self::assertContains('19', $on('2016-02-01'));
+        self::assertSame([], $on('2015-12-31'));
+    }
+
+    public function testEachCodeCarriesALabelKey(): void
+    {
+        foreach (new CzechSupplyCodes()->on(new \DateTimeImmutable('2026-10-31')) as $code) {
+            self::assertSame('invoice.supply_code.'.$code->code, $code->labelKey);
+        }
+    }
+}

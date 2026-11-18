@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Invoicing\Domain;
 
-use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Invoicing\Contract\Quantity;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

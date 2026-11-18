@@ -8,12 +8,14 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
-use Foresi\Invoicing\Domain\DocumentKind;
-use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentParty;
+use Foresi\Invoicing\Contract\InvoicingCountry;
+use Foresi\Invoicing\Contract\VatRegime;
+use Foresi\Invoicing\Domain\DocumentParties;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\NumberKey;
 use Foresi\Invoicing\Domain\Series;
-use Foresi\Invoicing\Domain\VatRegime;
 use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\PartyQuery;
@@ -350,7 +352,7 @@ final readonly class IssueRules
             }
             $problems = [...$problems, ...$this->printingOf('firm', $import->issuer)];
         } elseif (!$existing instanceof Invoice) {
-            $problems = [...$problems, ...$this->printingOf('firm', DocumentParty::ofIssuer($firm, $this->settings->for($firm)))];
+            $problems = [...$problems, ...$this->printingOf('firm', DocumentParties::ofIssuer($firm, $this->settings->for($firm)))];
         }
 
         return $problems;

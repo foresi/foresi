@@ -11,19 +11,19 @@ namespace Foresi\Invoicing\Infrastructure\Pdf;
 use Foresi\Invoicing\Application\DocumentFormat;
 use Foresi\Invoicing\Application\InvoicePdf;
 use Foresi\Invoicing\Application\InvoicingCountries;
-use Foresi\Invoicing\Application\InvoicingCountry;
-use Foresi\Invoicing\Application\IssuedDocument;
 use Foresi\Invoicing\Application\RenderedPdf;
 use Foresi\Invoicing\Application\UndrawableDocument;
-use Foresi\Invoicing\Domain\DocumentKind;
-use Foresi\Invoicing\Domain\DocumentParty;
-use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentLine;
+use Foresi\Invoicing\Contract\DocumentParty;
+use Foresi\Invoicing\Contract\InvoicingCountry;
+use Foresi\Invoicing\Contract\IssuedDocument;
+use Foresi\Invoicing\Contract\Percent;
+use Foresi\Invoicing\Contract\PriceType;
+use Foresi\Invoicing\Contract\RateSummary;
+use Foresi\Invoicing\Contract\TaxTreatment;
+use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\NumberKey;
-use Foresi\Invoicing\Domain\Percent;
-use Foresi\Invoicing\Domain\PriceType;
-use Foresi\Invoicing\Domain\RateSummary;
-use Foresi\Invoicing\Domain\TaxTreatment;
-use Foresi\Invoicing\Domain\VatRegime;
 use Foresi\Invoicing\Infrastructure\Form\AmountText;
 use Foresi\Party\Application\FirmImages;
 use Foresi\Shared\Domain\Countries;
@@ -99,13 +99,13 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
                 $this->trans('invoice.pdf.document_title', ['number' => $document->number, 'kind' => $document->kind->value]),
                 $document->language->value,
                 $template->renderBlock('body', ['doc' => $view]),
-                $file instanceof \Foresi\Invoicing\Application\ElectronicFile ? new EmbeddedFile($file->name, $file->content, $file->mime) : null,
+                $file instanceof \Foresi\Invoicing\Contract\ElectronicFile ? new EmbeddedFile($file->name, $file->content, $file->mime) : null,
                 null === $payload ? null : new QrFigure($payload, $this->trans('invoice.pdf.qr_alt', ['number' => $document->number]), self::QR_X, self::QR_Y, self::QR_SIZE_MM),
                 trim($template->renderBlock('head', ['doc' => $view])),
                 fn (int $page, int $pages): string => $this->trans('invoice.pdf.footer', ['title' => $this->trans('invoice.pdf.document_title', ['number' => $document->number, 'kind' => $document->kind->value]), 'page' => (string) $page, 'pages' => (string) $pages]),
             );
 
-            return new RenderedPdf($bytes, NumberKey::of($document->number).($file instanceof \Foresi\Invoicing\Application\ElectronicFile ? '-isdoc.pdf' : '.pdf'));
+            return new RenderedPdf($bytes, NumberKey::of($document->number).($file instanceof \Foresi\Invoicing\Contract\ElectronicFile ? '-isdoc.pdf' : '.pdf'));
         });
     }
 
@@ -119,7 +119,7 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
         $credit = $document->isCreditNote();
         // A credit note asks for nothing: what it shows is what goes back.
         $asked = $credit ? Money::ofMinor(-$document->toPay()->minor(), $document->currency) : $document->toPay();
-        $hasDiscount = array_any($document->lines, static fn (InvoiceLine $line): bool => 0 < $line->discount()->basisPoints());
+        $hasDiscount = array_any($document->lines, static fn (DocumentLine $line): bool => 0 < $line->discount()->basisPoints());
 
         $lines = array_map($this->line(...), $document->lines);
         $rounding = $document->rounding->isZero() ? null : [
@@ -340,7 +340,7 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
     /**
      * @return array<string, string>
      */
-    private function line(InvoiceLine $line): array
+    private function line(DocumentLine $line): array
     {
         $rate = $line->treatment()->hasRate() ? $line->rate() : null;
         $discounted = 0 < $line->discount()->basisPoints();
@@ -361,7 +361,7 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
     /**
      * The price without VAT and before the discount; see the class comment.
      */
-    private function unitPrice(InvoiceLine $line): Money
+    private function unitPrice(DocumentLine $line): Money
     {
         if (0 === $line->discount()->basisPoints()) {
             return $line->unitNet();
@@ -382,12 +382,12 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
     {
         $notes = [];
         foreach ([TaxTreatment::ReverseCharge, TaxTreatment::Exempt] as $treatment) {
-            $lines = array_filter($document->lines, static fn (InvoiceLine $line): bool => $treatment === $line->treatment());
+            $lines = array_filter($document->lines, static fn (DocumentLine $line): bool => $treatment === $line->treatment());
             $key = [] === $lines ? null : $country->noteKey($treatment);
             if (null === $key) {
                 continue;
             }
-            $codes = array_unique(array_filter(array_map(static fn (InvoiceLine $line): string => (string) $line->supplyCode(), $lines), static fn (string $code): bool => '' !== $code));
+            $codes = array_unique(array_filter(array_map(static fn (DocumentLine $line): string => (string) $line->supplyCode(), $lines), static fn (string $code): bool => '' !== $code));
             $notes[] = $this->trans($key, ['code' => [] === $codes ? 'none' : implode(', ', $codes)]);
         }
 
