@@ -31,7 +31,8 @@ final class HeaderActionOrderTest extends TestCase
     {
         $root = \dirname(__DIR__, 2);
         $directories = ['' => $root.'/templates'];
-        foreach (glob($root.'/src/*/templates', \GLOB_ONLYDIR) ?: [] as $directory) {
+        $modules = glob($root.'/src/*/templates', \GLOB_ONLYDIR);
+        foreach (false === $modules ? [] : $modules as $directory) {
             $directories['@'.basename(\dirname($directory)).'/'] = $directory;
         }
         foreach ($directories as $namespace => $directory) {

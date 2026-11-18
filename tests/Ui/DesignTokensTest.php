@@ -173,10 +173,13 @@ final class DesignTokensTest extends TestCase
     {
         $root = dirname(__DIR__, 2);
         $files = [];
-        $modules = array_map(
-            static fn (string $directory): string => substr($directory, strlen($root) + 1),
-            [...glob($root.'/src/*/templates', \GLOB_ONLYDIR) ?: [], ...glob($root.'/src/*/assets/controllers', \GLOB_ONLYDIR) ?: []],
-        );
+        $modules = [];
+        foreach (['src/*/templates', 'src/*/assets/controllers'] as $pattern) {
+            $found = glob($root.'/'.$pattern, \GLOB_ONLYDIR);
+            foreach (false === $found ? [] : $found as $directory) {
+                $modules[] = substr($directory, strlen($root) + 1);
+            }
+        }
         foreach (['templates', 'src/Ui', 'assets/controllers', ...$modules] as $dir) {
             $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root.'/'.$dir, \FilesystemIterator::SKIP_DOTS));
             foreach ($iterator as $file) {
