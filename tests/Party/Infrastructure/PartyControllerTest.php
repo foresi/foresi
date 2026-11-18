@@ -178,7 +178,7 @@ final class PartyControllerTest extends WebTestCase
         self::assertSelectorNotExists('table');
         self::assertSelectorExists('main h2');
         self::assertSame('Add your first contact and it will show up here with your customers and suppliers.', trim($crawler->filter('main p')->first()->text()));
-        self::assertSelectorExists('main a[href="/contacts/new"]');
+        self::assertSelectorExists('main a[href="/contacts/new?for=contacts"][data-dialog]');
     }
 
     public function testCreatingAContactSavesItAndSchedulesTheRegistryChecksAfterTheResponse(): void

@@ -38,9 +38,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * The settings of a project, for the staff: what it is and for whom, whether
  * its time is billable and, for an owner only, its hourly rate, its archiving,
  * its sections and its statuses. Each change is a plain form that
- * comes back to the page, where a refusal is told; the removal of a status
- * asks in a dialog where its tasks go, and a workflow template replacing all
- * the statuses is chosen and confirmed in a dialog.
+ * comes back to the page, where a refusal is told; a new section and a new
+ * status are named in a dialog, the removal of a status asks in a dialog
+ * where its tasks go, and a workflow template replacing all the statuses is
+ * chosen and confirmed in a dialog.
  */
 final class ProjectSettingsController extends AbstractController
 {
@@ -146,18 +147,39 @@ final class ProjectSettingsController extends AbstractController
     }
 
     /**
-     * A new section at the end; an empty name adds nothing.
+     * A new section at the end, named in a dialog over the settings, or on a
+     * page of its own. A missing name is told in the dialog.
      */
-    #[Route('/projects/{id}/sections', name: 'app_project_section_add', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
-    public function addSection(string $id, Request $request): RedirectResponse
+    #[Route('/projects/{id}/sections', name: 'app_project_section_add', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
+    public function addSection(string $id, Request $request): Response
     {
-        $name = trim($request->request->getString('name'));
+        $this->denyUnlessStaff();
+        $settings = $this->load($id);
+        $name = '';
+        $error = null;
+        if ($request->isMethod('POST')) {
+            $this->checkToken($request);
+            $name = trim($request->request->getString('name'));
+            if ('' === $name) {
+                $error = $this->translator->trans('work.settings.error.section_name');
+            } else {
+                try {
+                    $this->sections->add($id, $name);
+                    $this->addFlash('success', $this->translator->trans('work.settings.section_added', ['name' => $name]));
 
-        return $this->change($id, $request, function () use ($id, $name): void {
-            if ('' !== $name) {
-                $this->sections->add($id, $name);
+                    return $this->back($id);
+                } catch (WorkRefused $refused) {
+                    $this->notFoundIfUnknown($refused);
+                    $error = $this->translator->trans('work.refused.'.$refused->reason);
+                }
             }
-        });
+        }
+
+        return $this->render('work/projects/section_new.html.twig', [
+            'project' => $settings->project,
+            'name' => $name,
+            'error' => $error,
+        ], new Response(status: null === $error ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
     #[Route('/projects/{id}/sections/{sectionId}', name: 'app_project_section_rename', requirements: ['id' => Requirement::UUID_V7, 'sectionId' => Requirement::UUID_V7], methods: ['POST'])]
@@ -198,19 +220,46 @@ final class ProjectSettingsController extends AbstractController
     }
 
     /**
-     * A new status at the end; an empty name adds nothing.
+     * A new status at the end, named and typed in a dialog over the settings,
+     * or on a page of its own. A missing name is told in the dialog.
      */
-    #[Route('/projects/{id}/statuses', name: 'app_project_status_add', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
-    public function addStatus(string $id, Request $request): RedirectResponse
+    #[Route('/projects/{id}/statuses', name: 'app_project_status_add', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
+    public function addStatus(string $id, Request $request): Response
     {
-        $name = trim($request->request->getString('name'));
-        $type = StatusType::tryFrom($request->request->getString('type'));
+        $this->denyUnlessStaff();
+        $settings = $this->load($id);
+        $name = '';
+        $type = StatusType::Open->value;
+        $error = null;
+        if ($request->isMethod('POST')) {
+            $this->checkToken($request);
+            $name = trim($request->request->getString('name'));
+            $type = $request->request->getString('type');
+            $chosen = StatusType::tryFrom($type);
+            if ('' === $name) {
+                $error = $this->translator->trans('work.settings.error.status_name');
+            } elseif (!$chosen instanceof StatusType) {
+                $error = $this->translator->trans('work.settings.error.status_type');
+            } else {
+                try {
+                    $this->workflow->add($id, $name, $chosen);
+                    $this->addFlash('success', $this->translator->trans('work.settings.status_added', ['name' => $name]));
 
-        return $this->change($id, $request, function () use ($id, $name, $type): void {
-            if ('' !== $name) {
-                $this->workflow->add($id, $name, $type ?? throw new WorkRefused('unknown'));
+                    return $this->back($id);
+                } catch (WorkRefused $refused) {
+                    $this->notFoundIfUnknown($refused);
+                    $error = $this->translator->trans('work.refused.'.$refused->reason);
+                }
             }
-        });
+        }
+
+        return $this->render('work/projects/status_new.html.twig', [
+            'project' => $settings->project,
+            'name' => $name,
+            'type' => $type,
+            'types' => $this->types(),
+            'error' => $error,
+        ], new Response(status: null === $error ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
     /**

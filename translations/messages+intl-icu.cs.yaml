@@ -259,6 +259,10 @@ party:
     full: Otevřít celý formulář
     create: Vytvořit zákazníka
     errors_title: Zákazník zatím není uložený
+    contact:
+      title: Nový kontakt
+      create: Vytvořit kontakt
+      errors_title: Kontakt zatím není uložený
   header:
     import: Importovat
     export: Exportovat
@@ -3526,12 +3530,16 @@ work:
     sections_empty: Projekt zatím nemá žádné sekce.
     section_name: Název sekce
     add_section: Přidat sekci
-    add_section_placeholder: Název sekce a Enter
     statuses: Stavy
     status_name: Název stavu
     status_type: Typ
-    new_status: Nový stav
     add_status: Přidat stav
+    section_added: 'Sekce {name} je přidaná.'
+    status_added: 'Stav {name} je přidaný.'
+    error:
+      section_name: Zadejte název sekce.
+      status_name: Zadejte název stavu.
+      status_type: Vyberte typ stavu.
     status_removed: 'Stav {name} je odebraný.'
     workflow_applied: 'Stavy projektu jsou teď podle šablony {name}.'
     move_up: 'Posunout nahoru: {name}'

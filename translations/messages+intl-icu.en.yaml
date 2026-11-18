@@ -259,6 +259,10 @@ party:
     full: Open the full form
     create: Create customer
     errors_title: The customer is not saved yet
+    contact:
+      title: New contact
+      create: Create contact
+      errors_title: The contact is not saved yet
   header:
     import: Import
     export: Export
@@ -3526,12 +3530,16 @@ work:
     sections_empty: The project has no sections yet.
     section_name: Section name
     add_section: Add a section
-    add_section_placeholder: Section name and Enter
     statuses: Statuses
     status_name: Status name
     status_type: Type
-    new_status: New status
     add_status: Add a status
+    section_added: 'The section {name} is added.'
+    status_added: 'The status {name} is added.'
+    error:
+      section_name: Enter a name for the section.
+      status_name: Enter a name for the status.
+      status_type: Choose a type for the status.
     status_removed: 'The status {name} is removed.'
     workflow_applied: 'The statuses of the project now follow the {name} template.'
     move_up: 'Move up: {name}'

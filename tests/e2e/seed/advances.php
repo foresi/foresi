@@ -44,7 +44,8 @@ $advanceOf = static fn (string $description, ?TaxOnReceiptChoice $choice): Invoi
 $advanceOf('First milestone', null);
 $waiting = $advanceOf('Second milestone', TaxOnReceiptChoice::Skip);
 $money = Money::of('1210.00', Currency::CZK);
-// Paid today, so its 15 days for a tax document never run out before the spec does.
+// Paid today, not on the fixed seed day: the tax document is due within 15 days of the payment, so
+// the notice the spec reads says "waits", never "is late", whenever the suite runs.
 $recordPayment->record(new PaymentRequest($advancesFirm->id(), new DateTimeImmutable('today'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($waiting->id(), $money)]));
 // The supply is known now: by the rules VAT arose on the payment, which has no tax document yet.
 $entityManager->getConnection()->executeStatement('UPDATE invoice SET tax_on_receipt = NULL WHERE id = ?', [$waiting->id()]);

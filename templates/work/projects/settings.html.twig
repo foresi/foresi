@@ -2,9 +2,10 @@
 {#
     The settings of a project: what it is and for whom, whether its time is billable and, for an owner, its hourly rate,
     with its archiving; its sections in order,
-    each renamed, moved or removed by a form of its own, or shared in a dialog, and a line that adds one; its statuses in
-    order, each with its name and type, moved, or removed in a dialog that asks where its tasks go, and a workflow
-    template that replaces them all, chosen and confirmed in a dialog.
+    each renamed, moved or removed by a form of its own, or shared in a dialog, and a header action that adds one in a
+    dialog; its statuses in order, each with its name and type, moved, or removed in a dialog that asks where its tasks
+    go, a header action that adds one in a dialog, and a workflow template that replaces them all, chosen and confirmed
+    in a dialog.
 #}
 {% extends 'layout/app.html.twig' %}
 
@@ -68,6 +69,11 @@
         </twig:Ui:Card>
 
         <twig:Ui:Card :title="'work.settings.sections'|trans" icon="columns-3" data-settings-sections>
+            <twig:block name="actions">
+                {% if not project.archivedAt %}
+                    <twig:Ui:Button size="sm" variant="ghost" icon="plus" :href="path('app_project_section_add', {id: project.id})" data-dialog aria-haspopup="dialog" data-settings-section-add>{{ 'work.settings.add_section'|trans }}</twig:Ui:Button>
+                {% endif %}
+            </twig:block>
             <div class="grid gap-3">
                 {% if sections is empty %}
                     <p class="m-0 text-muted">{{ 'work.settings.sections_empty'|trans }}</p>
@@ -97,18 +103,13 @@
                         {% endfor %}
                     </ol>
                 {% endif %}
-                {% if not project.archivedAt %}
-                    <form method="post" action="{{ path('app_project_section_add', {id: project.id}) }}" class="max-w-field-long border-t border-divider pt-3" data-settings-section-add>
-                        <input type="hidden" name="_token" value="{{ token }}">
-                        <twig:Ui:TextInput name="name" id="section-add" :label="'work.settings.add_section'|trans" :placeholder="'work.settings.add_section_placeholder'|trans" maxlength="120" autocomplete="off" enterkeyhint="send" />
-                    </form>
-                {% endif %}
             </div>
         </twig:Ui:Card>
 
         <twig:Ui:Card :title="'work.settings.statuses'|trans" icon="circle-check" data-settings-statuses>
             <twig:block name="actions">
                 <twig:Ui:Button size="sm" variant="ghost" icon="refresh-cw" :href="path('app_project_workflow', {id: project.id})" data-dialog aria-haspopup="dialog" data-settings-apply-workflow>{{ 'work.settings.apply_workflow.open'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button size="sm" variant="ghost" icon="plus" :href="path('app_project_status_add', {id: project.id})" data-dialog aria-haspopup="dialog" data-settings-status-add>{{ 'work.settings.add_status'|trans }}</twig:Ui:Button>
             </twig:block>
             <div class="grid gap-3">
                 <ol class="m-0 grid list-none divide-y divide-divider p-0">
@@ -128,12 +129,6 @@
                         </li>
                     {% endfor %}
                 </ol>
-                <form method="post" action="{{ path('app_project_status_add', {id: project.id}) }}" class="flex flex-wrap items-end gap-2 border-t border-divider pt-3" data-settings-status-add>
-                    <input type="hidden" name="_token" value="{{ token }}">
-                    <div class="min-w-0 flex-1"><twig:Ui:TextInput name="name" id="status-add" :label="'work.settings.new_status'|trans" :placeholder="'work.settings.status_name'|trans" maxlength="80" autocomplete="off" /></div>
-                    <div class="w-36"><twig:Ui:Select name="type" id="status-add-type" :label="'work.settings.status_type'|trans" :options="types" value="open" /></div>
-                    <twig:Ui:Button type="submit" icon="plus">{{ 'work.settings.add_status'|trans }}</twig:Ui:Button>
-                </form>
             </div>
         </twig:Ui:Card>
     </div>
