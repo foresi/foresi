@@ -16,8 +16,8 @@ use Foresi\Work\Application\View\NotificationLists;
 use PHPUnit\Framework\TestCase;
 
 /**
- * The inbox's list definition (saved views D3, D12): its fields and the two tabs it had, New
- * as its All and Done, neither counted (D9).
+ * The inbox's list definition (saved views D3, D12): its fields and the two tabs it had, All
+ * (what is not done) and Done, neither counted (D9).
  */
 final class NotificationListsTest extends TestCase
 {
@@ -29,7 +29,7 @@ final class NotificationListsTest extends TestCase
         self::assertSame('work.notifications', $list->key);
         self::assertSame(
             [
-                ['all', 'work.notifications.tab.new', [], 0],
+                ['all', 'work.notifications.tab.all', [], 0],
                 ['done', 'work.notifications.tab.done', [['field' => 'done', 'op' => 'is', 'value' => true]], 1],
             ],
             array_map(static fn (DefaultView $view): array => [$view->slug, $view->name, $view->filter->toArray()['conditions'], $view->position], $list->defaults),

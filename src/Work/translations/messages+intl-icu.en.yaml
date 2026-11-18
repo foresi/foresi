@@ -427,7 +427,7 @@ work:
     views: Notification views
     read_all: Mark all as read
     tab:
-      new: New
+      all: All
       done: Done
     filter:
       mentions: Mentions

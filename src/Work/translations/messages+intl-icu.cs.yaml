@@ -427,7 +427,7 @@ work:
     views: Pohledy na oznámení
     read_all: Označit vše jako přečtené
     tab:
-      new: Nové
+      all: Vše
       done: Hotové
     filter:
       mentions: Zmínky
