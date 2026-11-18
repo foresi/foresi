@@ -1,0 +1,61 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The rows of the filter builder of Ui:FilterBar (spec D11): one condition a row, its field
+    first, then its operator, then a value whose controls the field's type decides, as Linear's
+    and Notion's filter rows. Every control is in the markup and the form is a plain GET; with
+    JavaScript the controls an operator or a date rule does not use are hidden (filter-bar#sync).
+#}
+{% macro row(field, row, i, prefix, blank, rules) %}
+    {% set name = 'c[' ~ i ~ ']' %}
+    {% set id = prefix ~ '-c' ~ i %}
+    {% set empty = 'is_empty is_not_empty' %}
+    <fieldset class="m-0 grid min-w-0 gap-3 rounded-control border border-container p-3" data-filter-row="{{ field.key }}">
+        <legend class="sr-only">{{ field.label }}</legend>
+        <div class="flex min-w-0 items-center justify-between gap-2">
+            <span class="truncate font-medium" aria-hidden="true">{{ field.label }}</span>
+            {% if not blank %}
+                <button type="button" class="grid size-7 shrink-0 place-items-center rounded-control text-muted hover:bg-head [@media(scripting:none)]:hidden {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" aria-label="{{ 'ui.view_filter.remove'|trans({label: field.label}) }}" data-action="filter-bar#removeRow">{{ ux_icon('lucide:x', {class: 'size-4', 'aria-hidden': 'true'}) }}</button>
+            {% endif %}
+        </div>
+        <input type="hidden" name="{{ name }}[field]" value="{{ field.key }}">
+        <twig:Ui:Select :name="name ~ '[op]'" :id="id ~ '-op'" :label="'ui.view_filter.condition'|trans" :options="blank ? {'': 'ui.view_filter.none'|trans}|merge(field.ops) : field.ops" :value="row.op" data-filter-op />
+        {% if field.type == 'enum' %}
+            <fieldset class="m-0 grid gap-2 border-0 p-0" data-hide-op="{{ empty }}">
+                <legend class="mb-1 text-small text-muted">{{ 'ui.view_filter.value'|trans }}</legend>
+                {% for value, label in field.options %}
+                    <twig:Ui:Checkbox :name="name ~ '[values][]'" :id="id ~ '-v-' ~ loop.index" :label="label" :value="value" :checked="value in row.values" />
+                {% endfor %}
+            </fieldset>
+        {% elseif field.type == 'boolean' %}
+            <twig:Ui:Select :name="name ~ '[value]'" :id="id ~ '-value'" :label="'ui.view_filter.value'|trans" :options="field.options" :value="row.value" />
+        {% elseif field.type == 'reference' %}
+            <div data-hide-op="{{ empty }}">
+                <twig:Ui:Combobox :name="name ~ '[value]'" :id="id ~ '-value'" :textName="name ~ '[text]'" :label="'ui.view_filter.value'|trans" :value="row.value" :text="row.text" :url="field.url ?? ''" :emptyText="'ui.view_filter.no_match'|trans" />
+            </div>
+        {% elseif field.type == 'number' %}
+            <div class="grid grid-cols-2 gap-2" data-hide-op="{{ empty }}">
+                <twig:Ui:TextInput :name="name ~ '[from]'" :id="id ~ '-from'" :label="'ui.view_filter.value'|trans" :value="row.from" inputmode="decimal" autocomplete="off" />
+                <div data-show-op="between"><twig:Ui:TextInput :name="name ~ '[to]'" :id="id ~ '-to'" :label="'ui.view_filter.to'|trans" :value="row.to" inputmode="decimal" autocomplete="off" /></div>
+            </div>
+        {% elseif field.type == 'date' %}
+            <div class="grid gap-3" data-hide-op="{{ empty }}">
+                {{ _self.dateEnd(name ~ '[from]', id ~ '-from', row.from, rules, 'ui.view_filter.value'|trans) }}
+                <div data-show-op="between">{{ _self.dateEnd(name ~ '[to]', id ~ '-to', row.to, rules, 'ui.view_filter.to'|trans) }}</div>
+            </div>
+        {% endif %}
+    </fieldset>
+{% endmacro %}
+
+{% macro dateEnd(name, id, end, rules, label) %}
+    <div class="grid gap-2" data-date-end>
+        <twig:Ui:Select :name="name ~ '[rule]'" :id="id ~ '-rule'" :label="label" :options="rules" :value="end.rule" data-filter-rule />
+        <div data-show-rule="day"><twig:Ui:TextInput type="date" :name="name ~ '[day]'" :id="id ~ '-day'" :label="'ui.view_filter.rule.day'|trans" :value="end.day" /></div>
+        <div data-show-rule="month"><twig:Ui:TextInput :name="name ~ '[month]'" :id="id ~ '-month'" :label="'ui.view_filter.month'|trans" :value="end.month" placeholder="2026-10" pattern="[0-9]{4}-[0-9]{2}" autocomplete="off" /></div>
+        <div data-show-rule="last_n_days next_n_days n_days_ago n_days_from_now"><twig:Ui:TextInput type="number" :name="name ~ '[n]'" :id="id ~ '-n'" :label="'ui.view_filter.days'|trans" :value="end.n" min="1" max="365" /></div>
+    </div>
+{% endmacro %}
+
+{# The conditions the builder cannot show as rows, sent back as they are. #}
+{% macro kept(builder, start) %}
+    {% for json in builder.kept %}<input type="hidden" name="c[{{ start + loop.index0 }}][raw]" value="{{ json }}">{% endfor %}
+{% endmacro %}

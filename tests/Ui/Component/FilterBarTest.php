@@ -119,6 +119,20 @@ final class FilterBarTest extends KernelTestCase
         self::assertStringContainsString('Firm: Sample a.s.', $crawler->filter('[data-filter-chips-phone]')->text());
     }
 
+    public function testTheConditionsOfTheBuilderAreChipsAndCountOnThePhone(): void
+    {
+        $crawler = $this->render([
+            'filters' => [['name' => 'firm', 'label' => 'Firm', 'options' => self::FIRMS, 'value' => 'f2', 'pinned' => true]],
+            'conditions' => [
+                ['label' => 'Due date: before today', 'href' => '/invoices?f=a', 'removeLabel' => 'Remove filter Due date'],
+                ['label' => 'Total: ≥ 100', 'href' => '/invoices?f=b', 'removeLabel' => 'Remove filter Total'],
+            ],
+        ]);
+
+        self::assertStringContainsString('(3)', $crawler->filter('[data-filter-open]')->text());
+        self::assertSame(['/invoices?f=a', '/invoices?f=b'], $crawler->filter('[data-filter-chips] [data-filter-condition-remove]')->each(static fn (Crawler $link): string => (string) $link->attr('href')));
+    }
+
     public function testWithoutScriptANoscriptFormHoldsEveryFilter(): void
     {
         $noscript = $this->render()->filter('noscript')->last()->html();
