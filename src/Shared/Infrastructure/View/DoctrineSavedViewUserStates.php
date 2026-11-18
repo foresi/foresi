@@ -11,11 +11,10 @@ namespace Foresi\Shared\Infrastructure\View;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Shared\Application\View\SavedViewUserStates;
 use Foresi\Shared\Domain\View\SavedViewUserState;
-use Symfony\Component\Clock\ClockInterface;
 
 final readonly class DoctrineSavedViewUserStates implements SavedViewUserStates
 {
-    public function __construct(private EntityManagerInterface $em, private ClockInterface $clock)
+    public function __construct(private EntityManagerInterface $em)
     {
     }
 
@@ -26,7 +25,8 @@ final readonly class DoctrineSavedViewUserStates implements SavedViewUserStates
 
     public function remember(string $viewId, string $userId, array $display): void
     {
-        $now = \DateTimeImmutable::createFromInterface($this->clock->now());
+        // Only bookkeeping: nothing reads when a person last changed their display.
+        $now = new \DateTimeImmutable();
         $state = $this->state($viewId, $userId);
         if (!$state instanceof SavedViewUserState) {
             $this->em->persist(new SavedViewUserState($viewId, $userId, $display, $now));
