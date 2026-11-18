@@ -19,11 +19,7 @@
         </twig:Ui:EmptyState>
     {% else %}
         <div class="grid grid-cols-1 gap-4">
-            <twig:Ui:Tabs :items="tabs" :label="'firm.views'|trans" />
             <twig:Ui:DataTable :caption="'firm.title'|trans" :columns="columns" :rows="rows">
-                <twig:block name="empty">
-                    <twig:Ui:EmptyState icon="building-2" :title="'firm.empty_view.title'|trans" :text="'firm.empty_view.text'|trans" />
-                </twig:block>
                 <twig:block name="footer">
                     <span class="num">{{ 'firm.summary'|trans({total: total}) }}</span>
                 </twig:block>
