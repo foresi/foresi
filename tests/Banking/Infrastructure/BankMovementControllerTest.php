@@ -53,7 +53,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
         $incoming = $this->page('/bank');
         self::assertSame('page', $incoming->filter('main nav[aria-label="Bank views"] a[href="/bank"]')->attr('aria-current'));
         self::assertSame([$otherId, $unmatchedId, $pairedId], $this->rowIds($incoming), 'Newest first, incoming only.');
-        self::assertSame('20260001', $this->row($incoming, $pairedId)->filter('a[href="/invoices/'.$paid->id().'/edit"]')->text());
+        self::assertSame('20260001', $this->row($incoming, $pairedId)->filter('a[href="/invoices/'.$paid->id().'"][data-sheet]')->text());
         self::assertStringContainsString($this->nb('+1,210.00 Kč'), $this->row($incoming, $pairedId)->text());
         self::assertStringContainsString('Example Remitter Ltd', $this->row($incoming, $unmatchedId)->text());
         self::assertStringContainsString('No invoice has its symbol', $this->row($incoming, $unmatchedId)->text());
