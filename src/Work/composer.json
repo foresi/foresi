@@ -17,6 +17,7 @@
             "module": "work",
             "kind": "module",
             "namespace": "Foresi\\Work\\",
+            "bundle": "Foresi\\Work\\WorkBundle",
             "optional": []
         }
     }

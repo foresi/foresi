@@ -10,14 +10,39 @@ namespace Foresi\Tests\Shared\Infrastructure\Module;
 
 use Foresi\Attachment\AttachmentBundle;
 use Foresi\Audit\AuditBundle;
+use Foresi\Banking\Application\ProcessInboundMessage;
+use Foresi\Banking\BankingBundle;
+use Foresi\CashFlow\CashFlowBundle;
+use Foresi\Country\CountryBundle;
 use Foresi\Events\EventsBundle;
+use Foresi\ExchangeRate\ExchangeRateBundle;
 use Foresi\Identity\IdentityBundle;
+use Foresi\Idoklad\Application\Message\ProcessIdokladJob;
+use Foresi\Idoklad\IdokladBundle;
+use Foresi\Import\Application\Message\ArchiveMissing;
+use Foresi\Import\Application\Message\CheckImportChunk;
+use Foresi\Import\Application\Message\ReadImportFile;
+use Foresi\Import\Application\Message\RunImportChunk;
+use Foresi\Import\Application\Message\UndoImportChunk;
+use Foresi\Import\ImportBundle;
 use Foresi\Instance\InstanceBundle;
+use Foresi\Invoicing\Application\DeliverInvoiceSend;
+use Foresi\Invoicing\Application\IssueRecurringTemplate;
+use Foresi\Invoicing\Infrastructure\Messenger\WaitForLeaseMiddleware;
+use Foresi\Invoicing\InvoicingBundle;
+use Foresi\Party\Application\RecheckRegistry;
+use Foresi\Party\Infrastructure\Doctrine\CastTextFunction;
+use Foresi\Party\Infrastructure\Doctrine\VatIdType;
+use Foresi\Party\PartyBundle;
+use Foresi\Purchasing\PurchasingBundle;
 use Foresi\Shared\Infrastructure\Module\InstalledModules;
 use Foresi\Shared\Infrastructure\Module\ModuleBundle;
 use Foresi\Shared\SharedBundle;
+use Foresi\Timesheet\TimesheetBundle;
 use Foresi\Ui\UiBundle;
 use Foresi\Webhooks\WebhooksBundle;
+use Foresi\Work\Application\SendNotificationMail;
+use Foresi\Work\WorkBundle;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Config\FileLocator;
@@ -120,6 +145,46 @@ final class ModuleBundleTest extends KernelTestCase
         yield 'identity' => [new IdentityBundle(), 'prod', ['Identity'], []];
         yield 'attachment' => [new AttachmentBundle(), 'prod', ['Attachment'], []];
         yield 'ui' => [new UiBundle(), 'prod', [], []];
+        yield 'banking' => [new BankingBundle(), 'prod', ['Banking'], [ProcessInboundMessage::class => 'async']];
+        yield 'cash flow' => [new CashFlowBundle(), 'prod', ['CashFlow'], []];
+        yield 'country' => [new CountryBundle(), 'prod', [], []];
+        yield 'exchange rate' => [new ExchangeRateBundle(), 'prod', ['ExchangeRate'], []];
+        yield 'idoklad' => [new IdokladBundle(), 'prod', ['Idoklad'], [ProcessIdokladJob::class => 'async']];
+        yield 'import' => [new ImportBundle(), 'prod', ['Import'], [
+            ReadImportFile::class => 'async',
+            CheckImportChunk::class => 'async',
+            RunImportChunk::class => 'async',
+            ArchiveMissing::class => 'async',
+            UndoImportChunk::class => 'async',
+        ]];
+        yield 'purchasing' => [new PurchasingBundle(), 'prod', ['Purchasing'], []];
+        yield 'timesheet' => [new TimesheetBundle(), 'prod', ['Timesheet'], []];
+        yield 'work' => [new WorkBundle(), 'prod', ['Work'], [SendNotificationMail::class => 'async']];
+    }
+
+    public function testPartyAddsItsTypeAndFunctionBeforeItsMappingAndRouting(): void
+    {
+        $builder = $this->builder('prod');
+        new PartyBundle()->prependExtension($this->configurator($builder, 'prod'), $builder);
+
+        self::assertSame(['Party'], $this->mappings($builder));
+        self::assertSame([
+            'dbal' => ['types' => ['vat_id' => VatIdType::class]],
+            'orm' => ['dql' => ['string_functions' => ['CAST_TEXT' => CastTextFunction::class]]],
+        ], $builder->getExtensionConfig('doctrine')[0]);
+        self::assertSame([['messenger' => ['routing' => [RecheckRegistry::class => 'registry']]]], $builder->getExtensionConfig('framework'));
+    }
+
+    public function testInvoicingAddsItsMiddlewareBeforeItsRouting(): void
+    {
+        $builder = $this->builder('prod');
+        new InvoicingBundle()->prependExtension($this->configurator($builder, 'prod'), $builder);
+
+        self::assertSame(['Invoicing'], $this->mappings($builder));
+        self::assertSame([
+            ['messenger' => ['buses' => ['messenger.bus.default' => ['middleware' => [WaitForLeaseMiddleware::class]]]]],
+            ['messenger' => ['routing' => [IssueRecurringTemplate::class => 'async', DeliverInvoiceSend::class => 'mail']]],
+        ], $builder->getExtensionConfig('framework'));
     }
 
     public function testAModuleWithoutEntitiesGetsNoMapping(): void
