@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Party\Infrastructure\Form;
 
-use Foresi\Identity\Application\OwnerCheck;
 use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\EmailPurpose;
@@ -19,6 +18,7 @@ use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyEmail;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Infrastructure\Http\TypedAmount;
@@ -40,7 +40,7 @@ final readonly class FirmSettingsReader
 {
     private const int MAX_DUE_DAYS = 365;
 
-    public function __construct(private ContactSettingsForFirm $settings, private OwnerCheck $owner)
+    public function __construct(private ContactSettingsForFirm $settings, private ActorRole $role)
     {
     }
 
@@ -52,7 +52,7 @@ final readonly class FirmSettingsReader
     {
         $posted = $request->request->all('firms');
         $parsed = new FirmSettingsParsed();
-        $rates = $this->owner->isOwner();
+        $rates = $this->role->isOwner();
         $locale = $request->getLocale();
 
         $shared = $posted[FirmSettingsSubmission::SHARED] ?? null;

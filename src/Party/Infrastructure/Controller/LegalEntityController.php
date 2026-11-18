@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Party\Infrastructure\Controller;
 
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
-use Foresi\Identity\Application\OwnerCheck;
 use Foresi\Party\Application\FirmImages;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\LegalEntityInput;
@@ -20,6 +19,7 @@ use Foresi\Party\Domain\VatStatus;
 use Foresi\Party\Infrastructure\Form\CountryOptions;
 use Foresi\Party\Infrastructure\Form\LegalEntitySubmission;
 use Foresi\Party\Infrastructure\Form\LegalEntitySubmissionReader;
+use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Infrastructure\Http\SubmissionTokens;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -49,7 +49,7 @@ final class LegalEntityController extends AbstractController
         private readonly LegalEntitySubmissionReader $reader,
         private readonly SubmissionTokens $tokens,
         private readonly TransactionalWork $transaction,
-        private readonly OwnerCheck $owner,
+        private readonly ActorRole $role,
         private readonly ClockInterface $clock,
         private readonly TranslatorInterface $translator,
         private readonly FirmImages $images,
@@ -342,7 +342,7 @@ final class LegalEntityController extends AbstractController
 
     private function denyUnlessOwner(): void
     {
-        if (!$this->owner->isOwner()) {
+        if (!$this->role->isOwner()) {
             throw new AccessDeniedHttpException('Only the owner manages firms.');
         }
     }

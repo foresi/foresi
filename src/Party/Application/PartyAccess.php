@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Party\Application;
 
 use Foresi\Audit\Application\AuditActor;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Shared\Application\ActorRole;
 
 /**
  * Who reads and changes the address book: the owners and the members of the
@@ -18,7 +18,7 @@ use Foresi\Identity\Application\StaffCheck;
  */
 final readonly class PartyAccess
 {
-    public function __construct(private StaffCheck $staff, private AuditActor $actor)
+    public function __construct(private ActorRole $role, private AuditActor $actor)
     {
     }
 
@@ -30,7 +30,7 @@ final readonly class PartyAccess
     public function denyUnlessStaff(): string
     {
         $userId = $this->actor->userId();
-        if (null === $userId || !$this->staff->isStaff()) {
+        if (null === $userId || !$this->role->isStaff()) {
             throw new PartyNotAllowed();
         }
 
@@ -47,7 +47,7 @@ final readonly class PartyAccess
      */
     public function denyUnlessMayChange(): void
     {
-        if (null !== $this->actor->userId() && !$this->staff->isStaff()) {
+        if (null !== $this->actor->userId() && !$this->role->isStaff()) {
             throw new PartyNotAllowed();
         }
     }

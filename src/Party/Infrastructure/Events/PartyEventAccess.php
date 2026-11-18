@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Party\Infrastructure\Events;
 
-use Foresi\Identity\Application\StaffCheck;
 use Foresi\Party\Application\PartyAccess;
 use Foresi\Party\Application\PartyNotAllowed;
+use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Application\Event\EventReadAccess;
 
 /**
@@ -19,7 +19,7 @@ use Foresi\Shared\Application\Event\EventReadAccess;
  */
 final readonly class PartyEventAccess implements EventReadAccess
 {
-    public function __construct(private PartyAccess $access, private StaffCheck $staff)
+    public function __construct(private PartyAccess $access, private ActorRole $role)
     {
     }
 
@@ -41,6 +41,6 @@ final readonly class PartyEventAccess implements EventReadAccess
 
     public function mayUserRead(string $userId): bool
     {
-        return $this->staff->isStaffMember($userId);
+        return $this->role->isStaffMember($userId);
     }
 }
