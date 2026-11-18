@@ -28,7 +28,7 @@ async function expectNoSeriousViolations(page: Page): Promise<void> {
 // The supplier combobox: type a part of the name, take the option.
 async function pickSupplier(page: Page, name: string): Promise<void> {
   await page.locator('#supplier').fill(name.slice(0, 12));
-  // The list filter behind the dialog has a supplier select of its own; the combobox offers its names in a listbox.
+  // The combobox offers the names in a listbox.
   await page.getByRole('listbox').getByRole('option', { name }).click();
 }
 
