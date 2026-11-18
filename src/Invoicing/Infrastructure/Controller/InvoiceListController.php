@@ -142,7 +142,7 @@ final class InvoiceListController extends AbstractController
         $route = self::ROUTES[$kind->value];
         // The builder's rows (spec D11) become the list's working filter, in its address.
         if ($request->query->has(FilterRows::MARKER)) {
-            return $this->redirect($this->generateUrl($route, $this->builtQuery($request->query, $kind)), Response::HTTP_SEE_OTHER);
+            return $this->redirectToRoute($route, $this->builtQuery($request->query, $kind), Response::HTTP_SEE_OTHER);
         }
         [$filter, $views, $view] = $this->filterOf($request->query, $kind);
         $shown = $filter->view ?? $view->filter;

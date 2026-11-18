@@ -83,7 +83,7 @@ final class FilterRowsTest extends TestCase
 
         $rows = array_map(static fn (Condition $condition): array => FilterRows::row($condition, $list->fields[$condition->field]), $conditions);
 
-        self::assertSame((new ViewFilter($conditions))->toArray(), FilterRows::parse($rows, $list)->toArray());
+        self::assertSame(new ViewFilter($conditions)->toArray(), FilterRows::parse($rows, $list)->toArray());
     }
 
     public function testAConditionTheBuilderCannotShowIsSentBackWhole(): void

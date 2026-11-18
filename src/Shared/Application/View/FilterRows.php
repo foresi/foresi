@@ -75,7 +75,7 @@ final readonly class FilterRows
      */
     public static function editable(Condition $condition, Field $field): bool
     {
-        return FieldType::Text !== $field->type && !(FieldType::Reference === $field->type && 'is_any_of' === $condition->op);
+        return FieldType::Text !== $field->type && (FieldType::Reference !== $field->type || 'is_any_of' !== $condition->op);
     }
 
     /**
