@@ -20,8 +20,8 @@ final readonly class ContactListSlots implements SlotProvider
     public function items(string $slot, array $context): iterable
     {
         return match ($slot) {
-            ContactListActions::HEADER => [new SlotItem('party/import/_list_actions.html.twig')],
-            ContactListActions::BULK => [new SlotItem('party/import/_bulk_export.html.twig')],
+            ContactListActions::HEADER => [new SlotItem('@Party/import/_list_actions.html.twig')],
+            ContactListActions::BULK => [new SlotItem('@Party/import/_bulk_export.html.twig')],
             default => [],
         };
     }
