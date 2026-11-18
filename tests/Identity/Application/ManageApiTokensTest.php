@@ -196,6 +196,48 @@ final class ManageApiTokensTest extends TestCase
         $this->expectRefusal(ApiTokenRefused::NOT_YOURS, fn (): array => $this->service()->organisation());
     }
 
+    public function testMyConnectionsAreMyOAuthClientsOnly(): void
+    {
+        $token = $this->token($this->me);
+        $mine = $this->connection($this->me);
+        $this->connection($this->colleague);
+
+        self::assertSame([$mine], $this->service()->myConnections());
+        self::assertSame([$token], $this->service()->mine(), 'A connection is not a personal token.');
+    }
+
+    public function testAGuestListsNoConnections(): void
+    {
+        $this->roles[$this->me->id()] = Role::Guest;
+
+        $this->expectRefusal(ApiTokenRefused::NOT_STAFF, fn (): array => $this->service()->myConnections());
+        $this->expectRefusal(ApiTokenRefused::NOT_STAFF, fn (): array => $this->service()->organisationConnections());
+    }
+
+    public function testAnOwnerListsTheConnectionsOfTheWholeOrganisation(): void
+    {
+        $this->roles[$this->me->id()] = Role::Owner;
+        $this->token($this->colleague);
+        $mine = $this->connection($this->me);
+        $theirs = $this->connection($this->colleague);
+
+        self::assertSame([$mine, $theirs], $this->service()->organisationConnections());
+    }
+
+    public function testAMemberDoesNotListTheConnectionsOfTheWholeOrganisation(): void
+    {
+        $this->expectRefusal(ApiTokenRefused::NOT_YOURS, fn (): array => $this->service()->organisationConnections());
+    }
+
+    public function testIDisconnectMyOwnClient(): void
+    {
+        $connection = $this->connection($this->me);
+
+        $this->service()->revoke($connection->id());
+
+        self::assertSame($this->me->id(), $connection->revokedBy());
+    }
+
     public function testIRevokeMyOwnToken(): void
     {
         $token = $this->token($this->me);
@@ -211,7 +253,7 @@ final class ManageApiTokensTest extends TestCase
     {
         $token = $this->token($this->colleague);
 
-        $this->expectRefusal(ApiTokenRefused::NOT_YOURS, fn () => $this->service()->revoke($token->id()));
+        $this->expectRefusal(ApiTokenRefused::NOT_YOURS, fn (): ApiToken => $this->service()->revoke($token->id()));
         self::assertNull($token->revokedAt());
         self::assertSame(0, $this->tokens->flushes);
     }
@@ -228,7 +270,7 @@ final class ManageApiTokensTest extends TestCase
 
     public function testAnUnknownTokenIsNotRevoked(): void
     {
-        $this->expectRefusal(ApiTokenRefused::UNKNOWN, fn () => $this->service()->revoke('019a0000-0000-7000-8000-0000000000ff'));
+        $this->expectRefusal(ApiTokenRefused::UNKNOWN, fn (): ApiToken => $this->service()->revoke('019a0000-0000-7000-8000-0000000000ff'));
     }
 
     public function testAGuestRevokesNothing(): void
@@ -236,7 +278,7 @@ final class ManageApiTokensTest extends TestCase
         $token = $this->token($this->me);
         $this->roles[$this->me->id()] = Role::Guest;
 
-        $this->expectRefusal(ApiTokenRefused::NOT_STAFF, fn () => $this->service()->revoke($token->id()));
+        $this->expectRefusal(ApiTokenRefused::NOT_STAFF, fn (): ApiToken => $this->service()->revoke($token->id()));
     }
 
     public function testTheOperatorRevokesAnyToken(): void
@@ -258,6 +300,14 @@ final class ManageApiTokensTest extends TestCase
     private function token(User $user): ApiToken
     {
         $token = new ApiToken($user->id(), 'Token', [ApiScope::read()], str_repeat('a', 64), 'wxyz', new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-12-01'));
+        $this->tokens->add($token);
+
+        return $token;
+    }
+
+    private function connection(User $user): ApiToken
+    {
+        $token = new ApiToken($user->id(), 'Claude', [ApiScope::read()], str_repeat('b', 64), 'abcd', new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-11-01 01:00'), '019a0000-0000-7000-8000-0000000000aa');
         $this->tokens->add($token);
 
         return $token;

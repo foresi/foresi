@@ -47,14 +47,27 @@ final class InMemoryApiTokens implements ApiTokens
         return null;
     }
 
+    /** @var list<array{string, string, string, \DateTimeImmutable}> */
+    public array $rotations = [];
+
     public function ofUser(string $userId): array
     {
-        return array_values(array_filter($this->tokens, static fn (ApiToken $token): bool => $token->userId() === $userId));
+        return array_values(array_filter($this->tokens, static fn (ApiToken $token): bool => $token->userId() === $userId && null === $token->oauthClientId()));
     }
 
     public function all(): array
     {
-        return $this->tokens;
+        return array_values(array_filter($this->tokens, static fn (ApiToken $token): bool => null === $token->oauthClientId()));
+    }
+
+    public function connections(?string $userId): array
+    {
+        return array_values(array_filter($this->tokens, static fn (ApiToken $token): bool => null !== $token->oauthClientId() && (null === $userId || $token->userId() === $userId)));
+    }
+
+    public function rotate(string $id, string $tokenHash, string $lastFour, \DateTimeImmutable $expiresAt): void
+    {
+        $this->rotations[] = [$id, $tokenHash, $lastFour, $expiresAt];
     }
 
     public function byHash(string $tokenHash): ?ApiTokenRecord

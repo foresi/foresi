@@ -20,14 +20,25 @@ interface ApiTokens
     public function find(string $id): ?ApiToken;
 
     /**
-     * @return list<ApiToken> the tokens of the user, newest first
+     * @return list<ApiToken> the personal tokens of the user, newest first; no OAuth connections
      */
     public function ofUser(string $userId): array;
 
     /**
-     * @return list<ApiToken> every token, newest first
+     * @return list<ApiToken> every personal token, newest first; no OAuth connections
      */
     public function all(): array;
+
+    /**
+     * @return list<ApiToken> the OAuth connections (ADR 0036) of the user, or of everyone for null, newest first
+     */
+    public function connections(?string $userId): array;
+
+    /**
+     * Puts a new access token into an OAuth connection: an update query, so no
+     * audit entry is written for the hourly refresh.
+     */
+    public function rotate(string $id, string $tokenHash, string $lastFour, \DateTimeImmutable $expiresAt): void;
 
     /**
      * The token with this hash.

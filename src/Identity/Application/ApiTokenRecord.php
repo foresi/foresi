@@ -31,6 +31,7 @@ final readonly class ApiTokenRecord
         public \DateTimeImmutable $expiresAt,
         public ?\DateTimeImmutable $lastUsedAt,
         public ?\DateTimeImmutable $revokedAt,
+        public ?string $oauthClientId = null,
     ) {
     }
 

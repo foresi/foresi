@@ -15,7 +15,9 @@ use Foresi\Shared\Domain\Id;
 
 /**
  * A personal API token: a person's access to one organisation from another
- * program, with what it may do and until when. Only the SHA-256 of its secret
+ * program, with what it may do and until when. A token linked to an OAuth
+ * client is that client's connection (ADR 0036): a refresh puts a new secret
+ * into the same row. Only the SHA-256 of its secret
  * is kept, and the last four characters to tell tokens apart. The hash and the
  * time of last use are never written to the audit log.
  */
@@ -65,6 +67,9 @@ class ApiToken implements Audited
         private \DateTimeImmutable $createdAt,
         #[ORM\Column(name: 'expires_at', type: 'datetime_immutable')]
         private \DateTimeImmutable $expiresAt,
+        // The OAuth client this token connects (ADR 0036); null for a personal token issued by hand.
+        #[ORM\Column(name: 'oauth_client_id', type: 'guid', nullable: true)]
+        private ?string $oauthClientId = null,
     ) {
         if ('' === $userId) {
             throw new \InvalidArgumentException('An API token belongs to a user.');
@@ -153,6 +158,11 @@ class ApiToken implements Audited
     public function revokedAt(): ?\DateTimeImmutable
     {
         return $this->revokedAt;
+    }
+
+    public function oauthClientId(): ?string
+    {
+        return $this->oauthClientId;
     }
 
     public function revokedBy(): ?string

@@ -63,6 +63,6 @@ final readonly class ApiTokenAuthentication
             $this->tokens->touch($record->id, $now, $usedAfter);
         }
 
-        return new ApiTokenGrant($record->userId, $record->id, $record->name, $record->scopes, $record->expiresAt);
+        return new ApiTokenGrant($record->userId, $record->id, $record->name, $record->scopes, $record->expiresAt, $record->oauthClientId);
     }
 }

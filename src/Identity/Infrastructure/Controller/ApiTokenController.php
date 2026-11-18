@@ -11,14 +11,15 @@ namespace Foresi\Identity\Infrastructure\Controller;
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\ApiTokenRefused;
 use Foresi\Identity\Application\ManageApiTokens;
+use Foresi\Identity\Application\OAuth\OAuthStore;
 use Foresi\Identity\Application\People;
 use Foresi\Identity\Application\Person;
 use Foresi\Identity\Application\UserRepository;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Domain\ApiToken;
 use Foresi\Identity\Domain\ApiTokenState;
+use Foresi\Identity\Domain\OAuth\OAuthClient;
 use Foresi\Identity\Domain\User;
-use Foresi\Shared\Application\Api\ApiResources;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -33,7 +34,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The personal API tokens in the settings: a person lists, issues and revokes
- * their own, an owner sees and revokes those of the other people too. Who may
+ * their own, an owner sees and revokes those of the other people too. The OAuth
+ * clients a person connected (ADR 0036) are listed apart and disconnected with
+ * the same revoke. Who may
  * do what is decided by the service; this controller only turns its refusals
  * into answers. The secret of a new token is in the answer to the form that
  * issued it, once, and is never stored, redirected to or cached.
@@ -55,7 +58,8 @@ final class ApiTokenController extends AbstractController
         private readonly AuditActor $actor,
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
-        private readonly ApiResources $resources,
+        private readonly ApiScopeOptions $scopeOptions,
+        private readonly OAuthStore $oauth,
     ) {
     }
 
@@ -65,11 +69,13 @@ final class ApiTokenController extends AbstractController
         try {
             $mine = $this->tokens->mine();
             $others = $this->othersTokens();
+            $myConnections = $this->live($this->tokens->myConnections());
+            $othersConnections = null === $others ? null : $this->othersConnections();
         } catch (ApiTokenRefused $refused) {
             throw $this->denied($refused);
         }
         $people = [];
-        if (null !== $others) {
+        if (null !== $others || null !== $othersConnections) {
             foreach ($this->people->all() as $person) {
                 $people[$person->userId] = $person;
             }
@@ -81,6 +87,10 @@ final class ApiTokenController extends AbstractController
             'mineRows' => array_map(fn (ApiToken $token): array => $this->row($token, false, null), $mine),
             'othersColumns' => $this->columns(true),
             'othersRows' => null === $others ? null : array_map(fn (ApiToken $token): array => $this->row($token, true, $people[$token->userId()] ?? null), $others),
+            'connectionColumns' => $this->connectionColumns(false),
+            'connectionRows' => array_map(fn (ApiToken $token): array => $this->connectionRow($token, false, null), $myConnections),
+            'othersConnectionColumns' => $this->connectionColumns(true),
+            'othersConnectionRows' => null === $othersConnections ? null : array_map(fn (ApiToken $token): array => $this->connectionRow($token, true, $people[$token->userId()] ?? null), $othersConnections),
         ]);
     }
 
@@ -159,43 +169,26 @@ final class ApiTokenController extends AbstractController
     {
         $this->checkToken($request);
         try {
-            $this->tokens->revoke($id);
+            $token = $this->tokens->revoke($id);
         } catch (ApiTokenRefused $refused) {
             throw ApiTokenRefused::UNKNOWN === $refused->reason ? new NotFoundHttpException($refused->getMessage(), $refused) : $this->denied($refused);
         }
-        $this->addFlash('success', $this->translator->trans('api_tokens.flash.revoked'));
+        $this->addFlash('success', $this->translator->trans(null === $token->oauthClientId() ? 'api_tokens.flash.revoked' : 'api_tokens.flash.disconnected'));
 
         return $this->redirectToRoute(self::ROUTE);
     }
 
     /**
-     * Everything a token can be given: all reads, all writes, then reading or
-     * changing each resource of the installed modules.
-     *
      * @return array<string, string> scope => label
      */
     private function offeredScopes(): array
     {
-        $offered = [ApiScope::READ => $this->scopeLabel(ApiScope::read()), ApiScope::WRITE => $this->scopeLabel(ApiScope::write())];
-        foreach ($this->resources->declared() as $resource) {
-            foreach ([false, true] as $write) {
-                $scope = ApiScope::of($resource, $write);
-                $offered[$scope->value] = $this->scopeLabel($scope);
-            }
-        }
-
-        return $offered;
+        return $this->scopeOptions->offered();
     }
 
     private function scopeLabel(ApiScope $scope): string
     {
-        $resource = $scope->resource();
-        if (null === $resource) {
-            return $this->translator->trans('api_tokens.scope.'.$scope->value);
-        }
-        $name = $this->translator->trans('api_tokens.resource.'.$resource);
-
-        return $this->translator->trans($scope->writes() ? 'api_tokens.scope.resource_write' : 'api_tokens.scope.resource_read', ['resource' => $name]);
+        return $this->scopeOptions->label($scope);
     }
 
     /**
@@ -216,6 +209,87 @@ final class ApiTokenController extends AbstractController
         $me = $this->actor->userId();
 
         return array_values(array_filter($all, static fn (ApiToken $token): bool => $token->userId() !== $me));
+    }
+
+    /**
+     * @return list<ApiToken> the live OAuth connections of the other people; for an owner
+     *
+     * @throws ApiTokenRefused
+     */
+    private function othersConnections(): array
+    {
+        $me = $this->actor->userId();
+
+        return array_values(array_filter($this->live($this->tokens->organisationConnections()), static fn (ApiToken $token): bool => $token->userId() !== $me));
+    }
+
+    /**
+     * A disconnected client is gone: its revoked row is no longer listed.
+     *
+     * @param list<ApiToken> $connections
+     *
+     * @return list<ApiToken>
+     */
+    private function live(array $connections): array
+    {
+        return array_values(array_filter($connections, static fn (ApiToken $token): bool => !$token->revokedAt() instanceof \DateTimeImmutable));
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function connectionColumns(bool $withPerson): array
+    {
+        $columns = [['key' => 'name', 'label' => $this->translator->trans('api_tokens.column.app'), 'truncate' => true]];
+        if ($withPerson) {
+            $columns[] = ['key' => 'person', 'label' => $this->translator->trans('api_tokens.column.person'), 'truncate' => true, 'phone' => false];
+            $columns[] = ['key' => 'email', 'label' => $this->translator->trans('api_tokens.column.email'), 'truncate' => true, 'phone' => false];
+        }
+
+        return [...$columns,
+            ['key' => 'verified', 'label' => $this->translator->trans('api_tokens.column.verified_by'), 'phone' => false],
+            ['key' => 'access', 'label' => $this->translator->trans('api_tokens.column.access'), 'phone' => false],
+            ['key' => 'created', 'label' => $this->translator->trans('api_tokens.column.connected'), 'phone' => false],
+            ['key' => 'lastUsed', 'label' => $this->translator->trans('api_tokens.column.last_used')],
+        ];
+    }
+
+    /**
+     * One connected OAuth client: its name, who vouches for the name and what it may do.
+     *
+     * @return array<string, mixed>
+     */
+    private function connectionRow(ApiToken $token, bool $withPerson, ?Person $person): array
+    {
+        $clientId = $token->oauthClientId();
+        $client = null === $clientId ? null : $this->oauth->client($clientId);
+        $host = $client instanceof OAuthClient ? $client->verifiedHost() : null;
+        $lastUsed = $token->lastUsedAt();
+        $cells = ['name' => $token->name()];
+        if ($withPerson) {
+            $cells['person'] = $person?->name;
+            $cells['email'] = $person?->email;
+        }
+
+        return [
+            'id' => $token->id(),
+            'label' => $token->name(),
+            'secondary' => $host ?? $this->translator->trans('api_tokens.connection.unverified'),
+            'cells' => $cells + [
+                'verified' => $host ?? ['badges' => [['label' => $this->translator->trans('api_tokens.connection.unverified'), 'tone' => 'amber']]],
+                'access' => ['badges' => array_map(fn (ApiScope $scope): array => ['label' => $this->scopeLabel($scope), 'tone' => 'gray'], $token->scopes())],
+                'created' => $this->date($token->createdAt()),
+                'lastUsed' => $lastUsed instanceof \DateTimeImmutable ? $lastUsed->format($this->translator->trans('format.datetime')) : $this->translator->trans('api_tokens.never'),
+            ],
+            'actions' => [
+                ['label' => $this->translator->trans('api_tokens.action.disconnect'), 'href' => $this->generateUrl(self::REVOKE_ROUTE, ['id' => $token->id()]), 'method' => 'POST', 'confirm' => [
+                    'title' => $this->translator->trans('api_tokens.confirm.disconnect.title', ['name' => $token->name()]),
+                    'text' => $this->translator->trans('api_tokens.confirm.disconnect.text'),
+                    'accept' => $this->translator->trans('api_tokens.action.disconnect'),
+                    'tone' => 'danger',
+                ]],
+            ],
+        ];
     }
 
     /**

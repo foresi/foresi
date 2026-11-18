@@ -35,7 +35,7 @@ security:
             provider: app_user_provider
             entry_point: Foresi\Identity\Infrastructure\Security\ApiTokenFailure
             access_token:
-                token_handler: Foresi\Identity\Infrastructure\Security\ApiTokenHandler
+                token_handler: foresi.mcp_token_handler
                 failure_handler: Foresi\Identity\Infrastructure\Security\ApiTokenFailure
         main:
             lazy: true
@@ -86,7 +86,9 @@ security:
         - { request_matcher: Foresi\Shared\Infrastructure\Security\PublicRoute, roles: PUBLIC_ACCESS }
         # The OpenAPI document describes the API and holds no data.
         - { path: ^/api/v1/openapi\.json$, roles: PUBLIC_ACCESS }
-        # Everything else of the API and MCP needs a personal API token.
+        # The consent screen of OAuth clients (ADR 0036) is behind the ordinary sign-in, by the last rule;
+        # its token endpoint, registration and metadata are public routes above.
+        # Everything else of the API and MCP needs a personal API token, or on MCP an OAuth access token.
         - { path: ^/api/, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/mcp(/|$), roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/, roles: ROLE_USER }
