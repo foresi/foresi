@@ -62,7 +62,7 @@ final class InboundMessageControllerTest extends BankScreenTestCase
 
         $this->client->submit($retry->first()->form());
 
-        self::assertResponseRedirects('/bank?tab=messages');
+        self::assertResponseRedirects('/bank?view=messages');
         $row = $this->messageRow($id);
         self::assertSame('processed', $row['status']);
         self::assertSame(1, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM bank_movement WHERE inbound_message_id = ?', [$id])));
@@ -81,7 +81,7 @@ final class InboundMessageControllerTest extends BankScreenTestCase
             FailingInboundFiles::breakReadsOn(null);
         }
 
-        self::assertResponseRedirects('/bank?tab=messages');
+        self::assertResponseRedirects('/bank?view=messages');
         self::assertStringContainsString('The e-mail could not be processed now. Try again later.', $this->page('/bank?tab=messages')->filter('main')->text());
         self::assertSame('failed', $this->messageRow($id)['status']);
     }
@@ -99,14 +99,14 @@ final class InboundMessageControllerTest extends BankScreenTestCase
         self::assertCount(1, $this->row($crawler, $untrusted)->filter('a[href^="/bank/messages/'.$untrusted.'/accept"][data-dialog]'));
         self::assertCount(0, $this->row($crawler, $mismatch)->filter('a[href$="/accept"]'));
         $this->client->request('GET', '/bank/messages/'.$mismatch.'/accept');
-        self::assertResponseRedirects('/bank?tab=messages');
+        self::assertResponseRedirects('/bank?view=messages');
 
         $dialog = $this->dialog('/bank/messages/'.$untrusted.'/accept');
         self::assertStringContainsString('The e-mail failed the check of its sender and may be forged', $dialog->filter('dialog')->text());
         self::assertStringContainsString('checked in your internet banking that the payment really came', $dialog->filter('dialog')->text());
         $this->client->request('POST', '/bank/messages/'.$untrusted.'/accept', $dialog->filter('form#accept-form')->form()->getPhpValues(), server: self::DIALOG);
 
-        self::assertSame(['location' => '/bank?tab=messages'], $this->json());
+        self::assertSame(['location' => '/bank?view=messages'], $this->json());
         self::assertSame('processed', $this->messageRow($untrusted)['status']);
         // Who recorded it anyway, and when, stays on the message.
         $audit = $this->connection()->fetchAssociative('SELECT changes, user_id, occurred_at FROM audit_entry WHERE entity_class = ? AND entity_id = ?', [InboundMessage::class, $untrusted]);
@@ -118,7 +118,7 @@ final class InboundMessageControllerTest extends BankScreenTestCase
         self::assertSame(['state' => 'unmatched', 'unmatched_reason' => 'unverified', 'trust_basis' => 'accepted-by-user'], $movement);
 
         $this->client->request('POST', '/bank/messages/'.$mismatch.'/accept', ['_token' => $this->messageToken()]);
-        self::assertResponseRedirects('/bank?tab=messages');
+        self::assertResponseRedirects('/bank?view=messages');
         self::assertSame('rejected', $this->messageRow($mismatch)['status']);
         self::assertSame(0, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM bank_movement WHERE inbound_message_id = ?', [$mismatch])));
     }
@@ -152,7 +152,7 @@ final class InboundMessageControllerTest extends BankScreenTestCase
         self::assertSame('rejected', $this->messageRow($id)['status'], 'Opening the confirmation changes nothing.');
         $this->client->request('POST', '/bank/messages/'.$id.'/dismiss', $dialog->filter('form#dismiss-form')->form()->getPhpValues(), server: self::DIALOG);
 
-        self::assertSame(['location' => '/bank?tab=messages'], $this->json());
+        self::assertSame(['location' => '/bank?view=messages'], $this->json());
         self::assertSame('dismissed', $this->messageRow($id)['status']);
         $key = Scalars::text($this->connection()->fetchOne('SELECT raw_key FROM inbound_message WHERE id = ?', [$id]));
         self::assertFileExists(Scalars::text(self::getContainer()->getParameter('app.inbound_mail_dir')).'/'.$key);
@@ -168,7 +168,7 @@ final class InboundMessageControllerTest extends BankScreenTestCase
 
         // Dismissed already: a second time changes nothing.
         $this->client->request('POST', '/bank/messages/'.$id.'/dismiss', ['_token' => $this->messageToken()]);
-        self::assertResponseRedirects('/bank?tab=messages');
+        self::assertResponseRedirects('/bank?view=messages');
         self::assertSame(1, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM audit_entry WHERE entity_id = ?', [$id])));
     }
 

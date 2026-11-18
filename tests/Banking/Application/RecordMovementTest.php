@@ -14,6 +14,7 @@ use Foresi\Banking\Application\MovementInput;
 use Foresi\Banking\Application\PairingChoices;
 use Foresi\Banking\Application\PairingRules;
 use Foresi\Banking\Application\RecordMovement;
+use Foresi\Banking\Application\View\BankMovementLists;
 use Foresi\Banking\Contract\MovementDirection;
 use Foresi\Banking\Contract\ParsedMovement;
 use Foresi\Banking\Domain\MessageTrust;
@@ -31,6 +32,7 @@ use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Contract\BankAccountUsage;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Banking\Support\BankingTestCase;
@@ -168,7 +170,7 @@ final class RecordMovementTest extends BankingTestCase
         $stored = $this->storedMovement($movement->id());
         self::assertSame([MovementState::Recorded, null, MovementDirection::Outgoing], [$stored->state(), $stored->unmatchedReason(), $stored->direction()]);
         self::assertSame(0, $this->paymentCount());
-        self::assertSame(0, $this->movements->count(new MovementFilter(MovementFilter::OUTGOING_UNMATCHED)), 'nothing waits in the queue');
+        self::assertSame(0, $this->movements->count(new MovementFilter(BankMovementLists::of([])->default('outgoing_unmatched')->filter ?? new ViewFilter())), 'nothing waits in the queue');
     }
 
     public function testTheSameFingerprintFromAnotherMessageIsAPossibleDuplicate(): void

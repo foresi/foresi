@@ -340,12 +340,12 @@ final class ProcessMessageTest extends InboundTestCase
 
         $notices = $this->notices(staff: true);
         self::assertSame([
-            ['error', '2 bank e-mails could not be processed. Check them and try again.', '/bank?tab=messages'],
-            ['info', 'An incoming payment is not paired with an invoice.', '/bank?tab=unmatched'],
+            ['error', '2 bank e-mails could not be processed. Check them and try again.', '/bank?view=messages'],
+            ['info', 'An incoming payment is not paired with an invoice.', '/bank?view=unmatched'],
         ], array_map(static fn (ShellNotice $notice): array => [$notice->tone, $notice->text, $notice->href], $notices));
         self::assertSame([], $this->notices(staff: false));
         // The real routes lead to the bank screen.
-        self::assertSame(['/bank?tab=messages', '/bank?tab=unmatched'], array_map(static fn (ShellNotice $notice): string => $notice->href, iterator_to_array($this->bankNotices(true, self::getContainer()->get(UrlGeneratorInterface::class))->notices(), false)));
+        self::assertSame(['/bank?view=messages', '/bank?view=unmatched'], array_map(static fn (ShellNotice $notice): string => $notice->href, iterator_to_array($this->bankNotices(true, self::getContainer()->get(UrlGeneratorInterface::class))->notices(), false)));
     }
 
     private function accept(bool $owner = true): AcceptRejectedMessage

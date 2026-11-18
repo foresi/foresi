@@ -8,33 +8,37 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Application;
 
+use Foresi\Banking\Application\View\BankMovementLists;
+use Foresi\Shared\Application\View\ViewFilter;
+
 /**
- * Which part of the bank screen to show: the incoming or outgoing movements, the
- * incoming or outgoing ones waiting for a pairing, or the bank mail that came; of one firm or
- * account or all, newest first. The text narrows by partner, symbol, message or
- * amount; one movement can be asked for by its id, as a payment links to it.
+ * Which part of the bank screen to show: the movements a view holds, or the bank
+ * mail that came when the view asks for it (BankMovementLists), newest first. The
+ * text narrows the movements by partner, symbol, message or amount; one movement
+ * can be asked for by its id, as a payment links to it. The views whose tabs show a
+ * count are counted within the same text (spec D9).
  */
 final readonly class MovementFilter
 {
     public const int PER_PAGE = 25;
-    public const string INCOMING = 'incoming';
-    public const string OUTGOING = 'outgoing';
-    public const string UNMATCHED = 'unmatched';
-    /** Outgoing and not paired: a refund waiting for a person, or money that refunds nothing. */
-    public const string OUTGOING_UNMATCHED = 'outgoing_unmatched';
-    public const string MESSAGES = 'messages';
-    public const array TABS = [self::INCOMING, self::OUTGOING, self::UNMATCHED, self::OUTGOING_UNMATCHED, self::MESSAGES];
 
+    /**
+     * @param array<string, ViewFilter> $counted the filters of the views whose tabs show a count, by view key
+     */
     public function __construct(
-        public string $tab = self::INCOMING,
-        public ?string $firmId = null,
-        public ?string $accountId = null,
+        public ViewFilter $view = new ViewFilter(),
         public string $text = '',
         public int $page = 1,
         public ?string $movementId = null,
+        public array $counted = [],
     ) {
-        if (!\in_array($tab, self::TABS, true)) {
-            throw new \InvalidArgumentException(\sprintf('Unknown tab "%s".', $tab));
-        }
+    }
+
+    /**
+     * Whether the screen lists the bank mail rather than the movements.
+     */
+    public function mail(): bool
+    {
+        return BankMovementLists::showsMail($this->view);
     }
 }

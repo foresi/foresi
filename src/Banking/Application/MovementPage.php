@@ -9,9 +9,10 @@ declare(strict_types=1);
 namespace Foresi\Banking\Application;
 
 /**
- * One page of the bank screen: the movements of the tab, or the messages on the
- * Messages tab, and what the filters and tabs offer: how many incoming and how many
- * outgoing movements wait for a pairing and how many messages wait for someone.
+ * One page of the bank screen: the movements of the view, or the messages of a view
+ * of the bank mail, the counts of the tabs that show one, and the firms and accounts
+ * the columns name. A view of movements counts them; a view of the bank mail counts
+ * the messages that wait for someone.
  */
 final readonly class MovementPage
 {
@@ -20,6 +21,7 @@ final readonly class MovementPage
      * @param list<MessageRow>                                                  $messages
      * @param array<string, string>                                             $firms    name by firm id, of the firms with an account
      * @param array<string, array{firmId: string, label: string, iban: string}> $accounts by account id, in the order of the firms
+     * @param array<string, int>                                                $counts   by the key of each view counted
      */
     public function __construct(
         public array $rows,
@@ -27,11 +29,10 @@ final readonly class MovementPage
         public int $total,
         public int $page,
         public int $pages,
-        public int $unmatched,
-        public int $attention,
         public array $firms,
         public array $accounts,
-        public int $outgoingUnmatched = 0,
+        public array $counts = [],
+        public bool $mail = false,
     ) {
     }
 }
