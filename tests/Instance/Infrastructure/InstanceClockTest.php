@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Instance\Infrastructure;
 
-use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Foresi\Instance\Application\ConfiguredZone;
 use Foresi\Instance\Application\InstanceClock;
@@ -28,24 +27,22 @@ final class InstanceClockTest extends KernelTestCase
 {
     use ClockSensitiveTrait;
 
-    private EntityManagerInterface $em;
-
     protected function setUp(): void
     {
         self::bootKernel();
         // 23:30 UTC: already the next day in Prague, still the same one in New York.
         self::mockTime('2026-12-31 23:30:00');
-        $this->em = self::getContainer()->get('doctrine.orm.entity_manager');
+        $em = self::getContainer()->get('doctrine.orm.entity_manager');
 
-        $tool = new SchemaTool($this->em);
-        $metadata = $this->em->getMetadataFactory()->getAllMetadata();
+        $tool = new SchemaTool($em);
+        $metadata = $em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
     }
 
     public function testTheConfiguredZoneWins(): void
     {
-        $clock = new InstanceClock(new ConfiguredZone('America/New_York'), self::fallback('Europe/Prague'), self::getContainer()->get(ClockInterface::class));
+        $clock = new InstanceClock(new ConfiguredZone('America/New_York'), $this->fallback('Europe/Prague'), self::getContainer()->get(ClockInterface::class));
 
         self::assertSame('America/New_York', $clock->timezone()->getName());
         self::assertSame('2026-12-31 00:00:00 America/New_York', $clock->today()->format('Y-m-d H:i:s e'));
@@ -54,7 +51,7 @@ final class InstanceClockTest extends KernelTestCase
 
     public function testWithoutAConfiguredZoneTheFallbackLendsItsOwn(): void
     {
-        $clock = new InstanceClock(new ConfiguredZone(''), self::fallback('Europe/Prague'), self::getContainer()->get(ClockInterface::class));
+        $clock = new InstanceClock(new ConfiguredZone(''), $this->fallback('Europe/Prague'), self::getContainer()->get(ClockInterface::class));
 
         self::assertSame('Europe/Prague', $clock->timezone()->getName());
         self::assertSame('2027-01-01 00:00:00 Europe/Prague', $clock->today()->format('Y-m-d H:i:s e'));
@@ -139,7 +136,7 @@ final class InstanceClockTest extends KernelTestCase
         return new InstanceClock(new ConfiguredZone($configured), $container->get(ZoneFallback::class), $container->get(ClockInterface::class));
     }
 
-    private static function fallback(string $zone): ZoneFallback
+    private function fallback(string $zone): ZoneFallback
     {
         return new readonly class($zone) implements ZoneFallback {
             public function __construct(private string $zone)
