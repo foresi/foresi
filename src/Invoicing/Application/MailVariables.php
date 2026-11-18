@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
+use Foresi\Invoicing\Contract\IssuedDocument;
 use Foresi\Invoicing\Domain\MailTemplateKind;
 use Foresi\Shared\Domain\Money;
 

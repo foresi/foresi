@@ -20,7 +20,7 @@ use Foresi\Invoicing\Application\InvoiceFilter;
 use Foresi\Invoicing\Application\Query\InvoiceList;
 use Foresi\Invoicing\Application\Query\InvoiceListItem;
 use Foresi\Invoicing\Application\Query\InvoiceSliceFilter;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Infrastructure\Api\InvoiceApiController;
 use Foresi\Shared\Domain\Money;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;

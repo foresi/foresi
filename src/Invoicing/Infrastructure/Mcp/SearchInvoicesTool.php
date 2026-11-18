@@ -11,7 +11,7 @@ namespace Foresi\Invoicing\Infrastructure\Mcp;
 use Foresi\Invoicing\Application\InvoicingNotAllowed;
 use Foresi\Invoicing\Application\Query\InvoiceList;
 use Foresi\Invoicing\Application\Query\InvoiceSliceFilter;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Infrastructure\Api\InvoiceJson;
 use Foresi\Invoicing\Infrastructure\Api\InvoiceListQuery;
 use Foresi\Shared\Infrastructure\Mcp\ReadTool;

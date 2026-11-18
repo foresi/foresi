@@ -18,7 +18,7 @@ deptrac:
       collectors:
         - type: directory
           value: src/Shared/Application/.*
-    # The contract of a module: its published events and their kind. Depends on the shared domain only.
+    # The contract of a module: what other modules may use of it. Depends on the shared domain and Party's domain only.
     - name: Contract
       collectors:
         - type: classLike
@@ -272,6 +272,11 @@ deptrac:
       collectors:
         - type: directory
           value: src/Country/CzechRepublic/.*
+    # The Czech rules for Invoicing, Banking and ExchangeRate, loaded only with that module (ADR 0033).
+    - name: CountryIntegration
+      collectors:
+        - type: directory
+          value: src/Country/Integration/.*
     # Presentation shared by all modules (Twig components, layout helpers).
     # Its bundle wires the module like every module's bundle, outside the layers.
     - name: Ui
@@ -977,13 +982,17 @@ deptrac:
     CountryCzechRepublic:
       - SharedDomain
       - SharedInfrastructure
-      - ExchangeRateApplication
       - PartyDomain
       - PartyApplication
-      - InvoicingDomain
-      - InvoicingApplication
-      - BankingDomain
-      - BankingApplication
+    # Of the module it serves, an integration uses the contract only.
+    CountryIntegration:
+      - CountryCzechRepublic
+      - Contract
+      - SharedDomain
+      - SharedInfrastructure
+      - PartyDomain
+      - PartyApplication
+      - VendorSymfony
     EventsDomain:
       - Contract
       - SharedDomain
@@ -1072,6 +1081,7 @@ deptrac:
     # The operator task contract lives in Instance's application layer.
     ExchangeRateSchedule:
       - ExchangeRateApplication
+      - Contract
       - InstanceApplication
     # Symfony and Twig only: Ui never reaches into a module's Domain.
     Ui:
@@ -1082,6 +1092,10 @@ deptrac:
       - Contract
     Contract:
       - SharedDomain
+      # Party is in the core (ADR 0034): a contract may name its values, such as an address.
+      - PartyDomain
+      # A value a module publishes and stores, such as the frozen party of a document.
+      - VendorDoctrineOrmMapping
       # The autoconfigure tag attribute of a contract port, such as CashFlowSource, that
       # integration code implements (ADR 0033); nothing else of Symfony is used there.
       - VendorSymfony

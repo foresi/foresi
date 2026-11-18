@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Infrastructure\Mime;
 
-use Foresi\Banking\Application\InboundMail;
 use Foresi\Banking\Application\MailReader;
+use Foresi\Banking\Contract\InboundMail;
 use ZBateson\MailMimeParser\Header\AddressHeader;
 use ZBateson\MailMimeParser\Header\DateHeader;
 use ZBateson\MailMimeParser\IMessage;

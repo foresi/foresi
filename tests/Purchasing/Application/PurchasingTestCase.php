@@ -11,7 +11,7 @@ namespace Foresi\Tests\Purchasing\Application;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Foresi\Attachment\Application\AttachmentUpload;
-use Foresi\ExchangeRate\Application\RateSource;
+use Foresi\ExchangeRate\Contract\RateSource;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;

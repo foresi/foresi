@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Tests\Banking\Application;
 
 use Foresi\Banking\Application\MovementInput;
-use Foresi\Banking\Application\ParsedMovement;
+use Foresi\Banking\Contract\MovementDirection;
+use Foresi\Banking\Contract\ParsedMovement;
 use Foresi\Banking\Domain\BankMovement;
-use Foresi\Banking\Domain\MovementDirection;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use PHPUnit\Framework\TestCase;

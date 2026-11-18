@@ -9,10 +9,10 @@ declare(strict_types=1);
 namespace Foresi\Tests\Banking\Application;
 
 use Foresi\Banking\Application\AuthenticationResultsParser;
-use Foresi\Banking\Application\InboundMail;
 use Foresi\Banking\Application\MailAuthentication;
 use Foresi\Banking\Application\TrustSettings;
 use Foresi\Banking\Application\TrustVerdict;
+use Foresi\Banking\Contract\InboundMail;
 use Foresi\Banking\Domain\InboundChannel;
 use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Banking\Infrastructure\Mime\ZbatesonMailReader;

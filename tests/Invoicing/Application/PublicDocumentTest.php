@@ -10,7 +10,7 @@ namespace Foresi\Tests\Invoicing\Application;
 
 use Foresi\Invoicing\Application\PaymentState;
 use Foresi\Invoicing\Application\PublicDocument;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\LinkAudience;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\PaymentMethod;

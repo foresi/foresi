@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Application;
 
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\PeriodText;
 use Foresi\Invoicing\Domain\RecurringInvoice;

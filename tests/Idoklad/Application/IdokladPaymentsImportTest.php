@@ -22,7 +22,7 @@ use Foresi\Idoklad\Domain\ImportOptions;
 use Foresi\Invoicing\Application\Deductible;
 use Foresi\Invoicing\Application\DeductibleAdvances;
 use Foresi\Invoicing\Application\UndoImportedDocuments;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\Payment;
 use Foresi\Party\Domain\Address;

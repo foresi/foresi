@@ -8,8 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Application;
 
+use Foresi\Banking\Contract\MovementDirection;
+use Foresi\Banking\Contract\ParsedMovement;
 use Foresi\Banking\Domain\BankMovement;
-use Foresi\Banking\Domain\MovementDirection;
 use Foresi\Shared\Domain\Money;
 
 /**

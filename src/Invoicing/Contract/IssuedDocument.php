@@ -1,0 +1,98 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\Invoicing\Contract;
+
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+
+/**
+ * A read-only view of an issued invoice, its lines and rate summaries, for the
+ * PDF and the country code. Everything comes from what is stored, except what a
+ * reminder asks for once part of the invoice is paid.
+ */
+final readonly class IssuedDocument
+{
+    /**
+     * @param list<DocumentLine>                                                        $lines
+     * @param list<RateSummary>                                                         $summaries
+     * @param string|null                                                               $advanceNumber   the advance invoice a tax document on payment taxes a payment of
+     * @param array<string, array{number: string, variableSymbol: string, taxed: bool}> $deposits        what deduction lines deduct, by id:
+     *                                                                                                   a tax document is taxed, an advance invoice is not
+     * @param string|null                                                               $correctedNumber the document a corrective tax document corrects
+     * @param CorrectedDocument|null                                                    $corrected       the same document, for the electronic file
+     */
+    public function __construct(
+        public string $id,
+        public DocumentKind $kind,
+        public string $number,
+        public VatRegime $regime,
+        public TotalRounding $roundingPolicy,
+        public Currency $currency,
+        public string $exchangeRate,
+        public DocumentParty $customer,
+        public DocumentParty $issuer,
+        public \DateTimeImmutable $issueDate,
+        public ?\DateTimeImmutable $taxPointDate,
+        public \DateTimeImmutable $dueDate,
+        public PaymentMethod $paymentMethod,
+        public ?string $bankAccount,
+        public string $variableSymbol,
+        public string $constantSymbol,
+        public string $orderNumber,
+        public string $description,
+        public string $textBefore,
+        public string $textAfter,
+        public DocumentLanguage $language,
+        public array $lines,
+        public array $summaries,
+        public Money $net,
+        public Money $vat,
+        public Money $gross,
+        public Money $rounding,
+        public Money $payable,
+        public bool $trashed = false,
+        public ?Money $leftToPay = null,
+        public ?string $advanceNumber = null,
+        public bool $deductsAdvances = false,
+        public array $deposits = [],
+        public ?string $correctedNumber = null,
+        public ?string $correctionReason = null,
+        public ?\DateTimeImmutable $decisiveDate = null,
+        public ?CorrectedDocument $corrected = null,
+    ) {
+    }
+
+    /**
+     * A corrective tax document below zero: it lowers what is owed and asks for no payment.
+     */
+    public function isCreditNote(): bool
+    {
+        return DocumentKind::CorrectionDocument === $this->kind && $this->payable->isNegative();
+    }
+
+    /**
+     * Whether the document asks the customer to pay it: a payable kind, or a
+     * corrective tax document that adds to what is owed.
+     */
+    public function asksForPayment(): bool
+    {
+        return $this->kind->isPayable() || (DocumentKind::CorrectionDocument === $this->kind && 0 < $this->payable->minor());
+    }
+
+    /**
+     * What the customer is asked to pay: what is left of a part-paid invoice in a
+     * reminder, else the whole payable.
+     */
+    public function toPay(): Money
+    {
+        return $this->leftToPay ?? $this->payable;
+    }
+}

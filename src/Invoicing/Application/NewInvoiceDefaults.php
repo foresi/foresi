@@ -8,15 +8,15 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
-use Foresi\Invoicing\Domain\DocumentKind;
-use Foresi\Invoicing\Domain\Percent;
-use Foresi\Invoicing\Domain\PriceType;
-use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\Percent;
+use Foresi\Invoicing\Contract\PriceType;
+use Foresi\Invoicing\Contract\Quantity;
+use Foresi\Invoicing\Contract\TaxTreatment;
+use Foresi\Invoicing\Contract\VatRateKind;
+use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\Series;
-use Foresi\Invoicing\Domain\TaxTreatment;
 use Foresi\Invoicing\Domain\VariableSymbol;
-use Foresi\Invoicing\Domain\VatRateKind;
-use Foresi\Invoicing\Domain\VatRegime;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Domain\DocumentLanguage;

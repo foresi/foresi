@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
+use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\RecurringInvoice;
-use Foresi\Invoicing\Domain\VatRegime;
 use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\PartyQuery;

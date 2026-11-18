@@ -10,12 +10,12 @@ namespace Foresi\Invoicing\Infrastructure\Form;
 
 use Foresi\Invoicing\Application\FirmInvoicingSettings;
 use Foresi\Invoicing\Application\InvoicingCountries;
-use Foresi\Invoicing\Application\InvoicingCountry;
 use Foresi\Invoicing\Application\UnsupportedCountry;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\InvoicingCountry;
+use Foresi\Invoicing\Contract\TotalRounding;
+use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\Invoice;
-use Foresi\Invoicing\Domain\TotalRounding;
-use Foresi\Invoicing\Domain\VatRegime;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Currency;
 

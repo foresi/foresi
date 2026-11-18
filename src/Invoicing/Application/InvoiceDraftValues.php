@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
-use Foresi\Invoicing\Domain\DocumentKind;
-use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;

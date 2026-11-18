@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\Quantity;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceLine;
-use Foresi\Invoicing\Domain\Quantity;
 
 /**
  * What the form of a corrective tax document opens with: the invoice it corrects

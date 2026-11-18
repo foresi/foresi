@@ -11,7 +11,7 @@ namespace Foresi\Invoicing\Infrastructure\Doctrine;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Invoicing\Application\SeriesCatalog;
 use Foresi\Invoicing\Application\UnknownSeries;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesCounter;

@@ -11,7 +11,7 @@ namespace Foresi\Invoicing\Infrastructure\Doctrine;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Invoicing\Application\AdvanceDocuments;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\Payment;
 use Foresi\Invoicing\Domain\PaymentAllocation;

@@ -18,16 +18,16 @@ use Foresi\Invoicing\Application\IssueRefused;
 use Foresi\Invoicing\Application\LineInput;
 use Foresi\Invoicing\Application\MarkDelivered;
 use Foresi\Invoicing\Application\TrashInvoice;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentLine;
+use Foresi\Invoicing\Contract\Percent;
+use Foresi\Invoicing\Contract\PriceType;
+use Foresi\Invoicing\Contract\Quantity;
+use Foresi\Invoicing\Contract\TaxTreatment;
+use Foresi\Invoicing\Contract\VatRateKind;
 use Foresi\Invoicing\Domain\Invoice;
-use Foresi\Invoicing\Domain\InvoiceLine;
-use Foresi\Invoicing\Domain\Percent;
-use Foresi\Invoicing\Domain\PriceType;
-use Foresi\Invoicing\Domain\Quantity;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
-use Foresi\Invoicing\Domain\TaxTreatment;
-use Foresi\Invoicing\Domain\VatRateKind;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
 use Foresi\Party\Domain\DocumentLanguage;
@@ -190,7 +190,7 @@ abstract class InvoiceWorker extends KernelTestCase
         while (microtime(true) < $startAt + $seconds) {
             $document = $documents->of($ids['invoices'][0]);
             ++$reads;
-            $lines = array_sum(array_map(static fn (InvoiceLine $line): int => $line->net()->minor(), $document->lines));
+            $lines = array_sum(array_map(static fn (DocumentLine $line): int => $line->net()->minor(), $document->lines));
             $torn += $lines === $document->net->minor() ? 0 : 1;
         }
 
@@ -215,9 +215,9 @@ abstract class InvoiceWorker extends KernelTestCase
             $found[] = [
                 'number' => $invoice->number(),
                 'headerNet' => $invoice->net()->minor(),
-                'lineNet' => array_sum(array_map(static fn (InvoiceLine $line): int => $line->net()->minor(), $lines)),
-                'positions' => array_map(static fn (InvoiceLine $line): int => $line->position(), $lines),
-                'texts' => array_map(static fn (InvoiceLine $line): string => $line->text(), $lines),
+                'lineNet' => array_sum(array_map(static fn (DocumentLine $line): int => $line->net()->minor(), $lines)),
+                'positions' => array_map(static fn (DocumentLine $line): int => $line->position(), $lines),
+                'texts' => array_map(static fn (DocumentLine $line): string => $line->text(), $lines),
                 'trashed' => $invoice->isTrashed(),
                 'delivered' => $invoice->isDelivered(),
                 'version' => $invoice->version(),

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Domain;
 
+use Foresi\Invoicing\Contract\DocumentParty;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PaymentMethod;

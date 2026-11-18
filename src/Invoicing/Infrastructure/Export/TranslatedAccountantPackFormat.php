@@ -10,10 +10,10 @@ namespace Foresi\Invoicing\Infrastructure\Export;
 
 use Foresi\Invoicing\Application\AccountantDocument;
 use Foresi\Invoicing\Application\AccountantPackFormat;
-use Foresi\Invoicing\Application\IssuedDocument;
 use Foresi\Invoicing\Application\VatRecap;
 use Foresi\Invoicing\Application\VatRecapLine;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\IssuedDocument;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
