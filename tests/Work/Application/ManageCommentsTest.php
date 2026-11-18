@@ -77,7 +77,7 @@ final class ManageCommentsTest extends WorkTestCase
 
         $this->signIn($this->guest);
         $this->assertRefused('unknown', fn (): TaskComment => $this->comments->add($this->task->id(), 'Hello'));
-        $this->assertRefused('unknown', fn () => $this->comments->delete($comment->id()));
+        $this->assertRefused('unknown', fn (): TaskComment => $this->comments->delete($comment->id()));
 
         $this->member->deactivate($this->clock->now());
         $this->em->flush();
@@ -99,7 +99,7 @@ final class ManageCommentsTest extends WorkTestCase
 
         $this->signIn($this->member);
         $this->assertRefused('comment_not_yours', fn () => $this->comments->edit($theirs->id(), 'No'));
-        $this->assertRefused('comment_not_yours', fn () => $this->comments->delete($theirs->id()));
+        $this->assertRefused('comment_not_yours', fn (): TaskComment => $this->comments->delete($theirs->id()));
         $this->comments->delete($mine->id());
         self::assertSame([true, 'Mine, edited', $this->member->user()->id()], [$mine->isDeleted(), $mine->text(), $mine->deletedBy()]);
         $this->assertRefused('comment_deleted', fn () => $this->comments->edit($mine->id(), 'Back'));
@@ -198,9 +198,9 @@ final class ManageCommentsTest extends WorkTestCase
         $theirs = $this->comments->add($this->task->id(), 'The owner speaks');
         $this->comments->delete($theirs->id());
         $this->signIn($this->member);
-        $this->assertRefused('comment_not_yours', fn () => $this->comments->restore($theirs->id()));
+        $this->assertRefused('comment_not_yours', fn (): TaskComment => $this->comments->restore($theirs->id()));
         $this->signIn($this->guest);
-        $this->assertRefused('unknown', fn () => $this->comments->restore($theirs->id()));
+        $this->assertRefused('unknown', fn (): TaskComment => $this->comments->restore($theirs->id()));
     }
 
     public function testThePurgeClearsTheTextAndFilesOfCommentsDeletedMoreThan30DaysAgo(): void
@@ -230,7 +230,7 @@ final class ManageCommentsTest extends WorkTestCase
         self::assertSame(0, self::getContainer()->get(PurgeDeletedComments::class)->run($this->clock->now()));
 
         self::assertNotNull($old);
-        $this->assertRefused('comment_purged', fn () => $this->comments->restore($old->id()));
+        $this->assertRefused('comment_purged', fn (): TaskComment => $this->comments->restore($old->id()));
     }
 
     public function testTheMentionListHoldsActiveStaffByName(): void
