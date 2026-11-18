@@ -215,13 +215,64 @@ final class TaskControllerTest extends WebTestCase
         self::assertCount(0, $description->filter('a[href]'));
     }
 
+    public function testThePickerOfTheTaskPageListsEveryLabelTicksTheTasksAndOffersTheStaffToCreate(): void
+    {
+        $this->signIn();
+        $this->seed();
+        $id = $this->taskId('Wireframes');
+        $crawler = $this->client->request('GET', '/tasks/'.$id);
+        $picker = $crawler->filter('[data-task-labels] form[data-multi-select]');
+
+        self::assertSame('/tasks/'.$id.'/labels', $picker->attr('action'));
+        self::assertSame('dialog', $picker->filter('#task-labels-popup')->attr('role'));
+        self::assertSame('true', $picker->filter('[role="listbox"]')->attr('aria-multiselectable'));
+        self::assertSame(['Design', 'Urgent'], $picker->filter('[role="option"][data-value]')->each(static fn (Crawler $option): string => (string) $option->attr('data-label')));
+        self::assertSame('true', $picker->filter('[role="option"][data-label="Design"]')->attr('aria-selected'));
+        self::assertSame('false', $picker->filter('[role="option"][data-label="Urgent"]')->attr('aria-selected'));
+        self::assertCount(1, $picker->filter('input[type="checkbox"][name="labels[]"][checked]'));
+        self::assertCount(1, $picker->filter('input[type="hidden"][name="create"]'));
+        self::assertSame('Create label “{name}”', $picker->attr('data-multi-select-create-label-value'));
+    }
+
+    public function testTheStaffCreateAGrayLabelByItsNameAndItIsTickedWithTheOthers(): void
+    {
+        $this->signIn();
+        $this->seed();
+        $id = $this->taskId('Wireframes');
+        $crawler = $this->client->request('GET', '/tasks/'.$id);
+        $form = $crawler->filter('form[data-multi-select]')->form();
+        $form['create'] = '  Client  ';
+        $this->client->submit($form);
+
+        self::assertResponseRedirects('/tasks/'.$id);
+        $crawler = $this->client->followRedirect();
+        self::assertSame(['Client', 'Design'], $crawler->filter('[data-task-labels] li')->each(static fn (Crawler $label): string => trim($label->text())));
+        self::assertSame(1, $this->rows("SELECT COUNT(*) FROM label WHERE name = 'Client' AND colour = 'gray'", []));
+    }
+
+    public function testANameTakenWhateverItsCaseIsRefusedAndNothingChanges(): void
+    {
+        $this->signIn();
+        $this->seed();
+        $id = $this->taskId('Wireframes');
+        $crawler = $this->client->request('GET', '/tasks/'.$id);
+        $form = $crawler->filter('form[data-multi-select]')->form();
+        $form['create'] = 'urgent';
+        $this->client->submit($form);
+
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('body', 'A label of this name exists already.');
+        self::assertSame(['Design'], $crawler->filter('[data-task-labels] li')->each(static fn (Crawler $label): string => trim($label->text())));
+        self::assertSame(2, $this->rows('SELECT COUNT(*) FROM label', []));
+    }
+
     public function testTheLabelsAreTickedInADialogAndSavedTogether(): void
     {
         $this->signIn();
         $this->seed();
         $id = $this->taskId('Wireframes');
         $crawler = $this->client->request('GET', '/tasks/'.$id);
-        self::assertSame('/tasks/'.$id.'/labels', $crawler->filter('[data-task-labels] a[data-dialog]')->attr('href'));
+        self::assertSame('/tasks/'.$id.'/labels', $crawler->filter('[data-task-labels] form[data-multi-select] a')->attr('href'));
 
         $crawler = $this->client->request('GET', '/tasks/'.$id.'/labels', server: ['HTTP_'.str_replace('-', '_', strtoupper(DialogRequest::HEADER)) => '1']);
         self::assertResponseIsSuccessful();

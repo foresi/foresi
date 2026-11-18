@@ -3271,6 +3271,11 @@ work:
     labels_edit: Vybrat štítky
     labels_title: Štítky úkolu
     labels_none: Organizace zatím nemá žádné štítky.
+    labels_search: Hledat štítky
+    labels_no_match: Žádný štítek neodpovídá.
+    labels_create: 'Vytvořit štítek «{name}»'
+    labels_new: Nový štítek
+    labels_new_help: Vytvoří šedý štítek a přidá ho k úkolu.
     created_by: 'Vytvořil(a) {name} {date}'
     created: 'Vytvořeno {date}'
     watchers:

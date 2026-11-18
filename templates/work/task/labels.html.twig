@@ -1,7 +1,8 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    The labels of a task: every label of the organisation to tick, saved together. A dialog over the
-    task; the same URL is a page of its own.
+    The labels of a task: every label of the organisation to tick, saved together, and for the staff a
+    new one by its name. A dialog over the task; the same URL is a page of its own, which the label
+    picker of the task page (Ui:MultiSelect) links to without JavaScript.
 #}
 {% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
 
@@ -20,6 +21,9 @@
                 <twig:Ui:Checkbox name="labels[]" :id="'label-' ~ label.id" :value="label.id" :label="label.name" :checked="label.id in checked" />
             {% endfor %}
         </fieldset>
+        {% if canCreate %}
+            <twig:Ui:TextInput name="create" id="task-labels-create" :label="'work.task.labels_new'|trans" :help="'work.task.labels_new_help'|trans" autocomplete="off" />
+        {% endif %}
     </form>
 {% endblock %}
 
