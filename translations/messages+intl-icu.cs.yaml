@@ -76,7 +76,7 @@ nav:
     settings: Nastavení
   item:
     people: Lidé
-    api: Přístup k API
+    api: API a MCP
     webhooks: Webhooky
     dashboard: Přehled
     shared_with_me: Sdíleno se mnou
@@ -196,7 +196,6 @@ shell:
     label: Menu účtu
     profile: Můj profil
     notifications: Nastavení oznámení
-    api_access: Přístupy k API a MCP
     language: 'Přepnout jazyk na {language}'
     soon: Brzy
   worker:
@@ -3077,7 +3076,7 @@ people:
     validity: '{days, plural, one {Odkaz funguje jednou, # den.} few {Odkaz funguje jednou, # dny.} other {Odkaz funguje jednou, # dní.}}'
     ignore: Pokud jste pozvánku nečekali, e-mail ignorujte.
 api_tokens:
-  title: Přístup k API
+  title: API a MCP
   new: Nový token
   mine: Moje tokeny
   others: Tokeny ostatních lidí
@@ -3106,6 +3105,7 @@ api_tokens:
     webhooks: Webhooky
     events: Události
     cashflow: Cash flow
+    received_documents: Přijaté doklady
   state:
     expired: Vypršel
     revoked: Zrušen
@@ -3136,7 +3136,9 @@ api_tokens:
     copy: Kopírovat token
     copied: Zkopírováno
     copy_failed: Kopírování selhalo; token je označený, stiskněte Ctrl+C.
-    use: Použijte ho jako bearer token v REST API (docs/api.md) nebo v MCP serveru (docs/mcp.md). Chraňte ho jako heslo.
+    use: Použijte ho jako bearer token v hlavičce Authorization pro MCP server nebo REST API. Chraňte ho jako heslo.
+    claude_code: Příkaz pro Claude Code s tímto tokenem
+    guide: Návod pro další klienty
     done: Hotovo
   flash:
     revoked: Token je zrušený.
@@ -3145,6 +3147,57 @@ api_tokens:
     name: Zadejte název dlouhý nejvýše 80 znaků.
     expiry: Vyberte, jak dlouho token platí.
     scopes: Vyberte, co smí token dělat.
+  tab:
+    tokens: Tokeny
+    connect: Připojení
+  connect:
+    intro: Foresi má MCP server. Claude a další AI klienti s ním čtou a mění vaše data pod tokenem, který tady vytvoříte. Každý klient potřebuje adresu serveru a token v hlavičce Authorization.
+    server: Adresa MCP serveru
+    copy: Kopírovat
+    copied: Zkopírováno
+    copy_failed: Kopírování selhalo; text je označený, stiskněte Ctrl+C.
+    steps:
+      title: Postup
+      token: Vytvořte token. Pro Clauda na začátek stačí jen čtení.
+      client: Přidejte server do svého klienta podle návodu níže a místo <token> vložte svůj token. Okno nového tokenu ukáže příkaz pro Claude Code i s tokenem.
+      check: Ověřte spojení prvním promptem.
+    clients: Návod pro klienty
+    client:
+      claude_code:
+        title: Claude Code
+        text: Spusťte příkaz v terminálu. Pak v Claude Code napište /mcp a zkontrolujte, že je server foresi připojený.
+      claude_ai:
+        title: claude.ai a Claude Desktop
+        text: V Claude otevřete Nastavení → Konektory → Přidat vlastní konektor. Zadejte název Foresi a adresu serveru, přihlášení přes OAuth nevybírejte a v části Request headers přidejte hlavičku níže. Claude Desktop konektory z claude.ai převezme.
+        header: Hlavička
+      desktop:
+        title: Claude Desktop přes konfigurační soubor
+        text: Když vlastní konektor použít nemůžete, otevřete v Claude Desktop Nastavení → Vývojář → Upravit konfiguraci a do claude_desktop_config.json přidejte server přes most mcp-remote (potřebuje Node.js). Pak Claude Desktop ukončete a spusťte znovu.
+      cursor:
+        title: Cursor
+        text: Přidejte server do ~/.cursor/mcp.json, nebo do .cursor/mcp.json v projektu.
+      vscode:
+        title: VS Code
+        text: Přidejte server do .vscode/mcp.json. VS Code má klíč servers, ne mcpServers, a token si vyžádá při prvním spuštění, takže v souboru nezůstane.
+      other:
+        title: Jiný MCP klient
+        text: Transport Streamable HTTP, adresa serveru výše a v každém požadavku tato hlavička.
+    check:
+      title: První prompt pro Clauda
+      text: Vložte ho do nového chatu. Claude zavolá nástroj whoami a řekne, kdo je přihlášený a co token smí.
+      prompt: Použij MCP server Foresi. Nejdřív zavolej whoami a řekni mi, za koho jsi přihlášený a jaká práva má token. Pak mi ukaž pět posledních neuhrazených faktur. Nic neměň, dokud tě o to výslovně nepožádám.
+    scopes:
+      title: Co smí token
+      text: Práva vyberete při vytvoření tokenu a později je změnit nejde; pro jiná práva vytvořte nový token. Změna vždy zahrnuje čtení. Nástroj, na který token nemá právo, odpoví odmítnutím.
+      hint: Pro Clauda začněte s právem „Číst vše“. Zápis přidejte jen u toho, co má opravdu měnit.
+      list: Práva, která token může dostat
+    safety:
+      title: Bezpečnost
+      secret: Token je jako heslo. Nevkládejte ho do chatu ani do souborů, které sdílíte nebo ukládáte do gitu.
+      approve: V klientovi nechte zapnuté schvalování nástrojů, hlavně u zápisů.
+      injection: Data z jiných zdrojů, třeba e-maily nebo webové stránky, mohou obsahovat pokyny pro AI. Klient s právem zápisu by je mohl provést.
+      revoke: Token, který už nepotřebujete nebo mohl uniknout, zrušte v záložce Tokeny. Přestane platit okamžitě.
+    docs: Podrobný popis nástrojů a REST API
 invitation:
   title: 'Připojit se k {organisation}'
   field:

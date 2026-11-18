@@ -3,7 +3,7 @@
     The secret of a token just issued, shown this once with a button to copy it. It is the answer to
     the form, never a redirect, and the answer is not cached. In the dialog the list under it is
     loaded again when the dialog closes; the page leaves a Turbo visit nothing to keep.
-    Variables: name, secret, expires.
+    Variables: name, secret, expires, server (the MCP server, for the Claude Code command with this token).
 #}
 {% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
 
@@ -26,7 +26,8 @@
             <twig:Ui:Button icon="copy" data-action="copy#copy"><span data-copy-target="label">{{ 'api_tokens.created.copy'|trans }}</span></twig:Ui:Button>
             <span class="sr-only" aria-live="polite" data-copy-target="status"></span>
         </div>
-        <p class="m-0 text-caption text-muted">{{ 'api_tokens.created.use'|trans }}</p>
+        {% include 'identity/api/_snippet.html.twig' with {id: 'api-token-claude-code', label: 'api_tokens.created.claude_code'|trans, text: 'claude mcp add --transport http foresi ' ~ server ~ ' --header "Authorization: Bearer ' ~ secret ~ '"', rows: 3} only %}
+        <p class="m-0 text-caption text-muted">{{ 'api_tokens.created.use'|trans }} <a href="{{ path('app_api_connect') }}" data-turbo="false" class="font-medium text-green underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'api_tokens.created.guide'|trans }}</a></p>
     </div>
 {% endblock %}
 

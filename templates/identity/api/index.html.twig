@@ -2,7 +2,7 @@
 {#
     The personal API tokens: a person's own, and for the owner those of the other people. A new
     token opens in a dialog over the list; revoking asks first. Without two-factor sign-in there is
-    no new token, only the way to set it up.
+    no new token, only the way to set it up. The tab next to it tells how to connect a client.
 #}
 {% extends 'layout/app.html.twig' %}
 
@@ -16,6 +16,7 @@
 
 {% block content %}
     {% set token = csrf_token(constant('Foresi\\Identity\\Infrastructure\\Controller\\ApiTokenController::TOKEN')) %}
+    <div class="mb-4">{% include 'identity/api/_tabs.html.twig' with {active: 'tokens'} only %}</div>
     {% for tone in ['success', 'error'] %}
         {% for message in app.flashes(tone) %}
             <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>

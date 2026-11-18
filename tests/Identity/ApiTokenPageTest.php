@@ -55,7 +55,7 @@ final class ApiTokenPageTest extends WebTestCase
         $crawler = $this->client->request('GET', '/settings/api');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('main h1', 'API access');
+        self::assertSelectorTextContains('main h1', 'API and MCP');
         self::assertSelectorTextContains('main', 'No API tokens');
         self::assertSame('/settings/api/new', $crawler->filter('#api-token-new')->attr('href'));
         self::assertSame('dialog', $crawler->filter('#api-token-new')->attr('aria-haspopup'));
@@ -63,6 +63,44 @@ final class ApiTokenPageTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[data-api-token-two-factor]'));
         self::assertCount(0, $crawler->filter('[data-api-tokens="others"]'));
         self::assertContains('/settings/api', $crawler->filter('#sidebar a')->each(static fn (Crawler $link): string => (string) $link->attr('href')));
+        // The settings are the one place: the account menu has no way of its own there.
+        self::assertCount(0, $crawler->filter('[role="menu"] a[href="/settings/api"]'));
+        self::assertSame(['/settings/api', '/settings/api/connect'], $crawler->filter('main nav[aria-label="API and MCP"] a')->each(static fn (Crawler $link): string => (string) $link->attr('href')));
+    }
+
+    public function testTheConnectTabShowsTheServerAndACopyReadySetupForEachClient(): void
+    {
+        $this->signIn(self::MEMBER, twoFactor: true);
+
+        $crawler = $this->client->request('GET', '/settings/api/connect');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('main h1', 'API and MCP');
+        self::assertSame('page', $crawler->filter('main nav[aria-label="API and MCP"] a[href="/settings/api/connect"]')->attr('aria-current'));
+        // The sidebar keeps the settings item active on this tab.
+        self::assertSame('page', $crawler->filter('#sidebar a[href="/settings/api"]')->attr('aria-current'));
+        $server = 'http://localhost/mcp';
+        self::assertSame($server, $crawler->filter('textarea#mcp-server')->text());
+        self::assertSame('claude mcp add --transport http foresi '.$server.' --header "Authorization: Bearer <token>"', $crawler->filter('textarea#mcp-claude-code')->text());
+        self::assertSame('Authorization: Bearer <token>', $crawler->filter('textarea#mcp-claude-ai-header')->text());
+        foreach (['mcp-claude-desktop' => 'mcpServers', 'mcp-cursor' => 'mcpServers', 'mcp-vscode' => 'servers'] as $id => $key) {
+            self::assertIsArray($this->configured($crawler, $id, $key), $id);
+        }
+        self::assertSame(['type' => 'http', 'url' => $server, 'headers' => ['Authorization' => 'Bearer ${input:foresi-token}']], $this->configured($crawler, 'mcp-vscode', 'servers'));
+        self::assertStringContainsString('whoami', $crawler->filter('textarea#mcp-prompt')->text());
+        self::assertContains('Read everything', $crawler->filter('[data-api-scopes] li')->each(static fn (Crawler $item): string => trim($item->text())));
+        self::assertCount(0, $crawler->filter('[data-copy-target="source"]')->reduce(static fn (Crawler $field): bool => null === $field->attr('readonly')));
+        self::assertSame('/settings/api/new', $crawler->filter('#api-token-new')->attr('href'));
+    }
+
+    public function testTheConnectTabIsForTheStaffOnly(): void
+    {
+        $this->fixtures->join($this->fixtures->user('guest@example.com'), Role::Guest);
+        $this->signIn('guest@example.com');
+
+        $this->client->request('GET', '/settings/api/connect');
+
+        self::assertResponseStatusCodeSame(403);
     }
 
     public function testWithoutTwoFactorThereIsNoNewTokenOnlyTheWayToSetItUp(): void
@@ -141,13 +179,15 @@ final class ApiTokenPageTest extends WebTestCase
         $page = $this->client->getCrawler();
         $secret = (string) $page->filter('input#api-token-secret')->attr('value');
         self::assertMatchesRegularExpression('/^'.ApiTokenSecret::PATTERN.'$/', $secret);
+        // Ready for Claude Code with this very token; the other clients are a link away.
+        self::assertSame('claude mcp add --transport http foresi http://localhost/mcp --header "Authorization: Bearer '.$secret.'"', $page->filter('textarea#api-token-claude-code')->text());
+        self::assertSame('/settings/api/connect', $page->filter('a[href="/settings/api/connect"]')->attr('href'));
         self::assertNotNull($page->filter('input#api-token-secret')->attr('readonly'));
-        self::assertCount(1, $page->filter('[data-controller="copy"] button[data-action="copy#copy"]'));
+        self::assertCount(2, $page->filter('[data-controller="copy"] button[data-action="copy#copy"]'));
         self::assertSelectorTextContains('[data-api-token-once]', 'shown only this once');
         $expires = new \DateTimeImmutable('+365 days')->format('Y-m-d');
         self::assertSelectorTextContains('main', 'The token Reporting works until '.$expires.'.');
-        self::assertSelectorTextContains('main', 'docs/api.md');
-        self::assertSelectorTextContains('main', 'docs/mcp.md');
+        self::assertSelectorTextContains('main', 'MCP server or the REST API');
         self::assertSelectorExists('meta[name="turbo-cache-control"][content="no-cache"]');
 
         $stored = $this->tokens(self::MEMBER);
@@ -489,5 +529,17 @@ final class ApiTokenPageTest extends WebTestCase
         sort($names);
 
         return $names;
+    }
+
+    /**
+     * The server "foresi" of a client's configuration on the connect tab.
+     */
+    private function configured(Crawler $crawler, string $id, string $key): mixed
+    {
+        $config = json_decode($crawler->filter('textarea#'.$id)->text(), true, flags: \JSON_THROW_ON_ERROR);
+        self::assertIsArray($config);
+        self::assertIsArray($config[$key] ?? null);
+
+        return $config[$key]['foresi'] ?? null;
     }
 }
