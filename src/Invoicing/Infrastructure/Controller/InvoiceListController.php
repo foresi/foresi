@@ -169,7 +169,7 @@ final class InvoiceListController extends AbstractController
             'titleKey' => 'invoice.list.title_'.$kind->value,
             // A corrective document is issued from the document it corrects, never from a blank form.
             'newHref' => $kind->standsAlone() ? $this->generateUrl('app_invoice_new', DocumentKind::Invoice === $kind ? [] : ['kind' => $kind->value]) : null,
-            ...$this->tabs($views, $view->key, $page, $query, $route, $kind, $working->modified),
+            ...$this->tabs($views, $view->key, $page, $query, $route, $kind, $this->isModified($working)),
             'columns' => $working->display->table($sort, fn (string $next): string => $this->generateUrl($route, ['sort' => $next] + $query)),
             'rows' => array_map(fn (InvoiceRow $row): array => $this->row($row, $tab, $severalFirms, $names, http_build_query($here), $reminders[$row->id] ?? null, $working->payload), $page->rows),
             'density' => $working->tableDensity(),
@@ -675,8 +675,17 @@ final class InvoiceListController extends AbstractController
             'columns' => $working->picker(),
             'density' => $working->density,
             'resetHref' => $this->generateUrl($route, $kept),
-            'modified' => $working->modified,
+            'modified' => $this->isModified($working),
         ];
+    }
+
+    /**
+     * Whether the view shows changes nobody saved: the display only, until the saved views'
+     * ViewState::isModified() also weighs the filters and the sort (agreed with that work).
+     */
+    private function isModified(WorkingState $working): bool
+    {
+        return $working->modified;
     }
 
     private static function listKey(DocumentKind|string $kind): string
