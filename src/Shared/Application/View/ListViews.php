@@ -33,20 +33,19 @@ final readonly class ListViews
         $views = [];
         $stored = [];
         foreach ($this->store->ofList($list->key) as $saved) {
-            if (null !== $saved->systemKey()) {
-                $stored[$saved->systemKey()] = true;
-            }
+            $stored[] = $saved->systemKey();
             $view = $this->visible($saved, $list, $userId);
             if ($view instanceof ListView) {
-                $views[] = [$view, $saved->visibility(), $saved->position()];
+                $views[] = [$view, $saved->position()];
             }
         }
         foreach ($list->defaults as $default) {
-            if (!isset($stored[$list->systemKey($default)])) {
-                $views[] = [new ListView($default->slug, $default->name, true, $default->filter, $default->showCount, $default->placement, slug: $default->slug), Visibility::Shared, $default->position];
+            if (!\in_array($list->systemKey($default), $stored, true)) {
+                $views[] = [new ListView($default->slug, $default->name, true, $default->filter, $default->showCount, $default->placement, slug: $default->slug), $default->position];
             }
         }
-        usort($views, static fn (array $a, array $b): int => [$a[0]->isAll() ? 0 : 1, Visibility::Shared === $a[1] ? 0 : 1, $a[2]] <=> [$b[0]->isAll() ? 0 : 1, Visibility::Shared === $b[1] ? 0 : 1, $b[2]]);
+        // false sorts before true: All first, then the shared views, each group by position.
+        usort($views, static fn (array $a, array $b): int => [!$a[0]->isAll(), $a[0]->private, $a[1]] <=> [!$b[0]->isAll(), $b[0]->private, $b[1]]);
 
         return array_map(static fn (array $view): ListView => $view[0], $views);
     }

@@ -30,6 +30,7 @@ final readonly class ViewFilter
 
     public static function all(Condition ...$conditions): self
     {
+        // Named arguments would key them by name.
         return new self(array_values($conditions));
     }
 
@@ -54,13 +55,13 @@ final readonly class ViewFilter
         if (!\is_array($items) || !array_is_list($items)) {
             throw new InvalidFilter('conditions', 'The conditions are a list.');
         }
-        if (\count($items) > self::MAX_CONDITIONS) {
-            throw new InvalidFilter('conditions', \sprintf('A view holds at most %d conditions.', self::MAX_CONDITIONS));
-        }
         $conditions = [];
         foreach ($items as $index => $item) {
             $path = \sprintf('conditions[%d]', $index);
-            if (!\is_array($item) || !\is_string($item['field'] ?? null) || !\is_string($item['op'] ?? null)) {
+            if (!\is_array($item)) {
+                throw new InvalidFilter($path, 'A condition is an object.');
+            }
+            if (!\is_string($item['field'] ?? null) || !\is_string($item['op'] ?? null)) {
                 throw new InvalidFilter($path, 'A condition has a field and an op.');
             }
             $conditions[] = new Condition($item['field'], $item['op'], $item['value'] ?? null);
@@ -120,27 +121,27 @@ final readonly class ViewFilter
             return;
         }
         $between = 'between' === $condition->op;
-        $number = static fn (mixed $part, string $at): bool => self::checkScalar(\is_int($part) || \is_float($part), $at, 'a number');
-        $date = static function (mixed $part, string $at): bool {
-            DateRange::check($part, $at);
-
-            return true;
-        };
+        $number = static fn (mixed $part, string $at) => self::checkScalar(\is_int($part) || \is_float($part), $at, 'a number');
+        $date = DateRange::check(...);
         switch ($field->type) {
             case FieldType::Enum:
                 $this->checkEnum($field, $condition, $path);
                 break;
             case FieldType::Reference:
-                'is_any_of' === $condition->op ? $this->checkList($value, $path, \is_string(...), 'ids') : self::checkScalar(\is_string($value) && '' !== $value, $path, 'an id');
+                if ('is_any_of' === $condition->op) {
+                    $this->checkList($value, $path, \is_string(...), 'ids');
+                } else {
+                    self::checkScalar(\is_string($value) && '' !== $value, $path, 'an id');
+                }
                 break;
             case FieldType::Text:
                 self::checkScalar(\is_string($value) && '' !== $value, $path, 'a text');
                 break;
             case FieldType::Number:
-                $between ? $this->checkBetween($value, $path, $number) : $number($value, $path);
+                $this->checkOne($between, $value, $path, $number);
                 break;
             case FieldType::Date:
-                $between ? $this->checkBetween($value, $path, $date) : $date($value, $path);
+                $this->checkOne($between, $value, $path, $date);
                 break;
             case FieldType::Boolean:
                 self::checkScalar(\is_bool($value), $path, 'true or false');
@@ -162,33 +163,36 @@ final readonly class ViewFilter
     /**
      * @param callable(mixed): bool $each
      */
-    private function checkList(mixed $value, string $path, callable $each, string $what): bool
+    private function checkList(mixed $value, string $path, callable $each, string $what): void
     {
         if (!\is_array($value) || [] === $value || !array_is_list($value) || \count($value) !== \count(array_filter($value, $each))) {
             throw new InvalidFilter($path, \sprintf('Expected a list of %s.', $what));
         }
-
-        return true;
     }
 
     /**
-     * @param callable(mixed, string): bool $each
+     * One value, or the two ends of a range.
+     *
+     * @param callable(mixed, string): void $each
      */
-    private function checkBetween(mixed $value, string $path, callable $each): bool
+    private function checkOne(bool $between, mixed $value, string $path, callable $each): void
     {
+        if (!$between) {
+            $each($value, $path);
+
+            return;
+        }
         if (!\is_array($value) || !\array_key_exists('from', $value) || !\array_key_exists('to', $value) || 2 !== \count($value)) {
             throw new InvalidFilter($path, 'A range is {from, to}.');
         }
-
-        return $each($value['from'], $path.'.from') && $each($value['to'], $path.'.to');
+        $each($value['from'], $path.'.from');
+        $each($value['to'], $path.'.to');
     }
 
-    private static function checkScalar(bool $valid, string $path, string $what): bool
+    private static function checkScalar(bool $valid, string $path, string $what): void
     {
         if (!$valid) {
             throw new InvalidFilter($path, \sprintf('Expected %s.', $what));
         }
-
-        return true;
     }
 }

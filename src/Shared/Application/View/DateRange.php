@@ -84,20 +84,34 @@ final readonly class DateRange
         self::check($value, $path);
         $today = $today->setTime(0, 0);
         if (\is_string($value)) {
-            $day = self::day($value, $today->getTimezone()) ?? throw new \LogicException('A checked day parses.');
+            $day = new \DateTimeImmutable($value, $today->getTimezone());
 
             return new self($day, $day->modify('+1 day'));
         }
         \assert(\is_array($value));
         if (isset($value['month'])) {
             \assert(\is_string($value['month']));
-            $start = new \DateTimeImmutable($value['month'].'-01', $today->getTimezone());
+            // "YYYY-MM" parses to the first of its month.
+            $start = new \DateTimeImmutable($value['month'], $today->getTimezone());
 
             return new self($start, $start->modify('first day of next month'));
         }
-        $n = \is_int($value['n'] ?? null) ? $value['n'] : 0;
+        $rule = $value['relative'];
+        if (\in_array($rule, self::COUNTED, true)) {
+            $n = $value['n'];
+            \assert(\is_int($n));
 
-        return match ($value['relative']) {
+            // check() let only the rules listed through, so the last arm is the last of them.
+            return match ($rule) {
+                // A rolling window that ends with today, as Airtable's "the past number of days".
+                'last_n_days' => self::days($today, 1 - $n, 1),
+                'next_n_days' => self::days($today, 0, $n),
+                'n_days_ago' => self::days($today, -$n, 1 - $n),
+                default => self::days($today, $n, $n + 1),
+            };
+        }
+
+        return match ($rule) {
             'today' => self::days($today, 0, 1),
             'yesterday' => self::days($today, -1, 0),
             'tomorrow' => self::days($today, 1, 2),
@@ -109,13 +123,7 @@ final readonly class DateRange
             'this_quarter' => self::quarter($today, 0),
             'last_quarter' => self::quarter($today, -1),
             'this_year' => self::year($today, 0),
-            'last_year' => self::year($today, -1),
-            // A rolling window that ends with today, as Airtable's "the past number of days".
-            'last_n_days' => self::days($today, 1 - $n, 1),
-            'next_n_days' => self::days($today, 0, $n),
-            'n_days_ago' => self::days($today, -$n, 1 - $n),
-            'n_days_from_now' => self::days($today, $n, $n + 1),
-            default => throw new \LogicException('A checked rule resolves.'),
+            default => self::year($today, -1),
         };
     }
 
@@ -133,7 +141,7 @@ final readonly class DateRange
 
     private static function week(\DateTimeImmutable $today, int $offset): self
     {
-        $monday = $today->modify(\sprintf('-%d days', (int) $today->format('N') - 1))->modify(\sprintf('%+d weeks', $offset));
+        $monday = $today->modify('monday this week')->modify(\sprintf('%+d weeks', $offset));
 
         return new self($monday, $monday->modify('+1 week'));
     }
@@ -155,7 +163,7 @@ final readonly class DateRange
 
     private static function year(\DateTimeImmutable $today, int $offset): self
     {
-        $start = $today->setDate((int) $today->format('Y') + $offset, 1, 1);
+        $start = $today->modify('first day of january')->modify(\sprintf('%+d years', $offset));
 
         return new self($start, $start->modify('+1 year'));
     }

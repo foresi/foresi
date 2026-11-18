@@ -105,21 +105,21 @@ final readonly class InvoiceLists implements ListDefinitionSource
     {
         $views = [];
         foreach (InvoiceFilter::tabsOf($kind) as $position => $tab) {
-            $views[] = new DefaultView($tab, 'invoice.list.tab.'.$tab, self::filterOf($tab, $kind), position: $position);
+            $views[] = new DefaultView($tab, 'invoice.list.tab.'.$tab, self::filterOf($tab), position: $position);
         }
 
         return $views;
     }
 
-    private static function filterOf(string $tab, DocumentKind $kind): ViewFilter
+    private static function filterOf(string $tab): ViewFilter
     {
         return match ($tab) {
             InvoiceFilter::ALL => new ViewFilter(),
             InvoiceFilter::TRASH => ViewFilter::all(new Condition(self::TRASHED, 'is', true)),
             InvoiceFilter::PAID, InvoiceFilter::UNPAID, InvoiceFilter::TO_REFUND => ViewFilter::all(new Condition(self::PAYMENT, 'is', $tab)),
             InvoiceFilter::OVERDUE => ViewFilter::all(new Condition(self::OVERDUE, 'is', true)),
-            InvoiceFilter::SETTLED, InvoiceFilter::UNSETTLED => ViewFilter::all(new Condition(self::SETTLEMENT, 'is', $tab)),
-            default => throw new \LogicException(\sprintf('The tab "%s" of %s has no view.', $tab, $kind->value)),
+            // Settled and unsettled, the only tabs tabsOf() gives besides those above.
+            default => ViewFilter::all(new Condition(self::SETTLEMENT, 'is', $tab)),
         };
     }
 }
