@@ -24,7 +24,6 @@ use Foresi\Party\Infrastructure\Form\LegalEntitySubmissionReader;
 use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Infrastructure\Http\SubmissionTokens;
 use Foresi\Ui\Component\DataTable;
-use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -36,15 +35,14 @@ use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The firms of the organisation, for its owner: list, form and archiving. The
- * form works like the contact form. A firm that does not exist answers 404.
+ * The firm of the instance, for its owner: list and form. The form works like
+ * the contact form. A firm that does not exist answers 404. A firm is not
+ * archived here: the instance has one, and it is never archived (ADR 0039).
  */
 final class LegalEntityController extends AbstractController
 {
     public const string FORM_TOKEN = 'firm_form';
-    public const string ACTION_TOKEN = 'firm_action';
 
-    private const array VIEWS = ['active', 'archived'];
     private const array IMAGE_TOO_LARGE = ['logo' => ['firm.error.image_size']];
 
     public function __construct(
@@ -53,7 +51,6 @@ final class LegalEntityController extends AbstractController
         private readonly SubmissionTokens $tokens,
         private readonly TransactionalWork $transaction,
         private readonly ActorRole $role,
-        private readonly ClockInterface $clock,
         private readonly TranslatorInterface $translator,
         private readonly FirmImages $images,
         private readonly InstanceFirm $instanceFirm,
@@ -61,24 +58,18 @@ final class LegalEntityController extends AbstractController
     }
 
     #[Route('/settings/firms', name: 'app_firm_index', methods: ['GET'])]
-    public function index(Request $request): Response
+    public function index(): Response
     {
         $this->denyUnlessOwner();
-        $view = $request->query->getString('view', 'active');
-        $view = \in_array($view, self::VIEWS, true) ? $view : 'active';
         $firms = $this->firms->all();
-        $archived = array_values(array_filter($firms, static fn (LegalEntity $firm): bool => $firm->isArchived()));
-        $active = array_values(array_filter($firms, static fn (LegalEntity $firm): bool => !$firm->isArchived()));
-        $shown = 'archived' === $view ? $archived : $active;
 
         return $this->render('@Party/legal_entity/index.html.twig', [
             'firstRun' => [] === $firms,
-            'tabs' => $this->tabs($view, \count($active), \count($archived)),
             // The name gives way, cut short with its full text in a title. A phone shows the name;
             // the rest goes in the line under it.
             'columns' => array_map(fn (string $key): array => ['key' => $key, 'label' => $this->translator->trans('firm.column.'.$key), 'truncate' => 'name' === $key, 'phone' => 'name' === $key], ['name', 'registration', 'vat', 'vat_status']),
-            'rows' => array_map($this->row(...), $shown),
-            'total' => \count($shown),
+            'rows' => array_map($this->row(...), $firms),
+            'total' => \count($firms),
         ]);
     }
 
@@ -129,27 +120,6 @@ final class LegalEntityController extends AbstractController
         $this->checkToken($request, self::FORM_TOKEN);
 
         return $this->handle($request, $firm, $this->reader->read($request), '');
-    }
-
-    #[Route('/settings/firms/{id}/archive', name: 'app_firm_archive', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
-    public function archive(string $id, Request $request): RedirectResponse
-    {
-        $this->denyUnlessOwner();
-        $this->checkToken($request, self::ACTION_TOKEN);
-        $firm = $this->firm($id);
-        $now = \DateTimeImmutable::createFromInterface($this->clock->now());
-        $archived = $this->transaction->run(function () use ($firm, $now): bool {
-            // Under a lock: two requests must not each archive one of the last two firms.
-            if ([$firm] === $this->firms->lockActive()) {
-                return false;
-            }
-            $firm->archive($now);
-
-            return true;
-        });
-        $this->addFlash($archived ? 'success' : 'error', $this->translator->trans($archived ? 'firm.flash.archived' : 'firm.error.last_active'));
-
-        return $this->redirectToRoute('app_firm_index');
     }
 
     private function handle(Request $request, ?LegalEntity $firm, LegalEntitySubmission $submission, string $token): Response
@@ -308,24 +278,6 @@ final class LegalEntityController extends AbstractController
             'removeLogo' => '',
             'removeStamp' => '',
         ];
-    }
-
-    /**
-     * @return list<array{label: string, href: string, count: int, active: bool}>
-     */
-    private function tabs(string $view, int $active, int $archived): array
-    {
-        $tabs = [];
-        foreach (['active' => $active, 'archived' => $archived] as $key => $count) {
-            $tabs[] = [
-                'label' => $this->translator->trans('firm.view.'.$key),
-                'href' => $this->generateUrl('app_firm_index', ['view' => 'active' === $key ? null : $key]),
-                'count' => $count,
-                'active' => $key === $view,
-            ];
-        }
-
-        return $tabs;
     }
 
     /**

@@ -254,9 +254,12 @@ final class ApiTokenPageTest extends WebTestCase
         self::assertSame(['30 days', '90 days', '365 days'], $options->each(static fn (Crawler $option): string => trim($option->text())));
         self::assertSame('90', $crawler->filter('select[name="days"] option[selected]')->attr('value'));
         $scopes = $crawler->filter('input[name="scopes[]"]');
-        self::assertSame(['read', 'write', 'cashflow:read', 'cashflow:write', 'contacts:read', 'contacts:write'], \array_slice($scopes->each(static fn (Crawler $box): string => (string) $box->attr('value')), 0, 6));
-        self::assertContains('webhooks:write', $scopes->each(static fn (Crawler $box): string => (string) $box->attr('value')));
-        self::assertContains('views:write', $scopes->each(static fn (Crawler $box): string => (string) $box->attr('value')), 'The saved views of Shared are a resource of their own.');
+        $values = $scopes->each(static fn (Crawler $box): string => (string) $box->attr('value'));
+        // Everything first, then each resource of the installed modules, such as the address book's and the webhooks' of the core.
+        self::assertSame(['read', 'write'], \array_slice($values, 0, 2));
+        self::assertSame(['contacts:read', 'contacts:write'], \array_slice($values, (int) array_search('contacts:read', $values, true), 2));
+        self::assertContains('webhooks:write', $values);
+        self::assertContains('views:write', $values, 'The saved views of Shared are a resource of their own.');
         self::assertSelectorTextContains('label[for="scope-views-read"]', 'Saved views');
         self::assertSame(['read'], $crawler->filter('input[name="scopes[]"][checked]')->each(static fn (Crawler $box): string => (string) $box->attr('value')), 'Reading everything is the default.');
         self::assertSelectorTextContains('label[for="scope-contacts-write"]', 'Contacts: read and change');

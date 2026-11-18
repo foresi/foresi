@@ -363,16 +363,18 @@ sudo -u www-data /srv/foresi/current/ops/rollback.sh 20261105093000
 It switches `current`, reloads PHP-FPM and restarts the workers. **It does not
 revert database migrations.** The older code then runs against the newer schema,
 which is fine when the migrations only added tables or nullable columns. When a
-release notes a migration that is not backward compatible (the changelog says
+release notes a migration that is not backward compatible (its release notes say
 so under "Upgrading"), roll back by restoring the `pre-migrate` snapshot taken
 just before it ([restore](#restore)) together with the code, and accept that
 whatever was written since is lost.
 
 ## Upgrades
 
-1. Read the "Upgrading" section of the [changelog](../CHANGELOG.md) for every
-   version in between: new environment variables, PHP extensions, one-way
-   migrations.
+1. Read the "Upgrading" section of the [release notes](https://github.com/foresi/foresi/releases)
+   of every version in between (up to 0.5.0, the [changelog](../CHANGELOG.md)):
+   new environment variables, PHP extensions, one-way migrations. Each merged
+   change is its own release, so skipping versions is normal; the migrations
+   run in order whatever the gap.
 2. Pick a quiet time. Check that the queues are drained: `bin/console
    messenger:stats` shows no waiting `mail` or `async` messages, no import is
    running, and `bin/console messenger:failed:show` holds nothing new.

@@ -117,22 +117,6 @@ final class GuestAccessTest extends WebTestCase
         self::assertResponseStatusCodeSame(403, $method.' '.$url);
     }
 
-    public function testTheStartPageSendsAGuestToWhatIsSharedWithThem(): void
-    {
-        $this->signIn(Role::Guest);
-
-        $this->client->request('GET', '/');
-
-        self::assertResponseRedirects('/shared');
-        $crawler = $this->client->followRedirect();
-        self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('main h1', 'Shared with me');
-        self::assertSelectorTextContains('main', 'Nothing is shared with you yet');
-        // The sidebar offers what is shared, their inbox and their tasks, nothing else of the
-        // modules (the extensions group holds the test environment's own probe item).
-        self::assertSame(['/shared', '/notifications', '/my-tasks'], $crawler->filter('#sidebar [data-nav-group]:not([data-nav-group="extensions"]) li > a')->each(static fn ($link): string => (string) $link->attr('href')));
-    }
-
     public function testTheStaffKeepTheirDashboardAndTheAddressBook(): void
     {
         $this->signIn(Role::Member);

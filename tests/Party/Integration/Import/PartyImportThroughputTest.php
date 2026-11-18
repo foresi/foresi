@@ -23,7 +23,7 @@ use Foresi\Import\Domain\ImportMode;
 use Foresi\Import\Domain\ImportOptions;
 use Foresi\Import\Domain\ImportState;
 use Foresi\Party\Integration\Import\PartyImportTarget;
-use Foresi\Tests\Import\Support\RunMessages;
+use Foresi\Tests\Support\Messenger\RunMessages;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Filesystem\Filesystem;

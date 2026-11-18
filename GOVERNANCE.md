@@ -23,7 +23,7 @@ These are aims, not guarantees, from a small team:
 
 - A first answer to a new issue or pull request within a week.
 - Security reports handled first, as described in [SECURITY.md](SECURITY.md).
-- Releases follow [Semantic Versioning](https://semver.org); every release lists its upgrade steps in [CHANGELOG.md](CHANGELOG.md).
+- Releases follow [Semantic Versioning](https://semver.org); every merged change that users notice is its own release, and its notes list the upgrade steps ([CONTRIBUTING.md](CONTRIBUTING.md#releases)).
 
 ## Conduct
 

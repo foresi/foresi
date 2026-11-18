@@ -26,10 +26,6 @@ use Foresi\Import\Application\Message\RunImportChunk;
 use Foresi\Import\Application\Message\UndoImportChunk;
 use Foresi\Import\ImportBundle;
 use Foresi\Instance\InstanceBundle;
-use Foresi\Invoicing\Application\DeliverInvoiceSend;
-use Foresi\Invoicing\Application\IssueRecurringTemplate;
-use Foresi\Invoicing\Infrastructure\Messenger\WaitForLeaseMiddleware;
-use Foresi\Invoicing\InvoicingBundle;
 use Foresi\Party\Application\RecheckRegistry;
 use Foresi\Party\Infrastructure\Doctrine\CastTextFunction;
 use Foresi\Party\Infrastructure\Doctrine\VatIdType;
@@ -43,6 +39,7 @@ use Foresi\Shared\Infrastructure\Module\InstalledModules;
 use Foresi\Shared\Infrastructure\Module\ModuleBundle;
 use Foresi\Shared\SharedBundle;
 use Foresi\Tests\Shared\Fixtures\ModuleIntegration\Alpha\AlphaBundle;
+use Foresi\Tests\Shared\Support\PrependsModuleBundles;
 use Foresi\Timesheet\TimesheetBundle;
 use Foresi\Ui\UiBundle;
 use Foresi\Webhooks\WebhooksBundle;
@@ -51,10 +48,6 @@ use Foresi\Work\WorkBundle;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Bundle\TwigBundle\DependencyInjection\TwigExtension;
-use Symfony\Component\Config\FileLocator;
-use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
-use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\UX\StimulusBundle\DependencyInjection\StimulusExtension;
 
 /**
@@ -64,6 +57,8 @@ use Symfony\UX\StimulusBundle\DependencyInjection\StimulusExtension;
  */
 final class ModuleBundleTest extends KernelTestCase
 {
+    use PrependsModuleBundles;
+
     public function testTheBundleOfEveryInstalledModuleIsRegistered(): void
     {
         $kernel = self::bootKernel();
@@ -108,7 +103,7 @@ final class ModuleBundleTest extends KernelTestCase
      * @param list<string>          $mappings the prepended Doctrine mappings, in order
      * @param array<string, string> $routing  the transport of each message
      */
-    #[DataProvider('prepends')]
+    #[DataProvider('installedPrepends')]
     public function testEachBundlePrependsItsMappingsAndRouting(ModuleBundle $bundle, string $env, array $mappings, array $routing): void
     {
         $builder = $this->builder($env);
@@ -132,41 +127,55 @@ final class ModuleBundleTest extends KernelTestCase
     }
 
     /**
+     * The cases of the modules that are installed: the bundle of a module that is not cannot be loaded.
+     *
      * @return iterable<string, array{ModuleBundle, string, list<string>, array<string, string>}>
      */
-    public static function prepends(): iterable
+    public static function installedPrepends(): iterable
     {
-        yield 'shared in test' => [new SharedBundle(), 'test', ['SharedFixtures', 'Shared'], [\Foresi\Shared\Application\SystemMail::class => 'mail']];
-        yield 'shared in prod' => [new SharedBundle(), 'prod', ['Shared'], [\Foresi\Shared\Application\SystemMail::class => 'mail']];
-        yield 'audit in test' => [new AuditBundle(), 'test', ['AuditFixtures', 'Audit'], []];
-        yield 'audit in prod' => [new AuditBundle(), 'prod', ['Audit'], []];
-        yield 'instance' => [new InstanceBundle(), 'prod', ['Instance'], [
+        foreach (self::prepends() as $name => [$bundle, $env, $mappings, $routing]) {
+            if (class_exists($bundle)) {
+                yield $name => [new $bundle(), $env, $mappings, $routing];
+            }
+        }
+    }
+
+    /**
+     * @return iterable<string, array{class-string<ModuleBundle>, string, list<string>, array<string, string>}>
+     */
+    private static function prepends(): iterable
+    {
+        yield 'shared in test' => [SharedBundle::class, 'test', ['SharedFixtures', 'Shared'], [\Foresi\Shared\Application\SystemMail::class => 'mail']];
+        yield 'shared in prod' => [SharedBundle::class, 'prod', ['Shared'], [\Foresi\Shared\Application\SystemMail::class => 'mail']];
+        yield 'audit in test' => [AuditBundle::class, 'test', ['AuditFixtures', 'Audit'], []];
+        yield 'audit in prod' => [AuditBundle::class, 'prod', ['Audit'], []];
+        yield 'instance' => [InstanceBundle::class, 'prod', ['Instance'], [
             \Foresi\Instance\Application\Schedule\RunScheduledJob::class => 'async',
             \Foresi\Instance\Application\Schedule\RunOperatorTask::class => 'async',
         ]];
-        yield 'events' => [new EventsBundle(), 'prod', [], [
+        yield 'events' => [EventsBundle::class, 'prod', [], [
             \Foresi\Events\Application\RelayEvents::class => 'events',
             \Foresi\Events\Application\DeliverEvent::class => 'events',
         ]];
-        yield 'webhooks' => [new WebhooksBundle(), 'prod', ['Webhooks'], [\Foresi\Webhooks\Application\SendWebhook::class => 'webhooks']];
-        yield 'identity' => [new IdentityBundle(), 'prod', ['Identity'], []];
-        yield 'attachment' => [new AttachmentBundle(), 'prod', ['Attachment'], []];
-        yield 'ui' => [new UiBundle(), 'prod', [], []];
-        yield 'banking' => [new BankingBundle(), 'prod', ['Banking'], [ProcessInboundMessage::class => 'async']];
-        yield 'cash flow' => [new CashFlowBundle(), 'prod', ['CashFlow'], []];
-        yield 'country' => [new CountryBundle(), 'prod', [], []];
-        yield 'exchange rate' => [new ExchangeRateBundle(), 'prod', ['ExchangeRate'], []];
-        yield 'idoklad' => [new IdokladBundle(), 'prod', ['Idoklad'], [ProcessIdokladJob::class => 'async']];
-        yield 'import' => [new ImportBundle(), 'prod', ['Import'], [
+        yield 'webhooks' => [WebhooksBundle::class, 'prod', ['Webhooks'], [\Foresi\Webhooks\Application\SendWebhook::class => 'webhooks']];
+        yield 'identity' => [IdentityBundle::class, 'prod', ['Identity'], []];
+        yield 'attachment' => [AttachmentBundle::class, 'prod', ['Attachment'], []];
+        yield 'ui' => [UiBundle::class, 'prod', [], []];
+        yield 'banking' => [BankingBundle::class, 'prod', ['Banking'], [ProcessInboundMessage::class => 'async']];
+        yield 'cash flow' => [CashFlowBundle::class, 'prod', ['CashFlow'], []];
+        yield 'country' => [CountryBundle::class, 'prod', [], []];
+        yield 'exchange rate' => [ExchangeRateBundle::class, 'prod', ['ExchangeRate'], []];
+        yield 'idoklad' => [IdokladBundle::class, 'prod', ['Idoklad'], [ProcessIdokladJob::class => 'async']];
+        yield 'import' => [ImportBundle::class, 'prod', ['Import'], [
             ReadImportFile::class => 'async',
             CheckImportChunk::class => 'async',
             RunImportChunk::class => 'async',
             ArchiveMissing::class => 'async',
             UndoImportChunk::class => 'async',
         ]];
-        yield 'purchasing' => [new PurchasingBundle(), 'prod', ['Purchasing'], []];
-        yield 'timesheet' => [new TimesheetBundle(), 'prod', ['Timesheet'], []];
-        yield 'work' => [new WorkBundle(), 'prod', ['Work'], [SendNotificationMail::class => 'async']];
+        yield 'purchasing' => [PurchasingBundle::class, 'prod', ['Purchasing'], []];
+        yield 'timesheet' => [TimesheetBundle::class, 'prod', ['Timesheet'], []];
+        yield 'work' => [WorkBundle::class, 'prod', ['Work'], [SendNotificationMail::class => 'async']];
     }
 
     public function testPartyAddsItsTypeAndFunctionBeforeItsMappingAndRouting(): void
@@ -180,26 +189,6 @@ final class ModuleBundleTest extends KernelTestCase
             'orm' => ['dql' => ['string_functions' => ['CAST_TEXT' => CastTextFunction::class]]],
         ], $builder->getExtensionConfig('doctrine')[0]);
         self::assertSame([['messenger' => ['routing' => [RecheckRegistry::class => 'registry']]]], $builder->getExtensionConfig('framework'));
-    }
-
-    public function testInvoicingAddsItsMiddlewareBeforeItsRouting(): void
-    {
-        $builder = $this->builder('prod');
-        new InvoicingBundle()->prependExtension($this->configurator($builder, 'prod'), $builder);
-
-        self::assertSame(['InvoicingContract', 'Invoicing'], $this->mappings($builder));
-        // The frozen party of a document is published in the contract and stored as an embeddable.
-        self::assertSame(['orm' => ['mappings' => ['InvoicingContract' => [
-            'type' => 'attribute',
-            'is_bundle' => false,
-            'dir' => $this->projectDir().'/src/Invoicing/Contract',
-            'prefix' => 'Foresi\\Invoicing\\Contract',
-            'alias' => 'InvoicingContract',
-        ]]]], $builder->getExtensionConfig('doctrine')[0]);
-        self::assertSame([
-            ['messenger' => ['buses' => ['messenger.bus.default' => ['middleware' => [WaitForLeaseMiddleware::class]]]]],
-            ['messenger' => ['routing' => [IssueRecurringTemplate::class => 'async', DeliverInvoiceSend::class => 'mail']]],
-        ], $builder->getExtensionConfig('framework'));
     }
 
     public function testAModuleWithoutEntitiesGetsNoMapping(): void
@@ -270,44 +259,5 @@ final class ModuleBundleTest extends KernelTestCase
     private function fixture(string $id, array $optional = []): ModuleManifest
     {
         return new ModuleManifest(ModuleId::of($id), ModuleKind::Module, 'foresi/'.$id, 'Foresi\\'.ucfirst($id).'\\', [], array_map(ModuleId::of(...), $optional));
-    }
-
-    /**
-     * @return list<string> the names of the prepended Doctrine mappings, in order
-     */
-    private function mappings(ContainerBuilder $builder): array
-    {
-        $names = [];
-        foreach ($builder->getExtensionConfig('doctrine') as $config) {
-            $orm = $config['orm'] ?? [];
-            self::assertIsArray($orm);
-            $mappings = $orm['mappings'] ?? [];
-            self::assertIsArray($mappings);
-            array_push($names, ...array_map(strval(...), array_keys($mappings)));
-        }
-
-        return $names;
-    }
-
-    private function builder(string $env): ContainerBuilder
-    {
-        $builder = new ContainerBuilder();
-        $builder->setParameter('kernel.environment', $env);
-        $builder->setParameter('kernel.project_dir', $this->projectDir());
-
-        return $builder;
-    }
-
-    private function configurator(ContainerBuilder $builder, string $env): ContainerConfigurator
-    {
-        $loader = new PhpFileLoader($builder, new FileLocator(), $env);
-        $instanceof = [];
-
-        return new ContainerConfigurator($builder, $loader, $instanceof, __FILE__, __FILE__, $env);
-    }
-
-    private function projectDir(): string
-    {
-        return \dirname(__DIR__, 4);
     }
 }
