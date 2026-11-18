@@ -516,8 +516,12 @@ work:
     views: Project views
     new: New project
     tab:
-      active: Active
+      all: All
       archived: Archived
+    field:
+      archived: Archived
+      visibility: Who sees the project
+      billable: Bill the time
     column:
       name: Name
       client: Client
@@ -527,6 +531,9 @@ work:
       title: No projects yet
       text: Start a project and add its tasks.
       archived_title: No archived projects
+      view_title: Nothing matches this view
+      filtered_title: Nothing matches these filters
+      reset: Clear the filters
   project:
     create: Create project
     archived: Archived

@@ -516,8 +516,12 @@ work:
     views: Pohledy na projekty
     new: Nový projekt
     tab:
-      active: Aktivní
+      all: Vše
       archived: Archivované
+    field:
+      archived: Archivovaný
+      visibility: Kdo projekt vidí
+      billable: Fakturovat čas
     column:
       name: Název
       client: Klient
@@ -527,6 +531,9 @@ work:
       title: Zatím žádné projekty
       text: Založte projekt a přidejte do něj úkoly.
       archived_title: Žádné archivované projekty
+      view_title: Tomuto pohledu nic neodpovídá
+      filtered_title: Filtrům nic neodpovídá
+      reset: Zrušit filtry
   project:
     create: Založit projekt
     archived: Archivovaný
