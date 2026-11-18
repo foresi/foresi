@@ -23,9 +23,6 @@ parameters:
     # A firm's mail server may not be in a private, loopback or link-local network,
     # as people type the host. An installation whose server is inside sets this.
     app.mail.allow_private_hosts: false
-    # A webhook endpoint may not be in a private, loopback or link-local network either,
-    # as people type the URL. Local development against a receiver on this machine sets this.
-    app.webhooks.allow_private_hosts: false
     # Links in sent mail are built on DEFAULT_URI; a loopback base would make them dead,
     # so sending refuses one. Development and the tests allow it.
     app.mail.allow_local_links: false
@@ -37,18 +34,8 @@ parameters:
     app.idoklad_files_dir: '%kernel.share_dir%/idoklad-documents'
     # The PDFs imported documents keep as their originals; never below public/. Back it up with the database.
     app.original_documents_dir: '%kernel.share_dir%/original-documents'
-    # Files attached to records; never below public/. Back it up with the database.
-    app.attachments_dir: '%kernel.share_dir%/attachments'
     # Seconds between a mention or an assignment and its e-mail, skipped if read in the inbox meanwhile.
     app.notification_mail_delay: 120
-    # The health check is degraded when less of the data directory's disk is free, in percent.
-    env(HEALTH_DISK_MIN_FREE_PERCENT): '5'
-    # Error mails to the operator; both empty sends none (docs/logging.md).
-    env(OPERATOR_MAILER_DSN): ''
-    env(OPERATOR_EMAIL): ''
-    # Mail of the installation itself, such as invitations; empty sends none (docs/operations.md).
-    env(SYSTEM_MAILER_DSN): ''
-    env(SYSTEM_MAIL_FROM): ''
 
 services:
     # default configuration for services in *this* file
@@ -59,10 +46,10 @@ services:
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name
     Foresi\:
-        resource: '../src/'
+        # The modules without a bundle yet; a module's bundle loads its own services
+        # (Foresi\Shared\Infrastructure\Module\ModuleBundle).
+        resource: '../src/{Banking,CashFlow,Country,ExchangeRate,Idoklad,Import,Invoicing,Party,Purchasing,Timesheet,Work}/'
         exclude:
-            # Development tool: registered, and so routable, in the dev and test environments only.
-            - '../src/Ui/Controller/CatalogueController.php'
             # Integration code for an optional dependency: the kernel registers it only
             # when that module is installed (Foresi\Shared\Infrastructure\Module\ModuleIntegrations).
             - '../src/*/Integration/'
@@ -82,27 +69,13 @@ services:
         # ...and contribute presets of the known sources they can read.
         Foresi\Import\Domain\Preset\SourcePreset:
             tags: ['app.import_preset']
-        # Timed work done once per period; see Foresi\Instance\Application\Schedule.
-        Foresi\Instance\Application\Schedule\ScheduledJob:
-            tags: ['app.scheduled_job']
-        # Timed work of the installation; see Foresi\Instance\Application\Schedule\OperatorTask.
-        Foresi\Instance\Application\Schedule\OperatorTask:
-            tags: ['app.operator_task']
-        # The module that owns a kind of record decides who reaches its attachments.
-        Foresi\Attachment\Application\AttachmentAccess:
-            tags: ['app.attachment_access']
         # A country module plugs into banking with the parsers of its banks' mail.
         Foresi\Banking\Application\BankMessageParser:
             tags: ['app.bank_message_parser']
         # The stages of an iDoklad import; each one orders itself.
         Foresi\Idoklad\Application\Import\ImportStage:
             tags: ['app.idoklad_import_stage']
-        # Takes each event the relay numbers, in its transaction, such as the webhooks.
-        Foresi\Events\Application\EventSink:
-            tags: ['app.event_sink']
         # Ports served by other modules; each collects its providers (ADR 0034, rule 3).
-        Foresi\Instance\Application\ZoneFallback:
-            tags: ['app.zone_fallback']
         Foresi\Invoicing\Application\BilledWork:
             tags: ['app.billed_work']
         Foresi\Invoicing\Application\BilledWorkRelease:
@@ -133,9 +106,6 @@ services:
         alias: Foresi\Party\Infrastructure\Registry\CollectedCompanyRegistry
     Foresi\Party\Application\VatPayerReliability:
         alias: Foresi\Party\Infrastructure\Registry\CollectedVatPayerReliability
-    # Modules built on Instance may know its zone, such as Invoicing from a firm's country.
-    Foresi\Instance\Application\ZoneFallback:
-        alias: Foresi\Instance\Infrastructure\CollectedZoneFallback
 
     Foresi\Invoicing\Application\InvoicingCountries:
         arguments:
@@ -226,28 +196,10 @@ services:
     # id used by the wiring test; it is made public in the test env below.
     test.registration_number_factory:
         alias: Foresi\Party\Application\RegistrationNumberFactory
-    test.invoice_send_firm_limiter:
-        alias: limiter.invoice_send_firm
-    test.document_link_limiter:
-        alias: limiter.document_link
-    test.inbound_mail_limiter:
-        alias: limiter.inbound_mail
-    test.inbound_mail_relay_limiter:
-        alias: limiter.inbound_mail_relay
-    test.invitation_link_limiter:
-        alias: limiter.invitation_link
     test.invoice_balances:
         alias: Foresi\Invoicing\Application\InvoiceBalances
     test.idoklad_import:
         alias: Foresi\Idoklad\Application\Import\RunIdokladImport
-
-    Foresi\Shared\Infrastructure\Registry\RegistryCache:
-        arguments:
-            $registryCache: '@cache.registry'
-
-    Foresi\Shared\Infrastructure\Registry\PublicRegistryClient:
-        arguments:
-            $registryOutgoingLimiter: '@limiter.registry_outgoing'
 
     # Mail goes out through the firm's own server. Named here so the test and e2e
     # environments can swap the gateway, and PHPStan, which reads the dev container, knows the ids.
@@ -257,29 +209,8 @@ services:
         alias: Foresi\Invoicing\Infrastructure\Doctrine\DoctrineMailServers
     Foresi\Invoicing\Application\MailSecrets:
         alias: Foresi\Invoicing\Infrastructure\Mail\SodiumMailSecrets
-    Foresi\Shared\Application\Sealer:
-        alias: Foresi\Shared\Infrastructure\Crypto\SodiumSealer
     Foresi\Invoicing\Application\MailHostPolicy:
         alias: Foresi\Invoicing\Infrastructure\Mail\DnsMailHostPolicy
-    Foresi\Webhooks\Application\WebhookSecrets:
-        alias: Foresi\Webhooks\Infrastructure\Crypto\SodiumWebhookSecrets
-    Foresi\Webhooks\Application\WebhookUrlPolicy:
-        alias: Foresi\Webhooks\Infrastructure\Http\DnsWebhookUrlPolicy
-    Foresi\Webhooks\Application\WebhookEndpoints:
-        alias: Foresi\Webhooks\Infrastructure\Doctrine\DoctrineWebhookEndpoints
-    Foresi\Webhooks\Application\WebhookWork:
-        alias: Foresi\Webhooks\Infrastructure\Doctrine\DoctrineWebhookWork
-    Foresi\Webhooks\Application\WebhookQueue:
-        alias: Foresi\Webhooks\Infrastructure\Delivery\MessengerWebhookQueue
-    Foresi\Webhooks\Application\SubscribableEvents:
-        alias: Foresi\Webhooks\Infrastructure\Events\CatalogueSubscribableEvents
-    Foresi\Webhooks\Application\Query\DeliveryRecords:
-        alias: Foresi\Webhooks\Infrastructure\Dbal\DbalDeliveryRecords
-    # Redirects are never followed and, unless this installation posts to its own network, private addresses are refused.
-    webhooks.http_client:
-        class: Symfony\Contracts\HttpClient\HttpClientInterface
-        factory: ['Foresi\Webhooks\Infrastructure\Http\WebhookHttpClientFactory', 'create']
-        arguments: ['%app.webhooks.allow_private_hosts%']
     Foresi\Invoicing\Application\MailTemplates:
         alias: Foresi\Invoicing\Infrastructure\Doctrine\DoctrineMailTemplates
     Foresi\Invoicing\Application\DocumentTitles:
@@ -318,6 +249,9 @@ services:
     # An invoice in the trash frees its time, and restoring it bills the time again.
     Foresi\Invoicing\Application\BilledWorkRelease:
         alias: Foresi\Invoicing\Infrastructure\CollectedBilledWorkRelease
+    # A guest's first page is the work shared with them.
+    Foresi\Identity\Contract\GuestHome:
+        alias: Foresi\Work\Infrastructure\Identity\SharedWorkGuestHome
     # A line of invoiced time names its invoice.
     Foresi\Work\Contract\InvoiceNumbers:
         alias: Foresi\Work\Infrastructure\CollectedInvoiceNumbers
@@ -333,12 +267,6 @@ services:
     Foresi\Invoicing\Infrastructure\Pdf\DiskOriginalDocuments:
         arguments:
             $root: '%app.original_documents_dir%'
-    Foresi\Attachment\Infrastructure\Storage\DiskAttachmentFiles:
-        arguments:
-            $root: '%app.attachments_dir%'
-    Foresi\Attachment\Application\AttachmentPermissions:
-        arguments:
-            $accesses: !tagged_iterator app.attachment_access
     # Drawn documents, except an imported one that kept the PDF of its source.
     Foresi\Invoicing\Application\InvoicePdf:
         alias: Foresi\Invoicing\Infrastructure\Pdf\TcpdfInvoicePdf
@@ -378,24 +306,9 @@ services:
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
 
-    # Application classes stay framework-free, so the reset tag is declared here:
-    # long-running workers and Messenger never carry state into the next job.
-    Foresi\Audit\Application\AuditCorrelation:
-        tags:
-            - { name: kernel.reset, method: reset }
-
-    Foresi\Instance\Application\ConfiguredZone:
-        arguments:
-            $name: '%app.timezone%'
-
 when@dev:
     parameters:
         app.mail.allow_local_links: true
-
-    services:
-        Foresi\Ui\Controller\CatalogueController:
-            autowire: true
-            autoconfigure: true
 
 # The end-to-end environment (tests/e2e) runs the real application against its own
 # SQLite database. Registry adapters are replaced by the fixture-backed fakes of the
@@ -407,14 +320,11 @@ when@e2e:
         app.inbound_mail_dir: '%kernel.cache_dir%/inbound-mail'
         # The PDFs of the seeded iDoklad pull, gone with the e2e cache too.
         app.idoklad_files_dir: '%kernel.cache_dir%/idoklad-documents'
-        app.attachments_dir: '%kernel.cache_dir%/attachments'
 
     services:
         _defaults:
             autowire: true
             autoconfigure: true
-
-        Foresi\Ui\Controller\CatalogueController: ~
 
         # The seed stores an iDoklad pull; no browser test ever reaches iDoklad. A client with no
         # responses fails every request, so a pull or a key check started in a spec fails at once.
@@ -441,12 +351,6 @@ when@e2e:
         e2e.registration_numbers:
             alias: Foresi\Party\Application\RegistrationNumberFactory
             public: true
-        e2e.password_hashers:
-            alias: Symfony\Component\PasswordHasher\Hasher\PasswordHasherFactoryInterface
-            public: true
-        e2e.entity_manager:
-            alias: Doctrine\ORM\EntityManagerInterface
-            public: true
 
         # Nothing is ever sent from the browser tests.
         Foresi\Invoicing\Application\MailGateway:
@@ -455,10 +359,6 @@ when@e2e:
         Foresi\Tests\Support\Mail\RecordingMailGateway: ~
         # ...and no browser test asks a real DNS server for a mail host.
         Foresi\Invoicing\Infrastructure\Mail\DnsMailHostPolicy:
-            arguments:
-                $resolver: !closure '@Foresi\Tests\Support\Mail\ExampleHostResolver'
-        # ...nor for a webhook host.
-        Foresi\Webhooks\Infrastructure\Http\DnsWebhookUrlPolicy:
             arguments:
                 $resolver: !closure '@Foresi\Tests\Support\Mail\ExampleHostResolver'
         Foresi\Tests\Support\Mail\ExampleHostResolver: ~
@@ -498,9 +398,6 @@ when@e2e:
         e2e.issue_recurring:
             alias: Foresi\Invoicing\Application\IssueRecurringOccurrence
             public: true
-        e2e.instance_clock:
-            alias: Foresi\Instance\Application\InstanceClock
-            public: true
         e2e.manage_projects:
             alias: Foresi\Work\Application\ManageProjects
             public: true
@@ -521,12 +418,6 @@ when@e2e:
             public: true
         e2e.manage_time:
             alias: Foresi\Work\Application\ManageTime
-            public: true
-        e2e.upload_attachment:
-            alias: Foresi\Attachment\Application\UploadAttachment
-            public: true
-        e2e.token_storage:
-            alias: security.token_storage
             public: true
         e2e.rate_store:
             alias: Foresi\ExchangeRate\Application\RateStore
@@ -551,69 +442,6 @@ when@test:
         _defaults:
             autowire: true
             autoconfigure: true
-
-        # In memory, so lookups never leak between test runs.
-        test.party_lookup_storage:
-            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
-
-        test.party_refresh_checks_storage:
-            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
-
-        test.registry_outgoing_storage:
-            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
-
-        test.login_throttling_storage:
-            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
-
-        test.mail_test_storage:
-            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
-
-        test.two_factor_code_storage:
-            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
-
-        test.invoice_send_storage:
-            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
-
-        test.invoice_send_firm_storage:
-            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
-
-        test.document_link_storage:
-            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
-
-        test.inbound_mail_storage:
-            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
-
-        test.inbound_mail_relay_storage:
-            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
-
-        test.health_storage:
-            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
-
-        test.invitation_link_storage:
-            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
-
-        # Lets a test spend the budget of a firm.
-        test.invoice_send_firm_limiter:
-            alias: limiter.invoice_send_firm
-            public: true
-        test.document_link_limiter:
-            alias: limiter.document_link
-            public: true
-        test.inbound_mail_limiter:
-            alias: limiter.inbound_mail
-            public: true
-        test.inbound_mail_relay_limiter:
-            alias: limiter.inbound_mail_relay
-            public: true
-        test.invitation_link_limiter:
-            alias: limiter.invitation_link
-            public: true
-
-        # The generic audit query; the fake import target answers changedSince()
-        # with it, while targets of the application check their own entities.
-        Foresi\Audit\Application\AuditTrail:
-            alias: Foresi\Audit\Infrastructure\Doctrine\DoctrineAuditTrail
-            public: true
 
         # Lets a test make the gate's lock fail once.
         Foresi\Tests\Import\Support\FlakyImportLock:
@@ -691,12 +519,6 @@ when@test:
             alias: Foresi\Invoicing\Infrastructure\Doctrine\DoctrineRecurringInvoices
             public: true
 
-        # A scheduled job that counts its runs, and the run records it is claimed through.
-        Foresi\Tests\Instance\Support\CountingJob:
-            tags: ['app.scheduled_job']
-        Foresi\Tests\Instance\Support\CountingOperatorTask:
-            tags: ['app.operator_task']
-
         # The operator mailbox in memory, and an inbound file store a test can make fail.
         Foresi\Tests\Support\Mail\FakeInboundMailbox: ~
         Foresi\Banking\Application\InboundMailbox:
@@ -708,9 +530,6 @@ when@test:
         Foresi\Banking\Infrastructure\CachePollFailures:
             arguments:
                 $cache: !service { class: Symfony\Component\Cache\Adapter\ArrayAdapter }
-        Foresi\Instance\Application\Schedule\ScheduledJobRuns:
-            alias: Foresi\Instance\Infrastructure\Schedule\DoctrineScheduledJobRuns
-            public: true
         # The tests drive the work services directly; the screens come next.
         Foresi\Work\Application\ManageProjects: { public: true }
         Foresi\Work\Application\ManageSections: { public: true }
@@ -731,9 +550,6 @@ when@test:
         Foresi\Work\Application\WorkQueries:
             alias: Foresi\Work\Infrastructure\Doctrine\DoctrineWorkQueries
             public: true
-        Foresi\Instance\Application\InstanceClock: { public: true }
-        # The MCP server on stdio will sign in with it; until then only the tests do.
-        Foresi\Identity\Infrastructure\Security\ApiTokenLogin: { public: true }
 
         # Tests never send mail: the gateway records instead.
         Foresi\Invoicing\Application\MailGateway:
@@ -751,10 +567,6 @@ when@test:
             public: true
         # No test asks a real DNS server for a mail host.
         Foresi\Invoicing\Infrastructure\Mail\DnsMailHostPolicy:
-            arguments:
-                $resolver: !closure '@Foresi\Tests\Support\Mail\ExampleHostResolver'
-        # ...nor for a webhook host.
-        Foresi\Webhooks\Infrastructure\Http\DnsWebhookUrlPolicy:
             arguments:
                 $resolver: !closure '@Foresi\Tests\Support\Mail\ExampleHostResolver'
         Foresi\Tests\Support\Mail\ExampleHostResolver: ~
@@ -812,11 +624,6 @@ when@test:
         Foresi\Party\Contract\BankAccountUsage:
             alias: Foresi\Party\Infrastructure\CollectedBankAccountUsage
             public: true
-
-        # Stands in for a plugin adding a sidebar item.
-        Foresi\Tests\Ui\Support\TestNavigationProvider: ~
-        Foresi\Tests\Ui\Support\ShellProbeController: ~
-        Foresi\Ui\Controller\CatalogueController: ~
 
         # Registry adapters are replaced by fixture-backed fakes: no test ever calls a live register.
         Foresi\Party\Application\CompanyRegistry:

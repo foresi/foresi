@@ -17,9 +17,11 @@ security:
         inbound_mail:
             pattern: ^/inbound/mail$
             stateless: true
-        # The health endpoint for an uptime monitor: no user and no session.
-        health:
-            pattern: ^/health$
+        # The public routes that are stateless too, such as the health check for an uptime
+        # monitor: no user and no session. A module marks its route with the default
+        # _public and the option stateless (Foresi\Shared\Infrastructure\Security\PublicRoute).
+        public_stateless:
+            request_matcher: foresi.security.public_stateless_route
             stateless: true
         # REST and MCP sign in with a personal API token on every request: no session, no cookie, no CSRF.
         api:
@@ -80,16 +82,13 @@ security:
         - { path: ^/logout$, roles: PUBLIC_ACCESS }
         # The code step, between the password and the full sign-in.
         - { path: ^/login/code, roles: IS_AUTHENTICATED_2FA_IN_PROGRESS }
-        # The development catalogue shows no data; its route exists in dev and test only.
-        - { path: ^/_catalogue(?:/sheet)?$, roles: PUBLIC_ACCESS }
+        # The routes a module marks with the default _public, such as invitation links, the
+        # health check and the development catalogue (Foresi\Shared\Infrastructure\Security\PublicRoute).
+        - { request_matcher: Foresi\Shared\Infrastructure\Security\PublicRoute, roles: PUBLIC_ACCESS }
         # Links to sent documents, opened by customers from their mail.
         - { path: ^/d/, roles: PUBLIC_ACCESS }
         # Raw bank mail from a relay, which proves itself with the webhook secret.
         - { path: ^/inbound/mail$, roles: PUBLIC_ACCESS }
-        # Numbers about the installation only, for an uptime monitor.
-        - { path: ^/health$, roles: PUBLIC_ACCESS }
-        # Invitation links, opened before the invited person has an account or has signed in.
-        - { path: ^/invitation/, roles: PUBLIC_ACCESS }
         # The signed link in a notification e-mail that stops that kind of e-mail, and its one-click POST.
         - { path: ^/unsubscribe/, roles: PUBLIC_ACCESS }
         # The OpenAPI document describes the API and holds no data.

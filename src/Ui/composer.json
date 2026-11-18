@@ -11,6 +11,7 @@
             "module": "ui",
             "kind": "ui",
             "namespace": "Foresi\\Ui\\",
+            "bundle": "Foresi\\Ui\\UiBundle",
             "optional": []
         }
     }
