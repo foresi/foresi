@@ -1,0 +1,251 @@
+#!/usr/bin/env php
+<?php
+// SPDX-License-Identifier: AGPL-3.0-only
+
+declare(strict_types=1);
+
+/*
+ * Turns this checkout into an application with one module, the way the CI job
+ * "Module subsets" tests each module on its own. The kernel, config/ and bin/console
+ * of the repository are the application skeleton; Composer installs the module and
+ * only what it requires, from the path repositories of src/*.
+ *
+ *   bin/module-subset list
+ *       Prints the module directories under src/ (those with a composer.json of type
+ *       foresi-module) as a JSON list, for the CI matrix.
+ *
+ *   bin/module-subset composer DIR
+ *       Rewrites composer.json for the module in src/DIR. The root requirements stay,
+ *       except the foresi/* packages other than foresi/core, the core every application
+ *       has, and the third-party libraries some module declares: those come in only with
+ *       a module that requires them. The application autoloads only its kernel; each
+ *       module autoloads itself, so a class of a module that is not installed cannot be
+ *       loaded. Then "composer update 'foresi/*'" resolves the set again from composer.lock:
+ *       it removes every module the one module does not require, with the libraries only
+ *       they needed, and keeps the rest at the versions the application ships.
+
+ *   bin/module-subset prune
+ *       After the install: deletes src/DIR and tests/DIR of every module that is not
+ *       installed, so nothing can reach them through the file system either, and prints
+ *       the installed module directories.
+ *
+ *   bin/module-subset phpunit DIR
+ *       Writes phpunit.subset.xml: phpunit.dist.xml with one test suite, tests/DIR, less
+ *       tests/DIR/Integration/OTHER for every OTHER module that is not installed.
+ *
+ *   bin/module-subset paths
+ *       Prints the template directories of the installed application for lint:twig.
+ */
+
+// The core every Foresi application has (packages/core); the skeleton keeps it.
+const CORE = 'foresi/core';
+
+$root = dirname(__DIR__);
+$arguments = $_SERVER['argv'];
+array_shift($arguments);
+$command = array_shift($arguments);
+
+exit(match ($command) {
+    'list' => listModules($root),
+    'composer' => writeComposer($root, $arguments[0] ?? ''),
+    'prune' => prune($root),
+    'phpunit' => writePhpunit($root, $arguments[0] ?? ''),
+    'paths' => templatePaths($root),
+    default => fail("Usage: bin/module-subset list | composer DIR | prune | phpunit DIR | paths\n"),
+});
+
+function fail(string $message): int
+{
+    fwrite(\STDERR, $message);
+
+    return 1;
+}
+
+/**
+ * @return array<mixed>
+ */
+function readJson(string $file): array
+{
+    $json = file_get_contents($file);
+    if (false === $json) {
+        throw new RuntimeException("Cannot read {$file}.");
+    }
+    $data = json_decode($json, true, flags: \JSON_THROW_ON_ERROR);
+
+    return is_array($data) ? $data : throw new RuntimeException("{$file} is not a JSON object.");
+}
+
+/**
+ * The composer.json of every module, keyed by its directory under src/.
+ *
+ * @return array<string, array<mixed>>
+ */
+function modules(string $root): array
+{
+    $modules = [];
+    foreach (glob($root.'/src/*/composer.json') ?: [] as $file) {
+        $composer = readJson($file);
+        if ('foresi-module' === ($composer['type'] ?? null)) {
+            $modules[basename(dirname($file))] = $composer;
+        }
+    }
+    ksort($modules);
+
+    return $modules;
+}
+
+function listModules(string $root): int
+{
+    echo json_encode(array_keys(modules($root)), \JSON_THROW_ON_ERROR), "\n";
+
+    return 0;
+}
+
+function isLibrary(string $package): bool
+{
+    return str_contains($package, '/') && !str_starts_with($package, 'foresi/');
+}
+
+function writeComposer(string $root, string $dir): int
+{
+    $modules = modules($root);
+    if (!isset($modules[$dir])) {
+        return fail("src/{$dir} is not a module. Modules: ".implode(', ', array_keys($modules))."\n");
+    }
+
+    // The libraries a module declares come with that module, not with the skeleton.
+    $declared = [];
+    foreach ($modules as $composer) {
+        foreach (array_keys($composer['require'] ?? []) as $package) {
+            if (isLibrary($package)) {
+                $declared[$package] = true;
+            }
+        }
+    }
+
+    $composer = readJson($root.'/composer.json');
+    $require = [];
+    foreach ($composer['require'] as $package => $constraint) {
+        if ((!str_starts_with($package, 'foresi/') || CORE === $package) && !isset($declared[$package])) {
+            $require[$package] = $constraint;
+        }
+    }
+    $require[$modules[$dir]['name']] = 'dev-main';
+    ksort($require);
+    $composer['name'] = 'foresi/module-subset';
+    $composer['require'] = $require;
+    $composer['autoload'] = ['classmap' => ['src/Kernel.php']];
+    // The other modules come in as dev-main requirements of the module, which only the
+    // root may allow; prefer-stable keeps every library on its stable release.
+    $composer['minimum-stability'] = 'dev';
+    $composer['prefer-stable'] = true;
+    // The skeleton is checked by commands the job runs one by one, not by Composer's scripts.
+    unset($composer['scripts'], $composer['config']['bump-after-update']);
+
+    file_put_contents(
+        $root.'/composer.json',
+        json_encode($composer, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_THROW_ON_ERROR)."\n",
+    );
+    return 0;
+}
+
+/**
+ * The directories under src/ of the installed modules, from Composer's own record.
+ *
+ * @return list<string>
+ */
+function installed(string $root): array
+{
+    $file = $root.'/vendor/composer/installed.json';
+    if (!is_file($file)) {
+        throw new RuntimeException('Run composer update first: vendor/composer/installed.json is missing.');
+    }
+    $names = [];
+    foreach (readJson($file)['packages'] ?? [] as $package) {
+        if ('foresi-module' === ($package['type'] ?? null)) {
+            $names[] = $package['name'];
+        }
+    }
+    $dirs = [];
+    foreach (modules($root) as $dir => $composer) {
+        if (in_array($composer['name'], $names, true)) {
+            $dirs[] = $dir;
+        }
+    }
+
+    return $dirs;
+}
+
+function removeTree(string $path): void
+{
+    if (is_link($path) || is_file($path)) {
+        unlink($path);
+
+        return;
+    }
+    if (!is_dir($path)) {
+        return;
+    }
+    foreach (new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::CHILD_FIRST,
+    ) as $item) {
+        $item->isDir() && !$item->isLink() ? rmdir($item->getPathname()) : unlink($item->getPathname());
+    }
+    rmdir($path);
+}
+
+function prune(string $root): int
+{
+    $installed = installed($root);
+    foreach (array_keys(modules($root)) as $dir) {
+        if (!in_array($dir, $installed, true)) {
+            removeTree($root.'/src/'.$dir);
+            removeTree($root.'/tests/'.$dir);
+        }
+    }
+    echo implode(' ', $installed), "\n";
+
+    return 0;
+}
+
+function writePhpunit(string $root, string $dir): int
+{
+    $installed = installed($root);
+    if (!in_array($dir, $installed, true)) {
+        return fail("The module in src/{$dir} is not installed.\n");
+    }
+    $excludes = '';
+    foreach (glob($root.'/tests/'.$dir.'/Integration/*', \GLOB_ONLYDIR) ?: [] as $integration) {
+        if (!in_array(basename($integration), $installed, true)) {
+            $excludes .= "\n            <exclude>tests/{$dir}/Integration/".basename($integration).'</exclude>';
+        }
+    }
+    $suite = <<<XML
+            <testsuite name="{$dir}">
+                <directory>tests/{$dir}</directory>{$excludes}
+            </testsuite>
+        XML;
+
+    $config = file_get_contents($root.'/phpunit.dist.xml');
+    $config = preg_replace('~<testsuites>.*</testsuites>~s', "<testsuites>\n{$suite}\n    </testsuites>", (string) $config, 1, $count);
+    if (1 !== $count) {
+        return fail("phpunit.dist.xml has no <testsuites> element.\n");
+    }
+    file_put_contents($root.'/phpunit.subset.xml', $config);
+
+    return 0;
+}
+
+function templatePaths(string $root): int
+{
+    $paths = ['templates'];
+    foreach (installed($root) as $dir) {
+        if (is_dir($root.'/src/'.$dir.'/templates')) {
+            $paths[] = 'src/'.$dir.'/templates';
+        }
+    }
+    echo implode(' ', $paths), "\n";
+
+    return 0;
+}

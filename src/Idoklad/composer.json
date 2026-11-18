@@ -7,10 +7,15 @@
         "foresi/audit": "*",
         "foresi/identity": "*",
         "foresi/import": "*",
+        "foresi/instance": "*",
         "foresi/invoicing": "*",
         "foresi/party": "*",
-        "foresi/shared": "*",
-        "foresi/instance": "*"
+        "foresi/shared": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\Idoklad\\": ""
+        }
     },
     "extra": {
         "foresi": {

@@ -41,4 +41,5 @@
 
 ###> project (test shards) ###
 /phpunit.shard.xml
+/phpunit.subset.xml
 ###< project (test shards) ###

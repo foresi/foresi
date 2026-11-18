@@ -6,10 +6,18 @@
     "require": {
         "foresi/audit": "*",
         "foresi/identity": "*",
+        "foresi/instance": "*",
         "foresi/party": "*",
         "foresi/shared": "*",
-        "foresi/instance": "*",
-        "foresi/ui": "*"
+        "foresi/ui": "*",
+        "openspout/openspout": "^5.12",
+        "tecnickcom/tc-lib-barcode": "^2.17.2",
+        "tecnickcom/tc-lib-pdf": "^8.82.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\Invoicing\\": ""
+        }
     },
     "extra": {
         "foresi": {

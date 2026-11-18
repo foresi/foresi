@@ -7,6 +7,11 @@
         "foresi/party": "*",
         "foresi/shared": "*"
     },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\Country\\": ""
+        }
+    },
     "extra": {
         "foresi": {
             "module": "country",
