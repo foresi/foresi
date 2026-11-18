@@ -1,0 +1,68 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
+import { expect, test } from '@playwright/test';
+import { OWNER_STATE } from '../support/session';
+
+test.use({ storageState: OWNER_STATE });
+
+// The Columns sheet of a list (spec D-display-4, D-display-6): show, hide and reorder the columns,
+// with a single pointer and with keys, and the row height; the list keeps it in its address.
+test.describe('list columns', () => {
+  test('hides, moves and compacts the columns with the keyboard, and resets them', async ({ page }) => {
+    await page.goto('/contacts');
+    const open = page.getByRole('button', { name: 'Sloupce' });
+    await open.focus();
+    await page.keyboard.press('Enter');
+    const sheet = page.getByRole('dialog', { name: 'Sloupce' });
+    await expect(sheet).toBeVisible();
+
+    // The column that names the row is always shown and cannot be unchecked.
+    await expect(sheet.getByRole('checkbox', { name: /Název/ })).toBeDisabled();
+    await sheet.getByRole('checkbox', { name: 'Role' }).focus();
+    await page.keyboard.press('Space');
+
+    // Move up keeps the focus and says where the column went.
+    await sheet.getByRole('button', { name: 'Posunout Stav nahoru' }).focus();
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Enter');
+    await expect(sheet.getByRole('button', { name: 'Posunout Stav nahoru' })).toBeFocused();
+    await expect(sheet.getByRole('status')).toHaveText('Stav je teď na pozici 5 z 7.');
+
+    await sheet.getByRole('radio', { name: /Kompaktní/ }).check();
+    await sheet.getByRole('button', { name: 'Použít' }).click();
+
+    await expect(page).toHaveURL(/cols=name%2Ckind%2Cregistration%2Cstatus%2Cvat%2Cemail&density=dense/);
+    await expect(page.locator('thead th')).toHaveText(['', 'Název', 'Druh', 'IČO', 'Stav', 'DIČ', 'E-mail']);
+    await expect(page.getByRole('link', { name: /Všechny.*neuložené změny/ })).toBeVisible();
+
+    // A sort keeps the changed columns.
+    await page.getByRole('link', { name: /^Druh/ }).click();
+    await expect(page).toHaveURL(/sort=kind.*cols=/);
+    await expect(page.locator('thead th')).toHaveText(['', 'Název', 'Druh', 'IČO', 'Stav', 'DIČ', 'E-mail']);
+
+    await page.getByRole('button', { name: /Sloupce/ }).click();
+    await page.getByRole('dialog', { name: 'Sloupce' }).getByRole('link', { name: 'Obnovit výchozí' }).click();
+    await expect(page).not.toHaveURL(/cols=/);
+    await expect(page.locator('thead th')).toHaveText(['', 'Název', 'Druh', 'Role', 'IČO', 'DIČ', 'E-mail', 'Stav']);
+  });
+
+  test('moves a column by dragging its handle', async ({ page }) => {
+    await page.goto('/contacts');
+    await page.getByRole('button', { name: 'Sloupce' }).click();
+    const sheet = page.getByRole('dialog', { name: 'Sloupce' });
+    const handle = sheet.locator('[data-key="email"] [data-column-picker-handle]');
+    const target = sheet.locator('[data-key="kind"]');
+    const from = await handle.boundingBox();
+    const to = await target.boundingBox();
+    if (from === null || to === null) {
+      throw new Error('The rows of the sheet are not laid out.');
+    }
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(to.x + to.width / 2, to.y + 2, { steps: 8 });
+    await page.mouse.up();
+    await expect(sheet.getByRole('status')).toHaveText('E-mail je teď na pozici 2 z 7.');
+    await sheet.getByRole('button', { name: 'Použít' }).click();
+    await expect(page.locator('thead th')).toHaveText(['', 'Název', 'E-mail', 'Druh', 'Role', 'IČO', 'DIČ', 'Stav']);
+  });
+});

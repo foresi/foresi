@@ -111,6 +111,27 @@ ui:
     keep_editing: Pokračovat v úpravách
     discard: Zahodit
     failed: Něco se nepovedlo. Zkuste to prosím znovu.
+  column_picker:
+    button: Sloupce
+    modified: změněno
+    title: Sloupce
+    description: Vyberte, které sloupce seznam ukazuje, jejich pořadí a výšku řádků.
+    columns: Zobrazené sloupce
+    search: Hledat sloupce
+    no_match: Žádný sloupec neodpovídá.
+    locked: Vždy zobrazen
+    move_up: 'Posunout {label} nahoru'
+    move_down: 'Posunout {label} dolů'
+    moved: '{label} je teď na pozici {position} z {total}.'
+    density: Výška řádků
+    density_comfortable: Pohodlná
+    density_comfortable_hint: 56 px
+    density_dense: Kompaktní
+    density_dense_hint: 44 px
+    reset: Obnovit výchozí
+    apply: Použít
+  tabs:
+    modified: neuložené změny
   filter_bar:
     title: Filtry
     description: Vyberte, čím se má seznam zúžit.

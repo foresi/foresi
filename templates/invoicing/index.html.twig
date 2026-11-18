@@ -47,9 +47,13 @@
                 {name: 'month', label: 'invoice.month.label'|trans, options: months, value: month, pinned: true},
                 {name: 'export', label: 'invoice.export_state.label'|trans, options: exportStates, value: export},
             ]) %}
-            <twig:Ui:FilterBar id="invoice-filters" :action="path(route)" :keep="{view: view != '' ? view : null, sort: sort != '-issueDate' ? sort : null, toSend: toSend ? '1' : null}"
+            <twig:Ui:FilterBar id="invoice-filters" :action="path(route)" :keep="{view: view != '' ? view : null, sort: sort != '-issueDate' ? sort : null, toSend: toSend ? '1' : null}|merge(workingQuery)"
                 :search="{name: 'q', value: text, label: 'invoice.list.search_label'|trans, placeholder: 'invoice.list.search_placeholder'|trans}"
-                :filters="invoiceFilters" :empty="rows is empty" />
+                :filters="invoiceFilters" :empty="rows is empty">
+                <twig:block name="end">
+                    <twig:Ui:ColumnPicker id="invoice-columns" :action="path(route)" :keep="picker.keep" :columns="picker.columns" :density="picker.density" :resetHref="picker.resetHref" :modified="picker.modified" />
+                </twig:block>
+            </twig:Ui:FilterBar>
             {% if toSend or toSendCount > 0 %}
                 {# The invoices recurring templates issued that nobody sent yet: held for review, or refused for sending. #}
                 <div class="flex flex-wrap items-center gap-2" data-to-send>
@@ -58,7 +62,7 @@
                 </div>
             {% endif %}
 
-            <twig:Ui:DataTable :caption="titleKey|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN'))">
+            <twig:Ui:DataTable :caption="titleKey|trans" :columns="columns" :rows="rows" :density="density" :actionToken="csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN'))">
                 <twig:block name="empty">
                     {% if filtered %}
                         <twig:Ui:EmptyState icon="search" :title="'invoice.list.empty.filtered_title'|trans" :text="'invoice.list.empty.filtered_text'|trans">

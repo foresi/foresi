@@ -60,6 +60,8 @@ use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Ui\Column\ListColumnRegistry;
 use Foresi\Ui\Column\ListDisplay;
+use Foresi\Ui\Column\WorkingDisplay;
+use Foresi\Ui\Column\WorkingState;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\InputBag;
@@ -88,7 +90,7 @@ final class InvoiceListController extends AbstractController
     public const string ACTION_TOKEN = 'invoice_action';
     private const int MAX_TEXT = 100;
     /** The parts of the list's query an action carries back to it. */
-    public const array LIST_QUERY = ['view', 'tab', 'firm', 'q', 'sort', 'page', 'toSend', 'export', 'month'];
+    public const array LIST_QUERY = ['view', 'tab', 'firm', 'q', 'sort', 'page', 'toSend', 'export', 'month', WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY];
     /** The list of each kind of document, as iDoklad keeps one per kind. */
     public const array ROUTES = ['invoice' => 'app_invoices', 'advance' => 'app_advances', 'payment_tax_document' => 'app_tax_documents', 'correction_document' => 'app_corrections'];
 
@@ -117,6 +119,7 @@ final class InvoiceListController extends AbstractController
         private readonly ListViews $views,
         private readonly AuditActor $actor,
         private readonly ListColumnRegistry $listColumns,
+        private readonly WorkingDisplay $workingDisplay,
     ) {
     }
 
@@ -135,9 +138,12 @@ final class InvoiceListController extends AbstractController
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'firm' => '' === $firm ? null : $firm, 'q' => '' === $text ? null : $text, 'sort' => InvoiceFilter::DEFAULT_SORT === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null, 'export' => $export?->value, 'month' => $month], static fn (?string $value): bool => null !== $value);
         // Within the firm the list is filtered by, so the chip counts what pressing it shows.
         $toSendCount = $this->recurring->inReview('' === $firm ? null : $firm);
+        $severalFirms = \count($page->firms) > 1;
+        // The columns and density changed in the Columns sheet, kept in the address next to the view (spec D10, D-display-3).
+        $working = $this->workingDisplay->read(self::listKey($kind), ['trash' => InvoiceFilter::TRASH === $tab, 'severalFirms' => $severalFirms], $view->display, $request->query->all());
+        $query += $working->query;
         // What an action carries back names the kind, so it returns to this list.
         $here = (1 === $page->page ? $query : $query + ['page' => (string) $page->page]) + (DocumentKind::Invoice === $kind ? [] : ['kind' => $kind->value]);
-        $severalFirms = \count($page->firms) > 1;
         $names = InvoiceFilter::TRASH === $tab ? $this->users->namesOf($this->deletedBy($page)) : [];
         $reminders = InvoiceFilter::TRASH === $tab ? [] : $this->sends->remindersFor(array_values(array_map(
             static fn (InvoiceRow $row): string => $row->id,
@@ -163,9 +169,12 @@ final class InvoiceListController extends AbstractController
             'titleKey' => 'invoice.list.title_'.$kind->value,
             // A corrective document is issued from the document it corrects, never from a blank form.
             'newHref' => $kind->standsAlone() ? $this->generateUrl('app_invoice_new', DocumentKind::Invoice === $kind ? [] : ['kind' => $kind->value]) : null,
-            ...$this->tabs($views, $view->key, $page, $query, $route, $kind),
-            'columns' => $this->columns($tab, $sort, $query, $severalFirms, $route),
-            'rows' => array_map(fn (InvoiceRow $row): array => $this->row($row, $tab, $severalFirms, $names, http_build_query($here), $reminders[$row->id] ?? null), $page->rows),
+            ...$this->tabs($views, $view->key, $page, $query, $route, $kind, $working->modified),
+            'columns' => $working->display->table($sort, fn (string $next): string => $this->generateUrl($route, ['sort' => $next] + $query)),
+            'rows' => array_map(fn (InvoiceRow $row): array => $this->row($row, $tab, $severalFirms, $names, http_build_query($here), $reminders[$row->id] ?? null, $working->payload), $page->rows),
+            'density' => $working->tableDensity(),
+            'picker' => $this->picker($working, $query, $route),
+            'workingQuery' => $working->query,
             'baseUrl' => $this->generateUrl($route, $query),
             'toSend' => $toSend,
             'toSendCount' => $toSendCount,
@@ -599,14 +608,16 @@ final class InvoiceListController extends AbstractController
      *
      * @return array{tabs: list<array<string, mixed>>, moreViews: list<array<string, mixed>>}
      */
-    private function tabs(array $views, string $active, InvoicePage $page, array $query, string $route, DocumentKind $kind): array
+    private function tabs(array $views, string $active, InvoicePage $page, array $query, string $route, DocumentKind $kind, bool $modified = false): array
     {
         [$primary, $overflow] = ListViews::placed($views);
         $link = fn (ListView $view, bool $count): array => [
             'label' => $view->translated ? $this->translator->trans($view->name) : $view->name,
-            'href' => $this->generateUrl($route, ['view' => $view->isAll() ? null : $view->key] + array_diff_key($query, ['view' => true, 'page' => true])),
+            // The changed columns belong to the view they were changed on (spec D10): another view opens with its own.
+            'href' => $this->generateUrl($route, ['view' => $view->isAll() ? null : $view->key] + array_diff_key($query, ['view' => true, 'page' => true] + array_flip(WorkingDisplay::KEYS))),
             'count' => $count && $view->showCount ? ($page->tabCounts[$view->key] ?? null) : null,
             'active' => $view->key === $active,
+            'modified' => $modified && $view->key === $active,
             'private' => $view->private,
         ];
         $more = array_map(static fn (ListView $view): array => $link($view, false), $overflow);
@@ -649,26 +660,43 @@ final class InvoiceListController extends AbstractController
     }
 
     /**
-     * The columns of the list as IssuedDocumentColumns declares them for the tab.
+     * The Columns sheet: what it keeps of the list, and the list without the changed columns.
      *
      * @param array<string, string> $query
      *
-     * @return list<array<string, mixed>>
+     * @return array<string, mixed>
      */
-    private function columns(string $tab, string $sort, array $query, bool $severalFirms, string $route): array
+    private function picker(WorkingState $working, array $query, string $route): array
     {
-        return $this->column((string) array_search($route, self::ROUTES, true), $tab, $severalFirms)->table($sort, fn (string $next): string => $this->generateUrl($route, ['sort' => $next] + $query));
+        $kept = array_diff_key($query, array_flip(WorkingDisplay::KEYS));
+
+        return [
+            'keep' => $kept,
+            'columns' => $working->picker(),
+            'density' => $working->density,
+            'resetHref' => $this->generateUrl($route, $kept),
+            'modified' => $working->modified,
+        ];
+    }
+
+    private static function listKey(DocumentKind|string $kind): string
+    {
+        $kind = $kind instanceof DocumentKind ? $kind->value : $kind;
+
+        return IssuedDocumentColumns::LISTS[$kind] ?? IssuedDocumentColumns::LISTS[DocumentKind::Invoice->value];
     }
 
     /**
-     * How the list of the kind of document shows for the tab: the registry's default columns (no view gives a display yet).
+     * How the list of the kind of document shows for the tab: the display the list works with
+     * (WorkingDisplay), or the registry's default columns.
      *
      * @param array<string, string>                                        $names     by user id
      * @param array<string, array{count: int, lastAt: \DateTimeImmutable}> $reminders by the id of an overdue row
+     * @param array<array-key, mixed>|null                                 $display   the display payload the list shows
      */
-    private function column(string $kind, string $tab, bool $severalFirms, array $names = [], array $reminders = []): ListDisplay
+    private function column(string $kind, string $tab, bool $severalFirms, array $names = [], array $reminders = [], ?array $display = null): ListDisplay
     {
-        return $this->listColumns->display(IssuedDocumentColumns::LISTS[$kind] ?? IssuedDocumentColumns::LISTS[DocumentKind::Invoice->value], ['trash' => InvoiceFilter::TRASH === $tab, 'severalFirms' => $severalFirms, 'names' => $names, 'reminders' => $reminders]);
+        return $this->listColumns->display(self::listKey($kind), ['trash' => InvoiceFilter::TRASH === $tab, 'severalFirms' => $severalFirms, 'names' => $names, 'reminders' => $reminders], $display);
     }
 
     /**
@@ -677,14 +705,18 @@ final class InvoiceListController extends AbstractController
      *
      * @param array<string, string>                              $names     by user id
      * @param array{count: int, lastAt: \DateTimeImmutable}|null $reminders of an overdue row
+     * @param array<array-key, mixed>|null                       $display   the display payload the list shows
      *
      * @return array<string, mixed>
      */
-    private function row(InvoiceRow $row, string $tab, bool $severalFirms, array $names, string $return, ?array $reminders = null): array
+    private function row(InvoiceRow $row, string $tab, bool $severalFirms, array $names, string $return, ?array $reminders = null, ?array $display = null): array
     {
-        $cells = $this->column($row->kind->value, $tab, $severalFirms, $names, null === $reminders ? [] : [$row->id => $reminders])->cells($row);
-        $text = static function (string $key, string $part = 'text') use ($cells): ?string {
-            $value = \is_array($cells[$key] ?? null) ? ($cells[$key][$part] ?? null) : ('text' === $part ? ($cells[$key] ?? null) : null);
+        $context = null === $reminders ? [] : [$row->id => $reminders];
+        $cells = $this->column($row->kind->value, $tab, $severalFirms, $names, $context, $display)->cells($row);
+        // A phone keeps its own line under the number, whichever columns a wider screen shows (D-display-5).
+        $line = null === $display ? $cells : $this->column($row->kind->value, $tab, $severalFirms, $names, $context)->cells($row);
+        $text = static function (string $key, string $part = 'text') use ($line): ?string {
+            $value = \is_array($line[$key] ?? null) ? ($line[$key][$part] ?? null) : ('text' === $part ? ($line[$key] ?? null) : null);
 
             return \is_string($value) ? $value : null;
         };

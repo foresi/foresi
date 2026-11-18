@@ -12,7 +12,9 @@ use Foresi\Shared\Domain\View\Placement;
 
 /**
  * A view as a list shows it: its key in the list's address (the slug of a shipped
- * view, the id of anyone's own), its name to show, and its checked filter.
+ * view, the id of anyone's own), its name to show, its checked filter and its
+ * display payload as stored (the list columns read it, D-display-2; null for the
+ * list's defaults).
  */
 final readonly class ListView
 {
@@ -25,6 +27,8 @@ final readonly class ListView
         public Placement $placement,
         public bool $private = false,
         public ?string $slug = null,
+        /** @var array<array-key, mixed>|null */
+        public ?array $display = null,
     ) {
     }
 
