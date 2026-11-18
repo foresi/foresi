@@ -17,10 +17,11 @@ use Foresi\Shared\Application\View\ListDefinitionSource;
 use Foresi\Shared\Application\View\ViewFilter;
 
 /**
- * The inbox and the views it ships: the two tabs it had (spec D12). Its All holds
- * what is not done and keeps the name "New": a done row is hidden from a view that
- * says nothing of done, as the trash is from the other lists, so the inbox opens on
- * what is new as before. Done keeps the rows marked done. No tab counts (D9).
+ * The inbox and the views it ships: the two tabs it had (spec D12). Its All, named
+ * All as on every list (D7), holds what is not done: a done row is hidden from a view
+ * that says nothing of done, as an archived contact is from the address book's All,
+ * so the inbox opens on what is new as before. Done keeps the rows marked done. No
+ * tab counts (D9).
  *
  * Every field is derived from the row: why it came (a mention or an assignment, the
  * select the inbox had, D11), whether it is read or done, and when it last changed.
@@ -67,7 +68,7 @@ final readonly class NotificationLists implements ListDefinitionSource
     private static function defaults(): array
     {
         return [
-            new DefaultView(ListDefinition::ALL, 'work.notifications.tab.new', showCount: false, position: 0),
+            new DefaultView(ListDefinition::ALL, 'work.notifications.tab.all', showCount: false, position: 0),
             new DefaultView(self::DONE_VIEW, 'work.notifications.tab.done', ViewFilter::all(new Condition(self::DONE, 'is', true)), showCount: false, position: 1),
         ];
     }
