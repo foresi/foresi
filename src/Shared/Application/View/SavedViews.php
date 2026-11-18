@@ -317,7 +317,7 @@ final readonly class SavedViews
      */
     private function filters(array $conditions, ListDefinition $list): array
     {
-        return $this->checked(static fn (): array => ViewFilter::parse(['match' => ViewFilter::MATCH_ALL, 'conditions' => $conditions], $list)->toArray());
+        return $this->checked(static fn (): array => ViewFilter::parse(['conditions' => $conditions], $list)->toArray());
     }
 
     private function name(string $name): string
