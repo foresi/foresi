@@ -105,20 +105,20 @@ final readonly class SavedViews
         $list = $this->list($input->listKey);
         $this->storeDefaults($list);
         $filters = $this->filters($input->conditions, $list);
-        $sort = self::checked(static fn (): array => ViewRules::sort($input->sort));
-        $display = self::checked(static fn (): ?array => ViewRules::display($input->columns, $input->density));
+        $sort = $this->checked(static fn (): array => ViewRules::sort($input->sort));
+        $display = $this->checked(static fn (): ?array => ViewRules::display($input->columns, $input->density));
         $name = $this->name($input->name);
         $positions = array_map(static fn (SavedView $view): int => $view->position(), $this->store->ofList($list->key));
         $view = SavedView::made(
             $list->key,
             $user,
             $name,
-            self::visibility($input->visibility),
+            $this->visibility($input->visibility),
             $filters,
             $sort,
             $display,
             $input->showCount,
-            self::placement($input->placement),
+            $this->placement($input->placement),
             [] === $positions ? 1 : max($positions) + 1,
             $this->now(),
         );
@@ -143,7 +143,7 @@ final readonly class SavedViews
             }
         }
         if (!$input->visibility instanceof Omitted) {
-            $visibility = self::visibility($input->visibility);
+            $visibility = $this->visibility($input->visibility);
             if ($visibility !== $view->visibility()) {
                 if (null === $view->ownerId()) {
                     throw SavedViewRefused::invalid('default_view_shared', 'visibility', 'A view a module ships stays shared; an owner can hide it instead.');
@@ -160,9 +160,9 @@ final readonly class SavedViews
             $now,
             name: $input->name instanceof Omitted ? null : $this->name($input->name),
             filters: $input->conditions instanceof Omitted ? null : $this->filters($input->conditions, $list),
-            sort: $input->sort instanceof Omitted ? null : self::checked(static fn (): array => ViewRules::sort($input->sort)),
+            sort: $input->sort instanceof Omitted ? null : $this->checked(static fn (): array => ViewRules::sort($input->sort)),
             showCount: $input->showCount instanceof Omitted ? null : $input->showCount,
-            placement: $input->placement instanceof Omitted ? null : self::placement($input->placement),
+            placement: $input->placement instanceof Omitted ? null : $this->placement($input->placement),
             position: $input->position instanceof Omitted ? null : $input->position,
             hidden: $input->hidden instanceof Omitted ? null : $input->hidden,
         );
@@ -170,7 +170,7 @@ final readonly class SavedViews
             $was = $view->display();
             $columns = $input->columns instanceof Omitted ? (\is_array($was['columns'] ?? null) ? array_values($was['columns']) : null) : $input->columns;
             $density = $input->density instanceof Omitted ? (\is_string($was['density'] ?? null) ? $was['density'] : null) : $input->density;
-            $view->redisplay(self::checked(static fn (): ?array => ViewRules::display($columns, $density)), $user, $now);
+            $view->redisplay($this->checked(static fn (): ?array => ViewRules::display($columns, $density)), $user, $now);
         }
         $this->store->flush();
 
@@ -317,7 +317,7 @@ final readonly class SavedViews
      */
     private function filters(array $conditions, ListDefinition $list): array
     {
-        return self::checked(static fn (): array => ViewFilter::parse(['match' => ViewFilter::MATCH_ALL, 'conditions' => $conditions], $list)->toArray());
+        return $this->checked(static fn (): array => ViewFilter::parse(['match' => ViewFilter::MATCH_ALL, 'conditions' => $conditions], $list)->toArray());
     }
 
     private function name(string $name): string
@@ -337,7 +337,7 @@ final readonly class SavedViews
      *
      * @return T
      */
-    private static function checked(\Closure $check): mixed
+    private function checked(\Closure $check): mixed
     {
         try {
             return $check();
@@ -346,12 +346,12 @@ final readonly class SavedViews
         }
     }
 
-    private static function visibility(string $value): Visibility
+    private function visibility(string $value): Visibility
     {
         return Visibility::tryFrom($value) ?? throw SavedViewRefused::invalid('visibility_unknown', 'visibility', 'The visibility is private or shared.');
     }
 
-    private static function placement(string $value): Placement
+    private function placement(string $value): Placement
     {
         return Placement::tryFrom($value) ?? throw SavedViewRefused::invalid('placement_unknown', 'placement', 'The placement is primary or overflow.');
     }

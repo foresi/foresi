@@ -60,19 +60,19 @@ final class AuditListener
         }
 
         foreach ([...$uow->getScheduledCollectionUpdates(), ...$uow->getScheduledCollectionDeletions()] as $collection) {
-            if (null !== $collection->getOwner() && self::audited($collection->getOwner())) {
+            if (null !== $collection->getOwner() && $this->audited($collection->getOwner())) {
                 throw new \LogicException('Changes to collections of audited entities are not audited yet.');
             }
         }
 
         $entries = [];
         foreach ($uow->getScheduledEntityInsertions() as $entity) {
-            if (self::audited($entity)) {
+            if ($this->audited($entity)) {
                 $entries[] = $this->entry($em, $entity, AuditAction::Created, $this->snapshot($em, $entity, true));
             }
         }
         foreach ($uow->getScheduledEntityUpdates() as $entity) {
-            if (self::audited($entity)) {
+            if ($this->audited($entity)) {
                 $changes = $this->updateChanges($em, $entity);
                 if ([] !== $changes) {
                     $entries[] = $this->entry($em, $entity, AuditAction::Updated, $changes);
@@ -80,7 +80,7 @@ final class AuditListener
             }
         }
         foreach ($uow->getScheduledEntityDeletions() as $entity) {
-            if (self::audited($entity)) {
+            if ($this->audited($entity)) {
                 $entries[] = $this->entry($em, $entity, AuditAction::Deleted, $this->snapshot($em, $entity, false));
             }
         }
@@ -96,7 +96,7 @@ final class AuditListener
      * The audited entities: those of the modules mark themselves Audited; the
      * shared kernel cannot know the Audit module, so its saved views are named here.
      */
-    private static function audited(object $entity): bool
+    private function audited(object $entity): bool
     {
         return $entity instanceof Audited || $entity instanceof SavedView;
     }

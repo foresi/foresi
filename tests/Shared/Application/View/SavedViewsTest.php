@@ -78,8 +78,8 @@ final class SavedViewsTest extends TestCase
         $this->actor->userId = self::OWNER;
         $this->actor->owner = true;
         self::assertNotContains($view, $this->views->visible('test.items'));
-        $this->assertRefused(RefusalKind::NotFound, fn () => $this->views->get($view->id()));
-        $this->assertRefused(RefusalKind::NotFound, fn () => $this->views->delete(new DeleteViewInput($view->id())));
+        $this->assertRefused(RefusalKind::NotFound, fn (): SavedView => $this->views->get($view->id()));
+        $this->assertRefused(RefusalKind::NotFound, fn (): string => $this->views->delete(new DeleteViewInput($view->id())));
     }
 
     public function testASharedViewIsChangedByItsCreatorAndTheOwnersOnly(): void
@@ -87,8 +87,8 @@ final class SavedViewsTest extends TestCase
         $view = $this->views->create($this->input('Team', 'shared'));
 
         $this->actor->userId = self::OTHER_MEMBER;
-        $this->assertRefused(RefusalKind::Forbidden, fn () => $this->views->update(new UpdateViewInput($view->id(), name: 'Mine now')));
-        $this->assertRefused(RefusalKind::Forbidden, fn () => $this->views->delete(new DeleteViewInput($view->id())));
+        $this->assertRefused(RefusalKind::Forbidden, fn (): SavedView => $this->views->update(new UpdateViewInput($view->id(), name: 'Mine now')));
+        $this->assertRefused(RefusalKind::Forbidden, fn (): string => $this->views->delete(new DeleteViewInput($view->id())));
 
         $this->actor->userId = self::OWNER;
         $this->actor->owner = true;
@@ -117,7 +117,7 @@ final class SavedViewsTest extends TestCase
         $paid = $this->views->get('test.items.paid');
         self::assertNull($paid->ownerId());
 
-        $this->assertRefused(RefusalKind::Forbidden, fn () => $this->views->update(new UpdateViewInput($paid->id(), name: 'Settled')));
+        $this->assertRefused(RefusalKind::Forbidden, fn (): SavedView => $this->views->update(new UpdateViewInput($paid->id(), name: 'Settled')));
 
         $this->actor->userId = self::OWNER;
         $this->actor->owner = true;
@@ -126,8 +126,8 @@ final class SavedViewsTest extends TestCase
         self::assertTrue($paid->isHidden());
         self::assertFalse($paid->isPristine());
 
-        $this->assertRefused(RefusalKind::Conflict, fn () => $this->views->delete(new DeleteViewInput($paid->id())));
-        $this->assertRefused(RefusalKind::Invalid, fn () => $this->views->update(new UpdateViewInput($paid->id(), visibility: 'private')));
+        $this->assertRefused(RefusalKind::Conflict, fn (): string => $this->views->delete(new DeleteViewInput($paid->id())));
+        $this->assertRefused(RefusalKind::Invalid, fn (): SavedView => $this->views->update(new UpdateViewInput($paid->id(), visibility: 'private')));
 
         $this->views->restoreDefaults(new RestoreDefaultViewsInput('test.items'));
         self::assertSame('Paid', $paid->name());
@@ -137,15 +137,15 @@ final class SavedViewsTest extends TestCase
 
     public function testOnlyOwnersRestoreTheDefaults(): void
     {
-        $this->assertRefused(RefusalKind::Forbidden, fn () => $this->views->restoreDefaults(new RestoreDefaultViewsInput('test.items')));
+        $this->assertRefused(RefusalKind::Forbidden, fn (): array => $this->views->restoreDefaults(new RestoreDefaultViewsInput('test.items')));
     }
 
     public function testGuestsHaveNoViews(): void
     {
         $this->actor->staff = false;
 
-        $this->assertRefused(RefusalKind::Forbidden, fn () => $this->views->visible('test.items'));
-        $this->assertRefused(RefusalKind::Forbidden, fn () => $this->views->create($this->input('Guest', 'private')));
+        $this->assertRefused(RefusalKind::Forbidden, fn (): array => $this->views->visible('test.items'));
+        $this->assertRefused(RefusalKind::Forbidden, fn (): SavedView => $this->views->create($this->input('Guest', 'private')));
     }
 
     /**
