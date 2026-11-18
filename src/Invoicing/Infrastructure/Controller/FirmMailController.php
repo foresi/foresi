@@ -403,7 +403,7 @@ final class FirmMailController extends AbstractController
             'customer' => $row->customerName,
             'dueDate' => $row->dueDate,
             'amount' => $this->amounts->shown($row->payable->minus($row->paid)),
-            'href' => $this->generateUrl('app_invoice_edit', ['id' => $row->id]),
+            'href' => $this->generateUrl('app_invoice_show', ['id' => $row->id]),
         ];
     }
 

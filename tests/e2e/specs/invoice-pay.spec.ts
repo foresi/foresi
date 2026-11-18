@@ -138,7 +138,9 @@ test.describe.serial('paying an invoice', () => {
 
   test('the invoice lists its payments and removes one after asking @a11y @layout', async ({ page }) => {
     await page.goto('/invoices');
-    await row(page, '20260002').locator('a[data-row-link]').click();
+    // The form page, where the panel sits under the form; the row itself opens the detail sheet.
+    const detail = await row(page, '20260002').locator('a[data-row-link]').getAttribute('href');
+    await page.goto(`${detail}/edit`);
     const panel = page.locator('[data-payments]');
     await expect(panel).toContainText('1 000,00 Kč');
     await expect(panel).toContainText('Převodem');

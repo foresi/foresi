@@ -387,7 +387,7 @@ final class RecurringListController extends AbstractController
         return [
             'id' => $template->id(),
             'href' => $this->generateUrl('app_recurring_edit', ['id' => $template->id()]),
-            'plain' => true,
+            'opens' => 'sheet',
             'label' => $template->name(),
             'secondary' => implode(' · ', array_filter([$customer, $description, $this->schedule($template), $nextText], static fn (string $part): bool => '' !== $part)),
             // The description stays; the failure is a line of its own, with the way to the place that fixes it.

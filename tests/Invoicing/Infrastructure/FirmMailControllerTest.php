@@ -329,7 +329,7 @@ final class FirmMailControllerTest extends WebTestCase
 
         $rows = $crawler->filter('#reminders-preview li');
         self::assertCount(1, $rows, 'due before today, so not reminded once switched on today');
-        self::assertSame('/invoices/'.$invoices[0]->id().'/edit', $rows->filter('a')->attr('href'));
+        self::assertSame('/invoices/'.$invoices[0]->id(), $rows->filter('a')->attr('href'));
         self::assertStringContainsString('20260001', $rows->text());
         self::assertStringContainsString('Example Customer a.s.', $rows->text());
         self::assertStringContainsString('reminder on 17 Nov 2026', $rows->text());

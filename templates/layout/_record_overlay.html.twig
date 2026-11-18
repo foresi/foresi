@@ -3,7 +3,8 @@
     A record in an overlay (layout/record.html.twig): the sheet or the dialog the host takes from the
     answer. data-overlay-record tells the host it shows a record: it gives it the record's URL, loads
     its links marked data-in-place and the answers of its forms in the same host, and loads the list
-    under it again once it closes.
+    under it again once it closes. A record that sets record_full (the form of a document with lines)
+    fills the content panel while it shows, without changing the width the sheet remembers.
 #}
 {% set recordTitle %}{% block title %}{% endblock %}{% endset %}
 {% set recordActions %}{% block actions %}{% endblock %}{% endset %}
@@ -11,7 +12,7 @@
 {% set recordName = recordTitle|striptags|html_decode|trim %}
 {% set recordPage = app.request.requestUri %}
 {% if overlay() == 'sheet' %}
-    <twig:Ui:Sheet id="sheet-page" :title="recordName" size="md" :fields="record_fields ?? false" :page="recordPage" :titleEdit="record_title_edit ?? null" data-dialog-reload="{{ record_reload|default(false) ? '1' : '0' }}" data-overlay-record>
+    <twig:Ui:Sheet id="sheet-page" :title="recordName" size="md" :fields="record_fields ?? false" :page="recordPage" :titleEdit="record_title_edit ?? null" data-dialog-reload="{{ record_reload|default(false) ? '1' : '0' }}" :data-sheet-full="record_full ?? false" data-overlay-record>
         {{ recordBody }}
         <twig:block name="actions">{{ recordActions }}</twig:block>
     </twig:Ui:Sheet>

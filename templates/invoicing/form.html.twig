@@ -1,7 +1,14 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{% extends 'layout/app.html.twig' %}
+{#
+    A record's form (layout/record.html.twig): the page, or the sheet of the detail it was opened from,
+    which fills the content panel while the lines are edited (record_full). Save and Cancel bring the
+    detail back in the same sheet.
+#}
+{% extends 'layout/record.html.twig' %}
 
 {% set crumbs = [] %}
+{% set record_fields = true %}
+{% set record_full = true %}
 {% set badge = statusBadge|default(null) %}
 {% set form_invalid = errors|default([]) is not empty %}
 {% set editing = invoice|default(null) is not null %}
@@ -297,7 +304,11 @@
                 {% endif %}
 
                 <twig:Ui:ActionBar :end="true" class="-mx-4 -mb-4 mt-6">
+                    {% if editing and overlay() == 'sheet' %}
+                        <twig:Ui:Button :href="path('app_invoice_show', {id: invoice.id})" id="invoice-cancel" data-in-place>{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
+                    {% else %}
                     <twig:Ui:Button :href="path(listRoute)" id="invoice-cancel">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
+                    {% endif %}
                     <twig:Ui:Menu id="invoice-more-menu" buttonId="invoice-more" :label="'invoice.more_actions'|trans" chevron="up" placement="above">
                         <twig:Ui:MenuItem type="submit" name="_action" value="save_send">{{ 'invoice.save_send'|trans }}</twig:Ui:MenuItem>
                         <twig:Ui:MenuItem type="submit" name="_action" value="save_pdf">{{ 'invoice.save_pdf'|trans }}</twig:Ui:MenuItem>

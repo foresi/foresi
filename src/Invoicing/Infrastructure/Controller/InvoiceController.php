@@ -75,6 +75,7 @@ use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Shared\Domain\Countries;
 use Foresi\Shared\Infrastructure\Http\SubmissionTokens;
+use Foresi\Ui\Dialog\DialogRequest;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\HeaderUtils;
@@ -458,7 +459,10 @@ final class InvoiceController extends AbstractController
             'save_send' => '1' === $request->request->getString('_dialogs')
                 ? $this->openOverForm($saved)
                 : $this->redirectToRoute('app_invoice_send', ['id' => $saved->id()]),
-            default => $this->redirectToRoute(InvoiceListController::ROUTES[$saved->kind()->value]),
+            // Edited in the sheet: the detail again, in place (docs/design/overlays.md).
+            default => DialogRequest::SHEET === DialogRequest::layer($request) && null !== $invoiceId
+                ? $this->redirectToRoute('app_invoice_show', ['id' => $saved->id()])
+                : $this->redirectToRoute(InvoiceListController::ROUTES[$saved->kind()->value]),
         };
     }
 
