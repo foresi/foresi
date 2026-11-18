@@ -1105,7 +1105,8 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSelectorTextContains('h1', 'Paid advances without a tax document');
         self::assertSelectorTextContains('main table', 'Z920260001');
         self::assertSelectorTextContains('main table', '14 days left');
-        self::assertSelectorExists('main nav a[href="/advances/needs-tax-document"][aria-current="page"]');
+        // A list of its own, in the "More views" menu after the tabs (saved views, D12).
+        self::assertSelectorExists('main [data-more-views] a[href="/advances/needs-tax-document"][aria-checked="true"]');
         self::assertSelectorTextContains('[data-shell-notices]', 'A paid advance waits for a tax document, the first by 2026-11-15.');
         $form = $crawler->filter('form[action$="/tax-document"]')->form();
 
@@ -1126,10 +1127,10 @@ final class InvoiceControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/advances');
 
-        $tab = $crawler->filter('main nav a[href="/advances/needs-tax-document"]');
-        self::assertSame('Needs tax document1', trim($tab->text()));
+        $item = $crawler->filter('main [data-more-views] a[href="/advances/needs-tax-document"]');
+        self::assertSame('Needs tax document1', trim($item->text()));
         $this->client->request('GET', '/invoices');
-        self::assertSelectorNotExists('main nav a[href="/advances/needs-tax-document"]');
+        self::assertSelectorNotExists('main [data-more-views] a[href="/advances/needs-tax-document"]');
     }
 
     public function testTheAdvanceListShowsWhatNoFinalInvoiceDeductedYet(): void
@@ -1139,8 +1140,9 @@ final class InvoiceControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/advances', ['tab' => 'unsettled']);
 
-        self::assertSame(['All1', 'Paid1', 'Unpaid0', 'Overdue0', 'Unsettled1', 'Needs tax document1', 'Trash0'], $crawler->filter('main nav a')->each(static fn ($link): string => trim($link->text())));
-        self::assertSelectorExists('main nav a[href="/advances?tab=unsettled"][aria-current="page"]');
+        self::assertSame(['All1', 'Paid1', 'Unpaid0', 'Overdue0', 'Unsettled1', 'Trash0'], $crawler->filter('main nav a')->each(static fn ($link): string => trim($link->text())));
+        self::assertSame(['Needs tax document1'], $crawler->filter('main [data-more-views] a')->each(static fn ($link): string => trim($link->text())));
+        self::assertSelectorExists('main nav a[href="/advances?view=unsettled"][aria-current="page"]');
         self::assertSelectorTextContains('main table', $advance->number());
     }
 
@@ -1207,7 +1209,8 @@ final class InvoiceControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/tax-documents', ['tab' => 'settled']);
 
-        self::assertSame(['All1', 'Settled0', 'Unsettled1', 'Waiting for correction0', 'Trash0'], $crawler->filter('main nav a')->each(static fn ($link): string => trim($link->text())));
+        self::assertSame(['All1', 'Settled0', 'Unsettled1', 'Trash0'], $crawler->filter('main nav a')->each(static fn ($link): string => trim($link->text())));
+        self::assertSame(['Waiting for correction0'], $crawler->filter('main [data-more-views] a')->each(static fn ($link): string => trim($link->text())));
         self::assertSelectorTextContains('main', 'Nothing is settled yet');
         $this->client->request('GET', '/tax-documents', ['tab' => 'unsettled']);
         self::assertSelectorTextContains('main table', 'D820260001');
@@ -1278,12 +1281,12 @@ final class InvoiceControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/tax-documents/needs-correction');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorExists('main nav a[href="/tax-documents/needs-correction"][aria-current="page"]');
+        self::assertSelectorExists('main [data-more-views] a[href="/tax-documents/needs-correction"][aria-checked="true"]');
         self::assertStringContainsString($document->number(), $crawler->filter('main table')->text());
         self::assertStringContainsString('deducted on a final invoice', $crawler->filter('main table')->text());
         self::assertSelectorExists('main table a[href="/invoices/'.$document->id().'/correct"]');
         $this->client->request('GET', '/tax-documents');
-        self::assertSelectorTextContains('main nav a[href="/tax-documents/needs-correction"]', '1');
+        self::assertSelectorTextContains('main [data-more-views] a[href="/tax-documents/needs-correction"]', '1');
         self::assertSelectorTextContains('body', 'A tax document waits for a corrective document');
     }
 
@@ -1332,7 +1335,7 @@ final class InvoiceControllerTest extends WebTestCase
 
         $this->client->submit($crawler->filter('main table form[action$="/restore"]')->first()->form());
 
-        self::assertResponseRedirects('/tax-documents?tab=trash');
+        self::assertResponseRedirects('/tax-documents?view=trash');
         $this->client->followRedirect();
         self::assertSelectorTextContains('main [role="alert"]', 'The payment of this tax document is cancelled, so it stays in the trash.');
         self::assertSelectorTextContains('main table', 'D820260001');
@@ -1373,7 +1376,7 @@ final class InvoiceControllerTest extends WebTestCase
 
         $this->client->submit($crawler->filter('main table form[action="/invoices/'.$first->id().'/restore"]')->first()->form());
 
-        self::assertResponseRedirects('/invoices?tab=trash');
+        self::assertResponseRedirects('/invoices?view=trash');
         $this->client->followRedirect();
         self::assertSelectorTextContains('main [role="alert"]', 'An advance on this invoice is deducted by another invoice already.');
         self::assertSelectorTextContains('main table', $first->number());
@@ -1572,7 +1575,7 @@ final class InvoiceControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/advances', ['tab' => 'unpaid']);
 
         self::assertResponseIsSuccessful();
-        self::assertContains('/advances?tab=paid', $crawler->filter('main nav a')->each(static fn ($link): string => (string) $link->attr('href')));
+        self::assertContains('/advances?view=paid', $crawler->filter('main nav a')->each(static fn ($link): string => (string) $link->attr('href')));
     }
 
     public function testASeriesOfAnotherKindLeavesTheInvoiceFormOpen(): void

@@ -379,8 +379,9 @@ whatever was written since is lost.
 3. Take a backup (`ops/backup.sh --tag pre-upgrade`) and confirm
    `/var/lib/foresi/backup.status` says `result=ok`.
 4. Deploy the new tag. The deploy dumps again before the migrations, migrates
-   with `doctrine:migrations:migrate`, and ends with `messenger:stop-workers`,
-   so the supervisor starts the workers on the new code.
+   with `doctrine:migrations:migrate`, stores the default views of the lists
+   with `app:views:sync`, and ends with `messenger:stop-workers`, so the
+   supervisor starts the workers on the new code.
 5. Check `/health`, sign in, and watch the log and the `failed` queue for an
    hour.
 

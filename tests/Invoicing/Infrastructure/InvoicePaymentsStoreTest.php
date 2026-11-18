@@ -17,12 +17,18 @@ use Foresi\Invoicing\Application\InvoiceRow;
 use Foresi\Invoicing\Application\InvoiceStore;
 use Foresi\Invoicing\Application\PaymentRequest;
 use Foresi\Invoicing\Application\PaymentState;
+use Foresi\Invoicing\Application\Query\InvoiceQueries;
+use Foresi\Invoicing\Application\Query\InvoiceSliceFilter;
 use Foresi\Invoicing\Application\RecordPayment;
+use Foresi\Invoicing\Application\View\InvoiceLists;
+use Foresi\Invoicing\Domain\DocumentKind;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\Payment;
 use Foresi\Invoicing\Domain\PaymentSource;
 use Foresi\Invoicing\Domain\PriceType;
 use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Invoicing\Application\InvoiceTestCase;
@@ -77,6 +83,16 @@ final class InvoicePaymentsStoreTest extends InvoiceTestCase
         self::assertSame(['Unpaid', 'Partly', 'Later', 'Cancelled'], $this->descriptions(InvoiceFilter::UNPAID));
         self::assertSame(['Unpaid', 'Partly', 'Cancelled'], $this->descriptions(InvoiceFilter::OVERDUE));
         self::assertSame(['Trashed'], $this->descriptions(InvoiceFilter::TRASH));
+        // The views count what the SQL of the tabs they replaced counts, which the API's slice still runs (saved views, D12).
+        $queries = self::getContainer()->get(InvoiceQueries::class);
+        foreach ([InvoiceFilter::ALL, InvoiceFilter::PAID, InvoiceFilter::UNPAID, InvoiceFilter::OVERDUE] as $tab) {
+            $slice = $queries->slice(new InvoiceSliceFilter(DocumentKind::Invoice, state: InvoiceFilter::ALL === $tab ? null : $tab), null, 100);
+            self::assertCount($all->tabCounts[$tab], $slice->items, $tab);
+        }
+        self::assertCount($all->tabCounts[InvoiceFilter::TRASH], $queries->slice(new InvoiceSliceFilter(DocumentKind::Invoice, trashed: true), null, 100)->items);
+        // OR within a field: paid or unpaid is every document out of the trash.
+        $either = $this->store->page(new InvoiceFilter(null, InvoiceFilter::ALL, '', 'issueDate', 1, view: ViewFilter::all(new Condition(InvoiceLists::PAYMENT, 'is_any_of', [InvoiceFilter::PAID, InvoiceFilter::UNPAID])), counted: ['neither' => ViewFilter::all(new Condition(InvoiceLists::PAYMENT, 'is_none_of', [InvoiceFilter::PAID, InvoiceFilter::UNPAID]))]));
+        self::assertSame([7, ['neither' => 0]], [$either->total, $either->tabCounts]);
 
         $rows = [];
         foreach ($all->rows as $row) {

@@ -8,10 +8,12 @@ declare(strict_types=1);
 
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Shared\Application\Sealer;
+use Foresi\Shared\Application\View\ListDefinitionSource;
 use Foresi\Shared\Infrastructure\Crypto\SodiumSealer;
 use Foresi\Shared\Infrastructure\Registry\PublicRegistryClient;
 use Foresi\Shared\Infrastructure\Registry\RegistryCache;
 use Foresi\Shared\Infrastructure\Security\PublicRoute;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
@@ -19,7 +21,7 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 /*
  * The services of the Shared module, loaded by Foresi\Shared\SharedBundle.
  */
-return static function (ContainerConfigurator $container): void {
+return static function (ContainerConfigurator $container, ContainerBuilder $builder): void {
     $services = $container->services()->defaults()->autowire()->autoconfigure();
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\Shared\\', '../')
@@ -38,6 +40,9 @@ return static function (ContainerConfigurator $container): void {
     $services->set(PublicRegistryClient::class)
         ->arg('$registryOutgoingLimiter', service('limiter.registry_outgoing'));
     $services->alias(Sealer::class, SodiumSealer::class);
+
+    // A module's lists that saved views apply to, whichever module declares them.
+    $builder->registerForAutoconfiguration(ListDefinitionSource::class)->addTag(ListDefinitionSource::TAG);
 
     // The firewall of the public routes that are stateless too (config/packages/security.yaml).
     $services->set('foresi.security.public_stateless_route', PublicRoute::class)

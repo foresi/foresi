@@ -10,6 +10,7 @@ namespace Foresi\Invoicing\Application;
 
 use Foresi\Invoicing\Domain\DocumentKind;
 use Foresi\Invoicing\Domain\ExportState;
+use Foresi\Shared\Application\View\ViewFilter;
 
 /**
  * Which documents a list shows: of one kind, of one firm or all, in which tab, matching what text,
@@ -42,16 +43,41 @@ final readonly class InvoiceFilter
     public const array SORTS = ['number', 'customer', 'issueDate', 'dueDate', 'payable'];
     public const string DEFAULT_SORT = '-issueDate';
 
-    public function __construct(public ?string $firmId, public string $tab, public string $text, public string $sort, public int $page, public bool $toSend = false, public DocumentKind $kind = DocumentKind::Invoice, public ?ExportState $export = null, public ?string $month = null)
+    /** The periods the month chip offers before the months with documents (spec D5). */
+    public const array RELATIVE_MONTHS = ['this_month', 'last_month', 'this_quarter', 'this_year'];
+
+    /**
+     * The view is what the list keeps: its conditions, checked against the kind's list
+     * (InvoiceLists), or those of the tab's default view when it is null. Counted are
+     * the views whose documents a page counts, by key; none counts the kind's tabs.
+     *
+     * @param array<string, ViewFilter> $counted
+     */
+    public function __construct(public ?string $firmId, public string $tab, public string $text, public string $sort, public int $page, public bool $toSend = false, public DocumentKind $kind = DocumentKind::Invoice, public ?ExportState $export = null, public ?string $month = null, public ?ViewFilter $view = null, public array $counted = [])
     {
     }
 
     /**
-     * The month a query names, as YYYY-MM; anything else names none.
+     * The month a query names: YYYY-MM, or a period relative to today such as
+     * last_month, which the query resolves on the day it runs; anything else names none.
      */
     public static function monthOf(string $value): ?string
     {
-        return 1 === preg_match('/^[1-9]\d{3}-(0[1-9]|1[0-2])$/', $value) ? $value : null;
+        return 1 === preg_match('/^[1-9]\d{3}-(0[1-9]|1[0-2])$/', $value) || \in_array($value, self::RELATIVE_MONTHS, true) ? $value : null;
+    }
+
+    /**
+     * The month a query names as a date value of a filter (spec D5).
+     *
+     * @return array{month: string}|array{relative: string}|null
+     */
+    public static function monthValue(?string $month): ?array
+    {
+        return match (true) {
+            null === $month => null,
+            \in_array($month, self::RELATIVE_MONTHS, true) => ['relative' => $month],
+            default => ['month' => $month],
+        };
     }
 
     /**

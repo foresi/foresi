@@ -1416,6 +1416,7 @@ invoice:
     title_payment_tax_document: Tax documents on payment
     title_correction_document: Corrective documents
     views: Invoice lists
+    more_views: More views
     all_firms: All firms
     search_label: Search invoices
     search_placeholder: Number, customer or description
@@ -1565,6 +1566,11 @@ invoice:
   more_show: Show more details
   firm_apply: Use this firm
   month:
+    this_month: This month
+    last_month: Last month
+    this_quarter: This quarter
+    this_year: This year
+    by_month: By month
     label: Month
     all: All months
   rate: '{rate}%'
@@ -1612,6 +1618,8 @@ invoice:
     edit_here: Edit on this document
     edit_contact: Edit the contact
   field:
+    payment_state: Payment state
+    settlement: Settlement
     firm: Firm
     series: Series
     customer: Customer
