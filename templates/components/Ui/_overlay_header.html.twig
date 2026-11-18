@@ -1,12 +1,28 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     The header of a dialog or a sheet (`id`, `title`, `description`): the title, a muted line under
-    it and the X, as in level.io's modals and side panels.
+    it and the X, as in level.io's modals and side panels. A record (docs/design/overlays.md) adds
+    `page` (its URL: Open as page), `fullscreen` (a sheet: the toggle to the width of the content
+    panel) and `actions` (the same buttons its page header holds), in a row under the title.
 #}
-<header class="flex shrink-0 items-start gap-3 pb-4 pl-6 pr-4 pt-5 max-sm:pl-4 max-sm:pr-3">
-    <div class="min-w-0 flex-1 pt-1">
+{% set page = page|default(null) %}
+{% set actions = actions|default('') %}
+<header class="flex shrink-0 items-start gap-1 pb-4 pl-6 pr-4 pt-5 max-sm:pl-4 max-sm:pr-3">
+    <div class="min-w-0 flex-1 pt-1 pr-2">
         <h2 id="{{ id }}-title" tabindex="-1" data-dialog-target="title" class="m-0 text-heading font-semibold text-ink outline-none [overflow-wrap:anywhere]">{{ title }}</h2>
         {% if description %}<p id="{{ id }}-description" data-dialog-target="description" class="m-0 mt-1 text-body text-muted">{{ description }}</p>{% endif %}
     </div>
+    {% if fullscreen|default(false) %}
+        {# A toggle button (APG Button: aria-pressed); a phone shows every sheet full screen already. #}
+        <twig:Ui:IconButton icon="maximize-2" :label="'ui.sheet.full_screen'|trans" variant="ghost" aria-pressed="false" data-sheet-target="full" data-action="sheet#toggleFull" class="max-sm:hidden" data-overlay-full-screen />
+    {% endif %}
+    {% if page %}
+        {# The record's own URL: without JavaScript, in a new tab or from a bookmark it is the page. #}
+        <twig:Ui:IconButton icon="external-link" :href="page" :label="'ui.sheet.open_as_page'|trans" variant="ghost" data-action="dialog#openPage" data-overlay-page />
+    {% endif %}
     <twig:Ui:IconButton icon="x" :label="'ui.dialog.close'|trans" variant="ghost" data-action="dialog#dismiss" />
 </header>
+{% if actions|trim is not empty %}
+    {# The page header's actions, in its order: secondary first, the primary last (Polaris Page). #}
+    <div data-overlay-actions class="flex shrink-0 flex-wrap items-center justify-end gap-2 px-6 pb-4 max-sm:px-4">{{ actions }}</div>
+{% endif %}

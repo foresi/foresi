@@ -122,6 +122,8 @@ ui:
     clear_one: 'Clear the filter {label}'
   sheet:
     resize: Resize the panel
+    full_screen: Full screen
+    open_as_page: Open as page
   confirm:
     accept: Confirm
     cancel: Cancel

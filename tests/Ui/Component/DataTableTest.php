@@ -149,6 +149,37 @@ final class DataTableTest extends KernelTestCase
         self::assertStringContainsString('<span class="sr-only"> · Overdue</span>', $html);
     }
 
+    public function testARowOpensItsRecordInASheetADialogOrThePage(): void
+    {
+        $rows = [
+            ['id' => 'a1', 'href' => '/contacts/a1', 'opens' => 'sheet', 'cells' => ['name' => 'Sheet Ltd']],
+            ['id' => 'a2', 'href' => '/labels/a2', 'opens' => 'dialog', 'cells' => ['name' => 'Dialog Ltd']],
+            ['id' => 'a3', 'href' => '/projects/a3', 'cells' => ['name' => 'Page Ltd']],
+        ];
+        $crawler = new Crawler($this->render(['rows' => $rows]));
+
+        $sheet = $crawler->filter('a[data-row-link][href="/contacts/a1"]');
+        self::assertCount(1, $sheet->filter('[data-sheet]'));
+        self::assertSame('dialog', $sheet->attr('aria-haspopup'));
+        self::assertCount(1, $crawler->filter('a[data-row-link][href="/labels/a2"][data-dialog]'));
+        $page = $crawler->filter('a[data-row-link][href="/projects/a3"]');
+        self::assertNull($page->attr('data-sheet'));
+        self::assertNull($page->attr('data-dialog'));
+        self::assertNull($page->attr('aria-haspopup'));
+    }
+
+    public function testARowOpensOnlyAsAKnownOverlay(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mountTwigComponent('Ui:DataTable', ['columns' => self::COLUMNS, 'rows' => [['id' => 'a1', 'href' => '/x', 'opens' => 'drawer', 'cells' => ['name' => 'x']]]]);
+    }
+
+    public function testAPlainRowOpensAsAPage(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mountTwigComponent('Ui:DataTable', ['columns' => self::COLUMNS, 'rows' => [['id' => 'a1', 'href' => '/x', 'plain' => true, 'opens' => 'sheet', 'cells' => ['name' => 'x']]]]);
+    }
+
     public function testAColumnCanStayOffAPhone(): void
     {
         $columns = [['key' => 'name', 'label' => 'Name'], ['key' => 'email', 'label' => 'E-mail', 'phone' => false]];

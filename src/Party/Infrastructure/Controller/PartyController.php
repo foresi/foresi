@@ -38,6 +38,7 @@ use App\Party\Domain\VatId;
 use App\Party\Infrastructure\Form\PartySubmissionReader;
 use App\Party\Infrastructure\Http\WebsiteLink;
 use App\Shared\Domain\Id;
+use App\Ui\Component\DataTable;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -438,6 +439,8 @@ final class PartyController extends AbstractController
                 'id' => $row->id,
                 'label' => $row->displayName,
                 'href' => $this->generateUrl('app_contact_show', ['id' => $row->id]),
+                // The contact opens in the side sheet over the list (docs/design/overlays.md).
+                'opens' => DataTable::OPENS_SHEET,
                 'secondary' => implode(' · ', array_filter([$roles, $row->registrationNumber, $row->email], static fn (?string $part): bool => null !== $part && '' !== $part)),
                 'cells' => [
                     'name' => $row->displayName,

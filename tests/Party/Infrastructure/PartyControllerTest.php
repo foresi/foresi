@@ -363,6 +363,51 @@ final class PartyControllerTest extends WebTestCase
         self::assertSelectorTextContains('main', 'Moved City');
     }
 
+    public function testAContactOpensFromTheListInTheSideSheetAndIsEditedInPlace(): void
+    {
+        $this->signIn();
+        $party = $this->party('Sheet Company', number: '12345687', email: 'sheet@example.com');
+        $url = '/contacts/'.$party->id();
+
+        // The row's link opens the contact in the side sheet; without JavaScript it is the page.
+        $crawler = $this->client->request('GET', '/contacts');
+        $link = $crawler->filter('a[data-row-link][href="'.$url.'"]');
+        self::assertNotNull($link->attr('data-sheet'));
+        self::assertSame('dialog', $link->attr('aria-haspopup'));
+
+        // The sheet: the record's title, the page header's actions and Open as page, no shell.
+        $sheet = $this->client->request('GET', $url, server: ['HTTP_X_FORESI_DIALOG' => 'sheet']);
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $sheet->filter('#main'));
+        $record = $sheet->filter('dialog#sheet-page[data-overlay-record]');
+        self::assertCount(1, $record);
+        self::assertSame('Sheet Company', $record->filter('h2')->text());
+        self::assertSame($url, $record->filter('header a[data-overlay-page]')->attr('href'));
+        self::assertCount(1, $record->filter('header [data-overlay-full-screen][aria-pressed="false"]'));
+        $edit = $record->filter('[data-overlay-actions] a[href="'.$url.'/edit"][data-in-place]');
+        self::assertCount(1, $edit);
+        self::assertCount(1, $record->filter('[data-overlay-actions] form[action="'.$url.'/archive"]'));
+        self::assertCount(1, $record->filter('nav[data-in-place] a[href="'.$url.'?tab=history"]'));
+        self::assertStringContainsString('sheet@example.com', $record->text());
+
+        // A modal dialog does not show a sheet record: it gets the page.
+        $page = $this->client->request('GET', $url, server: ['HTTP_X_FORESI_DIALOG' => '1']);
+        self::assertCount(1, $page->filter('#main h1'));
+
+        // Edit in the same sheet: the form, its Cancel back to the detail in place.
+        $form = $this->client->request('GET', $url.'/edit', server: ['HTTP_X_FORESI_DIALOG' => 'sheet']);
+        $record = $form->filter('dialog#sheet-page[data-overlay-record]');
+        self::assertSame('true', $record->attr('data-dialog-fields-value'));
+        self::assertSame($url, $record->filter('[data-action-bar] a[data-in-place]')->attr('href'));
+        $this->client->submit($record->filter('form')->form(['displayName' => 'Sheet Company Renamed']), [], ['HTTP_X_FORESI_DIALOG' => 'sheet']);
+        // Saved: the sheet loads the detail where the server sends it.
+        self::assertSame(['location' => $url], json_decode((string) $this->client->getResponse()->getContent(), true));
+
+        $page = $this->client->request('GET', $url);
+        self::assertSelectorTextContains('#main h1', 'Sheet Company Renamed');
+        self::assertCount(0, $page->filter('dialog#sheet-page'));
+    }
+
     public function testMobileAndWebsiteAreEditedAndShownOnlyWhenKnown(): void
     {
         $this->signIn();
