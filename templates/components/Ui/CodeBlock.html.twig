@@ -9,6 +9,6 @@
         <figcaption id="{{ id }}-label" class="text-small font-medium text-ink">{{ label }}</figcaption>
         <twig:Ui:Button size="sm" icon="copy" data-action="copy#copy" aria-describedby="{{ id }}-label"><span data-copy-target="label">{{ 'ui.code_block.copy'|trans }}</span></twig:Ui:Button>
     </div>
-    <pre id="{{ id }}" tabindex="0" aria-labelledby="{{ id }}-label" data-language="{{ language }}" class="code-block m-0 overflow-x-auto rounded-md border border-container bg-head px-3 py-2.5 font-mono text-small text-ink {{ wrap ? 'whitespace-pre-wrap break-words' : 'whitespace-pre' }} {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" data-copy-target="source"><code>{{ this.html|raw }}</code></pre>
+    <pre id="{{ id }}" tabindex="0" aria-labelledby="{{ id }}-label" data-language="{{ language }}" class="code-block m-0 overflow-x-auto rounded-control border border-container bg-head px-3 py-2.5 font-mono text-small text-ink {{ wrap ? 'whitespace-pre-wrap break-words' : 'whitespace-pre' }} {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" data-copy-target="source"><code>{{ this.html|raw }}</code></pre>
     <span class="sr-only" aria-live="polite" data-copy-target="status"></span>
 </figure>
