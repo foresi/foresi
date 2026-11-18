@@ -76,7 +76,6 @@ final class MultiSelect
                 throw new \InvalidArgumentException('The hidden fields of a multi-select are names and texts.');
             }
         }
-        $values = array_filter($this->values, \is_string(...));
         $this->rows = [];
         foreach ($this->options as $option) {
             $value = \is_array($option) ? $option['value'] ?? null : null;
@@ -88,7 +87,7 @@ final class MultiSelect
             if (null !== $tone) {
                 Style::tone($tone);
             }
-            $this->rows[] = ['value' => $value, 'label' => $label, 'tone' => $tone, 'checked' => \in_array($value, $values, true)];
+            $this->rows[] = ['value' => $value, 'label' => $label, 'tone' => $tone, 'checked' => \in_array($value, $this->values, true)];
         }
     }
 
