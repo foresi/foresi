@@ -5,7 +5,7 @@
 #}
 {% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 {% set dateFormat = 'format.date'|trans %}
-<twig:Ui:Card :title="'invoice.links.title'|trans" icon="link-2" class="mt-4" data-links="">
+<twig:Ui:Card :title="'invoice.links.title'|trans" icon="link-2" class="{{ spaced ?? true ? 'mt-4' : '' }}" data-links="">
     <div class="grid gap-4">
         {% import 'invoicing/_link.html.twig' as links %}
         {% for chain in chains %}

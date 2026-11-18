@@ -335,6 +335,16 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('20260001', $page->filter('h1')->text());
         self::assertCount(1, $page->filter('[data-invoice-lines] tbody tr'));
+        self::assertCount(1, $page->filter('[data-invoice-lines-stacked] li'), 'a phone stacks the same line');
+        // Whom it bills and how much is due by when lead, the status next to the amount.
+        self::assertSame('Example Customer a.s.', $page->filter('[data-invoice-summary] [data-invoice-customer]')->text());
+        self::assertSame($this->nbsp('1,210.00 Kč'), $page->filter('[data-invoice-summary] [data-invoice-payable]')->text());
+        self::assertCount(1, $page->filter('[data-invoice-summary] [data-invoice-status]'));
+        self::assertStringContainsString('2026-12-01', $page->filter('[data-invoice-summary]')->text());
+        // The dates and symbols as label and value.
+        $labels = $page->filter('[data-invoice-details] dt')->each(static fn ($dt): string => trim($dt->text()));
+        self::assertContains('Issue date', $labels);
+        self::assertContains('Due date', $labels);
         self::assertSame($href.'/edit', $page->filter('a[data-invoice-edit]')->attr('href'));
 
         $sheet = $this->client->request('GET', $href, server: ['HTTP_X_FORESI_DIALOG' => 'sheet']);
