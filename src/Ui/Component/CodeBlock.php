@@ -42,14 +42,11 @@ final class CodeBlock
     }
 
     /**
-     * The code as HTML: escaped, and for JSON and shell wrapped in hl-* spans that app.css colours.
+     * The code as HTML: escaped, and for JSON and shell wrapped in hl-* spans that app.css
+     * colours. Plain text goes through the highlighter's Text language, which only escapes it.
      */
     public function html(): string
     {
-        if ('text' === $this->language) {
-            return htmlspecialchars($this->code, \ENT_QUOTES | \ENT_SUBSTITUTE, 'UTF-8');
-        }
-
         return new Highlighter()->parse($this->code, $this->language);
     }
 }

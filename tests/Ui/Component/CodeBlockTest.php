@@ -34,7 +34,7 @@ final class CodeBlockTest extends KernelTestCase
     {
         $html = (string) $this->renderTwigComponent('Ui:CodeBlock', ['id' => 'h', 'label' => 'Header', 'code' => 'Authorization: Bearer <token>']);
 
-        self::assertStringContainsString('Bearer &lt;token&gt;', $html);
+        self::assertStringContainsString('Authorization: Bearer &lt;token&gt;</code>', $html);
         self::assertStringNotContainsString('hl-', $html);
     }
 
@@ -52,9 +52,15 @@ final class CodeBlockTest extends KernelTestCase
         $this->mountTwigComponent('Ui:CodeBlock', ['id' => 'x', 'label' => 'X', 'language' => 'php']);
     }
 
-    public function testIdAndLabelAreRequired(): void
+    public function testAnIdIsRequired(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->mountTwigComponent('Ui:CodeBlock', ['code' => 'x']);
+        $this->mountTwigComponent('Ui:CodeBlock', ['label' => 'X', 'code' => 'x']);
+    }
+
+    public function testALabelIsRequired(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mountTwigComponent('Ui:CodeBlock', ['id' => 'x', 'code' => 'x']);
     }
 }
