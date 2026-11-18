@@ -189,6 +189,9 @@ final class ViewApiTest extends ApiTestCase
         $this->send('PATCH', '/api/v1/views/'.$id, ['name' => 'Due soon', 'visibility' => 'shared']);
         self::assertResponseIsSuccessful();
         self::assertSame(['Due soon', 'shared'], [$this->at('data', 'name'), $this->at('data', 'visibility')]);
+        $this->send('PATCH', '/api/v1/views/'.$id, ['group_by' => 'customer']);
+        self::assertResponseIsSuccessful();
+        self::assertSame('customer', $this->at('data', 'display', 'group_by'), 'what the rows are grouped by goes with the display');
 
         $this->send('DELETE', '/api/v1/views/'.$id);
         self::assertResponseIsSuccessful();

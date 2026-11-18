@@ -13,8 +13,9 @@ use Foresi\Ui\Contract\Column;
 /**
  * The display a person works with on a list before anything is saved (spec D10, D-display-3):
  * the list's address carries it next to the view, as cols=number,customer,dueDate (the visible
- * columns in order) and density=comfortable|dense. With neither, the list shows its view's
- * stored display, or the registry's defaults when the view has none.
+ * columns in order) and density=comfortable|dense, and on a list that groups its rows,
+ * group=<one of its groupings>. With none, the list shows its view's stored display, or the
+ * registry's defaults when the view has none.
  *
  * Both are read leniently through the registry (D-display-2), so a link with a column a module
  * took away still opens. A working state that shows what the view shows is no change at all and
@@ -25,8 +26,10 @@ final readonly class WorkingDisplay
 {
     public const string COLUMNS = 'cols';
     public const string DENSITY = 'density';
+    /** What the list groups by, kept in the payload as group_by (D-display-2). */
+    public const string GROUP = 'group';
     /** The query keys of the working state, which a link to another view leaves out. */
-    public const array KEYS = [self::COLUMNS, self::DENSITY];
+    public const array KEYS = [self::COLUMNS, self::DENSITY, self::GROUP];
     private const int MAX_COLUMNS = 100;
 
     public function __construct(private ListColumnRegistry $registry)
@@ -38,14 +41,18 @@ final readonly class WorkingDisplay
      * @param array<array-key, mixed>|null $saved   the view's stored display payload; null for the registry's defaults
      * @param array<array-key, mixed>      $query   the list's query: cols as a comma separated string (or a list, as a form without JavaScript sends it) and density
      * @param string                       $density the density the list shows by default
+     * @param list<string>                 $groups  what the list can group by, its default first; none for a list that does not group
      */
-    public function read(string $list, array $context, ?array $saved, array $query, string $density = ListDisplay::COMFORTABLE): WorkingState
+    public function read(string $list, array $context, ?array $saved, array $query, string $density = ListDisplay::COMFORTABLE, array $groups = []): WorkingState
     {
         $base = $this->registry->display($list, $context, $saved);
         $baseDensity = $base->density ?? $density;
         $keys = $this->keys($query[self::COLUMNS] ?? null);
         $wanted = $query[self::DENSITY] ?? null;
         $wanted = \is_string($wanted) && \in_array($wanted, ListDisplay::DENSITIES, true) ? $wanted : null;
+        $baseGroup = $this->group($base->groupBy, $groups);
+        $wantedGroup = $query[self::GROUP] ?? null;
+        $wantedGroup = \is_string($wantedGroup) && \in_array($wantedGroup, $groups, true) ? $wantedGroup : null;
 
         if (null !== $keys) {
             // The column that names the row leads and never moves (the Columns sheet shows it so);
@@ -54,7 +61,7 @@ final readonly class WorkingDisplay
             $keys = [...$locked, ...array_diff($keys, $locked)];
         }
         $payload = $saved;
-        if (null !== $keys || null !== $wanted) {
+        if (null !== $keys || null !== $wanted || null !== $wantedGroup) {
             $widths = [];
             foreach ($base->columns as $column) {
                 $widths[$column->key()] = $column->width;
@@ -62,14 +69,16 @@ final readonly class WorkingDisplay
             $columns = null === $keys
                 ? array_map(static fn (ResolvedColumn $column): array => array_filter(['key' => $column->key(), 'width' => $column->width], static fn (mixed $value): bool => null !== $value), $base->columns)
                 : array_map(static fn (string $key): array => array_filter(['key' => $key, 'width' => $widths[$key] ?? null], static fn (mixed $value): bool => null !== $value), $keys);
-            $payload = ['columns' => $columns, 'density' => $wanted ?? $baseDensity] + (null === $base->groupBy ? [] : ['group_by' => $base->groupBy]);
+            $group = $wantedGroup ?? $base->groupBy;
+            $payload = ['columns' => $columns, 'density' => $wanted ?? $baseDensity] + (null === $group ? [] : ['group_by' => $group]);
         }
 
         $display = $this->registry->display($list, $context, $payload);
         // Every column the context offers, translated, in the default order: the payload names them all.
         $all = $this->registry->display($list, $context, ['columns' => array_map(static fn (Column $column): string => $column->key, $this->registry->columns($list))])->columns;
         $shownDensity = $display->density ?? $density;
-        $modified = $display->keys() !== $base->keys() || $shownDensity !== $baseDensity;
+        $shownGroup = $this->group($display->groupBy, $groups);
+        $modified = $display->keys() !== $base->keys() || $shownDensity !== $baseDensity || $shownGroup !== $baseGroup;
         if (!$modified) {
             return new WorkingState($base, $saved, $all, $baseDensity, false, []);
         }
@@ -77,9 +86,20 @@ final readonly class WorkingDisplay
         $kept = array_filter([
             self::COLUMNS => $display->keys() === $base->keys() ? null : implode(',', $display->keys()),
             self::DENSITY => $shownDensity === $baseDensity ? null : $shownDensity,
+            self::GROUP => $shownGroup === $baseGroup ? null : $shownGroup,
         ], static fn (?string $value): bool => null !== $value);
 
         return new WorkingState($display, $payload, $all, $shownDensity, true, $kept);
+    }
+
+    /**
+     * What a display groups by among the list's groupings: its default when it names none of them.
+     *
+     * @param list<string> $groups
+     */
+    private function group(?string $groupBy, array $groups): ?string
+    {
+        return \in_array($groupBy, $groups, true) ? $groupBy : ($groups[0] ?? null);
     }
 
     /**

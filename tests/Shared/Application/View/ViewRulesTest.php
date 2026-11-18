@@ -115,6 +115,14 @@ final class ViewRulesTest extends TestCase
         $this->assertInvalid($path, static fn (): ?array => ViewRules::display($columns, null));
     }
 
+    public function testAGroupingIsStoredByItsKey(): void
+    {
+        self::assertSame(['group_by' => 'person'], ViewRules::display(null, null, 'person'));
+        self::assertSame(['density' => 'dense', 'group_by' => 'person'], ViewRules::display(null, 'dense', 'person'));
+        self::assertSame(['columns' => [['key' => 'number']], 'group_by' => 'task'], ViewRules::display(['number'], null, 'task'));
+        $this->assertInvalid('group_by', static fn (): ?array => ViewRules::display(null, null, 'Not a key'));
+    }
+
     public function testAnUnknownDensityIsRefused(): void
     {
         $this->assertInvalid('density', static fn (): ?array => ViewRules::display(['number'], 'airy'));

@@ -151,13 +151,11 @@ work:
     person_inactive: '{name} (neaktivní)'
     report:
       title: Výkaz
-      period:
-        label: Období
+      view:
+        all: Vše
         this_month: Tento měsíc
         last_month: Minulý měsíc
-        custom: Vlastní
-      from: Od
-      until: Do
+      views: Pohledy na výkaz
       group: Součty podle
       by:
         project: Projekt
@@ -167,15 +165,6 @@ work:
         project: Součty po projektech
         person: Součty po lidech
         task: Součty po úkolech
-      any: Vše
-      billable:
-        all: Vše
-        'yes': Fakturovatelné
-        'no': Nefakturovatelné
-      invoiced:
-        all: Vše
-        'yes': Vyfakturované
-        'no': Nevyfakturované
       total: Celkem
       billable_total: Fakturovatelné
       unbillable_total: Nefakturovatelné
@@ -189,7 +178,8 @@ work:
       file: vykaz-casu
       archived: '{name} (archivovaný)'
       empty_title: V tomto období žádný čas
-      empty_text: Zvolte jiné období nebo filtr, nebo zapište čas na úkol.
+      empty_text: Zvolte jiný pohled nebo filtr, nebo zapište čas na úkol.
+      range_all: Celá doba
       csv:
         date: Datum
         person: Osoba

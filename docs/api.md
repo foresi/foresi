@@ -219,7 +219,7 @@ A view has `id`, `list`, `name`, `system_key`, `visibility` (`private` or `share
 
 | Method and path | Body | What it does |
 | --- | --- | --- |
-| `POST /api/v1/views` | `list_key`, `name`, optional `visibility` (`private`), `conditions`, `sort` (`{field, dir}`, at most 3), `columns` (column keys or `{key, width}`; `null` for the list's default), `density`, `show_count`, `placement` | Creates a view, `201` with its `Location`. Any owner or member may share one. |
+| `POST /api/v1/views` | `list_key`, `name`, optional `visibility` (`private`), `conditions`, `sort` (`{field, dir}`, at most 3), `columns` (column keys or `{key, width}`; `null` for the list's default), `density`, `group_by` (what the rows are grouped by, on a list that groups them, such as `person` on `work.time_report`), `show_count`, `placement` | Creates a view, `201` with its `Location`. Any owner or member may share one. |
 | `PATCH /api/v1/views/{viewId}` | Any of the fields above but `list_key`, plus `position` and `hidden` | Changes the fields sent; `conditions`, `sort` and `columns` replace what the view had. A shared view is changed by its creator and the owners, a view a module ships by the owners only, who also hide it with `hidden`. |
 | `DELETE /api/v1/views/{viewId}` | none | Deletes a view for everyone. A view a module ships is refused with `409 default_view`. |
 | `POST /api/v1/views/restore-defaults` | `list_key` | Brings the views a module ships on a list back to what it declares. Owners only. |
