@@ -59,7 +59,7 @@ jobs:
       contents: read
     # Modules that are not green alone yet; each comes off the list with the fix that
     # makes it pass. Their jobs run and report, but do not fail the workflow.
-    continue-on-error: ${{ contains(fromJSON('["Banking","CashFlow","Events","Identity","Idoklad","Import","Instance","Invoicing","Party","Purchasing","Shared","Timesheet","Ui","Webhooks"]'), matrix.module) }}
+    continue-on-error: ${{ contains(fromJSON('["Banking","CashFlow","Identity","Idoklad","Import","Invoicing","Party","Purchasing","Timesheet","Ui","Webhooks"]'), matrix.module) }}
     strategy:
       fail-fast: false
       matrix:

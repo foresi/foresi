@@ -11,8 +11,8 @@ namespace Foresi\Tests\Instance\Infrastructure;
 use Foresi\Instance\Application\Schedule\RunOperatorTask;
 use Foresi\Instance\Infrastructure\Schedule\ForesiSchedule;
 use Foresi\Instance\Infrastructure\Schedule\ScheduleTick;
-use Foresi\Tests\Import\Support\RunMessages;
 use Foresi\Tests\Instance\Support\CountingOperatorTask;
+use Foresi\Tests\Support\Messenger\RunMessages;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Messenger\Envelope;
@@ -114,7 +114,7 @@ final class OperatorTaskTest extends KernelTestCase
         }
 
         self::assertContains([ScheduleTick::class, 'every 5 minutes'], $sent);
-        self::assertContains(['bank-inbox', 'every 5 minutes'], $sent);
+        self::assertContains(['event-relay', 'every 5 minutes'], $sent);
         self::assertContains([CountingOperatorTask::NAME, 'every 10 minutes'], $sent);
     }
 

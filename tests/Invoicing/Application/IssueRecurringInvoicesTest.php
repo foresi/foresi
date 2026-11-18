@@ -52,7 +52,7 @@ use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Schedule\Recurrence;
 use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
 use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
-use Foresi\Tests\Import\Support\RunMessages;
+use Foresi\Tests\Support\Messenger\RunMessages;
 use Foresi\Tests\Support\Registry\RecordingLogger;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
