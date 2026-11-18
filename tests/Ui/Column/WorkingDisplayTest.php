@@ -220,7 +220,7 @@ final class WorkingDisplayTest extends TestCase
                     new Attribute('kind', 'party.column.kind', AttributeType::Text, $text('kind'), defaultVisible: true, defaultPosition: 20),
                     new Attribute('email', 'party.column.email', AttributeType::Text, $text('email'), defaultVisible: true, defaultPosition: 30),
                     new Attribute('phone', 'party.column.phone', AttributeType::Text, $text('phone'), defaultPosition: 40),
-                    new Attribute('archived_at', 'party.column.archived_at', AttributeType::Text, $text('archived_at'), aliases: ['archivedAt'], defaultPosition: 50, available: static fn (array $context): bool => true === ($context['archived'] ?? false)),
+                    new Attribute('archived_at', 'party.column.archived_at', AttributeType::Text, $text('archived_at'), defaultPosition: 50, aliases: ['archivedAt'], available: static fn (array $context): bool => true === ($context['archived'] ?? false)),
                 ];
             }
         };

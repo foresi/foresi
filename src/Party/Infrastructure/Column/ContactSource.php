@@ -55,8 +55,8 @@ final readonly class ContactSource implements DataSource
         return [
             // Shown by default, as the list has always shown them.
             new Attribute('name', $label('name'), AttributeType::Text, static fn (PartyRow $row): string => $row->displayName, sort: 'LOWER(p.displayName)', defaultVisible: true, defaultPosition: 10, locked: true, truncate: true),
-            new Attribute('kind', $label('kind'), AttributeType::Enum, static fn (PartyRow $row): PartyKind => $row->kind, sort: 'p.kind', defaultVisible: true, defaultPosition: 20, options: self::options(PartyKind::cases(), 'party.kind.'), phone: false),
-            new Attribute('roles', $label('roles'), AttributeType::Enum, static fn (PartyRow $row): array => $row->roles, defaultVisible: true, defaultPosition: 30, options: self::options(PartyRole::cases(), 'party.role.'), cell: $this->roles(...), phone: false),
+            new Attribute('kind', $label('kind'), AttributeType::Enum, static fn (PartyRow $row): PartyKind => $row->kind, sort: 'p.kind', defaultVisible: true, defaultPosition: 20, options: $this->options(PartyKind::cases(), 'party.kind.'), phone: false),
+            new Attribute('roles', $label('roles'), AttributeType::Enum, static fn (PartyRow $row): array => $row->roles, defaultVisible: true, defaultPosition: 30, options: $this->options(PartyRole::cases(), 'party.role.'), cell: $this->roles(...), phone: false),
             new Attribute('registration_number', $label('registration_number'), AttributeType::Text, static fn (PartyRow $row): ?string => $row->registrationNumber, sort: 'p.registrationKey', defaultVisible: true, defaultPosition: 40, aliases: ['registration'], phone: false),
             new Attribute('vat_id', $label('vat_id'), AttributeType::Text, static fn (PartyRow $row): ?string => $row->vatId, sort: 'p.vatId', defaultVisible: true, defaultPosition: 50, aliases: ['vat'], phone: false),
             // The list has shown the address as text, in a row that opens the contact.
@@ -71,13 +71,13 @@ final readonly class ContactSource implements DataSource
             new Attribute('billing_country', $label('billing_country'), AttributeType::Country, $billing(static fn (Address $address): string => $address->countryCode), defaultPosition: 160, phone: false),
             new Attribute('default_due_days', $label('default_due_days'), AttributeType::Number, $defaults(static fn (InvoicingDefaults $values): int => $values->dueDays), sort: 'p.invoicingDefaults.dueDays', defaultPosition: 170, phone: false),
             new Attribute('currency', $label('currency'), AttributeType::Text, $defaults(static fn (InvoicingDefaults $values): string => $values->currency->value), sort: 'p.invoicingDefaults.currency', defaultPosition: 180, phone: false),
-            new Attribute('payment_method', $label('payment_method'), AttributeType::Enum, $defaults(static fn (InvoicingDefaults $values): PaymentMethod => $values->paymentMethod), sort: 'p.invoicingDefaults.paymentMethod', defaultPosition: 190, options: self::options(PaymentMethod::cases(), 'party.payment_method.'), phone: false),
-            new Attribute('language', $label('language'), AttributeType::Enum, $defaults(static fn (InvoicingDefaults $values): DocumentLanguage => $values->language), sort: 'p.invoicingDefaults.language', defaultPosition: 200, options: self::options(DocumentLanguage::cases(), 'party.language.'), phone: false),
+            new Attribute('payment_method', $label('payment_method'), AttributeType::Enum, $defaults(static fn (InvoicingDefaults $values): PaymentMethod => $values->paymentMethod), sort: 'p.invoicingDefaults.paymentMethod', defaultPosition: 190, options: $this->options(PaymentMethod::cases(), 'party.payment_method.'), phone: false),
+            new Attribute('language', $label('language'), AttributeType::Enum, $defaults(static fn (InvoicingDefaults $values): DocumentLanguage => $values->language), sort: 'p.invoicingDefaults.language', defaultPosition: 200, options: $this->options(DocumentLanguage::cases(), 'party.language.'), phone: false),
             new Attribute('reverse_charge', $label('reverse_charge'), AttributeType::Boolean, $defaults(static fn (InvoicingDefaults $values): bool => $values->reverseCharge), sort: 'p.invoicingDefaults.reverseCharge', defaultPosition: 210, phone: false),
             new Attribute('reminders', $label('reminders'), AttributeType::Boolean, $defaults(static fn (InvoicingDefaults $values): bool => $values->sendReminders), sort: 'p.invoicingDefaults.sendReminders', defaultPosition: 220, phone: false),
             new Attribute('hourly_rate', $label('hourly_rate'), AttributeType::Money, $defaults(static fn (InvoicingDefaults $values): ?Money => $values->hourlyRate()), sort: 'p.invoicingDefaults.hourlyRateMinor', defaultPosition: 230, phone: false),
-            new Attribute('vies_result', $label('vies_result'), AttributeType::Enum, $party(static fn (Party $contact): ?RegistryResult => $contact->viesCheck()?->result), sort: 'p.viesResult', defaultPosition: 240, options: self::options(RegistryResult::cases(), 'registry.result.'), phone: false),
-            new Attribute('unreliable_payer', $label('unreliable_payer'), AttributeType::Enum, $party(static fn (Party $contact): ?RegistryResult => $contact->unreliablePayerCheck()?->result), sort: 'p.unreliablePayerResult', defaultPosition: 250, options: self::options(RegistryResult::cases(), 'registry.result.'), phone: false),
+            new Attribute('vies_result', $label('vies_result'), AttributeType::Enum, $party(static fn (Party $contact): ?RegistryResult => $contact->viesCheck()?->result), sort: 'p.viesResult', defaultPosition: 240, options: $this->options(RegistryResult::cases(), 'registry.result.'), phone: false),
+            new Attribute('unreliable_payer', $label('unreliable_payer'), AttributeType::Enum, $party(static fn (Party $contact): ?RegistryResult => $contact->unreliablePayerCheck()?->result), sort: 'p.unreliablePayerResult', defaultPosition: 250, options: $this->options(RegistryResult::cases(), 'registry.result.'), phone: false),
             new Attribute('archived_at', $label('archived_at'), AttributeType::DateTime, $party(fn (Party $contact): ?\DateTimeImmutable => $contact->archivedAt()?->setTimezone($this->instanceClock->timezone())), sort: 'p.archivedAt', defaultPosition: 260, phone: false),
         ];
     }
@@ -133,7 +133,7 @@ final readonly class ContactSource implements DataSource
      *
      * @return array<string, string>
      */
-    private static function options(array $cases, string $prefix): array
+    private function options(array $cases, string $prefix): array
     {
         $options = [];
         foreach ($cases as $case) {

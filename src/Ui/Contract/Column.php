@@ -32,13 +32,10 @@ final readonly class Column
     public bool $wide;
     public bool $truncate;
 
-    /** @var \Closure(mixed, array<string, mixed>): mixed */
-    private \Closure $cell;
-
     /**
      * @param \Closure(mixed, array<string, mixed>): mixed $cell the cell of one row, given the row as the list passes it and the list's context
      */
-    public function __construct(public Attribute $attribute, \Closure $cell)
+    public function __construct(public Attribute $attribute, private \Closure $cell)
     {
         $this->key = $attribute->key;
         $this->label = $attribute->label;
@@ -52,7 +49,6 @@ final readonly class Column
         $this->phone = $attribute->phone;
         $this->wide = $attribute->wide;
         $this->truncate = $attribute->truncate;
-        $this->cell = $cell;
     }
 
     /**

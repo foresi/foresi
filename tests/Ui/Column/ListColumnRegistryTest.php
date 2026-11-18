@@ -313,8 +313,8 @@ final class ListColumnRegistryTest extends TestCase
                 $text = static fn (string $key): \Closure => static fn (array $row): string => \is_string($row[$key] ?? null) ? $row[$key] : '';
 
                 return [
-                    new Attribute('payable', 'invoice.list.column.payable', AttributeType::Number, $text('payable'), defaultVisible: true, defaultPosition: 70, sort: 'e.payable'),
-                    new Attribute('number', 'invoice.list.column.number', AttributeType::Text, $text('number'), defaultVisible: true, defaultPosition: 10, defaultWidth: 120, sort: 'e.number', locked: true),
+                    new Attribute('payable', 'invoice.list.column.payable', AttributeType::Number, $text('payable'), sort: 'e.payable', defaultVisible: true, defaultPosition: 70),
+                    new Attribute('number', 'invoice.list.column.number', AttributeType::Text, $text('number'), sort: 'e.number', defaultVisible: true, defaultPosition: 10, defaultWidth: 120, locked: true),
                     new Attribute('firm', 'invoice.list.column.firm', AttributeType::Text, static fn (array $row): string => \sprintf('firm of %s', \is_string($row['number'] ?? null) ? $row['number'] : ''), defaultVisible: true, defaultPosition: 20, available: static fn (array $context): bool => true === ($context['severalFirms'] ?? false)),
                     new Attribute('customer', 'invoice.list.column.customer', AttributeType::Text, $text('customer'), defaultVisible: true, defaultPosition: 30, phone: false, truncate: true),
                     new Attribute('note', 'invoice.list.column.note', AttributeType::Text, $text('note'), defaultPosition: 60),
