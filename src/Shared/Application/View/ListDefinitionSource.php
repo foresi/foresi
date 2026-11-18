@@ -10,7 +10,7 @@ namespace Foresi\Shared\Application\View;
 
 /**
  * A module's lists that saved views apply to: each service tagged so is read by
- * ListDefinitions (config/services.yaml tags it), and app:views:sync stores the
+ * ListDefinitions (the Shared module's services.php tags it), and app:views:sync stores the
  * views they ship.
  */
 interface ListDefinitionSource
