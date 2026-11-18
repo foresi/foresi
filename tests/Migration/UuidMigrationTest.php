@@ -204,11 +204,11 @@ final class UuidMigrationTest extends TestCase
         $personId = $this->text("SELECT id FROM party WHERE display_name = 'Example Person'");
         $userId = $this->text('SELECT id FROM app_user');
 
-        self::assertSame($partyId, $db->fetchOne('SELECT entity_id FROM audit_entry WHERE entity_class = ? AND correlation_id = ?', [self::stored(Party::class), 'Created company']));
-        self::assertSame($this->text('SELECT id FROM party_address'), $db->fetchOne('SELECT entity_id FROM audit_entry WHERE entity_class = ?', [self::stored(PartyAddress::class)]));
-        self::assertSame($this->text('SELECT id FROM contact_link'), $db->fetchOne('SELECT entity_id FROM audit_entry WHERE entity_class = ?', [self::stored(ContactLink::class)]));
-        self::assertSame($this->text('SELECT id FROM membership'), $db->fetchOne('SELECT entity_id FROM audit_entry WHERE entity_class = ?', [self::stored(Membership::class)]));
-        self::assertSame($this->text('SELECT id FROM legal_entity'), $db->fetchOne('SELECT entity_id FROM audit_entry WHERE entity_class = ?', [self::stored(LegalEntity::class)]));
+        self::assertSame($partyId, $db->fetchOne('SELECT entity_id FROM audit_entry WHERE entity_class = ? AND correlation_id = ?', [$this->stored(Party::class), 'Created company']));
+        self::assertSame($this->text('SELECT id FROM party_address'), $db->fetchOne('SELECT entity_id FROM audit_entry WHERE entity_class = ?', [$this->stored(PartyAddress::class)]));
+        self::assertSame($this->text('SELECT id FROM contact_link'), $db->fetchOne('SELECT entity_id FROM audit_entry WHERE entity_class = ?', [$this->stored(ContactLink::class)]));
+        self::assertSame($this->text('SELECT id FROM membership'), $db->fetchOne('SELECT entity_id FROM audit_entry WHERE entity_class = ?', [$this->stored(Membership::class)]));
+        self::assertSame($this->text('SELECT id FROM legal_entity'), $db->fetchOne('SELECT entity_id FROM audit_entry WHERE entity_class = ?', [$this->stored(LegalEntity::class)]));
         self::assertSame($userId, $db->fetchOne('SELECT user_id FROM audit_entry WHERE correlation_id = ?', ['Created company']));
         self::assertNull($db->fetchOne('SELECT user_id FROM audit_entry WHERE correlation_id = ?', ['Unknown class']));
 
@@ -466,7 +466,7 @@ final class UuidMigrationTest extends TestCase
     private function audit(string $label, string $class, int $id, string $action, array $changes, ?int $user): void
     {
         $this->tenantRow('audit_entry', [
-            'entity_class' => self::stored($class), 'entity_id' => (string) $id, 'action' => $action, 'changes' => json_encode($changes, \JSON_THROW_ON_ERROR),
+            'entity_class' => $this->stored($class), 'entity_id' => (string) $id, 'action' => $action, 'changes' => json_encode($changes, \JSON_THROW_ON_ERROR),
             'user_id' => $user, 'occurred_at' => self::AT, 'correlation_id' => $label,
         ]);
     }
@@ -605,7 +605,7 @@ final class UuidMigrationTest extends TestCase
     /**
      * The name a class was stored under before the modules moved from App\ to Foresi\ (Version20261118100001).
      */
-    private static function stored(string $class): string
+    private function stored(string $class): string
     {
         return 'App\\'.substr($class, \strlen('Foresi\\'));
     }

@@ -116,7 +116,7 @@ final class AuditRootMigrationTest extends TestCase
         self::assertIsString($row['root_class']);
         self::assertIsString($row['root_id']);
 
-        return [self::current($row['root_class']), $row['root_id']];
+        return [$this->current($row['root_class']), $row['root_id']];
     }
 
     private function seed(): void
@@ -153,7 +153,7 @@ final class AuditRootMigrationTest extends TestCase
     private function audit(string $label, string $class, string $id): void
     {
         $this->tenantRow('audit_entry', [
-            'id' => Id::generate(), 'entity_class' => self::stored($class), 'entity_id' => $id, 'action' => 'created', 'changes' => '{}',
+            'id' => Id::generate(), 'entity_class' => $this->stored($class), 'entity_id' => $id, 'action' => 'created', 'changes' => '{}',
             'user_id' => null, 'occurred_at' => self::AT, 'correlation_id' => $label,
         ]);
     }
@@ -212,12 +212,12 @@ final class AuditRootMigrationTest extends TestCase
     /**
      * The name a class was stored under before the modules moved from App\ to Foresi\ (Version20261118100001).
      */
-    private static function stored(string $class): string
+    private function stored(string $class): string
     {
         return 'App\\'.substr($class, \strlen('Foresi\\'));
     }
 
-    private static function current(string $stored): string
+    private function current(string $stored): string
     {
         return str_starts_with($stored, 'App\\') ? 'Foresi\\'.substr($stored, \strlen('App\\')) : $stored;
     }
