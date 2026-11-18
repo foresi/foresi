@@ -77,7 +77,9 @@ test.describe.serial('corrective tax documents', () => {
 
     await page.goto('/invoices?tab=to_refund');
     await expect(row(page, '20260002')).toContainText('K vrácení');
-    await page.getByRole('link', { name: '20260002', exact: true }).click();
+    // The form page: the row itself opens the detail sheet, whose title would match the dialog's name.
+    const detail = await page.getByRole('link', { name: '20260002', exact: true }).getAttribute('href');
+    await page.goto(`${detail}/edit`);
     await page.locator('#invoice-refund').click();
     const dialog = page.getByRole('dialog', { name: /20260002/ });
     await expect(dialog.locator('[data-refund-summary]')).toContainText('1 210,00');
