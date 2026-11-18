@@ -30,6 +30,7 @@ use Foresi\Purchasing\Infrastructure\Form\ReceivedDocumentScreen;
 use Foresi\Purchasing\Infrastructure\Form\RefusalFields;
 use Foresi\Purchasing\Infrastructure\Navigation\PurchasingNavigation;
 use Foresi\Shared\Domain\Money;
+use Foresi\Ui\Component\DataTable;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -339,7 +340,7 @@ final class ReceivedDocumentListController extends AbstractController
         return [
             'id' => $row->id,
             'href' => $this->generateUrl('app_purchasing_document', ['id' => $row->id]),
-            'plain' => true,
+            'opens' => DataTable::OPENS_SHEET,
             'label' => $label,
             'secondary' => implode(' · ', array_filter([$row->supplierName, $total, $badge['label']], static fn (string $part): bool => '' !== $part)),
             'cells' => $cells,

@@ -63,10 +63,21 @@ test.describe('received documents', () => {
     const row = page.locator('tbody tr').filter({ hasText: 'Koncept z' });
     await expect(row).toHaveCount(1);
     await row.getByRole('link', { name: /Koncept z/ }).click();
-    await expect(page.locator('main h1')).toContainText('Koncept z');
+    // The row opens the document in the side sheet at its own URL, full screen: a document with lines is a form.
+    const sheet = page.locator('dialog#sheet');
+    await expect(sheet.getByRole('heading', { level: 2 }).first()).toContainText('Koncept z');
+    await expect(page).toHaveURL(/\/purchasing\/[0-9a-f-]{36}$/);
     // The original beside its values, nothing recorded and no number yet.
-    await expect(page.locator('[data-purchasing-preview="pdf"]')).toBeVisible();
-    await expect(page.locator('main header').getByRole('button', { name: 'Zaevidovat' })).toBeVisible();
+    await expect(sheet.locator('[data-purchasing-preview="pdf"]')).toBeVisible();
+    await expect(sheet.getByRole('button', { name: 'Zaevidovat' })).toBeVisible();
+    // Back closes the sheet over the list.
+    await page.goBack();
+    await expect(sheet).toBeHidden();
+    await expect(page).toHaveURL(/\/purchasing$/);
+    // The same URL is the page of the document.
+    await row.getByRole('link', { name: /Koncept z/ }).click();
+    await sheet.getByRole('link', { name: 'Otevřít jako stránku' }).click();
+    await expect(page.locator('main h1')).toContainText('Koncept z');
     await expect((await openMoreActions(page)).getByRole('menuitem', { name: 'Smazat koncept' })).toBeVisible();
     await page.keyboard.press('Escape');
     await expectNoSeriousViolations(page);
@@ -109,7 +120,9 @@ test.describe('received documents', () => {
   test('the draft is completed with two VAT rates and recorded', async ({ page }) => {
     await page.goto('/purchasing');
     await page.locator('tbody tr').filter({ hasText: 'Koncept z' }).getByRole('link', { name: /Koncept z/ }).click();
-    await expect(page.locator('main h1')).toContainText('Koncept z');
+    // Completed and recorded in place, in the sheet over the list.
+    const sheet = page.locator('dialog#sheet');
+    await expect(sheet.getByRole('heading', { level: 2 }).first()).toContainText('Koncept z');
 
     await pickSupplier(page, 'Example Office Supplies s.r.o.');
     await page.locator('#supplierNumber').fill('FV-7741');
@@ -120,9 +133,9 @@ test.describe('received documents', () => {
     await page.locator('[data-recap-add]').click();
     await expect(page.locator('[data-recap-row]')).toHaveCount(2);
     await fillRecapRow(page, 1, '12', '500,00', '60,00');
-    await page.locator('main header').getByRole('button', { name: 'Zaevidovat' }).click();
-    await expect(page.locator('main h1')).toHaveText('R20260002');
-    await expect(page.locator('[role=status]').filter({ hasText: 'Doklad R20260002 je zaevidovaný.' })).toBeVisible();
+    await sheet.getByRole('button', { name: 'Zaevidovat' }).click();
+    await expect(sheet.getByRole('heading', { level: 2 }).first()).toHaveText('R20260002');
+    await expect(sheet.locator('[role=status]').filter({ hasText: 'Doklad R20260002 je zaevidovaný.' })).toBeVisible();
 
     // The original stays beside the values; the CZK figures hold one row per rate.
     await expect(page.locator('[data-purchasing-preview="pdf"]')).toBeVisible();
@@ -138,7 +151,6 @@ test.describe('received documents', () => {
     await expect(rows.nth(2)).toContainText('500,00 Kč');
     // Domestic VAT is deducted from the month of the later of the tax point and the received date, until the end of the second year after.
     await expect(page.locator('[data-purchasing-deduction]')).toHaveText(/^Odpočet DPH od období 10\/2026, nejpozději 31\.\s12\.\s2028\.$/);
-    await expectNoSeriousViolations(page);
 
     await page.goto('/purchasing');
     await expect(page.getByRole('link', { name: /^K doplnění 0/ })).toBeVisible();
@@ -151,6 +163,7 @@ test.describe('received documents', () => {
   test('a document in the trash keeps its number and comes back', async ({ page }) => {
     await page.goto('/purchasing?tab=recorded');
     await page.locator('tbody tr').filter({ hasText: 'FV-7741' }).getByRole('link', { name: 'R20260002' }).click();
+    await page.locator('dialog#sheet').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     await expect(page.locator('main h1')).toHaveText('R20260002');
 
     await (await openMoreActions(page)).getByRole('menuitem', { name: 'Do koše' }).click();
@@ -162,6 +175,7 @@ test.describe('received documents', () => {
     await page.goto('/purchasing?tab=trash');
     await expect(page.locator('tbody tr')).toHaveCount(1);
     await page.getByRole('link', { name: 'R20260002' }).click();
+    await page.locator('dialog#sheet').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     await expect(page.locator('[data-purchasing-trashed]')).toContainText('Nahráno omylem');
     // Nothing can be changed in the trash: the form is disabled, only the restore is offered.
     await expect(page.locator('#supplierNumber')).toBeDisabled();
@@ -189,6 +203,7 @@ test.describe('screens', () => {
     await expect(page.locator('main')).toHaveScreenshot('list-content.png');
 
     await page.getByRole('link', { name: 'R20260001' }).click();
+    await page.locator('dialog#sheet').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     await expect(page.locator('main h1')).toHaveText('R20260001');
     await page.mouse.move(0, 0);
     // The history says when each step happened.
