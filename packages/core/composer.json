@@ -1,0 +1,16 @@
+{
+    "name": "foresi/core",
+    "description": "The core every Foresi application needs: shared kernel, instance, audit, identity, party, attachments, events and webhooks.",
+    "type": "metapackage",
+    "license": "AGPL-3.0-only",
+    "require": {
+        "foresi/attachment": "*",
+        "foresi/audit": "*",
+        "foresi/events": "*",
+        "foresi/identity": "*",
+        "foresi/instance": "*",
+        "foresi/party": "*",
+        "foresi/shared": "*",
+        "foresi/webhooks": "*"
+    }
+}

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "214c3185bbc18ce5a1e81b3b780bc88d",
+    "content-hash": "83dc79691a2ec96bc33dba55e1360dc4",
     "packages": [
         {
             "name": "brick/math",
@@ -1737,6 +1737,33 @@
             }
         },
         {
+            "name": "foresi/core",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/core",
+                "reference": "80f898df644f7dde985170080adde577ca73c3f8"
+            },
+            "require": {
+                "foresi/attachment": "*",
+                "foresi/audit": "*",
+                "foresi/events": "*",
+                "foresi/identity": "*",
+                "foresi/instance": "*",
+                "foresi/party": "*",
+                "foresi/shared": "*",
+                "foresi/webhooks": "*"
+            },
+            "type": "metapackage",
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "The core every Foresi application needs: shared kernel, instance, audit, identity, party, attachments, events and webhooks.",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
             "name": "foresi/country",
             "version": "dev-main",
             "dist": {
@@ -2017,7 +2044,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "92f539c4a7247b91a33378679a95e90297238ba5"
+                "reference": "324e4bacbab3b38510376bee7946eb57281eefd0"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2029,7 +2056,7 @@
             "extra": {
                 "foresi": {
                     "module": "party",
-                    "kind": "module",
+                    "kind": "core",
                     "namespace": "Foresi\\Party\\",
                     "bundle": "Foresi\\Party\\PartyBundle",
                     "optional": [
@@ -18686,6 +18713,7 @@
         "foresi/audit": 20,
         "foresi/banking": 20,
         "foresi/cash-flow": 20,
+        "foresi/core": 20,
         "foresi/country": 20,
         "foresi/events": 20,
         "foresi/exchange-rate": 20,

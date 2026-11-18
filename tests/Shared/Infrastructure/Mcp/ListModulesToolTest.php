@@ -43,7 +43,7 @@ final class ListModulesToolTest extends TestCase
         self::assertSame(ModulesView::toArray($graph, new ModuleIntegrations(\dirname(__DIR__, 4).'/src')->of($graph)), $output->data);
         self::assertIsArray($json['integrations']);
         self::assertSame(['banking', 'invoicing', 'party', 'purchasing'], array_column($json['integrations'], 'module'));
-        self::assertSame('19 installed modules, 3 problems in their dependencies.', $output->summary);
+        self::assertSame('19 installed modules, 0 problems in their dependencies.', $output->summary);
     }
 
     private function tool(): ListModulesTool

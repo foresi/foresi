@@ -46,8 +46,7 @@ final class ModulesCommandTest extends TestCase
         self::assertIsArray($timesheet['requires']);
         self::assertContains('work', $timesheet['requires']);
         self::assertSame([], $timesheet['optional']);
-        self::assertIsArray($json['problems']);
-        self::assertContains('core-requires-module:webhooks>ui', $json['problems']);
+        self::assertSame([], $json['problems']);
     }
 
     public function testTableShowsModulesAndProblems(): void
@@ -59,7 +58,7 @@ final class ModulesCommandTest extends TestCase
         self::assertSame(Command::SUCCESS, $status);
         $text = $output->fetch();
         self::assertStringContainsString('foresi/timesheet', $text);
-        self::assertStringContainsString('core-requires-module:webhooks>ui (accepted)', $text);
+        self::assertStringContainsString('No problems.', $text);
     }
 
     public function testOptionalDependenciesShowWhetherInstalled(): void

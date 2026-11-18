@@ -12,7 +12,8 @@ namespace Foresi\Shared\Domain\Module;
  * The installed modules and their dependencies. Every hard dependency must be
  * installed; an optional one may be absent. Cycles and a core that depends on
  * a business module are reported as problems, not refused, so that today's
- * graph can be read while they are being removed.
+ * graph can be read while they are being removed. A core module may
+ * require the UI until the screens leave the core (ADR 0034).
  */
 final readonly class ModuleGraph
 {
@@ -145,7 +146,7 @@ final readonly class ModuleGraph
                 continue;
             }
             foreach ($module->requires as $dependency) {
-                if (ModuleKind::Core !== $this->modules[$dependency->value]->kind) {
+                if (!\in_array($this->modules[$dependency->value]->kind, [ModuleKind::Core, ModuleKind::Ui], true)) {
                     $problems[] = GraphProblem::coreRequiresModule($module->id, $dependency);
                 }
             }

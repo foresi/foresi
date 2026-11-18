@@ -12,7 +12,7 @@
     "extra": {
         "foresi": {
             "module": "party",
-            "kind": "module",
+            "kind": "core",
             "namespace": "Foresi\\Party\\",
             "bundle": "Foresi\\Party\\PartyBundle",
             "optional": [
