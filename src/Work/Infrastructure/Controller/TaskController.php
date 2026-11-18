@@ -25,6 +25,7 @@ use App\Work\Application\DiscussionFilter;
 use App\Work\Application\DiscussionItem;
 use App\Work\Application\LabelBadge;
 use App\Work\Application\ManageComments;
+use App\Work\Application\ManageLabels;
 use App\Work\Application\ManageNotifications;
 use App\Work\Application\ManageTasks;
 use App\Work\Application\MentionCandidate;
@@ -37,6 +38,7 @@ use App\Work\Application\TimeQueries;
 use App\Work\Application\TimeTarget;
 use App\Work\Application\WorkQueries;
 use App\Work\Application\WorkRefused;
+use App\Work\Domain\LabelColour;
 use App\Work\Domain\Priority;
 use App\Work\Infrastructure\Attachment\TaskAttachmentAccess;
 use App\Work\Infrastructure\Twig\TimeFunctions;
@@ -100,6 +102,7 @@ final class TaskController extends AbstractController
     public function __construct(
         private readonly WorkQueries $queries,
         private readonly ManageTasks $tasks,
+        private readonly ManageLabels $labelStore,
         private readonly ManageComments $comments,
         private readonly Comments $commentStore,
         private readonly People $people,
@@ -360,6 +363,8 @@ final class TaskController extends AbstractController
 
     /**
      * The labels of the organisation to tick, saved together: a dialog over the task, or a page of its own.
+     * A name in "create" is a new gray label, ticked with the others; only the staff create labels,
+     * which ManageLabels holds to, as it holds a name to be free whatever its case.
      */
     #[OpenToGuest]
     #[Route('/tasks/{id}/labels', name: 'app_task_labels', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
@@ -367,8 +372,14 @@ final class TaskController extends AbstractController
     {
         if ($request->isMethod('POST')) {
             $labels = array_values(array_filter($request->request->all('labels'), \is_string(...)));
+            $create = trim($request->request->getString('create'));
 
-            return $this->save($id, $request, fn () => $this->tasks->setLabels($id, $labels));
+            return $this->save($id, $request, function () use ($id, $labels, $create): void {
+                if ('' !== $create) {
+                    $labels[] = $this->labelStore->create($create, LabelColour::Gray)->id();
+                }
+                $this->tasks->setLabels($id, $labels);
+            });
         }
         $task = $this->detail($id);
 
@@ -376,6 +387,7 @@ final class TaskController extends AbstractController
             'task' => $task,
             'labels' => $this->queries->labels(),
             'checked' => array_map(static fn (LabelBadge $label): string => $label->id, $task->task->labels),
+            'canCreate' => $this->staff->isStaff(),
         ]);
     }
 
@@ -523,6 +535,7 @@ final class TaskController extends AbstractController
         $people = $this->people->all();
         $seeds = array_column(array_map(static fn (Person $person): array => [$person->membershipId, $person->userId], $people), 1, 0);
         $me = $this->myMembership();
+        $labels = $this->queries->labels();
         $watching = array_map(static fn (Choice $watcher): string => $watcher->id, $task->watchers);
         $row = $task->task;
 
@@ -582,7 +595,9 @@ final class TaskController extends AbstractController
             ], $task->watchers),
             'watching' => null !== $me && \in_array($me, $watching, true),
             'canWatch' => null !== $me,
-            'hasLabels' => [] !== $this->queries->labels(),
+            'hasLabels' => [] !== $labels,
+            'labelOptions' => array_map(static fn (LabelBadge $label): array => ['value' => $label->id, 'label' => $label->name, 'tone' => $label->colour->value], $labels),
+            'canCreateLabels' => $this->staff->isStaff(),
             'subtaskColumns' => [
                 ['key' => 'title', 'label' => $this->translator->trans('work.task.field.title'), 'truncate' => true],
                 ['key' => 'status', 'label' => $this->translator->trans('work.task.field.status')],

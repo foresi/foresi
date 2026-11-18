@@ -3271,6 +3271,11 @@ work:
     labels_edit: Choose labels
     labels_title: Labels of the task
     labels_none: The organisation has no labels yet.
+    labels_search: Search labels
+    labels_no_match: No label matches.
+    labels_create: 'Create label “{name}”'
+    labels_new: New label
+    labels_new_help: Creates a gray label and adds it to the task.
     created_by: 'Created by {name} on {date}'
     created: 'Created on {date}'
     watchers:

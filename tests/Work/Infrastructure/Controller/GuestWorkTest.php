@@ -249,6 +249,13 @@ final class GuestWorkTest extends WebTestCase
         $values['labels'] = [(string) $crawler->filter('input[name="labels[]"]')->attr('value')];
         $this->client->request('POST', $form->getUri(), $values);
         self::assertSame(1, $this->rows('SELECT COUNT(*) FROM task_label WHERE task_id = ?', [$homepage]));
+        self::assertCount(0, $crawler->filter('input[name="create"]'), 'A guest picks labels and never creates one.');
+        $page = $this->client->request('GET', '/tasks/'.$homepage);
+        self::assertCount(0, $page->filter('form[data-multi-select] input[name="create"]'));
+        self::assertCount(0, $page->filter('[data-multi-select-create]'));
+        $this->client->request('POST', $form->getUri(), $values + ['create' => 'Guest label']);
+        self::assertSame(0, $this->rows("SELECT COUNT(*) FROM label WHERE name = 'Guest label'", []));
+        self::assertSame(1, $this->rows('SELECT COUNT(*) FROM task_label WHERE task_id = ?', [$homepage]));
 
         $crawler = $this->client->request('GET', '/tasks/'.$homepage);
         $this->client->submit($crawler->filter('form[data-task-watch]')->form());
