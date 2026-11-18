@@ -168,11 +168,6 @@ final class ManageFirmBankAccountsTest extends KernelTestCase
                 return $this->inner->lock($id);
             }
 
-            public function lockActive(): array
-            {
-                return $this->inner->lockActive();
-            }
-
             public function add(LegalEntity $firm): void
             {
                 $this->inner->add($firm);
