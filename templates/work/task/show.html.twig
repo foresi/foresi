@@ -218,8 +218,13 @@
                 {% elseif not hasLabels %}
                     <p class="m-0 text-small text-muted">{{ 'work.task.labels_none'|trans }}</p>
                 {% endif %}
-                {% if hasLabels %}
-                    <div><twig:Ui:Button size="sm" icon="tag" :href="path('app_task_labels', {id: row.id})" data-dialog aria-haspopup="dialog">{{ 'work.task.labels_edit'|trans }}</twig:Ui:Button></div>
+                {% if hasLabels or canCreateLabels %}
+                    {# Search, several ticks and, for the staff, a new label from what was typed (Linear, Jira); closing posts the ticks. #}
+                    <twig:Ui:MultiSelect id="task-labels" name="labels[]" :label="'work.task.field.labels'|trans" :trigger="'work.task.labels_edit'|trans" icon="tag"
+                        :action="path('app_task_labels', {id: row.id})" :href="path('app_task_labels', {id: row.id})" :token="token"
+                        :options="labelOptions" :values="row.labels|map(l => l.id)"
+                        :searchLabel="'work.task.labels_search'|trans" :emptyLabel="'work.task.labels_no_match'|trans"
+                        :createName="canCreateLabels ? 'create' : null" :createLabel="'work.task.labels_create'|trans({name: '{name}'})" />
                 {% endif %}
             </div>
 

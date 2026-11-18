@@ -1,0 +1,47 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Inside the blocks of Ui:Menu its own props (id, label, icon) shadow these: read them from picker.
+    An editable combobox over a multi-select listbox (WAI-ARIA APG), in a dialog popup over a button
+    (Primer SelectPanel). Focus stays in the search field; the active row is its aria-activedescendant.
+    The hidden checkboxes are what the form posts: a tick in the list ticks one of them.
+#}
+{% set picker = this %}
+{% set buttonId = id ~ '-button' %}
+{% set popupId = id ~ '-popup' %}
+{% set listId = id ~ '-list' %}
+{% set row_class = constant('Foresi\\Ui\\Component\\Menu::OPTION') ~ ' hover:bg-frame data-active:bg-frame [&[hidden]]:hidden' %}
+<form method="post" action="{{ action }}" {{ attributes.defaults({class: 'flex min-w-0', 'data-multi-select': name}) }} data-controller="multi-select" data-multi-select-create-label-value="{{ createLabel }}" data-action="dropdown:opened->multi-select#opened dropdown:closed->multi-select#closed">
+    {% for field, fieldValue in picker.hidden %}<input type="hidden" name="{{ field }}" value="{{ fieldValue }}">{% endfor %}
+    {% for row in picker.rows %}<input type="checkbox" name="{{ name }}" value="{{ row.value }}" hidden{% if row.checked %} checked{% endif %} data-multi-select-target="input">{% endfor %}
+    {% if createName %}<input type="hidden" name="{{ createName }}" value="" data-multi-select-target="create">{% endif %}
+    {# The popup needs JavaScript; without it (scripting: none) the button is a link to the page that does the same. #}
+    <div class="flex min-w-0 [@media(scripting:none)]:hidden">
+        <twig:Ui:Menu :id="popupId" :buttonId="buttonId" :label="trigger" :menuLabel="label" popup="dialog" align="start" :float="true" class="min-w-0" menuClass="w-72">
+            <twig:block name="trigger">
+                <twig:Ui:Button size="sm" :icon="picker.icon" :id="buttonId" aria-haspopup="dialog" aria-expanded="false" :aria-controls="popupId" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" data-multi-select-trigger>{{ picker.trigger }}</twig:Ui:Button>
+            </twig:block>
+            <div class="grid gap-1">
+                <div class="relative">
+                    {{ ux_icon('lucide:search', {class: 'pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted', 'aria-hidden': 'true'}) }}
+                    <input type="text" role="combobox" aria-expanded="true" aria-controls="{{ listId }}" aria-autocomplete="list" aria-label="{{ picker.searchLabel }}" autocomplete="off" spellcheck="false" class="{{ picker.searchClasses }}" data-dropdown-focus data-multi-select-target="search" data-action="input->multi-select#filter keydown->multi-select#key" data-multi-select-search>
+                </div>
+                <div role="listbox" id="{{ listId }}" aria-label="{{ picker.label }}" aria-multiselectable="true" class="grid max-h-64 overflow-y-auto" data-multi-select-target="list">
+                    {% for row in picker.rows %}
+                        <div role="option" id="{{ picker.id }}-option-{{ loop.index }}" aria-selected="{{ row.checked ? 'true' : 'false' }}" data-value="{{ row.value }}" data-label="{{ row.label }}" class="{{ row_class }}" data-multi-select-target="option" data-action="mousedown->multi-select#keep click->multi-select#pick" data-multi-select-option="{{ row.value }}">
+                            {%- if row.tone %}<twig:Ui:Badge :tone="row.tone">{{ row.label }}</twig:Ui:Badge>{% else %}<span class="min-w-0 truncate">{{ row.label }}</span>{% endif -%}
+                            {{ ux_icon('lucide:check', {class: 'ml-auto hidden size-5 shrink-0 text-green group-aria-selected:block', 'aria-hidden': 'true'}) }}
+                        </div>
+                    {% endfor %}
+                    {% if picker.createName %}
+                        <div role="option" id="{{ picker.id }}-create" hidden class="{{ row_class }}" data-multi-select-target="createRow" data-action="mousedown->multi-select#keep click->multi-select#pick" data-multi-select-create>
+                            {{ ux_icon('lucide:plus', {class: 'size-5 shrink-0 text-muted', 'aria-hidden': 'true'}) }}
+                            <span class="min-w-0 truncate" data-multi-select-target="createText"></span>
+                        </div>
+                    {% endif %}
+                </div>
+                <p role="status" class="m-0 text-small text-muted" data-multi-select-target="empty" data-multi-select-empty><span hidden class="block px-3 py-2 [&[hidden]]:hidden">{{ picker.emptyLabel }}</span></p>
+            </div>
+        </twig:Ui:Menu>
+    </div>
+    <span class="hidden [@media(scripting:none)]:flex"><twig:Ui:Button size="sm" :icon="icon" :href="href">{{ trigger }}</twig:Ui:Button></span>
+</form>

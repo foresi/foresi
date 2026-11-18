@@ -321,4 +321,50 @@ test.describe('projects', () => {
     await expect(added).toBeVisible();
     await expect(added.locator('[data-comment-internal]')).toHaveCount(0);
   });
+  test('labels are ticked by search and a new one is created from the picker on the task page', async ({ page }) => {
+    await openWebsite(page);
+    const title = 'Label the launch';
+    await page.getByRole('link', { name: 'Nový úkol' }).click();
+    await page.getByRole('dialog').getByLabel('Název').fill(title);
+    await page.getByRole('dialog').getByRole('button', { name: 'Přidat úkol' }).click();
+    await page.locator('[data-section] tbody tr').filter({ hasText: title }).getByRole('link', { name: title, exact: true }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(title);
+
+    const labels = page.locator('[data-task-labels]');
+    const trigger = labels.getByRole('button', { name: 'Vybrat štítky' });
+    await trigger.click();
+    const popup = page.getByRole('dialog', { name: 'Štítky' });
+    const search = popup.getByRole('combobox', { name: 'Hledat štítky' });
+    await expect(search).toBeFocused();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+
+    // Typing filters; Enter ticks the active row and the popup stays open.
+    await search.fill('des');
+    // Design matches; "des" is no label's name, so the last row offers to create it.
+    await expect(popup.getByRole('option')).toHaveText(['Design', 'Vytvořit štítek «des»']);
+    await expect(popup.getByRole('listbox', { name: 'Štítky' })).toBeVisible();
+    await expect(search).toHaveAttribute('aria-activedescendant', /task-labels-option-/);
+    await search.press('Enter');
+    await expect(popup.getByRole('option', { name: 'Design' })).toHaveAttribute('aria-selected', 'true');
+    await expect(popup).toBeVisible();
+
+    // Nothing is named as typed: the last row creates the label and ticks it with the others.
+    await search.fill('Launch week');
+    await expect(popup.getByRole('option', { name: 'Vytvořit štítek «Launch week»' })).toBeVisible();
+    await search.press('Enter');
+    await expect(labels.locator('li')).toHaveText(['Design', 'Launch week']);
+    await expect(page.locator('[data-task-history]')).toContainText('Přidány štítky: Design, Launch week');
+
+    // Escape closes the popup and saves what changed.
+    await trigger.click();
+    // A name taken whatever its case is not offered again.
+    await search.fill('launch WEEK');
+    await expect(popup.getByRole('option', { name: /Vytvořit/ })).toBeHidden();
+    await expect(popup.getByRole('option', { name: 'Launch week' })).toHaveAttribute('aria-selected', 'true');
+    await search.press('Enter');
+    await search.press('Escape');
+    await expect(popup).toBeHidden();
+    await expect(trigger).toBeFocused();
+    await expect(labels.locator('li')).toHaveText(['Design']);
+  });
 });

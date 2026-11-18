@@ -7,6 +7,10 @@ import { Controller } from '@hotwired/stimulus';
  * Menu button with a popup menu (WAI-ARIA menu button pattern). Arrow keys,
  * Home and End move between items, Escape closes and returns focus to the
  * button, a click elsewhere or Tab closes it.
+ *
+ * A popup that is a dialog (Ui:Menu popup="dialog", such as Ui:MultiSelect) has
+ * no menu items: opening it focuses its [data-dropdown-focus] field instead.
+ * Opening and closing dispatch "dropdown:opened" and "dropdown:closed".
  */
 export default class extends Controller {
     static targets = ['button', 'menu'];
@@ -53,10 +57,14 @@ export default class extends Controller {
             this.place();
         }
         this.buttonTarget.setAttribute('aria-expanded', 'true');
+        const field = this.menuTarget.querySelector('[data-dropdown-focus]');
         const items = this.items();
-        if (items.length > 0) {
+        if (field) {
+            field.focus();
+        } else if (items.length > 0) {
             (focus === 'last' ? items[items.length - 1] : items[0]).focus();
         }
+        this.dispatch('opened');
     }
 
     place() {
@@ -87,6 +95,7 @@ export default class extends Controller {
         if (restoreFocus !== false) {
             this.buttonTarget.focus();
         }
+        this.dispatch('closed');
     }
 
     // Opens from the keyboard on the button.

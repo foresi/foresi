@@ -56,6 +56,8 @@ final class Menu
     public bool $float = false;
     /** The menu's own accessible name, when the trigger's text does not name it. */
     public ?string $menuLabel = null;
+    /** What the popup is: "menu" (menu items) or "dialog" (fields of its own, such as Ui:MultiSelect). */
+    public string $popup = 'menu';
     /** Extra classes of the popup, for its width. */
     public string $menuClass = '';
 
@@ -73,6 +75,9 @@ final class Menu
         }
         if (null !== $this->chevron && !in_array($this->chevron, ['down', 'up'], true)) {
             throw new \InvalidArgumentException(sprintf('Unknown chevron "%s", expected down or up.', $this->chevron));
+        }
+        if (!in_array($this->popup, ['menu', 'dialog'], true)) {
+            throw new \InvalidArgumentException(sprintf('Unknown popup "%s", expected menu or dialog.', $this->popup));
         }
         Style::button($this->variant, $this->size);
         Style::icon($this->icon);
