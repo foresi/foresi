@@ -30,7 +30,7 @@ final class HeaderActionOrderTest extends TestCase
     public static function headers(): iterable
     {
         $root = \dirname(__DIR__, 2).'/templates';
-        foreach ((new Finder())->files()->in($root)->name('*.html.twig')->notPath('components/')->sortByName() as $file) {
+        foreach (new Finder()->files()->in($root)->name('*.html.twig')->notPath('components/')->sortByName() as $file) {
             $path = $file->getRelativePathname();
             $source = $file->getContents();
             if (\in_array($path, self::PARTIALS, true)) {
