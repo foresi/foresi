@@ -184,11 +184,21 @@ test.describe('projects', () => {
   test('the settings add a section and a status', async ({ page }) => {
     await openWebsite(page);
     await page.locator('[data-project-settings]').click();
-    await page.locator('#section-add').fill('Ideas');
-    await page.locator('#section-add').press('Enter');
+    await page.locator('[data-settings-section-add]').click();
+    const section = page.getByRole('dialog', { name: 'Přidat sekci' });
+    // An empty name is told in the dialog, which stays open.
+    await section.getByRole('button', { name: 'Přidat sekci' }).click();
+    await expect(section.getByText('Zadejte název sekce.')).toBeVisible();
+    await section.getByLabel('Název sekce').fill('Ideas');
+    await section.getByLabel('Název sekce').press('Enter');
+    await expect(section).toBeHidden();
     await expect(page.locator('[data-settings-sections]').locator('input[value="Ideas"]')).toBeVisible();
-    await page.locator('#status-add').fill('Waiting for client');
-    await page.getByRole('button', { name: 'Přidat stav' }).click();
+    await page.locator('[data-settings-status-add]').click();
+    const status = page.getByRole('dialog', { name: 'Přidat stav' });
+    await status.getByLabel('Název stavu').fill('Waiting for client');
+    await status.getByLabel('Typ').selectOption('active');
+    await status.getByRole('button', { name: 'Přidat stav' }).click();
+    await expect(status).toBeHidden();
     await expect(page.locator('[data-settings-statuses]').locator('input[value="Waiting for client"]')).toBeVisible();
   });
 

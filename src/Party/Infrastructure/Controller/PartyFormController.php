@@ -54,8 +54,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Creating and editing contacts, and the registry lookup that fills the form.
- * A new contact can also come from a dialog over the invoice form: a short form
- * whose result is the new contact's id, which the page under it picks.
+ * A new contact can also come from a short form in a dialog: over the invoice
+ * form, a new customer whose id the page under it picks; over the contact list
+ * (?for=contacts), a new contact of any role, whose page opens once it is saved.
+ * The same URL without the dialog is the whole form, a page of its own.
  *
  * Everything that can be wrong with a submission is found before a write
  * service is called, so a mistake is a form error. A write that still fails
@@ -66,6 +68,8 @@ final class PartyFormController extends AbstractController
 {
     public const string FORM_TOKEN = 'party_form';
     public const string CREATED_FLASH = 'contact_created';
+    /** The query value of a new contact started from the contact list. */
+    public const string FOR_CONTACTS = 'contacts';
 
     public function __construct(
         private readonly PartyQuery $parties,
@@ -187,7 +191,7 @@ final class PartyFormController extends AbstractController
         if ($changedVat && $input->vatId instanceof \App\Party\Domain\VatId) {
             RefreshRegistryChecksAfterResponse::schedule($request, $id);
         }
-        if (!$party instanceof Party && DialogRequest::is($request)) {
+        if (!$party instanceof Party && DialogRequest::is($request) && !$this->forContacts($request)) {
             // The page under the dialog takes the new contact: no message waits for another page.
             return new JsonResponse(['event' => 'contact:created', 'detail' => ['id' => $id], 'message' => $this->translator->trans('party.flash.created')]);
         }
@@ -248,8 +252,11 @@ final class PartyFormController extends AbstractController
         // A new contact from a dialog is the short form; the page is the whole one.
         $template = !$party instanceof Party && DialogRequest::is($request) ? 'party/quick.html.twig' : 'party/form.html.twig';
 
+        $forContacts = !$party instanceof Party && $this->forContacts($request);
+
         return $this->render($template, [
             'party' => $party,
+            'forContacts' => $forContacts,
             'values' => $values,
             'errors' => $messages,
             'duplicates' => array_map(fn (DuplicateMatch $match): array => [
@@ -269,9 +276,17 @@ final class PartyFormController extends AbstractController
             'kinds' => $this->kindOptions(),
             'roleOptions' => array_combine(array_map(static fn (PartyRole $role): string => $role->value, PartyRole::cases()), array_map(fn (PartyRole $role): string => $this->translator->trans('party.role.'.$role->value), PartyRole::cases())),
             'countries' => CountryOptions::options($locale),
-            'action' => $party instanceof Party ? $this->generateUrl('app_contact_edit', ['id' => $party->id()]) : $this->generateUrl('app_contact_new'),
+            'action' => $party instanceof Party ? $this->generateUrl('app_contact_edit', ['id' => $party->id()]) : $this->generateUrl('app_contact_new', $forContacts ? ['for' => self::FOR_CONTACTS] : []),
             'cancel' => $party instanceof Party ? $this->generateUrl('app_contact_show', ['id' => $party->id()]) : $this->generateUrl('app_contacts'),
         ], new Response(status: $status));
+    }
+
+    /**
+     * A new contact started from the contact list, not for the form under a dialog.
+     */
+    private function forContacts(Request $request): bool
+    {
+        return self::FOR_CONTACTS === $request->query->getString('for');
     }
 
     /**

@@ -22,7 +22,7 @@
                 <twig:Ui:MenuItem type="submit" name="format" value="xlsx">{{ 'party.header.export_xlsx'|trans }}</twig:Ui:MenuItem>
             </twig:Ui:Menu>
         </form>
-        <twig:Ui:Button variant="primary" icon="plus" :href="path('app_contact_new')">{{ 'party.new'|trans }}</twig:Ui:Button>
+        <twig:Ui:Button variant="primary" icon="plus" :href="path('app_contact_new', {for: constant('App\\Party\\Infrastructure\\Controller\\PartyFormController::FOR_CONTACTS')})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-contact-new>{{ 'party.new'|trans }}</twig:Ui:Button>
     {% endif %}
 {% endblock %}
 
@@ -33,7 +33,7 @@
 
     {% if firstRun %}
         <twig:Ui:EmptyState icon="users" :title="'party.empty.title'|trans" :text="'party.empty.text'|trans">
-            <twig:Ui:Button variant="primary" icon="plus" :href="path('app_contact_new')">{{ 'party.new'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button variant="primary" icon="plus" :href="path('app_contact_new', {for: constant('App\\Party\\Infrastructure\\Controller\\PartyFormController::FOR_CONTACTS')})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-contact-new>{{ 'party.new'|trans }}</twig:Ui:Button>
         </twig:Ui:EmptyState>
     {% else %}
         <div class="grid grid-cols-1 gap-4">
