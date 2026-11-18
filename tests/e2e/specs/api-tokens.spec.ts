@@ -44,6 +44,25 @@ test.describe('personal API tokens', () => {
     const secret = await page.locator('#api-token-secret').inputValue();
     expect(secret).not.toBe('');
 
+    // Done closes the dialog and loads the list under it again. A new token asked for while
+    // that reload is on its way answers after the page changed: it must not lock the dialogs.
+    // The answers are held back so that the reload renders first, every time.
+    const hold = (ms: number) => async (route: import('@playwright/test').Route) => { await new Promise((done) => { setTimeout(done, ms); }); await route.continue(); };
+    await page.route(/\/settings\/api$/, hold(600));
+    await page.route(/\/settings\/api\/new$/, hold(1500));
+    const created = page.getByRole('dialog', { name: 'Váš nový token' });
+    await created.getByRole('button', { name: 'Hotovo' }).click();
+    await expect(page.locator('dialog[open]')).toHaveCount(0);
+    await page.locator('#api-token-new').click();
+    await expect(page.locator('[data-api-tokens="mine"] tbody tr').filter({ hasText: TOKEN_NAME })).toHaveCount(1);
+    await page.waitForTimeout(1500);
+    await page.unrouteAll();
+    // The page shown now still opens its dialogs, and they close.
+    await page.locator('#api-token-new').click();
+    await expect(page.getByRole('dialog', { name: 'Nový token' })).toBeVisible();
+    await page.getByRole('dialog', { name: 'Nový token' }).getByRole('button', { name: 'Zrušit', exact: true }).click();
+    await expect(page.locator('dialog[open]')).toHaveCount(0);
+
     // The token signs in as its owner. The organisation has no documents yet.
     const api = await client(baseURL!, secret);
     const me = await api.get('/api/v1/me');

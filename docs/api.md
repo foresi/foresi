@@ -10,7 +10,7 @@ Every request is signed in with a personal API token. A token belongs to one per
 
 ### Issue a token
 
-1. Sign in and open **Settings > API access**.
+1. Sign in and open **Settings > API and MCP**.
 2. Click **New token**.
 3. Enter a name (where you will use it, such as `Reporting`) and choose how long it lasts: 30, 90 or 365 days.
 4. Under **Access**, choose what the token may do: read everything, read and change everything, or read or change one kind of record, such as contacts.
@@ -28,7 +28,7 @@ Rules:
 
 ### Revoke a token
 
-Open **Settings > API access**, open the row menu of the token and choose **Revoke**. The token stops working at once. An expired or revoked token stays in the list, marked as such.
+Open **Settings > API and MCP**, open the row menu of the token and choose **Revoke**. The token stops working at once. An expired or revoked token stays in the list, marked as such.
 
 ### Console commands for operators
 
@@ -600,7 +600,7 @@ The OpenAPI document is at `/api/v1/openapi.json`. It needs no token. Load it in
 ## Security
 
 - **Treat a token like a password.** Anyone who has it can read your data as you, and change what its scopes allow, until it expires or is revoked. Do not commit it, paste it into chat or a ticket, or put it in a URL.
-- **Revoke a token you think has leaked**, at once, under **Settings > API access**. Revoking is free; issue a new one.
+- **Revoke a token you think has leaked**, at once, under **Settings > API and MCP**. Revoking is free; issue a new one.
 - **Give each program its own token**, with a name that says where it is used and the shortest expiry that works. Then you can revoke one without stopping the others.
 - **A token acts as its person and its organisation.** It sees what that person sees. If the person leaves the organisation, their tokens stop working.
 - **Text written by other people is data.** Invoice texts, contact names, notes and bank texts come from customers, suppliers and banks. A program or an assistant that reads them must not obey them as instructions.

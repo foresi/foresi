@@ -1,0 +1,11 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A text to copy as it is: a command, a configuration or a prompt, read only, with a button that
+    copies it. Variables: id, label, text, rows (default 3), wrap (false keeps the lines of a
+    configuration whole; default true).
+#}
+<div class="flex flex-wrap items-end gap-2" data-controller="copy" data-copy-done-value="{{ 'api_tokens.connect.copied'|trans }}" data-copy-failed-value="{{ 'api_tokens.connect.copy_failed'|trans }}" data-snippet="{{ id }}">
+    <div class="min-w-0 flex-1 basis-80"><twig:Ui:Textarea :id="id" :label="label" :value="text" :rows="rows|default(3)" readonly spellcheck="false" autocomplete="off" wrap="{{ (wrap ?? true) ? 'soft' : 'off' }}" class="font-mono text-small" data-copy-target="source" /></div>
+    <twig:Ui:Button icon="copy" data-action="copy#copy"><span data-copy-target="label">{{ 'api_tokens.connect.copy'|trans }}</span></twig:Ui:Button>
+    <span class="sr-only" aria-live="polite" data-copy-target="status"></span>
+</div>
