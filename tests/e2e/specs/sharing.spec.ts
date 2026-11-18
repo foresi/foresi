@@ -63,6 +63,7 @@ test.describe('the guest', () => {
   test('sees a task shared on its own with the name of its project, and no other task of it', async ({ page }) => {
     await page.goto('/shared');
     await page.getByRole('link', { name: 'Sign the lease' }).click();
+    await page.getByRole('dialog').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     await expect(page.locator('main h1')).toHaveText('Sign the lease');
     const crumbs = page.locator('main header nav');
     await expect(crumbs).toContainText('Office move');
@@ -114,6 +115,7 @@ test.describe('the owner', () => {
     await page.goto('/projects');
     await page.getByRole('link', { name: 'Website', exact: true }).click();
     await page.getByRole('link', { name: 'Fix the contact form', exact: true }).click();
+    await page.getByRole('dialog').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     await expect(page.locator('main h1')).toHaveText('Fix the contact form');
     await (await openMoreActions(page)).getByRole('menuitem', { name: 'Sdílet' }).click();
     const dialog = page.getByRole('dialog', { name: /Sdílet úkol/ });
@@ -123,6 +125,7 @@ test.describe('the owner', () => {
     await expect(dialog.locator('[data-sharing-messages]')).toContainText('Sdíleno s osobou Guest Example.');
     await expect(dialog.locator('[data-sharing-people]')).toContainText('Guest Example');
     await dialog.getByRole('button', { name: 'Hotovo' }).click();
+    await expect(dialog).toBeHidden();
 
     const guest = await as(browser, PROJECTS_GUEST_STATE);
     await guest.goto('/shared');
@@ -136,6 +139,7 @@ test.describe('the owner', () => {
     await page.goto('/projects');
     await page.getByRole('link', { name: 'Website', exact: true }).click();
     await page.getByRole('link', { name: 'Review the cookie banner', exact: true }).click();
+    await page.getByRole('dialog').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     await expect(page.locator('main h1')).toHaveText('Review the cookie banner');
     const address = page.url();
     await (await openMoreActions(page)).getByRole('menuitem', { name: 'Sdílet' }).click();

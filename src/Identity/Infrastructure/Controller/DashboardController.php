@@ -10,7 +10,9 @@ namespace Foresi\Identity\Infrastructure\Controller;
 
 use Foresi\Identity\Application\GuestCheck;
 use Foresi\Identity\Application\OpenToGuest;
+use Foresi\Identity\Contract\GuestHome;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -23,18 +25,23 @@ use Symfony\Component\Routing\Attribute\Route;
 #[OpenToGuest]
 final class DashboardController extends AbstractController
 {
-    /** The start page of a guest: what the organisation shares with them. */
-    public const string GUEST_HOME = 'app_shared_with_me';
-
-    public function __construct(private readonly GuestCheck $guest)
-    {
+    /**
+     * @param iterable<GuestHome> $guestHomes
+     */
+    public function __construct(
+        private readonly GuestCheck $guest,
+        #[AutowireIterator(GuestHome::TAG)]
+        private readonly iterable $guestHomes,
+    ) {
     }
 
     #[Route('/', name: 'app_dashboard', methods: ['GET'])]
     public function __invoke(): Response
     {
         if ($this->guest->isGuest()) {
-            return $this->redirectToRoute(self::GUEST_HOME);
+            foreach ($this->guestHomes as $home) {
+                return $this->redirectToRoute($home->route());
+            }
         }
 
         return $this->render('identity/dashboard.html.twig');

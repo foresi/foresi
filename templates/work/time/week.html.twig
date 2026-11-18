@@ -3,7 +3,7 @@
     A person's week of time, Monday to Sunday: each day with its entries and what it adds up to, and the
     week's total (Clockify, Costlocker timesheet). The header moves a week back or on, or to this one, and
     logs time in a dialog that picks the project and the task. An owner reads anyone's week. Each entry
-    links to its task, or its project without one; its author or an owner edits it in the entry dialog
+    opens its task in the sheet, or links to its project without one; its author or an owner edits it in the entry dialog
     and deletes it from its line, as on the task, and comes back to this week.
 #}
 {% extends 'layout/app.html.twig' %}
@@ -62,7 +62,7 @@
                                                 {% else %}
                                                     <span class="num font-semibold text-ink" data-time-duration>{{ entry.duration }}</span>
                                                 {% endif %}
-                                                <a href="{{ entry.href }}" class="inline-flex min-h-6 min-w-0 items-center font-medium text-ink no-underline [overflow-wrap:anywhere] hover:underline {{ focus }}" data-time-link>{{ entry.title }}</a>
+                                                <a href="{{ entry.href }}"{% if entry.sheet %} data-sheet{% endif %} class="inline-flex min-h-6 min-w-0 items-center font-medium text-ink no-underline [overflow-wrap:anywhere] hover:underline {{ focus }}" data-time-link>{{ entry.title }}</a>
                                                 {% if entry.project %}<span class="min-w-0 text-muted [overflow-wrap:anywhere]" data-time-project>{{ entry.project }}</span>{% endif %}
                                                 {% if entry.billable %}<twig:Ui:Badge tone="green" data-time-billable>{{ 'work.time.billable'|trans }}</twig:Ui:Badge>{% endif %}
                                                 {% if entry.invoiced and not entry.invoice %}<twig:Ui:Badge tone="gray" data-time-invoiced>{{ 'work.time.invoiced'|trans }}</twig:Ui:Badge>{% endif %}

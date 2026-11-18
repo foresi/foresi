@@ -14,8 +14,11 @@
     logged on the task under its subtasks, log it in a dialog, run the timer from the header and set the
     estimate in the panel; a guest sees none of it. A guest finds the way back through what is
     shared with them, and the project by its name only when they do not see it.
+    A row of a list opens the task in the sheet (layout/record.html.twig, docs/design/overlays.md), as
+    Linear's peek previews an issue from a list; everything above changes there in place: the
+    title in the sheet's header, the properties, the files, the discussion, a subtask in the same sheet.
 #}
-{% extends 'layout/app.html.twig' %}
+{% extends 'layout/record.html.twig' %}
 
 {% set row = task.task %}
 {% set crumbs = task.manageable ? [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}] : [{label: 'shared_with_me.title'|trans, href: path('app_shared_with_me')}] %}
@@ -35,6 +38,8 @@
     href: taskUrl ~ '?edit=title', cancelHref: taskUrl, open: edit == 'title', value: values.title, error: errors.title|default(null),
     maxlength: constant('Foresi\\Work\\Domain\\Task::MAX_TITLE_LENGTH'),
 } %}
+{% set record_title_edit = titleEdit %}
+{% set record_reload = read|default(false) %}
 
 {% block head %}{{ include('work/_morph_refresh.html.twig') }}{% endblock %}
 
@@ -43,8 +48,8 @@
 {% block actions %}
     {# A new subtask is the secondary button, sharing sits in "⋯", deleting last; the timer, the task's main action, stays last on every screen. #}
     {% set subtaskable = not task.parent and not task.projectArchived %}
-    <twig:Ui:MoreActions menuId="task-menu" data-task-menu>
-        <twig:block name="buttons">{% if subtaskable %}<twig:Ui:Button icon="plus" :href="path('app_task_subtask_new', {id: row.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-subtask-new-open>{{ 'work.task.new_subtask'|trans }}</twig:Ui:Button>{% endif %}</twig:block>
+    <twig:Ui:MoreActions menuId="task-menu" :menuSize="record_action_size" data-task-menu>
+        <twig:block name="buttons">{% if subtaskable %}<twig:Ui:Button icon="plus" :size="record_action_size" :href="path('app_task_subtask_new', {id: row.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-subtask-new-open>{{ 'work.task.new_subtask'|trans }}</twig:Ui:Button>{% endif %}</twig:block>
         <twig:block name="phone">{% if subtaskable %}<twig:Ui:MenuItem :href="path('app_task_subtask_new', {id: row.id})" icon="plus" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-menu-subtask>{{ 'work.task.new_subtask'|trans }}</twig:Ui:MenuItem>{% endif %}</twig:block>
         {% if task.shareable %}<twig:Ui:MenuItem :href="path('app_sharing', {kind: 'tasks', id: row.id})" icon="share-2" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-share>{{ 'work.sharing.open'|trans }}</twig:Ui:MenuItem>{% endif %}
         <twig:block name="last">
@@ -61,18 +66,19 @@
         <form method="post" action="{{ path('app_timer_stop') }}" data-task-timer="stop">
             <input type="hidden" name="_token" value="{{ timeToken }}">
             <input type="hidden" name="return" value="{{ taskUrl }}">
-            <twig:Ui:Button type="submit" icon="square">{{ 'work.time.timer.stop'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" icon="square" :size="record_action_size">{{ 'work.time.timer.stop'|trans }}</twig:Ui:Button>
         </form>
     {% elseif timeLoggable %}
         <form method="post" action="{{ path('app_task_timer_start', {id: row.id}) }}" data-task-timer="start">
             <input type="hidden" name="_token" value="{{ timeToken }}">
-            <twig:Ui:Button type="submit" icon="play">{{ 'work.time.timer.start'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" icon="play" :size="record_action_size">{{ 'work.time.timer.start'|trans }}</twig:Ui:Button>
         </form>
     {% endif %}
 {% endblock %}
 
 {% block content %}
     {{ include('work/_flashes.html.twig') }}
+    {% if row.private and overlay() is not null %}<p class="m-0 mb-4"><twig:Ui:Badge tone="gray" class="gap-1" data-header-badge>{{ ux_icon('lucide:lock', {class: 'size-3 shrink-0', 'aria-hidden': 'true'}) }}{{ 'work.sharing.private_badge'|trans }}</twig:Ui:Badge></p>{% endif %}
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]" data-controller="attachments" data-action="click->attachments#openImage dialog:closed->attachments#closed">
         <div class="grid min-w-0 content-start gap-6">
             {#
@@ -106,7 +112,7 @@
             {{ include('work/task/_attachments.html.twig') }}
 
             {% if not task.parent %}
-                <section class="grid gap-2" aria-labelledby="task-subtasks-title" data-task-subtasks>
+                <section class="grid gap-2" aria-labelledby="task-subtasks-title" data-task-subtasks data-in-place>
                     <h2 id="task-subtasks-title" class="m-0 text-heading font-semibold text-ink">{{ 'work.task.subtasks'|trans }} <span class="num font-normal text-muted">({{ subtasks|length }})</span></h2>
                     <twig:Ui:DataTable :caption="'work.task.subtasks'|trans" :columns="subtaskColumns" :rows="subtasks">
                         <twig:block name="empty">

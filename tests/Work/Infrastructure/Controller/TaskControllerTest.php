@@ -173,6 +173,35 @@ final class TaskControllerTest extends WebTestCase
         self::assertSelectorTextContains('[data-task-history]', 'Changed Title');
     }
 
+    public function testARowOpensTheTaskInTheSheetWhereItsTitleAndPropertiesChangeInPlace(): void
+    {
+        $this->signIn();
+        $this->seed();
+        $id = $this->taskId('Wireframes');
+        $sheet = ['HTTP_X_FORESI_DIALOG' => 'sheet'];
+
+        $crawler = $this->client->request('GET', '/tasks/'.$id, server: $sheet);
+        self::assertResponseIsSuccessful();
+        $record = $crawler->filter('dialog#sheet-page[data-overlay-record]');
+        self::assertCount(1, $record);
+        self::assertCount(0, $crawler->filter('main'));
+        // The title changes in the sheet's header, as on the page; the focus starts on it.
+        $title = $record->filter('header [data-page-title-edit]');
+        self::assertSame('Wireframes', $title->filter('h2#sheet-page-title')->text());
+        self::assertNotNull($title->filter('h2#sheet-page-title')->attr('autofocus'));
+        self::assertSame('/tasks/'.$id.'?edit=title', $title->filter('a[data-page-title-pencil]')->attr('href'));
+        self::assertSame('/tasks/'.$id, $record->filter('[data-overlay-page]')->attr('href'));
+        self::assertCount(1, $record->filter('[data-overlay-actions] [data-task-menu]'));
+        // A subtask opens in the same sheet.
+        self::assertCount(1, $record->filter('[data-task-subtasks][data-in-place] [data-row-link]'));
+
+        // A saved change answers with the task again, which the sheet loads in place.
+        $this->client->submit($title->filter('form[data-page-title-form]')->form(['title' => 'Wireframes v3']), [], $sheet);
+        self::assertSame(['location' => '/tasks/'.$id], json_decode((string) $this->client->getResponse()->getContent(), true));
+        $crawler = $this->client->request('GET', '/tasks/'.$id, server: $sheet);
+        self::assertSame('Wireframes v3', $crawler->filter('dialog#sheet-page h2#sheet-page-title')->text());
+    }
+
     public function testTheDescriptionIsEditedInPlaceAndKeepsItsLines(): void
     {
         $this->signIn();

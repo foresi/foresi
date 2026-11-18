@@ -146,6 +146,7 @@ test.describe('projects and tasks', () => {
     await page.goto('/projects');
     await page.getByRole('link', { name: 'Website', exact: true }).click();
     await page.getByRole('link', { name: 'Design the homepage', exact: true }).click();
+    await page.getByRole('dialog').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     await expect(page.locator('[data-task-details]')).toBeVisible();
     // With the seeded discussion (comments, mention, internal label), the files and the editor.
     await expect(page.locator('[data-comment]').first()).toBeVisible();
@@ -157,6 +158,7 @@ test.describe('projects and tasks', () => {
     await page.goto('/projects');
     await page.getByRole('link', { name: 'Website', exact: true }).click();
     await page.getByRole('link', { name: 'Design the homepage', exact: true }).click();
+    await page.getByRole('dialog').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     const composer = page.locator('[data-comment-composer]');
     await composer.locator('#comment-body').fill('Some *text* to preview');
     await composer.getByRole('tab', { name: 'Náhled' }).click();
