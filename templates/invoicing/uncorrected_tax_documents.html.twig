@@ -13,7 +13,7 @@
     {% if messages|trim %}<div class="mb-4 grid gap-2">{{ messages }}</div>{% endif %}
 
     <div class="grid grid-cols-1 gap-4">
-        <twig:Ui:Tabs :items="tabs" :label="'invoice.list.views'|trans" class="min-w-0" />
+        <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'invoice.list.more_views'|trans" :label="'invoice.list.views'|trans" class="min-w-0" />
         <p class="m-0 text-small text-muted">{{ 'tax_document.uncorrected.intro'|trans }}</p>
         <twig:Ui:DataTable :caption="'tax_document.uncorrected.title'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN'))">
             <twig:block name="empty">

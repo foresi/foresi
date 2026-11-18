@@ -56,6 +56,9 @@ services:
 
     # Country modules plug into the core through tagged interfaces.
     _instanceof:
+        # A module's lists that saved views apply to.
+        Foresi\Shared\Application\View\ListDefinitionSource:
+            tags: ['foresi.list_definitions']
         Foresi\Party\Domain\RegistrationNumberValidator:
             tags: ['app.registration_number_validator']
         Foresi\Party\Domain\DomesticBankAccount:
