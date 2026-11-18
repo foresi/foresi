@@ -122,6 +122,7 @@ Planned as 0.5.0: the first release with invoices.
 
 ### Changed
 
+- For modules: an integration, `Integration/<Other>/`, may hold `templates/`, `translations/` and `assets/controllers/`. The module's bundle registers them only when `<Other>` is installed, the templates under the module's own Twig namespace ([ADR 0038](docs/adr/0038-core-screens-in-integrations.md)). This is the first step of moving the screens of Identity, Party and Webhooks into `Integration/Ui/`, so the core installs without `foresi/ui`.
 - A dialog asked for while the page under it was loading again (right after the window of a new API token closed, say) no longer locks the dialogs and sheets until a full reload.
 - Every page title runs from the specific to the general: the page, the section of the navigation it belongs to, and the product, as "Fix the login · Projects · Foresi". A list page names its section once, the login page has no section, and the public document pages keep the issuer instead of the product.
 - On phones (below 900 px): the menu opens full screen with its own close button; search and the account menu sit in a sticky top bar; text fields, selects and text areas use 16 px text so iOS Safari no longer zooms in on focus (pinch zoom stays on); menu, tab, sort and row-checkbox targets are at least 44 px; the content runs edge to edge; dialogs, sheets and bottom bars keep clear of the notch and the home indicator (`viewport-fit=cover`, `env(safe-area-inset-*)`); page heights use dynamic viewport units.
