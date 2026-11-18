@@ -11,7 +11,7 @@
 <div {{ attributes.defaults({class: 'ml-auto', 'data-controller': 'column-picker', 'data-column-picker-dialog-outlet': '#' ~ sheetId, 'data-column-picker-moved-value': 'ui.column_picker.moved'|trans({label: '{label}', position: '{position}', total: '{total}'})}) }}>
     <twig:Ui:Button icon="columns-3" aria-haspopup="dialog" :aria-controls="sheetId" data-action="column-picker#open" data-column-picker-open>
         {{- 'ui.column_picker.button'|trans -}}
-        {%- if modified %}<span class="size-1.5 rounded-full bg-green" aria-hidden="true"></span><span class="sr-only">, {{ 'ui.column_picker.modified'|trans }}</span>{% endif -%}
+        {%- if modified %}<span class="size-2 shrink-0 rounded-sm bg-green" aria-hidden="true"></span><span class="sr-only">, {{ 'ui.column_picker.modified'|trans }}</span>{% endif -%}
     </twig:Ui:Button>
     <twig:Ui:Sheet :id="sheetId" :title="'ui.column_picker.title'|trans" :description="'ui.column_picker.description'|trans" size="sm">
         <form method="get" action="{{ action }}" id="{{ formId }}" class="grid gap-5" data-column-picker-target="form" data-action="submit->column-picker#submit" data-column-picker-form>

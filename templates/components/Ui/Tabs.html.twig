@@ -9,7 +9,7 @@
             {%- if item.private ?? false %}{{ ux_icon('lucide:lock', {class: 'size-3.5 shrink-0', 'aria-hidden': 'true'}) }}{% endif -%}
             {{- item.label -}}
             {#- A view shown with changes nobody saved yet: a dot after its name (GitHub Projects; saved views D10). -#}
-            {%- if item.modified ?? false %}<span class="size-1.5 shrink-0 rounded-full bg-green" aria-hidden="true" data-tab-modified></span><span class="sr-only">, {{ 'ui.tabs.modified'|trans }}</span>{% endif -%}
+            {%- if item.modified ?? false %}<span class="size-2 shrink-0 rounded-sm bg-green" aria-hidden="true" data-tab-modified></span><span class="sr-only">, {{ 'ui.tabs.modified'|trans }}</span>{% endif -%}
             {%- if item.count is defined and item.count is not null %}<span class="{{ count }} {{ (item.active ?? false) ? 'bg-green-tint text-green' : 'bg-badge-gray text-badge-gray-text' }}">{{ item.count }}</span>{% endif -%}
         </a>
     {%- endfor %}

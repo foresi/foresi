@@ -240,6 +240,7 @@ catalogue:
   mobile_preview: 390 px preview
   interaction_note: Hover and focus are shown by interacting with the live component; the focus ring is always visible on the keyboard.
   state:
+    modified: Changed, not saved
     filtered: Filtered
     dense: Dense rows and footer
     live: Live

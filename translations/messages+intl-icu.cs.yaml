@@ -240,6 +240,7 @@ catalogue:
   mobile_preview: Náhled 390 px
   interaction_note: Najetí myší a zaměření se ukazují na živé komponentě. Zaměření z klávesnice je vždy viditelné.
   state:
+    modified: Změněno, neuloženo
     filtered: Filtrováno
     dense: Husté řádky a patička
     live: Živá ukázka

@@ -140,7 +140,7 @@ final class InvoiceListController extends AbstractController
         $toSendCount = $this->recurring->inReview('' === $firm ? null : $firm);
         $severalFirms = \count($page->firms) > 1;
         // The columns and density changed in the Columns sheet, kept in the address next to the view (spec D10, D-display-3).
-        $working = $this->workingDisplay->read(self::listKey($kind), ['trash' => InvoiceFilter::TRASH === $tab, 'severalFirms' => $severalFirms], $view->display, $request->query->all());
+        $working = $this->workingDisplay->read($this->listKey($kind), ['trash' => InvoiceFilter::TRASH === $tab, 'severalFirms' => $severalFirms], $view->display, $request->query->all());
         $query += $working->query;
         // What an action carries back names the kind, so it returns to this list.
         $here = (1 === $page->page ? $query : $query + ['page' => (string) $page->page]) + (DocumentKind::Invoice === $kind ? [] : ['kind' => $kind->value]);
@@ -688,7 +688,7 @@ final class InvoiceListController extends AbstractController
         return $working->modified;
     }
 
-    private static function listKey(DocumentKind|string $kind): string
+    private function listKey(DocumentKind|string $kind): string
     {
         $kind = $kind instanceof DocumentKind ? $kind->value : $kind;
 
@@ -705,7 +705,7 @@ final class InvoiceListController extends AbstractController
      */
     private function column(string $kind, string $tab, bool $severalFirms, array $names = [], array $reminders = [], ?array $display = null): ListDisplay
     {
-        return $this->listColumns->display(self::listKey($kind), ['trash' => InvoiceFilter::TRASH === $tab, 'severalFirms' => $severalFirms, 'names' => $names, 'reminders' => $reminders], $display);
+        return $this->listColumns->display($this->listKey($kind), ['trash' => InvoiceFilter::TRASH === $tab, 'severalFirms' => $severalFirms, 'names' => $names, 'reminders' => $reminders], $display);
     }
 
     /**
