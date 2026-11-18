@@ -15,7 +15,7 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block actions %}
-    <twig:Ui:MoreActions menuId="webhook-actions">
+    <twig:Ui:MoreActions menuId="webhook-actions" :menuSize="record_action_size">
         <twig:block name="buttons">
             {% if endpoint.active %}
                 <form method="post" action="{{ path('app_webhook_ping', {id: endpoint.id}) }}">
