@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Invoicing\Application;
 
-use Foresi\Country\CzechRepublic\Invoicing\CzechInvoicing;
+use Foresi\Country\Integration\Invoicing\CzechRepublic\CzechInvoicing;
 use Foresi\Invoicing\Application\InvoiceFilter;
 use Foresi\Invoicing\Application\InvoicePdf;
 use Foresi\Invoicing\Application\InvoiceStatus;
@@ -18,11 +18,11 @@ use Foresi\Invoicing\Application\PaymentRefused;
 use Foresi\Invoicing\Application\PaymentState;
 use Foresi\Invoicing\Application\RecordPayment;
 use Foresi\Invoicing\Application\Savepoint;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\TaxTreatment;
+use Foresi\Invoicing\Contract\VatRateKind;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\TaxOnReceiptChoice;
-use Foresi\Invoicing\Domain\TaxTreatment;
-use Foresi\Invoicing\Domain\VatRateKind;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;

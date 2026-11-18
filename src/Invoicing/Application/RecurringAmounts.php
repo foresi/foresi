@@ -8,11 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
+use Foresi\Invoicing\Contract\TotalRounding;
+use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\DocumentTotals;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\RecurringInvoiceLine;
-use Foresi\Invoicing\Domain\TotalRounding;
-use Foresi\Invoicing\Domain\VatRegime;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Money;
 

@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Timesheet\Application;
 
-use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Invoicing\Contract\Quantity;
 use Foresi\Shared\Domain\Money;
 
 /**

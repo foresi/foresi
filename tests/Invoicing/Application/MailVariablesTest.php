@@ -10,12 +10,12 @@ namespace Foresi\Tests\Invoicing\Application;
 
 use Foresi\Invoicing\Application\FirmInvoicingSettings;
 use Foresi\Invoicing\Application\InvoicePdf;
-use Foresi\Invoicing\Application\IssuedDocument;
 use Foresi\Invoicing\Application\IssuedDocumentFactory;
 use Foresi\Invoicing\Application\MailText;
 use Foresi\Invoicing\Application\MailVariables;
+use Foresi\Invoicing\Contract\IssuedDocument;
+use Foresi\Invoicing\Contract\TotalRounding;
 use Foresi\Invoicing\Domain\MailTemplateKind;
-use Foresi\Invoicing\Domain\TotalRounding;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\RegistrationNumber;

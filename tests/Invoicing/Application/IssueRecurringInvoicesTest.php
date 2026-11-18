@@ -8,11 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Invoicing\Application;
 
-use Foresi\Country\CzechRepublic\Invoicing\CzechInvoicing;
-use Foresi\Country\CzechRepublic\Invoicing\CzechSupplyCodes;
-use Foresi\Country\CzechRepublic\Invoicing\CzechVatRates;
-use Foresi\Country\CzechRepublic\Invoicing\IsdocWriter;
-use Foresi\Country\CzechRepublic\Invoicing\QrPlatba;
+use Foresi\Country\Integration\Invoicing\CzechRepublic\CzechInvoicing;
+use Foresi\Country\Integration\Invoicing\CzechRepublic\CzechSupplyCodes;
+use Foresi\Country\Integration\Invoicing\CzechRepublic\CzechVatRates;
+use Foresi\Country\Integration\Invoicing\CzechRepublic\IsdocWriter;
+use Foresi\Country\Integration\Invoicing\CzechRepublic\QrPlatba;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
@@ -35,10 +35,10 @@ use Foresi\Invoicing\Application\RecurringInvoices;
 use Foresi\Invoicing\Application\RecurringOverview;
 use Foresi\Invoicing\Application\SaveRecurringInvoice;
 use Foresi\Invoicing\Application\SendLimits;
+use Foresi\Invoicing\Contract\VatRateKind;
 use Foresi\Invoicing\Domain\RecurringDelivery;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\TaxPointRule;
-use Foresi\Invoicing\Domain\VatRateKind;
 use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\DocumentLanguage;

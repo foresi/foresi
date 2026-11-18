@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Domain;
 
+use Foresi\Invoicing\Contract\DocumentKind;
+
 /**
  * What a mail template is for: one template per kind of document, and one for the
  * reminder of an overdue invoice. The values fit the column of 16 characters.

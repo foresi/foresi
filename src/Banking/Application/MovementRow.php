@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Application;
 
+use Foresi\Banking\Contract\MovementDirection;
 use Foresi\Banking\Domain\MessageTrust;
-use Foresi\Banking\Domain\MovementDirection;
 use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Shared\Domain\Money;

@@ -7,6 +7,8 @@
 declare(strict_types=1);
 
 use Foresi\ExchangeRate\Application\RateStore;
+use Foresi\ExchangeRate\Contract\RateSource;
+use Foresi\ExchangeRate\Infrastructure\InstalledRateSource;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 /*
@@ -17,6 +19,9 @@ return static function (ContainerConfigurator $container): void {
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\ExchangeRate\\', '../')
         ->exclude(['../config/', '../Integration/', '../ExchangeRateBundle.php']);
+
+    // A country module offers the source of the daily rates; without one, none are fetched (ADR 0034, rule 3).
+    $services->alias(RateSource::class, InstalledRateSource::class);
 
     if ('e2e' === $container->env()) {
         // Public handles for tests/e2e/seed.php.

@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
-use Foresi\Invoicing\Domain\DocumentKind;
-use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentParty;
 use Foresi\Invoicing\Domain\InvoiceChange;
 use Foresi\Invoicing\Domain\TaxOnReceiptChoice;
 use Foresi\Party\Domain\DocumentLanguage;

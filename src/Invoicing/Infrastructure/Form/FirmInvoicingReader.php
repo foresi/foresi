@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Infrastructure\Form;
 
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\TotalRounding;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
-use Foresi\Invoicing\Domain\TotalRounding;
 use Symfony\Component\HttpFoundation\Request;
 
 /**

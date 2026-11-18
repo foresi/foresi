@@ -10,11 +10,11 @@ namespace Foresi\Invoicing\Infrastructure\Pdf;
 
 use Foresi\Invoicing\Application\InvoicePdf;
 use Foresi\Invoicing\Application\InvoiceStore;
-use Foresi\Invoicing\Application\IssuedDocument;
 use Foresi\Invoicing\Application\OriginalDocuments;
 use Foresi\Invoicing\Application\OriginalDocumentUnreadable;
 use Foresi\Invoicing\Application\RenderedPdf;
 use Foresi\Invoicing\Application\UndrawableDocument;
+use Foresi\Invoicing\Contract\IssuedDocument;
 use Foresi\Invoicing\Domain\NumberKey;
 
 /**

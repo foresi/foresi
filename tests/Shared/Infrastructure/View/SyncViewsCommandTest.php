@@ -11,7 +11,7 @@ namespace Foresi\Tests\Shared\Infrastructure\View;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Foresi\Invoicing\Application\View\InvoiceLists;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Shared\Application\View\ListDefinitions;
 use Foresi\Shared\Application\View\ListViews;
 use Foresi\Shared\Domain\View\SavedView;

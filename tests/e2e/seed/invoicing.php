@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\FirmMailServer;
 use Foresi\Invoicing\Domain\MailEncryption;
 use Foresi\Invoicing\Domain\Series;

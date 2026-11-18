@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Application;
 
+use Foresi\Banking\Contract\InboundMail;
 use Foresi\Banking\Domain\InboundChannel;
 use Foresi\Banking\Domain\InboundMessage;
 use Foresi\Party\Application\TransactionalWork;

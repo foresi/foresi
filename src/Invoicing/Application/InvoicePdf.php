@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
+use Foresi\Invoicing\Contract\IssuedDocument;
+
 /**
  * The printed form of an issued document, in the language of the document, read
  * from its frozen snapshots and stored amounts.

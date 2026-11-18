@@ -4,9 +4,6 @@
     "type": "foresi-module",
     "license": "AGPL-3.0-only",
     "require": {
-        "foresi/banking": "*",
-        "foresi/exchange-rate": "*",
-        "foresi/invoicing": "*",
         "foresi/party": "*",
         "foresi/shared": "*"
     },
@@ -16,7 +13,11 @@
             "kind": "module",
             "namespace": "Foresi\\Country\\",
             "bundle": "Foresi\\Country\\CountryBundle",
-            "optional": []
+            "optional": [
+                "banking",
+                "exchange-rate",
+                "invoicing"
+            ]
         }
     }
 }

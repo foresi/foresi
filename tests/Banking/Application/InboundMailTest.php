@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Banking\Application;
 
-use Foresi\Banking\Application\InboundMail;
+use Foresi\Banking\Contract\InboundMail;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

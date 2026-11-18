@@ -33,8 +33,8 @@
         // compared with an int or taken by max(); false from strrpos() plus one is one, cast or not.
         "CastInt": {"ignore": [
             "Foresi\\Instance\\Domain\\TenantId::generate",
-            "Foresi\\Invoicing\\Domain\\Percent::fromString",
-            "Foresi\\Invoicing\\Domain\\Quantity::fromString",
+            "Foresi\\Invoicing\\Contract\\Percent::fromString",
+            "Foresi\\Invoicing\\Contract\\Quantity::fromString",
             "Foresi\\Invoicing\\Domain\\SeriesFormat::beyondCounter",
             "Foresi\\Country\\CzechRepublic\\Party\\CzechBankAccount::toIban",
             "Foresi\\Country\\CzechRepublic\\Party\\CzechRegistrationNumberValidator::validate",
@@ -59,7 +59,7 @@
         // inMonth() gives the same day whatever year it splits off; a schedule that never ends gives the same first
         // date when asked for two.
         "DecrementInteger": {"ignore": [
-            "Foresi\\Invoicing\\Domain\\Percent::fromString::31",
+            "Foresi\\Invoicing\\Contract\\Percent::fromString::31",
             "Foresi\\Shared\\Domain\\Schedule\\RecurringSchedule::inMonth::99",
             "Foresi\\Shared\\Domain\\Schedule\\RecurringSchedule::estimate::115",
             "Foresi\\Shared\\Domain\\Schedule\\RecurringSchedule::estimate::118",
@@ -70,8 +70,8 @@
             "Foresi\\Invoicing\\Application\\RecurringRules::schedule::177",
             // Equivalent mutants: &#127; decodes back to DEL; the amount groups are never empty, and "150." reads as
             // 150; a depth of -1 is not above zero as 0 is not; the log always has both money columns of an allocation.
-            "Foresi\\Banking\\Application\\NotificationLines::textOf::58",
-            "Foresi\\Country\\CzechRepublic\\Banking\\KbNotificationParser::amount::372",
+            "Foresi\\Banking\\Contract\\NotificationLines::textOf::58",
+            "Foresi\\Country\\Integration\\Banking\\CzechRepublic\\KbNotificationParser::amount::372",
             "Foresi\\Banking\\Application\\AuthenticationResultsParser::segments::85",
             "Foresi\\Invoicing\\Application\\InvoiceHistory::minor::133",
             "Foresi\\Invoicing\\Application\\InvoiceHistory::minor::135",
@@ -90,11 +90,11 @@
             "Foresi\\Shared\\Domain\\Schedule\\RecurringSchedule::estimate::126",
             "Foresi\\Invoicing\\Domain\\RecurringInvoice::firstOccurrenceFrom::212",
             // A date written as Ymd has eight characters, so a limit of nine cuts nothing more.
-            "Foresi\\Country\\CzechRepublic\\Invoicing\\QrPlatba::invoice::94",
+            "Foresi\\Country\\Integration\\Invoicing\\CzechRepublic\\QrPlatba::invoice::94",
             // The same; no code point lies above U+10FFFF; a backslash before the last character keeps the same
             // characters; a template holds exactly one placeholder, so a limit of 3 gives the same two parts.
-            "Foresi\\Banking\\Application\\NotificationLines::textOf::58",
-            "Foresi\\Country\\CzechRepublic\\Banking\\KbNotificationParser::amount::372",
+            "Foresi\\Banking\\Contract\\NotificationLines::textOf::58",
+            "Foresi\\Country\\Integration\\Banking\\CzechRepublic\\KbNotificationParser::amount::372",
             "Foresi\\Banking\\Application\\AuthenticationResultsParser::segments::101",
             "Foresi\\Banking\\Application\\InboundAddresses::masked::63",
             "Foresi\\Banking\\Application\\InboundAddresses::tokenIn::94",
@@ -102,7 +102,7 @@
             "Foresi\\Invoicing\\Application\\InvoiceHistory::minor::135",
             // The same: an amount QR Platba takes is at most 9999999.99, ten characters, so its key never meets a
             // limit of 11.
-            "Foresi\\Country\\CzechRepublic\\Invoicing\\QrPlatba::for::64"
+            "Foresi\\Country\\Integration\\Invoicing\\CzechRepublic\\QrPlatba::for::64"
         ,
             "Foresi\\Invoicing\\Application\\InvoicingOverview::month::96",
             // Equivalent mutant: a sequence of 1 renders as wide as one of 0, the width being at least one digit.
@@ -134,7 +134,7 @@
         "UnwrapFinally": {"ignore": [
             "Foresi\\Invoicing\\Application\\IssueRecurringInvoices::runOne",
             // Equivalent mutant: loadHTML() does not throw for the non-empty string it gets.
-            "Foresi\\Banking\\Application\\NotificationLines::textOf"
+            "Foresi\\Banking\\Contract\\NotificationLines::textOf"
         ]},
         // Unreachable: IssueRules refuses a firm of an unsupported country (firm_country_unsupported) before any lookup
         // throws.
@@ -169,7 +169,7 @@
         "Concat": {"ignore": [
             "Foresi\\Invoicing\\Domain\\InvoiceCalculator::summaries", "Foresi\\Invoicing\\Application\\RecurringAlerts::alertAll",
             // Equivalent mutants: a date with the time before it or without one parses to the same midnight.
-            "Foresi\\Country\\CzechRepublic\\Banking\\KbNotificationParser::bookedOn::474"
+            "Foresi\\Country\\Integration\\Banking\\CzechRepublic\\KbNotificationParser::bookedOn::474"
         ]},
         // Unreachable guards: IssueRules refuses these cases before the throw, RecurringRules refuses an unknown
         // customer
@@ -196,7 +196,7 @@
             // The first group of the pattern always takes part in a match.
             "Foresi\\Invoicing\\Domain\\PeriodText::resolve::43",
             // preg_replace() without the u flag always returns a string.
-            "Foresi\\Country\\CzechRepublic\\Banking\\KbNotificationParser::amount::371"
+            "Foresi\\Country\\Integration\\Banking\\CzechRepublic\\KbNotificationParser::amount::371"
         ]},
         // Equivalent mutants: of two sends sent at the same moment, either is the last one; a day equal to the one
         // compared with sets the same day again.
@@ -243,7 +243,7 @@
             // Equivalent mutants: two equal invoices are both close to the amount, so nothing pairs either way; when
             // only one statement has an IBAN, the IBAN comparison below refuses with the same reason.
             "Foresi\\Banking\\Application\\Matcher::decide::109",
-            "Foresi\\Country\\CzechRepublic\\Banking\\KbNotificationParser::assertAgree::316"
+            "Foresi\\Country\\Integration\\Banking\\CzechRepublic\\KbNotificationParser::assertAgree::316"
         ]},
         // Equivalent mutants: an end on a date always has that date (Recurrence checks it), and a staff member is a
         // stored user.
@@ -254,15 +254,15 @@
             "Foresi\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::envelope", "Foresi\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::parse",
             // Equivalent mutants: the HTML parser fetches nothing, and its errors are collected internally and cleared
             // either way.
-            "Foresi\\Banking\\Application\\NotificationLines::textOf::62"
+            "Foresi\\Banking\\Contract\\NotificationLines::textOf::62"
         ]},
         // Equivalent mutants: a blank answer fails as invalid XML instead, a blank VAT id is rejected by VatId, with
         // the same result.
         "UnwrapTrim": {"ignore": [
             "Foresi\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::parse", "Foresi\\Country\\CzechRepublic\\Registry\\AresCompanyRegistry::vatId",
             // Equivalent mutants: HTML of white space only loads to no lines, and every KB value is trimmed already.
-            "Foresi\\Banking\\Application\\NotificationLines::textOf::52",
-            "Foresi\\Country\\CzechRepublic\\Banking\\KbNotificationParser::iban::422"
+            "Foresi\\Banking\\Contract\\NotificationLines::textOf::52",
+            "Foresi\\Country\\Integration\\Banking\\CzechRepublic\\KbNotificationParser::iban::422"
         ]},
         // Equivalent mutants: the batch is only walked with foreach, and spreading a list renumbers its keys anyway.
         "UnwrapArrayValues": {"ignore": [
@@ -286,15 +286,15 @@
         // currency whatever its lines are priced in.
         "Coalesce": {"ignore": ["Foresi\\Party\\Domain\\ContactLink::__construct", "Foresi\\Idoklad\\Application\\Import\\RecurringStage::input::250"]},
         // Equivalent mutant: the libxml HTML parser lower-cases tag names already.
-        "UnwrapStrToLower": {"ignore": ["Foresi\\Banking\\Application\\NotificationLines::collect::80"]},
+        "UnwrapStrToLower": {"ignore": ["Foresi\\Banking\\Contract\\NotificationLines::collect::80"]},
         // Unreachable: the whole part is digits and the fraction at most two of them, so Money only fails by overflow.
-        "Catch_": {"ignore": ["Foresi\\Country\\CzechRepublic\\Banking\\KbNotificationParser::amount::375"]},
+        "Catch_": {"ignore": ["Foresi\\Country\\Integration\\Banking\\CzechRepublic\\KbNotificationParser::amount::375"]},
         // Equivalent mutant: Iban::fromString() upper-cases itself, and the domestic pattern does not depend on case.
-        "UnwrapStrToUpper": {"ignore": ["Foresi\\Country\\CzechRepublic\\Banking\\KbNotificationParser::iban::414"]},
+        "UnwrapStrToUpper": {"ignore": ["Foresi\\Country\\Integration\\Banking\\CzechRepublic\\KbNotificationParser::iban::414"]},
         // Equivalent mutants: a date without a time parses to the same midnight; a working file of a pack named
         // beside its directory instead of in it is as unique (the pack path is) and is deleted all the same.
         "ConcatOperandRemoval": {"ignore": [
-            "Foresi\\Country\\CzechRepublic\\Banking\\KbNotificationParser::bookedOn::474",
+            "Foresi\\Country\\Integration\\Banking\\CzechRepublic\\KbNotificationParser::bookedOn::474",
             "Foresi\\Invoicing\\Application\\InvoiceBundle::add::174"
         ]},
         // Equivalent mutants: the subject is always exactly one character, and rawurlencode() output has no regex

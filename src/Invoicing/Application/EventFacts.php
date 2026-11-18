@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Contract\Event\DocumentKindValue;
 use Foresi\Invoicing\Contract\Event\PaymentDirection as PaymentDirectionValue;
-use Foresi\Invoicing\Domain\DocumentKind;
 use Foresi\Invoicing\Domain\PaymentDirection;
 use Foresi\Shared\Domain\Money;
 

@@ -40,7 +40,7 @@ use Foresi\Invoicing\Application\UncorrectedTaxDocuments;
 use Foresi\Invoicing\Application\UnknownInvoice;
 use Foresi\Invoicing\Application\UnsupportedCountry;
 use Foresi\Invoicing\Application\View\InvoiceLists;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\ExportState;
 use Foresi\Invoicing\Domain\FirmReminders;
 use Foresi\Invoicing\Domain\InvalidDeletionReason;

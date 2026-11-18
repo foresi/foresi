@@ -8,7 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
-use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Contract\DocumentParty;
+use Foresi\Invoicing\Domain\DocumentParties;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\PartyDetails;
@@ -48,6 +49,6 @@ final readonly class CustomerCopies
         }
         $email = $this->settings->emailsFor($party, $firm)[0] ?? $this->details->generalEmail($party);
 
-        return DocumentParty::ofCustomer($party, $billing->address(), $email?->address());
+        return DocumentParties::ofCustomer($party, $billing->address(), $email?->address());
     }
 }

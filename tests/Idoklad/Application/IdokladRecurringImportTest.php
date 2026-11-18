@@ -18,7 +18,7 @@ use Foresi\Idoklad\Domain\IdokladPull;
 use Foresi\Idoklad\Domain\IdokladRecord;
 use Foresi\Idoklad\Domain\IdokladResource;
 use Foresi\Idoklad\Domain\ImportMode;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
 use Foresi\Party\Domain\Address;

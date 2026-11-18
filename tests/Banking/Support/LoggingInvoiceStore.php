@@ -74,7 +74,7 @@ final readonly class LoggingInvoiceStore implements InvoiceStore
         return $this->store->numberTaken($firm, $key, $except);
     }
 
-    public function kindOfNumber(LegalEntity $firm, string $key): ?\Foresi\Invoicing\Domain\DocumentKind
+    public function kindOfNumber(LegalEntity $firm, string $key): ?\Foresi\Invoicing\Contract\DocumentKind
     {
         return $this->store->kindOfNumber($firm, $key);
     }

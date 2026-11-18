@@ -10,7 +10,7 @@ namespace Foresi\Tests\Invoicing\Application\View;
 
 use Foresi\Invoicing\Application\InvoiceFilter;
 use Foresi\Invoicing\Application\View\InvoiceLists;
-use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Shared\Application\View\Condition;
 use PHPUnit\Framework\TestCase;
 
