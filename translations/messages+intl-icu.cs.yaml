@@ -80,6 +80,10 @@ nav:
     time: Čas
     notifications: Oznámení
 ui:
+  code_block:
+    copy: Kopírovat
+    copied: Zkopírováno
+    copy_failed: "Kopírování selhalo; text je označený, stiskněte Ctrl+C."
   inline_field:
     edit: 'Upravit {label}'
     save: Uložit

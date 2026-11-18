@@ -1,0 +1,14 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A read-only code block with a copy button (src/Ui/Component/CodeBlock.php). The block can be
+    scrolled sideways, so it takes the focus (axe rule scrollable-region-focusable) and is named by
+    its label.
+#}
+<figure {{ attributes.defaults({class: 'm-0 grid min-w-0 gap-1.5', 'data-controller': 'copy', 'data-copy-done-value': 'ui.code_block.copied'|trans, 'data-copy-failed-value': 'ui.code_block.copy_failed'|trans, 'data-code-block': id}) }}>
+    <div class="flex items-center justify-between gap-2">
+        <figcaption id="{{ id }}-label" class="text-small font-medium text-ink">{{ label }}</figcaption>
+        <twig:Ui:Button size="sm" icon="copy" data-action="copy#copy" aria-describedby="{{ id }}-label"><span data-copy-target="label">{{ 'ui.code_block.copy'|trans }}</span></twig:Ui:Button>
+    </div>
+    <pre id="{{ id }}" tabindex="0" aria-labelledby="{{ id }}-label" data-language="{{ language }}" class="code-block m-0 overflow-x-auto rounded-control border border-container bg-head px-3 py-2.5 font-mono text-small text-ink {{ wrap ? 'whitespace-pre-wrap break-words' : 'whitespace-pre' }} {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" data-copy-target="source"><code>{{ this.html|raw }}</code></pre>
+    <span class="sr-only" aria-live="polite" data-copy-target="status"></span>
+</figure>

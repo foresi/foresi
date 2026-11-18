@@ -568,6 +568,29 @@ dialog[data-sheet][data-resizing] {
     }
 }
 
+/*
+ * Code blocks (Ui:CodeBlock): tempest/highlight marks JSON keys as hl-keyword, strings as
+ * hl-value, shell flags as hl-generic and brackets as hl-property. Only brand colours, each at
+ * WCAG AA on the block's background (tests/Ui/ContrastTest.php).
+ */
+.code-block .hl-keyword {
+    color: var(--color-green);
+}
+
+.code-block .hl-value {
+    color: var(--color-badge-amber-text);
+}
+
+.code-block .hl-generic,
+.code-block .hl-variable {
+    color: var(--color-badge-green-text);
+}
+
+.code-block .hl-property,
+.code-block .hl-comment {
+    color: var(--color-muted);
+}
+
 @media (prefers-reduced-motion: reduce) {
     ::view-transition-group(*),
     ::view-transition-old(*),

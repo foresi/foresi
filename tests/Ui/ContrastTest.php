@@ -40,6 +40,9 @@ final class ContrastTest extends TestCase
         yield 'badge red' => ['badge-red-text', 'badge-red'];
         yield 'badge red text on white' => ['badge-red-text', 'white'];
         yield 'badge red text on head' => ['badge-red-text', 'head'];
+        yield 'code key on head' => ['green', 'head'];
+        yield 'code string on head' => ['badge-amber-text', 'head'];
+        yield 'code flag on head' => ['badge-green-text', 'head'];
     }
 
     /**

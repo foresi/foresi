@@ -36,7 +36,7 @@
         <twig:Ui:Card>
             <div class="grid gap-4">
                 <p class="m-0 text-text">{{ 'api_tokens.connect.intro'|trans }}</p>
-                {% include '@Identity/api/_snippet.html.twig' with {id: 'mcp-server', label: 'api_tokens.connect.server'|trans, text: server, rows: 1} only %}
+                <twig:Ui:CodeBlock id="mcp-server" :label="'api_tokens.connect.server'|trans" :code="server" />
                 <section aria-labelledby="api-connect-steps-title" class="grid gap-2">
                     <h2 id="api-connect-steps-title" class="m-0 text-heading font-semibold text-ink">{{ 'api_tokens.connect.steps.title'|trans }}</h2>
                     <ol class="m-0 grid list-decimal gap-1 pl-5 text-text">
@@ -51,19 +51,19 @@
         <section aria-labelledby="api-connect-clients-title" class="grid gap-3">
             <h2 id="api-connect-clients-title" class="m-0 text-heading font-semibold text-ink">{{ 'api_tokens.connect.clients'|trans }}</h2>
             {% for client in [
-                {key: 'claude_code', snippets: [{id: 'mcp-claude-code', text: claudeCode, rows: 2}]},
-                {key: 'claude_ai', snippets: [{id: 'mcp-claude-ai-url', label: 'api_tokens.connect.server'|trans, text: server, rows: 1}, {id: 'mcp-claude-ai-header', label: 'api_tokens.connect.client.claude_ai.header'|trans, text: header, rows: 1}]},
-                {key: 'desktop', snippets: [{id: 'mcp-claude-desktop', text: desktop|json_encode(json), rows: 17, wrap: false}]},
-                {key: 'cursor', snippets: [{id: 'mcp-cursor', text: cursor|json_encode(json), rows: 10, wrap: false}]},
-                {key: 'vscode', snippets: [{id: 'mcp-vscode', text: vscode|json_encode(json), rows: 19, wrap: false}]},
-                {key: 'other', snippets: [{id: 'mcp-other', label: 'api_tokens.connect.client.claude_ai.header'|trans, text: header, rows: 1}]},
+                {key: 'claude_code', snippets: [{id: 'mcp-claude-code', text: claudeCode, language: 'bash'}]},
+                {key: 'claude_ai', snippets: [{id: 'mcp-claude-ai-url', label: 'api_tokens.connect.server'|trans, text: server}, {id: 'mcp-claude-ai-header', label: 'api_tokens.connect.client.claude_ai.header'|trans, text: header}]},
+                {key: 'desktop', snippets: [{id: 'mcp-claude-desktop', text: desktop|json_encode(json), language: 'json'}]},
+                {key: 'cursor', snippets: [{id: 'mcp-cursor', text: cursor|json_encode(json), language: 'json'}]},
+                {key: 'vscode', snippets: [{id: 'mcp-vscode', text: vscode|json_encode(json), language: 'json'}]},
+                {key: 'other', snippets: [{id: 'mcp-other', label: 'api_tokens.connect.client.claude_ai.header'|trans, text: header}]},
             ] %}
                 {% set title = ('api_tokens.connect.client.' ~ client.key ~ '.title')|trans %}
                 <twig:Ui:Card :title="title" data-mcp-client="{{ client.key }}">
                     <div class="grid gap-3">
                         <p class="m-0 text-text">{{ ('api_tokens.connect.client.' ~ client.key ~ '.text')|trans }}</p>
                         {% for snippet in client.snippets %}
-                            {% include '@Identity/api/_snippet.html.twig' with {id: snippet.id, label: snippet.label ?? title, text: snippet.text, rows: snippet.rows, wrap: snippet.wrap ?? true} only %}
+                            <twig:Ui:CodeBlock :id="snippet.id" :label="snippet.label ?? title" :code="snippet.text" :language="snippet.language ?? 'text'" />
                         {% endfor %}
                     </div>
                 </twig:Ui:Card>
@@ -73,7 +73,7 @@
         <twig:Ui:Card :title="'api_tokens.connect.check.title'|trans">
             <div class="grid gap-3">
                 <p class="m-0 text-text">{{ 'api_tokens.connect.check.text'|trans }}</p>
-                {% include '@Identity/api/_snippet.html.twig' with {id: 'mcp-prompt', label: 'api_tokens.connect.check.title'|trans, text: 'api_tokens.connect.check.prompt'|trans, rows: 3} only %}
+                <twig:Ui:CodeBlock id="mcp-prompt" :label="'api_tokens.connect.check.title'|trans" :code="'api_tokens.connect.check.prompt'|trans" :wrap="true" />
             </div>
         </twig:Ui:Card>
 
