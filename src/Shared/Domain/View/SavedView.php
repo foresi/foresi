@@ -114,6 +114,83 @@ class SavedView
     }
 
     /**
+     * A view someone makes on a list: private to them, or shared with the staff.
+     *
+     * @param array<string, mixed>                    $filters
+     * @param list<array{field: string, dir: string}> $sort
+     * @param array<string, mixed>|null               $display
+     */
+    public static function made(string $listKey, string $ownerId, string $name, Visibility $visibility, array $filters, array $sort, ?array $display, bool $showCount, Placement $placement, int $position, \DateTimeImmutable $now): self
+    {
+        $view = new self($listKey, $name, $ownerId, null, $visibility, $filters, $sort, $showCount, $placement, $position, $now);
+        $view->display = $display;
+        $view->updatedBy = $ownerId;
+
+        return $view;
+    }
+
+    /**
+     * Someone changes what the view says; what is left null stays. A shipped view
+     * is then no longer the module's: app:views:sync leaves it alone.
+     *
+     * @param array<string, mixed>|null                    $filters
+     * @param list<array{field: string, dir: string}>|null $sort
+     */
+    public function edit(string $by, \DateTimeImmutable $now, ?string $name = null, ?array $filters = null, ?array $sort = null, ?bool $showCount = null, ?Placement $placement = null, ?int $position = null, ?bool $hidden = null): void
+    {
+        if (null !== $name) {
+            $this->checkName($name);
+            $this->name = $name;
+        }
+        $this->filters = $filters ?? $this->filters;
+        $this->sort = $sort ?? $this->sort;
+        $this->showCount = $showCount ?? $this->showCount;
+        $this->placement = $placement ?? $this->placement;
+        $this->position = $position ?? $this->position;
+        $this->hidden = $hidden ?? $this->hidden;
+        $this->touch($by, $now);
+    }
+
+    /**
+     * @param array<string, mixed>|null $display null goes back to the list's default columns
+     */
+    public function redisplay(?array $display, string $by, \DateTimeImmutable $now): void
+    {
+        $this->display = $display;
+        $this->touch($by, $now);
+    }
+
+    /**
+     * Shared with the staff or private to its owner; a shipped view has no owner
+     * and stays shared.
+     */
+    public function changeVisibility(Visibility $visibility, string $by, \DateTimeImmutable $now): void
+    {
+        if (null === $this->ownerId && Visibility::Private === $visibility) {
+            throw new \LogicException('A view a module ships has no owner to be private to.');
+        }
+        $this->visibility = $visibility;
+        $this->touch($by, $now);
+    }
+
+    /**
+     * A shipped view back to what its module declares, shown again, and the
+     * module's once more.
+     *
+     * @param array<string, mixed>                    $filters
+     * @param list<array{field: string, dir: string}> $sort
+     */
+    public function restore(string $name, array $filters, array $sort, bool $showCount, Placement $placement, int $position, \DateTimeImmutable $now): void
+    {
+        if (null === $this->systemKey) {
+            throw new \LogicException('Only a view a module ships has a default to go back to.');
+        }
+        $this->checkName($name);
+        [$this->name, $this->filters, $this->sort, $this->showCount, $this->placement, $this->position] = [$name, $filters, $sort, $showCount, $placement, $position];
+        [$this->display, $this->hidden, $this->visibility, $this->updatedBy, $this->updatedAt] = [null, false, Visibility::Shared, null, $now];
+    }
+
+    /**
      * A shipped view as the module declares it: nobody edited or hid it.
      */
     public function isPristine(): bool
@@ -208,6 +285,12 @@ class SavedView
     public function updatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
+    }
+
+    private function touch(string $by, \DateTimeImmutable $now): void
+    {
+        $this->updatedBy = $by;
+        $this->updatedAt = $now;
     }
 
     private static function canonical(mixed $value): mixed
