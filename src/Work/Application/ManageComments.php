@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\OwnerCheck;
-use App\Identity\Application\People;
-use App\Identity\Domain\Membership;
-use App\Shared\Application\MentionSyntax;
-use App\Work\Domain\CommentMention;
-use App\Work\Domain\Task;
-use App\Work\Domain\TaskComment;
-use App\Work\Domain\TaskWatcher;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\OwnerCheck;
+use Foresi\Identity\Application\People;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Shared\Application\MentionSyntax;
+use Foresi\Work\Domain\CommentMention;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TaskComment;
+use Foresi\Work\Domain\TaskWatcher;
 use Psr\Clock\ClockInterface;
 
 /**

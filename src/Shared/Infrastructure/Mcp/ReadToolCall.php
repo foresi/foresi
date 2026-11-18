@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Mcp;
+namespace Foresi\Shared\Infrastructure\Mcp;
 
-use App\Shared\Application\Api\IdempotencyKeyInFlight;
-use App\Shared\Application\Api\IdempotencyKeyReused;
-use App\Shared\Application\Api\SavedAnswer;
-use App\Shared\Application\Api\ScopeGuard;
-use App\Shared\Infrastructure\Api\Idempotency;
-use App\Shared\Infrastructure\Api\WriteBudget;
+use Foresi\Shared\Application\Api\IdempotencyKeyInFlight;
+use Foresi\Shared\Application\Api\IdempotencyKeyReused;
+use Foresi\Shared\Application\Api\SavedAnswer;
+use Foresi\Shared\Application\Api\ScopeGuard;
+use Foresi\Shared\Infrastructure\Api\Idempotency;
+use Foresi\Shared\Infrastructure\Api\WriteBudget;
 use Mcp\Schema\Content\TextContent;
 use Mcp\Schema\Result\CallToolResult;
 use Psr\Log\LoggerInterface;

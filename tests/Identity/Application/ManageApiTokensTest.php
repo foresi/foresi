@@ -6,21 +6,21 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Application;
+namespace Foresi\Tests\Identity\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\ApiTokenRefused;
-use App\Identity\Application\IssuedApiToken;
-use App\Identity\Application\ManageApiTokens;
-use App\Identity\Application\MembershipDirectory;
-use App\Identity\Application\UserRepository;
-use App\Identity\Domain\ApiScope;
-use App\Identity\Domain\ApiToken;
-use App\Identity\Domain\ApiTokenSecret;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Shared\Application\Api\ApiResources;
-use App\Tests\Identity\Support\InMemoryApiTokens;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\ApiTokenRefused;
+use Foresi\Identity\Application\IssuedApiToken;
+use Foresi\Identity\Application\ManageApiTokens;
+use Foresi\Identity\Application\MembershipDirectory;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Identity\Domain\ApiToken;
+use Foresi\Identity\Domain\ApiTokenSecret;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Shared\Application\Api\ApiResources;
+use Foresi\Tests\Identity\Support\InMemoryApiTokens;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;

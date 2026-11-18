@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui\Component;
+namespace Foresi\Tests\Ui\Component;
 
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\UX\TwigComponent\Test\InteractsWithTwigComponents;
@@ -97,7 +97,7 @@ final class TextInputTest extends KernelTestCase
         self::assertStringNotContainsString('autofocus', $second);
 
         // The next request starts again.
-        self::getContainer()->get(\App\Ui\Component\ErrorFocus::class)->reset();
+        self::getContainer()->get(\Foresi\Ui\Component\ErrorFocus::class)->reset();
         self::assertStringContainsString(' autofocus', (string) $this->renderTwigComponent('Ui:TextInput', ['name' => 'd', 'label' => 'D', 'error' => 'Bad']));
     }
 

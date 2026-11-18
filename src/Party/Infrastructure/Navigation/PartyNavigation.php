@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Navigation;
+namespace Foresi\Party\Infrastructure\Navigation;
 
-use App\Identity\Application\OwnerCheck;
-use App\Identity\Application\StaffCheck;
-use App\Ui\Navigation\CoreNavigationAreas;
-use App\Ui\Navigation\NavigationArea;
-use App\Ui\Navigation\NavigationItem;
-use App\Ui\Navigation\NavigationItemProvider;
+use Foresi\Identity\Application\OwnerCheck;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Ui\Navigation\CoreNavigationAreas;
+use Foresi\Ui\Navigation\NavigationArea;
+use Foresi\Ui\Navigation\NavigationItem;
+use Foresi\Ui\Navigation\NavigationItemProvider;
 
 /**
  * The address book in the sidebar for the staff, with the number of active

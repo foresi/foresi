@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Api;
+namespace Foresi\Invoicing\Infrastructure\Api;
 
-use App\Invoicing\Application\Query\InvoiceDetails;
-use App\Invoicing\Application\Query\InvoiceList;
-use App\Shared\Application\Api\ScopeGuard;
-use App\Shared\Infrastructure\Api\Cursor;
+use Foresi\Invoicing\Application\Query\InvoiceDetails;
+use Foresi\Invoicing\Application\Query\InvoiceList;
+use Foresi\Shared\Application\Api\ScopeGuard;
+use Foresi\Shared\Infrastructure\Api\Cursor;
 use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Attribute\AsController;

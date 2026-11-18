@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Domain;
+namespace Foresi\Identity\Domain;
 
 /**
  * The secret of an invitation link: 32 random bytes, base64url in the link,

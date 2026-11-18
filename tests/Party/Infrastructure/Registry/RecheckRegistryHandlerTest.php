@@ -6,21 +6,21 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Infrastructure\Registry;
+namespace Foresi\Tests\Party\Infrastructure\Registry;
 
-use App\Audit\Domain\AuditEntry;
-use App\Party\Application\CreateParty;
-use App\Party\Application\PartyQuery;
-use App\Party\Application\RecheckRegistry;
-use App\Party\Domain\Address;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\RegistryResult;
-use App\Party\Domain\VatId;
-use App\Party\Infrastructure\Registry\RecheckRegistryHandler;
-use App\Tests\Support\Registry\RegistryCalls;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Party\Application\CreateParty;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Application\RecheckRegistry;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\RegistryResult;
+use Foresi\Party\Domain\VatId;
+use Foresi\Party\Infrastructure\Registry\RecheckRegistryHandler;
+use Foresi\Tests\Support\Registry\RegistryCalls;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;

@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Idempotency;
+namespace Foresi\Identity\Infrastructure\Idempotency;
 
-use App\Identity\Application\ApiTokenContext;
-use App\Identity\Application\ApiTokenGrant;
-use App\Identity\Infrastructure\Idempotency\IdempotencyKeyTable as T;
-use App\Shared\Application\Api\IdempotencyKeyInFlight;
-use App\Shared\Application\Api\IdempotencyKeyReused;
-use App\Shared\Application\Api\IdempotencyKeys;
-use App\Shared\Application\Api\SavedAnswer;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Types\Types;
+use Foresi\Identity\Application\ApiTokenContext;
+use Foresi\Identity\Application\ApiTokenGrant;
+use Foresi\Identity\Infrastructure\Idempotency\IdempotencyKeyTable as T;
+use Foresi\Shared\Application\Api\IdempotencyKeyInFlight;
+use Foresi\Shared\Application\Api\IdempotencyKeyReused;
+use Foresi\Shared\Application\Api\IdempotencyKeys;
+use Foresi\Shared\Application\Api\SavedAnswer;
 use Psr\Clock\ClockInterface;
 
 /**

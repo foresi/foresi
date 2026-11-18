@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Application\Query;
+namespace Foresi\Webhooks\Application\Query;
 
-use App\Shared\Domain\Id;
-use App\Webhooks\Application\UnknownWebhookEndpoint;
-use App\Webhooks\Application\WebhookAccess;
-use App\Webhooks\Application\WebhookEndpoints;
-use App\Webhooks\Application\WebhookNotAllowed;
-use App\Webhooks\Domain\WebhookEndpoint;
+use Foresi\Shared\Domain\Id;
+use Foresi\Webhooks\Application\UnknownWebhookEndpoint;
+use Foresi\Webhooks\Application\WebhookAccess;
+use Foresi\Webhooks\Application\WebhookEndpoints;
+use Foresi\Webhooks\Application\WebhookNotAllowed;
+use Foresi\Webhooks\Domain\WebhookEndpoint;
 
 /**
  * The endpoints of the organisation for the API, MCP and the screen alike:

@@ -6,24 +6,24 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\FirmInvoicingSettings;
-use App\Invoicing\Application\InvoiceSends;
-use App\Invoicing\Application\LinkTokens;
-use App\Invoicing\Application\MailSecrets;
-use App\Invoicing\Application\MailServers;
-use App\Invoicing\Application\SendInvoice;
-use App\Invoicing\Application\SendRefused;
-use App\Invoicing\Application\SendRequest;
-use App\Invoicing\Domain\FirmMailServer;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceSend;
-use App\Invoicing\Domain\MailEncryption;
-use App\Invoicing\Domain\TotalRounding;
-use App\Tests\Import\Support\RunMessages;
-use App\Tests\Support\Mail\RecordingMailGateway;
 use Doctrine\DBAL\Connection;
+use Foresi\Invoicing\Application\FirmInvoicingSettings;
+use Foresi\Invoicing\Application\InvoiceSends;
+use Foresi\Invoicing\Application\LinkTokens;
+use Foresi\Invoicing\Application\MailSecrets;
+use Foresi\Invoicing\Application\MailServers;
+use Foresi\Invoicing\Application\SendInvoice;
+use Foresi\Invoicing\Application\SendRefused;
+use Foresi\Invoicing\Application\SendRequest;
+use Foresi\Invoicing\Domain\FirmMailServer;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceSend;
+use Foresi\Invoicing\Domain\MailEncryption;
+use Foresi\Invoicing\Domain\TotalRounding;
+use Foresi\Tests\Import\Support\RunMessages;
+use Foresi\Tests\Support\Mail\RecordingMailGateway;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
@@ -212,7 +212,7 @@ abstract class SendingTestCase extends InvoiceTestCase
         return substr(self::text($row, $column), 0, 19);
     }
 
-    protected function linkOf(string $sendId, \App\Invoicing\Domain\LinkAudience $audience = \App\Invoicing\Domain\LinkAudience::Customer): string
+    protected function linkOf(string $sendId, \Foresi\Invoicing\Domain\LinkAudience $audience = \Foresi\Invoicing\Domain\LinkAudience::Customer): string
     {
         return 'http://localhost/d/'.$this->tokens->token($sendId, $audience);
     }

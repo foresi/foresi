@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Party\Domain\DocumentLanguage;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 
 /**
  * Amounts and dates as a document prints them, in its own language. The PDF and

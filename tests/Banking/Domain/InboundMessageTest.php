@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Domain;
+namespace Foresi\Tests\Banking\Domain;
 
-use App\Banking\Domain\InboundChannel;
-use App\Banking\Domain\InboundMessage;
+use Foresi\Banking\Domain\InboundChannel;
+use Foresi\Banking\Domain\InboundMessage;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

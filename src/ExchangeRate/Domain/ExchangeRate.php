@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\ExchangeRate\Domain;
+namespace Foresi\ExchangeRate\Domain;
 
 /**
  * What a currency was worth in CZK on a date: $amount units of the currency cost

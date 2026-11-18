@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Logging;
+namespace Foresi\Tests\Shared\Infrastructure\Logging;
 
-use App\Shared\Infrastructure\Logging\TestAlertCommand;
+use Foresi\Shared\Infrastructure\Logging\TestAlertCommand;
 use Psr\Log\AbstractLogger;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;

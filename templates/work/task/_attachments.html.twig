@@ -9,7 +9,7 @@
     The list is a Turbo Frame that reloads once files are in. Without JavaScript it is a plain form
     with one file and an Upload button, which comes back to the page.
 #}
-{% set deleteToken = csrf_token(constant('App\\Attachment\\Infrastructure\\Controller\\AttachmentController::DELETE_TOKEN')) %}
+{% set deleteToken = csrf_token(constant('Foresi\\Attachment\\Infrastructure\\Controller\\AttachmentController::DELETE_TOKEN')) %}
 {% set back = taskUrl ~ '#task-attachments-title' %}
 <section class="grid gap-2" aria-labelledby="task-attachments-title" data-task-attachments>
     <turbo-frame id="task-attachments" class="grid gap-2" data-turbo="false" data-attachments-target="frame">
@@ -59,7 +59,7 @@
     </turbo-frame>
 
     <form method="post" action="{{ path('app_attachment_upload') }}" enctype="multipart/form-data" class="grid gap-2" data-attachments-target="form" data-action="submit->attachments#submit" data-failed="{{ 'attachment.error.failed'|trans }}" data-attachment-upload>
-        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Attachment\\Infrastructure\\Controller\\AttachmentController::TOKEN')) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Attachment\\Infrastructure\\Controller\\AttachmentController::TOKEN')) }}">
         <input type="hidden" name="owner_kind" value="{{ attachmentKind }}">
         <input type="hidden" name="owner_id" value="{{ row.id }}">
         <input type="hidden" name="return" value="{{ back }}">

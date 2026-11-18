@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Attachment;
+namespace Foresi\Purchasing\Infrastructure\Attachment;
 
-use App\Attachment\Application\AttachmentAccess;
-use App\Attachment\Domain\Attachment;
-use App\Identity\Application\StaffCheck;
-use App\Purchasing\Application\ReceivedDocuments;
-use App\Purchasing\Domain\ReceivedDocument;
+use Foresi\Attachment\Application\AttachmentAccess;
+use Foresi\Attachment\Domain\Attachment;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Purchasing\Application\ReceivedDocuments;
+use Foresi\Purchasing\Domain\ReceivedDocument;
 
 /**
  * The original file of a received document: the owners and members of the

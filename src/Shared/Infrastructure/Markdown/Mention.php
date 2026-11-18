@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Markdown;
+namespace Foresi\Shared\Infrastructure\Markdown;
 
 use League\CommonMark\Node\Inline\AbstractInline;
 

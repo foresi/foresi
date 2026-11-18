@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Domain;
+namespace Foresi\Timesheet\Domain;
 
-use App\Invoicing\Domain\Quantity;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Shared\Domain\Money;
 
 /**
  * One line of an invoice of time: the entries it bills, all at one rate, and

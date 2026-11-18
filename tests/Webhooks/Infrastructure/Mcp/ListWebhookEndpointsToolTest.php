@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Infrastructure\Mcp;
+namespace Foresi\Tests\Webhooks\Infrastructure\Mcp;
 
-use App\Webhooks\Infrastructure\Mcp\ListWebhookEndpointsTool;
+use Foresi\Webhooks\Infrastructure\Mcp\ListWebhookEndpointsTool;
 
 /**
  * foresi_list_webhook_endpoints answers what GET /api/v1/webhook-endpoints answers.

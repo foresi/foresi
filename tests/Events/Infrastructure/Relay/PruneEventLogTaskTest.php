@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Events\Infrastructure\Relay;
+namespace Foresi\Tests\Events\Infrastructure\Relay;
 
-use App\Events\Infrastructure\Relay\EventListeners;
-use App\Events\Infrastructure\Relay\EventRelay;
-use App\Events\Infrastructure\Relay\PruneEventLogTask;
-use App\Shared\Domain\Id;
-use App\Tests\Events\Support\EventRows;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Events\Infrastructure\Relay\EventListeners;
+use Foresi\Events\Infrastructure\Relay\EventRelay;
+use Foresi\Events\Infrastructure\Relay\PruneEventLogTask;
+use Foresi\Shared\Domain\Id;
+use Foresi\Tests\Events\Support\EventRows;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\DependencyInjection\ServiceLocator;

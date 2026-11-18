@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Infrastructure\Import;
+namespace Foresi\Tests\Party\Infrastructure\Import;
 
-use App\Import\Application\PresetRegistry;
-use App\Import\Application\Target\TargetRegistry;
-use App\Import\Domain\ColumnMatcher;
-use App\Import\Domain\ColumnProposal;
-use App\Import\Domain\MatchReason;
-use App\Import\Domain\NormalisationOptions;
-use App\Import\Domain\ValueNormaliser;
-use App\Party\Infrastructure\Import\IdokladContactPreset;
-use App\Party\Infrastructure\Import\PartyImportTarget;
+use Foresi\Import\Application\PresetRegistry;
+use Foresi\Import\Application\Target\TargetRegistry;
+use Foresi\Import\Domain\ColumnMatcher;
+use Foresi\Import\Domain\ColumnProposal;
+use Foresi\Import\Domain\MatchReason;
+use Foresi\Import\Domain\NormalisationOptions;
+use Foresi\Import\Domain\ValueNormaliser;
+use Foresi\Party\Infrastructure\Import\IdokladContactPreset;
+use Foresi\Party\Infrastructure\Import\PartyImportTarget;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 

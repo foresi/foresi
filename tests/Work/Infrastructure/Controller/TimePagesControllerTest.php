@@ -6,24 +6,24 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Work\Infrastructure\Controller;
+namespace Foresi\Tests\Work\Infrastructure\Controller;
 
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Instance\Application\InstanceClock;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Tests\Identity\Support\IdentityFixtures;
-use App\Tests\Identity\Support\SignedInBrowser;
-use App\Ui\Dialog\DialogRequest;
-use App\Work\Domain\Project;
-use App\Work\Domain\ProjectStatus;
-use App\Work\Domain\ProjectVisibility;
-use App\Work\Domain\Task;
-use App\Work\Domain\TimeEntry;
-use App\Work\Domain\WorkShare;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Tests\Identity\Support\IdentityFixtures;
+use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Ui\Dialog\DialogRequest;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\ProjectStatus;
+use Foresi\Work\Domain\ProjectVisibility;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TimeEntry;
+use Foresi\Work\Domain\WorkShare;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;

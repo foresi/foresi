@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Mcp;
+namespace Foresi\Tests\Shared\Infrastructure\Mcp;
 
-use App\Shared\Infrastructure\Mcp\ListModulesTool;
-use App\Shared\Infrastructure\Module\InstalledModules;
-use App\Shared\Infrastructure\Module\ModuleIntegrations;
-use App\Shared\Infrastructure\Module\ModulesView;
+use Foresi\Shared\Infrastructure\Mcp\ListModulesTool;
+use Foresi\Shared\Infrastructure\Module\InstalledModules;
+use Foresi\Shared\Infrastructure\Module\ModuleIntegrations;
+use Foresi\Shared\Infrastructure\Module\ModulesView;
 use PHPUnit\Framework\TestCase;
 
 /**

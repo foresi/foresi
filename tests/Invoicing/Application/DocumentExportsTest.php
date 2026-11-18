@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Banking\Application\Candidates;
-use App\Invoicing\Application\ConflictRetry;
-use App\Invoicing\Application\DocumentExports;
-use App\Invoicing\Application\UnknownInvoice;
-use App\Invoicing\Domain\ExportState;
-use App\Party\Application\TransactionalWork;
-use App\Tests\Banking\Support\LockLog;
-use App\Tests\Banking\Support\LoggingInvoiceStore;
+use Foresi\Banking\Application\Candidates;
+use Foresi\Invoicing\Application\ConflictRetry;
+use Foresi\Invoicing\Application\DocumentExports;
+use Foresi\Invoicing\Application\UnknownInvoice;
+use Foresi\Invoicing\Domain\ExportState;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Tests\Banking\Support\LockLog;
+use Foresi\Tests\Banking\Support\LoggingInvoiceStore;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 

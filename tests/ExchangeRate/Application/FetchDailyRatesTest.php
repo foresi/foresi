@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\ExchangeRate\Application;
+namespace Foresi\Tests\ExchangeRate\Application;
 
-use App\ExchangeRate\Infrastructure\Schedule\FetchDailyRates;
-use App\Tests\ExchangeRate\Support\RateWorld;
+use Foresi\ExchangeRate\Infrastructure\Schedule\FetchDailyRates;
+use Foresi\Tests\ExchangeRate\Support\RateWorld;
 use PHPUnit\Framework\TestCase;
 
 final class FetchDailyRatesTest extends TestCase

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Api;
+namespace Foresi\Webhooks\Infrastructure\Api;
 
 use Symfony\Component\Validator\Constraints as Assert;
 

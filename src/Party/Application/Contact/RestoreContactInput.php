@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application\Contact;
+namespace Foresi\Party\Application\Contact;
 
-use App\Shared\Application\Api\Field;
-use App\Shared\Application\Api\Operation;
+use Foresi\Shared\Application\Api\Field;
+use Foresi\Shared\Application\Api\Operation;
 
 /**
  * Restores an archived contact over the API and MCP (ADR 0032).

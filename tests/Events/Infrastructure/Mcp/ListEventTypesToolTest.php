@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Events\Infrastructure\Mcp;
+namespace Foresi\Tests\Events\Infrastructure\Mcp;
 
-use App\Events\Infrastructure\Mcp\ListEventTypesTool;
-use App\Tests\Shared\Infrastructure\Mcp\ReadToolTestCase;
+use Foresi\Events\Infrastructure\Mcp\ListEventTypesTool;
+use Foresi\Tests\Shared\Infrastructure\Mcp\ReadToolTestCase;
 
 /**
  * foresi_list_event_types lists the contract events of the modules the caller may read.

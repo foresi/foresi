@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Application;
+namespace Foresi\Events\Application;
 
 /**
  * Asks the relay to look for committed events that have no position yet. Sent

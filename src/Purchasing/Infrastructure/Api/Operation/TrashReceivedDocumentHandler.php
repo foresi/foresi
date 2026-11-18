@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Api\Operation;
+namespace Foresi\Purchasing\Infrastructure\Api\Operation;
 
-use App\Purchasing\Application\Api\ReceivedDocumentWrites;
-use App\Purchasing\Application\Api\TrashReceivedDocumentInput;
-use App\Shared\Infrastructure\Operation\OperationHandler;
-use App\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Purchasing\Application\Api\ReceivedDocumentWrites;
+use Foresi\Purchasing\Application\Api\TrashReceivedDocumentInput;
+use Foresi\Shared\Infrastructure\Operation\OperationHandler;
+use Foresi\Shared\Infrastructure\Operation\OperationOutput;
 
 /**
  * received_documents.trash: the received document with its payments.

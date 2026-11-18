@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Instance\Infrastructure\Schedule;
+namespace Foresi\Instance\Infrastructure\Schedule;
 
-use App\Instance\Application\Schedule\Heartbeats;
 use Doctrine\DBAL\Connection;
+use Foresi\Instance\Application\Schedule\Heartbeats;
 use Psr\Clock\ClockInterface;
 
 /**

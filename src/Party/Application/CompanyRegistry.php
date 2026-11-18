@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
-use App\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\RegistrationNumber;
 
 /**
  * A public company register. Lookups never throw: an unknown subject and an

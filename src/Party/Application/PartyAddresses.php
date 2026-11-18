@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
-use App\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyAddress;
 
 /**
  * Adds addresses to parties. A party has exactly one billing address.

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Domain;
+namespace Foresi\Webhooks\Domain;
 
-use App\Audit\Domain\Audited;
-use App\Audit\Domain\AuditExcluded;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Audit\Domain\AuditExcluded;
 
 /**
  * An HTTPS address of the organisation that receives the events it subscribes

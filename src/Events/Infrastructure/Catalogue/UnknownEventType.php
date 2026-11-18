@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Catalogue;
+namespace Foresi\Events\Infrastructure\Catalogue;
 
 /**
  * Asked for an event type the catalogue does not hold: no module publishes it,

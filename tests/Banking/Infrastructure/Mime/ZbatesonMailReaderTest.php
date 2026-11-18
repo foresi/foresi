@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Infrastructure\Mime;
+namespace Foresi\Tests\Banking\Infrastructure\Mime;
 
-use App\Banking\Application\InboundMail;
-use App\Banking\Infrastructure\Mime\ZbatesonMailReader;
+use Foresi\Banking\Application\InboundMail;
+use Foresi\Banking\Infrastructure\Mime\ZbatesonMailReader;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ZBateson\MailMimeParser\IMessage;

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\CorrectionType;
+use Foresi\Invoicing\Domain\CorrectionType;
 
 /**
  * What a corrective tax document says of its correction, as typed. IssueRules

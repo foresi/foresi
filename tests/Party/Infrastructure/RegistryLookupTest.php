@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Infrastructure;
+namespace Foresi\Tests\Party\Infrastructure;
 
-use App\Country\CzechRepublic\Party\CzechRegistrationNumberValidator;
-use App\Party\Application\CompanyRegistry;
-use App\Party\Application\RegistrationNumberFactory;
-use App\Party\Application\RegistryRecord;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Infrastructure\Registry\RegistryLookup;
+use Foresi\Country\CzechRepublic\Party\CzechRegistrationNumberValidator;
+use Foresi\Party\Application\CompanyRegistry;
+use Foresi\Party\Application\RegistrationNumberFactory;
+use Foresi\Party\Application\RegistryRecord;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Infrastructure\Registry\RegistryLookup;
 use PHPUnit\Framework\TestCase;
 
 final class RegistryLookupTest extends TestCase

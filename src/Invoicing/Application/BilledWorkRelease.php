@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Invoice;
 
 /**
  * Told when an invoice goes to the trash and when it comes back, and when the

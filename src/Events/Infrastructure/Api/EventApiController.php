@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Api;
+namespace Foresi\Events\Infrastructure\Api;
 
-use App\Shared\Application\Api\ScopeGuard;
+use Foresi\Shared\Application\Api\ScopeGuard;
 use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Attribute\AsController;

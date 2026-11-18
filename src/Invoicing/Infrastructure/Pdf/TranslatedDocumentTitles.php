@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Pdf;
+namespace Foresi\Invoicing\Infrastructure\Pdf;
 
-use App\Invoicing\Application\DocumentTitles;
-use App\Invoicing\Application\IssuedDocument;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\VatRegime;
+use Foresi\Invoicing\Application\DocumentTitles;
+use Foresi\Invoicing\Application\IssuedDocument;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\VatRegime;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**

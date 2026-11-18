@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Console;
+namespace Foresi\Shared\Infrastructure\Console;
 
-use App\Shared\Infrastructure\Module\DeptracModulesConfig;
-use App\Shared\Infrastructure\Module\InstalledModules;
+use Foresi\Shared\Infrastructure\Module\DeptracModulesConfig;
+use Foresi\Shared\Infrastructure\Module\InstalledModules;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;

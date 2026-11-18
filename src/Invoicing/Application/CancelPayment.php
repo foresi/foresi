@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Invoicing\Domain\PaymentSource;
-use App\Party\Application\TransactionalWork;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Party\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 
 /**

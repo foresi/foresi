@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Source;
+namespace Foresi\Import\Infrastructure\Source;
 
-use App\Import\Application\Source\Encoding;
+use Foresi\Import\Application\Source\Encoding;
 
 /**
  * Converts the text of a CSV cell from the file's encoding to UTF-8. Bytes the

@@ -28,7 +28,7 @@
 
 {% block dialog_body %}
     <form method="post" id="time-entry-form" action="{{ action }}" class="grid gap-4" novalidate data-time-entry-form>
-        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TimeController::TOKEN')) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TimeController::TOKEN')) }}">
         {{ include('work/_form_errors.html.twig', {prefix: 'time-'}) }}
         {% if picker %}
             {# Enter logs the time: the first submit button of the form is the one it presses. #}
@@ -46,7 +46,7 @@
             <twig:Ui:TextInput type="date" name="worked_on" id="time-worked_on" :label="'work.task.field.worked_on'|trans" :value="values.worked_on" :error="errors.worked_on|default(null)" required />
             <twig:Ui:TextInput name="duration" id="time-duration" :label="'work.task.field.duration'|trans" :help="'work.time.duration_help'|trans" :value="values.duration" :error="errors.duration|default(null)" required autocomplete="off" inputmode="text" spellcheck="false" :autofocus="not picker" />
         </div>
-        <twig:Ui:Textarea name="note" id="time-note" :label="'work.task.field.note'|trans" :value="values.note" :error="errors.note|default(null)" :rows="2" maxlength="{{ constant('App\\Work\\Domain\\TimeEntry::MAX_NOTE_LENGTH') }}" />
+        <twig:Ui:Textarea name="note" id="time-note" :label="'work.task.field.note'|trans" :value="values.note" :error="errors.note|default(null)" :rows="2" maxlength="{{ constant('Foresi\\Work\\Domain\\TimeEntry::MAX_NOTE_LENGTH') }}" />
         <twig:Ui:Checkbox name="billable" id="time-billable" :label="'work.task.field.billable'|trans" :checked="values.billable" />
     </form>
 {% endblock %}

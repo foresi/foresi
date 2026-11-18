@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Controller;
+namespace Foresi\Import\Infrastructure\Controller;
 
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 

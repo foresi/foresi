@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Application;
 
-use App\Banking\Application\ChangePairing;
-use App\Banking\Application\FirmPairingRules;
-use App\Banking\Application\PairingRules;
-use App\Banking\Domain\FirmPairing;
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
-use App\Tests\Banking\Support\Scalars;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Banking\Application\ChangePairing;
+use Foresi\Banking\Application\FirmPairingRules;
+use Foresi\Banking\Application\PairingRules;
+use Foresi\Banking\Domain\FirmPairing;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Tests\Banking\Support\Scalars;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**

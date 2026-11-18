@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Console;
+namespace Foresi\Shared\Infrastructure\Console;
 
-use App\Shared\Domain\Module\ModuleGraph;
-use App\Shared\Domain\Module\ModuleId;
-use App\Shared\Infrastructure\Module\InstalledModules;
-use App\Shared\Infrastructure\Module\ModuleIntegration;
-use App\Shared\Infrastructure\Module\ModuleIntegrations;
-use App\Shared\Infrastructure\Module\ModulesView;
+use Foresi\Shared\Domain\Module\ModuleGraph;
+use Foresi\Shared\Domain\Module\ModuleId;
+use Foresi\Shared\Infrastructure\Module\InstalledModules;
+use Foresi\Shared\Infrastructure\Module\ModuleIntegration;
+use Foresi\Shared\Infrastructure\Module\ModuleIntegrations;
+use Foresi\Shared\Infrastructure\Module\ModulesView;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;

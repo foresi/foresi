@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Application;
+namespace Foresi\Tests\Webhooks\Application;
 
-use App\Webhooks\Application\UnknownWebhookDelivery;
-use App\Webhooks\Application\UnknownWebhookEndpoint;
-use App\Webhooks\Application\WebhookEndpointDisabled;
-use App\Webhooks\Application\WebhookNotAllowed;
-use App\Webhooks\Application\WebhookSecretsUnavailable;
+use Foresi\Webhooks\Application\UnknownWebhookDelivery;
+use Foresi\Webhooks\Application\UnknownWebhookEndpoint;
+use Foresi\Webhooks\Application\WebhookEndpointDisabled;
+use Foresi\Webhooks\Application\WebhookNotAllowed;
+use Foresi\Webhooks\Application\WebhookSecretsUnavailable;
 use PHPUnit\Framework\TestCase;
 
 /**

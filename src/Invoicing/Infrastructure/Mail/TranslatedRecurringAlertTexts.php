@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Mail;
+namespace Foresi\Invoicing\Infrastructure\Mail;
 
-use App\Invoicing\Application\DocumentLinks;
-use App\Invoicing\Application\RecurringAlertTexts;
-use App\Party\Domain\DocumentLanguage;
+use Foresi\Invoicing\Application\DocumentLinks;
+use Foresi\Invoicing\Application\RecurringAlertTexts;
+use Foresi\Party\Domain\DocumentLanguage;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**

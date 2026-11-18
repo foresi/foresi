@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Api;
+namespace Foresi\Tests\Shared\Infrastructure\Api;
 
-use App\Shared\Application\Api\ApiClient;
-use App\Shared\Infrastructure\Api\ApiRateLimit;
-use App\Shared\Infrastructure\Api\WriteBudget;
+use Foresi\Shared\Application\Api\ApiClient;
+use Foresi\Shared\Infrastructure\Api\ApiRateLimit;
+use Foresi\Shared\Infrastructure\Api\WriteBudget;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

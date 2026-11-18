@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Invoicing\Application\InvoiceBalances;
-use App\Invoicing\Application\ReminderSettings;
-use App\Invoicing\Domain\FirmReminders;
-use App\Party\Domain\LegalEntity;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Invoicing\Application\InvoiceBalances;
+use Foresi\Invoicing\Application\ReminderSettings;
+use Foresi\Invoicing\Domain\FirmReminders;
+use Foresi\Party\Domain\LegalEntity;
 
 final readonly class DoctrineReminderSettings implements ReminderSettings
 {

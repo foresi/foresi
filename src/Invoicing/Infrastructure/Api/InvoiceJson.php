@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Api;
+namespace Foresi\Invoicing\Infrastructure\Api;
 
-use App\Invoicing\Application\InvoicePaymentLine;
-use App\Invoicing\Application\PaymentState;
-use App\Invoicing\Application\Query\InvoiceDetail;
-use App\Invoicing\Application\Query\InvoiceListItem;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Party\Domain\Address;
-use App\Shared\Infrastructure\Api\JsonValues;
+use Foresi\Invoicing\Application\InvoicePaymentLine;
+use Foresi\Invoicing\Application\PaymentState;
+use Foresi\Invoicing\Application\Query\InvoiceDetail;
+use Foresi\Invoicing\Application\Query\InvoiceListItem;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Party\Domain\Address;
+use Foresi\Shared\Infrastructure\Api\JsonValues;
 
 /**
  * Sales documents as the REST API and the MCP tools write them. The names are the

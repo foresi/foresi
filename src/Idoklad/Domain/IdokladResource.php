@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Domain;
+namespace Foresi\Idoklad\Domain;
 
 /**
  * The lists of an iDoklad account a pull copies, by their API path. The lists

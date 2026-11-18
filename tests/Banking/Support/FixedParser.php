@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Support;
+namespace Foresi\Tests\Banking\Support;
 
-use App\Banking\Application\BankMessageParser;
-use App\Banking\Application\InboundMail;
-use App\Banking\Application\ParsedMovement;
-use App\Banking\Application\ParseFailed;
-use App\Banking\Application\ParseResult;
-use App\Banking\Domain\MovementDirection;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Banking\Application\BankMessageParser;
+use Foresi\Banking\Application\InboundMail;
+use Foresi\Banking\Application\ParsedMovement;
+use Foresi\Banking\Application\ParseFailed;
+use Foresi\Banking\Application\ParseResult;
+use Foresi\Banking\Domain\MovementDirection;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 
 /**
  * A parser of a made-up release: it knows any mail from its domains and reads

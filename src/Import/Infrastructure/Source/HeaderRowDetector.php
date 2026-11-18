@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Source;
+namespace Foresi\Import\Infrastructure\Source;
 
 /**
  * Finds the header among the first rows of a source: the first row that is at

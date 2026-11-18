@@ -6,26 +6,26 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Work\Application;
+namespace Foresi\Tests\Work\Application;
 
-use App\Identity\Domain\Membership;
-use App\Shared\Domain\Id;
-use App\Work\Application\ManageComments;
-use App\Work\Application\ManageNotifications;
-use App\Work\Application\ManageSharing;
-use App\Work\Application\NotificationFilter;
-use App\Work\Application\NotificationQueries;
-use App\Work\Application\NotificationRow;
-use App\Work\Application\Notifier;
-use App\Work\Application\PurgeDeletedTasks;
-use App\Work\Application\PurgeDoneNotificationsDaily;
-use App\Work\Application\WorkRefused;
-use App\Work\Domain\Notification;
-use App\Work\Domain\NotificationKind;
-use App\Work\Domain\Project;
-use App\Work\Domain\ProjectVisibility;
-use App\Work\Domain\Task;
-use App\Work\Domain\TaskWatcher;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Shared\Domain\Id;
+use Foresi\Work\Application\ManageComments;
+use Foresi\Work\Application\ManageNotifications;
+use Foresi\Work\Application\ManageSharing;
+use Foresi\Work\Application\NotificationFilter;
+use Foresi\Work\Application\NotificationQueries;
+use Foresi\Work\Application\NotificationRow;
+use Foresi\Work\Application\Notifier;
+use Foresi\Work\Application\PurgeDeletedTasks;
+use Foresi\Work\Application\PurgeDoneNotificationsDaily;
+use Foresi\Work\Application\WorkRefused;
+use Foresi\Work\Domain\Notification;
+use Foresi\Work\Domain\NotificationKind;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\ProjectVisibility;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TaskWatcher;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 final class NotificationsTest extends WorkTestCase

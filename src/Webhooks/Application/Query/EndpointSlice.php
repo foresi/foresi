@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Application\Query;
+namespace Foresi\Webhooks\Application\Query;
 
-use App\Webhooks\Domain\WebhookEndpoint;
+use Foresi\Webhooks\Domain\WebhookEndpoint;
 
 /**
  * A slice of the endpoints the caller may manage, newest first, and whether

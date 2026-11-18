@@ -6,45 +6,45 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Import\Application;
+namespace Foresi\Tests\Import\Application;
 
-use App\Audit\Domain\ActorKind;
-use App\Audit\Domain\AuditAction;
-use App\Audit\Domain\AuditEntry;
-use App\Import\Application\CancelImport;
-use App\Import\Application\CheckImport;
-use App\Import\Application\ConfigureImport;
-use App\Import\Application\ImportErrorFile;
-use App\Import\Application\ImportRefused;
-use App\Import\Application\Imports;
-use App\Import\Application\Message\ArchiveMissing;
-use App\Import\Application\Message\CheckImportChunk;
-use App\Import\Application\Message\RunImportChunk;
-use App\Import\Application\Message\UndoImportChunk;
-use App\Import\Application\RunImport;
-use App\Import\Application\Source\SourceFormat;
-use App\Import\Application\StartImport;
-use App\Import\Application\Target\TargetRegistry;
-use App\Import\Application\UndoImport;
-use App\Import\Domain\BlankCells;
-use App\Import\Domain\DateOrder;
-use App\Import\Domain\DecimalSeparator;
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportMissingRecord;
-use App\Import\Domain\ImportMode;
-use App\Import\Domain\ImportOptions;
-use App\Import\Domain\ImportProfile;
-use App\Import\Domain\ImportRow;
-use App\Import\Domain\ImportState;
-use App\Import\Domain\Mapping;
-use App\Import\Domain\MatchReason;
-use App\Import\Domain\ReplaceScope;
-use App\Import\Domain\RowOutcome;
-use App\Tests\Import\Support\FakeTarget;
-use App\Tests\Import\Support\FlakyImportLock;
-use App\Tests\Import\Support\RunMessages;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Audit\Domain\ActorKind;
+use Foresi\Audit\Domain\AuditAction;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Import\Application\CancelImport;
+use Foresi\Import\Application\CheckImport;
+use Foresi\Import\Application\ConfigureImport;
+use Foresi\Import\Application\ImportErrorFile;
+use Foresi\Import\Application\ImportRefused;
+use Foresi\Import\Application\Imports;
+use Foresi\Import\Application\Message\ArchiveMissing;
+use Foresi\Import\Application\Message\CheckImportChunk;
+use Foresi\Import\Application\Message\RunImportChunk;
+use Foresi\Import\Application\Message\UndoImportChunk;
+use Foresi\Import\Application\RunImport;
+use Foresi\Import\Application\Source\SourceFormat;
+use Foresi\Import\Application\StartImport;
+use Foresi\Import\Application\Target\TargetRegistry;
+use Foresi\Import\Application\UndoImport;
+use Foresi\Import\Domain\BlankCells;
+use Foresi\Import\Domain\DateOrder;
+use Foresi\Import\Domain\DecimalSeparator;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\ImportMissingRecord;
+use Foresi\Import\Domain\ImportMode;
+use Foresi\Import\Domain\ImportOptions;
+use Foresi\Import\Domain\ImportProfile;
+use Foresi\Import\Domain\ImportRow;
+use Foresi\Import\Domain\ImportState;
+use Foresi\Import\Domain\Mapping;
+use Foresi\Import\Domain\MatchReason;
+use Foresi\Import\Domain\ReplaceScope;
+use Foresi\Import\Domain\RowOutcome;
+use Foresi\Tests\Import\Support\FakeTarget;
+use Foresi\Tests\Import\Support\FlakyImportLock;
+use Foresi\Tests\Import\Support\RunMessages;
 use OpenSpout\Reader\CSV\Options as CsvReaderOptions;
 use OpenSpout\Reader\CSV\Reader as CsvReader;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
@@ -110,7 +110,7 @@ final class PipelineTest extends KernelTestCase
         self::assertSame(3, $import->chunks());
         self::assertSame(['Code', 'Name', 'Email'], $import->headers());
         self::assertSame([0 => 'code', 1 => 'name', 2 => 'email'], $import->mapping()->columns);
-        self::assertSame([MatchReason::SameName, MatchReason::SameName, MatchReason::SameName], array_map(static fn (\App\Import\Domain\ColumnProposal $p): MatchReason => $p->reason, $import->proposals()));
+        self::assertSame([MatchReason::SameName, MatchReason::SameName, MatchReason::SameName], array_map(static fn (\Foresi\Import\Domain\ColumnProposal $p): MatchReason => $p->reason, $import->proposals()));
         self::assertSame('code', $import->options()->matchKey);
         self::assertSame(';', $import->sourceSettings()['delimiter']);
         $rows = $this->imports->rowsOfChunk($import, 2);
@@ -882,14 +882,14 @@ final class PipelineTest extends KernelTestCase
         $this->runImport($id);
 
         $this->em->clear();
-        $remembered = $this->container(\App\Import\Application\ProfileRepository::class)->find($profile->id());
+        $remembered = $this->container(\Foresi\Import\Application\ProfileRepository::class)->find($profile->id());
         self::assertInstanceOf(ImportProfile::class, $remembered);
         self::assertTrue($remembered->isRemembered());
         self::assertSame([0 => 'code', 1 => 'name', 2 => 'email'], $remembered->mapping()->columns);
 
         $next = $this->upload("Kód;Jméno;Pošta\nC2;Name 2;\n");
         $proposals = $this->fresh($next)->proposals();
-        self::assertSame([MatchReason::Remembered, MatchReason::Remembered, MatchReason::Remembered], array_map(static fn (\App\Import\Domain\ColumnProposal $p): MatchReason => $p->reason, $proposals));
+        self::assertSame([MatchReason::Remembered, MatchReason::Remembered, MatchReason::Remembered], array_map(static fn (\Foresi\Import\Domain\ColumnProposal $p): MatchReason => $p->reason, $proposals));
         self::assertSame($remembered->id(), $this->fresh($next)->profile()?->id());
     }
 

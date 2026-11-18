@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Events\Fixtures\Duplicate\Contract\Event;
+namespace Foresi\Tests\Events\Fixtures\Duplicate\Contract\Event;
 
-use App\Shared\Domain\Event\DomainEvent;
-use App\Shared\Domain\Event\DomainEventPayload;
-use App\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Domain\Event\DomainEvent;
+use Foresi\Shared\Domain\Event\DomainEventPayload;
+use Foresi\Shared\Domain\Event\EventSubject;
 
 #[DomainEvent('invoicing.invoice.issued', version: 1)]
 final readonly class First implements DomainEventPayload

@@ -4,7 +4,7 @@
     "Pay" opens the pay dialog over the form; Remove asks first, in the shared confirmation, and
     for a bank payment says the movement goes back among the unmatched ones.
 #}
-{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 <twig:Ui:Card :title="'invoice.payment.panel.title'|trans" icon="banknote" class="mt-4" data-payments="">
     <div class="grid gap-3">
         {% if payments.lines is empty %}
@@ -22,7 +22,7 @@
                         <form method="post" action="{{ path('app_invoice_payment_cancel', {id: invoice.id, paymentId: line.id}) }}"
                             data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
                             data-confirm-title="{{ line.confirm.title }}" data-confirm-text="{{ line.confirm.text }}" data-confirm-accept="{{ line.confirm.accept }}" data-confirm-cancel="{{ line.confirm.cancel }}" data-confirm-tone="{{ line.confirm.tone }}">
-                            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoicePaymentController::FORM_TOKEN')) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoicePaymentController::FORM_TOKEN')) }}">
                             <twig:Ui:Button type="submit" variant="ghost" size="sm" :aria-label="line.label">{{ 'invoice.payment.panel.remove'|trans }}</twig:Ui:Button>
                         </form>
                     </li>

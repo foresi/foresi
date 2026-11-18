@@ -6,26 +6,26 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Purchasing\Application;
+namespace Foresi\Tests\Purchasing\Application;
 
-use App\Party\Application\PartyDetails;
-use App\Party\Application\PartyQuery;
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
-use App\Purchasing\Application\ReceivedDocumentContents;
-use App\Purchasing\Application\ReceivedDocumentInput;
-use App\Purchasing\Application\ReceivedDocuments;
-use App\Purchasing\Domain\ExchangeRate;
-use App\Purchasing\Domain\PurchaseTaxTreatment;
-use App\Purchasing\Domain\ReceivedDocumentKind;
-use App\Purchasing\Domain\ReceivedDocumentRefused;
-use App\Purchasing\Domain\VatRate;
-use App\Purchasing\Domain\VatRecapLine;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Purchasing\Support\FixedExchangeRates;
+use Foresi\Party\Application\PartyDetails;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Purchasing\Application\ReceivedDocumentContents;
+use Foresi\Purchasing\Application\ReceivedDocumentInput;
+use Foresi\Purchasing\Application\ReceivedDocuments;
+use Foresi\Purchasing\Domain\ExchangeRate;
+use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
+use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Purchasing\Domain\VatRate;
+use Foresi\Purchasing\Domain\VatRecapLine;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Purchasing\Support\FixedExchangeRates;
 use PHPUnit\Framework\TestCase;
 
 final class ReceivedDocumentContentsTest extends TestCase

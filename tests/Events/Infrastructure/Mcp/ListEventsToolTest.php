@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Events\Infrastructure\Mcp;
+namespace Foresi\Tests\Events\Infrastructure\Mcp;
 
-use App\Events\Infrastructure\Api\PositionCursor;
-use App\Events\Infrastructure\Mcp\ListEventsTool;
-use App\Events\Infrastructure\Relay\EventRelay;
-use App\Shared\Application\Event\EventRecorder;
-use App\Shared\Domain\Id;
-use App\Shared\Infrastructure\Mcp\ToolOutput;
-use App\Tests\Events\Support\RecordedEvents;
-use App\Tests\Shared\Infrastructure\Mcp\ReadToolTestCase;
 use Doctrine\DBAL\Connection;
+use Foresi\Events\Infrastructure\Api\PositionCursor;
+use Foresi\Events\Infrastructure\Mcp\ListEventsTool;
+use Foresi\Events\Infrastructure\Relay\EventRelay;
+use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Tests\Events\Support\RecordedEvents;
+use Foresi\Tests\Shared\Infrastructure\Mcp\ReadToolTestCase;
 
 /**
  * foresi_list_events answers what GET /api/v1/events answers, narrowed by the

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Instance\Infrastructure\Support;
+namespace Foresi\Tests\Instance\Infrastructure\Support;
 
-use App\Instance\Application\Schedule\Claim;
-use App\Instance\Application\Schedule\ScheduledJobRuns;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Instance\Application\Schedule\Claim;
+use Foresi\Instance\Application\Schedule\ScheduledJobRuns;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**

@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Purchasing\Application;
+namespace Foresi\Tests\Purchasing\Application;
 
-use App\Purchasing\Application\ReceivedDocumentInput;
-use App\Purchasing\Application\ReceivedDocumentWarning;
-use App\Purchasing\Domain\ExchangeRate;
-use App\Purchasing\Domain\ReceivedDocumentKind;
-use App\Shared\Domain\Currency;
+use Foresi\Purchasing\Application\ReceivedDocumentInput;
+use Foresi\Purchasing\Application\ReceivedDocumentWarning;
+use Foresi\Purchasing\Domain\ExchangeRate;
+use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Shared\Domain\Currency;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 final class DocumentWarningsTest extends PurchasingTestCase

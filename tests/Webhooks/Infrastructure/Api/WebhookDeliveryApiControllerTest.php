@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Infrastructure\Api;
+namespace Foresi\Tests\Webhooks\Infrastructure\Api;
 
-use App\Webhooks\Application\AttemptTrigger;
-use App\Webhooks\Application\SendWebhook;
-use App\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
+use Foresi\Webhooks\Application\AttemptTrigger;
+use Foresi\Webhooks\Application\SendWebhook;
+use Foresi\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
 
 /**
  * The deliveries of an endpoint over REST: listed newest first, each shown with

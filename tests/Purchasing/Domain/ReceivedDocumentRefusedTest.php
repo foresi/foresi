@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Purchasing\Domain;
+namespace Foresi\Tests\Purchasing\Domain;
 
-use App\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
 use PHPUnit\Framework\TestCase;
 
 final class ReceivedDocumentRefusedTest extends TestCase

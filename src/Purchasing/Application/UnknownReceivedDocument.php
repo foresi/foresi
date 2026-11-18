@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application;
+namespace Foresi\Purchasing\Application;
 
-use App\Shared\Application\RefusalKind;
-use App\Shared\Application\Refused;
+use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Application\Refused;
 
 /**
  * No received document has the id; answered as not found.

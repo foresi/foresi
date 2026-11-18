@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Console;
+namespace Foresi\Identity\Infrastructure\Console;
 
-use App\Identity\Application\UserRepository;
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Party\Domain\Party;
-use App\Shared\Domain\Id;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Identity\Infrastructure\Security\SecurityUser;
+use Foresi\Party\Domain\Party;
+use Foresi\Shared\Domain\Id;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Option;

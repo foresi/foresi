@@ -7,7 +7,7 @@
 {% extends 'layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'firm.title'|trans, href: path('app_firm_index')}, {label: firm.name, href: cancel}, {label: 'bank.account.title'|trans}] %}
-{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 
 {% block title %}{{ 'bank.account.title'|trans }}{% endblock %}
 
@@ -37,12 +37,12 @@
                     </twig:Ui:EmptyState>
                 {% else %}
                     <p class="m-0 mb-3 text-small text-muted">{{ 'bank.account.intro'|trans }}</p>
-                    <twig:Ui:DataTable :caption="'bank.account.card.accounts'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('App\\Banking\\Infrastructure\\Controller\\FirmBankController::ACTION_TOKEN'))" />
+                    <twig:Ui:DataTable :caption="'bank.account.card.accounts'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('Foresi\\Banking\\Infrastructure\\Controller\\FirmBankController::ACTION_TOKEN'))" />
                 {% endif %}
             </twig:Ui:Card>
         {% else %}
             <form id="bank-pairing" method="post" action="{{ pairingAction }}" class="grid grid-cols-1 gap-4" novalidate>
-                <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Banking\\Infrastructure\\Controller\\FirmBankController::PAIRING_TOKEN')) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Banking\\Infrastructure\\Controller\\FirmBankController::PAIRING_TOKEN')) }}">
                 <twig:Ui:Card :title="'bank.account.pairing.card'|trans" icon="link-2">
                     <div class="grid gap-4">
                         <twig:Ui:Checkbox name="autoPairing" id="autoPairing" value="1" :checked="autoPairing" :label="'bank.account.pairing.auto'|trans" :help="'bank.account.pairing.auto_help'|trans" />

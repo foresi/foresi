@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Domain;
+namespace Foresi\Party\Domain;
 
-use App\Audit\Domain\Audited;
-use App\Audit\Domain\AuditRooted;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Audit\Domain\AuditRooted;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Id;
 
 /**
  * A bank account of the issuing firm, where its customers pay. An IBAN is there

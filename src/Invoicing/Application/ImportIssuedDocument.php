@@ -6,25 +6,25 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\DocumentParty;
-use App\Invoicing\Domain\DocumentTotals;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceChange;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Series;
-use App\Party\Application\ContactSettingsForFirm;
-use App\Party\Application\LegalEntities;
-use App\Party\Application\PartyQuery;
-use App\Party\Application\TransactionalWork;
-use App\Party\Application\UnknownLegalEntity;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Shared\Domain\Currency;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Domain\DocumentTotals;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceChange;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Shared\Domain\Currency;
 use Psr\Clock\ClockInterface;
 
 /**

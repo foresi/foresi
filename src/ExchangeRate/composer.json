@@ -10,7 +10,7 @@
         "foresi": {
             "module": "exchange-rate",
             "kind": "module",
-            "namespace": "App\\ExchangeRate\\",
+            "namespace": "Foresi\\ExchangeRate\\",
             "optional": []
         }
     }

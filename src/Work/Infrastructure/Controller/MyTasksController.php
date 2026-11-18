@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Controller;
+namespace Foresi\Work\Infrastructure\Controller;
 
-use App\Identity\Application\OpenToGuest;
-use App\Instance\Application\InstanceClock;
-use App\Work\Application\TaskGroup;
-use App\Work\Application\TaskRow;
-use App\Work\Application\WorkQueries;
-use App\Work\Domain\Priority;
+use Foresi\Identity\Application\OpenToGuest;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Work\Application\TaskGroup;
+use Foresi\Work\Application\TaskRow;
+use Foresi\Work\Application\WorkQueries;
+use Foresi\Work\Domain\Priority;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

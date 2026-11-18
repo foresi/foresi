@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Infrastructure\Security;
+namespace Foresi\Tests\Identity\Infrastructure\Security;
 
-use App\Audit\Domain\ActorKind;
-use App\Identity\Application\ApiTokenGrant;
-use App\Identity\Domain\ApiScope;
-use App\Identity\Infrastructure\Security\ApiFirewalls;
-use App\Identity\Infrastructure\Security\SecurityApiTokenContext;
-use App\Identity\Infrastructure\Security\SecurityAuditActor;
-use App\Identity\Infrastructure\Security\SecurityUser;
+use Foresi\Audit\Domain\ActorKind;
+use Foresi\Identity\Application\ApiTokenGrant;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Identity\Infrastructure\Security\ApiFirewalls;
+use Foresi\Identity\Infrastructure\Security\SecurityApiTokenContext;
+use Foresi\Identity\Infrastructure\Security\SecurityAuditActor;
+use Foresi\Identity\Infrastructure\Security\SecurityUser;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;

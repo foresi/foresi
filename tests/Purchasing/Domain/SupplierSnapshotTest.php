@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Purchasing\Domain;
+namespace Foresi\Tests\Purchasing\Domain;
 
-use App\Party\Domain\Address;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Purchasing\Domain\SupplierSnapshot;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Purchasing\Domain\SupplierSnapshot;
 use PHPUnit\Framework\TestCase;
 
 final class SupplierSnapshotTest extends TestCase

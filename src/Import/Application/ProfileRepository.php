@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application;
+namespace Foresi\Import\Application;
 
-use App\Import\Domain\ImportProfile;
+use Foresi\Import\Domain\ImportProfile;
 
 interface ProfileRepository
 {

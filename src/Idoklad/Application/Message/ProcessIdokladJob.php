@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application\Message;
+namespace Foresi\Idoklad\Application\Message;
 
 /**
  * Does one pull, check or run of the move from iDoklad.

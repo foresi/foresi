@@ -6,21 +6,21 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\DocumentListWriter;
-use App\Invoicing\Application\ExportDocumentList;
-use App\Invoicing\Application\InvoiceFilter;
-use App\Invoicing\Application\InvoiceRow;
-use App\Invoicing\Application\InvoiceSumLine;
-use App\Invoicing\Application\ListedDocument;
-use App\Invoicing\Application\ListedDocuments;
-use App\Invoicing\Application\ListFileFormat;
-use App\Invoicing\Application\PaymentState;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Application\DocumentListWriter;
+use Foresi\Invoicing\Application\ExportDocumentList;
+use Foresi\Invoicing\Application\InvoiceFilter;
+use Foresi\Invoicing\Application\InvoiceRow;
+use Foresi\Invoicing\Application\InvoiceSumLine;
+use Foresi\Invoicing\Application\ListedDocument;
+use Foresi\Invoicing\Application\ListedDocuments;
+use Foresi\Invoicing\Application\ListFileFormat;
+use Foresi\Invoicing\Application\PaymentState;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use PHPUnit\Framework\TestCase;
 
 final class ExportDocumentListTest extends TestCase

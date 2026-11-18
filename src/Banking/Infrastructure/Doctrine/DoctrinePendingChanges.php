@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure\Doctrine;
+namespace Foresi\Banking\Infrastructure\Doctrine;
 
-use App\Banking\Application\PendingChanges;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Banking\Application\PendingChanges;
 
 /**
  * A flush: inside a transaction it writes without committing, which the

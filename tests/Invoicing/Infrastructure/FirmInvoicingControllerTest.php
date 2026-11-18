@@ -6,23 +6,23 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure;
+namespace Foresi\Tests\Invoicing\Infrastructure;
 
-use App\Identity\Domain\Role;
-use App\Invoicing\Application\FirmInvoicingSettings;
-use App\Invoicing\Application\NumberCounter;
-use App\Invoicing\Application\SeriesCatalog;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\FirmInvoicing;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\SeriesFormat;
-use App\Invoicing\Domain\TotalRounding;
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
-use App\Tests\Identity\Support\SignedInBrowser;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Domain\Role;
+use Foresi\Invoicing\Application\FirmInvoicingSettings;
+use Foresi\Invoicing\Application\NumberCounter;
+use Foresi\Invoicing\Application\SeriesCatalog;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\FirmInvoicing;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Invoicing\Domain\TotalRounding;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Clock;

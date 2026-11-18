@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Domain;
+namespace Foresi\Invoicing\Domain;
 
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\Party;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Schedule\Recurrence;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Schedule\Recurrence;
 
 /**
  * What a person sets on a recurring template, on creation and on every edit.

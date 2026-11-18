@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Http;
+namespace Foresi\Party\Infrastructure\Http;
 
-use App\Party\Application\PartyNotAllowed;
-use App\Party\Application\UnknownParty;
+use Foresi\Party\Application\PartyNotAllowed;
+use Foresi\Party\Application\UnknownParty;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;

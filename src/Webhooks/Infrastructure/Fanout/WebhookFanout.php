@@ -6,24 +6,24 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Fanout;
+namespace Foresi\Webhooks\Infrastructure\Fanout;
 
-use App\Events\Application\EventSink;
-use App\Events\Application\Query\EventRow;
-use App\Events\Infrastructure\Api\EventView;
-use App\Events\Infrastructure\Catalogue\EventCatalogue;
-use App\Shared\Application\Event\EventReadAccess;
-use App\Shared\Domain\Id;
-use App\Webhooks\Application\AttemptTrigger;
-use App\Webhooks\Application\SendWebhook;
-use App\Webhooks\Domain\DisabledReason;
-use App\Webhooks\Domain\EndpointUrl;
-use App\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable;
-use App\Webhooks\Infrastructure\Mail\EndpointDisabledMailer;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\ConversionException;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
+use Foresi\Events\Application\EventSink;
+use Foresi\Events\Application\Query\EventRow;
+use Foresi\Events\Infrastructure\Api\EventView;
+use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
+use Foresi\Shared\Application\Event\EventReadAccess;
+use Foresi\Shared\Domain\Id;
+use Foresi\Webhooks\Application\AttemptTrigger;
+use Foresi\Webhooks\Application\SendWebhook;
+use Foresi\Webhooks\Domain\DisabledReason;
+use Foresi\Webhooks\Domain\EndpointUrl;
+use Foresi\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable;
+use Foresi\Webhooks\Infrastructure\Mail\EndpointDisabledMailer;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;

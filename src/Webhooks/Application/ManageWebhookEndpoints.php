@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Application;
+namespace Foresi\Webhooks\Application;
 
-use App\Shared\Application\SealerUnavailable;
-use App\Shared\Domain\Id;
-use App\Webhooks\Application\Query\DeliveryRecords;
-use App\Webhooks\Application\Query\DeliveryRow;
-use App\Webhooks\Application\Query\WebhookEndpointList;
-use App\Webhooks\Domain\DisabledReason;
-use App\Webhooks\Domain\EventTypes;
-use App\Webhooks\Domain\WebhookEndpoint;
-use App\Webhooks\Domain\WebhookSecret;
+use Foresi\Shared\Application\SealerUnavailable;
+use Foresi\Shared\Domain\Id;
+use Foresi\Webhooks\Application\Query\DeliveryRecords;
+use Foresi\Webhooks\Application\Query\DeliveryRow;
+use Foresi\Webhooks\Application\Query\WebhookEndpointList;
+use Foresi\Webhooks\Domain\DisabledReason;
+use Foresi\Webhooks\Domain\EventTypes;
+use Foresi\Webhooks\Domain\WebhookEndpoint;
+use Foresi\Webhooks\Domain\WebhookSecret;
 use Psr\Clock\ClockInterface;
 
 /**

@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Crypto;
+namespace Foresi\Webhooks\Infrastructure\Crypto;
 
-use App\Shared\Application\SealerUnavailable;
-use App\Shared\Infrastructure\Crypto\SodiumSealer;
-use App\Webhooks\Application\WebhookSecrets;
-use App\Webhooks\Domain\WebhookSecret;
+use Foresi\Shared\Application\SealerUnavailable;
+use Foresi\Shared\Infrastructure\Crypto\SodiumSealer;
+use Foresi\Webhooks\Application\WebhookSecrets;
+use Foresi\Webhooks\Domain\WebhookSecret;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**

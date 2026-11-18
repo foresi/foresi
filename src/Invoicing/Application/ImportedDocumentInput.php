@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\DocumentParty;
-use App\Invoicing\Domain\TotalRounding;
-use App\Invoicing\Domain\VatRegime;
+use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Domain\TotalRounding;
+use Foresi\Invoicing\Domain\VatRegime;
 
 /**
  * A document another system issued, as it was there. The document names its series

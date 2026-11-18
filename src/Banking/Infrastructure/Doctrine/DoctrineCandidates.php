@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure\Doctrine;
+namespace Foresi\Banking\Infrastructure\Doctrine;
 
-use App\Banking\Application\Candidate;
-use App\Banking\Application\Candidates;
-use App\Banking\Domain\BankMovement;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\PaymentAllocation;
-use App\Invoicing\Domain\PaymentDirection;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Banking\Application\Candidate;
+use Foresi\Banking\Application\Candidates;
+use Foresi\Banking\Domain\BankMovement;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\PaymentAllocation;
+use Foresi\Invoicing\Domain\PaymentDirection;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 
 /**
  * One query through the ORM. What is paid is summed as the invoice list sums

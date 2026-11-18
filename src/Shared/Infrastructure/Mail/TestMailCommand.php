@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Mail;
+namespace Foresi\Shared\Infrastructure\Mail;
 
-use App\Shared\Application\SystemMail;
-use App\Shared\Application\SystemMailer;
-use App\Shared\Application\SystemMailUnavailable;
+use Foresi\Shared\Application\SystemMail;
+use Foresi\Shared\Application\SystemMailer;
+use Foresi\Shared\Application\SystemMailUnavailable;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;

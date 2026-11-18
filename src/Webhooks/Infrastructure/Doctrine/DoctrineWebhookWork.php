@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Doctrine;
+namespace Foresi\Webhooks\Infrastructure\Doctrine;
 
-use App\Shared\Application\Event\EventOutbox;
-use App\Webhooks\Application\WebhookWork;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
+use Foresi\Shared\Application\Event\EventOutbox;
+use Foresi\Webhooks\Application\WebhookWork;
 
 /**
  * The unit of work of the modules on the same entity manager, as Party's

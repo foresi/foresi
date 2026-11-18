@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\ExchangeRate\Domain;
+namespace Foresi\ExchangeRate\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
 

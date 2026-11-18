@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\InboundChannel;
-use App\Banking\Domain\InboundMessage;
-use App\Party\Application\TransactionalWork;
-use App\Shared\Domain\Id;
+use Foresi\Banking\Domain\InboundChannel;
+use Foresi\Banking\Domain\InboundMessage;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Domain\Id;
 use Psr\Clock\ClockInterface;
 
 /**

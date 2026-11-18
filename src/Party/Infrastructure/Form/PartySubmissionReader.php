@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Form;
+namespace Foresi\Party\Infrastructure\Form;
 
-use App\Party\Application\PartyDraft;
-use App\Party\Application\PartyRefused;
-use App\Party\Application\PartyRules;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
+use Foresi\Party\Application\PartyDraft;
+use Foresi\Party\Application\PartyRefused;
+use Foresi\Party\Application\PartyRules;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
 use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\Request;
 

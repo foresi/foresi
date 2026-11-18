@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure\Imap;
+namespace Foresi\Banking\Infrastructure\Imap;
 
-use App\Banking\Application\InboundMailbox;
-use App\Banking\Application\MailboxItem;
 use DirectoryTree\ImapEngine\Connection\RawQueryValue;
 use DirectoryTree\ImapEngine\Connection\Streams\ImapStream;
 use DirectoryTree\ImapEngine\Enums\ImapSearchKey;
 use DirectoryTree\ImapEngine\Mailbox;
 use DirectoryTree\ImapEngine\Message;
+use Foresi\Banking\Application\InboundMailbox;
+use Foresi\Banking\Application\MailboxItem;
 
 /**
  * The operator mailbox over IMAP with directorytree/imapengine, the only code

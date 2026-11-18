@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Source;
+namespace Foresi\Import\Infrastructure\Source;
 
 /**
  * The text a spreadsheet cell shows: numbers without exponent or trailing

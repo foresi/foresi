@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Console;
+namespace Foresi\Identity\Infrastructure\Console;
 
-use App\Identity\Application\ApiTokenRefused;
-use App\Identity\Infrastructure\Security\ApiTokenLogin;
-use App\Identity\Infrastructure\Security\ApiTokenRejected;
-use App\Shared\Infrastructure\Mcp\ToolCaller;
-use App\Shared\Infrastructure\Mcp\ToolRefusal;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Application\ApiTokenRefused;
+use Foresi\Identity\Infrastructure\Security\ApiTokenLogin;
+use Foresi\Identity\Infrastructure\Security\ApiTokenRejected;
+use Foresi\Shared\Infrastructure\Mcp\ToolCaller;
+use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 use Symfony\Component\Console\ConsoleEvents;
 use Symfony\Component\Console\Event\ConsoleCommandEvent;
 use Symfony\Component\Console\Output\ConsoleOutputInterface;

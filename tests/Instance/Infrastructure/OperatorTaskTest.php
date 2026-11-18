@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Instance\Infrastructure;
+namespace Foresi\Tests\Instance\Infrastructure;
 
-use App\Instance\Application\Schedule\RunOperatorTask;
-use App\Instance\Infrastructure\Schedule\ForesiSchedule;
-use App\Instance\Infrastructure\Schedule\ScheduleTick;
-use App\Tests\Import\Support\RunMessages;
-use App\Tests\Instance\Support\CountingOperatorTask;
+use Foresi\Instance\Application\Schedule\RunOperatorTask;
+use Foresi\Instance\Infrastructure\Schedule\ForesiSchedule;
+use Foresi\Instance\Infrastructure\Schedule\ScheduleTick;
+use Foresi\Tests\Import\Support\RunMessages;
+use Foresi\Tests\Instance\Support\CountingOperatorTask;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Messenger\Envelope;

@@ -6,32 +6,32 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\CustomerOption;
-use App\Invoicing\Application\FirmInvoicingSettings;
-use App\Invoicing\Application\InvoiceDraftValues;
-use App\Invoicing\Application\NewInvoiceDefaults;
-use App\Invoicing\Application\UnsupportedCountry;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\FirmInvoicing;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\SeriesFormat;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\TotalRounding;
-use App\Invoicing\Domain\VatRateKind;
-use App\Invoicing\Domain\VatRegime;
-use App\Party\Application\FirmBankAccounts;
-use App\Party\Domain\Address;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\InvoicingDefaults;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\PaymentMethod;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
-use App\Shared\Domain\Currency;
-use App\Tests\Party\Support\FirmAccounts;
+use Foresi\Invoicing\Application\CustomerOption;
+use Foresi\Invoicing\Application\FirmInvoicingSettings;
+use Foresi\Invoicing\Application\InvoiceDraftValues;
+use Foresi\Invoicing\Application\NewInvoiceDefaults;
+use Foresi\Invoicing\Application\UnsupportedCountry;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\FirmInvoicing;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\TotalRounding;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\InvoicingDefaults;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Tests\Party\Support\FirmAccounts;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
@@ -216,15 +216,15 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
         self::assertSame($first->id(), $this->defaults->firmFor($user)?->id());
         self::assertSame($first->id(), $this->defaults->firmFor(null)?->id());
 
-        $store = self::createStub(\App\Invoicing\Application\InvoiceStore::class);
+        $store = self::createStub(\Foresi\Invoicing\Application\InvoiceStore::class);
         $store->method('lastFirmOf')->willReturnMap([[$user, $used]]);
         $defaults = new NewInvoiceDefaults(
             $store,
-            self::getContainer()->get(\App\Party\Application\LegalEntities::class),
+            self::getContainer()->get(\Foresi\Party\Application\LegalEntities::class),
             $this->catalog,
             $this->counter,
             self::getContainer()->get(FirmInvoicingSettings::class),
-            self::getContainer()->get(\App\Invoicing\Application\InvoicingCountries::class),
+            self::getContainer()->get(\Foresi\Invoicing\Application\InvoicingCountries::class),
             self::getContainer()->get(\Psr\Clock\ClockInterface::class),
             self::getContainer()->get(FirmBankAccounts::class),
         );
@@ -337,7 +337,7 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
 
     private function reloadedFirm(): LegalEntity
     {
-        return self::getContainer()->get(\App\Party\Application\LegalEntities::class)->get($this->firm->id());
+        return self::getContainer()->get(\Foresi\Party\Application\LegalEntities::class)->get($this->firm->id());
     }
 
     private function namedFirm(string $name, string $number): LegalEntity

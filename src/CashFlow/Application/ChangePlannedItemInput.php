@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Application;
+namespace Foresi\CashFlow\Application;
 
-use App\CashFlow\Domain\PlannedItem;
-use App\Shared\Application\Api\Field;
-use App\Shared\Application\Api\Omitted;
-use App\Shared\Application\Api\Operation;
+use Foresi\CashFlow\Domain\PlannedItem;
+use Foresi\Shared\Application\Api\Field;
+use Foresi\Shared\Application\Api\Omitted;
+use Foresi\Shared\Application\Api\Operation;
 
 /**
  * A partial change of a planned item: a field left out keeps its value, an

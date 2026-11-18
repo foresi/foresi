@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Module;
+namespace Foresi\Shared\Infrastructure\Module;
 
-use App\Shared\Domain\Module\ModuleGraph;
-use App\Shared\Domain\Module\ModuleId;
-use App\Shared\Domain\Module\ModuleKind;
+use Foresi\Shared\Domain\Module\ModuleGraph;
+use Foresi\Shared\Domain\Module\ModuleId;
+use Foresi\Shared\Domain\Module\ModuleKind;
 
 /**
  * The module-level Deptrac configuration (ADR 0029, ADR 0033). Each installed
  * module has three kinds of layer:
  *
  * - "<id>": the module's own code, everything but Contract and Integration;
- * - "<id>_contract": App\<Module>\Contract\, what other modules may use;
- * - "<id>_integration_<other>": App\<Module>\Integration\<Other>\, the code
+ * - "<id>_contract": Foresi\<Module>\Contract\, what other modules may use;
+ * - "<id>_integration_<other>": Foresi\<Module>\Integration\<Other>\, the code
  *   for one optional dependency, loaded only when <other> is installed.
  *
  * A module may use the modules it requires, whole, as before contracts
@@ -95,7 +95,7 @@ final readonly class DeptracModulesConfig
     }
 
     /**
-     * "App\Invoicing\" as the start of a pattern, "^App\\Invoicing\\".
+     * "Foresi\Invoicing\" as the start of a pattern, "^Foresi\\Invoicing\\".
      */
     private function pattern(string $namespace): string
     {

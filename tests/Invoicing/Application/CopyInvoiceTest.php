@@ -6,32 +6,32 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Audit\Domain\AuditEntry;
-use App\Invoicing\Application\CopyInvoice;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Domain\AbandonedNumber;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Quantity;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\SeriesCounter;
-use App\Invoicing\Domain\SeriesFormat;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Invoicing\Domain\VatRegime;
-use App\Party\Application\ContactSettingsForFirm;
-use App\Party\Application\FirmBankAccounts;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\InvoicingDefaults;
-use App\Party\Domain\PaymentMethod;
-use App\Party\Domain\VatStatus;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Party\Support\FirmAccounts;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Invoicing\Application\CopyInvoice;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Domain\AbandonedNumber;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\SeriesCounter;
+use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\InvoicingDefaults;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Party\Support\FirmAccounts;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
@@ -175,7 +175,7 @@ final class CopyInvoiceTest extends InvoiceTestCase
     public function testAContactWhoStoppedBeingACustomerStaysOnTheCopy(): void
     {
         $source = $this->source();
-        self::getContainer()->get(ContactSettingsForFirm::class)->changeRoles($this->customer, $this->firm, [\App\Party\Domain\PartyRole::Supplier]);
+        self::getContainer()->get(ContactSettingsForFirm::class)->changeRoles($this->customer, $this->firm, [\Foresi\Party\Domain\PartyRole::Supplier]);
         $this->em->flush();
 
         $draft = $this->copy->valuesFrom($source);
@@ -315,7 +315,7 @@ final class CopyInvoiceTest extends InvoiceTestCase
     private function firmChanged(VatStatus $status, array $accounts, ?string $vatId = 'CZ12345695'): void
     {
         $firm = $this->firm;
-        $firm->update($firm->name(), $firm->registrationNumber(), VatStatus::Registered === $status ? \App\Party\Domain\VatId::fromString($vatId ?? '') : null, $firm->address(), $status, $firm->registerEntry());
+        $firm->update($firm->name(), $firm->registrationNumber(), VatStatus::Registered === $status ? \Foresi\Party\Domain\VatId::fromString($vatId ?? '') : null, $firm->address(), $status, $firm->registerEntry());
         $kept = [];
         foreach (self::getContainer()->get(FirmBankAccounts::class)->of($firm, withArchived: true) as $account) {
             if (\in_array($account->iban(), $accounts, true)) {
@@ -336,7 +336,7 @@ final class CopyInvoiceTest extends InvoiceTestCase
         return $this->catalog->get($series->id());
     }
 
-    private function secondFirm(VatStatus $status, ?string $vatId): \App\Party\Domain\LegalEntity
+    private function secondFirm(VatStatus $status, ?string $vatId): \Foresi\Party\Domain\LegalEntity
     {
         $firm = $this->firm($status, $vatId, registrationNumber: '12345687');
         $this->em->flush();

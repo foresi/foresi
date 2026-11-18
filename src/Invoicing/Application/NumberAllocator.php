@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\NumberKey;
-use App\Invoicing\Domain\Series;
-use App\Party\Domain\LegalEntity;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\NumberKey;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Party\Domain\LegalEntity;
 
 /**
  * Gives a document its number inside the transaction that stores it. The period

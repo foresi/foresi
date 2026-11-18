@@ -6,27 +6,27 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Integration\CashFlow;
+namespace Foresi\Purchasing\Integration\CashFlow;
 
-use App\CashFlow\Contract\ActualFlow;
-use App\CashFlow\Contract\ActualFlowSource;
-use App\CashFlow\Contract\CashFlowSource;
-use App\CashFlow\Contract\ExpectedFlow;
-use App\CashFlow\Contract\FlowCategory;
-use App\CashFlow\Contract\FlowCertainty;
-use App\CashFlow\Contract\FlowDirection;
-use App\CashFlow\Contract\FlowFlag;
-use App\CashFlow\Contract\FlowSubject;
-use App\Identity\Application\ApiTokenContext;
-use App\Identity\Application\ApiTokenGrant;
-use App\Identity\Domain\ApiScope;
-use App\Purchasing\Application\Query\PayableDocument;
-use App\Purchasing\Application\Query\ReceivedDocumentBalances;
-use App\Purchasing\Application\Query\ReceivedDocumentSliceFilter;
-use App\Purchasing\Domain\ReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocumentKind;
-use App\Purchasing\Domain\ReceivedDocumentState;
-use App\Purchasing\Infrastructure\Api\ReceivedDocumentApiController;
+use Foresi\CashFlow\Contract\ActualFlow;
+use Foresi\CashFlow\Contract\ActualFlowSource;
+use Foresi\CashFlow\Contract\CashFlowSource;
+use Foresi\CashFlow\Contract\ExpectedFlow;
+use Foresi\CashFlow\Contract\FlowCategory;
+use Foresi\CashFlow\Contract\FlowCertainty;
+use Foresi\CashFlow\Contract\FlowDirection;
+use Foresi\CashFlow\Contract\FlowFlag;
+use Foresi\CashFlow\Contract\FlowSubject;
+use Foresi\Identity\Application\ApiTokenContext;
+use Foresi\Identity\Application\ApiTokenGrant;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Purchasing\Application\Query\PayableDocument;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentBalances;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentSliceFilter;
+use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Purchasing\Domain\ReceivedDocumentState;
+use Foresi\Purchasing\Infrastructure\Api\ReceivedDocumentApiController;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

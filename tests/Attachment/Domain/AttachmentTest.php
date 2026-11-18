@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Attachment\Domain;
+namespace Foresi\Tests\Attachment\Domain;
 
-use App\Attachment\Domain\Attachment;
-use App\Attachment\Domain\FileName;
-use App\Shared\Domain\Id;
+use Foresi\Attachment\Domain\Attachment;
+use Foresi\Attachment\Domain\FileName;
+use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Domain\Schedule;
+namespace Foresi\Tests\Shared\Domain\Schedule;
 
-use App\Shared\Domain\Schedule\InvalidRecurrence;
-use App\Shared\Domain\Schedule\Recurrence;
-use App\Shared\Domain\Schedule\RecurrenceEnd;
-use App\Shared\Domain\Schedule\RecurrenceUnit;
-use App\Shared\Domain\Schedule\RecurringSchedule;
+use Foresi\Shared\Domain\Schedule\InvalidRecurrence;
+use Foresi\Shared\Domain\Schedule\Recurrence;
+use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
+use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
+use Foresi\Shared\Domain\Schedule\RecurringSchedule;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

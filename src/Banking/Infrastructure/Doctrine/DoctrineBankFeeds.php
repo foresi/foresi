@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure\Doctrine;
+namespace Foresi\Banking\Infrastructure\Doctrine;
 
-use App\Banking\Application\AddressRefusal;
-use App\Banking\Application\AddressRefused;
-use App\Banking\Application\BankFeeds;
-use App\Banking\Application\InboundAddresses;
-use App\Banking\Domain\BankFeed;
-use App\Invoicing\Application\MailSecrets;
-use App\Invoicing\Application\MailSecretsUnavailable;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Banking\Application\AddressRefusal;
+use Foresi\Banking\Application\AddressRefused;
+use Foresi\Banking\Application\BankFeeds;
+use Foresi\Banking\Application\InboundAddresses;
+use Foresi\Banking\Domain\BankFeed;
+use Foresi\Invoicing\Application\MailSecrets;
+use Foresi\Invoicing\Application\MailSecretsUnavailable;
 
 /**
  * Through the ORM, except touch(), which is plain SQL by the feed's id.

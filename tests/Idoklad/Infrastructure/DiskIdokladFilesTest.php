@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Idoklad\Infrastructure;
+namespace Foresi\Tests\Idoklad\Infrastructure;
 
-use App\Idoklad\Application\IdokladFileUnreadable;
-use App\Idoklad\Infrastructure\Files\DiskIdokladFiles;
-use App\Shared\Domain\Id;
+use Foresi\Idoklad\Application\IdokladFileUnreadable;
+use Foresi\Idoklad\Infrastructure\Files\DiskIdokladFiles;
+use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\TestCase;
 
 final class DiskIdokladFilesTest extends TestCase

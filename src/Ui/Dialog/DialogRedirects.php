@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Ui\Dialog;
+namespace Foresi\Ui\Dialog;
 
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;

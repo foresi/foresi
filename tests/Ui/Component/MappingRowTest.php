@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui\Component;
+namespace Foresi\Tests\Ui\Component;
 
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\UX\TwigComponent\Test\InteractsWithTwigComponents;
@@ -152,7 +152,7 @@ final class MappingRowTest extends KernelTestCase
         self::assertNull($select->attr('aria-invalid'));
         self::assertNull($select->attr('aria-describedby'));
         self::assertNull($select->attr('autofocus'));
-        self::assertSame('h-control cursor-pointer appearance-none pr-10 hover:border-green '.\App\Ui\Component\Style::field(false), $select->attr('class'));
+        self::assertSame('h-control cursor-pointer appearance-none pr-10 hover:border-green '.\Foresi\Ui\Component\Style::field(false), $select->attr('class'));
         self::assertCount(0, $crawler->filter('#column-0-error'));
     }
 

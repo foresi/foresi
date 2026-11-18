@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure\Http;
+namespace Foresi\Tests\Invoicing\Infrastructure\Http;
 
-use App\Invoicing\Application\InvoicingNotAllowed;
-use App\Invoicing\Application\Query\PaymentsNotAllowed;
-use App\Invoicing\Application\UnknownInvoice;
-use App\Invoicing\Application\UnknownPayment;
-use App\Invoicing\Infrastructure\Http\InvoicingErrors;
+use Foresi\Invoicing\Application\InvoicingNotAllowed;
+use Foresi\Invoicing\Application\Query\PaymentsNotAllowed;
+use Foresi\Invoicing\Application\UnknownInvoice;
+use Foresi\Invoicing\Application\UnknownPayment;
+use Foresi\Invoicing\Infrastructure\Http\InvoicingErrors;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;

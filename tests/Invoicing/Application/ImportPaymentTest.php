@@ -6,35 +6,35 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\DeductibleAdvances;
-use App\Invoicing\Application\ImportedDocumentInput;
-use App\Invoicing\Application\ImportedDocumentResult;
-use App\Invoicing\Application\ImportedPaymentInput;
-use App\Invoicing\Application\ImportedTotals;
-use App\Invoicing\Application\ImportIssuedDocument;
-use App\Invoicing\Application\ImportOutcome;
-use App\Invoicing\Application\ImportPayment;
-use App\Invoicing\Application\IssuePaymentTaxDocument;
-use App\Invoicing\Application\IssueProblem;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Application\PaymentRefused;
-use App\Invoicing\Application\UndoBlocker;
-use App\Invoicing\Application\UndoImportedDocuments;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\DocumentParty;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\Payment;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\SeriesFormat;
-use App\Invoicing\Domain\TotalRounding;
-use App\Invoicing\Domain\VatRegime;
-use App\Party\Domain\Address;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Application\DeductibleAdvances;
+use Foresi\Invoicing\Application\ImportedDocumentInput;
+use Foresi\Invoicing\Application\ImportedDocumentResult;
+use Foresi\Invoicing\Application\ImportedPaymentInput;
+use Foresi\Invoicing\Application\ImportedTotals;
+use Foresi\Invoicing\Application\ImportIssuedDocument;
+use Foresi\Invoicing\Application\ImportOutcome;
+use Foresi\Invoicing\Application\ImportPayment;
+use Foresi\Invoicing\Application\IssuePaymentTaxDocument;
+use Foresi\Invoicing\Application\IssueProblem;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Application\PaymentRefused;
+use Foresi\Invoicing\Application\UndoBlocker;
+use Foresi\Invoicing\Application\UndoImportedDocuments;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Payment;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Invoicing\Domain\TotalRounding;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 
 /**
  * Payments, tax documents on payment and invoices that deduct advances, as another

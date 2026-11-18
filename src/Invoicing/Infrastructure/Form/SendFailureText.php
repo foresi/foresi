@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Form;
+namespace Foresi\Invoicing\Infrastructure\Form;
 
-use App\Invoicing\Application\MailRefused;
+use Foresi\Invoicing\Application\MailRefused;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**

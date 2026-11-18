@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Infrastructure\Doctrine;
+namespace Foresi\CashFlow\Infrastructure\Doctrine;
 
-use App\CashFlow\Application\CashFlowStore;
-use App\CashFlow\Domain\Checkpoint;
-use App\CashFlow\Domain\ExpectedDate;
-use App\CashFlow\Domain\MinimumBalance;
-use App\CashFlow\Domain\PlannedItem;
-use App\Party\Domain\FirmBankAccount;
-use App\Shared\Domain\Id;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\CashFlow\Application\CashFlowStore;
+use Foresi\CashFlow\Domain\Checkpoint;
+use Foresi\CashFlow\Domain\ExpectedDate;
+use Foresi\CashFlow\Domain\MinimumBalance;
+use Foresi\CashFlow\Domain\PlannedItem;
+use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Shared\Domain\Id;
 
 /**
  * The records of the cash flow in Doctrine. A write is flushed by the unit of work around it.

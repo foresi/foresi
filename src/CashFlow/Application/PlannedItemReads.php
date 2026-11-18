@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Application;
+namespace Foresi\CashFlow\Application;
 
-use App\CashFlow\Domain\PlannedItem;
+use Foresi\CashFlow\Domain\PlannedItem;
 
 /**
  * The planned items as the API and MCP read them; only the owners and

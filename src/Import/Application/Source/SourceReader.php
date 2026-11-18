@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application\Source;
+namespace Foresi\Import\Application\Source;
 
 /**
  * Reads tabular source files (CSV and XLSX) for import.

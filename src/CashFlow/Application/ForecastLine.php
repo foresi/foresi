@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Application;
+namespace Foresi\CashFlow\Application;
 
-use App\CashFlow\Contract\ExpectedFlow;
-use App\CashFlow\Contract\FlowDirection;
-use App\Shared\Domain\Money;
+use Foresi\CashFlow\Contract\ExpectedFlow;
+use Foresi\CashFlow\Contract\FlowDirection;
+use Foresi\Shared\Domain\Money;
 
 /**
  * One expected flow in the forecast: as its source gave it, in CZK, and the

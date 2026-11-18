@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Attachment;
+namespace Foresi\Work\Infrastructure\Attachment;
 
-use App\Attachment\Application\AttachmentAccess;
-use App\Attachment\Domain\Attachment;
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\OwnerCheck;
-use App\Identity\Application\People;
-use App\Identity\Domain\Membership;
-use App\Work\Application\Comments;
-use App\Work\Application\Tasks;
-use App\Work\Application\WorkVisibility;
-use App\Work\Domain\Task;
-use App\Work\Domain\TaskComment;
+use Foresi\Attachment\Application\AttachmentAccess;
+use Foresi\Attachment\Domain\Attachment;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\OwnerCheck;
+use Foresi\Identity\Application\People;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Work\Application\Comments;
+use Foresi\Work\Application\Tasks;
+use Foresi\Work\Application\WorkVisibility;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TaskComment;
 
 /**
  * The files of a task: whoever may see the task sees them and attaches more,

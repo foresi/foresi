@@ -6,24 +6,24 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Application;
+namespace Foresi\Tests\Identity\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\InvitationMailer;
-use App\Identity\Application\InvitationRefused;
-use App\Identity\Application\Invitations;
-use App\Identity\Application\InvitePeople;
-use App\Identity\Application\MembershipDirectory;
-use App\Identity\Application\Organisation;
-use App\Identity\Application\People;
-use App\Identity\Application\UserRepository;
-use App\Identity\Domain\Invitation;
-use App\Identity\Domain\InvitationToken;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Party\Application\PartyQuery;
-use App\Shared\Application\SystemMailUnavailable;
-use App\Shared\Domain\Id;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\InvitationMailer;
+use Foresi\Identity\Application\InvitationRefused;
+use Foresi\Identity\Application\Invitations;
+use Foresi\Identity\Application\InvitePeople;
+use Foresi\Identity\Application\MembershipDirectory;
+use Foresi\Identity\Application\Organisation;
+use Foresi\Identity\Application\People;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Domain\Invitation;
+use Foresi\Identity\Domain\InvitationToken;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Shared\Application\SystemMailUnavailable;
+use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;

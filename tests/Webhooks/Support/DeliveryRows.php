@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Support;
+namespace Foresi\Tests\Webhooks\Support;
 
-use App\Shared\Domain\Id;
-use App\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
+use Foresi\Shared\Domain\Id;
+use Foresi\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
 
 /**
  * Writes and reads delivery rows as the fan-out and the handler leave them.

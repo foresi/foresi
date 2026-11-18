@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Mcp;
+namespace Foresi\Webhooks\Infrastructure\Mcp;
 
-use App\Shared\Infrastructure\Mcp\ReadTool;
-use App\Shared\Infrastructure\Mcp\ToolArguments;
-use App\Shared\Infrastructure\Mcp\ToolOutput;
-use App\Webhooks\Application\Query\WebhookDeliveryLog;
-use App\Webhooks\Infrastructure\Api\DeliveryView;
-use App\Webhooks\Infrastructure\Api\WebhookListQuery;
+use Foresi\Shared\Infrastructure\Mcp\ReadTool;
+use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
+use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Webhooks\Application\Query\WebhookDeliveryLog;
+use Foresi\Webhooks\Infrastructure\Api\DeliveryView;
+use Foresi\Webhooks\Infrastructure\Api\WebhookListQuery;
 
 /**
  * What was sent to one endpoint, listed as GET /api/v1/webhook-endpoints/{id}/deliveries
@@ -62,7 +62,7 @@ final readonly class ListWebhookDeliveriesTool implements ReadTool
         $endpointId = WebhookToolArguments::required($arguments, 'endpoint_id');
         $query = new WebhookListQuery(ToolArguments::limit($arguments), ToolArguments::text($arguments, 'cursor'));
         $this->arguments->validate($query);
-        $slice = WebhookToolErrors::refuse(fn (): \App\Webhooks\Application\Query\DeliverySlice => $this->log->slice($endpointId, ToolArguments::afterId($query->cursor), $query->limit));
+        $slice = WebhookToolErrors::refuse(fn (): \Foresi\Webhooks\Application\Query\DeliverySlice => $this->log->slice($endpointId, ToolArguments::afterId($query->cursor), $query->limit));
 
         return ToolArguments::page(array_map(DeliveryView::row(...), $slice->rows), $slice->hasMore ? $slice->lastId() : null, 'delivery', 'deliveries');
     }

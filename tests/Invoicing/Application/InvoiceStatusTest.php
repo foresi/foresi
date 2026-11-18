@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\InvoiceStatus;
-use App\Invoicing\Application\PaymentState;
+use Foresi\Invoicing\Application\InvoiceStatus;
+use Foresi\Invoicing\Application\PaymentState;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

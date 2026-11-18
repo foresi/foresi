@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\BankMovement;
+use Foresi\Banking\Domain\BankMovement;
 
 /**
  * What the movements add up to, for the balance and the forecast. A possible duplicate counts nowhere: it may be a movement already

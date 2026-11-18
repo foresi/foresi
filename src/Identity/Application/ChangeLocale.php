@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
 /**
  * Stores the language a user wants the application in.

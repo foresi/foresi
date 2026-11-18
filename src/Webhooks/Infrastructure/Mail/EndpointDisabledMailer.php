@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Mail;
+namespace Foresi\Webhooks\Infrastructure\Mail;
 
-use App\Identity\Application\MembershipDirectory;
-use App\Identity\Application\UserRepository;
-use App\Identity\Domain\User;
-use App\Shared\Application\SystemMail;
-use App\Shared\Application\SystemMailer;
-use App\Shared\Application\SystemMailUnavailable;
-use App\Webhooks\Domain\DisabledReason;
-use App\Webhooks\Infrastructure\Controller\WebhookEndpointController;
+use Foresi\Identity\Application\MembershipDirectory;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Domain\User;
+use Foresi\Shared\Application\SystemMail;
+use Foresi\Shared\Application\SystemMailer;
+use Foresi\Shared\Application\SystemMailUnavailable;
+use Foresi\Webhooks\Domain\DisabledReason;
+use Foresi\Webhooks\Infrastructure\Controller\WebhookEndpointController;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;

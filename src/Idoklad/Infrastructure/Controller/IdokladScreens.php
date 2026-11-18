@@ -6,26 +6,26 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Infrastructure\Controller;
+namespace Foresi\Idoklad\Infrastructure\Controller;
 
-use App\Idoklad\Application\IdokladSnapshot;
-use App\Idoklad\Application\Import\RunIdokladImport;
-use App\Idoklad\Domain\IdokladImportRun;
-use App\Idoklad\Domain\IdokladJob;
-use App\Idoklad\Domain\IdokladJobState;
-use App\Idoklad\Domain\IdokladPull;
-use App\Idoklad\Domain\IdokladRecord;
-use App\Idoklad\Domain\IdokladResource;
-use App\Idoklad\Domain\ImportMode;
-use App\Idoklad\Domain\ImportOutcome;
-use App\Invoicing\Application\DocumentFormat;
-use App\Invoicing\Application\ImportedInvoiceTotals;
-use App\Invoicing\Application\InvoicingCountries;
-use App\Invoicing\Application\StoredInvoiceTotal;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\LegalEntity;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Idoklad\Application\IdokladSnapshot;
+use Foresi\Idoklad\Application\Import\RunIdokladImport;
+use Foresi\Idoklad\Domain\IdokladImportRun;
+use Foresi\Idoklad\Domain\IdokladJob;
+use Foresi\Idoklad\Domain\IdokladJobState;
+use Foresi\Idoklad\Domain\IdokladPull;
+use Foresi\Idoklad\Domain\IdokladRecord;
+use Foresi\Idoklad\Domain\IdokladResource;
+use Foresi\Idoklad\Domain\ImportMode;
+use Foresi\Idoklad\Domain\ImportOutcome;
+use Foresi\Invoicing\Application\DocumentFormat;
+use Foresi\Invoicing\Application\ImportedInvoiceTotals;
+use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Invoicing\Application\StoredInvoiceTotal;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 

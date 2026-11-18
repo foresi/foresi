@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Work\Domain\Priority;
+use Foresi\Work\Domain\Priority;
 
 /**
  * One step in the life of a task: one action of a person on it.

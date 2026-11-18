@@ -6,24 +6,24 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Infrastructure;
+namespace Foresi\Tests\Identity\Infrastructure;
 
-use App\Audit\Domain\AuditAction;
-use App\Audit\Domain\AuditEntry;
-use App\Identity\Application\ApiTokenContext;
-use App\Identity\Application\ApiTokenRecord;
-use App\Identity\Application\ApiTokenRefused;
-use App\Identity\Application\ApiTokens;
-use App\Identity\Application\ManageApiTokens;
-use App\Identity\Domain\ApiScope;
-use App\Identity\Domain\ApiToken;
-use App\Identity\Domain\ApiTokenState;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Identity\Infrastructure\Security\ApiTokenLogin;
-use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Tests\Identity\Support\IdentityFixtures;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Audit\Domain\AuditAction;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Identity\Application\ApiTokenContext;
+use Foresi\Identity\Application\ApiTokenRecord;
+use Foresi\Identity\Application\ApiTokenRefused;
+use Foresi\Identity\Application\ApiTokens;
+use Foresi\Identity\Application\ManageApiTokens;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Identity\Domain\ApiToken;
+use Foresi\Identity\Domain\ApiTokenState;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Identity\Infrastructure\Security\ApiTokenLogin;
+use Foresi\Identity\Infrastructure\Security\SecurityUser;
+use Foresi\Tests\Identity\Support\IdentityFixtures;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 

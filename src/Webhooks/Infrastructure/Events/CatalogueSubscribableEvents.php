@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Events;
+namespace Foresi\Webhooks\Infrastructure\Events;
 
-use App\Events\Infrastructure\Catalogue\EventCatalogue;
-use App\Shared\Application\Event\EventReadAccess;
-use App\Webhooks\Application\SubscribableEvents;
+use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
+use Foresi\Shared\Application\Event\EventReadAccess;
+use Foresi\Webhooks\Application\SubscribableEvents;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**

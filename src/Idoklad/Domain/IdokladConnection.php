@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Domain;
+namespace Foresi\Idoklad\Domain;
 
-use App\Audit\Domain\Audited;
-use App\Audit\Domain\AuditExcluded;
-use App\Audit\Domain\AuditRooted;
-use App\Party\Domain\LegalEntity;
-use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Audit\Domain\AuditExcluded;
+use Foresi\Audit\Domain\AuditRooted;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Domain\Id;
 
 /**
  * The API credentials of a firm's iDoklad account, one per firm: a client id

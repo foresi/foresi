@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Audit\Infrastructure\Doctrine;
+namespace Foresi\Audit\Infrastructure\Doctrine;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\Type;

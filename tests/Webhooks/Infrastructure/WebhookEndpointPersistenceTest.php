@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Infrastructure;
+namespace Foresi\Tests\Webhooks\Infrastructure;
 
-use App\Audit\Domain\AuditEntry;
-use App\Identity\Domain\Role;
-use App\Shared\Domain\Id;
-use App\Tests\Identity\Support\IdentityFixtures;
-use App\Webhooks\Domain\EndpointUrl;
-use App\Webhooks\Domain\EventTypes;
-use App\Webhooks\Domain\WebhookEndpoint;
-use App\Webhooks\Domain\WebhookSecret;
-use App\Webhooks\Infrastructure\Crypto\SodiumWebhookSecrets;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Identity\Domain\Role;
+use Foresi\Shared\Domain\Id;
+use Foresi\Tests\Identity\Support\IdentityFixtures;
+use Foresi\Webhooks\Domain\EndpointUrl;
+use Foresi\Webhooks\Domain\EventTypes;
+use Foresi\Webhooks\Domain\WebhookEndpoint;
+use Foresi\Webhooks\Domain\WebhookSecret;
+use Foresi\Webhooks\Infrastructure\Crypto\SodiumWebhookSecrets;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**

@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application;
+namespace Foresi\Import\Application;
 
-use App\Import\Application\Message\ReadImportFile;
-use App\Import\Application\Source\SourceFormat;
-use App\Import\Application\Source\SourceSettings;
-use App\Import\Application\Target\TargetRegistry;
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportProfile;
+use Foresi\Import\Application\Message\ReadImportFile;
+use Foresi\Import\Application\Source\SourceFormat;
+use Foresi\Import\Application\Source\SourceSettings;
+use Foresi\Import\Application\Target\TargetRegistry;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\ImportProfile;
 use Psr\Clock\ClockInterface;
 
 /**

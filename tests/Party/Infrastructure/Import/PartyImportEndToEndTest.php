@@ -6,38 +6,38 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Infrastructure\Import;
+namespace Foresi\Tests\Party\Infrastructure\Import;
 
-use App\Import\Application\CheckImport;
-use App\Import\Application\ConfigureImport;
-use App\Import\Application\Imports;
-use App\Import\Application\RunImport;
-use App\Import\Application\StartImport;
-use App\Import\Application\UndoImport;
-use App\Import\Domain\BlankCells;
-use App\Import\Domain\ColumnProposal;
-use App\Import\Domain\DateOrder;
-use App\Import\Domain\DecimalSeparator;
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportMode;
-use App\Import\Domain\ImportOptions;
-use App\Import\Domain\ImportRow;
-use App\Import\Domain\ImportState;
-use App\Import\Domain\MatchReason;
-use App\Import\Domain\RowOutcome;
-use App\Party\Application\PartyDetails;
-use App\Party\Application\PartyQuery;
-use App\Party\Application\RecheckRegistry;
-use App\Party\Domain\ContactLink;
-use App\Party\Domain\EmailPurpose;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyEmail;
-use App\Party\Domain\PartyKind;
-use App\Party\Infrastructure\Import\IdokladContactPreset;
-use App\Party\Infrastructure\Import\PartyImportTarget;
-use App\Tests\Import\Support\RunMessages;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Import\Application\CheckImport;
+use Foresi\Import\Application\ConfigureImport;
+use Foresi\Import\Application\Imports;
+use Foresi\Import\Application\RunImport;
+use Foresi\Import\Application\StartImport;
+use Foresi\Import\Application\UndoImport;
+use Foresi\Import\Domain\BlankCells;
+use Foresi\Import\Domain\ColumnProposal;
+use Foresi\Import\Domain\DateOrder;
+use Foresi\Import\Domain\DecimalSeparator;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\ImportMode;
+use Foresi\Import\Domain\ImportOptions;
+use Foresi\Import\Domain\ImportRow;
+use Foresi\Import\Domain\ImportState;
+use Foresi\Import\Domain\MatchReason;
+use Foresi\Import\Domain\RowOutcome;
+use Foresi\Party\Application\PartyDetails;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Application\RecheckRegistry;
+use Foresi\Party\Domain\ContactLink;
+use Foresi\Party\Domain\EmailPurpose;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Infrastructure\Import\IdokladContactPreset;
+use Foresi\Party\Infrastructure\Import\PartyImportTarget;
+use Foresi\Tests\Import\Support\RunMessages;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
@@ -140,7 +140,7 @@ final class PartyImportEndToEndTest extends KernelTestCase
 
         $trade = $this->partyNamed('Example Trade a.s.');
         self::assertSame('Ústí nad Labem', $this->details()->billingAddress($trade)?->address()->city);
-        self::assertSame(['CZ1801000000000123456789'], array_map(static fn (\App\Party\Domain\PartyBankAccount $account): string => $account->iban()->toString(), $this->details()->bankAccounts($trade)));
+        self::assertSame(['CZ1801000000000123456789'], array_map(static fn (\Foresi\Party\Domain\PartyBankAccount $account): string => $account->iban()->toString(), $this->details()->bankAccounts($trade)));
         self::assertTrue($this->details()->bankAccounts($trade)[0]->isPrimary());
 
         // Only the company has a VAT id to check; the registers are asked later, never during the import.

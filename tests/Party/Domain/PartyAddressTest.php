@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Domain;
+namespace Foresi\Tests\Party\Domain;
 
-use App\Party\Domain\Address;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\PartyAddress;
-use App\Shared\Domain\Id;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\TestCase;
 
 final class PartyAddressTest extends TestCase

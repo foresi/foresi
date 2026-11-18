@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Invoicing\Application\MailTemplates;
-use App\Invoicing\Application\MailVariables;
-use App\Invoicing\Application\RenderedMail;
-use App\Invoicing\Application\UnknownMailVariables;
-use App\Invoicing\Domain\MailTemplate;
-use App\Invoicing\Domain\MailTemplateKind;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\LegalEntity;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Invoicing\Application\MailTemplates;
+use Foresi\Invoicing\Application\MailVariables;
+use Foresi\Invoicing\Application\RenderedMail;
+use Foresi\Invoicing\Application\UnknownMailVariables;
+use Foresi\Invoicing\Domain\MailTemplate;
+use Foresi\Invoicing\Domain\MailTemplateKind;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\LegalEntity;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**

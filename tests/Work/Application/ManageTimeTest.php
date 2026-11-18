@@ -6,24 +6,24 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Work\Application;
+namespace Foresi\Tests\Work\Application;
 
-use App\Audit\Application\AuditTrail;
-use App\Audit\Domain\AuditAction;
-use App\Audit\Domain\AuditEntry;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Shared\Domain\Id;
-use App\Work\Application\ManageSharing;
-use App\Work\Application\ManageTime;
-use App\Work\Application\PurgeDeletedTasks;
-use App\Work\Application\TimeQueries;
-use App\Work\Application\WorkRefused;
-use App\Work\Domain\Project;
-use App\Work\Domain\ProjectVisibility;
-use App\Work\Domain\Task;
-use App\Work\Domain\TimeEntry;
-use App\Work\Domain\WorkflowTemplate;
+use Foresi\Audit\Application\AuditTrail;
+use Foresi\Audit\Domain\AuditAction;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Shared\Domain\Id;
+use Foresi\Work\Application\ManageSharing;
+use Foresi\Work\Application\ManageTime;
+use Foresi\Work\Application\PurgeDeletedTasks;
+use Foresi\Work\Application\TimeQueries;
+use Foresi\Work\Application\WorkRefused;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\ProjectVisibility;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TimeEntry;
+use Foresi\Work\Domain\WorkflowTemplate;
 
 final class ManageTimeTest extends WorkTestCase
 {
@@ -291,7 +291,7 @@ final class ManageTimeTest extends WorkTestCase
         self::assertSame([200, 300], [$time->totalMinutes, $time->estimateMinutes]);
         self::assertSame(
             [['2026-11-10', null, 'Marek Member', true, true], ['2026-11-09', 140, 'Marek Member', false, true], ['2026-11-08', 60, 'Olga Owner', false, false]],
-            array_map(static fn (\App\Work\Application\TimeEntryRow $row): array => [$row->workedOn->format('Y-m-d'), $row->minutes, $row->personName, $row->running, $row->editable], $time->entries),
+            array_map(static fn (\Foresi\Work\Application\TimeEntryRow $row): array => [$row->workedOn->format('Y-m-d'), $row->minutes, $row->personName, $row->running, $row->editable], $time->entries),
         );
         self::assertNull($this->timeQueries->ofTask(Id::generate()));
     }
@@ -309,8 +309,8 @@ final class ManageTimeTest extends WorkTestCase
         $week = $this->timeQueries->week(new \DateTimeImmutable('2026-11-12'));
         self::assertNotNull($week);
         self::assertSame(['2026-11-09', $this->member->id(), 105], [$week->monday->format('Y-m-d'), $week->membershipId, $week->totalMinutes]);
-        self::assertSame([90, 0, 0, 0, 0, 0, 15], array_map(static fn (\App\Work\Application\TimeDay $day): int => $day->totalMinutes, $week->days));
-        self::assertSame(['Write the brief', null], array_map(static fn (\App\Work\Application\TimeEntryRow $row): ?string => $row->taskTitle, $week->days[0]->entries));
+        self::assertSame([90, 0, 0, 0, 0, 0, 15], array_map(static fn (\Foresi\Work\Application\TimeDay $day): int => $day->totalMinutes, $week->days));
+        self::assertSame(['Write the brief', null], array_map(static fn (\Foresi\Work\Application\TimeEntryRow $row): ?string => $row->taskTitle, $week->days[0]->entries));
         self::assertNull($this->timeQueries->week(new \DateTimeImmutable('2026-11-12'), $this->owner->id()));
 
         // A Sunday belongs to the week before it.
@@ -333,7 +333,7 @@ final class ManageTimeTest extends WorkTestCase
     private function taskHistoryFields(): array
     {
         $fields = [];
-        foreach (self::getContainer()->get(\App\Work\Application\TaskHistory::class)->of($this->task->id()) as $entry) {
+        foreach (self::getContainer()->get(\Foresi\Work\Application\TaskHistory::class)->of($this->task->id()) as $entry) {
             array_push($fields, ...$entry->fields);
         }
 

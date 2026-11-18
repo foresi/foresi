@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Support;
+namespace Foresi\Tests\Party\Support;
 
-use App\Party\Domain\FirmBankAccount;
-use App\Party\Domain\Iban;
-use App\Party\Domain\LegalEntity;
-use App\Shared\Domain\Currency;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Party\Domain\Iban;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Domain\Currency;
 
 /**
  * Gives a firm of a test a bank account without the application path: the

@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Audit\Infrastructure;
+namespace Foresi\Tests\Audit\Infrastructure;
 
-use App\Audit\Infrastructure\Doctrine\AuditValueNormalizer;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\VatId;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Types\Type;
+use Foresi\Audit\Infrastructure\Doctrine\AuditValueNormalizer;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\VatId;
 use PHPUnit\Framework\TestCase;
 
 final class AuditValueNormalizerTest extends TestCase
@@ -22,7 +22,7 @@ final class AuditValueNormalizerTest extends TestCase
     protected function setUp(): void
     {
         $this->normalizer = new AuditValueNormalizer(new SQLitePlatform());
-        foreach (['vat_id' => \App\Party\Infrastructure\Doctrine\VatIdType::class] as $name => $class) {
+        foreach (['vat_id' => \Foresi\Party\Infrastructure\Doctrine\VatIdType::class] as $name => $class) {
             if (!Type::hasType($name)) {
                 Type::addType($name, $class);
             }

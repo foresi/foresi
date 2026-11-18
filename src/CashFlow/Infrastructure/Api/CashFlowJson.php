@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Infrastructure\Api;
+namespace Foresi\CashFlow\Infrastructure\Api;
 
-use App\CashFlow\Application\AccountOpening;
-use App\CashFlow\Application\Forecast;
-use App\CashFlow\Application\ForecastLine;
-use App\CashFlow\Application\HiddenTotal;
-use App\CashFlow\Application\PeriodForecast;
-use App\CashFlow\Contract\FlowFlag;
-use App\CashFlow\Domain\Checkpoint;
-use App\CashFlow\Domain\ExpectedDate;
-use App\CashFlow\Domain\PlannedItem;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Shared\Infrastructure\Api\JsonValues;
+use Foresi\CashFlow\Application\AccountOpening;
+use Foresi\CashFlow\Application\Forecast;
+use Foresi\CashFlow\Application\ForecastLine;
+use Foresi\CashFlow\Application\HiddenTotal;
+use Foresi\CashFlow\Application\PeriodForecast;
+use Foresi\CashFlow\Contract\FlowFlag;
+use Foresi\CashFlow\Domain\Checkpoint;
+use Foresi\CashFlow\Domain\ExpectedDate;
+use Foresi\CashFlow\Domain\PlannedItem;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Infrastructure\Api\JsonValues;
 
 /**
  * The cash flow as the REST API and MCP write it (snake case, money in minor
@@ -44,7 +44,7 @@ final class CashFlowJson
             'name' => $item->name(),
             'category' => $item->category()->value,
             'amount' => JsonValues::money($item->amount()),
-            'counterparty' => $counterparty instanceof \App\Party\Domain\Party ? ['id' => $counterparty->id(), 'name' => $counterparty->displayName()] : null,
+            'counterparty' => $counterparty instanceof \Foresi\Party\Domain\Party ? ['id' => $counterparty->id(), 'name' => $counterparty->displayName()] : null,
             'on' => JsonValues::date($item->firstOn()),
             'repeat' => $recurrence?->unit()->value,
             'every' => $recurrence?->every(),

@@ -17,7 +17,7 @@
 {% endblock %}
 
 {% block content %}
-    {% set token_field %}<input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Identity\\Infrastructure\\Controller\\InvitationController::TOKEN')) }}">{% endset %}
+    {% set token_field %}<input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Identity\\Infrastructure\\Controller\\InvitationController::TOKEN')) }}">{% endset %}
     {% if step == 'new_account' %}
         <p class="m-0 mb-4 text-text">{{ 'invitation.new_account.intro'|trans({email: invitation.email}) }}</p>
         <form method="post" class="grid gap-3" novalidate>

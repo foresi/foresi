@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Work\Domain\Priority;
-use App\Work\Domain\StatusType;
+use Foresi\Work\Domain\Priority;
+use Foresi\Work\Domain\StatusType;
 
 /**
  * A task as a line of the list, a card of the board or a row of my tasks.

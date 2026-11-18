@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Audit\Domain;
+namespace Foresi\Audit\Domain;
 
 /**
  * Keeps a property of an Audited entity out of the audit log entirely: neither

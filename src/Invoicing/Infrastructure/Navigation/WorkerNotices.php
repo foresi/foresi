@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Navigation;
+namespace Foresi\Invoicing\Infrastructure\Navigation;
 
-use App\Identity\Application\OwnerCheck;
-use App\Instance\Application\Schedule\Heartbeats;
-use App\Ui\Notice\ShellNotice;
-use App\Ui\Notice\ShellNoticeProvider;
+use Foresi\Identity\Application\OwnerCheck;
+use Foresi\Instance\Application\Schedule\Heartbeats;
+use Foresi\Ui\Notice\ShellNotice;
+use Foresi\Ui\Notice\ShellNoticeProvider;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;

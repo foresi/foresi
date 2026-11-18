@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Domain;
+namespace Foresi\Import\Domain;
 
 /** How the dates and decimal numbers of one source are written. */
 final readonly class NormalisationOptions

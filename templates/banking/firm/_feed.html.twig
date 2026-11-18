@@ -4,8 +4,8 @@
     Variables: feed (from the controller's feedView), unavailable (why nothing can be generated here,
     or null), first (no top border).
 #}
-{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
-{% set token = csrf_token(constant('App\\Banking\\Infrastructure\\Controller\\FirmBankController::ADDRESS_TOKEN')) %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{% set token = csrf_token(constant('Foresi\\Banking\\Infrastructure\\Controller\\FirmBankController::ADDRESS_TOKEN')) %}
 {% set dateFormat = 'bank.account.address.date_format'|trans %}
 <li class="grid gap-2 py-3{% if not first %} border-t border-divider{% endif %}{% if first %} pt-0{% endif %}" data-bank-feed="{{ feed.id }}" aria-labelledby="feed-{{ feed.id }}-name">
     <div class="flex min-h-control flex-wrap items-center justify-between gap-x-3 gap-y-1">

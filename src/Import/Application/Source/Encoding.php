@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application\Source;
+namespace Foresi\Import\Application\Source;
 
 /**
  * The character encodings a CSV source can be decoded from.

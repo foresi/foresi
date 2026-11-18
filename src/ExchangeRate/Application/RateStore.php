@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\ExchangeRate\Application;
+namespace Foresi\ExchangeRate\Application;
 
-use App\ExchangeRate\Domain\ExchangeRate;
+use Foresi\ExchangeRate\Domain\ExchangeRate;
 
 /**
  * The rates kept, global to the installation.

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Instance\Application\Schedule;
+namespace Foresi\Instance\Application\Schedule;
 
 /**
  * Timed work done once per period. A tick of the schedule asks each

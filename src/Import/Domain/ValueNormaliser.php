@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Domain;
+namespace Foresi\Import\Domain;
 
-use App\Shared\Domain\Countries;
-use App\Shared\Domain\Id;
+use Foresi\Shared\Domain\Countries;
+use Foresi\Shared\Domain\Id;
 
 /** Turns the text of a source cell into the value a target field holds. */
 final readonly class ValueNormaliser

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Fixtures\ModuleIntegration\Alpha\Integration\Beta;
+namespace Foresi\Tests\Shared\Fixtures\ModuleIntegration\Alpha\Integration\Beta;
 
 /**
  * Integration code of the fixture module Alpha for its optional dependency Beta.

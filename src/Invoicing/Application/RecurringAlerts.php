@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Identity\Application\StaffCheck;
-use App\Identity\Application\UserRepository;
-use App\Invoicing\Domain\FirmMailServer;
-use App\Invoicing\Domain\RecurringInvoice;
-use App\Party\Application\TransactionalWork;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\PartyEmail;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Invoicing\Domain\FirmMailServer;
+use Foresi\Invoicing\Domain\RecurringInvoice;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\PartyEmail;
 use Psr\Log\LoggerInterface;
 
 /**

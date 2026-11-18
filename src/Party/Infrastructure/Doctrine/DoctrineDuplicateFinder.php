@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Doctrine;
+namespace Foresi\Party\Infrastructure\Doctrine;
 
-use App\Party\Application\DuplicateFinder;
-use App\Party\Application\DuplicateMatch;
-use App\Party\Domain\Party;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Party\Application\DuplicateFinder;
+use Foresi\Party\Application\DuplicateMatch;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
 
 /**
  * Registration numbers are

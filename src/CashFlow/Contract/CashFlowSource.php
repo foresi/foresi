@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Contract;
+namespace Foresi\CashFlow\Contract;
 
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 

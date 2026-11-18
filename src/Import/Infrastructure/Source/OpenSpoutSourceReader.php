@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Source;
+namespace Foresi\Import\Infrastructure\Source;
 
-use App\Import\Application\Source\Encoding;
-use App\Import\Application\Source\SourceFormat;
-use App\Import\Application\Source\SourceInspection;
-use App\Import\Application\Source\SourceReader;
-use App\Import\Application\Source\SourceRejected;
-use App\Import\Application\Source\SourceSettings;
+use Foresi\Import\Application\Source\Encoding;
+use Foresi\Import\Application\Source\SourceFormat;
+use Foresi\Import\Application\Source\SourceInspection;
+use Foresi\Import\Application\Source\SourceReader;
+use Foresi\Import\Application\Source\SourceRejected;
+use Foresi\Import\Application\Source\SourceSettings;
 use OpenSpout\Common\Exception\IOException;
 use OpenSpout\Reader\XLSX\Options;
 use OpenSpout\Reader\XLSX\Reader as XlsxReader;

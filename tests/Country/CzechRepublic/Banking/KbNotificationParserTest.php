@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Country\CzechRepublic\Banking;
+namespace Foresi\Tests\Country\CzechRepublic\Banking;
 
-use App\Banking\Application\InboundMail;
-use App\Banking\Application\ParsedMovement;
-use App\Banking\Application\ParseFailed;
-use App\Banking\Application\ParseFailure;
-use App\Banking\Application\ParseResult;
-use App\Banking\Domain\MovementDirection;
-use App\Banking\Infrastructure\Mime\ZbatesonMailReader;
-use App\Country\CzechRepublic\Banking\KbNotificationParser;
-use App\Shared\Domain\Currency;
+use Foresi\Banking\Application\InboundMail;
+use Foresi\Banking\Application\ParsedMovement;
+use Foresi\Banking\Application\ParseFailed;
+use Foresi\Banking\Application\ParseFailure;
+use Foresi\Banking\Application\ParseResult;
+use Foresi\Banking\Domain\MovementDirection;
+use Foresi\Banking\Infrastructure\Mime\ZbatesonMailReader;
+use Foresi\Country\CzechRepublic\Banking\KbNotificationParser;
+use Foresi\Shared\Domain\Currency;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

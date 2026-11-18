@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Audit;
+namespace Foresi\Tests\Audit;
 
-use App\Audit\Application\AuditCorrelation;
-use App\Audit\Application\AuditTrail;
-use App\Audit\Domain\AuditAction;
-use App\Audit\Domain\AuditEntry;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Audit\Application\AuditCorrelation;
+use Foresi\Audit\Application\AuditTrail;
+use Foresi\Audit\Domain\AuditAction;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class AuditCorrelationTest extends KernelTestCase

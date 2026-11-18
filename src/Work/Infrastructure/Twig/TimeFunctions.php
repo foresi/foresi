@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Twig;
+namespace Foresi\Work\Infrastructure\Twig;
 
-use App\Work\Application\TimeEntryRow;
-use App\Work\Application\TimeQueries;
+use Foresi\Work\Application\TimeEntryRow;
+use Foresi\Work\Application\TimeQueries;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Attribute\AsTwigFilter;
 use Twig\Attribute\AsTwigFunction;

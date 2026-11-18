@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Support\Mail;
+namespace Foresi\Tests\Support\Mail;
 
-use App\Banking\Application\InboundMailbox;
-use App\Banking\Application\MailboxItem;
+use Foresi\Banking\Application\InboundMailbox;
+use Foresi\Banking\Application\MailboxItem;
 
 /**
  * The operator mailbox in memory: an inbox and the three folders handled mail

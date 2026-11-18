@@ -6,23 +6,23 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Audit\Application\AuditTrail;
-use App\Audit\Domain\AuditAction;
-use App\Audit\Domain\AuditEntry;
-use App\Identity\Application\People;
-use App\Identity\Application\UserRepository;
-use App\Work\Domain\CommentMention;
-use App\Work\Domain\Label;
-use App\Work\Domain\Priority;
-use App\Work\Domain\Project;
-use App\Work\Domain\ProjectStatus;
-use App\Work\Domain\Task;
-use App\Work\Domain\TaskComment;
-use App\Work\Domain\TaskLabel;
-use App\Work\Domain\TaskWatcher;
-use App\Work\Domain\WorkShare;
+use Foresi\Audit\Application\AuditTrail;
+use Foresi\Audit\Domain\AuditAction;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Identity\Application\People;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Work\Domain\CommentMention;
+use Foresi\Work\Domain\Label;
+use Foresi\Work\Domain\Priority;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\ProjectStatus;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TaskComment;
+use Foresi\Work\Domain\TaskLabel;
+use Foresi\Work\Domain\TaskWatcher;
+use Foresi\Work\Domain\WorkShare;
 
 /**
  * The audit log of a task as steps a person recognises: one action is one

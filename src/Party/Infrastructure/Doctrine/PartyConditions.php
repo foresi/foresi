@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Doctrine;
+namespace Foresi\Party\Infrastructure\Doctrine;
 
-use App\Import\Domain\ImportMissingRecord;
-use App\Import\Domain\ImportRow;
-use App\Party\Application\ImportedBy;
-use App\Party\Domain\PartyEmail;
-use App\Party\Domain\PartyRole;
+use Foresi\Import\Domain\ImportMissingRecord;
+use Foresi\Import\Domain\ImportRow;
+use Foresi\Party\Application\ImportedBy;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Domain\PartyRole;
 
 /**
  * The conditions that narrow the address book, as DQL over the alias "p": the

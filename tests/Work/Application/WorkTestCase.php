@@ -6,28 +6,28 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Work\Application;
+namespace Foresi\Tests\Work\Application;
 
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Instance\Application\ConfiguredZone;
-use App\Instance\Application\InstanceClock;
-use App\Instance\Application\ZoneFallback;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Work\Application\ManageLabels;
-use App\Work\Application\ManageProjects;
-use App\Work\Application\ManageSections;
-use App\Work\Application\ManageTasks;
-use App\Work\Application\ManageWorkflow;
-use App\Work\Application\WorkQueries;
-use App\Work\Domain\Project;
-use App\Work\Domain\ProjectStatus;
-use App\Work\Domain\WorkflowTemplate;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Identity\Infrastructure\Security\SecurityUser;
+use Foresi\Instance\Application\ConfiguredZone;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Instance\Application\ZoneFallback;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Work\Application\ManageLabels;
+use Foresi\Work\Application\ManageProjects;
+use Foresi\Work\Application\ManageSections;
+use Foresi\Work\Application\ManageTasks;
+use Foresi\Work\Application\ManageWorkflow;
+use Foresi\Work\Application\WorkQueries;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\ProjectStatus;
+use Foresi\Work\Domain\WorkflowTemplate;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;

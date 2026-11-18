@@ -6,22 +6,22 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Import\Infrastructure;
+namespace Foresi\Tests\Import\Infrastructure;
 
-use App\Import\Application\Imports;
-use App\Import\Application\Message\RunImportChunk;
-use App\Import\Application\Source\SourceFormat;
-use App\Import\Application\Source\SourceSettings;
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportState;
-use App\Import\Infrastructure\Source\OpenSpoutSourceReader;
-use App\Party\Application\CreateParty;
-use App\Party\Domain\Address;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
-use App\Tests\Identity\Support\SignedInBrowser;
-use App\Tests\Import\Support\RunMessages;
 use Doctrine\DBAL\Connection;
+use Foresi\Import\Application\Imports;
+use Foresi\Import\Application\Message\RunImportChunk;
+use Foresi\Import\Application\Source\SourceFormat;
+use Foresi\Import\Application\Source\SourceSettings;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\ImportState;
+use Foresi\Import\Infrastructure\Source\OpenSpoutSourceReader;
+use Foresi\Party\Application\CreateParty;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Tests\Import\Support\RunMessages;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;

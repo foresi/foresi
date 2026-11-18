@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
-use App\Identity\Domain\Invitation;
-use App\Identity\Domain\InvitationState;
+use Foresi\Identity\Domain\Invitation;
+use Foresi\Identity\Domain\InvitationState;
 
 /**
  * An invitation as its link shows it: in which organisation, whether it can still

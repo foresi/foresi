@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Delivery;
+namespace Foresi\Webhooks\Infrastructure\Delivery;
 
-use App\Shared\Domain\Id;
-use App\Webhooks\Application\AttemptResult;
-use App\Webhooks\Application\AttemptTrigger;
-use App\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Types\Types;
+use Foresi\Shared\Domain\Id;
+use Foresi\Webhooks\Application\AttemptResult;
+use Foresi\Webhooks\Application\AttemptTrigger;
+use Foresi\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
 
 /**
  * The delivery rows and their attempts: who may attempt a delivery, what an

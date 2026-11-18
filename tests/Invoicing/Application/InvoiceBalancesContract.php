@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\InvoiceBalances;
-use App\Invoicing\Application\UnknownInvoice;
-use App\Shared\Domain\Currency;
+use Foresi\Invoicing\Application\InvoiceBalances;
+use Foresi\Invoicing\Application\UnknownInvoice;
+use Foresi\Shared\Domain\Currency;
 
 /**
  * What every InvoiceBalances must do. An implementation extends this and says how

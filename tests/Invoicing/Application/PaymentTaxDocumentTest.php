@@ -6,33 +6,33 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Country\CzechRepublic\Invoicing\CzechInvoicing;
-use App\Invoicing\Application\InvoiceFilter;
-use App\Invoicing\Application\InvoicePdf;
-use App\Invoicing\Application\InvoiceStatus;
-use App\Invoicing\Application\IssuedDocumentFactory;
-use App\Invoicing\Application\IssuePaymentTaxDocument;
-use App\Invoicing\Application\PaymentRefused;
-use App\Invoicing\Application\PaymentState;
-use App\Invoicing\Application\RecordPayment;
-use App\Invoicing\Application\Savepoint;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\TaxOnReceiptChoice;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Party\Application\TransactionalWork;
-use App\Party\Domain\Address;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PaymentMethod;
-use App\Party\Domain\VatId;
-use App\Tests\Support\PdfTools;
+use Foresi\Country\CzechRepublic\Invoicing\CzechInvoicing;
+use Foresi\Invoicing\Application\InvoiceFilter;
+use Foresi\Invoicing\Application\InvoicePdf;
+use Foresi\Invoicing\Application\InvoiceStatus;
+use Foresi\Invoicing\Application\IssuedDocumentFactory;
+use Foresi\Invoicing\Application\IssuePaymentTaxDocument;
+use Foresi\Invoicing\Application\PaymentRefused;
+use Foresi\Invoicing\Application\PaymentState;
+use Foresi\Invoicing\Application\RecordPayment;
+use Foresi\Invoicing\Application\Savepoint;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\TaxOnReceiptChoice;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Party\Domain\VatId;
+use Foresi\Tests\Support\PdfTools;
 
 /**
  * A payment received on an advance invoice gets its tax document in the same
@@ -104,8 +104,8 @@ final class PaymentTaxDocumentTest extends AdvanceTestCase
         $second = $this->pay($advance, '7260.00', '2026-11-19');
 
         $documents = $this->taxDocumentsOf($advance);
-        self::assertSame(['D820260001', 'D820260002'], array_map(static fn (\App\Invoicing\Domain\Invoice $document): string => $document->number(), $documents));
-        self::assertSame([$first->id(), $second->id()], array_map(static fn (\App\Invoicing\Domain\Invoice $document): ?string => $document->paymentId(), $documents));
+        self::assertSame(['D820260001', 'D820260002'], array_map(static fn (\Foresi\Invoicing\Domain\Invoice $document): string => $document->number(), $documents));
+        self::assertSame([$first->id(), $second->id()], array_map(static fn (\Foresi\Invoicing\Domain\Invoice $document): ?string => $document->paymentId(), $documents));
         self::assertSame([['21.00', 400000, 84000, 484000]], $this->figuresOf($documents[0]));
         self::assertSame([['21.00', 600000, 126000, 726000]], $this->figuresOf($documents[1]));
         self::assertSame('2026-11-02', $documents[0]->taxPointDate()?->format('Y-m-d'));

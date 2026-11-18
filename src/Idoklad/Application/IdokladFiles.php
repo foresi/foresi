@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application;
+namespace Foresi\Idoklad\Application;
 
 /**
  * Port: the PDFs of pulled documents, kept beside the database. Every key ends

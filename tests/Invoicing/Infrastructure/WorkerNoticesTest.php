@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure;
+namespace Foresi\Tests\Invoicing\Infrastructure;
 
-use App\Identity\Domain\Role;
-use App\Instance\Application\Schedule\Heartbeats;
-use App\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Identity\Domain\Role;
+use Foresi\Instance\Application\Schedule\Heartbeats;
+use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;

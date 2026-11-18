@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure\Navigation;
+namespace Foresi\Banking\Infrastructure\Navigation;
 
-use App\Banking\Application\BankMovements;
-use App\Banking\Application\BankScreen;
-use App\Banking\Application\InboundMessages;
-use App\Identity\Application\StaffCheck;
-use App\Ui\Notice\ShellNotice;
-use App\Ui\Notice\ShellNoticeProvider;
+use Foresi\Banking\Application\BankMovements;
+use Foresi\Banking\Application\BankScreen;
+use Foresi\Banking\Application\InboundMessages;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Ui\Notice\ShellNotice;
+use Foresi\Ui\Notice\ShellNoticeProvider;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;

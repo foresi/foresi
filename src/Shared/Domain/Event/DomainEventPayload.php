@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Domain\Event;
+namespace Foresi\Shared\Domain\Event;
 
 /**
  * The facts of a contract event. Implemented by final readonly classes in a

@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Work\Domain;
+namespace Foresi\Tests\Work\Domain;
 
-use App\Shared\Domain\Id;
-use App\Tests\Party\Domain\PartyFactory;
-use App\Work\Domain\Label;
-use App\Work\Domain\LabelColour;
-use App\Work\Domain\Priority;
-use App\Work\Domain\Project;
-use App\Work\Domain\ProjectStatus;
-use App\Work\Domain\Section;
-use App\Work\Domain\StatusType;
-use App\Work\Domain\Task;
-use App\Work\Domain\TaskLabel;
-use App\Work\Domain\WorkflowTemplate;
+use Foresi\Shared\Domain\Id;
+use Foresi\Tests\Party\Domain\PartyFactory;
+use Foresi\Work\Domain\Label;
+use Foresi\Work\Domain\LabelColour;
+use Foresi\Work\Domain\Priority;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\ProjectStatus;
+use Foresi\Work\Domain\Section;
+use Foresi\Work\Domain\StatusType;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TaskLabel;
+use Foresi\Work\Domain\WorkflowTemplate;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

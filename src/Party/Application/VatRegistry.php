@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
-use App\Party\Domain\RegistryCheck;
-use App\Party\Domain\VatId;
+use Foresi\Party\Domain\RegistryCheck;
+use Foresi\Party\Domain\VatId;
 
 /**
  * Checks that a VAT id exists in the EU VIES register. Never throws: an

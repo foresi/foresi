@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Domain;
+namespace Foresi\Tests\Shared\Domain;
 
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\CurrencyMismatch;
-use App\Shared\Domain\Money;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\CurrencyMismatch;
+use Foresi\Shared\Domain\Money;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

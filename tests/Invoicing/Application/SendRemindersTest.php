@@ -6,36 +6,36 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\AllocationRequest;
-use App\Invoicing\Application\CancelPayment;
-use App\Invoicing\Application\InvoiceRow;
-use App\Invoicing\Application\MailTemplates;
-use App\Invoicing\Application\PaymentRequest;
-use App\Invoicing\Application\RecordPayment;
-use App\Invoicing\Application\ReminderPreview;
-use App\Invoicing\Application\SendRefused;
-use App\Invoicing\Application\SendReminders;
-use App\Invoicing\Domain\FirmReminders;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceSend;
-use App\Invoicing\Domain\MailTemplateKind;
-use App\Invoicing\Domain\PaymentSource;
-use App\Invoicing\Domain\SendPurpose;
-use App\Invoicing\Infrastructure\Doctrine\DoctrineReminderSettings;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\InvoicingDefaults;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Id;
-use App\Shared\Domain\Money;
-use App\Tests\Invoicing\Infrastructure\Support\InvoiceCopies;
-use App\Tests\Invoicing\Infrastructure\Support\SettledBalances;
-use App\Tests\Invoicing\Infrastructure\Support\UnauthoritativeBalances;
-use App\Tests\Support\PdfTools;
+use Foresi\Invoicing\Application\AllocationRequest;
+use Foresi\Invoicing\Application\CancelPayment;
+use Foresi\Invoicing\Application\InvoiceRow;
+use Foresi\Invoicing\Application\MailTemplates;
+use Foresi\Invoicing\Application\PaymentRequest;
+use Foresi\Invoicing\Application\RecordPayment;
+use Foresi\Invoicing\Application\ReminderPreview;
+use Foresi\Invoicing\Application\SendRefused;
+use Foresi\Invoicing\Application\SendReminders;
+use Foresi\Invoicing\Domain\FirmReminders;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceSend;
+use Foresi\Invoicing\Domain\MailTemplateKind;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Invoicing\Domain\SendPurpose;
+use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineReminderSettings;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\InvoicingDefaults;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Invoicing\Infrastructure\Support\InvoiceCopies;
+use Foresi\Tests\Invoicing\Infrastructure\Support\SettledBalances;
+use Foresi\Tests\Invoicing\Infrastructure\Support\UnauthoritativeBalances;
+use Foresi\Tests\Support\PdfTools;
 
 /**
  * The daily reminder run, at 08:00 in the instance's zone (Prague here, from the
@@ -482,8 +482,8 @@ final class SendRemindersTest extends SendingTestCase
 
     private function serverOf(LegalEntity $firm): void
     {
-        $secrets = self::getContainer()->get(\App\Invoicing\Application\MailSecrets::class);
-        self::getContainer()->get(\App\Invoicing\Application\MailServers::class)->save(\App\Invoicing\Domain\FirmMailServer::define($firm, 'smtp.example.com', 587, \App\Invoicing\Domain\MailEncryption::Starttls, 'other@example.com', $secrets->seal('correct-horse-battery'), 'other@example.com', 'Other Firm'));
+        $secrets = self::getContainer()->get(\Foresi\Invoicing\Application\MailSecrets::class);
+        self::getContainer()->get(\Foresi\Invoicing\Application\MailServers::class)->save(\Foresi\Invoicing\Domain\FirmMailServer::define($firm, 'smtp.example.com', 587, \Foresi\Invoicing\Domain\MailEncryption::Starttls, 'other@example.com', $secrets->seal('correct-horse-battery'), 'other@example.com', 'Other Firm'));
         $this->em->flush();
     }
 

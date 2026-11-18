@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Contract\Event;
+namespace Foresi\CashFlow\Contract\Event;
 
-use App\Shared\Domain\Event\DomainEvent;
-use App\Shared\Domain\Event\DomainEventPayload;
-use App\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Domain\Event\DomainEvent;
+use Foresi\Shared\Domain\Event\DomainEventPayload;
+use Foresi\Shared\Domain\Event\EventSubject;
 
 /**
  * A planned item has no occurrence after a date. Its name and counterparty are no facts.

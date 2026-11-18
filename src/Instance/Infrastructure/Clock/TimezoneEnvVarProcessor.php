@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Instance\Infrastructure\Clock;
+namespace Foresi\Instance\Infrastructure\Clock;
 
-use App\Instance\Application\ConfiguredZone;
+use Foresi\Instance\Application\ConfiguredZone;
 use Symfony\Component\DependencyInjection\EnvVarProcessorInterface;
 use Symfony\Component\DependencyInjection\Exception\RuntimeException;
 

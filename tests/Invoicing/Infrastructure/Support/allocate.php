@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-use App\Tests\Invoicing\Infrastructure\Support\CounterWorker;
+use Foresi\Tests\Invoicing\Infrastructure\Support\CounterWorker;
 
 /*
  * One process of the parallel counter test, run from the repository root with

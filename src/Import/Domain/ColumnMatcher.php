@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Domain;
+namespace Foresi\Import\Domain;
 
-use App\Import\Domain\Preset\SourcePreset;
+use Foresi\Import\Domain\Preset\SourcePreset;
 
 /** Proposes the target field of every source column; the user confirms or changes it. */
 final readonly class ColumnMatcher

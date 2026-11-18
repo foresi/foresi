@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Mail;
+namespace Foresi\Invoicing\Infrastructure\Mail;
 
-use App\Invoicing\Application\MailSecrets;
-use App\Invoicing\Application\MailSecretsUnavailable;
-use App\Shared\Application\SealerUnavailable;
-use App\Shared\Infrastructure\Crypto\SodiumSealer;
+use Foresi\Invoicing\Application\MailSecrets;
+use Foresi\Invoicing\Application\MailSecretsUnavailable;
+use Foresi\Shared\Application\SealerUnavailable;
+use Foresi\Shared\Infrastructure\Crypto\SodiumSealer;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**

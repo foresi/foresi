@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Infrastructure\Security;
+namespace Foresi\Tests\Identity\Infrastructure\Security;
 
-use App\Identity\Infrastructure\Security\RecoveryCodes;
+use Foresi\Identity\Infrastructure\Security\RecoveryCodes;
 use PHPUnit\Framework\TestCase;
 
 final class RecoveryCodesTest extends TestCase

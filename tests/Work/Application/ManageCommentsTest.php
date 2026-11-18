@@ -6,22 +6,22 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Work\Application;
+namespace Foresi\Tests\Work\Application;
 
-use App\Attachment\Application\AttachmentPermissions;
-use App\Attachment\Domain\Attachment;
-use App\Shared\Domain\Id;
-use App\Work\Application\DiscussionFilter;
-use App\Work\Application\DiscussionItem;
-use App\Work\Application\ManageComments;
-use App\Work\Application\MentionCandidate;
-use App\Work\Application\TaskHistory;
-use App\Work\Application\TaskHistoryEntry;
-use App\Work\Application\WorkRefused;
-use App\Work\Domain\CommentMention;
-use App\Work\Domain\Task;
-use App\Work\Domain\TaskComment;
-use App\Work\Domain\TaskWatcher;
+use Foresi\Attachment\Application\AttachmentPermissions;
+use Foresi\Attachment\Domain\Attachment;
+use Foresi\Shared\Domain\Id;
+use Foresi\Work\Application\DiscussionFilter;
+use Foresi\Work\Application\DiscussionItem;
+use Foresi\Work\Application\ManageComments;
+use Foresi\Work\Application\MentionCandidate;
+use Foresi\Work\Application\TaskHistory;
+use Foresi\Work\Application\TaskHistoryEntry;
+use Foresi\Work\Application\WorkRefused;
+use Foresi\Work\Domain\CommentMention;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TaskComment;
+use Foresi\Work\Domain\TaskWatcher;
 
 final class ManageCommentsTest extends WorkTestCase
 {
@@ -191,7 +191,7 @@ final class ManageCommentsTest extends WorkTestCase
         self::assertTrue($permissions->canDelete($file));
         self::assertFalse($permissions->canSee('task_comment', Id::generate()));
         $view = $this->queries->discussion($this->task->id(), DiscussionFilter::Comments)[0]->comment ?? null;
-        self::assertSame(['brief.pdf'], array_map(static fn (\App\Work\Application\CommentAttachment $attachment): string => $attachment->fileName, $view->attachments ?? []));
+        self::assertSame(['brief.pdf'], array_map(static fn (\Foresi\Work\Application\CommentAttachment $attachment): string => $attachment->fileName, $view->attachments ?? []));
 
         $this->signIn($this->member);
         self::assertTrue($permissions->canSee('task_comment', $comment->id()));

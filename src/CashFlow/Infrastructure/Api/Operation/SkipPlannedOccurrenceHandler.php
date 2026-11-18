@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Infrastructure\Api\Operation;
+namespace Foresi\CashFlow\Infrastructure\Api\Operation;
 
-use App\CashFlow\Application\PlannedItemWrites;
-use App\CashFlow\Application\SkipPlannedOccurrenceInput;
-use App\Shared\Infrastructure\Operation\OperationHandler;
-use App\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\CashFlow\Application\PlannedItemWrites;
+use Foresi\CashFlow\Application\SkipPlannedOccurrenceInput;
+use Foresi\Shared\Infrastructure\Operation\OperationHandler;
+use Foresi\Shared\Infrastructure\Operation\OperationOutput;
 
 final readonly class SkipPlannedOccurrenceHandler implements OperationHandler
 {

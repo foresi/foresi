@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Work\Application;
+namespace Foresi\Tests\Work\Application;
 
-use App\Audit\Application\AuditCorrelation;
-use App\Audit\Application\AuditTrail;
-use App\Shared\Domain\Id;
-use App\Work\Application\WorkRefused;
-use App\Work\Domain\Label;
-use App\Work\Domain\LabelColour;
-use App\Work\Domain\Priority;
-use App\Work\Domain\Section;
-use App\Work\Domain\StatusType;
-use App\Work\Domain\Task;
-use App\Work\Domain\WorkflowTemplate;
+use Foresi\Audit\Application\AuditCorrelation;
+use Foresi\Audit\Application\AuditTrail;
+use Foresi\Shared\Domain\Id;
+use Foresi\Work\Application\WorkRefused;
+use Foresi\Work\Domain\Label;
+use Foresi\Work\Domain\LabelColour;
+use Foresi\Work\Domain\Priority;
+use Foresi\Work\Domain\Section;
+use Foresi\Work\Domain\StatusType;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\WorkflowTemplate;
 
 final class WorkRulesTest extends WorkTestCase
 {

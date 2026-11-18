@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Domain;
+namespace Foresi\Tests\Party\Domain;
 
-use App\Party\Domain\EmailPurpose;
-use App\Party\Domain\PartyEmail;
-use App\Shared\Domain\Id;
+use Foresi\Party\Domain\EmailPurpose;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

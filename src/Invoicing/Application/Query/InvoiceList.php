@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application\Query;
+namespace Foresi\Invoicing\Application\Query;
 
-use App\Invoicing\Application\InvoiceFilter;
-use App\Invoicing\Application\InvoicePage;
-use App\Invoicing\Application\InvoiceStore;
-use App\Invoicing\Application\InvoiceSums;
-use App\Invoicing\Application\InvoicingAccess;
-use App\Invoicing\Application\InvoicingNotAllowed;
+use Foresi\Invoicing\Application\InvoiceFilter;
+use Foresi\Invoicing\Application\InvoicePage;
+use Foresi\Invoicing\Application\InvoiceStore;
+use Foresi\Invoicing\Application\InvoiceSums;
+use Foresi\Invoicing\Application\InvoicingAccess;
+use Foresi\Invoicing\Application\InvoicingNotAllowed;
 
 /**
  * The lists of invoices for the screens, the API and MCP alike: a page with its tab

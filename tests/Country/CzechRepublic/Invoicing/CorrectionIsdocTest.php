@@ -6,26 +6,26 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Country\CzechRepublic\Invoicing;
+namespace Foresi\Tests\Country\CzechRepublic\Invoicing;
 
-use App\Country\CzechRepublic\Invoicing\CzechInvoicing;
-use App\Country\CzechRepublic\Invoicing\IsdocWriter;
-use App\Invoicing\Application\CorrectionInput;
-use App\Invoicing\Application\IssuedDocument;
-use App\Invoicing\Application\IssuedDocumentFactory;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Domain\CorrectionType;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Quantity;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Invoicing\Application\AdvanceTestCase;
-use App\Tests\Support\IsdocSchema;
+use Foresi\Country\CzechRepublic\Invoicing\CzechInvoicing;
+use Foresi\Country\CzechRepublic\Invoicing\IsdocWriter;
+use Foresi\Invoicing\Application\CorrectionInput;
+use Foresi\Invoicing\Application\IssuedDocument;
+use Foresi\Invoicing\Application\IssuedDocumentFactory;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Domain\CorrectionType;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Invoicing\Application\AdvanceTestCase;
+use Foresi\Tests\Support\IsdocSchema;
 
 /**
  * A corrective tax document is ISDOC type 2 (credit note) or 3 (debit note) of an

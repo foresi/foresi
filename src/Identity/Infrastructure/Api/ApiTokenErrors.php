@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Api;
+namespace Foresi\Identity\Infrastructure\Api;
 
-use App\Identity\Application\InsufficientScope;
-use App\Shared\Infrastructure\Api\ProblemResponse;
+use Foresi\Identity\Application\InsufficientScope;
+use Foresi\Shared\Infrastructure\Api\ProblemResponse;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;

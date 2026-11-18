@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Mail;
+namespace Foresi\Tests\Shared\Infrastructure\Mail;
 
-use App\Shared\Application\SystemMailUnavailable;
-use App\Shared\Infrastructure\Mail\TestMailCommand;
+use Foresi\Shared\Application\SystemMailUnavailable;
+use Foresi\Shared\Infrastructure\Mail\TestMailCommand;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Command\Command;

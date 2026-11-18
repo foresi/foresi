@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Navigation;
+namespace Foresi\Purchasing\Infrastructure\Navigation;
 
-use App\Identity\Application\StaffCheck;
-use App\Ui\Navigation\CoreNavigationAreas;
-use App\Ui\Navigation\NavigationItem;
-use App\Ui\Navigation\NavigationItemProvider;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Ui\Navigation\CoreNavigationAreas;
+use Foresi\Ui\Navigation\NavigationItem;
+use Foresi\Ui\Navigation\NavigationItemProvider;
 
 /**
  * The received documents in the sidebar, under Finance next to the bank, as

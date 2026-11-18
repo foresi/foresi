@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Invoicing\Application\InvoiceSends;
-use App\Invoicing\Application\SendLogFilter;
-use App\Invoicing\Application\SendLogPage;
-use App\Invoicing\Application\SendLogRow;
-use App\Invoicing\Application\SendMark;
-use App\Invoicing\Application\UnknownInvoiceSend;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceSend;
-use App\Invoicing\Domain\SendPurpose;
-use App\Invoicing\Domain\SendStatus;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Invoicing\Application\InvoiceSends;
+use Foresi\Invoicing\Application\SendLogFilter;
+use Foresi\Invoicing\Application\SendLogPage;
+use Foresi\Invoicing\Application\SendLogRow;
+use Foresi\Invoicing\Application\SendMark;
+use Foresi\Invoicing\Application\UnknownInvoiceSend;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceSend;
+use Foresi\Invoicing\Domain\SendPurpose;
+use Foresi\Invoicing\Domain\SendStatus;
 
 /**
  * Sends. Trash and restore change the rows one by one,

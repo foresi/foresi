@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Identity\Domain\Role;
+use Foresi\Identity\Domain\Role;
 
 /**
  * A person an item is shared with.

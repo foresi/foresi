@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Domain;
+namespace Foresi\Tests\Identity\Domain;
 
-use App\Identity\Domain\Invitation;
-use App\Identity\Domain\InvitationState;
-use App\Identity\Domain\InvitationToken;
-use App\Identity\Domain\Role;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Shared\Domain\Id;
+use Foresi\Identity\Domain\Invitation;
+use Foresi\Identity\Domain\InvitationState;
+use Foresi\Identity\Domain\InvitationToken;
+use Foresi\Identity\Domain\Role;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

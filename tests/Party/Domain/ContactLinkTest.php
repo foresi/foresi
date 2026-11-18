@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Domain;
+namespace Foresi\Tests\Party\Domain;
 
-use App\Party\Domain\ContactLink;
-use App\Shared\Domain\Id;
+use Foresi\Party\Domain\ContactLink;
+use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\TestCase;
 
 final class ContactLinkTest extends TestCase

@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application;
+namespace Foresi\Import\Application;
 
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportMissingRecord;
-use App\Import\Domain\ImportRow;
-use App\Import\Domain\RowOutcome;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\ImportMissingRecord;
+use Foresi\Import\Domain\ImportRow;
+use Foresi\Import\Domain\RowOutcome;
 
 interface Imports
 {

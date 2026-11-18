@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Audit\Domain;
+namespace Foresi\Audit\Domain;
 
 /**
  * An audited entity that belongs to an aggregate: its audit entries are

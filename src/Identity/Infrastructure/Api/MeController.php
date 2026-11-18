@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Api;
+namespace Foresi\Identity\Infrastructure\Api;
 
-use App\Identity\Application\Query\CurrentApiIdentity;
-use App\Identity\Domain\ApiScope;
+use Foresi\Identity\Application\Query\CurrentApiIdentity;
+use Foresi\Identity\Domain\ApiScope;
 use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Attribute\AsController;

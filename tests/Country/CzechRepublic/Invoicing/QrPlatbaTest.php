@@ -6,25 +6,25 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Country\CzechRepublic\Invoicing;
+namespace Foresi\Tests\Country\CzechRepublic\Invoicing;
 
-use App\Country\CzechRepublic\Invoicing\CzechVatRates;
-use App\Country\CzechRepublic\Invoicing\QrPlatba;
-use App\Invoicing\Application\IssuedDocument;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\DocumentParty;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\RateSummary;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\TotalRounding;
-use App\Invoicing\Domain\VatRegime;
-use App\Party\Domain\Address;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
 use chillerlan\QRCode\QRCode;
 use Com\Tecnick\Barcode\Barcode;
+use Foresi\Country\CzechRepublic\Invoicing\CzechVatRates;
+use Foresi\Country\CzechRepublic\Invoicing\QrPlatba;
+use Foresi\Invoicing\Application\IssuedDocument;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\RateSummary;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\TotalRounding;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use PHPUnit\Framework\TestCase;
 

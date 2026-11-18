@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-use App\Tests\Banking\Infrastructure\Support\PairingWorker;
+use Foresi\Tests\Banking\Infrastructure\Support\PairingWorker;
 
 /*
  * One process of the parallel pairing tests, run from the repository root with

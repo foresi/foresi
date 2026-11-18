@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application;
+namespace Foresi\Idoklad\Application;
 
-use App\Idoklad\Domain\IdokladConnection;
-use App\Party\Domain\LegalEntity;
+use Foresi\Idoklad\Domain\IdokladConnection;
+use Foresi\Party\Domain\LegalEntity;
 
 interface IdokladConnections
 {

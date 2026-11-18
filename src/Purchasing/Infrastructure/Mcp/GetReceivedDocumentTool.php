@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Mcp;
+namespace Foresi\Purchasing\Infrastructure\Mcp;
 
-use App\Purchasing\Application\PurchasingNotAllowed;
-use App\Purchasing\Application\Query\ReceivedDocumentBalances;
-use App\Purchasing\Application\UnknownReceivedDocument;
-use App\Purchasing\Infrastructure\Api\ReceivedDocumentJson;
-use App\Shared\Infrastructure\Mcp\ReadTool;
-use App\Shared\Infrastructure\Mcp\ToolArguments;
-use App\Shared\Infrastructure\Mcp\ToolOutput;
-use App\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Purchasing\Application\PurchasingNotAllowed;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentBalances;
+use Foresi\Purchasing\Application\UnknownReceivedDocument;
+use Foresi\Purchasing\Infrastructure\Api\ReceivedDocumentJson;
+use Foresi\Shared\Infrastructure\Mcp\ReadTool;
+use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
+use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 
 /**
  * Get a received document, as the REST API writes it.

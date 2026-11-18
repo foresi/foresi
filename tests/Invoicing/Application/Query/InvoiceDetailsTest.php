@@ -6,21 +6,21 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application\Query;
+namespace Foresi\Tests\Invoicing\Application\Query;
 
-use App\Invoicing\Application\AllocationRequest;
-use App\Invoicing\Application\InvoiceHistoryEntry;
-use App\Invoicing\Application\InvoicingNotAllowed;
-use App\Invoicing\Application\PaymentRequest;
-use App\Invoicing\Application\Query\InvoiceDetails;
-use App\Invoicing\Application\RecordPayment;
-use App\Invoicing\Application\UnknownInvoice;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Invoicing\Domain\PaymentSource;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Application\AllocationRequest;
+use Foresi\Invoicing\Application\InvoiceHistoryEntry;
+use Foresi\Invoicing\Application\InvoicingNotAllowed;
+use Foresi\Invoicing\Application\PaymentRequest;
+use Foresi\Invoicing\Application\Query\InvoiceDetails;
+use Foresi\Invoicing\Application\RecordPayment;
+use Foresi\Invoicing\Application\UnknownInvoice;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 
 final class InvoiceDetailsTest extends InvoicingReadTestCase
 {

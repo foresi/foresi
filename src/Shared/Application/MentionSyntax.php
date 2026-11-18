@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Application;
+namespace Foresi\Shared\Application;
 
 /**
  * How a mention of a person is stored in Markdown: "@[Display Name](membership:UUID)".

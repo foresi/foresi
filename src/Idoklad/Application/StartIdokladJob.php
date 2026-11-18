@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application;
+namespace Foresi\Idoklad\Application;
 
-use App\Idoklad\Application\Message\ProcessIdokladJob;
-use App\Idoklad\Domain\IdokladJob;
-use App\Idoklad\Domain\IdokladJobKind;
-use App\Idoklad\Domain\ImportOptions;
-use App\Party\Application\TransactionalWork;
-use App\Party\Domain\LegalEntity;
+use Foresi\Idoklad\Application\Message\ProcessIdokladJob;
+use Foresi\Idoklad\Domain\IdokladJob;
+use Foresi\Idoklad\Domain\IdokladJobKind;
+use Foresi\Idoklad\Domain\ImportOptions;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\LegalEntity;
 use Psr\Clock\ClockInterface;
 
 /**

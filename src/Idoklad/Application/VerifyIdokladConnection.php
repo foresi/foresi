@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application;
+namespace Foresi\Idoklad\Application;
 
-use App\Invoicing\Application\MailSecrets;
-use App\Party\Domain\LegalEntity;
+use Foresi\Invoicing\Application\MailSecrets;
+use Foresi\Party\Domain\LegalEntity;
 
 /**
  * Tries the stored credentials of a firm with one small read: a token alone

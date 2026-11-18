@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\People;
-use App\Identity\Domain\Membership;
-use App\Work\Domain\Project;
-use App\Work\Domain\ProjectVisibility;
-use App\Work\Domain\Section;
-use App\Work\Domain\Task;
-use App\Work\Domain\WorkShare;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\People;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\ProjectVisibility;
+use Foresi\Work\Domain\Section;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\WorkShare;
 use Psr\Clock\ClockInterface;
 
 /**

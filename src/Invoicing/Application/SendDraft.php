@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\UserRepository;
-use App\Invoicing\Domain\FirmMailServer;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\MailTemplateKind;
-use App\Party\Application\ContactSettingsForFirm;
-use App\Party\Domain\EmailPurpose;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Invoicing\Domain\FirmMailServer;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\MailTemplateKind;
+use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Domain\EmailPurpose;
 
 /**
  * What the send dialog of an invoice opens with. The recipients are the contact's

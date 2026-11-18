@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Infrastructure\Doctrine;
+namespace Foresi\Idoklad\Infrastructure\Doctrine;
 
-use App\Idoklad\Application\Import\ImportTransaction;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
+use Foresi\Idoklad\Application\Import\ImportTransaction;
 
 /**
  * The units of work inside see the open transaction and leave the flush,

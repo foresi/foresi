@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Application;
+namespace Foresi\Events\Application;
 
 /**
  * Hands one stored event to one async listener. The relay sends one per listener of the event's name when it numbers the row; the

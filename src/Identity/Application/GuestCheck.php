@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Domain\Role;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Domain\Role;
 
 /**
  * Whether the signed-in user is a guest of the active organisation:

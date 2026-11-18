@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Messenger;
+namespace Foresi\Work\Infrastructure\Messenger;
 
-use App\Work\Application\NotificationMailing;
-use App\Work\Application\SendNotificationMail;
+use Foresi\Work\Application\NotificationMailing;
+use Foresi\Work\Application\SendNotificationMail;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**

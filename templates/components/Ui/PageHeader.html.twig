@@ -1,7 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {% set badgeView = this.badgeView %}
 {% set actionsHtml %}{% block content %}{% endblock %}{% endset %}
-{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 <header {{ attributes.defaults({class: 'flex flex-wrap items-center gap-3 border-b border-divider px-6 py-4 max-shell:px-3.5'}) }}>
     <div class="min-w-0">
         {% if this.crumbViews is not empty %}
@@ -36,7 +36,7 @@
                         <input type="hidden" name="_token" value="{{ te.token }}">
                         <label for="{{ te.id }}" class="sr-only">{{ te.label }}</label>
                         <div class="flex min-w-0 items-center gap-1.5">
-                            <input type="text" id="{{ te.id }}" name="{{ te.name }}" value="{{ te.value }}" required autocomplete="off"{% if te.maxlength %} maxlength="{{ te.maxlength }}"{% endif %}{% if te.error %} aria-invalid="true" aria-describedby="{{ te.id }}-error"{% elseif te.open %} autofocus{% endif %} class="min-w-0 flex-1 border-control-line bg-white {{ frame }} {{ constant('App\\Ui\\Component\\Style::FIELD_FOCUS') }}" data-inline-field-target="field">
+                            <input type="text" id="{{ te.id }}" name="{{ te.name }}" value="{{ te.value }}" required autocomplete="off"{% if te.maxlength %} maxlength="{{ te.maxlength }}"{% endif %}{% if te.error %} aria-invalid="true" aria-describedby="{{ te.id }}-error"{% elseif te.open %} autofocus{% endif %} class="min-w-0 flex-1 border-control-line bg-white {{ frame }} {{ constant('Foresi\\Ui\\Component\\Style::FIELD_FOCUS') }}" data-inline-field-target="field">
                             <twig:Ui:IconButton type="submit" icon="check" variant="primary" size="sm" :label="'ui.inline_field.save'|trans" data-page-title-save />
                             <twig:Ui:IconButton :href="te.cancelHref" icon="x" size="sm" :label="'ui.inline_field.cancel'|trans" data-action="inline-field#cancel" data-page-title-cancel />
                         </div>

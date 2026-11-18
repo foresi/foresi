@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application\Query;
+namespace Foresi\Purchasing\Application\Query;
 
-use App\Purchasing\Domain\ReceivedDocumentState;
+use Foresi\Purchasing\Domain\ReceivedDocumentState;
 
 /**
  * What a slice of received documents for the API and MCP holds: the documents

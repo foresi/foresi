@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Messenger;
+namespace Foresi\Import\Infrastructure\Messenger;
 
-use App\Import\Application\ImportJobs;
+use Foresi\Import\Application\ImportJobs;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /** Sends import work through Messenger. */

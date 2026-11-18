@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Doctrine;
+namespace Foresi\Purchasing\Infrastructure\Doctrine;
 
-use App\Purchasing\Application\ReceivedDocumentPayments;
-use App\Purchasing\Domain\ReceivedDocumentPayment;
-use App\Shared\Domain\Id;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Purchasing\Application\ReceivedDocumentPayments;
+use Foresi\Purchasing\Domain\ReceivedDocumentPayment;
+use Foresi\Shared\Domain\Id;
 
 final readonly class DoctrineReceivedDocumentPayments implements ReceivedDocumentPayments
 {

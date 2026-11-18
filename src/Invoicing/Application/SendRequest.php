@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\SendPurpose;
+use Foresi\Invoicing\Domain\SendPurpose;
 
 /**
  * What the send dialog asks for: the addresses as typed, and the subject and body

@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure;
+namespace Foresi\Tests\Invoicing\Infrastructure;
 
-use App\Invoicing\Application\MailRefused;
-use App\Invoicing\Infrastructure\Form\SendFailureText;
+use Foresi\Invoicing\Application\MailRefused;
+use Foresi\Invoicing\Infrastructure\Form\SendFailureText;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Contracts\Translation\TranslatorInterface;
 

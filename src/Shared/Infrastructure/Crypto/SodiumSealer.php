@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Crypto;
+namespace Foresi\Shared\Infrastructure\Crypto;
 
-use App\Shared\Application\Sealer;
-use App\Shared\Application\SealerUnavailable;
+use Foresi\Shared\Application\Sealer;
+use Foresi\Shared\Application\SealerUnavailable;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**

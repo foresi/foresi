@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\DocumentKind;
 
 /**
  * The document a corrective tax document corrects, as an electronic file names it.

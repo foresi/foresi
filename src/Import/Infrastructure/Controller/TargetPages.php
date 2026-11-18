@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Controller;
+namespace Foresi\Import\Infrastructure\Controller;
 
-use App\Import\Domain\RowOutcome;
+use Foresi\Import\Domain\RowOutcome;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**

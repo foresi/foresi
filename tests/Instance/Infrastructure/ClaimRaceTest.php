@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Instance\Infrastructure;
+namespace Foresi\Tests\Instance\Infrastructure;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

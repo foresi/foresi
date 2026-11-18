@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Api;
+namespace Foresi\Shared\Infrastructure\Api;
 
-use App\Shared\Application\Api\IdempotencyKeyInFlight;
-use App\Shared\Application\Api\IdempotencyKeyReused;
-use App\Shared\Application\Api\SavedAnswer;
+use Foresi\Shared\Application\Api\IdempotencyKeyInFlight;
+use Foresi\Shared\Application\Api\IdempotencyKeyReused;
+use Foresi\Shared\Application\Api\SavedAnswer;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

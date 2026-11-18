@@ -6,25 +6,25 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\AllocationRequest;
-use App\Invoicing\Application\BilledWorkRelease;
-use App\Invoicing\Application\ConflictRetry;
-use App\Invoicing\Application\InvoicePayments;
-use App\Invoicing\Application\InvoiceSends;
-use App\Invoicing\Application\IssueProblem;
-use App\Invoicing\Application\IssueRefused;
-use App\Invoicing\Application\PaymentRequest;
-use App\Invoicing\Application\RecordPayment;
-use App\Invoicing\Application\TrashInvoice;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\PaymentSource;
-use App\Party\Application\TransactionalWork;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Application\Event\EventRecorder;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Application\AllocationRequest;
+use Foresi\Invoicing\Application\BilledWorkRelease;
+use Foresi\Invoicing\Application\ConflictRetry;
+use Foresi\Invoicing\Application\InvoicePayments;
+use Foresi\Invoicing\Application\InvoiceSends;
+use Foresi\Invoicing\Application\IssueProblem;
+use Foresi\Invoicing\Application\IssueRefused;
+use Foresi\Invoicing\Application\PaymentRequest;
+use Foresi\Invoicing\Application\RecordPayment;
+use Foresi\Invoicing\Application\TrashInvoice;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use Symfony\Component\Clock\MockClock;
 
 /**
@@ -176,7 +176,7 @@ final class InvoiceEventsTest extends SendingTestCase
             {
             }
         };
-        $refusing = new TrashInvoice($this->store, $container->get(InvoiceSends::class), $container->get(InvoicePayments::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $container->get(\App\Audit\Application\AuditActor::class), new MockClock('2026-11-03'), $this->deductions(), $billed, $container->get(EventRecorder::class));
+        $refusing = new TrashInvoice($this->store, $container->get(InvoiceSends::class), $container->get(InvoicePayments::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $container->get(\Foresi\Audit\Application\AuditActor::class), new MockClock('2026-11-03'), $this->deductions(), $billed, $container->get(EventRecorder::class));
 
         try {
             $refusing->restore($invoice->id());

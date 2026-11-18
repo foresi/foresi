@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\ExportState;
+use Foresi\Invoicing\Domain\ExportState;
 
 /**
  * A document of a pack for the accountant, with where it stood before the pack.

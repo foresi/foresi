@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Controller;
+namespace Foresi\Import\Infrastructure\Controller;
 
-use App\Import\Domain\BlankCells;
-use App\Import\Domain\DateOrder;
-use App\Import\Domain\DecimalSeparator;
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportMode;
-use App\Import\Domain\ImportOptions;
-use App\Import\Domain\Mapping;
-use App\Import\Domain\ReplaceScope;
-use App\Shared\Domain\Id;
+use Foresi\Import\Domain\BlankCells;
+use Foresi\Import\Domain\DateOrder;
+use Foresi\Import\Domain\DecimalSeparator;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\ImportMode;
+use Foresi\Import\Domain\ImportOptions;
+use Foresi\Import\Domain\Mapping;
+use Foresi\Import\Domain\ReplaceScope;
+use Foresi\Shared\Domain\Id;
 use Symfony\Component\HttpFoundation\Request;
 
 /**

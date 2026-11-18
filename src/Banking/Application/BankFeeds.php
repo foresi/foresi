@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\BankFeed;
+use Foresi\Banking\Domain\BankFeed;
 
 /**
  * The inbound addresses of the bank accounts. Call add() inside

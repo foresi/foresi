@@ -15,7 +15,7 @@
     <div class="grid grid-cols-1 gap-4">
         <twig:Ui:Tabs :items="tabs" :label="'invoice.list.views'|trans" class="min-w-0" />
         <p class="m-0 text-small text-muted">{{ 'advance.missing.intro'|trans }}</p>
-        <twig:Ui:DataTable :caption="'advance.missing.title'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN'))">
+        <twig:Ui:DataTable :caption="'advance.missing.title'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN'))">
             <twig:block name="empty">
                 <twig:Ui:EmptyState icon="circle-check" :title="'advance.missing.empty'|trans" />
             </twig:block>

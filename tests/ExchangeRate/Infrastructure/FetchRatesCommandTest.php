@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\ExchangeRate\Infrastructure;
+namespace Foresi\Tests\ExchangeRate\Infrastructure;
 
-use App\ExchangeRate\Application\RateSource;
-use App\ExchangeRate\Infrastructure\Doctrine\DoctrineRateStore;
-use App\Tests\ExchangeRate\Support\FakeRateSource;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\ExchangeRate\Application\RateSource;
+use Foresi\ExchangeRate\Infrastructure\Doctrine\DoctrineRateStore;
+use Foresi\Tests\ExchangeRate\Support\FakeRateSource;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Command\Command;

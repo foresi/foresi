@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Infrastructure\Api;
+namespace Foresi\Tests\Party\Infrastructure\Api;
 
-use App\Identity\Domain\ApiScope;
-use App\Party\Domain\Party;
-use App\Tests\Shared\Infrastructure\Api\ApiTestCase;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Party\Domain\Party;
+use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 
 /**
  * The contact writes of ADR 0032 over REST and MCP: the same input, the same

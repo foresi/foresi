@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Attachment\Infrastructure;
+namespace Foresi\Tests\Attachment\Infrastructure;
 
-use App\Attachment\Application\AttachmentFileUnreadable;
-use App\Attachment\Infrastructure\Storage\DiskAttachmentFiles;
-use App\Shared\Domain\Id;
+use Foresi\Attachment\Application\AttachmentFileUnreadable;
+use Foresi\Attachment\Infrastructure\Storage\DiskAttachmentFiles;
+use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\TestCase;
 
 final class DiskAttachmentFilesTest extends TestCase

@@ -6,35 +6,35 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\CashFlow\Application;
+namespace Foresi\Tests\CashFlow\Application;
 
-use App\CashFlow\Application\CashFlowAccess;
-use App\CashFlow\Application\CashFlowStore;
-use App\CashFlow\Application\CreatePlannedItemInput;
-use App\CashFlow\Application\Forecast;
-use App\CashFlow\Application\Forecasts;
-use App\CashFlow\Application\HiddenTotal;
-use App\CashFlow\Application\PlannedFulfilment;
-use App\CashFlow\Contract\ActualFlow;
-use App\CashFlow\Contract\ActualFlowSource;
-use App\CashFlow\Contract\ExpectedFlow;
-use App\CashFlow\Contract\FlowCategory;
-use App\CashFlow\Contract\FlowCertainty;
-use App\CashFlow\Contract\FlowDirection;
-use App\CashFlow\Contract\FlowSubject;
-use App\CashFlow\Domain\PlannedItem;
-use App\CashFlow\Infrastructure\Source\PlannedItemFlows;
-use App\ExchangeRate\Application\ExchangeRates;
-use App\Instance\Application\InstanceClock;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\RegistrationNumber;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\CashFlow\Support\CashFlowTestCase;
-use App\Tests\CashFlow\Support\FakeActualSource;
-use App\Tests\CashFlow\Support\FakeSource;
-use App\Tests\CashFlow\Support\SpyLogger;
+use Foresi\CashFlow\Application\CashFlowAccess;
+use Foresi\CashFlow\Application\CashFlowStore;
+use Foresi\CashFlow\Application\CreatePlannedItemInput;
+use Foresi\CashFlow\Application\Forecast;
+use Foresi\CashFlow\Application\Forecasts;
+use Foresi\CashFlow\Application\HiddenTotal;
+use Foresi\CashFlow\Application\PlannedFulfilment;
+use Foresi\CashFlow\Contract\ActualFlow;
+use Foresi\CashFlow\Contract\ActualFlowSource;
+use Foresi\CashFlow\Contract\ExpectedFlow;
+use Foresi\CashFlow\Contract\FlowCategory;
+use Foresi\CashFlow\Contract\FlowCertainty;
+use Foresi\CashFlow\Contract\FlowDirection;
+use Foresi\CashFlow\Contract\FlowSubject;
+use Foresi\CashFlow\Domain\PlannedItem;
+use Foresi\CashFlow\Infrastructure\Source\PlannedItemFlows;
+use Foresi\ExchangeRate\Application\ExchangeRates;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\CashFlow\Support\CashFlowTestCase;
+use Foresi\Tests\CashFlow\Support\FakeActualSource;
+use Foresi\Tests\CashFlow\Support\FakeSource;
+use Foresi\Tests\CashFlow\Support\SpyLogger;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
@@ -127,7 +127,7 @@ final class PlannedFulfilmentTest extends CashFlowTestCase
         $forecast = $this->forecasts([$hidden, new PlannedItemFlows(self::getContainer()->get(CashFlowStore::class))], [])->of($this->firm->id());
 
         $week = $forecast->periods[0];
-        self::assertSame(['planned_item'], array_map(static fn (\App\CashFlow\Application\ForecastLine $line): string => $line->flow->subject->type, $week->lines));
+        self::assertSame(['planned_item'], array_map(static fn (\Foresi\CashFlow\Application\ForecastLine $line): string => $line->flow->subject->type, $week->lines));
         self::assertSame('15700', (string) $week->inflows['revenue']->plus($week->inflows['other'])->minor());
         self::assertCount(2, $week->hidden);
         self::assertSame(['test.invoices', 'other', 700, 1], [$week->hidden[0]->source, $week->hidden[0]->category->value, $week->hidden[0]->amount->minor(), $week->hidden[0]->count]);
@@ -278,8 +278,8 @@ final class PlannedFulfilmentTest extends CashFlowTestCase
     }
 
     /**
-     * @param list<\App\CashFlow\Contract\CashFlowSource> $sources
-     * @param list<ActualFlowSource>                      $actuals
+     * @param list<\Foresi\CashFlow\Contract\CashFlowSource> $sources
+     * @param list<ActualFlowSource>                         $actuals
      */
     private function forecasts(array $sources, array $actuals, ?LoggerInterface $logger = null): Forecasts
     {

@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Invoicing\Application\RecurringOverview;
-use App\Invoicing\Domain\RecurringInvoice;
-use App\Invoicing\Domain\RecurringInvoiceLine;
-use App\Invoicing\Domain\RecurringState;
-use App\Party\Domain\Party;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Invoicing\Application\RecurringOverview;
+use Foresi\Invoicing\Domain\RecurringInvoice;
+use Foresi\Invoicing\Domain\RecurringInvoiceLine;
+use Foresi\Invoicing\Domain\RecurringState;
+use Foresi\Party\Domain\Party;
 
 /**
  * Queries of the ORM only.

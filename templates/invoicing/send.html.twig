@@ -11,7 +11,7 @@
 {% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'invoice.list.title'|trans, href: cancel}, {label: invoice.number}] %}
 {% set form_invalid = problems is not empty %}
 {% set fieldProblems = problems|filter(problem => problem.id != 'form') %}
-{% set link_class = 'text-current underline underline-offset-2 ' ~ constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set link_class = 'text-current underline underline-offset-2 ' ~ constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 {% set compact = in_dialog() %}
 {% set expanded = problems is not empty or draft.recipients is empty %}
 {% set dialog_size = 'md' %}
@@ -34,7 +34,7 @@
         </twig:Ui:EmptyState>
     {% else %}
         <form method="post" id="send-form" action="{{ action }}" class="grid grid-cols-1 gap-4 [&:has([data-send-edit][open])_[data-send-preview]]:hidden" novalidate>
-            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceSendController::FORM_TOKEN')) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoiceSendController::FORM_TOKEN')) }}">
             <input type="hidden" name="_submission" value="{{ token }}">
             <input type="hidden" name="return" value="{{ return }}">
             {% if reminder %}<input type="hidden" name="step" value="{{ reminder.step }}">{% endif %}
@@ -117,7 +117,7 @@
                     <span data-link-token class="mt-1 inline-flex h-badge items-center gap-1 rounded-sm bg-badge-green px-1.5 text-caption font-medium text-badge-green-text">{{ ux_icon('lucide:link-2', {class: 'size-3.5 shrink-0', 'aria-hidden': 'true'}) }}{{ linkToken|trim('{}') }}</span>
                 </div>
                 <details data-send-edit class="min-w-0 [&[open]>summary]:hidden"{% if expanded %} open{% endif %}>
-                    <summary class="w-fit cursor-pointer list-none text-small font-medium text-ink underline underline-offset-2 hover:text-green [&::-webkit-details-marker]:hidden {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'invoice.send.edit'|trans }}</summary>
+                    <summary class="w-fit cursor-pointer list-none text-small font-medium text-ink underline underline-offset-2 hover:text-green [&::-webkit-details-marker]:hidden {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'invoice.send.edit'|trans }}</summary>
                     <div class="grid gap-4">
                         {{ others }}
                         {{ text }}

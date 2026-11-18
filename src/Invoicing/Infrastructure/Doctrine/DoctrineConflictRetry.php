@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Audit\Application\AuditCorrelation;
-use App\Invoicing\Application\ConflictRetry;
-use App\Shared\Domain\Id;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\RetryableException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Foresi\Audit\Application\AuditCorrelation;
+use Foresi\Invoicing\Application\ConflictRetry;
+use Foresi\Shared\Domain\Id;
 
 /**
  * Every unit carries an audit correlation of its own, or joins the one already running,

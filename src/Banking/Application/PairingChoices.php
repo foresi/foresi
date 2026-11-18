@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\BankMovement;
-use App\Shared\Domain\Money;
+use Foresi\Banking\Domain\BankMovement;
+use Foresi\Shared\Domain\Money;
 
 /**
  * The invoices a person may pair a movement with, as iDoklad's Pair offers them:

@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\CashFlow\Support;
+namespace Foresi\Tests\CashFlow\Support;
 
-use App\Invoicing\Application\Query\InvoiceListItem;
-use App\Invoicing\Application\Query\InvoiceQueries;
-use App\Invoicing\Application\Query\InvoiceSlice;
-use App\Invoicing\Application\Query\InvoiceSliceFilter;
+use Foresi\Invoicing\Application\Query\InvoiceListItem;
+use Foresi\Invoicing\Application\Query\InvoiceQueries;
+use Foresi\Invoicing\Application\Query\InvoiceSlice;
+use Foresi\Invoicing\Application\Query\InvoiceSliceFilter;
 
 /**
  * Answers the slices it was given, one per call, and keeps the filters it was asked with.

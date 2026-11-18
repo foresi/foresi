@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Application;
+namespace Foresi\Timesheet\Application;
 
-use App\Invoicing\Application\BilledLine;
-use App\Invoicing\Application\BilledWork;
-use App\Invoicing\Application\BilledWorkDraft;
-use App\Invoicing\Application\InvoiceInput;
-use App\Invoicing\Application\IssueOrigin;
-use App\Invoicing\Application\IssueProblem;
-use App\Invoicing\Application\IssueRefused;
-use App\Invoicing\Application\LineInput;
-use App\Work\Application\TimeEntries;
+use Foresi\Invoicing\Application\BilledLine;
+use Foresi\Invoicing\Application\BilledWork;
+use Foresi\Invoicing\Application\BilledWorkDraft;
+use Foresi\Invoicing\Application\InvoiceInput;
+use Foresi\Invoicing\Application\IssueOrigin;
+use Foresi\Invoicing\Application\IssueProblem;
+use Foresi\Invoicing\Application\IssueRefused;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Work\Application\TimeEntries;
 
 /**
  * Time as the work an invoice bills: the time chosen in the dialog opens the

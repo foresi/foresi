@@ -6,27 +6,27 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application\Api;
+namespace Foresi\Purchasing\Application\Api;
 
-use App\Instance\Application\InstanceClock;
-use App\Party\Application\UnknownLegalEntity;
-use App\Purchasing\Application\PayReceivedDocument;
-use App\Purchasing\Application\PurchasingAccess;
-use App\Purchasing\Application\PurchasingRefused;
-use App\Purchasing\Application\ReceivedDocumentInput;
-use App\Purchasing\Application\ReceivedDocuments;
-use App\Purchasing\Application\RecordReceivedDocument;
-use App\Purchasing\Application\TrashReceivedDocument;
-use App\Purchasing\Application\UnknownReceivedDocument;
-use App\Purchasing\Domain\ExchangeRate;
-use App\Purchasing\Domain\PaymentMethod;
-use App\Purchasing\Domain\PurchaseTaxTreatment;
-use App\Purchasing\Domain\ReceivedDocumentKind;
-use App\Purchasing\Domain\ReceivedDocumentRefused;
-use App\Purchasing\Domain\VatRate;
-use App\Purchasing\Domain\VatRecapLine;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Purchasing\Application\PayReceivedDocument;
+use Foresi\Purchasing\Application\PurchasingAccess;
+use Foresi\Purchasing\Application\PurchasingRefused;
+use Foresi\Purchasing\Application\ReceivedDocumentInput;
+use Foresi\Purchasing\Application\ReceivedDocuments;
+use Foresi\Purchasing\Application\RecordReceivedDocument;
+use Foresi\Purchasing\Application\TrashReceivedDocument;
+use Foresi\Purchasing\Application\UnknownReceivedDocument;
+use Foresi\Purchasing\Domain\ExchangeRate;
+use Foresi\Purchasing\Domain\PaymentMethod;
+use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
+use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Purchasing\Domain\VatRate;
+use Foresi\Purchasing\Domain\VatRecapLine;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 
 /**
  * The writes of received documents over the API and MCP: it reads the text of
@@ -48,7 +48,7 @@ final readonly class ReceivedDocumentWrites
 
     /**
      * @throws PurchasingRefused
-     * @throws \App\Purchasing\Application\PurchasingNotAllowed
+     * @throws \Foresi\Purchasing\Application\PurchasingNotAllowed
      */
     public function record(RecordReceivedDocumentInput $input): string
     {
@@ -77,7 +77,7 @@ final readonly class ReceivedDocumentWrites
 
     /**
      * @throws PurchasingRefused
-     * @throws \App\Purchasing\Application\PurchasingNotAllowed
+     * @throws \Foresi\Purchasing\Application\PurchasingNotAllowed
      * @throws UnknownReceivedDocument
      */
     public function trash(TrashReceivedDocumentInput $input): string
@@ -87,7 +87,7 @@ final readonly class ReceivedDocumentWrites
 
     /**
      * @throws PurchasingRefused
-     * @throws \App\Purchasing\Application\PurchasingNotAllowed
+     * @throws \Foresi\Purchasing\Application\PurchasingNotAllowed
      * @throws UnknownReceivedDocument
      */
     public function addPayment(AddReceivedDocumentPaymentInput $input): string
@@ -107,7 +107,7 @@ final readonly class ReceivedDocumentWrites
 
     /**
      * @throws PurchasingRefused
-     * @throws \App\Purchasing\Application\PurchasingNotAllowed
+     * @throws \Foresi\Purchasing\Application\PurchasingNotAllowed
      * @throws UnknownReceivedDocument
      */
     public function markPaid(MarkReceivedDocumentPaidInput $input): string
@@ -117,7 +117,7 @@ final readonly class ReceivedDocumentWrites
 
     /**
      * @throws PurchasingRefused
-     * @throws \App\Purchasing\Application\PurchasingNotAllowed
+     * @throws \Foresi\Purchasing\Application\PurchasingNotAllowed
      * @throws UnknownReceivedDocument
      */
     public function removePayment(RemoveReceivedDocumentPaymentInput $input): string

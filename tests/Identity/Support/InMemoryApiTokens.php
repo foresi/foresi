@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Support;
+namespace Foresi\Tests\Identity\Support;
 
-use App\Identity\Application\ApiTokenRecord;
-use App\Identity\Application\ApiTokens;
-use App\Identity\Domain\ApiToken;
+use Foresi\Identity\Application\ApiTokenRecord;
+use Foresi\Identity\Application\ApiTokens;
+use Foresi\Identity\Domain\ApiToken;
 
 /**
  * The tokens in memory, and the records as given.

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Work\Domain\ProjectStatus;
-use App\Work\Domain\Section;
-use App\Work\Domain\Task;
+use Foresi\Work\Domain\ProjectStatus;
+use Foresi\Work\Domain\Section;
+use Foresi\Work\Domain\Task;
 
 /**
  * Dense positions from 0: only what actually moves is written, so a reorder

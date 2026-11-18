@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Doctrine;
+namespace Foresi\Identity\Infrastructure\Doctrine;
 
-use App\Identity\Application\Invitations;
-use App\Identity\Domain\Invitation;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Application\Invitations;
+use Foresi\Identity\Domain\Invitation;
 
 final readonly class DoctrineInvitations implements Invitations
 {

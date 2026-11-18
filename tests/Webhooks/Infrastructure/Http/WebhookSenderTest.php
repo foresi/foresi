@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Infrastructure\Http;
+namespace Foresi\Tests\Webhooks\Infrastructure\Http;
 
-use App\Webhooks\Domain\WebhookSecret;
-use App\Webhooks\Infrastructure\Http\StandardWebhookSigner;
-use App\Webhooks\Infrastructure\Http\WebhookSender;
+use Foresi\Webhooks\Domain\WebhookSecret;
+use Foresi\Webhooks\Infrastructure\Http\StandardWebhookSigner;
+use Foresi\Webhooks\Infrastructure\Http\WebhookSender;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

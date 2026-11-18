@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Application;
+namespace Foresi\CashFlow\Application;
 
-use App\CashFlow\Contract\FlowCategory;
-use App\CashFlow\Contract\FlowDirection;
-use App\Shared\Domain\Money;
+use Foresi\CashFlow\Contract\FlowCategory;
+use Foresi\CashFlow\Contract\FlowDirection;
+use Foresi\Shared\Domain\Money;
 
 /**
  * What the lines of one source the caller may not read add up to in a period,

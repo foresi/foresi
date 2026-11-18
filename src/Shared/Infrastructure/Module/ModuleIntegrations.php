@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Module;
+namespace Foresi\Shared\Infrastructure\Module;
 
-use App\Shared\Domain\Module\InvalidManifest;
-use App\Shared\Domain\Module\ModuleGraph;
-use App\Shared\Domain\Module\ModuleId;
-use App\Shared\Domain\Module\ModuleManifest;
+use Foresi\Shared\Domain\Module\InvalidManifest;
+use Foresi\Shared\Domain\Module\ModuleGraph;
+use Foresi\Shared\Domain\Module\ModuleId;
+use Foresi\Shared\Domain\Module\ModuleManifest;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
@@ -29,12 +29,12 @@ final readonly class ModuleIntegrations
 
     /**
      * @param string $srcDir        the directory the root namespace maps to
-     * @param string $rootNamespace the namespace of $srcDir; module namespaces start with "App\"
+     * @param string $rootNamespace the namespace of $srcDir; module namespaces start with "Foresi\"
      */
     public function __construct(
         #[Autowire('%kernel.project_dir%/src')]
         private string $srcDir,
-        private string $rootNamespace = 'App\\',
+        private string $rootNamespace = 'Foresi\\',
     ) {
     }
 
@@ -86,8 +86,8 @@ final readonly class ModuleIntegrations
 
     private function relative(ModuleManifest $module): string
     {
-        // The manifest guarantees "App\<Name>\".
-        return substr($module->namespace, \strlen('App\\'), -1);
+        // The manifest guarantees "Foresi\<Name>\".
+        return substr($module->namespace, \strlen('Foresi\\'), -1);
     }
 
     /**

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Domain\Module;
+namespace Foresi\Shared\Domain\Module;
 
 /**
  * The installed modules and their dependencies. Every hard dependency must be

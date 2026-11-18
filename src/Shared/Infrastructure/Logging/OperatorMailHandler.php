@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Logging;
+namespace Foresi\Shared\Infrastructure\Logging;
 
 use Monolog\Formatter\FormatterInterface;
 use Monolog\Handler\MailHandler;

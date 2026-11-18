@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Work\Application;
+namespace Foresi\Tests\Work\Application;
 
-use App\Audit\Application\AuditTrail;
-use App\Audit\Domain\AuditAction;
-use App\Audit\Domain\AuditEntry;
-use App\Shared\Domain\Id;
-use App\Work\Application\ManageSharing;
-use App\Work\Application\ProjectRow;
-use App\Work\Application\WorkRefused;
-use App\Work\Domain\Project;
-use App\Work\Domain\ProjectVisibility;
-use App\Work\Domain\Section;
-use App\Work\Domain\Task;
-use App\Work\Domain\WorkShare;
+use Foresi\Audit\Application\AuditTrail;
+use Foresi\Audit\Domain\AuditAction;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Shared\Domain\Id;
+use Foresi\Work\Application\ManageSharing;
+use Foresi\Work\Application\ProjectRow;
+use Foresi\Work\Application\WorkRefused;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\ProjectVisibility;
+use Foresi\Work\Domain\Section;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\WorkShare;
 
 final class ManageSharingTest extends WorkTestCase
 {

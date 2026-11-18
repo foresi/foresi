@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Application;
 
-use App\Banking\Application\GenerateAddress;
-use App\Banking\Application\InboundFiles;
-use App\Banking\Application\ProcessInboundMessage;
-use App\Banking\Application\ReceiveInboundMail;
-use App\Banking\Application\ReceiveOutcome;
-use App\Banking\Domain\InboundChannel;
-use App\Tests\Banking\Support\FailingInboundFiles;
-use App\Tests\Banking\Support\InboundMailKit;
-use App\Tests\Banking\Support\Scalars;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Banking\Application\GenerateAddress;
+use Foresi\Banking\Application\InboundFiles;
+use Foresi\Banking\Application\ProcessInboundMessage;
+use Foresi\Banking\Application\ReceiveInboundMail;
+use Foresi\Banking\Application\ReceiveOutcome;
+use Foresi\Banking\Domain\InboundChannel;
+use Foresi\Tests\Banking\Support\FailingInboundFiles;
+use Foresi\Tests\Banking\Support\InboundMailKit;
+use Foresi\Tests\Banking\Support\Scalars;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;

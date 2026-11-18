@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity;
+namespace Foresi\Tests\Identity;
 
-use App\Identity\Application\ApiTokens;
-use App\Identity\Application\UserRepository;
-use App\Identity\Domain\ApiScope;
-use App\Identity\Domain\ApiToken;
-use App\Identity\Domain\ApiTokenSecret;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Shared\Application\Sealer;
-use App\Tests\Identity\Support\IdentityFixtures;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Application\ApiTokens;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Identity\Domain\ApiToken;
+use Foresi\Identity\Domain\ApiTokenSecret;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Shared\Application\Sealer;
+use Foresi\Tests\Identity\Support\IdentityFixtures;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;

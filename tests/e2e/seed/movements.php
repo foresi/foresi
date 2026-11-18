@@ -6,37 +6,37 @@
 
 declare(strict_types=1);
 
-use App\Banking\Application\GenerateAddress;
-use App\Banking\Application\MovementInput;
-use App\Banking\Application\PairMovement;
-use App\Banking\Application\ReceiveInboundMail;
-use App\Banking\Application\RecordMovement;
-use App\Banking\Application\TrustVerdict;
-use App\Banking\Domain\InboundChannel;
-use App\Banking\Domain\MessageTrust;
-use App\Banking\Domain\MovementDirection;
-use App\Invoicing\Application\InvoiceInput;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Quantity;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\SeriesFormat;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\FirmBankAccount;
-use App\Party\Domain\Iban;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
-use App\Party\Domain\PaymentMethod;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
-use App\Party\Domain\VatStatus;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Banking\Application\GenerateAddress;
+use Foresi\Banking\Application\MovementInput;
+use Foresi\Banking\Application\PairMovement;
+use Foresi\Banking\Application\ReceiveInboundMail;
+use Foresi\Banking\Application\RecordMovement;
+use Foresi\Banking\Application\TrustVerdict;
+use Foresi\Banking\Domain\InboundChannel;
+use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Banking\Domain\MovementDirection;
+use Foresi\Invoicing\Application\InvoiceInput;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Party\Domain\Iban;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 
 // The world of the bank movements spec: two firms with an account each and an inbound
 // address. The first has three invoices: 20260001 paired by a verified notice, 20260002

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application\Query;
+namespace Foresi\Party\Application\Query;
 
-use App\Party\Domain\EmailPurpose;
+use Foresi\Party\Domain\EmailPurpose;
 
 final readonly class ContactEmail
 {

@@ -6,28 +6,28 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Controller;
+namespace Foresi\Invoicing\Infrastructure\Controller;
 
-use App\Identity\Application\OwnerCheck;
-use App\Invoicing\Application\FirmInvoicingSettings;
-use App\Invoicing\Application\InvoicingCountries;
-use App\Invoicing\Application\NumberCounter;
-use App\Invoicing\Application\SeriesCatalog;
-use App\Invoicing\Application\UnknownSeries;
-use App\Invoicing\Application\UnsupportedCountry;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\FirmInvoicing;
-use App\Invoicing\Domain\InvalidSeriesFormat;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\SeriesFormat;
-use App\Invoicing\Domain\TotalRounding;
-use App\Invoicing\Infrastructure\Form\FirmInvoicingReader;
-use App\Party\Application\LegalEntities;
-use App\Party\Application\TransactionalWork;
-use App\Party\Application\UnknownLegalEntity;
-use App\Party\Domain\LegalEntity;
-use App\Shared\Infrastructure\Http\SubmissionTokens;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Foresi\Identity\Application\OwnerCheck;
+use Foresi\Invoicing\Application\FirmInvoicingSettings;
+use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Invoicing\Application\NumberCounter;
+use Foresi\Invoicing\Application\SeriesCatalog;
+use Foresi\Invoicing\Application\UnknownSeries;
+use Foresi\Invoicing\Application\UnsupportedCountry;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\FirmInvoicing;
+use Foresi\Invoicing\Domain\InvalidSeriesFormat;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Invoicing\Domain\TotalRounding;
+use Foresi\Invoicing\Infrastructure\Form\FirmInvoicingReader;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Infrastructure\Http\SubmissionTokens;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;

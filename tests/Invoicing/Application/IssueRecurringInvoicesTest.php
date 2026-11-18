@@ -6,54 +6,54 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Country\CzechRepublic\Invoicing\CzechInvoicing;
-use App\Country\CzechRepublic\Invoicing\CzechSupplyCodes;
-use App\Country\CzechRepublic\Invoicing\CzechVatRates;
-use App\Country\CzechRepublic\Invoicing\IsdocWriter;
-use App\Country\CzechRepublic\Invoicing\QrPlatba;
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Instance\Application\InstanceClock;
-use App\Instance\Application\Schedule\RunScheduledJob;
-use App\Instance\Application\Schedule\ScheduledJobRuns;
-use App\Instance\Infrastructure\Schedule\RunScheduledJobHandler;
-use App\Invoicing\Application\DeliverRecurringInvoice;
-use App\Invoicing\Application\InvoiceFilter;
-use App\Invoicing\Application\InvoiceRow;
-use App\Invoicing\Application\IssueAfterTodaysRun;
-use App\Invoicing\Application\IssueRecurringInvoices;
-use App\Invoicing\Application\IssueRecurringOccurrence;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Application\MailMessage;
-use App\Invoicing\Application\RecurringAlerts;
-use App\Invoicing\Application\RecurringFilter;
-use App\Invoicing\Application\RecurringInput;
-use App\Invoicing\Application\RecurringInvoices;
-use App\Invoicing\Application\RecurringOverview;
-use App\Invoicing\Application\SaveRecurringInvoice;
-use App\Invoicing\Application\SendLimits;
-use App\Invoicing\Domain\RecurringDelivery;
-use App\Invoicing\Domain\RecurringInvoice;
-use App\Invoicing\Domain\TaxPointRule;
-use App\Invoicing\Domain\VatRateKind;
-use App\Party\Application\ContactSettingsForFirm;
-use App\Party\Application\TransactionalWork;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\EmailPurpose;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyEmail;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Id;
-use App\Shared\Domain\Schedule\Recurrence;
-use App\Shared\Domain\Schedule\RecurrenceEnd;
-use App\Shared\Domain\Schedule\RecurrenceUnit;
-use App\Tests\Import\Support\RunMessages;
-use App\Tests\Support\Registry\RecordingLogger;
+use Foresi\Country\CzechRepublic\Invoicing\CzechInvoicing;
+use Foresi\Country\CzechRepublic\Invoicing\CzechSupplyCodes;
+use Foresi\Country\CzechRepublic\Invoicing\CzechVatRates;
+use Foresi\Country\CzechRepublic\Invoicing\IsdocWriter;
+use Foresi\Country\CzechRepublic\Invoicing\QrPlatba;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Instance\Application\Schedule\RunScheduledJob;
+use Foresi\Instance\Application\Schedule\ScheduledJobRuns;
+use Foresi\Instance\Infrastructure\Schedule\RunScheduledJobHandler;
+use Foresi\Invoicing\Application\DeliverRecurringInvoice;
+use Foresi\Invoicing\Application\InvoiceFilter;
+use Foresi\Invoicing\Application\InvoiceRow;
+use Foresi\Invoicing\Application\IssueAfterTodaysRun;
+use Foresi\Invoicing\Application\IssueRecurringInvoices;
+use Foresi\Invoicing\Application\IssueRecurringOccurrence;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Application\MailMessage;
+use Foresi\Invoicing\Application\RecurringAlerts;
+use Foresi\Invoicing\Application\RecurringFilter;
+use Foresi\Invoicing\Application\RecurringInput;
+use Foresi\Invoicing\Application\RecurringInvoices;
+use Foresi\Invoicing\Application\RecurringOverview;
+use Foresi\Invoicing\Application\SaveRecurringInvoice;
+use Foresi\Invoicing\Application\SendLimits;
+use Foresi\Invoicing\Domain\RecurringDelivery;
+use Foresi\Invoicing\Domain\RecurringInvoice;
+use Foresi\Invoicing\Domain\TaxPointRule;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\EmailPurpose;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Domain\Schedule\Recurrence;
+use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
+use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
+use Foresi\Tests\Import\Support\RunMessages;
+use Foresi\Tests\Support\Registry\RecordingLogger;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
@@ -450,7 +450,7 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         self::assertNotNull($this->templateRow($template->id())['last_failure_code']);
 
         $customer = $this->partyNow($this->customer);
-        $this->em->persist(new PartyAddress($customer, \App\Party\Domain\AddressType::Billing, new \App\Party\Domain\Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
+        $this->em->persist(new PartyAddress($customer, \Foresi\Party\Domain\AddressType::Billing, new \Foresi\Party\Domain\Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
         $this->em->flush();
         $this->runOn('2026-12-02 05:30:00');
 
@@ -612,7 +612,7 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
     public function testAPausedTemplateIsNotIssued(): void
     {
         $template = $this->template();
-        self::getContainer()->get(\App\Invoicing\Application\RecurringLifecycle::class)->pause($template->id());
+        self::getContainer()->get(\Foresi\Invoicing\Application\RecurringLifecycle::class)->pause($template->id());
 
         $this->runOn('2026-12-01 05:30:00');
 
@@ -661,7 +661,7 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
     public function testRunningOnePausedTemplateLeavesItAsItIs(): void
     {
         $template = $this->template();
-        self::getContainer()->get(\App\Invoicing\Application\RecurringLifecycle::class)->pause($template->id());
+        self::getContainer()->get(\Foresi\Invoicing\Application\RecurringLifecycle::class)->pause($template->id());
         $this->connection->executeStatement("UPDATE recurring_invoice SET last_failure_code = 'send.no_server', last_failure_at = '2026-11-01 05:30:00' WHERE id = ?", [$template->id()]);
         $this->finishedOn('2026-12-01');
         self::mockTime('2026-12-01 10:00:00');

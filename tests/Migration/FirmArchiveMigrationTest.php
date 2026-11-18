@@ -6,10 +6,8 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Migration;
+namespace Foresi\Tests\Migration;
 
-use App\Party\Infrastructure\Doctrine\VatIdType;
-use App\Shared\Domain\Id;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
@@ -21,6 +19,8 @@ use Doctrine\Migrations\Configuration\Migration\ConfigurationArray;
 use Doctrine\Migrations\DependencyFactory;
 use Doctrine\Migrations\MigratorConfiguration;
 use Doctrine\Migrations\Version\Version;
+use Foresi\Party\Infrastructure\Doctrine\VatIdType;
+use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\TestCase;
 
 /**

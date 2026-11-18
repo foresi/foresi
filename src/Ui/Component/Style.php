@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Ui\Component;
+namespace Foresi\Ui\Component;
 
 /**
  * Shared Tailwind class maps of the component vocabulary. Looking a key up

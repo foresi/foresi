@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Invoicing\Application\RecurringFilter;
-use App\Invoicing\Application\RecurringInvoices;
-use App\Invoicing\Application\RecurringPage;
-use App\Invoicing\Application\UnknownRecurringInvoice;
-use App\Invoicing\Domain\RecurringInvoice;
-use App\Invoicing\Domain\RecurringInvoiceLine;
-use App\Invoicing\Domain\RecurringState;
-use App\Invoicing\Domain\SendPurpose;
-use App\Invoicing\Domain\SendStatus;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
+use Foresi\Invoicing\Application\RecurringFilter;
+use Foresi\Invoicing\Application\RecurringInvoices;
+use Foresi\Invoicing\Application\RecurringPage;
+use Foresi\Invoicing\Application\UnknownRecurringInvoice;
+use Foresi\Invoicing\Domain\RecurringInvoice;
+use Foresi\Invoicing\Domain\RecurringInvoiceLine;
+use Foresi\Invoicing\Domain\RecurringState;
+use Foresi\Invoicing\Domain\SendPurpose;
+use Foresi\Invoicing\Domain\SendStatus;
 
 /**
  * The lock is the write that changes nothing of DoctrineInvoiceStore, for the same

@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\BankMovement;
-use App\Banking\Domain\MessageTrust;
-use App\Banking\Domain\UnmatchedReason;
-use App\Invoicing\Application\AllocationRequest;
-use App\Invoicing\Application\InvoicingCountries;
-use App\Invoicing\Application\UnsupportedCountry;
-use App\Shared\Domain\Money;
+use Foresi\Banking\Domain\BankMovement;
+use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Banking\Domain\UnmatchedReason;
+use Foresi\Invoicing\Application\AllocationRequest;
+use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Invoicing\Application\UnsupportedCountry;
+use Foresi\Shared\Domain\Money;
 
 /**
  * Which invoices an incoming movement pays, by the variable symbol and the amount,

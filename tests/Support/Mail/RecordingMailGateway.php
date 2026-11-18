@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Support\Mail;
+namespace Foresi\Tests\Support\Mail;
 
-use App\Invoicing\Application\MailGateway;
-use App\Invoicing\Application\MailMessage;
-use App\Invoicing\Application\MailRefused;
-use App\Invoicing\Domain\FirmMailServer;
+use Foresi\Invoicing\Application\MailGateway;
+use Foresi\Invoicing\Application\MailMessage;
+use Foresi\Invoicing\Application\MailRefused;
+use Foresi\Invoicing\Domain\FirmMailServer;
 
 /**
  * The mail gateway of the test and end-to-end environments: it keeps what it is

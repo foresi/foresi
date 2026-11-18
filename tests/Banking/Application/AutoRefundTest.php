@@ -6,33 +6,33 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Application;
 
-use App\Banking\Application\Candidate;
-use App\Banking\Application\PairingChoices;
-use App\Banking\Domain\MovementDirection;
-use App\Banking\Domain\MovementState;
-use App\Banking\Domain\UnmatchedReason;
-use App\Invoicing\Application\AllocationRequest;
-use App\Invoicing\Application\CorrectionInput;
-use App\Invoicing\Application\InvoiceFilter;
-use App\Invoicing\Application\InvoiceRow;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Application\PaymentRequest;
-use App\Invoicing\Application\RecordPayment;
-use App\Invoicing\Domain\CorrectionType;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\PaymentDirection;
-use App\Invoicing\Domain\PaymentSource;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Quantity;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Party\Domain\PaymentMethod;
-use App\Tests\Banking\Support\BankingTestCase;
-use App\Tests\Party\Support\FirmAccounts;
+use Foresi\Banking\Application\Candidate;
+use Foresi\Banking\Application\PairingChoices;
+use Foresi\Banking\Domain\MovementDirection;
+use Foresi\Banking\Domain\MovementState;
+use Foresi\Banking\Domain\UnmatchedReason;
+use Foresi\Invoicing\Application\AllocationRequest;
+use Foresi\Invoicing\Application\CorrectionInput;
+use Foresi\Invoicing\Application\InvoiceFilter;
+use Foresi\Invoicing\Application\InvoiceRow;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Application\PaymentRequest;
+use Foresi\Invoicing\Application\RecordPayment;
+use Foresi\Invoicing\Domain\CorrectionType;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\PaymentDirection;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Tests\Banking\Support\BankingTestCase;
+use Foresi\Tests\Party\Support\FirmAccounts;
 
 /**
  * Outgoing money refunds by itself under the rules incoming money pays by: a

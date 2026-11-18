@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Work\Infrastructure\Controller;
+namespace Foresi\Tests\Work\Infrastructure\Controller;
 
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\Role;
-use App\Tests\Identity\Support\IdentityFixtures;
-use App\Tests\Identity\Support\SignedInBrowser;
-use App\Work\Application\NotificationMailer;
-use App\Work\Domain\EmailDelivery;
-use App\Work\Domain\NotificationKind;
-use App\Work\Domain\NotificationPreference;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Role;
+use Foresi\Tests\Identity\Support\IdentityFixtures;
+use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Work\Application\NotificationMailer;
+use Foresi\Work\Domain\EmailDelivery;
+use Foresi\Work\Domain\NotificationKind;
+use Foresi\Work\Domain\NotificationPreference;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;

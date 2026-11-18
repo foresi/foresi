@@ -16,7 +16,7 @@
     {% if not empty %}
         <twig:Ui:MoreActions menuId="time-report-actions">
             <form method="post" action="{{ path('app_time_report_export') }}" data-turbo="false" role="none" data-time-report-export>
-                <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TimeReportController::TOKEN')) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TimeReportController::TOKEN')) }}">
                 {% for name, value in query %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
                 <twig:Ui:MenuItem type="submit" icon="download">{{ 'work.time.report.export'|trans }}</twig:Ui:MenuItem>
             </form>

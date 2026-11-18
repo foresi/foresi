@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Support\Registry;
+namespace Foresi\Tests\Support\Registry;
 
-use App\Party\Application\CompanyRegistry;
-use App\Party\Application\RegistryRecord;
-use App\Party\Domain\Address;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
+use Foresi\Party\Application\CompanyRegistry;
+use Foresi\Party\Application\RegistryRecord;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
 
 /**
  * Test-env stand-in for the company register: knows one synthetic subject,

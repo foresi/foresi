@@ -6,7 +6,7 @@ security:
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
         app_user_provider:
-            id: App\Identity\Infrastructure\Security\UserProvider
+            id: Foresi\Identity\Infrastructure\Security\UserProvider
 
     firewalls:
         dev:
@@ -26,18 +26,18 @@ security:
             pattern: ^/api/
             stateless: true
             provider: app_user_provider
-            entry_point: App\Identity\Infrastructure\Security\ApiTokenFailure
+            entry_point: Foresi\Identity\Infrastructure\Security\ApiTokenFailure
             access_token:
-                token_handler: App\Identity\Infrastructure\Security\ApiTokenHandler
-                failure_handler: App\Identity\Infrastructure\Security\ApiTokenFailure
+                token_handler: Foresi\Identity\Infrastructure\Security\ApiTokenHandler
+                failure_handler: Foresi\Identity\Infrastructure\Security\ApiTokenFailure
         mcp:
             pattern: ^/mcp(/|$)
             stateless: true
             provider: app_user_provider
-            entry_point: App\Identity\Infrastructure\Security\ApiTokenFailure
+            entry_point: Foresi\Identity\Infrastructure\Security\ApiTokenFailure
             access_token:
-                token_handler: App\Identity\Infrastructure\Security\ApiTokenHandler
-                failure_handler: App\Identity\Infrastructure\Security\ApiTokenFailure
+                token_handler: Foresi\Identity\Infrastructure\Security\ApiTokenHandler
+                failure_handler: Foresi\Identity\Infrastructure\Security\ApiTokenFailure
         main:
             lazy: true
             provider: app_user_provider

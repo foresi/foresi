@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
-use App\Identity\Domain\Invitation;
+use Foresi\Identity\Domain\Invitation;
 
 /**
  * An invitation just created or sent again, with the link that works now. When

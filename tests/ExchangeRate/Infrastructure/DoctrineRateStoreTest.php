@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\ExchangeRate\Infrastructure;
+namespace Foresi\Tests\ExchangeRate\Infrastructure;
 
-use App\ExchangeRate\Application\PublishedRates;
-use App\ExchangeRate\Application\Quote;
-use App\ExchangeRate\Domain\StoredRate;
-use App\ExchangeRate\Infrastructure\Doctrine\DoctrineRateStore;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\ExchangeRate\Application\PublishedRates;
+use Foresi\ExchangeRate\Application\Quote;
+use Foresi\ExchangeRate\Domain\StoredRate;
+use Foresi\ExchangeRate\Infrastructure\Doctrine\DoctrineRateStore;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**

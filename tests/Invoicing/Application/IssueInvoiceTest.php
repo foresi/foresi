@@ -6,50 +6,50 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\FirmInvoicingSettings;
-use App\Invoicing\Application\InvoiceInput;
-use App\Invoicing\Application\InvoiceStore;
-use App\Invoicing\Application\InvoicingCountries;
-use App\Invoicing\Application\IssuedDocumentFactory;
-use App\Invoicing\Application\IssueInvoice;
-use App\Invoicing\Application\IssueProblem;
-use App\Invoicing\Application\IssueRefused;
-use App\Invoicing\Application\IssueRules;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Application\NumberAllocator;
-use App\Invoicing\Application\StoredInvoice;
-use App\Invoicing\Domain\AbandonedNumber;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\DocumentParty;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Quantity;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\SeriesFormat;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\TotalRounding;
-use App\Invoicing\Domain\VatRateKind;
-use App\Invoicing\Domain\VatRegime;
-use App\Party\Application\ContactSettingsForFirm;
-use App\Party\Domain\Address;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\EmailPurpose;
-use App\Party\Domain\InvoicingEmail;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyEmail;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PaymentMethod;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Party\Support\FirmAccounts;
+use Foresi\Invoicing\Application\FirmInvoicingSettings;
+use Foresi\Invoicing\Application\InvoiceInput;
+use Foresi\Invoicing\Application\InvoiceStore;
+use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Invoicing\Application\IssuedDocumentFactory;
+use Foresi\Invoicing\Application\IssueInvoice;
+use Foresi\Invoicing\Application\IssueProblem;
+use Foresi\Invoicing\Application\IssueRefused;
+use Foresi\Invoicing\Application\IssueRules;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Application\NumberAllocator;
+use Foresi\Invoicing\Application\StoredInvoice;
+use Foresi\Invoicing\Domain\AbandonedNumber;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\TotalRounding;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\EmailPurpose;
+use Foresi\Party\Domain\InvoicingEmail;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Party\Support\FirmAccounts;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 
@@ -753,12 +753,12 @@ final class IssueInvoiceTest extends InvoiceTestCase
                 return $this->store->kindOfNumber($firm, $key);
             }
 
-            public function page(\App\Invoicing\Application\InvoiceFilter $filter): \App\Invoicing\Application\InvoicePage
+            public function page(\Foresi\Invoicing\Application\InvoiceFilter $filter): \Foresi\Invoicing\Application\InvoicePage
             {
                 return $this->store->page($filter);
             }
 
-            public function sums(\App\Invoicing\Application\InvoiceFilter $filter): \App\Invoicing\Application\InvoiceSums
+            public function sums(\Foresi\Invoicing\Application\InvoiceFilter $filter): \Foresi\Invoicing\Application\InvoiceSums
             {
                 return $this->store->sums($filter);
             }
@@ -789,25 +789,25 @@ final class IssueInvoiceTest extends InvoiceTestCase
             }
         };
         $issue = new IssueInvoice(
-            $container->get(\App\Party\Application\LegalEntities::class),
+            $container->get(\Foresi\Party\Application\LegalEntities::class),
             $this->catalog,
-            $container->get(\App\Party\Application\PartyQuery::class),
+            $container->get(\Foresi\Party\Application\PartyQuery::class),
             $container->get(IssueRules::class),
-            $container->get(\App\Invoicing\Application\CustomerCopies::class),
-            $container->get(\App\Invoicing\Application\LinePricing::class),
+            $container->get(\Foresi\Invoicing\Application\CustomerCopies::class),
+            $container->get(\Foresi\Invoicing\Application\LinePricing::class),
             $container->get(InvoicingCountries::class),
             $container->get(FirmInvoicingSettings::class),
             $failing,
             new NumberAllocator($this->counter, $failing, self::getContainer()->get(InvoicingCountries::class)),
-            $container->get(\App\Party\Application\TransactionalWork::class),
-            $container->get(\App\Invoicing\Application\ConflictRetry::class),
-            $container->get(\App\Audit\Application\AuditActor::class),
+            $container->get(\Foresi\Party\Application\TransactionalWork::class),
+            $container->get(\Foresi\Invoicing\Application\ConflictRetry::class),
+            $container->get(\Foresi\Audit\Application\AuditActor::class),
             $container->get(\Psr\Clock\ClockInterface::class),
             $container->get(ContactSettingsForFirm::class),
             $this->deductions(),
-            $container->get(\App\Invoicing\Application\CorrectionRules::class),
-            $container->get(\App\Invoicing\Application\BilledWork::class),
-            $container->get(\App\Shared\Application\Event\EventRecorder::class),
+            $container->get(\Foresi\Invoicing\Application\CorrectionRules::class),
+            $container->get(\Foresi\Invoicing\Application\BilledWork::class),
+            $container->get(\Foresi\Shared\Application\Event\EventRecorder::class),
         );
 
         try {
@@ -1181,7 +1181,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     private function secondFirm(VatStatus $status, ?string $vatId, string $register = 'Example register, entry C 2', ?Address $address = null): LegalEntity
     {
-        $firm = new LegalEntity('Second Firm s.r.o.', new RegistrationNumber('CZ', '27074358'), null === $vatId ? null : \App\Party\Domain\VatId::fromString($vatId), $address ?? new Address('Example Street 1', 'Example City', '100 00', 'CZ'), $status, $register);
+        $firm = new LegalEntity('Second Firm s.r.o.', new RegistrationNumber('CZ', '27074358'), null === $vatId ? null : \Foresi\Party\Domain\VatId::fromString($vatId), $address ?? new Address('Example Street 1', 'Example City', '100 00', 'CZ'), $status, $register);
         $this->em->persist($firm);
         FirmAccounts::add($this->em, $firm, self::IBAN);
         $this->em->flush();

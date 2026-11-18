@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Form;
+namespace Foresi\Invoicing\Infrastructure\Form;
 
-use App\Invoicing\Application\InvoicePaymentLine;
-use App\Invoicing\Application\InvoicePayments;
-use App\Invoicing\Application\PaymentState;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\PaymentSource;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Application\InvoicePaymentLine;
+use Foresi\Invoicing\Application\InvoicePayments;
+use Foresi\Invoicing\Application\PaymentState;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Shared\Domain\Money;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;

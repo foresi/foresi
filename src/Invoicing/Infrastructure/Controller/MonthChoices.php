@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Controller;
+namespace Foresi\Invoicing\Infrastructure\Controller;
 
 /**
  * Months as the options of a select: newest first, named in the locale, and grouped by

@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
-use App\Shared\Application\RefusalKind;
-use App\Shared\Application\Refused;
+use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Application\Refused;
 
 /**
  * What the address book refuses to write, as a reason from a closed list and

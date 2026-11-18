@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-use App\Idoklad\Domain\IdokladConnection;
-use App\Idoklad\Domain\IdokladPull;
-use App\Idoklad\Domain\IdokladRecord;
-use App\Idoklad\Domain\IdokladResource;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
-use App\Party\Domain\VatStatus;
+use Foresi\Idoklad\Domain\IdokladConnection;
+use Foresi\Idoklad\Domain\IdokladPull;
+use Foresi\Idoklad\Domain\IdokladRecord;
+use Foresi\Idoklad\Domain\IdokladResource;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Party\Domain\VatStatus;
 
 // The world of the iDoklad spec: a payer firm with stored iDoklad keys and a finished pull whose
 // records are inserted as a pull stores them, so the e2e server never calls iDoklad. Three

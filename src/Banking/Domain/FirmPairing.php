@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Domain;
+namespace Foresi\Banking\Domain;
 
-use App\Audit\Domain\Audited;
-use App\Audit\Domain\AuditRooted;
-use App\Party\Domain\LegalEntity;
-use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Audit\Domain\AuditRooted;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Domain\Id;
 
 /**
  * A firm's own pairing switches, once it changed them. A firm without a row

@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Doctrine;
+namespace Foresi\Import\Infrastructure\Doctrine;
 
-use App\Import\Application\Imports;
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportAmbiguousMatch;
-use App\Import\Domain\ImportMissingRecord;
-use App\Import\Domain\ImportRow;
-use App\Import\Domain\ImportState;
-use App\Import\Domain\RowOutcome;
-use App\Import\Domain\Text;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
 use Doctrine\Persistence\ManagerRegistry;
+use Foresi\Import\Application\Imports;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\ImportAmbiguousMatch;
+use Foresi\Import\Domain\ImportMissingRecord;
+use Foresi\Import\Domain\ImportRow;
+use Foresi\Import\Domain\ImportState;
+use Foresi\Import\Domain\RowOutcome;
+use Foresi\Import\Domain\Text;
 
 /**
  * Reads and writes imports through the entity manager; bulk statements name

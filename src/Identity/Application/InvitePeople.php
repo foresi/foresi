@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Domain\Invitation;
-use App\Identity\Domain\InvitationToken;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Party\Application\PartyQuery;
-use App\Party\Domain\Party;
-use App\Shared\Application\SystemMailUnavailable;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Domain\Invitation;
+use Foresi\Identity\Domain\InvitationToken;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Domain\Party;
+use Foresi\Shared\Application\SystemMailUnavailable;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -58,7 +58,7 @@ final readonly class InvitePeople
             throw new InvitationRefused('contact');
         }
         $user = $this->users->findByEmail($email);
-        if ($user instanceof User && $this->people->membershipOf($user->id()) instanceof \App\Identity\Domain\Membership) {
+        if ($user instanceof User && $this->people->membershipOf($user->id()) instanceof \Foresi\Identity\Domain\Membership) {
             throw new InvitationRefused('member');
         }
 

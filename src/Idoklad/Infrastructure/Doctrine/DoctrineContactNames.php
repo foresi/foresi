@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Infrastructure\Doctrine;
+namespace Foresi\Idoklad\Infrastructure\Doctrine;
 
-use App\Idoklad\Application\Import\ContactNames;
-use App\Party\Domain\ContactLink;
-use App\Party\Domain\Party;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Idoklad\Application\Import\ContactNames;
+use Foresi\Party\Domain\ContactLink;
+use Foresi\Party\Domain\Party;
 
 final readonly class DoctrineContactNames implements ContactNames
 {

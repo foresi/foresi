@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Support;
+namespace Foresi\Tests\Banking\Support;
 
 /**
  * Reads a value of a plain SQL result the same on SQLite and PostgreSQL, where

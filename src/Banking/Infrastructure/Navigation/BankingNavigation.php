@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure\Navigation;
+namespace Foresi\Banking\Infrastructure\Navigation;
 
-use App\Identity\Application\StaffCheck;
-use App\Ui\Navigation\CoreNavigationAreas;
-use App\Ui\Navigation\NavigationItem;
-use App\Ui\Navigation\NavigationItemProvider;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Ui\Navigation\CoreNavigationAreas;
+use Foresi\Ui\Navigation\NavigationItem;
+use Foresi\Ui\Navigation\NavigationItemProvider;
 
 /**
  * The bank movements in the sidebar, for those who work with invoices, under

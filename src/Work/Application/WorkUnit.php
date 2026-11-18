@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Audit\Application\AuditCorrelation;
-use App\Party\Application\TransactionalWork;
-use App\Shared\Domain\Id;
+use Foresi\Audit\Application\AuditCorrelation;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Domain\Id;
 
 /**
  * One action of a person, saved at once in one transaction under one

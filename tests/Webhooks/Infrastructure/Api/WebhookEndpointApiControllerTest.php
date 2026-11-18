@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Infrastructure\Api;
+namespace Foresi\Tests\Webhooks\Infrastructure\Api;
 
-use App\Audit\Domain\AuditEntry;
-use App\Invoicing\Infrastructure\Events\InvoicingEventAccess;
-use App\Shared\Application\Event\EventReadAccess;
-use App\Shared\Application\SealerUnavailable;
-use App\Webhooks\Application\AttemptTrigger;
-use App\Webhooks\Application\SendWebhook;
-use App\Webhooks\Application\WebhookSecrets;
-use App\Webhooks\Domain\WebhookEndpoint;
-use App\Webhooks\Domain\WebhookSecret;
-use App\Webhooks\Infrastructure\Crypto\SodiumWebhookSecrets;
-use App\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Invoicing\Infrastructure\Events\InvoicingEventAccess;
+use Foresi\Shared\Application\Event\EventReadAccess;
+use Foresi\Shared\Application\SealerUnavailable;
+use Foresi\Webhooks\Application\AttemptTrigger;
+use Foresi\Webhooks\Application\SendWebhook;
+use Foresi\Webhooks\Application\WebhookSecrets;
+use Foresi\Webhooks\Domain\WebhookEndpoint;
+use Foresi\Webhooks\Domain\WebhookSecret;
+use Foresi\Webhooks\Infrastructure\Crypto\SodiumWebhookSecrets;
+use Foresi\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
 
 /**
  * Webhook endpoints managed over REST: registered with a secret shown once,

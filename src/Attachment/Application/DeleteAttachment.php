@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Attachment\Application;
+namespace Foresi\Attachment\Application;
 
-use App\Attachment\Domain\Attachment;
-use App\Audit\Application\AuditActor;
-use App\Audit\Application\AuditCorrelation;
+use Foresi\Attachment\Domain\Attachment;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Audit\Application\AuditCorrelation;
 use Psr\Clock\ClockInterface;
 
 /**

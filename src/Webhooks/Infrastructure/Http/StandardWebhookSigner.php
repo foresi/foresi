@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Http;
+namespace Foresi\Webhooks\Infrastructure\Http;
 
-use App\Webhooks\Domain\WebhookSecret;
+use Foresi\Webhooks\Domain\WebhookSecret;
 
 /**
  * The three Standard Webhooks headers. The signature is "v1," and the base64 of

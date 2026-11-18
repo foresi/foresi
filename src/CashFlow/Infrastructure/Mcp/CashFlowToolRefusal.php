@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Infrastructure\Mcp;
+namespace Foresi\CashFlow\Infrastructure\Mcp;
 
-use App\CashFlow\Application\CashFlowRefused;
-use App\Shared\Application\RefusalKind;
-use App\Shared\Infrastructure\Mcp\ToolRefusal;
-use App\Shared\Infrastructure\Operation\OperationField;
+use Foresi\CashFlow\Application\CashFlowRefused;
+use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Infrastructure\Operation\OperationField;
 
 /**
  * A refusal of the cash-flow reads as MCP answers it, the way the operations do.

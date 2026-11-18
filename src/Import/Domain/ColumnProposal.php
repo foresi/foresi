@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Domain;
+namespace Foresi\Import\Domain;
 
 /** The proposed target field of one source column; a null field means "do not import". */
 final readonly class ColumnProposal

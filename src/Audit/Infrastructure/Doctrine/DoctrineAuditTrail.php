@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Audit\Infrastructure\Doctrine;
+namespace Foresi\Audit\Infrastructure\Doctrine;
 
-use App\Audit\Application\AuditTrail;
-use App\Audit\Domain\AuditEntry;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Audit\Application\AuditTrail;
+use Foresi\Audit\Domain\AuditEntry;
 
 /**
  * Reads the audit log through the entity manager. One instance serves one

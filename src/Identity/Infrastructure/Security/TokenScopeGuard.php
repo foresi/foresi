@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Security;
+namespace Foresi\Identity\Infrastructure\Security;
 
-use App\Identity\Application\ApiTokenContext;
-use App\Identity\Application\ApiTokenGrant;
-use App\Identity\Application\InsufficientScope;
-use App\Identity\Domain\ApiScope;
-use App\Shared\Application\Api\ScopeGuard;
+use Foresi\Identity\Application\ApiTokenContext;
+use Foresi\Identity\Application\ApiTokenGrant;
+use Foresi\Identity\Application\InsufficientScope;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Shared\Application\Api\ScopeGuard;
 
 /**
  * The scope check of the shared contract, answered by the personal API token.

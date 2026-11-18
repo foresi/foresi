@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Country\CzechRepublic\Invoicing;
+namespace Foresi\Country\CzechRepublic\Invoicing;
 
-use App\Country\CzechRepublic\Party\CzechBankAccount;
-use App\Invoicing\Application\ElectronicFile;
-use App\Invoicing\Application\InvoicingCountry;
-use App\Invoicing\Application\IssuedDocument;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Shared\Domain\Currency;
+use Foresi\Country\CzechRepublic\Party\CzechBankAccount;
+use Foresi\Invoicing\Application\ElectronicFile;
+use Foresi\Invoicing\Application\InvoicingCountry;
+use Foresi\Invoicing\Application\IssuedDocument;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Shared\Domain\Currency;
 
 /**
  * The invoicing rules of Czechia.

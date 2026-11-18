@@ -13,7 +13,7 @@
 
 {% block dialog_body %}
     <form method="post" id="accept-form" action="{{ path('app_bank_message_accept', {id: message.id}) }}" class="grid gap-3" novalidate>
-        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Banking\\Infrastructure\\Controller\\InboundMessageController::ACTION_TOKEN')) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Banking\\Infrastructure\\Controller\\InboundMessageController::ACTION_TOKEN')) }}">
         <input type="hidden" name="return" value="{{ return }}">
         <p class="m-0 min-w-0 truncate text-text" title="{{ subject }}">{{ subject }}</p>
         <twig:Ui:Alert tone="warning" icon="triangle-alert" :title="'bank.message.accept.warning_title'|trans">{{ 'bank.message.accept.warning'|trans }}</twig:Ui:Alert>

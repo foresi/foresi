@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Mcp;
+namespace Foresi\Tests\Shared\Infrastructure\Mcp;
 
-use App\Shared\Application\Api\IdempotencyKeyInFlight;
-use App\Shared\Application\Api\IdempotencyKeyReused;
-use App\Shared\Application\Api\IdempotencyKeys;
-use App\Shared\Application\Api\SavedAnswer;
+use Foresi\Shared\Application\Api\IdempotencyKeyInFlight;
+use Foresi\Shared\Application\Api\IdempotencyKeyReused;
+use Foresi\Shared\Application\Api\IdempotencyKeys;
+use Foresi\Shared\Application\Api\SavedAnswer;
 
 /**
  * Idempotency keys in memory, by operation and key, with no token behind them.

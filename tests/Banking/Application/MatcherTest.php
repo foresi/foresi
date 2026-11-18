@@ -6,28 +6,28 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Application;
 
-use App\Banking\Application\Candidate;
-use App\Banking\Application\MatchDecision;
-use App\Banking\Application\Matcher;
-use App\Banking\Application\PairingRules;
-use App\Banking\Domain\BankMovement;
-use App\Banking\Domain\MessageTrust;
-use App\Banking\Domain\MovementDirection;
-use App\Banking\Domain\MovementState;
-use App\Banking\Domain\UnmatchedReason;
-use App\Invoicing\Application\AllocationRequest;
-use App\Invoicing\Application\PaymentRequest;
-use App\Invoicing\Application\RecordPayment;
-use App\Invoicing\Domain\PaymentSource;
-use App\Party\Domain\Address;
-use App\Party\Domain\FirmBankAccount;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Banking\Support\BankingTestCase;
-use App\Tests\Party\Support\FirmAccounts;
+use Foresi\Banking\Application\Candidate;
+use Foresi\Banking\Application\MatchDecision;
+use Foresi\Banking\Application\Matcher;
+use Foresi\Banking\Application\PairingRules;
+use Foresi\Banking\Domain\BankMovement;
+use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Banking\Domain\MovementDirection;
+use Foresi\Banking\Domain\MovementState;
+use Foresi\Banking\Domain\UnmatchedReason;
+use Foresi\Invoicing\Application\AllocationRequest;
+use Foresi\Invoicing\Application\PaymentRequest;
+use Foresi\Invoicing\Application\RecordPayment;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Banking\Support\BankingTestCase;
+use Foresi\Tests\Party\Support\FirmAccounts;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**

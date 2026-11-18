@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure\Doctrine;
+namespace Foresi\Banking\Infrastructure\Doctrine;
 
-use App\Banking\Application\MovementLedger;
-use App\Banking\Domain\BankMovement;
-use App\Banking\Domain\MovementDirection;
-use App\Banking\Domain\MovementState;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Banking\Application\MovementLedger;
+use Foresi\Banking\Domain\BankMovement;
+use Foresi\Banking\Domain\MovementDirection;
+use Foresi\Banking\Domain\MovementState;
 
 /**
  * Reads through the entity manager.

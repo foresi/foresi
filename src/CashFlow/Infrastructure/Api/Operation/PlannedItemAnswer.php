@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Infrastructure\Api\Operation;
+namespace Foresi\CashFlow\Infrastructure\Api\Operation;
 
-use App\CashFlow\Domain\PlannedItem;
-use App\CashFlow\Infrastructure\Api\CashFlowApiController;
-use App\CashFlow\Infrastructure\Api\CashFlowJson;
-use App\Instance\Application\InstanceClock;
-use App\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\CashFlow\Domain\PlannedItem;
+use Foresi\CashFlow\Infrastructure\Api\CashFlowApiController;
+use Foresi\CashFlow\Infrastructure\Api\CashFlowJson;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Shared\Infrastructure\Operation\OperationOutput;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Markdown;
+namespace Foresi\Tests\Shared\Infrastructure\Markdown;
 
-use App\Shared\Infrastructure\Markdown\CommonMarkMarkdown;
+use Foresi\Shared\Infrastructure\Markdown\CommonMarkMarkdown;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

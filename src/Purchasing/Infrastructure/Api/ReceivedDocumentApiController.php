@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Api;
+namespace Foresi\Purchasing\Infrastructure\Api;
 
-use App\Purchasing\Application\Query\ReceivedDocumentBalances;
-use App\Shared\Application\Api\ScopeGuard;
-use App\Shared\Infrastructure\Api\Cursor;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentBalances;
+use Foresi\Shared\Application\Api\ScopeGuard;
+use Foresi\Shared\Infrastructure\Api\Cursor;
 use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Attribute\AsController;

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application\Target;
+namespace Foresi\Import\Application\Target;
 
 /** All import targets, found by their key. */
 final class TargetRegistry

@@ -14,7 +14,7 @@
 
 {% block dialog_body %}
     <form method="post" id="label-form" action="{{ action }}" class="grid gap-4" novalidate>
-        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\LabelController::TOKEN')) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\LabelController::TOKEN')) }}">
         {% if errors is not empty %}
             {% set fieldErrors = errors|filter((message, field) => field != 'form') %}
             <twig:Ui:Alert tone="error" tabindex="-1" data-error-summary :autofocus="fieldErrors is empty">
@@ -23,7 +23,7 @@
                     {% for field, message in errors %}
                         <li>
                             {%- if field == 'form' %}{{ message }}
-                            {%- else %}<a href="#{{ field == 'colour' ? 'colour-gray' : field }}" class="text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ ('work.labels.field.' ~ field)|trans }}</a>: {{ message }}
+                            {%- else %}<a href="#{{ field == 'colour' ? 'colour-gray' : field }}" class="text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ ('work.labels.field.' ~ field)|trans }}</a>: {{ message }}
                             {%- endif -%}
                         </li>
                     {% endfor %}

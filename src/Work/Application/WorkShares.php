@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Identity\Domain\Membership;
-use App\Work\Domain\Project;
-use App\Work\Domain\Section;
-use App\Work\Domain\Task;
-use App\Work\Domain\WorkShare;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\Section;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\WorkShare;
 
 /**
  * The projects, sections and tasks shared with people.

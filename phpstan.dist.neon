@@ -13,6 +13,6 @@ parameters:
         - tests/e2e/seed.php
         - tests/e2e/seed
     symfony:
-        containerXmlPath: var/cache/dev/App_KernelDevDebugContainer.xml
+        containerXmlPath: var/cache/dev/Foresi_KernelDevDebugContainer.xml
     doctrine:
         objectManagerLoader: tests/object-manager.php

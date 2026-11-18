@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Party\Domain\Address;
-use App\Party\Domain\InvoicingDefaults;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\InvoicingDefaults;
 
 /**
  * A contact as the invoice form offers it to one firm: the values of that firm where

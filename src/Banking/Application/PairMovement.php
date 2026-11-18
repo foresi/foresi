@@ -6,25 +6,25 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\BankMovement;
-use App\Banking\Domain\MessageTrust;
-use App\Banking\Domain\MovementState;
-use App\Banking\Domain\UnmatchedReason;
-use App\Invoicing\Application\AllocationRequest;
-use App\Invoicing\Application\ConflictRetry;
-use App\Invoicing\Application\InvoicePayments;
-use App\Invoicing\Application\InvoiceStore;
-use App\Invoicing\Application\PaymentRefused;
-use App\Invoicing\Application\PaymentRequest;
-use App\Invoicing\Application\RecordPayment;
-use App\Invoicing\Application\UnknownInvoice;
-use App\Invoicing\Domain\Payment;
-use App\Invoicing\Domain\PaymentDirection;
-use App\Invoicing\Domain\PaymentSource;
-use App\Party\Application\TransactionalWork;
-use App\Party\Domain\PaymentMethod;
+use Foresi\Banking\Domain\BankMovement;
+use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Banking\Domain\MovementState;
+use Foresi\Banking\Domain\UnmatchedReason;
+use Foresi\Invoicing\Application\AllocationRequest;
+use Foresi\Invoicing\Application\ConflictRetry;
+use Foresi\Invoicing\Application\InvoicePayments;
+use Foresi\Invoicing\Application\InvoiceStore;
+use Foresi\Invoicing\Application\PaymentRefused;
+use Foresi\Invoicing\Application\PaymentRequest;
+use Foresi\Invoicing\Application\RecordPayment;
+use Foresi\Invoicing\Application\UnknownInvoice;
+use Foresi\Invoicing\Domain\Payment;
+use Foresi\Invoicing\Domain\PaymentDirection;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\PaymentMethod;
 
 /**
  * Pays invoices from an incoming movement: as a person split it, or by itself when

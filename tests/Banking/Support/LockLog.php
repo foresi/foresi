@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Support;
+namespace Foresi\Tests\Banking\Support;
 
-use App\Banking\Application\Candidate;
-use App\Banking\Application\Candidates;
-use App\Shared\Domain\Currency;
+use Foresi\Banking\Application\Candidate;
+use Foresi\Banking\Application\Candidates;
+use Foresi\Shared\Domain\Currency;
 
 /**
  * What a pairing read and locked, in order: "read:" with the ids of the candidates

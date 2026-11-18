@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Doctrine;
+namespace Foresi\Shared\Infrastructure\Doctrine;
 
 /**
  * Marks a migration that does its work in PHP while up() runs, not through

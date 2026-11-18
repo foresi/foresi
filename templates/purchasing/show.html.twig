@@ -10,7 +10,7 @@
 
 {% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'purchasing.list.title'|trans, href: path('app_purchasing')}, {label: title}] %}
 {% set form_invalid = errors is not empty %}
-{% set token = csrf_token(constant('App\\Purchasing\\Infrastructure\\Controller\\ReceivedDocumentListController::TOKEN')) %}
+{% set token = csrf_token(constant('Foresi\\Purchasing\\Infrastructure\\Controller\\ReceivedDocumentListController::TOKEN')) %}
 {% set draft = not document.recorded %}
 
 {% block title %}{{ title }}{% endblock %}
@@ -46,7 +46,7 @@
 {% endblock %}
 
 {% block content %}
-    {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+    {% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
     {% set notices %}
         {% for message in app.flashes('success') %}<twig:Ui:Alert tone="success" role="status">{{ message }}</twig:Ui:Alert>{% endfor %}
         {% for message in app.flashes('warning') %}<twig:Ui:Alert tone="warning" role="status" data-purchasing-warning>{{ message }}</twig:Ui:Alert>{% endfor %}

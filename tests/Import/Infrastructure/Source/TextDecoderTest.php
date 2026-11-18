@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Import\Infrastructure\Source;
+namespace Foresi\Tests\Import\Infrastructure\Source;
 
-use App\Import\Application\Source\Encoding;
-use App\Import\Infrastructure\Source\TextDecoder;
+use Foresi\Import\Application\Source\Encoding;
+use Foresi\Import\Infrastructure\Source\TextDecoder;
 use PHPUnit\Framework\TestCase;
 
 final class TextDecoderTest extends TestCase

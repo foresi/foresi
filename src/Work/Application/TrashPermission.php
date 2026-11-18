@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\OwnerCheck;
-use App\Identity\Application\StaffCheck;
-use App\Work\Domain\Task;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\OwnerCheck;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Work\Domain\Task;
 
 /**
  * Who puts a task in the trash and takes it out again: the person who created

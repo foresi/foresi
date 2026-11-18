@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Operation;
+namespace Foresi\Shared\Infrastructure\Operation;
 
-use App\Shared\Application\RefusalKind;
-use App\Shared\Application\Refused;
-use App\Shared\Infrastructure\Mcp\ToolOutput;
-use App\Shared\Infrastructure\Mcp\ToolRefusal;
-use App\Shared\Infrastructure\Mcp\WriteTool;
+use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Application\Refused;
+use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Infrastructure\Mcp\WriteTool;
 use Symfony\Component\DependencyInjection\Attribute\Exclude;
 
 /**

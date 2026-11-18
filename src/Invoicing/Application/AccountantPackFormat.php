@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\DocumentKind;
-use App\Party\Domain\LegalEntity;
-use App\Shared\Domain\Currency;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Domain\Currency;
 
 /**
  * How a pack for the accountant names its folders and files, in the language of

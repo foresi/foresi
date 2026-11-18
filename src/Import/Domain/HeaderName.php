@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Domain;
+namespace Foresi\Import\Domain;
 
 /** The one way a column header is compared: lower-case ASCII words separated by single spaces. */
 final class HeaderName

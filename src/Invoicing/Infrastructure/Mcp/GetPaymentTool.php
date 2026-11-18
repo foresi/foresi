@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Mcp;
+namespace Foresi\Invoicing\Infrastructure\Mcp;
 
-use App\Invoicing\Application\Query\PaymentDetails;
-use App\Invoicing\Application\Query\PaymentsNotAllowed;
-use App\Invoicing\Application\UnknownPayment;
-use App\Invoicing\Infrastructure\Api\PaymentJson;
-use App\Shared\Infrastructure\Mcp\ReadTool;
-use App\Shared\Infrastructure\Mcp\ToolArguments;
-use App\Shared\Infrastructure\Mcp\ToolOutput;
-use App\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Invoicing\Application\Query\PaymentDetails;
+use Foresi\Invoicing\Application\Query\PaymentsNotAllowed;
+use Foresi\Invoicing\Application\UnknownPayment;
+use Foresi\Invoicing\Infrastructure\Api\PaymentJson;
+use Foresi\Shared\Infrastructure\Mcp\ReadTool;
+use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
+use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 
 /**
  * One payment of the organisation, as GET /api/v1/payments/{id} writes it.

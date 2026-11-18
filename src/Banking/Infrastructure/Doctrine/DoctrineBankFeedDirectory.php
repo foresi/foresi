@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure\Doctrine;
+namespace Foresi\Banking\Infrastructure\Doctrine;
 
-use App\Banking\Application\BankFeedDirectory;
-use App\Banking\Application\FeedRoute;
 use Doctrine\DBAL\Connection;
+use Foresi\Banking\Application\BankFeedDirectory;
+use Foresi\Banking\Application\FeedRoute;
 
 /**
  * Plain SQL: the token hash is the only key, and no entity is loaded. An

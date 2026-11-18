@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Infrastructure;
+namespace Foresi\Tests\Banking\Infrastructure;
 
-use App\Banking\Application\Candidate;
-use App\Banking\Application\Candidates;
-use App\Shared\Domain\Currency;
-use App\Tests\Invoicing\Application\InvoiceTestCase;
+use Foresi\Banking\Application\Candidate;
+use Foresi\Banking\Application\Candidates;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Tests\Invoicing\Application\InvoiceTestCase;
 
 /**
  * Pairing offers what is left after the corrections: a credit note lowers it, a

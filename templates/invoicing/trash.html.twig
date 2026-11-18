@@ -9,7 +9,7 @@
 
 {% block dialog_body %}
     <form method="post" id="trash-form" action="{{ path('app_invoice_trash', {id: invoice.id}) }}" class="grid gap-4" novalidate>
-        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN')) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN')) }}">
         <input type="hidden" name="return" value="{{ return }}">
         <p class="m-0 text-text">{{ invoice.customer.name }} · <span class="num">{{ payable }}</span></p>
         <p class="m-0 text-muted">{{ 'invoice.trash.keeps'|trans }}</p>

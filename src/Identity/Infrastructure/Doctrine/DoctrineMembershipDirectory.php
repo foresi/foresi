@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Doctrine;
+namespace Foresi\Identity\Infrastructure\Doctrine;
 
-use App\Identity\Application\MembershipDirectory;
-use App\Identity\Application\Organisation;
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\Role;
-use App\Party\Domain\LegalEntity;
 use Doctrine\ORM\AbstractQuery;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Application\MembershipDirectory;
+use Foresi\Identity\Application\Organisation;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Role;
+use Foresi\Party\Domain\LegalEntity;
 
 /**
  * The organisation is named after the first active firm, the oldest by its

@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Doctrine;
+namespace Foresi\Webhooks\Infrastructure\Doctrine;
 
-use App\Webhooks\Application\WebhookEndpoints;
-use App\Webhooks\Domain\WebhookEndpoint;
-use App\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Webhooks\Application\WebhookEndpoints;
+use Foresi\Webhooks\Domain\WebhookEndpoint;
+use Foresi\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
 
 /**
  * The endpoints through the entity manager. The delivery tables hold no

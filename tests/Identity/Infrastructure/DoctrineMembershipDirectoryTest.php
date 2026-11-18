@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Infrastructure;
+namespace Foresi\Tests\Identity\Infrastructure;
 
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\Role;
-use App\Identity\Infrastructure\Doctrine\DoctrineMembershipDirectory;
-use App\Tests\Identity\Support\IdentityFixtures;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Infrastructure\Doctrine\DoctrineMembershipDirectory;
+use Foresi\Tests\Identity\Support\IdentityFixtures;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**

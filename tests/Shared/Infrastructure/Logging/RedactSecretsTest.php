@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Logging;
+namespace Foresi\Tests\Shared\Infrastructure\Logging;
 
-use App\Shared\Infrastructure\Logging\RedactSecrets;
+use Foresi\Shared\Infrastructure\Logging\RedactSecrets;
 use Monolog\Level;
 use Monolog\LogRecord;
 use PHPUnit\Framework\Attributes\DataProvider;

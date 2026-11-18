@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Work\Application;
+namespace Foresi\Tests\Work\Application;
 
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Work\Application\WorkUnit;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Work\Application\WorkUnit;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 final class WorkUnitTest extends WorkTestCase

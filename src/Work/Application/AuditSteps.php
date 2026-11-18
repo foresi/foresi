@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Audit\Domain\AuditEntry;
+use Foresi\Audit\Domain\AuditEntry;
 
 /**
  * The entries of a log as the steps a person took: the commands save one

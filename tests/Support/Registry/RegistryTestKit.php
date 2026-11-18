@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Support\Registry;
+namespace Foresi\Tests\Support\Registry;
 
-use App\Shared\Infrastructure\Registry\PublicRegistryClient;
-use App\Shared\Infrastructure\Registry\RegistryCache;
+use Foresi\Shared\Infrastructure\Registry\PublicRegistryClient;
+use Foresi\Shared\Infrastructure\Registry\RegistryCache;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\HttpClient\MockHttpClient;

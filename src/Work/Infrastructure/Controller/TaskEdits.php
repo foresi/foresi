@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Controller;
+namespace Foresi\Work\Infrastructure\Controller;
 
-use App\Work\Application\TaskRow;
+use Foresi\Work\Application\TaskRow;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

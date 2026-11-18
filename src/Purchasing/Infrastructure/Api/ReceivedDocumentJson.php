@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Api;
+namespace Foresi\Purchasing\Infrastructure\Api;
 
-use App\Purchasing\Application\PaymentBalance;
-use App\Purchasing\Application\Query\PaidDocument;
-use App\Purchasing\Application\Query\PayableDocument;
-use App\Purchasing\Domain\ReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocumentPayment;
-use App\Purchasing\Domain\VatRecapRow;
-use App\Shared\Infrastructure\Api\JsonValues;
+use Foresi\Purchasing\Application\PaymentBalance;
+use Foresi\Purchasing\Application\Query\PaidDocument;
+use Foresi\Purchasing\Application\Query\PayableDocument;
+use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentPayment;
+use Foresi\Purchasing\Domain\VatRecapRow;
+use Foresi\Shared\Infrastructure\Api\JsonValues;
 
 /**
  * Received documents as the REST API and the MCP tools write them. Amounts are
@@ -85,17 +85,17 @@ final class ReceivedDocumentJson
             'kind' => $document->kind()->value,
             'treatment' => $document->treatment()->value,
             'evidence_number' => $document->evidenceNumber(),
-            'supplier' => $document->supplierParty() instanceof \App\Party\Domain\Party ? ['id' => $document->supplierParty()->id(), 'name' => $document->supplier()->name] : null,
+            'supplier' => $document->supplierParty() instanceof \Foresi\Party\Domain\Party ? ['id' => $document->supplierParty()->id(), 'name' => $document->supplier()->name] : null,
             'supplier_number' => $document->supplierNumber(),
             'variable_symbol' => $document->variableSymbol(),
             'issue_date' => JsonValues::date($document->issueDate()),
             'tax_point_date' => JsonValues::date($document->taxPointDate()),
             'due_date' => JsonValues::date($document->dueDate()),
             'received_date' => JsonValues::date($document->receivedDate()),
-            'total' => $total instanceof \App\Shared\Domain\Money ? JsonValues::money($total) : null,
+            'total' => $total instanceof \Foresi\Shared\Domain\Money ? JsonValues::money($total) : null,
             'base' => JsonValues::money($document->base()),
             'vat' => JsonValues::money($document->vat()),
-            'vat_czk' => $document->vatCzk() instanceof \App\Shared\Domain\Money ? JsonValues::money($document->vatCzk()) : null,
+            'vat_czk' => $document->vatCzk() instanceof \Foresi\Shared\Domain\Money ? JsonValues::money($document->vatCzk()) : null,
             'paid' => JsonValues::money($balance->paid),
             'remaining' => JsonValues::money($balance->remaining),
             'is_paid' => $balance->isPaid(),
@@ -116,8 +116,8 @@ final class ReceivedDocumentJson
             'rate' => $row->rate->percent(),
             'base' => JsonValues::money($row->base),
             'vat' => JsonValues::money($row->vat),
-            'base_czk' => $row->baseCzk instanceof \App\Shared\Domain\Money ? JsonValues::money($row->baseCzk) : null,
-            'vat_czk' => $row->vatCzk instanceof \App\Shared\Domain\Money ? JsonValues::money($row->vatCzk) : null,
+            'base_czk' => $row->baseCzk instanceof \Foresi\Shared\Domain\Money ? JsonValues::money($row->baseCzk) : null,
+            'vat_czk' => $row->vatCzk instanceof \Foresi\Shared\Domain\Money ? JsonValues::money($row->vatCzk) : null,
         ];
     }
 }

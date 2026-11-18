@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # The OpenAPI document of the REST API, served at /api/v1/openapi.json (ADR 0027).
 # The controllers describe their answers; the shapes of the presenters
-# (App\*\Infrastructure\Api\*Json) are written by hand here.
+# (Foresi\*\Infrastructure\Api\*Json) are written by hand here.
 nelmio_api_doc:
     documentation:
         info:

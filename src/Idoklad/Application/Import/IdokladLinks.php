@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application\Import;
+namespace Foresi\Idoklad\Application\Import;
 
-use App\Idoklad\Domain\IdokladLink;
-use App\Idoklad\Domain\IdokladResource;
-use App\Party\Domain\LegalEntity;
+use Foresi\Idoklad\Domain\IdokladLink;
+use Foresi\Idoklad\Domain\IdokladResource;
+use Foresi\Party\Domain\LegalEntity;
 
 /** Port: what the iDoklad records of a firm became in Foresi. */
 interface IdokladLinks

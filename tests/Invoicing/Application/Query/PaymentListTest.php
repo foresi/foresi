@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application\Query;
+namespace Foresi\Tests\Invoicing\Application\Query;
 
-use App\Invoicing\Application\Query\PaymentList;
-use App\Invoicing\Application\Query\PaymentRow;
-use App\Invoicing\Application\Query\PaymentSlice;
-use App\Invoicing\Application\Query\PaymentSliceFilter;
-use App\Invoicing\Domain\PaymentDirection;
-use App\Invoicing\Domain\PaymentSource;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Id;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Application\Query\PaymentList;
+use Foresi\Invoicing\Application\Query\PaymentRow;
+use Foresi\Invoicing\Application\Query\PaymentSlice;
+use Foresi\Invoicing\Application\Query\PaymentSliceFilter;
+use Foresi\Invoicing\Domain\PaymentDirection;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Domain\Money;
 
 final class PaymentListTest extends PaymentReadTestCase
 {
@@ -68,10 +68,10 @@ final class PaymentListTest extends PaymentReadTestCase
         self::assertNotNull($row->bankMovementId);
         self::assertNull($row->cancelledAt);
         self::assertSame('2026-11-10 12:00:00', $row->createdAt->format('Y-m-d H:i:s'));
-        self::assertSame([$first->id(), $second->id()], array_map(static fn (\App\Invoicing\Application\Query\PaymentAllocationRow $allocation): string => $allocation->invoiceId, $row->allocations));
-        self::assertSame([$first->number(), $second->number()], array_map(static fn (\App\Invoicing\Application\Query\PaymentAllocationRow $allocation): string => $allocation->invoiceNumber, $row->allocations));
-        self::assertSame([70000, 30000], array_map(static fn (\App\Invoicing\Application\Query\PaymentAllocationRow $allocation): int => $allocation->amount->minor(), $row->allocations));
-        self::assertSame([0, 0], array_map(static fn (\App\Invoicing\Application\Query\PaymentAllocationRow $allocation): int => $allocation->settlement->minor(), $row->allocations));
+        self::assertSame([$first->id(), $second->id()], array_map(static fn (\Foresi\Invoicing\Application\Query\PaymentAllocationRow $allocation): string => $allocation->invoiceId, $row->allocations));
+        self::assertSame([$first->number(), $second->number()], array_map(static fn (\Foresi\Invoicing\Application\Query\PaymentAllocationRow $allocation): string => $allocation->invoiceNumber, $row->allocations));
+        self::assertSame([70000, 30000], array_map(static fn (\Foresi\Invoicing\Application\Query\PaymentAllocationRow $allocation): int => $allocation->amount->minor(), $row->allocations));
+        self::assertSame([0, 0], array_map(static fn (\Foresi\Invoicing\Application\Query\PaymentAllocationRow $allocation): int => $allocation->settlement->minor(), $row->allocations));
     }
 
     public function testAManualPaymentHasNoMovement(): void

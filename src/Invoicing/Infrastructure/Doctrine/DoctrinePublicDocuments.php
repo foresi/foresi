@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Invoicing\Application\PaymentState;
-use App\Invoicing\Application\PublicDocument;
-use App\Invoicing\Application\PublicDocuments;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\LinkAudience;
-use App\Invoicing\Domain\SendStatus;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
 use Doctrine\DBAL\Connection;
+use Foresi\Invoicing\Application\PaymentState;
+use Foresi\Invoicing\Application\PublicDocument;
+use Foresi\Invoicing\Application\PublicDocuments;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\LinkAudience;
+use Foresi\Invoicing\Domain\SendStatus;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use Psr\Clock\ClockInterface;
 
 /**

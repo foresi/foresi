@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Messenger;
+namespace Foresi\Tests\Shared\Infrastructure\Messenger;
 
-use App\Import\Application\Message\RunImportChunk;
-use App\Shared\Domain\Id;
-use App\Shared\Infrastructure\Messenger\KeepUndecodableMessages;
-use App\Shared\Infrastructure\Messenger\UndecodableMessage;
+use Foresi\Import\Application\Message\RunImportChunk;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Infrastructure\Messenger\KeepUndecodableMessages;
+use Foresi\Shared\Infrastructure\Messenger\UndecodableMessage;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Bridge\Doctrine\Transport\Connection as TransportConnection;
 use Symfony\Component\Messenger\Bridge\Doctrine\Transport\DoctrineTransport;

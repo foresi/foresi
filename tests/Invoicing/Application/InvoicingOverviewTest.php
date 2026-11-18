@@ -6,25 +6,25 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\Debtor;
-use App\Invoicing\Application\DocumentExports;
-use App\Invoicing\Application\InvoicingOverview;
-use App\Invoicing\Application\MonthInvoiced;
-use App\Invoicing\Application\PendingExport;
-use App\Invoicing\Domain\Invoice;
-use App\Party\Domain\Address;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
-use App\Party\Domain\VatStatus;
-use App\Shared\Domain\Money;
-use App\Tests\Party\Support\FirmAccounts;
+use Foresi\Invoicing\Application\Debtor;
+use Foresi\Invoicing\Application\DocumentExports;
+use Foresi\Invoicing\Application\InvoicingOverview;
+use Foresi\Invoicing\Application\MonthInvoiced;
+use Foresi\Invoicing\Application\PendingExport;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Party\Support\FirmAccounts;
 
 /**
  * Today is 20 November 2026, so the last month is October.

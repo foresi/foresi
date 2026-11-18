@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Invoice;
 
 /**
  * The invoice a corrective tax document corrects, as what issues it. It names the

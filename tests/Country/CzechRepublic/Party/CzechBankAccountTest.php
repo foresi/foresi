@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Country\CzechRepublic\Party;
+namespace Foresi\Tests\Country\CzechRepublic\Party;
 
-use App\Country\CzechRepublic\Party\CzechBankAccount;
-use App\Party\Domain\InvalidIban;
+use Foresi\Country\CzechRepublic\Party\CzechBankAccount;
+use Foresi\Party\Domain\InvalidIban;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

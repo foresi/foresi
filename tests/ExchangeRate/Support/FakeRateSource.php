@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\ExchangeRate\Support;
+namespace Foresi\Tests\ExchangeRate\Support;
 
-use App\ExchangeRate\Application\PublishedRates;
-use App\ExchangeRate\Application\Quote;
-use App\ExchangeRate\Application\RateSource;
+use Foresi\ExchangeRate\Application\PublishedRates;
+use Foresi\ExchangeRate\Application\Quote;
+use Foresi\ExchangeRate\Application\RateSource;
 use Psr\Clock\ClockInterface;
 
 /**

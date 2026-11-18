@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Infrastructure\Http;
+namespace Foresi\Tests\Webhooks\Infrastructure\Http;
 
-use App\Webhooks\Infrastructure\Http\WebhookHttpClientFactory;
+use Foresi\Webhooks\Infrastructure\Http\WebhookHttpClientFactory;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpClient\NoPrivateNetworkHttpClient;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;

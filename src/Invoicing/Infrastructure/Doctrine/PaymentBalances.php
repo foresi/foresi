@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Invoicing\Application\InvoiceBalances;
-use App\Invoicing\Application\UnknownInvoice;
-use App\Invoicing\Domain\DocumentKind;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Foresi\Invoicing\Application\InvoiceBalances;
+use Foresi\Invoicing\Application\UnknownInvoice;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 
 /**
  * What is left to pay from the recorded payments: the payable amount plus the

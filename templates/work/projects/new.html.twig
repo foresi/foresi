@@ -13,7 +13,7 @@
 
 {% block dialog_body %}
     <form method="post" id="project-form" action="{{ path('app_project_new') }}" class="grid gap-4" novalidate>
-        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\ProjectController::TOKEN')) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\ProjectController::TOKEN')) }}">
 
         {% if errors is not empty %}
             {# A problem of no field takes the focus itself; otherwise the first field to fix does. #}
@@ -24,7 +24,7 @@
                     {% for field, message in errors %}
                         <li>
                             {%- if field == 'form' %}{{ message }}
-                            {%- else %}<a href="#{{ field }}" class="text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ ('work.project.field.' ~ field)|trans }}</a>: {{ message }}
+                            {%- else %}<a href="#{{ field }}" class="text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ ('work.project.field.' ~ field)|trans }}</a>: {{ message }}
                             {%- endif -%}
                         </li>
                     {% endfor %}

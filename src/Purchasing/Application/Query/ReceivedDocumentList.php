@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application\Query;
+namespace Foresi\Purchasing\Application\Query;
 
-use App\Party\Application\LegalEntities;
-use App\Purchasing\Application\PurchasingAccess;
-use App\Purchasing\Application\PurchasingNotAllowed;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Purchasing\Application\PurchasingAccess;
+use Foresi\Purchasing\Application\PurchasingNotAllowed;
 
 /**
  * The lists of received documents for the screens, the API and MCP alike: a

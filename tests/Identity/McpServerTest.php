@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity;
+namespace Foresi\Tests\Identity;
 
-use App\Identity\Domain\ApiScope;
-use App\Invoicing\Domain\Invoice;
-use App\Shared\Infrastructure\Mcp\ReadToolCall;
-use App\Tests\Shared\Infrastructure\Api\ApiTestCase;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Shared\Infrastructure\Mcp\ReadToolCall;
+use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**

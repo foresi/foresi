@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Infrastructure\Mcp;
+namespace Foresi\Tests\Webhooks\Infrastructure\Mcp;
 
-use App\Tests\Shared\Infrastructure\Mcp\ReadToolTestCase;
-use App\Tests\Webhooks\Support\WebhookApi;
+use Foresi\Tests\Shared\Infrastructure\Mcp\ReadToolTestCase;
+use Foresi\Tests\Webhooks\Support\WebhookApi;
 
 /**
  * A webhook tool called as the MCP server calls it, next to the REST API of

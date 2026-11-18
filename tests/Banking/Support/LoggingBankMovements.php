@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Support;
+namespace Foresi\Tests\Banking\Support;
 
-use App\Banking\Application\BankMovements;
-use App\Banking\Application\MovementFilter;
-use App\Banking\Domain\BankMovement;
+use Foresi\Banking\Application\BankMovements;
+use Foresi\Banking\Application\MovementFilter;
+use Foresi\Banking\Domain\BankMovement;
 
 /**
  * The movement store, writing every account lock and every added movement, in

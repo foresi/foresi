@@ -6,42 +6,42 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure;
+namespace Foresi\Tests\Invoicing\Infrastructure;
 
-use App\Identity\Domain\Role;
-use App\Invoicing\Application\InvoiceBundle;
-use App\Invoicing\Application\InvoiceInput;
-use App\Invoicing\Application\IssueInvoice;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Application\TrashInvoice;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\ExportState;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Quantity;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\SeriesFormat;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Party\Application\LegalEntities;
-use App\Party\Domain\Address;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PaymentMethod;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
-use App\Party\Domain\VatStatus;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Identity\Support\SignedInBrowser;
-use App\Tests\Party\Support\FirmAccounts;
-use App\Tests\Support\PdfTools;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Domain\Role;
+use Foresi\Invoicing\Application\InvoiceBundle;
+use Foresi\Invoicing\Application\InvoiceInput;
+use Foresi\Invoicing\Application\IssueInvoice;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Application\TrashInvoice;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\ExportState;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Tests\Party\Support\FirmAccounts;
+use Foresi\Tests\Support\PdfTools;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Clock;
@@ -174,7 +174,7 @@ final class InvoiceExportControllerTest extends WebTestCase
         $first = $this->issue('2026-10-05');
 
         self::assertCount(3, $this->download('2026-10'));
-        self::assertSame(ExportState::Exported, $this->scoped(fn (): ExportState => self::getContainer()->get(\App\Invoicing\Application\InvoiceStore::class)->get($first->id())->exportState()));
+        self::assertSame(ExportState::Exported, $this->scoped(fn (): ExportState => self::getContainer()->get(\Foresi\Invoicing\Application\InvoiceStore::class)->get($first->id())->exportState()));
 
         $crawler = $this->post(['month' => '2026-10']);
         self::assertResponseStatusCodeSame(422);
@@ -274,7 +274,7 @@ final class InvoiceExportControllerTest extends WebTestCase
         self::assertStringContainsString($bad->number(), $notice);
         self::assertStringNotContainsString($good->number(), $notice);
         self::assertSame($before, $this->temporary());
-        self::assertSame(ExportState::NotExported, $this->scoped(fn (): ExportState => self::getContainer()->get(\App\Invoicing\Application\InvoiceStore::class)->get($good->id())->exportState()));
+        self::assertSame(ExportState::NotExported, $this->scoped(fn (): ExportState => self::getContainer()->get(\Foresi\Invoicing\Application\InvoiceStore::class)->get($good->id())->exportState()));
     }
 
     public function testAFailingArchiveFailsLoudly(): void

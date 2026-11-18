@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure;
+namespace Foresi\Tests\Shared\Infrastructure;
 
-use App\Shared\Infrastructure\Doctrine\SqliteUnicodeLower;
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\DriverManager;
+use Foresi\Shared\Infrastructure\Doctrine\SqliteUnicodeLower;
 use PHPUnit\Framework\TestCase;
 
 final class SqliteUnicodeLowerTest extends TestCase

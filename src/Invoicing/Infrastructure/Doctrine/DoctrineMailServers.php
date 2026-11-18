@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Invoicing\Application\MailServers;
-use App\Invoicing\Domain\FirmMailServer;
-use App\Party\Domain\LegalEntity;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Invoicing\Application\MailServers;
+use Foresi\Invoicing\Domain\FirmMailServer;
+use Foresi\Party\Domain\LegalEntity;
 
 final readonly class DoctrineMailServers implements MailServers
 {

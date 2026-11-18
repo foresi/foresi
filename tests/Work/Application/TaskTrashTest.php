@@ -6,27 +6,27 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Work\Application;
+namespace Foresi\Tests\Work\Application;
 
-use App\Attachment\Application\AttachmentFiles;
-use App\Attachment\Application\AttachmentFileUnreadable;
-use App\Attachment\Application\AttachmentPermissions;
-use App\Attachment\Domain\Attachment;
-use App\Audit\Domain\AuditAction;
-use App\Shared\Domain\Id;
-use App\Work\Application\ManageComments;
-use App\Work\Application\PurgeDeletedTasks;
-use App\Work\Application\PurgeTaskTrashDaily;
-use App\Work\Application\TaskRow;
-use App\Work\Application\TrashedTask;
-use App\Work\Application\WorkRefused;
-use App\Work\Domain\LabelColour;
-use App\Work\Domain\Project;
-use App\Work\Domain\Task;
-use App\Work\Domain\TaskComment;
-use App\Work\Infrastructure\Attachment\TaskAttachmentAccess;
 use Doctrine\ORM\Event\OnFlushEventArgs;
 use Doctrine\ORM\Events;
+use Foresi\Attachment\Application\AttachmentFiles;
+use Foresi\Attachment\Application\AttachmentFileUnreadable;
+use Foresi\Attachment\Application\AttachmentPermissions;
+use Foresi\Attachment\Domain\Attachment;
+use Foresi\Audit\Domain\AuditAction;
+use Foresi\Shared\Domain\Id;
+use Foresi\Work\Application\ManageComments;
+use Foresi\Work\Application\PurgeDeletedTasks;
+use Foresi\Work\Application\PurgeTaskTrashDaily;
+use Foresi\Work\Application\TaskRow;
+use Foresi\Work\Application\TrashedTask;
+use Foresi\Work\Application\WorkRefused;
+use Foresi\Work\Domain\LabelColour;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TaskComment;
+use Foresi\Work\Infrastructure\Attachment\TaskAttachmentAccess;
 
 /**
  * The trash of tasks: what goes there together comes back together, only the

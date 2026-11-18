@@ -6,22 +6,22 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Infrastructure;
+namespace Foresi\Tests\Banking\Infrastructure;
 
-use App\Banking\Application\GenerateAddress;
-use App\Banking\Application\InboundMailbox;
-use App\Banking\Application\PollBankInbox;
-use App\Banking\Application\PollFailures;
-use App\Banking\Application\ReceiveInboundMail;
-use App\Banking\Infrastructure\CachePollFailures;
-use App\Banking\Infrastructure\Imap\DisabledInboundMailbox;
-use App\Banking\Infrastructure\Imap\ImapInboundMailbox;
-use App\Tests\Banking\Support\FailingInboundFiles;
-use App\Tests\Banking\Support\InboundMailKit;
-use App\Tests\Banking\Support\Scalars;
-use App\Tests\Support\Mail\FakeInboundMailbox;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Banking\Application\GenerateAddress;
+use Foresi\Banking\Application\InboundMailbox;
+use Foresi\Banking\Application\PollBankInbox;
+use Foresi\Banking\Application\PollFailures;
+use Foresi\Banking\Application\ReceiveInboundMail;
+use Foresi\Banking\Infrastructure\CachePollFailures;
+use Foresi\Banking\Infrastructure\Imap\DisabledInboundMailbox;
+use Foresi\Banking\Infrastructure\Imap\ImapInboundMailbox;
+use Foresi\Tests\Banking\Support\FailingInboundFiles;
+use Foresi\Tests\Banking\Support\InboundMailKit;
+use Foresi\Tests\Banking\Support\Scalars;
+use Foresi\Tests\Support\Mail\FakeInboundMailbox;
 use Psr\Log\AbstractLogger;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;

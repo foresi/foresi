@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Infrastructure;
+namespace Foresi\Tests\Party\Infrastructure;
 
-use App\Party\Application\TransactionalWork;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class TransactionalWorkTest extends KernelTestCase

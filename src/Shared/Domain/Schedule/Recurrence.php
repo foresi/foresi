@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Domain\Schedule;
+namespace Foresi\Shared\Domain\Schedule;
 
 /**
  * How something repeats, such as a recurring invoice or a planned payment:

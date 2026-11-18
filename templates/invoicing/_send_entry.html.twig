@@ -1,6 +1,6 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {# One send on the history of an invoice, a reminder with its bell: who sent it to whom and how it went, then what went out. #}
-{% set link_class = 'font-medium text-ink underline underline-offset-2 ' ~ constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set link_class = 'font-medium text-ink underline underline-offset-2 ' ~ constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 <li class="grid grid-cols-[20px_1fr] items-center gap-x-2 py-1.5 sm:grid-cols-[20px_9.5rem_1fr]" data-send-entry="{{ item.icon }}">
     {{ ux_icon('lucide:' ~ item.icon, {class: 'size-4 text-green', 'aria-hidden': 'true'}) }}
     <time datetime="{{ item.datetime }}" class="num text-muted">{{ item.time }}</time>
@@ -13,7 +13,7 @@
         {% if item.error %}<p class="m-0 text-small font-medium text-badge-red-text [overflow-wrap:anywhere]">{{ item.error }}</p>{% endif %}
         {% if item.copyError %}<p class="m-0 text-small text-badge-red-text [overflow-wrap:anywhere]">{{ item.copyError }}</p>{% endif %}
         <details class="min-w-0">
-            <summary class="w-fit cursor-pointer text-small text-muted hover:text-ink {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'invoice.history.send_show'|trans }}</summary>
+            <summary class="w-fit cursor-pointer text-small text-muted hover:text-ink {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'invoice.history.send_show'|trans }}</summary>
             <div class="mt-1.5 grid gap-1 rounded-panel border border-container bg-head px-3 py-2.5 text-small" lang="{{ item.language }}">
                 <p class="m-0 font-medium text-ink [overflow-wrap:anywhere]"><span class="sr-only">{{ 'invoice.history.send_subject'|trans }}: </span>{{ item.subject }}</p>
                 <p class="m-0 whitespace-pre-line text-text [overflow-wrap:anywhere]">{{ item.body }}</p>

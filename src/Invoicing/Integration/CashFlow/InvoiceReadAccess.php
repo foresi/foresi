@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Integration\CashFlow;
+namespace Foresi\Invoicing\Integration\CashFlow;
 
-use App\Identity\Application\ApiTokenContext;
-use App\Identity\Application\ApiTokenGrant;
-use App\Identity\Domain\ApiScope;
+use Foresi\Identity\Application\ApiTokenContext;
+use Foresi\Identity\Application\ApiTokenGrant;
+use Foresi\Identity\Domain\ApiScope;
 
 /**
  * Whether the caller may read the invoices behind the forecast: anyone signed

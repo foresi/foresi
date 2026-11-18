@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Doctrine;
+namespace Foresi\Party\Infrastructure\Doctrine;
 
-use App\Audit\Domain\AuditEntry;
-use App\Party\Application\PartyDetails;
-use App\Party\Application\PartyHistoryEntry;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\ContactLink;
-use App\Party\Domain\EmailPurpose;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyBankAccount;
-use App\Party\Domain\PartyEmail;
-use App\Party\Domain\PartyFirmSettings;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Party\Application\PartyDetails;
+use Foresi\Party\Application\PartyHistoryEntry;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\ContactLink;
+use Foresi\Party\Domain\EmailPurpose;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyBankAccount;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Domain\PartyFirmSettings;
 
 final readonly class DoctrinePartyDetails implements PartyDetails
 {

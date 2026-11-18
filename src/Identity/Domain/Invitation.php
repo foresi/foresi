@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Domain;
+namespace Foresi\Identity\Domain;
 
-use App\Audit\Domain\Audited;
-use App\Audit\Domain\AuditExcluded;
-use App\Party\Domain\Party;
-use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Audit\Domain\AuditExcluded;
+use Foresi\Party\Domain\Party;
+use Foresi\Shared\Domain\Id;
 
 /**
  * The owner's invitation of a person into the organisation, by e-mail, as a

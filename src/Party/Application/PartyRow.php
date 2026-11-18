@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
 
 /**
  * One line of the address book list.

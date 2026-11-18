@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\OwnerCheck;
-use App\Identity\Application\People;
-use App\Identity\Domain\Membership;
-use App\Instance\Application\InstanceClock;
-use App\Shared\Domain\Money;
-use App\Work\Domain\Duration;
-use App\Work\Domain\Project;
-use App\Work\Domain\Task;
-use App\Work\Domain\TimeEntry;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\OwnerCheck;
+use Foresi\Identity\Application\People;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Shared\Domain\Money;
+use Foresi\Work\Domain\Duration;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TimeEntry;
 use Psr\Clock\ClockInterface;
 
 /**

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Domain;
+namespace Foresi\Purchasing\Domain;
 
-use App\Party\Domain\Party;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Party\Domain\Party;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 
 /**
  * The values of a received document a person or a reader of the file gives.

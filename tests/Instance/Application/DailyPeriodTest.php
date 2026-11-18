@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Instance\Application;
+namespace Foresi\Tests\Instance\Application;
 
-use App\Instance\Application\Schedule\DailyPeriod;
+use Foresi\Instance\Application\Schedule\DailyPeriod;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

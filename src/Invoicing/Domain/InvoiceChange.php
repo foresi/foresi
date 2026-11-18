@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Domain;
+namespace Foresi\Invoicing\Domain;
 
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\Party;
-use App\Party\Domain\PaymentMethod;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PaymentMethod;
 
 /**
  * What can change on an invoice after it is issued. A tax point only on a tax

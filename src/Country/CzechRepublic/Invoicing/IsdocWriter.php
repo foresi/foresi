@@ -6,26 +6,26 @@
 
 declare(strict_types=1);
 
-namespace App\Country\CzechRepublic\Invoicing;
+namespace Foresi\Country\CzechRepublic\Invoicing;
 
-use App\Country\CzechRepublic\Party\CzechBankAccount;
-use App\Country\CzechRepublic\Party\CzechBanks;
-use App\Invoicing\Application\CorrectedDocument;
-use App\Invoicing\Application\IssuedDocument;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\DocumentParty;
-use App\Invoicing\Domain\InvoiceCalculator;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Invoicing\Domain\LineAmounts;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Quantity;
-use App\Invoicing\Domain\RateSummary;
-use App\Invoicing\Domain\SummaryLine;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRegime;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Countries;
-use App\Shared\Domain\Money;
+use Foresi\Country\CzechRepublic\Party\CzechBankAccount;
+use Foresi\Country\CzechRepublic\Party\CzechBanks;
+use Foresi\Invoicing\Application\CorrectedDocument;
+use Foresi\Invoicing\Application\IssuedDocument;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Domain\InvoiceCalculator;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Invoicing\Domain\LineAmounts;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Invoicing\Domain\RateSummary;
+use Foresi\Invoicing\Domain\SummaryLine;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Countries;
+use Foresi\Shared\Domain\Money;
 
 /**
  * Writes an issued document as ISDOC 6.0.2 (isdoc.cz). The amounts are the stored
@@ -243,7 +243,7 @@ final readonly class IsdocWriter
         $category = $this->add($element, 'ClassifiedTaxCategory');
         $this->add($category, 'Percent', $line->rate()?->decimal() ?? '0.00');
         $this->add($category, 'VATCalculationMethod', PriceType::WithVat === $line->priceType() ? '1' : '0');
-        $this->add($category, 'VATApplicable', $this->flag($documentApplicable && $line->rate() instanceof \App\Invoicing\Domain\Percent));
+        $this->add($category, 'VATApplicable', $this->flag($documentApplicable && $line->rate() instanceof \Foresi\Invoicing\Domain\Percent));
         $code = $line->supplyCode();
         if (null !== $code) {
             $this->add($this->add($category, 'LocalReverseCharge'), 'LocalReverseChargeCode', $code);
@@ -367,7 +367,7 @@ final readonly class IsdocWriter
 
         $category = $this->add($element, 'TaxCategory');
         $this->add($category, 'Percent', $summary->rate?->decimal() ?? $zero);
-        $this->add($category, 'VATApplicable', $this->flag($documentApplicable && $summary->rate instanceof \App\Invoicing\Domain\Percent));
+        $this->add($category, 'VATApplicable', $this->flag($documentApplicable && $summary->rate instanceof \Foresi\Invoicing\Domain\Percent));
         if ($domesticReverseCharge && TaxTreatment::ReverseCharge === $summary->treatment) {
             $this->add($category, 'LocalReverseChargeFlag', 'true');
         }

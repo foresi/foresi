@@ -6,41 +6,41 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Audit\Domain\AuditAction;
-use App\Audit\Domain\AuditEntry;
-use App\Invoicing\Application\BilledWorkRelease;
-use App\Invoicing\Application\EditInvoice;
-use App\Invoicing\Application\FirmInvoicingSettings;
-use App\Invoicing\Application\InvoiceInput;
-use App\Invoicing\Application\IssuedDocumentFactory;
-use App\Invoicing\Application\IssueProblem;
-use App\Invoicing\Application\IssueRefused;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Domain\AbandonedNumber;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\DocumentParty;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Quantity;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\SeriesFormat;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\TotalRounding;
-use App\Invoicing\Domain\VatRateKind;
-use App\Invoicing\Domain\VatRegime;
-use App\Party\Application\ContactSettingsForFirm;
-use App\Party\Domain\Address;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PaymentMethod;
-use App\Party\Domain\VatStatus;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Party\Support\FirmAccounts;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Foresi\Audit\Domain\AuditAction;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Invoicing\Application\BilledWorkRelease;
+use Foresi\Invoicing\Application\EditInvoice;
+use Foresi\Invoicing\Application\FirmInvoicingSettings;
+use Foresi\Invoicing\Application\InvoiceInput;
+use Foresi\Invoicing\Application\IssuedDocumentFactory;
+use Foresi\Invoicing\Application\IssueProblem;
+use Foresi\Invoicing\Application\IssueRefused;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Domain\AbandonedNumber;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\TotalRounding;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Party\Support\FirmAccounts;
 
 final class EditInvoiceTest extends InvoiceTestCase
 {
@@ -142,13 +142,13 @@ final class EditInvoiceTest extends InvoiceTestCase
 
     public function testEditingAfterTheFirmBecamePayerKeepsTheRegime(): void
     {
-        $firm = new \App\Party\Domain\LegalEntity('Second Firm s.r.o.', new \App\Party\Domain\RegistrationNumber('CZ', '27074358'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register');
+        $firm = new \Foresi\Party\Domain\LegalEntity('Second Firm s.r.o.', new \Foresi\Party\Domain\RegistrationNumber('CZ', '27074358'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register');
         $this->em->persist($firm);
         FirmAccounts::add($this->em, $firm, self::IBAN);
         $this->em->flush();
         $invoice = $this->issue->issue($this->input([$this->line('121.00', PriceType::WithVat)], ['firmId' => $firm->id(), 'seriesId' => null]));
 
-        $firm->update($firm->name(), $firm->registrationNumber(), \App\Party\Domain\VatId::fromString('CZ27074358'), $firm->address(), VatStatus::Registered, 'Register');
+        $firm->update($firm->name(), $firm->registrationNumber(), \Foresi\Party\Domain\VatId::fromString('CZ27074358'), $firm->address(), VatStatus::Registered, 'Register');
         $this->em->flush();
 
         $this->edited($invoice, $this->input([$this->line('242.00', PriceType::WithVat)], ['firmId' => $firm->id(), 'seriesId' => null]));
@@ -204,7 +204,7 @@ final class EditInvoiceTest extends InvoiceTestCase
     public function testTheFirmCannotChange(): void
     {
         $invoice = $this->issue->issue($this->input());
-        $other = new \App\Party\Domain\LegalEntity('Second Firm s.r.o.', new \App\Party\Domain\RegistrationNumber('CZ', '27074358'), null, $this->firm->address(), VatStatus::NotRegistered, 'Register');
+        $other = new \Foresi\Party\Domain\LegalEntity('Second Firm s.r.o.', new \Foresi\Party\Domain\RegistrationNumber('CZ', '27074358'), null, $this->firm->address(), VatStatus::NotRegistered, 'Register');
         $this->em->persist($other);
         FirmAccounts::add($this->em, $other, self::IBAN);
         $this->em->flush();

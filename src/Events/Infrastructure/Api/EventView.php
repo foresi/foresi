@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Api;
+namespace Foresi\Events\Infrastructure\Api;
 
-use App\Events\Application\Query\EventRow;
-use App\Events\Infrastructure\Catalogue\EventCatalogue;
-use App\Events\Infrastructure\Catalogue\UnknownEventType;
-use App\Events\Infrastructure\Payload\EventPayloads;
-use App\Shared\Domain\Event\EventSubject;
-use App\Shared\Infrastructure\Api\JsonValues;
+use Foresi\Events\Application\Query\EventRow;
+use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
+use Foresi\Events\Infrastructure\Catalogue\UnknownEventType;
+use Foresi\Events\Infrastructure\Payload\EventPayloads;
+use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Infrastructure\Api\JsonValues;
 
 /**
  * An event as REST and MCP publish it. The user and the token stay in the log.

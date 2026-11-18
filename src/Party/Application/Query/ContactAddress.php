@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application\Query;
+namespace Foresi\Party\Application\Query;
 
-use App\Party\Domain\Address;
-use App\Party\Domain\AddressType;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
 
 final readonly class ContactAddress
 {

@@ -19,7 +19,7 @@
                 <span class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                     <span>{{ paired.text }}</span>
                     <form method="post" action="{{ path('app_bank_movement_undo', {id: paired.movement}) }}" class="m-0">
-                        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Banking\\Infrastructure\\Controller\\BankMovementController::ACTION_TOKEN')) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Banking\\Infrastructure\\Controller\\BankMovementController::ACTION_TOKEN')) }}">
                         <input type="hidden" name="return" value="{{ paired.return }}">
                         <twig:Ui:Button type="submit" size="sm" id="bank-undo">{{ 'bank.movement.flash.undo'|trans }}</twig:Ui:Button>
                     </form>
@@ -47,8 +47,8 @@
             {% endif %}
 
             {% set token = messagesTab
-                ? csrf_token(constant('App\\Banking\\Infrastructure\\Controller\\InboundMessageController::ACTION_TOKEN'))
-                : csrf_token(constant('App\\Banking\\Infrastructure\\Controller\\BankMovementController::ACTION_TOKEN')) %}
+                ? csrf_token(constant('Foresi\\Banking\\Infrastructure\\Controller\\InboundMessageController::ACTION_TOKEN'))
+                : csrf_token(constant('Foresi\\Banking\\Infrastructure\\Controller\\BankMovementController::ACTION_TOKEN')) %}
             <twig:Ui:DataTable :caption="('bank.movement.tab.' ~ tab)|trans" :columns="columns" :rows="rows" :actionToken="token" density="dense">
                 <twig:block name="empty">
                     {% if filtered %}

@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application\Import;
+namespace Foresi\Idoklad\Application\Import;
 
-use App\Idoklad\Application\IdokladSnapshot;
-use App\Idoklad\Domain\IdokladImportRun;
-use App\Idoklad\Domain\IdokladPull;
-use App\Idoklad\Domain\IdokladResource;
-use App\Idoklad\Domain\ImportMode;
-use App\Idoklad\Domain\ImportOptions;
-use App\Idoklad\Domain\ImportReport;
-use App\Party\Application\LegalEntities;
-use App\Party\Domain\LegalEntity;
-use App\Shared\Domain\Id;
+use Foresi\Idoklad\Application\IdokladSnapshot;
+use Foresi\Idoklad\Domain\IdokladImportRun;
+use Foresi\Idoklad\Domain\IdokladPull;
+use Foresi\Idoklad\Domain\IdokladResource;
+use Foresi\Idoklad\Domain\ImportMode;
+use Foresi\Idoklad\Domain\ImportOptions;
+use Foresi\Idoklad\Domain\ImportReport;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Domain\Id;
 use Psr\Clock\ClockInterface;
 
 /**

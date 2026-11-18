@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\RecurringInvoice;
-use App\Invoicing\Domain\RecurringState;
-use App\Party\Application\TransactionalWork;
+use Foresi\Invoicing\Domain\RecurringInvoice;
+use Foresi\Invoicing\Domain\RecurringState;
+use Foresi\Party\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 
 /**

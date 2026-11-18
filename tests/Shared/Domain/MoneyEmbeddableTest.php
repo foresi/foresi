@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Domain;
+namespace Foresi\Tests\Shared\Domain;
 
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Shared\Domain\MoneyEmbeddable;
 use Doctrine\ORM\Mapping\Column;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\MoneyEmbeddable;
 use PHPUnit\Framework\TestCase;
 
 final class MoneyEmbeddableTest extends TestCase

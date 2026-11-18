@@ -10,8 +10,8 @@
 
 {% set title = 'work.time.title'|trans %}
 {% set crumbs = [{label: 'nav.group.work'|trans}, {label: title}] %}
-{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
-{% set timeToken = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TimeController::TOKEN')) %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{% set timeToken = csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TimeController::TOKEN')) %}
 
 {% block title %}{{ title }}{% endblock %}
 

@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\MailTemplates;
-use App\Invoicing\Application\UnknownMailVariables;
-use App\Invoicing\Domain\InvalidMailTemplate;
-use App\Invoicing\Domain\MailTemplateKind;
-use App\Party\Domain\DocumentLanguage;
 use Doctrine\DBAL\Connection;
+use Foresi\Invoicing\Application\MailTemplates;
+use Foresi\Invoicing\Application\UnknownMailVariables;
+use Foresi\Invoicing\Domain\InvalidMailTemplate;
+use Foresi\Invoicing\Domain\MailTemplateKind;
+use Foresi\Party\Domain\DocumentLanguage;
 
 final class MailTemplatesTest extends InvoiceTestCase
 {

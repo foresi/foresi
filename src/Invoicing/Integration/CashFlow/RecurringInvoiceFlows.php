@@ -6,23 +6,23 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Integration\CashFlow;
+namespace Foresi\Invoicing\Integration\CashFlow;
 
-use App\CashFlow\Contract\CashFlowSource;
-use App\CashFlow\Contract\ExpectedFlow;
-use App\CashFlow\Contract\FlowCategory;
-use App\CashFlow\Contract\FlowCertainty;
-use App\CashFlow\Contract\FlowDirection;
-use App\CashFlow\Contract\FlowSubject;
-use App\Invoicing\Application\InvoicingAccess;
-use App\Invoicing\Application\RecurringAmounts;
-use App\Invoicing\Application\RecurringFilter;
-use App\Invoicing\Application\RecurringInvoices;
-use App\Invoicing\Application\RecurringOverview;
-use App\Invoicing\Domain\RecurringInvoice;
-use App\Invoicing\Domain\RecurringState;
-use App\Shared\Domain\Money;
-use App\Shared\Domain\Schedule\RecurringSchedule;
+use Foresi\CashFlow\Contract\CashFlowSource;
+use Foresi\CashFlow\Contract\ExpectedFlow;
+use Foresi\CashFlow\Contract\FlowCategory;
+use Foresi\CashFlow\Contract\FlowCertainty;
+use Foresi\CashFlow\Contract\FlowDirection;
+use Foresi\CashFlow\Contract\FlowSubject;
+use Foresi\Invoicing\Application\InvoicingAccess;
+use Foresi\Invoicing\Application\RecurringAmounts;
+use Foresi\Invoicing\Application\RecurringFilter;
+use Foresi\Invoicing\Application\RecurringInvoices;
+use Foresi\Invoicing\Application\RecurringOverview;
+use Foresi\Invoicing\Domain\RecurringInvoice;
+use Foresi\Invoicing\Domain\RecurringState;
+use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\Schedule\RecurringSchedule;
 
 /**
  * The invoices active recurring templates will issue (C2): each next date up

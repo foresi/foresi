@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Application;
+namespace Foresi\CashFlow\Application;
 
-use App\CashFlow\Domain\Checkpoint;
-use App\CashFlow\Domain\ExpectedDate;
-use App\CashFlow\Domain\MinimumBalance;
-use App\CashFlow\Domain\PlannedItem;
-use App\Party\Domain\FirmBankAccount;
+use Foresi\CashFlow\Domain\Checkpoint;
+use Foresi\CashFlow\Domain\ExpectedDate;
+use Foresi\CashFlow\Domain\MinimumBalance;
+use Foresi\CashFlow\Domain\PlannedItem;
+use Foresi\Party\Domain\FirmBankAccount;
 
 /**
  * The records of the cash flow.

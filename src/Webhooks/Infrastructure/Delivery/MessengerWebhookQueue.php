@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Delivery;
+namespace Foresi\Webhooks\Infrastructure\Delivery;
 
-use App\Audit\Application\AuditActor;
-use App\Shared\Domain\Id;
-use App\Shared\Infrastructure\Api\JsonValues;
-use App\Webhooks\Application\AttemptTrigger;
-use App\Webhooks\Application\QueuedAttempt;
-use App\Webhooks\Application\SendWebhook;
-use App\Webhooks\Application\WebhookQueue;
-use App\Webhooks\Domain\WebhookEndpoint;
-use App\Webhooks\Infrastructure\Api\WebhookEndpointApiController;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Infrastructure\Api\JsonValues;
+use Foresi\Webhooks\Application\AttemptTrigger;
+use Foresi\Webhooks\Application\QueuedAttempt;
+use Foresi\Webhooks\Application\SendWebhook;
+use Foresi\Webhooks\Application\WebhookQueue;
+use Foresi\Webhooks\Domain\WebhookEndpoint;
+use Foresi\Webhooks\Infrastructure\Api\WebhookEndpointApiController;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 

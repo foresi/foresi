@@ -6,28 +6,28 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Purchasing\Application;
+namespace Foresi\Tests\Purchasing\Application;
 
-use App\Attachment\Application\UploadAttachment;
-use App\Attachment\Domain\Attachment;
-use App\Audit\Application\AuditCorrelation;
-use App\Audit\Domain\AuditEntry;
-use App\Party\Application\LegalEntities;
-use App\Party\Application\UnknownLegalEntity;
-use App\Party\Domain\LegalEntity;
-use App\Party\Infrastructure\Doctrine\DoctrineLegalEntities;
-use App\Purchasing\Application\DeleteReceivedDocumentDraft;
-use App\Purchasing\Application\DocumentLock;
-use App\Purchasing\Application\PurchasingNotAllowed;
-use App\Purchasing\Application\RestoreReceivedDocument;
-use App\Purchasing\Application\SavedReceivedDocument;
-use App\Purchasing\Application\TrashReceivedDocument;
-use App\Purchasing\Domain\PurchaseTaxTreatment;
-use App\Purchasing\Domain\ReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocumentKind;
-use App\Purchasing\Domain\ReceivedDocumentRefused;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Id;
+use Foresi\Attachment\Application\UploadAttachment;
+use Foresi\Attachment\Domain\Attachment;
+use Foresi\Audit\Application\AuditCorrelation;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Infrastructure\Doctrine\DoctrineLegalEntities;
+use Foresi\Purchasing\Application\DeleteReceivedDocumentDraft;
+use Foresi\Purchasing\Application\DocumentLock;
+use Foresi\Purchasing\Application\PurchasingNotAllowed;
+use Foresi\Purchasing\Application\RestoreReceivedDocument;
+use Foresi\Purchasing\Application\SavedReceivedDocument;
+use Foresi\Purchasing\Application\TrashReceivedDocument;
+use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
+use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Id;
 
 /**
  * The guards around the use cases: the firm is locked where a document is

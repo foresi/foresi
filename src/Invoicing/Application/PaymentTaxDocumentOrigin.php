@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Invoice;
 
 /**
  * A payment received on an advance invoice, as what issues its tax document. It

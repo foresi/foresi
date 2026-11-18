@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application;
+namespace Foresi\Purchasing\Application;
 
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
 
 /**
  * Other documents of a firm that look like the same one, outside the trash,

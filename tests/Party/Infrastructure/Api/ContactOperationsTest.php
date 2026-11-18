@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Infrastructure\Api;
+namespace Foresi\Tests\Party\Infrastructure\Api;
 
-use App\Party\Application\Contact\LinkContactPersonInput;
-use App\Party\Application\PartyRules;
-use App\Shared\Infrastructure\Operation\InputMapper;
-use App\Shared\Infrastructure\Operation\InputSchema;
-use App\Shared\Infrastructure\Operation\Operations;
+use Foresi\Party\Application\Contact\LinkContactPersonInput;
+use Foresi\Party\Application\PartyRules;
+use Foresi\Shared\Infrastructure\Operation\InputMapper;
+use Foresi\Shared\Infrastructure\Operation\InputSchema;
+use Foresi\Shared\Infrastructure\Operation\Operations;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**

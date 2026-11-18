@@ -6,21 +6,21 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Infrastructure;
+namespace Foresi\Tests\Party\Infrastructure;
 
-use App\Identity\Domain\Role;
-use App\Party\Application\ArchiveParty;
-use App\Party\Application\CreateParty;
-use App\Party\Domain\Address;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
-use App\Tests\Identity\Support\SignedInBrowser;
-use App\Tests\Party\Infrastructure\Support\RejectingParties;
-use App\Tests\Support\Registry\RegistryCalls;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Domain\Role;
+use Foresi\Party\Application\ArchiveParty;
+use Foresi\Party\Application\CreateParty;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Tests\Party\Infrastructure\Support\RejectingParties;
+use Foresi\Tests\Support\Registry\RegistryCalls;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -530,7 +530,7 @@ final class PartyControllerTest extends WebTestCase
         $path = tempnam(sys_get_temp_dir(), 'foresi-xlsx');
         file_put_contents($path, $content);
         try {
-            $rows = [...new \App\Import\Infrastructure\Source\OpenSpoutSourceReader()->rows($path, new \App\Import\Application\Source\SourceSettings(\App\Import\Application\Source\SourceFormat::Xlsx, headerRow: 1))];
+            $rows = [...new \Foresi\Import\Infrastructure\Source\OpenSpoutSourceReader()->rows($path, new \Foresi\Import\Application\Source\SourceSettings(\Foresi\Import\Application\Source\SourceFormat::Xlsx, headerRow: 1))];
         } finally {
             unlink($path);
         }
@@ -829,7 +829,7 @@ final class PartyControllerTest extends WebTestCase
             new Address('Example Street 1', 'Example City', '100 00', 'CZ'),
         );
         if ($refresh) {
-            $checks = self::getContainer()->get(\App\Party\Application\RefreshRegistryChecks::class);
+            $checks = self::getContainer()->get(\Foresi\Party\Application\RefreshRegistryChecks::class);
             $checks->refresh($party);
             self::getContainer()->get(EntityManagerInterface::class)->flush();
         }

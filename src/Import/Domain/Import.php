@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Domain;
+namespace Foresi\Import\Domain;
 
-use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Shared\Domain\Id;
 
 /**
  * One load of a source file into a target: the file, how it is read and mapped,

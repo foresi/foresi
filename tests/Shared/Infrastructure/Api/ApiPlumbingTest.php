@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Api;
+namespace Foresi\Tests\Shared\Infrastructure\Api;
 
 /**
  * What every endpoint of the REST API shares: problem documents for unknown

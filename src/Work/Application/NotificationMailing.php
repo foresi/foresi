@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Identity\Application\People;
-use App\Identity\Domain\Membership;
-use App\Instance\Application\InstanceClock;
-use App\Work\Domain\EmailDelivery;
-use App\Work\Domain\Notification;
-use App\Work\Domain\NotificationKind;
-use App\Work\Domain\NotificationPreference;
-use App\Work\Domain\TaskComment;
+use Foresi\Identity\Application\People;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Work\Domain\EmailDelivery;
+use Foresi\Work\Domain\Notification;
+use Foresi\Work\Domain\NotificationKind;
+use Foresi\Work\Domain\NotificationPreference;
+use Foresi\Work\Domain\TaskComment;
 use Psr\Clock\ClockInterface;
 
 /**

@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\People;
-use App\Identity\Domain\Membership;
-use App\Shared\Domain\Id;
-use App\Work\Domain\EmailDelivery;
-use App\Work\Domain\NotificationKind;
-use App\Work\Domain\NotificationPreference;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\People;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Shared\Domain\Id;
+use Foresi\Work\Domain\EmailDelivery;
+use Foresi\Work\Domain\NotificationKind;
+use Foresi\Work\Domain\NotificationPreference;
 
 /**
  * The signed-in person's own choice of e-mails about their notifications, a

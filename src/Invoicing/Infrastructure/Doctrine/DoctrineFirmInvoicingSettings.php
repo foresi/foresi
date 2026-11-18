@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Invoicing\Application\FirmInvoicingSettings;
-use App\Invoicing\Domain\FirmInvoicing;
-use App\Party\Domain\LegalEntity;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Invoicing\Application\FirmInvoicingSettings;
+use Foresi\Invoicing\Domain\FirmInvoicing;
+use Foresi\Party\Domain\LegalEntity;
 
 final readonly class DoctrineFirmInvoicingSettings implements FirmInvoicingSettings
 {

@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Application;
+namespace Foresi\CashFlow\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\StaffCheck;
-use App\Party\Application\FirmBankAccounts;
-use App\Party\Application\LegalEntities;
-use App\Party\Application\PartyQuery;
-use App\Party\Application\UnknownFirmBankAccount;
-use App\Party\Application\UnknownLegalEntity;
-use App\Party\Domain\FirmBankAccount;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Application\UnknownFirmBankAccount;
+use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
 
 /**
  * Who works with the cash flow: the owners and the members of the

@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\InboundMessage;
-use App\Banking\Domain\InboundStatus;
-use App\Invoicing\Application\ConflictRetry;
-use App\Party\Application\TransactionalWork;
+use Foresi\Banking\Domain\InboundMessage;
+use Foresi\Banking\Domain\InboundStatus;
+use Foresi\Invoicing\Application\ConflictRetry;
+use Foresi\Party\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 
 /**

@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Controller;
+namespace Foresi\Invoicing\Infrastructure\Controller;
 
-use App\Identity\Application\StaffCheck;
-use App\Invoicing\Application\CustomerOption;
-use App\Invoicing\Application\CustomerPicker;
-use App\Party\Application\LegalEntities;
-use App\Party\Application\UnknownLegalEntity;
-use App\Party\Domain\LegalEntity;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Invoicing\Application\CustomerOption;
+use Foresi\Invoicing\Application\CustomerPicker;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Party\Domain\LegalEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;

@@ -6,26 +6,26 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Support;
+namespace Foresi\Tests\Banking\Support;
 
-use App\Banking\Application\BankMovements;
-use App\Banking\Application\Matcher;
-use App\Banking\Application\MovementInput;
-use App\Banking\Application\PairMovement;
-use App\Banking\Application\RecordMovement;
-use App\Banking\Application\TrustVerdict;
-use App\Banking\Application\UnpairMovement;
-use App\Banking\Domain\BankMovement;
-use App\Banking\Domain\MessageTrust;
-use App\Banking\Domain\MovementDirection;
-use App\Invoicing\Application\InvoicePayments;
-use App\Invoicing\Application\PaymentState;
-use App\Invoicing\Domain\Invoice;
-use App\Party\Application\FirmBankAccounts;
-use App\Party\Domain\FirmBankAccount;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Invoicing\Application\InvoiceTestCase;
+use Foresi\Banking\Application\BankMovements;
+use Foresi\Banking\Application\Matcher;
+use Foresi\Banking\Application\MovementInput;
+use Foresi\Banking\Application\PairMovement;
+use Foresi\Banking\Application\RecordMovement;
+use Foresi\Banking\Application\TrustVerdict;
+use Foresi\Banking\Application\UnpairMovement;
+use Foresi\Banking\Domain\BankMovement;
+use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Banking\Domain\MovementDirection;
+use Foresi\Invoicing\Application\InvoicePayments;
+use Foresi\Invoicing\Application\PaymentState;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Invoicing\Application\InvoiceTestCase;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;

@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Invoicing\Application\RemindableInvoice;
-use App\Invoicing\Application\RemindableInvoices;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\FirmReminders;
-use App\Invoicing\Domain\SendPurpose;
-use App\Party\Domain\EmailPurpose;
-use App\Party\Domain\LegalEntity;
-use App\Shared\Domain\Money;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
+use Foresi\Invoicing\Application\RemindableInvoice;
+use Foresi\Invoicing\Application\RemindableInvoices;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\FirmReminders;
+use Foresi\Invoicing\Domain\SendPurpose;
+use Foresi\Party\Domain\EmailPurpose;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Domain\Money;
 
 /**
  * One query per firm. The contact flag is the firm's own when the contact has

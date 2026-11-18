@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Country\CzechRepublic\Party;
+namespace Foresi\Tests\Country\CzechRepublic\Party;
 
-use App\Country\CzechRepublic\Party\CzechRegistrationNumberValidator;
-use App\Party\Domain\InvalidRegistrationNumber;
+use Foresi\Country\CzechRepublic\Party\CzechRegistrationNumberValidator;
+use Foresi\Party\Domain\InvalidRegistrationNumber;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

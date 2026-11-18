@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui\Navigation;
+namespace Foresi\Tests\Ui\Navigation;
 
-use App\Ui\Navigation\NavigationItem;
-use App\Ui\Navigation\NavigationItemProvider;
-use App\Ui\Navigation\NavigationRegistry;
-use App\Ui\Navigation\PageTitle;
+use Foresi\Ui\Navigation\NavigationItem;
+use Foresi\Ui\Navigation\NavigationItemProvider;
+use Foresi\Ui\Navigation\NavigationRegistry;
+use Foresi\Ui\Navigation\PageTitle;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Translation\Loader\ArrayLoader;

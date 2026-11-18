@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Api\Operation;
+namespace Foresi\Party\Infrastructure\Api\Operation;
 
-use App\Party\Application\Query\ContactDetails;
-use App\Party\Infrastructure\Api\ContactApiController;
-use App\Party\Infrastructure\Api\ContactJson;
-use App\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Party\Application\Query\ContactDetails;
+use Foresi\Party\Infrastructure\Api\ContactApiController;
+use Foresi\Party\Infrastructure\Api\ContactJson;
+use Foresi\Shared\Infrastructure\Operation\OperationOutput;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

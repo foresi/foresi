@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Application;
+namespace Foresi\Webhooks\Application;
 
-use App\Shared\Application\SealerUnavailable;
-use App\Webhooks\Domain\WebhookSecret;
+use Foresi\Shared\Application\SealerUnavailable;
+use Foresi\Webhooks\Domain\WebhookSecret;
 
 /**
  * Seals the signing secrets of endpoints with keys held outside the database,

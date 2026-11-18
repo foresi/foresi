@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application\Query;
+namespace Foresi\Invoicing\Application\Query;
 
-use App\Invoicing\Application\UnknownPayment;
-use App\Shared\Domain\Id;
+use Foresi\Invoicing\Application\UnknownPayment;
+use Foresi\Shared\Domain\Id;
 
 /**
  * One payment with the invoices it pays, for the API and MCP. Only the owners

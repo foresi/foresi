@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Http;
+namespace Foresi\Shared\Infrastructure\Http;
 
 /**
  * A number as people type or paste it: "1 000,50", "1000.5", "1,000.50". The server's

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application;
+namespace Foresi\Import\Application;
 
-use App\Import\Application\Source\SourceFormat;
-use App\Import\Application\Target\ImportTarget;
-use App\Import\Application\Target\TargetRegistry;
+use Foresi\Import\Application\Source\SourceFormat;
+use Foresi\Import\Application\Target\ImportTarget;
+use Foresi\Import\Application\Target\TargetRegistry;
 
 /**
  * Exports records of an import target through the target's own field list, in

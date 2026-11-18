@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Security;
+namespace Foresi\Identity\Infrastructure\Security;
 
 /**
  * The stateless firewalls a personal API token signs in on.

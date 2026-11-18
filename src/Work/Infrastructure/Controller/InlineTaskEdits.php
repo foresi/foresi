@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Controller;
+namespace Foresi\Work\Infrastructure\Controller;
 
-use App\Identity\Application\People;
-use App\Identity\Application\Person;
-use App\Work\Application\Choice;
-use App\Work\Application\StatusChoice;
-use App\Work\Application\TaskRow;
-use App\Work\Application\WorkQueries;
-use App\Work\Domain\Priority;
+use Foresi\Identity\Application\People;
+use Foresi\Identity\Application\Person;
+use Foresi\Work\Application\Choice;
+use Foresi\Work\Application\StatusChoice;
+use Foresi\Work\Application\TaskRow;
+use Foresi\Work\Application\WorkQueries;
+use Foresi\Work\Domain\Priority;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;

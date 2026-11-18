@@ -14,7 +14,7 @@
         "foresi": {
             "module": "identity",
             "kind": "core",
-            "namespace": "App\\Identity\\",
+            "namespace": "Foresi\\Identity\\",
             "optional": []
         }
     }

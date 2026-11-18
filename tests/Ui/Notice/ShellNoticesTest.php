@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui\Notice;
+namespace Foresi\Tests\Ui\Notice;
 
-use App\Ui\Notice\ShellNotice;
-use App\Ui\Notice\ShellNoticeProvider;
-use App\Ui\Notice\ShellNotices;
+use Foresi\Ui\Notice\ShellNotice;
+use Foresi\Ui\Notice\ShellNoticeProvider;
+use Foresi\Ui\Notice\ShellNotices;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

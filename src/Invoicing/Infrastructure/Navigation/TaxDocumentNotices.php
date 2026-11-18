@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Navigation;
+namespace Foresi\Invoicing\Infrastructure\Navigation;
 
-use App\Identity\Application\StaffCheck;
-use App\Instance\Application\InstanceClock;
-use App\Invoicing\Application\MissingTaxDocuments;
-use App\Invoicing\Application\UncorrectedTaxDocuments;
-use App\Ui\Notice\ShellNotice;
-use App\Ui\Notice\ShellNoticeProvider;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Invoicing\Application\MissingTaxDocuments;
+use Foresi\Invoicing\Application\UncorrectedTaxDocuments;
+use Foresi\Ui\Notice\ShellNotice;
+use Foresi\Ui\Notice\ShellNoticeProvider;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 

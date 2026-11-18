@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Domain;
+namespace Foresi\Invoicing\Domain;
 
 /**
  * How the numbers of a series look: text and the tokens {YYYY} {YY} {MM} {DD}

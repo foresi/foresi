@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Api;
+namespace Foresi\Webhooks\Infrastructure\Api;
 
-use App\Shared\Application\Api\ScopeGuard;
-use App\Shared\Infrastructure\Api\Cursor;
-use App\Shared\Infrastructure\Api\JsonValues;
-use App\Webhooks\Application\ManageWebhookEndpoints;
-use App\Webhooks\Application\Query\WebhookEndpointList;
+use Foresi\Shared\Application\Api\ScopeGuard;
+use Foresi\Shared\Infrastructure\Api\Cursor;
+use Foresi\Shared\Infrastructure\Api\JsonValues;
+use Foresi\Webhooks\Application\ManageWebhookEndpoints;
+use Foresi\Webhooks\Application\Query\WebhookEndpointList;
 use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;

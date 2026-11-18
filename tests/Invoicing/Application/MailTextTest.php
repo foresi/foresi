@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\MailText;
+use Foresi\Invoicing\Application\MailText;
 use PHPUnit\Framework\TestCase;
 
 final class MailTextTest extends TestCase

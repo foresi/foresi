@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Http;
+namespace Foresi\Shared\Infrastructure\Http;
 
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 
 /**
  * An amount of a form field that is not negative, such as a rate: read as people

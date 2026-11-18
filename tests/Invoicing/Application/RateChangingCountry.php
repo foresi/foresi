@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\ElectronicFile;
-use App\Invoicing\Application\InvoicingCountry;
-use App\Invoicing\Application\IssuedDocument;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Shared\Domain\Currency;
+use Foresi\Invoicing\Application\ElectronicFile;
+use Foresi\Invoicing\Application\InvoicingCountry;
+use Foresi\Invoicing\Application\IssuedDocument;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Shared\Domain\Currency;
 
 /**
  * The Czech rules, with the base rate at 23 % from 1 January 2027.

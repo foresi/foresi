@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Domain;
+namespace Foresi\Identity\Domain;
 
 /**
  * What a user is in the organisation: the owner, a team member, or a

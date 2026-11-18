@@ -9,7 +9,7 @@
 #}
 {% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
 
-{% set token = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\SharingController::TOKEN')) %}
+{% set token = csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\SharingController::TOKEN')) %}
 {% set dialog_description = view.name %}
 {% set dialog_reload = changed %}
 {% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: view.projectName, href: path('app_project', {id: view.projectId})}] %}

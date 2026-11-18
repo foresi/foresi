@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application\Query;
+namespace Foresi\Party\Application\Query;
 
-use App\Party\Application\ImportedBy;
-use App\Party\Application\PartyAccess;
-use App\Party\Application\PartyCounts;
-use App\Party\Application\PartyNotAllowed;
-use App\Party\Application\PartyPage;
-use App\Party\Application\PartyQuery;
-use App\Party\Domain\PartyRole;
-use App\Shared\Domain\Id;
+use Foresi\Party\Application\ImportedBy;
+use Foresi\Party\Application\PartyAccess;
+use Foresi\Party\Application\PartyCounts;
+use Foresi\Party\Application\PartyNotAllowed;
+use Foresi\Party\Application\PartyPage;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Shared\Domain\Id;
 
 /**
  * The lists of contacts for the screens, the API and MCP alike: a page of the

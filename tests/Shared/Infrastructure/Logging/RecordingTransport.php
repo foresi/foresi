@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Logging;
+namespace Foresi\Tests\Shared\Infrastructure\Logging;
 
 use Symfony\Component\Mailer\Envelope;
 use Symfony\Component\Mailer\Exception\TransportException;

@@ -6,22 +6,22 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Contract\Event\BankMovementRecorded;
-use App\Banking\Domain\BankMovement;
-use App\Banking\Domain\MovementState;
-use App\Banking\Domain\UnmatchedReason;
-use App\Invoicing\Application\ConflictRetry;
-use App\Party\Application\FirmBankAccounts;
-use App\Party\Application\TransactionalWork;
-use App\Party\Application\UnknownFirmBankAccount;
-use App\Party\Domain\FirmBankAccount;
-use App\Party\Domain\Iban;
-use App\Party\Domain\InvalidIban;
-use App\Party\Domain\LegalEntity;
-use App\Shared\Application\Event\EventRecorder;
-use App\Shared\Domain\Money;
+use Foresi\Banking\Contract\Event\BankMovementRecorded;
+use Foresi\Banking\Domain\BankMovement;
+use Foresi\Banking\Domain\MovementState;
+use Foresi\Banking\Domain\UnmatchedReason;
+use Foresi\Invoicing\Application\ConflictRetry;
+use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Application\UnknownFirmBankAccount;
+use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Party\Domain\Iban;
+use Foresi\Party\Domain\InvalidIban;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Domain\Money;
 
 /**
  * Records a movement on an account of a firm and decides where it stands. It pays

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Infrastructure\Events;
+namespace Foresi\CashFlow\Infrastructure\Events;
 
-use App\CashFlow\Infrastructure\Api\CashFlowApiController;
-use App\Shared\Application\Event\EventSubjectUrl;
-use App\Shared\Domain\Event\EventSubject;
+use Foresi\CashFlow\Infrastructure\Api\CashFlowApiController;
+use Foresi\Shared\Application\Event\EventSubjectUrl;
+use Foresi\Shared\Domain\Event\EventSubject;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

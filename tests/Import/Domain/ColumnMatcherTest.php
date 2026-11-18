@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Import\Domain;
+namespace Foresi\Tests\Import\Domain;
 
-use App\Import\Domain\ColumnMatcher;
-use App\Import\Domain\ColumnProposal;
-use App\Import\Domain\FieldDefinition;
-use App\Import\Domain\FieldType;
-use App\Import\Domain\HeaderName;
-use App\Import\Domain\Mapping;
-use App\Import\Domain\MatchReason;
-use App\Import\Domain\NormalisationOptions;
-use App\Import\Domain\Preset\AbstractSourcePreset;
-use App\Import\Domain\Preset\SourcePreset;
-use App\Import\Domain\Text;
-use App\Import\Domain\ValueNormaliser;
+use Foresi\Import\Domain\ColumnMatcher;
+use Foresi\Import\Domain\ColumnProposal;
+use Foresi\Import\Domain\FieldDefinition;
+use Foresi\Import\Domain\FieldType;
+use Foresi\Import\Domain\HeaderName;
+use Foresi\Import\Domain\Mapping;
+use Foresi\Import\Domain\MatchReason;
+use Foresi\Import\Domain\NormalisationOptions;
+use Foresi\Import\Domain\Preset\AbstractSourcePreset;
+use Foresi\Import\Domain\Preset\SourcePreset;
+use Foresi\Import\Domain\Text;
+use Foresi\Import\Domain\ValueNormaliser;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

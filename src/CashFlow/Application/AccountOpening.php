@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Application;
+namespace Foresi\CashFlow\Application;
 
-use App\Party\Domain\FirmBankAccount;
-use App\Shared\Domain\Money;
+use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Shared\Domain\Money;
 
 /**
  * Where one bank account of the firm starts: its balance in its currency and

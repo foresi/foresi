@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Contract\Event\InvoicePaid;
-use App\Invoicing\Contract\Event\PaidState;
-use App\Invoicing\Domain\Invoice;
-use App\Shared\Application\Event\EventRecorder;
+use Foresi\Invoicing\Contract\Event\InvoicePaid;
+use Foresi\Invoicing\Contract\Event\PaidState;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Shared\Application\Event\EventRecorder;
 
 /**
  * Tells when a payment, or the cancelling of one, makes a payable document paid:

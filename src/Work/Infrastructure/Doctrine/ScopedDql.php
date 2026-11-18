@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Doctrine;
+namespace Foresi\Work\Infrastructure\Doctrine;
 
-use App\Work\Application\WorkScope;
-use App\Work\Domain\ProjectVisibility;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Query;
+use Foresi\Work\Application\WorkScope;
+use Foresi\Work\Domain\ProjectVisibility;
 
 /**
  * WorkScope in DQL: the joins and the condition that keep a query to what the

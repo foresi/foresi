@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Navigation;
+namespace Foresi\Work\Infrastructure\Navigation;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\People;
-use App\Identity\Domain\Membership;
-use App\Ui\Navigation\NavigationCountProvider;
-use App\Work\Application\NotificationQueries;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\People;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Ui\Navigation\NavigationCountProvider;
+use Foresi\Work\Application\NotificationQueries;
 
 /**
  * The rows of my inbox not read yet, in one count query; none shows no number.

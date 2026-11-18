@@ -14,7 +14,7 @@
     {{ include('work/_flashes.html.twig') }}
     <div class="grid grid-cols-1 gap-4" data-project-trash-page>
         <p class="m-0 text-small text-muted" data-trash-purge>{{ 'work.trash.purge'|trans({days: days}) }}</p>
-        <twig:Ui:DataTable :caption="'work.trash.title'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TaskController::TRASH_TOKEN'))">
+        <twig:Ui:DataTable :caption="'work.trash.title'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TaskController::TRASH_TOKEN'))">
             <twig:block name="empty">
                 <twig:Ui:EmptyState icon="trash-2" :title="'work.trash.empty.title'|trans" :text="'work.trash.empty.text'|trans" />
             </twig:block>

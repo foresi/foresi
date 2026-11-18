@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application;
+namespace Foresi\Import\Application;
 
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportRow;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\ImportRow;
 
 /**
  * Writes the rows of an import that failed, so the user can fix them in the

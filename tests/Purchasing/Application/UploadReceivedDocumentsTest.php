@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Purchasing\Application;
+namespace Foresi\Tests\Purchasing\Application;
 
-use App\Attachment\Application\AttachmentPermissions;
-use App\Attachment\Application\AttachmentRefused;
-use App\Attachment\Domain\Attachment;
-use App\Party\Application\UnknownLegalEntity;
-use App\Purchasing\Application\PurchasingNotAllowed;
-use App\Purchasing\Application\ReceivedDocumentWarning;
-use App\Purchasing\Application\TrashReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocumentRefused;
-use App\Purchasing\Domain\ReceivedDocumentState;
-use App\Shared\Domain\Id;
+use Foresi\Attachment\Application\AttachmentPermissions;
+use Foresi\Attachment\Application\AttachmentRefused;
+use Foresi\Attachment\Domain\Attachment;
+use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Purchasing\Application\PurchasingNotAllowed;
+use Foresi\Purchasing\Application\ReceivedDocumentWarning;
+use Foresi\Purchasing\Application\TrashReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Purchasing\Domain\ReceivedDocumentState;
+use Foresi\Shared\Domain\Id;
 
 final class UploadReceivedDocumentsTest extends PurchasingTestCase
 {

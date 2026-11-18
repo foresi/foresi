@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\FirmPairing;
-use App\Party\Application\LegalEntities;
-use App\Party\Application\TransactionalWork;
-use App\Party\Application\UnknownLegalEntity;
+use Foresi\Banking\Domain\FirmPairing;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Application\UnknownLegalEntity;
 
 /**
  * The one path that writes a firm's pairing switches. The first change stores

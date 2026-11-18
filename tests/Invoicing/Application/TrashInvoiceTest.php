@@ -6,22 +6,22 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Audit\Domain\ActorKind;
-use App\Invoicing\Application\ConflictRetry;
-use App\Invoicing\Application\TrashInvoice;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\DocumentTotals;
-use App\Invoicing\Domain\InvalidDeletionReason;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\LineAmounts;
-use App\Invoicing\Domain\LineValues;
-use App\Party\Application\TransactionalWork;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Audit\Domain\ActorKind;
+use Foresi\Invoicing\Application\ConflictRetry;
+use Foresi\Invoicing\Application\TrashInvoice;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\DocumentTotals;
+use Foresi\Invoicing\Domain\InvalidDeletionReason;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\LineAmounts;
+use Foresi\Invoicing\Domain\LineValues;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 
@@ -138,7 +138,7 @@ final class TrashInvoiceTest extends InvoiceTestCase
                 return ActorKind::User;
             }
         };
-        $trash = new TrashInvoice($this->store, $container->get(\App\Invoicing\Application\InvoiceSends::class), $container->get(\App\Invoicing\Application\InvoicePayments::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $actor, new MockClock('2026-11-03'), $this->deductions(), $container->get(\App\Invoicing\Application\BilledWorkRelease::class), $container->get(\App\Shared\Application\Event\EventRecorder::class));
+        $trash = new TrashInvoice($this->store, $container->get(\Foresi\Invoicing\Application\InvoiceSends::class), $container->get(\Foresi\Invoicing\Application\InvoicePayments::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $actor, new MockClock('2026-11-03'), $this->deductions(), $container->get(\Foresi\Invoicing\Application\BilledWorkRelease::class), $container->get(\Foresi\Shared\Application\Event\EventRecorder::class));
 
         $trash->trash($invoice->id(), 'Wrong customer');
 
@@ -211,7 +211,7 @@ final class TrashInvoiceTest extends InvoiceTestCase
         $tries = [
             'change' => static fn () => $invoice->change($change, new \DateTimeImmutable('2026-11-06 12:00')),
             'totals' => static fn () => $invoice->assignTotals($totals),
-            'number' => static fn (): ?\App\Invoicing\Domain\AbandonedNumber => $invoice->changeNumber($series, 'X-1'),
+            'number' => static fn (): ?\Foresi\Invoicing\Domain\AbandonedNumber => $invoice->changeNumber($series, 'X-1'),
             'delivered' => static fn () => $invoice->markDelivered(new \DateTimeImmutable('2026-11-04')),
             'trash' => static fn () => $invoice->trash(new \DateTimeImmutable('2026-11-04'), null, 'Again'),
             'line' => static fn () => $line->revise('Changed', 'h', null, null, $values, $amounts),

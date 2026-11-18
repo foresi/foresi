@@ -19,7 +19,7 @@
             <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
         {% endfor %}
     {% endfor %}
-    <twig:Ui:DataTable :caption="'work.labels.title'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('App\\Work\\Infrastructure\\Controller\\LabelController::TOKEN'))">
+    <twig:Ui:DataTable :caption="'work.labels.title'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\LabelController::TOKEN'))">
         <twig:block name="empty">
             <twig:Ui:EmptyState icon="tag" :title="'work.labels.empty.title'|trans" :text="'work.labels.empty.text'|trans">
                 <twig:Ui:Button variant="primary" icon="plus" :href="path('app_label_new')" data-dialog aria-haspopup="dialog">{{ 'work.labels.new'|trans }}</twig:Ui:Button>

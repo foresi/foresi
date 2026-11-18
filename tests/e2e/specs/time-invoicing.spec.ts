@@ -2,6 +2,7 @@
 
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { openMoreActions } from '../support/header';
 import { PROJECTS_OWNER_STATE } from '../support/session';
 
 // The time of last month on "Website" in tests/e2e/seed.php, which the dialog opens with: the
@@ -41,7 +42,7 @@ async function openWebsite(page: Page): Promise<void> {
 
 async function openDialog(page: Page): Promise<Locator> {
   await openWebsite(page);
-  await page.locator('main header').getByRole('link', { name: 'Vyfakturovat čas' }).click();
+  await (await openMoreActions(page)).getByRole('menuitem', { name: 'Vyfakturovat čas' }).click();
   const dialog = page.getByRole('dialog', { name: 'Vyfakturovat čas' });
   await expect(dialog.locator('[data-time-invoice-entry]').first()).toBeVisible();
 

@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui\Component;
+namespace Foresi\Tests\Ui\Component;
 
-use App\Ui\Component\Button;
-use App\Ui\Component\ErrorFocus;
-use App\Ui\Component\IconButton;
-use App\Ui\Component\MappingRow;
-use App\Ui\Component\Style;
-use App\Ui\Component\TextInput;
+use Foresi\Ui\Component\Button;
+use Foresi\Ui\Component\ErrorFocus;
+use Foresi\Ui\Component\IconButton;
+use Foresi\Ui\Component\MappingRow;
+use Foresi\Ui\Component\Style;
+use Foresi\Ui\Component\TextInput;
 use PHPUnit\Framework\TestCase;
 
 /**

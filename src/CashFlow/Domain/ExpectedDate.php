@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Domain;
+namespace Foresi\CashFlow\Domain;
 
-use App\Audit\Domain\Audited;
-use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Shared\Domain\Id;
 
 /**
  * When a document is really expected to be paid, which replaces its due date in

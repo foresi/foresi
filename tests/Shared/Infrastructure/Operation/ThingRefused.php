@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Operation;
+namespace Foresi\Tests\Shared\Infrastructure\Operation;
 
-use App\Shared\Application\RefusalKind;
-use App\Shared\Application\Refused;
+use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Application\Refused;
 
 final class ThingRefused extends \DomainException implements Refused
 {

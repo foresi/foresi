@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Ui\Navigation;
+namespace Foresi\Ui\Navigation;
 
-use App\Ui\Component\Style;
+use Foresi\Ui\Component\Style;
 
 /**
  * One sidebar entry. The label is a translation key, the icon must be in the

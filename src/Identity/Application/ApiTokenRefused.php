@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
 /**
  * A personal API token was not issued, listed, revoked or accepted. The reason

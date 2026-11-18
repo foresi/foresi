@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Application\Query;
+namespace Foresi\Webhooks\Application\Query;
 
 /**
  * One delivery of an event, or a ping, to an endpoint, as the log shows it: its

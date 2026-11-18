@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Domain;
+namespace Foresi\Invoicing\Domain;
 
-use App\Shared\Domain\Schedule\RecurringSchedule;
+use Foresi\Shared\Domain\Schedule\RecurringSchedule;
 
 /**
  * Period variables in the texts of a recurring invoice, resolved against the

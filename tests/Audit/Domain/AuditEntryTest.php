@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Audit\Domain;
+namespace Foresi\Tests\Audit\Domain;
 
-use App\Audit\Domain\ActorKind;
-use App\Audit\Domain\AuditAction;
-use App\Audit\Domain\AuditEntry;
-use App\Shared\Domain\Id;
+use Foresi\Audit\Domain\ActorKind;
+use Foresi\Audit\Domain\AuditAction;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -20,10 +20,10 @@ final class AuditEntryTest extends TestCase
     public function testExposesWhatItWasCreatedWith(): void
     {
         $at = new \DateTimeImmutable('2026-10-29T10:00:00+00:00');
-        $entry = new AuditEntry('App\\Thing', '7', AuditAction::Updated, ['name' => ['a', 'b']], '019a0000-0000-7000-8000-000000000003', ActorKind::User, $at);
+        $entry = new AuditEntry('Foresi\\Thing', '7', AuditAction::Updated, ['name' => ['a', 'b']], '019a0000-0000-7000-8000-000000000003', ActorKind::User, $at);
 
         self::assertTrue(Id::isValid($entry->id()));
-        self::assertSame('App\\Thing', $entry->entityClass());
+        self::assertSame('Foresi\\Thing', $entry->entityClass());
         self::assertSame('7', $entry->entityId());
         self::assertSame(AuditAction::Updated, $entry->action());
         self::assertSame(['name' => ['a', 'b']], $entry->changes());
@@ -35,7 +35,7 @@ final class AuditEntryTest extends TestCase
 
     public function testKeepsThePersonalApiTokenOfTheChange(): void
     {
-        $entry = new AuditEntry('App\\Thing', '7', AuditAction::Updated, [], '019a0000-0000-7000-8000-000000000003', ActorKind::User, new \DateTimeImmutable(), null, null, null, '019a0000-0000-7000-8000-0000000000aa');
+        $entry = new AuditEntry('Foresi\\Thing', '7', AuditAction::Updated, [], '019a0000-0000-7000-8000-000000000003', ActorKind::User, new \DateTimeImmutable(), null, null, null, '019a0000-0000-7000-8000-0000000000aa');
 
         self::assertSame('019a0000-0000-7000-8000-0000000000aa', $entry->apiTokenId());
     }
@@ -56,9 +56,9 @@ final class AuditEntryTest extends TestCase
     public static function invalid(): iterable
     {
         yield 'no class' => ['', '1', []];
-        yield 'no id' => ['App\\Thing', '', []];
-        yield 'pair with one value' => ['App\\Thing', '1', ['name' => ['a']]];
-        yield 'pair with three values' => ['App\\Thing', '1', ['name' => ['a', 'b', 'c']]];
-        yield 'keyed pair' => ['App\\Thing', '1', ['name' => ['old' => 'a', 'new' => 'b']]];
+        yield 'no id' => ['Foresi\\Thing', '', []];
+        yield 'pair with one value' => ['Foresi\\Thing', '1', ['name' => ['a']]];
+        yield 'pair with three values' => ['Foresi\\Thing', '1', ['name' => ['a', 'b', 'c']]];
+        yield 'keyed pair' => ['Foresi\\Thing', '1', ['name' => ['old' => 'a', 'new' => 'b']]];
     }
 }

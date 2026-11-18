@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Application;
+namespace Foresi\Timesheet\Application;
 
-use App\Invoicing\Domain\Quantity;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Shared\Domain\Money;
 
 /**
  * A line proposed for the invoice, under the key its row keeps on the form.

@@ -6,29 +6,29 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Infrastructure\Fanout;
+namespace Foresi\Tests\Webhooks\Infrastructure\Fanout;
 
-use App\Events\Application\Query\EventRow;
-use App\Events\Infrastructure\Api\EventView;
-use App\Events\Infrastructure\Dbal\EventLogTable;
-use App\Events\Infrastructure\Dbal\EventRowReader;
-use App\Events\Infrastructure\Relay\EventRelay;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Shared\Application\Event\EventRecorder;
-use App\Shared\Application\SystemMail;
-use App\Shared\Domain\Id;
-use App\Tests\Events\Support\RecordedEvents;
-use App\Tests\Identity\Support\IdentityFixtures;
-use App\Webhooks\Application\AttemptTrigger;
-use App\Webhooks\Application\SendWebhook;
-use App\Webhooks\Domain\EndpointUrl;
-use App\Webhooks\Domain\EventTypes;
-use App\Webhooks\Domain\WebhookEndpoint;
-use App\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Events\Application\Query\EventRow;
+use Foresi\Events\Infrastructure\Api\EventView;
+use Foresi\Events\Infrastructure\Dbal\EventLogTable;
+use Foresi\Events\Infrastructure\Dbal\EventRowReader;
+use Foresi\Events\Infrastructure\Relay\EventRelay;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Application\SystemMail;
+use Foresi\Shared\Domain\Id;
+use Foresi\Tests\Events\Support\RecordedEvents;
+use Foresi\Tests\Identity\Support\IdentityFixtures;
+use Foresi\Webhooks\Application\AttemptTrigger;
+use Foresi\Webhooks\Application\SendWebhook;
+use Foresi\Webhooks\Domain\EndpointUrl;
+use Foresi\Webhooks\Domain\EventTypes;
+use Foresi\Webhooks\Domain\WebhookEndpoint;
+use Foresi\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 

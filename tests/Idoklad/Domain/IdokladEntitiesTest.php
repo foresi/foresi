@@ -6,21 +6,21 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Idoklad\Domain;
+namespace Foresi\Tests\Idoklad\Domain;
 
-use App\Idoklad\Domain\IdokladConnection;
-use App\Idoklad\Domain\IdokladImportRun;
-use App\Idoklad\Domain\IdokladJob;
-use App\Idoklad\Domain\IdokladJobKind;
-use App\Idoklad\Domain\IdokladRecord;
-use App\Idoklad\Domain\IdokladResource;
-use App\Idoklad\Domain\ImportMode;
-use App\Idoklad\Domain\ImportOptions;
-use App\Idoklad\Domain\ImportReport;
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
+use Foresi\Idoklad\Domain\IdokladConnection;
+use Foresi\Idoklad\Domain\IdokladImportRun;
+use Foresi\Idoklad\Domain\IdokladJob;
+use Foresi\Idoklad\Domain\IdokladJobKind;
+use Foresi\Idoklad\Domain\IdokladRecord;
+use Foresi\Idoklad\Domain\IdokladResource;
+use Foresi\Idoklad\Domain\ImportMode;
+use Foresi\Idoklad\Domain\ImportOptions;
+use Foresi\Idoklad\Domain\ImportReport;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
 use PHPUnit\Framework\TestCase;
 
 final class IdokladEntitiesTest extends TestCase

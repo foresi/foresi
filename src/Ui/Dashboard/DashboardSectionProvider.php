@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Ui\Dashboard;
+namespace Foresi\Ui\Dashboard;
 
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 

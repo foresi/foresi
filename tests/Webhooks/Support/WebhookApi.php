@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Support;
+namespace Foresi\Tests\Webhooks\Support;
 
-use App\Identity\Domain\ApiScope;
-use App\Shared\Domain\Id;
-use App\Webhooks\Domain\DisabledReason;
-use App\Webhooks\Domain\EndpointUrl;
-use App\Webhooks\Domain\EventTypes;
-use App\Webhooks\Domain\WebhookEndpoint;
-use App\Webhooks\Domain\WebhookSecret;
-use App\Webhooks\Infrastructure\Crypto\SodiumWebhookSecrets;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Shared\Domain\Id;
+use Foresi\Webhooks\Domain\DisabledReason;
+use Foresi\Webhooks\Domain\EndpointUrl;
+use Foresi\Webhooks\Domain\EventTypes;
+use Foresi\Webhooks\Domain\WebhookEndpoint;
+use Foresi\Webhooks\Domain\WebhookSecret;
+use Foresi\Webhooks\Infrastructure\Crypto\SodiumWebhookSecrets;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 

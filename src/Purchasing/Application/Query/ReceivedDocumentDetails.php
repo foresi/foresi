@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application\Query;
+namespace Foresi\Purchasing\Application\Query;
 
-use App\Attachment\Application\Attachments;
-use App\Attachment\Domain\Attachment;
-use App\Purchasing\Application\PurchasingAccess;
-use App\Purchasing\Application\PurchasingNotAllowed;
-use App\Purchasing\Application\ReceivedDocuments;
-use App\Purchasing\Application\UnknownReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocument;
+use Foresi\Attachment\Application\Attachments;
+use Foresi\Attachment\Domain\Attachment;
+use Foresi\Purchasing\Application\PurchasingAccess;
+use Foresi\Purchasing\Application\PurchasingNotAllowed;
+use Foresi\Purchasing\Application\ReceivedDocuments;
+use Foresi\Purchasing\Application\UnknownReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocument;
 
 /**
  * One received document for its page, the API and MCP: the document with its

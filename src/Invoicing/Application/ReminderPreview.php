@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Instance\Application\InstanceClock;
-use App\Invoicing\Domain\FirmReminders;
-use App\Party\Domain\LegalEntity;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Invoicing\Domain\FirmReminders;
+use Foresi\Party\Domain\LegalEntity;
 
 /**
  * Which invoices of a firm would be reminded tomorrow, so the owner sees it before

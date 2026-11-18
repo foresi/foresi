@@ -6,28 +6,28 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Application;
+namespace Foresi\CashFlow\Application;
 
-use App\CashFlow\Contract\ActualFlowSource;
-use App\CashFlow\Contract\BalanceCheckpoint;
-use App\CashFlow\Contract\BalanceSource;
-use App\CashFlow\Contract\CashFlowSource;
-use App\CashFlow\Contract\ExpectedFlow;
-use App\CashFlow\Contract\FlowCertainty;
-use App\CashFlow\Contract\FlowDirection;
-use App\CashFlow\Contract\FlowFlag;
-use App\CashFlow\Contract\ForecastPeriod;
-use App\CashFlow\Domain\Checkpoint;
-use App\CashFlow\Domain\MinimumBalance;
-use App\CashFlow\Domain\PlannedItem;
-use App\ExchangeRate\Application\ExchangeRates;
-use App\ExchangeRate\Domain\ExchangeRate;
-use App\ExchangeRate\Domain\RateNotAvailable;
-use App\Instance\Application\InstanceClock;
-use App\Party\Domain\FirmBankAccount;
-use App\Party\Domain\LegalEntity;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\CashFlow\Contract\ActualFlowSource;
+use Foresi\CashFlow\Contract\BalanceCheckpoint;
+use Foresi\CashFlow\Contract\BalanceSource;
+use Foresi\CashFlow\Contract\CashFlowSource;
+use Foresi\CashFlow\Contract\ExpectedFlow;
+use Foresi\CashFlow\Contract\FlowCertainty;
+use Foresi\CashFlow\Contract\FlowDirection;
+use Foresi\CashFlow\Contract\FlowFlag;
+use Foresi\CashFlow\Contract\ForecastPeriod;
+use Foresi\CashFlow\Domain\Checkpoint;
+use Foresi\CashFlow\Domain\MinimumBalance;
+use Foresi\CashFlow\Domain\PlannedItem;
+use Foresi\ExchangeRate\Application\ExchangeRates;
+use Foresi\ExchangeRate\Domain\ExchangeRate;
+use Foresi\ExchangeRate\Domain\RateNotAvailable;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -277,7 +277,7 @@ final class Forecasts
         $last = null;
         foreach ($lines as $index => $line) {
             $item = 'planned_item' === $line->flow->subject->type ? ($items[$line->flow->subject->id] ?? null) : null;
-            if (!$item instanceof PlannedItem || (!$item->isRecurring() || !$item->counterparty() instanceof \App\Party\Domain\Party) && $item->matchRule()->isEmpty()) {
+            if (!$item instanceof PlannedItem || (!$item->isRecurring() || !$item->counterparty() instanceof \Foresi\Party\Domain\Party) && $item->matchRule()->isEmpty()) {
                 continue;
             }
             $planned[$index] = $item;

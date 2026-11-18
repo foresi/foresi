@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Mail;
+namespace Foresi\Invoicing\Infrastructure\Mail;
 
-use App\Invoicing\Application\MailGateway;
-use App\Invoicing\Application\MailHostPolicy;
-use App\Invoicing\Application\MailMessage;
-use App\Invoicing\Application\MailRefused;
-use App\Invoicing\Application\MailSecrets;
-use App\Invoicing\Application\MailSecretsUnavailable;
-use App\Invoicing\Domain\FirmMailServer;
-use App\Invoicing\Domain\MailEncryption;
+use Foresi\Invoicing\Application\MailGateway;
+use Foresi\Invoicing\Application\MailHostPolicy;
+use Foresi\Invoicing\Application\MailMessage;
+use Foresi\Invoicing\Application\MailRefused;
+use Foresi\Invoicing\Application\MailSecrets;
+use Foresi\Invoicing\Application\MailSecretsUnavailable;
+use Foresi\Invoicing\Domain\FirmMailServer;
+use Foresi\Invoicing\Domain\MailEncryption;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mailer\Exception\UnexpectedResponseException;
 use Symfony\Component\Mime\Address;

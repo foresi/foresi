@@ -6,42 +6,42 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Idoklad\Application;
+namespace Foresi\Tests\Idoklad\Application;
 
-use App\Idoklad\Application\Import\ContactsStage;
-use App\Idoklad\Application\Import\DocumentsStage;
-use App\Idoklad\Application\Import\IdokladImportRuns;
-use App\Idoklad\Application\Import\PaymentsStage;
-use App\Idoklad\Application\Import\RecurringStage;
-use App\Idoklad\Application\Import\RunIdokladImport;
-use App\Idoklad\Application\Import\SeriesStage;
-use App\Idoklad\Domain\IdokladImportRun;
-use App\Idoklad\Domain\IdokladLink;
-use App\Idoklad\Domain\IdokladPull;
-use App\Idoklad\Domain\IdokladRecord;
-use App\Idoklad\Domain\IdokladResource;
-use App\Idoklad\Domain\ImportMode;
-use App\Invoicing\Application\NumberCounter;
-use App\Invoicing\Application\SeriesCatalog;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\SeriesFormat;
-use App\Party\Application\ContactSettingsForFirm;
-use App\Party\Application\CreateParty;
-use App\Party\Application\PartyDetails;
-use App\Party\Application\PartyInput;
-use App\Party\Domain\Address;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
-use App\Party\Domain\VatStatus;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Idoklad\Application\Import\ContactsStage;
+use Foresi\Idoklad\Application\Import\DocumentsStage;
+use Foresi\Idoklad\Application\Import\IdokladImportRuns;
+use Foresi\Idoklad\Application\Import\PaymentsStage;
+use Foresi\Idoklad\Application\Import\RecurringStage;
+use Foresi\Idoklad\Application\Import\RunIdokladImport;
+use Foresi\Idoklad\Application\Import\SeriesStage;
+use Foresi\Idoklad\Domain\IdokladImportRun;
+use Foresi\Idoklad\Domain\IdokladLink;
+use Foresi\Idoklad\Domain\IdokladPull;
+use Foresi\Idoklad\Domain\IdokladRecord;
+use Foresi\Idoklad\Domain\IdokladResource;
+use Foresi\Idoklad\Domain\ImportMode;
+use Foresi\Invoicing\Application\NumberCounter;
+use Foresi\Invoicing\Application\SeriesCatalog;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Application\CreateParty;
+use Foresi\Party\Application\PartyDetails;
+use Foresi\Party\Application\PartyInput;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Party\Domain\VatStatus;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class IdokladImportTest extends KernelTestCase
@@ -668,8 +668,8 @@ final class IdokladImportTest extends KernelTestCase
         if (null === $registrationNumber) {
             return $party->id();
         }
-        $target = self::getContainer()->get(\App\Import\Application\Target\TargetRegistry::class)->get('party');
-        $target->update($party->id(), ['bank_account_iban' => 'CZ5508000000001234567899', 'contact_name' => 'Old Person'], \App\Import\Domain\BlankCells::Keep);
+        $target = self::getContainer()->get(\Foresi\Import\Application\Target\TargetRegistry::class)->get('party');
+        $target->update($party->id(), ['bank_account_iban' => 'CZ5508000000001234567899', 'contact_name' => 'Old Person'], \Foresi\Import\Domain\BlankCells::Keep);
 
         return $party->id();
     }

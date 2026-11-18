@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Domain;
+namespace Foresi\Invoicing\Domain;
 
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 
 /**
  * Prices a line and adds a document up, in exact money.
@@ -55,7 +55,7 @@ final readonly class InvoiceCalculator
      * @param list<LineValues> $lines
      * @param bool             $homeRounds whether the country rounds a total in its home currency
      *
-     * @throws \App\Shared\Domain\CurrencyMismatch when the lines are priced in more than one currency
+     * @throws \Foresi\Shared\Domain\CurrencyMismatch when the lines are priced in more than one currency
      */
     public function totals(array $lines, VatRegime $regime, TotalRounding $rounding, Currency $home, bool $homeRounds): DocumentTotals
     {

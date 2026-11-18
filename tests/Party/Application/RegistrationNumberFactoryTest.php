@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Application;
+namespace Foresi\Tests\Party\Application;
 
-use App\Country\CzechRepublic\Party\CzechRegistrationNumberValidator;
-use App\Party\Application\RegistrationNumberFactory;
-use App\Party\Domain\InvalidRegistrationNumber;
+use Foresi\Country\CzechRepublic\Party\CzechRegistrationNumberValidator;
+use Foresi\Party\Application\RegistrationNumberFactory;
+use Foresi\Party\Domain\InvalidRegistrationNumber;
 use PHPUnit\Framework\TestCase;
 
 final class RegistrationNumberFactoryTest extends TestCase

@@ -6,39 +6,39 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Audit\Domain\ActorKind;
-use App\Banking\Application\AcceptRefused;
-use App\Banking\Application\AcceptRejectedMessage;
-use App\Banking\Application\BankMessageParsers;
-use App\Banking\Application\BankMovements;
-use App\Banking\Application\GenerateAddress;
-use App\Banking\Application\InboundMessages;
-use App\Banking\Application\Ownership;
-use App\Banking\Application\PendingChanges;
-use App\Banking\Application\ReceiveOutcome;
-use App\Banking\Application\RetryInboundMessage;
-use App\Banking\Domain\InboundChannel;
-use App\Banking\Domain\InboundMessage;
-use App\Banking\Domain\InboundStatus;
-use App\Banking\Infrastructure\Navigation\BankNotices;
-use App\Identity\Application\MembershipDirectory;
-use App\Identity\Application\Organisation;
-use App\Identity\Application\StaffCheck;
-use App\Identity\Domain\Role;
-use App\Invoicing\Application\PaymentState;
-use App\Party\Domain\Address;
-use App\Party\Domain\FirmBankAccount;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
-use App\Tests\Banking\Support\InboundMailKit;
-use App\Tests\Banking\Support\InboundTestCase;
-use App\Tests\Banking\Support\Scalars;
-use App\Tests\Party\Support\FirmAccounts;
-use App\Ui\Notice\ShellNotice;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Audit\Domain\ActorKind;
+use Foresi\Banking\Application\AcceptRefused;
+use Foresi\Banking\Application\AcceptRejectedMessage;
+use Foresi\Banking\Application\BankMessageParsers;
+use Foresi\Banking\Application\BankMovements;
+use Foresi\Banking\Application\GenerateAddress;
+use Foresi\Banking\Application\InboundMessages;
+use Foresi\Banking\Application\Ownership;
+use Foresi\Banking\Application\PendingChanges;
+use Foresi\Banking\Application\ReceiveOutcome;
+use Foresi\Banking\Application\RetryInboundMessage;
+use Foresi\Banking\Domain\InboundChannel;
+use Foresi\Banking\Domain\InboundMessage;
+use Foresi\Banking\Domain\InboundStatus;
+use Foresi\Banking\Infrastructure\Navigation\BankNotices;
+use Foresi\Identity\Application\MembershipDirectory;
+use Foresi\Identity\Application\Organisation;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Domain\Role;
+use Foresi\Invoicing\Application\PaymentState;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Tests\Banking\Support\InboundMailKit;
+use Foresi\Tests\Banking\Support\InboundTestCase;
+use Foresi\Tests\Banking\Support\Scalars;
+use Foresi\Tests\Party\Support\FirmAccounts;
+use Foresi\Ui\Notice\ShellNotice;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -139,7 +139,7 @@ final class ProcessMessageTest extends InboundTestCase
         self::assertSame([], $this->movementsOf($id));
         $stored = $this->em->getConnection()->fetchAssociative('SELECT raw_key, raw_sha256 FROM inbound_message WHERE id = ?', [$id]);
         self::assertIsArray($stored);
-        self::assertSame($raw, self::getContainer()->get(\App\Banking\Application\InboundFiles::class)->read($id, Scalars::text($stored['raw_key']), Scalars::text($stored['raw_sha256'])));
+        self::assertSame($raw, self::getContainer()->get(\Foresi\Banking\Application\InboundFiles::class)->read($id, Scalars::text($stored['raw_key']), Scalars::text($stored['raw_sha256'])));
     }
 
     public function testAMailNoParserKnowsIsNotBankMail(): void

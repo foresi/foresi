@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\DeductibleAdvances;
-use App\Invoicing\Application\DocumentChain;
-use App\Invoicing\Domain\Invoice;
-use App\Party\Domain\DocumentLanguage;
+use Foresi\Invoicing\Application\DeductibleAdvances;
+use Foresi\Invoicing\Application\DocumentChain;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Party\Domain\DocumentLanguage;
 
 /**
  * From the advance, a tax document and the final invoice, the same chain shows.

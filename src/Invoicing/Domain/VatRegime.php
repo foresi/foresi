@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Domain;
+namespace Foresi\Invoicing\Domain;
 
-use App\Party\Domain\VatStatus;
+use Foresi\Party\Domain\VatStatus;
 
 /**
  * Whether the issuer charges VAT on a document.

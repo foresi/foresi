@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Doctrine;
+namespace Foresi\Identity\Infrastructure\Doctrine;
 
-use App\Identity\Application\People;
-use App\Identity\Application\Person;
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\Role;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Application\People;
+use Foresi\Identity\Application\Person;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Role;
 
 final readonly class DoctrinePeople implements People
 {

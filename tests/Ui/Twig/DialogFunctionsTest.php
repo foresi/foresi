@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui\Twig;
+namespace Foresi\Tests\Ui\Twig;
 
-use App\Ui\Dialog\DialogRequest;
-use App\Ui\Twig\DialogFunctions;
+use Foresi\Ui\Dialog\DialogRequest;
+use Foresi\Ui\Twig\DialogFunctions;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;

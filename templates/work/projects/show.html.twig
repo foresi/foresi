@@ -11,10 +11,10 @@
 
 {% set crumbs = (project.manageable ? [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}] : [{label: 'shared_with_me.title'|trans, href: path('app_shared_with_me')}])|merge([{label: project.name}]) %}
 {% if project.archivedAt %}{% set badge = {label: 'work.project.archived'|trans, tone: 'gray'} %}{% endif %}
-{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 {% if project.visibility.value == 'chosen' %}{% set badges = [{label: 'work.sharing.chosen_badge'|trans, tone: 'gray', icon: 'lock'}] %}{% endif %}
 {% set newTask %}<twig:Ui:Button variant="primary" icon="plus" :href="path('app_project_task_new', {id: project.id, return: app.request.requestUri})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-new-open>{{ 'work.task.new'|trans }}</twig:Ui:Button>{% endset %}
-{% set trashToken = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TaskController::TRASH_TOKEN')) %}
+{% set trashToken = csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TaskController::TRASH_TOKEN')) %}
 
 {% block title %}{{ project.name }}{% endblock %}
 

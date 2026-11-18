@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Dbal;
+namespace Foresi\Webhooks\Infrastructure\Dbal;
 
-use App\Webhooks\Application\Query\AttemptRow;
-use App\Webhooks\Application\Query\DeliveryRecords;
-use App\Webhooks\Application\Query\DeliveryRow;
-use App\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
+use Foresi\Webhooks\Application\Query\AttemptRow;
+use Foresi\Webhooks\Application\Query\DeliveryRecords;
+use Foresi\Webhooks\Application\Query\DeliveryRow;
+use Foresi\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
 
 /**
  * The delivery log read from its tables. The body is never read.

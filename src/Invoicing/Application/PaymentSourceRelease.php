@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\Payment;
+use Foresi\Invoicing\Domain\Payment;
 
 /**
  * Told when a payment that came from a bank movement is cancelled, inside the same

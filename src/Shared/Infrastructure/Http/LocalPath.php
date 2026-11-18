@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Http;
+namespace Foresi\Shared\Infrastructure\Http;
 
 /**
  * Accepts a redirect target only if it is a path on this site, so a form

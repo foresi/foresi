@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure\Messenger;
+namespace Foresi\Banking\Infrastructure\Messenger;
 
-use App\Banking\Application\ProcessInboundMessage;
-use App\Banking\Application\ProcessMessage;
-use App\Banking\Application\UnknownInboundMessage;
+use Foresi\Banking\Application\ProcessInboundMessage;
+use Foresi\Banking\Application\ProcessMessage;
+use Foresi\Banking\Application\UnknownInboundMessage;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 

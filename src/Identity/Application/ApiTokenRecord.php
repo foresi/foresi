@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
-use App\Identity\Domain\ApiScope;
-use App\Identity\Domain\ApiTokenState;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Identity\Domain\ApiTokenState;
 
 /**
  * A personal API token as read to sign a request in, and for the operator's

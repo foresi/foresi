@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application;
+namespace Foresi\Idoklad\Application;
 
 /**
  * Reads one iDoklad account. Only the read-only paths are ever requested; any
@@ -20,7 +20,7 @@ interface IdokladSession
      * @param array<string, int|string> $query
      *
      * @throws IdokladFailure
-     * @throws \App\Idoklad\Domain\IdokladPathRefused
+     * @throws \Foresi\Idoklad\Domain\IdokladPathRefused
      */
     public function get(string $path, array $query = []): mixed;
 

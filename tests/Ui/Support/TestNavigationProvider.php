@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui\Support;
+namespace Foresi\Tests\Ui\Support;
 
-use App\Ui\Navigation\NavigationArea;
-use App\Ui\Navigation\NavigationAreaProvider;
-use App\Ui\Navigation\NavigationCountProvider;
-use App\Ui\Navigation\NavigationItem;
-use App\Ui\Navigation\NavigationItemProvider;
+use Foresi\Ui\Navigation\NavigationArea;
+use Foresi\Ui\Navigation\NavigationAreaProvider;
+use Foresi\Ui\Navigation\NavigationCountProvider;
+use Foresi\Ui\Navigation\NavigationItem;
+use Foresi\Ui\Navigation\NavigationItemProvider;
 
 /**
  * Stands in for a plugin: registers an area of its own and an item in it, in

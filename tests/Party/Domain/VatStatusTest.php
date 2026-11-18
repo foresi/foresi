@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Domain;
+namespace Foresi\Tests\Party\Domain;
 
-use App\Party\Domain\VatStatus;
+use Foresi\Party\Domain\VatStatus;
 use PHPUnit\Framework\TestCase;
 
 final class VatStatusTest extends TestCase

@@ -16,7 +16,7 @@ scheb_two_factor:
         template: identity/two_factor.html.twig
     backup_codes:
         enabled: true
-        manager: App\Identity\Infrastructure\Security\RecoveryCodeManager
+        manager: Foresi\Identity\Infrastructure\Security\RecoveryCodeManager
     # "Remember this browser": a signed cookie (JWT with APP_SECRET), 30 days;
     # resetting a user's two-factor sign-in invalidates every such cookie.
     trusted_device:

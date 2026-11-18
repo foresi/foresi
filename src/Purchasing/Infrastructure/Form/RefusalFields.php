@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Form;
+namespace Foresi\Purchasing\Infrastructure\Form;
 
-use App\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
 
 /**
  * Where the form of a received document tells a refusal: next to the field

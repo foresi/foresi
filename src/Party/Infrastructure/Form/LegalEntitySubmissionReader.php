@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Form;
+namespace Foresi\Party\Infrastructure\Form;
 
-use App\Party\Application\FirmImageType;
-use App\Party\Application\LegalEntityInput;
-use App\Party\Application\RegistrationNumberFactory;
-use App\Party\Domain\Address;
-use App\Party\Domain\InvalidRegistrationNumber;
-use App\Party\Domain\InvalidVatId;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
-use App\Party\Domain\VatStatus;
+use Foresi\Party\Application\FirmImageType;
+use Foresi\Party\Application\LegalEntityInput;
+use Foresi\Party\Application\RegistrationNumberFactory;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\InvalidRegistrationNumber;
+use Foresi\Party\Domain\InvalidVatId;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Party\Domain\VatStatus;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 

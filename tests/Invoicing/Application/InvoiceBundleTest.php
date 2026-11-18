@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\AccountantPackFormat;
-use App\Invoicing\Application\ConflictRetry;
-use App\Invoicing\Application\DocumentExports;
-use App\Invoicing\Application\InvoiceBundle;
-use App\Invoicing\Application\InvoicePdf;
-use App\Invoicing\Application\InvoicingCountries;
-use App\Invoicing\Application\IssuedDocumentFactory;
-use App\Invoicing\Domain\ExportState;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Party\Application\TransactionalWork;
+use Foresi\Invoicing\Application\AccountantPackFormat;
+use Foresi\Invoicing\Application\ConflictRetry;
+use Foresi\Invoicing\Application\DocumentExports;
+use Foresi\Invoicing\Application\InvoiceBundle;
+use Foresi\Invoicing\Application\InvoicePdf;
+use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Invoicing\Application\IssuedDocumentFactory;
+use Foresi\Invoicing\Domain\ExportState;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Party\Application\TransactionalWork;
 use OpenSpout\Reader\XLSX\Reader;
 use Psr\Clock\ClockInterface;
 use Psr\Log\NullLogger;

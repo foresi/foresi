@@ -22,9 +22,9 @@
 {% set crumbs = crumbs|merge([row.projectSeen ? {label: row.projectName, href: path('app_project', {id: row.projectId})} : {label: row.projectName}]) %}
 {% if task.parent %}{% set crumbs = crumbs|merge([{label: task.parent.name, href: path('app_task', {id: task.parent.id})}]) %}{% endif %}
 {% set crumbs = crumbs|merge([{label: row.title}]) %}
-{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
-{% set token = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TaskController::TOKEN')) %}
-{% set timeToken = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TimeController::TOKEN')) %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{% set token = csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TaskController::TOKEN')) %}
+{% set timeToken = csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TimeController::TOKEN')) %}
 {% set taskUrl = path('app_task', {id: row.id}) %}
 {% set autosubmit = 'data-controller="autosubmit" data-action="change->autosubmit#submit"' %}
 {% if row.private %}{% set badges = [{label: 'work.sharing.private_badge'|trans, tone: 'gray', icon: 'lock'}] %}{% endif %}
@@ -33,7 +33,7 @@
 {% set titleEdit = {
     action: path('app_task_title', {id: row.id}), token: token, name: 'title', id: 'title', label: 'work.task.field.title'|trans,
     href: taskUrl ~ '?edit=title', cancelHref: taskUrl, open: edit == 'title', value: values.title, error: errors.title|default(null),
-    maxlength: constant('App\\Work\\Domain\\Task::MAX_TITLE_LENGTH'),
+    maxlength: constant('Foresi\\Work\\Domain\\Task::MAX_TITLE_LENGTH'),
 } %}
 
 {% block head %}{{ include('work/_morph_refresh.html.twig') }}{% endblock %}
@@ -50,7 +50,7 @@
         <twig:block name="last">
             {% if row.deletable %}
                 <form method="post" action="{{ path('app_task_delete', {id: row.id}) }}" role="none" data-task-delete>
-                    <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TaskController::TRASH_TOKEN')) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TaskController::TRASH_TOKEN')) }}">
                     <input type="hidden" name="from" value="task">
                     <twig:Ui:MenuItem type="submit" icon="trash-2" tone="danger">{{ 'work.trash.delete'|trans }}</twig:Ui:MenuItem>
                 </form>

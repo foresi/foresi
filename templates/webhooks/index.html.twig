@@ -21,7 +21,7 @@
         {% endfor %}
     {% endfor %}
     <section class="grid gap-2" data-webhook-endpoints>
-        <twig:Ui:DataTable :caption="'webhooks.title'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('App\\Webhooks\\Infrastructure\\Controller\\WebhookEndpointController::TOKEN'))">
+        <twig:Ui:DataTable :caption="'webhooks.title'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('Foresi\\Webhooks\\Infrastructure\\Controller\\WebhookEndpointController::TOKEN'))">
             <twig:block name="empty">
                 <twig:Ui:EmptyState icon="send" :title="'webhooks.empty.title'|trans" :text="'webhooks.empty.text'|trans">
                     <twig:Ui:Button variant="primary" icon="plus" :href="path('app_webhook_new')" data-dialog aria-haspopup="dialog">{{ 'webhooks.new'|trans }}</twig:Ui:Button>

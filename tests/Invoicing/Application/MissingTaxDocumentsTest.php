@@ -6,23 +6,23 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\IssuePaymentTaxDocument;
-use App\Invoicing\Application\IssueRefused;
-use App\Invoicing\Application\MissingTaxDocument;
-use App\Invoicing\Application\MissingTaxDocuments;
-use App\Invoicing\Application\RecordPayment;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\TaxOnReceiptChoice;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Party\Domain\Address;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\VatId;
+use Foresi\Invoicing\Application\IssuePaymentTaxDocument;
+use Foresi\Invoicing\Application\IssueRefused;
+use Foresi\Invoicing\Application\MissingTaxDocument;
+use Foresi\Invoicing\Application\MissingTaxDocuments;
+use Foresi\Invoicing\Application\RecordPayment;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\TaxOnReceiptChoice;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\VatId;
 
 /**
  * The paid advances that still need a tax document, the days left for each, and
@@ -195,7 +195,7 @@ final class MissingTaxDocumentsTest extends AdvanceTestCase
         try {
             $issue();
         } catch (IssueRefused $refused) {
-            return array_map(static fn (\App\Invoicing\Application\IssueProblem $problem): string => $problem->key, $refused->problems);
+            return array_map(static fn (\Foresi\Invoicing\Application\IssueProblem $problem): string => $problem->key, $refused->problems);
         }
         self::fail('Expected a refusal.');
     }

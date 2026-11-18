@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
-use App\Identity\Domain\ApiTokenSecret;
-use App\Identity\Domain\ApiTokenState;
-use App\Identity\Domain\Role;
+use Foresi\Identity\Domain\ApiTokenSecret;
+use Foresi\Identity\Domain\ApiTokenState;
+use Foresi\Identity\Domain\Role;
 use Psr\Clock\ClockInterface;
 
 /**

@@ -9,7 +9,7 @@
 {% set buttonId = id ~ '-button' %}
 {% set popupId = id ~ '-popup' %}
 {% set listId = id ~ '-list' %}
-{% set row_class = constant('App\\Ui\\Component\\Menu::OPTION') ~ ' hover:bg-frame data-active:bg-frame [&[hidden]]:hidden' %}
+{% set row_class = constant('Foresi\\Ui\\Component\\Menu::OPTION') ~ ' hover:bg-frame data-active:bg-frame [&[hidden]]:hidden' %}
 <form method="post" action="{{ action }}" {{ attributes.defaults({class: 'flex min-w-0', 'data-multi-select': name}) }} data-controller="multi-select" data-multi-select-create-label-value="{{ createLabel }}" data-action="dropdown:opened->multi-select#opened dropdown:closed->multi-select#closed">
     {% for field, fieldValue in picker.hidden %}<input type="hidden" name="{{ field }}" value="{{ fieldValue }}">{% endfor %}
     {% for row in picker.rows %}<input type="checkbox" name="{{ name }}" value="{{ row.value }}" hidden{% if row.checked %} checked{% endif %} data-multi-select-target="input">{% endfor %}

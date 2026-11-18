@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application\Query;
+namespace Foresi\Party\Application\Query;
 
-use App\Party\Application\LegalEntities;
-use App\Party\Application\PartyAccess;
-use App\Party\Application\PartyNotAllowed;
-use App\Party\Domain\LegalEntity;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\PartyAccess;
+use Foresi\Party\Application\PartyNotAllowed;
+use Foresi\Party\Domain\LegalEntity;
 
 /**
  * The firms of the organisation for MCP, so a client can name the firm a read is

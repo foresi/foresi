@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Navigation;
+namespace Foresi\Invoicing\Infrastructure\Navigation;
 
-use App\Identity\Application\StaffCheck;
-use App\Invoicing\Application\InvoiceSends;
-use App\Invoicing\Domain\SendStatus;
-use App\Ui\Notice\ShellNotice;
-use App\Ui\Notice\ShellNoticeProvider;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Invoicing\Application\InvoiceSends;
+use Foresi\Invoicing\Domain\SendStatus;
+use Foresi\Ui\Notice\ShellNotice;
+use Foresi\Ui\Notice\ShellNoticeProvider;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;

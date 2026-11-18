@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\BankFeed;
-use App\Invoicing\Application\MailSecrets;
-use App\Party\Application\FirmBankAccounts;
-use App\Party\Application\TransactionalWork;
-use App\Party\Application\UnknownFirmBankAccount;
+use Foresi\Banking\Domain\BankFeed;
+use Foresi\Invoicing\Application\MailSecrets;
+use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Application\UnknownFirmBankAccount;
 use Psr\Clock\ClockInterface;
 
 /**

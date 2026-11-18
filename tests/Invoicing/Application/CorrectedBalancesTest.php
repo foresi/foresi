@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\AllocationRequest;
-use App\Invoicing\Application\InvoiceFilter;
-use App\Invoicing\Application\InvoicePayments;
-use App\Invoicing\Application\InvoiceRow;
-use App\Invoicing\Application\PaymentRequest;
-use App\Invoicing\Application\PaymentState;
-use App\Invoicing\Application\RecordPayment;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\PaymentSource;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Application\AllocationRequest;
+use Foresi\Invoicing\Application\InvoiceFilter;
+use Foresi\Invoicing\Application\InvoicePayments;
+use Foresi\Invoicing\Application\InvoiceRow;
+use Foresi\Invoicing\Application\PaymentRequest;
+use Foresi\Invoicing\Application\PaymentState;
+use Foresi\Invoicing\Application\RecordPayment;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 
 /**
  * What the lists make of an invoice of 1 210 and its corrections: what is left to

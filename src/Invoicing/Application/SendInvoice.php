@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\StaffCheck;
-use App\Identity\Application\UserRepository;
-use App\Invoicing\Domain\FirmMailServer;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceSend;
-use App\Invoicing\Domain\LinkAudience;
-use App\Invoicing\Domain\SendPurpose;
-use App\Party\Application\TransactionalWork;
-use App\Party\Domain\PartyEmail;
-use App\Shared\Domain\Id;
-use App\Shared\Domain\Money;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Invoicing\Domain\FirmMailServer;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceSend;
+use Foresi\Invoicing\Domain\LinkAudience;
+use Foresi\Invoicing\Domain\SendPurpose;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Domain\Money;
 use Psr\Clock\ClockInterface;
 
 /**

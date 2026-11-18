@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Module;
+namespace Foresi\Shared\Infrastructure\Module;
 
-use App\Shared\Domain\Module\ModuleId;
+use Foresi\Shared\Domain\Module\ModuleId;
 
 /**
  * The code one module keeps for another it depends on optionally, such as
- * App\Invoicing\Integration\CashFlow\ for Invoicing and Cash flow. It is
+ * Foresi\Invoicing\Integration\CashFlow\ for Invoicing and Cash flow. It is
  * loaded only when that other module is installed (ADR 0033).
  */
 final readonly class ModuleIntegration

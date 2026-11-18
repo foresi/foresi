@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Translation;
+namespace Foresi\Work\Infrastructure\Translation;
 
-use App\Work\Application\StatusNames;
+use Foresi\Work\Application\StatusNames;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**

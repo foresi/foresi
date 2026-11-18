@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\ExchangeRate\Infrastructure\Doctrine;
+namespace Foresi\ExchangeRate\Infrastructure\Doctrine;
 
-use App\ExchangeRate\Application\PublishedRates;
-use App\ExchangeRate\Application\Quote;
-use App\ExchangeRate\Application\RateStore;
-use App\ExchangeRate\Domain\ExchangeRate;
 use Doctrine\DBAL\Connection;
+use Foresi\ExchangeRate\Application\PublishedRates;
+use Foresi\ExchangeRate\Application\Quote;
+use Foresi\ExchangeRate\Application\RateStore;
+use Foresi\ExchangeRate\Domain\ExchangeRate;
 
 /**
  * Plain statements on the global exchange_rate table, the same on SQLite and

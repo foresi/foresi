@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Messenger;
+namespace Foresi\Import\Infrastructure\Messenger;
 
 /** The file of an import is gone, or its key is no key of the import store. */
 final class MissingImportFile extends \RuntimeException

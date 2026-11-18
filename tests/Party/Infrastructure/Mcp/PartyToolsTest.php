@@ -6,27 +6,27 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Infrastructure\Mcp;
+namespace Foresi\Tests\Party\Infrastructure\Mcp;
 
-use App\Party\Domain\Address;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\ContactLink;
-use App\Party\Domain\EmailPurpose;
-use App\Party\Domain\Iban;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyBankAccount;
-use App\Party\Domain\PartyEmail;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
-use App\Party\Infrastructure\Mcp\GetContactTool;
-use App\Party\Infrastructure\Mcp\ListFirmsTool;
-use App\Party\Infrastructure\Mcp\SearchContactsTool;
-use App\Shared\Domain\Id;
-use App\Tests\Shared\Infrastructure\Mcp\ReadToolTestCase;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\ContactLink;
+use Foresi\Party\Domain\EmailPurpose;
+use Foresi\Party\Domain\Iban;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyBankAccount;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Party\Infrastructure\Mcp\GetContactTool;
+use Foresi\Party\Infrastructure\Mcp\ListFirmsTool;
+use Foresi\Party\Infrastructure\Mcp\SearchContactsTool;
+use Foresi\Shared\Domain\Id;
+use Foresi\Tests\Shared\Infrastructure\Mcp\ReadToolTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**

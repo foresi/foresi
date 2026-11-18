@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application;
+namespace Foresi\Import\Application;
 
-use App\Import\Application\Source\SourceFormat;
-use App\Import\Domain\FieldDefinition;
+use Foresi\Import\Application\Source\SourceFormat;
+use Foresi\Import\Domain\FieldDefinition;
 
 /**
  * Writes exported records as a spreadsheet file. The header is the translated

@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Infrastructure\Http;
+namespace Foresi\Tests\Webhooks\Infrastructure\Http;
 
-use App\Webhooks\Application\InvalidWebhookUrl;
-use App\Webhooks\Infrastructure\Http\DnsWebhookUrlPolicy;
+use Foresi\Webhooks\Application\InvalidWebhookUrl;
+use Foresi\Webhooks\Infrastructure\Http\DnsWebhookUrlPolicy;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

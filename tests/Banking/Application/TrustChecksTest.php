@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Application;
 
-use App\Banking\Application\TrustCheck;
-use App\Banking\Application\TrustChecks;
-use App\Banking\Domain\InboundChannel;
-use App\Tests\Banking\Support\InboundTestCase;
-use App\Tests\Banking\Support\Scalars;
+use Foresi\Banking\Application\TrustCheck;
+use Foresi\Banking\Application\TrustChecks;
+use Foresi\Banking\Domain\InboundChannel;
+use Foresi\Tests\Banking\Support\InboundTestCase;
+use Foresi\Tests\Banking\Support\Scalars;
 
 /**
  * The trust check of the last mail of the test feed, as received over the

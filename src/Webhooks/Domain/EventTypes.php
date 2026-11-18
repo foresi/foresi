@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Domain;
+namespace Foresi\Webhooks\Domain;
 
 /**
  * What an endpoint subscribes to: event names of the catalogue, or a whole

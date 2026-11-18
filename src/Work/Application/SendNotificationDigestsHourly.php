@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Instance\Application\Schedule\ScheduledJob;
+use Foresi\Instance\Application\Schedule\ScheduledJob;
 use Psr\Clock\ClockInterface;
 
 /**

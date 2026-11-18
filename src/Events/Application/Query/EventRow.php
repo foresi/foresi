@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Application\Query;
+namespace Foresi\Events\Application\Query;
 
 /**
  * One positioned event of the log as the feed reads it. The user and the token

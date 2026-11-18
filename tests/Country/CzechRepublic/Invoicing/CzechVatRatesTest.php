@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Country\CzechRepublic\Invoicing;
+namespace Foresi\Tests\Country\CzechRepublic\Invoicing;
 
-use App\Country\CzechRepublic\Invoicing\CzechInvoicing;
-use App\Country\CzechRepublic\Invoicing\CzechSupplyCodes;
-use App\Country\CzechRepublic\Invoicing\CzechVatRates;
-use App\Country\CzechRepublic\Invoicing\IsdocWriter;
-use App\Country\CzechRepublic\Invoicing\QrPlatba;
-use App\Invoicing\Application\InvoicingCountries;
-use App\Invoicing\Application\SupplyCode;
-use App\Invoicing\Application\UnsupportedCountry;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Shared\Domain\Currency;
+use Foresi\Country\CzechRepublic\Invoicing\CzechInvoicing;
+use Foresi\Country\CzechRepublic\Invoicing\CzechSupplyCodes;
+use Foresi\Country\CzechRepublic\Invoicing\CzechVatRates;
+use Foresi\Country\CzechRepublic\Invoicing\IsdocWriter;
+use Foresi\Country\CzechRepublic\Invoicing\QrPlatba;
+use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Invoicing\Application\SupplyCode;
+use Foresi\Invoicing\Application\UnsupportedCountry;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Shared\Domain\Currency;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

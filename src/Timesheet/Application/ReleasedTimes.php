@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Application;
+namespace Foresi\Timesheet\Application;
 
-use App\Timesheet\Domain\ReleasedTime;
+use Foresi\Timesheet\Domain\ReleasedTime;
 
 /**
  * The time released by invoices in the trash.

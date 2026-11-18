@@ -15,7 +15,7 @@ when@test:
         resource: ../tests/Ui/Support/ShellProbeController.php
         type: attribute
 
-# The REST endpoints of the declared operations (ADR 0032), from App\Shared\Infrastructure\Operation\OperationRoutes.
+# The REST endpoints of the declared operations (ADR 0032), from Foresi\Shared\Infrastructure\Operation\OperationRoutes.
 operations:
     resource: .
     type: operations

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure;
+namespace Foresi\Tests\Invoicing\Infrastructure;
 
-use App\Invoicing\Application\MailVariables;
-use App\Invoicing\Infrastructure\Form\MailTokenLabels;
-use App\Party\Domain\DocumentLanguage;
+use Foresi\Invoicing\Application\MailVariables;
+use Foresi\Invoicing\Infrastructure\Form\MailTokenLabels;
+use Foresi\Party\Domain\DocumentLanguage;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 

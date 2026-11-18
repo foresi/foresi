@@ -6,21 +6,21 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Infrastructure\Mcp;
+namespace Foresi\Tests\Webhooks\Infrastructure\Mcp;
 
-use App\Shared\Application\SealerUnavailable;
-use App\Shared\Domain\Id;
-use App\Webhooks\Application\AttemptTrigger;
-use App\Webhooks\Application\SendWebhook;
-use App\Webhooks\Application\WebhookSecrets;
-use App\Webhooks\Domain\WebhookSecret;
-use App\Webhooks\Infrastructure\Crypto\SodiumWebhookSecrets;
-use App\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
-use App\Webhooks\Infrastructure\Mcp\CreateWebhookEndpointTool;
-use App\Webhooks\Infrastructure\Mcp\DeleteWebhookEndpointTool;
-use App\Webhooks\Infrastructure\Mcp\RedeliverWebhookTool;
-use App\Webhooks\Infrastructure\Mcp\RotateWebhookSecretTool;
-use App\Webhooks\Infrastructure\Mcp\UpdateWebhookEndpointTool;
+use Foresi\Shared\Application\SealerUnavailable;
+use Foresi\Shared\Domain\Id;
+use Foresi\Webhooks\Application\AttemptTrigger;
+use Foresi\Webhooks\Application\SendWebhook;
+use Foresi\Webhooks\Application\WebhookSecrets;
+use Foresi\Webhooks\Domain\WebhookSecret;
+use Foresi\Webhooks\Infrastructure\Crypto\SodiumWebhookSecrets;
+use Foresi\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
+use Foresi\Webhooks\Infrastructure\Mcp\CreateWebhookEndpointTool;
+use Foresi\Webhooks\Infrastructure\Mcp\DeleteWebhookEndpointTool;
+use Foresi\Webhooks\Infrastructure\Mcp\RedeliverWebhookTool;
+use Foresi\Webhooks\Infrastructure\Mcp\RotateWebhookSecretTool;
+use Foresi\Webhooks\Infrastructure\Mcp\UpdateWebhookEndpointTool;
 
 /**
  * The webhook write tools do what the REST routes do, through the same use

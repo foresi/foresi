@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Operation;
+namespace Foresi\Shared\Infrastructure\Operation;
 
-use App\Shared\Application\Api\Field;
+use Foresi\Shared\Application\Api\Field;
 
 /**
  * One field of an operation's input, read from a constructor parameter of the
