@@ -74,7 +74,7 @@ final class TimeReportController extends AbstractController
         $date = $this->translator->trans('format.date');
         $baseUrl = $this->generateUrl(self::ROUTE, $query);
 
-        return $this->render('work/time/report.html.twig', [
+        return $this->render('@Work/time/report.html.twig', [
             'query' => $query,
             'from' => $filter->from->format('Y-m-d'),
             'until' => $filter->until->format('Y-m-d'),

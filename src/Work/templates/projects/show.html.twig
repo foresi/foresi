@@ -1,0 +1,73 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A project as a list: the filters, then the tasks in no section as the list's own, with no heading
+    (loose to-dos sit above the groups in Basecamp, and Asana's list shows its default section without
+    one), then one block per section in order, each with its top-level tasks and their subtasks.
+    A new task opens in a dialog from the header, and from the empty state of a project with nothing
+    to show; so does the sharing dialog. A private section or task has its badge. A row's menu deletes its task; the trash of the project is linked at the end while it
+    holds something.
+#}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = (project.manageable ? [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}] : [{label: 'shared_with_me.title'|trans, href: path('app_shared_with_me')}])|merge([{label: project.name}]) %}
+{% if project.archivedAt %}{% set badge = {label: 'work.project.archived'|trans, tone: 'gray'} %}{% endif %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{% if project.visibility.value == 'chosen' %}{% set badges = [{label: 'work.sharing.chosen_badge'|trans, tone: 'gray', icon: 'lock'}] %}{% endif %}
+{% set newTask %}<twig:Ui:Button variant="primary" icon="plus" :href="path('app_project_task_new', {id: project.id, return: app.request.requestUri})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-new-open>{{ 'work.task.new'|trans }}</twig:Ui:Button>{% endset %}
+{% set trashToken = csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TaskController::TRASH_TOKEN')) %}
+
+{% block title %}{{ project.name }}{% endblock %}
+
+{# A change made in a row comes back to this page: Turbo morphs it in place and keeps the scroll. #}
+{% block head %}{{ include('@Work/_morph_refresh.html.twig') }}{% endblock %}
+
+{% block actions %}{{ include('@Work/projects/_header_actions.html.twig') }}{% endblock %}
+
+{% block content %}
+    {{ include('@Work/_flashes.html.twig') }}
+    <div class="grid grid-cols-1 gap-4">
+        {% if project.clientId %}
+            <p class="m-0 text-small text-muted" data-project-client>{{ 'work.project.field.client'|trans }}: {% if project.manageable %}<a href="{{ path('app_contact_show', {id: project.clientId}) }}" class="font-medium text-ink no-underline hover:underline {{ focus }}">{{ project.clientName }}</a>{% else %}<span class="font-medium text-ink">{{ project.clientName }}</span>{% endif %}</p>
+        {% endif %}
+
+        <div class="flex flex-wrap items-end justify-between gap-3">
+            <twig:Ui:Tabs :items="[{label: 'work.project.tab.list'|trans, href: path('app_project', {id: project.id}), active: true}, {label: 'work.project.tab.board'|trans, href: path('app_project_board', {id: project.id})}]" :label="'work.project.views'|trans" class="shrink-0" />
+            <twig:Ui:FilterBar id="task-filters" :action="path('app_project', {id: project.id})" :empty="sections is empty" class="w-full sm:w-auto" data-task-filters
+                :filters="[
+                    {name: 'responsible', label: 'work.filter.responsible'|trans, options: responsibles, value: query.responsible, pinned: true},
+                    {name: 'status', label: 'work.filter.status'|trans, options: statuses, value: query.status, default: 'open', pinned: true},
+                    {name: 'due', label: 'work.filter.due'|trans, options: dues, value: query.due},
+                ]" />
+        </div>
+
+        {% for section in sections %}
+            {% if section.id is null %}
+            {# The table is named after the project: with no heading it still needs a name. #}
+            <div class="grid gap-2" data-section="{{ section.key }}">
+                <twig:Ui:DataTable :caption="'work.list.loose_caption'|trans({project: project.name})" :columns="columns" :rows="section.rows" :actionToken="trashToken" />
+            </div>
+            {% else %}
+            <section class="grid gap-2" aria-labelledby="section-{{ section.key }}-title" data-section="{{ section.key }}">
+                <h2 id="section-{{ section.key }}-title" class="m-0 text-heading font-semibold text-ink">{{ section.name }} <span class="num font-normal text-muted">({{ section.count }})</span>{% if section.private %} {{ include('@Work/_private_badge.html.twig') }}{% endif %}</h2>
+                <twig:Ui:DataTable :caption="section.name" :columns="columns" :rows="section.rows" :actionToken="trashToken">
+                    <twig:block name="empty">
+                        <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted">{{ (filtered ? 'work.list.empty_filtered' : 'work.list.empty')|trans }}</p>
+                    </twig:block>
+                </twig:Ui:DataTable>
+            </section>
+            {% endif %}
+        {% else %}
+            {% if filtered %}
+                <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted" data-project-empty>{{ 'work.list.empty_filtered'|trans }}</p>
+            {% else %}
+                <twig:Ui:EmptyState icon="square-check-big" :title="'work.list.empty_title'|trans" :text="(project.archivedAt ? null : 'work.list.empty_text'|trans)" data-project-empty>
+                    {% if not project.archivedAt and project.taskable %}{{ newTask }}{% endif %}
+                </twig:Ui:EmptyState>
+            {% endif %}
+        {% endfor %}
+
+        {% if trashCount > 0 %}
+            <div><twig:Ui:Button variant="ghost" size="sm" icon="trash-2" :href="path('app_project_trash', {id: project.id})" data-project-trash>{{ 'work.trash.link'|trans({count: trashCount}) }}</twig:Ui:Button></div>
+        {% endif %}
+    </div>
+{% endblock %}

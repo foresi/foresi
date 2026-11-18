@@ -115,7 +115,7 @@ final class PublicDocumentController extends AbstractController
         $iban = PaymentMethod::BankTransfer === $document->paymentMethod && !$settled && !$credit ? $document->bankAccount : null;
         $remaining = $partly ? $this->format->money(Money::ofMinor($document->remainingMinor, $document->currency), $document->language) : null;
 
-        return $this->secured($this->render('invoicing/public/document.html.twig', [
+        return $this->secured($this->render('@Invoicing/public/document.html.twig', [
             'locale' => $language,
             'stylesheet' => $this->stylesheet(),
             'document' => $document,
@@ -250,7 +250,7 @@ final class PublicDocumentController extends AbstractController
         $language = $request->getPreferredLanguage(self::LANGUAGES) ?? self::LANGUAGES[0];
         $request->setLocale($language);
 
-        return $this->secured($this->render('invoicing/public/gone.html.twig', [
+        return $this->secured($this->render('@Invoicing/public/gone.html.twig', [
             'locale' => $language,
             'stylesheet' => $this->stylesheet(),
             'limited' => $limited,

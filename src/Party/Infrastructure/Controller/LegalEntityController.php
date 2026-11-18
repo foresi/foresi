@@ -68,7 +68,7 @@ final class LegalEntityController extends AbstractController
         $active = array_values(array_filter($firms, static fn (LegalEntity $firm): bool => !$firm->isArchived()));
         $shown = 'archived' === $view ? $archived : $active;
 
-        return $this->render('party/legal_entity/index.html.twig', [
+        return $this->render('@Party/legal_entity/index.html.twig', [
             'firstRun' => [] === $firms,
             'tabs' => $this->tabs($view, \count($active), \count($archived)),
             // The name gives way, cut short with its full text in a title. A phone shows the name;
@@ -224,7 +224,7 @@ final class LegalEntityController extends AbstractController
      */
     private function form(Request $request, ?LegalEntity $firm, array $values, array $errors, string $token, int $status): Response
     {
-        return $this->render('party/legal_entity/form.html.twig', [
+        return $this->render('@Party/legal_entity/form.html.twig', [
             'firm' => $firm,
             'values' => $values,
             'errors' => array_map(fn (array $error): string => $this->translator->trans($error[0], $error[1] ?? []), $errors),

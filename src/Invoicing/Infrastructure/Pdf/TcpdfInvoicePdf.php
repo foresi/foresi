@@ -45,7 +45,7 @@ use Twig\Environment;
 final readonly class TcpdfInvoicePdf implements InvoicePdf
 {
     public const float QR_SIZE_MM = 32.0;
-    private const string TEMPLATE = 'invoicing/pdf/invoice.html.twig';
+    private const string TEMPLATE = '@Invoicing/pdf/invoice.html.twig';
     /** Inside the white plate of the panel, on a page whose body starts at the top margin. */
     private const float QR_X = 125.6;
     private const float QR_Y = 78.0;

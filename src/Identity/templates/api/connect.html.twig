@@ -1,0 +1,98 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    How to connect Claude and other MCP clients to this installation: the server's address, a
+    copy-ready setup for each client, a first prompt that checks the connection, what the access of a
+    token means and how to keep it safe. The token itself is <token> here; the window of a new token
+    shows the Claude Code command with the real one. docs/mcp.md says the same at length.
+    Variables: canIssue, server, scopes (scope => label).
+#}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'api_tokens.title'|trans, href: path('app_api_tokens')}, {label: 'api_tokens.tab.connect'|trans}] %}
+
+{% block title %}{{ 'api_tokens.title'|trans }}{% endblock %}
+
+{% block actions %}
+    {% if canIssue %}<twig:Ui:Button variant="primary" icon="plus" :href="path('app_api_token_new')" id="api-token-new" data-dialog aria-haspopup="dialog">{{ 'api_tokens.new'|trans }}</twig:Ui:Button>{% endif %}
+{% endblock %}
+
+{% block content %}
+    {% set token = '<token>' %}
+    {% set header = 'Authorization: Bearer ' ~ token %}
+    {% set claudeCode = 'claude mcp add --transport http foresi ' ~ server ~ ' --header "' ~ header ~ '"' %}
+    {% set desktop = {mcpServers: {foresi: {command: 'npx', args: ['-y', 'mcp-remote', server, '--header', 'Authorization:${FORESI_AUTH}'], env: {FORESI_AUTH: 'Bearer ' ~ token}}}} %}
+    {% set cursor = {mcpServers: {foresi: {url: server, headers: {Authorization: 'Bearer ' ~ token}}}} %}
+    {% set vscode = {inputs: [{type: 'promptString', id: 'foresi-token', description: 'Foresi API token', password: true}], servers: {foresi: {type: 'http', url: server, headers: {Authorization: 'Bearer ${input:foresi-token}'}}}} %}
+    {% set json = constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_SLASHES') b-or constant('JSON_UNESCAPED_UNICODE') %}
+
+    <div class="mb-4">{% include '@Identity/api/_tabs.html.twig' with {active: 'connect'} only %}</div>
+    {% if not canIssue %}
+        <twig:Ui:Alert tone="warning" class="mb-4" data-api-token-two-factor>
+            <span>{{ 'api_tokens.two_factor.text'|trans }}</span>
+            <a href="{{ path(constant('Foresi\\Identity\\Infrastructure\\Controller\\TwoFactorSetupController::SETUP_ROUTE')) }}" class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'api_tokens.two_factor.link'|trans }}</a>
+        </twig:Ui:Alert>
+    {% endif %}
+    <div class="grid max-w-3xl gap-6" data-api-connect>
+        <twig:Ui:Card>
+            <div class="grid gap-4">
+                <p class="m-0 text-text">{{ 'api_tokens.connect.intro'|trans }}</p>
+                {% include '@Identity/api/_snippet.html.twig' with {id: 'mcp-server', label: 'api_tokens.connect.server'|trans, text: server, rows: 1} only %}
+                <section aria-labelledby="api-connect-steps-title" class="grid gap-2">
+                    <h2 id="api-connect-steps-title" class="m-0 text-heading font-semibold text-ink">{{ 'api_tokens.connect.steps.title'|trans }}</h2>
+                    <ol class="m-0 grid list-decimal gap-1 pl-5 text-text">
+                        <li>{{ 'api_tokens.connect.steps.token'|trans }}</li>
+                        <li>{{ 'api_tokens.connect.steps.client'|trans }}</li>
+                        <li>{{ 'api_tokens.connect.steps.check'|trans }}</li>
+                    </ol>
+                </section>
+            </div>
+        </twig:Ui:Card>
+
+        <section aria-labelledby="api-connect-clients-title" class="grid gap-3">
+            <h2 id="api-connect-clients-title" class="m-0 text-heading font-semibold text-ink">{{ 'api_tokens.connect.clients'|trans }}</h2>
+            {% for client in [
+                {key: 'claude_code', snippets: [{id: 'mcp-claude-code', text: claudeCode, rows: 2}]},
+                {key: 'claude_ai', snippets: [{id: 'mcp-claude-ai-url', label: 'api_tokens.connect.server'|trans, text: server, rows: 1}, {id: 'mcp-claude-ai-header', label: 'api_tokens.connect.client.claude_ai.header'|trans, text: header, rows: 1}]},
+                {key: 'desktop', snippets: [{id: 'mcp-claude-desktop', text: desktop|json_encode(json), rows: 17, wrap: false}]},
+                {key: 'cursor', snippets: [{id: 'mcp-cursor', text: cursor|json_encode(json), rows: 10, wrap: false}]},
+                {key: 'vscode', snippets: [{id: 'mcp-vscode', text: vscode|json_encode(json), rows: 19, wrap: false}]},
+                {key: 'other', snippets: [{id: 'mcp-other', label: 'api_tokens.connect.client.claude_ai.header'|trans, text: header, rows: 1}]},
+            ] %}
+                {% set title = ('api_tokens.connect.client.' ~ client.key ~ '.title')|trans %}
+                <twig:Ui:Card :title="title" data-mcp-client="{{ client.key }}">
+                    <div class="grid gap-3">
+                        <p class="m-0 text-text">{{ ('api_tokens.connect.client.' ~ client.key ~ '.text')|trans }}</p>
+                        {% for snippet in client.snippets %}
+                            {% include '@Identity/api/_snippet.html.twig' with {id: snippet.id, label: snippet.label ?? title, text: snippet.text, rows: snippet.rows, wrap: snippet.wrap ?? true} only %}
+                        {% endfor %}
+                    </div>
+                </twig:Ui:Card>
+            {% endfor %}
+        </section>
+
+        <twig:Ui:Card :title="'api_tokens.connect.check.title'|trans">
+            <div class="grid gap-3">
+                <p class="m-0 text-text">{{ 'api_tokens.connect.check.text'|trans }}</p>
+                {% include '@Identity/api/_snippet.html.twig' with {id: 'mcp-prompt', label: 'api_tokens.connect.check.title'|trans, text: 'api_tokens.connect.check.prompt'|trans, rows: 3} only %}
+            </div>
+        </twig:Ui:Card>
+
+        <twig:Ui:Card :title="'api_tokens.connect.scopes.title'|trans">
+            <div class="grid gap-3">
+                <p class="m-0 text-text">{{ 'api_tokens.connect.scopes.text'|trans }}</p>
+                <p class="m-0 text-text">{{ 'api_tokens.connect.scopes.hint'|trans }}</p>
+                <h3 class="m-0 text-small font-semibold text-ink">{{ 'api_tokens.connect.scopes.list'|trans }}</h3>
+                <ul class="m-0 flex flex-wrap gap-1.5 p-0" role="list" data-api-scopes>
+                    {% for label in scopes %}<li class="list-none"><twig:Ui:Badge tone="gray">{{ label }}</twig:Ui:Badge></li>{% endfor %}
+                </ul>
+            </div>
+        </twig:Ui:Card>
+
+        <twig:Ui:Card :title="'api_tokens.connect.safety.title'|trans">
+            <ul class="m-0 grid list-disc gap-1 pl-5 text-text">
+                {% for key in ['secret', 'approve', 'injection', 'revoke'] %}<li>{{ ('api_tokens.connect.safety.' ~ key)|trans }}</li>{% endfor %}
+            </ul>
+            <p class="m-0 mt-3 text-small text-muted">{{ 'api_tokens.connect.docs'|trans }}: <a href="https://github.com/foresi/foresi/blob/main/docs/mcp.md" class="font-medium text-green underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">docs/mcp.md</a>, <a href="https://github.com/foresi/foresi/blob/main/docs/api.md" class="font-medium text-green underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">docs/api.md</a></p>
+        </twig:Ui:Card>
+    </div>
+{% endblock %}

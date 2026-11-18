@@ -50,7 +50,7 @@ final readonly class InvoicingDashboard implements DashboardSectionProvider
         $asked = $this->requests->getCurrentRequest()?->query->getString('firm') ?? '';
         $summary = $this->overview->of('' === $asked ? null : $asked);
 
-        return [new DashboardSection('invoicing/dashboard.html.twig', [
+        return [new DashboardSection('@Invoicing/dashboard.html.twig', [
             'firms' => \count($firms) > 1 ? ['' => $this->translator->trans('invoice.list.all_firms')] + $firms : [],
             'firm' => $summary->firmId ?? '',
             'kpis' => $this->kpis($summary),

@@ -78,8 +78,8 @@ final readonly class EndpointDisabledMailer
         $this->mailer->send(new SystemMail(
             $owner->email(),
             $this->translator->trans('webhooks.disabled_mail.subject', ['host' => $host], null, $locale),
-            trim($this->twig->render('email/webhooks/endpoint_disabled.txt.twig', $context)),
-            $this->twig->render('email/webhooks/endpoint_disabled.html.twig', $context),
+            trim($this->twig->render('@Webhooks/email/endpoint_disabled.txt.twig', $context)),
+            $this->twig->render('@Webhooks/email/endpoint_disabled.html.twig', $context),
             $locale,
             $this->directory->organisationOf($ownerId)?->name,
         ));

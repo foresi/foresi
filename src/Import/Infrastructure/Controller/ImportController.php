@@ -77,7 +77,7 @@ final class ImportController extends AbstractController
     #[Route('/imports', name: 'app_imports', methods: ['GET'])]
     public function index(): Response
     {
-        return $this->render('import/index.html.twig', [
+        return $this->render('@Import/index.html.twig', [
             'columns' => $this->screens->historyColumns(),
             'rows' => $this->screens->historyRows($this->imports->history(self::HISTORY_LIMIT)),
             'newTarget' => $this->defaultTarget()?->key(),
@@ -140,13 +140,13 @@ final class ImportController extends AbstractController
         $editingMapping = ImportState::Checked === $state && 'mapping' === $request->query->getString('step');
 
         if (ImportScreens::isBusy($state)) {
-            return $this->screen('import/progress.html.twig', $import);
+            return $this->screen('@Import/progress.html.twig', $import);
         }
         if (ImportState::Mapping === $state || $editingMapping) {
-            return $this->screen('import/mapping.html.twig', $import, $this->screens->mapping($import, editSource: ImportState::Mapping === $state && 'edit' === $request->query->getString('source')), $editingMapping);
+            return $this->screen('@Import/mapping.html.twig', $import, $this->screens->mapping($import, editSource: ImportState::Mapping === $state && 'edit' === $request->query->getString('source')), $editingMapping);
         }
         if (ImportState::Checked === $state) {
-            return $this->screen('import/check.html.twig', $import, $this->screens->check($import, $request->query->getString('outcome')));
+            return $this->screen('@Import/check.html.twig', $import, $this->screens->check($import, $request->query->getString('outcome')));
         }
 
         // Opening the summary of one's own import that ended answers its notice.
@@ -155,14 +155,14 @@ final class ImportController extends AbstractController
             $this->imports->save();
         }
 
-        return $this->screen('import/summary.html.twig', $import, $this->screens->summary($import, $request->getLocale()));
+        return $this->screen('@Import/summary.html.twig', $import, $this->screens->summary($import, $request->getLocale()));
     }
 
     #[Route('/imports/{id}/progress', name: 'app_import_progress', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
     public function progress(string $id): Response
     {
         $import = $this->import($id);
-        $response = $this->render('import/_progress.html.twig', ['import' => $import, 'progress' => $this->screens->progress($import)]);
+        $response = $this->render('@Import/_progress.html.twig', ['import' => $import, 'progress' => $this->screens->progress($import)]);
         $response->headers->set('Cache-Control', 'private, no-store');
 
         return $response;
@@ -188,7 +188,7 @@ final class ImportController extends AbstractController
             $errors = $this->screens->mappingErrors($import, $submission, $refused, $this->refusal($refused, $import->targetKey()));
 
             return $this->screen(
-                'import/mapping.html.twig',
+                '@Import/mapping.html.twig',
                 $import,
                 $this->screens->mapping($import, $submission->mapping, $submission->options, $submission->profileName, errors: $errors),
                 ImportState::Checked === $import->state(),
@@ -254,7 +254,7 @@ final class ImportController extends AbstractController
             if ('import.refused.archive_not_confirmed' === $refused->reason && ImportState::Checked === $import->state()) {
                 $import = $this->import($id);
 
-                return $this->screen('import/check.html.twig', $import, $this->screens->check($import, null), false, ['confirmationError' => $this->refusal($refused)], Response::HTTP_UNPROCESSABLE_ENTITY);
+                return $this->screen('@Import/check.html.twig', $import, $this->screens->check($import, null), false, ['confirmationError' => $this->refusal($refused)], Response::HTTP_UNPROCESSABLE_ENTITY);
             }
 
             return $this->refused($id, $refused);
@@ -375,7 +375,7 @@ final class ImportController extends AbstractController
             $targets[''] ??= $this->translator->trans('import.upload.target_choose');
             $targets[$candidate->key()] = $this->screens->targetLabel($candidate->key());
         }
-        $response = $this->render('import/upload.html.twig', [
+        $response = $this->render('@Import/upload.html.twig', [
             'target' => $target?->key(),
             'targets' => $targets,
             'profiles' => $profiles,

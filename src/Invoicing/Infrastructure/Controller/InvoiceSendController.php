@@ -380,7 +380,7 @@ final class InvoiceSendController extends AbstractController
             $reminder = ['step' => $step, 'intro' => $this->translator->trans('reminder.manual.intro', ['days' => $days, 'step' => $step, 'max' => FirmReminders::MAX_STEPS])];
         }
 
-        return $this->render('invoicing/send.html.twig', [
+        return $this->render('@Invoicing/send.html.twig', [
             'invoice' => $invoice,
             'draft' => $draft,
             'values' => $values,

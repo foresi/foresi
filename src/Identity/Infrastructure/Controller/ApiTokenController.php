@@ -75,7 +75,7 @@ final class ApiTokenController extends AbstractController
             }
         }
 
-        return $this->render('identity/api/index.html.twig', [
+        return $this->render('@Identity/api/index.html.twig', [
             'canIssue' => $this->hasTwoFactor(),
             'mineColumns' => $this->columns(false),
             'mineRows' => array_map(fn (ApiToken $token): array => $this->row($token, false, null), $mine),
@@ -98,7 +98,7 @@ final class ApiTokenController extends AbstractController
             throw $this->denied($refused);
         }
 
-        return $this->render('identity/api/connect.html.twig', [
+        return $this->render('@Identity/api/connect.html.twig', [
             'canIssue' => $this->hasTwoFactor(),
             'server' => $this->mcpServer(),
             'scopes' => $this->offeredScopes(),
@@ -124,7 +124,7 @@ final class ApiTokenController extends AbstractController
             try {
                 $issued = $this->tokens->issue($values['name'], array_map(ApiScope::from(...), $values['scopes']), ctype_digit($values['days']) ? (int) $values['days'] : 0);
 
-                return $this->noStore($this->render('identity/api/created.html.twig', [
+                return $this->noStore($this->render('@Identity/api/created.html.twig', [
                     'name' => $issued->token->name(),
                     'secret' => $issued->secret,
                     'expires' => $this->date($issued->token->expiresAt()),
@@ -141,7 +141,7 @@ final class ApiTokenController extends AbstractController
             }
         }
 
-        return $this->render('identity/api/new.html.twig', [
+        return $this->render('@Identity/api/new.html.twig', [
             'canIssue' => $this->hasTwoFactor(),
             'values' => $values,
             'errors' => $errors,

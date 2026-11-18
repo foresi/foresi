@@ -148,7 +148,7 @@ final class InvitationController extends AbstractController
      */
     private function page(string $step, ?OpenInvitation $open, array $extra = [], int $status = Response::HTTP_OK): Response
     {
-        return $this->render('identity/invitation.html.twig', [
+        return $this->render('@Identity/invitation.html.twig', [
             'step' => $step,
             'invitation' => $open?->invitation,
             'organisation' => $open?->organisation,

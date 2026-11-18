@@ -50,7 +50,7 @@ final class SharedWorkController extends AbstractController
         }
         $shared = $this->queries->sharedWithMe();
 
-        return $this->render('work/shared/index.html.twig', [
+        return $this->render('@Work/shared/index.html.twig', [
             'empty' => $shared->isEmpty(),
             'projectColumns' => [
                 ['key' => 'name', 'label' => $this->translator->trans('work.projects.column.name'), 'truncate' => true],
