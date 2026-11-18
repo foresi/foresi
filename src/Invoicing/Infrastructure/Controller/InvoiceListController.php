@@ -541,18 +541,18 @@ final class InvoiceListController extends AbstractController
      */
     private function columns(string $tab, string $sort, array $query, bool $severalFirms, string $route): array
     {
-        return $this->column($tab, $severalFirms)->table($sort, fn (string $next): string => $this->generateUrl($route, ['sort' => $next] + $query));
+        return $this->column((string) array_search($route, self::ROUTES, true), $tab, $severalFirms)->table($sort, fn (string $next): string => $this->generateUrl($route, ['sort' => $next] + $query));
     }
 
     /**
-     * How the list shows for the tab: the registry's default columns (no view gives a display yet).
+     * How the list of the kind of document shows for the tab: the registry's default columns (no view gives a display yet).
      *
      * @param array<string, string>                                        $names     by user id
      * @param array<string, array{count: int, lastAt: \DateTimeImmutable}> $reminders by the id of an overdue row
      */
-    private function column(string $tab, bool $severalFirms, array $names = [], array $reminders = []): ListDisplay
+    private function column(string $kind, string $tab, bool $severalFirms, array $names = [], array $reminders = []): ListDisplay
     {
-        return $this->listColumns->display(IssuedDocumentColumns::LIST, ['trash' => InvoiceFilter::TRASH === $tab, 'severalFirms' => $severalFirms, 'names' => $names, 'reminders' => $reminders]);
+        return $this->listColumns->display(IssuedDocumentColumns::LISTS[$kind] ?? IssuedDocumentColumns::LISTS[DocumentKind::Invoice->value], ['trash' => InvoiceFilter::TRASH === $tab, 'severalFirms' => $severalFirms, 'names' => $names, 'reminders' => $reminders]);
     }
 
     /**
@@ -566,7 +566,7 @@ final class InvoiceListController extends AbstractController
      */
     private function row(InvoiceRow $row, string $tab, bool $severalFirms, array $names, string $return, ?array $reminders = null): array
     {
-        $cells = $this->column($tab, $severalFirms, $names, null === $reminders ? [] : [$row->id => $reminders])->cells($row);
+        $cells = $this->column($row->kind->value, $tab, $severalFirms, $names, null === $reminders ? [] : [$row->id => $reminders])->cells($row);
         $text = static function (string $key, string $part = 'text') use ($cells): ?string {
             $value = \is_array($cells[$key] ?? null) ? ($cells[$key][$part] ?? null) : ('text' === $part ? ($cells[$key] ?? null) : null);
 

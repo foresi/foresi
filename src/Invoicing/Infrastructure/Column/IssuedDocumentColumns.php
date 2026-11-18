@@ -22,7 +22,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The columns of the lists of issued documents: invoices, advances, tax documents on payment and
- * corrective documents. Each cell renders one InvoiceRow.
+ * corrective documents, one list key per kind (LISTS). Each cell renders one InvoiceRow.
  *
  * The context holds "trash" (the trash tab swaps the dates and the e-mail and export marks for who
  * deleted the document, when and why), "severalFirms" (the firm column), "names" (user names by
@@ -35,7 +35,13 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final readonly class IssuedDocumentColumns implements ListColumns
 {
-    public const string LIST = 'invoicing.issued';
+    /** One list per kind of document, as each has its own route and its own default views; the columns are the same. */
+    public const array LISTS = [
+        'invoice' => 'invoicing.invoices',
+        'advance' => 'invoicing.advances',
+        'payment_tax_document' => 'invoicing.tax_documents',
+        'correction_document' => 'invoicing.corrections',
+    ];
 
     /** The icon of each send mark: its label says the same, so it is never colour alone. */
     private const array MARK_ICONS = ['queued' => 'clock-3', 'sent' => 'send', 'read' => 'circle-check', 'failed' => 'triangle-alert'];
@@ -50,7 +56,7 @@ final readonly class IssuedDocumentColumns implements ListColumns
 
     public function columns(string $list): iterable
     {
-        if (self::LIST !== $list) {
+        if (!\in_array($list, self::LISTS, true)) {
             return [];
         }
         $trash = static fn (array $context): bool => true === ($context['trash'] ?? false);
