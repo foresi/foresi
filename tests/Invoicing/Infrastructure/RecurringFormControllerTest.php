@@ -567,6 +567,20 @@ final class RecurringFormControllerTest extends WebTestCase
         self::assertResponseRedirects('/invoices/recurring');
     }
 
+    public function testASaveFromTheSheetGoesBackToTheDetail(): void
+    {
+        $this->signedIn();
+        $template = $this->template();
+        $values = $this->openEdit($template);
+
+        $values['description'] = 'Support {quarter}/{year}';
+        $this->client->request('POST', '/invoices/recurring/'.$template->id().'/edit', array_merge(['_action' => 'save'], $values), server: ['HTTP_X_FORESI_DIALOG' => 'sheet']);
+
+        // A request from a layer is answered with where to go, which the layer follows in place.
+        self::assertResponseIsSuccessful();
+        self::assertSame(['location' => '/invoices/recurring/'.$template->id()], json_decode((string) $this->client->getResponse()->getContent(), true));
+    }
+
     public function testStaffOnly(): void
     {
         $this->signedIn(Role::Guest);
