@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application\Import;
+namespace Foresi\Idoklad\Application\Import;
 
 /**
  * Port: the names of the contacts an iDoklad contact can match by name, which

@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Attachment\Application;
+namespace Foresi\Tests\Attachment\Application;
 
-use App\Attachment\Application\AttachmentFiles;
-use App\Attachment\Application\Attachments;
-use App\Attachment\Application\PurgeAttachments;
-use App\Attachment\Domain\Attachment;
-use App\Shared\Domain\Id;
+use Foresi\Attachment\Application\AttachmentFiles;
+use Foresi\Attachment\Application\Attachments;
+use Foresi\Attachment\Application\PurgeAttachments;
+use Foresi\Attachment\Domain\Attachment;
+use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;
 

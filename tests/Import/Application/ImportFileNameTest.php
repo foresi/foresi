@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Import\Application;
+namespace Foresi\Tests\Import\Application;
 
-use App\Import\Application\ImportFileName;
+use Foresi\Import\Application\ImportFileName;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

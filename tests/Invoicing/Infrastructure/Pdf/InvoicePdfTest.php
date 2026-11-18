@@ -6,37 +6,37 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure\Pdf;
+namespace Foresi\Tests\Invoicing\Infrastructure\Pdf;
 
-use App\Invoicing\Application\CorrectionInput;
-use App\Invoicing\Application\InvoicePdf;
-use App\Invoicing\Application\InvoicingCountries;
-use App\Invoicing\Application\IssuedDocument;
-use App\Invoicing\Application\IssuedDocumentFactory;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Application\RenderedPdf;
-use App\Invoicing\Application\UndrawableDocument;
-use App\Invoicing\Domain\CorrectionType;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Quantity;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Invoicing\Infrastructure\Form\AmountText;
-use App\Invoicing\Infrastructure\Pdf\TcpdfInvoicePdf;
-use App\Party\Application\FirmImages;
-use App\Party\Domain\Address;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\PaymentMethod;
-use App\Party\Domain\VatStatus;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Invoicing\Application\InvoiceTestCase;
-use App\Tests\Support\IsdocSchema;
-use App\Tests\Support\PdfTools;
-use App\Tests\Support\VeraPdf;
 use chillerlan\QRCode\QRCode;
+use Foresi\Invoicing\Application\CorrectionInput;
+use Foresi\Invoicing\Application\InvoicePdf;
+use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Invoicing\Application\IssuedDocument;
+use Foresi\Invoicing\Application\IssuedDocumentFactory;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Application\RenderedPdf;
+use Foresi\Invoicing\Application\UndrawableDocument;
+use Foresi\Invoicing\Domain\CorrectionType;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Invoicing\Infrastructure\Form\AmountText;
+use Foresi\Invoicing\Infrastructure\Pdf\TcpdfInvoicePdf;
+use Foresi\Party\Application\FirmImages;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Invoicing\Application\InvoiceTestCase;
+use Foresi\Tests\Support\IsdocSchema;
+use Foresi\Tests\Support\PdfTools;
+use Foresi\Tests\Support\VeraPdf;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpClient\MockHttpClient;
 
@@ -268,7 +268,7 @@ final class InvoicePdfTest extends InvoiceTestCase
         $old = $this->issue->issue($this->input());
         $id = $old->id();
 
-        $firm = $this->em->find(\App\Party\Domain\LegalEntity::class, $this->firm->id());
+        $firm = $this->em->find(\Foresi\Party\Domain\LegalEntity::class, $this->firm->id());
         self::assertNotNull($firm);
         $firm->changeStamp($this->image(50));
         $this->em->flush();
@@ -284,7 +284,7 @@ final class InvoicePdfTest extends InvoiceTestCase
         $this->em->flush();
         $id = $this->issue->issue($this->input())->id();
 
-        $firm = $this->em->find(\App\Party\Domain\LegalEntity::class, $this->firm->id());
+        $firm = $this->em->find(\Foresi\Party\Domain\LegalEntity::class, $this->firm->id());
         self::assertNotNull($firm);
         $firm->changeLogo($this->image(70));
         $this->em->flush();
@@ -314,7 +314,7 @@ final class InvoicePdfTest extends InvoiceTestCase
         $id = $this->issue->issue($this->input())->id();
         $before = PdfTools::text($this->render($this->of($id))->bytes);
 
-        $customer = $this->em->find(\App\Party\Domain\Party::class, $this->customer->id());
+        $customer = $this->em->find(\Foresi\Party\Domain\Party::class, $this->customer->id());
         self::assertNotNull($customer);
         $customer->rename('Renamed Customer a.s.');
         $this->em->flush();

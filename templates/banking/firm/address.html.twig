@@ -10,7 +10,7 @@
 {% set crumbs = [{label: 'firm.title'|trans, href: path('app_firm_index')}, {label: firm.name, href: path('app_firm_edit', {id: firm.id})}, {label: 'bank.account.title'|trans, href: cancel}, {label: account.name}] %}
 {% set dialog_size = 'md' %}
 {% set dialog_fields = false %}
-{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 {% set link_class = 'font-semibold text-current underline underline-offset-2 ' ~ focus %}
 
 {% block title %}{{ 'bank.account.address.title'|trans({name: account.name}) }}{% endblock %}
@@ -48,7 +48,7 @@
     </div>
     {% if not account.hasFeed and unavailable is null %}
         <form method="post" id="bank-address-form" action="{{ account.url }}" hidden>
-            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Banking\\Infrastructure\\Controller\\FirmBankController::ADDRESS_TOKEN')) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Banking\\Infrastructure\\Controller\\FirmBankController::ADDRESS_TOKEN')) }}">
         </form>
     {% endif %}
 {% endblock %}

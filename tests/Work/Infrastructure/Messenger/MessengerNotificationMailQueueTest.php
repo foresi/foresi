@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Work\Infrastructure\Messenger;
+namespace Foresi\Tests\Work\Infrastructure\Messenger;
 
-use App\Tests\Support\Registry\RecordingLogger;
-use App\Work\Application\NotificationMailer;
-use App\Work\Application\SendNotificationMail;
-use App\Work\Infrastructure\Messenger\MessengerNotificationMailQueue;
+use Foresi\Tests\Support\Registry\RecordingLogger;
+use Foresi\Work\Application\NotificationMailer;
+use Foresi\Work\Application\SendNotificationMail;
+use Foresi\Work\Infrastructure\Messenger\MessengerNotificationMailQueue;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;

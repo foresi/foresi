@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Form;
+namespace Foresi\Purchasing\Infrastructure\Form;
 
-use App\Purchasing\Application\Query\ReceivedDocumentRow;
-use App\Purchasing\Application\ReceivedDocumentWarning;
-use App\Purchasing\Application\ReceivedDocumentWarnings;
-use App\Purchasing\Domain\PurchaseTaxTreatment;
-use App\Purchasing\Domain\ReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocumentKind;
-use App\Purchasing\Domain\ReceivedDocumentRefused;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentRow;
+use Foresi\Purchasing\Application\ReceivedDocumentWarning;
+use Foresi\Purchasing\Application\ReceivedDocumentWarnings;
+use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
+use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**

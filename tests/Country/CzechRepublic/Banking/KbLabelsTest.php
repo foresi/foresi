@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Country\CzechRepublic\Banking;
+namespace Foresi\Tests\Country\CzechRepublic\Banking;
 
-use App\Banking\Domain\MovementDirection;
-use App\Country\CzechRepublic\Banking\KbLabels;
+use Foresi\Banking\Domain\MovementDirection;
+use Foresi\Country\CzechRepublic\Banking\KbLabels;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

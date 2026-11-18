@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
 /**
  * Runs a unit of work in one database transaction: everything it changes is

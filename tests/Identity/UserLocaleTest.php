@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity;
+namespace Foresi\Tests\Identity;
 
-use App\Identity\Domain\User;
-use App\Tests\Identity\Support\IdentityFixtures;
+use Foresi\Identity\Domain\User;
+use Foresi\Tests\Identity\Support\IdentityFixtures;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 

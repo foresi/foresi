@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Module;
+namespace Foresi\Shared\Infrastructure\Module;
 
-use App\Shared\Domain\Module\InvalidManifest;
-use App\Shared\Domain\Module\ModuleGraph;
-use App\Shared\Domain\Module\ModuleId;
-use App\Shared\Domain\Module\ModuleKind;
-use App\Shared\Domain\Module\ModuleManifest;
 use Composer\InstalledVersions;
+use Foresi\Shared\Domain\Module\InvalidManifest;
+use Foresi\Shared\Domain\Module\ModuleGraph;
+use Foresi\Shared\Domain\Module\ModuleId;
+use Foresi\Shared\Domain\Module\ModuleKind;
+use Foresi\Shared\Domain\Module\ModuleManifest;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
@@ -80,8 +80,8 @@ final readonly class InstalledModules
         $kind = ModuleKind::tryFrom(\is_string($extra['kind'] ?? null) ? $extra['kind'] : '')
             ?? throw new InvalidManifest(\sprintf('Package %s has no valid extra.foresi.kind (core, module or ui).', $package));
         $namespace = $extra['namespace'] ?? null;
-        if (!\is_string($namespace) || 1 !== preg_match('/^App\\\\[A-Z][A-Za-z0-9]*\\\\$/', $namespace)) {
-            throw new InvalidManifest(\sprintf('Package %s has no valid extra.foresi.namespace such as "App\\\\Timesheet\\\\".', $package));
+        if (!\is_string($namespace) || 1 !== preg_match('/^Foresi\\\\[A-Z][A-Za-z0-9]*\\\\$/', $namespace)) {
+            throw new InvalidManifest(\sprintf('Package %s has no valid extra.foresi.namespace such as "Foresi\\\\Timesheet\\\\".', $package));
         }
         $optional = self::strings($extra['optional'] ?? [], \sprintf('Package %s: extra.foresi.optional must be a list of module ids.', $package));
         $scopes = self::strings($extra['scopes'] ?? [], \sprintf('Package %s: extra.foresi.scopes must be a list of resources.', $package));

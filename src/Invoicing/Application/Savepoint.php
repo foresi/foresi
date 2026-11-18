@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
 /**
  * Part of a transaction that may fail on its own. What the transaction holds so

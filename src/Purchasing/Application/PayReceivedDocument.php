@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application;
+namespace Foresi\Purchasing\Application;
 
-use App\Instance\Application\InstanceClock;
-use App\Purchasing\Contract\Event\ReceivedDocumentPaid;
-use App\Purchasing\Domain\PaymentMethod;
-use App\Purchasing\Domain\ReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocumentPayment;
-use App\Purchasing\Domain\ReceivedDocumentRefused;
-use App\Shared\Application\Event\EventRecorder;
-use App\Shared\Domain\Money;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Purchasing\Contract\Event\ReceivedDocumentPaid;
+use Foresi\Purchasing\Domain\PaymentMethod;
+use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentPayment;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Domain\Money;
 use Psr\Clock\ClockInterface;
 
 /**

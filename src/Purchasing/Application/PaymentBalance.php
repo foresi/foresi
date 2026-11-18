@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application;
+namespace Foresi\Purchasing\Application;
 
-use App\Purchasing\Domain\ReceivedDocument;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 
 /**
  * What a received document asks, what its payments add up to and what remains,

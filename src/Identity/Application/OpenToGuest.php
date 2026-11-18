@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
 /**
  * Marks a controller (or one action) a guest may reach. Every other

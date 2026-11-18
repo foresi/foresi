@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
-use App\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Membership;
 
 /**
  * The people of the organisation: the memberships with their users.

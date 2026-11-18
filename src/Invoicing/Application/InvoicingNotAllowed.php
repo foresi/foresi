@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
 /**
  * The signed-in person may not work with the invoices of the organisation:

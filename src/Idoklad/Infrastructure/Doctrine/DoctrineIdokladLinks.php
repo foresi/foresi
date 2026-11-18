@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Infrastructure\Doctrine;
+namespace Foresi\Idoklad\Infrastructure\Doctrine;
 
-use App\Idoklad\Application\Import\IdokladLinks;
-use App\Idoklad\Domain\IdokladLink;
-use App\Idoklad\Domain\IdokladResource;
-use App\Party\Domain\LegalEntity;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Idoklad\Application\Import\IdokladLinks;
+use Foresi\Idoklad\Domain\IdokladLink;
+use Foresi\Idoklad\Domain\IdokladResource;
+use Foresi\Party\Domain\LegalEntity;
 
 final readonly class DoctrineIdokladLinks implements IdokladLinks
 {

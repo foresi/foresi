@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Form;
+namespace Foresi\Invoicing\Infrastructure\Form;
 
-use App\Invoicing\Application\InvoiceInput;
+use Foresi\Invoicing\Application\InvoiceInput;
 
 /**
  * The invoice form as sent. The input is always there, with neutral values where

@@ -6,23 +6,23 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure\Mail;
+namespace Foresi\Tests\Invoicing\Infrastructure\Mail;
 
-use App\Invoicing\Application\MailGateway;
-use App\Invoicing\Application\MailHostPolicy;
-use App\Invoicing\Application\MailMessage;
-use App\Invoicing\Application\MailRefused;
-use App\Invoicing\Application\MailSecrets;
-use App\Invoicing\Domain\FirmMailServer;
-use App\Invoicing\Domain\MailEncryption;
-use App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy;
-use App\Invoicing\Infrastructure\Mail\SodiumMailSecrets;
-use App\Kernel;
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
-use App\Tests\Support\Mail\RecordingMailGateway;
+use Foresi\Invoicing\Application\MailGateway;
+use Foresi\Invoicing\Application\MailHostPolicy;
+use Foresi\Invoicing\Application\MailMessage;
+use Foresi\Invoicing\Application\MailRefused;
+use Foresi\Invoicing\Application\MailSecrets;
+use Foresi\Invoicing\Domain\FirmMailServer;
+use Foresi\Invoicing\Domain\MailEncryption;
+use Foresi\Invoicing\Infrastructure\Mail\DnsMailHostPolicy;
+use Foresi\Invoicing\Infrastructure\Mail\SodiumMailSecrets;
+use Foresi\Kernel;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Tests\Support\Mail\RecordingMailGateway;
 use Psr\Container\ContainerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 

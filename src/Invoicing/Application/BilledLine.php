@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\Quantity;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Shared\Domain\Money;
 
 /**
  * A line of work to bill: its text, quantity, unit and price, and the source

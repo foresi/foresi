@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Messenger;
+namespace Foresi\Shared\Infrastructure\Messenger;
 
 /**
  * Stands in for a queued message that can no longer be read, for example one

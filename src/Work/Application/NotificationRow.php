@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Work\Domain\NotificationKind;
+use Foresi\Work\Domain\NotificationKind;
 
 /**
  * One row of the inbox: the task, the latest event and who did it, in the

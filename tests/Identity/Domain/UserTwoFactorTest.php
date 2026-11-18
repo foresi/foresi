@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Domain;
+namespace Foresi\Tests\Identity\Domain;
 
-use App\Identity\Domain\User;
+use Foresi\Identity\Domain\User;
 use PHPUnit\Framework\TestCase;
 
 final class UserTwoFactorTest extends TestCase

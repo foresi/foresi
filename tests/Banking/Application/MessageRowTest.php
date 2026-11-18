@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Application;
 
-use App\Banking\Application\MessageRow;
-use App\Banking\Application\ProcessMessage;
-use App\Banking\Domain\InboundStatus;
+use Foresi\Banking\Application\MessageRow;
+use Foresi\Banking\Application\ProcessMessage;
+use Foresi\Banking\Domain\InboundStatus;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Domain;
+namespace Foresi\Invoicing\Domain;
 
 /**
  * Where a recurring template is in its life. A paused template can be resumed;

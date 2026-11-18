@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Mcp;
+namespace Foresi\Webhooks\Infrastructure\Mcp;
 
-use App\Shared\Infrastructure\Mcp\ToolArguments;
-use App\Shared\Infrastructure\Mcp\ToolOutput;
-use App\Shared\Infrastructure\Mcp\WriteTool;
-use App\Webhooks\Application\ManageWebhookEndpoints;
-use App\Webhooks\Infrastructure\Api\EndpointView;
+use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
+use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Infrastructure\Mcp\WriteTool;
+use Foresi\Webhooks\Application\ManageWebhookEndpoints;
+use Foresi\Webhooks\Infrastructure\Api\EndpointView;
 
 /**
  * Registers a webhook endpoint, as POST /api/v1/webhook-endpoints does: the
@@ -74,7 +74,7 @@ final readonly class CreateWebhookEndpointTool implements WriteTool
         $description = ToolArguments::text($arguments, 'description');
         $version = WebhookToolArguments::integer($arguments, 'version') ?? 1;
 
-        $created = WebhookToolErrors::refuse(fn (): \App\Webhooks\Application\CreatedEndpoint => $this->manage->create($url, $description, $eventTypes, $version));
+        $created = WebhookToolErrors::refuse(fn (): \Foresi\Webhooks\Application\CreatedEndpoint => $this->manage->create($url, $description, $eventTypes, $version));
 
         return new ToolOutput(
             EndpointView::of($created->endpoint) + ['secret' => $created->secret->reveal()],

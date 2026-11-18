@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Currency;
 
 /**
  * The firm, the customer, the currency and the lines of work to bill, as the

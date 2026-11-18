@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Infrastructure\Events;
+namespace Foresi\CashFlow\Infrastructure\Events;
 
-use App\CashFlow\Application\CashFlowAccess;
-use App\CashFlow\Application\CashFlowRefused;
-use App\Identity\Application\StaffCheck;
-use App\Shared\Application\Event\EventReadAccess;
+use Foresi\CashFlow\Application\CashFlowAccess;
+use Foresi\CashFlow\Application\CashFlowRefused;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Shared\Application\Event\EventReadAccess;
 
 /**
  * The events of the cash flow tell about planned items, so they are read by

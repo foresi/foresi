@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Markdown;
+namespace Foresi\Shared\Infrastructure\Markdown;
 
-use App\Shared\Application\Markdown;
+use Foresi\Shared\Application\Markdown;
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\Autolink\AutolinkExtension;

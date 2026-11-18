@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Purchasing\Domain;
+namespace Foresi\Tests\Purchasing\Domain;
 
-use App\Purchasing\Domain\ExchangeRate;
-use App\Purchasing\Domain\PurchaseTaxTreatment;
-use App\Purchasing\Domain\ReceivedDocumentRefused;
-use App\Purchasing\Domain\VatRate;
-use App\Purchasing\Domain\VatRecap;
-use App\Purchasing\Domain\VatRecapLine;
-use App\Purchasing\Domain\VatRecapRow;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Purchasing\Domain\ExchangeRate;
+use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Purchasing\Domain\VatRate;
+use Foresi\Purchasing\Domain\VatRecap;
+use Foresi\Purchasing\Domain\VatRecapLine;
+use Foresi\Purchasing\Domain\VatRecapRow;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

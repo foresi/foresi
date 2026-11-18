@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Mail;
+namespace Foresi\Tests\Shared\Infrastructure\Mail;
 
-use App\Shared\Application\SystemMail;
-use App\Shared\Application\SystemMailUnavailable;
-use App\Shared\Infrastructure\Mail\DeliverSystemMailHandler;
-use App\Shared\Infrastructure\Mail\MessengerSystemMailer;
-use App\Shared\Infrastructure\Mail\SystemMailSettings;
-use App\Tests\Shared\Infrastructure\Logging\RecordingTransport;
+use Foresi\Shared\Application\SystemMail;
+use Foresi\Shared\Application\SystemMailUnavailable;
+use Foresi\Shared\Infrastructure\Mail\DeliverSystemMailHandler;
+use Foresi\Shared\Infrastructure\Mail\MessengerSystemMailer;
+use Foresi\Shared\Infrastructure\Mail\SystemMailSettings;
+use Foresi\Tests\Shared\Infrastructure\Logging\RecordingTransport;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;

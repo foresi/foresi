@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Operation;
+namespace Foresi\Shared\Infrastructure\Operation;
 
-use App\Shared\Application\Api\Field;
-use App\Shared\Application\Api\Omitted;
-use App\Shared\Application\Api\Operation;
+use Foresi\Shared\Application\Api\Field;
+use Foresi\Shared\Application\Api\Omitted;
+use Foresi\Shared\Application\Api\Operation;
 use Symfony\Component\DependencyInjection\Attribute\Exclude;
 
 /**

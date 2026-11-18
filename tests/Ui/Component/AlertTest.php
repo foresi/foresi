@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui\Component;
+namespace Foresi\Tests\Ui\Component;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;

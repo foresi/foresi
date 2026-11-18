@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Shared\Domain\Money;
-use App\Work\Domain\ProjectVisibility;
-use App\Work\Domain\WorkflowTemplate;
+use Foresi\Shared\Domain\Money;
+use Foresi\Work\Domain\ProjectVisibility;
+use Foresi\Work\Domain\WorkflowTemplate;
 
 /**
  * The head of a project page: who sees it, whether the signed-in person may

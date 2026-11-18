@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure\Pdf;
+namespace Foresi\Tests\Invoicing\Infrastructure\Pdf;
 
-use App\Invoicing\Infrastructure\Pdf\EmbeddedFile;
-use App\Invoicing\Infrastructure\Pdf\PdfEngine;
-use App\Invoicing\Infrastructure\Pdf\QrFigure;
-use App\Tests\Support\VeraPdf;
 use Com\Tecnick\Pdf\PdfConformance;
 use Com\Tecnick\Pdf\Tcpdf;
+use Foresi\Invoicing\Infrastructure\Pdf\EmbeddedFile;
+use Foresi\Invoicing\Infrastructure\Pdf\PdfEngine;
+use Foresi\Invoicing\Infrastructure\Pdf\QrFigure;
+use Foresi\Tests\Support\VeraPdf;
 use PHPUnit\Framework\TestCase;
 
 /**

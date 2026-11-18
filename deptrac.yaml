@@ -22,7 +22,7 @@ deptrac:
     - name: Contract
       collectors:
         - type: classLike
-          value: ^App\\[A-Za-z]+\\Contract\\.*
+          value: ^Foresi\\[A-Za-z]+\\Contract\\.*
     - name: SharedInfrastructure
       collectors:
         - type: directory
@@ -43,19 +43,19 @@ deptrac:
               value: src/Instance/Infrastructure/.*
           must_not:
             - type: classLike
-              value: ^App\\Instance\\Infrastructure\\Doctrine\\TenantFilterBypass$
+              value: ^Foresi\\Instance\\Infrastructure\\Doctrine\\TenantFilterBypass$
             - type: classLike
-              value: ^App\\Instance\\Infrastructure\\Messenger\\TenantStamp$
+              value: ^Foresi\\Instance\\Infrastructure\\Messenger\\TenantStamp$
     # The sanctioned cross-tenant read; the only Instance infrastructure other modules may use.
     - name: TenantFilterBypass
       collectors:
         - type: classLike
-          value: ^App\\Instance\\Infrastructure\\Doctrine\\TenantFilterBypass$
+          value: ^Foresi\\Instance\\Infrastructure\\Doctrine\\TenantFilterBypass$
     # The tenant a queued message belongs to, which a listener outside the handler reads.
     - name: TenantStamp
       collectors:
         - type: classLike
-          value: ^App\\Instance\\Infrastructure\\Messenger\\TenantStamp$
+          value: ^Foresi\\Instance\\Infrastructure\\Messenger\\TenantStamp$
     - name: PartyDomain
       collectors:
         - type: directory
@@ -307,7 +307,7 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Symfony\\Component\\Clock\\ClockInterface$
-    # symfony/uid is an internal detail of App\Shared\Domain\Id only.
+    # symfony/uid is an internal detail of Foresi\Shared\Domain\Id only.
     - name: VendorUid
       collectors:
         - type: classLike
@@ -378,7 +378,7 @@ deptrac:
     SharedDomain:
       - Contract
       - VendorDoctrineOrmMapping
-      # brick/money is an internal detail of App\Shared\Domain\Money only.
+      # brick/money is an internal detail of Foresi\Shared\Domain\Money only.
       - VendorBrick
       - VendorUid
     SharedApplication:

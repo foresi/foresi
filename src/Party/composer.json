@@ -15,7 +15,7 @@
         "foresi": {
             "module": "party",
             "kind": "module",
-            "namespace": "App\\Party\\",
+            "namespace": "Foresi\\Party\\",
             "optional": [],
             "scopes": [
                 "contacts"

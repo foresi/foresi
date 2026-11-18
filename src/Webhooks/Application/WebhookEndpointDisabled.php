@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Application;
+namespace Foresi\Webhooks\Application;
 
 /**
  * Nothing is sent to a disabled endpoint, by hand or otherwise: enable it first.

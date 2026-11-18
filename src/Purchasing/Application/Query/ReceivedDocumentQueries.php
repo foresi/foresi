@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application\Query;
+namespace Foresi\Purchasing\Application\Query;
 
-use App\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocument;
 
 /**
  * Reads over the received documents for the lists, without

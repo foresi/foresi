@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Domain;
+namespace Foresi\Shared\Domain;
 
 /**
  * The countries the application works with, by ISO 3166-1 alpha-2 code, and

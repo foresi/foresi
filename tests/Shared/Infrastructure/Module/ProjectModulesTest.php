@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Module;
+namespace Foresi\Tests\Shared\Infrastructure\Module;
 
-use App\Shared\Domain\Module\GraphProblem;
-use App\Shared\Infrastructure\Module\InstalledModules;
+use Foresi\Shared\Domain\Module\GraphProblem;
+use Foresi\Shared\Infrastructure\Module\InstalledModules;
 use PHPUnit\Framework\TestCase;
 
 /**

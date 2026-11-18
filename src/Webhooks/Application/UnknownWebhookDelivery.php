@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Application;
+namespace Foresi\Webhooks\Application;
 
 /**
  * The endpoint has no delivery with this id, or no longer: deliveries are kept

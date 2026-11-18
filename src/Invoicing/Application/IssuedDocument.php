@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\DocumentParty;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Invoicing\Domain\RateSummary;
-use App\Invoicing\Domain\TotalRounding;
-use App\Invoicing\Domain\VatRegime;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Invoicing\Domain\RateSummary;
+use Foresi\Invoicing\Domain\TotalRounding;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 
 /**
  * A read-only view of an issued invoice, its lines and rate summaries, for the

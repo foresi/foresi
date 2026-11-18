@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
 /**
  * Seals the passwords of mail servers with keys held outside the database, so a

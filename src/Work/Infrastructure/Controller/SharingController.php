@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Controller;
+namespace Foresi\Work\Infrastructure\Controller;
 
-use App\Identity\Application\StaffCheck;
-use App\Ui\Dialog\DialogRequest;
-use App\Work\Application\Choice;
-use App\Work\Application\ManageSharing;
-use App\Work\Application\SharedPerson;
-use App\Work\Application\ShareKind;
-use App\Work\Application\SharingHistoryEntry;
-use App\Work\Application\SharingQuery;
-use App\Work\Application\SharingView;
-use App\Work\Application\WorkRefused;
-use App\Work\Domain\ProjectVisibility;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Ui\Dialog\DialogRequest;
+use Foresi\Work\Application\Choice;
+use Foresi\Work\Application\ManageSharing;
+use Foresi\Work\Application\SharedPerson;
+use Foresi\Work\Application\ShareKind;
+use Foresi\Work\Application\SharingHistoryEntry;
+use Foresi\Work\Application\SharingQuery;
+use Foresi\Work\Application\SharingView;
+use Foresi\Work\Application\WorkRefused;
+use Foresi\Work\Domain\ProjectVisibility;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

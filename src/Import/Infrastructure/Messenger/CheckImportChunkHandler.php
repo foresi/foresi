@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Messenger;
+namespace Foresi\Import\Infrastructure\Messenger;
 
-use App\Import\Application\Imports;
-use App\Import\Application\Message\CheckImportChunk;
-use App\Import\Application\RowReader;
-use App\Import\Application\Target\TargetRegistry;
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportMode;
-use App\Import\Domain\ImportState;
-use App\Import\Domain\ValueNormaliser;
-use App\Import\Infrastructure\Doctrine\DuplicateRows;
-use App\Import\Infrastructure\Doctrine\MissingRecordFinder;
-use App\Import\Infrastructure\Doctrine\RowStager;
+use Foresi\Import\Application\Imports;
+use Foresi\Import\Application\Message\CheckImportChunk;
+use Foresi\Import\Application\RowReader;
+use Foresi\Import\Application\Target\TargetRegistry;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\ImportMode;
+use Foresi\Import\Domain\ImportState;
+use Foresi\Import\Domain\ValueNormaliser;
+use Foresi\Import\Infrastructure\Doctrine\DuplicateRows;
+use Foresi\Import\Infrastructure\Doctrine\MissingRecordFinder;
+use Foresi\Import\Infrastructure\Doctrine\RowStager;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**

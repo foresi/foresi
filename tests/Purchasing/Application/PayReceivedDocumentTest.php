@@ -6,25 +6,25 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Purchasing\Application;
+namespace Foresi\Tests\Purchasing\Application;
 
-use App\Events\Infrastructure\Dbal\EventLogTable;
-use App\Purchasing\Application\Api\AddReceivedDocumentPaymentInput;
-use App\Purchasing\Application\Api\ReceivedDocumentWrites;
-use App\Purchasing\Application\PayReceivedDocument;
-use App\Purchasing\Application\PurchasingNotAllowed;
-use App\Purchasing\Application\Query\ReceivedDocumentBalances;
-use App\Purchasing\Application\Query\ReceivedDocumentSliceFilter;
-use App\Purchasing\Application\TrashReceivedDocument;
-use App\Purchasing\Application\UnknownReceivedDocument;
-use App\Purchasing\Domain\PaymentMethod;
-use App\Purchasing\Domain\ReceivedDocumentKind;
-use App\Purchasing\Domain\ReceivedDocumentPayment;
-use App\Purchasing\Domain\ReceivedDocumentRefused;
-use App\Purchasing\Domain\ReceivedDocumentState;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Invoicing\Application\ReadsEventLog;
+use Foresi\Events\Infrastructure\Dbal\EventLogTable;
+use Foresi\Purchasing\Application\Api\AddReceivedDocumentPaymentInput;
+use Foresi\Purchasing\Application\Api\ReceivedDocumentWrites;
+use Foresi\Purchasing\Application\PayReceivedDocument;
+use Foresi\Purchasing\Application\PurchasingNotAllowed;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentBalances;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentSliceFilter;
+use Foresi\Purchasing\Application\TrashReceivedDocument;
+use Foresi\Purchasing\Application\UnknownReceivedDocument;
+use Foresi\Purchasing\Domain\PaymentMethod;
+use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Purchasing\Domain\ReceivedDocumentPayment;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Purchasing\Domain\ReceivedDocumentState;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Invoicing\Application\ReadsEventLog;
 
 /**
  * The payments of received documents (decision C3 of the cash flow spec):
@@ -146,18 +146,18 @@ final class PayReceivedDocumentTest extends PurchasingTestCase
         $draft = $this->draft();
         $this->payments()->markPaid($paid, PaymentMethod::Cash);
 
-        $ids = fn (ReceivedDocumentSliceFilter $filter): array => array_map(static fn (\App\Purchasing\Application\Query\PayableDocument $item): string => $item->document->id(), $this->balances()->slice($filter, null, 10)->items);
+        $ids = fn (ReceivedDocumentSliceFilter $filter): array => array_map(static fn (\Foresi\Purchasing\Application\Query\PayableDocument $item): string => $item->document->id(), $this->balances()->slice($filter, null, 10)->items);
 
         self::assertSame([$draft, $open, $paid], $ids(new ReceivedDocumentSliceFilter()));
         self::assertSame([$open], $ids(new ReceivedDocumentSliceFilter(unpaid: true)));
-        $balances = array_map(static fn (\App\Purchasing\Application\Query\PayableDocument $item): int => $item->balance->paid->minor(), $this->balances()->slice(new ReceivedDocumentSliceFilter(state: ReceivedDocumentState::Recorded), null, 10)->items);
+        $balances = array_map(static fn (\Foresi\Purchasing\Application\Query\PayableDocument $item): int => $item->balance->paid->minor(), $this->balances()->slice(new ReceivedDocumentSliceFilter(state: ReceivedDocumentState::Recorded), null, 10)->items);
         self::assertSame([0, 121_000], $balances);
         // The input of the test case is due on 11 November.
         self::assertSame([$open], $ids(new ReceivedDocumentSliceFilter(unpaid: true, dueBefore: new \DateTimeImmutable('2026-11-12'))));
         self::assertSame([], $ids(new ReceivedDocumentSliceFilter(unpaid: true, dueBefore: new \DateTimeImmutable('2026-11-11'))));
         $slice = $this->balances()->slice(new ReceivedDocumentSliceFilter(), null, 2);
         self::assertTrue($slice->hasMore);
-        self::assertSame([$paid], array_map(static fn (\App\Purchasing\Application\Query\PayableDocument $item): string => $item->document->id(), $this->balances()->slice(new ReceivedDocumentSliceFilter(), $slice->lastId(), 2)->items));
+        self::assertSame([$paid], array_map(static fn (\Foresi\Purchasing\Application\Query\PayableDocument $item): string => $item->document->id(), $this->balances()->slice(new ReceivedDocumentSliceFilter(), $slice->lastId(), 2)->items));
     }
 
     public function testRecordingADocumentRecordsItsEventOnceAndADraftNone(): void
@@ -181,8 +181,8 @@ final class PayReceivedDocumentTest extends PurchasingTestCase
         $this->signIn($this->guest);
 
         foreach ([
-            fn (): \App\Purchasing\Application\Query\ReceivedDocumentSlice => $this->balances()->slice(new ReceivedDocumentSliceFilter(), null, 10),
-            fn (): \App\Purchasing\Application\Query\PaidDocument => $this->balances()->of($id),
+            fn (): \Foresi\Purchasing\Application\Query\ReceivedDocumentSlice => $this->balances()->slice(new ReceivedDocumentSliceFilter(), null, 10),
+            fn (): \Foresi\Purchasing\Application\Query\PaidDocument => $this->balances()->of($id),
             fn () => $this->payments()->remove($id, $payment->id()),
             fn () => self::getContainer()->get(ReceivedDocumentWrites::class)->addPayment(new AddReceivedDocumentPaymentInput('01940000-0000-7000-8000-000000000009', '2026-11-12', '1.00')),
         ] as $read) {

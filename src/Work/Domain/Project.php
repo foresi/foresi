@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Domain;
+namespace Foresi\Work\Domain;
 
-use App\Audit\Domain\Audited;
-use App\Party\Domain\Party;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Id;
-use App\Shared\Domain\Money;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Party\Domain\Party;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Domain\Money;
 
 /**
  * A body of work of the organisation, for a client or internal. It belongs to

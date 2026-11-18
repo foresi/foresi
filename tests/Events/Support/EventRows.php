@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Events\Support;
+namespace Foresi\Tests\Events\Support;
 
-use App\Events\Infrastructure\Dbal\EventLogTable;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
+use Foresi\Events\Infrastructure\Dbal\EventLogTable;
 
 /**
  * Writes and reads rows of the event log directly, for the tests that need a row

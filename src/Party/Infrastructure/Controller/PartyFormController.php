@@ -6,40 +6,40 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Controller;
+namespace Foresi\Party\Infrastructure\Controller;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\OwnerCheck;
-use App\Party\Application\ArchiveParty;
-use App\Party\Application\ContactSettingsForFirm;
-use App\Party\Application\CreateParty;
-use App\Party\Application\DuplicateFinder;
-use App\Party\Application\DuplicateMatch;
-use App\Party\Application\LegalEntities;
-use App\Party\Application\PartyDetails;
-use App\Party\Application\PartyInput;
-use App\Party\Application\PartyQuery;
-use App\Party\Application\RegistryRecord;
-use App\Party\Application\TransactionalWork;
-use App\Party\Application\UpdateParty;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\InvoicingDefaults;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
-use App\Party\Domain\PaymentMethod;
-use App\Party\Infrastructure\Form\CountryOptions;
-use App\Party\Infrastructure\Form\FirmPanels;
-use App\Party\Infrastructure\Form\FirmSettingsReader;
-use App\Party\Infrastructure\Form\FirmSettingsSubmission;
-use App\Party\Infrastructure\Form\PartySubmission;
-use App\Party\Infrastructure\Form\PartySubmissionReader;
-use App\Party\Infrastructure\Registry\RefreshRegistryChecksAfterResponse;
-use App\Party\Infrastructure\Registry\RegistryLookup;
-use App\Shared\Domain\Currency;
-use App\Shared\Infrastructure\Http\SubmissionTokens;
-use App\Ui\Dialog\DialogRequest;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\OwnerCheck;
+use Foresi\Party\Application\ArchiveParty;
+use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Application\CreateParty;
+use Foresi\Party\Application\DuplicateFinder;
+use Foresi\Party\Application\DuplicateMatch;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\PartyDetails;
+use Foresi\Party\Application\PartyInput;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Application\RegistryRecord;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Application\UpdateParty;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\InvoicingDefaults;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Party\Infrastructure\Form\CountryOptions;
+use Foresi\Party\Infrastructure\Form\FirmPanels;
+use Foresi\Party\Infrastructure\Form\FirmSettingsReader;
+use Foresi\Party\Infrastructure\Form\FirmSettingsSubmission;
+use Foresi\Party\Infrastructure\Form\PartySubmission;
+use Foresi\Party\Infrastructure\Form\PartySubmissionReader;
+use Foresi\Party\Infrastructure\Registry\RefreshRegistryChecksAfterResponse;
+use Foresi\Party\Infrastructure\Registry\RegistryLookup;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Infrastructure\Http\SubmissionTokens;
+use Foresi\Ui\Dialog\DialogRequest;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -188,7 +188,7 @@ final class PartyFormController extends AbstractController
             return $this->form($request, $party, $submission->values, ['form' => 'party.error.save_failed'], [], $token, Response::HTTP_UNPROCESSABLE_ENTITY, $firmSubmission);
         }
 
-        if ($changedVat && $input->vatId instanceof \App\Party\Domain\VatId) {
+        if ($changedVat && $input->vatId instanceof \Foresi\Party\Domain\VatId) {
             RefreshRegistryChecksAfterResponse::schedule($request, $id);
         }
         if (!$party instanceof Party && DialogRequest::is($request) && !$this->forContacts($request)) {

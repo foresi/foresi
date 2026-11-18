@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Work\Domain\Project;
-use App\Work\Domain\ProjectStatus;
-use App\Work\Domain\StatusType;
-use App\Work\Domain\WorkflowTemplate;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\ProjectStatus;
+use Foresi\Work\Domain\StatusType;
+use Foresi\Work\Domain\WorkflowTemplate;
 use Psr\Clock\ClockInterface;
 
 /**

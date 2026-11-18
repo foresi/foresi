@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Domain;
+namespace Foresi\Purchasing\Domain;
 
 /**
  * How a received document was paid. The names follow the payments of issued

@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Domain\RecurringInvoice;
-use App\Invoicing\Domain\RecurringState;
-use App\Party\Application\TransactionalWork;
-use App\Shared\Domain\Schedule\RecurrenceEnd;
+use Foresi\Invoicing\Domain\RecurringInvoice;
+use Foresi\Invoicing\Domain\RecurringState;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
 
 final class RecurringLifecycleTest extends RecurringTestCase
 {

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Application;
+namespace Foresi\Webhooks\Application;
 
 /**
  * What one delivery attempt came to: the status the receiver answered with, how

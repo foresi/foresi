@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
 /**
  * One step in the life of an invoice: one save, or one action on it.

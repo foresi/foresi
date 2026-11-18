@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\PaymentRefused;
-use App\Invoicing\Application\PaymentState;
+use Foresi\Invoicing\Application\PaymentRefused;
+use Foresi\Invoicing\Application\PaymentState;
 
 /**
  * A payment of an advance refunded or recorded by mistake is cancelled: its tax
@@ -64,7 +64,7 @@ final class CancelledAdvancePaymentTest extends AdvanceTestCase
 
         $this->cancel->cancel($first->id());
 
-        self::assertSame([true, false], array_map(static fn (\App\Invoicing\Domain\Invoice $document): bool => $document->isTrashed(), $this->taxDocumentsOf($advance)));
+        self::assertSame([true, false], array_map(static fn (\Foresi\Invoicing\Domain\Invoice $document): bool => $document->isTrashed(), $this->taxDocumentsOf($advance)));
     }
 
     public function testANewPaymentAfterARefundGetsANewDocument(): void
@@ -74,7 +74,7 @@ final class CancelledAdvancePaymentTest extends AdvanceTestCase
 
         $this->pay($advance, '1210.00', '2026-11-20');
 
-        self::assertSame(['D820260001', 'D820260002'], array_map(static fn (\App\Invoicing\Domain\Invoice $document): string => $document->number(), $this->taxDocumentsOf($advance)));
+        self::assertSame(['D820260001', 'D820260002'], array_map(static fn (\Foresi\Invoicing\Domain\Invoice $document): string => $document->number(), $this->taxDocumentsOf($advance)));
     }
 
     public function testATaxDocumentOfACancelledPaymentStaysInTheTrash(): void

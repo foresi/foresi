@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
 /**
  * The files attached to tasks and their comments, as the purge of the trash

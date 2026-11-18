@@ -11,7 +11,7 @@
 
 {% block screen %}
     <form method="post" action="{{ path('app_import_upload', target ? {target: target} : {}) }}" enctype="multipart/form-data" class="grid gap-4" novalidate>
-        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Import\\Infrastructure\\Controller\\ImportController::TOKEN')) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Import\\Infrastructure\\Controller\\ImportController::TOKEN')) }}">
         {% if target %}<input type="hidden" name="target" value="{{ target }}">{% endif %}
 
         <twig:Ui:Card :title="'import.upload.card'|trans" icon="upload">

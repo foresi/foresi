@@ -10,7 +10,7 @@
         "foresi": {
             "module": "instance",
             "kind": "core",
-            "namespace": "App\\Instance\\",
+            "namespace": "Foresi\\Instance\\",
             "optional": []
         }
     }

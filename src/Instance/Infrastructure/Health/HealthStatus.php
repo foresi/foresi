@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Instance\Infrastructure\Health;
+namespace Foresi\Instance\Infrastructure\Health;
 
 /**
  * How one check, or the installation as a whole, stands: degraded still serves

@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Events\Infrastructure\Relay;
+namespace Foresi\Tests\Events\Infrastructure\Relay;
 
-use App\Events\Infrastructure\Catalogue\EventCatalogue;
-use App\Events\Infrastructure\Catalogue\EventType;
-use App\Events\Infrastructure\Relay\EventListeners;
-use App\Shared\Domain\Module\ModuleId;
-use App\Tests\Events\Fixtures\Stranger\ForeignSyncListener;
-use App\Tests\Events\Fixtures\Valid\Contract\Event\InvoiceIssued;
-use App\Tests\Events\Fixtures\Valid\OwnSyncListener;
+use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
+use Foresi\Events\Infrastructure\Catalogue\EventType;
+use Foresi\Events\Infrastructure\Relay\EventListeners;
+use Foresi\Shared\Domain\Module\ModuleId;
+use Foresi\Tests\Events\Fixtures\Stranger\ForeignSyncListener;
+use Foresi\Tests\Events\Fixtures\Valid\Contract\Event\InvoiceIssued;
+use Foresi\Tests\Events\Fixtures\Valid\OwnSyncListener;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\EventDispatcher\Debug\WrappedListener;
 use Symfony\Component\EventDispatcher\EventDispatcher;
@@ -39,11 +39,11 @@ final class SyncListenersStayInModuleTest extends KernelTestCase
         $dispatcher = new EventDispatcher();
         $dispatcher->addListener(InvoiceIssued::class, new OwnSyncListener());
         $dispatcher->addListener(InvoiceIssued::class, [new ForeignSyncListener(), 'onIssued']);
-        $catalogue = EventCatalogue::scan([[ModuleId::of('invoicing'), 'App\Tests\Events\Fixtures\Valid\\', \dirname(__DIR__, 2).'/Fixtures/Valid']]);
+        $catalogue = EventCatalogue::scan([[ModuleId::of('invoicing'), 'Foresi\Tests\Events\Fixtures\Valid\\', \dirname(__DIR__, 2).'/Fixtures/Valid']]);
 
         self::assertSame(
             [ForeignSyncListener::class.' listens to '.InvoiceIssued::class],
-            $this->foreignListeners($dispatcher, $catalogue->all(), 'App\Tests\Events\Fixtures'),
+            $this->foreignListeners($dispatcher, $catalogue->all(), 'Foresi\Tests\Events\Fixtures'),
         );
     }
 

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
-use App\Party\Domain\InvalidRegistrationNumber;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\RegistrationNumberValidator;
+use Foresi\Party\Domain\InvalidRegistrationNumber;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\RegistrationNumberValidator;
 
 /**
  * Builds registration numbers using the validator registered for the country.

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
 /**
  * Which part of the bank screen to show: the incoming or outgoing movements, the

@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Infrastructure\Doctrine;
+namespace Foresi\Idoklad\Infrastructure\Doctrine;
 
-use App\Idoklad\Application\IdokladJobs;
-use App\Idoklad\Domain\IdokladJob;
-use App\Idoklad\Domain\IdokladJobState;
-use App\Party\Domain\LegalEntity;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Idoklad\Application\IdokladJobs;
+use Foresi\Idoklad\Domain\IdokladJob;
+use Foresi\Idoklad\Domain\IdokladJobState;
+use Foresi\Party\Domain\LegalEntity;
 
 /** Ids are ordered by time, so they also order jobs asked for in the same second. */
 final readonly class DoctrineIdokladJobs implements IdokladJobs

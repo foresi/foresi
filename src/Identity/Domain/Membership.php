@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Domain;
+namespace Foresi\Identity\Domain;
 
-use App\Audit\Domain\Audited;
-use App\Party\Domain\Party;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Id;
-use App\Shared\Domain\Money;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Party\Domain\Party;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Domain\Money;
 
 /**
  * Links a user to the organisation with a role. A guest membership always points at

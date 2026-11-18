@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application\Import;
+namespace Foresi\Idoklad\Application\Import;
 
-use App\Idoklad\Domain\IdokladRecord;
-use App\Idoklad\Domain\IdokladResource;
-use App\Idoklad\Domain\ImportOutcome;
-use App\Invoicing\Application\ImportedPaymentInput;
-use App\Invoicing\Application\ImportOutcome as PaymentOutcome;
-use App\Invoicing\Application\ImportPayment;
-use App\Invoicing\Application\InvoicingCountries;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Money;
+use Foresi\Idoklad\Domain\IdokladRecord;
+use Foresi\Idoklad\Domain\IdokladResource;
+use Foresi\Idoklad\Domain\ImportOutcome;
+use Foresi\Invoicing\Application\ImportedPaymentInput;
+use Foresi\Invoicing\Application\ImportOutcome as PaymentOutcome;
+use Foresi\Invoicing\Application\ImportPayment;
+use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Money;
 
 /**
  * The payments of issued invoices and proformas as manual payments of the

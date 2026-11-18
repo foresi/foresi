@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Application;
+namespace Foresi\Tests\Identity\Application;
 
-use App\Identity\Application\InvitationRefused;
-use App\Identity\Application\PeopleRefused;
+use Foresi\Identity\Application\InvitationRefused;
+use Foresi\Identity\Application\PeopleRefused;
 use PHPUnit\Framework\TestCase;
 
 final class RefusalTest extends TestCase

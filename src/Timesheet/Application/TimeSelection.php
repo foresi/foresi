@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Application;
+namespace Foresi\Timesheet\Application;
 
-use App\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Currency;
 
 /**
  * Time chosen for an invoice, from the dialog to the issue: the firm and the

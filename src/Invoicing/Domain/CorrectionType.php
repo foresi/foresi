@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Domain;
+namespace Foresi\Invoicing\Domain;
 
 /**
  * Why a corrective tax document corrects its document. A change is a fact after

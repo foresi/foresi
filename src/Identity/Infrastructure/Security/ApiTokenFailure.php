@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Security;
+namespace Foresi\Identity\Infrastructure\Security;
 
-use App\Shared\Infrastructure\Api\ProblemResponse;
+use Foresi\Shared\Infrastructure\Api\ProblemResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

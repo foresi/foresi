@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
-use App\Identity\Domain\User;
+use Foresi\Identity\Domain\User;
 
 interface UserRepository
 {

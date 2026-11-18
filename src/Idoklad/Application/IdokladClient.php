@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application;
+namespace Foresi\Idoklad\Application;
 
 /**
  * Port: opens a read-only session on one iDoklad account.

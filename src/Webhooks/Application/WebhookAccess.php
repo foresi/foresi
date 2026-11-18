@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Application;
+namespace Foresi\Webhooks\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Webhooks\Domain\EventTypes;
-use App\Webhooks\Domain\WebhookEndpoint;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Webhooks\Domain\EventTypes;
+use Foresi\Webhooks\Domain\WebhookEndpoint;
 
 /**
  * Who sees and manages an endpoint: a signed-in person who may read every module

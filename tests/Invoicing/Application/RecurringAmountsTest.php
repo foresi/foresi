@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Country\CzechRepublic\Invoicing\CzechInvoicing;
-use App\Country\CzechRepublic\Invoicing\CzechSupplyCodes;
-use App\Country\CzechRepublic\Invoicing\CzechVatRates;
-use App\Country\CzechRepublic\Invoicing\IsdocWriter;
-use App\Country\CzechRepublic\Invoicing\QrPlatba;
-use App\Invoicing\Application\RecurringAmounts;
-use App\Shared\Domain\Money;
+use Foresi\Country\CzechRepublic\Invoicing\CzechInvoicing;
+use Foresi\Country\CzechRepublic\Invoicing\CzechSupplyCodes;
+use Foresi\Country\CzechRepublic\Invoicing\CzechVatRates;
+use Foresi\Country\CzechRepublic\Invoicing\IsdocWriter;
+use Foresi\Country\CzechRepublic\Invoicing\QrPlatba;
+use Foresi\Invoicing\Application\RecurringAmounts;
+use Foresi\Shared\Domain\Money;
 
 /**
  * What each template of a list would charge: priced on the tax point of its own

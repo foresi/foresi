@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Api;
+namespace Foresi\Shared\Infrastructure\Api;
 
-use App\Shared\Application\Api\IdempotencyKeys;
-use App\Shared\Application\Api\SavedAnswer;
+use Foresi\Shared\Application\Api\IdempotencyKeys;
+use Foresi\Shared\Application\Api\SavedAnswer;
 
 /**
  * What the REST API and the MCP server share of idempotency (ADR 0032): the
@@ -77,8 +77,8 @@ final readonly class Idempotency
     }
 
     /**
-     * @throws \App\Shared\Application\Api\IdempotencyKeyReused
-     * @throws \App\Shared\Application\Api\IdempotencyKeyInFlight
+     * @throws \Foresi\Shared\Application\Api\IdempotencyKeyReused
+     * @throws \Foresi\Shared\Application\Api\IdempotencyKeyInFlight
      */
     public function claim(string $operation, string $key, string $fingerprint): ?SavedAnswer
     {

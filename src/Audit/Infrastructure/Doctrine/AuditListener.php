@@ -6,21 +6,21 @@
 
 declare(strict_types=1);
 
-namespace App\Audit\Infrastructure\Doctrine;
+namespace Foresi\Audit\Infrastructure\Doctrine;
 
-use App\Audit\Application\AuditActor;
-use App\Audit\Application\AuditCorrelation;
-use App\Audit\Application\TokenAuditActor;
-use App\Audit\Domain\AuditAction;
-use App\Audit\Domain\Audited;
-use App\Audit\Domain\AuditEntry;
-use App\Audit\Domain\AuditExcluded;
-use App\Audit\Domain\AuditRooted;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\OnFlushEventArgs;
 use Doctrine\ORM\Events;
 use Doctrine\ORM\Mapping\ClassMetadata;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Audit\Application\AuditCorrelation;
+use Foresi\Audit\Application\TokenAuditActor;
+use Foresi\Audit\Domain\AuditAction;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Audit\Domain\AuditExcluded;
+use Foresi\Audit\Domain\AuditRooted;
 use Symfony\Component\Clock\ClockInterface;
 
 /**

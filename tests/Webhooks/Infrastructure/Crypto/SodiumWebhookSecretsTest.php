@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Infrastructure\Crypto;
+namespace Foresi\Tests\Webhooks\Infrastructure\Crypto;
 
-use App\Shared\Application\SealerUnavailable;
-use App\Shared\Infrastructure\Crypto\SodiumSealer;
-use App\Webhooks\Domain\WebhookSecret;
-use App\Webhooks\Infrastructure\Crypto\SodiumWebhookSecrets;
+use Foresi\Shared\Application\SealerUnavailable;
+use Foresi\Shared\Infrastructure\Crypto\SodiumSealer;
+use Foresi\Webhooks\Domain\WebhookSecret;
+use Foresi\Webhooks\Infrastructure\Crypto\SodiumWebhookSecrets;
 use PHPUnit\Framework\TestCase;
 
 final class SodiumWebhookSecretsTest extends TestCase

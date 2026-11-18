@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application\Query;
+namespace Foresi\Party\Application\Query;
 
 /**
  * Reads the address book for the API. Call it through ContactList, which asks

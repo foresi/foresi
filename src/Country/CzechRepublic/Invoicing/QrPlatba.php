@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Country\CzechRepublic\Invoicing;
+namespace Foresi\Country\CzechRepublic\Invoicing;
 
-use App\Invoicing\Application\IssuedDocument;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\RateSummary;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Invoicing\Domain\VatRegime;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Application\IssuedDocument;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\RateSummary;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 
 /**
  * The QR Platba+F text of a document: a payment by the ČBA standard (SPD), with the

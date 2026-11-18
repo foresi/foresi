@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Quantity;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Shared\Domain\Money;
 
 /**
  * A line as the user typed it. The rate comes from the kind, on the tax point.

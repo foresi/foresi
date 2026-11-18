@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
 /**
  * The read side of the work module. Every query shows only what WorkVisibility

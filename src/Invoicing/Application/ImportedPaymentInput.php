@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Money;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Money;
 
 /**
  * A payment another system recorded on one document of the firm, as it was there.

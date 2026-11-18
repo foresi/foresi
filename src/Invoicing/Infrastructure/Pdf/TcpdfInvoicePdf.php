@@ -6,28 +6,28 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Pdf;
+namespace Foresi\Invoicing\Infrastructure\Pdf;
 
-use App\Invoicing\Application\DocumentFormat;
-use App\Invoicing\Application\InvoicePdf;
-use App\Invoicing\Application\InvoicingCountries;
-use App\Invoicing\Application\InvoicingCountry;
-use App\Invoicing\Application\IssuedDocument;
-use App\Invoicing\Application\RenderedPdf;
-use App\Invoicing\Application\UndrawableDocument;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\DocumentParty;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Invoicing\Domain\NumberKey;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\RateSummary;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRegime;
-use App\Invoicing\Infrastructure\Form\AmountText;
-use App\Party\Application\FirmImages;
-use App\Shared\Domain\Countries;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Application\DocumentFormat;
+use Foresi\Invoicing\Application\InvoicePdf;
+use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Invoicing\Application\InvoicingCountry;
+use Foresi\Invoicing\Application\IssuedDocument;
+use Foresi\Invoicing\Application\RenderedPdf;
+use Foresi\Invoicing\Application\UndrawableDocument;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Invoicing\Domain\NumberKey;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\RateSummary;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Invoicing\Infrastructure\Form\AmountText;
+use Foresi\Party\Application\FirmImages;
+use Foresi\Shared\Domain\Countries;
+use Foresi\Shared\Domain\Money;
 use Symfony\Component\Translation\LocaleSwitcher;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Environment;
@@ -99,13 +99,13 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
                 $this->trans('invoice.pdf.document_title', ['number' => $document->number, 'kind' => $document->kind->value]),
                 $document->language->value,
                 $template->renderBlock('body', ['doc' => $view]),
-                $file instanceof \App\Invoicing\Application\ElectronicFile ? new EmbeddedFile($file->name, $file->content, $file->mime) : null,
+                $file instanceof \Foresi\Invoicing\Application\ElectronicFile ? new EmbeddedFile($file->name, $file->content, $file->mime) : null,
                 null === $payload ? null : new QrFigure($payload, $this->trans('invoice.pdf.qr_alt', ['number' => $document->number]), self::QR_X, self::QR_Y, self::QR_SIZE_MM),
                 trim($template->renderBlock('head', ['doc' => $view])),
                 fn (int $page, int $pages): string => $this->trans('invoice.pdf.footer', ['title' => $this->trans('invoice.pdf.document_title', ['number' => $document->number, 'kind' => $document->kind->value]), 'page' => (string) $page, 'pages' => (string) $pages]),
             );
 
-            return new RenderedPdf($bytes, NumberKey::of($document->number).($file instanceof \App\Invoicing\Application\ElectronicFile ? '-isdoc.pdf' : '.pdf'));
+            return new RenderedPdf($bytes, NumberKey::of($document->number).($file instanceof \Foresi\Invoicing\Application\ElectronicFile ? '-isdoc.pdf' : '.pdf'));
         });
     }
 

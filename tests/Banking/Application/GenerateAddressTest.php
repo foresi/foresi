@@ -6,31 +6,31 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Application;
 
-use App\Banking\Application\AddressRefusal;
-use App\Banking\Application\AddressRefused;
-use App\Banking\Application\BankFeedDirectory;
-use App\Banking\Application\BankFeeds;
-use App\Banking\Application\FeedRoute;
-use App\Banking\Application\GenerateAddress;
-use App\Banking\Application\InboundAddresses;
-use App\Banking\Application\InboundToken;
-use App\Banking\Domain\BankFeed;
-use App\Banking\Infrastructure\Doctrine\DoctrineBankFeedDirectory;
-use App\Invoicing\Application\MailSecrets;
-use App\Party\Application\FirmBankAccounts;
-use App\Party\Application\TransactionalWork;
-use App\Party\Domain\Address;
-use App\Party\Domain\FirmBankAccount;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
-use App\Tests\Banking\Support\Scalars;
-use App\Tests\Party\Support\FirmAccounts;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Banking\Application\AddressRefusal;
+use Foresi\Banking\Application\AddressRefused;
+use Foresi\Banking\Application\BankFeedDirectory;
+use Foresi\Banking\Application\BankFeeds;
+use Foresi\Banking\Application\FeedRoute;
+use Foresi\Banking\Application\GenerateAddress;
+use Foresi\Banking\Application\InboundAddresses;
+use Foresi\Banking\Application\InboundToken;
+use Foresi\Banking\Domain\BankFeed;
+use Foresi\Banking\Infrastructure\Doctrine\DoctrineBankFeedDirectory;
+use Foresi\Invoicing\Application\MailSecrets;
+use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Tests\Banking\Support\Scalars;
+use Foresi\Tests\Party\Support\FirmAccounts;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
 

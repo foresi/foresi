@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\CashFlow\Infrastructure;
+namespace Foresi\Tests\CashFlow\Infrastructure;
 
-use App\Identity\Domain\ApiScope;
-use App\Party\Domain\FirmBankAccount;
-use App\Tests\Shared\Infrastructure\Api\ApiTestCase;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;

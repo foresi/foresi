@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui;
+namespace Foresi\Tests\Ui;
 
-use App\Ui\Avatar;
+use Foresi\Ui\Avatar;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

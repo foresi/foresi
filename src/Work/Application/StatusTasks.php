@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Work\Domain\StatusType;
+use Foresi\Work\Domain\StatusType;
 
 /**
  * A column of the board: a status with its top-level tasks.

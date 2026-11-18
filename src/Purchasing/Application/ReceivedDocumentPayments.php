@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application;
+namespace Foresi\Purchasing\Application;
 
-use App\Purchasing\Domain\ReceivedDocumentPayment;
+use Foresi\Purchasing\Domain\ReceivedDocumentPayment;
 
 /**
  * The payments of the received documents.

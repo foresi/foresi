@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Http;
+namespace Foresi\Webhooks\Infrastructure\Http;
 
-use App\Webhooks\Application\AttemptResult;
-use App\Webhooks\Domain\WebhookSecret;
+use Foresi\Webhooks\Application\AttemptResult;
+use Foresi\Webhooks\Domain\WebhookSecret;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Contracts\HttpClient\Exception\TimeoutExceptionInterface;

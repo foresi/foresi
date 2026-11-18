@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\SendPurpose;
-use App\Invoicing\Domain\SendStatus;
+use Foresi\Invoicing\Domain\SendPurpose;
+use Foresi\Invoicing\Domain\SendStatus;
 
 /**
  * One send in the send log, with the names as they were sent and the country of

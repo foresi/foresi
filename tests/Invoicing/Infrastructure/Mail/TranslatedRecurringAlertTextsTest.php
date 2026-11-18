@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure\Mail;
+namespace Foresi\Tests\Invoicing\Infrastructure\Mail;
 
-use App\Invoicing\Application\RecurringAlertTexts;
-use App\Party\Domain\DocumentLanguage;
+use Foresi\Invoicing\Application\RecurringAlertTexts;
+use Foresi\Party\Domain\DocumentLanguage;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**

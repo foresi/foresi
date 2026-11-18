@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
 /**
  * What can be shared, by the part of the address its sharing dialog has.

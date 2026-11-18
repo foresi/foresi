@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\ExportState;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\ExportState;
+use Foresi\Shared\Domain\Money;
 
 /**
  * One line of the invoice list, with the names as the document holds them. Overdue is

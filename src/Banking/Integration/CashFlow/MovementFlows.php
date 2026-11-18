@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Integration\CashFlow;
+namespace Foresi\Banking\Integration\CashFlow;
 
-use App\Banking\Application\MovementLedger;
-use App\CashFlow\Contract\AccountBalance;
-use App\CashFlow\Contract\ActualFlow;
-use App\CashFlow\Contract\ActualFlowSource;
-use App\CashFlow\Contract\BalanceCheckpoint;
-use App\CashFlow\Contract\BalanceSource;
-use App\CashFlow\Contract\FlowDirection;
-use App\CashFlow\Contract\FlowSubject;
-use App\Shared\Domain\Money;
+use Foresi\Banking\Application\MovementLedger;
+use Foresi\CashFlow\Contract\AccountBalance;
+use Foresi\CashFlow\Contract\ActualFlow;
+use Foresi\CashFlow\Contract\ActualFlowSource;
+use Foresi\CashFlow\Contract\BalanceCheckpoint;
+use Foresi\CashFlow\Contract\BalanceSource;
+use Foresi\CashFlow\Contract\FlowDirection;
+use Foresi\CashFlow\Contract\FlowSubject;
+use Foresi\Shared\Domain\Money;
 
 /**
  * The bank in the forecast is the past and the starting point (C16). The

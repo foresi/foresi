@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Domain;
+namespace Foresi\Work\Domain;
 
 /**
  * Who of the team sees a project: the whole organisation, or only the people

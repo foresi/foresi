@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\DocumentTotals;
+use Foresi\Invoicing\Domain\DocumentTotals;
 
 /**
  * What a document comes to, in minor units of the home currency: net, VAT, gross

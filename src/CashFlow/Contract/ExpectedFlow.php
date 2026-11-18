@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Contract;
+namespace Foresi\CashFlow\Contract;
 
-use App\Shared\Domain\Money;
+use Foresi\Shared\Domain\Money;
 
 /**
  * One amount a source expects to come in or go out on a day, in its own

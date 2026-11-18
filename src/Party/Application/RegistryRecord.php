@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
-use App\Party\Domain\Address;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
 
 /**
  * What a public company register says about one subject: enough to prefill

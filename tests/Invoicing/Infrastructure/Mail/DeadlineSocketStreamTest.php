@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure\Mail;
+namespace Foresi\Tests\Invoicing\Infrastructure\Mail;
 
-use App\Invoicing\Infrastructure\Mail\DeadlineSocketStream;
-use App\Invoicing\Infrastructure\Mail\SymfonyMailGateway;
-use App\Invoicing\Infrastructure\Messenger\DeliverInvoiceSendHandler;
+use Foresi\Invoicing\Infrastructure\Mail\DeadlineSocketStream;
+use Foresi\Invoicing\Infrastructure\Mail\SymfonyMailGateway;
+use Foresi\Invoicing\Infrastructure\Messenger\DeliverInvoiceSendHandler;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Mailer\Exception\TransportException;
 use Symfony\Component\Process\Process;

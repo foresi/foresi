@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Doctrine;
+namespace Foresi\Party\Infrastructure\Doctrine;
 
-use App\Party\Domain\VatId;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\StringType;
+use Foresi\Party\Domain\VatId;
 
 final class VatIdType extends StringType
 {

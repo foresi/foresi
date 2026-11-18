@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
 /**
  * The e-mail of a mention or of becoming responsible, sent a short while after

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Messenger;
+namespace Foresi\Invoicing\Infrastructure\Messenger;
 
 /**
  * Another worker holds the claim on the send. Not a failure: the message comes

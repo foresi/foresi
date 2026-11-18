@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Domain;
+namespace Foresi\Work\Domain;
 
-use App\Identity\Domain\Membership;
-use App\Shared\Domain\Id;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
 /**

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Relay;
+namespace Foresi\Events\Infrastructure\Relay;
 
-use App\Events\Application\RelayEvents;
+use Foresi\Events\Application\RelayEvents;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**

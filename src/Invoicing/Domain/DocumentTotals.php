@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Domain;
+namespace Foresi\Invoicing\Domain;
 
-use App\Shared\Domain\Money;
+use Foresi\Shared\Domain\Money;
 
 /**
  * What a document comes to. The summaries, net, VAT and gross are exact and never rounded;

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Contract;
+namespace Foresi\CashFlow\Contract;
 
 /**
  * How sure an expected flow is: a document that exists, an occurrence of a

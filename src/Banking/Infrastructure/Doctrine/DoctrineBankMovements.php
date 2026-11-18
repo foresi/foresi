@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure\Doctrine;
+namespace Foresi\Banking\Infrastructure\Doctrine;
 
-use App\Banking\Application\BankMovements;
-use App\Banking\Application\MovementFilter;
-use App\Banking\Application\MovementRow;
-use App\Banking\Application\UnknownBankMovement;
-use App\Banking\Domain\BankMovement;
-use App\Banking\Domain\MovementDirection;
-use App\Banking\Domain\MovementState;
-use App\Invoicing\Domain\Payment;
-use App\Invoicing\Domain\PaymentAllocation;
-use App\Party\Domain\FirmBankAccount;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
+use Foresi\Banking\Application\BankMovements;
+use Foresi\Banking\Application\MovementFilter;
+use Foresi\Banking\Application\MovementRow;
+use Foresi\Banking\Application\UnknownBankMovement;
+use Foresi\Banking\Domain\BankMovement;
+use Foresi\Banking\Domain\MovementDirection;
+use Foresi\Banking\Domain\MovementState;
+use Foresi\Invoicing\Domain\Payment;
+use Foresi\Invoicing\Domain\PaymentAllocation;
+use Foresi\Party\Domain\FirmBankAccount;
 
 /**
  * Reads go through the ORM; the two locks are plain statements. A page of the

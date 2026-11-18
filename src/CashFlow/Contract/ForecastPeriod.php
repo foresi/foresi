@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Contract;
+namespace Foresi\CashFlow\Contract;
 
 /**
  * One column of the forecast: an ISO week (Monday to Sunday) or a calendar

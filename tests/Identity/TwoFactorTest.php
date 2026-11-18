@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity;
+namespace Foresi\Tests\Identity;
 
-use App\Identity\Application\UserRepository;
-use App\Identity\Domain\User;
-use App\Identity\Infrastructure\Security\RecoveryCodes;
-use App\Shared\Application\Sealer;
-use App\Tests\Identity\Support\IdentityFixtures;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Domain\User;
+use Foresi\Identity\Infrastructure\Security\RecoveryCodes;
+use Foresi\Shared\Application\Sealer;
+use Foresi\Tests\Identity\Support\IdentityFixtures;
 use OTPHP\TOTP;
 use ParagonIE\ConstantTime\Base32;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Controller;
+namespace Foresi\Work\Infrastructure\Controller;
 
-use App\Identity\Application\OpenToGuest;
-use App\Shared\Application\Markdown;
-use App\Ui\Component\MarkdownEditor;
+use Foresi\Identity\Application\OpenToGuest;
+use Foresi\Shared\Application\Markdown;
+use Foresi\Ui\Component\MarkdownEditor;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

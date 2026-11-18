@@ -6,21 +6,21 @@
 
 declare(strict_types=1);
 
-namespace App\Country\CzechRepublic\Banking;
+namespace Foresi\Country\CzechRepublic\Banking;
 
-use App\Banking\Application\BankMessageParser;
-use App\Banking\Application\InboundMail;
-use App\Banking\Application\NotificationLines;
-use App\Banking\Application\ParsedMovement;
-use App\Banking\Application\ParseFailed;
-use App\Banking\Application\ParseFailure;
-use App\Banking\Application\ParseResult;
-use App\Banking\Domain\MovementDirection;
-use App\Country\CzechRepublic\Party\CzechBankAccount;
-use App\Party\Domain\Iban;
-use App\Party\Domain\InvalidIban;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Banking\Application\BankMessageParser;
+use Foresi\Banking\Application\InboundMail;
+use Foresi\Banking\Application\NotificationLines;
+use Foresi\Banking\Application\ParsedMovement;
+use Foresi\Banking\Application\ParseFailed;
+use Foresi\Banking\Application\ParseFailure;
+use Foresi\Banking\Application\ParseResult;
+use Foresi\Banking\Domain\MovementDirection;
+use Foresi\Country\CzechRepublic\Party\CzechBankAccount;
+use Foresi\Party\Domain\Iban;
+use Foresi\Party\Domain\InvalidIban;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 
 /**
  * Reads the payment notices Komerční banka mails, "Oznámení o platbách".

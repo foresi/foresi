@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Domain;
+namespace Foresi\Invoicing\Domain;
 
 /**
  * What becomes of an invoice a recurring template issued: it is sent to the

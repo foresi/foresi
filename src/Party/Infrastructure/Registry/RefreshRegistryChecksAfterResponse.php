@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Registry;
+namespace Foresi\Party\Infrastructure\Registry;
 
-use App\Party\Application\PartyQuery;
-use App\Party\Application\RefreshRegistryChecks;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Application\RefreshRegistryChecks;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\Request;
@@ -50,7 +50,7 @@ final readonly class RefreshRegistryChecksAfterResponse
 
         try {
             $party = $this->parties->find($id);
-            if ($party instanceof \App\Party\Domain\Party) {
+            if ($party instanceof \Foresi\Party\Domain\Party) {
                 $this->refresh->refresh($party);
                 $this->em->flush();
             }

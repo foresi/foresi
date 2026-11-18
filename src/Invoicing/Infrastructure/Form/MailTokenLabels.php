@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Form;
+namespace Foresi\Invoicing\Infrastructure\Form;
 
-use App\Invoicing\Application\MailText;
-use App\Invoicing\Application\MailVariables;
-use App\Invoicing\Domain\MailTemplateKind;
-use App\Party\Domain\DocumentLanguage;
+use Foresi\Invoicing\Application\MailText;
+use Foresi\Invoicing\Application\MailVariables;
+use Foresi\Invoicing\Domain\MailTemplateKind;
+use Foresi\Party\Domain\DocumentLanguage;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**

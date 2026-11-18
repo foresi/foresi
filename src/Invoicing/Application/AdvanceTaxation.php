@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Invoicing\Domain\TaxOnReceiptChoice;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRegime;
-use App\Party\Domain\PartyKind;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Invoicing\Domain\TaxOnReceiptChoice;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Party\Domain\PartyKind;
 
 /**
  * Whether VAT arises on the payments of an advance invoice, from what the advance

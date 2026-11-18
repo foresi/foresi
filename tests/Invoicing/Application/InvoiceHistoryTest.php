@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Audit\Application\AuditTrail;
-use App\Audit\Domain\ActorKind;
-use App\Audit\Domain\AuditAction;
-use App\Audit\Domain\AuditEntry;
-use App\Identity\Application\UserRepository;
-use App\Identity\Domain\User;
-use App\Invoicing\Application\InvoiceHistory;
-use App\Invoicing\Application\InvoiceHistoryEntry;
-use App\Invoicing\Application\InvoiceHistoryLine;
-use App\Invoicing\Domain\AbandonedNumber;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceLine;
+use Foresi\Audit\Application\AuditTrail;
+use Foresi\Audit\Domain\ActorKind;
+use Foresi\Audit\Domain\AuditAction;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Domain\User;
+use Foresi\Invoicing\Application\InvoiceHistory;
+use Foresi\Invoicing\Application\InvoiceHistoryEntry;
+use Foresi\Invoicing\Application\InvoiceHistoryLine;
+use Foresi\Invoicing\Domain\AbandonedNumber;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceLine;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;

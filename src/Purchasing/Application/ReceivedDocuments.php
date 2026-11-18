@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application;
+namespace Foresi\Purchasing\Application;
 
-use App\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocument;
 
 /**
  * The received documents, the trash included. Lists and

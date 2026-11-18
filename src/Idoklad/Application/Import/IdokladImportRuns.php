@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application\Import;
+namespace Foresi\Idoklad\Application\Import;
 
-use App\Idoklad\Domain\IdokladImportRun;
-use App\Party\Domain\LegalEntity;
+use Foresi\Idoklad\Domain\IdokladImportRun;
+use Foresi\Party\Domain\LegalEntity;
 
 /** Port: the imports of iDoklad snapshots, checked or run. */
 interface IdokladImportRuns

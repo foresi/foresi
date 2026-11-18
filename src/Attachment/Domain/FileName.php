@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Attachment\Domain;
+namespace Foresi\Attachment\Domain;
 
 /**
  * The name a file is shown and downloaded under: the last part of what the

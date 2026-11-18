@@ -6,26 +6,26 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure\Controller;
+namespace Foresi\Banking\Infrastructure\Controller;
 
-use App\Banking\Application\AcceptRefused;
-use App\Banking\Application\AcceptRejectedMessage;
-use App\Banking\Application\BankScreen;
-use App\Banking\Application\DismissInboundMessage;
-use App\Banking\Application\InboundAddresses;
-use App\Banking\Application\InboundFiles;
-use App\Banking\Application\InboundMessages;
-use App\Banking\Application\MailReader;
-use App\Banking\Application\MovementFilter;
-use App\Banking\Application\NotificationLines;
-use App\Banking\Application\Ownership;
-use App\Banking\Application\ProcessMessage;
-use App\Banking\Application\RetryInboundMessage;
-use App\Banking\Application\UnknownInboundMessage;
-use App\Banking\Domain\InboundMessage;
-use App\Banking\Domain\InboundStatus;
-use App\Banking\Domain\MessageTrust;
-use App\Identity\Application\StaffCheck;
+use Foresi\Banking\Application\AcceptRefused;
+use Foresi\Banking\Application\AcceptRejectedMessage;
+use Foresi\Banking\Application\BankScreen;
+use Foresi\Banking\Application\DismissInboundMessage;
+use Foresi\Banking\Application\InboundAddresses;
+use Foresi\Banking\Application\InboundFiles;
+use Foresi\Banking\Application\InboundMessages;
+use Foresi\Banking\Application\MailReader;
+use Foresi\Banking\Application\MovementFilter;
+use Foresi\Banking\Application\NotificationLines;
+use Foresi\Banking\Application\Ownership;
+use Foresi\Banking\Application\ProcessMessage;
+use Foresi\Banking\Application\RetryInboundMessage;
+use Foresi\Banking\Application\UnknownInboundMessage;
+use Foresi\Banking\Domain\InboundMessage;
+use Foresi\Banking\Domain\InboundStatus;
+use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Identity\Application\StaffCheck;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;

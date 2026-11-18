@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Domain;
+namespace Foresi\Identity\Domain;
 
 /**
  * The secret of a personal API token: a fixed prefix, so leaked tokens are easy

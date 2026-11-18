@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui\Component;
+namespace Foresi\Tests\Ui\Component;
 
-use App\Ui\Component\ActionBar;
+use Foresi\Ui\Component\ActionBar;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\UX\TwigComponent\Test\InteractsWithTwigComponents;
 

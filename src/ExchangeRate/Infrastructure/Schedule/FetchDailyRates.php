@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\ExchangeRate\Infrastructure\Schedule;
+namespace Foresi\ExchangeRate\Infrastructure\Schedule;
 
-use App\ExchangeRate\Application\FetchRates;
-use App\ExchangeRate\Application\RateSource;
-use App\ExchangeRate\Application\RateStore;
-use App\Instance\Application\Schedule\OperatorTask;
+use Foresi\ExchangeRate\Application\FetchRates;
+use Foresi\ExchangeRate\Application\RateSource;
+use Foresi\ExchangeRate\Application\RateStore;
+use Foresi\Instance\Application\Schedule\OperatorTask;
 use Psr\Clock\ClockInterface;
 
 /**

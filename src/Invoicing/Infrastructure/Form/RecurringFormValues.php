@@ -6,24 +6,24 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Form;
+namespace Foresi\Invoicing\Infrastructure\Form;
 
-use App\Invoicing\Application\CopyInvoice;
-use App\Invoicing\Application\CustomerPicker;
-use App\Invoicing\Application\InvoiceDraftValues;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Application\NewInvoiceDefaults;
-use App\Invoicing\Application\RecurringInvoices;
-use App\Invoicing\Application\UnsupportedCountry;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\RecurringDelivery;
-use App\Invoicing\Domain\RecurringInvoice;
-use App\Invoicing\Domain\RecurringInvoiceLine;
-use App\Invoicing\Domain\TaxPointRule;
-use App\Invoicing\Domain\VatRegime;
-use App\Party\Domain\LegalEntity;
-use App\Shared\Domain\Schedule\RecurrenceEnd;
-use App\Shared\Domain\Schedule\RecurrenceUnit;
+use Foresi\Invoicing\Application\CopyInvoice;
+use Foresi\Invoicing\Application\CustomerPicker;
+use Foresi\Invoicing\Application\InvoiceDraftValues;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Application\NewInvoiceDefaults;
+use Foresi\Invoicing\Application\RecurringInvoices;
+use Foresi\Invoicing\Application\UnsupportedCountry;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\RecurringDelivery;
+use Foresi\Invoicing\Domain\RecurringInvoice;
+use Foresi\Invoicing\Domain\RecurringInvoiceLine;
+use Foresi\Invoicing\Domain\TaxPointRule;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
+use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
 
 /**
  * The form of a recurring template as text: for a new one, for one started from an

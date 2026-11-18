@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Security;
+namespace Foresi\Identity\Infrastructure\Security;
 
-use App\Identity\Domain\User;
+use Foresi\Identity\Domain\User;
 use Scheb\TwoFactorBundle\Model\Totp\TotpConfiguration;
 use Scheb\TwoFactorBundle\Model\Totp\TotpConfigurationInterface;
 use Scheb\TwoFactorBundle\Model\Totp\TwoFactorInterface;

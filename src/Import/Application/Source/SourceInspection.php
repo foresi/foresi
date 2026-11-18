@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application\Source;
+namespace Foresi\Import\Application\Source;
 
 /**
  * What a source file looks like: the detected (or overridden) reading

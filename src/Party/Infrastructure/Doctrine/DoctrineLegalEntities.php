@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Doctrine;
+namespace Foresi\Party\Infrastructure\Doctrine;
 
-use App\Party\Application\LegalEntities;
-use App\Party\Application\UnknownLegalEntity;
-use App\Party\Domain\LegalEntity;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Party\Domain\LegalEntity;
 
 final readonly class DoctrineLegalEntities implements LegalEntities
 {

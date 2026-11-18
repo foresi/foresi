@@ -6,22 +6,22 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
-use App\Party\Domain\Address;
-use App\Party\Domain\DomesticBankAccount;
-use App\Party\Domain\Iban;
-use App\Party\Domain\InvalidIban;
-use App\Party\Domain\InvalidRegistrationNumber;
-use App\Party\Domain\InvalidVatId;
-use App\Party\Domain\InvoicingDefaults;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
-use App\Party\Domain\PaymentMethod;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
-use App\Shared\Domain\Currency;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\DomesticBankAccount;
+use Foresi\Party\Domain\Iban;
+use Foresi\Party\Domain\InvalidIban;
+use Foresi\Party\Domain\InvalidRegistrationNumber;
+use Foresi\Party\Domain\InvalidVatId;
+use Foresi\Party\Domain\InvoicingDefaults;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Shared\Domain\Currency;
 
 /**
  * Turns the normalised values of an imported row (by field key) into the

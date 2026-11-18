@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Ui\Navigation;
+namespace Foresi\Ui\Navigation;
 
 /**
  * The areas every installation has. They follow the APQC process skeleton,

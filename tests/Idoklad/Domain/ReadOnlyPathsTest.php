@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Idoklad\Domain;
+namespace Foresi\Tests\Idoklad\Domain;
 
-use App\Idoklad\Domain\IdokladPathRefused;
-use App\Idoklad\Domain\IdokladResource;
-use App\Idoklad\Domain\ReadOnlyPaths;
+use Foresi\Idoklad\Domain\IdokladPathRefused;
+use Foresi\Idoklad\Domain\IdokladResource;
+use Foresi\Idoklad\Domain\ReadOnlyPaths;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

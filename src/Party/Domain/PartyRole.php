@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Domain;
+namespace Foresi\Party\Domain;
 
 /**
  * What a party is to the firm. A party may have no role (a plain contact)

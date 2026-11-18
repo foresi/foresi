@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Idoklad\Domain;
+namespace Foresi\Tests\Idoklad\Domain;
 
-use App\Idoklad\Domain\IdokladNumberFormat;
+use Foresi\Idoklad\Domain\IdokladNumberFormat;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

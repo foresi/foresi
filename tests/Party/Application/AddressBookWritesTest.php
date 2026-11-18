@@ -6,30 +6,30 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Application;
+namespace Foresi\Tests\Party\Application;
 
-use App\Audit\Domain\AuditEntry;
-use App\Party\Application\ArchiveParty;
-use App\Party\Application\CreateParty;
-use App\Party\Application\LinkContactPerson;
-use App\Party\Application\PartyDetails;
-use App\Party\Application\PartyInput;
-use App\Party\Application\PartyQuery;
-use App\Party\Application\PartyRow;
-use App\Party\Application\UpdateParty;
-use App\Party\Domain\Address;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\InvoicingDefaults;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyEmail;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
-use App\Party\Domain\PaymentMethod;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
-use App\Shared\Domain\Currency;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Party\Application\ArchiveParty;
+use Foresi\Party\Application\CreateParty;
+use Foresi\Party\Application\LinkContactPerson;
+use Foresi\Party\Application\PartyDetails;
+use Foresi\Party\Application\PartyInput;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Application\PartyRow;
+use Foresi\Party\Application\UpdateParty;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\InvoicingDefaults;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Shared\Domain\Currency;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class AddressBookWritesTest extends KernelTestCase

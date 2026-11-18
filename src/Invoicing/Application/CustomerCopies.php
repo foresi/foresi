@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\DocumentParty;
-use App\Invoicing\Domain\Invoice;
-use App\Party\Application\ContactSettingsForFirm;
-use App\Party\Application\PartyDetails;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
+use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Application\PartyDetails;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
 
 /**
  * Decides which copy of the customer a document holds. A new document or a new

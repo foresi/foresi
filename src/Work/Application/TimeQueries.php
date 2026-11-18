@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
 /**
  * The read side of time, under the same rule as the work it is logged on: an

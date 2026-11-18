@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application;
+namespace Foresi\Purchasing\Application;
 
-use App\Party\Domain\LegalEntity;
-use App\Purchasing\Domain\EvidenceSeries;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Purchasing\Domain\EvidenceSeries;
 
 /**
  * The evidence series of the firms, one per firm.

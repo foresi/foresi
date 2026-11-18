@@ -9,7 +9,7 @@
 
 {% block content %}
     <form method="post" action="{{ path('app_people_invite') }}" class="grid max-w-4xl gap-4" novalidate>
-        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Identity\\Infrastructure\\Controller\\PeopleController::TOKEN')) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Identity\\Infrastructure\\Controller\\PeopleController::TOKEN')) }}">
 
         {% if errors.form is defined %}
             <twig:Ui:Alert tone="error">{{ errors.form }}</twig:Ui:Alert>

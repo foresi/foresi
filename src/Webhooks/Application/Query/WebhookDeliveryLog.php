@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Application\Query;
+namespace Foresi\Webhooks\Application\Query;
 
-use App\Shared\Domain\Id;
-use App\Webhooks\Application\UnknownWebhookDelivery;
-use App\Webhooks\Application\UnknownWebhookEndpoint;
-use App\Webhooks\Application\WebhookNotAllowed;
+use Foresi\Shared\Domain\Id;
+use Foresi\Webhooks\Application\UnknownWebhookDelivery;
+use Foresi\Webhooks\Application\UnknownWebhookEndpoint;
+use Foresi\Webhooks\Application\WebhookNotAllowed;
 
 /**
  * What was sent to an endpoint, for those who may manage it: its deliveries of

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Audit\Application;
+namespace Foresi\Audit\Application;
 
 /**
  * An audit actor that may act through a personal API token: the entry then

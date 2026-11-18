@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Application\Api;
+namespace Foresi\Shared\Application\Api;
 
 /**
  * Declares a write once, on the input class of its use case (ADR 0032): the REST

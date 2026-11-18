@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application;
+namespace Foresi\Purchasing\Application;
 
-use App\Shared\Domain\Money;
+use Foresi\Shared\Domain\Money;
 
 /**
  * An amount as the events of the module state it: a decimal with the minor

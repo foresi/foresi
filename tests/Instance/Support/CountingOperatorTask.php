@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Instance\Support;
+namespace Foresi\Tests\Instance\Support;
 
-use App\Instance\Application\Schedule\OperatorTask;
+use Foresi\Instance\Application\Schedule\OperatorTask;
 
 /**
  * An operator task that counts its runs. It

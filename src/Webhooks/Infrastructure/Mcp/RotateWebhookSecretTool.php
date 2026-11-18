@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Mcp;
+namespace Foresi\Webhooks\Infrastructure\Mcp;
 
-use App\Shared\Infrastructure\Api\JsonValues;
-use App\Shared\Infrastructure\Mcp\ToolArguments;
-use App\Shared\Infrastructure\Mcp\ToolOutput;
-use App\Shared\Infrastructure\Mcp\WriteTool;
-use App\Webhooks\Application\ManageWebhookEndpoints;
-use App\Webhooks\Application\Query\WebhookEndpointList;
+use Foresi\Shared\Infrastructure\Api\JsonValues;
+use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
+use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Infrastructure\Mcp\WriteTool;
+use Foresi\Webhooks\Application\ManageWebhookEndpoints;
+use Foresi\Webhooks\Application\Query\WebhookEndpointList;
 
 /**
  * Makes a new signing secret for an endpoint, as POST

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure\Events;
+namespace Foresi\Banking\Infrastructure\Events;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\StaffCheck;
-use App\Shared\Application\Event\EventReadAccess;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Shared\Application\Event\EventReadAccess;
 
 /**
  * The events of the bank tell about the money of the firms, so they are read

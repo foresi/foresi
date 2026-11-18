@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Mail;
+namespace Foresi\Invoicing\Infrastructure\Mail;
 
 use Symfony\Component\Mailer\Exception\TransportException;
 use Symfony\Component\Mailer\Transport\Smtp\Stream\AbstractStream;

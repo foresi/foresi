@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Mcp;
+namespace Foresi\Party\Infrastructure\Mcp;
 
-use App\Party\Application\PartyNotAllowed;
-use App\Party\Application\Query\FirmList;
-use App\Party\Application\Query\FirmRow;
-use App\Shared\Infrastructure\Mcp\ReadTool;
-use App\Shared\Infrastructure\Mcp\ToolOutput;
-use App\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Party\Application\PartyNotAllowed;
+use Foresi\Party\Application\Query\FirmList;
+use Foresi\Party\Application\Query\FirmRow;
+use Foresi\Shared\Infrastructure\Mcp\ReadTool;
+use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 
 /**
  * The firms of the organisation, the ids the other tools take as firm_id.

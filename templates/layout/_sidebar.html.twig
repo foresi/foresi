@@ -6,7 +6,7 @@
     when an area has more than one group.
     Variables: areas (nav_areas()).
 #}
-{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 {% set shown = areas|filter(a => a.current)|first ?: areas|first %}
 {% set shownId = shown ? shown.area.id : null %}
 

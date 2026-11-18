@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure\Api;
+namespace Foresi\Tests\Invoicing\Infrastructure\Api;
 
-use App\Identity\Domain\ApiScope;
-use App\Invoicing\Application\TrashInvoice;
-use App\Invoicing\Domain\Invoice;
-use App\Shared\Domain\Id;
-use App\Shared\Infrastructure\Api\Cursor;
-use App\Tests\Shared\Infrastructure\Api\ApiTestCase;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Invoicing\Application\TrashInvoice;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Infrastructure\Api\Cursor;
+use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
@@ -57,7 +57,7 @@ final class InvoiceApiTest extends ApiTestCase
     public function testTheDetailHoldsTheLinesThePaymentsAndTheBalances(): void
     {
         $invoice = $this->flushed(fn (): Invoice => $this->invoice('2026-11-02', '2026-11-30'));
-        $payment = $this->flushed(fn (): \App\Invoicing\Domain\Payment => $this->payment('2026-11-12', [$invoice->id() => '1000']));
+        $payment = $this->flushed(fn (): \Foresi\Invoicing\Domain\Payment => $this->payment('2026-11-12', [$invoice->id() => '1000']));
 
         $this->get('/api/v1/invoices/'.$invoice->id());
 

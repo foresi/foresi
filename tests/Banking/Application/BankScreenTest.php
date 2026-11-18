@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Application;
 
-use App\Banking\Application\BankScreen;
-use App\Banking\Application\MovementFilter;
-use App\Banking\Application\MovementPage;
-use App\Tests\Banking\Support\ScreenStores;
+use Foresi\Banking\Application\BankScreen;
+use Foresi\Banking\Application\MovementFilter;
+use Foresi\Banking\Application\MovementPage;
+use Foresi\Tests\Banking\Support\ScreenStores;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;

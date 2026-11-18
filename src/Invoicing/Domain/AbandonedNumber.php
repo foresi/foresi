@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Domain;
+namespace Foresi\Invoicing\Domain;
 
-use App\Audit\Domain\Audited;
-use App\Audit\Domain\AuditRooted;
-use App\Party\Domain\LegalEntity;
-use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Audit\Domain\AuditRooted;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Domain\Id;
 
 /**
  * A number an invoice held until an edit gave it another. It stays taken for good:

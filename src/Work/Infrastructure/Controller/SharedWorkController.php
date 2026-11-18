@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Controller;
+namespace Foresi\Work\Infrastructure\Controller;
 
-use App\Identity\Application\OpenToGuest;
-use App\Identity\Application\StaffCheck;
-use App\Instance\Application\InstanceClock;
-use App\Work\Application\SharedProject;
-use App\Work\Application\SharedTaskGroup;
-use App\Work\Application\TaskRow;
-use App\Work\Application\WorkQueries;
+use Foresi\Identity\Application\OpenToGuest;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Work\Application\SharedProject;
+use Foresi\Work\Application\SharedTaskGroup;
+use Foresi\Work\Application\TaskRow;
+use Foresi\Work\Application\WorkQueries;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;

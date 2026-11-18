@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Security;
+namespace Foresi\Identity\Infrastructure\Security;
 
-use App\Audit\Application\TokenAuditActor;
-use App\Audit\Domain\ActorKind;
-use App\Identity\Application\ApiTokenContext;
-use App\Identity\Application\ApiTokenGrant;
+use Foresi\Audit\Application\TokenAuditActor;
+use Foresi\Audit\Domain\ActorKind;
+use Foresi\Identity\Application\ApiTokenContext;
+use Foresi\Identity\Application\ApiTokenGrant;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Http\Authenticator\Token\PostAuthenticationToken;
 

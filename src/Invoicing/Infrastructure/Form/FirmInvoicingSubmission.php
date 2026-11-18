@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Form;
+namespace Foresi\Invoicing\Infrastructure\Form;
 
 /**
  * What came in from an invoicing form: the values to show again and a message

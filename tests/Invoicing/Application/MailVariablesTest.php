@@ -6,24 +6,24 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\FirmInvoicingSettings;
-use App\Invoicing\Application\InvoicePdf;
-use App\Invoicing\Application\IssuedDocument;
-use App\Invoicing\Application\IssuedDocumentFactory;
-use App\Invoicing\Application\MailText;
-use App\Invoicing\Application\MailVariables;
-use App\Invoicing\Domain\MailTemplateKind;
-use App\Invoicing\Domain\TotalRounding;
-use App\Party\Domain\Address;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
-use App\Party\Domain\VatStatus;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Support\PdfTools;
+use Foresi\Invoicing\Application\FirmInvoicingSettings;
+use Foresi\Invoicing\Application\InvoicePdf;
+use Foresi\Invoicing\Application\IssuedDocument;
+use Foresi\Invoicing\Application\IssuedDocumentFactory;
+use Foresi\Invoicing\Application\MailText;
+use Foresi\Invoicing\Application\MailVariables;
+use Foresi\Invoicing\Domain\MailTemplateKind;
+use Foresi\Invoicing\Domain\TotalRounding;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Support\PdfTools;
 
 final class MailVariablesTest extends InvoiceTestCase
 {

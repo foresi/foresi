@@ -6,22 +6,22 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Events\Infrastructure\Dbal;
+namespace Foresi\Tests\Events\Infrastructure\Dbal;
 
-use App\Audit\Application\AuditActor;
-use App\Audit\Application\AuditCorrelation;
-use App\Events\Application\RelayEvents;
-use App\Events\Infrastructure\Catalogue\EventCatalogue;
-use App\Events\Infrastructure\Dbal\DbalEventRecorder;
-use App\Events\Infrastructure\Payload\EventPayloads;
-use App\Party\Infrastructure\Doctrine\DoctrineTransactionalWork;
-use App\Shared\Domain\Module\ModuleId;
-use App\Tests\Events\Fixtures\Valid\Contract\Event\InvoiceIssued;
-use App\Tests\Events\Fixtures\Valid\Contract\Kind;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\Persistence\ManagerRegistry;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Audit\Application\AuditCorrelation;
+use Foresi\Events\Application\RelayEvents;
+use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
+use Foresi\Events\Infrastructure\Dbal\DbalEventRecorder;
+use Foresi\Events\Infrastructure\Payload\EventPayloads;
+use Foresi\Party\Infrastructure\Doctrine\DoctrineTransactionalWork;
+use Foresi\Shared\Domain\Module\ModuleId;
+use Foresi\Tests\Events\Fixtures\Valid\Contract\Event\InvoiceIssued;
+use Foresi\Tests\Events\Fixtures\Valid\Contract\Kind;
 use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
@@ -60,7 +60,7 @@ final class DbalEventRecorderTest extends KernelTestCase
         self::assertInstanceOf(InMemoryTransport::class, $relay);
         $this->relay = $relay;
         $this->relay->reset();
-        $catalogue = EventCatalogue::scan([[ModuleId::of('invoicing'), 'App\Tests\Events\Fixtures\Valid\\', \dirname(__DIR__, 2).'/Fixtures/Valid']]);
+        $catalogue = EventCatalogue::scan([[ModuleId::of('invoicing'), 'Foresi\Tests\Events\Fixtures\Valid\\', \dirname(__DIR__, 2).'/Fixtures/Valid']]);
         $this->recorder = new DbalEventRecorder(
             $this->db,
             $catalogue,
@@ -165,7 +165,7 @@ final class DbalEventRecorderTest extends KernelTestCase
         };
         $recorder = new DbalEventRecorder(
             $this->db,
-            EventCatalogue::scan([[ModuleId::of('invoicing'), 'App\Tests\Events\Fixtures\Valid\\', \dirname(__DIR__, 2).'/Fixtures/Valid']]),
+            EventCatalogue::scan([[ModuleId::of('invoicing'), 'Foresi\Tests\Events\Fixtures\Valid\\', \dirname(__DIR__, 2).'/Fixtures/Valid']]),
             new EventPayloads(),
             $this->correlation,
             self::getContainer()->get(AuditActor::class),

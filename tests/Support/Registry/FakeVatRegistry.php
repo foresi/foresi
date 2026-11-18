@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Support\Registry;
+namespace Foresi\Tests\Support\Registry;
 
-use App\Party\Application\VatRegistry;
-use App\Party\Domain\RegistryCheck;
-use App\Party\Domain\RegistryResult;
-use App\Party\Domain\RegistrySource;
-use App\Party\Domain\VatId;
+use Foresi\Party\Application\VatRegistry;
+use Foresi\Party\Domain\RegistryCheck;
+use Foresi\Party\Domain\RegistryResult;
+use Foresi\Party\Domain\RegistrySource;
+use Foresi\Party\Domain\VatId;
 use Psr\Clock\ClockInterface;
 
 /**

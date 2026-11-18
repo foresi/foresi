@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Import\Infrastructure\Source;
+namespace Foresi\Tests\Import\Infrastructure\Source;
 
-use App\Import\Application\Source\Encoding;
-use App\Import\Application\Source\SourceFormat;
-use App\Import\Application\Source\SourceRejected;
-use App\Import\Application\Source\SourceSettings;
-use App\Import\Infrastructure\Source\OpenSpoutSourceReader;
+use Foresi\Import\Application\Source\Encoding;
+use Foresi\Import\Application\Source\SourceFormat;
+use Foresi\Import\Application\Source\SourceRejected;
+use Foresi\Import\Application\Source\SourceSettings;
+use Foresi\Import\Infrastructure\Source\OpenSpoutSourceReader;
 use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Common\Entity\Style\Style;

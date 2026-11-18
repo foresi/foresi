@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Navigation;
+namespace Foresi\Invoicing\Infrastructure\Navigation;
 
-use App\Identity\Application\StaffCheck;
-use App\Instance\Application\InstanceClock;
-use App\Instance\Application\Schedule\ScheduledJobRuns;
-use App\Invoicing\Application\IssueRecurringInvoices;
-use App\Invoicing\Application\RecurringInvoices;
-use App\Ui\Notice\ShellNotice;
-use App\Ui\Notice\ShellNoticeProvider;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Instance\Application\Schedule\ScheduledJobRuns;
+use Foresi\Invoicing\Application\IssueRecurringInvoices;
+use Foresi\Invoicing\Application\RecurringInvoices;
+use Foresi\Ui\Notice\ShellNotice;
+use Foresi\Ui\Notice\ShellNoticeProvider;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;

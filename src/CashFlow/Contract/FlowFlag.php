@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Contract;
+namespace Foresi\CashFlow\Contract;
 
 /**
  * What a reader should know about an expected flow. The forecast adds overdue

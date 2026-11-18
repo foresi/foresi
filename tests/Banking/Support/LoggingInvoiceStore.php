@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Support;
+namespace Foresi\Tests\Banking\Support;
 
-use App\Invoicing\Application\InvoiceFilter;
-use App\Invoicing\Application\InvoicePage;
-use App\Invoicing\Application\InvoiceStore;
-use App\Invoicing\Application\InvoiceSums;
-use App\Invoicing\Application\StoredInvoice;
-use App\Invoicing\Domain\AbandonedNumber;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Party\Domain\LegalEntity;
+use Foresi\Invoicing\Application\InvoiceFilter;
+use Foresi\Invoicing\Application\InvoicePage;
+use Foresi\Invoicing\Application\InvoiceStore;
+use Foresi\Invoicing\Application\InvoiceSums;
+use Foresi\Invoicing\Application\StoredInvoice;
+use Foresi\Invoicing\Domain\AbandonedNumber;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Party\Domain\LegalEntity;
 
 /**
  * The invoice store, writing every lock to a LockLog.
@@ -74,7 +74,7 @@ final readonly class LoggingInvoiceStore implements InvoiceStore
         return $this->store->numberTaken($firm, $key, $except);
     }
 
-    public function kindOfNumber(LegalEntity $firm, string $key): ?\App\Invoicing\Domain\DocumentKind
+    public function kindOfNumber(LegalEntity $firm, string $key): ?\Foresi\Invoicing\Domain\DocumentKind
     {
         return $this->store->kindOfNumber($firm, $key);
     }

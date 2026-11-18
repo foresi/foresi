@@ -6,22 +6,22 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Application\Query;
+namespace Foresi\Tests\Party\Application\Query;
 
-use App\Party\Application\PartyNotAllowed;
-use App\Party\Application\Query\ContactDetails;
-use App\Party\Application\UnknownParty;
-use App\Party\Domain\Address;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\ContactLink;
-use App\Party\Domain\EmailPurpose;
-use App\Party\Domain\Iban;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyBankAccount;
-use App\Party\Domain\PartyEmail;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
-use App\Shared\Domain\Id;
+use Foresi\Party\Application\PartyNotAllowed;
+use Foresi\Party\Application\Query\ContactDetails;
+use Foresi\Party\Application\UnknownParty;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\ContactLink;
+use Foresi\Party\Domain\EmailPurpose;
+use Foresi\Party\Domain\Iban;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyBankAccount;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Shared\Domain\Id;
 
 final class ContactDetailsTest extends ContactTestCase
 {
@@ -49,17 +49,17 @@ final class ContactDetailsTest extends ContactTestCase
         self::assertSame('', $detail->mobile);
         self::assertSame('', $detail->website);
         self::assertFalse($detail->unreliablePayer);
-        self::assertSame([AddressType::Billing, AddressType::Delivery], array_map(static fn (\App\Party\Application\Query\ContactAddress $address): AddressType => $address->type, $detail->addresses));
+        self::assertSame([AddressType::Billing, AddressType::Delivery], array_map(static fn (\Foresi\Party\Application\Query\ContactAddress $address): AddressType => $address->type, $detail->addresses));
         self::assertSame('Warehouse', $detail->addresses[1]->label);
         self::assertEquals(new Address('Delivery Street 2', 'Delivery City', '200 00', 'CZ'), $detail->addresses[1]->address);
         self::assertSame($delivery->id(), $detail->addresses[1]->id);
-        self::assertSame(['info@example.com', 'billing@example.com'], array_map(static fn (\App\Party\Application\Query\ContactEmail $email): string => $email->address, $detail->emails));
-        self::assertSame([EmailPurpose::General, EmailPurpose::Invoices], array_map(static fn (\App\Party\Application\Query\ContactEmail $email): EmailPurpose => $email->purpose, $detail->emails));
-        self::assertSame([$primary->id(), $secondary->id()], array_map(static fn (\App\Party\Application\Query\ContactBankAccount $account): string => $account->id, $detail->bankAccounts));
-        self::assertSame(['DE89370400440532013000', 'CZ6508000000192000145399'], array_map(static fn (\App\Party\Application\Query\ContactBankAccount $account): string => $account->iban, $detail->bankAccounts));
-        self::assertSame([null, 'GIBACZPX'], array_map(static fn (\App\Party\Application\Query\ContactBankAccount $account): ?string => $account->bic, $detail->bankAccounts));
-        self::assertSame(['Main', 'Second'], array_map(static fn (\App\Party\Application\Query\ContactBankAccount $account): string => $account->label, $detail->bankAccounts));
-        self::assertSame([true, false], array_map(static fn (\App\Party\Application\Query\ContactBankAccount $account): bool => $account->primary, $detail->bankAccounts));
+        self::assertSame(['info@example.com', 'billing@example.com'], array_map(static fn (\Foresi\Party\Application\Query\ContactEmail $email): string => $email->address, $detail->emails));
+        self::assertSame([EmailPurpose::General, EmailPurpose::Invoices], array_map(static fn (\Foresi\Party\Application\Query\ContactEmail $email): EmailPurpose => $email->purpose, $detail->emails));
+        self::assertSame([$primary->id(), $secondary->id()], array_map(static fn (\Foresi\Party\Application\Query\ContactBankAccount $account): string => $account->id, $detail->bankAccounts));
+        self::assertSame(['DE89370400440532013000', 'CZ6508000000192000145399'], array_map(static fn (\Foresi\Party\Application\Query\ContactBankAccount $account): string => $account->iban, $detail->bankAccounts));
+        self::assertSame([null, 'GIBACZPX'], array_map(static fn (\Foresi\Party\Application\Query\ContactBankAccount $account): ?string => $account->bic, $detail->bankAccounts));
+        self::assertSame(['Main', 'Second'], array_map(static fn (\Foresi\Party\Application\Query\ContactBankAccount $account): string => $account->label, $detail->bankAccounts));
+        self::assertSame([true, false], array_map(static fn (\Foresi\Party\Application\Query\ContactBankAccount $account): bool => $account->primary, $detail->bankAccounts));
         self::assertCount(1, $detail->contactLinks);
         $contactLink = $detail->contactLinks[0];
         self::assertSame([$link->id(), $company->id(), 'Alpha Example s.r.o.', $person->id(), 'Pavel Example', 'Accountant', true], [$contactLink->id, $contactLink->companyId, $contactLink->companyName, $contactLink->personId, $contactLink->personName, $contactLink->position, $contactLink->primary]);
@@ -107,8 +107,8 @@ final class ContactDetailsTest extends ContactTestCase
     {
         $party = $this->contact('Alpha Example');
 
-        $this->assertRefusedForGuestAndNobody(fn (): \App\Party\Application\Query\ContactDetail => $this->details()->of($party->id()));
-        $this->assertRefusedForGuestAndNobody(fn (): \App\Party\Domain\Party => $this->details()->party($party->id()));
+        $this->assertRefusedForGuestAndNobody(fn (): \Foresi\Party\Application\Query\ContactDetail => $this->details()->of($party->id()));
+        $this->assertRefusedForGuestAndNobody(fn (): \Foresi\Party\Domain\Party => $this->details()->party($party->id()));
         // Refused, not "not found", even for a contact that does not exist.
         $this->signIn($this->guest);
         $this->expectException(PartyNotAllowed::class);

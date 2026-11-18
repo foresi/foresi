@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Instance\Application;
+namespace Foresi\Instance\Application;
 
 /**
  * The zone the operator set for the instance in APP_TIMEZONE, or none. Only a

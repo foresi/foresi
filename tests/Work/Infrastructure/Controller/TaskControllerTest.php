@@ -6,25 +6,25 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Work\Infrastructure\Controller;
+namespace Foresi\Tests\Work\Infrastructure\Controller;
 
-use App\Attachment\Domain\Attachment;
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Shared\Domain\Id;
-use App\Tests\Identity\Support\SignedInBrowser;
-use App\Ui\Dialog\DialogRequest;
-use App\Work\Domain\Label;
-use App\Work\Domain\LabelColour;
-use App\Work\Domain\Priority;
-use App\Work\Domain\Project;
-use App\Work\Domain\ProjectStatus;
-use App\Work\Domain\Section;
-use App\Work\Domain\Task;
-use App\Work\Domain\TaskComment;
-use App\Work\Domain\TaskLabel;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Attachment\Domain\Attachment;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Shared\Domain\Id;
+use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Ui\Dialog\DialogRequest;
+use Foresi\Work\Domain\Label;
+use Foresi\Work\Domain\LabelColour;
+use Foresi\Work\Domain\Priority;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\ProjectStatus;
+use Foresi\Work\Domain\Section;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TaskComment;
+use Foresi\Work\Domain\TaskLabel;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;

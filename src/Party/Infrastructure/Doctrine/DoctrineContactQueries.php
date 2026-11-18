@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Doctrine;
+namespace Foresi\Party\Infrastructure\Doctrine;
 
-use App\Party\Application\Query\ContactQueries;
-use App\Party\Application\Query\ContactRow;
-use App\Party\Application\Query\ContactSliceFilter;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\EmailPurpose;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyEmail;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Party\Application\Query\ContactQueries;
+use Foresi\Party\Application\Query\ContactRow;
+use Foresi\Party\Application\Query\ContactSliceFilter;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\EmailPurpose;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyEmail;
 
 /**
  * The text matches as the search of the screen does.

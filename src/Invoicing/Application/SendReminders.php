@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Instance\Application\InstanceClock;
-use App\Instance\Application\Schedule\DailyPeriod;
-use App\Instance\Application\Schedule\ScheduledJob;
-use App\Invoicing\Domain\FirmReminders;
-use App\Invoicing\Domain\SendPurpose;
-use App\Party\Application\LegalEntities;
-use App\Party\Domain\LegalEntity;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Instance\Application\Schedule\DailyPeriod;
+use Foresi\Instance\Application\Schedule\ScheduledJob;
+use Foresi\Invoicing\Domain\FirmReminders;
+use Foresi\Invoicing\Domain\SendPurpose;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Domain\LegalEntity;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 

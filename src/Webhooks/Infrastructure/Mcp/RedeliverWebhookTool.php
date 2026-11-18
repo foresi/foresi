@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Mcp;
+namespace Foresi\Webhooks\Infrastructure\Mcp;
 
-use App\Shared\Infrastructure\Mcp\ToolArguments;
-use App\Shared\Infrastructure\Mcp\ToolOutput;
-use App\Shared\Infrastructure\Mcp\WriteTool;
-use App\Webhooks\Application\ManageWebhookEndpoints;
+use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
+use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Infrastructure\Mcp\WriteTool;
+use Foresi\Webhooks\Application\ManageWebhookEndpoints;
 
 /**
  * Sends a finished delivery again, as POST
@@ -69,7 +69,7 @@ final readonly class RedeliverWebhookTool implements WriteTool
         $endpointId = WebhookToolArguments::required($arguments, 'endpoint_id');
         $deliveryId = WebhookToolArguments::required($arguments, 'delivery_id');
 
-        $queued = WebhookToolErrors::refuse(fn (): \App\Webhooks\Application\QueuedAttempt => $this->manage->redeliver($endpointId, $deliveryId));
+        $queued = WebhookToolErrors::refuse(fn (): \Foresi\Webhooks\Application\QueuedAttempt => $this->manage->redeliver($endpointId, $deliveryId));
 
         return new ToolOutput(['delivery_id' => $queued->deliveryId, 'attempt_id' => $queued->attemptId], 'One more attempt is queued. Read the deliveries of the endpoint to see how it went.');
     }

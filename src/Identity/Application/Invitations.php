@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
-use App\Identity\Domain\Invitation;
+use Foresi\Identity\Domain\Invitation;
 
 /**
  * The invitations of the instance.

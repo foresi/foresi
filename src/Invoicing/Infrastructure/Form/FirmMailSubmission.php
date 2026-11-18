@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Form;
+namespace Foresi\Invoicing\Infrastructure\Form;
 
-use App\Invoicing\Application\MailVariables;
-use App\Invoicing\Application\RenderedMail;
-use App\Invoicing\Domain\FirmMailServer;
-use App\Invoicing\Domain\FirmReminders;
-use App\Invoicing\Domain\MailEncryption;
-use App\Invoicing\Domain\MailTemplate;
-use App\Invoicing\Domain\MailTemplateKind;
-use App\Party\Domain\DocumentLanguage;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Shared\Infrastructure\Http\TypedNumber;
+use Foresi\Invoicing\Application\MailVariables;
+use Foresi\Invoicing\Application\RenderedMail;
+use Foresi\Invoicing\Domain\FirmMailServer;
+use Foresi\Invoicing\Domain\FirmReminders;
+use Foresi\Invoicing\Domain\MailEncryption;
+use Foresi\Invoicing\Domain\MailTemplate;
+use Foresi\Invoicing\Domain\MailTemplateKind;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Infrastructure\Http\TypedNumber;
 use Symfony\Component\HttpFoundation\Request;
 
 /**

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Infrastructure;
+namespace Foresi\Tests\Banking\Infrastructure;
 
-use App\Banking\Infrastructure\Files\DiskInboundFiles;
+use Foresi\Banking\Infrastructure\Files\DiskInboundFiles;
 use PHPUnit\Framework\TestCase;
 
 /**

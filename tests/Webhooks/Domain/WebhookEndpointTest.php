@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Domain;
+namespace Foresi\Tests\Webhooks\Domain;
 
-use App\Webhooks\Domain\DisabledReason;
-use App\Webhooks\Domain\EndpointUrl;
-use App\Webhooks\Domain\EventTypes;
-use App\Webhooks\Domain\WebhookEndpoint;
+use Foresi\Webhooks\Domain\DisabledReason;
+use Foresi\Webhooks\Domain\EndpointUrl;
+use Foresi\Webhooks\Domain\EventTypes;
+use Foresi\Webhooks\Domain\WebhookEndpoint;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;

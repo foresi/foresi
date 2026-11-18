@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui\Component;
+namespace Foresi\Tests\Ui\Component;
 
-use App\Ui\Avatar as Initials;
-use App\Ui\Component\Avatar;
+use Foresi\Ui\Avatar as Initials;
+use Foresi\Ui\Component\Avatar;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Events;
+namespace Foresi\Party\Infrastructure\Events;
 
-use App\Party\Infrastructure\Api\ContactApiController;
-use App\Shared\Application\Event\EventSubjectUrl;
-use App\Shared\Domain\Event\EventSubject;
+use Foresi\Party\Infrastructure\Api\ContactApiController;
+use Foresi\Shared\Application\Event\EventSubjectUrl;
+use Foresi\Shared\Domain\Event\EventSubject;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

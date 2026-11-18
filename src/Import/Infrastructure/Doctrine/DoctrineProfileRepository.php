@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Doctrine;
+namespace Foresi\Import\Infrastructure\Doctrine;
 
-use App\Import\Application\ProfileRepository;
-use App\Import\Domain\ImportProfile;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Import\Application\ProfileRepository;
+use Foresi\Import\Domain\ImportProfile;
 
 final readonly class DoctrineProfileRepository implements ProfileRepository
 {

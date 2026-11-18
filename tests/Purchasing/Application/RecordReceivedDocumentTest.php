@@ -6,25 +6,25 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Purchasing\Application;
+namespace Foresi\Tests\Purchasing\Application;
 
-use App\Party\Application\ContactSettingsForFirm;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyFirmSettings;
-use App\Party\Domain\PartyRole;
-use App\Purchasing\Application\PurchasingNotAllowed;
-use App\Purchasing\Application\ReceivedDocumentWarning;
-use App\Purchasing\Application\SavedReceivedDocument;
-use App\Purchasing\Application\UnknownReceivedDocument;
-use App\Purchasing\Domain\EvidenceSeries;
-use App\Purchasing\Domain\ExchangeRate;
-use App\Purchasing\Domain\PurchaseTaxTreatment;
-use App\Purchasing\Domain\ReceivedDocumentKind;
-use App\Purchasing\Domain\ReceivedDocumentRefused;
-use App\Purchasing\Domain\ReceivedDocumentState;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Id;
+use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyFirmSettings;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Purchasing\Application\PurchasingNotAllowed;
+use Foresi\Purchasing\Application\ReceivedDocumentWarning;
+use Foresi\Purchasing\Application\SavedReceivedDocument;
+use Foresi\Purchasing\Application\UnknownReceivedDocument;
+use Foresi\Purchasing\Domain\EvidenceSeries;
+use Foresi\Purchasing\Domain\ExchangeRate;
+use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
+use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Purchasing\Domain\ReceivedDocumentState;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Id;
 
 final class RecordReceivedDocumentTest extends PurchasingTestCase
 {

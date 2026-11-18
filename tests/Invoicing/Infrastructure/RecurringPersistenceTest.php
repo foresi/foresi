@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure;
+namespace Foresi\Tests\Invoicing\Infrastructure;
 
-use App\Audit\Domain\AuditEntry;
-use App\Invoicing\Application\RecurringFilter;
-use App\Invoicing\Domain\RecurringInvoice;
-use App\Invoicing\Domain\RecurringInvoiceLine;
-use App\Invoicing\Domain\RecurringState;
-use App\Party\Application\TransactionalWork;
-use App\Tests\Invoicing\Application\RecurringTestCase;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Invoicing\Application\RecurringFilter;
+use Foresi\Invoicing\Domain\RecurringInvoice;
+use Foresi\Invoicing\Domain\RecurringInvoiceLine;
+use Foresi\Invoicing\Domain\RecurringState;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Tests\Invoicing\Application\RecurringTestCase;
 
 final class RecurringPersistenceTest extends RecurringTestCase
 {

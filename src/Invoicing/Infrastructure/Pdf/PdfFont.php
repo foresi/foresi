@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Pdf;
+namespace Foresi\Invoicing\Infrastructure\Pdf;
 
-use App\Invoicing\Application\PrintableText;
+use Foresi\Invoicing\Application\PrintableText;
 
 /**
  * What the bundled font holds and how wide it sets a text. A document prints in

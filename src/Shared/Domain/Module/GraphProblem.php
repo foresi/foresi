@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Domain\Module;
+namespace Foresi\Shared\Domain\Module;
 
 /**
  * Something wrong with the module graph that does not stop the application,

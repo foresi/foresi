@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Controller;
+namespace Foresi\Work\Infrastructure\Controller;
 
-use App\Instance\Application\InstanceClock;
-use App\Work\Application\ManageTime;
-use App\Work\Application\TimeEntryRow;
-use App\Work\Application\TimeQueries;
-use App\Work\Application\TimeTarget;
-use App\Work\Application\WorkQueries;
-use App\Work\Application\WorkRefused;
-use App\Work\Domain\Duration;
-use App\Work\Domain\Task;
-use App\Work\Domain\TimeEntry;
-use App\Work\Infrastructure\Twig\TimeFunctions;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Work\Application\ManageTime;
+use Foresi\Work\Application\TimeEntryRow;
+use Foresi\Work\Application\TimeQueries;
+use Foresi\Work\Application\TimeTarget;
+use Foresi\Work\Application\WorkQueries;
+use Foresi\Work\Application\WorkRefused;
+use Foresi\Work\Domain\Duration;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TimeEntry;
+use Foresi\Work\Infrastructure\Twig\TimeFunctions;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;

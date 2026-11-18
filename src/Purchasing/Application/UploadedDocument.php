@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application;
+namespace Foresi\Purchasing\Application;
 
 /**
  * What became of one uploaded file: the draft it became, with its warnings,

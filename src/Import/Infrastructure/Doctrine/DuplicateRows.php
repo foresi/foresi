@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Doctrine;
+namespace Foresi\Import\Infrastructure\Doctrine;
 
-use App\Import\Application\Imports;
-use App\Import\Application\RowReader;
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportRow;
-use App\Import\Domain\RowOutcome;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Import\Application\Imports;
+use Foresi\Import\Application\RowReader;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\ImportRow;
+use Foresi\Import\Domain\RowOutcome;
 
 /**
  * Finds the rows whose match key an earlier row of the same file already used:

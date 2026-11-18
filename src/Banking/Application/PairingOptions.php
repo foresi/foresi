@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Shared\Domain\Money;
+use Foresi\Shared\Domain\Money;
 
 /**
  * What the pair dialog offers for a movement.

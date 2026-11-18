@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Pdf;
+namespace Foresi\Invoicing\Infrastructure\Pdf;
 
 /**
  * A QR code drawn as vectors, tagged as a figure with alternative text.

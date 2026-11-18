@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure\Controller;
+namespace Foresi\Banking\Infrastructure\Controller;
 
-use App\Banking\Application\ReceiveInboundMail;
-use App\Banking\Application\ReceiveOutcome;
-use App\Banking\Domain\InboundChannel;
+use Foresi\Banking\Application\ReceiveInboundMail;
+use Foresi\Banking\Application\ReceiveOutcome;
+use Foresi\Banking\Domain\InboundChannel;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

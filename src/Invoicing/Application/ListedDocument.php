@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\RateSummary;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Domain\RateSummary;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 
 /**
  * A document as the downloaded list has it: its row of the list, for what it has been

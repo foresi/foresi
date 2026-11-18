@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Purchasing\Application\Query;
+namespace Foresi\Tests\Purchasing\Application\Query;
 
-use App\Purchasing\Application\Query\ReceivedDocumentFilter;
-use App\Purchasing\Domain\PurchaseTaxTreatment;
-use App\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentFilter;
+use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
+use Foresi\Purchasing\Domain\ReceivedDocumentKind;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

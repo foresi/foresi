@@ -6,18 +6,8 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Migration;
+namespace Foresi\Tests\Migration;
 
-use App\Identity\Domain\Membership;
-use App\Party\Domain\ContactLink;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyBankAccount;
-use App\Party\Domain\PartyEmail;
-use App\Party\Infrastructure\Doctrine\VatIdType;
-use App\Shared\Domain\Id;
-use App\Shared\Infrastructure\Doctrine\RefuseMigrationRehearsal;
 use Doctrine\Common\EventManager;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
@@ -35,6 +25,16 @@ use Doctrine\Migrations\Exception\AbortMigration;
 use Doctrine\Migrations\Exception\IrreversibleMigration;
 use Doctrine\Migrations\MigratorConfiguration;
 use Doctrine\Migrations\Version\Version;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Party\Domain\ContactLink;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyBankAccount;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Infrastructure\Doctrine\VatIdType;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Infrastructure\Doctrine\RefuseMigrationRehearsal;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -204,11 +204,11 @@ final class UuidMigrationTest extends TestCase
         $personId = $this->text("SELECT id FROM party WHERE display_name = 'Example Person'");
         $userId = $this->text('SELECT id FROM app_user');
 
-        self::assertSame($partyId, $db->fetchOne('SELECT entity_id FROM audit_entry WHERE entity_class = ? AND correlation_id = ?', [Party::class, 'Created company']));
-        self::assertSame($this->text('SELECT id FROM party_address'), $db->fetchOne('SELECT entity_id FROM audit_entry WHERE entity_class = ?', [PartyAddress::class]));
-        self::assertSame($this->text('SELECT id FROM contact_link'), $db->fetchOne('SELECT entity_id FROM audit_entry WHERE entity_class = ?', [ContactLink::class]));
-        self::assertSame($this->text('SELECT id FROM membership'), $db->fetchOne('SELECT entity_id FROM audit_entry WHERE entity_class = ?', [Membership::class]));
-        self::assertSame($this->text('SELECT id FROM legal_entity'), $db->fetchOne('SELECT entity_id FROM audit_entry WHERE entity_class = ?', [LegalEntity::class]));
+        self::assertSame($partyId, $db->fetchOne('SELECT entity_id FROM audit_entry WHERE entity_class = ? AND correlation_id = ?', [self::stored(Party::class), 'Created company']));
+        self::assertSame($this->text('SELECT id FROM party_address'), $db->fetchOne('SELECT entity_id FROM audit_entry WHERE entity_class = ?', [self::stored(PartyAddress::class)]));
+        self::assertSame($this->text('SELECT id FROM contact_link'), $db->fetchOne('SELECT entity_id FROM audit_entry WHERE entity_class = ?', [self::stored(ContactLink::class)]));
+        self::assertSame($this->text('SELECT id FROM membership'), $db->fetchOne('SELECT entity_id FROM audit_entry WHERE entity_class = ?', [self::stored(Membership::class)]));
+        self::assertSame($this->text('SELECT id FROM legal_entity'), $db->fetchOne('SELECT entity_id FROM audit_entry WHERE entity_class = ?', [self::stored(LegalEntity::class)]));
         self::assertSame($userId, $db->fetchOne('SELECT user_id FROM audit_entry WHERE correlation_id = ?', ['Created company']));
         self::assertNull($db->fetchOne('SELECT user_id FROM audit_entry WHERE correlation_id = ?', ['Unknown class']));
 
@@ -442,7 +442,7 @@ final class UuidMigrationTest extends TestCase
         $this->audit('Created deleted', Party::class, self::DELETED_PARTY, 'created', ['displayName' => [null, 'Gone']], self::DELETED_USER);
         $this->audit('Deleted deleted', Party::class, self::DELETED_PARTY, 'deleted', ['displayName' => ['Gone', null]], self::DELETED_USER);
         $this->audit('Deleted e-mail', PartyEmail::class, self::DELETED_EMAIL, 'deleted', ['party' => [self::DELETED_PARTY, null]], null);
-        $this->audit('Unknown class', 'App\Old\Thing', 1, 'created', ['value' => [null, 1]], null);
+        $this->audit('Unknown class', 'Foresi\Old\Thing', 1, 'created', ['value' => [null, 1]], null);
     }
 
     private function bulkImportRow(int $id, ?string $snapshot): void
@@ -466,7 +466,7 @@ final class UuidMigrationTest extends TestCase
     private function audit(string $label, string $class, int $id, string $action, array $changes, ?int $user): void
     {
         $this->tenantRow('audit_entry', [
-            'entity_class' => $class, 'entity_id' => (string) $id, 'action' => $action, 'changes' => json_encode($changes, \JSON_THROW_ON_ERROR),
+            'entity_class' => self::stored($class), 'entity_id' => (string) $id, 'action' => $action, 'changes' => json_encode($changes, \JSON_THROW_ON_ERROR),
             'user_id' => $user, 'occurred_at' => self::AT, 'correlation_id' => $label,
         ]);
     }
@@ -600,5 +600,13 @@ final class UuidMigrationTest extends TestCase
             new Version($version ?? self::UNTIL),
         );
         $migrations->getMigrator()->migrate($plan, $configuration);
+    }
+
+    /**
+     * The name a class was stored under before the modules moved from App\ to Foresi\ (Version20261118100001).
+     */
+    private static function stored(string $class): string
+    {
+        return 'App\\'.substr($class, \strlen('Foresi\\'));
     }
 }

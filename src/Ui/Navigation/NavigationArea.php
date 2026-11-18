@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Ui\Navigation;
+namespace Foresi\Ui\Navigation;
 
-use App\Ui\Component\Style;
+use Foresi\Ui\Component\Style;
 
 /**
  * A business area of the navigation: one rail entry with its own sidebar of

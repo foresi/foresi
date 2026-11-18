@@ -6,27 +6,27 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Purchasing\Infrastructure;
+namespace Foresi\Tests\Purchasing\Infrastructure;
 
-use App\ExchangeRate\Application\RateSource;
-use App\Identity\Domain\Role;
-use App\Party\Domain\Address;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
-use App\Party\Domain\VatStatus;
-use App\Purchasing\Application\ReceivedDocumentWarning;
-use App\Purchasing\Domain\ReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocumentRefused;
-use App\Purchasing\Domain\ReceivedDocumentState;
-use App\Shared\Domain\Id;
-use App\Tests\ExchangeRate\Support\FakeRateSource;
-use App\Tests\Identity\Support\SignedInBrowser;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\ExchangeRate\Application\RateSource;
+use Foresi\Identity\Domain\Role;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Purchasing\Application\ReceivedDocumentWarning;
+use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Purchasing\Domain\ReceivedDocumentState;
+use Foresi\Shared\Domain\Id;
+use Foresi\Tests\ExchangeRate\Support\FakeRateSource;
+use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Clock;

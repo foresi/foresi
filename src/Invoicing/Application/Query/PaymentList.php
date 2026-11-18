@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application\Query;
+namespace Foresi\Invoicing\Application\Query;
 
-use App\Shared\Domain\Id;
+use Foresi\Shared\Domain\Id;
 
 /**
  * The list of payments for the API and MCP, read by cursor. Only the owners and

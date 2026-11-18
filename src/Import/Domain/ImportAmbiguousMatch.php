@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Domain;
+namespace Foresi\Import\Domain;
 
-use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Shared\Domain\Id;
 
 /**
  * A record that a row of the source matched together with others. The row is an

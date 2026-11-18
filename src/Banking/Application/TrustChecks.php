@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\InboundMessage;
+use Foresi\Banking\Domain\InboundMessage;
 
 /**
  * The trust check of the last message of a feed, for the owner's Pairing tab:

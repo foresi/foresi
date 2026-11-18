@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Idoklad\Application\Import;
+namespace Foresi\Tests\Idoklad\Application\Import;
 
-use App\Idoklad\Application\Import\UndoIdokladImport;
-use App\Idoklad\Domain\IdokladImportRun;
-use App\Idoklad\Domain\ImportMode;
-use App\Idoklad\Domain\ImportReport;
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
+use Foresi\Idoklad\Application\Import\UndoIdokladImport;
+use Foresi\Idoklad\Domain\IdokladImportRun;
+use Foresi\Idoklad\Domain\ImportMode;
+use Foresi\Idoklad\Domain\ImportReport;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
 use PHPUnit\Framework\TestCase;
 
 final class UndoIdokladImportTest extends TestCase

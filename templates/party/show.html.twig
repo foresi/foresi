@@ -3,7 +3,7 @@
 
 {% set crumbs = [{label: 'party.title'|trans, href: path('app_contacts')}, {label: party.displayName}] %}
 {% set formatTime = 'format.datetime'|trans %}
-{% set token = csrf_token(constant('App\\Party\\Infrastructure\\Controller\\PartyController::ACTION_TOKEN')) %}
+{% set token = csrf_token(constant('Foresi\\Party\\Infrastructure\\Controller\\PartyController::ACTION_TOKEN')) %}
 {% set linkErrors = linkErrors|default({}) %}
 {% set linkValues = linkValues|default({person: '', position: '', primary: false}) %}
 {% set form_invalid = linkErrors is not empty %}
@@ -27,7 +27,7 @@
 
 {% block content %}
     <div class="grid grid-cols-1 gap-4">
-        {% for id in app.flashes(constant('App\\Party\\Infrastructure\\Controller\\PartyFormController::CREATED_FLASH')) %}<div hidden data-controller="contact-created" data-contact-created-id-value="{{ id }}"></div>{% endfor %}
+        {% for id in app.flashes(constant('Foresi\\Party\\Infrastructure\\Controller\\PartyFormController::CREATED_FLASH')) %}<div hidden data-controller="contact-created" data-contact-created-id-value="{{ id }}"></div>{% endfor %}
         {% for message in app.flashes('success') %}
             <twig:Ui:Alert tone="success">{{ message }}</twig:Ui:Alert>
         {% endfor %}

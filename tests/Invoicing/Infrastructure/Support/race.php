@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-use App\Tests\Invoicing\Infrastructure\Support\InvoiceWorker;
+use Foresi\Tests\Invoicing\Infrastructure\Support\InvoiceWorker;
 
 /*
  * One process of the parallel invoice tests, run from the repository root with

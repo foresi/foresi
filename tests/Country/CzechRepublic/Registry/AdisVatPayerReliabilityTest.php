@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Country\CzechRepublic\Registry;
+namespace Foresi\Tests\Country\CzechRepublic\Registry;
 
-use App\Country\CzechRepublic\Registry\AdisVatPayerReliability;
-use App\Party\Domain\RegistryResult;
-use App\Party\Domain\RegistrySource;
-use App\Party\Domain\VatId;
-use App\Tests\Support\Registry\RegistryTestKit;
+use Foresi\Country\CzechRepublic\Registry\AdisVatPayerReliability;
+use Foresi\Party\Domain\RegistryResult;
+use Foresi\Party\Domain\RegistrySource;
+use Foresi\Party\Domain\VatId;
+use Foresi\Tests\Support\Registry\RegistryTestKit;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpClient\Response\MockResponse;
 

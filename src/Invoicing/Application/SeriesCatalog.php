@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Series;
-use App\Party\Domain\LegalEntity;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Party\Domain\LegalEntity;
 
 /**
  * The number series. Call add() and makeDefault() inside

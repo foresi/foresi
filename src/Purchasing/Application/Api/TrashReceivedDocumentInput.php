@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application\Api;
+namespace Foresi\Purchasing\Application\Api;
 
-use App\Purchasing\Domain\ReceivedDocument;
-use App\Shared\Application\Api\Field;
-use App\Shared\Application\Api\Operation;
+use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Shared\Application\Api\Field;
+use Foresi\Shared\Application\Api\Operation;
 
 /**
  * Moves a received document to the trash over the API and MCP.

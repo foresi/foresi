@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Mail;
+namespace Foresi\Shared\Infrastructure\Mail;
 
-use App\Shared\Application\SystemMailUnavailable;
+use Foresi\Shared\Application\SystemMailUnavailable;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Mailer\Transport;
 use Symfony\Component\Mailer\Transport\TransportInterface;

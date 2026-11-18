@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application;
+namespace Foresi\Purchasing\Application;
 
-use App\Attachment\Application\AttachmentRefused;
-use App\Attachment\Application\AttachmentUpload;
-use App\Attachment\Application\UploadAttachment;
-use App\Instance\Application\InstanceClock;
-use App\Party\Application\UnknownLegalEntity;
-use App\Purchasing\Domain\ReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocumentContent;
-use App\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Attachment\Application\AttachmentRefused;
+use Foresi\Attachment\Application\AttachmentUpload;
+use Foresi\Attachment\Application\UploadAttachment;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentContent;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
 use Psr\Clock\ClockInterface;
 
 /**

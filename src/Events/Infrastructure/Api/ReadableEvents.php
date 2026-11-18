@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Api;
+namespace Foresi\Events\Infrastructure\Api;
 
-use App\Events\Application\Query\EventFeed;
-use App\Events\Infrastructure\Catalogue\EventCatalogue;
-use App\Events\Infrastructure\Catalogue\EventType;
-use App\Shared\Application\Event\EventReadAccess;
-use App\Shared\Infrastructure\Api\InvalidParameter;
+use Foresi\Events\Application\Query\EventFeed;
+use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
+use Foresi\Events\Infrastructure\Catalogue\EventType;
+use Foresi\Shared\Application\Event\EventReadAccess;
+use Foresi\Shared\Infrastructure\Api\InvalidParameter;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 

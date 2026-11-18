@@ -6,24 +6,24 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Support;
+namespace Foresi\Tests\Banking\Support;
 
-use App\Banking\Application\BankMessageParsers;
-use App\Banking\Application\GenerateAddress;
-use App\Banking\Application\InboundFiles;
-use App\Banking\Application\InboundMessages;
-use App\Banking\Application\MailAuthentication;
-use App\Banking\Application\MailReader;
-use App\Banking\Application\PendingChanges;
-use App\Banking\Application\ProcessMessage;
-use App\Banking\Application\ReceiveInboundMail;
-use App\Banking\Application\ReceiveOutcome;
-use App\Banking\Domain\InboundChannel;
-use App\Invoicing\Application\ConflictRetry;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\PriceType;
-use App\Party\Application\FirmBankAccounts;
-use App\Party\Application\TransactionalWork;
+use Foresi\Banking\Application\BankMessageParsers;
+use Foresi\Banking\Application\GenerateAddress;
+use Foresi\Banking\Application\InboundFiles;
+use Foresi\Banking\Application\InboundMessages;
+use Foresi\Banking\Application\MailAuthentication;
+use Foresi\Banking\Application\MailReader;
+use Foresi\Banking\Application\PendingChanges;
+use Foresi\Banking\Application\ProcessMessage;
+use Foresi\Banking\Application\ReceiveInboundMail;
+use Foresi\Banking\Application\ReceiveOutcome;
+use Foresi\Banking\Domain\InboundChannel;
+use Foresi\Invoicing\Application\ConflictRetry;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 
 /**

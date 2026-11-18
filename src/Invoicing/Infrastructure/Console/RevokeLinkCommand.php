@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Console;
+namespace Foresi\Invoicing\Infrastructure\Console;
 
-use App\Invoicing\Application\ConflictRetry;
-use App\Invoicing\Application\InvoiceSends;
-use App\Invoicing\Application\PublicDocuments;
-use App\Party\Application\TransactionalWork;
+use Foresi\Invoicing\Application\ConflictRetry;
+use Foresi\Invoicing\Application\InvoiceSends;
+use Foresi\Invoicing\Application\PublicDocuments;
+use Foresi\Party\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;

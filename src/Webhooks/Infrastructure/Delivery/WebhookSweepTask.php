@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Delivery;
+namespace Foresi\Webhooks\Infrastructure\Delivery;
 
-use App\Instance\Application\Schedule\OperatorTask;
-use App\Webhooks\Application\AttemptTrigger;
-use App\Webhooks\Application\SendWebhook;
+use Foresi\Instance\Application\Schedule\OperatorTask;
+use Foresi\Webhooks\Application\AttemptTrigger;
+use Foresi\Webhooks\Application\SendWebhook;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 

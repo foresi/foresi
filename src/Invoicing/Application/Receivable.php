@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Shared\Domain\Money;
+use Foresi\Shared\Domain\Money;
 
 /**
  * One document still to pay: what is left in the home currency, at the exchange

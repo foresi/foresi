@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application\Query;
+namespace Foresi\Purchasing\Application\Query;
 
-use App\Purchasing\Application\PaymentBalance;
-use App\Purchasing\Application\PurchasingAccess;
-use App\Purchasing\Application\PurchasingNotAllowed;
-use App\Purchasing\Application\ReceivedDocumentPayments;
-use App\Purchasing\Application\ReceivedDocuments;
-use App\Purchasing\Application\UnknownReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocumentPayment;
+use Foresi\Purchasing\Application\PaymentBalance;
+use Foresi\Purchasing\Application\PurchasingAccess;
+use Foresi\Purchasing\Application\PurchasingNotAllowed;
+use Foresi\Purchasing\Application\ReceivedDocumentPayments;
+use Foresi\Purchasing\Application\ReceivedDocuments;
+use Foresi\Purchasing\Application\UnknownReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentPayment;
 
 /**
  * The received documents for the API and MCP with what is paid and what
@@ -39,9 +39,9 @@ final readonly class ReceivedDocumentBalances
     {
         $this->access->denyUnlessStaff();
         [$documents, $hasMore] = $this->queries->slice($filter, $afterId, $limit);
-        $sums = $this->payments->sums(array_map(static fn (\App\Purchasing\Domain\ReceivedDocument $document): string => $document->id(), $documents));
+        $sums = $this->payments->sums(array_map(static fn (\Foresi\Purchasing\Domain\ReceivedDocument $document): string => $document->id(), $documents));
 
-        return new ReceivedDocumentSlice(array_map(static fn (\App\Purchasing\Domain\ReceivedDocument $document): PayableDocument => new PayableDocument(
+        return new ReceivedDocumentSlice(array_map(static fn (\Foresi\Purchasing\Domain\ReceivedDocument $document): PayableDocument => new PayableDocument(
             $document,
             PaymentBalance::of($document, $sums[$document->id()]['paid'] ?? 0, $sums[$document->id()]['last'] ?? null),
         ), $documents), $hasMore);

@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Mail;
+namespace Foresi\Invoicing\Infrastructure\Mail;
 
-use App\Invoicing\Application\MailHostPolicy;
-use App\Invoicing\Application\MailRefused;
+use Foresi\Invoicing\Application\MailHostPolicy;
+use Foresi\Invoicing\Application\MailRefused;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**

@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Identity\Domain\Membership;
-use App\Work\Domain\Notification;
-use App\Work\Domain\NotificationKind;
-use App\Work\Domain\TaskComment;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Work\Domain\Notification;
+use Foresi\Work\Domain\NotificationKind;
+use Foresi\Work\Domain\TaskComment;
 
 /**
  * Writes and sends the e-mails of notifications through the installation's

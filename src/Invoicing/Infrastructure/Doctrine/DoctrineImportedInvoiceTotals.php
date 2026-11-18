@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Invoicing\Application\ImportedInvoiceTotals;
-use App\Invoicing\Application\StoredInvoiceTotal;
-use App\Invoicing\Domain\Invoice;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Invoicing\Application\ImportedInvoiceTotals;
+use Foresi\Invoicing\Application\StoredInvoiceTotal;
+use Foresi\Invoicing\Domain\Invoice;
 
 /**
  * Queries of the ORM.

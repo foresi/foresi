@@ -6,21 +6,21 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Infrastructure;
+namespace Foresi\Tests\Banking\Infrastructure;
 
-use App\Banking\Application\BankScreen;
-use App\Banking\Application\MovementFilter;
-use App\Banking\Application\MovementPage;
-use App\Banking\Application\MovementRow;
-use App\Banking\Domain\MessageTrust;
-use App\Banking\Domain\MovementDirection;
-use App\Identity\Domain\Role;
-use App\Party\Domain\FirmBankAccount;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Tests\Banking\Support\BankScreenTestCase;
-use App\Tests\Banking\Support\Scalars;
-use App\Tests\Party\Support\FirmAccounts;
+use Foresi\Banking\Application\BankScreen;
+use Foresi\Banking\Application\MovementFilter;
+use Foresi\Banking\Application\MovementPage;
+use Foresi\Banking\Application\MovementRow;
+use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Banking\Domain\MovementDirection;
+use Foresi\Identity\Domain\Role;
+use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Tests\Banking\Support\BankScreenTestCase;
+use Foresi\Tests\Banking\Support\Scalars;
+use Foresi\Tests\Party\Support\FirmAccounts;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\DomCrawler\Crawler;

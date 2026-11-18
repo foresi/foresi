@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Contract\Event;
+namespace Foresi\Invoicing\Contract\Event;
 
-use App\Shared\Domain\Event\DomainEvent;
-use App\Shared\Domain\Event\DomainEventPayload;
-use App\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Domain\Event\DomainEvent;
+use Foresi\Shared\Domain\Event\DomainEventPayload;
+use Foresi\Shared\Domain\Event\EventSubject;
 
 /**
  * A recorded or cancelled payment made a payable document paid or overpaid. The payment is the one that caused it. Settlement by a credit note or an advance deduction does not record it yet.

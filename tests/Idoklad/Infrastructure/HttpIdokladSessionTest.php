@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Idoklad\Infrastructure;
+namespace Foresi\Tests\Idoklad\Infrastructure;
 
-use App\Idoklad\Application\IdokladAccessDenied;
-use App\Idoklad\Application\IdokladFailure;
-use App\Idoklad\Application\IdokladTariffWithoutApi;
-use App\Idoklad\Domain\IdokladPathRefused;
-use App\Idoklad\Infrastructure\Http\HttpIdokladClient;
-use App\Idoklad\Infrastructure\Http\HttpIdokladSession;
+use Foresi\Idoklad\Application\IdokladAccessDenied;
+use Foresi\Idoklad\Application\IdokladFailure;
+use Foresi\Idoklad\Application\IdokladTariffWithoutApi;
+use Foresi\Idoklad\Domain\IdokladPathRefused;
+use Foresi\Idoklad\Infrastructure\Http\HttpIdokladClient;
+use Foresi\Idoklad\Infrastructure\Http\HttpIdokladSession;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;

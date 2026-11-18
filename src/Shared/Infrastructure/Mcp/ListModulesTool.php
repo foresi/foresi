@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Mcp;
+namespace Foresi\Shared\Infrastructure\Mcp;
 
-use App\Shared\Application\Api\ScopeGuard;
-use App\Shared\Infrastructure\Module\InstalledModules;
-use App\Shared\Infrastructure\Module\ModuleIntegrations;
-use App\Shared\Infrastructure\Module\ModulesView;
+use Foresi\Shared\Application\Api\ScopeGuard;
+use Foresi\Shared\Infrastructure\Module\InstalledModules;
+use Foresi\Shared\Infrastructure\Module\ModuleIntegrations;
+use Foresi\Shared\Infrastructure\Module\ModulesView;
 
 /**
  * The modules of this installation and their dependencies, the same answer as

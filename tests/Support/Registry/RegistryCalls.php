@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Support\Registry;
+namespace Foresi\Tests\Support\Registry;
 
 /**
  * Counts the calls the fake registers received, so a test can prove that a

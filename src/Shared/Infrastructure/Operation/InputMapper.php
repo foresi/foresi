@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Operation;
+namespace Foresi\Shared\Infrastructure\Operation;
 
 /**
  * Turns what a client sent, by the names it sends them under, into the input

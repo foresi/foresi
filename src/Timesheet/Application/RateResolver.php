@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Application;
+namespace Foresi\Timesheet\Application;
 
-use App\Identity\Application\People;
-use App\Identity\Domain\Membership;
-use App\Party\Application\ContactSettingsForFirm;
-use App\Party\Application\LegalEntities;
-use App\Party\Application\UnknownLegalEntity;
-use App\Party\Domain\Party;
-use App\Shared\Domain\Id;
-use App\Shared\Domain\Money;
-use App\Timesheet\Domain\RateSource;
-use App\Timesheet\Domain\ResolvedRate;
-use App\Work\Application\Projects;
-use App\Work\Domain\Project;
+use Foresi\Identity\Application\People;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Domain\Money;
+use Foresi\Timesheet\Domain\RateSource;
+use Foresi\Timesheet\Domain\ResolvedRate;
+use Foresi\Work\Application\Projects;
+use Foresi\Work\Domain\Project;
 
 /**
  * The hourly rate of time a person worked on a project, when a firm invoices

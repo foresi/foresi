@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\InboundChannel;
+use Foresi\Banking\Domain\InboundChannel;
 
 /**
  * Whose word on a message is believed: the receiving servers of the path the

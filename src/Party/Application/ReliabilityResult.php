@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
-use App\Party\Domain\RegistryCheck;
+use Foresi\Party\Domain\RegistryCheck;
 
 /**
  * The unreliable VAT payer check of one VAT id, with the bank accounts the

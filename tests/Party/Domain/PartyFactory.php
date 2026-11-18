@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Domain;
+namespace Foresi\Tests\Party\Domain;
 
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\VatId;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\VatId;
 
 /**
  * Builds parties for tests of the address book entities.

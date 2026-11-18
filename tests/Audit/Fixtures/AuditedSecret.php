@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Audit\Fixtures;
+namespace Foresi\Tests\Audit\Fixtures;
 
-use App\Audit\Domain\Audited;
-use App\Audit\Domain\AuditExcluded;
-use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Audit\Domain\AuditExcluded;
+use Foresi\Shared\Domain\Id;
 
 /**
  * Test-only audited entity with a field that must never reach the log.

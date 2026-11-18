@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure\Messenger;
+namespace Foresi\Tests\Invoicing\Infrastructure\Messenger;
 
-use App\Invoicing\Application\DeliverInvoiceSend;
-use App\Invoicing\Infrastructure\Messenger\SendLeaseHeld;
-use App\Invoicing\Infrastructure\Messenger\WaitForLeaseMiddleware;
+use Foresi\Invoicing\Application\DeliverInvoiceSend;
+use Foresi\Invoicing\Infrastructure\Messenger\SendLeaseHeld;
+use Foresi\Invoicing\Infrastructure\Messenger\WaitForLeaseMiddleware;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;

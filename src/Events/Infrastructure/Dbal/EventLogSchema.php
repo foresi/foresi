@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Dbal;
+namespace Foresi\Events\Infrastructure\Dbal;
 
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\Tools\Event\GenerateSchemaEventArgs;

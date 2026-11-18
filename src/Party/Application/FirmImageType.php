@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
 /**
  * Decides what uploaded bytes really are, whatever their name or declared type

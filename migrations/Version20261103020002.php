@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace DoctrineMigrations;
 
-use App\Shared\Domain\Id;
-use App\Shared\Infrastructure\Doctrine\RunsOnlyForReal;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Infrastructure\Doctrine\RunsOnlyForReal;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;

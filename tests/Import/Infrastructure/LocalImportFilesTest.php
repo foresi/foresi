@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Import\Infrastructure;
+namespace Foresi\Tests\Import\Infrastructure;
 
-use App\Import\Infrastructure\LocalImportFiles;
+use Foresi\Import\Infrastructure\LocalImportFiles;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

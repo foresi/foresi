@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Work\Infrastructure\Mail;
+namespace Foresi\Tests\Work\Infrastructure\Mail;
 
-use App\Work\Infrastructure\Mail\SystemNotificationMailer;
+use Foresi\Work\Infrastructure\Mail\SystemNotificationMailer;
 use PHPUnit\Framework\TestCase;
 
 final class SystemNotificationMailerTest extends TestCase

@@ -17,7 +17,7 @@
 
 {% block dialog_body %}
     <form method="post" id="recurring-action" action="{{ path(route, {id: template.id}) }}" class="grid gap-3">
-        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\RecurringListController::ACTION_TOKEN')) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\RecurringListController::ACTION_TOKEN')) }}">
         <input type="hidden" name="return" value="{{ return }}">
         {% block fields %}{% endblock %}
         <p class="m-0 text-text"><span class="font-medium text-ink">{{ customer }}</span>{% if description %} · {{ description }}{% endif %}</p>

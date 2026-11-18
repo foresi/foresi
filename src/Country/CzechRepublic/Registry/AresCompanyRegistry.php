@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Country\CzechRepublic\Registry;
+namespace Foresi\Country\CzechRepublic\Registry;
 
-use App\Party\Application\CompanyRegistry;
-use App\Party\Application\RegistryRecord;
-use App\Party\Domain\Address;
-use App\Party\Domain\InvalidRegistrationNumber;
-use App\Party\Domain\InvalidVatId;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
-use App\Shared\Infrastructure\Registry\PublicRegistryClient;
-use App\Shared\Infrastructure\Registry\RegistryCache;
+use Foresi\Party\Application\CompanyRegistry;
+use Foresi\Party\Application\RegistryRecord;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\InvalidRegistrationNumber;
+use Foresi\Party\Domain\InvalidVatId;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Shared\Infrastructure\Registry\PublicRegistryClient;
+use Foresi\Shared\Infrastructure\Registry\RegistryCache;
 
 /**
  * ARES, the Czech aggregator of public registers (Ministry of Finance), over

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Domain;
+namespace Foresi\Timesheet\Domain;
 
-use App\Shared\Domain\Money;
+use Foresi\Shared\Domain\Money;
 
 /**
  * The hourly rate time is billed at, and the level that set it.

@@ -13,7 +13,7 @@
         "foresi": {
             "module": "attachment",
             "kind": "core",
-            "namespace": "App\\Attachment\\",
+            "namespace": "Foresi\\Attachment\\",
             "optional": []
         }
     }

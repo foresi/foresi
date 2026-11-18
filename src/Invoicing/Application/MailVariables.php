@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\MailTemplateKind;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Domain\MailTemplateKind;
+use Foresi\Shared\Domain\Money;
 
 /**
  * The variables a mail template may hold, and their values for one document. All

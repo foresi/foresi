@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Country\CzechRepublic\ExchangeRate;
+namespace Foresi\Tests\Country\CzechRepublic\ExchangeRate;
 
-use App\Country\CzechRepublic\ExchangeRate\CnbDailyFix;
+use Foresi\Country\CzechRepublic\ExchangeRate\CnbDailyFix;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

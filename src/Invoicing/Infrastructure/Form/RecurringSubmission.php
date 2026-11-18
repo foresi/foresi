@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Form;
+namespace Foresi\Invoicing\Infrastructure\Form;
 
-use App\Invoicing\Application\RecurringInput;
+use Foresi\Invoicing\Application\RecurringInput;
 
 /**
  * The form of a recurring template as sent. As with an invoice, the input is always

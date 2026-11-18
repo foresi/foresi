@@ -15,7 +15,7 @@
 
 {% block dialog_body %}
     <form method="post" id="bank-account-form" action="{{ action }}" class="grid gap-4" novalidate>
-        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Banking\\Infrastructure\\Controller\\FirmBankController::ACCOUNT_TOKEN')) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Banking\\Infrastructure\\Controller\\FirmBankController::ACCOUNT_TOKEN')) }}">
 
         {% if errors.form is defined %}
             <twig:Ui:Alert tone="error" tabindex="-1" data-error-summary :autofocus="true">{{ errors.form }}</twig:Ui:Alert>

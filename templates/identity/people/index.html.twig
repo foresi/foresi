@@ -20,7 +20,7 @@
         {% endfor %}
     {% endfor %}
     {% if owner %}<div class="mb-4">{% include 'identity/people/_tabs.html.twig' with {active: tab, pendingCount: pendingCount} only %}</div>{% endif %}
-    <twig:Ui:DataTable :caption="(tab == 'people' ? 'people.tab.people' : 'people.tab.invitations')|trans" :columns="columns" :rows="rows" :actionToken="owner ? csrf_token(constant('App\\Identity\\Infrastructure\\Controller\\PeopleController::TOKEN')) : null">
+    <twig:Ui:DataTable :caption="(tab == 'people' ? 'people.tab.people' : 'people.tab.invitations')|trans" :columns="columns" :rows="rows" :actionToken="owner ? csrf_token(constant('Foresi\\Identity\\Infrastructure\\Controller\\PeopleController::TOKEN')) : null">
         <twig:block name="empty">
             {% if tab == 'invitations' %}
                 <twig:Ui:EmptyState icon="send" :title="'people.invitations.empty.title'|trans" :text="'people.invitations.empty.text'|trans">

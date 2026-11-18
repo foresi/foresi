@@ -11,7 +11,7 @@
             {% for field, message in errors %}
                 <li>
                     {%- if field == 'form' %}{{ message }}
-                    {%- else %}<a href="#{{ prefix ~ field }}" class="text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ ('work.task.field.' ~ field)|trans }}</a>: {{ message }}
+                    {%- else %}<a href="#{{ prefix ~ field }}" class="text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ ('work.task.field.' ~ field)|trans }}</a>: {{ message }}
                     {%- endif -%}
                 </li>
             {% endfor %}

@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Mcp;
+namespace Foresi\Invoicing\Infrastructure\Mcp;
 
-use App\Invoicing\Application\InvoicingNotAllowed;
-use App\Invoicing\Application\Query\InvoiceDetails;
-use App\Invoicing\Application\UnknownInvoice;
-use App\Invoicing\Infrastructure\Api\InvoiceJson;
-use App\Shared\Infrastructure\Mcp\ReadTool;
-use App\Shared\Infrastructure\Mcp\ToolArguments;
-use App\Shared\Infrastructure\Mcp\ToolOutput;
-use App\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Invoicing\Application\InvoicingNotAllowed;
+use Foresi\Invoicing\Application\Query\InvoiceDetails;
+use Foresi\Invoicing\Application\UnknownInvoice;
+use Foresi\Invoicing\Infrastructure\Api\InvoiceJson;
+use Foresi\Shared\Infrastructure\Mcp\ReadTool;
+use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
+use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 
 /**
  * One sales document of the organisation, as GET /api/v1/invoices/{id} writes it.

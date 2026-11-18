@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Application;
+namespace Foresi\Timesheet\Application;
 
-use App\Invoicing\Application\BilledWorkRelease;
-use App\Invoicing\Application\IssueProblem;
-use App\Invoicing\Application\IssueRefused;
-use App\Invoicing\Domain\Invoice;
-use App\Timesheet\Domain\ReleasedTime;
-use App\Work\Application\TimeEntries;
-use App\Work\Domain\TimeEntry;
+use Foresi\Invoicing\Application\BilledWorkRelease;
+use Foresi\Invoicing\Application\IssueProblem;
+use Foresi\Invoicing\Application\IssueRefused;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Timesheet\Domain\ReleasedTime;
+use Foresi\Work\Application\TimeEntries;
+use Foresi\Work\Domain\TimeEntry;
 use Psr\Clock\ClockInterface;
 
 /**

@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Infrastructure\Doctrine;
+namespace Foresi\Idoklad\Infrastructure\Doctrine;
 
-use App\Idoklad\Application\Import\IdokladImportRuns;
-use App\Idoklad\Domain\IdokladImportRun;
-use App\Party\Domain\LegalEntity;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Idoklad\Application\Import\IdokladImportRuns;
+use Foresi\Idoklad\Domain\IdokladImportRun;
+use Foresi\Party\Domain\LegalEntity;
 
 final readonly class DoctrineIdokladImportRuns implements IdokladImportRuns
 {

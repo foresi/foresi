@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application\Message;
+namespace Foresi\Import\Application\Message;
 
 /** Puts back one chunk of what a finished import wrote. Safe to handle twice. */
 final readonly class UndoImportChunk

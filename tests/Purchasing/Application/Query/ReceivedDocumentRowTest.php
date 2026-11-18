@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Purchasing\Application\Query;
+namespace Foresi\Tests\Purchasing\Application\Query;
 
-use App\Purchasing\Application\Query\ReceivedDocumentRow;
-use App\Purchasing\Domain\PurchaseTaxTreatment;
-use App\Purchasing\Domain\ReceivedDocumentKind;
-use App\Purchasing\Domain\ReceivedDocumentState;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentRow;
+use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
+use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Purchasing\Domain\ReceivedDocumentState;
 use PHPUnit\Framework\TestCase;
 
 final class ReceivedDocumentRowTest extends TestCase

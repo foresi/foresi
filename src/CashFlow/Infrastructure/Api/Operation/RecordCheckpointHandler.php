@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Infrastructure\Api\Operation;
+namespace Foresi\CashFlow\Infrastructure\Api\Operation;
 
-use App\CashFlow\Application\BalanceWrites;
-use App\CashFlow\Application\PlannedItemWrites;
-use App\CashFlow\Application\RecordCheckpointInput;
-use App\CashFlow\Infrastructure\Api\CashFlowJson;
-use App\Shared\Infrastructure\Operation\OperationHandler;
-use App\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\CashFlow\Application\BalanceWrites;
+use Foresi\CashFlow\Application\PlannedItemWrites;
+use Foresi\CashFlow\Application\RecordCheckpointInput;
+use Foresi\CashFlow\Infrastructure\Api\CashFlowJson;
+use Foresi\Shared\Infrastructure\Operation\OperationHandler;
+use Foresi\Shared\Infrastructure\Operation\OperationOutput;
 
 final readonly class RecordCheckpointHandler implements OperationHandler
 {

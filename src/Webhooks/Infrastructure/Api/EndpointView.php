@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Api;
+namespace Foresi\Webhooks\Infrastructure\Api;
 
-use App\Shared\Infrastructure\Api\JsonValues;
-use App\Webhooks\Domain\WebhookEndpoint;
+use Foresi\Shared\Infrastructure\Api\JsonValues;
+use Foresi\Webhooks\Domain\WebhookEndpoint;
 
 /**
  * An endpoint as the API and MCP show it. It never holds a secret: those are

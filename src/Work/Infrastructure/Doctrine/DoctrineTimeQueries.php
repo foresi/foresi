@@ -6,32 +6,32 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Doctrine;
+namespace Foresi\Work\Infrastructure\Doctrine;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\OwnerCheck;
-use App\Identity\Application\People;
-use App\Identity\Domain\Membership;
-use App\Work\Application\InvoiceNumbers;
-use App\Work\Application\TaskTime;
-use App\Work\Application\TimeDay;
-use App\Work\Application\TimeEntries;
-use App\Work\Application\TimeEntryRow;
-use App\Work\Application\TimeGrouping;
-use App\Work\Application\TimeQueries;
-use App\Work\Application\TimeReport;
-use App\Work\Application\TimeReportFilter;
-use App\Work\Application\TimeTarget;
-use App\Work\Application\TimeTotal;
-use App\Work\Application\TimeWeek;
-use App\Work\Application\WorkScope;
-use App\Work\Application\WorkVisibility;
-use App\Work\Domain\Project;
-use App\Work\Domain\Task;
-use App\Work\Domain\TimeEntry;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\OwnerCheck;
+use Foresi\Identity\Application\People;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Work\Application\InvoiceNumbers;
+use Foresi\Work\Application\TaskTime;
+use Foresi\Work\Application\TimeDay;
+use Foresi\Work\Application\TimeEntries;
+use Foresi\Work\Application\TimeEntryRow;
+use Foresi\Work\Application\TimeGrouping;
+use Foresi\Work\Application\TimeQueries;
+use Foresi\Work\Application\TimeReport;
+use Foresi\Work\Application\TimeReportFilter;
+use Foresi\Work\Application\TimeTarget;
+use Foresi\Work\Application\TimeTotal;
+use Foresi\Work\Application\TimeWeek;
+use Foresi\Work\Application\WorkScope;
+use Foresi\Work\Application\WorkVisibility;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TimeEntry;
 
 /**
  * The read side of time in DQL. A query keeps to the scope of WorkVisibility

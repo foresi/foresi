@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Events\Fixtures\Valid;
+namespace Foresi\Tests\Events\Fixtures\Valid;
 
 /**
  * A synchronous listener in the module of the event it listens to.

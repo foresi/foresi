@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Twig;
+namespace Foresi\Identity\Infrastructure\Twig;
 
-use App\Identity\Application\Organisation;
+use Foresi\Identity\Application\Organisation;
 
 /**
  * What the app shell shows about the signed-in user and the organisation; $member

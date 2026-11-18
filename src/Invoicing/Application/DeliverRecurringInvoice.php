@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\RecurringDelivery;
-use App\Invoicing\Domain\RecurringInvoice;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\RecurringDelivery;
+use Foresi\Invoicing\Domain\RecurringInvoice;
 
 /**
  * Sends an invoice a recurring template issued, as the send dialog would open:

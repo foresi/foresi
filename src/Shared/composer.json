@@ -7,7 +7,7 @@
         "foresi": {
             "module": "shared",
             "kind": "core",
-            "namespace": "App\\Shared\\",
+            "namespace": "Foresi\\Shared\\",
             "optional": []
         }
     }

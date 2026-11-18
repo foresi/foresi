@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-use App\Tests\Invoicing\Infrastructure\Support\ReminderWorker;
+use Foresi\Tests\Invoicing\Infrastructure\Support\ReminderWorker;
 
 /*
  * One process of the parallel reminder tests, run from the repository root with

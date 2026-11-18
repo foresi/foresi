@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Application;
 
-use App\Banking\Application\BankMessageParsers;
-use App\Banking\Application\InboundMessages;
-use App\Banking\Application\ParseFailed;
-use App\Banking\Application\ParseFailure;
-use App\Banking\Application\ReparseFailedMessages;
-use App\Banking\Domain\InboundStatus;
-use App\Country\CzechRepublic\Banking\KbNotificationParser;
-use App\Invoicing\Application\PaymentState;
-use App\Tests\Banking\Support\FixedParser;
-use App\Tests\Banking\Support\InboundMailKit;
-use App\Tests\Banking\Support\InboundTestCase;
+use Foresi\Banking\Application\BankMessageParsers;
+use Foresi\Banking\Application\InboundMessages;
+use Foresi\Banking\Application\ParseFailed;
+use Foresi\Banking\Application\ParseFailure;
+use Foresi\Banking\Application\ReparseFailedMessages;
+use Foresi\Banking\Domain\InboundStatus;
+use Foresi\Country\CzechRepublic\Banking\KbNotificationParser;
+use Foresi\Invoicing\Application\PaymentState;
+use Foresi\Tests\Banking\Support\FixedParser;
+use Foresi\Tests\Banking\Support\InboundMailKit;
+use Foresi\Tests\Banking\Support\InboundTestCase;
 use Psr\Log\NullLogger;
 
 /**

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Application;
+namespace Foresi\Tests\Webhooks\Application;
 
-use App\Webhooks\Application\AttemptResult;
+use Foresi\Webhooks\Application\AttemptResult;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

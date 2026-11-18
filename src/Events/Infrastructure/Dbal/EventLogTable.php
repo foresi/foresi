@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Dbal;
+namespace Foresi\Events\Infrastructure\Dbal;
 
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Types\Types;

@@ -6,22 +6,22 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Doctrine;
+namespace Foresi\Party\Infrastructure\Doctrine;
 
-use App\Party\Application\ImportedBy;
-use App\Party\Application\PartyCounts;
-use App\Party\Application\PartyPage;
-use App\Party\Application\PartyQuery;
-use App\Party\Application\PartyRow;
-use App\Party\Domain\ContactLink;
-use App\Party\Domain\EmailPurpose;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyEmail;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
-use App\Party\Domain\RegistryResult;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
+use Foresi\Party\Application\ImportedBy;
+use Foresi\Party\Application\PartyCounts;
+use Foresi\Party\Application\PartyPage;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Application\PartyRow;
+use Foresi\Party\Domain\ContactLink;
+use Foresi\Party\Domain\EmailPurpose;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Party\Domain\RegistryResult;
 
 /**
  * Roles live in a JSON column, so the role filter and the counts

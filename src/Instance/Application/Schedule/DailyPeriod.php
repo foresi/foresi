@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Instance\Application\Schedule;
+namespace Foresi\Instance\Application\Schedule;
 
 /**
  * The day a daily job works for: the local date in the instance's zone, which

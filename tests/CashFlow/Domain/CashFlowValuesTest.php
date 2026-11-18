@@ -6,26 +6,26 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\CashFlow\Domain;
+namespace Foresi\Tests\CashFlow\Domain;
 
-use App\CashFlow\Contract\ExpectedFlow;
-use App\CashFlow\Contract\FlowCategory;
-use App\CashFlow\Contract\FlowCertainty;
-use App\CashFlow\Contract\FlowDirection;
-use App\CashFlow\Contract\FlowFlag;
-use App\CashFlow\Contract\FlowSubject;
-use App\CashFlow\Contract\ForecastPeriod;
-use App\CashFlow\Contract\PeriodKind;
-use App\CashFlow\Domain\MatchRule;
-use App\CashFlow\Domain\MinimumBalance;
-use App\CashFlow\Domain\PlannedItem;
-use App\CashFlow\Domain\PlannedItemTerms;
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\CashFlow\Contract\ExpectedFlow;
+use Foresi\CashFlow\Contract\FlowCategory;
+use Foresi\CashFlow\Contract\FlowCertainty;
+use Foresi\CashFlow\Contract\FlowDirection;
+use Foresi\CashFlow\Contract\FlowFlag;
+use Foresi\CashFlow\Contract\FlowSubject;
+use Foresi\CashFlow\Contract\ForecastPeriod;
+use Foresi\CashFlow\Contract\PeriodKind;
+use Foresi\CashFlow\Domain\MatchRule;
+use Foresi\CashFlow\Domain\MinimumBalance;
+use Foresi\CashFlow\Domain\PlannedItem;
+use Foresi\CashFlow\Domain\PlannedItemTerms;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use PHPUnit\Framework\TestCase;
 
 /**

@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\RecurringInvoice;
-use App\Invoicing\Domain\VatRegime;
-use App\Party\Application\ContactSettingsForFirm;
-use App\Party\Application\FirmBankAccounts;
-use App\Party\Application\PartyQuery;
-use App\Party\Domain\Iban;
-use App\Party\Domain\InvalidIban;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Party\Domain\PaymentMethod;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\RecurringInvoice;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Domain\Iban;
+use Foresi\Party\Domain\InvalidIban;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PaymentMethod;
 
 /**
  * What a recurring template must be to be saved. It meets the firm and line checks

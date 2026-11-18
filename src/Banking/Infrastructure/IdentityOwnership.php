@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure;
+namespace Foresi\Banking\Infrastructure;
 
-use App\Banking\Application\Ownership;
-use App\Identity\Application\OwnerCheck;
+use Foresi\Banking\Application\Ownership;
+use Foresi\Identity\Application\OwnerCheck;
 
 /**
  * The owner of the active organisation, as the membership says.

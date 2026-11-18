@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Doctrine;
+namespace Foresi\Party\Infrastructure\Doctrine;
 
-use App\Party\Application\ContactLinks;
-use App\Party\Domain\ContactLink;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Party\Application\ContactLinks;
+use Foresi\Party\Domain\ContactLink;
 
 final readonly class DoctrineContactLinks implements ContactLinks
 {

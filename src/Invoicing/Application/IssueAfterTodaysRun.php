@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\RecurringState;
+use Foresi\Invoicing\Domain\RecurringState;
 
 /**
  * A template saved or resumed with a date due today, or earlier, waits for the

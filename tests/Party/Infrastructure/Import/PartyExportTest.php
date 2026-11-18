@@ -6,23 +6,23 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Infrastructure\Import;
+namespace Foresi\Tests\Party\Infrastructure\Import;
 
-use App\Import\Application\ExportRecords;
-use App\Import\Application\Source\SourceFormat;
-use App\Import\Application\Source\SourceSettings;
-use App\Import\Domain\ColumnMatcher;
-use App\Import\Domain\ColumnProposal;
-use App\Import\Domain\MatchReason;
-use App\Import\Domain\NormalisationOptions;
-use App\Import\Domain\ValueNormaliser;
-use App\Import\Infrastructure\Source\OpenSpoutSourceReader;
-use App\Party\Application\CreateParty;
-use App\Party\Domain\Address;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Import\Application\ExportRecords;
+use Foresi\Import\Application\Source\SourceFormat;
+use Foresi\Import\Application\Source\SourceSettings;
+use Foresi\Import\Domain\ColumnMatcher;
+use Foresi\Import\Domain\ColumnProposal;
+use Foresi\Import\Domain\MatchReason;
+use Foresi\Import\Domain\NormalisationOptions;
+use Foresi\Import\Domain\ValueNormaliser;
+use Foresi\Import\Infrastructure\Source\OpenSpoutSourceReader;
+use Foresi\Party\Application\CreateParty;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -71,7 +71,7 @@ final class PartyExportTest extends KernelTestCase
 
         $reader = new OpenSpoutSourceReader();
         $inspection = $reader->inspect($this->path);
-        $fields = self::getContainer()->get(\App\Import\Application\Target\TargetRegistry::class)->get('party')->fields();
+        $fields = self::getContainer()->get(\Foresi\Import\Application\Target\TargetRegistry::class)->get('party')->fields();
         self::assertCount(\count($fields), $inspection->headers);
         $translator = self::getContainer()->get(TranslatorInterface::class);
         $proposals = new ColumnMatcher(new ValueNormaliser())->propose(
@@ -110,13 +110,13 @@ final class PartyExportTest extends KernelTestCase
 
     public function testTheKindNamesOfTheExportReadBackInBothLanguages(): void
     {
-        $kind = array_values(array_filter(self::getContainer()->get(\App\Import\Application\Target\TargetRegistry::class)->get('party')->fields(), static fn ($field): bool => 'kind' === $field->key))[0];
+        $kind = array_values(array_filter(self::getContainer()->get(\Foresi\Import\Application\Target\TargetRegistry::class)->get('party')->fields(), static fn ($field): bool => 'kind' === $field->key))[0];
         $normaliser = new ValueNormaliser();
 
         foreach (['Firma' => 'company', 'company' => 'company', 'Company' => 'company', 'OSVČ' => 'sole_trader', 'osvc' => 'sole_trader', 'Sole trader' => 'sole_trader', 'Osoba' => 'person', 'person' => 'person'] as $text => $key) {
             self::assertSame($key, $normaliser->normalise($kind, $text, new NormalisationOptions(), []), $text);
         }
-        self::assertInstanceOf(\App\Import\Domain\RowError::class, $normaliser->normalise($kind, 'Spaceship', new NormalisationOptions(), []));
+        self::assertInstanceOf(\Foresi\Import\Domain\RowError::class, $normaliser->normalise($kind, 'Spaceship', new NormalisationOptions(), []));
     }
 
     /**
@@ -137,7 +137,7 @@ final class PartyExportTest extends KernelTestCase
         self::assertStringContainsString("'=HYPERLINK", (string) file_get_contents($this->path));
     }
 
-    private function createParty(string $name): \App\Party\Domain\Party
+    private function createParty(string $name): \Foresi\Party\Domain\Party
     {
         return self::getContainer()->get(CreateParty::class)->create(PartyKind::SoleTrader, $name, null, null, 'info@example.com', '', [PartyRole::Customer], new Address('Example Street 1', 'Example City', '100 00', 'CZ'));
     }

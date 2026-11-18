@@ -6,33 +6,33 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application\Query;
+namespace Foresi\Tests\Invoicing\Application\Query;
 
-use App\Invoicing\Application\AllocationRequest;
-use App\Invoicing\Application\InvoiceFilter;
-use App\Invoicing\Application\InvoicePage;
-use App\Invoicing\Application\InvoiceRow;
-use App\Invoicing\Application\InvoiceSums;
-use App\Invoicing\Application\InvoicingNotAllowed;
-use App\Invoicing\Application\PaymentRequest;
-use App\Invoicing\Application\PaymentState;
-use App\Invoicing\Application\Query\InvoiceList;
-use App\Invoicing\Application\Query\InvoiceListItem;
-use App\Invoicing\Application\Query\InvoiceSlice;
-use App\Invoicing\Application\Query\InvoiceSliceFilter;
-use App\Invoicing\Application\RecordPayment;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\PaymentSource;
-use App\Party\Domain\Address;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PaymentMethod;
-use App\Party\Domain\RegistrationNumber;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Application\AllocationRequest;
+use Foresi\Invoicing\Application\InvoiceFilter;
+use Foresi\Invoicing\Application\InvoicePage;
+use Foresi\Invoicing\Application\InvoiceRow;
+use Foresi\Invoicing\Application\InvoiceSums;
+use Foresi\Invoicing\Application\InvoicingNotAllowed;
+use Foresi\Invoicing\Application\PaymentRequest;
+use Foresi\Invoicing\Application\PaymentState;
+use Foresi\Invoicing\Application\Query\InvoiceList;
+use Foresi\Invoicing\Application\Query\InvoiceListItem;
+use Foresi\Invoicing\Application\Query\InvoiceSlice;
+use Foresi\Invoicing\Application\Query\InvoiceSliceFilter;
+use Foresi\Invoicing\Application\RecordPayment;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 
 final class InvoiceListTest extends InvoicingReadTestCase
 {

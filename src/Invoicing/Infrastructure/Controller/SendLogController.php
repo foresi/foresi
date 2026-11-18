@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Controller;
+namespace Foresi\Invoicing\Infrastructure\Controller;
 
-use App\Identity\Application\StaffCheck;
-use App\Invoicing\Application\InvoiceSends;
-use App\Invoicing\Application\InvoicingCountries;
-use App\Invoicing\Application\SendLogFilter;
-use App\Invoicing\Application\SendLogRow;
-use App\Invoicing\Application\UnsupportedCountry;
-use App\Invoicing\Domain\SendPurpose;
-use App\Invoicing\Domain\SendStatus;
-use App\Invoicing\Infrastructure\Form\SendFailureText;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Invoicing\Application\InvoiceSends;
+use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Invoicing\Application\SendLogFilter;
+use Foresi\Invoicing\Application\SendLogRow;
+use Foresi\Invoicing\Application\UnsupportedCountry;
+use Foresi\Invoicing\Domain\SendPurpose;
+use Foresi\Invoicing\Domain\SendStatus;
+use Foresi\Invoicing\Infrastructure\Form\SendFailureText;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

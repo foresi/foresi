@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Api;
+namespace Foresi\Purchasing\Infrastructure\Api;
 
-use App\Purchasing\Application\Query\ReceivedDocumentSliceFilter;
-use App\Purchasing\Domain\ReceivedDocumentState;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentSliceFilter;
+use Foresi\Purchasing\Domain\ReceivedDocumentState;
 use Symfony\Component\Serializer\Attribute\SerializedName;
 use Symfony\Component\Validator\Constraints as Assert;
 

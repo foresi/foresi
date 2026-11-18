@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Domain;
+namespace Foresi\Tests\Party\Domain;
 
-use App\Party\Domain\RegistryCheck;
-use App\Party\Domain\RegistryResult;
-use App\Party\Domain\RegistrySource;
+use Foresi\Party\Domain\RegistryCheck;
+use Foresi\Party\Domain\RegistryResult;
+use Foresi\Party\Domain\RegistrySource;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

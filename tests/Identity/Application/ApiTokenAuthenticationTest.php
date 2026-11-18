@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Application;
+namespace Foresi\Tests\Identity\Application;
 
-use App\Identity\Application\ApiTokenAuthentication;
-use App\Identity\Application\ApiTokenGrant;
-use App\Identity\Application\ApiTokenRecord;
-use App\Identity\Application\ApiTokenRefused;
-use App\Identity\Application\MembershipDirectory;
-use App\Identity\Domain\ApiScope;
-use App\Identity\Domain\ApiTokenSecret;
-use App\Identity\Domain\Role;
-use App\Tests\Identity\Support\InMemoryApiTokens;
+use Foresi\Identity\Application\ApiTokenAuthentication;
+use Foresi\Identity\Application\ApiTokenGrant;
+use Foresi\Identity\Application\ApiTokenRecord;
+use Foresi\Identity\Application\ApiTokenRefused;
+use Foresi\Identity\Application\MembershipDirectory;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Identity\Domain\ApiTokenSecret;
+use Foresi\Identity\Domain\Role;
+use Foresi\Tests\Identity\Support\InMemoryApiTokens;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Http;
+namespace Foresi\Webhooks\Infrastructure\Http;
 
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpClient\NoPrivateNetworkHttpClient;

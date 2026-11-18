@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Domain;
+namespace Foresi\Purchasing\Domain;
 
-use App\Audit\Domain\Audited;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Id;
-use App\Shared\Domain\Money;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Domain\Money;
 
 /**
  * One payment of a recorded received document, built the way the payments of

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
-use App\Party\Domain\VatId;
+use Foresi\Party\Domain\VatId;
 
 /**
  * The tax authority's register of unreliable VAT payers. Never throws: an

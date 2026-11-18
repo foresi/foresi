@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application;
+namespace Foresi\Import\Application;
 
 /** Keeps the uploaded source files out of the public web root until they are purged. */
 interface ImportFiles

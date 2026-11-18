@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Contract\Event;
+namespace Foresi\Purchasing\Contract\Event;
 
-use App\Shared\Domain\Event\DomainEvent;
-use App\Shared\Domain\Event\DomainEventPayload;
-use App\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Domain\Event\DomainEvent;
+use Foresi\Shared\Domain\Event\DomainEventPayload;
+use Foresi\Shared\Domain\Event\EventSubject;
 
 /**
  * A received document was recorded for the first time, from a draft or typed in at once, on a screen or over the API. The total is what the document asks to be paid, in its currency, as a decimal (negative for a credit note); the due date is YYYY-MM-DD or null. The supplier is a contact id, never its name.

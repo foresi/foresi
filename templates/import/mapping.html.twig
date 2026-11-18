@@ -1,7 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {% extends 'import/_flow.html.twig' %}
 
-{% set token = csrf_token(constant('App\\Import\\Infrastructure\\Controller\\ImportController::TOKEN')) %}
+{% set token = csrf_token(constant('Foresi\\Import\\Infrastructure\\Controller\\ImportController::TOKEN')) %}
 {% set source = screen.source %}
 {% set options = screen.options %}
 {% set form_invalid = screen.invalid %}

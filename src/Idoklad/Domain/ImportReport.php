@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Domain;
+namespace Foresi\Idoklad\Domain;
 
 /**
  * What one import did, record by record and stage by stage. A refusal names its

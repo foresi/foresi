@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Mail;
+namespace Foresi\Identity\Infrastructure\Mail;
 
-use App\Identity\Application\InvitationMailer;
-use App\Identity\Domain\Invitation;
-use App\Identity\Infrastructure\Controller\InvitationController;
-use App\Shared\Application\SystemMail;
-use App\Shared\Application\SystemMailer;
+use Foresi\Identity\Application\InvitationMailer;
+use Foresi\Identity\Domain\Invitation;
+use Foresi\Identity\Infrastructure\Controller\InvitationController;
+use Foresi\Shared\Application\SystemMail;
+use Foresi\Shared\Application\SystemMailer;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;

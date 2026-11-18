@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Domain;
+namespace Foresi\Timesheet\Domain;
 
 /**
  * Where an hourly rate came from, in the order the levels are asked.

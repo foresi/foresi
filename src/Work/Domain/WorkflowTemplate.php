@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Domain;
+namespace Foresi\Work\Domain;
 
 /**
  * A set of statuses. A new project starts with the simple one; a template

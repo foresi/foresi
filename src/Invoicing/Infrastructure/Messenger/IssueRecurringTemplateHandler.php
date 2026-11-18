@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Messenger;
+namespace Foresi\Invoicing\Infrastructure\Messenger;
 
-use App\Invoicing\Application\IssueRecurringInvoices;
-use App\Invoicing\Application\IssueRecurringTemplate;
+use Foresi\Invoicing\Application\IssueRecurringInvoices;
+use Foresi\Invoicing\Application\IssueRecurringTemplate;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**

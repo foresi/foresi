@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application\Source;
+namespace Foresi\Import\Application\Source;
 
 /**
  * A source file that must not be read. The reason is a translation key under

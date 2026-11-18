@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Domain;
+namespace Foresi\Tests\Party\Domain;
 
-use App\Party\Domain\InvalidVatId;
-use App\Party\Domain\VatId;
+use Foresi\Party\Domain\InvalidVatId;
+use Foresi\Party\Domain\VatId;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

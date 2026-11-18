@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Domain;
+namespace Foresi\Purchasing\Domain;
 
 /**
  * What a received document is. A tax invoice and a simplified receipt are

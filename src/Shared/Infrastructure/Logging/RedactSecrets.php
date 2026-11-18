@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Logging;
+namespace Foresi\Shared\Infrastructure\Logging;
 
 use Monolog\Attribute\AsMonologProcessor;
 use Monolog\LogRecord;

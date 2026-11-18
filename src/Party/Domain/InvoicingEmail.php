@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Domain;
+namespace Foresi\Party\Domain;
 
 /**
  * An address invoices go to, as the owner enters it. The general e-mail of a

@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Doctrine;
+namespace Foresi\Party\Infrastructure\Doctrine;
 
-use App\Audit\Domain\AuditEntry;
-use App\Party\Domain\ContactLink;
-use App\Party\Domain\Party;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Party\Domain\ContactLink;
+use Foresi\Party\Domain\Party;
 
 /**
  * Whether parties changed after a point in time: the parties themselves and

@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\InboundStatus;
-use App\Banking\Domain\MessageTrust;
-use App\Invoicing\Application\ConflictRetry;
-use App\Party\Application\FirmBankAccounts;
-use App\Party\Application\TransactionalWork;
-use App\Party\Domain\FirmBankAccount;
-use App\Party\Domain\Iban;
-use App\Party\Domain\InvalidIban;
-use App\Party\Domain\LegalEntity;
+use Foresi\Banking\Domain\InboundStatus;
+use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Invoicing\Application\ConflictRetry;
+use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Party\Domain\Iban;
+use Foresi\Party\Domain\InvalidIban;
+use Foresi\Party\Domain\LegalEntity;
 use Psr\Clock\ClockInterface;
 
 /**

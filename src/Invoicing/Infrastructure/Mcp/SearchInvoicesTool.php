@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Mcp;
+namespace Foresi\Invoicing\Infrastructure\Mcp;
 
-use App\Invoicing\Application\InvoicingNotAllowed;
-use App\Invoicing\Application\Query\InvoiceList;
-use App\Invoicing\Application\Query\InvoiceSliceFilter;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Infrastructure\Api\InvoiceJson;
-use App\Invoicing\Infrastructure\Api\InvoiceListQuery;
-use App\Shared\Infrastructure\Mcp\ReadTool;
-use App\Shared\Infrastructure\Mcp\ToolArguments;
-use App\Shared\Infrastructure\Mcp\ToolOutput;
-use App\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Invoicing\Application\InvoicingNotAllowed;
+use Foresi\Invoicing\Application\Query\InvoiceList;
+use Foresi\Invoicing\Application\Query\InvoiceSliceFilter;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Infrastructure\Api\InvoiceJson;
+use Foresi\Invoicing\Infrastructure\Api\InvoiceListQuery;
+use Foresi\Shared\Infrastructure\Mcp\ReadTool;
+use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
+use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 
 /**
  * The sales documents of the organisation, narrowed and paged as GET

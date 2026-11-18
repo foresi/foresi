@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Invoicing\Application\AdvanceDocuments;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\Payment;
-use App\Invoicing\Domain\PaymentAllocation;
-use App\Invoicing\Domain\PaymentDirection;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Invoicing\Application\AdvanceDocuments;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Payment;
+use Foresi\Invoicing\Domain\PaymentAllocation;
+use Foresi\Invoicing\Domain\PaymentDirection;
 
 final readonly class DoctrineAdvanceDocuments implements AdvanceDocuments
 {

@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Country\CzechRepublic\Registry;
+namespace Foresi\Country\CzechRepublic\Registry;
 
-use App\Party\Application\ReliabilityResult;
-use App\Party\Application\VatPayerReliability;
-use App\Party\Domain\RegistryCheck;
-use App\Party\Domain\RegistryResult;
-use App\Party\Domain\RegistrySource;
-use App\Party\Domain\VatId;
-use App\Shared\Infrastructure\Registry\PublicRegistryClient;
-use App\Shared\Infrastructure\Registry\RegistryCache;
+use Foresi\Party\Application\ReliabilityResult;
+use Foresi\Party\Application\VatPayerReliability;
+use Foresi\Party\Domain\RegistryCheck;
+use Foresi\Party\Domain\RegistryResult;
+use Foresi\Party\Domain\RegistrySource;
+use Foresi\Party\Domain\VatId;
+use Foresi\Shared\Infrastructure\Registry\PublicRegistryClient;
+use Foresi\Shared\Infrastructure\Registry\RegistryCache;
 use Psr\Clock\ClockInterface;
 
 /**

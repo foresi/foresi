@@ -74,7 +74,7 @@ An actual source that fails is listed in `unavailable_sources`, and then nothing
 
 ## Plugging in a source
 
-A module that expects money implements `App\CashFlow\Contract\CashFlowSource` in its `Integration/CashFlow/` directory, declares `cash-flow` in `extra.foresi.optional` of its manifest (ADR 0033), and is collected by the tag `app.cash_flow_source`:
+A module that expects money implements `Foresi\CashFlow\Contract\CashFlowSource` in its `Integration/CashFlow/` directory, declares `cash-flow` in `extra.foresi.optional` of its manifest (ADR 0033), and is collected by the tag `app.cash_flow_source`:
 
 ```php
 interface CashFlowSource
@@ -91,8 +91,8 @@ interface CashFlowSource
 
 An `ExpectedFlow` carries the source key, its subject (type, id and API URL), the direction, a positive `Money`, the expected day, the category, the certainty (`document`, `schedule`, `plan` or `estimate`), a label, flags (`estimated`, `no_due_date`) and an optional counterparty id. A source returns open flows only, overdue ones included. When `mayReadDetails()` is false, the forecast shows only the totals of its flows, never a document.
 
-A module whose documents or movements stand for planned money also implements `App\CashFlow\Contract\ActualFlowSource` (tag `app.cash_flow_actual_source`): `actuals(firmId, from, to)` returns `ActualFlow`s with the source key, the subject, the direction, the amount, the day, and the counterparty id (a document) or the counter account and variable symbol (a bank movement).
+A module whose documents or movements stand for planned money also implements `Foresi\CashFlow\Contract\ActualFlowSource` (tag `app.cash_flow_actual_source`): `actuals(firmId, from, to)` returns `ActualFlow`s with the source key, the subject, the direction, the amount, the day, and the counterparty id (a document) or the counter account and variable symbol (a bank movement).
 
-A balance source implements `App\CashFlow\Contract\BalanceSource` (tag `app.cash_flow_balance_source`): given the latest `BalanceCheckpoint` of an account and today, it answers an `AccountBalance` with the amount and the last day its knowledge reaches, or null when it does not know the account. The first source that answers for an account wins.
+A balance source implements `Foresi\CashFlow\Contract\BalanceSource` (tag `app.cash_flow_balance_source`): given the latest `BalanceCheckpoint` of an account and today, it answers an `AccountBalance` with the amount and the last day its knowledge reaches, or null when it does not know the account. The first source that answers for an account wins.
 
 The planned items of Cash flow are a source of their own, `cash-flow.planned_items`.

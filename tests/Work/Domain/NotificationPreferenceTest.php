@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Work\Domain;
+namespace Foresi\Tests\Work\Domain;
 
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Shared\Domain\Id;
-use App\Work\Domain\EmailDelivery;
-use App\Work\Domain\NotificationKind;
-use App\Work\Domain\NotificationPreference;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Shared\Domain\Id;
+use Foresi\Work\Domain\EmailDelivery;
+use Foresi\Work\Domain\NotificationKind;
+use Foresi\Work\Domain\NotificationPreference;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

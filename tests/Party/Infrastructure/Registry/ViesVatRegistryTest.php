@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Infrastructure\Registry;
+namespace Foresi\Tests\Party\Infrastructure\Registry;
 
-use App\Party\Domain\RegistryResult;
-use App\Party\Domain\RegistrySource;
-use App\Party\Domain\VatId;
-use App\Party\Infrastructure\Registry\ViesVatRegistry;
-use App\Tests\Support\Registry\RegistryTestKit;
+use Foresi\Party\Domain\RegistryResult;
+use Foresi\Party\Domain\RegistrySource;
+use Foresi\Party\Domain\VatId;
+use Foresi\Party\Infrastructure\Registry\ViesVatRegistry;
+use Foresi\Tests\Support\Registry\RegistryTestKit;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Cache\CacheItem;
 use Symfony\Component\HttpClient\Response\MockResponse;

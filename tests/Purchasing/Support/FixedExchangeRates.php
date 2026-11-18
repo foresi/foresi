@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Purchasing\Support;
+namespace Foresi\Tests\Purchasing\Support;
 
-use App\ExchangeRate\Application\ExchangeRates;
-use App\ExchangeRate\Domain\ExchangeRate;
-use App\ExchangeRate\Domain\RateNotAvailable;
+use Foresi\ExchangeRate\Application\ExchangeRates;
+use Foresi\ExchangeRate\Domain\ExchangeRate;
+use Foresi\ExchangeRate\Domain\RateNotAvailable;
 
 /**
  * Rates set by the test, published on the day asked for unless told

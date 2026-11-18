@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Form;
+namespace Foresi\Invoicing\Infrastructure\Form;
 
-use App\Invoicing\Application\FirmInvoicingSettings;
-use App\Invoicing\Application\InvoicingCountries;
-use App\Invoicing\Application\InvoicingCountry;
-use App\Invoicing\Application\UnsupportedCountry;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\TotalRounding;
-use App\Invoicing\Domain\VatRegime;
-use App\Party\Domain\LegalEntity;
-use App\Shared\Domain\Currency;
+use Foresi\Invoicing\Application\FirmInvoicingSettings;
+use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Invoicing\Application\InvoicingCountry;
+use Foresi\Invoicing\Application\UnsupportedCountry;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\TotalRounding;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Domain\Currency;
 
 /**
  * What a form works under: for a new document the firm as it is now, for a stored

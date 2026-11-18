@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\Payment;
-use App\Party\Domain\LegalEntity;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Payment;
+use Foresi\Party\Domain\LegalEntity;
 
 /**
  * The imported documents and payments. Call remove() and

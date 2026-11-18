@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Domain;
+namespace Foresi\CashFlow\Domain;
 
-use App\CashFlow\Contract\FlowCategory;
-use App\Party\Domain\Party;
-use App\Shared\Domain\Money;
-use App\Shared\Domain\Schedule\Recurrence;
+use Foresi\CashFlow\Contract\FlowCategory;
+use Foresi\Party\Domain\Party;
+use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\Schedule\Recurrence;
 
 /**
  * What a planned item says, checked already: a positive amount, a name, and

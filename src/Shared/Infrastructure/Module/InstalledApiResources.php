@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Module;
+namespace Foresi\Shared\Infrastructure\Module;
 
-use App\Shared\Application\Api\ApiResources;
+use Foresi\Shared\Application\Api\ApiResources;
 
 /**
  * The API resources of the installed modules, as their manifests declare them.

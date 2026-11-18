@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Api;
+namespace Foresi\Shared\Infrastructure\Api;
 
-use App\Shared\Application\Api\ApiClient;
+use Foresi\Shared\Application\Api\ApiClient;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\RequestEvent;

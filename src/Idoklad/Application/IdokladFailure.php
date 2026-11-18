@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application;
+namespace Foresi\Idoklad\Application;
 
 /**
  * iDoklad gave no usable answer. The message is safe to show: it never holds

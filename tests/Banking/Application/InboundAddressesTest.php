@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Application;
 
-use App\Banking\Application\AddressRefusal;
-use App\Banking\Application\AddressRefused;
-use App\Banking\Application\InboundAddresses;
+use Foresi\Banking\Application\AddressRefusal;
+use Foresi\Banking\Application\AddressRefused;
+use Foresi\Banking\Application\InboundAddresses;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\ExchangeRate\Infrastructure\Console;
+namespace Foresi\ExchangeRate\Infrastructure\Console;
 
-use App\ExchangeRate\Application\FetchRates;
-use App\ExchangeRate\Application\PublishedRates;
-use App\ExchangeRate\Application\RateSource;
+use Foresi\ExchangeRate\Application\FetchRates;
+use Foresi\ExchangeRate\Application\PublishedRates;
+use Foresi\ExchangeRate\Application\RateSource;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;

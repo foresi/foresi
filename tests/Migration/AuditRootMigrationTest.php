@@ -6,16 +6,8 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Migration;
+namespace Foresi\Tests\Migration;
 
-use App\Identity\Domain\Membership;
-use App\Party\Domain\ContactLink;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyBankAccount;
-use App\Party\Domain\PartyEmail;
-use App\Party\Infrastructure\Doctrine\VatIdType;
-use App\Shared\Domain\Id;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\ParameterType;
@@ -28,6 +20,14 @@ use Doctrine\Migrations\Configuration\Migration\ConfigurationArray;
 use Doctrine\Migrations\DependencyFactory;
 use Doctrine\Migrations\MigratorConfiguration;
 use Doctrine\Migrations\Version\Version;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Party\Domain\ContactLink;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyBankAccount;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Infrastructure\Doctrine\VatIdType;
+use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -116,7 +116,7 @@ final class AuditRootMigrationTest extends TestCase
         self::assertIsString($row['root_class']);
         self::assertIsString($row['root_id']);
 
-        return [$row['root_class'], $row['root_id']];
+        return [self::current($row['root_class']), $row['root_id']];
     }
 
     private function seed(): void
@@ -153,7 +153,7 @@ final class AuditRootMigrationTest extends TestCase
     private function audit(string $label, string $class, string $id): void
     {
         $this->tenantRow('audit_entry', [
-            'id' => Id::generate(), 'entity_class' => $class, 'entity_id' => $id, 'action' => 'created', 'changes' => '{}',
+            'id' => Id::generate(), 'entity_class' => self::stored($class), 'entity_id' => $id, 'action' => 'created', 'changes' => '{}',
             'user_id' => null, 'occurred_at' => self::AT, 'correlation_id' => $label,
         ]);
     }
@@ -207,5 +207,18 @@ final class AuditRootMigrationTest extends TestCase
             new Version($version ?? self::UNTIL),
         );
         $migrations->getMigrator()->migrate($plan, new MigratorConfiguration());
+    }
+
+    /**
+     * The name a class was stored under before the modules moved from App\ to Foresi\ (Version20261118100001).
+     */
+    private static function stored(string $class): string
+    {
+        return 'App\\'.substr($class, \strlen('Foresi\\'));
+    }
+
+    private static function current(string $stored): string
+    {
+        return str_starts_with($stored, 'App\\') ? 'Foresi\\'.substr($stored, \strlen('App\\')) : $stored;
     }
 }

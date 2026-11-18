@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Domain;
+namespace Foresi\Tests\Identity\Domain;
 
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Shared\Domain\Id;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

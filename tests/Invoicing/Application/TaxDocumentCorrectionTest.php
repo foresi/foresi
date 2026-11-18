@@ -6,29 +6,29 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\AdvanceDocuments;
-use App\Invoicing\Application\AllocationRequest;
-use App\Invoicing\Application\CorrectInvoice;
-use App\Invoicing\Application\CorrectionInput;
-use App\Invoicing\Application\CorrectionRules;
-use App\Invoicing\Application\CorrectPaymentTaxDocument;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Application\PaymentRequest;
-use App\Invoicing\Application\UncorrectedTaxDocument;
-use App\Invoicing\Application\UncorrectedTaxDocuments;
-use App\Invoicing\Domain\CorrectionType;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\Payment;
-use App\Invoicing\Domain\PaymentDirection;
-use App\Invoicing\Domain\PaymentSource;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Quantity;
-use App\Invoicing\Domain\VatRateKind;
-use App\Party\Domain\PaymentMethod;
-use App\Tests\Party\Support\FirmAccounts;
+use Foresi\Invoicing\Application\AdvanceDocuments;
+use Foresi\Invoicing\Application\AllocationRequest;
+use Foresi\Invoicing\Application\CorrectInvoice;
+use Foresi\Invoicing\Application\CorrectionInput;
+use Foresi\Invoicing\Application\CorrectionRules;
+use Foresi\Invoicing\Application\CorrectPaymentTaxDocument;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Application\PaymentRequest;
+use Foresi\Invoicing\Application\UncorrectedTaxDocument;
+use Foresi\Invoicing\Application\UncorrectedTaxDocuments;
+use Foresi\Invoicing\Domain\CorrectionType;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Payment;
+use Foresi\Invoicing\Domain\PaymentDirection;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Tests\Party\Support\FirmAccounts;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 
@@ -136,7 +136,7 @@ final class TaxDocumentCorrectionTest extends AdvanceTestCase
         $this->refund($advance, '2100.00', '2026-11-18');
         $trashed = array_values(array_filter($this->taxDocumentsOf($advance), static fn (Invoice $document): bool => $document->isTrashed()));
 
-        $this->expectException(\App\Invoicing\Application\PaymentRefused::class);
+        $this->expectException(\Foresi\Invoicing\Application\PaymentRefused::class);
         $this->trash->restore($trashed[0]->id());
     }
 
@@ -440,7 +440,7 @@ final class TaxDocumentCorrectionTest extends AdvanceTestCase
         return self::getContainer()->get(UncorrectedTaxDocuments::class)->on(new \DateTimeImmutable('2026-11-20'));
     }
 
-    private function correctionInput(Invoice $document, string $gross): \App\Invoicing\Application\InvoiceInput
+    private function correctionInput(Invoice $document, string $gross): \Foresi\Invoicing\Application\InvoiceInput
     {
         $line = $this->line(ltrim($gross, '-'), PriceType::WithVat);
         $line = new LineInput($line->text, Quantity::fromString(str_starts_with($gross, '-') ? '-1' : '1'), $line->unit, $line->price, $line->priceType, $line->treatment, $line->rateKind, $line->supplyCode, $line->discount);

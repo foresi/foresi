@@ -9,7 +9,7 @@
 
 {% block dialog_body %}
     <form method="post" id="trash-form" action="{{ path('app_purchasing_trash', {id: document.id}) }}" class="grid gap-4" novalidate>
-        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Purchasing\\Infrastructure\\Controller\\ReceivedDocumentListController::TOKEN')) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Purchasing\\Infrastructure\\Controller\\ReceivedDocumentListController::TOKEN')) }}">
         <p class="m-0 text-muted">{{ 'purchasing.trash.keeps'|trans }}</p>
         <twig:Ui:Textarea name="reason" id="trash-reason" :label="'purchasing.trash.reason'|trans" :help="'purchasing.trash.reason_help'|trans" :value="reason" :error="error" :required="true" :rows="3" :maxlength="maxReason" />
     </form>

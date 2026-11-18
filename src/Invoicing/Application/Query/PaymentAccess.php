@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application\Query;
+namespace Foresi\Invoicing\Application\Query;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\StaffCheck;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\StaffCheck;
 
 /**
  * Who reads the payments: the owners and the members of the organisation, never

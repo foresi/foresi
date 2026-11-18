@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Application;
+namespace Foresi\CashFlow\Application;
 
-use App\Party\Domain\LegalEntity;
-use App\Shared\Domain\Money;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Domain\Money;
 
 /**
  * The cash-flow forecast of a firm, in CZK at today's rates, computed on read.

@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure\Mail;
+namespace Foresi\Tests\Invoicing\Infrastructure\Mail;
 
-use App\Invoicing\Application\MailMessage;
-use App\Invoicing\Application\MailRefused;
-use App\Invoicing\Domain\FirmMailServer;
-use App\Invoicing\Domain\MailEncryption;
-use App\Invoicing\Infrastructure\Mail\DeadlineSocketStream;
-use App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy;
-use App\Invoicing\Infrastructure\Mail\SodiumMailSecrets;
-use App\Invoicing\Infrastructure\Mail\SymfonyMailGateway;
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
+use Foresi\Invoicing\Application\MailMessage;
+use Foresi\Invoicing\Application\MailRefused;
+use Foresi\Invoicing\Domain\FirmMailServer;
+use Foresi\Invoicing\Domain\MailEncryption;
+use Foresi\Invoicing\Infrastructure\Mail\DeadlineSocketStream;
+use Foresi\Invoicing\Infrastructure\Mail\DnsMailHostPolicy;
+use Foresi\Invoicing\Infrastructure\Mail\SodiumMailSecrets;
+use Foresi\Invoicing\Infrastructure\Mail\SymfonyMailGateway;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Mailer\Exception\TransportException;

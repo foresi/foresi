@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Api;
+namespace Foresi\Webhooks\Infrastructure\Api;
 
-use App\Shared\Infrastructure\Api\InvalidParameter;
-use App\Shared\Infrastructure\Api\ProblemResponse;
-use App\Webhooks\Application\DeliveryNotRedeliverable;
-use App\Webhooks\Application\InvalidWebhookEndpoint;
-use App\Webhooks\Application\InvalidWebhookUrl;
-use App\Webhooks\Application\UnknownWebhookDelivery;
-use App\Webhooks\Application\UnknownWebhookEndpoint;
-use App\Webhooks\Application\WebhookEndpointDisabled;
-use App\Webhooks\Application\WebhookNotAllowed;
-use App\Webhooks\Application\WebhookSecretsUnavailable;
+use Foresi\Shared\Infrastructure\Api\InvalidParameter;
+use Foresi\Shared\Infrastructure\Api\ProblemResponse;
+use Foresi\Webhooks\Application\DeliveryNotRedeliverable;
+use Foresi\Webhooks\Application\InvalidWebhookEndpoint;
+use Foresi\Webhooks\Application\InvalidWebhookUrl;
+use Foresi\Webhooks\Application\UnknownWebhookDelivery;
+use Foresi\Webhooks\Application\UnknownWebhookEndpoint;
+use Foresi\Webhooks\Application\WebhookEndpointDisabled;
+use Foresi\Webhooks\Application\WebhookNotAllowed;
+use Foresi\Webhooks\Application\WebhookSecretsUnavailable;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;

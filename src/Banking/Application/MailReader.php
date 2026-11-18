@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
 /**
  * Reads a raw RFC 5322 message, as fetched from the mailbox or posted to the

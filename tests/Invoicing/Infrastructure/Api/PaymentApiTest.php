@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure\Api;
+namespace Foresi\Tests\Invoicing\Infrastructure\Api;
 
-use App\Identity\Domain\ApiScope;
-use App\Invoicing\Domain\Payment;
-use App\Invoicing\Domain\PaymentDirection;
-use App\Shared\Domain\Id;
-use App\Shared\Infrastructure\Api\Cursor;
-use App\Tests\Shared\Infrastructure\Api\ApiTestCase;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Invoicing\Domain\Payment;
+use Foresi\Invoicing\Domain\PaymentDirection;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Infrastructure\Api\Cursor;
+use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**

@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Console;
+namespace Foresi\Identity\Infrastructure\Console;
 
-use App\Identity\Application\ApiTokenRecord;
-use App\Identity\Application\ApiTokens;
-use App\Identity\Application\UserRepository;
-use App\Identity\Domain\ApiScope;
-use App\Identity\Domain\User;
+use Foresi\Identity\Application\ApiTokenRecord;
+use Foresi\Identity\Application\ApiTokens;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Identity\Domain\User;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;

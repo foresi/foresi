@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Party\Domain\EmailPurpose;
+use Foresi\Party\Domain\EmailPurpose;
 
 /**
  * One address the send dialog offers: an invoicing address of the contact for the

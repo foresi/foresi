@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Ui\Navigation;
+namespace Foresi\Ui\Navigation;
 
 /**
  * Supplies the number shown next to a navigation item. It is only called for a signed-in

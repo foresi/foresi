@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Application;
+namespace Foresi\Shared\Application;
 
 /**
  * What a use case refuses, in a form every surface answers alike (ADR 0032): a

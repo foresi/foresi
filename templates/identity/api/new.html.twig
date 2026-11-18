@@ -15,12 +15,12 @@
     {% if not canIssue %}
         <twig:Ui:Alert tone="warning">
             <span>{{ 'api_tokens.two_factor.text'|trans }}</span>
-            <a href="{{ path(constant('App\\Identity\\Infrastructure\\Controller\\TwoFactorSetupController::SETUP_ROUTE')) }}" data-turbo="false" class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'api_tokens.two_factor.link'|trans }}</a>
+            <a href="{{ path(constant('Foresi\\Identity\\Infrastructure\\Controller\\TwoFactorSetupController::SETUP_ROUTE')) }}" data-turbo="false" class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'api_tokens.two_factor.link'|trans }}</a>
         </twig:Ui:Alert>
     {% else %}
         {# The answer is the page with the secret, which Turbo would refuse as a form answer without a redirect. #}
         <form method="post" id="api-token-form" action="{{ path('app_api_token_new') }}" class="grid gap-4" data-turbo="false" novalidate>
-            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Identity\\Infrastructure\\Controller\\ApiTokenController::TOKEN')) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Identity\\Infrastructure\\Controller\\ApiTokenController::TOKEN')) }}">
 
             {% if errors.form is defined %}
                 <twig:Ui:Alert tone="error">{{ errors.form }}</twig:Ui:Alert>

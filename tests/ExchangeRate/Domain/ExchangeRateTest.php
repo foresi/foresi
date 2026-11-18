@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\ExchangeRate\Domain;
+namespace Foresi\Tests\ExchangeRate\Domain;
 
-use App\ExchangeRate\Application\Quote;
-use App\ExchangeRate\Domain\ExchangeRate;
+use Foresi\ExchangeRate\Application\Quote;
+use Foresi\ExchangeRate\Domain\ExchangeRate;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

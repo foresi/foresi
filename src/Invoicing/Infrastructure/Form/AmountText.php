@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Form;
+namespace Foresi\Invoicing\Infrastructure\Form;
 
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use Symfony\Component\Translation\LocaleSwitcher;
 
 /**

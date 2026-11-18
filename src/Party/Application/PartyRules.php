@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
-use App\Party\Domain\Address;
-use App\Party\Domain\InvalidRegistrationNumber;
-use App\Party\Domain\InvalidVatId;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyEmail;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
-use App\Shared\Domain\Countries;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\InvalidRegistrationNumber;
+use Foresi\Party\Domain\InvalidVatId;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Shared\Domain\Countries;
 
 /**
  * The rules of a contact, the same for the screens, the API and MCP (ADR 0032):

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\ExchangeRate\Application;
+namespace Foresi\ExchangeRate\Application;
 
 /**
  * A currency as a source quotes it: $amount units cost $rate CZK, as a decimal

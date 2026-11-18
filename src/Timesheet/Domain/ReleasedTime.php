@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Domain;
+namespace Foresi\Timesheet\Domain;
 
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Id;
-use App\Shared\Domain\Money;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Domain\Money;
 
 /**
  * A time entry an invoice billed, kept while the invoice is in the trash: the

@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Doctrine;
+namespace Foresi\Work\Infrastructure\Doctrine;
 
-use App\Identity\Domain\Membership;
-use App\Instance\Application\InstanceClock;
-use App\Work\Application\NotificationFilter;
-use App\Work\Application\NotificationPage;
-use App\Work\Application\NotificationQueries;
-use App\Work\Application\NotificationRow;
-use App\Work\Application\WorkVisibility;
-use App\Work\Domain\Notification;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Work\Application\NotificationFilter;
+use Foresi\Work\Application\NotificationPage;
+use Foresi\Work\Application\NotificationQueries;
+use Foresi\Work\Application\NotificationRow;
+use Foresi\Work\Application\WorkVisibility;
+use Foresi\Work\Domain\Notification;
 
 /**
  * The inbox in DQL, kept to the tasks the recipient sees now through

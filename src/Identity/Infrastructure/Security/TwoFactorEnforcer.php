@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Security;
+namespace Foresi\Identity\Infrastructure\Security;
 
-use App\Identity\Infrastructure\Controller\InvitationController;
-use App\Identity\Infrastructure\Controller\LanguageController;
-use App\Identity\Infrastructure\Controller\TwoFactorSetupController;
+use Foresi\Identity\Infrastructure\Controller\InvitationController;
+use Foresi\Identity\Infrastructure\Controller\LanguageController;
+use Foresi\Identity\Infrastructure\Controller\TwoFactorSetupController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;

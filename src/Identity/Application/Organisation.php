@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Application;
+namespace Foresi\Identity\Application;
 
-use App\Identity\Domain\Role;
+use Foresi\Identity\Domain\Role;
 
 /**
  * The organisation of the instance as a user sees it: its name, that of the

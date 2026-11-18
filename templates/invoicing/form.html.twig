@@ -19,7 +19,7 @@
     {% if not blocked|default(null) and not delivered %}
         {% set numberError = errorFields.number|default(null) %}
         <details class="relative"{% if numberError %} open{% endif %}>
-            <summary class="inline-flex size-control cursor-pointer list-none items-center justify-center rounded-control border border-control-line bg-white text-ink hover:bg-head {{ constant('App\\Ui\\Component\\Style::FOCUS') }} [&::-webkit-details-marker]:hidden" title="{{ 'invoice.number.edit'|trans }}" aria-label="{{ 'invoice.number.edit'|trans }}">{{ ux_icon('lucide:pencil', {class: 'size-4', 'aria-hidden': 'true'}) }}</summary>
+            <summary class="inline-flex size-control cursor-pointer list-none items-center justify-center rounded-control border border-control-line bg-white text-ink hover:bg-head {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }} [&::-webkit-details-marker]:hidden" title="{{ 'invoice.number.edit'|trans }}" aria-label="{{ 'invoice.number.edit'|trans }}">{{ ux_icon('lucide:pencil', {class: 'size-4', 'aria-hidden': 'true'}) }}</summary>
             <div class="absolute right-0 z-30 mt-1 w-72 max-w-[calc(100vw-32px)] rounded-panel border border-container bg-white p-3 shadow-floating">
                 <twig:Ui:TextInput name="number" id="number" form="invoice-form" :label="'invoice.number.label'|trans" :help="'invoice.number.help'|trans" :value="values.number" :error="numberError" maxlength="80" autocomplete="off" />
             </div>
@@ -39,7 +39,7 @@
     {% elseif blocked|default(null) == 'cut_off' %}
         <twig:Ui:Alert tone="error" role="alert" data-cut-off>
             <span>{{ 'invoice.cut_off'|trans }}</span>
-            <a href="{{ retry }}" class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'invoice.cut_off_retry'|trans }}</a>
+            <a href="{{ retry }}" class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'invoice.cut_off_retry'|trans }}</a>
         </twig:Ui:Alert>
     {% elseif blocked|default(null) == 'country' %}
         <twig:Ui:Alert tone="error">{{ 'invoice.problem.firm_country_unsupported'|trans }}</twig:Ui:Alert>
@@ -53,7 +53,7 @@
             {% if stale %}
                 <twig:Ui:Alert tone="error" role="alert" data-reload-prompt>
                     <span>{{ 'invoice.problem.changed_meanwhile'|trans }}</span>
-                    <a href="{{ path('app_invoice_edit', {id: invoice.id}) }}" class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'invoice.reload'|trans }}</a>
+                    <a href="{{ path('app_invoice_edit', {id: invoice.id}) }}" class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'invoice.reload'|trans }}</a>
                 </twig:Ui:Alert>
             {% endif %}
             {% for notice in copyNotices %}<twig:Ui:Alert tone="warning" role="status" data-copy-notice>{{ notice|trans }}</twig:Ui:Alert>{% endfor %}
@@ -61,7 +61,7 @@
             {% if needsCorrection %}
                 <twig:Ui:Alert tone="error" data-needs-correction>
                     <span>{{ 'tax_document.needs_correction'|trans }}</span>
-                    <a href="{{ path('app_invoice_correct', {id: invoice.id}) }}" data-correct-tax-document class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'tax_document.correct'|trans }}</a>
+                    <a href="{{ path('app_invoice_correct', {id: invoice.id}) }}" data-correct-tax-document class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'tax_document.correct'|trans }}</a>
                 </twig:Ui:Alert>
             {% endif %}
             {% if originalSource|default(null) %}<twig:Ui:Alert tone="info" data-imported-original>{{ 'invoice.imported_original'|trans({source: ('invoice.import_source.' ~ originalSource)|trans}) }}</twig:Ui:Alert>{% endif %}
@@ -69,7 +69,7 @@
         {% endset %}
         {% if notices|trim %}<div class="mb-4 grid gap-2">{{ notices }}</div>{% endif %}
         {# Save and send: the send dialog opens once over the saved form, then leads to the list like Save. #}
-        {% for url in app.flashes(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceController::OPEN_DIALOG_FLASH')) %}
+        {% for url in app.flashes(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoiceController::OPEN_DIALOG_FLASH')) %}
             <a href="{{ url }}" hidden data-dialog data-dialog-autoopen data-dialog-then="follow" data-dialog-return="#invoice-save"></a>
         {% endfor %}
 
@@ -97,7 +97,7 @@
             data-invoice-form-vat-label-value="{{ 'invoice.field.vatId'|trans }}">
             {# The first submit button is what Enter in a field presses: it must never issue a document. #}
             <button type="submit" name="_action" value="refresh" hidden tabindex="-1"></button>
-            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceController::FORM_TOKEN')) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoiceController::FORM_TOKEN')) }}">
             <input type="hidden" name="_submission" value="{{ token }}">
             {# Filled in by the dialog host: save and send may then open the send dialog over this form. #}
             <input type="hidden" name="_dialogs" value="" data-dialog-capable>
@@ -115,7 +115,7 @@
             <input type="hidden" name="numberPeek" value="{{ values.numberPeek }}" data-invoice-form-target="numberPeek">
 
             {# As iDoklad's header line: the issuing firm and the series, small, above the document. #}
-            {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+            {% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
             {% set smallSelect = 'h-control-sm max-w-full appearance-none rounded-control border bg-white pl-2.5 pr-8 text-small text-ink ' ~ focus %}
             <div class="flex flex-wrap items-start gap-x-6 gap-y-2" data-form-head>
                 {% set firmError = errorFields.firm|default(null) %}
@@ -287,8 +287,8 @@
                             {% for error in errors %}
                                 <li>
                                     {%- if error.link is null %}{{ error.field }}
-                                    {%- elseif error.link.external %}<a href="{{ error.link.href }}" target="_blank" rel="noopener" data-error-link class="text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ error.field }}<span class="sr-only"> ({{ 'invoice.opens_new_tab'|trans }})</span></a>
-                                    {%- else %}<a href="{{ error.link.href }}" data-error-link data-action="invoice-form#goToField:prevent" class="text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ error.field }}</a>
+                                    {%- elseif error.link.external %}<a href="{{ error.link.href }}" target="_blank" rel="noopener" data-error-link class="text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ error.field }}<span class="sr-only"> ({{ 'invoice.opens_new_tab'|trans }})</span></a>
+                                    {%- else %}<a href="{{ error.link.href }}" data-error-link data-action="invoice-form#goToField:prevent" class="text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ error.field }}</a>
                                     {%- endif %}: {{ error.message -}}
                                 </li>
                             {% endfor %}

@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Instance\Infrastructure\Health;
+namespace Foresi\Tests\Instance\Infrastructure\Health;
 
-use App\Instance\Application\Schedule\Heartbeats;
-use App\Instance\Infrastructure\Schedule\ScheduleTick;
-use App\Instance\Infrastructure\Schedule\ScheduleTickHandler;
-use App\Instance\Infrastructure\Schedule\WorkerHeartbeatListener;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Instance\Application\Schedule\Heartbeats;
+use Foresi\Instance\Infrastructure\Schedule\ScheduleTick;
+use Foresi\Instance\Infrastructure\Schedule\ScheduleTickHandler;
+use Foresi\Instance\Infrastructure\Schedule\WorkerHeartbeatListener;
 use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;

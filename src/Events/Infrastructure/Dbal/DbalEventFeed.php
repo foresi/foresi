@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Dbal;
+namespace Foresi\Events\Infrastructure\Dbal;
 
-use App\Events\Application\Query\EventFeed;
-use App\Events\Application\Query\EventRow;
-use App\Events\Application\Query\EventSlice;
-use App\Events\Infrastructure\Relay\PruneEventLogTask;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
+use Foresi\Events\Application\Query\EventFeed;
+use Foresi\Events\Application\Query\EventRow;
+use Foresi\Events\Application\Query\EventSlice;
+use Foresi\Events\Infrastructure\Relay\PruneEventLogTask;
 use Psr\Clock\ClockInterface;
 
 /**

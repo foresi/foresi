@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Api\Operation;
+namespace Foresi\Purchasing\Infrastructure\Api\Operation;
 
-use App\Purchasing\Application\Query\ReceivedDocumentBalances;
-use App\Purchasing\Infrastructure\Api\ReceivedDocumentApiController;
-use App\Purchasing\Infrastructure\Api\ReceivedDocumentJson;
-use App\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentBalances;
+use Foresi\Purchasing\Infrastructure\Api\ReceivedDocumentApiController;
+use Foresi\Purchasing\Infrastructure\Api\ReceivedDocumentJson;
+use Foresi\Shared\Infrastructure\Operation\OperationOutput;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

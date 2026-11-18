@@ -5,7 +5,7 @@
     the shared ones in a disabled fieldset, which posts nothing. The firm-scope controller switches.
     The hourly rate of the invoicing panel is for an owner only.
 #}
-{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 {% set menuId = 'scope-' ~ panel.key ~ '-menu' %}
 {% set buttonId = 'scope-' ~ panel.key ~ '-button' %}
 {% set activeScope = panel.scopes|filter(s => s.id == panel.active)|first %}

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Domain;
+namespace Foresi\Work\Domain;
 
 /**
  * What a status of a project means, whatever the team calls it: reports,

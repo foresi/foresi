@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\MovementDirection;
-use App\Shared\Domain\Money;
+use Foresi\Banking\Domain\MovementDirection;
+use Foresi\Shared\Domain\Money;
 
 /**
  * One movement on the firm's account as a bank message states it. The amount is

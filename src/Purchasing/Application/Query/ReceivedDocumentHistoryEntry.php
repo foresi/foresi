@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application\Query;
+namespace Foresi\Purchasing\Application\Query;
 
 /**
  * One step in the history of a received document: who did what and when. A

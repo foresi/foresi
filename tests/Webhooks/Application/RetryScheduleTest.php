@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Application;
+namespace Foresi\Tests\Webhooks\Application;
 
-use App\Webhooks\Application\RetrySchedule;
+use Foresi\Webhooks\Application\RetrySchedule;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Random\Engine\Mt19937;

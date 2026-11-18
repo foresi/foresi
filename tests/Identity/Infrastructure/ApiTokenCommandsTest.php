@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Infrastructure;
+namespace Foresi\Tests\Identity\Infrastructure;
 
-use App\Identity\Application\ApiTokens;
-use App\Identity\Domain\ApiScope;
-use App\Identity\Domain\ApiTokenSecret;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Tests\Identity\Support\IdentityFixtures;
+use Foresi\Identity\Application\ApiTokens;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Identity\Domain\ApiTokenSecret;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Tests\Identity\Support\IdentityFixtures;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;

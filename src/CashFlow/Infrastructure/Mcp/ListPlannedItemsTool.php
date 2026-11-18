@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Infrastructure\Mcp;
+namespace Foresi\CashFlow\Infrastructure\Mcp;
 
-use App\CashFlow\Application\CashFlowRefused;
-use App\CashFlow\Application\PlannedItemReads;
-use App\CashFlow\Domain\PlannedItem;
-use App\CashFlow\Infrastructure\Api\CashFlowJson;
-use App\Instance\Application\InstanceClock;
-use App\Shared\Infrastructure\Mcp\ReadTool;
-use App\Shared\Infrastructure\Mcp\ToolArguments;
-use App\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\CashFlow\Application\CashFlowRefused;
+use Foresi\CashFlow\Application\PlannedItemReads;
+use Foresi\CashFlow\Domain\PlannedItem;
+use Foresi\CashFlow\Infrastructure\Api\CashFlowJson;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Shared\Infrastructure\Mcp\ReadTool;
+use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
+use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
 
 /**
  * The planned items of a firm, as GET /api/v1/cash-flow/planned-items writes them.

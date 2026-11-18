@@ -14,7 +14,7 @@
 
 {% block dialog_body %}
     <form method="post" id="webhook-form" action="{{ path('app_webhook_edit', {id: endpoint.id}) }}" class="grid gap-4" novalidate>
-        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Webhooks\\Infrastructure\\Controller\\WebhookEndpointController::TOKEN')) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Webhooks\\Infrastructure\\Controller\\WebhookEndpointController::TOKEN')) }}">
         {% include 'webhooks/_fields.html.twig' %}
     </form>
 {% endblock %}

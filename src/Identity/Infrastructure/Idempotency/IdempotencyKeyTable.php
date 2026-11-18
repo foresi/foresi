@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Idempotency;
+namespace Foresi\Identity\Infrastructure\Idempotency;
 
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Types\Types;

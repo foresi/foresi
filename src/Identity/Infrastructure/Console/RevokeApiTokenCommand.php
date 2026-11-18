@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Console;
+namespace Foresi\Identity\Infrastructure\Console;
 
-use App\Identity\Application\ApiTokenRefused;
-use App\Identity\Application\ManageApiTokens;
-use App\Shared\Domain\Id;
+use Foresi\Identity\Application\ApiTokenRefused;
+use Foresi\Identity\Application\ManageApiTokens;
+use Foresi\Shared\Domain\Id;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;

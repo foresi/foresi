@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\InboundStatus;
-use App\Banking\Domain\MessageTrust;
+use Foresi\Banking\Domain\InboundStatus;
+use Foresi\Banking\Domain\MessageTrust;
 
 /**
  * One bank mail as the Messages tab lists it. The parser is named only when one

@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Events\Infrastructure\Api;
+namespace Foresi\Tests\Events\Infrastructure\Api;
 
-use App\Events\Infrastructure\Api\PositionCursor;
-use App\Events\Infrastructure\Relay\EventRelay;
-use App\Identity\Domain\ApiScope;
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\Role;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Shared\Application\Event\EventRecorder;
-use App\Shared\Domain\Id;
-use App\Tests\Events\Support\RecordedEvents;
-use App\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use Doctrine\DBAL\Connection;
+use Foresi\Events\Infrastructure\Api\PositionCursor;
+use Foresi\Events\Infrastructure\Relay\EventRelay;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Role;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Domain\Id;
+use Foresi\Tests\Events\Support\RecordedEvents;
+use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 
 /**
  * GET /api/v1/events: the events that have a position, from the last thirty

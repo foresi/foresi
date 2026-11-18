@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Instance\Application\Schedule;
+namespace Foresi\Instance\Application\Schedule;
 
 /**
  * The right of one worker to run a job for one period.

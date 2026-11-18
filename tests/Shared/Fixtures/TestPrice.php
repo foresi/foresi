@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Fixtures;
+namespace Foresi\Tests\Shared\Fixtures;
 
-use App\Shared\Domain\Id;
-use App\Shared\Domain\Money;
-use App\Shared\Domain\MoneyEmbeddable;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\MoneyEmbeddable;
 
 /**
  * Test-only entity that embeds a Money value, mapped in the test environment only.

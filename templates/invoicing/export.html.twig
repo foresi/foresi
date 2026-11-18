@@ -8,7 +8,7 @@
 {% block content %}
     <twig:Ui:Card :title="'invoice.export.title'|trans" icon="download" class="max-w-2xl">
         <form method="post" action="{{ path('app_invoice_export') }}" class="grid gap-4" novalidate data-turbo="false">
-            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceExportController::TOKEN')) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoiceExportController::TOKEN')) }}">
             <p class="m-0 text-muted">{{ 'invoice.export.intro'|trans }}</p>
             {% if notice %}<twig:Ui:Alert tone="warning" role="status">{{ notice }}</twig:Ui:Alert>{% endif %}
             <div class="grid gap-4 sm:grid-cols-2">

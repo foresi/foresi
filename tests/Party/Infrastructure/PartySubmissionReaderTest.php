@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Infrastructure;
+namespace Foresi\Tests\Party\Infrastructure;
 
-use App\Country\CzechRepublic\Party\CzechRegistrationNumberValidator;
-use App\Party\Application\PartyRules;
-use App\Party\Application\RegistrationNumberFactory;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
-use App\Party\Infrastructure\Form\CountryOptions;
-use App\Party\Infrastructure\Form\PartySubmissionReader;
+use Foresi\Country\CzechRepublic\Party\CzechRegistrationNumberValidator;
+use Foresi\Party\Application\PartyRules;
+use Foresi\Party\Application\RegistrationNumberFactory;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Party\Infrastructure\Form\CountryOptions;
+use Foresi\Party\Infrastructure\Form\PartySubmissionReader;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -53,7 +53,7 @@ final class PartySubmissionReaderTest extends TestCase
             'registrationNumber' => 'party.error.registration_number',
             'vatId' => 'party.error.vat_id',
         ], $submission->errors);
-        self::assertNotInstanceOf(\App\Party\Application\PartyInput::class, $submission->input);
+        self::assertNotInstanceOf(\Foresi\Party\Application\PartyInput::class, $submission->input);
     }
 
     public function testACompanyNeedsAnIdentifierButAPersonDoesNot(): void
@@ -98,7 +98,7 @@ final class PartySubmissionReaderTest extends TestCase
     /**
      * @param array<string, mixed> $post
      */
-    private function read(array $post, ?PartyKind $fixed = null): \App\Party\Infrastructure\Form\PartySubmission
+    private function read(array $post, ?PartyKind $fixed = null): \Foresi\Party\Infrastructure\Form\PartySubmission
     {
         $reader = new PartySubmissionReader(new PartyRules(new RegistrationNumberFactory([new CzechRegistrationNumberValidator()])));
 

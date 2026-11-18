@@ -6,21 +6,21 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Controller;
+namespace Foresi\Party\Infrastructure\Controller;
 
-use App\Identity\Application\OwnerCheck;
-use App\Party\Application\FirmImages;
-use App\Party\Application\LegalEntities;
-use App\Party\Application\LegalEntityInput;
-use App\Party\Application\TransactionalWork;
-use App\Party\Application\UnknownLegalEntity;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\VatStatus;
-use App\Party\Infrastructure\Form\CountryOptions;
-use App\Party\Infrastructure\Form\LegalEntitySubmission;
-use App\Party\Infrastructure\Form\LegalEntitySubmissionReader;
-use App\Shared\Infrastructure\Http\SubmissionTokens;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Foresi\Identity\Application\OwnerCheck;
+use Foresi\Party\Application\FirmImages;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\LegalEntityInput;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Party\Infrastructure\Form\CountryOptions;
+use Foresi\Party\Infrastructure\Form\LegalEntitySubmission;
+use Foresi\Party\Infrastructure\Form\LegalEntitySubmissionReader;
+use Foresi\Shared\Infrastructure\Http\SubmissionTokens;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;

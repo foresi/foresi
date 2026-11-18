@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Doctrine;
+namespace Foresi\Work\Infrastructure\Doctrine;
 
-use App\Shared\Domain\Id;
-use App\Work\Application\Projects;
-use App\Work\Domain\Project;
-use App\Work\Domain\ProjectStatus;
-use App\Work\Domain\Section;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Shared\Domain\Id;
+use Foresi\Work\Application\Projects;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\ProjectStatus;
+use Foresi\Work\Domain\Section;
 
 final readonly class DoctrineProjects implements Projects
 {

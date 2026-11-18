@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Infrastructure;
+namespace Foresi\Tests\Identity\Infrastructure;
 
-use App\Identity\Application\MembershipDirectory;
-use App\Identity\Application\UserRepository;
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\Role;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Tests\Identity\Support\IdentityFixtures;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\PrePersistEventArgs;
 use Doctrine\ORM\Events;
+use Foresi\Identity\Application\MembershipDirectory;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Role;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Tests\Identity\Support\IdentityFixtures;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;

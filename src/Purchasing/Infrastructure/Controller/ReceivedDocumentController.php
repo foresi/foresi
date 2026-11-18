@@ -6,27 +6,27 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Controller;
+namespace Foresi\Purchasing\Infrastructure\Controller;
 
-use App\Attachment\Domain\Attachment;
-use App\Instance\Application\InstanceClock;
-use App\Purchasing\Application\DeleteReceivedDocumentDraft;
-use App\Purchasing\Application\EditReceivedDocument;
-use App\Purchasing\Application\Query\ReceivedDocumentDetail;
-use App\Purchasing\Application\Query\ReceivedDocumentDetails;
-use App\Purchasing\Application\Query\ReceivedDocumentHistoryEntry;
-use App\Purchasing\Application\Query\ReceivedDocumentRow;
-use App\Purchasing\Application\RecordReceivedDocument;
-use App\Purchasing\Application\RestoreReceivedDocument;
-use App\Purchasing\Application\SavedReceivedDocument;
-use App\Purchasing\Application\TrashReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocumentKind;
-use App\Purchasing\Domain\ReceivedDocumentRefused;
-use App\Purchasing\Infrastructure\Form\ReceivedDocumentForm;
-use App\Purchasing\Infrastructure\Form\ReceivedDocumentScreen;
-use App\Purchasing\Infrastructure\Form\RefusalFields;
-use App\Purchasing\Infrastructure\Navigation\PurchasingNavigation;
+use Foresi\Attachment\Domain\Attachment;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Purchasing\Application\DeleteReceivedDocumentDraft;
+use Foresi\Purchasing\Application\EditReceivedDocument;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentDetail;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentDetails;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentHistoryEntry;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentRow;
+use Foresi\Purchasing\Application\RecordReceivedDocument;
+use Foresi\Purchasing\Application\RestoreReceivedDocument;
+use Foresi\Purchasing\Application\SavedReceivedDocument;
+use Foresi\Purchasing\Application\TrashReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Purchasing\Infrastructure\Form\ReceivedDocumentForm;
+use Foresi\Purchasing\Infrastructure\Form\ReceivedDocumentScreen;
+use Foresi\Purchasing\Infrastructure\Form\RefusalFields;
+use Foresi\Purchasing\Infrastructure\Navigation\PurchasingNavigation;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;

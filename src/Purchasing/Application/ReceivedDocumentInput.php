@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application;
+namespace Foresi\Purchasing\Application;
 
-use App\Purchasing\Domain\ExchangeRate;
-use App\Purchasing\Domain\PurchaseTaxTreatment;
-use App\Purchasing\Domain\ReceivedDocumentKind;
-use App\Purchasing\Domain\VatRecapLine;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Purchasing\Domain\ExchangeRate;
+use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
+use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Purchasing\Domain\VatRecapLine;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 
 /**
  * What a person, the API or a reader of the file gives for a received

@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Api;
+namespace Foresi\Invoicing\Infrastructure\Api;
 
-use App\Invoicing\Application\Query\InvoiceSliceFilter;
-use App\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Application\Query\InvoiceSliceFilter;
+use Foresi\Invoicing\Domain\DocumentKind;
 use Symfony\Component\Serializer\Attribute\SerializedName;
 use Symfony\Component\Validator\Constraints as Assert;
 

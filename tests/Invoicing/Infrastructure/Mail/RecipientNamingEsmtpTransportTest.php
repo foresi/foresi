@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure\Mail;
+namespace Foresi\Tests\Invoicing\Infrastructure\Mail;
 
-use App\Invoicing\Application\MailRefused;
-use App\Invoicing\Infrastructure\Mail\DeadlineSocketStream;
-use App\Invoicing\Infrastructure\Mail\RecipientNamingEsmtpTransport;
-use App\Invoicing\Infrastructure\Mail\RecipientRefused;
-use App\Invoicing\Infrastructure\Mail\SymfonyMailGateway;
+use Foresi\Invoicing\Application\MailRefused;
+use Foresi\Invoicing\Infrastructure\Mail\DeadlineSocketStream;
+use Foresi\Invoicing\Infrastructure\Mail\RecipientNamingEsmtpTransport;
+use Foresi\Invoicing\Infrastructure\Mail\RecipientRefused;
+use Foresi\Invoicing\Infrastructure\Mail\SymfonyMailGateway;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Mailer\Exception\UnexpectedResponseException;
 use Symfony\Component\Mime\Email;

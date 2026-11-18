@@ -6,39 +6,39 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Infrastructure;
+namespace Foresi\Tests\Party\Infrastructure;
 
-use App\Audit\Domain\AuditEntry;
-use App\Party\Application\CreateParty;
-use App\Party\Application\PartyAccess;
-use App\Party\Domain\Address;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\ContactLink;
-use App\Party\Domain\EmailPurpose;
-use App\Party\Domain\Iban;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyBankAccount;
-use App\Party\Domain\PartyEmail;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\RegistryCheck;
-use App\Party\Domain\RegistryResult;
-use App\Party\Domain\RegistrySource;
-use App\Party\Domain\VatId;
-use App\Party\Infrastructure\Doctrine\DoctrineContactLinks;
-use App\Party\Infrastructure\Doctrine\DoctrineParties;
-use App\Party\Infrastructure\Doctrine\DoctrinePartyAddresses;
-use App\Party\Infrastructure\Doctrine\DoctrinePartyBankAccounts;
-use App\Party\Infrastructure\Doctrine\DoctrineTransactionalWork;
-use App\Shared\Application\Event\EventOutbox;
-use App\Shared\Application\Event\EventRecorder;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\PrePersistEventArgs;
 use Doctrine\ORM\Events;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Party\Application\CreateParty;
+use Foresi\Party\Application\PartyAccess;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\ContactLink;
+use Foresi\Party\Domain\EmailPurpose;
+use Foresi\Party\Domain\Iban;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyBankAccount;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\RegistryCheck;
+use Foresi\Party\Domain\RegistryResult;
+use Foresi\Party\Domain\RegistrySource;
+use Foresi\Party\Domain\VatId;
+use Foresi\Party\Infrastructure\Doctrine\DoctrineContactLinks;
+use Foresi\Party\Infrastructure\Doctrine\DoctrineParties;
+use Foresi\Party\Infrastructure\Doctrine\DoctrinePartyAddresses;
+use Foresi\Party\Infrastructure\Doctrine\DoctrinePartyBankAccounts;
+use Foresi\Party\Infrastructure\Doctrine\DoctrineTransactionalWork;
+use Foresi\Shared\Application\Event\EventOutbox;
+use Foresi\Shared\Application\Event\EventRecorder;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class AddressBookPersistenceTest extends KernelTestCase

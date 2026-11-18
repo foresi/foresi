@@ -6,22 +6,22 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure;
+namespace Foresi\Tests\Invoicing\Infrastructure;
 
-use App\Invoicing\Application\NumberCounter;
-use App\Invoicing\Application\SequenceOutOfRange;
-use App\Invoicing\Application\SeriesCatalog;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\SeriesFormat;
-use App\Party\Application\TransactionalWork;
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Invoicing\Application\NumberCounter;
+use Foresi\Invoicing\Application\SequenceOutOfRange;
+use Foresi\Invoicing\Application\SeriesCatalog;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatStatus;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Process\Process;

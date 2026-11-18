@@ -16,7 +16,7 @@
         "foresi": {
             "module": "work",
             "kind": "module",
-            "namespace": "App\\Work\\",
+            "namespace": "Foresi\\Work\\",
             "optional": []
         }
     }

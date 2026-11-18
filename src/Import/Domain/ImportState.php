@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Domain;
+namespace Foresi\Import\Domain;
 
 /** The steps of an import; Import::moveTo() allows only the transitions listed here. */
 enum ImportState: string

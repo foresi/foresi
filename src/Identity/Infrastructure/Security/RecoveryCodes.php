@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Security;
+namespace Foresi\Identity\Infrastructure\Security;
 
 /**
  * One-time recovery codes for a lost phone: 16 characters of an alphabet without

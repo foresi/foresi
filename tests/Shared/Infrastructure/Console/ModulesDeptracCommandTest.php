@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Console;
+namespace Foresi\Tests\Shared\Infrastructure\Console;
 
-use App\Shared\Infrastructure\Console\ModulesDeptracCommand;
-use App\Shared\Infrastructure\Module\DeptracModulesConfig;
-use App\Shared\Infrastructure\Module\InstalledModules;
+use Foresi\Shared\Infrastructure\Console\ModulesDeptracCommand;
+use Foresi\Shared\Infrastructure\Module\DeptracModulesConfig;
+use Foresi\Shared\Infrastructure\Module\InstalledModules;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\ArrayInput;

@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Party\Application\PartyQuery;
-use App\Party\Domain\Party;
-use App\Work\Domain\Project;
-use App\Work\Domain\ProjectStatus;
-use App\Work\Domain\WorkflowTemplate;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Domain\Party;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\ProjectStatus;
+use Foresi\Work\Domain\WorkflowTemplate;
 use Psr\Clock\ClockInterface;
 
 /**

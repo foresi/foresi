@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\ExchangeRate\Support;
+namespace Foresi\Tests\ExchangeRate\Support;
 
-use App\ExchangeRate\Application\FetchRates;
-use App\ExchangeRate\Application\StoredExchangeRates;
-use App\ExchangeRate\Infrastructure\Doctrine\DoctrineRateStore;
-use App\ExchangeRate\Infrastructure\Schedule\FetchDailyRates;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
+use Foresi\ExchangeRate\Application\FetchRates;
+use Foresi\ExchangeRate\Application\StoredExchangeRates;
+use Foresi\ExchangeRate\Infrastructure\Doctrine\DoctrineRateStore;
+use Foresi\ExchangeRate\Infrastructure\Schedule\FetchDailyRates;
 use Symfony\Component\Clock\MockClock;
 
 /**

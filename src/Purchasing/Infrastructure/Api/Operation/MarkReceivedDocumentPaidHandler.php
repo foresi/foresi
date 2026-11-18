@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Api\Operation;
+namespace Foresi\Purchasing\Infrastructure\Api\Operation;
 
-use App\Purchasing\Application\Api\MarkReceivedDocumentPaidInput;
-use App\Purchasing\Application\Api\ReceivedDocumentWrites;
-use App\Shared\Infrastructure\Operation\OperationHandler;
-use App\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Purchasing\Application\Api\MarkReceivedDocumentPaidInput;
+use Foresi\Purchasing\Application\Api\ReceivedDocumentWrites;
+use Foresi\Shared\Infrastructure\Operation\OperationHandler;
+use Foresi\Shared\Infrastructure\Operation\OperationOutput;
 
 /**
  * received_documents.mark_paid: the received document with its payments.

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Country\CzechRepublic\ExchangeRate;
+namespace Foresi\Country\CzechRepublic\ExchangeRate;
 
-use App\ExchangeRate\Application\PublishedRates;
-use App\ExchangeRate\Application\RateSource;
-use App\Shared\Infrastructure\Registry\PublicRegistryClient;
+use Foresi\ExchangeRate\Application\PublishedRates;
+use Foresi\ExchangeRate\Application\RateSource;
+use Foresi\Shared\Infrastructure\Registry\PublicRegistryClient;
 
 /**
  * The daily fix of the Czech National Bank. The bank publishes on business days

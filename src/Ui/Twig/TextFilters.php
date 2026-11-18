@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Ui\Twig;
+namespace Foresi\Ui\Twig;
 
 use Twig\Attribute\AsTwigFilter;
 

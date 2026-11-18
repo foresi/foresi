@@ -6,40 +6,40 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Banking\Application\Candidates;
-use App\Invoicing\Application\AdvanceDocuments;
-use App\Invoicing\Application\AllocationRequest;
-use App\Invoicing\Application\CancelPayment;
-use App\Invoicing\Application\ConflictRetry;
-use App\Invoicing\Application\CorrectPaymentTaxDocument;
-use App\Invoicing\Application\InvoiceHistory;
-use App\Invoicing\Application\InvoiceHistoryEntry;
-use App\Invoicing\Application\InvoicePayments;
-use App\Invoicing\Application\InvoiceStatus;
-use App\Invoicing\Application\InvoicingCountries;
-use App\Invoicing\Application\IssuePaymentTaxDocument;
-use App\Invoicing\Application\PaymentRefused;
-use App\Invoicing\Application\PaymentRequest;
-use App\Invoicing\Application\PaymentSourceRelease;
-use App\Invoicing\Application\PaymentState;
-use App\Invoicing\Application\PaymentTaxDocumentTexts;
-use App\Invoicing\Application\PaymentTransitions;
-use App\Invoicing\Application\RecordPayment;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\Payment;
-use App\Invoicing\Domain\PaymentSource;
-use App\Invoicing\Domain\PriceType;
-use App\Party\Application\TransactionalWork;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Application\Event\EventRecorder;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Banking\Support\LockLog;
-use App\Tests\Banking\Support\LoggingInvoiceStore;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Banking\Application\Candidates;
+use Foresi\Invoicing\Application\AdvanceDocuments;
+use Foresi\Invoicing\Application\AllocationRequest;
+use Foresi\Invoicing\Application\CancelPayment;
+use Foresi\Invoicing\Application\ConflictRetry;
+use Foresi\Invoicing\Application\CorrectPaymentTaxDocument;
+use Foresi\Invoicing\Application\InvoiceHistory;
+use Foresi\Invoicing\Application\InvoiceHistoryEntry;
+use Foresi\Invoicing\Application\InvoicePayments;
+use Foresi\Invoicing\Application\InvoiceStatus;
+use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Invoicing\Application\IssuePaymentTaxDocument;
+use Foresi\Invoicing\Application\PaymentRefused;
+use Foresi\Invoicing\Application\PaymentRequest;
+use Foresi\Invoicing\Application\PaymentSourceRelease;
+use Foresi\Invoicing\Application\PaymentState;
+use Foresi\Invoicing\Application\PaymentTaxDocumentTexts;
+use Foresi\Invoicing\Application\PaymentTransitions;
+use Foresi\Invoicing\Application\RecordPayment;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Payment;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Banking\Support\LockLog;
+use Foresi\Tests\Banking\Support\LoggingInvoiceStore;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
@@ -377,7 +377,7 @@ final class RecordPaymentTest extends InvoiceTestCase
 
     public function testAnUnknownInvoiceIsNotFound(): void
     {
-        $this->expectException(\App\Invoicing\Application\UnknownInvoice::class);
+        $this->expectException(\Foresi\Invoicing\Application\UnknownInvoice::class);
         $this->record->record($this->request('100.00', [new AllocationRequest('01963c5e-0000-7000-8000-0000000000ff', $this->czk('100.00'))]));
     }
 
@@ -451,7 +451,7 @@ final class RecordPaymentTest extends InvoiceTestCase
 
         $payment = $this->record->record($this->request('10.00', [new AllocationRequest($invoice->id(), $this->czk('10.00'))], source: PaymentSource::BankMovement, movement: self::MOVEMENT));
         $lines = $this->payments->linesOf($this->reloaded($invoice));
-        self::assertSame([[$payment->id(), PaymentSource::BankMovement, self::MOVEMENT]], array_map(static fn (\App\Invoicing\Application\InvoicePaymentLine $line): array => [$line->paymentId, $line->source, $line->bankMovementId], $lines));
+        self::assertSame([[$payment->id(), PaymentSource::BankMovement, self::MOVEMENT]], array_map(static fn (\Foresi\Invoicing\Application\InvoicePaymentLine $line): array => [$line->paymentId, $line->source, $line->bankMovementId], $lines));
     }
 
     public function testAMovementPaysThroughOneActivePaymentOnly(): void
@@ -519,7 +519,7 @@ final class RecordPaymentTest extends InvoiceTestCase
         $stored = $this->reloaded($invoice);
         self::assertSame('99990001', $stored->variableSymbol());
         self::assertSame(InvoiceStatus::Paid, $this->statusOf($stored));
-        self::assertSame([$payment->id()], array_map(static fn (\App\Invoicing\Application\InvoicePaymentLine $line): string => $line->paymentId, $this->payments->linesOf($stored)));
+        self::assertSame([$payment->id()], array_map(static fn (\Foresi\Invoicing\Application\InvoicePaymentLine $line): string => $line->paymentId, $this->payments->linesOf($stored)));
         self::assertFalse($this->payments->get($payment->id())->isCancelled());
     }
 

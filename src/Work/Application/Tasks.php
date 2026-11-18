@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Work\Domain\Label;
-use App\Work\Domain\Project;
-use App\Work\Domain\ProjectStatus;
-use App\Work\Domain\Section;
-use App\Work\Domain\Task;
-use App\Work\Domain\TaskLabel;
-use App\Work\Domain\TaskWatcher;
+use Foresi\Work\Domain\Label;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\ProjectStatus;
+use Foresi\Work\Domain\Section;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TaskLabel;
+use Foresi\Work\Domain\TaskWatcher;
 
 /**
  * The tasks with their watchers and labels. A task in the trash is found only

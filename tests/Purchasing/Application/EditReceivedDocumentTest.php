@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Purchasing\Application;
+namespace Foresi\Tests\Purchasing\Application;
 
-use App\Audit\Domain\AuditEntry;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Purchasing\Application\PurchasingNotAllowed;
-use App\Purchasing\Application\SavedReceivedDocument;
-use App\Purchasing\Application\TrashReceivedDocument;
-use App\Purchasing\Domain\PurchaseTaxTreatment;
-use App\Purchasing\Domain\ReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocumentKind;
-use App\Purchasing\Domain\ReceivedDocumentRefused;
-use App\Purchasing\Domain\ReceivedDocumentState;
-use App\Shared\Domain\Currency;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Purchasing\Application\PurchasingNotAllowed;
+use Foresi\Purchasing\Application\SavedReceivedDocument;
+use Foresi\Purchasing\Application\TrashReceivedDocument;
+use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
+use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Purchasing\Domain\ReceivedDocumentState;
+use Foresi\Shared\Domain\Currency;
 
 final class EditReceivedDocumentTest extends PurchasingTestCase
 {

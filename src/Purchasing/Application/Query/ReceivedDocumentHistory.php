@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application\Query;
+namespace Foresi\Purchasing\Application\Query;
 
-use App\Audit\Application\AuditTrail;
-use App\Audit\Domain\AuditAction;
-use App\Audit\Domain\AuditEntry;
-use App\Identity\Application\UserRepository;
-use App\Purchasing\Domain\ReceivedDocument;
+use Foresi\Audit\Application\AuditTrail;
+use Foresi\Audit\Domain\AuditAction;
+use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Purchasing\Domain\ReceivedDocument;
 
 /**
  * The audit log of a received document as steps a person recognises: one

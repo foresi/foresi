@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application;
+namespace Foresi\Import\Application;
 
-use App\Import\Application\Target\ImportTarget;
-use App\Import\Application\Target\RecordMatch;
-use App\Import\Domain\FieldDefinition;
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportRow;
-use App\Import\Domain\Mapping;
-use App\Import\Domain\NormalisationOptions;
-use App\Import\Domain\RowError;
-use App\Import\Domain\RowOutcome;
-use App\Import\Domain\ValueNormaliser;
+use Foresi\Import\Application\Target\ImportTarget;
+use Foresi\Import\Application\Target\RecordMatch;
+use Foresi\Import\Domain\FieldDefinition;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\ImportRow;
+use Foresi\Import\Domain\Mapping;
+use Foresi\Import\Domain\NormalisationOptions;
+use Foresi\Import\Domain\RowError;
+use Foresi\Import\Domain\RowOutcome;
+use Foresi\Import\Domain\ValueNormaliser;
 
 /**
  * Reads staged rows of one import through its mapping, the same way for the check

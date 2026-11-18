@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Mcp;
+namespace Foresi\Invoicing\Infrastructure\Mcp;
 
-use App\Invoicing\Application\Query\PaymentList;
-use App\Invoicing\Application\Query\PaymentsNotAllowed;
-use App\Invoicing\Domain\PaymentDirection;
-use App\Invoicing\Infrastructure\Api\PaymentJson;
-use App\Invoicing\Infrastructure\Api\PaymentListQuery;
-use App\Shared\Infrastructure\Mcp\ReadTool;
-use App\Shared\Infrastructure\Mcp\ToolArguments;
-use App\Shared\Infrastructure\Mcp\ToolOutput;
-use App\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Invoicing\Application\Query\PaymentList;
+use Foresi\Invoicing\Application\Query\PaymentsNotAllowed;
+use Foresi\Invoicing\Domain\PaymentDirection;
+use Foresi\Invoicing\Infrastructure\Api\PaymentJson;
+use Foresi\Invoicing\Infrastructure\Api\PaymentListQuery;
+use Foresi\Shared\Infrastructure\Mcp\ReadTool;
+use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
+use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 
 /**
  * The payments of the organisation's invoices, narrowed and paged as GET

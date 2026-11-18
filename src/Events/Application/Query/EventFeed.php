@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Application\Query;
+namespace Foresi\Events\Application\Query;
 
 /**
  * The events of the organisation, as an agent reads them: those that have

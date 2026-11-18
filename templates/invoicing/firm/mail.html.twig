@@ -3,7 +3,7 @@
 
 {% set crumbs = [{label: 'firm.title'|trans, href: path('app_firm_index')}, {label: firm.name, href: cancel}, {label: 'firm.mail.title'|trans}] %}
 {% set form_invalid = errors is not empty %}
-{% set chip_class = 'inline-flex h-control-sm cursor-grab select-none items-center rounded-control border border-control-line bg-white px-2.5 text-small font-medium text-text hover:border-muted active:cursor-grabbing ' ~ constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set chip_class = 'inline-flex h-control-sm cursor-grab select-none items-center rounded-control border border-control-line bg-white px-2.5 text-small font-medium text-text hover:border-muted active:cursor-grabbing ' ~ constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 
 {% block title %}{{ 'firm.mail.title'|trans }}{% endblock %}
 
@@ -22,7 +22,7 @@
 
         {% if tab == 'templates' %}
             <form id="mail-templates" method="post" action="{{ action }}" class="grid grid-cols-1 gap-4" novalidate>
-                <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\FirmMailController::TEMPLATES_TOKEN')) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\FirmMailController::TEMPLATES_TOKEN')) }}">
                 <input type="hidden" name="section" value="templates">
 
                 {% if errors.form is defined %}
@@ -65,7 +65,7 @@
                                         {% for row in rows %}
                                             <li class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 py-2 text-small">
                                                 <span class="flex min-w-0 flex-wrap items-baseline gap-x-2">
-                                                    <a href="{{ row.href }}" class="font-medium text-ink underline underline-offset-2 hover:text-green {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ row.number }}</a>
+                                                    <a href="{{ row.href }}" class="font-medium text-ink underline underline-offset-2 hover:text-green {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ row.number }}</a>
                                                     <span class="min-w-0 truncate text-text">{{ row.customer }}</span>
                                                 </span>
                                                 <span class="flex flex-wrap items-baseline gap-x-3 text-muted">
@@ -94,7 +94,7 @@
                 {% set kind = card.kind %}
                 {% for language in card.languages|filter(language => language.custom) %}
                     <form id="mail-reset-{{ kind == 'invoice' ? '' : kind ~ '-' }}{{ language.code }}" method="post" action="{{ action }}" data-turbo-confirm="{{ 'firm.mail.reset_confirm'|trans({language: language.label}) }}" data-confirm-text="{{ 'firm.mail.reset_confirm_text'|trans }}" data-confirm-accept="{{ 'firm.mail.reset_confirm_accept'|trans }}" data-confirm-cancel="{{ 'firm.mail.reset_confirm_cancel'|trans }}" data-confirm-tone="danger" hidden>
-                        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\FirmMailController::TEMPLATES_TOKEN')) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\FirmMailController::TEMPLATES_TOKEN')) }}">
                         <input type="hidden" name="section" value="templates">
                         <input type="hidden" name="kind" value="{{ kind }}">
                         <input type="hidden" name="reset" value="{{ language.code }}">
@@ -108,11 +108,11 @@
 
             {# The test button sits in the server card, but posts this form of its own. #}
             <form id="mail-test" method="post" action="{{ testAction }}" hidden>
-                <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\FirmMailController::TEST_TOKEN')) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\FirmMailController::TEST_TOKEN')) }}">
             </form>
 
             <form id="mail-server" method="post" action="{{ action }}" class="grid grid-cols-1 gap-4" novalidate data-controller="mail-port" data-mail-port-ports-value="{{ encryptionPorts|json_encode }}">
-                <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\FirmMailController::SERVER_TOKEN')) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\FirmMailController::SERVER_TOKEN')) }}">
                 <input type="hidden" name="section" value="server">
 
                 {% if errors.form is defined %}

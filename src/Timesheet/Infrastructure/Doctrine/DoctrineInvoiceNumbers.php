@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Infrastructure\Doctrine;
+namespace Foresi\Timesheet\Infrastructure\Doctrine;
 
-use App\Invoicing\Domain\Invoice;
-use App\Shared\Domain\Id;
-use App\Work\Application\InvoiceNumbers;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Shared\Domain\Id;
+use Foresi\Work\Application\InvoiceNumbers;
 
 /**
  * The numbers of the invoices that billed time, for Work to name them, in one

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Identity\Domain\Membership;
-use App\Work\Domain\Task;
-use App\Work\Domain\TimeEntry;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TimeEntry;
 
 /**
  * The time logged.

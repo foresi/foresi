@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui\Component;
+namespace Foresi\Tests\Ui\Component;
 
-use App\Ui\Component\ErrorFocus;
-use App\Ui\Component\MarkdownEditor;
+use Foresi\Ui\Component\ErrorFocus;
+use Foresi\Ui\Component\MarkdownEditor;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\DomCrawler\Crawler;

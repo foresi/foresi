@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Application;
+namespace Foresi\Events\Application;
 
-use App\Events\Application\Query\EventRow;
+use Foresi\Events\Application\Query\EventRow;
 
 /**
  * Takes each event the relay numbers, right after its position is set and in the

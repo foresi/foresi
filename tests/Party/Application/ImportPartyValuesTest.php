@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Application;
+namespace Foresi\Tests\Party\Application;
 
-use App\Country\CzechRepublic\Party\CzechBankAccount;
-use App\Country\CzechRepublic\Party\CzechRegistrationNumberValidator;
-use App\Party\Application\ImportedParty;
-use App\Party\Application\ImportPartyValues;
-use App\Party\Application\RegistrationNumberFactory;
-use App\Party\Domain\DomesticBankAccount;
-use App\Party\Domain\InvalidIban;
-use App\Party\Domain\InvoicingDefaults;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
+use Foresi\Country\CzechRepublic\Party\CzechBankAccount;
+use Foresi\Country\CzechRepublic\Party\CzechRegistrationNumberValidator;
+use Foresi\Party\Application\ImportedParty;
+use Foresi\Party\Application\ImportPartyValues;
+use Foresi\Party\Application\RegistrationNumberFactory;
+use Foresi\Party\Domain\DomesticBankAccount;
+use Foresi\Party\Domain\InvalidIban;
+use Foresi\Party\Domain\InvoicingDefaults;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
 use PHPUnit\Framework\TestCase;
 
 final class ImportPartyValuesTest extends TestCase

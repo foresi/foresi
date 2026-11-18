@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Invoice;
 
 /**
  * The tax documents and advance invoices an invoice deducts, held for it alone.

@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Application;
+namespace Foresi\CashFlow\Application;
 
-use App\Shared\Application\Api\Field;
-use App\Shared\Application\Api\Operation;
+use Foresi\Shared\Application\Api\Field;
+use Foresi\Shared\Application\Api\Operation;
 
 /**
  * A planned item deleted with all its occurrences.

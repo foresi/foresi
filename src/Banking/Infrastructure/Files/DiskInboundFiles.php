@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure\Files;
+namespace Foresi\Banking\Infrastructure\Files;
 
-use App\Banking\Application\InboundFiles;
+use Foresi\Banking\Application\InboundFiles;
 
 /**
  * Raw inbound mail in one directory, never below public/, each file readable by

@@ -6,25 +6,25 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Application;
+namespace Foresi\CashFlow\Application;
 
-use App\CashFlow\Contract\Event\PlannedDirection;
-use App\CashFlow\Contract\Event\PlannedItemChanged;
-use App\CashFlow\Contract\Event\PlannedItemCreated;
-use App\CashFlow\Contract\Event\PlannedItemDeleted;
-use App\CashFlow\Contract\Event\PlannedItemEnded;
-use App\CashFlow\Contract\Event\PlannedItemOccurrenceSkipped;
-use App\CashFlow\Contract\FlowDirection;
-use App\CashFlow\Domain\PlannedItem;
-use App\Instance\Application\InstanceClock;
-use App\Party\Application\TransactionalWork;
-use App\Shared\Application\Api\Omitted;
-use App\Shared\Application\Event\EventRecorder;
-use App\Shared\Domain\Money;
-use App\Shared\Domain\Schedule\InvalidRecurrence;
-use App\Shared\Domain\Schedule\Recurrence;
-use App\Shared\Domain\Schedule\RecurrenceEnd;
-use App\Shared\Domain\Schedule\RecurringSchedule;
+use Foresi\CashFlow\Contract\Event\PlannedDirection;
+use Foresi\CashFlow\Contract\Event\PlannedItemChanged;
+use Foresi\CashFlow\Contract\Event\PlannedItemCreated;
+use Foresi\CashFlow\Contract\Event\PlannedItemDeleted;
+use Foresi\CashFlow\Contract\Event\PlannedItemEnded;
+use Foresi\CashFlow\Contract\Event\PlannedItemOccurrenceSkipped;
+use Foresi\CashFlow\Contract\FlowDirection;
+use Foresi\CashFlow\Domain\PlannedItem;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\Api\Omitted;
+use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\Schedule\InvalidRecurrence;
+use Foresi\Shared\Domain\Schedule\Recurrence;
+use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
+use Foresi\Shared\Domain\Schedule\RecurringSchedule;
 use Psr\Clock\ClockInterface;
 
 /**

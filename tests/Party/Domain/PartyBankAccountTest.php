@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Domain;
+namespace Foresi\Tests\Party\Domain;
 
-use App\Party\Domain\Iban;
-use App\Party\Domain\PartyBankAccount;
-use App\Shared\Domain\Id;
+use Foresi\Party\Domain\Iban;
+use Foresi\Party\Domain\PartyBankAccount;
+use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

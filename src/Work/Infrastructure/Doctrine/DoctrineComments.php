@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Doctrine;
+namespace Foresi\Work\Infrastructure\Doctrine;
 
-use App\Shared\Domain\Id;
-use App\Work\Application\Comments;
-use App\Work\Domain\CommentMention;
-use App\Work\Domain\Task;
-use App\Work\Domain\TaskComment;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Shared\Domain\Id;
+use Foresi\Work\Application\Comments;
+use Foresi\Work\Domain\CommentMention;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TaskComment;
 
 final readonly class DoctrineComments implements Comments
 {

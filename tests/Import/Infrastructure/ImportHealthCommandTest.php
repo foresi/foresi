@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Import\Infrastructure;
+namespace Foresi\Tests\Import\Infrastructure;
 
-use App\Import\Application\ImportGate;
-use App\Import\Application\ImportJobs;
-use App\Import\Application\ImportLock;
-use App\Import\Application\Imports;
-use App\Import\Application\Message\RunImportChunk;
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportState;
-use App\Import\Infrastructure\Console\ImportHealthCommand;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Import\Application\ImportGate;
+use Foresi\Import\Application\ImportJobs;
+use Foresi\Import\Application\ImportLock;
+use Foresi\Import\Application\Imports;
+use Foresi\Import\Application\Message\RunImportChunk;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\ImportState;
+use Foresi\Import\Infrastructure\Console\ImportHealthCommand;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;

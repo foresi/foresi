@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Support;
+namespace Foresi\Tests\Banking\Support;
 
-use App\Banking\Application\InboundFiles;
+use Foresi\Banking\Application\InboundFiles;
 
 /**
  * The inbound file store of the tests: the real one, which a test can tell to

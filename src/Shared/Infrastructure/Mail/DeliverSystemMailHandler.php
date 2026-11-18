@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Mail;
+namespace Foresi\Shared\Infrastructure\Mail;
 
-use App\Shared\Application\SystemMail;
+use Foresi\Shared\Application\SystemMail;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Mime\Email;
 use Twig\Environment;

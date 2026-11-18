@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Doctrine;
+namespace Foresi\Work\Infrastructure\Doctrine;
 
-use App\Shared\Domain\Id;
-use App\Work\Application\Tasks;
-use App\Work\Domain\Label;
-use App\Work\Domain\Project;
-use App\Work\Domain\ProjectStatus;
-use App\Work\Domain\Section;
-use App\Work\Domain\Task;
-use App\Work\Domain\TaskLabel;
-use App\Work\Domain\TaskWatcher;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Shared\Domain\Id;
+use Foresi\Work\Application\Tasks;
+use Foresi\Work\Domain\Label;
+use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\ProjectStatus;
+use Foresi\Work\Domain\Section;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TaskLabel;
+use Foresi\Work\Domain\TaskWatcher;
 
 final readonly class DoctrineTasks implements Tasks
 {

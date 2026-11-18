@@ -14,7 +14,7 @@
         "foresi": {
             "module": "import",
             "kind": "module",
-            "namespace": "App\\Import\\",
+            "namespace": "Foresi\\Import\\",
             "optional": []
         }
     }

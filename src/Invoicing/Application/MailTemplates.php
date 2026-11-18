@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\InvalidMailTemplate;
-use App\Invoicing\Domain\MailTemplateKind;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\LegalEntity;
+use Foresi\Invoicing\Domain\InvalidMailTemplate;
+use Foresi\Invoicing\Domain\MailTemplateKind;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\LegalEntity;
 
 /**
  * The texts a firm sends its documents with: its own for a kind and language, or

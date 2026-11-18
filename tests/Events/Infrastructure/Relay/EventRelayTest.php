@@ -6,30 +6,30 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Events\Infrastructure\Relay;
+namespace Foresi\Tests\Events\Infrastructure\Relay;
 
-use App\Audit\Application\AuditActor;
-use App\Audit\Application\AuditCorrelation;
-use App\Events\Application\DeliverEvent;
-use App\Events\Application\EventSink;
-use App\Events\Application\Query\EventRow;
-use App\Events\Application\RelayEvents;
-use App\Events\Infrastructure\Catalogue\EventCatalogue;
-use App\Events\Infrastructure\Dbal\DbalEventRecorder;
-use App\Events\Infrastructure\Payload\EventPayloads;
-use App\Events\Infrastructure\Relay\EventListeners;
-use App\Events\Infrastructure\Relay\EventRelay;
-use App\Events\Infrastructure\Relay\RelayEventsTask;
-use App\Shared\Domain\Id;
-use App\Shared\Domain\Module\ModuleId;
-use App\Tests\Events\Fixtures\Listeners\RecordingListener;
-use App\Tests\Events\Fixtures\Valid\Contract\Event\InvoiceIssued;
-use App\Tests\Events\Fixtures\Valid\Contract\Kind;
-use App\Tests\Events\Support\EventRows;
-use App\Work\Infrastructure\Doctrine\DoctrineProjects;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Audit\Application\AuditCorrelation;
+use Foresi\Events\Application\DeliverEvent;
+use Foresi\Events\Application\EventSink;
+use Foresi\Events\Application\Query\EventRow;
+use Foresi\Events\Application\RelayEvents;
+use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
+use Foresi\Events\Infrastructure\Dbal\DbalEventRecorder;
+use Foresi\Events\Infrastructure\Payload\EventPayloads;
+use Foresi\Events\Infrastructure\Relay\EventListeners;
+use Foresi\Events\Infrastructure\Relay\EventRelay;
+use Foresi\Events\Infrastructure\Relay\RelayEventsTask;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Domain\Module\ModuleId;
+use Foresi\Tests\Events\Fixtures\Listeners\RecordingListener;
+use Foresi\Tests\Events\Fixtures\Valid\Contract\Event\InvoiceIssued;
+use Foresi\Tests\Events\Fixtures\Valid\Contract\Kind;
+use Foresi\Tests\Events\Support\EventRows;
+use Foresi\Work\Infrastructure\Doctrine\DoctrineProjects;
 use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
@@ -185,7 +185,7 @@ final class EventRelayTest extends KernelTestCase
         $em = $container->get(EntityManagerInterface::class);
         $recorder = new DbalEventRecorder(
             $this->db,
-            EventCatalogue::scan([[ModuleId::of('invoicing'), 'App\Tests\Events\Fixtures\Valid\\', \dirname(__DIR__, 2).'/Fixtures/Valid']]),
+            EventCatalogue::scan([[ModuleId::of('invoicing'), 'Foresi\Tests\Events\Fixtures\Valid\\', \dirname(__DIR__, 2).'/Fixtures/Valid']]),
             new EventPayloads(),
             new AuditCorrelation(),
             $container->get(AuditActor::class),

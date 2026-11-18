@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\InvoiceLine;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Quantity;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Shared\Domain\Money;
 
 /**
  * The lines of a tax document on payment: the amount received, split over the

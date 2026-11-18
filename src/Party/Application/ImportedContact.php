@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
 /** The contact person an imported row names for its company. */
 final readonly class ImportedContact

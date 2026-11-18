@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application\Target;
+namespace Foresi\Import\Application\Target;
 
 /** An existing record a source row matches. */
 final readonly class RecordMatch

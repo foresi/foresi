@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application;
+namespace Foresi\Import\Application;
 
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportOptions;
-use App\Import\Domain\ImportProfile;
-use App\Import\Domain\ImportState;
-use App\Import\Domain\Mapping;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\ImportOptions;
+use Foresi\Import\Domain\ImportProfile;
+use Foresi\Import\Domain\ImportState;
+use Foresi\Import\Domain\Mapping;
 use Psr\Clock\ClockInterface;
 
 /**

@@ -16,7 +16,7 @@
 
 {% block dialog_body %}
     <form method="post" id="contact-quick-form" action="{{ action }}" class="grid gap-4" novalidate data-controller="party-lookup" data-party-lookup-url-value="{{ path('app_contact_lookup') }}" data-party-lookup-existing-value="{{ 'party.lookup.existing'|trans }}" data-party-lookup-empty-value="{{ 'party.lookup.empty'|trans }}" data-party-lookup-limited-value="{{ 'party.lookup.limited'|trans }}">
-        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Party\\Infrastructure\\Controller\\PartyFormController::FORM_TOKEN')) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Party\\Infrastructure\\Controller\\PartyFormController::FORM_TOKEN')) }}">
         <input type="hidden" name="_submission" value="{{ token }}">
         <input type="hidden" name="kind" value="{{ values.kind }}">
         {% if not forContacts|default(false) %}<input type="hidden" name="roles[]" value="customer">{% endif %}
@@ -27,9 +27,9 @@
             {{ 'party.quick.intro'|trans }}
             {% if forContacts|default(false) %}
                 {# Over the contact list the whole form replaces the list, as its page does without JavaScript. #}
-                <a href="{{ path('app_contact_new') }}" data-full-form class="font-medium text-ink underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'party.quick.full'|trans }}</a>
+                <a href="{{ path('app_contact_new') }}" data-full-form class="font-medium text-ink underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'party.quick.full'|trans }}</a>
             {% else %}
-                <a href="{{ path('app_contact_new') }}" target="_blank" rel="noopener" data-action="dialog#discard" class="font-medium text-ink underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'party.quick.full'|trans }}<span class="sr-only"> ({{ 'invoice.opens_new_tab'|trans }})</span></a>
+                <a href="{{ path('app_contact_new') }}" target="_blank" rel="noopener" data-action="dialog#discard" class="font-medium text-ink underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'party.quick.full'|trans }}<span class="sr-only"> ({{ 'invoice.opens_new_tab'|trans }})</span></a>
             {% endif %}
         </p>
 
@@ -42,7 +42,7 @@
                     {% for field, message in errors %}
                         <li>
                             {%- if field == 'form' or field not in ['displayName', 'registrationNumber', 'email', 'street', 'city', 'postalCode', 'countryCode'] %}{{ field == 'form' ? '' : ('party.field.' ~ field)|trans ~ ': ' }}{{ message }}
-                            {%- else %}<a href="#{{ field }}" class="text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ ('party.field.' ~ field)|trans }}</a>: {{ message }}
+                            {%- else %}<a href="#{{ field }}" class="text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ ('party.field.' ~ field)|trans }}</a>: {{ message }}
                             {%- endif -%}
                         </li>
                     {% endfor %}
@@ -77,7 +77,7 @@
         {% endif %}
 
         <details data-quick-address class="rounded-control border border-divider px-3 py-2"{% if addressProblem %} open{% endif %}>
-            <summary class="cursor-pointer text-small font-medium text-ink {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">
+            <summary class="cursor-pointer text-small font-medium text-ink {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">
                 {{- 'party.card.billing'|trans }} <span class="font-normal text-muted" data-party-lookup-target="seat">{{ seat }}</span>
             </summary>
             <div class="mt-3 grid gap-3 sm:grid-cols-2">

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Instance\Domain;
+namespace Foresi\Instance\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
 

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Shared\Domain\Money;
 
 /**
  * The tax documents of a pack added up for one treatment and rate, in the home currency.

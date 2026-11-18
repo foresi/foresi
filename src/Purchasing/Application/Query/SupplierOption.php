@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application\Query;
+namespace Foresi\Purchasing\Application\Query;
 
 /**
  * A contact a received document may name as its supplier.

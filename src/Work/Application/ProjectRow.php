@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Work\Domain\WorkflowTemplate;
+use Foresi\Work\Domain\WorkflowTemplate;
 
 /**
  * A project in the index: what it is, for whom, and how much is left of it.

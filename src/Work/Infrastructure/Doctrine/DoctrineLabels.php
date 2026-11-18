@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Doctrine;
+namespace Foresi\Work\Infrastructure\Doctrine;
 
-use App\Shared\Domain\Id;
-use App\Work\Application\Labels;
-use App\Work\Domain\Label;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Shared\Domain\Id;
+use Foresi\Work\Application\Labels;
+use Foresi\Work\Domain\Label;
 
 final readonly class DoctrineLabels implements Labels
 {

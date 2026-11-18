@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Doctrine;
+namespace Foresi\Party\Infrastructure\Doctrine;
 
-use App\Party\Application\PartyAddresses;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\PartyAddress;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Party\Application\PartyAddresses;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\PartyAddress;
 
 final readonly class DoctrinePartyAddresses implements PartyAddresses
 {

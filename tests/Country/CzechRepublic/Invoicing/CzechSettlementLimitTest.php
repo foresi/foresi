@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Country\CzechRepublic\Invoicing;
+namespace Foresi\Tests\Country\CzechRepublic\Invoicing;
 
-use App\Country\CzechRepublic\Invoicing\CzechInvoicing;
-use App\Country\CzechRepublic\Invoicing\CzechSupplyCodes;
-use App\Country\CzechRepublic\Invoicing\CzechVatRates;
-use App\Country\CzechRepublic\Invoicing\IsdocWriter;
-use App\Country\CzechRepublic\Invoicing\QrPlatba;
-use App\Shared\Domain\Currency;
+use Foresi\Country\CzechRepublic\Invoicing\CzechInvoicing;
+use Foresi\Country\CzechRepublic\Invoicing\CzechSupplyCodes;
+use Foresi\Country\CzechRepublic\Invoicing\CzechVatRates;
+use Foresi\Country\CzechRepublic\Invoicing\IsdocWriter;
+use Foresi\Country\CzechRepublic\Invoicing\QrPlatba;
+use Foresi\Shared\Domain\Currency;
 use PHPUnit\Framework\TestCase;
 
 final class CzechSettlementLimitTest extends TestCase

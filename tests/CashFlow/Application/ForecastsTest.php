@@ -6,39 +6,39 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\CashFlow\Application;
+namespace Foresi\Tests\CashFlow\Application;
 
-use App\CashFlow\Application\BalanceWrites;
-use App\CashFlow\Application\CashFlowAccess;
-use App\CashFlow\Application\CashFlowRefused;
-use App\CashFlow\Application\CashFlowStore;
-use App\CashFlow\Application\Forecast;
-use App\CashFlow\Application\ForecastLine;
-use App\CashFlow\Application\Forecasts;
-use App\CashFlow\Application\RecordCheckpointInput;
-use App\CashFlow\Application\SetExpectedDateInput;
-use App\CashFlow\Application\SetMinimumBalanceInput;
-use App\CashFlow\Contract\BalanceSource;
-use App\CashFlow\Contract\CashFlowSource;
-use App\CashFlow\Contract\ExpectedFlow;
-use App\CashFlow\Contract\FlowCategory;
-use App\CashFlow\Contract\FlowCertainty;
-use App\CashFlow\Contract\FlowDirection;
-use App\CashFlow\Contract\FlowFlag;
-use App\CashFlow\Contract\FlowSubject;
-use App\CashFlow\Contract\PeriodKind;
-use App\CashFlow\Infrastructure\Source\PlannedItemFlows;
-use App\ExchangeRate\Application\ExchangeRates;
-use App\ExchangeRate\Domain\ExchangeRate;
-use App\ExchangeRate\Domain\RateNotAvailable;
-use App\Instance\Application\InstanceClock;
-use App\Shared\Application\RefusalKind;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\CashFlow\Support\CashFlowTestCase;
-use App\Tests\CashFlow\Support\FakeBalanceSource;
-use App\Tests\CashFlow\Support\FakeSource;
-use App\Tests\CashFlow\Support\SpyLogger;
+use Foresi\CashFlow\Application\BalanceWrites;
+use Foresi\CashFlow\Application\CashFlowAccess;
+use Foresi\CashFlow\Application\CashFlowRefused;
+use Foresi\CashFlow\Application\CashFlowStore;
+use Foresi\CashFlow\Application\Forecast;
+use Foresi\CashFlow\Application\ForecastLine;
+use Foresi\CashFlow\Application\Forecasts;
+use Foresi\CashFlow\Application\RecordCheckpointInput;
+use Foresi\CashFlow\Application\SetExpectedDateInput;
+use Foresi\CashFlow\Application\SetMinimumBalanceInput;
+use Foresi\CashFlow\Contract\BalanceSource;
+use Foresi\CashFlow\Contract\CashFlowSource;
+use Foresi\CashFlow\Contract\ExpectedFlow;
+use Foresi\CashFlow\Contract\FlowCategory;
+use Foresi\CashFlow\Contract\FlowCertainty;
+use Foresi\CashFlow\Contract\FlowDirection;
+use Foresi\CashFlow\Contract\FlowFlag;
+use Foresi\CashFlow\Contract\FlowSubject;
+use Foresi\CashFlow\Contract\PeriodKind;
+use Foresi\CashFlow\Infrastructure\Source\PlannedItemFlows;
+use Foresi\ExchangeRate\Application\ExchangeRates;
+use Foresi\ExchangeRate\Domain\ExchangeRate;
+use Foresi\ExchangeRate\Domain\RateNotAvailable;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\CashFlow\Support\CashFlowTestCase;
+use Foresi\Tests\CashFlow\Support\FakeBalanceSource;
+use Foresi\Tests\CashFlow\Support\FakeSource;
+use Foresi\Tests\CashFlow\Support\SpyLogger;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
@@ -174,7 +174,7 @@ final class ForecastsTest extends CashFlowTestCase
         self::assertSame('inv-promised', $promised->flow->subject->id);
         self::assertSame([FlowFlag::ExpectedDate], $promised->flow->flags);
         self::assertSame('2026-12-15', $promised->countedOn->format('Y-m-d'));
-        self::assertSame(1, array_sum(array_map(static fn (\App\CashFlow\Application\PeriodForecast $period): int => \count($period->lines), $forecast->periods)) - 3, 'The flow after the horizon is left out.');
+        self::assertSame(1, array_sum(array_map(static fn (\Foresi\CashFlow\Application\PeriodForecast $period): int => \count($period->lines), $forecast->periods)) - 3, 'The flow after the horizon is left out.');
     }
 
     public function testAnOverdueDocumentMovedToAPastDayIsStillOverdue(): void
@@ -544,7 +544,7 @@ final class ForecastsTest extends CashFlowTestCase
         return new ExpectedFlow('test.invoices', new FlowSubject('invoice', $id, '/api/v1/invoices/'.$id), $direction, Money::of($amount, $currency), new \DateTimeImmutable($on, new \DateTimeZone('Europe/Prague')), FlowCategory::Revenue, $certainty, 'Invoice '.$id, $flags);
     }
 
-    private function checkpoint(string $on, string $amount, ?\App\Party\Domain\FirmBankAccount $account = null): void
+    private function checkpoint(string $on, string $amount, ?\Foresi\Party\Domain\FirmBankAccount $account = null): void
     {
         self::getContainer()->get(BalanceWrites::class)->checkpoint(new RecordCheckpointInput(($account ?? $this->account)->id(), $on, $amount));
     }

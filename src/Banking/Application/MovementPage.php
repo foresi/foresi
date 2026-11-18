@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
 /**
  * One page of the bank screen: the movements of the tab, or the messages on the

@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Domain;
+namespace Foresi\CashFlow\Domain;
 
-use App\Audit\Domain\Audited;
-use App\CashFlow\Contract\FlowCategory;
-use App\CashFlow\Contract\FlowDirection;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Id;
-use App\Shared\Domain\Money;
-use App\Shared\Domain\Schedule\Recurrence;
-use App\Shared\Domain\Schedule\RecurrenceEnd;
-use App\Shared\Domain\Schedule\RecurrenceUnit;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\CashFlow\Contract\FlowCategory;
+use Foresi\CashFlow\Contract\FlowDirection;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\Schedule\Recurrence;
+use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
+use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
 
 /**
  * Money a firm expects to come in or go out that no document carries yet: rent,

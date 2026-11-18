@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Timesheet\Domain;
+namespace Foresi\Timesheet\Domain;
 
 /**
  * What one line of an invoice of time holds (Harvest, Clockify): the time of a

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure;
+namespace Foresi\Tests\Shared\Infrastructure;
 
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 

@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Application;
 
-use App\Banking\Application\MovementFilter;
-use App\Banking\Application\MovementRow;
-use App\Banking\Domain\MessageTrust;
-use App\Banking\Domain\MovementDirection;
-use App\Banking\Domain\MovementState;
-use App\Banking\Domain\UnmatchedReason;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Banking\Application\MovementFilter;
+use Foresi\Banking\Application\MovementRow;
+use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Banking\Domain\MovementDirection;
+use Foresi\Banking\Domain\MovementState;
+use Foresi\Banking\Domain\UnmatchedReason;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

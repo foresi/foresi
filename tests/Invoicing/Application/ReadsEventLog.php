@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Events\Infrastructure\Dbal\EventLogTable;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Events\Infrastructure\Dbal\EventLogTable;
 
 /**
  * The events a test left in the log, in the order they were recorded.

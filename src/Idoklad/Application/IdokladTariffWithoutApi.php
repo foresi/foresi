@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application;
+namespace Foresi\Idoklad\Application;
 
 /**
  * iDoklad answered 402: the account's tariff has no API access, or it expired.

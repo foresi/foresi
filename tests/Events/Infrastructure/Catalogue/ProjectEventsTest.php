@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Events\Infrastructure\Catalogue;
+namespace Foresi\Tests\Events\Infrastructure\Catalogue;
 
-use App\Events\Infrastructure\Catalogue\EventCatalogue;
-use App\Shared\Infrastructure\Module\InstalledModules;
+use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
+use Foresi\Shared\Infrastructure\Module\InstalledModules;
 use PHPUnit\Framework\TestCase;
 
 /**

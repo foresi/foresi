@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Application\Api;
+namespace Foresi\Shared\Application\Api;
 
 /**
  * The answer kept under an idempotency key: over REST the status, the headers

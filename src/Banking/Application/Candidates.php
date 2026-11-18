@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Currency;
 
 /**
  * The open invoices a movement may pay, read for the matcher.

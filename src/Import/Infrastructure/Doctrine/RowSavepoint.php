@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Doctrine;
+namespace Foresi\Import\Infrastructure\Doctrine;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;

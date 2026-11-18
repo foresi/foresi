@@ -6,22 +6,22 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure;
+namespace Foresi\Tests\Invoicing\Infrastructure;
 
-use App\Invoicing\Application\AllocationRequest;
-use App\Invoicing\Application\CancelPayment;
-use App\Invoicing\Application\InvoiceBalances;
-use App\Invoicing\Application\PaymentRequest;
-use App\Invoicing\Application\RecordPayment;
-use App\Invoicing\Domain\Payment;
-use App\Invoicing\Domain\PaymentSource;
-use App\Invoicing\Infrastructure\Doctrine\OwingInvoiceCondition;
-use App\Invoicing\Infrastructure\Doctrine\PaymentBalances;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Invoicing\Application\InvoiceBalancesContract;
 use Doctrine\DBAL\Connection;
+use Foresi\Invoicing\Application\AllocationRequest;
+use Foresi\Invoicing\Application\CancelPayment;
+use Foresi\Invoicing\Application\InvoiceBalances;
+use Foresi\Invoicing\Application\PaymentRequest;
+use Foresi\Invoicing\Application\RecordPayment;
+use Foresi\Invoicing\Domain\Payment;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Invoicing\Infrastructure\Doctrine\OwingInvoiceCondition;
+use Foresi\Invoicing\Infrastructure\Doctrine\PaymentBalances;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Invoicing\Application\InvoiceBalancesContract;
 
 /**
  * The balances from recorded payments: an invoice owes its payable less what the

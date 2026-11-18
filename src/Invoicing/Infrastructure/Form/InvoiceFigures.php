@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Form;
+namespace Foresi\Invoicing\Infrastructure\Form;
 
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Application\LinePricing;
-use App\Invoicing\Application\PricedLine;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\RateSummary;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Application\LinePricing;
+use Foresi\Invoicing\Application\PricedLine;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\RateSummary;
+use Foresi\Shared\Domain\Money;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**

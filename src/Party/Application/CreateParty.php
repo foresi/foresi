@@ -6,22 +6,22 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
-use App\Party\Contract\Event\ContactCreated;
-use App\Party\Contract\Event\ContactKind;
-use App\Party\Domain\Address;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\EmailPurpose;
-use App\Party\Domain\InvoicingDefaults;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyEmail;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
-use App\Shared\Application\Event\EventRecorder;
+use Foresi\Party\Contract\Event\ContactCreated;
+use Foresi\Party\Contract\Event\ContactKind;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\EmailPurpose;
+use Foresi\Party\Domain\InvoicingDefaults;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Shared\Application\Event\EventRecorder;
 
 /**
  * The one way to create a party: it always comes with exactly one billing

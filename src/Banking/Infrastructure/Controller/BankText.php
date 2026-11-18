@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure\Controller;
+namespace Foresi\Banking\Infrastructure\Controller;
 
-use App\Banking\Domain\InboundStatus;
-use App\Banking\Domain\MovementState;
-use App\Banking\Domain\UnmatchedReason;
-use App\Invoicing\Application\InvoicingCountries;
-use App\Invoicing\Application\UnsupportedCountry;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Shared\Infrastructure\Http\TypedNumber;
+use Foresi\Banking\Domain\InboundStatus;
+use Foresi\Banking\Domain\MovementState;
+use Foresi\Banking\Domain\UnmatchedReason;
+use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Invoicing\Application\UnsupportedCountry;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Infrastructure\Http\TypedNumber;
 use Symfony\Component\Translation\LocaleSwitcher;
 use Symfony\Contracts\Translation\TranslatorInterface;
 

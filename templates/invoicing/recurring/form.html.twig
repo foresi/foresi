@@ -4,7 +4,7 @@
 {# The invoice form without a number and dates, laid out as iDoklad's recurring invoice on the invoice form's primitives: the template and its customer, the schedule beside the sending, the dates beside the payment, then the same line rows and controller as the invoice form. #}
 {% set crumbs = [] %}
 {% set editing = template|default(null) is not null %}
-{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 
 {% block head %}
     <meta name="turbo-cache-control" content="no-cache">
@@ -66,7 +66,7 @@
             data-invoice-form-vat-label-value="{{ 'invoice.field.vatId'|trans }}">
             {# The first submit button is what Enter in a field presses: it must never save. #}
             <button type="submit" name="_action" value="refresh" hidden tabindex="-1"></button>
-            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\RecurringFormController::FORM_TOKEN')) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\RecurringFormController::FORM_TOKEN')) }}">
             <input type="hidden" name="_submission" value="{{ token }}">
             <input type="hidden" name="version" value="{{ version }}">
             <input type="hidden" name="templateId" value="{{ editing ? template.id : '' }}">

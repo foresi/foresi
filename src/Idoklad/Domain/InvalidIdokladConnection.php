@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Domain;
+namespace Foresi\Idoklad\Domain;
 
 final class InvalidIdokladConnection extends \DomainException
 {

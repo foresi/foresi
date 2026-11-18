@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Infrastructure\Messenger;
+namespace Foresi\Banking\Infrastructure\Messenger;
 
-use App\Banking\Application\InboundProcessing;
-use App\Banking\Application\ProcessInboundMessage;
+use Foresi\Banking\Application\InboundProcessing;
+use Foresi\Banking\Application\ProcessInboundMessage;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**

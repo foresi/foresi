@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Timesheet\Application;
+namespace Foresi\Tests\Timesheet\Application;
 
-use App\Timesheet\Application\TimeInvoicingRefused;
+use Foresi\Timesheet\Application\TimeInvoicingRefused;
 use PHPUnit\Framework\TestCase;
 
 final class TimeInvoicingRefusedTest extends TestCase

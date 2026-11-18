@@ -15,7 +15,7 @@
 
 {% block dialog_body %}
     <form method="post" id="subtask-new-form" action="{{ path('app_task_subtask_new', {id: row.id}) }}" class="grid gap-4" novalidate data-subtask-new>
-        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TaskController::TOKEN')) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TaskController::TOKEN')) }}">
         {{ include('work/_form_errors.html.twig', {prefix: 'subtask-new-'}) }}
         <twig:Ui:TextInput name="title" id="subtask-new-title" :label="'work.task.field.title'|trans" :value="values.title" :error="errors.title|default(null)" maxlength="500" required autocomplete="off" />
     </form>

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Domain;
+namespace Foresi\Shared\Domain;
 
 /**
  * Supported ISO 4217 currencies.

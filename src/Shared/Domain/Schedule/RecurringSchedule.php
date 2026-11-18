@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Domain\Schedule;
+namespace Foresi\Shared\Domain\Schedule;
 
 /**
  * The dates of a recurrence. Occurrence n (from 0) is the first issue date

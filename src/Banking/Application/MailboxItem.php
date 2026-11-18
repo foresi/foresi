@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
 /**
  * One message of the operator mailbox: its UID there and its raw bytes.

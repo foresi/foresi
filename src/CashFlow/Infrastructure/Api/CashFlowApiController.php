@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Infrastructure\Api;
+namespace Foresi\CashFlow\Infrastructure\Api;
 
-use App\CashFlow\Application\CashFlowRefused;
-use App\CashFlow\Application\Forecasts;
-use App\CashFlow\Application\PlannedItemReads;
-use App\CashFlow\Domain\PlannedItem;
-use App\Instance\Application\InstanceClock;
-use App\Shared\Application\Api\ScopeGuard;
+use Foresi\CashFlow\Application\CashFlowRefused;
+use Foresi\CashFlow\Application\Forecasts;
+use Foresi\CashFlow\Application\PlannedItemReads;
+use Foresi\CashFlow\Domain\PlannedItem;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Shared\Application\Api\ScopeGuard;
 use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;

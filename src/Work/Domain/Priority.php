@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Domain;
+namespace Foresi\Work\Domain;
 
 /**
  * The priority of a task, on the scale Linear uses: no priority, then low to urgent.

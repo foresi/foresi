@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application\Query;
+namespace Foresi\Invoicing\Application\Query;
 
-use App\Shared\Domain\Money;
+use Foresi\Shared\Domain\Money;
 
 /**
  * The part of a payment that pays, or refunds, one invoice.

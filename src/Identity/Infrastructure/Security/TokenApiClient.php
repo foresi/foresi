@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Security;
+namespace Foresi\Identity\Infrastructure\Security;
 
-use App\Identity\Application\ApiTokenContext;
-use App\Shared\Application\Api\ApiClient;
+use Foresi\Identity\Application\ApiTokenContext;
+use Foresi\Shared\Application\Api\ApiClient;
 
 /**
  * The client of the shared contract, answered by the personal API token.

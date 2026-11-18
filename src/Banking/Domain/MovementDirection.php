@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Domain;
+namespace Foresi\Banking\Domain;
 
 /**
  * Which way money moved on the firm's own account: in from a payer, or out.

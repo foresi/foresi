@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Domain;
+namespace Foresi\Purchasing\Domain;
 
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 
 /**
  * CZK for one unit of the document's currency, as a decimal text; never a float.

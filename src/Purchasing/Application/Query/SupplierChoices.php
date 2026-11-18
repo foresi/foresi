@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application\Query;
+namespace Foresi\Purchasing\Application\Query;
 
-use App\Party\Application\PartyQuery;
-use App\Party\Application\PartyRow;
-use App\Party\Domain\Party;
-use App\Purchasing\Application\PurchasingAccess;
-use App\Purchasing\Application\PurchasingNotAllowed;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Application\PartyRow;
+use Foresi\Party\Domain\Party;
+use Foresi\Purchasing\Application\PurchasingAccess;
+use Foresi\Purchasing\Application\PurchasingNotAllowed;
 
 /**
  * The contacts a received document may name as its supplier, for the combobox

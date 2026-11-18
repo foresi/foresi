@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Domain;
+namespace Foresi\Tests\Invoicing\Domain;
 
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\Payment;
-use App\Invoicing\Domain\PaymentAllocation;
-use App\Invoicing\Domain\PaymentDirection;
-use App\Invoicing\Domain\PaymentSource;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Invoicing\Application\InvoiceTestCase;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Payment;
+use Foresi\Invoicing\Domain\PaymentAllocation;
+use Foresi\Invoicing\Domain\PaymentDirection;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Invoicing\Application\InvoiceTestCase;
 
 /**
  * An allocation puts a positive part of a payment on an invoice, all in one currency.

@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure;
+namespace Foresi\Tests\Shared\Infrastructure;
 
-use App\Shared\Infrastructure\Http\LocalPath;
+use Foresi\Shared\Infrastructure\Http\LocalPath;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

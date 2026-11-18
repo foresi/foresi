@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application\Query;
+namespace Foresi\Tests\Invoicing\Application\Query;
 
-use App\Invoicing\Application\Query\PaymentQueries;
-use App\Invoicing\Application\Query\PaymentRow;
-use App\Invoicing\Application\Query\PaymentSliceFilter;
+use Foresi\Invoicing\Application\Query\PaymentQueries;
+use Foresi\Invoicing\Application\Query\PaymentRow;
+use Foresi\Invoicing\Application\Query\PaymentSliceFilter;
 
 /**
  * Remembers the limits it is asked for and finds nothing.

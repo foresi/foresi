@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Mcp;
+namespace Foresi\Tests\Shared\Infrastructure\Mcp;
 
-use App\Shared\Infrastructure\Mcp\ReadTool;
-use App\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Infrastructure\Mcp\ReadTool;
+use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
 
 /**
  * A read tool that answers what it is given and remembers its arguments.

@@ -15,7 +15,7 @@
         "foresi": {
             "module": "cash-flow",
             "kind": "module",
-            "namespace": "App\\CashFlow\\",
+            "namespace": "Foresi\\CashFlow\\",
             "optional": [],
             "scopes": [
                 "cashflow"

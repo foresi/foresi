@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Attachment;
+namespace Foresi\Work\Infrastructure\Attachment;
 
-use App\Attachment\Application\PurgeAttachments;
-use App\Work\Application\TaskFiles;
+use Foresi\Attachment\Application\PurgeAttachments;
+use Foresi\Work\Application\TaskFiles;
 
 /**
  * The files of tasks and comments in the Attachment module, under the kinds

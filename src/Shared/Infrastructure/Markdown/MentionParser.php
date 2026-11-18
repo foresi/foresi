@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Markdown;
+namespace Foresi\Shared\Infrastructure\Markdown;
 
-use App\Shared\Application\MentionSyntax;
+use Foresi\Shared\Application\MentionSyntax;
 use League\CommonMark\Parser\Inline\InlineParserInterface;
 use League\CommonMark\Parser\Inline\InlineParserMatch;
 use League\CommonMark\Parser\InlineParserContext;

@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Doctrine;
+namespace Foresi\Identity\Infrastructure\Doctrine;
 
-use App\Identity\Application\UserRepository;
-use App\Identity\Domain\User;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Domain\User;
 
 final readonly class DoctrineUserRepository implements UserRepository
 {

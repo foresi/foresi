@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Import\Infrastructure\Source;
+namespace Foresi\Tests\Import\Infrastructure\Source;
 
 use PHPUnit\Framework\Assert;
 

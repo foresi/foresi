@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\ExchangeRate\Domain;
+namespace Foresi\ExchangeRate\Domain;
 
 /**
  * There is no rate for a currency on a date: the source does not quote the

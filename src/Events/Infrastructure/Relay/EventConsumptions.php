@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Relay;
+namespace Foresi\Events\Infrastructure\Relay;
 
-use App\Events\Infrastructure\Dbal\EventLogTable;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Types\Types;
+use Foresi\Events\Infrastructure\Dbal\EventLogTable;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Exception\RecoverableMessageHandlingException;
 

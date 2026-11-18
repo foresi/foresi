@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Infrastructure\Messenger;
+namespace Foresi\Idoklad\Infrastructure\Messenger;
 
-use App\Idoklad\Application\IdokladJobRunner;
-use App\Idoklad\Application\Message\ProcessIdokladJob;
+use Foresi\Idoklad\Application\IdokladJobRunner;
+use Foresi\Idoklad\Application\Message\ProcessIdokladJob;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /** Does a pull, check or run of the move from iDoklad. */

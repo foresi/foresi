@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\Payment;
-use App\Invoicing\Domain\PaymentAllocation;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Payment;
+use Foresi\Invoicing\Domain\PaymentAllocation;
+use Foresi\Shared\Domain\Money;
 
 /**
  * The payments and what they pay. The paid amount of an

@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceSend;
-use App\Invoicing\Domain\RecurringState;
-use App\Invoicing\Domain\SendPurpose;
-use App\Invoicing\Domain\SendStatus;
 use Doctrine\ORM\Query;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceSend;
+use Foresi\Invoicing\Domain\RecurringState;
+use Foresi\Invoicing\Domain\SendPurpose;
+use Foresi\Invoicing\Domain\SendStatus;
 
 /**
  * When a template counts as failing, in DQL, for its count, its tab and its rows

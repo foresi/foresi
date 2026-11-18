@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Infrastructure;
+namespace Foresi\Tests\Identity\Infrastructure;
 
-use App\Identity\Application\UserRepository;
-use App\Tests\Identity\Support\IdentityFixtures;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Tests\Identity\Support\IdentityFixtures;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Command\Command;

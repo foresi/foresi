@@ -13,7 +13,7 @@
 
 {% block dialog_body %}
     <form method="post" id="task-labels-form" action="{{ path('app_task_labels', {id: row.id}) }}" class="grid gap-2" novalidate>
-        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TaskController::TOKEN')) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TaskController::TOKEN')) }}">
         <fieldset class="m-0 grid gap-2 border-0 p-0">
             <legend class="sr-only">{{ 'work.task.field.labels'|trans }}</legend>
             {% for label in labels %}

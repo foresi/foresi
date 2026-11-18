@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Infrastructure\Http;
+namespace Foresi\Idoklad\Infrastructure\Http;
 
-use App\Idoklad\Application\IdokladClient;
-use App\Idoklad\Application\IdokladSession;
+use Foresi\Idoklad\Application\IdokladClient;
+use Foresi\Idoklad\Application\IdokladSession;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 

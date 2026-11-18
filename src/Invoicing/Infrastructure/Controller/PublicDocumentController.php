@@ -6,23 +6,23 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Controller;
+namespace Foresi\Invoicing\Infrastructure\Controller;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\MembershipDirectory;
-use App\Identity\Application\OpenToGuest;
-use App\Identity\Application\Organisation;
-use App\Invoicing\Application\DocumentFormat;
-use App\Invoicing\Application\LinkTokens;
-use App\Invoicing\Application\PaymentState;
-use App\Invoicing\Application\PublicDocument;
-use App\Invoicing\Application\PublicDocuments;
-use App\Invoicing\Application\SentFiles;
-use App\Invoicing\Application\SentFileUnreadable;
-use App\Invoicing\Domain\LinkAudience;
-use App\Invoicing\Infrastructure\Pdf\QrSvg;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Money;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\MembershipDirectory;
+use Foresi\Identity\Application\OpenToGuest;
+use Foresi\Identity\Application\Organisation;
+use Foresi\Invoicing\Application\DocumentFormat;
+use Foresi\Invoicing\Application\LinkTokens;
+use Foresi\Invoicing\Application\PaymentState;
+use Foresi\Invoicing\Application\PublicDocument;
+use Foresi\Invoicing\Application\PublicDocuments;
+use Foresi\Invoicing\Application\SentFiles;
+use Foresi\Invoicing\Application\SentFileUnreadable;
+use Foresi\Invoicing\Domain\LinkAudience;
+use Foresi\Invoicing\Infrastructure\Pdf\QrSvg;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Money;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\AssetMapper\AssetMapperInterface;

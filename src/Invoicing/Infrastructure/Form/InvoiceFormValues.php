@@ -6,28 +6,28 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Form;
+namespace Foresi\Invoicing\Infrastructure\Form;
 
-use App\Invoicing\Application\CustomerOption;
-use App\Invoicing\Application\CustomerPicker;
-use App\Invoicing\Application\Deductible;
-use App\Invoicing\Application\InvoiceDraftValues;
-use App\Invoicing\Application\InvoiceStore;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Application\NewInvoiceDefaults;
-use App\Invoicing\Domain\CorrectionType;
-use App\Invoicing\Domain\DocumentParty;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Invoicing\Domain\VatRegime;
-use App\Party\Application\ContactSettingsForFirm;
-use App\Party\Application\PartyQuery;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Application\CustomerOption;
+use Foresi\Invoicing\Application\CustomerPicker;
+use Foresi\Invoicing\Application\Deductible;
+use Foresi\Invoicing\Application\InvoiceDraftValues;
+use Foresi\Invoicing\Application\InvoiceStore;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Application\NewInvoiceDefaults;
+use Foresi\Invoicing\Domain\CorrectionType;
+use Foresi\Invoicing\Domain\DocumentParty;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Shared\Domain\Money;
 
 /**
  * The form as text: from the defaults, from a stored invoice, and after the actions

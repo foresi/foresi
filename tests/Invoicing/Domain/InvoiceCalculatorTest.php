@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Domain;
+namespace Foresi\Tests\Invoicing\Domain;
 
-use App\Invoicing\Domain\DocumentTotals;
-use App\Invoicing\Domain\InvoiceCalculator;
-use App\Invoicing\Domain\LineValues;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Quantity;
-use App\Invoicing\Domain\RateSummary;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\TotalRounding;
-use App\Invoicing\Domain\VatRegime;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Domain\DocumentTotals;
+use Foresi\Invoicing\Domain\InvoiceCalculator;
+use Foresi\Invoicing\Domain\LineValues;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Invoicing\Domain\RateSummary;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\TotalRounding;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -292,7 +292,7 @@ final class InvoiceCalculatorTest extends TestCase
 
     public function testLinesInTwoCurrenciesAreRefused(): void
     {
-        $this->expectException(\App\Shared\Domain\CurrencyMismatch::class);
+        $this->expectException(\Foresi\Shared\Domain\CurrencyMismatch::class);
 
         $this->totals([
             $this->line('1.00', '1', 'without', '21'),

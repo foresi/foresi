@@ -14,7 +14,7 @@
 {% block dialog_body %}
     {# The answer is the page with the secret, which Turbo would refuse as a form answer without a redirect. #}
     <form method="post" id="webhook-form" action="{{ path('app_webhook_new') }}" class="grid gap-4" data-turbo="false" novalidate>
-        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Webhooks\\Infrastructure\\Controller\\WebhookEndpointController::TOKEN')) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Webhooks\\Infrastructure\\Controller\\WebhookEndpointController::TOKEN')) }}">
         {% include 'webhooks/_fields.html.twig' %}
     </form>
 {% endblock %}

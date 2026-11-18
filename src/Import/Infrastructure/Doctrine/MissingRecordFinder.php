@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Doctrine;
+namespace Foresi\Import\Infrastructure\Doctrine;
 
-use App\Import\Application\Target\ImportTarget;
-use App\Import\Domain\Import;
-use App\Import\Domain\ImportProfile;
-use App\Import\Domain\ImportState;
-use App\Import\Domain\ReplaceScope;
-use App\Import\Domain\RowOutcome;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
+use Foresi\Import\Application\Target\ImportTarget;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\ImportProfile;
+use Foresi\Import\Domain\ImportState;
+use Foresi\Import\Domain\ReplaceScope;
+use Foresi\Import\Domain\RowOutcome;
 
 /**
  * Finds the records a full replace archives: the active records of its scope

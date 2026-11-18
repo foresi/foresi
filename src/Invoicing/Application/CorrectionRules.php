@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\CorrectionType;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Invoicing\Domain\VatRegime;
-use App\Party\Domain\LegalEntity;
+use Foresi\Invoicing\Domain\CorrectionType;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Invoicing\Domain\VatRegime;
+use Foresi\Party\Domain\LegalEntity;
 
 /**
  * What a corrective tax document must be, on top of what every document must be.

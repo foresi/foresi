@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Instance\Infrastructure\Health;
+namespace Foresi\Tests\Instance\Infrastructure\Health;
 
-use App\Instance\Application\Schedule\Heartbeats;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Instance\Application\Schedule\Heartbeats;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;

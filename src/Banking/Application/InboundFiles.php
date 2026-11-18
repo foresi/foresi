@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
 /**
  * The raw inbound messages, kept as .eml files outside the web root. Back them up with the database: a message without its file cannot be

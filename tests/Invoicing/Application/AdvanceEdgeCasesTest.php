@@ -6,45 +6,45 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Banking\Application\Candidates;
-use App\Country\CzechRepublic\Invoicing\CzechInvoicing;
-use App\Invoicing\Application\AdvanceDocuments;
-use App\Invoicing\Application\AdvanceTaxation;
-use App\Invoicing\Application\CancelPayment;
-use App\Invoicing\Application\ConflictRetry;
-use App\Invoicing\Application\CorrectPaymentTaxDocument;
-use App\Invoicing\Application\DeductibleAdvances;
-use App\Invoicing\Application\DocumentChain;
-use App\Invoicing\Application\InvoiceStatus;
-use App\Invoicing\Application\IssuedDocumentFactory;
-use App\Invoicing\Application\IssuePaymentTaxDocument;
-use App\Invoicing\Application\MissingTaxDocuments;
-use App\Invoicing\Application\PaymentSourceRelease;
-use App\Invoicing\Application\PaymentTaxDocumentTexts;
-use App\Invoicing\Application\PaymentTransitions;
-use App\Invoicing\Application\RecordPayment;
-use App\Invoicing\Application\TaxOnReceipt;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\MailTemplateKind;
-use App\Invoicing\Domain\TaxOnReceiptChoice;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Party\Application\TransactionalWork;
-use App\Party\Domain\Address;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PaymentMethod;
-use App\Party\Domain\VatId;
-use App\Tests\Banking\Support\LockLog;
-use App\Tests\Banking\Support\LoggingInvoiceStore;
-use App\Tests\Party\Support\FirmAccounts;
-use App\Tests\Support\IsdocSchema;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Banking\Application\Candidates;
+use Foresi\Country\CzechRepublic\Invoicing\CzechInvoicing;
+use Foresi\Invoicing\Application\AdvanceDocuments;
+use Foresi\Invoicing\Application\AdvanceTaxation;
+use Foresi\Invoicing\Application\CancelPayment;
+use Foresi\Invoicing\Application\ConflictRetry;
+use Foresi\Invoicing\Application\CorrectPaymentTaxDocument;
+use Foresi\Invoicing\Application\DeductibleAdvances;
+use Foresi\Invoicing\Application\DocumentChain;
+use Foresi\Invoicing\Application\InvoiceStatus;
+use Foresi\Invoicing\Application\IssuedDocumentFactory;
+use Foresi\Invoicing\Application\IssuePaymentTaxDocument;
+use Foresi\Invoicing\Application\MissingTaxDocuments;
+use Foresi\Invoicing\Application\PaymentSourceRelease;
+use Foresi\Invoicing\Application\PaymentTaxDocumentTexts;
+use Foresi\Invoicing\Application\PaymentTransitions;
+use Foresi\Invoicing\Application\RecordPayment;
+use Foresi\Invoicing\Application\TaxOnReceipt;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\MailTemplateKind;
+use Foresi\Invoicing\Domain\TaxOnReceiptChoice;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Party\Domain\VatId;
+use Foresi\Tests\Banking\Support\LockLog;
+use Foresi\Tests\Banking\Support\LoggingInvoiceStore;
+use Foresi\Tests\Party\Support\FirmAccounts;
+use Foresi\Tests\Support\IsdocSchema;
 use Symfony\Component\Clock\Clock;
 
 /**
@@ -72,10 +72,10 @@ final class AdvanceEdgeCasesTest extends AdvanceTestCase
         $lines = $this->store->lines($this->onlyTaxDocumentOf($advance));
         self::assertSame(
             [[TaxTreatment::Standard, '21.00', null], [TaxTreatment::ReverseCharge, null, '4'], [TaxTreatment::ReverseCharge, null, '1a'], [TaxTreatment::Exempt, null, null]],
-            array_map(static fn (\App\Invoicing\Domain\InvoiceLine $line): array => [$line->treatment(), $line->rate()?->decimal(), $line->supplyCode()], $lines),
+            array_map(static fn (\Foresi\Invoicing\Domain\InvoiceLine $line): array => [$line->treatment(), $line->rate()?->decimal(), $line->supplyCode()], $lines),
             'the reduced group adds up to nothing and takes no share',
         );
-        self::assertSame(100000, array_sum(array_map(static fn (\App\Invoicing\Domain\InvoiceLine $line): int => $line->gross()->minor(), $lines)));
+        self::assertSame(100000, array_sum(array_map(static fn (\Foresi\Invoicing\Domain\InvoiceLine $line): int => $line->gross()->minor(), $lines)));
     }
 
     public function testAForeignCustomersReverseChargeAndExemptLinesStayApart(): void
@@ -83,7 +83,7 @@ final class AdvanceEdgeCasesTest extends AdvanceTestCase
         $advance = $this->advance([$this->line('600.00', treatment: TaxTreatment::ReverseCharge, kind: null), $this->line('400.00', treatment: TaxTreatment::Exempt, kind: null)], ['customerId' => $this->german()->id()]);
         $this->pay($advance, '1000.00');
         $document = $this->onlyTaxDocumentOf($advance);
-        self::assertSame([[TaxTreatment::ReverseCharge, 60000], [TaxTreatment::Exempt, 40000]], array_map(static fn (\App\Invoicing\Domain\InvoiceLine $line): array => [$line->treatment(), $line->gross()->minor()], $this->store->lines($document)));
+        self::assertSame([[TaxTreatment::ReverseCharge, 60000], [TaxTreatment::Exempt, 40000]], array_map(static fn (\Foresi\Invoicing\Domain\InvoiceLine $line): array => [$line->treatment(), $line->gross()->minor()], $this->store->lines($document)));
 
         $deduction = self::getContainer()->get(DeductibleAdvances::class)->for($this->firm, $advance->customerParty()->id(), null, DocumentLanguage::English)[0]->lines;
         $final = $this->issue->issue($this->input([$this->line('3000.00', treatment: TaxTreatment::ReverseCharge, kind: null), $this->line('500.00', treatment: TaxTreatment::Exempt, kind: null), ...$deduction], ['customerId' => $advance->customerParty()->id()]));

@@ -6,19 +6,19 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Controller;
+namespace Foresi\Identity\Infrastructure\Controller;
 
-use App\Audit\Application\AuditActor;
-use App\Identity\Application\ApiTokenRefused;
-use App\Identity\Application\ManageApiTokens;
-use App\Identity\Application\People;
-use App\Identity\Application\Person;
-use App\Identity\Application\UserRepository;
-use App\Identity\Domain\ApiScope;
-use App\Identity\Domain\ApiToken;
-use App\Identity\Domain\ApiTokenState;
-use App\Identity\Domain\User;
-use App\Shared\Application\Api\ApiResources;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Application\ApiTokenRefused;
+use Foresi\Identity\Application\ManageApiTokens;
+use Foresi\Identity\Application\People;
+use Foresi\Identity\Application\Person;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Identity\Domain\ApiToken;
+use Foresi\Identity\Domain\ApiTokenState;
+use Foresi\Identity\Domain\User;
+use Foresi\Shared\Application\Api\ApiResources;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;

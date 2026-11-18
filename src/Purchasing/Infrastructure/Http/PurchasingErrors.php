@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Http;
+namespace Foresi\Purchasing\Infrastructure\Http;
 
-use App\Party\Application\UnknownLegalEntity;
-use App\Purchasing\Application\PurchasingNotAllowed;
-use App\Purchasing\Application\UnknownReceivedDocument;
+use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Purchasing\Application\PurchasingNotAllowed;
+use Foresi\Purchasing\Application\UnknownReceivedDocument;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;

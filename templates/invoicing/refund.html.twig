@@ -15,7 +15,7 @@
 
 {% block dialog_body %}
     <form method="post" id="refund-form" action="{{ path('app_invoice_refund', {id: invoice.id}) }}" class="grid grid-cols-1 gap-4" novalidate>
-        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoicePaymentController::FORM_TOKEN')) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoicePaymentController::FORM_TOKEN')) }}">
         <input type="hidden" name="_submission" value="{{ token }}">
 
         {% if errors.form is defined %}

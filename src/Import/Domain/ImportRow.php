@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Domain;
+namespace Foresi\Import\Domain;
 
-use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Shared\Domain\Id;
 
 /**
  * One source row, staged so the check, the run and the undo work on it in chunks.

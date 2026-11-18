@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application\Api;
+namespace Foresi\Purchasing\Application\Api;
 
-use App\Shared\Application\Api\Field;
-use App\Shared\Application\Api\Operation;
+use Foresi\Shared\Application\Api\Field;
+use Foresi\Shared\Application\Api\Operation;
 
 /**
  * Removes a payment of a received document recorded by mistake.

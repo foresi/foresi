@@ -9,7 +9,7 @@
 
 {% block content %}
     <form method="post" action="{{ action }}" class="grid max-w-4xl gap-4" novalidate>
-        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\FirmInvoicingController::SERIES_TOKEN')) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\FirmInvoicingController::SERIES_TOKEN')) }}">
         {% if not editing %}<input type="hidden" name="_submission" value="{{ token }}">{% endif %}
 
         {% if errors.form is defined %}

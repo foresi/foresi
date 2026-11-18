@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Navigation;
+namespace Foresi\Work\Infrastructure\Navigation;
 
-use App\Ui\Navigation\NavigationCountProvider;
-use App\Work\Application\WorkQueries;
+use Foresi\Ui\Navigation\NavigationCountProvider;
+use Foresi\Work\Application\WorkQueries;
 
 /**
  * My unfinished tasks that are overdue or due today, in one count query; none shows no number.

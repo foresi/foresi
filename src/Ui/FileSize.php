@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Ui;
+namespace Foresi\Ui;
 
 /**
  * The size of a file in words a person reads at a glance, as a file list

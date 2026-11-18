@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Import\Infrastructure;
+namespace Foresi\Tests\Import\Infrastructure;
 
-use App\Import\Infrastructure\Doctrine\RowSavepoint;
-use App\Party\Application\CreateParty;
-use App\Party\Domain\Address;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Import\Infrastructure\Doctrine\RowSavepoint;
+use Foresi\Party\Application\CreateParty;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class RowSavepointTest extends KernelTestCase

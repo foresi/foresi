@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Controller;
+namespace Foresi\Identity\Infrastructure\Controller;
 
-use App\Identity\Application\GuestCheck;
-use App\Identity\Application\OpenToGuest;
+use Foresi\Identity\Application\GuestCheck;
+use Foresi\Identity\Application\OpenToGuest;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * The start page: the sections the modules contribute (App\Ui\Dashboard), or a
+ * The start page: the sections the modules contribute (Foresi\Ui\Dashboard), or a
  * placeholder until there is data. A guest starts on what is shared
  * with them instead, so the sign-in lands there too; the work module serves
  * that page.

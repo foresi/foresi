@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Pdf;
+namespace Foresi\Invoicing\Infrastructure\Pdf;
 
-use App\Invoicing\Application\OriginalDocuments;
-use App\Invoicing\Application\OriginalDocumentUnreadable;
-use App\Invoicing\Application\SentFileUnreadable;
-use App\Invoicing\Infrastructure\Mail\DiskSentFiles;
+use Foresi\Invoicing\Application\OriginalDocuments;
+use Foresi\Invoicing\Application\OriginalDocumentUnreadable;
+use Foresi\Invoicing\Application\SentFileUnreadable;
+use Foresi\Invoicing\Infrastructure\Mail\DiskSentFiles;
 
 /**
  * Original PDFs in one directory, never below public/, kept the way

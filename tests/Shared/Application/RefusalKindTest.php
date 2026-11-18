@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Application;
+namespace Foresi\Tests\Shared\Application;
 
-use App\Shared\Application\RefusalKind;
+use Foresi\Shared\Application\RefusalKind;
 use PHPUnit\Framework\TestCase;
 
 /**

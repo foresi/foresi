@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\FirmPairing;
-use App\Party\Domain\LegalEntity;
+use Foresi\Banking\Domain\FirmPairing;
+use Foresi\Party\Domain\LegalEntity;
 
 /**
  * The stored pairing switches of the firms. Call add() inside

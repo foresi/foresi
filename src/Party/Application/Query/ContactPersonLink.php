@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application\Query;
+namespace Foresi\Party\Application\Query;
 
 /**
  * A person who is a contact person of a company, with the company.

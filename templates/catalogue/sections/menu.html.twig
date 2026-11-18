@@ -15,7 +15,7 @@
 {% endblock %}{% endembed %}
 {% embed 'catalogue/_state.html.twig' with {state: 'open'} %}{% block sample %}
 {# The open popup, drawn in place: groups, a selected row, a disabled row and a destructive row. #}
-<div role="menu" aria-label="Views" class="w-72 {{ constant('App\\Ui\\Component\\Menu::PANEL') }}">
+<div role="menu" aria-label="Views" class="w-72 {{ constant('Foresi\\Ui\\Component\\Menu::PANEL') }}">
     <twig:Ui:MenuSection label="Your views">
         <twig:Ui:MenuItem :checked="true">Unpaid invoices</twig:Ui:MenuItem>
         <twig:Ui:MenuItem :checked="false">Due this week</twig:Ui:MenuItem>

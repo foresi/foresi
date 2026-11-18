@@ -6,20 +6,20 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Infrastructure\Delivery;
+namespace Foresi\Webhooks\Infrastructure\Delivery;
 
-use App\Shared\Application\SealerUnavailable;
-use App\Webhooks\Application\AttemptResult;
-use App\Webhooks\Application\AttemptTrigger;
-use App\Webhooks\Application\RetrySchedule;
-use App\Webhooks\Application\SendWebhook;
-use App\Webhooks\Application\WebhookSecrets;
-use App\Webhooks\Domain\DisabledReason;
-use App\Webhooks\Domain\WebhookEndpoint;
-use App\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
-use App\Webhooks\Infrastructure\Http\WebhookSender;
-use App\Webhooks\Infrastructure\Mail\EndpointDisabledMailer;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Shared\Application\SealerUnavailable;
+use Foresi\Webhooks\Application\AttemptResult;
+use Foresi\Webhooks\Application\AttemptTrigger;
+use Foresi\Webhooks\Application\RetrySchedule;
+use Foresi\Webhooks\Application\SendWebhook;
+use Foresi\Webhooks\Application\WebhookSecrets;
+use Foresi\Webhooks\Domain\DisabledReason;
+use Foresi\Webhooks\Domain\WebhookEndpoint;
+use Foresi\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
+use Foresi\Webhooks\Infrastructure\Http\WebhookSender;
+use Foresi\Webhooks\Infrastructure\Mail\EndpointDisabledMailer;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;

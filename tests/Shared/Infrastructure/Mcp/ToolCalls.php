@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Mcp;
+namespace Foresi\Tests\Shared\Infrastructure\Mcp;
 
-use App\Shared\Application\Api\ApiClient;
-use App\Shared\Infrastructure\Api\Idempotency;
-use App\Shared\Infrastructure\Api\WriteBudget;
-use App\Shared\Infrastructure\Mcp\ReadToolCall;
+use Foresi\Shared\Application\Api\ApiClient;
+use Foresi\Shared\Infrastructure\Api\Idempotency;
+use Foresi\Shared\Infrastructure\Api\WriteBudget;
+use Foresi\Shared\Infrastructure\Mcp\ReadToolCall;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\RateLimiter\Storage\InMemoryStorage;
 

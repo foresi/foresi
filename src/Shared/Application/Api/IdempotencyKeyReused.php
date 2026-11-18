@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Application\Api;
+namespace Foresi\Shared\Application\Api;
 
 /**
  * The idempotency key was sent before with another input: REST 422 and MCP

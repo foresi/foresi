@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Application;
 
-use App\Banking\Application\InboundToken;
+use Foresi\Banking\Application\InboundToken;
 use PHPUnit\Framework\TestCase;
 
 /**

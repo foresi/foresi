@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Infrastructure\Navigation;
+namespace Foresi\Purchasing\Infrastructure\Navigation;
 
-use App\Purchasing\Application\PurchasingNotAllowed;
-use App\Purchasing\Application\Query\ReceivedDocumentList;
-use App\Ui\Navigation\NavigationCountProvider;
+use Foresi\Purchasing\Application\PurchasingNotAllowed;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentList;
+use Foresi\Ui\Navigation\NavigationCountProvider;
 
 /**
  * The drafts that wait to be completed, in one count query; none shows no number.

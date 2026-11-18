@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Infrastructure\Delivery;
+namespace Foresi\Tests\Webhooks\Infrastructure\Delivery;
 
-use App\Shared\Domain\Id;
-use App\Tests\Webhooks\Support\DeliveryRows;
-use App\Webhooks\Application\AttemptTrigger;
-use App\Webhooks\Application\SendWebhook;
-use App\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
-use App\Webhooks\Infrastructure\Delivery\WebhookDeliveries;
-use App\Webhooks\Infrastructure\Delivery\WebhookSweepTask;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Shared\Domain\Id;
+use Foresi\Tests\Webhooks\Support\DeliveryRows;
+use Foresi\Webhooks\Application\AttemptTrigger;
+use Foresi\Webhooks\Application\SendWebhook;
+use Foresi\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
+use Foresi\Webhooks\Infrastructure\Delivery\WebhookDeliveries;
+use Foresi\Webhooks\Infrastructure\Delivery\WebhookSweepTask;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Messenger\MessageBusInterface;

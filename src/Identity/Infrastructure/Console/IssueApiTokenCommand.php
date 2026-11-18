@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Console;
+namespace Foresi\Identity\Infrastructure\Console;
 
-use App\Identity\Application\ApiTokenRefused;
-use App\Identity\Application\ManageApiTokens;
-use App\Identity\Application\UserRepository;
-use App\Identity\Domain\ApiScope;
-use App\Identity\Domain\ApiToken;
-use App\Identity\Domain\User;
+use Foresi\Identity\Application\ApiTokenRefused;
+use Foresi\Identity\Application\ManageApiTokens;
+use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Identity\Domain\ApiToken;
+use Foresi\Identity\Domain\User;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Option;

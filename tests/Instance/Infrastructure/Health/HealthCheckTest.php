@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Instance\Infrastructure\Health;
+namespace Foresi\Tests\Instance\Infrastructure\Health;
 
-use App\Instance\Application\Schedule\Heartbeats;
-use App\Instance\Infrastructure\Health\HealthCheck;
-use App\Instance\Infrastructure\Health\HealthStatus;
-use App\Instance\Infrastructure\Schedule\DoctrineHeartbeats;
-use App\Shared\Application\SystemMailUnavailable;
-use App\Tests\Shared\Infrastructure\Mail\RecordingSystemMailer;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Instance\Application\Schedule\Heartbeats;
+use Foresi\Instance\Infrastructure\Health\HealthCheck;
+use Foresi\Instance\Infrastructure\Health\HealthStatus;
+use Foresi\Instance\Infrastructure\Schedule\DoctrineHeartbeats;
+use Foresi\Shared\Application\SystemMailUnavailable;
+use Foresi\Tests\Shared\Infrastructure\Mail\RecordingSystemMailer;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Messenger\Envelope;

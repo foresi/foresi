@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Infrastructure\Relay;
+namespace Foresi\Events\Infrastructure\Relay;
 
-use App\Events\Application\DeliverEvent;
-use App\Events\Application\EventSink;
-use App\Events\Infrastructure\Dbal\EventLogTable;
-use App\Events\Infrastructure\Dbal\EventRowReader;
 use Doctrine\DBAL\Connection;
+use Foresi\Events\Application\DeliverEvent;
+use Foresi\Events\Application\EventSink;
+use Foresi\Events\Infrastructure\Dbal\EventLogTable;
+use Foresi\Events\Infrastructure\Dbal\EventRowReader;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Messenger\MessageBusInterface;

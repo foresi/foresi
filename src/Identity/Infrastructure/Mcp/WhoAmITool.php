@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Mcp;
+namespace Foresi\Identity\Infrastructure\Mcp;
 
-use App\Identity\Application\InsufficientScope;
-use App\Identity\Application\Query\CurrentApiIdentity;
-use App\Identity\Domain\ApiScope;
-use App\Shared\Application\Api\ScopeGuard;
-use App\Shared\Infrastructure\Mcp\ReadTool;
-use App\Shared\Infrastructure\Mcp\ToolOutput;
-use App\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Identity\Application\InsufficientScope;
+use Foresi\Identity\Application\Query\CurrentApiIdentity;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Shared\Application\Api\ScopeGuard;
+use Foresi\Shared\Infrastructure\Mcp\ReadTool;
+use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 
 /**
  * Who the MCP client acts as: the person and the token,

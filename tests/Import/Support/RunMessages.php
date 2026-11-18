@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Import\Support;
+namespace Foresi\Tests\Import\Support;
 
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;

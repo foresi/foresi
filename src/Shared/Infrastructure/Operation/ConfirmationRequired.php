@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Operation;
+namespace Foresi\Shared\Infrastructure\Operation;
 
-use App\Shared\Application\RefusalKind;
-use App\Shared\Application\Refused;
+use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Application\Refused;
 
 /**
  * An operation declared with needsConfirmation: a person must confirm it in

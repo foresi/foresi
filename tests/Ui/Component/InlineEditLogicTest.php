@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui\Component;
+namespace Foresi\Tests\Ui\Component;
 
-use App\Ui\Component\InlineEdit;
+use Foresi\Ui\Component\InlineEdit;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

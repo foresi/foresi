@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Smoke;
+namespace Foresi\Tests\Smoke;
 
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 

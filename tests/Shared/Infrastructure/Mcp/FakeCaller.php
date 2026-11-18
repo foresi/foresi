@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Mcp;
+namespace Foresi\Tests\Shared\Infrastructure\Mcp;
 
-use App\Shared\Infrastructure\Mcp\ToolCaller;
-use App\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Infrastructure\Mcp\ToolCaller;
+use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 
 /**
  * A caller that is confirmed, refused or fails, as the test sets it.

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application\Query;
+namespace Foresi\Invoicing\Application\Query;
 
 /**
  * A slice of the payments, newest first, and whether more follows it. The next

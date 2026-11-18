@@ -6,33 +6,33 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Application\Contact;
+namespace Foresi\Tests\Party\Application\Contact;
 
-use App\Events\Infrastructure\Dbal\EventLogTable;
-use App\Party\Application\ArchiveParty;
-use App\Party\Application\Contact\ArchiveContactInput;
-use App\Party\Application\Contact\ContactWrites;
-use App\Party\Application\Contact\CreateContactInput;
-use App\Party\Application\Contact\LinkContactPersonInput;
-use App\Party\Application\Contact\RestoreContactInput;
-use App\Party\Application\Contact\UnlinkContactPersonInput;
-use App\Party\Application\Contact\UpdateContactInput;
-use App\Party\Application\CreateParty;
-use App\Party\Application\LinkContactPerson;
-use App\Party\Application\PartyDetails;
-use App\Party\Application\PartyInput;
-use App\Party\Application\PartyNotAllowed;
-use App\Party\Application\PartyRefused;
-use App\Party\Application\UnlinkContactPerson;
-use App\Party\Application\UpdateParty;
-use App\Party\Domain\Address;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
-use App\Tests\Party\Application\Query\ContactTestCase;
+use Foresi\Events\Infrastructure\Dbal\EventLogTable;
+use Foresi\Party\Application\ArchiveParty;
+use Foresi\Party\Application\Contact\ArchiveContactInput;
+use Foresi\Party\Application\Contact\ContactWrites;
+use Foresi\Party\Application\Contact\CreateContactInput;
+use Foresi\Party\Application\Contact\LinkContactPersonInput;
+use Foresi\Party\Application\Contact\RestoreContactInput;
+use Foresi\Party\Application\Contact\UnlinkContactPersonInput;
+use Foresi\Party\Application\Contact\UpdateContactInput;
+use Foresi\Party\Application\CreateParty;
+use Foresi\Party\Application\LinkContactPerson;
+use Foresi\Party\Application\PartyDetails;
+use Foresi\Party\Application\PartyInput;
+use Foresi\Party\Application\PartyNotAllowed;
+use Foresi\Party\Application\PartyRefused;
+use Foresi\Party\Application\UnlinkContactPerson;
+use Foresi\Party\Application\UpdateParty;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Tests\Party\Application\Query\ContactTestCase;
 
 /**
  * The contact writes of the API and MCP (ADR 0032) called as the handlers call

@@ -6,33 +6,33 @@
 
 declare(strict_types=1);
 
-use App\Invoicing\Application\InvoiceInput;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Application\SendRequest;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\FirmMailServer;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\MailEncryption;
-use App\Invoicing\Domain\Percent;
-use App\Invoicing\Domain\PriceType;
-use App\Invoicing\Domain\Quantity;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\SeriesFormat;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\VatRateKind;
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\EmailPurpose;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\PartyEmail;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\PartyRole;
-use App\Party\Domain\PaymentMethod;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
-use App\Party\Domain\VatStatus;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
-use App\Tests\Support\Mail\RecordingMailGateway;
+use Foresi\Invoicing\Application\InvoiceInput;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Application\SendRequest;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\FirmMailServer;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\MailEncryption;
+use Foresi\Invoicing\Domain\Percent;
+use Foresi\Invoicing\Domain\PriceType;
+use Foresi\Invoicing\Domain\Quantity;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\EmailPurpose;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Support\Mail\RecordingMailGateway;
 
 // The world of the send dialog specs: a payer firm with a mail server and one without,
 // and a customer with an address for invoices and one for a copy. Its invoices are

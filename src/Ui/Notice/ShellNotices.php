@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Ui\Notice;
+namespace Foresi\Ui\Notice;
 
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Twig\Attribute\AsTwigFunction;

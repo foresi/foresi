@@ -6,38 +6,38 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Country\CzechRepublic\Invoicing\CzechInvoicing;
-use App\Country\CzechRepublic\Invoicing\CzechSupplyCodes;
-use App\Country\CzechRepublic\Invoicing\CzechVatRates;
-use App\Country\CzechRepublic\Invoicing\IsdocWriter;
-use App\Country\CzechRepublic\Invoicing\QrPlatba;
-use App\Instance\Application\InstanceClock;
-use App\Invoicing\Application\InvoiceHistory;
-use App\Invoicing\Application\InvoiceHistoryEntry;
-use App\Invoicing\Application\IssueInvoice;
-use App\Invoicing\Application\IssueRecurringOccurrence;
-use App\Invoicing\Application\OccurrenceTaken;
-use App\Invoicing\Application\RecurringChangedMeanwhile;
-use App\Invoicing\Application\RecurringFilter;
-use App\Invoicing\Application\RecurringInvoices;
-use App\Invoicing\Application\RecurringOccurrence;
-use App\Invoicing\Application\RecurringPage;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\RecurringInvoice;
-use App\Invoicing\Domain\RecurringInvoiceLine;
-use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\SeriesFormat;
-use App\Invoicing\Domain\TaxPointRule;
-use App\Invoicing\Domain\VatRateKind;
-use App\Party\Application\ContactSettingsForFirm;
-use App\Party\Application\TransactionalWork;
-use App\Party\Domain\Address;
-use App\Party\Domain\PartyAddress;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Foresi\Country\CzechRepublic\Invoicing\CzechInvoicing;
+use Foresi\Country\CzechRepublic\Invoicing\CzechSupplyCodes;
+use Foresi\Country\CzechRepublic\Invoicing\CzechVatRates;
+use Foresi\Country\CzechRepublic\Invoicing\IsdocWriter;
+use Foresi\Country\CzechRepublic\Invoicing\QrPlatba;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Invoicing\Application\InvoiceHistory;
+use Foresi\Invoicing\Application\InvoiceHistoryEntry;
+use Foresi\Invoicing\Application\IssueInvoice;
+use Foresi\Invoicing\Application\IssueRecurringOccurrence;
+use Foresi\Invoicing\Application\OccurrenceTaken;
+use Foresi\Invoicing\Application\RecurringChangedMeanwhile;
+use Foresi\Invoicing\Application\RecurringFilter;
+use Foresi\Invoicing\Application\RecurringInvoices;
+use Foresi\Invoicing\Application\RecurringOccurrence;
+use Foresi\Invoicing\Application\RecurringPage;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\RecurringInvoice;
+use Foresi\Invoicing\Domain\RecurringInvoiceLine;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Invoicing\Domain\TaxPointRule;
+use Foresi\Invoicing\Domain\VatRateKind;
+use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\PartyAddress;
 
 /**
  * Issuing one occurrence of a template: what the invoice holds, and that an

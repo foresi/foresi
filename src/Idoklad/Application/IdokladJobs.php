@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Idoklad\Application;
+namespace Foresi\Idoklad\Application;
 
-use App\Idoklad\Domain\IdokladJob;
-use App\Party\Domain\LegalEntity;
+use Foresi\Idoklad\Domain\IdokladJob;
+use Foresi\Party\Domain\LegalEntity;
 
 /** Port: the jobs of the move from iDoklad. Call add() inside TransactionalWork, which flushes. */
 interface IdokladJobs

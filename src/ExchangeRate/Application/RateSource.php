@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\ExchangeRate\Application;
+namespace Foresi\ExchangeRate\Application;
 
 /**
  * Where rates come from, such as the ČNB. The source answers for a date with its

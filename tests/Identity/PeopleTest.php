@@ -6,22 +6,22 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity;
+namespace Foresi\Tests\Identity;
 
-use App\Identity\Application\MembershipDirectory;
-use App\Identity\Domain\Invitation;
-use App\Identity\Domain\InvitationToken;
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Shared\Application\SystemMail;
-use App\Shared\Application\SystemMailer;
-use App\Shared\Application\SystemMailUnavailable;
-use App\Tests\Identity\Support\IdentityFixtures;
-use App\Tests\Shared\Infrastructure\Mail\RecordingSystemMailer;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Application\MembershipDirectory;
+use Foresi\Identity\Domain\Invitation;
+use Foresi\Identity\Domain\InvitationToken;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Shared\Application\SystemMail;
+use Foresi\Shared\Application\SystemMailer;
+use Foresi\Shared\Application\SystemMailUnavailable;
+use Foresi\Tests\Identity\Support\IdentityFixtures;
+use Foresi\Tests\Shared\Infrastructure\Mail\RecordingSystemMailer;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;

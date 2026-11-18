@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\InboundStatus;
+use Foresi\Banking\Domain\InboundStatus;
 
 /**
  * Where one processing run left an inbound message, as stored on its row. A

@@ -6,22 +6,22 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Audit\Application\AuditActor;
-use App\Instance\Application\InstanceClock;
-use App\Invoicing\Domain\RecurringContent;
-use App\Invoicing\Domain\RecurringInvoice;
-use App\Invoicing\Domain\RecurringInvoiceLine;
-use App\Invoicing\Domain\RecurringState;
-use App\Invoicing\Domain\Series;
-use App\Party\Application\LegalEntities;
-use App\Party\Application\PartyQuery;
-use App\Party\Application\TransactionalWork;
-use App\Party\Application\UnknownLegalEntity;
-use App\Party\Domain\Iban;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\PaymentMethod;
+use Foresi\Audit\Application\AuditActor;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Invoicing\Domain\RecurringContent;
+use Foresi\Invoicing\Domain\RecurringInvoice;
+use Foresi\Invoicing\Domain\RecurringInvoiceLine;
+use Foresi\Invoicing\Domain\RecurringState;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Party\Domain\Iban;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\PaymentMethod;
 use Psr\Clock\ClockInterface;
 
 /**

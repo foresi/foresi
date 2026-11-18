@@ -12,7 +12,7 @@
 {% set title = 'timesheet.invoice.title'|trans %}
 {% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.time.report.title'|trans, href: path('app_time_report')}, {label: title}] %}
 {% set dialog_size = 'lg' %}
-{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 
 {% block title %}{{ title }}{% endblock %}
 
@@ -22,7 +22,7 @@
     {% else %}
         <form method="post" id="time-invoice-form" action="{{ action }}" class="grid gap-4" novalidate
               data-controller="time-invoice" data-time-invoice-locale-value="{{ app.request.locale }}" data-time-invoice-hours-value="{{ 'timesheet.invoice.hours'|trans({hours: '{hours}'}) }}" data-time-invoice-form>
-            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Timesheet\\Infrastructure\\Controller\\TimeInvoiceController::TOKEN')) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Timesheet\\Infrastructure\\Controller\\TimeInvoiceController::TOKEN')) }}">
             <input type="hidden" name="shown_client" value="{{ client }}">
             {# Enter refreshes the time, never continues: the first submit button of the form is the one it presses. #}
             <button type="submit" class="sr-only" tabindex="-1" aria-hidden="true"></button>

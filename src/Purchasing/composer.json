@@ -17,7 +17,7 @@
         "foresi": {
             "module": "purchasing",
             "kind": "module",
-            "namespace": "App\\Purchasing\\",
+            "namespace": "Foresi\\Purchasing\\",
             "optional": [
                 "cash-flow"
             ],

@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Doctrine;
+namespace Foresi\Work\Infrastructure\Doctrine;
 
-use App\Identity\Domain\Membership;
-use App\Shared\Domain\Id;
-use App\Work\Application\Notifications;
-use App\Work\Domain\Notification;
-use App\Work\Domain\Task;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Shared\Domain\Id;
+use Foresi\Work\Application\Notifications;
+use Foresi\Work\Domain\Notification;
+use Foresi\Work\Domain\Task;
 
 final readonly class DoctrineNotifications implements Notifications
 {

@@ -6,24 +6,24 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Application;
 
-use App\Invoicing\Application\AdvanceTaxation;
-use App\Invoicing\Application\InvoiceInput;
-use App\Invoicing\Application\LineInput;
-use App\Invoicing\Application\TaxOnReceipt;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\TaxOnReceiptChoice;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Party\Domain\Address;
-use App\Party\Domain\AddressType;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyKind;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
-use App\Party\Domain\VatStatus;
+use Foresi\Invoicing\Application\AdvanceTaxation;
+use Foresi\Invoicing\Application\InvoiceInput;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Application\TaxOnReceipt;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\TaxOnReceiptChoice;
+use Foresi\Invoicing\Domain\TaxTreatment;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Party\Domain\VatStatus;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**

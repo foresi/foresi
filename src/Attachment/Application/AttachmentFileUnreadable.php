@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Attachment\Application;
+namespace Foresi\Attachment\Application;
 
 /**
  * The stored file of an attachment is missing, of another attachment or no

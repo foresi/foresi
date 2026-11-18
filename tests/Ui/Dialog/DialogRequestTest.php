@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui\Dialog;
+namespace Foresi\Tests\Ui\Dialog;
 
-use App\Ui\Dialog\DialogRedirects;
-use App\Ui\Dialog\DialogRequest;
+use Foresi\Ui\Dialog\DialogRedirects;
+use Foresi\Ui\Dialog\DialogRequest;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;

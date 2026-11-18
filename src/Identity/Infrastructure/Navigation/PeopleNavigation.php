@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Infrastructure\Navigation;
+namespace Foresi\Identity\Infrastructure\Navigation;
 
-use App\Identity\Application\StaffCheck;
-use App\Identity\Infrastructure\Controller\PeopleController;
-use App\Ui\Navigation\NavigationArea;
-use App\Ui\Navigation\NavigationItem;
-use App\Ui\Navigation\NavigationItemProvider;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Infrastructure\Controller\PeopleController;
+use Foresi\Ui\Navigation\NavigationArea;
+use Foresi\Ui\Navigation\NavigationItem;
+use Foresi\Ui\Navigation\NavigationItemProvider;
 
 /**
  * The people of the organisation in the settings, for the staff.

@@ -6,17 +6,17 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
-use App\Invoicing\Application\InvoicePaymentLine;
-use App\Invoicing\Application\InvoicePayments;
-use App\Invoicing\Application\UnknownPayment;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\Payment;
-use App\Invoicing\Domain\PaymentAllocation;
-use App\Shared\Domain\Money;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Invoicing\Application\InvoicePaymentLine;
+use Foresi\Invoicing\Application\InvoicePayments;
+use Foresi\Invoicing\Application\UnknownPayment;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Payment;
+use Foresi\Invoicing\Domain\PaymentAllocation;
+use Foresi\Shared\Domain\Money;
 
 /**
  * Every read goes through the ORM, for the payments and their allocations both.

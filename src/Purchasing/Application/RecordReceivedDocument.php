@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application;
+namespace Foresi\Purchasing\Application;
 
-use App\Party\Application\UnknownLegalEntity;
-use App\Purchasing\Domain\ReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocumentContent;
-use App\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentContent;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
 use Psr\Clock\ClockInterface;
 
 /**

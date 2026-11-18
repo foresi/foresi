@@ -6,25 +6,25 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Application;
+namespace Foresi\Tests\Webhooks\Application;
 
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Shared\Domain\Id;
-use App\Tests\Identity\Support\IdentityFixtures;
-use App\Webhooks\Application\CreatedEndpoint;
-use App\Webhooks\Application\InvalidWebhookEndpoint;
-use App\Webhooks\Application\InvalidWebhookUrl;
-use App\Webhooks\Application\ManageWebhookEndpoints;
-use App\Webhooks\Application\Query\WebhookEndpointList;
-use App\Webhooks\Application\QueuedAttempt;
-use App\Webhooks\Application\UnknownWebhookEndpoint;
-use App\Webhooks\Application\WebhookNotAllowed;
-use App\Webhooks\Domain\DisabledReason;
-use App\Webhooks\Domain\WebhookEndpoint;
-use App\Webhooks\Domain\WebhookSecret;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Identity\Infrastructure\Security\SecurityUser;
+use Foresi\Shared\Domain\Id;
+use Foresi\Tests\Identity\Support\IdentityFixtures;
+use Foresi\Webhooks\Application\CreatedEndpoint;
+use Foresi\Webhooks\Application\InvalidWebhookEndpoint;
+use Foresi\Webhooks\Application\InvalidWebhookUrl;
+use Foresi\Webhooks\Application\ManageWebhookEndpoints;
+use Foresi\Webhooks\Application\Query\WebhookEndpointList;
+use Foresi\Webhooks\Application\QueuedAttempt;
+use Foresi\Webhooks\Application\UnknownWebhookEndpoint;
+use Foresi\Webhooks\Application\WebhookNotAllowed;
+use Foresi\Webhooks\Domain\DisabledReason;
+use Foresi\Webhooks\Domain\WebhookEndpoint;
+use Foresi\Webhooks\Domain\WebhookSecret;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;

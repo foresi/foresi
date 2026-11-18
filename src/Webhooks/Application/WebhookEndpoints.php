@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Webhooks\Application;
+namespace Foresi\Webhooks\Application;
 
-use App\Webhooks\Domain\WebhookEndpoint;
+use Foresi\Webhooks\Domain\WebhookEndpoint;
 
 /**
  * The endpoints of the organisation.

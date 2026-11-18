@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application\Query;
+namespace Foresi\Invoicing\Application\Query;
 
-use App\Invoicing\Application\InvoiceRow;
+use Foresi\Invoicing\Application\InvoiceRow;
 
 /**
  * One document of a slice: the row of the list with the ids and dates the API adds to it.

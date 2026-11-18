@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\CashFlow\Application;
+namespace Foresi\CashFlow\Application;
 
-use App\CashFlow\Contract\ActualFlow;
-use App\CashFlow\Domain\MatchRule;
-use App\CashFlow\Domain\PlannedItem;
-use App\Shared\Domain\Schedule\Recurrence;
-use App\Shared\Domain\Schedule\RecurrenceUnit;
+use Foresi\CashFlow\Contract\ActualFlow;
+use Foresi\CashFlow\Domain\MatchRule;
+use Foresi\CashFlow\Domain\PlannedItem;
+use Foresi\Shared\Domain\Schedule\Recurrence;
+use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
 
 /**
  * Which planned occurrences the facts already replace (C13, C16).

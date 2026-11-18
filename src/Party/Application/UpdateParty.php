@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Application;
+namespace Foresi\Party\Application;
 
-use App\Party\Contract\Event\ContactKind;
-use App\Party\Contract\Event\ContactUpdated;
-use App\Party\Domain\EmailPurpose;
-use App\Party\Domain\InvoicingDefaults;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyEmail;
-use App\Shared\Application\Event\EventRecorder;
+use Foresi\Party\Contract\Event\ContactKind;
+use Foresi\Party\Contract\Event\ContactUpdated;
+use Foresi\Party\Domain\EmailPurpose;
+use Foresi\Party\Domain\InvoicingDefaults;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Shared\Application\Event\EventRecorder;
 
 /**
  * Changes what the address book form edits: the name, identifiers, phones,

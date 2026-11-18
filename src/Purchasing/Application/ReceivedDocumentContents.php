@@ -6,23 +6,23 @@
 
 declare(strict_types=1);
 
-namespace App\Purchasing\Application;
+namespace Foresi\Purchasing\Application;
 
-use App\ExchangeRate\Application\ExchangeRates;
-use App\ExchangeRate\Domain\RateNotAvailable;
-use App\Party\Application\PartyDetails;
-use App\Party\Application\PartyQuery;
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\Party;
-use App\Purchasing\Domain\ExchangeRate;
-use App\Purchasing\Domain\ReceivedDocument;
-use App\Purchasing\Domain\ReceivedDocumentContent;
-use App\Purchasing\Domain\ReceivedDocumentRefused;
-use App\Purchasing\Domain\SupplierSnapshot;
-use App\Shared\Domain\Currency;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
+use Foresi\ExchangeRate\Application\ExchangeRates;
+use Foresi\ExchangeRate\Domain\RateNotAvailable;
+use Foresi\Party\Application\PartyDetails;
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Purchasing\Domain\ExchangeRate;
+use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentContent;
+use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Purchasing\Domain\SupplierSnapshot;
+use Foresi\Shared\Domain\Currency;
 
 /**
  * Turns what was given for a document into its content: the supplier found by

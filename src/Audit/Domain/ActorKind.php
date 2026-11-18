@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Audit\Domain;
+namespace Foresi\Audit\Domain;
 
 /**
  * What kind of actor made a change: a person on the screens, a personal API

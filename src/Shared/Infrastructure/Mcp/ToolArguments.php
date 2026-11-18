@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Infrastructure\Mcp;
+namespace Foresi\Shared\Infrastructure\Mcp;
 
-use App\Shared\Infrastructure\Api\Cursor;
-use App\Shared\Infrastructure\Api\InvalidParameter;
+use Foresi\Shared\Infrastructure\Api\Cursor;
+use Foresi\Shared\Infrastructure\Api\InvalidParameter;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**

@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Doctrine;
+namespace Foresi\Import\Infrastructure\Doctrine;
 
-use App\Import\Domain\Import;
-use App\Import\Domain\RowOutcome;
-use App\Shared\Domain\Id;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
+use Foresi\Import\Domain\Import;
+use Foresi\Import\Domain\RowOutcome;
+use Foresi\Shared\Domain\Id;
 
 /**
  * Stages rows with multi-row INSERT statements of one chunk each, straight

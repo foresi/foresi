@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Infrastructure\Navigation;
+namespace Foresi\Import\Infrastructure\Navigation;
 
-use App\Identity\Application\StaffCheck;
-use App\Ui\Navigation\NavigationArea;
-use App\Ui\Navigation\NavigationItem;
-use App\Ui\Navigation\NavigationItemProvider;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Ui\Navigation\NavigationArea;
+use Foresi\Ui\Navigation\NavigationItem;
+use Foresi\Ui\Navigation\NavigationItemProvider;
 
 /**
  * The history of imports, under Settings. A new import still starts from the page

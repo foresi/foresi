@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Party\Domain;
+namespace Foresi\Tests\Party\Domain;
 
-use App\Party\Domain\DocumentLanguage;
-use App\Party\Domain\InvoicingDefaults;
-use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
-use App\Shared\Domain\Money;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\InvoicingDefaults;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

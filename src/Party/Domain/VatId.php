@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Domain;
+namespace Foresi\Party\Domain;
 
 /**
  * An EU VAT identification number: two-letter prefix plus 2 to 12 alphanumerics.

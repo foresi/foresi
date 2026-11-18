@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure\Controller;
+namespace Foresi\Tests\Invoicing\Infrastructure\Controller;
 
-use App\Invoicing\Infrastructure\Controller\MonthChoices;
+use Foresi\Invoicing\Infrastructure\Controller\MonthChoices;
 use PHPUnit\Framework\TestCase;
 
 final class MonthChoicesTest extends TestCase

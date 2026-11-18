@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Invoicing\Infrastructure\Mail;
+namespace Foresi\Tests\Invoicing\Infrastructure\Mail;
 
-use App\Invoicing\Application\SendLimits;
+use Foresi\Invoicing\Application\SendLimits;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**

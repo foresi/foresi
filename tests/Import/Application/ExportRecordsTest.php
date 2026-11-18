@@ -6,18 +6,18 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Import\Application;
+namespace Foresi\Tests\Import\Application;
 
-use App\Import\Application\ExportRecords;
-use App\Import\Application\ExportWriter;
-use App\Import\Application\Source\SourceFormat;
-use App\Import\Application\Target\ImportTarget;
-use App\Import\Application\Target\RecordSnapshot;
-use App\Import\Application\Target\TargetRegistry;
-use App\Import\Application\Target\WriteResult;
-use App\Import\Domain\BlankCells;
-use App\Import\Domain\FieldDefinition;
-use App\Import\Domain\FieldType;
+use Foresi\Import\Application\ExportRecords;
+use Foresi\Import\Application\ExportWriter;
+use Foresi\Import\Application\Source\SourceFormat;
+use Foresi\Import\Application\Target\ImportTarget;
+use Foresi\Import\Application\Target\RecordSnapshot;
+use Foresi\Import\Application\Target\TargetRegistry;
+use Foresi\Import\Application\Target\WriteResult;
+use Foresi\Import\Domain\BlankCells;
+use Foresi\Import\Domain\FieldDefinition;
+use Foresi\Import\Domain\FieldType;
 use PHPUnit\Framework\TestCase;
 
 final class ExportRecordsTest extends TestCase

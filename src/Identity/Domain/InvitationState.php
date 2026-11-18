@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Identity\Domain;
+namespace Foresi\Identity\Domain;
 
 /**
  * Where an invitation stands: waiting for the person, or no longer usable.

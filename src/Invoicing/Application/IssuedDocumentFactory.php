@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceCalculator;
-use App\Invoicing\Domain\InvoiceLine;
-use App\Invoicing\Domain\LineAmounts;
-use App\Invoicing\Domain\SummaryLine;
-use App\Shared\Domain\Money;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceCalculator;
+use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Invoicing\Domain\LineAmounts;
+use Foresi\Invoicing\Domain\SummaryLine;
+use Foresi\Shared\Domain\Money;
 
 /**
  * Builds the view of an invoice from what is stored, header and lines from one

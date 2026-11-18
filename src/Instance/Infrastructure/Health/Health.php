@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Instance\Infrastructure\Health;
+namespace Foresi\Instance\Infrastructure\Health;
 
 /**
  * The checks of one health run, each with its status and at most one number.

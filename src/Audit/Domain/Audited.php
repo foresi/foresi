@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Audit\Domain;
+namespace Foresi\Audit\Domain;
 
 /**
  * Marker for entities whose creation, changes and removal are written to the

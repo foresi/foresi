@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Infrastructure\Doctrine;
+namespace Foresi\Work\Infrastructure\Doctrine;
 
-use App\Identity\Domain\Membership;
-use App\Shared\Domain\Id;
-use App\Work\Application\TimeEntries;
-use App\Work\Domain\Task;
-use App\Work\Domain\TimeEntry;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Shared\Domain\Id;
+use Foresi\Work\Application\TimeEntries;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TimeEntry;
 
 final readonly class DoctrineTimeEntries implements TimeEntries
 {

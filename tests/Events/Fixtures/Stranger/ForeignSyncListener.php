@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Events\Fixtures\Stranger;
+namespace Foresi\Tests\Events\Fixtures\Stranger;
 
 /**
  * A synchronous listener in another module than the event's, which the rule forbids.

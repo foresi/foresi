@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Work\Application;
+namespace Foresi\Work\Application;
 
-use App\Identity\Domain\Membership;
-use App\Work\Domain\NotificationPreference;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Work\Domain\NotificationPreference;
 
 /**
  * The e-mail preferences of the people; a person with none has the defaults.

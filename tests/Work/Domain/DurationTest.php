@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Work\Domain;
+namespace Foresi\Tests\Work\Domain;
 
-use App\Work\Domain\Duration;
+use Foresi\Work\Domain\Duration;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

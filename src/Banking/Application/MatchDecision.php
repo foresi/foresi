@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-namespace App\Banking\Application;
+namespace Foresi\Banking\Application;
 
-use App\Banking\Domain\UnmatchedReason;
-use App\Invoicing\Application\AllocationRequest;
+use Foresi\Banking\Domain\UnmatchedReason;
+use Foresi\Invoicing\Application\AllocationRequest;
 
 /**
  * What the matcher decided for a movement: how to split it over invoices, or why

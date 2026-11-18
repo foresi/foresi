@@ -6,16 +6,16 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Shared\Infrastructure\Mcp;
+namespace Foresi\Tests\Shared\Infrastructure\Mcp;
 
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Shared\Infrastructure\Mcp\ReadTool;
-use App\Shared\Infrastructure\Mcp\ToolOutput;
-use App\Shared\Infrastructure\Mcp\ToolRefusal;
-use App\Shared\Infrastructure\Mcp\WriteTool;
-use App\Tests\Shared\Infrastructure\Api\ApiTestCase;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Identity\Infrastructure\Security\SecurityUser;
+use Foresi\Shared\Infrastructure\Mcp\ReadTool;
+use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Infrastructure\Mcp\WriteTool;
+use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 

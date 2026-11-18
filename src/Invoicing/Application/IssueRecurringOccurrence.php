@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Invoicing\Application;
+namespace Foresi\Invoicing\Application;
 
-use App\Instance\Application\InstanceClock;
-use App\Invoicing\Domain\DocumentKind;
-use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\PeriodText;
-use App\Invoicing\Domain\RecurringInvoice;
-use App\Invoicing\Domain\RecurringInvoiceLine;
-use App\Invoicing\Domain\RecurringState;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Invoicing\Domain\DocumentKind;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\PeriodText;
+use Foresi\Invoicing\Domain\RecurringInvoice;
+use Foresi\Invoicing\Domain\RecurringInvoiceLine;
+use Foresi\Invoicing\Domain\RecurringState;
 
 /**
  * Issues the invoice of one occurrence of a recurring template, at most once

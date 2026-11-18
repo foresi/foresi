@@ -6,14 +6,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Webhooks\Infrastructure\Delivery;
+namespace Foresi\Tests\Webhooks\Infrastructure\Delivery;
 
-use App\Shared\Domain\Id;
-use App\Tests\Webhooks\Support\DeliveryRows;
-use App\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
-use App\Webhooks\Infrastructure\Delivery\PruneWebhookDeliveriesTask;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Shared\Domain\Id;
+use Foresi\Tests\Webhooks\Support\DeliveryRows;
+use Foresi\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
+use Foresi\Webhooks\Infrastructure\Delivery\PruneWebhookDeliveriesTask;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
 

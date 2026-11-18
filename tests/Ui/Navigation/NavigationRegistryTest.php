@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui\Navigation;
+namespace Foresi\Tests\Ui\Navigation;
 
-use App\Ui\Navigation\CoreNavigationAreas;
-use App\Ui\Navigation\NavigationArea;
-use App\Ui\Navigation\NavigationAreaProvider;
-use App\Ui\Navigation\NavigationCountProvider;
-use App\Ui\Navigation\NavigationItem;
-use App\Ui\Navigation\NavigationItemProvider;
-use App\Ui\Navigation\NavigationRegistry;
+use Foresi\Ui\Navigation\CoreNavigationAreas;
+use Foresi\Ui\Navigation\NavigationArea;
+use Foresi\Ui\Navigation\NavigationAreaProvider;
+use Foresi\Ui\Navigation\NavigationCountProvider;
+use Foresi\Ui\Navigation\NavigationItem;
+use Foresi\Ui\Navigation\NavigationItemProvider;
+use Foresi\Ui\Navigation\NavigationRegistry;
 use PHPUnit\Framework\TestCase;
 
 final class NavigationRegistryTest extends TestCase
@@ -52,7 +52,7 @@ final class NavigationRegistryTest extends TestCase
             new NavigationItem('main', 'tie-b', 'plus', 'r4'),
         )->groups(null, true);
 
-        self::assertSame(['first', 'tie-a', 'tie-b', 'late'], array_map(static fn (\App\Ui\Navigation\NavigationEntry $i): string => $i->labelKey, $groups[0]['items']));
+        self::assertSame(['first', 'tie-a', 'tie-b', 'late'], array_map(static fn (\Foresi\Ui\Navigation\NavigationEntry $i): string => $i->labelKey, $groups[0]['items']));
     }
 
     public function testItemsOfSeveralProvidersAreMerged(): void
@@ -145,7 +145,7 @@ final class NavigationRegistryTest extends TestCase
             new NavigationItem('main', 'd', 'plus', 'r4', $this->counter(null), countCap: 99),
         )->groups(null, true);
 
-        self::assertSame(['99+', '99', '1000', null], array_map(static fn (\App\Ui\Navigation\NavigationEntry $entry): ?string => $entry->countText(), $groups[0]['items']));
+        self::assertSame(['99+', '99', '1000', null], array_map(static fn (\Foresi\Ui\Navigation\NavigationEntry $entry): ?string => $entry->countText(), $groups[0]['items']));
         self::assertSame(100, $groups[0]['items'][0]->count);
         self::assertSame(99, $groups[0]['items'][0]->countCap);
     }
@@ -275,8 +275,8 @@ final class NavigationRegistryTest extends TestCase
 
         self::assertSame(['overview', 'sales', 'purchasing', 'money', 'settings'], array_map(static fn (array $a): string => $a['area']->id, $areas));
         self::assertSame(['main'], array_map(static fn (array $g): string => $g['key'], $areas[0]['groups']));
-        self::assertSame(['dashboard', 'notifications'], array_map(static fn (\App\Ui\Navigation\NavigationEntry $e): string => $e->labelKey, $areas[0]['groups'][0]['items']));
-        self::assertSame(['costs'], array_map(static fn (\App\Ui\Navigation\NavigationEntry $e): string => $e->labelKey, $areas[2]['groups'][0]['items']));
+        self::assertSame(['dashboard', 'notifications'], array_map(static fn (\Foresi\Ui\Navigation\NavigationEntry $e): string => $e->labelKey, $areas[0]['groups'][0]['items']));
+        self::assertSame(['costs'], array_map(static fn (\Foresi\Ui\Navigation\NavigationEntry $e): string => $e->labelKey, $areas[2]['groups'][0]['items']));
         self::assertSame([false, false, true, false, false], array_map(static fn (array $a): bool => $a['current'], $areas));
     }
 

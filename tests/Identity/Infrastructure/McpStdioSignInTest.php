@@ -6,22 +6,22 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Identity\Infrastructure;
+namespace Foresi\Tests\Identity\Infrastructure;
 
-use App\Identity\Application\ManageApiTokens;
-use App\Identity\Domain\ApiScope;
-use App\Identity\Domain\ApiToken;
-use App\Identity\Domain\Membership;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
-use App\Identity\Infrastructure\Console\McpStdioSignIn;
-use App\Identity\Infrastructure\Security\ApiTokenLogin;
-use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
-use App\Shared\Infrastructure\Mcp\ToolRefusal;
-use App\Tests\Identity\Support\IdentityFixtures;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Identity\Application\ManageApiTokens;
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Identity\Domain\ApiToken;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
+use Foresi\Identity\Infrastructure\Console\McpStdioSignIn;
+use Foresi\Identity\Infrastructure\Security\ApiTokenLogin;
+use Foresi\Identity\Infrastructure\Security\SecurityUser;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Tests\Identity\Support\IdentityFixtures;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
