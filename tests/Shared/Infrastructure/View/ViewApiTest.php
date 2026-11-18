@@ -90,6 +90,9 @@ final class ViewApiTest extends ApiTestCase
         $columns = $this->rows($invoices['columns']);
         self::assertNotSame([], $columns);
         self::assertSame(['key', 'label', 'sortable', 'default', 'locked'], array_keys($columns[0]));
+        $byKey = array_column($columns, null, 'key');
+        self::assertTrue($this->in($byKey, 'number', 'sortable'));
+        self::assertFalse($this->in($byKey, 'firm', 'sortable'));
         self::assertSame('invoicing.invoices.overdue', $this->in($invoices, 'default_views', 3));
         $counted = $this->at('date_values', 'relative_counted');
         self::assertIsArray($counted);

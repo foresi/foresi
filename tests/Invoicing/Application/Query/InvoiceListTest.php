@@ -211,6 +211,7 @@ final class InvoiceListTest extends InvoicingReadTestCase
                 static fn (): InvoiceSlice => $list->slice(new InvoiceSliceFilter(), null, 25),
                 static fn (): InvoicePage => $list->page(new InvoiceFilter(null, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1)),
                 static fn (): InvoiceSums => $list->sums(new InvoiceFilter(null, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1)),
+                static fn (): int => $list->count(new InvoiceSliceFilter()),
             ] as $read) {
                 try {
                     $read();
