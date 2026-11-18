@@ -103,7 +103,7 @@ final readonly class InvoiceWrites
         return $this->issue->issue(new InvoiceInput(
             $firm->id(),
             $this->id($input->seriesId, 'seriesId'),
-            self::typed($input->number),
+            $this->typed($input->number),
             $this->id($input->customerId, 'customerId') ?? '',
             null,
             $draft->issueDate,
@@ -137,7 +137,7 @@ final readonly class InvoiceWrites
         $customerId = null === $input->customerId ? $invoice->customerParty()->id() : ($this->id($input->customerId, 'customerId') ?? '');
         $reverseCharge = $this->customerOf($customerId, $firm)?->defaults->reverseCharge ?? false;
         $lines = null === $input->lines
-            ? array_map(self::storedLine(...), $this->store->lines($invoice))
+            ? array_map($this->storedLine(...), $this->store->lines($invoice))
             : $this->lines($input->lines, $invoice->currency(), $invoice->vatRegime(), $reverseCharge);
         // A symbol that followed the number keeps following it when the number changes.
         $follows = null === $input->variableSymbol && $invoice->variableSymbol() === VariableSymbol::fromNumber($invoice->number());
@@ -145,7 +145,7 @@ final readonly class InvoiceWrites
         $this->edit->edit($invoice->id(), new InvoiceInput(
             $firm->id(),
             $this->id($input->seriesId, 'seriesId'),
-            self::typed($input->number),
+            $this->typed($input->number),
             $customerId,
             null,
             $this->date($input->issueDate, 'issueDate') ?? $invoice->issueDate(),
@@ -164,7 +164,7 @@ final readonly class InvoiceWrites
             $follows,
             $invoice->kind(),
             $invoice->taxOnReceipt(),
-            self::correction($invoice),
+            $this->correction($invoice),
         ), $invoice->version());
 
         return $invoice->id();
@@ -179,7 +179,7 @@ final readonly class InvoiceWrites
         $id = $this->invoice($input->invoiceId)->id();
         try {
             $this->trash->trash($id, $input->reason);
-        } catch (InvalidDeletionReason $invalid) {
+        } catch (InvalidDeletionReason) {
             throw InvoicingRefused::unreadable(InvoicingRefused::REASON, 'reason', \sprintf('A reason of 1 to %d characters is needed.', Invoice::MAX_REASON_LENGTH));
         } catch (PaymentRefused $refused) {
             throw InvoicingRefused::conflict(InvoicingRefused::HAS_PAYMENTS, 'The document has payments; remove them in Foresi before it goes to the trash.', $refused);
@@ -303,11 +303,11 @@ final readonly class InvoiceWrites
         }
         $priceType = PriceType::tryFrom($text('price_type') ?? PriceType::WithoutVat->value)
             ?? throw InvoicingRefused::unreadable(InvoicingRefused::LINE, $field('price_type'), 'The price type is without_vat, with_vat or base_only.');
-        $vat = $text('vat') ?? self::defaultVat($regime, $reverseCharge);
+        $vat = $text('vat') ?? $this->defaultVat($regime, $reverseCharge);
         if (!\in_array($vat, self::VAT, true)) {
             throw InvoicingRefused::unreadable(InvoicingRefused::LINE, $field('vat'), \sprintf('The VAT of a line is one of %s.', implode(', ', self::VAT)));
         }
-        [$treatment, $rateKind] = self::vat($vat);
+        [$treatment, $rateKind] = $this->vat($vat);
         $supplyCode = $text('supply_code');
 
         return new LineInput(
@@ -327,7 +327,7 @@ final readonly class InvoiceWrites
      * A new line of the form: the base rate for a VAT payer, reverse charge for
      * a customer who is taxed instead, and no VAT for a firm that is no payer.
      */
-    private static function defaultVat(VatRegime $regime, bool $reverseCharge): string
+    private function defaultVat(VatRegime $regime, bool $reverseCharge): string
     {
         if (VatRegime::Payer !== $regime) {
             return 'none';
@@ -339,7 +339,7 @@ final readonly class InvoiceWrites
     /**
      * @return array{TaxTreatment, ?VatRateKind}
      */
-    private static function vat(string $choice): array
+    private function vat(string $choice): array
     {
         return match ($choice) {
             'reduced' => [TaxTreatment::Standard, VatRateKind::Reduced],
@@ -356,7 +356,7 @@ final readonly class InvoiceWrites
      * it keeps the advance it deducts and names itself as the source, so the
      * work it billed stays with it.
      */
-    private static function storedLine(InvoiceLine $line): LineInput
+    private function storedLine(InvoiceLine $line): LineInput
     {
         return new LineInput($line->text(), $line->quantity(), $line->unit(), $line->price(), $line->priceType(), $line->treatment(), $line->rateKind(), $line->supplyCode(), $line->discount(), $line->deducts(), $line->id());
     }
@@ -364,14 +364,14 @@ final readonly class InvoiceWrites
     /**
      * What a correction document corrects stays as it was issued.
      */
-    private static function correction(Invoice $invoice): ?CorrectionInput
+    private function correction(Invoice $invoice): ?CorrectionInput
     {
         $corrected = $invoice->correctedInvoiceId();
 
         return null === $corrected ? null : new CorrectionInput($corrected, (string) $invoice->correctionReason(), $invoice->correctionType(), $invoice->decisiveDate());
     }
 
-    private static function typed(?string $number): ?string
+    private function typed(?string $number): ?string
     {
         $number = null === $number ? '' : trim($number);
 
