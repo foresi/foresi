@@ -1,16 +1,20 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set primaryHtml %}{% block primary %}{% endblock %}{% endset %}
 {% set buttonsHtml %}{% block buttons %}{% endblock %}{% endset %}
 {% set phoneHtml %}{% block phone %}{% endblock %}{% endset %}
 {% set itemsHtml %}{% block content %}{% endblock %}{% endset %}
 {% set lastHtml %}{% block last %}{% endblock %}{% endset %}
+{% set hasPrimary = primaryHtml|trim is not empty %}
 {% set hasButtons = buttonsHtml|trim is not empty %}
 {% set hasPhone = phoneHtml|trim is not empty %}
 {% set hasItems = itemsHtml|trim is not empty %}
 {% set hasLast = lastHtml|trim is not empty %}
 {# The divider above the last group shows wherever a group above it shows: always after items, only on a phone after phone rows. #}
 {% set lastDivider = hasItems ? 'mt-1 border-t border-divider pt-1' : (hasPhone ? 'max-sm:mt-1 max-sm:border-t max-sm:border-divider max-sm:pt-1' : '') %}
-{% if hasButtons or hasPhone or hasItems or hasLast %}
+{# The order is fixed here, not by each screen: the primary action first, the secondary buttons, the "⋯" menu last. #}
+{% if hasPrimary or hasButtons or hasPhone or hasItems or hasLast %}
 <div {{ attributes.defaults({class: 'contents', 'data-more-actions': true}) }}>
+    {{- primaryHtml|raw -}}
     {%- if hasButtons %}<div class="hidden sm:contents" data-more-actions-buttons>{{ buttonsHtml|raw }}</div>{% endif -%}
     {%- if hasPhone or hasItems or hasLast -%}
         <twig:Ui:Menu :id="menuId" :label="menuLabel ?? 'ui.page_header.more_actions'|trans" icon="ellipsis" :iconOnly="true" :size="menuSize" :float="true" :class="(hasItems or hasLast) ? '' : 'sm:hidden'" data-dropdown-below-value="true" data-more-actions-menu>

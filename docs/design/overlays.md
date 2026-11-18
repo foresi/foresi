@@ -16,6 +16,10 @@ A record picked from a list opens in place, over the list, never as a jump to an
    header in the small size, a divider, a Full screen toggle (the width of the content panel,
    remembered per browser), Open as page (the record's URL) and Close. On a phone the actions take a
    row of their own under the title. A record sizes its action buttons with `record_action_size`.
+   In every page and sheet header the primary action comes first and the "⋯" menu last, after the
+   secondary buttons: `[Edit] [⋯] | [full screen] [open as page] [×]`. Ui:MoreActions renders that
+   order (its `primary` block), so a header's actions are that one component, and
+   `tests/Ui/HeaderActionOrderTest.php` fails when anything follows it or a bare Ui:Menu stands in.
 3. **Edit happens in place.** Edit loads the form into the same surface (sheet, dialog or page);
    Save and Cancel go back to the detail there. A document with lines (an invoice, a recurring
    invoice, a purchase document) widens its sheet to full screen while it is edited.
@@ -60,7 +64,14 @@ A record picked from a list opens in place, over the list, never as a jump to an
 - Shopify Polaris, Modal: a last resort, not for actions on the page; no modal launched from
   another — https://shopify.dev/docs/api/app-home/web-components/overlays/modal
 - Shopify Polaris, Page: one primary action and up to three secondary ones in the header —
-  https://shopify.dev/docs/api/app-home/web-components/layout-and-structure/page
+  https://shopify.dev/docs/api/app-home/web-components/layout-and-structure/page. Polaris puts the
+  primary action at the right edge; Foresi deliberately leads with it and ends the row with "⋯".
+- Material Design, Top app bar: the overflow menu at the far end of the bar; actions move into it
+  from that end, so the most used one stays visible longest —
+  https://m2.material.io/components/app-bars-top
+- Atlassian, Confluence page actions: additional page actions under the "More actions" (ellipsis)
+  menu at the top right of the page —
+  https://developer.atlassian.com/cloud/confluence/extending-page-actions
 - GitHub Primer PageHeader: the title, then the trailing actions on the same row; on narrow
   viewports they become items of an overflow button —
   https://primer.style/product/components/page-header/guidelines/

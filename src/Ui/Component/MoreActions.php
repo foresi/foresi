@@ -12,22 +12,29 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * The "⋯" more-actions menu of a page header, and the one or two secondary buttons in front of it.
+ * The actions of a page or sheet header: the primary button, the one or two secondary buttons and
+ * the "⋯" more-actions menu.
  *
- * Every page header holds, in this order: at most two secondary buttons, this menu, and the
- * primary button (Edit on a detail, New on a list) last. Polaris keeps one primary action and few
- * secondary ones visible and moves the rest into "More actions"; Primer moves the secondary actions
- * into the overflow menu on a narrow viewport and puts danger items at the end of a menu.
+ * It renders them in one fixed order, so no screen sets it: the primary button (Edit on a detail,
+ * New on a list) first, then the secondary buttons, then "⋯" last, the right edge of the row.
+ * Material's app bar keeps the overflow menu at the far end and moves actions into it from that end,
+ * so the most used one stays visible longest; Confluence keeps "More actions" (ellipsis) at the top
+ * right of a page. Polaris keeps one primary action and few secondary ones visible and moves the
+ * rest into "More actions"; Primer moves the secondary actions into the overflow menu on a narrow
+ * viewport and puts danger items at the end of a menu. Polaris Page puts the primary action at the
+ * right edge; Foresi deliberately leads with it and ends with "⋯" (docs/design/overlays.md).
+ * A header's actions are this component alone: nothing follows it (tests/Ui/HeaderActionOrderTest).
  *
  * Blocks, all optional:
+ * - "primary": the screen's main action, first on every screen (a phone too);
  * - "buttons": the secondary buttons, shown from the sm breakpoint up;
  * - "phone": the same actions as Ui:MenuItem rows, shown in the menu only below sm;
  * - content: the other actions as Ui:MenuItem rows, most used first (workflow, share, export,
  *   import, settings);
  * - "last": archive, restore, trash or delete, in a group of its own at the end of the menu.
  *
- * The buttons and the menu share one box-less wrapper, so on a phone the header grid sees one
- * child for both and keeps the menu beside the primary button. Without any menu row there is no
+ * The primary button, the buttons and the menu share one box-less wrapper, so on a phone the header
+ * grid lays them out as its own items and keeps the menu beside the primary button. Without any menu row there is no
  * trigger; with phone rows only, the trigger shows only below sm.
  */
 #[AsTwigComponent]

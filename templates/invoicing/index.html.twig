@@ -9,6 +9,9 @@
 {% block actions %}
     {% if not firstRun %}
         <twig:Ui:MoreActions menuId="invoices-actions">
+            <twig:block name="primary">
+                {% if newHref %}<twig:Ui:Button variant="primary" icon="plus" :href="newHref" data-turbo="false">{{ newKey|trans }}</twig:Ui:Button>{% endif %}
+            </twig:block>
             {# Downloads what the list shows, on all its pages, as the address book exports. #}
             <form method="post" action="{{ path('app_invoices_list_export') }}" data-turbo="false" role="none" data-list-export>
                 <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN')) }}">
@@ -21,7 +24,6 @@
             </form>
             {% if kind == 'invoice' %}<twig:Ui:MenuItem icon="file-down" :href="path('app_invoice_export')">{{ 'invoice.export.link'|trans }}</twig:Ui:MenuItem>{% endif %}
         </twig:Ui:MoreActions>
-        {% if newHref %}<twig:Ui:Button variant="primary" icon="plus" :href="newHref" data-turbo="false">{{ newKey|trans }}</twig:Ui:Button>{% endif %}
     {% endif %}
 {% endblock %}
 
