@@ -29,7 +29,20 @@ final readonly class ListView
         public ?string $slug = null,
         /** @var array<array-key, mixed>|null */
         public ?array $display = null,
+        /** @var list<array{field: string, dir: string}> none for the list's own order */
+        public array $sort = [],
+        /** The id of the stored view; null for a view the module ships that is not stored yet. */
+        public ?string $id = null,
     ) {
+    }
+
+    /**
+     * What SavedViews::get() finds the view by: its id, or the system key of a
+     * shipped view that is not stored yet.
+     */
+    public function ref(string $listKey): string
+    {
+        return $this->id ?? $listKey.'.'.$this->slug;
     }
 
     public function isAll(): bool

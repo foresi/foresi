@@ -1,0 +1,15 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The items past the views in a list's "More views" menu (saved views D7): Save as new view, Manage
+    views and, for owners, Restore default views. Takes `viewBar` and `manageViews` from ViewBar.
+#}
+<twig:Ui:MenuItem type="button" icon="copy" data-controller="dialog-open" data-action="dialog-open#open" data-dialog-open-id-param="view-save-as" aria-haspopup="dialog" data-view-save-as-open>{{ 'saved_view.save_as'|trans }}</twig:Ui:MenuItem>
+<twig:Ui:MenuItem type="button" icon="settings" data-controller="dialog-open" data-action="dialog-open#open" data-dialog-open-id-param="view-manage" aria-haspopup="dialog" data-view-manage-open>{{ 'saved_view.manage'|trans }}</twig:Ui:MenuItem>
+{% if manageViews.canRestore %}
+    <form method="post" action="{{ path('app_view_restore') }}" role="none" data-turbo-confirm="{{ 'saved_view.restore_confirm'|trans }}" data-confirm-text="{{ 'saved_view.restore_confirm_text'|trans }}" data-confirm-accept="{{ 'saved_view.restore'|trans }}" data-confirm-cancel="{{ 'saved_view.cancel'|trans }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Ui\\Controller\\SavedViewController::TOKEN')) }}">
+        <input type="hidden" name="list" value="{{ manageViews.list }}">
+        <input type="hidden" name="return" value="{{ manageViews.return }}">
+        <twig:Ui:MenuItem type="submit" icon="history" data-view-restore>{{ 'saved_view.restore'|trans }}</twig:Ui:MenuItem>
+    </form>
+{% endif %}

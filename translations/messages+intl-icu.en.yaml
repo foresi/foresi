@@ -535,3 +535,44 @@ firm:
 system_mail:
   footer: 'Sent by {product}'
   footer_organisation: 'Sent by {product} on behalf of {organisation}'
+saved_view:
+  save: Save
+  save_as: Save as new view
+  save_as_submit: Save view
+  save_as_description: The list's filters, sort and columns become a view of their own.
+  reset: Reset
+  cancel: Cancel
+  manage: Manage views
+  manage_description: Rename your views, share them, and choose which show as tabs.
+  restore: Restore default views
+  restore_confirm: Restore the default views?
+  restore_confirm_text: The views the list comes with get back their names, filters and places. Views people made stay as they are.
+  delete: Delete
+  delete_confirm: 'Delete the view "{name}"?'
+  delete_confirm_text: Everyone it is shared with loses it too.
+  save_changes: Save changes
+  not_yours: Only its creator or an owner changes this view. Save your changes as a new view instead.
+  none: The list has no views besides All.
+  saved: The view is saved.
+  created: The new view is saved.
+  updated: The view is changed.
+  deleted: The view is deleted.
+  restored: The default views are restored.
+  field:
+    name: Name
+    visibility: Who sees it
+    visibility_help: A shared view is seen by every owner and member.
+    show_count: Show the count on its tab
+    placement: Shows as
+    placement_full: The list already shows six tabs; move another view to More views first.
+  visibility:
+    private: Only me
+    shared: Everyone
+  placement:
+    primary: A tab
+    overflow: In More views
+  error:
+    forbidden: Only its creator or an owner changes this view. Save your changes as a new view instead.
+    name: A view's name has 1 to 60 characters.
+    primary_full: The list already shows six tabs; move another view to More views first.
+    invalid: The view could not be saved. Check its filters and try again.
