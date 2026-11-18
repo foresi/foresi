@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
+use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
+
 /**
  * Port: work another module bills on a new invoice, such as time on projects.
  * That module prefills the invoice form, and its origin records what was
@@ -16,8 +18,11 @@ namespace Foresi\Invoicing\Application;
  * finds which line bills what however the lines were edited. Invoicing
  * declares the port and knows nothing of what is behind it.
  */
+#[AutoconfigureTag(self::TAG)]
 interface BilledWork
 {
+    public const string TAG = 'app.billed_work';
+
     /**
      * What a new invoice opens with; null when the reference no longer holds.
      */

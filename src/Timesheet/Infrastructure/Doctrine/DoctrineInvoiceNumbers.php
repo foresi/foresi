@@ -12,7 +12,7 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Shared\Domain\Id;
-use Foresi\Work\Application\InvoiceNumbers;
+use Foresi\Work\Contract\InvoiceNumbers;
 
 /**
  * The numbers of the invoices that billed time, for Work to name them, in one

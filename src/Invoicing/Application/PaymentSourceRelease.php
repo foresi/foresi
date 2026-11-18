@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Application;
 
 use Foresi\Invoicing\Domain\Payment;
+use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
  * Told when a payment that came from a bank movement is cancelled, inside the same
@@ -19,8 +20,11 @@ use Foresi\Invoicing\Domain\Payment;
  * and unpairing take them in too, so a cancellation never waits on one of them
  * while it holds what that one waits for.
  */
+#[AutoconfigureTag(self::TAG)]
 interface PaymentSourceRelease
 {
+    public const string TAG = 'app.payment_source_release';
+
     /**
      * Takes the row of where the payment came from for this transaction, before any
      * invoice of the payment is locked. A payment of no such source locks nothing.

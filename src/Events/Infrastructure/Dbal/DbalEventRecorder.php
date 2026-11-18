@@ -23,6 +23,7 @@ use Foresi\Shared\Domain\Id;
 use Psr\Clock\ClockInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
@@ -33,8 +34,12 @@ use Symfony\Component\Messenger\MessageBusInterface;
  *
  * Holds the count of events recorded in the running outermost transaction, so
  * state is reset between messages of a long-running worker by the transaction
- * hooks, which always end the transaction one way or the other.
+ * hooks, which always end the transaction one way or the other. It is the one
+ * recorder and outbox of the application: events are recorded on the connection
+ * of the use case, and the transaction hooks tell the same object how the unit ended.
  */
+#[AsAlias(EventRecorder::class)]
+#[AsAlias(EventOutbox::class)]
 final class DbalEventRecorder implements EventRecorder, EventOutbox
 {
     private int $pending = 0;

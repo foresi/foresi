@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Party\Application;
 
+use Foresi\Party\Contract\BankAccountUsage;
 use Foresi\Party\Domain\DomesticBankAccount;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\Iban;

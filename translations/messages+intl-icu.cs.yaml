@@ -1846,6 +1846,7 @@ invoice:
     import_kind_unsupported: Tento druh dokladu se zatím neimportuje.
     numbers_exhausted: V této řadě už nezbývají čísla.
     payable_negative: Celková částka nesmí být záporná.
+    billed_work_gone: Práce vybraná k této faktuře už k fakturaci není. Otevřete její fakturaci znovu.
     correction_kind: Opravovaný doklad uvádí jen opravný daňový doklad.
     correction_link_missing: Vyberte fakturu, kterou tento doklad opravuje.
     correction_link_locked: Opravný doklad zůstává u faktury, kterou opravuje.
