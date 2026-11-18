@@ -18,7 +18,7 @@ use Foresi\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
  */
 final readonly class DeliveryRows
 {
-    public const string BODY = '{"id":"evt","type":"invoicing.invoice.issued","data":{"note":"body-marker"}}';
+    public const string BODY = '{"id":"evt","type":"party.contact.created","data":{"note":"body-marker"}}';
 
     public function __construct(private Connection $db)
     {
@@ -40,7 +40,7 @@ final readonly class DeliveryRows
             T::ID => $id,
             T::ENDPOINT_ID => $endpointId,
             T::EVENT_ID => Id::generate(),
-            T::EVENT_TYPE => 'invoicing.invoice.issued',
+            T::EVENT_TYPE => 'party.contact.created',
             T::BODY => self::BODY,
             T::STATUS => $status,
             T::ATTEMPTS => $attempts,

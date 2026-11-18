@@ -63,7 +63,7 @@ final class ManageWebhookEndpointsTest extends KernelTestCase
 
     public function testCreateMakesTheCallerTheOwnerAndQueuesAPing(): void
     {
-        $created = $this->manage->create('https://hooks.example.com/foresi', '  Accounting  ', ['invoicing.*'], 1);
+        $created = $this->manage->create('https://hooks.example.com/foresi', '  Accounting  ', ['party.*'], 1);
 
         self::assertSame($this->member->id(), $created->endpoint->ownerId());
         self::assertSame('Accounting', $created->endpoint->description());
@@ -74,17 +74,17 @@ final class ManageWebhookEndpointsTest extends KernelTestCase
         self::assertCount(1, $transport->getSent());
     }
 
-    public function testGuestMayNotSubscribeToInvoicing(): void
+    public function testGuestMayNotSubscribeToContacts(): void
     {
         $this->signIn($this->guest);
 
         $this->expectException(WebhookNotAllowed::class);
-        $this->manage->create('https://hooks.example.com/foresi', null, ['invoicing.*'], 1);
+        $this->manage->create('https://hooks.example.com/foresi', null, ['party.*'], 1);
     }
 
     public function testEndpointOfAModuleTheCallerCannotReadIsHidden(): void
     {
-        $id = $this->manage->create('https://hooks.example.com/foresi', null, ['invoicing.invoice.paid'], 1)->endpoint->id();
+        $id = $this->manage->create('https://hooks.example.com/foresi', null, ['party.contact.archived'], 1)->endpoint->id();
         $this->signIn($this->guest);
 
         self::assertSame([], $this->list->slice(null, 25)->endpoints);
@@ -94,7 +94,7 @@ final class ManageWebhookEndpointsTest extends KernelTestCase
 
     public function testGuestMayNotDeleteOrRevealEither(): void
     {
-        $id = $this->manage->create('https://hooks.example.com/foresi', null, ['invoicing.*'], 1)->endpoint->id();
+        $id = $this->manage->create('https://hooks.example.com/foresi', null, ['party.*'], 1)->endpoint->id();
         $this->signIn($this->guest);
 
         $refused = [];
@@ -117,7 +117,7 @@ final class ManageWebhookEndpointsTest extends KernelTestCase
 
     public function testDescriptionNullKeepsAndBlankClears(): void
     {
-        $id = $this->manage->create('https://hooks.example.com/foresi', 'Accounting', ['invoicing.*'], 1)->endpoint->id();
+        $id = $this->manage->create('https://hooks.example.com/foresi', 'Accounting', ['party.*'], 1)->endpoint->id();
 
         self::assertSame('Accounting', $this->manage->update($id, version: 2)->description());
         self::assertNull($this->manage->update($id, description: '')->description());
@@ -125,7 +125,7 @@ final class ManageWebhookEndpointsTest extends KernelTestCase
 
     public function testDisableIsManualAndEnableClearsIt(): void
     {
-        $id = $this->manage->create('https://hooks.example.com/foresi', null, ['invoicing.*'], 1)->endpoint->id();
+        $id = $this->manage->create('https://hooks.example.com/foresi', null, ['party.*'], 1)->endpoint->id();
 
         $this->manage->disable($id);
         self::assertSame(DisabledReason::Manual, $this->list->show($id)->disabledReason());
@@ -136,7 +136,7 @@ final class ManageWebhookEndpointsTest extends KernelTestCase
 
     public function testUpdateWithoutActiveKeepsTheState(): void
     {
-        $id = $this->manage->create('https://hooks.example.com/foresi', null, ['invoicing.*'], 1)->endpoint->id();
+        $id = $this->manage->create('https://hooks.example.com/foresi', null, ['party.*'], 1)->endpoint->id();
 
         self::assertTrue($this->manage->update($id, version: 2)->isActive());
         $this->manage->disable($id);
@@ -146,7 +146,7 @@ final class ManageWebhookEndpointsTest extends KernelTestCase
     public function testTheLimitsThemselvesAreAccepted(): void
     {
         $description = str_repeat('č', WebhookEndpoint::DESCRIPTION_MAX_LENGTH);
-        $created = $this->manage->create('https://hooks.example.com/foresi', '  '.$description.'  ', ['invoicing.*'], WebhookEndpoint::MAX_VERSION);
+        $created = $this->manage->create('https://hooks.example.com/foresi', '  '.$description.'  ', ['party.*'], WebhookEndpoint::MAX_VERSION);
 
         self::assertSame($description, $created->endpoint->description());
         self::assertSame(WebhookEndpoint::MAX_VERSION, $created->endpoint->version());
@@ -155,12 +155,12 @@ final class ManageWebhookEndpointsTest extends KernelTestCase
 
     public function testCreatePinsVersionOneByDefault(): void
     {
-        self::assertSame(1, $this->manage->create('https://hooks.example.com/foresi', null, ['invoicing.*'])->endpoint->version());
+        self::assertSame(1, $this->manage->create('https://hooks.example.com/foresi', null, ['party.*'])->endpoint->version());
     }
 
     public function testUpdateNamesATooLongDescription(): void
     {
-        $id = $this->manage->create('https://hooks.example.com/foresi', null, ['invoicing.*'], 1)->endpoint->id();
+        $id = $this->manage->create('https://hooks.example.com/foresi', null, ['party.*'], 1)->endpoint->id();
 
         try {
             $this->manage->update($id, description: str_repeat('x', WebhookEndpoint::DESCRIPTION_MAX_LENGTH + 1));
@@ -172,7 +172,7 @@ final class ManageWebhookEndpointsTest extends KernelTestCase
 
     public function testRotateRefusesHoursOutsideTheRange(): void
     {
-        $id = $this->manage->create('https://hooks.example.com/foresi', null, ['invoicing.*'], 1)->endpoint->id();
+        $id = $this->manage->create('https://hooks.example.com/foresi', null, ['party.*'], 1)->endpoint->id();
 
         try {
             $this->manage->rotate($id, -1);
@@ -188,8 +188,8 @@ final class ManageWebhookEndpointsTest extends KernelTestCase
     {
         foreach ([
             'event_types' => fn (): CreatedEndpoint => $this->manage->create('https://hooks.example.com/foresi', null, ['nonsense'], 1),
-            'version' => fn (): CreatedEndpoint => $this->manage->create('https://hooks.example.com/foresi', null, ['invoicing.*'], 0),
-            'description' => fn (): CreatedEndpoint => $this->manage->create('https://hooks.example.com/foresi', str_repeat('x', 256), ['invoicing.*'], 1),
+            'version' => fn (): CreatedEndpoint => $this->manage->create('https://hooks.example.com/foresi', null, ['party.*'], 0),
+            'description' => fn (): CreatedEndpoint => $this->manage->create('https://hooks.example.com/foresi', str_repeat('x', 256), ['party.*'], 1),
         ] as $parameter => $call) {
             try {
                 $call();
@@ -199,7 +199,7 @@ final class ManageWebhookEndpointsTest extends KernelTestCase
             }
         }
         $this->expectException(InvalidWebhookUrl::class);
-        $this->manage->create('https://internal.example.com/foresi', null, ['invoicing.*'], 1);
+        $this->manage->create('https://internal.example.com/foresi', null, ['party.*'], 1);
     }
 
     public function testUnknownEndpointIsUnknown(): void

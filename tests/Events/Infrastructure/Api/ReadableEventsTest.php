@@ -16,7 +16,7 @@ use Foresi\Events\Infrastructure\Api\SubjectUrls;
 use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
 use Foresi\Events\Infrastructure\Payload\EventPayloads;
 use Foresi\Shared\Application\Event\EventReadAccess;
-use Foresi\Shared\Infrastructure\Module\InstalledModules;
+use Foresi\Shared\Domain\Module\ModuleId;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -62,7 +62,7 @@ final class ReadableEventsTest extends TestCase
     {
         $events = $this->events($this->empty(), $this->access('invoicing', true));
 
-        self::assertSame(['invoicing.invoice.delivered', 'invoicing.invoice.issued', 'invoicing.invoice.paid', 'invoicing.invoice.restored', 'invoicing.invoice.trashed', 'invoicing.payment.recorded'], array_map(static fn (\Foresi\Events\Infrastructure\Catalogue\EventType $type): string => $type->name, $events->types()));
+        self::assertSame(['invoicing.invoice.issued', 'invoicing.invoice.issued', 'invoicing.invoice.paid'], array_map(static fn (\Foresi\Events\Infrastructure\Catalogue\EventType $type): string => $type->name, $events->types()));
     }
 
     private function empty(): EventFeed
@@ -101,7 +101,8 @@ final class ReadableEventsTest extends TestCase
 
     private function events(EventFeed $feed, EventReadAccess ...$access): ReadableEvents
     {
-        $catalogue = new EventCatalogue(new InstalledModules(\dirname(__DIR__, 4)), \dirname(__DIR__, 4));
+        // The fixture events, so the test needs no module but this one.
+        $catalogue = EventCatalogue::scan([[ModuleId::of('invoicing'), 'Foresi\Tests\Events\Fixtures\Valid\\', \dirname(__DIR__, 2).'/Fixtures/Valid']]);
 
         return new ReadableEvents($feed, $catalogue, new EventView($catalogue, new EventPayloads(), new SubjectUrls([])), $access);
     }

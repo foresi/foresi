@@ -30,7 +30,7 @@ final class WebhookWriteToolTest extends WebhookToolTestCase
 {
     public function testCreateReturnsSecret(): void
     {
-        $output = $this->call(CreateWebhookEndpointTool::class, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['invoicing.invoice.paid'], 'description' => 'Accounting sync']);
+        $output = $this->call(CreateWebhookEndpointTool::class, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['party.contact.archived'], 'description' => 'Accounting sync']);
 
         $secret = $output->data['secret'];
         self::assertIsString($secret);
@@ -50,7 +50,7 @@ final class WebhookWriteToolTest extends WebhookToolTestCase
 
     public function testOutputsMatchRest(): void
     {
-        $output = $this->call(CreateWebhookEndpointTool::class, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['invoicing.*'], 'version' => 1]);
+        $output = $this->call(CreateWebhookEndpointTool::class, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['party.*'], 'version' => 1]);
 
         $id = $output->data['id'];
         self::assertIsString($id);
@@ -62,7 +62,7 @@ final class WebhookWriteToolTest extends WebhookToolTestCase
         self::assertSame($shown, $created);
 
         // The same body over REST has the same shape, with an id and a secret of its own.
-        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['invoicing.*'], 'version' => 1]);
+        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['party.*'], 'version' => 1]);
         $rest = $this->json()['data'];
         self::assertIsArray($rest);
         self::assertSame(array_keys($rest), array_keys($output->data));
@@ -82,7 +82,7 @@ final class WebhookWriteToolTest extends WebhookToolTestCase
 
     public function testUnreadableModuleIsForbidden(): void
     {
-        $refusal = $this->refusal(CreateWebhookEndpointTool::class, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['invoicing.*']], $this->guest());
+        $refusal = $this->refusal(CreateWebhookEndpointTool::class, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['party.*']], $this->guest());
 
         self::assertSame('forbidden', $refusal->errorCode);
         self::assertSame([], $this->queued());
@@ -90,11 +90,11 @@ final class WebhookWriteToolTest extends WebhookToolTestCase
 
     public function testBadValuesAreInvalidArgumentsThatNameTheArgument(): void
     {
-        $refusal = $this->refusal(CreateWebhookEndpointTool::class, ['url' => 'http://hooks.example.com/foresi', 'event_types' => ['invoicing.*']]);
+        $refusal = $this->refusal(CreateWebhookEndpointTool::class, ['url' => 'http://hooks.example.com/foresi', 'event_types' => ['party.*']]);
         self::assertSame('invalid_argument', $refusal->errorCode);
         self::assertStringContainsString('"url"', $refusal->getMessage());
 
-        $refusal = $this->refusal(CreateWebhookEndpointTool::class, ['url' => 'https://internal.example.com/foresi', 'event_types' => ['invoicing.*']]);
+        $refusal = $this->refusal(CreateWebhookEndpointTool::class, ['url' => 'https://internal.example.com/foresi', 'event_types' => ['party.*']]);
         self::assertSame('invalid_argument', $refusal->errorCode);
         self::assertStringContainsString('"url"', $refusal->getMessage());
 
@@ -102,25 +102,25 @@ final class WebhookWriteToolTest extends WebhookToolTestCase
         self::assertSame('invalid_argument', $refusal->errorCode);
         self::assertStringContainsString('"event_types"', $refusal->getMessage());
 
-        self::assertSame('invalid_argument', $this->refusal(CreateWebhookEndpointTool::class, ['url' => 'https://hooks.example.com/foresi', 'event_types' => 'invoicing.*'])->errorCode);
-        self::assertSame('invalid_argument', $this->refusal(CreateWebhookEndpointTool::class, ['event_types' => ['invoicing.*']])->errorCode);
+        self::assertSame('invalid_argument', $this->refusal(CreateWebhookEndpointTool::class, ['url' => 'https://hooks.example.com/foresi', 'event_types' => 'party.*'])->errorCode);
+        self::assertSame('invalid_argument', $this->refusal(CreateWebhookEndpointTool::class, ['event_types' => ['party.*']])->errorCode);
     }
 
     public function testUpdateChangesOnlyWhatIsGivenAndEnablesAgain(): void
     {
-        $id = $this->created(['invoicing.invoice.paid']);
+        $id = $this->created(['party.contact.archived']);
         $this->call(UpdateWebhookEndpointTool::class, ['endpoint_id' => $id, 'description' => 'Sync']);
 
         $disabled = $this->call(UpdateWebhookEndpointTool::class, ['endpoint_id' => $id, 'active' => false]);
         self::assertFalse($disabled->data['active']);
         self::assertSame('manual', $disabled->data['disabled_reason']);
         self::assertSame('Sync', $disabled->data['description']);
-        self::assertSame(['invoicing.invoice.paid'], $disabled->data['event_types']);
+        self::assertSame(['party.contact.archived'], $disabled->data['event_types']);
 
-        $enabled = $this->call(UpdateWebhookEndpointTool::class, ['endpoint_id' => $id, 'active' => true, 'event_types' => ['invoicing.*'], 'version' => 1, 'url' => 'https://hooks.example.com/other']);
+        $enabled = $this->call(UpdateWebhookEndpointTool::class, ['endpoint_id' => $id, 'active' => true, 'event_types' => ['party.*'], 'version' => 1, 'url' => 'https://hooks.example.com/other']);
         self::assertTrue($enabled->data['active']);
         self::assertNull($enabled->data['disabled_reason']);
-        self::assertSame(['invoicing.*'], $enabled->data['event_types']);
+        self::assertSame(['party.*'], $enabled->data['event_types']);
         self::assertSame('https://hooks.example.com/other', $enabled->data['url']);
 
         self::assertNull($this->call(UpdateWebhookEndpointTool::class, ['endpoint_id' => $id, 'description' => null])->data['description']);
@@ -231,7 +231,7 @@ final class WebhookWriteToolTest extends WebhookToolTestCase
             }
         });
 
-        $refusal = $this->refusal(CreateWebhookEndpointTool::class, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['invoicing.*']]);
+        $refusal = $this->refusal(CreateWebhookEndpointTool::class, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['party.*']]);
 
         self::assertSame('unavailable', $refusal->errorCode);
         self::assertStringContainsString('WEBHOOK_SECRET_KEYS', $refusal->getMessage());
