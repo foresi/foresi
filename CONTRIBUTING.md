@@ -16,7 +16,7 @@ composer install
 vendor/bin/phpunit
 ```
 
-Requirements are listed in the [README](README.md).
+Requirements and the local setup are described in [docs/development.md](docs/development.md).
 
 ### PDF conformance check (veraPDF)
 

@@ -38,6 +38,8 @@ final class GuestAccessTest extends WebTestCase
         // OAuth for MCP clients (ADR 0036): metadata, registration and the token endpoint hold no data and
         // take no session; the consent screen refuses a guest.
         'oauth_resource_metadata', 'oauth_resource_metadata_root', 'oauth_server_metadata', 'oauth_register', 'oauth_token',
+        // The setup guide for AI agents and the llms.txt: public, only this installation's addresses.
+        'app_mcp_setup', 'app_llms_txt',
         // The API and MCP, whose firewalls only a personal API token signs in to; a guest gets none.
         'api_v1_me', 'api_v1_invoices', 'api_v1_invoice', 'api_v1_contacts', 'api_v1_contact', 'api_v1_payments', 'api_v1_payment', 'api_v1_events',
         'api_v1_webhook_endpoints', 'api_v1_webhook_endpoint_create', 'api_v1_webhook_endpoint', 'api_v1_webhook_endpoint_update', 'api_v1_webhook_endpoint_delete',

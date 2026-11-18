@@ -138,7 +138,7 @@ start fresh after a deploy.
 
 One long-running process handles mail, timed jobs (recurring invoices,
 reminders, bank polling, exchange rates), domain events, outbound webhooks,
-imports and register checks; see the [background worker](../README.md#background-worker). It must
+imports and register checks; see the [background worker](development.md#background-worker). It must
 run all the time.
 
 With systemd, use [`ops/systemd/foresi-worker@.service`](../ops/systemd/foresi-worker@.service):

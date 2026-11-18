@@ -229,6 +229,11 @@ api_tokens:
       client: Přidejte adresu serveru do svého klienta podle návodu níže.
       sign_in: Klient při připojení otevře Foresi v prohlížeči. Přihlaste se, zkontrolujte, o co klient žádá, a povolte to. Pro Clauda na začátek stačí jen čtení.
       check: Ověřte spojení prvním promptem.
+    install:
+      title: Instalace promptem
+      text: Vložte prompt do Claude Code nebo jiného agenta, který umí spouštět příkazy. Přečte si nastavení této instalace, přidá server a ověří spojení; od vás chce jen token.
+      prompt: "Nainstaluj MCP server Foresi podle návodu {url} — příkazy spusť sám a ode mě chtěj jen API token."
+      file: Návod pro agenty:
     clients: Návod pro klienty
     client:
       claude_code:

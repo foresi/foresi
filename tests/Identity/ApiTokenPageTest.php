@@ -180,8 +180,10 @@ final class ApiTokenPageTest extends WebTestCase
         self::assertSame(['type' => 'http', 'url' => $server, 'headers' => ['Authorization' => 'Bearer ${input:foresi-token}']], $this->configured($crawler, 'mcp-token-vscode', 'servers'));
         self::assertSelectorTextContains('main', 'Settings → API and MCP');
         self::assertStringContainsString('whoami', $crawler->filter('pre#mcp-prompt')->text());
+        self::assertStringContainsString('http://localhost/mcp-setup.md', $crawler->filter('pre#mcp-install')->text());
+        self::assertSame('http://localhost/mcp-setup.md', $crawler->filter('[data-mcp-install] a')->attr('href'));
         self::assertContains('Read everything', $crawler->filter('[data-api-scopes] li')->each(static fn (Crawler $item): string => trim($item->text())));
-        self::assertSame(array_fill(0, 11, 'pre'), $crawler->filter('[data-copy-target="source"]')->each(static fn (Crawler $source): string => $source->nodeName()));
+        self::assertSame(array_fill(0, 12, 'pre'), $crawler->filter('[data-copy-target="source"]')->each(static fn (Crawler $source): string => $source->nodeName()));
         self::assertSame('/settings/api/new', $crawler->filter('#api-token-new')->attr('href'));
     }
 

@@ -229,6 +229,11 @@ api_tokens:
       client: Add the server address to your client as shown below.
       sign_in: When the client connects, it opens Foresi in the browser. Sign in, check what the client asks for and approve it. For Claude, reading is enough to start with.
       check: Check the connection with a first prompt.
+    install:
+      title: Install with a prompt
+      text: Paste the prompt into Claude Code or another agent that can run commands. It reads the setup of this installation, adds the server and checks the connection; it asks you only for the token.
+      prompt: "Install the Foresi MCP server by following {url} — run the commands yourself and ask me only for the API token."
+      file: The setup for agents:
     clients: Setup for each client
     client:
       claude_code:
