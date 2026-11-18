@@ -2124,7 +2124,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Timesheet",
-                "reference": "f4883aab77fdecbc406642b22bedf2f876c0dd79"
+                "reference": "9d112415b1437add96b933dd94be45be355a722e"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2133,6 +2133,7 @@
                 "foresi/invoicing": "*",
                 "foresi/party": "*",
                 "foresi/shared": "*",
+                "foresi/ui": "*",
                 "foresi/work": "*"
             },
             "type": "foresi-module",

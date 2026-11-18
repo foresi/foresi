@@ -13,7 +13,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**
  * The invoice numbers every installed module that bills time knows. With no
- * such module, a line of time names no invoice.
+ * such module, a line of time names and links no invoice.
  */
 final readonly class CollectedInvoiceNumbers implements InvoiceNumbers
 {
@@ -34,5 +34,17 @@ final readonly class CollectedInvoiceNumbers implements InvoiceNumbers
         }
 
         return $numbers;
+    }
+
+    public function url(string $invoiceId): ?string
+    {
+        foreach ($this->providers as $provider) {
+            $url = $provider->url($invoiceId);
+            if (null !== $url) {
+                return $url;
+            }
+        }
+
+        return null;
     }
 }

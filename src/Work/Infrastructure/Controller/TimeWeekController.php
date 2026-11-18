@@ -18,6 +18,7 @@ use Foresi\Work\Application\TimeDay;
 use Foresi\Work\Application\TimeEntryRow;
 use Foresi\Work\Application\TimeQueries;
 use Foresi\Work\Application\TimeWeek;
+use Foresi\Work\Contract\InvoiceNumbers;
 use Foresi\Work\Infrastructure\Twig\TimeFunctions;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -42,6 +43,7 @@ final class TimeWeekController extends AbstractController
 
     public function __construct(
         private readonly TimeQueries $time,
+        private readonly InvoiceNumbers $invoiceNumbers,
         private readonly People $people,
         private readonly OwnerCheck $owner,
         private readonly InstanceClock $clock,
@@ -150,7 +152,7 @@ final class TimeWeekController extends AbstractController
                 'billable' => $entry->billable,
                 'running' => $entry->running,
                 'invoiced' => $entry->invoiced,
-                'invoice' => null === $entry->invoiceId || null === $entry->invoiceNumber ? null : ['number' => $entry->invoiceNumber, 'href' => $this->generateUrl(TimeController::INVOICE_ROUTE, ['id' => $entry->invoiceId])],
+                'invoice' => null === $entry->invoiceId || null === $entry->invoiceNumber || null === ($href = $this->invoiceNumbers->url($entry->invoiceId)) ? null : ['number' => $entry->invoiceNumber, 'href' => $href],
                 'editable' => $entry->editable && !$entry->running,
                 'deletable' => $entry->editable,
                 'editUrl' => $this->generateUrl('app_time_edit', ['id' => $entry->id, 'return' => $here]),

@@ -10,6 +10,7 @@
         "foresi/party": "*",
         "foresi/shared": "*",
         "foresi/instance": "*",
+        "foresi/ui": "*",
         "foresi/work": "*"
     },
     "extra": {

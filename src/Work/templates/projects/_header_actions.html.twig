@@ -1,5 +1,5 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{# The header actions of a project's list and board: a new task first, time and sharing as buttons, invoicing and settings in "⋯". #}
+{# The header actions of a project's list and board: a new task first, time and sharing as buttons, billing (from the module that bills time) and settings in "⋯". #}
 {% set shareHref = path('app_sharing', {kind: 'projects', id: project.id, return: app.request.requestUri}) %}
 <twig:Ui:MoreActions menuId="project-actions">
     <twig:block name="primary">{% if not project.archivedAt and project.taskable %}{{ newTask }}{% endif %}</twig:block>
@@ -11,6 +11,6 @@
         {% if timeLoggable %}<twig:Ui:MenuItem icon="clock-3" :href="path('app_project_time_new', {id: project.id})" data-dialog aria-haspopup="dialog">{{ 'work.time.log'|trans }}</twig:Ui:MenuItem>{% endif %}
         {% if project.shareable %}<twig:Ui:MenuItem icon="share-2" :href="shareHref" data-dialog data-dialog-then="follow" aria-haspopup="dialog">{{ 'work.sharing.open'|trans }}</twig:Ui:MenuItem>{% endif %}
     </twig:block>
-    {% if timeInvoiceable %}<twig:Ui:MenuItem icon="receipt-text" :href="path('app_time_invoice', {project: project.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-time-invoice-open>{{ 'work.time.invoice_time'|trans }}</twig:Ui:MenuItem>{% endif %}
+    {% if timeBilling %}{% for item in slot_items(constant('Foresi\\Work\\Contract\\TimeBillingActions::PROJECT'), {projectId: project.id}) %}{{ include(item.template, item.data) }}{% endfor %}{% endif %}
     {% if project.manageable %}<twig:Ui:MenuItem icon="settings" :href="path('app_project_settings', {id: project.id})" data-project-settings>{{ 'work.settings.title'|trans }}</twig:Ui:MenuItem>{% endif %}
 </twig:Ui:MoreActions>

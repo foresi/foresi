@@ -203,8 +203,8 @@ final class ProjectController extends AbstractController
             'columns' => $this->taskColumns(),
             'trashCount' => $this->queries->trashCount($id),
             'timeLoggable' => $this->time->projectTarget($id) instanceof TimeTarget,
-            // Only an owner sees rates, so only an owner invoices time.
-            'timeInvoiceable' => $this->owner->isOwner(),
+            // Only an owner sees rates, so only an owner sees the actions that bill time.
+            'timeBilling' => $this->owner->isOwner(),
         ]);
     }
 
@@ -230,8 +230,8 @@ final class ProjectController extends AbstractController
             'responsibles' => $this->responsibles(),
             'dues' => $this->dues(),
             'timeLoggable' => $this->time->projectTarget($id) instanceof TimeTarget,
-            // Only an owner sees rates, so only an owner invoices time.
-            'timeInvoiceable' => $this->owner->isOwner(),
+            // Only an owner sees rates, so only an owner sees the actions that bill time.
+            'timeBilling' => $this->owner->isOwner(),
             'columns' => array_map(fn (StatusTasks $column): array => [
                 'id' => $column->id,
                 'name' => $column->name,

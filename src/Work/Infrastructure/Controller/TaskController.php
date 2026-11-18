@@ -39,6 +39,7 @@ use Foresi\Work\Application\TimeQueries;
 use Foresi\Work\Application\TimeTarget;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
+use Foresi\Work\Contract\InvoiceNumbers;
 use Foresi\Work\Domain\LabelColour;
 use Foresi\Work\Domain\Priority;
 use Foresi\Work\Infrastructure\Attachment\TaskAttachmentAccess;
@@ -115,6 +116,7 @@ final class TaskController extends AbstractController
         private readonly AttachmentPermissions $attachmentPermissions,
         private readonly ManageNotifications $notifications,
         private readonly TimeQueries $time,
+        private readonly InvoiceNumbers $invoiceNumbers,
         private readonly TimeFunctions $duration,
     ) {
     }
@@ -652,7 +654,7 @@ final class TaskController extends AbstractController
                 'billable' => $entry->billable,
                 'running' => $entry->running,
                 'invoiced' => $entry->invoiced,
-                'invoice' => null === $entry->invoiceId || null === $entry->invoiceNumber ? null : ['number' => $entry->invoiceNumber, 'href' => $this->generateUrl(TimeController::INVOICE_ROUTE, ['id' => $entry->invoiceId])],
+                'invoice' => null === $entry->invoiceId || null === $entry->invoiceNumber || null === ($href = $this->invoiceNumbers->url($entry->invoiceId)) ? null : ['number' => $entry->invoiceNumber, 'href' => $href],
                 'editable' => $entry->editable && !$entry->running,
                 'deletable' => $entry->editable,
             ], $time->entries),
