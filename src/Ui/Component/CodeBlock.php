@@ -50,6 +50,6 @@ final class CodeBlock
             return htmlspecialchars($this->code, \ENT_QUOTES | \ENT_SUBSTITUTE, 'UTF-8');
         }
 
-        return (new Highlighter())->parse($this->code, $this->language);
+        return new Highlighter()->parse($this->code, $this->language);
     }
 }
