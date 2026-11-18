@@ -166,11 +166,16 @@ final class ReceivedDocumentApiTest extends ApiTestCase
         self::assertSame([$trashed], $this->ids());
 
         $search = $this->tool('foresi_search_received_documents', ['filter' => ['conditions' => [['field' => 'kind', 'op' => 'is', 'value' => 'credit_note']]]]);
-        self::assertSame(['items' => [], 'next_cursor' => null, 'applied_view' => null], $search['structuredContent']['data'] ?? null);
+        $content = $search['structuredContent'] ?? null;
+        self::assertIsArray($content);
+        self::assertSame(['items' => [], 'next_cursor' => null, 'applied_view' => null], $content['data'] ?? null);
         // The writer's token cannot read views.
         $refused = $this->tool('foresi_search_received_documents', ['view_id' => 'purchasing.received.recorded']);
         self::assertTrue($refused['isError'] ?? false);
-        self::assertSame('insufficient_scope', $refused['structuredContent']['error']['code'] ?? null);
+        $content = $refused['structuredContent'] ?? null;
+        self::assertIsArray($content);
+        self::assertIsArray($content['error'] ?? null);
+        self::assertSame('insufficient_scope', $content['error']['code'] ?? null);
         $refused = $this->tool('foresi_search_received_documents', ['filter' => ['conditions' => [['field' => 'colour', 'op' => 'is', 'value' => 'red']]]]);
         self::assertTrue($refused['isError'] ?? false);
         self::assertStringContainsString('filter.conditions[0].field', (string) json_encode($refused));
@@ -184,11 +189,16 @@ final class ReceivedDocumentApiTest extends ApiTestCase
         $search = $this->tool('foresi_search_received_documents', ['view_id' => 'purchasing.received.recorded']);
 
         self::assertFalse($search['isError'] ?? false);
-        $data = $search['structuredContent']['data'] ?? null;
+        $content = $search['structuredContent'] ?? null;
+        self::assertIsArray($content);
+        $data = $content['data'] ?? null;
         self::assertIsArray($data);
         self::assertSame([$id], array_column(\is_array($data['items'] ?? null) ? $data['items'] : [], 'id'));
         self::assertSame('purchasing.received.recorded', \is_array($data['applied_view'] ?? null) ? $data['applied_view']['system_key'] ?? null : null);
-        $text = $search['content'][0]['text'] ?? null;
+        $parts = $search['content'] ?? null;
+        self::assertIsArray($parts);
+        self::assertIsArray($parts[0] ?? null);
+        $text = $parts[0]['text'] ?? null;
         self::assertIsString($text);
         self::assertStringContainsString('Through the view Recorded: 1 received document', $text);
     }
