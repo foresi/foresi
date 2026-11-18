@@ -1,0 +1,6 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The tasks section of the start page (Foresi\Work\Infrastructure\Dashboard\MyTasksDashboard). #}
+<section data-dashboard-my-tasks aria-labelledby="dashboard-my-tasks-title" class="grid grid-cols-1 gap-3">
+    <h2 id="dashboard-my-tasks-title" class="m-0 text-body font-semibold text-ink">{{ 'work.my_tasks.title'|trans }}</h2>
+    <twig:Ui:KpiStrip :items="kpis" />
+</section>

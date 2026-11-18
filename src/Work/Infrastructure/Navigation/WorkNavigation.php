@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Infrastructure\Navigation;
 
+use Foresi\Identity\Application\GuestCheck;
 use Foresi\Identity\Application\StaffCheck;
 use Foresi\Ui\Navigation\CoreNavigationAreas;
 use Foresi\Ui\Navigation\NavigationArea;
@@ -16,6 +17,7 @@ use Foresi\Ui\Navigation\NavigationItemProvider;
 use Foresi\Work\Infrastructure\Controller\LabelController;
 use Foresi\Work\Infrastructure\Controller\MyTasksController;
 use Foresi\Work\Infrastructure\Controller\NotificationController;
+use Foresi\Work\Infrastructure\Controller\SharedWorkController;
 use Foresi\Work\Infrastructure\Controller\TimeWeekController;
 
 /**
@@ -34,12 +36,15 @@ final readonly class WorkNavigation implements NavigationItemProvider
 {
     public const int NOTIFICATIONS_CAP = 99;
 
-    public function __construct(private StaffCheck $staff, private MyTasksNavigationCount $count, private NotificationsNavigationCount $notifications)
+    public function __construct(private StaffCheck $staff, private GuestCheck $guest, private MyTasksNavigationCount $count, private NotificationsNavigationCount $notifications)
     {
     }
 
     public function items(): iterable
     {
+        if ($this->guest->isGuest()) {
+            yield new NavigationItem('main', 'nav.item.shared_with_me', 'share-2', SharedWorkController::ROUTE, weight: 10, routePrefixes: ['app_project', 'app_task'], area: CoreNavigationAreas::OVERVIEW);
+        }
         yield new NavigationItem('main', 'nav.item.notifications', 'inbox', NotificationController::ROUTE, $this->notifications, weight: 20, routePrefixes: ['app_notification'], countCap: self::NOTIFICATIONS_CAP, area: CoreNavigationAreas::OVERVIEW);
         if (!$this->staff->isStaff()) {
             yield new NavigationItem('work', 'nav.item.my_tasks', 'square-check-big', MyTasksController::ROUTE, $this->count, weight: 20, routePrefixes: [MyTasksController::ROUTE], area: CoreNavigationAreas::PROJECTS);

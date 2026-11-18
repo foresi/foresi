@@ -1,7 +1,8 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     The account menu behind the avatar at the bottom of the rail: the person, the firm being worked
-    in and the switch to another firm, language and sign-out. In the phone app bar the avatar is the
+    in and the switch to another firm, language and sign-out, the last three added by
+    the modules through the slots of Foresi\Ui\Slot\Slots. In the phone app bar the avatar is the
     last action, a 44 x 44 px target around the 36 px tile (Apple HIG, Buttons), and the menu opens
     below it, kept inside the viewport by the dropdown controller (Android Developers, "Menus").
     Variables: shell (ShellView).
@@ -28,21 +29,12 @@
     </div>
     <twig:Ui:MenuSection>
         <twig:Ui:MenuItem icon="user" :disabled="true">{{ 'shell.user_menu.profile'|trans }}<span class="ml-auto text-caption font-normal text-muted">{{ 'shell.user_menu.soon'|trans }}</span></twig:Ui:MenuItem>
-        <twig:Ui:MenuItem :href="path('app_notification_settings')" icon="bell-ring" data-user-menu-notifications>{{ 'shell.user_menu.notifications'|trans }}</twig:Ui:MenuItem>
-        {% if shell.organisation and shell.organisation.role.isStaff %}
-            <twig:Ui:MenuItem :href="path('app_api_tokens')" icon="key-round">{{ 'shell.user_menu.api_access'|trans }}</twig:Ui:MenuItem>
-        {% endif %}
-        <form method="post" action="{{ path('app_account_language') }}" data-turbo="false" role="none">
-            <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Identity\\Infrastructure\\Controller\\LanguageController::TOKEN_ID')) }}">
-            <input type="hidden" name="locale" value="{{ shell.otherLocale }}">
-            <input type="hidden" name="redirect" value="{{ app.request.requestUri }}" data-nav-sync>
-            <twig:Ui:MenuItem type="submit" icon="languages">{{ 'shell.user_menu.language'|trans({language: ('locale.' ~ shell.otherLocale)|trans}) }}</twig:Ui:MenuItem>
-        </form>
+        {% for item in slot_items(constant('Foresi\\Ui\\Slot\\Slots::USER_MENU'), {shell: shell}) %}{{ include(item.template, item.data|merge({shell: shell})) }}{% endfor %}
     </twig:Ui:MenuSection>
-    <twig:Ui:MenuSection>
-        <form method="post" action="{{ path('app_logout') }}" data-turbo="false" role="none">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
-            <twig:Ui:MenuItem type="submit" icon="log-out">{{ 'auth.logout'|trans }}</twig:Ui:MenuItem>
-        </form>
-    </twig:Ui:MenuSection>
+    {% set end = slot_items(constant('Foresi\\Ui\\Slot\\Slots::USER_MENU_END'), {shell: shell}) %}
+    {% if end is not empty %}
+        <twig:Ui:MenuSection>
+            {% for item in end %}{{ include(item.template, item.data|merge({shell: shell})) }}{% endfor %}
+        </twig:Ui:MenuSection>
+    {% endif %}
 </twig:Ui:Menu>
