@@ -105,7 +105,7 @@ final class RecurringListController extends AbstractController
         $here = http_build_query(1 === $page->page ? $query : $query + ['page' => (string) $page->page]);
         $severalFirms = \count($firms) > 1;
 
-        return $this->render('invoicing/recurring/index.html.twig', [
+        return $this->render('@Invoicing/recurring/index.html.twig', [
             'firstRun' => 0 === array_sum(null === $firmId ? $counts : $this->overview->counts(null)),
             'page' => $page,
             'tab' => $tab,
@@ -150,7 +150,7 @@ final class RecurringListController extends AbstractController
             $facts[] = ['label' => $this->translator->trans('recurring.list.column.firm'), 'value' => $template->firm()->name()];
         }
 
-        return $this->render('invoicing/recurring/show.html.twig', [
+        return $this->render('@Invoicing/recurring/show.html.twig', [
             'template' => $template,
             'title' => '' !== $template->name() ? $template->name() : $description,
             'badge' => ['label' => $this->translator->trans('recurring.list.tab.'.$state->value), 'tone' => match ($state) {
@@ -374,7 +374,7 @@ final class RecurringListController extends AbstractController
             $parameters['available'] = !$template->isIssued();
         }
 
-        return $this->render('invoicing/recurring/_'.$action.'.html.twig', $parameters);
+        return $this->render('@Invoicing/recurring/_'.$action.'.html.twig', $parameters);
     }
 
     /**

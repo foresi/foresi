@@ -70,7 +70,7 @@ final class TimeWeekController extends AbstractController
         $mine = '' === $person;
         $inWeek = $today >= $monday && $today < $monday->modify('+7 days');
 
-        return $this->render('work/time/week.html.twig', [
+        return $this->render('@Work/time/week.html.twig', [
             'range' => $this->range($week),
             'total' => $this->format->duration($week->totalMinutes),
             'days' => array_map(fn (TimeDay $day): array => $this->day($day, $today, $here), $week->days),

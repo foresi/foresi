@@ -118,7 +118,7 @@ final class ProjectSettingsController extends AbstractController
             }
         }
 
-        return $this->render('work/projects/settings.html.twig', [
+        return $this->render('@Work/projects/settings.html.twig', [
             'project' => $project,
             'values' => $values,
             'billable' => $billable,
@@ -175,7 +175,7 @@ final class ProjectSettingsController extends AbstractController
             }
         }
 
-        return $this->render('work/projects/section_new.html.twig', [
+        return $this->render('@Work/projects/section_new.html.twig', [
             'project' => $settings->project,
             'name' => $name,
             'error' => $error,
@@ -253,7 +253,7 @@ final class ProjectSettingsController extends AbstractController
             }
         }
 
-        return $this->render('work/projects/status_new.html.twig', [
+        return $this->render('@Work/projects/status_new.html.twig', [
             'project' => $settings->project,
             'name' => $name,
             'type' => $type,
@@ -326,7 +326,7 @@ final class ProjectSettingsController extends AbstractController
             }
         }
 
-        return $this->render('work/projects/remove_status.html.twig', [
+        return $this->render('@Work/projects/remove_status.html.twig', [
             'project' => $settings->project,
             'status' => $status,
             'targets' => $targets,
@@ -367,7 +367,7 @@ final class ProjectSettingsController extends AbstractController
             }
         }
 
-        return $this->render('work/projects/apply_workflow.html.twig', [
+        return $this->render('@Work/projects/apply_workflow.html.twig', [
             'project' => $settings->project,
             'value' => $value,
             'error' => $error,

@@ -91,7 +91,7 @@ final class WebhookEndpointController extends AbstractController
             $after = $slice->lastId();
         } while ($slice->hasMore && null !== $after);
 
-        return $this->render('webhooks/index.html.twig', [
+        return $this->render('@Webhooks/index.html.twig', [
             'columns' => [
                 ['key' => 'url', 'label' => $this->translator->trans('webhooks.column.url'), 'truncate' => true],
                 ['key' => 'description', 'label' => $this->translator->trans('webhooks.column.description'), 'truncate' => true, 'phone' => false],
@@ -127,7 +127,7 @@ final class WebhookEndpointController extends AbstractController
             }
         }
 
-        return $this->render('webhooks/new.html.twig', [
+        return $this->render('@Webhooks/new.html.twig', [
             'values' => $values,
             'errors' => $errors,
             'modules' => $this->eventOptions(),
@@ -142,7 +142,7 @@ final class WebhookEndpointController extends AbstractController
         $slice = $this->deliveries->slice($id, null, WebhookDeliveryLog::MAX_LIMIT);
         $previous = $endpoint->previousExpiresAt();
 
-        return $this->render('webhooks/show.html.twig', [
+        return $this->render('@Webhooks/show.html.twig', [
             'endpoint' => $endpoint,
             'title' => $this->title($endpoint),
             'disabledReason' => $endpoint->disabledReason()?->value,
@@ -199,7 +199,7 @@ final class WebhookEndpointController extends AbstractController
             }
         }
 
-        return $this->render('webhooks/edit.html.twig', [
+        return $this->render('@Webhooks/edit.html.twig', [
             'endpoint' => $endpoint,
             'title' => $this->title($endpoint),
             'values' => $values,
@@ -231,7 +231,7 @@ final class WebhookEndpointController extends AbstractController
             }
         }
 
-        return $this->render('webhooks/rotate.html.twig', [
+        return $this->render('@Webhooks/rotate.html.twig', [
             'endpoint' => $endpoint,
             'title' => $this->title($endpoint),
             'hours' => $hours,
@@ -262,7 +262,7 @@ final class WebhookEndpointController extends AbstractController
             }
         }
 
-        return $this->noStore($this->render('webhooks/secret.html.twig', [
+        return $this->noStore($this->render('@Webhooks/secret.html.twig', [
             'endpoint' => $endpoint,
             'title' => $this->title($endpoint),
             'secret' => null,
@@ -311,7 +311,7 @@ final class WebhookEndpointController extends AbstractController
             throw new NotFoundHttpException($unknown->getMessage(), $unknown);
         }
 
-        return $this->render('webhooks/attempts.html.twig', [
+        return $this->render('@Webhooks/attempts.html.twig', [
             'endpoint' => $endpoint,
             'title' => $this->title($endpoint),
             'event' => $this->eventLabel($detail->delivery),
@@ -463,7 +463,7 @@ final class WebhookEndpointController extends AbstractController
     {
         $previous = $endpoint->previousExpiresAt();
 
-        return $this->noStore($this->render('webhooks/secret.html.twig', [
+        return $this->noStore($this->render('@Webhooks/secret.html.twig', [
             'endpoint' => $endpoint,
             'title' => $this->title($endpoint),
             'secret' => $secret->reveal(),

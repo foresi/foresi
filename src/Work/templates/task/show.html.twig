@@ -1,0 +1,249 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A task, as the work item view of Jira and the issue view of Linear: the title, the description,
+    the subtasks and the discussion in the main column; the properties in the panel beside it (under it
+    on a phone). Each property is a form of its own that saves once a value is chosen, with a Save
+    button for a browser without JavaScript; the responsible person is a Ui:PersonPicker, whose rows
+    save it at once. The title in the header and the description change where they are read: a click on
+    them, or on the pencil button beside them, opens the field in place (Linear, "Creating issues"; Atlassian,
+    Inline edit), and the page comes back morphed with the change. Without JavaScript the pencil is a link
+    to this page with the form open (?edit=title or ?edit=description).
+    The files of the task follow the description; an image or a PDF, in the list or in a text,
+    opens in the viewer dialog. A new subtask opens in a dialog from the header, and so does the sharing
+    dialog; a private task has its badge next to the title. The people of the organisation see the time
+    logged on the task under its subtasks, log it in a dialog, run the timer from the header and set the
+    estimate in the panel; a guest sees none of it. A guest finds the way back through what is
+    shared with them, and the project by its name only when they do not see it.
+    A row of a list opens the task in the sheet (layout/record.html.twig, docs/design/overlays.md), as
+    Linear's peek previews an issue from a list; everything above changes there in place: the
+    title in the sheet's header, the properties, the files, the discussion, a subtask in the same sheet.
+#}
+{% extends 'layout/record.html.twig' %}
+
+{% set row = task.task %}
+{% set crumbs = task.manageable ? [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}] : [{label: 'shared_with_me.title'|trans, href: path('app_shared_with_me')}] %}
+{% set crumbs = crumbs|merge([row.projectSeen ? {label: row.projectName, href: path('app_project', {id: row.projectId})} : {label: row.projectName}]) %}
+{% if task.parent %}{% set crumbs = crumbs|merge([{label: task.parent.name, href: path('app_task', {id: task.parent.id})}]) %}{% endif %}
+{% set crumbs = crumbs|merge([{label: row.title}]) %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{% set token = csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TaskController::TOKEN')) %}
+{% set timeToken = csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TimeController::TOKEN')) %}
+{% set taskUrl = path('app_task', {id: row.id}) %}
+{% set autosubmit = 'data-controller="autosubmit" data-action="change->autosubmit#submit"' %}
+{% if row.private %}{% set badges = [{label: 'work.sharing.private_badge'|trans, tone: 'gray', icon: 'lock'}] %}{% endif %}
+{% set save %}<noscript><twig:Ui:Button type="submit" size="sm">{{ 'work.save'|trans }}</twig:Ui:Button></noscript>{% endset %}
+
+{% set titleEdit = {
+    action: path('app_task_title', {id: row.id}), token: token, name: 'title', id: 'title', label: 'work.task.field.title'|trans,
+    href: taskUrl ~ '?edit=title', cancelHref: taskUrl, open: edit == 'title', value: values.title, error: errors.title|default(null),
+    maxlength: constant('Foresi\\Work\\Domain\\Task::MAX_TITLE_LENGTH'),
+} %}
+{% set record_title_edit = titleEdit %}
+{% set record_reload = read|default(false) %}
+
+{% block head %}{{ include('@Work/_morph_refresh.html.twig') }}{% endblock %}
+
+{% block title %}{{ row.title }}{% endblock %}
+
+{% block actions %}
+    {# The timer, the task's main action, comes first on every screen; a new subtask is the secondary button, sharing sits in "⋯", deleting last. #}
+    {% set subtaskable = not task.parent and not task.projectArchived %}
+    <twig:Ui:MoreActions menuId="task-menu" :menuSize="record_action_size" data-task-menu>
+        <twig:block name="primary">
+            {% if timerHere %}
+                <form method="post" action="{{ path('app_timer_stop') }}" data-task-timer="stop">
+                    <input type="hidden" name="_token" value="{{ timeToken }}">
+                    <input type="hidden" name="return" value="{{ taskUrl }}">
+                    <twig:Ui:Button type="submit" icon="square" :size="record_action_size">{{ 'work.time.timer.stop'|trans }}</twig:Ui:Button>
+                </form>
+            {% elseif timeLoggable %}
+                <form method="post" action="{{ path('app_task_timer_start', {id: row.id}) }}" data-task-timer="start">
+                    <input type="hidden" name="_token" value="{{ timeToken }}">
+                    <twig:Ui:Button type="submit" icon="play" :size="record_action_size">{{ 'work.time.timer.start'|trans }}</twig:Ui:Button>
+                </form>
+            {% endif %}
+        </twig:block>
+        <twig:block name="buttons">{% if subtaskable %}<twig:Ui:Button icon="plus" :size="record_action_size" :href="path('app_task_subtask_new', {id: row.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-subtask-new-open>{{ 'work.task.new_subtask'|trans }}</twig:Ui:Button>{% endif %}</twig:block>
+        <twig:block name="phone">{% if subtaskable %}<twig:Ui:MenuItem :href="path('app_task_subtask_new', {id: row.id})" icon="plus" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-menu-subtask>{{ 'work.task.new_subtask'|trans }}</twig:Ui:MenuItem>{% endif %}</twig:block>
+        {% if task.shareable %}<twig:Ui:MenuItem :href="path('app_sharing', {kind: 'tasks', id: row.id})" icon="share-2" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-share>{{ 'work.sharing.open'|trans }}</twig:Ui:MenuItem>{% endif %}
+        <twig:block name="last">
+            {% if row.deletable %}
+                <form method="post" action="{{ path('app_task_delete', {id: row.id}) }}" role="none" data-task-delete>
+                    <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TaskController::TRASH_TOKEN')) }}">
+                    <input type="hidden" name="from" value="task">
+                    <twig:Ui:MenuItem type="submit" icon="trash-2" tone="danger">{{ 'work.trash.delete'|trans }}</twig:Ui:MenuItem>
+                </form>
+            {% endif %}
+        </twig:block>
+    </twig:Ui:MoreActions>
+{% endblock %}
+
+{% block content %}
+    {{ include('@Work/_flashes.html.twig') }}
+    {% if row.private and overlay() is not null %}<p class="m-0 mb-4"><twig:Ui:Badge tone="gray" class="gap-1" data-header-badge>{{ ux_icon('lucide:lock', {class: 'size-3 shrink-0', 'aria-hidden': 'true'}) }}{{ 'work.sharing.private_badge'|trans }}</twig:Ui:Badge></p>{% endif %}
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]" data-controller="attachments" data-action="click->attachments#openImage dialog:closed->attachments#closed">
+        <div class="grid min-w-0 content-start gap-6">
+            {#
+                The description changes where it is read, as the title does, but stays open when the focus leaves
+                it, and a refresh of the page by another change leaves it as typed (Atlassian, Inline edit:
+                keepEditViewOpenOnBlur for a long text). A link, a checkbox or a picture in it is still its own.
+            #}
+            {% set describing = edit == 'description' %}
+            <section class="grid gap-2" aria-labelledby="task-description-title" id="task-description" data-controller="inline-field" data-inline-field-blur-value="keep">
+                <div class="flex items-center gap-1">
+                    <h2 id="task-description-title" class="m-0 text-heading font-semibold text-ink">{{ 'work.task.field.description'|trans }}</h2>
+                    <twig:Ui:IconButton :href="taskUrl ~ '?edit=description#task-description-title'" icon="pencil" variant="ghost" size="sm" :label="'ui.inline_field.edit'|trans({label: ('work.task.field.description'|trans)|lower})" :hidden="describing" data-inline-field-target="pencil" data-action="inline-field#open" data-task-edit-description />
+                </div>
+                <div class="-mx-[7px] cursor-text rounded-option border border-transparent px-1.5 py-1 transition-colors hover:border-control-line" data-inline-field-target="read" data-action="click->inline-field#open"{% if describing %} hidden{% endif %}>
+                    {% if task.description is not empty %}
+                        <div class="markdown" data-task-description>{{ task.description|markdown }}</div>
+                    {% else %}
+                        <p class="m-0 text-muted">{{ 'work.task.no_description'|trans }}</p>
+                    {% endif %}
+                </div>
+                <form method="post" action="{{ path('app_task_description', {id: row.id}) }}" class="grid gap-3" data-inline-field-target="form" data-action="submit->inline-field#submit" data-task-description-form{% if not describing %} hidden{% endif %}>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:MarkdownEditor name="description" id="description" :label="'work.task.field.description'|trans" :value="values.description" :rows="6" :previewUrl="path('app_markdown_preview')" :mentionsUrl="path('app_task_mention_candidates', {id: row.id})" :uploadUrl="path('app_attachment_upload')" :uploadKind="attachmentKind" :uploadOwner="row.id" :autofocus="describing" data-inline-field-target="field" />
+                    <div class="flex flex-wrap gap-2">
+                        <twig:Ui:Button type="submit" variant="primary">{{ 'work.save'|trans }}</twig:Ui:Button>
+                        <twig:Ui:Button :href="taskUrl" data-action="inline-field#cancel" data-task-description-cancel>{{ 'work.cancel'|trans }}</twig:Ui:Button>
+                    </div>
+                </form>
+            </section>
+
+            {{ include('@Work/task/_attachments.html.twig') }}
+
+            {% if not task.parent %}
+                <section class="grid gap-2" aria-labelledby="task-subtasks-title" data-task-subtasks data-in-place>
+                    <h2 id="task-subtasks-title" class="m-0 text-heading font-semibold text-ink">{{ 'work.task.subtasks'|trans }} <span class="num font-normal text-muted">({{ subtasks|length }})</span></h2>
+                    <twig:Ui:DataTable :caption="'work.task.subtasks'|trans" :columns="subtaskColumns" :rows="subtasks">
+                        <twig:block name="empty">
+                            <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted">{{ 'work.task.no_subtasks'|trans }}</p>
+                        </twig:block>
+                    </twig:Ui:DataTable>
+                </section>
+            {% endif %}
+
+            {% if time %}{{ include('@Work/task/_time.html.twig') }}{% endif %}
+
+            {{ include('@Work/task/_discussion.html.twig') }}
+
+            <twig:Ui:Dialog id="attachment-viewer" size="lg" :title="'attachment.preview'|trans" data-attachments-target="viewer" data-attachment-viewer>
+                <div class="grid place-items-center" data-attachments-target="stage"></div>
+                <twig:block name="footer">
+                    <twig:Ui:Button href="#" icon="download" download data-attachments-target="download">{{ 'attachment.download'|trans }}</twig:Ui:Button>
+                </twig:block>
+            </twig:Ui:Dialog>
+        </div>
+
+        <aside class="grid content-start gap-4 border-t border-divider pt-6 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0" aria-labelledby="task-details-title" data-task-details>
+            <h2 id="task-details-title" class="m-0 text-heading font-semibold text-ink">{{ 'work.task.details'|trans }}</h2>
+
+            <form method="post" action="{{ path('app_task_status', {id: row.id}) }}" class="grid gap-1.5" {{ autosubmit|raw }} data-task-property="status">
+                <input type="hidden" name="_token" value="{{ token }}">
+                <twig:Ui:Select name="status" id="task-status" :label="'work.task.field.status'|trans" :options="statuses" :value="row.statusId" />
+                {{ save }}
+            </form>
+
+            <form method="post" action="{{ path('app_task_responsible', {id: row.id}) }}" class="grid gap-1.5" data-task-property="responsible">
+                <input type="hidden" name="_token" value="{{ token }}">
+                <twig:Ui:PersonPicker name="responsible" id="task-responsible" :label="'work.task.field.responsible'|trans" :people="responsibles" :value="row.responsibleId ?? ''" :noneLabel="'work.task.nobody'|trans" :saveLabel="'work.save'|trans" />
+            </form>
+
+            <div class="grid gap-1.5" data-task-watchers>
+                <h3 class="m-0 text-small font-medium text-ink">{{ 'work.task.field.watchers'|trans }}</h3>
+                {% if watchers is empty %}
+                    <p class="m-0 text-small text-muted">{{ 'work.task.watchers.none'|trans }}</p>
+                {% else %}
+                    <ul class="m-0 grid list-none gap-1.5 p-0">
+                        {% for watcher in watchers %}
+                            <li class="flex min-w-0 items-center gap-2 text-small text-text">
+                                <twig:Ui:Avatar :name="watcher.name" :seed="watcher.seed" />
+                                <span class="min-w-0 truncate">{{ watcher.name }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                {% if canWatch %}
+                    <form method="post" action="{{ path(watching ? 'app_task_unwatch' : 'app_task_watch', {id: row.id}) }}" data-task-watch>
+                        <input type="hidden" name="_token" value="{{ token }}">
+                        <twig:Ui:Button type="submit" size="sm" :icon="watching ? null : 'bell-ring'">{{ (watching ? 'work.task.watchers.unwatch' : 'work.task.watchers.watch')|trans }}</twig:Ui:Button>
+                    </form>
+                {% endif %}
+                {% if candidates|length > 1 %}
+                    <form method="post" action="{{ path('app_task_watchers', {id: row.id}) }}" class="grid gap-1.5" {{ autosubmit|raw }} data-task-property="watchers">
+                        <input type="hidden" name="_token" value="{{ token }}">
+                        <twig:Ui:Select name="person" id="task-watcher" :label="'work.task.watchers.add'|trans" :options="candidates" value="" />
+                        {{ save }}
+                    </form>
+                {% endif %}
+            </div>
+
+            <form method="post" action="{{ path('app_task_due', {id: row.id}) }}" class="grid gap-1.5" {{ autosubmit|raw }} data-task-property="due">
+                <input type="hidden" name="_token" value="{{ token }}">
+                <twig:Ui:TextInput type="date" name="due" id="task-due" :label="'work.task.field.due_on'|trans" :value="dueValue" />
+                <div class="flex flex-wrap gap-2">
+                    {{ save }}
+                    {% if dueValue %}<twig:Ui:Button type="submit" size="sm" variant="ghost" icon="x" name="clear" value="1">{{ 'work.task.due_clear'|trans }}</twig:Ui:Button>{% endif %}
+                </div>
+            </form>
+
+            <form method="post" action="{{ path('app_task_priority', {id: row.id}) }}" class="grid gap-1.5" {{ autosubmit|raw }} data-task-property="priority">
+                <input type="hidden" name="_token" value="{{ token }}">
+                <twig:Ui:Select name="priority" id="task-priority" :label="'work.task.field.priority'|trans" :options="priorities" :value="row.priority.value" />
+                {{ save }}
+            </form>
+
+            {% if time %}
+                <form method="post" action="{{ path('app_task_estimate', {id: row.id}) }}" class="grid gap-1.5" {{ autosubmit|raw }} data-task-property="estimate">
+                    <input type="hidden" name="_token" value="{{ timeToken }}">
+                    <twig:Ui:TextInput name="estimate" id="task-estimate" :label="'work.task.field.estimate'|trans" :help="'work.time.estimate_help'|trans" :value="estimateValue" autocomplete="off" spellcheck="false" />
+                    <div class="flex flex-wrap gap-2">
+                        {{ save }}
+                        {% if estimateValue %}<twig:Ui:Button type="submit" size="sm" variant="ghost" icon="x" name="clear" value="1">{{ 'work.task.due_clear'|trans }}</twig:Ui:Button>{% endif %}
+                    </div>
+                </form>
+            {% endif %}
+
+            <div class="grid gap-1.5" data-task-labels>
+                <h3 class="m-0 text-small font-medium text-ink">{{ 'work.task.field.labels'|trans }}</h3>
+                {% if row.labels is not empty %}
+                    <ul class="m-0 flex list-none flex-wrap gap-1.5 p-0">
+                        {% for label in row.labels %}<li><twig:Ui:Badge :tone="label.colour.value">{{ label.name }}</twig:Ui:Badge></li>{% endfor %}
+                    </ul>
+                {% elseif not hasLabels %}
+                    <p class="m-0 text-small text-muted">{{ 'work.task.labels_none'|trans }}</p>
+                {% endif %}
+                {% if hasLabels or canCreateLabels %}
+                    {# Search, several ticks and, for the staff, a new label from what was typed (Linear, Jira); closing posts the ticks. #}
+                    <twig:Ui:MultiSelect id="task-labels" name="labels[]" :label="'work.task.field.labels'|trans" :trigger="'work.task.labels_edit'|trans" icon="tag"
+                        :action="path('app_task_labels', {id: row.id})" :href="path('app_task_labels', {id: row.id})" :token="token"
+                        :options="labelOptions" :values="row.labels|map(l => l.id)"
+                        :searchLabel="'work.task.labels_search'|trans" :emptyLabel="'work.task.labels_no_match'|trans"
+                        :createName="canCreateLabels ? 'create' : null" :createLabel="'work.task.labels_create'|trans({name: '{name}'})" />
+                {% endif %}
+            </div>
+
+            {% if not task.parent and (task.projectOpen or sections|length > 1) %}
+                <form method="post" action="{{ path('app_task_section', {id: row.id}) }}" class="grid gap-1.5" {{ autosubmit|raw }} data-task-property="section">
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:Select name="section" id="task-section" :label="'work.task.field.section'|trans" :options="sections" :value="row.sectionId ?? ''" />
+                    {{ save }}
+                </form>
+            {% endif %}
+
+            <div class="grid gap-1.5">
+                <h3 class="m-0 text-small font-medium text-ink">{{ 'work.task.field.project'|trans }}</h3>
+                {% if row.projectSeen %}
+                    <a href="{{ path('app_project', {id: row.projectId}) }}" class="text-small font-medium text-ink no-underline hover:underline {{ focus }}" data-task-project>{{ row.projectName }}</a>
+                {% else %}
+                    <p class="m-0 text-small text-text" data-task-project>{{ row.projectName }}</p>
+                {% endif %}
+            </div>
+
+            <p class="m-0 border-t border-divider pt-3 text-caption text-muted" data-task-created>
+                {{- (task.createdByName ? 'work.task.created_by' : 'work.task.created')|trans({name: task.createdByName ?? '', date: createdAt}) -}}
+            </p>
+        </aside>
+    </div>
+{% endblock %}

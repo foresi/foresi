@@ -15,7 +15,8 @@ use Foresi\Ui\Navigation\NavigationItem;
 use Foresi\Ui\Navigation\NavigationItemProvider;
 
 /**
- * The personal API tokens in the settings, for the staff.
+ * API and MCP in the settings, for the staff: the personal tokens and how to connect a client.
+ * It is the one place for this access; the account menu has no entry of its own.
  */
 final readonly class ApiTokenNavigation implements NavigationItemProvider
 {
@@ -26,7 +27,7 @@ final readonly class ApiTokenNavigation implements NavigationItemProvider
     public function items(): iterable
     {
         if ($this->staff->isStaff()) {
-            yield new NavigationItem('settings', 'nav.item.api', 'key-round', ApiTokenController::ROUTE, weight: 17, routePrefixes: ['app_api_token'], area: NavigationArea::SETTINGS);
+            yield new NavigationItem('settings', 'nav.item.api', 'key-round', ApiTokenController::ROUTE, weight: 17, routePrefixes: ['app_api_token', ApiTokenController::CONNECT_ROUTE], area: NavigationArea::SETTINGS);
         }
     }
 }

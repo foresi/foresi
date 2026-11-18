@@ -1,0 +1,70 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The time report: the filter (period, project, client, person, billable, invoiced and what the totals
+    add up by), the sums of the period, the totals and the entries, newest first, as Freelo reports and
+    Productive do. The header downloads the entries as CSV with the same filter. Only the time the person
+    sees is in it. On a phone the tables keep the work and the time, with when, who and where under it.
+#}
+{% extends 'layout/app.html.twig' %}
+
+{% set title = 'work.time.report.title'|trans %}
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.time.title'|trans, href: path('app_time')}, {label: title}] %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:MoreActions menuId="time-report-actions">
+        <twig:block name="primary">{% if invoiceTime %}<twig:Ui:Button icon="receipt-text" :href="invoiceTime" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-time-invoice-open>{{ 'work.time.invoice_time'|trans }}</twig:Ui:Button>{% endif %}</twig:block>
+        {% if not empty %}
+            <form method="post" action="{{ path('app_time_report_export') }}" data-turbo="false" role="none" data-time-report-export>
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TimeReportController::TOKEN')) }}">
+                {% for name, value in query %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+                <twig:Ui:MenuItem type="submit" icon="download">{{ 'work.time.report.export'|trans }}</twig:Ui:MenuItem>
+            </form>
+        {% endif %}
+    </twig:Ui:MoreActions>
+{% endblock %}
+
+{% block content %}
+    {{ include('@Work/_flashes.html.twig') }}
+    <div class="grid grid-cols-1 gap-4">
+        {{ include('@Work/time/_tabs.html.twig', {active: 'report'}) }}
+
+        {% set reportFilters = [
+            {name: 'period', label: 'work.time.report.period.label'|trans, options: options.periods, value: query.period, default: 'this_month', pinned: true},
+            {name: 'person', label: 'work.time.report.column.person'|trans, options: options.people, value: query.person|default(''), pinned: true},
+            {name: 'from', label: 'work.time.report.from'|trans, type: 'date', value: query.from|default(''), text: query.from is defined ? from|date('j. n. Y') : ''},
+            {name: 'until', label: 'work.time.report.until'|trans, type: 'date', value: query.until|default(''), text: query.until is defined ? until|date('j. n. Y') : ''},
+            {name: 'project', label: 'work.task.field.project'|trans, options: options.projects, value: query.project|default('')},
+            {name: 'client', label: 'work.project.field.client'|trans, options: options.clients, value: query.client|default('')},
+            {name: 'billable', label: 'work.time.billable'|trans, options: options.billable, value: query.billable|default('')},
+            {name: 'invoiced', label: 'work.time.invoiced'|trans, options: options.invoiced, value: query.invoiced|default('')},
+            {name: 'group', label: 'work.time.report.group'|trans, options: options.groupings, value: query.group|default('project'), default: 'project'},
+        ] %}
+        <twig:Ui:FilterBar id="report-filters" :action="path('app_time_report')" :keep="{shown: query.period}" :filters="reportFilters" data-time-report-filter />
+
+        <section class="grid gap-3" aria-labelledby="report-range" data-time-report>
+            <h2 id="report-range" class="m-0 text-heading font-semibold text-ink">{{ range }}</h2>
+            <twig:Ui:KpiStrip :items="kpis" />
+            {% if empty %}
+                <twig:Ui:EmptyState icon="clock-3" data-time-report-empty :title="'work.time.report.empty_title'|trans" :text="'work.time.report.empty_text'|trans" />
+            {% else %}
+                <section class="grid gap-2" aria-labelledby="report-totals-title" data-time-report-totals>
+                    <h3 id="report-totals-title" class="m-0 text-small font-semibold text-ink">{{ ('work.time.report.totals.' ~ grouping)|trans }}</h3>
+                    <twig:Ui:DataTable :caption="('work.time.report.totals.' ~ grouping)|trans" :columns="totalColumns" density="dense" :rows="totalRows" :totals="totalSums" />
+                </section>
+                <section class="grid gap-2" aria-labelledby="report-entries-title" data-time-report-entries>
+                    <h3 id="report-entries-title" class="m-0 text-small font-semibold text-ink">{{ 'work.time.report.entries'|trans }}</h3>
+                    <twig:Ui:DataTable :caption="'work.time.report.entries'|trans" :columns="entryColumns" density="dense" :rows="entryRows">
+                        <twig:block name="footer">
+                            {%- if pages > 1 -%}
+                                <span class="num">{{ 'work.time.report.entries_count'|trans({count: entryCount}) }}</span>
+                                <twig:Ui:Pagination :page="page" :pages="pages" :baseUrl="baseUrl" />
+                            {%- endif -%}
+                        </twig:block>
+                    </twig:Ui:DataTable>
+                </section>
+            {% endif %}
+        </section>
+    </div>
+{% endblock %}

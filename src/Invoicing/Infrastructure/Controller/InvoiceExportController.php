@@ -126,7 +126,7 @@ final class InvoiceExportController extends AbstractController
             $firms[$firm->id()] = $firm->name();
         }
 
-        return $this->render('invoicing/export.html.twig', [
+        return $this->render('@Invoicing/export.html.twig', [
             'firms' => $firms,
             'firm' => $firmId,
             'month' => $month,

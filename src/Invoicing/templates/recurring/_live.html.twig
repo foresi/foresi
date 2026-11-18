@@ -1,0 +1,7 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The answer of the preview: the next issue, and the other parts of the form that follow what was typed (_parts). #}
+{% import '@Invoicing/recurring/_parts.html.twig' as parts %}
+{{ include('@Invoicing/recurring/_preview.html.twig') }}
+{% for name, addresses in recipients %}
+    {{ parts.addresses(name ~ '-address', addresses) }}
+{% endfor %}

@@ -13,7 +13,7 @@ scheb_two_factor:
         issuer: '%app.product_name%'
         # Seconds a code stays good past its period, for phones whose clock is slightly off.
         leeway: 15
-        template: identity/two_factor.html.twig
+        template: "@Identity/two_factor.html.twig"
     backup_codes:
         enabled: true
         manager: Foresi\Identity\Infrastructure\Security\RecoveryCodeManager

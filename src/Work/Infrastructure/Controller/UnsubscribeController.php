@@ -68,7 +68,7 @@ final class UnsubscribeController extends AbstractController
         // The language of the person, signed into the link with the rest.
         $locale = \in_array($request->query->getString('lang'), User::LOCALES, true) ? $request->query->getString('lang') : $request->getLocale();
         $request->setLocale($locale);
-        $response = $this->render('work/notifications/unsubscribe.html.twig', [
+        $response = $this->render('@Work/notifications/unsubscribe.html.twig', [
             'locale' => $locale,
             'what' => $what,
             'done' => $done,

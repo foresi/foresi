@@ -27,7 +27,7 @@ final class MyTasksDashboardTest extends TestCase
         ])->sections()];
 
         self::assertCount(1, $sections);
-        self::assertSame('work/dashboard.html.twig', $sections[0]->template);
+        self::assertSame('@Work/dashboard.html.twig', $sections[0]->template);
         self::assertSame([
             ['label' => 'work.my_tasks.group.overdue', 'value' => '2', 'href' => '/my-tasks'],
             ['label' => 'work.my_tasks.group.today', 'value' => '0', 'href' => '/my-tasks'],

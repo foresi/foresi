@@ -50,7 +50,7 @@ final class LabelController extends AbstractController
         $this->denyUnlessStaff();
         $usage = $this->queries->labelUsage();
 
-        return $this->render('work/labels/index.html.twig', [
+        return $this->render('@Work/labels/index.html.twig', [
             'columns' => [
                 ['key' => 'name', 'label' => $this->translator->trans('work.labels.column.name'), 'truncate' => true],
                 ['key' => 'preview', 'label' => $this->translator->trans('work.labels.column.preview')],
@@ -132,7 +132,7 @@ final class LabelController extends AbstractController
             }
         }
 
-        return $this->render('work/labels/form.html.twig', [
+        return $this->render('@Work/labels/form.html.twig', [
             'label' => $label,
             'action' => $label instanceof LabelBadge ? $this->generateUrl('app_label_edit', ['id' => $label->id]) : $this->generateUrl('app_label_new'),
             'values' => $values,

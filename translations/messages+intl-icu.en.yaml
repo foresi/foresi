@@ -76,7 +76,7 @@ nav:
     settings: Settings
   item:
     people: People
-    api: API access
+    api: API and MCP
     webhooks: Webhooks
     dashboard: Dashboard
     shared_with_me: Shared with me
@@ -217,7 +217,6 @@ shell:
     label: Account menu
     profile: My profile
     notifications: Notification settings
-    api_access: API and MCP access
     language: 'Switch language to {language}'
     soon: Soon
   worker:
@@ -3108,7 +3107,7 @@ people:
     validity: '{days, plural, one {The link works once, for # day.} other {The link works once, for # days.}}'
     ignore: If you did not expect this invitation, ignore this e-mail.
 api_tokens:
-  title: API access
+  title: API and MCP
   new: New token
   mine: My tokens
   others: Tokens of other people
@@ -3137,6 +3136,7 @@ api_tokens:
     webhooks: Webhooks
     events: Events
     cashflow: Cash flow
+    received_documents: Received documents
   state:
     expired: Expired
     revoked: Revoked
@@ -3167,7 +3167,9 @@ api_tokens:
     copy: Copy token
     copied: Copied
     copy_failed: Copying failed; the token is selected, press Ctrl+C.
-    use: Use it as a bearer token with the REST API (docs/api.md) or the MCP server (docs/mcp.md). Treat it like a password.
+    use: Use it as a bearer token in the Authorization header of the MCP server or the REST API. Treat it like a password.
+    claude_code: The Claude Code command with this token
+    guide: Setup for other clients
     done: Done
   flash:
     revoked: The token is revoked.
@@ -3176,6 +3178,57 @@ api_tokens:
     name: Enter a name of up to 80 characters.
     expiry: Choose how long the token lasts.
     scopes: Choose what the token may do.
+  tab:
+    tokens: Tokens
+    connect: Connect
+  connect:
+    intro: Foresi has an MCP server. Claude and other AI clients read and change your data through it, under a token you create here. Every client needs the address of the server and the token in the Authorization header.
+    server: MCP server address
+    copy: Copy
+    copied: Copied
+    copy_failed: Copying failed; the text is selected, press Ctrl+C.
+    steps:
+      title: Steps
+      token: Create a token. For Claude, reading is enough to start with.
+      client: Add the server to your client as shown below and put your token in place of <token>. The new token's window shows the Claude Code command with the token in it.
+      check: Check the connection with a first prompt.
+    clients: Setup for each client
+    client:
+      claude_code:
+        title: Claude Code
+        text: Run the command in a terminal. Then type /mcp in Claude Code and check that the server foresi is connected.
+      claude_ai:
+        title: claude.ai and Claude Desktop
+        text: In Claude, open Settings → Connectors → Add custom connector. Enter the name Foresi and the server address, do not choose OAuth sign-in, and add the header below under Request headers. Claude Desktop takes over the connectors of claude.ai.
+        header: Header
+      desktop:
+        title: Claude Desktop with the configuration file
+        text: If you cannot use a custom connector, open Settings → Developer → Edit Config in Claude Desktop and add the server to claude_desktop_config.json through the mcp-remote bridge (it needs Node.js). Then quit Claude Desktop and start it again.
+      cursor:
+        title: Cursor
+        text: Add the server to ~/.cursor/mcp.json, or to .cursor/mcp.json in a project.
+      vscode:
+        title: VS Code
+        text: Add the server to .vscode/mcp.json. VS Code uses the key servers, not mcpServers, and asks for the token when it first starts the server, so the token stays out of the file.
+      other:
+        title: Another MCP client
+        text: Streamable HTTP transport, the server address above and this header on every request.
+    check:
+      title: A first prompt for Claude
+      text: Paste it into a new chat. Claude calls the tool whoami and says who is signed in and what the token may do.
+      prompt: Use the Foresi MCP server. First call whoami and tell me who you are signed in as and what the token may do. Then show me the five latest unpaid invoices. Do not change anything until I ask you to.
+    scopes:
+      title: What a token may do
+      text: You choose the access when you create a token and cannot change it later; for other access, create a new token. Changing always includes reading. A tool the token has no access to answers with a refusal.
+      hint: For Claude, start with "Read everything". Add writing only for what it really has to change.
+      list: The access a token can be given
+    safety:
+      title: Safety
+      secret: A token is like a password. Do not paste it into a chat or into files you share or commit to git.
+      approve: Keep tool approval on in the client, above all for writes.
+      injection: Data from elsewhere, such as e-mails or web pages, may carry instructions for the AI. A client that may write could carry them out.
+      revoke: Revoke a token you no longer need, or that may have leaked, on the Tokens tab. It stops working at once.
+    docs: The tools and the REST API in detail
 invitation:
   title: 'Join {organisation}'
   field:

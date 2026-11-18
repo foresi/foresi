@@ -27,6 +27,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -42,6 +43,9 @@ final class ApiTokenController extends AbstractController
     public const string ROUTE = 'app_api_tokens';
     public const string NEW_ROUTE = 'app_api_token_new';
     public const string REVOKE_ROUTE = 'app_api_token_revoke';
+    public const string CONNECT_ROUTE = 'app_api_connect';
+    /** The MCP server over Streamable HTTP (config/packages/mcp.yaml). */
+    private const string MCP_ROUTE = '_mcp_endpoint_default';
     public const string TOKEN = 'api_tokens';
 
     public function __construct(
@@ -71,12 +75,33 @@ final class ApiTokenController extends AbstractController
             }
         }
 
-        return $this->render('identity/api/index.html.twig', [
+        return $this->render('@Identity/api/index.html.twig', [
             'canIssue' => $this->hasTwoFactor(),
             'mineColumns' => $this->columns(false),
             'mineRows' => array_map(fn (ApiToken $token): array => $this->row($token, false, null), $mine),
             'othersColumns' => $this->columns(true),
             'othersRows' => null === $others ? null : array_map(fn (ApiToken $token): array => $this->row($token, true, $people[$token->userId()] ?? null), $others),
+        ]);
+    }
+
+    /**
+     * How to connect Claude and other MCP clients: the server's address, a copy-ready
+     * setup for each client, a first prompt to check it and what the scopes of a token mean.
+     */
+    #[Route('/settings/api/connect', name: self::CONNECT_ROUTE, methods: ['GET'])]
+    public function connect(): Response
+    {
+        // Who may see the tokens may see how to use them; the service decides.
+        try {
+            $this->tokens->mine();
+        } catch (ApiTokenRefused $refused) {
+            throw $this->denied($refused);
+        }
+
+        return $this->render('@Identity/api/connect.html.twig', [
+            'canIssue' => $this->hasTwoFactor(),
+            'server' => $this->mcpServer(),
+            'scopes' => $this->offeredScopes(),
         ]);
     }
 
@@ -99,10 +124,11 @@ final class ApiTokenController extends AbstractController
             try {
                 $issued = $this->tokens->issue($values['name'], array_map(ApiScope::from(...), $values['scopes']), ctype_digit($values['days']) ? (int) $values['days'] : 0);
 
-                return $this->noStore($this->render('identity/api/created.html.twig', [
+                return $this->noStore($this->render('@Identity/api/created.html.twig', [
                     'name' => $issued->token->name(),
                     'secret' => $issued->secret,
                     'expires' => $this->date($issued->token->expiresAt()),
+                    'server' => $this->mcpServer(),
                 ]));
             } catch (ApiTokenRefused $refused) {
                 $errors[match ($refused->reason) {
@@ -115,7 +141,7 @@ final class ApiTokenController extends AbstractController
             }
         }
 
-        return $this->render('identity/api/new.html.twig', [
+        return $this->render('@Identity/api/new.html.twig', [
             'canIssue' => $this->hasTwoFactor(),
             'values' => $values,
             'errors' => $errors,
@@ -249,6 +275,11 @@ final class ApiTokenController extends AbstractController
                 ]],
             ] : [],
         ];
+    }
+
+    private function mcpServer(): string
+    {
+        return $this->generateUrl(self::MCP_ROUTE, [], UrlGeneratorInterface::ABSOLUTE_URL);
     }
 
     private function date(\DateTimeImmutable $date): string

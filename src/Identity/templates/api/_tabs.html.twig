@@ -1,0 +1,6 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The two parts of API and MCP in the settings. Variables: active ("tokens" or "connect"). #}
+<twig:Ui:Tabs :label="'api_tokens.title'|trans" :items="[
+    {label: 'api_tokens.tab.tokens'|trans, href: path('app_api_tokens'), active: 'tokens' == active},
+    {label: 'api_tokens.tab.connect'|trans, href: path('app_api_connect'), active: 'connect' == active},
+]" />

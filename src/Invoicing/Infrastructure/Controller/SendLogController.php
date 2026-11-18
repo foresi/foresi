@@ -62,7 +62,7 @@ final class SendLogController extends AbstractController
         $query = array_filter(['status' => $status?->value, 'firm' => '' === $firm ? null : $firm, 'purpose' => $purpose?->value], static fn (?string $value): bool => null !== $value);
         $severalFirms = \count($page->firms) > 1;
 
-        return $this->render('invoicing/send_log.html.twig', [
+        return $this->render('@Invoicing/send_log.html.twig', [
             'page' => $page,
             'status' => $status->value ?? self::ALL,
             'firm' => $firm,

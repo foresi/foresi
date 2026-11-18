@@ -20,7 +20,7 @@ final class LoginController extends AbstractController
     #[Route('/login', name: 'app_login', methods: ['GET', 'POST'])]
     public function login(AuthenticationUtils $authentication): Response
     {
-        return $this->render('identity/login.html.twig', [
+        return $this->render('@Identity/login.html.twig', [
             'lastUsername' => $authentication->getLastUsername(),
             'error' => $authentication->getLastAuthenticationError(),
         ]);

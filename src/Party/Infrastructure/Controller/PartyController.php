@@ -116,7 +116,7 @@ final class PartyController extends AbstractController
             + ($importedBy instanceof ImportedBy ? ['import' => $importedBy->importId, 'outcome' => $importedBy->outcome] : [])
             + $working->query;
 
-        return $this->render('party/index.html.twig', [
+        return $this->render('@Party/index.html.twig', [
             'firstRun' => 0 === $counts->all && 0 === $counts->archived,
             'view' => $view,
             'text' => $text,
@@ -173,7 +173,7 @@ final class PartyController extends AbstractController
             'locale' => $locale,
         ];
 
-        return $this->render('party/show.html.twig', $extra + $data + match ($tab) {
+        return $this->render('@Party/show.html.twig', $extra + $data + match ($tab) {
             'contacts' => $this->contactsTab($party),
             'addresses' => ['addressRows' => $this->addressRows($this->details->addresses($party))],
             'bank-accounts' => ['accountRows' => $this->accountRows($this->details->bankAccounts($party))],

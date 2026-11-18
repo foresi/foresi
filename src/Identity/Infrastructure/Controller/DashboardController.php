@@ -44,6 +44,6 @@ final class DashboardController extends AbstractController
             }
         }
 
-        return $this->render('identity/dashboard.html.twig');
+        return $this->render('@Identity/dashboard.html.twig');
     }
 }
