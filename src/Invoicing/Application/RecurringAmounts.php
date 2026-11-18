@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
+use Foresi\Invoicing\Domain\DocumentTotals;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\RecurringInvoiceLine;
 use Foresi\Invoicing\Domain\TotalRounding;
@@ -50,9 +51,33 @@ final readonly class RecurringAmounts
     }
 
     /**
+     * The lines and totals of the next invoice, for a template shown on its own.
+     *
+     * @param list<RecurringInvoiceLine> $lines
+     *
+     * @return array{lines: list<PricedLine>, totals: DocumentTotals}|null null when it cannot be priced
+     */
+    public function breakdown(RecurringInvoice $template, array $lines, \DateTimeImmutable $today): ?array
+    {
+        $firm = $template->firm();
+
+        return $this->price($template, $firm, $lines, $this->settings->for($firm)->rounding(), $today);
+    }
+
+    /**
      * @param list<RecurringInvoiceLine> $lines
      */
     private function priced(RecurringInvoice $template, LegalEntity $firm, array $lines, TotalRounding $rounding, \DateTimeImmutable $today): ?Money
+    {
+        return $this->price($template, $firm, $lines, $rounding, $today)['totals']->payable ?? null;
+    }
+
+    /**
+     * @param list<RecurringInvoiceLine> $lines
+     *
+     * @return array{lines: list<PricedLine>, totals: DocumentTotals}|null
+     */
+    private function price(RecurringInvoice $template, LegalEntity $firm, array $lines, TotalRounding $rounding, \DateTimeImmutable $today): ?array
     {
         $inputs = array_map(static fn (RecurringInvoiceLine $line): LineInput => new LineInput(
             $line->text(),
@@ -70,7 +95,7 @@ final readonly class RecurringAmounts
             $country = $this->countries->for($firm->address()->countryCode);
             $priced = $this->pricing->priced($inputs, $regime, $country, $template->taxPoint()->for($template->nextOccurrence() ?? $today));
 
-            return $this->pricing->totals($priced, $regime, $rounding, $country)->payable;
+            return ['lines' => $priced, 'totals' => $this->pricing->totals($priced, $regime, $rounding, $country)];
         } catch (UnsupportedCountry|\DomainException|\OverflowException) {
             return null;
         }

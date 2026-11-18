@@ -57,6 +57,7 @@ use Foresi\Party\Domain\Party;
 use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
 use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
 use Foresi\Shared\Infrastructure\Http\SubmissionTokens;
+use Foresi\Ui\Dialog\DialogRequest;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -280,7 +281,10 @@ final class RecurringFormController extends AbstractController
         // A date due today after the day's run is issued now, as the preview said.
         $this->afterTodaysRun->afterChange($saved->id());
 
-        return $this->redirectToRoute('app_recurring');
+        // Edited in the sheet: the detail again, in place (docs/design/overlays.md).
+        return DialogRequest::SHEET === DialogRequest::layer($request) && $template instanceof RecurringInvoice
+            ? $this->redirectToRoute('app_recurring_show', ['id' => $saved->id()])
+            : $this->redirectToRoute('app_recurring');
     }
 
     /**

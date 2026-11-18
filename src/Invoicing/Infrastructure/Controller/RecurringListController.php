@@ -16,6 +16,7 @@ use Foresi\Invoicing\Application\IssueAfterTodaysRun;
 use Foresi\Invoicing\Application\IssueProblem;
 use Foresi\Invoicing\Application\IssueRecurringOccurrence;
 use Foresi\Invoicing\Application\IssueRefused;
+use Foresi\Invoicing\Application\PricedLine;
 use Foresi\Invoicing\Application\RecurringAmounts;
 use Foresi\Invoicing\Application\RecurringChangedMeanwhile;
 use Foresi\Invoicing\Application\RecurringFilter;
@@ -25,7 +26,9 @@ use Foresi\Invoicing\Application\RecurringOutcome;
 use Foresi\Invoicing\Application\RecurringOverview;
 use Foresi\Invoicing\Application\RecurringRefused;
 use Foresi\Invoicing\Application\UnknownRecurringInvoice;
+use Foresi\Invoicing\Domain\DocumentTotals;
 use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\Percent;
 use Foresi\Invoicing\Domain\PeriodText;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\RecurringState;
@@ -113,6 +116,64 @@ final class RecurringListController extends AbstractController
             'rows' => array_map(fn (RecurringInvoice $template): array => $this->row($template, $page->isFailing($template), $amounts[$template->id()] ?? null, $severalFirms, $here, $today), $page->templates),
             'baseUrl' => $this->generateUrl('app_recurring', $query),
             'filtered' => null !== $firmId,
+        ]);
+    }
+
+    /**
+     * A template, read only: what a row of the list opens in the sheet (docs/design/overlays.md),
+     * and the same URL as a page. Edit loads the form in place; the other actions are the row's,
+     * dialogs over this detail.
+     */
+    #[Route('/invoices/recurring/{id}', name: 'app_recurring_show', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
+    public function show(string $id): Response
+    {
+        $this->denyUnlessStaff();
+        $template = $this->template($id);
+        $lines = $this->templates->lines($template);
+        $today = $this->clock->today();
+        $next = $template->nextOccurrence();
+        $state = $template->state();
+        $priced = $this->amounts->breakdown($template, $lines, $today);
+        $totals = $priced['totals'] ?? null;
+        $code = RecurringState::Ended !== $state ? $template->lastFailureCode() : null;
+        $failure = null === $code ? null : $this->failureText($code);
+        $description = $this->description($template, $next ?? $today);
+
+        $facts = [
+            ['label' => $this->translator->trans('recurring.list.column.customer'), 'value' => $template->customer()->displayName()],
+            ['label' => $this->translator->trans('invoice.total.payable'), 'value' => $totals instanceof DocumentTotals ? $this->amountText->shown($totals->payable) : '–', 'big' => true],
+            ['label' => $this->translator->trans('recurring.list.column.interval'), 'value' => $this->schedule($template)],
+            ['label' => $this->translator->trans('recurring.list.column.next'), 'value' => RecurringState::Active === $state && $next instanceof \DateTimeImmutable ? $this->date($next) : '–'],
+            ['label' => $this->translator->trans('recurring.list.column.delivery'), 'value' => $this->translator->trans('recurring.list.delivery.'.$template->delivery()->value)],
+        ];
+        if (\count($this->firmNames()) > 1) {
+            $facts[] = ['label' => $this->translator->trans('recurring.list.column.firm'), 'value' => $template->firm()->name()];
+        }
+
+        return $this->render('invoicing/recurring/show.html.twig', [
+            'template' => $template,
+            'title' => '' !== $template->name() ? $template->name() : $description,
+            'badge' => ['label' => $this->translator->trans('recurring.list.tab.'.$state->value), 'tone' => match ($state) {
+                RecurringState::Active => 'green',
+                RecurringState::Paused => 'amber',
+                RecurringState::Ended => 'gray',
+            }],
+            'facts' => $facts,
+            'description' => $description,
+            'failure' => null === $code || null === $failure ? null : ['text' => $this->translator->trans('recurring.list.failed', ['reason' => $failure])] + $this->fix($template, $code),
+            'lines' => array_map(fn (PricedLine $line): array => [
+                'text' => $line->input->text,
+                'quantity' => trim($this->amountText->quantity($line->values->quantity->toDecimal()).' '.$line->input->unit),
+                'price' => $this->amountText->shown($line->input->price),
+                'rate' => $line->values->rate instanceof Percent ? $this->amountText->trimmed($line->values->rate->decimal()).' %' : '',
+                'total' => $this->amountText->shown($line->amounts->gross),
+            ], $priced['lines'] ?? []),
+            'totals' => $totals instanceof DocumentTotals ? [
+                'net' => $this->amountText->shown($totals->net),
+                'vat' => $totals->vat->isZero() ? null : $this->amountText->shown($totals->vat),
+                'rounding' => $totals->rounding->isZero() ? null : $this->amountText->shown($totals->rounding),
+                'payable' => $this->amountText->shown($totals->payable),
+            ] : null,
         ]);
     }
 
@@ -386,7 +447,7 @@ final class RecurringListController extends AbstractController
 
         return [
             'id' => $template->id(),
-            'href' => $this->generateUrl('app_recurring_edit', ['id' => $template->id()]),
+            'href' => $this->generateUrl('app_recurring_show', ['id' => $template->id()]),
             'opens' => 'sheet',
             'label' => $template->name(),
             'secondary' => implode(' · ', array_filter([$customer, $description, $this->schedule($template), $nextText], static fn (string $part): bool => '' !== $part)),

@@ -125,7 +125,7 @@ final class RecurringListControllerTest extends WebTestCase
         self::assertCount(3, $rows);
         $first = $crawler->filter('tbody tr')->eq(0)->filter('td')->eq(0)->filter('a');
         self::assertSame('Example hosting', trim($first->text()), 'the name leads the row');
-        self::assertSame('/invoices/recurring/'.$hosting->id().'/edit', $first->attr('href'), 'and links to the form');
+        self::assertSame('/invoices/recurring/'.$hosting->id(), $first->attr('href'), 'and links to the detail');
         self::assertStringContainsString('Domain', $crawler->filter('tbody tr')->eq(1)->filter('td')->eq(0)->text(), 'one without a name is named after its description');
         self::assertStringContainsString('Example Customer', $rows[0], 'the customer follows');
         self::assertStringContainsString('Hosting 12/2026', $rows[0], 'the description as the next invoice has it');
@@ -174,6 +174,70 @@ final class RecurringListControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('tbody tr'));
         self::assertStringContainsString('Paused one', $crawler->filter('tbody tr')->text());
         self::assertSame(['Edit', 'Resume', 'End', 'Delete'], $this->menu($crawler->filter('tbody tr')));
+    }
+
+    public function testTheDetailShowsTheTemplateReadOnly(): void
+    {
+        $this->signedIn();
+        $template = $this->template(description: 'Hosting {month/year}', name: 'Example hosting');
+
+        $crawler = $this->client->request('GET', '/invoices/recurring/'.$template->id());
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1', 'Example hosting');
+        $text = $crawler->filter('[data-recurring-detail]')->text();
+        self::assertStringContainsString('Example Customer', $text);
+        self::assertStringContainsString('Monthly · no end', $text);
+        self::assertStringContainsString('2026-12-01', $text, 'the next issue');
+        self::assertStringContainsString('Hosting 12/2026', $text);
+        self::assertStringContainsString($this->nbsp('1,210.00 Kč'), $crawler->filter('[data-recurring-totals]')->text(), 'the total the next invoice comes to');
+        self::assertCount(1, $crawler->filter('[data-recurring-lines] tbody tr'));
+        $edit = $crawler->filter('a[data-recurring-edit]');
+        self::assertSame('/invoices/recurring/'.$template->id().'/edit', $edit->attr('href'));
+        self::assertInstanceOf(\DOMAttr::class, $edit->getNode(0)?->attributes?->getNamedItem('data-in-place'), 'Edit loads the form in place');
+        self::assertSame(['Issue now', 'Pause', 'End', 'Delete'], array_map(trim(...), $crawler->filter('main [data-more-actions-menu] [role="menuitem"]')->each(static fn (Crawler $item): string => $item->text())));
+    }
+
+    public function testThePausedDetailOffersResume(): void
+    {
+        $this->signedIn();
+        $template = $this->template();
+        $this->scoped(fn () => self::getContainer()->get(RecurringLifecycle::class)->pause($template->id()));
+
+        $crawler = $this->client->request('GET', '/invoices/recurring/'.$template->id());
+
+        self::assertSame(['Resume', 'End', 'Delete'], array_map(trim(...), $crawler->filter('main [data-more-actions-menu] [role="menuitem"]')->each(static fn (Crawler $item): string => $item->text())));
+    }
+
+    public function testTheDetailNeedsAKnownTemplate(): void
+    {
+        $this->signedIn();
+
+        $this->client->request('GET', '/invoices/recurring/019a0000-0000-7000-8000-000000000000');
+
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testTheDetailIsStaffOnly(): void
+    {
+        $this->signedIn(Role::Guest);
+        $template = $this->template();
+
+        $this->client->request('GET', '/invoices/recurring/'.$template->id());
+
+        self::assertResponseStatusCodeSame(403);
+    }
+
+    public function testTheFormInTheSheetCancelsToTheDetailAndSavesBackToIt(): void
+    {
+        $this->signedIn();
+        $template = $this->template();
+
+        $crawler = $this->client->request('GET', '/invoices/recurring/'.$template->id().'/edit', server: ['HTTP_X_FORESI_DIALOG' => 'sheet']);
+
+        self::assertResponseIsSuccessful();
+        $cancel = $crawler->filter('#recurring-cancel');
+        self::assertSame('/invoices/recurring/'.$template->id(), $cancel->attr('href'));
     }
 
     public function testTheMenuOffersWhatTheStateAllows(): void

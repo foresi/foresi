@@ -237,7 +237,11 @@
                 {% endif %}
 
                 <twig:Ui:ActionBar :end="true" class="-mx-4 -mb-4 mt-6">
-                    <twig:Ui:Button :href="path('app_recurring')" id="recurring-cancel">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
+                    {% if editing and overlay() == 'sheet' %}
+                        <twig:Ui:Button :href="path('app_recurring_show', {id: template.id})" id="recurring-cancel" data-in-place>{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
+                    {% else %}
+                        <twig:Ui:Button :href="path('app_recurring')" id="recurring-cancel">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
+                    {% endif %}
                     <twig:Ui:Button type="submit" id="recurring-save" name="_action" value="save" variant="primary" :disabled="ended" data-save>{{ 'recurring.form.save'|trans }}</twig:Ui:Button>
                 </twig:Ui:ActionBar>
             </twig:Ui:Card>

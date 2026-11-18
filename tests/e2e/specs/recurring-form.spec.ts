@@ -107,7 +107,9 @@ test.describe.serial('a recurring invoice', () => {
     await expect(page).toHaveURL(/\/invoices\/recurring$/);
     await expect(page.locator('[role=status]').filter({ hasText: 'Pravidelná faktura je uložená. Další faktura se vystaví 31. 1. 2027.' })).toBeVisible();
 
-    await page.locator('tbody a[data-row-link]').filter({ hasText: 'Example yearly hosting' }).first().click();
+    // The row opens the read-only detail in the sheet; the form is read as a page.
+    const detail = await page.locator('tbody a[data-row-link]').filter({ hasText: 'Example yearly hosting' }).first().getAttribute('href');
+    await page.goto(`${detail}/edit`);
     await expect(page).toHaveURL(/\/invoices\/recurring\/[0-9a-f-]+\/edit$/);
     await expect(page.locator('#name')).toHaveValue('Example yearly hosting');
     await expect(page.locator('#unit')).toHaveValue('year');
