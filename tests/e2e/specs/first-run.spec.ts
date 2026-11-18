@@ -42,7 +42,7 @@ test('an empty organisation gets from nothing to the first invoice and its PDF',
   await page.locator('#name').fill('Faktury');
   await page.locator('#format').fill('F{YYYY}{NNN}');
   await page.locator('#default').check();
-  await page.locator('form button[type=submit]').last().click();
+  await page.locator('button[type=submit][form="series-form"]').last().click();
   await expect(page).toHaveURL(/\/invoicing$/);
 
   await page.goto('/invoices/new');
