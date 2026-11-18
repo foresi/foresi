@@ -41,6 +41,8 @@ test.describe('signed in', () => {
   test('contact detail has no serious accessibility violations @a11y', async ({ page }) => {
     await page.goto('/contacts');
     await page.getByRole('link', { name: 'Example Supplies s.r.o.', exact: true }).click();
+    // The row opens the contact in the side sheet; the page is a click further.
+    await page.locator('dialog#sheet').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     await expectNoSeriousViolations(page);
   });

@@ -75,7 +75,7 @@
                                         {%- elseif cell.flag -%}
                                             <span class="flex min-w-0 items-center gap-2" data-flag-cell>
                                                 {%- if cell.link -%}
-                                                    <a href="{{ cell.link }}" data-row-link{% if cell.plain %} data-turbo="false"{% endif %}{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block min-w-0 {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate font-medium text-ink no-underline {{ focus }}">{{ cell.text }}</a>
+                                                    <a href="{{ cell.link }}" data-row-link{% if cell.plain %} data-turbo="false"{% elseif cell.opens != 'page' %} data-{{ cell.opens }} aria-haspopup="dialog"{% endif %}{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block min-w-0 {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate font-medium text-ink no-underline {{ focus }}">{{ cell.text }}</a>
                                                 {%- else -%}
                                                     <span class="block min-w-0 {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate"{% if cell.title %} title="{{ cell.title }}"{% endif %}>{{ cell.text }}</span>
                                                 {%- endif -%}
@@ -89,7 +89,7 @@
                                             <span class="flex min-w-0 items-center gap-2" data-avatar-cell>
                                                 <twig:Ui:Avatar :name="cell.avatar.name" :seed="cell.avatar.seed" />
                                                 {%- if cell.link -%}
-                                                    <a href="{{ cell.link }}" data-row-link{% if cell.plain %} data-turbo="false"{% endif %}{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block min-w-0 max-w-[32ch] truncate font-medium text-ink no-underline {{ focus }}">{{ cell.text }}</a>
+                                                    <a href="{{ cell.link }}" data-row-link{% if cell.plain %} data-turbo="false"{% elseif cell.opens != 'page' %} data-{{ cell.opens }} aria-haspopup="dialog"{% endif %}{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block min-w-0 max-w-[32ch] truncate font-medium text-ink no-underline {{ focus }}">{{ cell.text }}</a>
                                                 {%- else -%}
                                                     <span class="block min-w-0 max-w-[32ch] truncate font-medium text-ink"{% if cell.title %} title="{{ cell.title }}"{% endif %}>{{ cell.text }}</span>
                                                 {%- endif -%}
@@ -99,7 +99,7 @@
                                         {%- elseif cell.tone -%}
                                             <twig:Ui:Badge :tone="cell.tone" :title="cell.hint ?: false">{{ cell.text }}{% if cell.hint %}<span class="sr-only"> · {{ cell.hint }}</span>{% endif %}</twig:Ui:Badge>
                                         {%- elseif cell.link -%}
-                                            <a href="{{ cell.link }}" data-row-link{% if cell.plain %} data-turbo="false"{% endif %}{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate font-medium text-ink no-underline {{ focus }}">{{ cell.text }}</a>
+                                            <a href="{{ cell.link }}" data-row-link{% if cell.plain %} data-turbo="false"{% elseif cell.opens != 'page' %} data-{{ cell.opens }} aria-haspopup="dialog"{% endif %}{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate font-medium text-ink no-underline {{ focus }}">{{ cell.text }}</a>
                                         {%- elseif cell.numeric -%}
                                             <span class="num"{% if cell.title %} title="{{ cell.title }}"{% endif %}>{{ cell.text }}</span>
                                         {%- elseif cell.text is same as('') -%}

@@ -1,5 +1,5 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{% extends 'layout/app.html.twig' %}
+{% extends 'layout/record.html.twig' %}
 
 {% set editing = party is not null %}
 {% set crumbs = editing
@@ -7,6 +7,7 @@
     : [{label: 'party.title'|trans, href: path('app_contacts')}, {label: 'party.new'|trans}] %}
 {% set roleValues = values.roles %}
 {% set form_invalid = errors is not empty %}
+{% set record_fields = true %}
 
 {% block title %}{{ editing ? 'party.edit'|trans : 'party.new'|trans }}{% endblock %}
 
@@ -90,7 +91,7 @@
         {% endif %}
 
         <twig:Ui:ActionBar>
-            <twig:Ui:Button :href="cancel">{{ 'party.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button :href="cancel" data-in-place>{{ 'party.cancel'|trans }}</twig:Ui:Button>
             <twig:Ui:Button type="submit" variant="primary">{{ 'party.save'|trans }}</twig:Ui:Button>
         </twig:Ui:ActionBar>
     </form>

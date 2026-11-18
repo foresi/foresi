@@ -22,6 +22,8 @@ async function expectNoSidewaysScroll(page: Page): Promise<void> {
 async function openContact(page: Page): Promise<void> {
   await page.goto('/contacts');
   await page.getByRole('link', { name: 'Example Partner s.r.o.' }).click();
+  // The row opens the contact in the side sheet; the page is a click further.
+  await page.locator('dialog#sheet').getByRole('link', { name: 'Otevřít jako stránku' }).click();
   await page.locator('main').getByRole('link', { name: 'Upravit' }).click();
   await expect(page.locator('[data-firm-panel="roles"]')).toBeVisible();
 }

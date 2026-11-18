@@ -1,5 +1,5 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{% extends 'layout/app.html.twig' %}
+{% extends 'layout/record.html.twig' %}
 
 {% set crumbs = [{label: 'party.title'|trans, href: path('app_contacts')}, {label: party.displayName}] %}
 {% set formatTime = 'format.datetime'|trans %}
@@ -11,7 +11,7 @@
 {% block title %}{{ party.displayName }}{% endblock %}
 
 {% block actions %}
-    <twig:Ui:Button variant="primary" icon="pencil" :href="path('app_contact_edit', {id: id})">{{ 'party.edit'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button variant="primary" icon="pencil" :href="path('app_contact_edit', {id: id})" data-in-place>{{ 'party.edit'|trans }}</twig:Ui:Button>
     {% if party.archived %}
         <form method="post" action="{{ path('app_contact_restore', {id: id}) }}">
             <input type="hidden" name="_token" value="{{ token }}">
@@ -49,7 +49,7 @@
 
         <twig:Ui:FactsGrid :items="facts" />
 
-        <twig:Ui:Tabs :items="tabs" :label="'party.sections'|trans" />
+        <twig:Ui:Tabs :items="tabs" :label="'party.sections'|trans" data-in-place />
 
         {% if tab == 'overview' %}
             <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">

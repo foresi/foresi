@@ -122,6 +122,8 @@ ui:
     clear_one: 'Zrušit filtr {label}'
   sheet:
     resize: Změnit šířku panelu
+    full_screen: Celá obrazovka
+    open_as_page: Otevřít jako stránku
   confirm:
     accept: Potvrdit
     cancel: Zrušit
