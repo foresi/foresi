@@ -387,12 +387,24 @@ final class PartyControllerTest extends WebTestCase
         $edit = $record->filter('[data-overlay-actions] a[href="'.$url.'/edit"][data-in-place]');
         self::assertCount(1, $edit);
         self::assertCount(1, $record->filter('[data-overlay-actions] form[action="'.$url.'/archive"]'));
+        // One header row: the title at the page-title size, cut with its full text in title, then the
+        // small actions, a divider and the window buttons (Polaris Page, Primer PageHeader).
+        $title = $record->filter('header h2');
+        self::assertSame('Sheet Company', $title->attr('title'));
+        self::assertStringContainsString('text-title', (string) $title->attr('class'));
+        self::assertStringContainsString('truncate', (string) $title->attr('class'));
+        self::assertCount(1, $record->filter('header > [data-overlay-actions]'));
+        self::assertCount(1, $record->filter('header > [data-overlay-divider]'));
+        self::assertStringContainsString('h-control-sm', (string) $edit->attr('class'));
+        self::assertStringContainsString('h-control-sm', (string) $record->filter('header a[data-overlay-page]')->attr('class'));
         self::assertCount(1, $record->filter('nav[data-in-place] a[href="'.$url.'?tab=history"]'));
         self::assertStringContainsString('sheet@example.com', $record->text());
 
         // A modal dialog does not show a sheet record: it gets the page.
         $page = $this->client->request('GET', $url, server: ['HTTP_X_FORESI_DIALOG' => '1']);
         self::assertCount(1, $page->filter('#main h1'));
+        // On the page the same actions keep the full size.
+        self::assertStringNotContainsString('h-control-sm', (string) $page->filter('#main a[href="'.$url.'/edit"]')->attr('class'));
 
         // Edit in the same sheet: the form, its Cancel back to the detail in place.
         $form = $this->client->request('GET', $url.'/edit', server: ['HTTP_X_FORESI_DIALOG' => 'sheet']);
