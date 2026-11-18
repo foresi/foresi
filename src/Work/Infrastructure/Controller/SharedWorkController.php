@@ -11,6 +11,7 @@ namespace Foresi\Work\Infrastructure\Controller;
 use Foresi\Identity\Application\OpenToGuest;
 use Foresi\Identity\Application\StaffCheck;
 use Foresi\Instance\Application\InstanceClock;
+use Foresi\Ui\Component\DataTable;
 use Foresi\Work\Application\SharedProject;
 use Foresi\Work\Application\SharedTaskGroup;
 use Foresi\Work\Application\TaskRow;
@@ -109,6 +110,7 @@ final class SharedWorkController extends AbstractController
         return [
             'id' => $task->id,
             'href' => $this->generateUrl(TaskController::ROUTE, ['id' => $task->id]),
+            'opens' => DataTable::OPENS_SHEET,
             'label' => $task->title,
             // A phone hides the column of the date: the line under the title says it, and lets a long title wrap.
             'secondary' => \is_array($due) ? $due['text'] : ($due ?? $this->translator->trans('work.my_tasks.group.no_date')),

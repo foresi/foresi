@@ -3,7 +3,7 @@
     The header of a dialog or a sheet (`id`, `title`, `description`): the title, a muted line under
     it and the X, as in level.io's modals and side panels. A record (docs/design/overlays.md) adds
     `page` (its URL: Open as page), `fullscreen` (a sheet: the toggle to the width of the content
-    panel) and `actions` (the same buttons its page header holds, small: record_action_size in
+    panel), `titleEdit` (its title changed where it is read, as on its page) and `actions` (the same buttons its page header holds, small: record_action_size in
     layout/record.html.twig).
 
     A record header is one row, as a page header is (Polaris Page, Primer PageHeader): the title at
@@ -16,7 +16,10 @@
 {% set record = actions|trim is not empty or page %}
 <header class="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-3 pl-6 pr-4 max-sm:pl-4 max-sm:pr-3 {{ record ? 'pb-4 pt-4' : 'items-start pb-4 pt-5' }}">
     <div class="order-1 min-w-0 flex-1 pr-2 {{ record ? '' : 'pt-1' }}">
-        {% if record %}
+        {% if record and titleEdit|default(null) %}
+            {# A record whose title changes where it is read, as on its page (Ui:PageHeader); the focus starts on it, not on its first field. #}
+            {{ include('components/Ui/_title_edit.html.twig', {te: titleEdit, title: title, tag: 'h2', headingAttrs: 'id="' ~ id ~ '-title" tabindex="-1" data-dialog-target="title" autofocus'}) }}
+        {% elseif record %}
             <h2 id="{{ id }}-title" tabindex="-1" data-dialog-target="title" title="{{ title }}" class="m-0 truncate text-title font-semibold text-ink outline-none">{{ title }}</h2>
         {% else %}
             <h2 id="{{ id }}-title" tabindex="-1" data-dialog-target="title" class="m-0 text-heading font-semibold text-ink outline-none [overflow-wrap:anywhere]">{{ title }}</h2>

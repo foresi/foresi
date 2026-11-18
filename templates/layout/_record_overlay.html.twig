@@ -11,7 +11,7 @@
 {% set recordName = recordTitle|striptags|html_decode|trim %}
 {% set recordPage = app.request.requestUri %}
 {% if overlay() == 'sheet' %}
-    <twig:Ui:Sheet id="sheet-page" :title="recordName" size="md" :fields="record_fields ?? false" :page="recordPage" data-overlay-record>
+    <twig:Ui:Sheet id="sheet-page" :title="recordName" size="md" :fields="record_fields ?? false" :page="recordPage" :titleEdit="record_title_edit ?? null" data-dialog-reload="{{ record_reload|default(false) ? '1' : '0' }}" data-overlay-record>
         {{ recordBody }}
         <twig:block name="actions">{{ recordActions }}</twig:block>
     </twig:Ui:Sheet>

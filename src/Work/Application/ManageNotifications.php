@@ -34,15 +34,20 @@ final readonly class ManageNotifications
 
     /**
      * Opening the task reads its row; nothing happens when there is none.
+     *
+     * @return bool whether an unread row was read now
      */
-    public function markRead(string $taskId): void
+    public function markRead(string $taskId): bool
     {
         $me = $this->me();
         $task = $this->tasks->task($taskId);
         $open = $me instanceof Membership && $task instanceof Task ? $this->notifications->openFor($me, $task) : null;
-        if ($open instanceof Notification) {
-            $this->unit->run(fn () => $open->markRead($this->clock->now()));
+        if (!$open instanceof Notification || $open->isRead()) {
+            return false;
         }
+        $this->unit->run(fn () => $open->markRead($this->clock->now()));
+
+        return true;
     }
 
     public function markAllRead(): void

@@ -52,12 +52,24 @@ final class Sheet
     public bool $remote = false;
     /** The URL of the record it shows (docs/design/overlays.md): adds Open as page to the header. */
     public ?string $page = null;
+    /**
+     * A record's title changed where it is read, as on its page (Ui:PageHeader "titleEdit").
+     *
+     * @var array<string, mixed>|null
+     */
+    public ?array $titleEdit = null;
     /** Shows the question about unsaved changes instead of the buttons, for the catalogue. */
     public bool $asking = false;
+
+    /** @var array<string, mixed>|null */
+    private ?array $titleEditView = null;
 
     #[PostMount]
     public function validate(): void
     {
+        if (null !== $this->titleEdit) {
+            $this->titleEditView = PageHeader::titleEdit($this->titleEdit, $this->title ?? '', 'The title edit of a sheet');
+        }
         if (!isset(self::SIZES[$this->size])) {
             throw new \InvalidArgumentException(sprintf('Unknown size "%s", expected one of: %s.', $this->size, implode(', ', array_keys(self::SIZES))));
         }
@@ -79,6 +91,12 @@ final class Sheet
         }
 
         return implode(' ', $actions);
+    }
+
+    /** @return array<string, mixed>|null */
+    public function titleEditView(): ?array
+    {
+        return $this->titleEditView;
     }
 
     public function isResizable(): bool

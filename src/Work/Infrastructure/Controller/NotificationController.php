@@ -12,6 +12,7 @@ use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\OpenToGuest;
 use Foresi\Identity\Application\People;
 use Foresi\Identity\Domain\Membership;
+use Foresi\Ui\Component\DataTable;
 use Foresi\Work\Application\ManageNotifications;
 use Foresi\Work\Application\NotificationFilter;
 use Foresi\Work\Application\NotificationQueries;
@@ -173,6 +174,7 @@ final class NotificationController extends AbstractController
         return [
             'id' => $row->id,
             'href' => $this->generateUrl(TaskController::ROUTE, ['id' => $row->taskId]),
+            'opens' => DataTable::OPENS_SHEET,
             'label' => $row->taskTitle,
             'unread' => !$row->read,
             'secondary' => implode(' · ', [$row->projectName, $event, $at]),

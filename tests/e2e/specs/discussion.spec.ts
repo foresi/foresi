@@ -15,7 +15,9 @@ async function openTask(page: Page): Promise<void> {
   await page.goto('/projects');
   await page.getByRole('link', { name: 'Website', exact: true }).click();
   await page.getByRole('link', { name: 'Design the homepage', exact: true }).click();
-  await expect(page.locator('[data-task-details]')).toBeVisible();
+  // The row opens the task in the sheet; these specs read it as its page.
+  await page.getByRole('dialog').getByRole('link', { name: 'Otevřít jako stránku' }).click();
+  await expect(page.locator('main [data-task-details]')).toBeVisible();
 }
 
 const discussion = (page: Page) => page.locator('[data-task-discussion]');

@@ -73,27 +73,7 @@ final class PageHeader
             $this->crumbViews[] = ['label' => Style::requireString($crumb, 'label', 'A breadcrumb'), 'href' => $href];
         }
         if (null !== $this->titleEdit) {
-            $what = 'The title edit of a page header';
-            $href = Style::requireString($this->titleEdit, 'href', $what);
-            $cancelHref = Style::requireString($this->titleEdit, 'cancelHref', $what);
-            Style::href($href);
-            Style::href($cancelHref);
-            $value = $this->titleEdit['value'] ?? $this->title;
-            $error = $this->titleEdit['error'] ?? null;
-            $maxlength = $this->titleEdit['maxlength'] ?? null;
-            $this->titleEditView = [
-                'action' => Style::requireString($this->titleEdit, 'action', $what),
-                'token' => Style::requireString($this->titleEdit, 'token', $what),
-                'name' => Style::requireString($this->titleEdit, 'name', $what),
-                'id' => Style::requireString($this->titleEdit, 'id', $what),
-                'label' => Style::requireString($this->titleEdit, 'label', $what),
-                'href' => $href,
-                'cancelHref' => $cancelHref,
-                'open' => true === ($this->titleEdit['open'] ?? false),
-                'value' => is_string($value) ? $value : $this->title,
-                'error' => is_string($error) && '' !== $error ? $error : null,
-                'maxlength' => is_int($maxlength) ? $maxlength : null,
-            ];
+            $this->titleEditView = self::titleEdit($this->titleEdit, $this->title, 'The title edit of a page header');
         }
         $this->badgeView = null === $this->badge ? null : Style::badge($this->badge, 'The page header');
         foreach ($this->badges as $badge) {
@@ -101,6 +81,39 @@ final class PageHeader
             Style::icon($icon);
             $this->badgeViews[] = Style::badge($badge, 'The page header') + ['icon' => $icon];
         }
+    }
+
+    /**
+     * The title edit checked and with its defaults, for a page header and for the header of a
+     * record in a sheet (Ui:Sheet "titleEdit").
+     *
+     * @param array<string, mixed> $edit
+     *
+     * @return array{action: string, token: string, name: string, id: string, label: string, href: string, cancelHref: string, open: bool, value: string, error: ?string, maxlength: ?int}
+     */
+    public static function titleEdit(array $edit, string $title, string $what): array
+    {
+        $href = Style::requireString($edit, 'href', $what);
+        $cancelHref = Style::requireString($edit, 'cancelHref', $what);
+        Style::href($href);
+        Style::href($cancelHref);
+        $value = $edit['value'] ?? $title;
+        $error = $edit['error'] ?? null;
+        $maxlength = $edit['maxlength'] ?? null;
+
+        return [
+            'action' => Style::requireString($edit, 'action', $what),
+            'token' => Style::requireString($edit, 'token', $what),
+            'name' => Style::requireString($edit, 'name', $what),
+            'id' => Style::requireString($edit, 'id', $what),
+            'label' => Style::requireString($edit, 'label', $what),
+            'href' => $href,
+            'cancelHref' => $cancelHref,
+            'open' => true === ($edit['open'] ?? false),
+            'value' => is_string($value) ? $value : $title,
+            'error' => is_string($error) && '' !== $error ? $error : null,
+            'maxlength' => is_int($maxlength) ? $maxlength : null,
+        ];
     }
 
     /**

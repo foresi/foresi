@@ -10,7 +10,7 @@
 #}
 <section class="grid gap-3" aria-labelledby="task-discussion-title" data-task-discussion>
     <h2 id="task-discussion-title" class="m-0 scroll-mt-4 text-heading font-semibold text-ink">{{ 'work.discussion.title'|trans }}</h2>
-    <twig:Ui:Tabs :items="filters" :label="'work.discussion.filter.label'|trans" data-discussion-filter />
+    <twig:Ui:Tabs :items="filters" :label="'work.discussion.filter.label'|trans" data-discussion-filter data-in-place />
 
     {% if discussion is empty %}
         <p class="m-0 text-muted" data-discussion-empty>{{ (filter == 'comments' ? 'work.discussion.no_comments' : 'work.discussion.empty')|trans }}</p>
@@ -43,7 +43,7 @@
                                     {% set menuId = 'comment-menu-' ~ comment.id %}
                                     <twig:Ui:Menu :id="menuId" :label="'work.discussion.actions'|trans({name: comment.author})" icon="ellipsis" :iconOnly="true" variant="ghost" size="sm" :float="true" class="ml-auto" data-comment-menu>
                                         {% if comment.canEdit %}
-                                            <twig:Ui:MenuItem href="{{ taskUrl }}?edit_comment={{ comment.id }}#comment-{{ comment.id }}" data-comment-edit>{{ 'work.task.edit'|trans }}</twig:Ui:MenuItem>
+                                            <twig:Ui:MenuItem href="{{ taskUrl }}?edit_comment={{ comment.id }}#comment-{{ comment.id }}" data-comment-edit data-in-place>{{ 'work.task.edit'|trans }}</twig:Ui:MenuItem>
                                         {% endif %}
                                         {% if comment.canDelete %}
                                             <form method="post" action="{{ path('app_task_comment_delete', {id: comment.id}) }}" role="none"
@@ -65,7 +65,7 @@
                                     <twig:Ui:MarkdownEditor name="body" :id="'comment-edit-' ~ comment.id" :label="'work.discussion.edit_label'|trans" :value="values.comment_edit ?? comment.text" :error="errors.comment_edit|default(null)" :rows="4" :previewUrl="path('app_markdown_preview')" :mentionsUrl="path('app_task_mention_candidates', {id: row.id})" :autofocus="errors is empty" data-comment-editor data-action="keydown->comment-form#shortcut" />
                                     <div class="flex flex-wrap gap-2">
                                         <twig:Ui:Button type="submit" variant="primary">{{ 'work.save'|trans }}</twig:Ui:Button>
-                                        <twig:Ui:Button :href="taskUrl ~ '#comment-' ~ comment.id">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+                                        <twig:Ui:Button :href="taskUrl ~ '#comment-' ~ comment.id" data-in-place>{{ 'work.cancel'|trans }}</twig:Ui:Button>
                                     </div>
                                 </form>
                             {% else %}

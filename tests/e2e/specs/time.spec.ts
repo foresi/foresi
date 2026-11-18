@@ -126,8 +126,10 @@ test.describe('the task', () => {
     await page.goto('/projects');
     await page.getByRole('link', { name: 'Website', exact: true }).click();
     await page.getByRole('link', { name: 'Fix the contact form', exact: true }).click();
-    await expect(page.locator('[data-task-time-total]')).toHaveText('45 min');
-    await page.locator('[data-task-time]').getByRole('link', { name: 'Zapsat čas' }).click();
+    // The task opens in the sheet; the dialog over it hands back to the sheet, not to a page.
+    const sheet = page.locator('dialog#sheet');
+    await expect(sheet.locator('[data-task-time-total]')).toHaveText('45 min');
+    await sheet.locator('[data-task-time]').getByRole('link', { name: 'Zapsat čas' }).click();
     const dialog = page.getByRole('dialog', { name: 'Zapsat čas' });
     await expect(dialog.getByLabel('Doba')).toBeFocused();
     await expect(dialog.getByLabel('Fakturovatelné')).toBeChecked();
@@ -135,9 +137,10 @@ test.describe('the task', () => {
     await dialog.getByLabel('Poznámka').fill('Fixed the validation of the phone number');
     await dialog.getByRole('button', { name: 'Zapsat čas' }).click();
     await expect(dialog).toBeHidden();
-    await expect(page.locator('main')).toContainText('Zapsáno 1 h 30 min.');
-    await expect(page.locator('[data-task-time-total]')).toHaveText('2 h 15 min');
-    const entry = page.locator('[data-task-time] [data-time-entry]').filter({ hasText: 'Fixed the validation of the phone number' });
+    await expect(sheet).toContainText('Zapsáno 1 h 30 min.');
+    await expect(sheet).toBeVisible();
+    await expect(sheet.locator('[data-task-time-total]')).toHaveText('2 h 15 min');
+    const entry = sheet.locator('[data-task-time] [data-time-entry]').filter({ hasText: 'Fixed the validation of the phone number' });
     await expect(entry.locator('[data-time-duration]')).toHaveText('1 h 30 min');
     await expect(entry.locator('[data-time-billable]')).toBeVisible();
 
@@ -151,6 +154,7 @@ test.describe('the task', () => {
     await page.goto('/projects');
     await page.getByRole('link', { name: 'Website', exact: true }).click();
     await page.getByRole('link', { name: title, exact: true }).click();
+    await page.getByRole('dialog').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     await expect(page.locator('[data-running-timer]')).toHaveCount(0);
     await page.locator('main header').getByRole('button', { name: 'Spustit časovač' }).click();
     const bar = page.getByRole('region', { name: 'Běžící časovač' });
@@ -227,6 +231,7 @@ test.describe('the guest', () => {
     await page.goto('/shared');
     await page.locator('[data-shared-projects]').getByRole('link', { name: 'Website' }).click();
     await page.getByRole('link', { name: 'Design the homepage', exact: true }).click();
+    await page.getByRole('dialog').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     await expect(page.locator('main h1')).toHaveText('Design the homepage');
     await expect(page.locator('[data-task-time]')).toHaveCount(0);
     await expect(page.locator('#task-estimate')).toHaveCount(0);

@@ -182,13 +182,26 @@ export default class extends Controller {
             await this.leave(url);
             return;
         }
+        // The same record again (a property saved, a comment added): it stays where it was read,
+        // with the focus on the field that changed, as a morphed page keeps its scroll.
+        const same = this.url && new URL(url, window.location.href).pathname === new URL(this.url, window.location.href).pathname;
+        const scroll = same && this.hasBodyTarget ? this.bodyTarget.scrollTop : 0;
+        const focused = same && this.element.contains(document.activeElement) ? document.activeElement.id : '';
         this.fill(html);
         this.url = url;
         this.dirty = false;
         if (this.pushed) {
             history.replaceState(history.state, '', url);
         }
-        this.focusInitial();
+        const back = focused ? this.element.querySelector(`[id="${CSS.escape(focused)}"]`) : null;
+        if (same && this.hasBodyTarget) {
+            this.bodyTarget.scrollTop = scroll;
+        }
+        if (back && visible(back)) {
+            back.focus({ preventScroll: true });
+        } else {
+            this.focusInitial();
+        }
     }
 
     // Closes the host and visits a URL as a page of its own, after the host's history entry.
@@ -475,6 +488,15 @@ export default class extends Controller {
             return;
         }
         const then = this.opener && this.opener.dataset.dialogThen === 'follow' ? result.location : window.location.href;
+        const sheet = current.sheet;
+        if (this.layerValue === 'dialog' && sheet && sheet.record && sheet.element.open) {
+            // A dialog over a record in the sheet (log time, a new subtask, sharing): the sheet
+            // shows what comes next in place, and the list under it takes the change once it closes.
+            await this.close();
+            sheet.reload = true;
+            await sheet.swap(then === window.location.href ? sheet.url : then);
+            return;
+        }
         this.navigating = true;
         this.close();
         await this.popHistory();

@@ -12,6 +12,7 @@ use Foresi\Identity\Application\OwnerCheck;
 use Foresi\Identity\Application\People;
 use Foresi\Identity\Domain\Role;
 use Foresi\Instance\Application\InstanceClock;
+use Foresi\Ui\Component\DataTable;
 use Foresi\Work\Application\TimeEntryRow;
 use Foresi\Work\Application\TimeGrouping;
 use Foresi\Work\Application\TimeQueries;
@@ -311,6 +312,8 @@ final class TimeReportController extends AbstractController
         return [
             'id' => $entry->id,
             'href' => null === $entry->taskId ? $this->generateUrl(ProjectController::PROJECT_ROUTE, ['id' => $entry->projectId]) : $this->generateUrl(TaskController::ROUTE, ['id' => $entry->taskId]),
+            // A task opens in the sheet; a project is a place of its own, its page.
+            'opens' => null === $entry->taskId ? DataTable::OPENS_PAGE : DataTable::OPENS_SHEET,
             'label' => $title,
             // On a phone the line under the work says when, who and where.
             'secondary' => implode(' · ', null === $entry->taskId ? [$day, $entry->personName] : [$day, $entry->personName, $entry->projectName]),

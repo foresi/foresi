@@ -17,6 +17,7 @@ use Foresi\Identity\Application\People;
 use Foresi\Identity\Application\Person;
 use Foresi\Identity\Application\StaffCheck;
 use Foresi\Instance\Application\InstanceClock;
+use Foresi\Ui\Component\DataTable;
 use Foresi\Ui\FileSize;
 use Foresi\Work\Application\Choice;
 use Foresi\Work\Application\Comments;
@@ -123,9 +124,8 @@ final class TaskController extends AbstractController
     public function show(string $id, Request $request): Response
     {
         $task = $this->detail($id);
-        if ('prefetch' !== $request->headers->get('X-Sec-Purpose')) {
-            $this->notifications->markRead($id);
-        }
+        // A row read now: the sheet loads the list under it again once it closes (its unread mark, the count).
+        $read = 'prefetch' !== $request->headers->get('X-Sec-Purpose') && $this->notifications->markRead($id);
         $edit = $request->query->getString('edit');
         $editComment = $request->query->getString('edit_comment');
 
@@ -136,6 +136,7 @@ final class TaskController extends AbstractController
             [],
             editComment: '' === $editComment ? null : $editComment,
             filter: DiscussionFilter::tryFrom($request->query->getString('activity')) ?? DiscussionFilter::All,
+            read: $read,
         );
     }
 
@@ -531,6 +532,7 @@ final class TaskController extends AbstractController
         int $status = Response::HTTP_OK,
         ?string $editComment = null,
         DiscussionFilter $filter = DiscussionFilter::All,
+        bool $read = false,
     ): Response {
         $people = $this->people->all();
         $seeds = array_column(array_map(static fn (Person $person): array => [$person->membershipId, $person->userId], $people), 1, 0);
@@ -579,6 +581,7 @@ final class TaskController extends AbstractController
         $timer = $task->manageable ? $this->time->running() : null;
 
         return $this->render('work/task/show.html.twig', [
+            'read' => $read,
             'task' => $task,
             'edit' => $edit,
             'values' => $values + ['title' => $row->title, 'description' => $task->description, 'comment' => '', 'comment_internal' => ''],
@@ -674,6 +677,7 @@ final class TaskController extends AbstractController
         return [
             'id' => $task->id,
             'href' => $this->generateUrl(self::ROUTE, ['id' => $task->id]),
+            'opens' => DataTable::OPENS_SHEET,
             'label' => $task->title,
             // A phone hides the columns of who and when: the line under the title says them, and lets a long title wrap.
             'secondary' => implode(' · ', array_filter([$task->responsibleName ?? $this->translator->trans('work.task.nobody'), \is_array($due) ? $due['text'] : $due], \is_string(...))),
