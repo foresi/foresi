@@ -25,12 +25,6 @@ async function createFirmFromRegister(page: Page): Promise<void> {
   await expect(page.locator('#name')).toHaveValue('Example Company s.r.o.');
 }
 
-async function fillSeat(page: Page): Promise<void> {
-  await page.locator('#street').fill('Example Street 1');
-  await page.locator('#city').fill('Example City');
-  await page.locator('#postalCode').fill('100 00');
-}
-
 test.describe('first run', () => {
   test.use({ storageState: EMPTY_OWNER_STATE });
 
@@ -40,20 +34,43 @@ test.describe('first run', () => {
     await expect(page.getByText('Zatím tu nejsou žádné firmy')).toBeVisible();
     await expectNoSeriousViolations(page);
   });
+
+  // Only this world has no firm, so only here the new-firm form opens; nothing below saves it.
+  test('the form has no serious accessibility violations @a11y', async ({ page }) => {
+    await page.goto('/settings/firms/new');
+    await expect(page.locator('#name')).toBeVisible();
+    await expectNoSeriousViolations(page);
+  });
+
+  test.describe('on a phone', () => {
+    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+    test('the form does not scroll sideways @layout', async ({ page }) => {
+      await page.goto('/settings/firms/new');
+      await expect(page.locator('#name')).toBeVisible();
+      await expectNoSidewaysScroll(page);
+    });
+  });
+
+  test('the form looks as approved @visual', async ({ page }) => {
+    // Only the form: the sidebar counts depend on what ran before.
+    await page.goto('/settings/firms/new');
+    await expect(page.locator('form:has(#name)')).toHaveScreenshot('form.png');
+  });
 });
 
-// The steps build on each other: the first firms are what the later ones find in the list.
-test.describe.serial('an owner manages firms', () => {
+// The steps build on each other: the firm set up first is what the later ones find in the list.
+test.describe.serial('an owner sets up the one firm', () => {
   test.use({ storageState: OWNER_STATE });
 
-  test('reaches them from the settings area', async ({ page }) => {
+  test('reaches it from the settings area', async ({ page }) => {
     await page.goto('/contacts');
     await page.locator('#rail').getByRole('link', { name: 'Nastavení' }).click();
     await page.locator('#sidebar').getByRole('link', { name: 'Moje firmy' }).click();
     await expect(page).toHaveURL(/\/settings\/firms$/);
   });
 
-  test('creates a firm from the register', async ({ page }) => {
+  test('creates the firm from the register', async ({ page }) => {
     await createFirmFromRegister(page);
     await expect(page.locator('#registrationNumber')).toHaveValue('12345687');
     await expect(page.locator('#vatId')).toHaveValue('CZ12345687');
@@ -66,52 +83,25 @@ test.describe.serial('an owner manages firms', () => {
     await expect(page.locator('tbody')).toContainText('Example Company s.r.o.');
   });
 
-  test('saves a non-payer without a VAT number', async ({ page }) => {
-    await page.goto('/settings/firms/new');
-    await page.locator('#name').fill('Example Trader');
-    await page.locator('#registrationNumber').fill('12345695');
-    await page.locator('#vatStatus').selectOption('not_registered');
-    await fillSeat(page);
-    await page.getByRole('button', { name: 'Uložit' }).click();
-
-    await expect(page.locator('tbody')).toContainText('Example Trader');
-    await expect(page.locator('tbody')).toContainText('Neplátce DPH');
-  });
-
-  test('cannot give two active firms one number', async ({ page }) => {
-    await page.goto('/settings/firms/new');
-    await page.locator('#name').fill('Second Firm');
-    await page.locator('#registrationNumber').fill('12345695');
-    await page.locator('#vatStatus').selectOption('not_registered');
-    await fillSeat(page);
-    await page.getByRole('button', { name: 'Uložit' }).click();
-
-    await expect(page.getByText('Toto IČO už má jiná firma.')).toBeVisible();
-    await expect(page.locator('#name')).toHaveValue('Second Firm');
-    await expect(page.locator('#registrationNumber')).toBeFocused();
-  });
-
-  test('edits a firm', async ({ page }) => {
+  test('is refused a second firm', async ({ page }) => {
     await page.goto('/settings/firms');
-    await page.getByRole('link', { name: 'Example Trader' }).click();
+    await expect(page.getByRole('link', { name: 'Nová firma' })).toHaveCount(0);
+
+    await page.goto('/settings/firms/new');
+
+    await expect(page).toHaveURL(/\/settings\/firms$/);
+    await expect(page.getByText('Foresi vede jednu firmu na instanci.')).toBeVisible();
+  });
+
+  test('edits the firm', async ({ page }) => {
+    await page.goto('/settings/firms');
+    await page.getByRole('link', { name: 'Example Company s.r.o.' }).click();
     await expect(page.locator('#lookup')).toHaveCount(0);
-    await page.locator('#name').fill('Example Trader Renamed');
+    await page.locator('#registerEntry').fill('Spisová značka C 5678');
     await page.getByRole('button', { name: 'Uložit' }).click();
 
     await expect(page.getByText('Změny jsou uložené.')).toBeVisible();
-    await expect(page.locator('tbody')).toContainText('Example Trader Renamed');
-  });
-
-  test('archives a firm, which releases its number', async ({ page }) => {
-    await page.goto('/settings/firms');
-    await page.getByRole('link', { name: 'Example Trader Renamed' }).click();
-    await (await openMoreActions(page)).getByRole('menuitem', { name: 'Archivovat' }).click();
-    await page.getByRole('alertdialog').getByRole('button', { name: 'Archivovat firmu' }).click();
-
-    await expect(page.getByText('Firma je archivovaná.')).toBeVisible();
-    await expect(page.locator('tbody')).not.toContainText('Example Trader Renamed');
-    await page.getByRole('link', { name: /Archivované/ }).click();
-    await expect(page.locator('tbody')).toContainText('Example Trader Renamed');
+    await expect(page.locator('tbody')).toContainText('Example Company s.r.o.');
   });
 
   test('keeps the last active firm', async ({ page }) => {
@@ -128,7 +118,7 @@ test.describe.serial('an owner manages firms', () => {
     await page.goto('/settings/firms');
     await expect(page.locator('tbody tr').first()).toBeVisible();
     await expectNoSeriousViolations(page);
-    await page.goto('/settings/firms/new');
+    await page.getByRole('link', { name: 'Example Company s.r.o.' }).click();
     await expect(page.locator('#name')).toBeVisible();
     await expectNoSeriousViolations(page);
   });
@@ -140,7 +130,7 @@ test.describe.serial('an owner manages firms', () => {
       await page.goto('/settings/firms');
       await expect(page.locator('tbody tr').first()).toBeVisible();
       await expectNoSidewaysScroll(page);
-      await page.goto('/settings/firms/new');
+      await page.getByRole('link', { name: 'Example Company s.r.o.' }).click();
       await expect(page.locator('#name')).toBeVisible();
       await expectNoSidewaysScroll(page);
     });
@@ -156,11 +146,5 @@ test.describe.serial('an owner manages firms', () => {
       await page.goto('/settings/firms');
     }
     await expect(page.locator('table')).toHaveScreenshot('list.png');
-  });
-
-  test('the form looks as approved @visual', async ({ page }) => {
-    // Only the form: the sidebar counts depend on what ran before.
-    await page.goto('/settings/firms/new');
-    await expect(page.locator('form:has(#name)')).toHaveScreenshot('form.png');
   });
 });

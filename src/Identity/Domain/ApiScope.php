@@ -84,6 +84,28 @@ final readonly class ApiScope
         return $this->writes() && !$needed->writes() && $this->resource() === $needed->resource();
     }
 
+    /**
+     * The fewest of these scopes that grant the same: a scope another one
+     * grants is left out, so writing everything is one scope, not every read
+     * and write. The order of the rest is kept.
+     *
+     * @param iterable<self> $scopes
+     *
+     * @return list<self>
+     */
+    public static function smallest(iterable $scopes): array
+    {
+        $distinct = [];
+        foreach ($scopes as $scope) {
+            $distinct[$scope->value] = $scope;
+        }
+
+        return array_values(array_filter($distinct, static fn (self $scope): bool => !array_any(
+            $distinct,
+            static fn (self $other): bool => !$other->equals($scope) && $other->grants($scope),
+        )));
+    }
+
     public function equals(self $other): bool
     {
         return $this->value === $other->value;

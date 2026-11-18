@@ -77,7 +77,7 @@ test.describe('personal API tokens', () => {
 
     const invoices = await api.get('/api/v1/invoices?state=unpaid&limit=5');
     expect(invoices.status()).toBe(200);
-    expect(await invoices.json()).toEqual({ data: [], next_cursor: null });
+    expect(await invoices.json()).toEqual({ data: [], next_cursor: null, applied_view: null });
     expect(invoices.headers()['ratelimit-limit']).toBe('600');
     expect(Number(invoices.headers()['ratelimit-remaining'])).toBeLessThan(600);
 

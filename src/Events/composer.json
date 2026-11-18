@@ -4,9 +4,14 @@
     "type": "foresi-module",
     "license": "AGPL-3.0-only",
     "require": {
-        "foresi/shared": "*",
+        "foresi/audit": "*",
         "foresi/instance": "*",
-        "foresi/audit": "*"
+        "foresi/shared": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\Events\\": ""
+        }
     },
     "extra": {
         "foresi": {

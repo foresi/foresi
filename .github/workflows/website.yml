@@ -1,0 +1,35 @@
+name: Website
+
+# foresi.app pulls the docs, the changelog and the roadmap from main at build
+# time. When they change, this asks Cloudflare Workers Builds (foresi/website)
+# to rebuild the site through its deploy hook. Without the secret it does
+# nothing, so forks stay quiet.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'CHANGELOG.md'
+      - 'ROADMAP.md'
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger the website deploy hook
+        env:
+          DEPLOY_HOOK: ${{ secrets.WEBSITE_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "WEBSITE_DEPLOY_HOOK is not set; nothing to do."
+            exit 0
+          fi
+          curl --fail --silent --show-error --retry 3 --max-time 30 -X POST "$DEPLOY_HOOK" > /dev/null
+          echo "Website rebuild requested."

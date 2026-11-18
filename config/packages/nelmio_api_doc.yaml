@@ -164,6 +164,7 @@ nelmio_api_doc:
                     properties:
                         data: { type: array, items: { $ref: '#/components/schemas/InvoiceListItem' } }
                         next_cursor: { type: string, nullable: true }
+                        applied_view: { allOf: [{ $ref: '#/components/schemas/SavedView' }], nullable: true, description: 'The saved view the view parameter named; null without one.' }
                 Contact:
                     type: object
                     required: [id, kind, name, roles, registration_country, registration_number, vat_id, email, billing_address, archived]
@@ -293,6 +294,63 @@ nelmio_api_doc:
                     properties:
                         data: { type: array, items: { $ref: '#/components/schemas/Payment' } }
                         next_cursor: { type: string, nullable: true }
+                SavedView:
+                    type: object
+                    description: A saved view of a list (spec D2), private to its owner or shared with the staff; a view a module ships has a system key and no owner.
+                    properties:
+                        id: { type: string, format: uuid }
+                        list: { type: string, description: 'The list, such as invoicing.invoices.' }
+                        name: { type: string }
+                        system_key: { type: string, nullable: true }
+                        visibility: { type: string, enum: [private, shared] }
+                        owner_id: { type: string, format: uuid, nullable: true }
+                        filters:
+                            type: object
+                            properties:
+                                match: { type: string, enum: [all] }
+                                conditions:
+                                    type: array
+                                    items:
+                                        type: object
+                                        properties:
+                                            field: { type: string }
+                                            op: { type: string }
+                                            value: { description: 'A value of the field''s type; see GET /api/v1/lists.' }
+                        sort: { type: array, items: { type: object, properties: { field: { type: string }, dir: { type: string, enum: [asc, desc] } } } }
+                        display: { type: object, nullable: true }
+                        show_count: { type: boolean }
+                        placement: { type: string, enum: [primary, overflow] }
+                        position: { type: integer }
+                        hidden: { type: boolean }
+                        may_edit: { type: boolean, description: 'Whether the token''s person may change or delete it.' }
+                        created_at: { type: string, format: date-time }
+                        updated_at: { type: string, format: date-time }
+                ViewList:
+                    type: object
+                    description: A list saved views filter, with what a filter on it may use.
+                    properties:
+                        key: { type: string }
+                        fields:
+                            type: array
+                            items:
+                                type: object
+                                properties:
+                                    key: { type: string }
+                                    type: { type: string, enum: [enum, reference, text, number, date, boolean] }
+                                    label: { type: string }
+                                    operators: { type: array, items: { type: string } }
+                                    options: { type: array, items: { type: string } }
+                        columns:
+                            type: array
+                            items:
+                                type: object
+                                properties:
+                                    key: { type: string }
+                                    label: { type: string }
+                                    sortable: { type: boolean }
+                                    default: { type: boolean }
+                                    locked: { type: boolean }
+                        default_views: { type: array, items: { type: string } }
                 CashFlowPlannedItem:
                     type: object
                     description: Money a firm expects to receive or pay that no document carries yet, one-off or recurring.

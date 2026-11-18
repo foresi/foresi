@@ -106,6 +106,6 @@ final readonly class ListViews
         // A shipped view keeps its translated name until someone renames it.
         $translated = null !== $slug && null === $saved->updatedBy();
 
-        return new ListView($slug ?? $saved->id(), $saved->name(), $translated, $filter, $saved->showCount(), $saved->placement(), Visibility::Private === $saved->visibility(), $slug, $saved->display());
+        return new ListView($slug ?? $saved->id(), $saved->name(), $translated, $filter, $saved->showCount(), $saved->placement(), Visibility::Private === $saved->visibility(), $slug, $saved->display(), $saved->sort(), $saved->id());
     }
 }

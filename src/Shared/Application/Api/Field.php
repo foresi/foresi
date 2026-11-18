@@ -16,9 +16,14 @@ namespace Foresi\Shared\Application\Api;
 #[\Attribute(\Attribute::TARGET_PARAMETER)]
 final readonly class Field
 {
+    /** The items of a list are JSON objects, such as the conditions of a filter. */
+    public const string OBJECTS = 'object';
+    /** The items of a list are JSON objects or strings, such as the columns of a view. */
+    public const string OBJECTS_OR_STRINGS = 'object|string';
+
     /**
      * @param list<string>|null $enum  the only values the field takes; for a list, of its items
-     * @param string|null       $items the type of the items of a list, such as "string"
+     * @param string|null       $items the type of the items of a list: "string" when null, OBJECTS or OBJECTS_OR_STRINGS
      */
     public function __construct(
         public string $description,

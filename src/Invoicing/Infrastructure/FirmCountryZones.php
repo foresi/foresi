@@ -6,31 +6,30 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure;
 
-use Doctrine\DBAL\Connection;
 use Foresi\Instance\Application\ZoneFallback;
 use Foresi\Invoicing\Application\InvoicingCountries;
 use Foresi\Invoicing\Application\UnsupportedCountry;
+use Foresi\Party\Application\InstanceFirm;
 
 /**
  * The zone of the instance without APP_TIMEZONE: that of the country of its
- * first active firm, the oldest by its time-ordered id, as the country's
- * invoicing rules name it. Null without an active firm, or for a firm in a
- * country without rules.
+ * firm (ADR 0039), as the country's invoicing rules name it. Null before the
+ * first-run setup, or for a firm in a country without rules.
  */
 final readonly class FirmCountryZones implements ZoneFallback
 {
     public function __construct(
-        private Connection $connection,
+        private InstanceFirm $firm,
         private InvoicingCountries $countries,
     ) {
     }
 
     public function zone(): ?\DateTimeZone
     {
-        $code = $this->connection->fetchOne('SELECT address_country_code FROM legal_entity WHERE archived_at IS NULL ORDER BY id LIMIT 1');
-        if (!\is_string($code)) {
+        $code = $this->firm->find()?->address()->countryCode;
+        if (null === $code) {
             return null;
         }
 

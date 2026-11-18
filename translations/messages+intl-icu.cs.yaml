@@ -408,7 +408,8 @@ firm:
     vat_status: Vyberte vztah k DPH.
     vat_id_required: Zadejte DIČ této firmy.
     save_failed: Firmu se nepodařilo uložit. Zkontrolujte údaje a zkuste to znovu.
-    last_active: Poslední aktivní firmu nelze archivovat. Nejdřív přidejte jinou firmu.
+    last_active: Poslední aktivní firmu nelze archivovat.
+    one_per_instance: Foresi vede jednu firmu na instanci. Další firma potřebuje vlastní instanci.
     image_type: Nahrajte obrázek PNG nebo JPEG.
     image_size: Obrázek může mít nejvýš 1 MB.
     image_dimensions: Obrázek může mít nejvýš 3000 x 3000 pixelů.
@@ -538,3 +539,44 @@ firm:
 system_mail:
   footer: 'Odesláno systémem {product}'
   footer_organisation: 'Odesláno systémem {product} jménem {organisation}'
+saved_view:
+  save: Uložit
+  save_as: Uložit jako nový pohled
+  save_as_submit: Uložit pohled
+  save_as_description: Filtry, řazení a sloupce seznamu se stanou samostatným pohledem.
+  reset: Obnovit
+  cancel: Zrušit
+  manage: Spravovat pohledy
+  manage_description: Přejmenujte své pohledy, sdílejte je a vyberte, které se ukazují jako záložky.
+  restore: Obnovit výchozí pohledy
+  restore_confirm: Obnovit výchozí pohledy?
+  restore_confirm_text: Pohledy, se kterými seznam přišel, dostanou zpět své názvy, filtry a místa. Pohledy, které někdo vytvořil, zůstanou, jak jsou.
+  delete: Smazat
+  delete_confirm: 'Smazat pohled „{name}“?'
+  delete_confirm_text: Přijdou o něj i všichni, se kterými je sdílený.
+  save_changes: Uložit změny
+  not_yours: Tento pohled mění jen jeho autor nebo vlastník. Své změny uložte jako nový pohled.
+  none: Seznam nemá jiné pohledy než Vše.
+  saved: Pohled je uložený.
+  created: Nový pohled je uložený.
+  updated: Pohled je změněný.
+  deleted: Pohled je smazaný.
+  restored: Výchozí pohledy jsou obnovené.
+  field:
+    name: Název
+    visibility: Kdo ho vidí
+    visibility_help: Sdílený pohled vidí každý vlastník a člen.
+    show_count: Ukazovat počet na záložce
+    placement: Ukazuje se jako
+    placement_full: Seznam už má šest záložek; nejdřív přesuňte jiný pohled do Dalších pohledů.
+  visibility:
+    private: Jen já
+    shared: Všichni
+  placement:
+    primary: Záložka
+    overflow: V Dalších pohledech
+  error:
+    forbidden: Tento pohled mění jen jeho autor nebo vlastník. Své změny uložte jako nový pohled.
+    name: Název pohledu má 1 až 60 znaků.
+    primary_full: Seznam už má šest záložek; nejdřív přesuňte jiný pohled do Dalších pohledů.
+    invalid: Pohled se nepodařilo uložit. Zkontrolujte jeho filtry a zkuste to znovu.

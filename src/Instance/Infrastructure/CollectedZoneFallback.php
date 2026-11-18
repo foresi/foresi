@@ -13,7 +13,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**
  * The first zone an installed module knows, such as Invoicing from the
- * country of the first active firm. With none, the instance has no fallback
+ * country of the firm. With none, the instance has no fallback
  * zone and uses the default one.
  */
 final readonly class CollectedZoneFallback implements ZoneFallback

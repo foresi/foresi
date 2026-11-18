@@ -11,7 +11,7 @@ namespace Foresi\Instance\Application;
 /**
  * Port: the zone of the instance when APP_TIMEZONE is not set, from what a
  * module built on Instance knows. Implemented by Invoicing, from the country of
- * the first active firm; Instance never depends on it in return.
+ * the firm of the instance; Instance never depends on it in return.
  */
 interface ZoneFallback
 {

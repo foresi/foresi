@@ -35,6 +35,9 @@ final class GuestAccessTest extends WebTestCase
         'app_account_language', 'app_two_factor_setup', 'app_two_factor_recovery_codes',
         // Machines: the uptime monitor and the bank mail relay, on firewalls without a session.
         'app_health', 'app_inbound_mail',
+        // OAuth for MCP clients (ADR 0036): metadata, registration and the token endpoint hold no data and
+        // take no session; the consent screen refuses a guest.
+        'oauth_resource_metadata', 'oauth_resource_metadata_root', 'oauth_server_metadata', 'oauth_register', 'oauth_token',
         // The setup guide for AI agents and the llms.txt: public, only this installation's addresses.
         'app_mcp_setup', 'app_llms_txt',
         // The API and MCP, whose firewalls only a personal API token signs in to; a guest gets none.
@@ -52,6 +55,8 @@ final class GuestAccessTest extends WebTestCase
         'api_v1_operation_received_documents.record', 'api_v1_operation_received_documents.trash',
         'api_v1_operation_received_documents.add_payment', 'api_v1_operation_received_documents.mark_paid',
         'api_v1_operation_received_documents.remove_payment',
+        'api_v1_lists', 'api_v1_views', 'api_v1_view', 'api_v1_view_count',
+        'api_v1_operation_views.create', 'api_v1_operation_views.update', 'api_v1_operation_views.delete', 'api_v1_operation_views.restore_defaults',
         // The OpenAPI document, which describes the API and holds no data.
         'api_v1_openapi',
         // The public links to sent documents.

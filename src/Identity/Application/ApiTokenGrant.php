@@ -25,6 +25,8 @@ final readonly class ApiTokenGrant
         public string $tokenName,
         public array $scopes,
         public \DateTimeImmutable $expiresAt,
+        // The OAuth client of a connection (ADR 0036); null for a personal token.
+        public ?string $oauthClientId = null,
     ) {
     }
 

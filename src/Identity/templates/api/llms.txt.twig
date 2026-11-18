@@ -3,13 +3,13 @@
 {%- autoescape false -%}
 # Foresi
 
-> Foresi is an open-source business system for small firms: invoices, contacts, payments and work. This installation is at {{ home }}. AI agents use it through its MCP server, signed in with a personal API token.
+> Foresi is an open-source business system for small firms: invoices, contacts, payments and work. This installation is at {{ home }}. AI agents use it through its MCP server, signed in with OAuth or a personal API token.
 
 ## MCP
 
 - [Install the Foresi MCP server]({{ setup }}): step-by-step setup for Claude Code, claude.ai, Claude Desktop, Cursor and VS Code
-- [MCP server]({{ server }}): Streamable HTTP, header `Authorization: Bearer <token>`
-- [API tokens]({{ tokens }}): where a person creates a token (sign-in required)
+- [MCP server]({{ server }}): Streamable HTTP, OAuth 2.1 sign-in (recommended) or the header `Authorization: Bearer <token>`
+- [API tokens]({{ tokens }}): where a person creates a token for a client without OAuth (sign-in required)
 
 ## Optional
 

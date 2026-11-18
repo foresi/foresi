@@ -21,4 +21,9 @@ interface InvoiceQueries
      * @throws \InvalidArgumentException for a limit below one, or an id that is none
      */
     public function slice(InvoiceSliceFilter $filter, ?string $afterId, int $limit): InvoiceSlice;
+
+    /**
+     * How many documents the filter holds, over every slice.
+     */
+    public function count(InvoiceSliceFilter $filter): int;
 }

@@ -83,7 +83,7 @@ final class InstalledModulesTest extends TestCase
     {
         $graph = new InstalledModules(\dirname(__DIR__, 4))->graph();
 
-        self::assertSame(['cashflow', 'contacts', 'events', 'invoices', 'payments', 'received_documents', 'webhooks'], $graph->resources());
+        self::assertSame(['cashflow', 'contacts', 'events', 'invoices', 'payments', 'received_documents', 'views', 'webhooks'], $graph->resources());
         self::assertSame(['contacts'], $graph->get(\Foresi\Shared\Domain\Module\ModuleId::of('party'))->scopes);
         self::assertSame([], InstalledModules::manifestFrom(self::composer(), [])->scopes);
     }

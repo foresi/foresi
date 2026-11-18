@@ -9,7 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Party\Infrastructure\Controller;
 
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Foresi\Party\Application\FirmAlreadyExists;
 use Foresi\Party\Application\FirmImages;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\LegalEntityInput;
 use Foresi\Party\Application\TransactionalWork;
@@ -54,6 +56,7 @@ final class LegalEntityController extends AbstractController
         private readonly ClockInterface $clock,
         private readonly TranslatorInterface $translator,
         private readonly FirmImages $images,
+        private readonly InstanceFirm $instanceFirm,
     ) {
     }
 
@@ -83,6 +86,10 @@ final class LegalEntityController extends AbstractController
     public function new(Request $request): Response
     {
         $this->denyUnlessOwner();
+        // One firm per instance (ADR 0039): this screen is the first-run setup only.
+        if ([] !== $this->firms->all()) {
+            return $this->refuseAnotherFirm();
+        }
         if (!$request->isMethod('POST')) {
             return $this->form($request, null, $this->defaults(), [], $this->tokens->issue(), Response::HTTP_OK);
         }
@@ -170,9 +177,12 @@ final class LegalEntityController extends AbstractController
                 $created = new LegalEntity($input->name, $input->registrationNumber, $input->vatId, $input->address, $input->vatStatus, $input->registerEntry);
                 $created->changeLogo($logo);
                 $created->changeStamp($stamp);
-                $this->transaction->run(fn () => $this->firms->add($created));
+                $this->transaction->run(fn () => $this->instanceFirm->create($created));
                 $this->tokens->complete($token, $created->id());
             }
+        } catch (FirmAlreadyExists) {
+            // Another request set up the firm after the check in new().
+            return $this->refuseAnotherFirm();
         } catch (UniqueConstraintViolationException) {
             // Another request took the number after the check above.
             return $this->form($request, $firm, $submission->values, ['registrationNumber' => ['firm.error.registration_taken']], $token, Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -181,6 +191,13 @@ final class LegalEntityController extends AbstractController
         }
 
         $this->addFlash('success', $this->translator->trans($firm instanceof LegalEntity ? 'firm.flash.updated' : 'firm.flash.created'));
+
+        return $this->redirectToRoute('app_firm_index');
+    }
+
+    private function refuseAnotherFirm(): RedirectResponse
+    {
+        $this->addFlash('error', $this->translator->trans('firm.error.one_per_instance'));
 
         return $this->redirectToRoute('app_firm_index');
     }

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Attachment\Infrastructure;
+namespace Foresi\Tests\Attachment\Integration\Work;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Attachment\Infrastructure\Controller\AttachmentController;

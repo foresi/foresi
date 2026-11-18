@@ -8,6 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Infrastructure\Mcp;
 
+use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Application\Refused;
+use Foresi\Shared\Infrastructure\Operation\OperationField;
+
 /**
  * A tool call that cannot be answered as asked. The client gets it as an
  * error result, not a protocol error, so the model can read why and try
@@ -37,6 +41,20 @@ final class ToolRefusal extends \RuntimeException
     public function __construct(public readonly string $errorCode, string $message, public readonly array $details = [])
     {
         parent::__construct($message);
+    }
+
+    /**
+     * What a use case refuses through the shared contract (ADR 0032), as MCP answers it:
+     * an invalid value is invalid_argument with the parameter and the reason, everything
+     * else its reason as the code.
+     */
+    public static function of(Refused $refused): self
+    {
+        $field = $refused->field();
+
+        return RefusalKind::Invalid === $refused->kind()
+            ? new self(self::INVALID_ARGUMENT, $refused->getMessage(), ['parameter' => null === $field ? null : OperationField::wireName($field), 'reason' => $refused->reason()] + $refused->details())
+            : new self($refused->reason(), $refused->getMessage(), $refused->details());
     }
 
     public static function notFound(string $message): self

@@ -14,8 +14,11 @@ use Foresi\Identity\Application\UserRepository;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Domain\ApiToken;
 use Foresi\Identity\Domain\ApiTokenSecret;
+use Foresi\Identity\Domain\OAuth\OAuthClient;
+use Foresi\Identity\Domain\OAuth\OAuthClientKind;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
+use Foresi\Identity\Infrastructure\Controller\ApiScopeOptions;
 use Foresi\Shared\Application\Sealer;
 use Foresi\Tests\Identity\Support\IdentityFixtures;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -25,7 +28,8 @@ use Symfony\Component\DomCrawler\Crawler;
 /**
  * The API access screen in the settings: a person issues, lists and revokes
  * their own tokens, an owner those of the other people too, the secret of a new
- * token is shown once and only in the answer that issued it.
+ * token is shown once and only in the answer that issued it. The OAuth clients
+ * a person connected are listed apart and disconnected the same way.
  */
 final class ApiTokenPageTest extends WebTestCase
 {
@@ -68,6 +72,99 @@ final class ApiTokenPageTest extends WebTestCase
         self::assertSame(['/settings/api', '/settings/api/connect'], $crawler->filter('main nav[aria-label="API and MCP"] a')->each(static fn (Crawler $link): string => (string) $link->attr('href')));
     }
 
+    public function testAConnectedAppIsListedApartFromTheTokensAndIsDisconnected(): void
+    {
+        $this->signIn(self::MEMBER, twoFactor: true);
+        $verified = $this->connect(self::MEMBER, new OAuthClient('https://claude.ai/oauth/mcp-client.json', OAuthClientKind::Metadata, 'Claude', ['https://claude.ai/api/mcp/auth_callback'], new \DateTimeImmutable('-2 days')));
+        $this->connect(self::MEMBER, new OAuthClient('foresi_client_example', OAuthClientKind::Registered, 'Some Agent', ['http://127.0.0.1/callback'], new \DateTimeImmutable('-1 day')));
+        $this->store(self::MEMBER, 'Reporting', new \DateTimeImmutable('-1 day'), new \DateTimeImmutable('+10 days'));
+
+        $crawler = $this->client->request('GET', '/settings/api');
+
+        self::assertSelectorTextContains('[data-api-connections="mine"] h2', 'Connected apps');
+        $heads = $crawler->filter('[data-api-connections="mine"] thead th')->each(static fn (Crawler $head): string => trim($head->text()));
+        self::assertSame(['App', 'Verified by', 'Access', 'Connected', 'Last used'], \array_slice($heads, 0, 5));
+        $rows = $crawler->filter('[data-api-connections="mine"] tbody tr');
+        self::assertCount(2, $rows);
+        $byName = [];
+        $rows->each(function (Crawler $row) use (&$byName): void {
+            $byName[trim($row->filter('td')->first()->children()->first()->text())] = $row;
+        });
+        self::assertStringContainsString('claude.ai', $byName['Claude']->text());
+        self::assertStringNotContainsString('Not verified', $byName['Claude']->text());
+        self::assertStringContainsString('Not verified', $byName['Some Agent']->text());
+        self::assertStringContainsString('Read everything', $byName['Claude']->text());
+        // A connection is not a personal token, and a personal token is not a connection.
+        $tokens = $crawler->filter('[data-api-tokens="mine"] tbody tr');
+        self::assertCount(1, $tokens);
+        self::assertStringContainsString('Reporting', $tokens->text());
+        self::assertStringNotContainsString('Claude', $crawler->filter('[data-api-tokens="mine"]')->text());
+
+        $form = $crawler->filter('[data-api-connections="mine"] form[action="/settings/api/'.$verified.'/revoke"]');
+        self::assertCount(1, $form);
+        self::assertSame('Disconnect Claude?', $form->attr('data-turbo-confirm'));
+        self::assertSame('Disconnect', $form->attr('data-confirm-accept'));
+        self::assertStringContainsString('connect it again', (string) $form->attr('data-confirm-text'));
+        $this->client->submit($form->form());
+
+        self::assertResponseRedirects('/settings/api');
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'The app is disconnected.');
+        self::assertCount(1, $crawler->filter('[data-api-connections="mine"] tbody tr'), 'A disconnected app is no longer listed.');
+        $this->em->clear();
+        $connection = $this->em->find(ApiToken::class, $verified);
+        self::assertInstanceOf(ApiToken::class, $connection);
+        self::assertInstanceOf(\DateTimeImmutable::class, $connection->revokedAt());
+        self::assertSame($this->userId(self::MEMBER), $connection->revokedBy());
+    }
+
+    public function testAccessIsShownAsTheFewestScopesThatSayIt(): void
+    {
+        $this->signIn(self::MEMBER, twoFactor: true);
+        $every = array_map(ApiScope::from(...), array_keys(self::getContainer()->get(ApiScopeOptions::class)->offered()));
+        $this->connect(self::MEMBER, new OAuthClient('https://claude.ai/oauth/mcp-client.json', OAuthClientKind::Metadata, 'Claude Code', ['https://claude.ai/api/mcp/auth_callback'], new \DateTimeImmutable('-2 days')), $every);
+        $this->store(self::MEMBER, 'Billing', new \DateTimeImmutable('-1 day'), new \DateTimeImmutable('+10 days'), scopes: [ApiScope::read(), ApiScope::from('invoices:read'), ApiScope::from('invoices:write')]);
+
+        $crawler = $this->client->request('GET', '/settings/api');
+
+        $badges = static fn (string $list): array => $crawler->filter('['.$list.'] tbody [data-badges] > *')->each(static fn (Crawler $badge): string => trim($badge->text()));
+        self::assertSame(['Read and change everything'], $badges('data-api-connections="mine"'), 'Writing everything covers every other scope.');
+        self::assertSame(['Read everything', 'Invoices: read and change'], $badges('data-api-tokens="mine"'));
+    }
+
+    public function testWithoutConnectedAppsThePageSaysHowToConnectOne(): void
+    {
+        $this->signIn(self::MEMBER, twoFactor: true);
+
+        $crawler = $this->client->request('GET', '/settings/api');
+
+        self::assertSelectorTextContains('[data-api-connections="mine"]', 'No app is connected with OAuth sign-in yet.');
+        self::assertCount(1, $crawler->filter('[data-api-connections="mine"] a[href="/settings/api/connect"]'));
+        self::assertCount(0, $crawler->filter('[data-api-connections="others"]'));
+    }
+
+    public function testTheOwnerSeesAndDisconnectsTheAppsOfOthers(): void
+    {
+        $this->connect(self::OWNER, new OAuthClient('https://claude.ai/oauth/mcp-client.json', OAuthClientKind::Metadata, 'Claude', ['https://claude.ai/api/mcp/auth_callback'], new \DateTimeImmutable('-2 days')));
+        $theirs = $this->connect(self::MEMBER, new OAuthClient('foresi_client_example', OAuthClientKind::Registered, 'Cursor', ['cursor://anysphere.cursor-mcp/oauth/callback'], new \DateTimeImmutable('-1 day')));
+        $this->signIn(self::OWNER, twoFactor: true);
+
+        $crawler = $this->client->request('GET', '/settings/api');
+
+        self::assertCount(1, $crawler->filter('[data-api-connections="mine"] tbody tr'));
+        $others = $crawler->filter('[data-api-connections="others"] tbody tr');
+        self::assertCount(1, $others);
+        self::assertStringContainsString('Cursor', $others->text());
+        self::assertStringContainsString(self::MEMBER, $others->text());
+        self::assertCount(0, $crawler->filter('[data-api-tokens="others"] tbody tr'), 'A connection is not a token of the other people.');
+
+        $this->client->submit($crawler->filter('[data-api-connections="others"] form[action="/settings/api/'.$theirs.'/revoke"]')->form());
+
+        self::assertResponseRedirects('/settings/api');
+        $this->em->clear();
+        self::assertSame($this->userId(self::OWNER), $this->em->find(ApiToken::class, $theirs)?->revokedBy());
+    }
+
     public function testTheConnectTabShowsTheServerAndACopyReadySetupForEachClient(): void
     {
         $this->signIn(self::MEMBER, twoFactor: true);
@@ -81,17 +178,27 @@ final class ApiTokenPageTest extends WebTestCase
         self::assertSame('page', $crawler->filter('#sidebar a[href="/settings/api"]')->attr('aria-current'));
         $server = 'http://localhost/mcp';
         self::assertSame($server, $crawler->filter('pre#mcp-server')->text());
-        self::assertSame('claude mcp add --transport http foresi '.$server.' --header "Authorization: Bearer <token>"', $crawler->filter('pre#mcp-claude-code')->text());
-        self::assertSame('Authorization: Bearer <token>', $crawler->filter('pre#mcp-claude-ai-header')->text());
-        foreach (['mcp-claude-desktop' => 'mcpServers', 'mcp-cursor' => 'mcpServers', 'mcp-vscode' => 'servers'] as $id => $key) {
+        // OAuth first: a client needs only the address and signs in in the browser.
+        self::assertSame('claude mcp add --transport http foresi '.$server, $crawler->filter('pre#mcp-claude-code')->text());
+        self::assertSame($server, $crawler->filter('pre#mcp-claude-ai-url')->text());
+        self::assertSelectorTextContains('[data-mcp-client="claude_ai"]', 'leave the OAuth fields empty');
+        self::assertSelectorTextNotContains('[data-mcp-client="claude_ai"]', 'Request headers');
+        self::assertSame(['url' => $server], $this->configured($crawler, 'mcp-cursor', 'mcpServers'));
+        self::assertSame(['type' => 'http', 'url' => $server], $this->configured($crawler, 'mcp-vscode', 'servers'));
+        // A token remains for scripts and clients without OAuth.
+        self::assertSelectorTextContains('[data-api-connect-token] h2', 'Use a token instead');
+        self::assertSame('claude mcp add --transport http foresi '.$server.' --header "Authorization: Bearer <token>"', $crawler->filter('pre#mcp-token-claude-code')->text());
+        self::assertSame('Authorization: Bearer <token>', $crawler->filter('pre#mcp-other')->text());
+        foreach (['mcp-claude-desktop' => 'mcpServers', 'mcp-token-cursor' => 'mcpServers', 'mcp-token-vscode' => 'servers'] as $id => $key) {
             self::assertIsArray($this->configured($crawler, $id, $key), $id);
         }
-        self::assertSame(['type' => 'http', 'url' => $server, 'headers' => ['Authorization' => 'Bearer ${input:foresi-token}']], $this->configured($crawler, 'mcp-vscode', 'servers'));
+        self::assertSame(['type' => 'http', 'url' => $server, 'headers' => ['Authorization' => 'Bearer ${input:foresi-token}']], $this->configured($crawler, 'mcp-token-vscode', 'servers'));
+        self::assertSelectorTextContains('main', 'Settings → API and MCP');
         self::assertStringContainsString('whoami', $crawler->filter('pre#mcp-prompt')->text());
         self::assertStringContainsString('http://localhost/mcp-setup.md', $crawler->filter('pre#mcp-install')->text());
         self::assertSame('http://localhost/mcp-setup.md', $crawler->filter('[data-mcp-install] a')->attr('href'));
         self::assertContains('Read everything', $crawler->filter('[data-api-scopes] li')->each(static fn (Crawler $item): string => trim($item->text())));
-        self::assertSame(array_fill(0, 10, 'pre'), $crawler->filter('[data-copy-target="source"]')->each(static fn (Crawler $source): string => $source->nodeName()));
+        self::assertSame(array_fill(0, 12, 'pre'), $crawler->filter('[data-copy-target="source"]')->each(static fn (Crawler $source): string => $source->nodeName()));
         self::assertSame('/settings/api/new', $crawler->filter('#api-token-new')->attr('href'));
     }
 
@@ -149,6 +256,8 @@ final class ApiTokenPageTest extends WebTestCase
         $scopes = $crawler->filter('input[name="scopes[]"]');
         self::assertSame(['read', 'write', 'cashflow:read', 'cashflow:write', 'contacts:read', 'contacts:write'], \array_slice($scopes->each(static fn (Crawler $box): string => (string) $box->attr('value')), 0, 6));
         self::assertContains('webhooks:write', $scopes->each(static fn (Crawler $box): string => (string) $box->attr('value')));
+        self::assertContains('views:write', $scopes->each(static fn (Crawler $box): string => (string) $box->attr('value')), 'The saved views of Shared are a resource of their own.');
+        self::assertSelectorTextContains('label[for="scope-views-read"]', 'Saved views');
         self::assertSame(['read'], $crawler->filter('input[name="scopes[]"][checked]')->each(static fn (Crawler $box): string => (string) $box->attr('value')), 'Reading everything is the default.');
         self::assertSelectorTextContains('label[for="scope-contacts-write"]', 'Contacts: read and change');
         self::assertSame('80', $crawler->filter('input[name="name"]')->attr('maxlength'));
@@ -491,13 +600,33 @@ final class ApiTokenPageTest extends WebTestCase
         return $this->userEntity($email)->id();
     }
 
-    private function store(string $email, string $name, \DateTimeImmutable $created, \DateTimeImmutable $expires, bool $revoked = false): string
+    /**
+     * @param ?list<ApiScope> $scopes reading everything when none are given
+     */
+    private function store(string $email, string $name, \DateTimeImmutable $created, \DateTimeImmutable $expires, bool $revoked = false, ?array $scopes = null): string
     {
         $secret = ApiTokenSecret::generate();
-        $token = new ApiToken($this->userId($email), $name, [ApiScope::read()], ApiTokenSecret::hash($secret), ApiTokenSecret::lastFour($secret), $created, $expires);
+        $token = new ApiToken($this->userId($email), $name, $scopes ?? [ApiScope::read()], ApiTokenSecret::hash($secret), ApiTokenSecret::lastFour($secret), $created, $expires);
         if ($revoked) {
             $token->revoke(null, $created);
         }
+        $this->em->persist($token);
+        $this->em->flush();
+
+        return $token->id();
+    }
+
+    /**
+     * A client connected by OAuth: the client and the token row of its connection.
+     *
+     * @param ?list<ApiScope> $scopes reading everything when none are given
+     */
+    private function connect(string $email, OAuthClient $client, ?array $scopes = null): string
+    {
+        $userId = $this->userId($email);
+        $this->em->persist($client);
+        $secret = ApiTokenSecret::generate();
+        $token = new ApiToken($userId, $client->name(), $scopes ?? [ApiScope::read()], ApiTokenSecret::hash($secret), ApiTokenSecret::lastFour($secret), new \DateTimeImmutable('-1 hour'), new \DateTimeImmutable('+1 hour'), $client->id());
         $this->em->persist($token);
         $this->em->flush();
 

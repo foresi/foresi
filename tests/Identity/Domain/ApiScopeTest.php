@@ -38,6 +38,31 @@ final class ApiScopeTest extends TestCase
         yield 'a resource write is not everything' => ['contacts:write', 'write', false];
     }
 
+    /**
+     * @param list<string> $held
+     * @param list<string> $smallest
+     */
+    #[DataProvider('smallestSets')]
+    public function testTheSmallestSetLeavesOutWhatAnotherScopeCovers(array $held, array $smallest): void
+    {
+        self::assertSame($smallest, array_map(static fn (ApiScope $scope): string => $scope->value, ApiScope::smallest(array_map(ApiScope::from(...), $held))));
+    }
+
+    /**
+     * @return iterable<string, array{list<string>, list<string>}>
+     */
+    public static function smallestSets(): iterable
+    {
+        yield 'nothing' => [[], []];
+        yield 'one scope' => [['contacts:read'], ['contacts:read']];
+        yield 'every scope is writing everything' => [['read', 'contacts:read', 'invoices:read', 'write', 'contacts:write', 'invoices:write'], ['write']];
+        yield 'reading everything covers each read' => [['read', 'contacts:read', 'invoices:read'], ['read']];
+        yield 'a resource write covers its read' => [['contacts:read', 'contacts:write'], ['contacts:write']];
+        yield 'mixed access keeps both' => [['read', 'invoices:read', 'invoices:write'], ['read', 'invoices:write']];
+        yield 'another resource stays' => [['contacts:write', 'invoices:read'], ['contacts:write', 'invoices:read']];
+        yield 'a scope held twice is listed once' => [['contacts:read', 'contacts:read'], ['contacts:read']];
+    }
+
     public function testTheShapeOfAScopeIsChecked(): void
     {
         self::assertSame('contacts', ApiScope::from('contacts:write')->resource());
