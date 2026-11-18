@@ -300,12 +300,12 @@ final class PeopleTest extends WebTestCase
         $crawler = $this->client->request('GET', '/settings/people/'.$membership.'/edit');
         self::assertResponseIsSuccessful();
 
-        $crawler = $this->client->submit($crawler->filter('form[action$="/edit"] button[type="submit"]')->form(['role' => 'guest']));
+        $crawler = $this->client->submit($crawler->filter('form#person-form')->form(['role' => 'guest']));
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('main', 'Choose the contact the person represents.');
 
         $party = $this->contact();
-        $this->client->submit($crawler->filter('form[action$="/edit"] button[type="submit"]')->form(['role' => 'guest', 'contactId' => $party]));
+        $this->client->submit($crawler->filter('form#person-form')->form(['role' => 'guest', 'contactId' => $party]));
         self::assertResponseRedirects('/settings/people');
         $changed = $this->em->find(Membership::class, $membership);
         self::assertSame(Role::Guest, $changed?->role());
@@ -320,11 +320,11 @@ final class PeopleTest extends WebTestCase
         $crawler = $this->client->request('GET', '/settings/people/'.$membership.'/edit');
         self::assertSame('', $crawler->filter('#rate')->attr('value'));
 
-        $crawler = $this->client->submit($crawler->filter('form[action$="/edit"] button[type="submit"]')->form(['rate' => '-5']));
+        $crawler = $this->client->submit($crawler->filter('form#person-form')->form(['rate' => '-5']));
         self::assertResponseStatusCodeSame(422);
         self::assertSame('Enter a rate, such as 1500 or 1500.50.', trim($crawler->filter('#rate-error')->text()));
 
-        $this->client->submit($crawler->filter('form[action$="/edit"] button[type="submit"]')->form(['rate' => '900', 'rateCurrency' => 'USD']));
+        $this->client->submit($crawler->filter('form#person-form')->form(['rate' => '900', 'rateCurrency' => 'USD']));
         self::assertResponseRedirects('/settings/people');
         $crawler = $this->client->request('GET', '/settings/people/'.$membership.'/edit');
         self::assertSame('900.00', $crawler->filter('#rate')->attr('value'));
@@ -348,7 +348,7 @@ final class PeopleTest extends WebTestCase
         $owner = $this->membershipOf(self::OWNER);
         $crawler = $this->client->request('GET', '/settings/people/'.$owner.'/edit');
 
-        $this->client->submit($crawler->filter('form[action$="/edit"] button[type="submit"]')->form(['role' => 'member']));
+        $this->client->submit($crawler->filter('form#person-form')->form(['role' => 'member']));
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('main', 'The organisation must keep at least one active owner.');
 
@@ -360,7 +360,7 @@ final class PeopleTest extends WebTestCase
         // With a second owner, the first may step down.
         $this->fixtures->join($this->fixtures->user('second@example.com'));
         $crawler = $this->client->request('GET', '/settings/people/'.$owner.'/edit');
-        $this->client->submit($crawler->filter('form[action$="/edit"] button[type="submit"]')->form(['role' => 'member']));
+        $this->client->submit($crawler->filter('form#person-form')->form(['role' => 'member']));
         self::assertResponseRedirects('/settings/people');
     }
 

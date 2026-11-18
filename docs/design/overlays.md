@@ -6,9 +6,11 @@ A record picked from a list opens in place, over the list, never as a jump to an
 
 1. **Size decides the layer.** A medium or large record (a contact, a task, an invoice, a purchase
    document, a webhook, a recurring invoice) opens in the side sheet, `Ui:Sheet` md (640 px,
-   resizable). A small record (a label, a number series, a person, a bank account) opens in a modal
-   `Ui:Dialog` md. Places you work in, such as the project board and the import wizard, stay pages:
-   they are navigation, not records.
+   resizable). A small record (a label, a number series, a person, a bank account, the attempts of
+   a webhook delivery, the history of a send, an iDoklad run) opens in a modal `Ui:Dialog`. Places
+   you work in stay pages: they are navigation, not records. These are a project and its board,
+   an import and the iDoklad wizard, and a firm, a settings hub of tabs (details, invoicing, bank,
+   e-mail) that a modal is not for.
 2. **The header of the sheet** is one row, as a page header is: the title at the page-title size,
    cut with an ellipsis (the full text in its `title`), then the same actions as the record's page
    header in the small size, a divider, a Full screen toggle (the width of the content panel,
@@ -27,9 +29,13 @@ A record picked from a list opens in place, over the list, never as a jump to an
 
 ## How a screen follows it
 
-- A list row says where its record opens: `opens: 'sheet'`, `'dialog'` or `'page'` (the default)
-  on a `Ui:DataTable` row. The row's link gets `data-sheet` or `data-dialog`, and the hosts in
-  `layout/_dialogs.html.twig` load it.
+- A list row says where its record opens: `opens: 'sheet'` (the default), `'dialog'` or `'page'`
+  on a `Ui:DataTable` row; a `plain` row leaves Turbo, so it is a page. The row's link gets
+  `data-sheet` or `data-dialog`, and the hosts in `layout/_dialogs.html.twig` load it. A row whose
+  target is a place to work in says `opens: 'page'`.
+- A small record whose only view is its form (a label, a series, a person, a bank account) is a
+  dialog form (`layout/dialog.html.twig` when `in_dialog()`, the page otherwise): the row opens it
+  in the modal, Save closes it and the list loads again.
 - The host asks with the header `X-Foresi-Dialog`: `sheet` for the side sheet, `1` for a dialog.
   `overlay()` in Twig answers `sheet`, `dialog` or `null` (the page); `in_dialog()` is true for both.
 - The detail and its edit form extend `layout/record.html.twig` once and fill the blocks of the page
@@ -44,6 +50,8 @@ A record picked from a list opens in place, over the list, never as a jump to an
 - The same record loaded again after a change (a property saved, a comment added) keeps where its body
   was scrolled and the focus on the field that changed. A dialog that finishes over a record in the
   sheet (log time, a new subtask, sharing) shows what comes next in the sheet instead of a page.
+- A form inside an overlay that asks before it posts uses `confirm-submit`, not
+  `data-turbo-confirm`: the host sends the form itself, and holds back a submit that is prevented.
 
 ## Sources
 

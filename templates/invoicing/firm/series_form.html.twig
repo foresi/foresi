@@ -1,14 +1,19 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{% extends 'layout/app.html.twig' %}
+{#
+    A new number series of a firm, or a change of one. A series is a small record: a modal over the
+    firm's invoicing settings (docs/design/overlays.md); the same URL is a page of its own.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
 
 {% set editing = series is not null %}
 {% set crumbs = [{label: 'firm.title'|trans, href: firmsUrl}, {label: firm.name, href: firmUrl}, {label: 'firm.invoicing.title'|trans, href: settings}, {label: editing ? seriesName : 'series.new'|trans}] %}
 {% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
 
 {% block title %}{{ editing ? 'series.edit'|trans : 'series.new'|trans }}{% endblock %}
 
-{% block content %}
-    <form method="post" action="{{ action }}" class="grid max-w-4xl gap-4" novalidate>
+{% block dialog_body %}
+    <form method="post" id="series-form" action="{{ action }}" class="grid gap-4" novalidate>
         <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\FirmInvoicingController::SERIES_TOKEN')) }}">
         {% if not editing %}<input type="hidden" name="_submission" value="{{ token }}">{% endif %}
 
@@ -16,24 +21,35 @@
             <twig:Ui:Alert tone="error">{{ errors.form }}</twig:Ui:Alert>
         {% endif %}
 
-        <twig:Ui:Card :title="'series.card'|trans" icon="tag">
-            <div class="grid gap-3 sm:grid-cols-2">
-                <div class="sm:col-span-2"><twig:Ui:Select name="kind" id="kind" :label="'series.field.kind'|trans" :help="editing ? 'series.field.kind_locked_help'|trans : 'series.field.kind_help'|trans" :options="kinds" :value="values.kind" :error="errors.kind|default(null)" :disabled="editing" /></div>
-                <div class="sm:col-span-2"><twig:Ui:TextInput name="name" id="name" :label="'series.field.name'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="100" required /></div>
-                <div class="sm:col-span-2"><twig:Ui:TextInput name="format" id="format" :label="'series.field.format'|trans" :help="locked ? 'series.field.format_locked_help'|trans : 'series.field.format_help'|trans" :value="values.format" :error="errors.format|default(null)" :disabled="locked" maxlength="64" required autocomplete="off" /></div>
-                <twig:Ui:TextInput name="startYear" id="startYear" :label="'series.field.startYear'|trans" :help="'series.field.startYear_help'|trans" :value="values.startYear" :error="errors.startYear|default(null)" inputmode="numeric" maxlength="4" />
-                <twig:Ui:TextInput name="nextNumber" id="nextNumber" :label="'series.field.nextNumber'|trans" :help="'series.field.nextNumber_help'|trans" :value="values.nextNumber" :error="errors.nextNumber|default(null)" :placeholder="nextNow" inputmode="numeric" maxlength="10" />
-                {% if editing and series.default %}
-                    <div class="sm:col-span-2"><twig:Ui:Checkbox name="default" id="default" :label="'series.field.default'|trans" :help="'series.field.default_kept_help'|trans" value="1" :checked="true" :disabled="true" /></div>
-                {% else %}
-                    <div class="sm:col-span-2"><twig:Ui:Checkbox name="default" id="default" :label="'series.field.default'|trans" :help="'series.field.default_help'|trans" value="1" :checked="values.default == '1'" /></div>
-                {% endif %}
-            </div>
-        </twig:Ui:Card>
+        <div class="grid gap-3 sm:grid-cols-2">
+            <div class="sm:col-span-2"><twig:Ui:Select name="kind" id="kind" :label="'series.field.kind'|trans" :help="editing ? 'series.field.kind_locked_help'|trans : 'series.field.kind_help'|trans" :options="kinds" :value="values.kind" :error="errors.kind|default(null)" :disabled="editing" /></div>
+            <div class="sm:col-span-2"><twig:Ui:TextInput name="name" id="name" :label="'series.field.name'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="100" required /></div>
+            <div class="sm:col-span-2"><twig:Ui:TextInput name="format" id="format" :label="'series.field.format'|trans" :help="locked ? 'series.field.format_locked_help'|trans : 'series.field.format_help'|trans" :value="values.format" :error="errors.format|default(null)" :disabled="locked" maxlength="64" required autocomplete="off" /></div>
+            <twig:Ui:TextInput name="startYear" id="startYear" :label="'series.field.startYear'|trans" :help="'series.field.startYear_help'|trans" :value="values.startYear" :error="errors.startYear|default(null)" inputmode="numeric" maxlength="4" />
+            <twig:Ui:TextInput name="nextNumber" id="nextNumber" :label="'series.field.nextNumber'|trans" :help="'series.field.nextNumber_help'|trans" :value="values.nextNumber" :error="errors.nextNumber|default(null)" :placeholder="nextNow" inputmode="numeric" maxlength="10" />
+            {% if editing and series.default %}
+                <div class="sm:col-span-2"><twig:Ui:Checkbox name="default" id="default" :label="'series.field.default'|trans" :help="'series.field.default_kept_help'|trans" value="1" :checked="true" :disabled="true" /></div>
+            {% else %}
+                <div class="sm:col-span-2"><twig:Ui:Checkbox name="default" id="default" :label="'series.field.default'|trans" :help="'series.field.default_help'|trans" value="1" :checked="values.default == '1'" /></div>
+            {% endif %}
+        </div>
+    </form>
+{% endblock %}
 
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'party.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="series-form" variant="primary">{{ 'party.save'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <div class="grid max-w-4xl gap-4">
+        <twig:Ui:Card :title="'series.card'|trans" icon="tag">
+            {{ body }}
+        </twig:Ui:Card>
         <twig:Ui:ActionBar>
             <twig:Ui:Button :href="settings">{{ 'party.cancel'|trans }}</twig:Ui:Button>
-            <twig:Ui:Button type="submit" variant="primary">{{ 'party.save'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="series-form" variant="primary">{{ 'party.save'|trans }}</twig:Ui:Button>
         </twig:Ui:ActionBar>
-    </form>
+    </div>
 {% endblock %}

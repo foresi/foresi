@@ -1,6 +1,9 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {% extends 'idoklad/_flow.html.twig' %}
 
+{% set record_overlay = 'dialog' %}
+{% set record_size = 'lg' %}
+
 {% block title %}{{ ('idoklad.run.mode.' ~ run.mode.value)|trans }}{% endblock %}
 
 {% block screen %}
@@ -29,7 +32,7 @@
 
     <twig:Ui:ActionBar>
         {% if undoable %}
-            <form method="post" action="{{ path('app_idoklad_undo', {id: firm.id, run: run.id}) }}" data-turbo-confirm="{{ 'idoklad.undo.confirm'|trans }}" data-confirm-text="{{ 'idoklad.undo.confirm_text'|trans }}" data-confirm-accept="{{ 'idoklad.undo.confirm_accept'|trans }}" data-confirm-cancel="{{ 'idoklad.undo.confirm_cancel'|trans }}" data-confirm-tone="danger">
+            <form method="post" action="{{ path('app_idoklad_undo', {id: firm.id, run: run.id}) }}" data-controller="confirm-submit" data-action="submit->confirm-submit#ask" data-confirm-title="{{ 'idoklad.undo.confirm'|trans }}" data-confirm-text="{{ 'idoklad.undo.confirm_text'|trans }}" data-confirm-accept="{{ 'idoklad.undo.confirm_accept'|trans }}" data-confirm-cancel="{{ 'idoklad.undo.confirm_cancel'|trans }}" data-confirm-tone="danger">
                 <input type="hidden" name="_token" value="{{ token }}">
                 <twig:Ui:Button type="submit" icon="archive-restore">{{ 'idoklad.undo.button'|trans }}</twig:Ui:Button>
             </form>

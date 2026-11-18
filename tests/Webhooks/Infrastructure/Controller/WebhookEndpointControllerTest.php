@@ -250,7 +250,8 @@ final class WebhookEndpointControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter(\sprintf('[data-webhook-deliveries] form[action="'.$redeliver.'"]', $failed)));
         self::assertCount(0, $crawler->filter(\sprintf('[data-webhook-deliveries] form[action="'.$redeliver.'"]', $pending)));
         self::assertCount(0, $crawler->filter(\sprintf('[data-webhook-deliveries] form[action="'.$redeliver.'"]', $ping)));
-        self::assertCount(1, $crawler->filter('[data-webhook-deliveries] a[href="/settings/webhooks/'.$id.'/deliveries/'.$failed.'"][data-dialog]'));
+        self::assertCount(1, $crawler->filter('[data-webhook-deliveries] a[href="/settings/webhooks/'.$id.'/deliveries/'.$failed.'"][data-dialog]:not([data-row-link])'));
+        self::assertCount(1, $crawler->filter('[data-webhook-deliveries] a[data-row-link][href="/settings/webhooks/'.$id.'/deliveries/'.$failed.'"][data-dialog]'), 'The row opens its attempts in a modal.');
 
         $this->client->submit($crawler->filter(\sprintf('form[action="'.$redeliver.'"]', $failed))->form());
 
