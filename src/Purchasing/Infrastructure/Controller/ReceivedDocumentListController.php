@@ -324,7 +324,7 @@ final class ReceivedDocumentListController extends AbstractController
         $total = $row->total instanceof Money ? $this->text->amount($row->total) : '';
         $cells = [
             'number' => $label,
-            'supplier' => $row->supplierName,
+            'supplier' => null === $row->supplierId || '' === $row->supplierName ? $row->supplierName : ['links' => [['text' => $row->supplierName, 'href' => $this->generateUrl('app_contact_show', ['id' => $row->supplierId])]], 'title' => $row->supplierName],
             'supplierNumber' => $row->supplierNumber,
             'monthDay' => $row->monthDay()?->format($date) ?? '',
             'total' => $total,

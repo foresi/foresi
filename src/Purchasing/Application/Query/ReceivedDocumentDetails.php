@@ -99,6 +99,7 @@ final readonly class ReceivedDocumentDetails
             $document->deletedAt(),
             $document->deletedBy(),
             $document->deletedReason(),
+            $document->supplierParty()?->id(),
         );
     }
 }

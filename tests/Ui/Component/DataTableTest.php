@@ -198,7 +198,7 @@ final class DataTableTest extends KernelTestCase
 
         $html = $this->render(['columns' => $columns, 'rows' => $rows]);
 
-        self::assertMatchesRegularExpression('~<a href="/invoices/1/edit" data-turbo="false"[^>]*>20260001</a>, <a href="/invoices/2/edit" data-turbo="false"[^>]*>20260002</a>~', $html);
+        self::assertMatchesRegularExpression('~<a href="/invoices/1/edit" data-turbo="false" data-chip[^>]*><span class="truncate">20260001</span></a><a href="/invoices/2/edit" data-turbo="false" data-chip[^>]*><span class="truncate">20260002</span></a>~', $html);
         self::assertStringNotContainsString('data-row-link', $html, 'The links are the cell, not a link of the row.');
     }
 
@@ -303,7 +303,7 @@ final class DataTableTest extends KernelTestCase
         self::assertStringContainsString('<table', $html);
         self::assertMatchesRegularExpression('#<caption[^>]*sr-only[^>]*>Contacts</caption>#', $html);
         self::assertSame(3, substr_count($html, '<th scope="col"'));
-        self::assertStringNotContainsString('data-controller', $html);
+        self::assertStringContainsString('data-controller="row-link"', $html);
     }
 
     public function testSortableHeaderIsALinkWithAriaSort(): void
@@ -329,7 +329,7 @@ final class DataTableTest extends KernelTestCase
     {
         $html = $this->render(['selectable' => true]);
 
-        self::assertStringContainsString('data-controller="table-selection"', $html);
+        self::assertStringContainsString('data-controller="row-link table-selection"', $html);
         self::assertStringContainsString('aria-label="Vybrat všechny řádky"', $html);
         self::assertStringContainsString('aria-label="Vybrat řádek Example Company"', $html);
         self::assertStringContainsString('aria-label="Vybrat řádek Second Ltd"', $html);
@@ -480,10 +480,46 @@ final class DataTableTest extends KernelTestCase
         self::assertMatchesRegularExpression('#<td[^>]*>\s*0\s*</td>#', $html);
     }
 
-    public function testRowsAreClickableOnlyWhenSelectable(): void
+    public function testEveryRowWithALinkIsClickableAndTintsOnHoverAndFocus(): void
     {
-        self::assertStringNotContainsString('cursor-pointer', $this->render());
-        self::assertStringContainsString('cursor-pointer', $this->render(['selectable' => true]));
+        $crawler = new Crawler($this->render());
+        self::assertSame('row-link', $crawler->filter('[data-controller]')->first()->attr('data-controller'));
+        self::assertStringContainsString('cursor-pointer', (string) $crawler->filter('tbody tr')->first()->attr('class'));
+        $cell = explode(' ', (string) $crawler->filter('tbody td')->first()->attr('class'));
+        self::assertContains('group-hover:bg-frame', $cell);
+        self::assertContains('group-focus-within:bg-frame', $cell);
+        self::assertStringNotContainsString('hover:underline', (string) $crawler->filter('[data-row-link]')->first()->attr('class'), 'The tint shows the row opens, not an underline.');
+
+        $selectable = new Crawler($this->render(['selectable' => true]));
+        self::assertSame('row-link table-selection', $selectable->filter('[data-controller]')->first()->attr('data-controller'));
+    }
+
+    public function testARowWithoutALinkIsNotClickable(): void
+    {
+        $html = $this->render(['rows' => [['id' => 'a1', 'cells' => ['name' => 'Payment']]]]);
+
+        self::assertStringNotContainsString('cursor-pointer', $html);
+    }
+
+    public function testLinkedRecordsAreChipsOfTheirOwn(): void
+    {
+        $rows = [['id' => 'a1', 'href' => '/payments/a1', 'cells' => ['name' => 'Payment', 'paid' => ['links' => [['text' => '20260001', 'href' => '/invoices/1/edit']]]]]];
+        $crawler = new Crawler($this->render(['columns' => [['key' => 'name', 'label' => 'Name'], ['key' => 'paid', 'label' => 'Paid']], 'rows' => $rows]));
+        $chip = $crawler->filter('[data-links] a[data-chip]');
+
+        self::assertCount(1, $chip);
+        self::assertSame('/invoices/1/edit', $chip->attr('href'));
+        self::assertNull($chip->attr('data-row-link'));
+        // At least the 24 px target of WCAG 2.5.8.
+        self::assertContains('h-6', explode(' ', (string) $chip->attr('class')));
+    }
+
+    public function testRowMenuItemsAreCompact(): void
+    {
+        $rows = [['id' => 'a1', 'href' => '/a1', 'cells' => ['name' => 'A'], 'actions' => [['label' => 'Edit', 'href' => '/a1/edit']]]];
+        $crawler = new Crawler($this->render(['columns' => [['key' => 'name', 'label' => 'Name']], 'rows' => $rows]));
+
+        self::assertContains('min-h-8', explode(' ', (string) $crawler->filter('[role="menuitem"]')->attr('class')));
     }
 
     public function testNoTotalsNoFooterRow(): void

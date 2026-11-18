@@ -3,8 +3,6 @@
  */
 import { Controller } from '@hotwired/stimulus';
 
-const INTERACTIVE = 'a, button, input, label, select, textarea, summary';
-
 /**
  * Row selection for a data table: checkboxes, select all with an indeterminate
  * state, shift-click ranges and keyboard navigation. The bulk bar and its
@@ -97,8 +95,8 @@ export default class extends Controller {
         return template.replace('{count}', String(count));
     }
 
-    // A click on the row itself (not on a control or selected text) follows its primary link;
-    // a click in the checkbox cell toggles the checkbox. Modified and non-primary clicks are left to the browser.
+    // A click in the checkbox cell toggles the checkbox; a click elsewhere on the row is left to
+    // the row-link controller. Modified and non-primary clicks are left to the browser.
     rowClick(event) {
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.defaultPrevented) {
             return;
@@ -109,18 +107,8 @@ export default class extends Controller {
         }
         const box = row.querySelector('[data-table-selection-target~="check"]');
         const cell = event.target.closest('td');
-        if (box && cell && cell.contains(box)) {
-            if (!event.target.closest('label, input')) {
-                box.click();
-            }
-            return;
-        }
-        if (event.target.closest(INTERACTIVE) || String(window.getSelection()).length > 0) {
-            return;
-        }
-        const link = row.querySelector('[data-row-link]');
-        if (link) {
-            link.click();
+        if (box && cell && cell.contains(box) && !event.target.closest('label, input')) {
+            box.click();
         }
     }
 

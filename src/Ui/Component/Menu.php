@@ -31,6 +31,9 @@ final class Menu
     /** One option row of a menu or a listbox. */
     public const string OPTION = 'group flex min-h-control w-full cursor-pointer items-center gap-2 rounded-option border-0 bg-transparent px-3 py-2.5 text-left font-medium text-ink no-underline transition-colors';
 
+    /** A compact option row (32 px, small text) for the row menu of a data table; still above the 24 px target of WCAG 2.5.8. */
+    public const string OPTION_SM = 'group flex min-h-8 w-full cursor-pointer items-center gap-2 rounded-option border-0 bg-transparent px-2.5 py-1.5 text-left text-small font-medium text-ink no-underline transition-colors';
+
     private const array PLACEMENTS = ['below' => 'top-full mt-1', 'above' => 'bottom-full mb-1'];
 
     private const array ALIGNS = ['end' => 'right-0', 'start' => 'left-0'];

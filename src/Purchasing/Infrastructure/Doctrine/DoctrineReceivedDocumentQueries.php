@@ -31,7 +31,7 @@ use Doctrine\ORM\Query;
 final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocumentQueries
 {
     private const string COLUMNS = 'd.id, f.id AS firmId, f.name AS firmName, d.state, d.kind, d.treatment, d.evidenceNumber, d.supplier.name AS supplierName, d.supplierNumber, '
-        .'d.issueDate, d.taxPointDate, d.receivedDate, d.currency, d.totalMinor, d.vatCzkMinor, d.createdAt, d.deletedAt, d.deletedBy, d.deletedReason';
+        .'d.issueDate, d.taxPointDate, d.receivedDate, d.currency, d.totalMinor, d.vatCzkMinor, d.createdAt, d.deletedAt, d.deletedBy, d.deletedReason, IDENTITY(d.supplierParty) AS supplierId';
     /** A document from abroad belongs to the month of its issue date (ReceivedDocumentFilter::byIssueDate). */
     private const string FROM_ABROAD = '(d.kind = :abroadKind OR d.treatment IN (:abroadTreatments))';
 
@@ -238,7 +238,7 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
     private function rowsOf(array $result): array
     {
         $rows = [];
-        /** @var array{id: string, firmId: string, firmName: string, state: ReceivedDocumentState|string, kind: ReceivedDocumentKind|string, treatment: PurchaseTaxTreatment|string, evidenceNumber: ?string, supplierName: string, supplierNumber: string, issueDate: ?\DateTimeImmutable, taxPointDate: ?\DateTimeImmutable, receivedDate: ?\DateTimeImmutable, currency: Currency|string, totalMinor: int|string|null, vatCzkMinor: int|string|null, createdAt: \DateTimeImmutable, deletedAt: ?\DateTimeImmutable, deletedBy: ?string, deletedReason: ?string} $row */
+        /** @var array{id: string, firmId: string, firmName: string, state: ReceivedDocumentState|string, kind: ReceivedDocumentKind|string, treatment: PurchaseTaxTreatment|string, evidenceNumber: ?string, supplierName: string, supplierNumber: string, issueDate: ?\DateTimeImmutable, taxPointDate: ?\DateTimeImmutable, receivedDate: ?\DateTimeImmutable, currency: Currency|string, totalMinor: int|string|null, vatCzkMinor: int|string|null, createdAt: \DateTimeImmutable, deletedAt: ?\DateTimeImmutable, deletedBy: ?string, deletedReason: ?string, supplierId: ?string} $row */
         foreach ($result as $row) {
             $currency = $row['currency'] instanceof Currency ? $row['currency'] : Currency::from($row['currency']);
             $rows[] = new ReceivedDocumentRow(
@@ -260,6 +260,7 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
                 $row['deletedAt'],
                 $row['deletedBy'],
                 $row['deletedReason'],
+                $row['supplierId'],
             );
         }
 

@@ -373,7 +373,7 @@ final class RecurringListController extends AbstractController
         $nextText = RecurringState::Active === $state && $next instanceof \DateTimeImmutable ? $this->date($next) : '';
         $cells = [
             'name' => $template->name(),
-            'customer' => $customer,
+            'customer' => ['links' => [['text' => $customer, 'href' => $this->generateUrl('app_contact_show', ['id' => $template->customer()->id()])]], 'title' => $customer],
             'description' => $description,
             'interval' => $this->schedule($template),
             'next' => $nextText,

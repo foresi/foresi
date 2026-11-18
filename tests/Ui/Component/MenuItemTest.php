@@ -19,7 +19,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class MenuItemTest extends TestCase
 {
-    private static function item(?string $href = null, string $type = 'button', ?string $icon = null, string $tone = 'default', ?bool $checked = null, bool $disabled = false): MenuItem
+    private static function item(?string $href = null, string $type = 'button', ?string $icon = null, string $tone = 'default', ?bool $checked = null, bool $disabled = false, string $size = 'md'): MenuItem
     {
         $item = new MenuItem();
         $item->href = $href;
@@ -28,6 +28,7 @@ final class MenuItemTest extends TestCase
         $item->tone = $tone;
         $item->checked = $checked;
         $item->disabled = $disabled;
+        $item->size = $size;
 
         return $item;
     }
@@ -71,6 +72,12 @@ final class MenuItemTest extends TestCase
         self::assertStringEndsWith(Style::FIELD_FOCUS, $item->classes());
     }
 
+    public function testTheCompactRowOfADataTableMenu(): void
+    {
+        self::assertStringStartsWith(Menu::OPTION_SM.' ', self::item(size: 'sm')->classes());
+        self::assertStringContainsString('min-h-8', Menu::OPTION_SM);
+    }
+
     /**
      * @return iterable<string, array{MenuItem}>
      */
@@ -98,6 +105,7 @@ final class MenuItemTest extends TestCase
         yield 'an unknown icon' => [self::item(icon: 'rocket'), 'Icon "rocket" is not in the locked icon set.'];
         yield 'an unsafe href' => [self::item(href: '/a b'), 'Unsafe href.'];
         yield 'an unknown tone' => [self::item(tone: 'loud'), 'Unknown menu item tone "loud", expected one of: default, danger.'];
+        yield 'an unknown size' => [self::item(size: 'lg'), 'Unknown menu item size "lg", expected md or sm.'];
     }
 
     #[DataProvider('invalidItems')]
