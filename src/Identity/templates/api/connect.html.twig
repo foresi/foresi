@@ -4,7 +4,7 @@
     copy-ready setup for each client, a first prompt that checks the connection, what the access of a
     token means and how to keep it safe. The token itself is <token> here; the window of a new token
     shows the Claude Code command with the real one. docs/mcp.md says the same at length.
-    Variables: canIssue, server, scopes (scope => label).
+    Variables: canIssue, server, setup (the setup file for an agent), scopes (scope => label).
 #}
 {% extends 'layout/app.html.twig' %}
 
@@ -45,6 +45,14 @@
                         <li>{{ 'api_tokens.connect.steps.check'|trans }}</li>
                     </ol>
                 </section>
+            </div>
+        </twig:Ui:Card>
+
+        <twig:Ui:Card :title="'api_tokens.connect.install.title'|trans" data-mcp-install>
+            <div class="grid gap-3">
+                <p class="m-0 text-text">{{ 'api_tokens.connect.install.text'|trans }}</p>
+                <twig:Ui:CodeBlock id="mcp-install" :label="'api_tokens.connect.install.title'|trans" :code="'api_tokens.connect.install.prompt'|trans({url: setup})" :wrap="true" />
+                <p class="m-0 text-small text-muted">{{ 'api_tokens.connect.install.file'|trans }} <a href="{{ setup }}" class="font-medium text-green underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ setup }}</a></p>
             </div>
         </twig:Ui:Card>
 
