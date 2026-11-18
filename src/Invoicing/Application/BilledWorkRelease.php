@@ -19,6 +19,8 @@ use Foresi\Invoicing\Domain\Invoice;
  */
 interface BilledWorkRelease
 {
+    public const string TAG = 'app.billed_work_release';
+
     /**
      * @param Invoice $invoice in the trash already
      */

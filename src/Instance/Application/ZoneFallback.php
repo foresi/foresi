@@ -15,6 +15,8 @@ namespace Foresi\Instance\Application;
  */
 interface ZoneFallback
 {
+    public const string TAG = 'app.zone_fallback';
+
     /**
      * Null when it knows none, such as before the first firm.
      */

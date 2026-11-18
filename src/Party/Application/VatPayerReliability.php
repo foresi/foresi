@@ -16,6 +16,8 @@ use Foresi\Party\Domain\VatId;
  */
 interface VatPayerReliability
 {
+    public const string TAG = 'app.vat_payer_reliability';
+
     public function check(VatId $vatId): ReliabilityResult;
 
     /**

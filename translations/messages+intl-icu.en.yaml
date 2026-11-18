@@ -1846,6 +1846,7 @@ invoice:
     import_kind_unsupported: This kind of document is not imported yet.
     numbers_exhausted: This series has no numbers left.
     payable_negative: The total must not be negative.
+    billed_work_gone: The work chosen for this invoice is no longer there to bill. Open its billing again.
     correction_kind: Only a corrective tax document names a corrected document.
     correction_link_missing: Choose the invoice this document corrects.
     correction_link_locked: A corrective document keeps the invoice it corrects.

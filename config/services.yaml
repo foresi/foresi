@@ -100,6 +100,19 @@ services:
         # Takes each event the relay numbers, in its transaction, such as the webhooks.
         Foresi\Events\Application\EventSink:
             tags: ['app.event_sink']
+        # Ports served by other modules; each collects its providers (ADR 0034, rule 3).
+        Foresi\Instance\Application\ZoneFallback:
+            tags: ['app.zone_fallback']
+        Foresi\Invoicing\Application\BilledWork:
+            tags: ['app.billed_work']
+        Foresi\Invoicing\Application\BilledWorkRelease:
+            tags: ['app.billed_work_release']
+        Foresi\Invoicing\Application\PaymentSourceRelease:
+            tags: ['app.payment_source_release']
+        Foresi\Party\Application\CompanyRegistry:
+            tags: ['app.company_registry']
+        Foresi\Party\Application\VatPayerReliability:
+            tags: ['app.vat_payer_reliability']
 
     Foresi\Party\Application\RegistrationNumberFactory:
         arguments:
@@ -112,9 +125,17 @@ services:
     Foresi\Party\Application\ManageFirmBankAccounts:
         arguments:
             $domesticAccounts: !tagged_iterator app.domestic_bank_account
-    # Banking records the movements that fix an account's currency.
-    Foresi\Party\Application\BankAccountUsage:
-        alias: Foresi\Banking\Infrastructure\MovementUsage
+    # Modules that record movements, such as Banking, fix an account's currency.
+    Foresi\Party\Contract\BankAccountUsage:
+        alias: Foresi\Party\Infrastructure\CollectedBankAccountUsage
+    # Country modules offer their registers; without one, lookups come back empty.
+    Foresi\Party\Application\CompanyRegistry:
+        alias: Foresi\Party\Infrastructure\Registry\CollectedCompanyRegistry
+    Foresi\Party\Application\VatPayerReliability:
+        alias: Foresi\Party\Infrastructure\Registry\CollectedVatPayerReliability
+    # Modules built on Instance may know its zone, such as Invoicing from a firm's country.
+    Foresi\Instance\Application\ZoneFallback:
+        alias: Foresi\Instance\Infrastructure\CollectedZoneFallback
 
     Foresi\Invoicing\Application\InvoicingCountries:
         arguments:
@@ -236,11 +257,6 @@ services:
         alias: Foresi\Invoicing\Infrastructure\Doctrine\DoctrineMailServers
     Foresi\Invoicing\Application\MailSecrets:
         alias: Foresi\Invoicing\Infrastructure\Mail\SodiumMailSecrets
-    # Events are recorded on the connection of the use case; the transaction hooks tell the same object how the unit ended.
-    Foresi\Shared\Application\Event\EventRecorder:
-        alias: Foresi\Events\Infrastructure\Dbal\DbalEventRecorder
-    Foresi\Shared\Application\Event\EventOutbox:
-        alias: Foresi\Events\Infrastructure\Dbal\DbalEventRecorder
     Foresi\Shared\Application\Sealer:
         alias: Foresi\Shared\Infrastructure\Crypto\SodiumSealer
     Foresi\Invoicing\Application\MailHostPolicy:
@@ -295,16 +311,16 @@ services:
         alias: Foresi\Invoicing\Infrastructure\Doctrine\DoctrineInvoicePayments
     # A cancelled bank payment returns its movement to the unmatched ones.
     Foresi\Invoicing\Application\PaymentSourceRelease:
-        alias: Foresi\Banking\Infrastructure\ReleaseMovement
+        alias: Foresi\Invoicing\Infrastructure\CollectedPaymentSourceRelease
     # Time is the work an invoice may bill; issuing it locks the time.
     Foresi\Invoicing\Application\BilledWork:
-        alias: Foresi\Timesheet\Application\TimeBilledWork
+        alias: Foresi\Invoicing\Infrastructure\CollectedBilledWork
     # An invoice in the trash frees its time, and restoring it bills the time again.
     Foresi\Invoicing\Application\BilledWorkRelease:
-        alias: Foresi\Timesheet\Application\ReleaseTime
+        alias: Foresi\Invoicing\Infrastructure\CollectedBilledWorkRelease
     # A line of invoiced time names its invoice.
-    Foresi\Work\Application\InvoiceNumbers:
-        alias: Foresi\Timesheet\Infrastructure\Doctrine\DoctrineInvoiceNumbers
+    Foresi\Work\Contract\InvoiceNumbers:
+        alias: Foresi\Work\Infrastructure\CollectedInvoiceNumbers
 
     # Links to sent documents are derived from the application secret, never stored.
     Foresi\Invoicing\Application\LinkTokens:
@@ -793,8 +809,8 @@ when@test:
         Foresi\Banking\Application\PairMovement: { public: true }
         Foresi\Banking\Application\UnpairMovement: { public: true }
         Foresi\Banking\Application\Matcher: { public: true }
-        Foresi\Party\Application\BankAccountUsage:
-            alias: Foresi\Banking\Infrastructure\MovementUsage
+        Foresi\Party\Contract\BankAccountUsage:
+            alias: Foresi\Party\Infrastructure\CollectedBankAccountUsage
             public: true
 
         # Stands in for a plugin adding a sidebar item.
