@@ -194,8 +194,8 @@ final class ManageTimeTest extends WorkTestCase
 
         $this->signIn($this->member);
         $this->assertRefused('time_not_yours', fn () => $this->time->edit($theirs->id(), null, $day, 30, null, null, '', false));
-        $this->assertRefused('time_not_yours', fn (): \Foresi\Work\Domain\TimeEntry => $this->time->delete($theirs->id()));
-        $this->assertRefused('unknown', fn (): \Foresi\Work\Domain\TimeEntry => $this->time->delete(Id::generate()));
+        $this->assertRefused('time_not_yours', fn (): TimeEntry => $this->time->delete($theirs->id()));
+        $this->assertRefused('unknown', fn (): TimeEntry => $this->time->delete(Id::generate()));
         $timer = $this->time->startTimer($this->project->id(), null);
         $this->assertRefused('timer_running', fn () => $this->time->edit($timer->id(), null, $day, 30, null, null, '', false));
 
@@ -219,7 +219,7 @@ final class ManageTimeTest extends WorkTestCase
         $entry = $this->time->log($this->project->id(), $this->task->id(), new \DateTimeImmutable('2026-11-09'), 30);
 
         $this->signIn($this->guest);
-        $this->assertRefused('unknown', fn (): \Foresi\Work\Domain\TimeEntry => $this->time->delete($entry->id()));
+        $this->assertRefused('unknown', fn (): TimeEntry => $this->time->delete($entry->id()));
         self::assertNull($this->timeQueries->ofTask($this->task->id()));
     }
 
@@ -231,7 +231,7 @@ final class ManageTimeTest extends WorkTestCase
         $this->em->clear();
 
         $this->assertRefused('time_invoiced', fn () => $this->time->edit($entry->id(), null, new \DateTimeImmutable('2026-11-09'), 60, null, null, '', false));
-        $this->assertRefused('time_invoiced', fn (): \Foresi\Work\Domain\TimeEntry => $this->time->delete($entry->id()));
+        $this->assertRefused('time_invoiced', fn (): TimeEntry => $this->time->delete($entry->id()));
     }
 
     public function testAnEstimateIsSetOnATaskTheTeamSees(): void
