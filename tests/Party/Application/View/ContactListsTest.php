@@ -24,7 +24,7 @@ final class ContactListsTest extends KernelTestCase
 {
     public function testItShipsTheTabsItHadInTheirOrderWithTheirCounts(): void
     {
-        $lists = self::lists();
+        $lists = $this->lists();
         $list = $lists->list();
 
         self::assertSame([$list], iterator_to_array($lists->lists()));
@@ -46,7 +46,7 @@ final class ContactListsTest extends KernelTestCase
 
     public function testEveryAttributeWithAnExpressionIsAFieldBesideTheTwoTheModuleCompiles(): void
     {
-        $fields = self::lists()->list()->fields;
+        $fields = $this->lists()->list()->fields;
 
         self::assertSame([
             'archived', 'unreliable_payer', 'name', 'kind', 'roles', 'registration_number', 'vat_id', 'email', 'phone', 'mobile', 'website',
@@ -66,13 +66,13 @@ final class ContactListsTest extends KernelTestCase
 
     public function testAViewKeptOnTheRoleReadsAsTheSetOfRoles(): void
     {
-        $list = self::lists()->list();
+        $list = $this->lists()->list();
 
         self::assertEquals(ViewFilter::all(new Condition('roles', 'has_any_of', ['customer'])), ViewFilter::parse(['conditions' => [['field' => 'role', 'op' => 'is', 'value' => 'customer']]], $list));
         self::assertEquals(ViewFilter::all(new Condition('roles', 'has_none_of', ['partner', 'authority'])), ViewFilter::parse(['conditions' => [['field' => 'role', 'op' => 'is_none_of', 'value' => ['partner', 'authority']]]], $list));
     }
 
-    private static function lists(): ContactLists
+    private function lists(): ContactLists
     {
         return self::getContainer()->get(ContactLists::class);
     }

@@ -116,7 +116,7 @@ final readonly class DqlConditions
         }
         $alias = '/\b'.$match[2].'\./';
         $own = $match[2].'_'.$name;
-        $within = $match[1].' '.$own.' '.(string) preg_replace($alias, $own.'.', substr($field->within, \strlen($match[0]) - 6));
+        $within = $match[1].' '.$own.' '.preg_replace($alias, $own.'.', substr($field->within, \strlen($match[0]) - 6));
         $column = (string) preg_replace($alias, $own.'.', $column);
         $negated = self::NEGATIONS[$condition->op] ?? null;
         [$dql, $bound] = $this->stored(null === $negated ? $condition : new Condition($condition->field, $negated, $condition->value), $field, $column, $today, $name);

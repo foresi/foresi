@@ -52,13 +52,13 @@ final class ContactLists implements ListDefinitionSource
         return $this->list ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, [
             new Field(self::ARCHIVED, FieldType::Boolean, 'party.view.archived'),
             new Field(self::UNRELIABLE_PAYER, FieldType::Boolean, 'party.field.unreliablePayerResult'),
-        ]), self::defaults());
+        ]), $this->defaults());
     }
 
     /**
      * @return list<DefaultView>
      */
-    private static function defaults(): array
+    private function defaults(): array
     {
         return [
             new DefaultView('all', 'party.view.all', position: 0),
