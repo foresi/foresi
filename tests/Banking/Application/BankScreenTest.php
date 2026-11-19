@@ -11,6 +11,8 @@ namespace Foresi\Tests\Banking\Application;
 use Foresi\Banking\Application\BankScreen;
 use Foresi\Banking\Application\MovementFilter;
 use Foresi\Banking\Application\MovementPage;
+use Foresi\Banking\Application\View\BankMovementLists;
+use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Tests\Banking\Support\ScreenStores;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -35,40 +37,56 @@ final class BankScreenTest extends TestCase
             'account-a' => ['firmId' => 'firm-a', 'label' => 'Main', 'iban' => 'CZ6508000000192000145399'],
             'account-b' => ['firmId' => 'firm-b', 'label' => '', 'iban' => 'CZ5508000000001234567899'],
         ], $page->accounts);
-        self::assertSame([3, 7, 2], [$page->total, $page->unmatched, $page->attention]);
+        self::assertSame([3, [], false], [$page->total, $page->counts, $page->mail]);
     }
 
-    /**
-     * @return iterable<string, array{?string, ?string, string}>
-     */
-    public static function filters(): iterable
+    public function testCountsTheMovementViewsInOneQueryWithinTheTextAndTheMailViewsByWhatWaits(): void
     {
-        // [firm, account] → the firm and account the stores are asked about
-        yield 'an account of the firm' => ['firm-a', 'account-a', 'firm-a:account-a'];
-        yield 'an account of another firm is no filter' => ['firm-a', 'account-b', 'firm-a:-'];
-        yield 'an account without a firm' => [null, 'account-b', '-:account-b'];
-        yield 'an account of no one' => [null, 'account-x', '-:-'];
-        yield 'a firm of no one' => ['firm-x', 'account-a', '-:account-a'];
+        $stores = new ScreenStores(self::ACCOUNTS, 3, 0, attention: 2);
+        $views = $this->views();
+
+        $page = $this->page($stores, new MovementFilter($views['incoming'], 'rent', counted: ['unmatched' => $views['unmatched'], 'messages' => $views['messages'], 'outgoing_unmatched' => $views['outgoing_unmatched']]));
+
+        self::assertSame(['unmatched' => 9, 'outgoing_unmatched' => 9, 'messages' => 2], $page->counts);
+        self::assertSame([
+            'movements:[{"field":"direction","op":"is","value":"incoming"}]:rent',
+            'counts:rent:unmatched,outgoing_unmatched',
+            'attention:11:00:[{"field":"bank_mail","op":"is","value":true}]',
+            'rows:0:25',
+        ], $stores->asked, 'The mail is counted by what waits since an hour before now.');
     }
 
-    #[DataProvider('filters')]
-    public function testAFilterOfNoOneIsNoFilter(?string $firm, ?string $account, string $asked): void
+    public function testCountsNoMovementWhenOnlyTheMailShowsACount(): void
     {
-        $stores = new ScreenStores(self::ACCOUNTS, 3, 0);
+        $stores = new ScreenStores(self::ACCOUNTS, 3, 0, attention: 0);
 
-        $this->page($stores, new MovementFilter(MovementFilter::INCOMING, $firm, $account));
+        $page = $this->page($stores, new MovementFilter(counted: ['messages' => $this->views()['messages']]));
 
-        self::assertSame(['movements:incoming:'.$asked, 'rows:0:25', 'movements:unmatched:'.$asked, 'movements:outgoing_unmatched:'.$asked], $stores->asked);
+        self::assertSame(['messages' => 0], $page->counts);
+        self::assertNotContains('counts:', array_map(static fn (string $asked): string => substr($asked, 0, 7), $stores->asked));
     }
 
-    public function testTheMessagesTabCountsAndPagesTheMessages(): void
+    public function testAViewOfTheMailCountsAndPagesTheMessages(): void
     {
         $stores = new ScreenStores(self::ACCOUNTS, 3, 30);
 
-        $page = $this->page($stores, new MovementFilter(MovementFilter::MESSAGES, page: 2));
+        $page = $this->page($stores, new MovementFilter($this->views()['messages'], page: 2));
 
-        self::assertSame([30, 2, 2], [$page->total, $page->page, $page->pages]);
-        self::assertSame(['messages:messages:-:-', 'messageRows:25:25', 'movements:unmatched:-:-', 'movements:outgoing_unmatched:-:-'], $stores->asked);
+        self::assertSame([30, 2, 2, true, []], [$page->total, $page->page, $page->pages, $page->mail, $page->rows]);
+        self::assertSame(['messages:[{"field":"bank_mail","op":"is","value":true}]', 'messageRows:25:25'], $stores->asked);
+    }
+
+    /**
+     * @return array<string, ViewFilter>
+     */
+    private function views(): array
+    {
+        $views = [];
+        foreach (BankMovementLists::of([])->defaults as $view) {
+            $views[$view->slug] = $view->filter;
+        }
+
+        return $views;
     }
 
     /**

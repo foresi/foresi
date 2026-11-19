@@ -58,10 +58,10 @@ final readonly class BankNotices implements ShellNoticeProvider
         }
     }
 
-    private function href(string $tab): ?string
+    private function href(string $view): ?string
     {
         try {
-            return $this->urls->generate(self::ROUTE, ['tab' => $tab]);
+            return $this->urls->generate(self::ROUTE, ['view' => $view]);
         } catch (RouteNotFoundException) {
             return null;
         }

@@ -198,7 +198,7 @@ A value an endpoint cannot use, such as a date that is not a date or a `limit` a
 
 ## Saved views
 
-A saved view is a named filter of a list, with its sort and columns, such as "Due this week" on the invoices. It is private to its owner or shared with every owner and member; the views a module ships, such as the tabs of the invoice lists, are shared and have a `system_key`, such as `invoicing.invoices.overdue`, which names them wherever an id does. Guests never see views. The reads need `views:read`, the writes `views:write`, and reading the records of a view also needs the scope of its list, such as `invoices:read`.
+A saved view is a named filter of a list, with its sort and columns, such as "Due this week" on the invoices. It is private to its owner or shared with every owner and member; the views a module ships, such as the tabs of the invoice lists, are shared and have a `system_key`, such as `invoicing.invoices.overdue`, which names them wherever an id does. Guests never see views. The reads need `views:read`, the writes `views:write`, and reading the records of a view also needs the scope of its list, such as `invoices:read`; the bank movements (`banking.movements`) are read with `payments:read`, by staff only.
 
 `GET /api/v1/lists` describes every list views filter, so a client builds a filter without guessing. Each list has its `key`, its `fields` (`key`, `type`, `label`, the `operators` it takes and, for an enum, its `options`), its `columns` (`key`, `label`, `sortable`, `default`, `locked`) and its `default_views`. `date_values` lists the date values every date field takes.
 

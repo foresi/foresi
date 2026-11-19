@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Banking\Application;
 
 use Foresi\Banking\Domain\BankMovement;
+use Foresi\Shared\Application\View\ViewFilter;
 
 /**
  * The bank movements. Call the writing methods inside TransactionalWork, which
@@ -73,9 +74,19 @@ interface BankMovements
     public function accounts(): array;
 
     /**
-     * How many movements the filter finds; the Messages tab finds none.
+     * How many movements the filter finds within its view and text; a view of the
+     * bank mail finds none.
      */
     public function count(MovementFilter $filter): int;
+
+    /**
+     * How many movements each view holds within the text, all in one query (spec D9).
+     *
+     * @param array<string, ViewFilter> $views by key, none of the bank mail
+     *
+     * @return array<string, int> by the same key
+     */
+    public function counts(string $text, array $views): array;
 
     /**
      * The movements the filter finds, newest booked first, each with the numbers of

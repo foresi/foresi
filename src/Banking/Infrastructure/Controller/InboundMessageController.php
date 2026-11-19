@@ -16,11 +16,11 @@ use Foresi\Banking\Application\InboundAddresses;
 use Foresi\Banking\Application\InboundFiles;
 use Foresi\Banking\Application\InboundMessages;
 use Foresi\Banking\Application\MailReader;
-use Foresi\Banking\Application\MovementFilter;
 use Foresi\Banking\Application\Ownership;
 use Foresi\Banking\Application\ProcessMessage;
 use Foresi\Banking\Application\RetryInboundMessage;
 use Foresi\Banking\Application\UnknownInboundMessage;
+use Foresi\Banking\Application\View\BankMovementLists;
 use Foresi\Banking\Contract\NotificationLines;
 use Foresi\Banking\Domain\InboundMessage;
 use Foresi\Banking\Domain\InboundStatus;
@@ -244,7 +244,7 @@ final class InboundMessageController extends AbstractController
         parse_str($return, $query);
         $query = array_filter(array_intersect_key($query, array_flip(BankMovementController::LIST_QUERY)), \is_string(...));
 
-        return $this->generateUrl('app_bank_movements', ['tab' => MovementFilter::MESSAGES] + $query);
+        return $this->generateUrl('app_bank_movements', ['view' => BankMovementLists::MESSAGES] + array_diff_key($query, ['tab' => true]));
     }
 
     private function denyUnlessStaff(): void
