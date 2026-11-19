@@ -4,7 +4,7 @@
     page of its own. The billing address keeps its type; another address is a delivery, postal or
     other one.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set editing = address is not null %}
 {% set crumbs = [{label: 'party.title'|trans, href: path('app_contacts')}, {label: party.displayName, href: cancel}, {label: (editing ? 'party.addresses.edit' : 'party.addresses.add')|trans}] %}

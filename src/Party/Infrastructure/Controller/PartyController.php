@@ -562,7 +562,7 @@ final class PartyController extends AbstractController
                 'label' => $type,
                 // An address is a small record: it opens in a modal over the contact (docs/design/overlays.md).
                 'href' => $this->generateUrl('app_contact_address_edit', $ids),
-                'opens' => DataTable::OPENS_DIALOG,
+                'opens' => Opens::DIALOG,
                 'cells' => [
                     'type' => $type,
                     'label' => $address->label(),
@@ -601,7 +601,7 @@ final class PartyController extends AbstractController
                 'label' => $iban,
                 // A bank account is a small record: it opens in a modal over the contact (docs/design/overlays.md).
                 'href' => $this->generateUrl('app_contact_account_edit', $ids),
-                'opens' => DataTable::OPENS_DIALOG,
+                'opens' => Opens::DIALOG,
                 'cells' => [
                     'iban' => $iban,
                     'bic' => $account->bic(),

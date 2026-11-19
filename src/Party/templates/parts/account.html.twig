@@ -4,7 +4,7 @@
     as a page of its own. The number is the account, so it is shown, not edited, once stored; a wrong
     one is deleted and added again.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set editing = account is not null %}
 {% set crumbs = [{label: 'party.title'|trans, href: path('app_contacts')}, {label: party.displayName, href: cancel}, {label: (editing ? 'party.accounts.edit' : 'party.accounts.add')|trans}] %}
