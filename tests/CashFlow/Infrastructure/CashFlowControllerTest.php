@@ -108,6 +108,43 @@ final class CashFlowControllerTest extends WebTestCase
         self::assertSame('2027-10', $periods->eq(11)->attr('data-period'));
     }
 
+    public function testThreeMonthsAreThirteenWeeksForTheChartAndTheTable(): void
+    {
+        $this->signedIn();
+        $this->dialogPost('/cash-flow/balance', ['amount' => '60000'] + $this->dialogForm('/cash-flow/balance', '#cash-flow-balance-form'));
+        $this->plan('2026-12-15', '20000.00');
+        // After the thirteenth week: the months view has it, the weeks view does not.
+        $this->plan('2027-03-10', '90000.00');
+
+        $crawler = $this->client->request('GET', '/cash-flow?view=weeks');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('3 months', $crawler->filter('[data-cash-flow-views] a[aria-current="page"]')->text());
+        $periods = $crawler->filter('[data-cash-flow-table] th[data-period]');
+        self::assertCount(13, $periods);
+        self::assertSame('2026-W47', $periods->eq(0)->attr('data-period'));
+        self::assertStringContainsString('Nov 19 – Nov 22', $periods->eq(0)->text());
+        self::assertSame('2027-W06', $periods->eq(12)->attr('data-period'));
+        self::assertCount(13, $crawler->filter('[data-cash-flow-chart] [data-balance-chart-target="period"]'));
+        self::assertSame('Money in and out and the closing balance of each week; the table below has the figures.', $crawler->filter('[data-cash-flow-chart] svg')->attr('aria-label'));
+        // The lowest point and the end are those of the thirteen weeks: the March rent is past them.
+        $kpis = $crawler->filter('[data-kpi]');
+        self::assertStringContainsString('40,000', $kpis->eq(1)->text());
+        self::assertStringContainsString('on Dec 15', $kpis->eq(1)->text());
+        self::assertStringContainsString('Feb 14', $kpis->eq(3)->text());
+        // A week's cell opens its items in the sheet.
+        $link = $crawler->filter('[data-cash-flow-table] tr[data-row="category"] a[data-sheet]');
+        self::assertCount(1, $link);
+        self::assertSame('/cash-flow/items?period=2026-W51&direction=out&category=rent', $link->attr('href'));
+        $this->client->request('GET', $link->attr('href'));
+        self::assertResponseIsSuccessful();
+
+        $months = $this->client->request('GET', '/cash-flow');
+        self::assertCount(12, $months->filter('[data-cash-flow-table] th[data-period]'));
+        self::assertCount(12, $months->filter('[data-cash-flow-chart] [data-balance-chart-target="period"]'));
+        self::assertStringContainsString('-50,000', $months->filter('[data-kpi]')->eq(1)->text());
+    }
+
     public function testAFutureBalanceIsRefusedInTheDialog(): void
     {
         $this->signedIn();

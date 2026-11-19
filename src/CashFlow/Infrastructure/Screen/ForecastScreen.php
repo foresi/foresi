@@ -36,6 +36,9 @@ final readonly class ForecastScreen
 {
     /** The view of twelve calendar months: no week in front of them. */
     public const string MONTHS = 'months';
+    /** The view of thirteen weeks, about three months, as Float's weekly view and Agicap's display frequency. */
+    public const string WEEKS = 'weeks';
+    public const int WEEK_COUNT = 13;
 
     public function __construct(
         private Forecasts $forecasts,
@@ -48,15 +51,86 @@ final readonly class ForecastScreen
     }
 
     /**
-     * The forecast of one granularity. Weeks are used while a week starts on or
-     * before weeks_until, so a day before today leaves none and the months start
-     * today.
+     * The forecast of one granularity: twelve calendar months, or thirteen weeks
+     * from this one. Weeks are used while a week starts on or before
+     * weeks_until, so a day before today leaves none and the months start
+     * today; for the weeks the months past the thirteenth week are dropped, and
+     * the lowest point and the first day below the minimum are those of the
+     * weeks kept.
      *
      * @throws \Foresi\CashFlow\Application\CashFlowRefused
      */
-    public function forecast(): Forecast
+    public function forecast(string $view = self::MONTHS): Forecast
     {
-        return $this->forecasts->of(null, 12, $this->clock->today()->modify('-1 day')->format('Y-m-d'));
+        $today = $this->clock->today();
+        if (self::WEEKS !== $view) {
+            return $this->forecasts->of(null, 12, $today->modify('-1 day')->format('Y-m-d'));
+        }
+        $lastWeek = $today->modify('monday this week')->modify(\sprintf('+%d weeks', self::WEEK_COUNT - 1));
+        $lastDay = $lastWeek->modify('+6 days');
+        $months = ((int) $lastDay->format('Y') - (int) $today->format('Y')) * 12 + (int) $lastDay->format('n') - (int) $today->format('n') + 1;
+
+        return $this->weeksOnly($this->forecasts->of(null, $months, $lastWeek->format('Y-m-d')));
+    }
+
+    /**
+     * The view a period key belongs to: "2026-W48" is a week, "2026-12" a month.
+     */
+    public static function viewOf(string $key): string
+    {
+        return str_contains($key, '-W') ? self::WEEKS : self::MONTHS;
+    }
+
+    /**
+     * The two views as the tabs over the chart, the one shown marked.
+     *
+     * @return list<array{label: string, href: string, active: bool}>
+     */
+    public function views(string $view): array
+    {
+        return [
+            ['label' => $this->trans('cash_flow.view.weeks'), 'href' => $this->urls->generate('app_cash_flow', ['view' => self::WEEKS]), 'active' => self::WEEKS === $view],
+            ['label' => $this->trans('cash_flow.view.months'), 'href' => $this->urls->generate('app_cash_flow'), 'active' => self::WEEKS !== $view],
+        ];
+    }
+
+    /**
+     * What Ui:BalanceChart draws: money in and out and the closing of each
+     * period in whole units, with the texts of its tooltip.
+     *
+     * @return array{periods: list<array<string, mixed>>, minimum: ?int, minimumText: ?string, label: string, legend: array<string, string>}
+     */
+    public function chart(Forecast $forecast): array
+    {
+        $periods = [];
+        foreach ($forecast->periods as $index => $period) {
+            $in = $this->total($period->inflows, $period->opening);
+            $out = $this->total($period->outflows, $period->opening);
+            $periods[] = [
+                'label' => $this->shortLabel($period, 0 === $index),
+                'in' => $this->units($in),
+                'out' => $this->units($out),
+                'closing' => $this->units($period->closing),
+                'inText' => $this->whole($in),
+                'outText' => $this->whole($out),
+                'closingText' => $this->whole($period->closing),
+                'below' => $forecast->minimum instanceof Money && $period->closing->minor() < $forecast->minimum->minor(),
+            ];
+        }
+        $weeks = [] !== $forecast->periods && PeriodKind::Week === $forecast->periods[0]->period->kind;
+
+        return [
+            'periods' => $periods,
+            'minimum' => $forecast->minimum instanceof Money ? $this->units($forecast->minimum) : null,
+            'minimumText' => $forecast->minimum instanceof Money ? $this->whole($forecast->minimum) : null,
+            'label' => $this->trans($weeks ? 'cash_flow.chart.label_weeks' : 'cash_flow.chart.label_months'),
+            'legend' => [
+                'in' => $this->trans('cash_flow.table.in'),
+                'out' => $this->trans('cash_flow.table.out'),
+                'closing' => $this->trans('cash_flow.table.closing'),
+                'minimum' => $this->trans('cash_flow.kpi.minimum'),
+            ],
+        ];
     }
 
     /**
@@ -304,6 +378,23 @@ final readonly class ForecastScreen
     }
 
     /**
+     * A period under its column: the day a week starts, or the month, short,
+     * with its year on the first column and on January ("Nov 26", "Dec", "Jan 27"),
+     * short enough for its column in Czech too ("lis 26").
+     */
+    private function shortLabel(PeriodForecast $period, bool $first): string
+    {
+        $start = $period->period->start;
+        if (PeriodKind::Week === $period->period->kind) {
+            return $this->day($start);
+        }
+
+        $month = $this->pattern('MMM', $start);
+
+        return $first || '1' === $start->format('n') ? $month."\u{a0}".$start->format('y') : $month;
+    }
+
+    /**
      * The days of a period that is shorter than its week or month, such as the
      * first one, which starts today; null for a whole one.
      */
@@ -338,12 +429,93 @@ final readonly class ForecastScreen
     }
 
     /**
+     * The weeks of a forecast without the months after them. The first day
+     * under the minimum is kept when it falls in the weeks, and so is the
+     * lowest point; a lowest point after them is found again within the weeks,
+     * by the balance at the end of each day as Forecasts::of() finds it.
+     */
+    private function weeksOnly(Forecast $forecast): Forecast
+    {
+        $periods = array_values(array_filter($forecast->periods, static fn (PeriodForecast $period): bool => PeriodKind::Week === $period->period->kind));
+        if ([] === $periods) {
+            return $forecast;
+        }
+        $end = $periods[array_key_last($periods)]->period->end;
+        $shortfallOn = $forecast->shortfallOn instanceof \DateTimeImmutable && $forecast->shortfallOn <= $end ? $forecast->shortfallOn : null;
+        // The lowest of the whole horizon is the lowest of the weeks when it falls in them.
+        if ($forecast->lowestOn <= $end) {
+            return $this->withPeriods($forecast, $periods, $forecast->lowest, $forecast->lowestOn, $shortfallOn);
+        }
+        $running = $periods[0]->opening;
+        $lowest = $running;
+        $lowestOn = $forecast->from;
+        foreach ($periods as $period) {
+            foreach ($period->lines as $index => $line) {
+                $running = $running->plus($line->signed());
+                $next = $period->lines[$index + 1] ?? null;
+                if ($next instanceof ForecastLine && $next->countedOn->format('Y-m-d') === $line->countedOn->format('Y-m-d')) {
+                    continue;
+                }
+                if ($running->minor() < $lowest->minor()) {
+                    $lowest = $running;
+                    $lowestOn = $line->countedOn;
+                }
+            }
+            // The lines the caller may not read still move the balance; the closing holds them.
+            $running = $period->closing;
+        }
+
+        return $this->withPeriods($forecast, $periods, $lowest, $lowestOn, $shortfallOn);
+    }
+
+    /**
+     * @param list<PeriodForecast> $periods
+     */
+    private function withPeriods(Forecast $forecast, array $periods, Money $lowest, \DateTimeImmutable $lowestOn, ?\DateTimeImmutable $shortfallOn): Forecast
+    {
+        return new Forecast(
+            $forecast->firm,
+            $forecast->today,
+            $forecast->from,
+            $forecast->opening,
+            $forecast->accounts,
+            $forecast->balanceAsOf,
+            $forecast->stale,
+            $periods,
+            $lowest,
+            $lowestOn,
+            $forecast->minimum,
+            $shortfallOn,
+            $forecast->unavailableSources,
+            $forecast->unavailableRates,
+            $forecast->restrictedSources,
+        );
+    }
+
+    /**
+     * @param array<string, Money> $flows by category
+     */
+    private function total(array $flows, Money $zeroOf): Money
+    {
+        return array_reduce($flows, static fn (Money $sum, Money $flow): Money => $sum->plus($flow), Money::ofMinor(0, $zeroOf->currency()));
+    }
+
+    /**
+     * Whole units, rounded half away from zero, as whole() writes them.
+     */
+    private function units(Money $money): int
+    {
+        $minor = $money->minor();
+
+        return intdiv(abs($minor) + 50, 100) * ($minor < 0 ? -1 : 1);
+    }
+
+    /**
      * Whole crowns, as a forecast is read: "48 176 Kč".
      */
     private function whole(Money $money): string
     {
-        $minor = $money->minor();
-        $units = intdiv(abs($minor) + 50, 100) * ($minor < 0 ? -1 : 1);
+        $units = $this->units($money);
         $formatter = new \NumberFormatter($this->locales->getLocale(), \NumberFormatter::DECIMAL);
         $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 0);
 

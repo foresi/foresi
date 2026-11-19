@@ -1,0 +1,26 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set legend = {in: 'Money in', out: 'Money out', closing: 'Closing balance', minimum: 'Minimum balance'} %}
+<div class="grid gap-5">
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<div class="w-full"><twig:Ui:BalanceChart label="Money in and out by month" :legend="legend" :minimum="50000" minimumText="50 000 Kč" :periods="[
+    {label: 'Nov 26', in: 48176, out: 12000, closing: 161176, inText: '48 176 Kč', outText: '12 000 Kč', closingText: '161 176 Kč'},
+    {label: 'Dec 26', in: 30000, out: 95000, closing: 96176, inText: '30 000 Kč', outText: '95 000 Kč', closingText: '96 176 Kč'},
+    {label: 'Jan 27', in: 20000, out: 70000, closing: 46176, inText: '20 000 Kč', outText: '70 000 Kč', closingText: '46 176 Kč', below: true},
+    {label: 'Feb 27', in: 90000, out: 40000, closing: 96176, inText: '90 000 Kč', outText: '40 000 Kč', closingText: '96 176 Kč'},
+    {label: 'Mar 27', in: 60000, out: 45000, closing: 111176, inText: '60 000 Kč', outText: '45 000 Kč', closingText: '111 176 Kč'},
+    {label: 'Apr 27', in: 0, out: 30000, closing: 81176, inText: '0 Kč', outText: '30 000 Kč', closingText: '81 176 Kč'}
+]" /></div>
+{% endblock %}{% endembed %}
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'empty'} %}{% block sample %}
+<div class="w-full"><twig:Ui:BalanceChart label="Money in and out by week" :legend="legend" :periods="[
+    {label: '19 Nov', in: 0, out: 0, closing: 0, inText: '0 Kč', outText: '0 Kč', closingText: '0 Kč'},
+    {label: '23 Nov', in: 0, out: 0, closing: 0, inText: '0 Kč', outText: '0 Kč', closingText: '0 Kč'}
+]" /></div>
+{% endblock %}{% endembed %}
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<div class="w-full"><twig:Ui:BalanceChart label="A balance below zero" :legend="legend" :minimum="100000" minimumText="100 000 Kč" :periods="[
+    {label: 'Nov 26', in: 1250000, out: 2400000, closing: -350000, inText: '1 250 000 Kč', outText: '2 400 000 Kč', closingText: '−350 000 Kč', below: true},
+    {label: 'Dec 26', in: 3100000, out: 900000, closing: 1850000, inText: '3 100 000 Kč', outText: '900 000 Kč', closingText: '1 850 000 Kč'}
+]" /></div>
+{% endblock %}{% endembed %}
+</div>

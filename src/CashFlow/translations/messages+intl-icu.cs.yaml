@@ -26,6 +26,14 @@ cash_flow:
     stale: 'Zůstatek je z {day}, starší než 7 dní.'
     source: '{source} se nepodařilo načíst, nic z nich se nepočítá.'
     rate: 'Pro {currency} dnes není kurz, jeho částky jsou vynechané.'
+  view:
+    label: Zobrazení předpovědi
+    weeks: 3 měsíce
+    months: 12 měsíců
+  chart:
+    title: Příjmy a výdaje
+    label_weeks: Příjmy, výdaje a konečný zůstatek každého týdne; čísla jsou v tabulce pod grafem.
+    label_months: Příjmy, výdaje a konečný zůstatek každého měsíce; čísla jsou v tabulce pod grafem.
   table:
     title: Podle období
     caption: Počáteční zůstatek, příjmy a výdaje podle kategorií a konečný zůstatek každého období

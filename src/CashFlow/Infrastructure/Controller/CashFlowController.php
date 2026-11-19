@@ -53,9 +53,10 @@ final class CashFlowController extends AbstractController
     }
 
     #[Route('/cash-flow', name: self::ROUTE, methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $forecast = $this->forecastOrNull();
+        $view = ForecastScreen::WEEKS === $request->query->getString('view') ? ForecastScreen::WEEKS : ForecastScreen::MONTHS;
+        $forecast = $this->forecastOrNull($view);
         if (!$forecast instanceof Forecast) {
             return $this->render('@CashFlow/index.html.twig', ['noFirm' => true]);
         }
@@ -67,6 +68,8 @@ final class CashFlowController extends AbstractController
             'kpis' => $this->screen->kpis($forecast),
             'alert' => $this->screen->alert($forecast),
             'table' => $this->screen->table($forecast),
+            'chart' => $this->screen->chart($forecast),
+            'views' => $this->screen->views($view),
             'minimumSet' => $forecast->minimum instanceof Money,
         ]);
     }
@@ -74,10 +77,11 @@ final class CashFlowController extends AbstractController
     #[Route('/cash-flow/items', name: 'app_cash_flow_items', methods: ['GET'])]
     public function items(Request $request): Response
     {
-        $forecast = $this->forecastOrNull() ?? throw new NotFoundHttpException();
+        $key = $request->query->getString('period');
+        $forecast = $this->forecastOrNull(ForecastScreen::viewOf($key)) ?? throw new NotFoundHttpException();
         $direction = FlowDirection::tryFrom($request->query->getString('direction')) ?? throw new NotFoundHttpException();
         $category = $request->query->has('category') ? (FlowCategory::tryFrom($request->query->getString('category')) ?? throw new NotFoundHttpException()) : null;
-        $period = $this->screen->period($forecast, $request->query->getString('period')) ?? throw new NotFoundHttpException();
+        $period = $this->screen->period($forecast, $key) ?? throw new NotFoundHttpException();
 
         return $this->render('@CashFlow/items.html.twig', $this->screen->items($period, $direction, $category));
     }
@@ -152,12 +156,12 @@ final class CashFlowController extends AbstractController
     }
 
     /**
-     * The forecast, or null before the first-run setup gave the instance its firm.
+     * The forecast of a view, or null before the first-run setup gave the instance its firm.
      */
-    private function forecastOrNull(): ?Forecast
+    private function forecastOrNull(string $view = ForecastScreen::MONTHS): ?Forecast
     {
         try {
-            return $this->screen->forecast();
+            return $this->screen->forecast($view);
         } catch (CashFlowRefused $refused) {
             $this->denyIfForbidden($refused);
 

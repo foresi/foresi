@@ -1,0 +1,57 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Money in (brand green) and out (sand) of each period as two rounded columns, the closing balance as a line
+    over them, and the minimum balance dashed in red (QuickBooks' money in and out, Xero's cash in and out bars).
+    Hairline gridlines and tabular figures, as Datawrapper draws them. The SVG is one image: the table that goes
+    with it is the accessible equivalent. On a phone the chart keeps its width and scrolls sideways.
+    The balance-chart controller shows a period's figures in a tooltip under the pointer; without it the chart
+    simply has none.
+#}
+{% set chart = this %}
+{% set columns = chart.columns %}
+{% set minimumY = chart.minimumY %}
+{% set plotRight = chart.width - constant('Foresi\\Ui\\Component\\BalanceChart::RIGHT') %}
+{% set plotLeft = constant('Foresi\\Ui\\Component\\BalanceChart::LEFT') %}
+{% set labelY = chart.height - 8 %}
+<div {{ attributes.defaults({class: 'grid gap-3'}) }} data-controller="balance-chart">
+    <ul class="m-0 flex list-none flex-wrap items-center gap-x-4 gap-y-1 p-0 text-caption text-muted" data-balance-chart-legend>
+        <li class="inline-flex items-center gap-1.5"><span class="size-2.5 rounded-sm bg-green" aria-hidden="true"></span>{{ legend.in }}</li>
+        <li class="inline-flex items-center gap-1.5"><span class="size-2.5 rounded-sm bg-control-line" aria-hidden="true"></span>{{ legend.out }}</li>
+        <li class="inline-flex items-center gap-1.5"><span class="h-0.5 w-4 rounded-sm bg-ink" aria-hidden="true"></span>{{ legend.closing }}</li>
+        {% if minimumY is not null %}<li class="inline-flex items-center gap-1.5"><span class="w-4 border-t-2 border-dashed border-badge-red-text" aria-hidden="true"></span>{{ legend.minimum }}{% if minimumText %} {{ minimumText }}{% endif %}</li>{% endif %}
+    </ul>
+    {# Scrolled sideways on a phone, so the frame takes the keyboard focus (axe scrollable-region-focusable). #}
+    <div class="relative overflow-x-auto rounded-sm {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" role="region" aria-label="{{ label }}" tabindex="0" data-balance-chart-target="frame">
+        <svg viewBox="0 0 {{ chart.width }} {{ chart.height }}" width="{{ chart.width }}" height="{{ chart.height }}" role="img" aria-label="{{ label }}" class="block h-auto w-full min-w-190 select-none" data-balance-chart>
+            <g aria-hidden="true">
+                {% for tick in chart.ticks %}
+                    <line x1="{{ plotLeft }}" x2="{{ plotRight }}" y1="{{ tick.y }}" y2="{{ tick.y }}" class="{{ tick.zero ? 'stroke-control-line' : 'stroke-divider' }}" stroke-width="1" shape-rendering="crispEdges" />
+                    <text x="{{ plotLeft - 8 }}" y="{{ tick.y }}" dy="0.32em" text-anchor="end" class="num fill-muted text-caption">{{ tick.text }}</text>
+                {% endfor %}
+                {% for column in columns %}
+                    <g data-balance-chart-target="period" data-action="pointerenter->balance-chart#show pointerleave->balance-chart#hide" data-label="{{ column.label }}" data-in="{{ column.inText }}" data-out="{{ column.outText }}" data-closing="{{ column.closingText }}" data-centre="{{ column.centre }}"{% if column.below %} data-below{% endif %}>
+                        <rect x="{{ column.x }}" y="{{ constant('Foresi\\Ui\\Component\\BalanceChart::TOP') }}" width="{{ constant('Foresi\\Ui\\Component\\BalanceChart::SLOT') }}" height="{{ chart.height - constant('Foresi\\Ui\\Component\\BalanceChart::TOP') - constant('Foresi\\Ui\\Component\\BalanceChart::BOTTOM') }}" fill="transparent" class="transition-colors" data-balance-chart-band />
+                        {% if column.inPath %}<path d="{{ column.inPath }}" class="fill-green" data-series="in" />{% endif %}
+                        {% if column.outPath %}<path d="{{ column.outPath }}" class="fill-control-line" data-series="out" />{% endif %}
+                        <text x="{{ column.centre }}" y="{{ labelY }}" text-anchor="middle" class="fill-muted text-caption">{{ column.label }}</text>
+                    </g>
+                {% endfor %}
+                {% if minimumY is not null %}
+                    <line x1="{{ plotLeft }}" x2="{{ plotRight }}" y1="{{ minimumY }}" y2="{{ minimumY }}" class="stroke-badge-red-text" stroke-width="1.5" stroke-dasharray="5 4" data-series="minimum" />
+                {% endif %}
+                {# A white edge under the line keeps it apart from the green columns it crosses. #}
+                <path d="{{ chart.line }}" fill="none" class="stroke-white" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" />
+                <path d="{{ chart.line }}" fill="none" class="stroke-ink" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" data-series="closing" />
+                {% for column in columns %}
+                    <circle cx="{{ column.centre }}" cy="{{ column.closingY }}" r="3.5" class="{{ column.below ? 'fill-badge-red-text' : 'fill-ink' }} stroke-white" stroke-width="1.5" />
+                {% endfor %}
+            </g>
+        </svg>
+        <div hidden class="pointer-events-none absolute top-2 z-10 grid min-w-44 gap-1 rounded-panel border border-container bg-white p-3 text-caption shadow-floating" data-balance-chart-target="tip">
+            <div class="font-semibold text-ink" data-balance-chart-target="tipLabel"></div>
+            <div class="flex items-center gap-2 text-muted"><span class="size-2.5 rounded-sm bg-green" aria-hidden="true"></span>{{ legend.in }}<span class="num ml-auto text-ink" data-balance-chart-target="tipIn"></span></div>
+            <div class="flex items-center gap-2 text-muted"><span class="size-2.5 rounded-sm bg-control-line" aria-hidden="true"></span>{{ legend.out }}<span class="num ml-auto text-ink" data-balance-chart-target="tipOut"></span></div>
+            <div class="flex items-center gap-2 border-t border-divider pt-1 text-muted"><span class="h-0.5 w-2.5 rounded-sm bg-ink" aria-hidden="true"></span>{{ legend.closing }}<span class="num ml-auto font-semibold text-ink" data-balance-chart-target="tipClosing"></span></div>
+        </div>
+    </div>
+</div>
