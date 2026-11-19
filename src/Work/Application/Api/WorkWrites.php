@@ -21,7 +21,6 @@ use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Application\WorkUnit;
 use Foresi\Work\Domain\Priority;
-use Foresi\Work\Domain\TaskComment;
 use Foresi\Work\Domain\WorkflowTemplate;
 
 /**
@@ -51,7 +50,7 @@ final readonly class WorkWrites
      */
     public function createTask(CreateTaskInput $input): string
     {
-        $dueOn = $this->day($input->dueOn, 'dueOn');
+        $dueOn = null === $input->dueOn ? null : $this->day($input->dueOn, 'dueOn');
 
         return $this->unit->run(function () use ($input, $dueOn): string {
             $task = $this->titled(fn (): \Foresi\Work\Domain\Task => $this->tasks->create(
@@ -84,10 +83,6 @@ final readonly class WorkWrites
     {
         $id = $input->taskId;
         $dueOn = \is_string($input->dueOn) ? $this->day($input->dueOn, 'dueOn') : null;
-        // The task is looked up first, so an unknown one is not found whatever else is sent.
-        if (!$this->queries->task($id) instanceof \Foresi\Work\Application\TaskDetail) {
-            throw new WorkRefused('unknown');
-        }
         $this->unit->run(function () use ($input, $id, $dueOn): void {
             if (!$input->title instanceof Omitted) {
                 $title = $input->title;
@@ -154,9 +149,11 @@ final readonly class WorkWrites
      */
     public function editComment(UpdateTaskCommentInput $input): array
     {
+        // Its task, read first; the use case refuses what the person may not see.
+        $task = $this->commentStore->comment($input->commentId)?->task()->id() ?? throw new WorkRefused('unknown');
         $this->comments->edit($input->commentId, $input->body);
 
-        return [$input->commentId, $this->taskOf($input->commentId)];
+        return [$input->commentId, $task];
     }
 
     /**
@@ -223,7 +220,7 @@ final readonly class WorkWrites
         return $this->time->log(
             $input->projectId,
             $input->taskId,
-            $this->day($input->workedOn, 'workedOn') ?? throw new WorkRefused('date', 'workedOn'),
+            $this->day($input->workedOn, 'workedOn'),
             $input->minutes,
             $this->moment($input->startedAt, 'startedAt'),
             $this->moment($input->endedAt, 'endedAt'),
@@ -250,14 +247,9 @@ final readonly class WorkWrites
             throw new WorkRefused('timer_not_running', 'entryId');
         }
 
-        return $this->time->stopTimer()?->id() ?? throw new WorkRefused('timer_not_running', 'entryId');
-    }
+        $this->time->stopTimer();
 
-    private function taskOf(string $commentId): string
-    {
-        $comment = $this->commentStore->comment($commentId);
-
-        return $comment instanceof TaskComment ? $comment->task()->id() : throw new WorkRefused('unknown');
+        return $input->entryId;
     }
 
     /**
@@ -292,11 +284,8 @@ final readonly class WorkWrites
         }
     }
 
-    private function day(?string $value, string $field): ?\DateTimeImmutable
+    private function day(string $value, string $field): \DateTimeImmutable
     {
-        if (null === $value) {
-            return null;
-        }
         $day = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
         if (!$day instanceof \DateTimeImmutable || $day->format('Y-m-d') !== $value) {
             throw new WorkRefused('date', $field);

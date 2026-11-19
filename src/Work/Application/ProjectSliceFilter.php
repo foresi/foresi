@@ -21,10 +21,10 @@ final readonly class ProjectSliceFilter
      * @param ViewFilter|null $view     the conditions of a saved view of the list work.projects, and of a filter
      */
     public function __construct(
-        public string $text = '',
-        public bool $archived = false,
-        public ?string $clientId = null,
-        public ?ViewFilter $view = null,
+        public string $text,
+        public bool $archived,
+        public ?string $clientId,
+        public ?ViewFilter $view,
     ) {
     }
 }

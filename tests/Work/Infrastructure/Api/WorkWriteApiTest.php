@@ -79,6 +79,21 @@ final class WorkWriteApiTest extends WorkApiTestCase
 
         $this->send('PATCH', '/api/v1/tasks/'.$id, ['due_on' => '30. 11. 2026']);
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'due_on', 'reason' => 'date']);
+        $this->send('PATCH', '/api/v1/tasks/'.$id, ['due_on' => '2026-02-30']);
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'due_on', 'reason' => 'date']);
+        $this->send('PATCH', '/api/v1/tasks/'.$id, ['title' => '   ']);
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'title', 'reason' => 'name']);
+
+        // A due date sent is kept by a change that leaves it out, and cleared by null.
+        $this->send('PATCH', '/api/v1/tasks/'.$id, ['due_on' => '2026-12-01']);
+        self::assertSame('2026-12-01', $this->at('data', 'due_on'));
+        $this->send('PATCH', '/api/v1/tasks/'.$id, ['priority' => 'urgent']);
+        self::assertSame('2026-12-01', $this->at('data', 'due_on'));
+        $this->send('PATCH', '/api/v1/tasks/'.$id, ['due_on' => null]);
+        self::assertNull($this->at('data', 'due_on'));
+
+        $this->send('PATCH', '/api/v1/tasks/'.\Foresi\Shared\Domain\Id::generate(), []);
+        $this->assertProblem(404, 'not_found');
     }
 
     public function testAnUpdateThatIsRefusedChangesNothing(): void
@@ -133,6 +148,12 @@ final class WorkWriteApiTest extends WorkApiTestCase
         self::assertSame('Looks great', $this->at('data', 'text'));
         self::assertIsString($this->at('data', 'edited_at'));
 
+        $this->send('POST', '/api/v1/tasks/'.$task.'/comments', ['body' => 'Open to all']);
+        $open = $this->at('data', 'id');
+        self::assertFalse($this->at('data', 'internal'));
+        $this->send('PATCH', '/api/v1/task-comments/'.\Foresi\Shared\Domain\Id::generate(), ['body' => 'Lost']);
+        $this->assertProblem(404, 'not_found');
+
         $owners = $this->comment($task, 'From the owner');
         $this->send('PATCH', '/api/v1/task-comments/'.$owners, ['body' => 'Rewritten']);
         $this->assertProblem(403, 'comment_not_yours');
@@ -141,7 +162,7 @@ final class WorkWriteApiTest extends WorkApiTestCase
         self::assertResponseIsSuccessful();
         self::assertSame(['id' => $id, 'task_id' => $task, 'deleted' => true], $this->at('data'));
         $this->get('/api/v1/tasks/'.$task.'/comments', secret: $this->writer);
-        self::assertSame([$owners], $this->ids());
+        self::assertSame([$open, $owners], $this->ids());
 
         $this->send('POST', '/api/v1/tasks/'.$task.'/comments', ['body' => '']);
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'body', 'reason' => 'comment_empty']);
@@ -170,6 +191,9 @@ final class WorkWriteApiTest extends WorkApiTestCase
         $this->send('POST', '/api/v1/projects/'.$id.'/restore');
         self::assertFalse($this->at('data', 'archived'));
 
+        $this->send('PATCH', '/api/v1/projects/'.\Foresi\Shared\Domain\Id::generate(), ['name' => 'Nowhere']);
+        $this->assertProblem(404, 'not_found');
+
         $this->send('POST', '/api/v1/projects', ['name' => '']);
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'name', 'reason' => 'name']);
     }
@@ -186,6 +210,10 @@ final class WorkWriteApiTest extends WorkApiTestCase
 
         $this->send('POST', '/api/v1/time-entries', ['project_id' => $project->id(), 'worked_on' => '2026-11-18', 'minutes' => 45, 'started_at' => '2026-11-18T09:00:00+01:00', 'ended_at' => '2026-11-18T10:00:00+01:00']);
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'minutes', 'reason' => 'duration']);
+        $this->send('POST', '/api/v1/time-entries', ['project_id' => $project->id(), 'worked_on' => '2026-11-18', 'started_at' => '2026-11-18 09:00', 'ended_at' => '2026-11-18T10:00:00+01:00']);
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'started_at', 'reason' => 'date']);
+        $this->send('POST', '/api/v1/time-entries', ['project_id' => $project->id(), 'worked_on' => '18. 11. 2026', 'minutes' => 5]);
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'worked_on', 'reason' => 'date']);
 
         $this->send('POST', '/api/v1/time-entries/timer', ['project_id' => $project->id(), 'task_id' => $task]);
         self::assertResponseStatusCodeSame(201);

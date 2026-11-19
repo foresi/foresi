@@ -47,5 +47,7 @@ final class WorkRefusedTest extends TestCase
         self::assertNull(new WorkRefused('name')->field());
         self::assertSame('title', new WorkRefused('name')->about('title')->field());
         self::assertSame('dueOn', new WorkRefused('date', 'dueOn')->field());
+        // A field the caller names wins over the one of the reason.
+        self::assertSame('text', new WorkRefused('comment_empty', 'text')->field());
     }
 }
