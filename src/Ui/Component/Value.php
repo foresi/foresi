@@ -31,7 +31,7 @@ final class Value
      */
     public mixed $value = null;
 
-    /** The list (such as "party.contacts") whose attribute the value is; with $attribute. */
+    /** The list (such as "party.contacts") of $attribute. */
     public ?string $list = null;
 
     /** The key of the attribute of $list whose raw value $value is. */
@@ -52,12 +52,9 @@ final class Value
     #[PostMount]
     public function validate(): void
     {
-        if ((null === $this->list) !== (null === $this->attribute)) {
-            throw new \InvalidArgumentException('A value of an attribute names both its list and its attribute.');
-        }
-        $value = null === $this->list || null === $this->attribute
+        $value = null === $this->attribute
             ? $this->value
-            : $this->cells->shown($this->columns->attribute($this->list, $this->attribute), $this->value);
+            : $this->cells->shown($this->columns->attribute($this->list ?? throw new \InvalidArgumentException('A value of an attribute names its list.'), $this->attribute), $this->value);
         $this->view = self::view($value);
     }
 

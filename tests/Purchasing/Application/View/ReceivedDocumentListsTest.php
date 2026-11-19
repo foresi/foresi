@@ -13,18 +13,18 @@ use Foresi\Shared\Application\View\DefaultView;
 use Foresi\Shared\Application\View\Field;
 use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Domain\View\Placement;
-use PHPUnit\Framework\TestCase;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
  * The received documents' list definition (saved views D3, D12): its fields and the tabs it had.
  */
-final class ReceivedDocumentListsTest extends TestCase
+final class ReceivedDocumentListsTest extends KernelTestCase
 {
     public function testItShipsAllAndTheTabsItHadInTheirOrderWithTheirCounts(): void
     {
-        $list = ReceivedDocumentLists::list();
+        $list = $this->lists()->list();
 
-        self::assertEquals([$list], iterator_to_array(new ReceivedDocumentLists()->lists()));
+        self::assertEquals([$list], iterator_to_array($this->lists()->lists()));
         self::assertSame('purchasing.received', $list->key);
         self::assertSame(
             [
@@ -43,10 +43,10 @@ final class ReceivedDocumentListsTest extends TestCase
 
     public function testItsFieldsAreWhatTheSheetFilteredBy(): void
     {
-        $fields = ReceivedDocumentLists::list()->fields;
+        $fields = $this->lists()->list()->fields;
 
-        self::assertSame(['trashed', 'state', 'supplier', 'kind', 'treatment'], array_keys($fields));
-        self::assertSame(['trashed' => 'purchasing.list.tab.trash', 'state' => 'purchasing.list.column.state', 'supplier' => 'purchasing.field.supplier', 'kind' => 'purchasing.field.kind', 'treatment' => 'purchasing.field.treatment'], array_map(static fn (Field $field): string => $field->label, $fields));
+        self::assertSame(['trashed', 'state', 'supplier', 'kind', 'treatment', 'number', 'supplier_number', 'total', 'vat_czk'], array_keys($fields));
+        self::assertSame(['trashed' => 'purchasing.list.tab.trash', 'state' => 'purchasing.list.column.state', 'supplier' => 'purchasing.field.supplier', 'kind' => 'purchasing.field.kind', 'treatment' => 'purchasing.field.treatment', 'number' => 'purchasing.list.column.number', 'supplier_number' => 'purchasing.list.column.supplierNumber', 'total' => 'purchasing.list.column.total', 'vat_czk' => 'purchasing.list.column.vatCzk'], array_map(static fn (Field $field): string => $field->label, $fields));
         self::assertSame(['draft' => 'purchasing.state.draft', 'recorded' => 'purchasing.state.recorded'], $fields['state']->optionLabels);
         self::assertSame('purchasing.kind.credit_note', $fields['kind']->optionLabels['credit_note']);
         self::assertSame('purchasing.treatment.eu_service', $fields['treatment']->optionLabels['eu_service']);
@@ -54,5 +54,17 @@ final class ReceivedDocumentListsTest extends TestCase
         self::assertSame('contact', $fields['supplier']->source);
         self::assertSame(['is', 'is_not', 'is_any_of', 'is_empty', 'is_not_empty'], $fields['supplier']->operators);
         self::assertSame(FieldType::Boolean, $fields['trashed']->type);
+        self::assertSame(FieldType::Number, $fields['total']->type);
+        self::assertSame(100, $fields['total']->scale);
+    }
+
+    public function testTheListIsBuiltOnce(): void
+    {
+        self::assertSame($this->lists()->list(), $this->lists()->list());
+    }
+
+    private function lists(): ReceivedDocumentLists
+    {
+        return self::getContainer()->get(ReceivedDocumentLists::class);
     }
 }

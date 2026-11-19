@@ -59,10 +59,10 @@ final class ValueTest extends KernelTestCase
         self::assertStringContainsString('bg-badge-green', (string) $badges->attr('class'));
     }
 
-    public function testAListWithoutItsAttributeIsRefused(): void
+    public function testAnAttributeWithoutItsListIsRefused(): void
     {
         $this->expectException(\Throwable::class);
-        $this->renderTwigComponent('Ui:Value', ['list' => 'party.contacts', 'value' => 'x']);
+        $this->renderTwigComponent('Ui:Value', ['attribute' => 'roles', 'value' => 'x']);
     }
 
     public function testAnUnsafeLinkIsRefused(): void

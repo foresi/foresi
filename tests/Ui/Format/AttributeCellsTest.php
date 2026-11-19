@@ -37,6 +37,8 @@ final class AttributeCellsTest extends TestCase
         yield 'a datetime as it reads' => [AttributeType::DateTime, new \DateTimeImmutable('2026-11-18 09:05', new \DateTimeZone('Europe/Prague')), '18. 11. 2026 9:05'];
         yield 'an enum as a neutral badge with the label of its value' => [AttributeType::Enum, Currency::CZK, ['label' => 'Czech crowns', 'tone' => 'gray']];
         yield 'an enum value without a label' => [AttributeType::Enum, 'other', ['label' => 'other', 'tone' => 'gray']];
+        yield 'a multi-enum as one neutral badge per value' => [AttributeType::MultiEnum, ['x' => Currency::CZK, 'y' => 'other'], ['badges' => [['label' => 'Czech crowns', 'tone' => 'gray'], ['label' => 'other', 'tone' => 'gray']]]];
+        yield 'a multi-enum of one value' => [AttributeType::MultiEnum, Currency::CZK, ['badges' => [['label' => 'Czech crowns', 'tone' => 'gray']]]];
         yield 'yes' => [AttributeType::Boolean, true, 'Ano'];
         yield 'no' => [AttributeType::Boolean, false, 'Ne'];
         yield 'a country by its name' => [AttributeType::Country, 'DE', 'Německo'];
@@ -66,7 +68,7 @@ final class AttributeCellsTest extends TestCase
     #[DataProvider('values')]
     public function testEachTypeHasItsFormat(AttributeType $type, mixed $value, mixed $shown): void
     {
-        $options = AttributeType::Enum === $type ? ['CZK' => 'currency.CZK'] : [];
+        $options = \in_array($type, [AttributeType::Enum, AttributeType::MultiEnum], true) ? ['CZK' => 'currency.CZK'] : [];
         $attribute = new Attribute('value', 'label', $type, static fn (): mixed => $value, options: $options);
 
         self::assertSame($shown, $this->cells()->cell($attribute, []));

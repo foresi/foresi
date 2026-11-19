@@ -20,7 +20,7 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
 final class DescriptionList
 {
     /**
-     * @var list<array<string, mixed>> each with a string label and a value as Ui:Value takes it (null or '' for not set, shown as Ui:EmptyValue with an optional "empty" label; "badge" is the older name of a badge value), optional string note
+     * @var list<array<string, mixed>> each with a string label and a value as Ui:Value takes it (null or '' for not set, shown as Ui:EmptyValue with an optional "empty" label), optional string note
      */
     public array $items = [];
 
@@ -31,7 +31,7 @@ final class DescriptionList
     public function validate(): void
     {
         foreach ($this->items as $item) {
-            $value = $item['badge'] ?? $item['value'] ?? null;
+            $value = $item['value'] ?? null;
             Value::view($value);
             $note = $item['note'] ?? null;
             if (null !== $note && !\is_string($note)) {

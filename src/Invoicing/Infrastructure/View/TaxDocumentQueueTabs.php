@@ -39,6 +39,7 @@ final readonly class TaxDocumentQueueTabs
 
     public function __construct(
         private TaxDocumentQueues $queues,
+        private InvoiceLists $invoiceLists,
         private InvoiceList $list,
         private ListViews $views,
         private InstanceClock $clock,
@@ -78,7 +79,7 @@ final readonly class TaxDocumentQueueTabs
      */
     public function parentOf(DocumentKind $kind, ?string $userId, bool $active, bool $modified): array
     {
-        [$primary, $overflow] = ListViews::placed($this->views->of(InvoiceLists::of($kind), $userId));
+        [$primary, $overflow] = ListViews::placed($this->views->of($this->invoiceLists->of($kind), $userId));
         $link = fn (ListView $view, bool $counted): array => [
             'label' => $view->translated ? $this->translator->trans($view->name) : $view->name,
             'href' => $this->urls->generate(InvoiceListController::ROUTES[$kind->value], $view->isAll() ? [] : ['view' => $view->key]),

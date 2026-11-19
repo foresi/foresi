@@ -36,7 +36,7 @@ final readonly class ReceivedDocumentApiController
     public const string SHOW = 'api_v1_received_document';
     public const string PAYMENTS = 'api_v1_received_document_payments';
 
-    public function __construct(private ScopeGuard $scope, private ReceivedDocumentBalances $balances, private SavedViews $views, private ViewJson $json)
+    public function __construct(private ReceivedDocumentLists $receivedLists, private ScopeGuard $scope, private ReceivedDocumentBalances $balances, private SavedViews $views, private ViewJson $json)
     {
     }
 
@@ -52,7 +52,7 @@ final readonly class ReceivedDocumentApiController
     public function list(#[MapQueryString(validationFailedStatusCode: 400)] ReceivedDocumentListQuery $query): JsonResponse
     {
         $this->scope->require(self::READ_SCOPE);
-        $applied = AppliedView::of($this->views, $this->scope, ReceivedDocumentLists::list(), $query->view, $query->filter);
+        $applied = AppliedView::of($this->views, $this->scope, $this->receivedLists->list(), $query->view, $query->filter);
         $slice = $this->balances->slice($query->filter($applied->filter), Cursor::decode($query->cursor), $query->limit);
 
         return new JsonResponse([

@@ -22,7 +22,7 @@
 <div class="relative h-120 w-full overflow-hidden rounded-panel border border-container bg-frame">
     <twig:Ui:Sheet id="cat-sheet-detail" title="Faktura 2026-EXAMPLE-COMPANY-HOLDING-OF-CENTRAL-EUROPEAN-TRADING-0042" description="Example Company s.r.o. · splatnost 30. 11. 2026" size="md" {{ ...preview }}>
         <div class="grid gap-6">
-            <twig:Ui:DescriptionList :items="[{label: 'Odběratel', value: 'Example Company s.r.o.'}, {label: 'Celkem', value: '12 100,00 Kč'}, {label: 'Stav', badge: {label: 'Neuhrazeno', tone: 'amber'}}]" />
+            <twig:Ui:DescriptionList :items="[{label: 'Odběratel', value: 'Example Company s.r.o.'}, {label: 'Celkem', value: '12 100,00 Kč'}, {label: 'Stav', value: {label: 'Neuhrazeno', tone: 'amber'}}]" />
             <p class="m-0 text-text">Příliš žluťoučký kůň úpěl ďábelské ódy. Levý okraj panelu mění jeho šířku.</p>
         </div>
         <twig:block name="footer">

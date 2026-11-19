@@ -151,7 +151,7 @@ final class WebhookEndpointController extends AbstractController
                 ['label' => $this->translator->trans('webhooks.column.description'), 'value' => $endpoint->description()],
                 ['label' => $this->translator->trans('webhooks.column.events'), 'value' => implode(', ', $endpoint->eventTypes()->patterns())],
                 ['label' => $this->translator->trans('webhooks.field.version'), 'value' => (string) $endpoint->version()],
-                ['label' => $this->translator->trans('webhooks.column.status'), 'badge' => $this->status($endpoint)],
+                ['label' => $this->translator->trans('webhooks.column.status'), 'value' => $this->status($endpoint)],
                 ['label' => $this->translator->trans('webhooks.column.created'), 'value' => $this->dateTime($endpoint->createdAt())],
                 $previous instanceof \DateTimeImmutable && $previous > $this->clock->now()
                     ? ['label' => $this->translator->trans('webhooks.detail.previous_secret'), 'value' => $this->dateTime($previous)]

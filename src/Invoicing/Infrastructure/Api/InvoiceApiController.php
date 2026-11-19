@@ -10,6 +10,7 @@ namespace Foresi\Invoicing\Infrastructure\Api;
 
 use Foresi\Invoicing\Application\Query\InvoiceDetails;
 use Foresi\Invoicing\Application\Query\InvoiceList;
+use Foresi\Invoicing\Application\View\InvoiceLists;
 use Foresi\Shared\Application\Api\ScopeGuard;
 use Foresi\Shared\Application\View\SavedViews;
 use Foresi\Shared\Infrastructure\Api\Cursor;
@@ -33,7 +34,7 @@ final readonly class InvoiceApiController
     public const string LIST = 'api_v1_invoices';
     public const string SHOW = 'api_v1_invoice';
 
-    public function __construct(private ScopeGuard $scope, private InvoiceList $list, private InvoiceDetails $details, private SavedViews $views, private ViewJson $json)
+    public function __construct(private ScopeGuard $scope, private InvoiceList $list, private InvoiceDetails $details, private SavedViews $views, private ViewJson $json, private InvoiceLists $lists)
     {
     }
 
@@ -49,7 +50,7 @@ final readonly class InvoiceApiController
     public function list(#[MapQueryString(validationFailedStatusCode: 400)] InvoiceListQuery $query): JsonResponse
     {
         $this->scope->require(self::READ_SCOPE);
-        $applied = InvoiceViewFilter::of($this->views, $this->scope, $query->kind, $query->view, $query->filter);
+        $applied = InvoiceViewFilter::of($this->views, $this->lists, $this->scope, $query->kind, $query->view, $query->filter);
         $slice = $this->list->slice($query->filter($applied->filter, $applied->kind), Cursor::decode($query->cursor), $query->limit);
 
         return new JsonResponse([

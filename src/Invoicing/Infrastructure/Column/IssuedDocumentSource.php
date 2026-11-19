@@ -36,6 +36,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * The customer's details are the document's own copy, as it was issued ("Customer as invoiced"),
  * not the contact as it is now.
  *
+ * Every attribute with an expression is a filter field of the lists' views too (D4); "amount" is
+ * the older key of the total to pay, which views kept.
+ *
  * The context holds "trash" (the trash tab swaps the dates and the e-mail and export marks for who
  * deleted the document, when and why), "severalFirms" (the firm column), "names" (user names by
  * id, for the trash) and "reminders" ({count, lastAt} by the id of an overdue row).
@@ -80,43 +83,43 @@ final readonly class IssuedDocumentSource implements DataSource
 
         return [
             // Shown by default, as the list has always shown them.
-            new Attribute('number', $label('number'), AttributeType::Text, static fn (InvoiceRow $row): string => $row->number, sort: 'i.numberKey', defaultVisible: true, defaultPosition: 10, locked: true),
+            new Attribute('number', $label('number'), AttributeType::Text, static fn (InvoiceRow $row): string => $row->number, sort: 'i.numberKey', defaultVisible: true, defaultPosition: 10, locked: true, filterable: true, filter: 'i.number'),
             new Attribute('firm', $label('firm'), AttributeType::Reference, static fn (InvoiceRow $row): string => $row->firmName, sort: 'LOWER(i.issuer.name)', defaultVisible: true, defaultPosition: 20, phone: false, truncate: true, available: static fn (array $context): bool => true === ($context['severalFirms'] ?? false)),
             new Attribute('customer', $label('customer'), AttributeType::Reference, static fn (InvoiceRow $row): string => $row->customerName, sort: 'LOWER(i.customer.name)', defaultVisible: true, defaultPosition: 30, phone: false, truncate: true),
             new Attribute('deleted_by', $label('deleted_by'), AttributeType::Reference, fn (InvoiceRow $row, array $context): string => $this->who($row->deletedBy, $context), defaultVisible: true, defaultPosition: 40, aliases: ['deletedBy'], phone: false, truncate: true, available: $trash),
-            new Attribute('deleted_at', $label('deleted_at'), AttributeType::DateTime, static fn (InvoiceRow $row): ?\DateTimeImmutable => $row->deletedAt, sort: 'i.deletedAt', defaultVisible: true, defaultPosition: 50, aliases: ['deletedAt'], phone: false, available: $trash),
-            new Attribute('deleted_reason', $label('deleted_reason'), AttributeType::Text, static fn (InvoiceRow $row): ?string => $row->deletedReason, defaultVisible: true, defaultPosition: 60, aliases: ['reason'], phone: false, truncate: true, available: $trash),
-            new Attribute('issue_date', $label('issue_date'), AttributeType::Date, static fn (InvoiceRow $row): \DateTimeImmutable => $row->issueDate, sort: 'i.issueDate', defaultVisible: true, defaultPosition: 40, aliases: ['issueDate'], phone: false, wide: true, available: $notTrash),
-            new Attribute('due_date', $label('due_date'), AttributeType::Date, static fn (InvoiceRow $row): \DateTimeImmutable => $row->dueDate, sort: 'i.dueDate', defaultVisible: true, defaultPosition: 50, cell: $this->dueDate(...), aliases: ['dueDate'], phone: false, available: $notTrash),
-            new Attribute('payable', $label('payable'), AttributeType::Money, static fn (InvoiceRow $row): Money => $row->payable, sort: 'i.payableMinor', defaultVisible: true, defaultPosition: 70),
-            new Attribute('status', $label('status'), AttributeType::Enum, static fn (InvoiceRow $row): InvoiceStatus => self::statusOf($row), defaultVisible: true, defaultPosition: 80, options: $this->options(InvoiceStatus::cases(), 'invoice.list.status.'), tones: self::statusTones(), cell: $this->status(...), phone: false),
+            new Attribute('deleted_at', $label('deleted_at'), AttributeType::DateTime, static fn (InvoiceRow $row): ?\DateTimeImmutable => $row->deletedAt, sort: 'i.deletedAt', defaultVisible: true, defaultPosition: 50, aliases: ['deletedAt'], phone: false, available: $trash, filterable: true),
+            new Attribute('deleted_reason', $label('deleted_reason'), AttributeType::Text, static fn (InvoiceRow $row): ?string => $row->deletedReason, defaultVisible: true, defaultPosition: 60, aliases: ['reason'], phone: false, truncate: true, available: $trash, filterable: true, filter: 'i.deletedReason'),
+            new Attribute('issue_date', $label('issue_date'), AttributeType::Date, static fn (InvoiceRow $row): \DateTimeImmutable => $row->issueDate, sort: 'i.issueDate', defaultVisible: true, defaultPosition: 40, aliases: ['issueDate'], phone: false, wide: true, available: $notTrash, filterable: true),
+            new Attribute('due_date', $label('due_date'), AttributeType::Date, static fn (InvoiceRow $row): \DateTimeImmutable => $row->dueDate, sort: 'i.dueDate', defaultVisible: true, defaultPosition: 50, cell: $this->dueDate(...), aliases: ['dueDate'], phone: false, available: $notTrash, filterable: true),
+            new Attribute('payable', $label('payable'), AttributeType::Money, static fn (InvoiceRow $row): Money => $row->payable, sort: 'i.payableMinor', defaultVisible: true, defaultPosition: 70, aliases: ['amount'], filterable: true),
+            new Attribute('status', $label('status'), AttributeType::Enum, static fn (InvoiceRow $row): InvoiceStatus => self::statusOf($row), defaultVisible: true, defaultPosition: 80, options: $this->options(InvoiceStatus::cases(), 'invoice.list.status.'), cell: $this->status(...), phone: false, tones: $this->statusTones()),
             new Attribute('sent', $label('sent'), AttributeType::Enum, static fn (InvoiceRow $row): SendMark => $row->sendMark, defaultVisible: true, defaultPosition: 90, options: $this->options(SendMark::cases(), 'invoice.mark.'), cell: $this->sent(...), phone: false, wide: true, available: $notTrash),
             new Attribute('export', $label('export'), AttributeType::Enum, static fn (InvoiceRow $row): ExportState => $row->exportState(), defaultVisible: true, defaultPosition: 100, options: $this->options(ExportState::cases(), 'invoice.export_state.'), cell: $this->export(...), phone: false, wide: true, available: $notTrash),
             // What a person can add (DS3), in the order of the document.
-            new Attribute('customer_registration_number', $label('customer_registration_number'), AttributeType::Text, $customer(static fn (DocumentParty $party): ?string => $party->registrationNumber), sort: 'i.customer.registrationNumber', defaultPosition: 110, phone: false),
-            new Attribute('customer_vat_id', $label('customer_vat_id'), AttributeType::Text, $customer(static fn (DocumentParty $party): ?string => $party->vatId), sort: 'i.customer.vatId', defaultPosition: 120, phone: false),
-            new Attribute('customer_city', $label('customer_city'), AttributeType::Text, $customer(static fn (DocumentParty $party): string => $party->address->city), sort: 'LOWER(i.customer.address.city)', defaultPosition: 130, phone: false, truncate: true),
-            new Attribute('customer_country', $label('customer_country'), AttributeType::Country, $customer(static fn (DocumentParty $party): string => $party->address->countryCode), sort: 'i.customer.address.countryCode', defaultPosition: 140, phone: false),
-            new Attribute('customer_email', $label('customer_email'), AttributeType::Email, $customer(static fn (DocumentParty $party): ?string => $party->email), sort: 'LOWER(i.customer.email)', defaultPosition: 150, phone: false, truncate: true),
-            new Attribute('tax_point_date', $label('tax_point_date'), AttributeType::Date, $document(static fn (Invoice $invoice): ?\DateTimeImmutable => $invoice->taxPointDate()), sort: 'i.taxPointDate', defaultPosition: 160, phone: false),
-            new Attribute('currency', $label('currency'), AttributeType::Text, $document(static fn (Invoice $invoice): string => $invoice->currency()->value), sort: 'i.currency', defaultPosition: 170, phone: false),
-            new Attribute('net', $label('net'), AttributeType::Money, $document(static fn (Invoice $invoice): Money => $invoice->net()), sort: 'i.netMinor', defaultPosition: 180, phone: false),
-            new Attribute('vat', $label('vat'), AttributeType::Money, $document(static fn (Invoice $invoice): Money => $invoice->vat()), sort: 'i.vatMinor', defaultPosition: 190, phone: false),
+            new Attribute('customer_registration_number', $label('customer_registration_number'), AttributeType::Text, $customer(static fn (DocumentParty $party): ?string => $party->registrationNumber), sort: 'i.customer.registrationNumber', defaultPosition: 110, phone: false, filterable: true),
+            new Attribute('customer_vat_id', $label('customer_vat_id'), AttributeType::Text, $customer(static fn (DocumentParty $party): ?string => $party->vatId), sort: 'i.customer.vatId', defaultPosition: 120, phone: false, filterable: true),
+            new Attribute('customer_city', $label('customer_city'), AttributeType::Text, $customer(static fn (DocumentParty $party): string => $party->address->city), sort: 'LOWER(i.customer.address.city)', defaultPosition: 130, phone: false, truncate: true, filterable: true, filter: 'i.customer.address.city'),
+            new Attribute('customer_country', $label('customer_country'), AttributeType::Country, $customer(static fn (DocumentParty $party): string => $party->address->countryCode), sort: 'i.customer.address.countryCode', defaultPosition: 140, phone: false, filterable: true),
+            new Attribute('customer_email', $label('customer_email'), AttributeType::Email, $customer(static fn (DocumentParty $party): ?string => $party->email), sort: 'LOWER(i.customer.email)', defaultPosition: 150, phone: false, truncate: true, filterable: true, filter: 'i.customer.email'),
+            new Attribute('tax_point_date', $label('tax_point_date'), AttributeType::Date, $document(static fn (Invoice $invoice): ?\DateTimeImmutable => $invoice->taxPointDate()), sort: 'i.taxPointDate', defaultPosition: 160, phone: false, filterable: true),
+            new Attribute('currency', $label('currency'), AttributeType::Text, $document(static fn (Invoice $invoice): string => $invoice->currency()->value), sort: 'i.currency', defaultPosition: 170, phone: false, filterable: true),
+            new Attribute('net', $label('net'), AttributeType::Money, $document(static fn (Invoice $invoice): Money => $invoice->net()), sort: 'i.netMinor', defaultPosition: 180, phone: false, filterable: true),
+            new Attribute('vat', $label('vat'), AttributeType::Money, $document(static fn (Invoice $invoice): Money => $invoice->vat()), sort: 'i.vatMinor', defaultPosition: 190, phone: false, filterable: true),
             new Attribute('paid', $label('paid'), AttributeType::Money, static fn (InvoiceRow $row): Money => $row->paid, defaultPosition: 200, phone: false),
             new Attribute('remaining', $label('remaining'), AttributeType::Money, static fn (InvoiceRow $row): Money => $row->remaining(), defaultPosition: 210, phone: false),
             new Attribute('payment_state', $label('payment_state'), AttributeType::Enum, static fn (InvoiceRow $row): PaymentState => $row->payment, defaultPosition: 220, options: $this->options(PaymentState::cases(), 'invoice.list.payment_state.'), phone: false),
             new Attribute('overdue', $label('overdue'), AttributeType::Boolean, static fn (InvoiceRow $row): bool => $row->overdue, defaultPosition: 230, phone: false),
-            new Attribute('payment_method', $label('payment_method'), AttributeType::Enum, $document(static fn (Invoice $invoice): PaymentMethod => $invoice->paymentMethod()), sort: 'i.paymentMethod', defaultPosition: 240, options: $this->options(PaymentMethod::cases(), 'invoice.payment.'), phone: false),
-            new Attribute('bank_account', $label('bank_account'), AttributeType::Text, $document(static fn (Invoice $invoice): ?string => $invoice->bankAccount()), sort: 'i.bankAccount', defaultPosition: 250, phone: false),
-            new Attribute('variable_symbol', $label('variable_symbol'), AttributeType::Text, $document(static fn (Invoice $invoice): string => $invoice->variableSymbol()), sort: 'i.variableSymbol', defaultPosition: 260, phone: false),
-            new Attribute('order_number', $label('order_number'), AttributeType::Text, $document(static fn (Invoice $invoice): string => $invoice->orderNumber()), sort: 'LOWER(i.orderNumber)', defaultPosition: 270, phone: false),
-            new Attribute('language', $label('language'), AttributeType::Enum, $document(static fn (Invoice $invoice): DocumentLanguage => $invoice->language()), sort: 'i.language', defaultPosition: 280, options: $this->options(DocumentLanguage::cases(), 'invoice.language.'), phone: false),
-            new Attribute('vat_regime', $label('vat_regime'), AttributeType::Enum, $document(static fn (Invoice $invoice): VatRegime => $invoice->vatRegime()), sort: 'i.vatRegime', defaultPosition: 290, options: $this->options(VatRegime::cases(), 'invoice.list.vat_regime.'), phone: false),
-            new Attribute('description', $label('description'), AttributeType::Text, $document(static fn (Invoice $invoice): string => $invoice->description()), defaultPosition: 300, phone: false, truncate: true),
-            new Attribute('delivered_at', $label('delivered_at'), AttributeType::DateTime, $zoned(static fn (Invoice $invoice): ?\DateTimeImmutable => $invoice->deliveredAt()), sort: 'i.deliveredAt', defaultPosition: 310, phone: false),
-            new Attribute('created_at', $label('created_at'), AttributeType::DateTime, $zoned(static fn (Invoice $invoice): \DateTimeImmutable => $invoice->createdAt()), sort: 'i.createdAt', defaultPosition: 320, phone: false),
+            new Attribute('payment_method', $label('payment_method'), AttributeType::Enum, $document(static fn (Invoice $invoice): PaymentMethod => $invoice->paymentMethod()), sort: 'i.paymentMethod', defaultPosition: 240, options: $this->options(PaymentMethod::cases(), 'invoice.payment.'), phone: false, filterable: true),
+            new Attribute('bank_account', $label('bank_account'), AttributeType::Text, $document(static fn (Invoice $invoice): ?string => $invoice->bankAccount()), sort: 'i.bankAccount', defaultPosition: 250, phone: false, filterable: true),
+            new Attribute('variable_symbol', $label('variable_symbol'), AttributeType::Text, $document(static fn (Invoice $invoice): string => $invoice->variableSymbol()), sort: 'i.variableSymbol', defaultPosition: 260, phone: false, filterable: true),
+            new Attribute('order_number', $label('order_number'), AttributeType::Text, $document(static fn (Invoice $invoice): string => $invoice->orderNumber()), sort: 'LOWER(i.orderNumber)', defaultPosition: 270, phone: false, filterable: true, filter: 'i.orderNumber'),
+            new Attribute('language', $label('language'), AttributeType::Enum, $document(static fn (Invoice $invoice): DocumentLanguage => $invoice->language()), sort: 'i.language', defaultPosition: 280, options: $this->options(DocumentLanguage::cases(), 'invoice.language.'), phone: false, filterable: true),
+            new Attribute('vat_regime', $label('vat_regime'), AttributeType::Enum, $document(static fn (Invoice $invoice): VatRegime => $invoice->vatRegime()), sort: 'i.vatRegime', defaultPosition: 290, options: $this->options(VatRegime::cases(), 'invoice.list.vat_regime.'), phone: false, filterable: true),
+            new Attribute('description', $label('description'), AttributeType::Text, $document(static fn (Invoice $invoice): string => $invoice->description()), defaultPosition: 300, phone: false, truncate: true, filterable: true, filter: 'i.description'),
+            new Attribute('delivered_at', $label('delivered_at'), AttributeType::DateTime, $zoned(static fn (Invoice $invoice): ?\DateTimeImmutable => $invoice->deliveredAt()), sort: 'i.deliveredAt', defaultPosition: 310, phone: false, filterable: true),
+            new Attribute('created_at', $label('created_at'), AttributeType::DateTime, $zoned(static fn (Invoice $invoice): \DateTimeImmutable => $invoice->createdAt()), sort: 'i.createdAt', defaultPosition: 320, phone: false, filterable: true),
             new Attribute('recurring', $label('recurring'), AttributeType::Boolean, $document(static fn (Invoice $invoice): bool => null !== $invoice->recurringInvoiceId()), defaultPosition: 330, phone: false),
-            new Attribute('import_source', $label('import_source'), AttributeType::Text, $document(static fn (Invoice $invoice): ?string => $invoice->importSource()), sort: 'i.importSource', defaultPosition: 340, phone: false),
+            new Attribute('import_source', $label('import_source'), AttributeType::Text, $document(static fn (Invoice $invoice): ?string => $invoice->importSource()), sort: 'i.importSource', defaultPosition: 340, phone: false, filterable: true),
         ];
     }
 
@@ -165,7 +168,7 @@ final readonly class IssuedDocumentSource implements DataSource
             default => null,
         };
 
-        return ['text' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => self::statusTones()[$status->value]] + (null === $left ? [] : ['hint' => $left]);
+        return ['text' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $this->statusTones()[$status->value]] + (null === $left ? [] : ['hint' => $left]);
     }
 
     /**
@@ -231,7 +234,7 @@ final readonly class IssuedDocumentSource implements DataSource
      *
      * @return array<string, string>
      */
-    private static function statusTones(): array
+    private function statusTones(): array
     {
         $tones = [];
         foreach (InvoiceStatus::cases() as $status) {

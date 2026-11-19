@@ -50,6 +50,11 @@ final class TaskConditionsTest extends TestCase
         yield 'not overdue' => [[new Condition('due', 'is_not', 'overdue')], ['other today', 'nobody next week', 'nobody undated']];
         yield 'a finished task past its date is not overdue' => [[new Condition('status', 'is', 'finished'), new Condition('due', 'is_none_of', ['overdue'])], ['mine past and done', 'other later and done']];
         yield 'all conditions hold' => [[new Condition('responsible', 'is_empty'), new Condition('due', 'is_any_of', ['next_7_days', 'overdue'])], ['nobody next week']];
+        yield 'a title ignores case' => [[new Condition('title', 'contains', 'NOBODY')], ['nobody next week', 'nobody undated']];
+        yield 'a title is not' => [[new Condition('title', 'is_not', 'Other Today')], ['mine overdue', 'nobody next week', 'nobody undated']];
+        yield 'a title is never empty' => [[new Condition('title', 'is_empty')], []];
+        yield 'a priority' => [[new Condition('priority', 'is_any_of', ['none'])], ['mine overdue', 'other today', 'nobody next week', 'nobody undated']];
+        yield 'none of the priorities' => [[new Condition('priority', 'is_none_of', ['none'])], []];
         yield 'an unknown field narrows nothing' => [[new Condition('kind', 'is', 'x')], ['mine overdue', 'other today', 'nobody next week', 'nobody undated']];
     }
 
@@ -79,6 +84,21 @@ final class TaskConditionsTest extends TestCase
         $conditions = new TaskConditions(ViewFilter::all(new Condition('due', 'is', 'next_7_days')), null, new \DateTimeImmutable('2026-11-27'));
 
         self::assertSame(['task on 2026-12-04'], array_values(array_map(static fn (TaskRow $task): string => $task->title, array_filter([$this->task('task on 2026-12-04', null, '2026-12-04', false), $this->task('task on 2026-12-05', null, '2026-12-05', false)], $conditions->matches(...)))));
+    }
+
+    public function testATitleMatchesAsWrittenWhateverTheCaseOfALetterWithAMark(): void
+    {
+        $tasks = [$this->task('Účetní uzávěrka', null, null, false), $this->task('Website copy', null, null, false)];
+        $kept = function (string $op, string $value) use ($tasks): array {
+            $conditions = new TaskConditions(ViewFilter::all(new Condition('title', $op, $value)), null, new \DateTimeImmutable('2026-11-18'));
+
+            return array_values(array_map(static fn (TaskRow $task): string => $task->title, array_filter($tasks, $conditions->matches(...))));
+        };
+
+        self::assertSame(['Účetní uzávěrka'], $kept('contains', 'ÚČETNÍ'));
+        self::assertSame(['Účetní uzávěrka'], $kept('is', '  účetní UZÁVĚRKA '));
+        self::assertSame(['Website copy'], $kept('does_not_contain', 'účetní'));
+        self::assertSame(['Účetní uzávěrka', 'Website copy'], $kept('is_not_empty', ''));
     }
 
     /**

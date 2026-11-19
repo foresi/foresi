@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Domain;
 
+use Doctrine\ORM\Mapping as ORM;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Shared\Domain\Id;
-use Doctrine\ORM\Mapping as ORM;
 
 /**
  * How one person of the organisation wants to hear about their notifications

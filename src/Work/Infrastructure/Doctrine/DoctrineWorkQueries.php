@@ -97,7 +97,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
     /** What the trash shows: a task that went there itself, not a subtask that went with its task. */
     private const string TRASHED = 't.project = :project AND t.deletedAt IS NOT NULL AND (pa.id IS NULL OR pa.deletedAt IS NULL OR pa.deletedAt <> t.deletedAt)';
 
-    public function __construct(
+    public function __construct(private ProjectLists $projectLists,
         private EntityManagerInterface $entityManager,
         private WorkVisibility $visibility,
         private Projects $projects,
@@ -136,7 +136,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             ProjectLists::ARCHIVED => DqlConditions::derivedBoolean($condition, 'p.archivedAt IS NOT NULL'),
             default => throw new \LogicException(\sprintf('The field "%s" of the projects has no SQL.', $condition->field)),
         }, []];
-        [$condition, $parameters] = new DqlConditions(ProjectLists::list(), self::PROJECT_COLUMNS, $derived(...))->compile($view, $this->clock->today(...), 'v');
+        [$condition, $parameters] = new DqlConditions($this->projectLists->list(), self::PROJECT_COLUMNS, $derived(...))->compile($view, $this->clock->today(...), 'v');
         // The archived projects only when the view asks for them, as the Active tab showed.
         $archived = [] === $view->on(ProjectLists::ARCHIVED) ? 'p.archivedAt IS NULL AND ' : '';
         $direction = $descending ? 'DESC' : 'ASC';

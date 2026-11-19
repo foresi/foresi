@@ -72,7 +72,7 @@ final class ReceivedDocumentListController extends AbstractController
 {
     public const string TOKEN = 'purchasing';
 
-    public function __construct(
+    public function __construct(private readonly ReceivedDocumentLists $receivedLists,
         private readonly ReceivedDocumentList $list,
         private readonly ReceivedDocumentDetails $details,
         private readonly UploadReceivedDocuments $uploads,
@@ -99,7 +99,7 @@ final class ReceivedDocumentListController extends AbstractController
             return $this->redirectToRoute(PurchasingNavigation::ROUTE, $this->builtQuery($input), Response::HTTP_SEE_OTHER);
         }
         [$views, $view, $shown] = $this->receivedViews->of($input);
-        $list = ReceivedDocumentLists::list();
+        $list = $this->receivedLists->list();
         $filterParam = WorkingFilter::param($shown, $view->filter);
         $page = $this->list->page(new ReceivedDocumentFilter(
             $this->tabOf($view, $shown),
@@ -354,7 +354,7 @@ final class ReceivedDocumentListController extends AbstractController
         [, $view] = $this->receivedViews->of($input);
         $query = array_diff_key($input->all(), [FilterRows::PARAM => true, FilterRows::MARKER => true, WorkingFilter::PARAM => true, 'page' => true, 'view' => true, 'tab' => true] + ReceivedDocumentViews::OLD_PARAMS);
 
-        return array_filter($query + ['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), ReceivedDocumentLists::list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
+        return array_filter($query + ['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), $this->receivedLists->list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
     }
 
     /**

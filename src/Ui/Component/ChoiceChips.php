@@ -54,7 +54,7 @@ final class ChoiceChips
      */
     public array $tones = [];
 
-    /** The list (such as "party.contacts") whose enum attribute the chips choose; with $attribute. */
+    /** The list (such as "party.contacts") of $attribute. */
     public ?string $list = null;
 
     /** The attribute of $list whose tones the chosen chips wear. */
@@ -80,11 +80,8 @@ final class ChoiceChips
                 throw new \InvalidArgumentException(sprintf('Choice chip "%s" needs a non-empty label.', $value));
             }
         }
-        if ((null === $this->list) !== (null === $this->attribute)) {
-            throw new \InvalidArgumentException('Choice chips of an attribute name both its list and its attribute.');
-        }
-        if (null !== $this->list && null !== $this->attribute) {
-            $attribute = $this->columns->attribute($this->list, $this->attribute);
+        if (null !== $this->attribute) {
+            $attribute = $this->columns->attribute($this->list ?? throw new \InvalidArgumentException('Choice chips of an attribute name its list.'), $this->attribute);
             $this->tones = [];
             foreach (array_keys($this->options) as $value) {
                 $this->tones[$value] = $attribute->tone($value);
@@ -92,7 +89,7 @@ final class ChoiceChips
         }
         foreach ($this->tones as $value => $tone) {
             if (!isset($this->options[$value]) || !isset(self::CHECKED_TONES[$tone])) {
-                throw new \InvalidArgumentException(\sprintf('Choice chip "%s" takes a tone of one of its options: %s.', $value, implode(', ', array_keys(self::CHECKED_TONES))));
+                throw new \InvalidArgumentException(\sprintf('Choice chip "%s" takes a badge tone and is one of its options.', $value));
             }
         }
         $this->focused = $this->errorFocus->claim(null !== $this->error);
@@ -101,7 +98,7 @@ final class ChoiceChips
     /** The classes of a chosen chip of the value. */
     public function checkedClass(int|string $value): string
     {
-        return [] === $this->tones ? self::CHECKED : self::CHECKED_TONES[$this->tones[(string) $value] ?? 'gray'];
+        return [] === $this->tones ? self::CHECKED : self::CHECKED_TONES[$this->tones[$value] ?? 'gray'];
     }
 
     public function isChecked(int|string $value): bool

@@ -11,13 +11,13 @@ namespace Foresi\Tests\Invoicing\Application\View;
 use Foresi\Invoicing\Application\View\SendLogLists;
 use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Application\View\ListDefinition;
-use PHPUnit\Framework\TestCase;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-final class SendLogListsTest extends TestCase
+final class SendLogListsTest extends KernelTestCase
 {
     public function testTheLogShipsItsTabsAsViewsWithoutCounts(): void
     {
-        $lists = iterator_to_array(new SendLogLists()->lists(), false);
+        $lists = iterator_to_array($this->lists()->lists(), false);
         self::assertCount(1, $lists);
         $list = $lists[0];
         self::assertSame('invoicing.sends', $list->key);
@@ -36,9 +36,9 @@ final class SendLogListsTest extends TestCase
 
     public function testTheFieldsAreTheStateAndTheType(): void
     {
-        $fields = SendLogLists::list()->fields;
+        $fields = $this->lists()->list()->fields;
 
-        self::assertSame(['status', 'purpose'], array_keys($fields));
+        self::assertSame(['status', 'purpose', 'number', 'when', 'customer'], array_keys($fields));
         self::assertSame(FieldType::Enum, $fields['status']->type);
         self::assertSame('invoice.sends.column.status', $fields['status']->label);
         self::assertSame(['queued', 'sent', 'failed', 'cancelled'], $fields['status']->options);
@@ -47,5 +47,15 @@ final class SendLogListsTest extends TestCase
         self::assertSame('reminder.log.column', $fields['purpose']->label);
         self::assertSame(['invoice', 'reminder'], $fields['purpose']->options);
         self::assertSame(['invoice' => 'reminder.log.purpose.invoice', 'reminder' => 'reminder.log.purpose.reminder'], $fields['purpose']->optionLabels);
+    }
+
+    public function testTheListIsBuiltOnce(): void
+    {
+        self::assertSame($this->lists()->list(), $this->lists()->list());
+    }
+
+    private function lists(): SendLogLists
+    {
+        return self::getContainer()->get(SendLogLists::class);
     }
 }

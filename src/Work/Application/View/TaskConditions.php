@@ -20,7 +20,9 @@ use Foresi\Work\Application\TaskRow;
  *
  * A task is finished when its status is; a finished task is left out unless a
  * condition asks about the status. A due date falls in every bucket it matches:
- * today is also in the next seven days, and overdue is past and not finished.
+ * today is also in the next seven days, and overdue is past and not finished. The
+ * title and the priority are fields of the list's data source, matched on the row as
+ * the query would: a text ignores case.
  */
 final readonly class TaskConditions
 {
@@ -43,6 +45,8 @@ final readonly class TaskConditions
                 ProjectTaskLists::RESPONSIBLE => $this->responsible($condition, $task->responsibleId),
                 ProjectTaskLists::STATUS => $this->any($condition, [$task->done ? ProjectTaskLists::FINISHED : ProjectTaskLists::OPEN]),
                 ProjectTaskLists::DUE => $this->any($condition, $this->buckets($task)),
+                ProjectTaskLists::TITLE => $this->text($condition, $task->title),
+                ProjectTaskLists::PRIORITY => $this->any($condition, [$task->priority->value]),
                 default => true,
             };
             if (!$holds) {
@@ -62,6 +66,25 @@ final readonly class TaskConditions
             'is_not' => null === $responsibleId || !\in_array($responsibleId, $ids, true),
             'is_empty' => null === $responsibleId,
             default => null !== $responsibleId,
+        };
+    }
+
+    /**
+     * Whether a text condition holds for a value, ignoring case.
+     */
+    private function text(Condition $condition, string $value): bool
+    {
+        // A title is trimmed when it is set (Name::of).
+        $value = mb_strtolower($value);
+        $wanted = mb_strtolower(\is_string($condition->value) ? trim($condition->value) : '');
+
+        return match ($condition->op) {
+            'contains' => str_contains($value, $wanted),
+            'does_not_contain' => !str_contains($value, $wanted),
+            'is' => $value === $wanted,
+            'is_not' => $value !== $wanted,
+            'is_empty' => '' === $value,
+            default => '' !== $value,
         };
     }
 

@@ -17,19 +17,22 @@ use Foresi\Shared\Application\View\Field;
 use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ListDefinitionSource;
+use Foresi\Shared\Application\View\ListFields;
 use Foresi\Shared\Application\View\ViewFilter;
 
 /**
  * The four lists of documents and the views they ship: the tabs they had, each
- * the same documents as before (spec D12). The payment, overdue, settlement and
- * export fields are derived, never stored, so DoctrineInvoiceStore compiles them with
+ * the same documents as before (spec D12). Their fields are the filterable attributes
+ * of their data source (DS1), the dates and the amounts among them, with what the module
+ * keeps itself: the trash, the customer to pick and the payment, overdue, settlement and
+ * export fields, derived, never stored, so DoctrineInvoiceStore compiles them with
  * the SQL the tabs and the old export select narrowed with. Overdue keeps the day of the issuer's country
  * (ADR 0017), as the reminders and the rows do, rather than the instance's day.
  *
  * A list leaves out the trash unless a condition asks for it: All holds no
  * condition, as every list's All, and still shows no document in the trash.
  */
-final readonly class InvoiceLists implements ListDefinitionSource
+final class InvoiceLists implements ListDefinitionSource
 {
     public const string TRASHED = 'trashed';
     public const string PAYMENT = 'payment';
@@ -40,6 +43,7 @@ final readonly class InvoiceLists implements ListDefinitionSource
     public const string TAX_POINT_DATE = 'tax_point_date';
     public const string DUE_DATE = 'due_date';
     public const string CUSTOMER = 'customer';
+    /** An older key of the total to pay, which views kept before the catalogue named it "payable". */
     public const string AMOUNT = 'amount';
 
     /** What a customer reference points to: the builder picks one with the contact picker. */
@@ -53,16 +57,25 @@ final readonly class InvoiceLists implements ListDefinitionSource
         'correction_document' => 'invoicing.corrections',
     ];
 
+    /** @var array<string, ListDefinition> */
+    private array $lists = [];
+
+    public function __construct(private readonly ListFields $fields)
+    {
+    }
+
     public function lists(): iterable
     {
         foreach (DocumentKind::cases() as $kind) {
-            yield self::of($kind);
+            yield $this->of($kind);
         }
     }
 
-    public static function of(DocumentKind $kind): ListDefinition
+    public function of(DocumentKind $kind): ListDefinition
     {
-        return new ListDefinition(self::KEYS[$kind->value], self::fields($kind), self::defaults($kind));
+        $key = self::KEYS[$kind->value];
+
+        return $this->lists[$key] ??= new ListDefinition($key, $this->fields->of($key, $this->ownFields($kind)), $this->defaults($kind));
     }
 
     /**
@@ -74,9 +87,11 @@ final readonly class InvoiceLists implements ListDefinitionSource
     }
 
     /**
+     * The module's own fields: those no attribute of the data source shows as it filters.
+     *
      * @return list<Field>
      */
-    private static function fields(DocumentKind $kind): array
+    private function ownFields(DocumentKind $kind): array
     {
         $fields = [new Field(self::TRASHED, FieldType::Boolean, 'invoice.list.tab.trash')];
         $payment = match ($kind) {
@@ -86,28 +101,19 @@ final readonly class InvoiceLists implements ListDefinitionSource
             DocumentKind::CorrectionDocument => [InvoiceFilter::TO_REFUND],
         };
         if ([] !== $payment) {
-            $fields[] = new Field(self::PAYMENT, FieldType::Enum, 'invoice.field.payment_state', options: $payment, optionLabels: self::labels($payment));
+            $fields[] = new Field(self::PAYMENT, FieldType::Enum, 'invoice.field.payment_state', options: $payment, optionLabels: $this->labels($payment));
         }
         if (\in_array($kind, [DocumentKind::Invoice, DocumentKind::Advance], true)) {
             $fields[] = new Field(self::OVERDUE, FieldType::Boolean, 'invoice.list.tab.overdue');
         }
         if (\in_array($kind, [DocumentKind::Advance, DocumentKind::PaymentTaxDocument], true)) {
             $settlement = DocumentKind::Advance === $kind ? [InvoiceFilter::UNSETTLED] : [InvoiceFilter::SETTLED, InvoiceFilter::UNSETTLED];
-            $fields[] = new Field(self::SETTLEMENT, FieldType::Enum, 'invoice.field.settlement', options: $settlement, optionLabels: self::labels($settlement));
+            $fields[] = new Field(self::SETTLEMENT, FieldType::Enum, 'invoice.field.settlement', options: $settlement, optionLabels: $this->labels($settlement));
         }
         // Where a document stands with the accountant, once a fixed select of the filter sheet (spec D11).
         $states = array_map(static fn (ExportState $state): string => $state->value, ExportState::cases());
         $fields[] = new Field(self::EXPORT, FieldType::Enum, 'invoice.export_state.label', ['is', 'is_any_of'], $states, array_combine($states, array_map(static fn (string $state): string => 'invoice.export_state.'.$state, $states)));
         $fields[] = new Field(self::CUSTOMER, FieldType::Reference, 'invoice.field.customer', ['is', 'is_not', 'is_any_of'], source: self::CONTACT);
-        // In the document's currency, as the list shows it: the total to pay.
-        $fields[] = new Field(self::AMOUNT, FieldType::Number, 'invoice.field.total');
-        $fields[] = new Field(self::ISSUE_DATE, FieldType::Date, 'invoice.field.issueDate');
-        if ($kind->isTaxDocument()) {
-            $fields[] = new Field(self::TAX_POINT_DATE, FieldType::Date, 'invoice.field.taxPointDate');
-        }
-        if (\in_array($kind, [DocumentKind::Invoice, DocumentKind::Advance], true)) {
-            $fields[] = new Field(self::DUE_DATE, FieldType::Date, 'invoice.field.dueDate');
-        }
 
         return $fields;
     }
@@ -117,7 +123,7 @@ final readonly class InvoiceLists implements ListDefinitionSource
      *
      * @return array<string, string>
      */
-    private static function labels(array $values): array
+    private function labels(array $values): array
     {
         return array_combine($values, array_map(static fn (string $value): string => 'invoice.list.tab.'.$value, $values));
     }
@@ -125,17 +131,17 @@ final readonly class InvoiceLists implements ListDefinitionSource
     /**
      * @return list<DefaultView>
      */
-    private static function defaults(DocumentKind $kind): array
+    private function defaults(DocumentKind $kind): array
     {
         $views = [];
         foreach (InvoiceFilter::tabsOf($kind) as $position => $tab) {
-            $views[] = new DefaultView($tab, 'invoice.list.tab.'.$tab, self::filterOf($tab), position: $position);
+            $views[] = new DefaultView($tab, 'invoice.list.tab.'.$tab, $this->filterOf($tab), position: $position);
         }
 
         return $views;
     }
 
-    private static function filterOf(string $tab): ViewFilter
+    private function filterOf(string $tab): ViewFilter
     {
         return match ($tab) {
             InvoiceFilter::ALL => new ViewFilter(),

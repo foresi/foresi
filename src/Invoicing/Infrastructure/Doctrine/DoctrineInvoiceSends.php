@@ -34,7 +34,7 @@ final readonly class DoctrineInvoiceSends implements InvoiceSends
     /** The fields of the send log's views, each a column of the send. */
     private const array VIEW_COLUMNS = [SendLogLists::STATUS => 's.status', SendLogLists::PURPOSE => 's.purpose'];
 
-    public function __construct(private EntityManagerInterface $em)
+    public function __construct(private SendLogLists $sendLogLists, private EntityManagerInterface $em)
     {
     }
 
@@ -120,7 +120,7 @@ final readonly class DoctrineInvoiceSends implements InvoiceSends
     public function page(SendLogFilter $filter): SendLogPage
     {
         // The view's fields are columns of the send (SendLogLists): no field is derived.
-        [$where, $parameters] = new DqlConditions(SendLogLists::list(), self::VIEW_COLUMNS, static fn (Condition $condition): never => throw new \LogicException(\sprintf('The field "%s" of the send log has no SQL.', $condition->field)))
+        [$where, $parameters] = new DqlConditions($this->sendLogLists->list(), self::VIEW_COLUMNS, static fn (Condition $condition): never => throw new \LogicException(\sprintf('The field "%s" of the send log has no SQL.', $condition->field)))
             ->compile($filter->view, static fn (): \DateTimeImmutable => new \DateTimeImmutable(), 'v');
         $count = $this->em->createQuery('SELECT COUNT(s.id) FROM '.InvoiceSend::class.' s WHERE '.$where);
         foreach ($parameters as $name => [$value, $type]) {

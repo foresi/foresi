@@ -37,7 +37,7 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
 {
     private const string LOCK = 'UPDATE recurring_invoice SET version = version WHERE id = :id';
 
-    public function __construct(private EntityManagerInterface $em, private InstanceClock $clock)
+    public function __construct(private RecurringLists $recurringLists, private EntityManagerInterface $em, private InstanceClock $clock)
     {
     }
 
@@ -250,11 +250,9 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
             default => throw new \LogicException(\sprintf('The field "%s" of the recurring invoices has no SQL.', $condition->field)),
         };
 
-        return new DqlConditions(RecurringLists::list(), [
+        return new DqlConditions($this->recurringLists->list(), [
             RecurringLists::STATE => 'r.state',
             RecurringLists::DELIVERY => 'r.delivery',
-            RecurringLists::NEXT_OCCURRENCE => 'r.nextOccurrence',
-            RecurringLists::NAME => 'r.name',
         ], $derived(...))->compile($view, $today, $prefix);
     }
 

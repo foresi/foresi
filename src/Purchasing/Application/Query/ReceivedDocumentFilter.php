@@ -54,7 +54,7 @@ final readonly class ReceivedDocumentFilter
         if (!\in_array($tab, self::TABS, true)) {
             throw new \InvalidArgumentException(\sprintf('Unknown tab "%s".', $tab));
         }
-        $this->view = $view ?? ReceivedDocumentLists::list()->default($tab)->filter ?? new ViewFilter();
+        $this->view = $view ?? ReceivedDocumentLists::defaultFilter($tab) ?? new ViewFilter();
     }
 
     /**
