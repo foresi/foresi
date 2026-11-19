@@ -26,7 +26,7 @@ use Foresi\Shared\Application\Api\Operation;
     scope: 'received_documents:write',
     title: 'Record a received document',
     description: 'Records a document the firm received from a supplier (an invoice, a receipt, a credit note, an advance request) straight from its values, with no file; it gets the next evidence number of the firm and counts in the VAT reports. '
-        .'The supplier must be a contact: find it with foresi_search_contacts (by registration_number or name), or create it with foresi_create_contact. The firm comes from foresi_list_firms. '
+        .'The supplier must be a contact: find it with foresi_search_contacts (by registration_number or name), or create it with foresi_create_contact. '
         .'Amounts are decimals in the document currency, such as "1210.00"; a credit note has a negative total. The VAT recap is one line per rate, "rate:base:vat", such as "21:1000.00:210.00"; a document in another currency may add the VAT in CZK it prints, "21:100.00:21.00:510.30". '
         .'Before recording, search the firm\'s documents for the supplier number to avoid recording one twice. Record its payments with foresi_add_received_document_payment or foresi_mark_received_document_paid.',
     status: 201,
@@ -38,8 +38,6 @@ final readonly class RecordReceivedDocumentInput
      * @param list<string> $vatRecap
      */
     public function __construct(
-        #[Field('The id of the firm that received the document.', format: 'uuid')]
-        public string $firmId,
         #[Field('What the document is.', enum: ['tax_invoice', 'simplified_receipt', 'foreign_invoice', 'credit_note', 'advance_request', 'other'])]
         public string $kind,
         #[Field('The id of the supplier, a contact of the address book.', format: 'uuid')]

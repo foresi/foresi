@@ -44,6 +44,6 @@ final class PurchasingRefusedTest extends TestCase
     {
         $refused = PurchasingRefused::unknownFirm();
 
-        self::assertSame(['firm_unknown', RefusalKind::NotFound, 'firmId'], [$refused->reason(), $refused->kind(), $refused->field()]);
+        self::assertSame(['firm_unknown', RefusalKind::NotFound, null, 'The instance has no firm yet: its first-run setup has not happened.'], [$refused->reason(), $refused->kind(), $refused->field(), $refused->getMessage()]);
     }
 }

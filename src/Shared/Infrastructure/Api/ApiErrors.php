@@ -88,7 +88,7 @@ final readonly class ApiErrors
     }
 
     /**
-     * The name of a parameter as the client sends it: firmId is firm_id.
+     * The name of a parameter as the client sends it: customerId is customer_id.
      */
     private function parameter(string $propertyPath): string
     {

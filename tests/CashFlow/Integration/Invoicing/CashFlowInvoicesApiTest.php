@@ -40,7 +40,7 @@ final class CashFlowInvoicesApiTest extends ApiTestCase
         $invoice = $this->flushed(fn (): string => $this->invoice()->id());
         $restricted = ['invoicing.invoices', 'invoicing.recurring_invoices', 'purchasing.received_documents'];
 
-        $this->get('/api/v1/cash-flow/forecast', ['firm_id' => $this->firmId], $this->issued([ApiScope::from('cashflow:read')]));
+        $this->get('/api/v1/cash-flow/forecast', [], $this->issued([ApiScope::from('cashflow:read')]));
 
         self::assertResponseIsSuccessful();
         self::assertSame($restricted, $this->at('data', 'restricted_sources'));
@@ -54,7 +54,7 @@ final class CashFlowInvoicesApiTest extends ApiTestCase
         ]], $this->at('data', 'periods', 0, 'hidden_items'));
         self::assertSame(['amount_minor' => 242000, 'currency' => 'CZK'], $this->at('data', 'periods', 0, 'inflows', 'total'));
 
-        $this->get('/api/v1/cash-flow/forecast', ['firm_id' => $this->firmId], $this->issued([ApiScope::from('cashflow:read'), ApiScope::from('invoices:read')]));
+        $this->get('/api/v1/cash-flow/forecast', [], $this->issued([ApiScope::from('cashflow:read'), ApiScope::from('invoices:read')]));
 
         self::assertSame(['purchasing.received_documents'], $this->at('data', 'restricted_sources'));
         self::assertSame([], $this->at('data', 'periods', 0, 'hidden_items'));

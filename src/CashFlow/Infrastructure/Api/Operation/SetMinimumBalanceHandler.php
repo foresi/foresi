@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\CashFlow\Infrastructure\Api\Operation;
 
 use Foresi\CashFlow\Application\BalanceWrites;
+use Foresi\CashFlow\Application\CashFlowAccess;
 use Foresi\CashFlow\Application\PlannedItemWrites;
 use Foresi\CashFlow\Application\SetMinimumBalanceInput;
 use Foresi\CashFlow\Infrastructure\Api\CashFlowJson;
@@ -17,7 +18,7 @@ use Foresi\Shared\Infrastructure\Operation\OperationOutput;
 
 final readonly class SetMinimumBalanceHandler implements OperationHandler
 {
-    public function __construct(private BalanceWrites $writes)
+    public function __construct(private BalanceWrites $writes, private CashFlowAccess $access)
     {
     }
 
@@ -32,7 +33,7 @@ final readonly class SetMinimumBalanceHandler implements OperationHandler
         $amount = $this->writes->minimum($input)?->amount();
 
         return new OperationOutput(
-            CashFlowJson::minimumBalance($input->firmId, $amount),
+            CashFlowJson::minimumBalance($this->access->firm()->id(), $amount),
             $amount instanceof \Foresi\Shared\Domain\Money ? \sprintf('The minimum balance of the firm is %s CZK.', PlannedItemWrites::decimal($amount)) : 'The firm has no minimum balance now.',
         );
     }

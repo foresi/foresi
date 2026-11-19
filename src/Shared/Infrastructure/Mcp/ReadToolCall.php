@@ -13,6 +13,7 @@ use Foresi\Shared\Application\Api\IdempotencyKeyReused;
 use Foresi\Shared\Application\Api\SavedAnswer;
 use Foresi\Shared\Application\Api\ScopeGuard;
 use Foresi\Shared\Infrastructure\Api\Idempotency;
+use Foresi\Shared\Infrastructure\Api\RetiredParameters;
 use Foresi\Shared\Infrastructure\Api\WriteBudget;
 use Mcp\Schema\Content\TextContent;
 use Mcp\Schema\Result\CallToolResult;
@@ -56,6 +57,10 @@ final readonly class ReadToolCall
                 $this->scopes->require($scope);
             } catch (\DomainException) {
                 throw new ToolRefusal(ToolRefusal::INSUFFICIENT_SCOPE, ScopeGuard::ANY === $scope ? 'The connection has no valid token.' : \sprintf('The token does not have the "%s" scope.', $scope));
+            }
+            $retired = RetiredParameters::first(array_keys($arguments));
+            if (null !== $retired) {
+                throw ToolRefusal::invalidArgument($retired[1]);
             }
             if ($tool instanceof WriteTool) {
                 $this->spendWrite();

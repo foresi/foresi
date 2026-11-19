@@ -297,7 +297,7 @@ final class ForecastsTest extends CashFlowTestCase
         $source = new FakeSource('test.broken', fails: true);
         $foreign = new FakeSource('test.foreign', [$this->flow('inv-eur', '2026-11-20', '10.00', currency: Currency::EUR), $this->flow('inv-czk', '2026-11-21', '10.00')]);
 
-        $forecast = $this->forecasts([$source, $foreign], [new FakeBalanceSource('test.bank', fails: true)], $rates, $logger)->of($this->firm->id());
+        $forecast = $this->forecasts([$source, $foreign], [new FakeBalanceSource('test.bank', fails: true)], $rates, $logger)->of();
 
         self::assertSame(['test.bank', 'test.broken'], $forecast->unavailableSources);
         self::assertSame(['EUR'], $forecast->unavailableRates);
@@ -355,7 +355,7 @@ final class ForecastsTest extends CashFlowTestCase
         };
         $source = new FakeSource('test.invoices', [$this->flow('last-day', '2026-11-30', '5.00'), $this->flow('after', '2026-12-01', '5.00', currency: Currency::EUR)]);
 
-        $forecast = $this->forecasts([$source], [], $rates)->of($this->firm->id(), months: 1);
+        $forecast = $this->forecasts([$source], [], $rates)->of(months: 1);
 
         self::assertSame(['last-day'], $this->ids($forecast->periods[\count($forecast->periods) - 1]->lines));
         self::assertSame([], $forecast->unavailableRates);
@@ -471,7 +471,6 @@ final class ForecastsTest extends CashFlowTestCase
         $this->assertRefused('months_invalid', 'months', fn (): Forecast => $this->forecast(months: 0));
         $this->assertRefused('months_invalid', 'months', fn (): Forecast => $this->forecast(months: Forecasts::MAX_MONTHS + 1));
         $this->assertRefused('date_invalid', 'weeksUntil', fn (): Forecast => $this->forecast(weeksUntil: '2026-13-01'));
-        $this->assertRefused('not_found', null, fn (): Forecast => $this->forecasts()->of('0198a4f0-8b1e-7000-8000-000000000001'));
         self::assertCount(24, $this->forecast(months: Forecasts::MAX_MONTHS, weeksUntil: '2026-11-16')->periods);
         self::assertCount(1, $this->forecast(months: 1, weeksUntil: '2026-11-16')->periods);
         $this->signIn($this->guest);
@@ -517,7 +516,7 @@ final class ForecastsTest extends CashFlowTestCase
      */
     private function forecast(?array $sources = null, array $balanceSources = [], ?string $from = null, ?int $months = null, ?string $weeksUntil = null, ?ExchangeRates $rates = null): Forecast
     {
-        return $this->forecasts($sources ?? [$this->plannedSource()], $balanceSources, $rates)->of($this->firm->id(), $from, $months, $weeksUntil);
+        return $this->forecasts($sources ?? [$this->plannedSource()], $balanceSources, $rates)->of($from, $months, $weeksUntil);
     }
 
     /**
@@ -556,7 +555,7 @@ final class ForecastsTest extends CashFlowTestCase
 
     private function minimum(?string $amount): void
     {
-        self::getContainer()->get(BalanceWrites::class)->minimum(new SetMinimumBalanceInput($this->firm->id(), $amount));
+        self::getContainer()->get(BalanceWrites::class)->minimum(new SetMinimumBalanceInput($amount));
     }
 
     /**

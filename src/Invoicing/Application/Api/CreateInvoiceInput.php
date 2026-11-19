@@ -43,8 +43,6 @@ final readonly class CreateInvoiceInput
         public string $customerId,
         #[Field('The lines, at least one: objects of text, unit_price (a decimal such as "1500.00"), and optionally quantity (default "1"), unit, price_type (without_vat by default, with_vat or base_only), vat (base, reduced, second_reduced, reverse_charge, exempt or none; the default of the firm and customer when left out) and discount (a percentage such as "10").', items: Field::OBJECTS)]
         public array $lines,
-        #[Field('The id of the firm that issues it; the firm of the instance when left out.', format: 'uuid')]
-        public ?string $firmId = null,
         #[Field('What it is: invoice, or advance (an advance invoice, a request for payment that is no tax document).', enum: ['invoice', 'advance'])]
         public string $kind = 'invoice',
         #[Field('The id of the series; the default series of the kind when left out.', format: 'uuid')]

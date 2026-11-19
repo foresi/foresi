@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Infrastructure\Mcp;
 
+use Foresi\Shared\Infrastructure\Api\RetiredParameters;
 use Foresi\Shared\Infrastructure\Mcp\ReadToolCall;
 use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
 use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
@@ -123,6 +124,16 @@ final class ReadToolCallTest extends TestCase
         $result = $this->call(new FakeReadTool(failure: ToolRefusal::invalidArgument('The cursor is not one of ours.')), []);
 
         $this->assertRefused($result, 'invalid_argument', 'The cursor is not one of ours.');
+    }
+
+    public function testAnArgumentThatWasRetiredIsRefusedBeforeTheToolIsCalled(): void
+    {
+        foreach ([new FakeReadTool(name: 'foresi_search_invoices'), new FakeWriteTool()] as $tool) {
+            $result = $this->call($tool, ['firm_id' => '01940000-0000-7000-8000-000000000001', 'id' => 'x']);
+
+            $this->assertRefused($result, 'invalid_argument', RetiredParameters::RETIRED['firm_id']);
+            self::assertNull($tool->arguments);
+        }
     }
 
     public function testADomainRefusalOfTheToolIsNotTakenForAScopeRefusal(): void

@@ -11,10 +11,10 @@ namespace Foresi\CashFlow\Application;
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\StaffCheck;
 use Foresi\Party\Application\FirmBankAccounts;
-use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\InstanceFirm;
+use Foresi\Party\Application\NoFirmYet;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\UnknownFirmBankAccount;
-use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
@@ -22,15 +22,15 @@ use Foresi\Party\Domain\Party;
 /**
  * Who works with the cash flow: the owners and the members of the
  * organisation, never its guests. Every use case asks here first, and finds
- * the firms, accounts and contacts it names here, so an unknown record is
- * refused.
+ * the firm of the instance, the accounts and the contacts it names here, so an
+ * unknown record is refused.
  */
 final readonly class CashFlowAccess
 {
     public function __construct(
         private StaffCheck $staff,
         private AuditActor $actor,
-        private LegalEntities $firms,
+        private InstanceFirm $firm,
         private FirmBankAccounts $accounts,
         private PartyQuery $parties,
     ) {
@@ -47,14 +47,16 @@ final readonly class CashFlowAccess
     }
 
     /**
-     * @throws CashFlowRefused not_found
+     * The one firm of the instance (ADR 0039).
+     *
+     * @throws CashFlowRefused not_found before the first-run setup
      */
-    public function firm(string $id): LegalEntity
+    public function firm(): LegalEntity
     {
         try {
-            return $this->firms->get($id);
-        } catch (UnknownLegalEntity) {
-            throw CashFlowRefused::notFound('The organisation has no firm with this id. Find it with foresi_list_firms.');
+            return $this->firm->get();
+        } catch (NoFirmYet) {
+            throw CashFlowRefused::notFound('The instance has no firm yet: its first-run setup has not happened.');
         }
     }
 

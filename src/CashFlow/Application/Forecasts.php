@@ -79,10 +79,10 @@ final class Forecasts
      *
      * @throws CashFlowRefused
      */
-    public function of(string $firmId, ?string $from = null, ?int $months = null, ?string $weeksUntil = null): Forecast
+    public function of(?string $from = null, ?int $months = null, ?string $weeksUntil = null): Forecast
     {
         $this->access->denyUnlessStaff();
-        $firm = $this->access->firm($firmId);
+        $firm = $this->access->firm();
         $today = $this->clock->today();
         $zone = $today->getTimezone();
         $start = null === $from ? $today : PlannedItemRules::day($from, $zone, 'from');

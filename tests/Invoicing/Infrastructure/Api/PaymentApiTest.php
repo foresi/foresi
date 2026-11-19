@@ -78,21 +78,16 @@ final class PaymentApiTest extends ApiTestCase
         self::assertSame(new \DateTimeImmutable('2026-11-11 08:00:00')->format(\DATE_ATOM), $this->at('data', 0, 'cancelled_at'));
     }
 
-    public function testTheFirmTheInvoiceAndTheDirectionNarrowTheList(): void
+    public function testTheInvoiceAndTheDirectionNarrowTheList(): void
     {
-        [$first, $other, $refund, $otherFirm, $invoice] = $this->flushed(function (): array {
+        [$first, $other, $refund, $invoice] = $this->flushed(function (): array {
             $invoice = $this->invoice();
             $first = $this->payment(parts: [$invoice->id() => '1000']);
             $refund = $this->payment(parts: [$invoice->id() => '100'], direction: PaymentDirection::Refund);
-            [$firm] = $this->firmWithCustomer('Other Firm s.r.o.', '25596641');
 
-            return [$first, $this->payment(firmId: $firm, amount: '100'), $refund, $firm, $invoice];
+            return [$first, $this->payment(amount: '100'), $refund, $invoice];
         });
 
-        $this->get('/api/v1/payments', ['firm_id' => $otherFirm]);
-        self::assertSame([$other->id()], $this->ids());
-        $this->get('/api/v1/payments', ['firm_id' => $this->firmId]);
-        self::assertSame([$refund->id(), $first->id()], $this->ids());
         $this->get('/api/v1/payments', ['invoice_id' => $invoice->id()]);
         self::assertSame([$refund->id(), $first->id()], $this->ids());
         $this->get('/api/v1/payments', ['invoice_id' => strtoupper($invoice->id())]);
@@ -128,7 +123,7 @@ final class PaymentApiTest extends ApiTestCase
     {
         yield 'a cursor that is no id' => [['cursor' => Cursor::encode('not-an-id')], 'cursor'];
         yield 'a limit above the maximum' => [['limit' => '101'], 'limit'];
-        yield 'a firm that is no id' => [['firm_id' => 'nope'], 'firm_id'];
+        yield 'a retired firm' => [['firm_id' => 'nope'], 'firm_id'];
         yield 'an invoice that is no id' => [['invoice_id' => 'nope'], 'invoice_id'];
         yield 'an unknown direction' => [['direction' => 'sideways'], 'direction'];
         yield 'a first day that is no day' => [['received_from' => '2026-02-30'], 'received_from'];
