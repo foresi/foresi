@@ -18,7 +18,6 @@ final class SendLogFilterTest extends TestCase
         $filter = new SendLogFilter();
 
         self::assertSame(1, $filter->page);
-        self::assertNull($filter->firmId);
-        self::assertNull($filter->status);
+        self::assertSame([], $filter->view->conditions);
     }
 }
