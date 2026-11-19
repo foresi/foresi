@@ -31,7 +31,6 @@ use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
-use Foresi\Party\Domain\PartyFirmSettings;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\RegistrationNumber;
@@ -70,7 +69,6 @@ final class RemindableInvoicesTest extends InvoiceTestCase
         $this->deliveredDue('2026-10-31', '2026-10-20');                  // due before the switch-on day
         $this->deliveredDue('2026-11-25');                                // 25 + 7 is past the day
         $this->deliveredDue('2026-11-15', customer: $this->customerWithFlag(false));
-        $this->deliveredDue('2026-11-15', customer: $this->customerOffForFirm($this->firm));
         $this->deliveredDue('2026-11-15', customer: $this->customerWithoutAddress());
         $this->reminded($this->deliveredDue('2026-11-15'), ...array_fill(0, FirmReminders::MAX_STEPS, '2026-11-20 08:00:00'));
         $this->reminded($this->deliveredDue('2026-11-15'), '2026-11-26 07:00:00'); // reminded 5 days ago
@@ -78,7 +76,6 @@ final class RemindableInvoicesTest extends InvoiceTestCase
         $this->otherFirmsInvoice('2026-11-15');
         $sentNormally = $this->deliveredDue('2026-11-16');
         $this->sent($sentNormally);
-        $otherFirmOff = $this->deliveredDue('2026-11-17', customer: $this->customerOffForFirm($this->firm(vatId: 'CZ12345687', registrationNumber: '12345687')));
         $this->em->flush();
         $this->em->clear();
 
@@ -88,8 +85,7 @@ final class RemindableInvoicesTest extends InvoiceTestCase
             new RemindableInvoice($second->id(), 2, new \DateTimeImmutable('2026-11-24', new \DateTimeZone(self::ZONE))),
             new RemindableInvoice($first->id(), 1, null),
             new RemindableInvoice($sentNormally->id(), 1, null),
-            new RemindableInvoice($otherFirmOff->id(), 1, null),
-        ], $due, 'oldest due first; an invoice send is no reminder; a flag off for another firm does not count');
+        ], $due, 'oldest due first; an invoice send is no reminder');
         self::assertSame([$second->id()], array_map(static fn (RemindableInvoice $invoice): string => $invoice->invoiceId, $this->remindable->due($this->firm, $this->settings(), $this->today(), 1)));
     }
 
@@ -332,19 +328,6 @@ final class RemindableInvoicesTest extends InvoiceTestCase
     {
         $party = $this->customer();
         $party->changeInvoicingDefaults(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, $send));
-        $this->em->flush();
-
-        return $party;
-    }
-
-    private function customerOffForFirm(LegalEntity $firm): Party
-    {
-        $party = $this->customer();
-        $this->em->flush();
-        // Delivering detaches what was loaded before, the firm too.
-        $row = new PartyFirmSettings($party, $this->em->find(LegalEntity::class, $firm->id()) ?? self::fail());
-        $row->changeInvoicingDefaults(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, false));
-        $this->em->persist($row);
         $this->em->flush();
 
         return $party;

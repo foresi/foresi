@@ -72,7 +72,7 @@ final readonly class DoctrineContactQueries implements ContactQueries
         }
         $emails = [];
         /** @var list<PartyEmail> $all */
-        $all = $this->em->createQuery('SELECT e FROM '.PartyEmail::class.' e WHERE e.party IN (:ids) AND e.legalEntity IS NULL AND e.purpose = :purpose ORDER BY e.id')
+        $all = $this->em->createQuery('SELECT e FROM '.PartyEmail::class.' e WHERE e.party IN (:ids) AND e.purpose = :purpose ORDER BY e.id')
             ->setParameter('ids', $ids)->setParameter('purpose', EmailPurpose::General)->getResult();
         foreach ($all as $email) {
             $emails[$email->party()->id()] ??= $email->address();

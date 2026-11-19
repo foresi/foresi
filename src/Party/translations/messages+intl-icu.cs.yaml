@@ -242,34 +242,6 @@ party:
     currency: Měna
     language: Jazyk dokladů
     reverse_charge: Přenesená daňová povinnost
-  scope:
-    all_firms: Všechny firmy
-    own: vlastní
-    applies_to: Platí pro
-    set: Nastavit pro tuto firmu
-    reset: Vrátit na společné
-    reset_confirm: Vrátit na společné hodnoty?
-    reset_confirm_text: Vlastní hodnoty této firmy se po uložení smažou.
-    reset_confirm_accept: Vrátit na společné
-    reset_confirm_cancel: Ponechat vlastní
-    emails: Fakturační e-maily
-    archive: Stav archivace
-    invoice_emails: E-maily pro faktury
-    copy_emails: Kopie faktur
-    emails_help: Jedna adresa na řádek.
-    archived_all: Archivováno pro všechny firmy
-    archived_firm: Archivováno pro tuto firmu
-    archived_help: Archivace pro všechny firmy má přednost.
-  firm_settings:
-    due_days: Splatnost ve dnech
-    due_days_help: Platí pro nové doklady.
-    currency: Měna
-    language: Jazyk dokladů
-    payment_method: Způsob úhrady
-    reverse_charge: Přenesená daňová povinnost
-    hourly_rate: Hodinová sazba
-    hourly_rate_help: Platí pro projekty klienta bez vlastní sazby.
-    hourly_rate_currency: Měna sazby
   payment_method:
     bank_transfer: Převodem
     cash: Hotově

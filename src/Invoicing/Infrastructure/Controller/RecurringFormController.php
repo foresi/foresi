@@ -46,8 +46,8 @@ use Foresi\Invoicing\Infrastructure\Form\InvoiceFormValues;
 use Foresi\Invoicing\Infrastructure\Form\RecurringFormReader;
 use Foresi\Invoicing\Infrastructure\Form\RecurringFormValues;
 use Foresi\Invoicing\Infrastructure\Form\RecurringSubmission;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\PartyDetails;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Party\Domain\DocumentLanguage;
@@ -109,7 +109,7 @@ final class RecurringFormController extends AbstractController
         private readonly NewInvoiceDefaults $defaults,
         private readonly CopyInvoice $copies,
         private readonly CustomerPicker $picker,
-        private readonly ContactSettingsForFirm $contacts,
+        private readonly PartyDetails $partyDetails,
         private readonly PartyQuery $parties,
         private readonly SubmissionTokens $tokens,
         private readonly StaffCheck $staff,
@@ -241,7 +241,7 @@ final class RecurringFormController extends AbstractController
         // Only the save button saves: a request without one changes nothing.
         $action = $request->request->getString('_action', 'refresh');
         $saving = 'save' === $action;
-        $matches = $this->typedCustomers($request, $context->firm, $saving);
+        $matches = $this->typedCustomers($request, $saving);
         $wanted = $this->withRecipients($request, $this->recipients($context->firm, $request->request->getString('customerId'), $template));
         $submission = $this->reader->read($request, $context->currency, $this->today());
         // The form shows the boxes as they were chosen, so a box that comes back with an address is as it was.
@@ -311,7 +311,7 @@ final class RecurringFormController extends AbstractController
         $errors = [];
         if (str_starts_with($action, 'pick:')) {
             $party = $this->pickable(substr($action, 5));
-            if ($party instanceof Party && $this->contacts->isArchivedFor($party, $context->firm)) {
+            if ($party instanceof Party && $party->isArchived()) {
                 $errors = [$this->message('customer', 'invoice.problem.customer_archived')];
             } elseif ($party instanceof Party) {
                 $values = $this->withCustomer($values, $party, $context);
@@ -340,7 +340,7 @@ final class RecurringFormController extends AbstractController
     {
         $values = $this->values->withCustomer($values + ['dueDateSet' => '1', 'dueDate' => ''], $party, $context->firm, $this->today(), $context->regime, $context->firm->address()->countryCode);
         if ('1' !== $values['dueDaysSet']) {
-            $values['dueDays'] = (string) $this->picker->option($party, $context->firm)->defaults->dueDays;
+            $values['dueDays'] = (string) $this->picker->option($party)->defaults->dueDays;
         }
 
         return $values;
@@ -356,14 +356,14 @@ final class RecurringFormController extends AbstractController
      *
      * @return list<CustomerOption>
      */
-    private function typedCustomers(Request $request, LegalEntity $firm, bool $saving): array
+    private function typedCustomers(Request $request, bool $saving): array
     {
         $query = trim($request->request->getString('customerQuery'));
         if (!$saving || '' !== $request->request->getString('customerId') || '' === $query) {
             return [];
         }
 
-        return $this->picker->search($query, $firm);
+        return $this->picker->search($query);
     }
 
     /**
@@ -373,7 +373,7 @@ final class RecurringFormController extends AbstractController
     {
         $party = \is_string($values['customerId']) ? $this->pickable($values['customerId']) : null;
 
-        return $context->isPayer() && $party instanceof Party && $this->picker->option($party, $context->firm)->defaults->reverseCharge;
+        return $context->isPayer() && $party instanceof Party && $this->picker->option($party)->defaults->reverseCharge;
     }
 
     /**
@@ -390,7 +390,7 @@ final class RecurringFormController extends AbstractController
             return $values;
         }
 
-        return $this->values->withCustomerShown($values, $this->picker->option($party, $context->firm));
+        return $this->values->withCustomerShown($values, $this->picker->option($party));
     }
 
     private function alreadySaved(): RedirectResponse
@@ -583,7 +583,7 @@ final class RecurringFormController extends AbstractController
         $others = [];
         $party = $this->pickable($customerId);
         if ($party instanceof Party) {
-            foreach ($this->contacts->emailsFor($party, $firm) as $email) {
+            foreach ($this->partyDetails->invoicingEmails($party) as $email) {
                 if (EmailPurpose::Invoices === $email->purpose()) {
                     $customer[] = $email->address();
                 } elseif (EmailPurpose::Copy === $email->purpose()) {

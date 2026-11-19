@@ -29,7 +29,7 @@ use Psr\Log\LoggerInterface;
  * (DeliverRecurringInvoice); one more than LATE_DAYS late is held, as nobody
  * expects it any more without a look.
  *
- * A template whose world moved, a customer archived for the firm, a contact
+ * A template whose world moved, an archived customer, a contact
  * without an invoicing address, a kind of rate gone on the tax point, a firm
  * without a mail server, is never skipped in silence: the refusal is recorded on
  * the template, the firm is told by e-mail and the shell shows it, and the next

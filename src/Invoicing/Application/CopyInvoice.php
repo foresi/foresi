@@ -16,10 +16,8 @@ use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceLine;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\VariableSymbol;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Domain\InvoicingDefaults;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 
 /**
@@ -36,7 +34,6 @@ final readonly class CopyInvoice
         private NewInvoiceDefaults $defaults,
         private InvoiceStore $store,
         private NumberCounter $counter,
-        private ContactSettingsForFirm $contacts,
         private FirmBankAccounts $accounts,
     ) {
     }
@@ -59,14 +56,14 @@ final readonly class CopyInvoice
         }
 
         $party = $source->customerParty();
-        $customer = !$this->contacts->isArchivedFor($party, $firm);
+        $customer = !$party->isArchived();
         if (!$customer) {
             $notices[] = 'invoice.copy.customer_archived';
         }
 
         return $draft->with([
             'customerId' => $customer ? $party->id() : null,
-            'dueDate' => $this->dueDate($draft, $customer, $party, $firm),
+            'dueDate' => $this->dueDate($draft, $customer, $party),
             'paymentMethod' => $source->paymentMethod(),
             'bankAccount' => \in_array($source->bankAccount(), $this->accounts->ibansOf($firm), true) ? $source->bankAccount() : $draft->bankAccount,
             'constantSymbol' => $source->constantSymbol(),
@@ -86,9 +83,9 @@ final readonly class CopyInvoice
         return $draft->with(['seriesId' => $series->id(), 'number' => $number, 'variableSymbol' => VariableSymbol::fromNumber($number)]);
     }
 
-    private function dueDate(InvoiceDraftValues $draft, bool $customer, Party $party, LegalEntity $firm): \DateTimeImmutable
+    private function dueDate(InvoiceDraftValues $draft, bool $customer, Party $party): \DateTimeImmutable
     {
-        $days = $customer ? $this->contacts->defaultsFor($party, $firm)->dueDays : InvoicingDefaults::DEFAULT_DUE_DAYS;
+        $days = $customer ? $party->invoicingDefaults()->dueDays : InvoicingDefaults::DEFAULT_DUE_DAYS;
 
         return $draft->issueDate->modify(\sprintf('+%d days', $days));
     }

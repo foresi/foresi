@@ -23,7 +23,6 @@ use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\CorrectionType;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceLine;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
@@ -39,7 +38,6 @@ final readonly class InvoiceFormValues
     public function __construct(
         private NewInvoiceDefaults $defaults,
         private CustomerPicker $picker,
-        private ContactSettingsForFirm $contacts,
         private PartyQuery $parties,
         private InvoiceStore $store,
         private AmountText $amounts,
@@ -96,7 +94,7 @@ final readonly class InvoiceFormValues
         $values = $this->ofDraft($draft);
         $party = null === $draft->customerId ? null : $this->parties->find($draft->customerId);
         if ($party instanceof Party) {
-            $values = $this->withCustomerShown($values, $this->picker->option($party, $firm));
+            $values = $this->withCustomerShown($values, $this->picker->option($party));
         }
 
         return $this->withoutHiddenCodes($values, $firm->address()->countryCode);
@@ -112,7 +110,7 @@ final readonly class InvoiceFormValues
         $values = $this->ofDraft($draft);
         $party = null === $draft->customerId ? null : $this->parties->find($draft->customerId);
         if ($party instanceof Party) {
-            $values = $this->withCustomerShown($values, $this->picker->option($party, $firm));
+            $values = $this->withCustomerShown($values, $this->picker->option($party));
         }
         // A corrective tax document is no copy: it says so with its link instead.
         $values['copyOf'] = $copy ? $source->id() : '';
@@ -245,11 +243,11 @@ final readonly class InvoiceFormValues
         if (!$party instanceof Party) {
             return $values;
         }
-        if ($this->contacts->isArchivedFor($party, $firm)) {
+        if ($party->isArchived()) {
             return array_merge($values, ['customerId' => '', 'customerQuery' => '', 'customer' => $this->emptyCustomer()]);
         }
         if (VatRegime::Payer === $draft->regime) {
-            $option = $this->picker->option($party, $firm);
+            $option = $this->picker->option($party);
             $issuerCountry = $firm->address()->countryCode;
             $values['lines'] = array_map(static fn (array $row): array => self::rowAfterPick($row, $option, $issuerCountry), $rows);
         }
@@ -287,7 +285,7 @@ final readonly class InvoiceFormValues
      */
     public function withCustomer(array $values, Party $party, LegalEntity $firm, \DateTimeImmutable $issueDate, VatRegime $regime, string $issuerCountry): array
     {
-        $option = $this->picker->option($party, $firm);
+        $option = $this->picker->option($party);
         $defaults = $option->defaults;
         /** @var list<array<string, string>> $rows */
         $rows = $values['lines'];

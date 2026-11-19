@@ -65,7 +65,6 @@ use Foresi\Invoicing\Infrastructure\Form\InvoiceFormReader;
 use Foresi\Invoicing\Infrastructure\Form\InvoiceFormValues;
 use Foresi\Invoicing\Infrastructure\Form\InvoiceSubmission;
 use Foresi\Invoicing\Infrastructure\Form\PaymentPanel;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\PartyQuery;
@@ -120,7 +119,6 @@ final class InvoiceController extends AbstractController
         private readonly InvoicingCountries $countries,
         private readonly PartyQuery $parties,
         private readonly CustomerPicker $picker,
-        private readonly ContactSettingsForFirm $contacts,
         private readonly NewInvoiceDefaults $defaults,
         private readonly CopyInvoice $copies,
         private readonly IssueInvoice $issue,
@@ -206,7 +204,7 @@ final class InvoiceController extends AbstractController
         try {
             $context = $this->newContext($firm);
             $party = $this->parties->find($work->customerId);
-            $draft = $this->defaults->forBilledWork($firm, $work, $party instanceof Party ? $this->picker->option($party, $firm) : null);
+            $draft = $this->defaults->forBilledWork($firm, $work, $party instanceof Party ? $this->picker->option($party) : null);
         } catch (UnsupportedCountry) {
             return $this->render('@Invoicing/form.html.twig', ['blocked' => 'country']);
         }
@@ -411,7 +409,7 @@ final class InvoiceController extends AbstractController
         if (!$context->invoice instanceof Invoice && '' === $request->request->getString('bankAccount')) {
             $request->request->set('bankAccount', $this->accounts->primaryOf($context->firm)?->iban() ?? '');
         }
-        $matches = $this->typedCustomers($request, $context->firm, $action);
+        $matches = $this->typedCustomers($request, $action);
         $this->correctionTaxPoint($request, $context);
         $submission = $this->reader->read($request, $context->currency);
         $values = $this->values->withoutHiddenCodes($this->withFormFields($submission->values, $context), $this->issuerCountry($context));
@@ -489,7 +487,7 @@ final class InvoiceController extends AbstractController
         $errors = [];
         if (str_starts_with($action, 'pick:')) {
             $party = $this->pickable(substr($action, 5));
-            if ($party instanceof Party && $this->contacts->isArchivedFor($party, $context->firm)) {
+            if ($party instanceof Party && $party->isArchived()) {
                 $errors = [$this->message('customer', 'invoice.problem.customer_archived')];
             } elseif ($party instanceof Party) {
                 $values = $this->values->withCustomer($values, $party, $context->firm, $submission->input->issueDate, $context->regime, $this->issuerCountry($context));
@@ -523,14 +521,14 @@ final class InvoiceController extends AbstractController
      *
      * @return list<CustomerOption>
      */
-    private function typedCustomers(Request $request, LegalEntity $firm, string $action): array
+    private function typedCustomers(Request $request, string $action): array
     {
         $query = trim($request->request->getString('customerQuery'));
         if (!\in_array($action, self::SAVING, true) || '' !== $request->request->getString('customerId') || '' === $query) {
             return [];
         }
 
-        return $this->picker->search($query, $firm);
+        return $this->picker->search($query);
     }
 
     /**
@@ -542,7 +540,7 @@ final class InvoiceController extends AbstractController
     {
         $party = \is_string($values['customerId']) ? $this->pickable($values['customerId']) : null;
 
-        return $context->isPayer() && $party instanceof Party && $this->picker->option($party, $context->firm)->defaults->reverseCharge;
+        return $context->isPayer() && $party instanceof Party && $this->picker->option($party)->defaults->reverseCharge;
     }
 
     private function issuerCountry(InvoiceFormContext $context): string
@@ -564,7 +562,7 @@ final class InvoiceController extends AbstractController
             return $values;
         }
 
-        return $this->values->withCustomerShown($values, $this->picker->option($party, $context->firm));
+        return $this->values->withCustomerShown($values, $this->picker->option($party));
     }
 
     private function flashSaved(Invoice $saved, InvoiceSubmission $submission, ?string $ownNumber): void
@@ -898,7 +896,7 @@ final class InvoiceController extends AbstractController
         if ($context->invoice instanceof Invoice || !$party instanceof Party) {
             return null;
         }
-        $currency = $this->picker->option($party, $context->firm)->defaults->currency;
+        $currency = $this->picker->option($party)->defaults->currency;
 
         return $currency === $context->currency ? null : $currency->value;
     }

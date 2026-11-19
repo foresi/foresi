@@ -44,11 +44,11 @@ use Foresi\Invoicing\Domain\ExportState;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\PartyRole;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Clock\Clock;
@@ -96,7 +96,7 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
         self::assertCount(1, $this->store->lines($invoice));
         self::assertNull($invoice->originalPdfKey());
         self::assertSame(['20240008'], [$this->counter->next($this->series, new \DateTimeImmutable('2024-05-01'))]);
-        self::assertTrue(self::getContainer()->get(ContactSettingsForFirm::class)->isCustomer($this->customer, $this->firm));
+        self::assertTrue($this->customer->hasRole(PartyRole::Customer));
     }
 
     public function testImportRecordsNothing(): void
@@ -367,7 +367,6 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
             $container->get(ConflictRetry::class),
             $container->get(AuditActor::class),
             $container->get(ClockInterface::class),
-            $container->get(ContactSettingsForFirm::class),
             $container->get(AdvanceDeductions::class),
             $container->get(AdvanceDocuments::class),
             $container->get(InvoicePayments::class),

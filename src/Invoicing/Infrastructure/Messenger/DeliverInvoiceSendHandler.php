@@ -37,7 +37,6 @@ use Foresi\Invoicing\Domain\InvoiceSend;
 use Foresi\Invoicing\Domain\LinkAudience;
 use Foresi\Invoicing\Domain\SendPurpose;
 use Foresi\Invoicing\Domain\SendStatus;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Party\Domain\PartyEmail;
@@ -109,7 +108,6 @@ final readonly class DeliverInvoiceSendHandler
         private LoggerInterface $logger,
         private InvoiceBalances $balances,
         private ReminderSettings $reminders,
-        private ContactSettingsForFirm $contacts,
         private SendDraft $drafts,
         private EventRecorder $events,
     ) {
@@ -238,7 +236,7 @@ final readonly class DeliverInvoiceSendHandler
     {
         $firm = $invoice->firm();
 
-        return $this->reminders->for($firm)->enabled() && $this->contacts->defaultsFor($invoice->customerParty(), $firm)->sendReminders;
+        return $this->reminders->for($firm)->enabled() && $invoice->customerParty()->invoicingDefaults()->sendReminders;
     }
 
     /**

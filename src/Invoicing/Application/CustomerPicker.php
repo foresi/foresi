@@ -8,19 +8,16 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\PartyDetails;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\PartyRow;
 use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyRole;
 
 /**
- * The contacts a firm can invoice, found by name, identifier or e-mail: everyone not
- * archived for it, the customers of the firm first. What a contact is to the firm
- * decides, through ContactSettingsForFirm, so the roles, the archive state, the
- * defaults and the e-mails are those of that firm.
+ * The contacts the firm can invoice, found by name, identifier or e-mail: everyone not
+ * archived, the customers first, with the contact's own defaults and invoicing e-mail.
  */
 final readonly class CustomerPicker
 {
@@ -32,14 +29,13 @@ final readonly class CustomerPicker
     public function __construct(
         private PartyQuery $parties,
         private PartyDetails $details,
-        private ContactSettingsForFirm $contacts,
     ) {
     }
 
     /**
      * @return list<CustomerOption> customers, then other contacts, each in name order
      */
-    public function search(string $text, LegalEntity $firm): array
+    public function search(string $text): array
     {
         $text = trim($text);
         if (!$this->isSearchable($text)) {
@@ -52,10 +48,10 @@ final readonly class CustomerPicker
         do {
             $found = $this->parties->search($text, null, false, 'name', $page);
             foreach ($this->partiesOf($found->rows) as $party) {
-                if ($this->contacts->isArchivedFor($party, $firm)) {
+                if ($party->isArchived()) {
                     continue;
                 }
-                if ($this->contacts->isCustomer($party, $firm)) {
+                if ($party->hasRole(PartyRole::Customer)) {
                     $customers[] = $party;
                 } else {
                     $others[] = $party;
@@ -64,22 +60,22 @@ final readonly class CustomerPicker
             ++$page;
         } while (\count($customers) < self::LIMIT && $page <= min($found->pages, self::MAX_PAGES));
 
-        return array_map(fn (Party $party): CustomerOption => $this->option($party, $firm), \array_slice([...$customers, ...$others], 0, self::LIMIT));
+        return array_map($this->option(...), \array_slice([...$customers, ...$others], 0, self::LIMIT));
     }
 
     /**
      * One contact the firm can invoice, for a form that just created it.
      */
-    public function find(string $id, LegalEntity $firm): ?CustomerOption
+    public function find(string $id): ?CustomerOption
     {
         $party = $this->parties->find($id);
 
-        return $party instanceof Party && !$this->contacts->isArchivedFor($party, $firm) ? $this->option($party, $firm) : null;
+        return $party instanceof Party && !$party->isArchived() ? $this->option($party) : null;
     }
 
-    public function option(Party $party, LegalEntity $firm): CustomerOption
+    public function option(Party $party): CustomerOption
     {
-        $email = $this->contacts->emailsFor($party, $firm)[0] ?? $this->details->generalEmail($party);
+        $email = $this->details->invoicingEmails($party)[0] ?? $this->details->generalEmail($party);
 
         return new CustomerOption(
             $party->id(),
@@ -87,7 +83,7 @@ final readonly class CustomerPicker
             $party->registrationNumber()?->toString(),
             $party->vatId()?->toString(),
             $this->details->billingAddress($party)?->address() ?? new Address('', '', '', ''),
-            $this->contacts->defaultsFor($party, $firm),
+            $party->invoicingDefaults(),
             $email?->address(),
         );
     }

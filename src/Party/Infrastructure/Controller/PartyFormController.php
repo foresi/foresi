@@ -9,35 +9,23 @@ declare(strict_types=1);
 namespace Foresi\Party\Infrastructure\Controller;
 
 use Foresi\Audit\Application\AuditActor;
-use Foresi\Party\Application\ArchiveParty;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\CreateParty;
 use Foresi\Party\Application\DuplicateFinder;
 use Foresi\Party\Application\DuplicateMatch;
-use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\PartyDetails;
 use Foresi\Party\Application\PartyInput;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\RegistryRecord;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Application\UpdateParty;
-use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\InvoicingDefaults;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Infrastructure\Form\CountryOptions;
-use Foresi\Party\Infrastructure\Form\FirmPanels;
-use Foresi\Party\Infrastructure\Form\FirmSettingsReader;
-use Foresi\Party\Infrastructure\Form\FirmSettingsSubmission;
 use Foresi\Party\Infrastructure\Form\PartySubmission;
 use Foresi\Party\Infrastructure\Form\PartySubmissionReader;
 use Foresi\Party\Infrastructure\Registry\RefreshRegistryChecksAfterResponse;
 use Foresi\Party\Infrastructure\Registry\RegistryLookup;
-use Foresi\Shared\Application\ActorRole;
-use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Infrastructure\Http\SubmissionTokens;
 use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -84,13 +72,7 @@ final class PartyFormController extends AbstractController
         #[Autowire(service: 'limiter.party_lookup')]
         private readonly RateLimiterFactory $lookupLimiter,
         private readonly TranslatorInterface $translator,
-        private readonly LegalEntities $firms,
-        private readonly ContactSettingsForFirm $firmSettings,
-        private readonly FirmSettingsReader $firmReader,
-        private readonly FirmPanels $firmPanels,
         private readonly TransactionalWork $transaction,
-        private readonly ArchiveParty $archiveParty,
-        private readonly ActorRole $role,
     ) {
     }
 
@@ -154,21 +136,18 @@ final class PartyFormController extends AbstractController
 
     private function handle(Request $request, ?Party $party, PartySubmission $submission, string $token): Response
     {
-        $firms = $this->scopeFirms($party);
-        $firmSubmission = $this->firmReader->read($request, array_values($firms), $party);
         $input = $submission->input;
-        if (!$submission->valid() || !$input instanceof PartyInput || !$firmSubmission->valid()) {
-            return $this->form($request, $party, $submission->values, $submission->errors, [], $token, Response::HTTP_UNPROCESSABLE_ENTITY, $firmSubmission);
+        if (!$submission->valid() || !$input instanceof PartyInput) {
+            return $this->form($request, $party, $submission->values, $submission->errors, [], $token, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $matches = $this->duplicates->find($input->registrationNumber, $input->vatId, true, $party?->id());
         if ([] !== $matches && !$request->request->getBoolean('confirm_duplicate')) {
-            return $this->form($request, $party, $submission->values, [], $matches, $token, Response::HTTP_UNPROCESSABLE_ENTITY, $firmSubmission);
+            return $this->form($request, $party, $submission->values, [], $matches, $token, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         try {
-            // One unit of work: the contact and the values of its firms are stored together or not at all.
-            [$id, $changedVat] = $this->transaction->run(function () use ($party, $input, $firmSubmission, $firms): array {
+            [$id, $changedVat] = $this->transaction->run(function () use ($party, $input): array {
                 if ($party instanceof Party) {
                     $changedVat = $party->vatId()?->toString() !== $input->vatId?->toString();
                     $this->updateParty->update($party, $input);
@@ -177,7 +156,6 @@ final class PartyFormController extends AbstractController
                     $saved = $this->createParty->createFrom($input);
                     $changedVat = true;
                 }
-                $this->savePanels($saved, $firms, $firmSubmission);
 
                 return [$saved->id(), $changedVat];
             });
@@ -185,7 +163,7 @@ final class PartyFormController extends AbstractController
                 $this->tokens->complete($token, $id);
             }
         } catch (\DomainException) {
-            return $this->form($request, $party, $submission->values, ['form' => 'party.error.save_failed'], [], $token, Response::HTTP_UNPROCESSABLE_ENTITY, $firmSubmission);
+            return $this->form($request, $party, $submission->values, ['form' => 'party.error.save_failed'], [], $token, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         if ($changedVat && $input->vatId instanceof \Foresi\Party\Domain\VatId) {
@@ -205,46 +183,11 @@ final class PartyFormController extends AbstractController
     }
 
     /**
-     * @param array<string, LegalEntity> $firms
-     */
-    private function savePanels(Party $party, array $firms, FirmSettingsSubmission $submission): void
-    {
-        $shared = FirmSettingsSubmission::SHARED;
-        $defaults = $submission->defaults[$shared] ?? null;
-        if ($defaults instanceof InvoicingDefaults) {
-            $party->changeInvoicingDefaults($defaults);
-        }
-        if (null !== ($emails = $submission->emails[$shared] ?? null)) {
-            $this->firmSettings->changeSharedEmails($party, $emails);
-        }
-        if (true === ($submission->archived[$shared] ?? null)) {
-            $this->archiveParty->archive([$party]);
-        } elseif (false === ($submission->archived[$shared] ?? null)) {
-            $this->archiveParty->restore([$party]);
-        }
-
-        foreach ($firms as $id => $firm) {
-            if (\array_key_exists($id, $submission->roles)) {
-                $this->firmSettings->changeRoles($party, $firm, $submission->roles[$id]);
-            }
-            if (\array_key_exists($id, $submission->defaults)) {
-                $this->firmSettings->changeDefaults($party, $firm, $submission->defaults[$id]);
-            }
-            if (\array_key_exists($id, $submission->emails)) {
-                $this->firmSettings->changeEmails($party, $firm, $submission->emails[$id]);
-            }
-            if (\array_key_exists($id, $submission->archived)) {
-                $this->firmSettings->changeArchived($party, $firm, $submission->archived[$id]);
-            }
-        }
-    }
-
-    /**
      * @param array<string, string|list<string>> $values
      * @param array<string, string>              $errors  field => translation key
      * @param list<DuplicateMatch>               $matches
      */
-    private function form(Request $request, ?Party $party, array $values, array $errors, array $matches, string $token, int $status, ?FirmSettingsSubmission $firmSubmission = null): Response
+    private function form(Request $request, ?Party $party, array $values, array $errors, array $matches, string $token, int $status): Response
     {
         $locale = $request->getLocale();
         $messages = array_map(fn (string $key): string => $this->translator->trans($key), $errors);
@@ -267,12 +210,6 @@ final class PartyFormController extends AbstractController
                 'vat' => $match->sameVatId,
             ], $matches),
             'token' => $token,
-            'firmPanels' => $this->panels($party, $values, $firmSubmission),
-            // Only an owner sees and sets the hourly rate of a contact.
-            'rates' => $this->role->isOwner(),
-            'currencies' => array_combine(array_map(static fn (Currency $currency): string => $currency->value, Currency::cases()), array_map(static fn (Currency $currency): string => $currency->value, Currency::cases())),
-            'languages' => array_combine(array_map(static fn (DocumentLanguage $language): string => $language->value, DocumentLanguage::cases()), array_map(fn (DocumentLanguage $language): string => $this->translator->trans('locale.'.$language->value), DocumentLanguage::cases())),
-            'paymentMethods' => array_combine(array_map(static fn (PaymentMethod $method): string => $method->value, PaymentMethod::cases()), array_map(fn (PaymentMethod $method): string => $this->translator->trans('party.payment_method.'.$method->value), PaymentMethod::cases())),
             'kinds' => $this->kindOptions(),
             'roleOptions' => array_combine(array_map(static fn (PartyRole $role): string => $role->value, PartyRole::cases()), array_map(fn (PartyRole $role): string => $this->translator->trans('party.role.'.$role->value), PartyRole::cases())),
             'countries' => CountryOptions::options($locale),
@@ -287,45 +224,6 @@ final class PartyFormController extends AbstractController
     private function forContacts(Request $request): bool
     {
         return self::FOR_CONTACTS === $request->query->getString('for');
-    }
-
-    /**
-     * The active firms the panels offer, by id: at least two, or the only one
-     * left when this contact holds overrides for it, so they stay visible and
-     * can be removed. Otherwise none.
-     *
-     * @return array<string, LegalEntity>
-     */
-    private function scopeFirms(?Party $party): array
-    {
-        $active = array_filter($this->firms->all(), static fn (LegalEntity $firm): bool => !$firm->isArchived());
-        $only = 1 === \count($active) ? reset($active) : null;
-        if (\count($active) < 2 && (!$only instanceof LegalEntity || !$party instanceof Party || !$this->firmSettings->hasOverride($party, $only))) {
-            return [];
-        }
-
-        $byId = [];
-        foreach ($active as $firm) {
-            $byId[$firm->id()] = $firm;
-        }
-
-        return $byId;
-    }
-
-    /**
-     * @param array<string, string|list<string>> $values
-     *
-     * @return array<string, array<string, mixed>>
-     */
-    private function panels(?Party $party, array $values, ?FirmSettingsSubmission $submission): array
-    {
-        $firms = $this->scopeFirms($party);
-        if ([] === $firms) {
-            return [];
-        }
-        $roles = $values['roles'] ?? [];
-
-        return $this->firmPanels->build($party, $firms, \is_array($roles) ? $roles : [], $submission);
     }
 
     /**

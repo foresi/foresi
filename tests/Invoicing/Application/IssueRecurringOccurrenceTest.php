@@ -34,7 +34,6 @@ use Foresi\Invoicing\Domain\RecurringInvoiceLine;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
 use Foresi\Invoicing\Domain\TaxPointRule;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\PartyAddress;
@@ -276,7 +275,7 @@ final class IssueRecurringOccurrenceTest extends RecurringTestCase
     public function testARefusalPassesThroughAndKeepsTheTemplate(): void
     {
         $template = $this->save->create($this->recurringInput());
-        self::getContainer()->get(ContactSettingsForFirm::class)->changeArchived($this->customer, $this->firm, true);
+        $this->customer->archive(new \DateTimeImmutable('2026-11-01'));
         $this->em->flush();
 
         $this->assertRefusedFor('invoice.problem.customer_archived', fn (): ?Invoice => $this->occurrences->issue($template->id(), new \DateTimeImmutable('2026-12-01'), new \DateTimeImmutable('2026-12-01')));
@@ -321,7 +320,7 @@ final class IssueRecurringOccurrenceTest extends RecurringTestCase
     public function testATemplateNotActiveIsNotCheckedByTheRules(): void
     {
         $template = $this->save->create($this->recurringInput());
-        self::getContainer()->get(ContactSettingsForFirm::class)->changeArchived($this->customer, $this->firm, true);
+        $this->customer->archive(new \DateTimeImmutable('2026-11-01'));
         $this->em->flush();
         $this->lifecycle->pause($template->id());
 

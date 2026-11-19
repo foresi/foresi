@@ -157,7 +157,7 @@ final readonly class DoctrinePartyQuery implements PartyQuery
 
         $emails = [];
         /** @var list<PartyEmail> $all */
-        $all = $this->em->createQuery('SELECT e FROM '.PartyEmail::class.' e WHERE e.party IN (:ids) AND e.legalEntity IS NULL ORDER BY e.id')->setParameter('ids', $ids)->getResult();
+        $all = $this->em->createQuery('SELECT e FROM '.PartyEmail::class.' e WHERE e.party IN (:ids) ORDER BY e.id')->setParameter('ids', $ids)->getResult();
         foreach ($all as $email) {
             $partyId = $email->party()->id();
             if (!isset($emails[$partyId]) || (EmailPurpose::General === $email->purpose() && EmailPurpose::General !== $emails[$partyId]['purpose'])) {

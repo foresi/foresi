@@ -19,7 +19,6 @@ use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyBankAccount;
 use Foresi\Party\Domain\PartyEmail;
-use Foresi\Party\Domain\PartyFirmSettings;
 
 final readonly class DoctrinePartyDetails implements PartyDetails
 {
@@ -31,7 +30,8 @@ final readonly class DoctrinePartyDetails implements PartyDetails
         PartyEmail::class => 'email',
         PartyBankAccount::class => 'bank_account',
         ContactLink::class => 'contact',
-        PartyFirmSettings::class => 'firm_settings',
+        // Per-firm contact settings are gone; their entries in the log still read as such.
+        'Foresi\\Party\\Domain\\PartyFirmSettings' => 'firm_settings',
     ];
 
     public function __construct(private EntityManagerInterface $em)
@@ -61,7 +61,7 @@ final readonly class DoctrinePartyDetails implements PartyDetails
     public function emails(Party $party): array
     {
         /** @var list<PartyEmail> $emails */
-        $emails = $this->em->createQuery('SELECT e FROM '.PartyEmail::class.' e WHERE e.party = :party AND e.legalEntity IS NULL ORDER BY e.id')->setParameter('party', $party)->getResult();
+        $emails = $this->em->createQuery('SELECT e FROM '.PartyEmail::class.' e WHERE e.party = :party ORDER BY e.id')->setParameter('party', $party)->getResult();
 
         return $emails;
     }
@@ -75,6 +75,11 @@ final readonly class DoctrinePartyDetails implements PartyDetails
         }
 
         return null;
+    }
+
+    public function invoicingEmails(Party $party): array
+    {
+        return array_values(array_filter($this->emails($party), static fn (PartyEmail $email): bool => EmailPurpose::General !== $email->purpose()));
     }
 
     public function bankAccounts(Party $party): array
