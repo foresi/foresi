@@ -1,8 +1,11 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     Save as new view in a dialog (name, private or shared, show count; saved views D6, D9) and
-    Manage views in a sheet (rename, private or shared, a tab or in More views, delete; D7), as
-    Attio, level.io and GitHub Projects manage their views. Takes `viewBar` and `manageViews`.
+    Manage views in a sheet: one compact list, the tabs first and More views below, which an
+    owner reorders by a handle or by Move up / Move down and saves with Save order (D7); a "⋯"
+    menu per view opens it on the list, where its filters and columns change, renames it,
+    shares it, hides a shipped view or deletes your own (D6). As the view lists of Airtable,
+    Attio, Notion and HubSpot's All views. Takes `viewBar` and `manageViews`.
 #}
 {% set token = csrf_token(constant('Foresi\\Ui\\Controller\\SavedViewController::TOKEN')) %}
 <twig:Ui:Dialog id="view-save-as" :title="'saved_view.save_as'|trans" :description="'saved_view.save_as_description'|trans" size="sm" :fields="true">
@@ -19,46 +22,90 @@
     </twig:block>
 </twig:Ui:Dialog>
 
-<twig:Ui:Sheet id="view-manage" :title="'saved_view.manage'|trans" :description="'saved_view.manage_description'|trans" size="sm">
-    <ul class="m-0 grid list-none gap-3 p-0" data-view-manage-list>
-        {% for row in manageViews.rows %}
-            {% set label = row.translated ? row.name|trans : row.name %}
-            <li class="grid gap-3 rounded-control border border-divider p-3" data-view-manage-row="{{ row.key }}">
-                {% if row.editable %}
-                    <form method="post" action="{{ path('app_view_edit') }}" class="grid gap-3" id="view-edit-{{ loop.index }}">
-                        <input type="hidden" name="_token" value="{{ token }}">
-                        <input type="hidden" name="ref" value="{{ row.ref }}">
-                        <input type="hidden" name="return" value="{{ manageViews.return }}">
-                        <twig:Ui:TextInput name="name" id="view-edit-{{ loop.index }}-name" :label="'saved_view.field.name'|trans" :value="label" required maxlength="60" autocomplete="off" />
-                        {% if not row.shipped %}
-                            <twig:Ui:Select name="visibility" id="view-edit-{{ loop.index }}-visibility" :label="'saved_view.field.visibility'|trans" :options="{private: 'saved_view.visibility.private'|trans, shared: 'saved_view.visibility.shared'|trans}" :value="row.private ? 'private' : 'shared'" />
-                        {% endif %}
-                        <twig:Ui:Select name="placement" id="view-edit-{{ loop.index }}-placement" :label="'saved_view.field.placement'|trans" :options="{primary: 'saved_view.placement.primary'|trans, overflow: 'saved_view.placement.overflow'|trans}" :value="row.primary ? 'primary' : 'overflow'" :help="manageViews.primaryFull and not row.primary ? 'saved_view.field.placement_full'|trans : null" />
-                    </form>
-                    <div class="flex flex-wrap items-center justify-end gap-2">
-                        {% if not row.shipped %}
-                            <form method="post" action="{{ path('app_view_delete') }}" class="mr-auto" data-turbo-confirm="{{ 'saved_view.delete_confirm'|trans({name: label}) }}" data-confirm-text="{{ 'saved_view.delete_confirm_text'|trans }}" data-confirm-accept="{{ 'saved_view.delete'|trans }}" data-confirm-cancel="{{ 'saved_view.cancel'|trans }}" data-confirm-tone="danger">
+{% set reorder = manageViews.canReorder %}
+{% set tabCount = manageViews.tabs|length + 1 %}
+<twig:Ui:Sheet id="view-manage" :title="'saved_view.manage'|trans" :description="(reorder ? 'saved_view.manage_description' : 'saved_view.manage_description_member')|trans" size="sm">
+    {% if reorder %}
+        <form method="post" action="{{ path('app_view_order') }}" id="view-order-form" data-view-order-form>
+            <input type="hidden" name="_token" value="{{ token }}">
+            <input type="hidden" name="return" value="{{ manageViews.return }}">
+        </form>
+    {% endif %}
+    <div class="grid gap-5"{% if reorder %} data-controller="view-order" data-view-order-max-value="{{ manageViews.maxTabs }}" data-view-order-moved-value="{{ 'saved_view.moved'|trans({label: '{label}', place: '{place}'}) }}" data-view-order-tab-value="{{ 'saved_view.section.tabs'|trans }}" data-view-order-more-value="{{ 'saved_view.section.more'|trans }}" data-view-order-count-value="{{ 'saved_view.tab_count'|trans({count: '{count}', max: manageViews.maxTabs}) }}"{% endif %}>
+        <ol class="m-0 grid list-none gap-0.5 p-0" data-view-manage-list data-view-order-target="list">
+            <li class="flex items-baseline justify-between gap-2 px-1.5 pb-1 text-small font-medium text-muted" data-view-manage-section="tabs">
+                <span>{{ 'saved_view.section.tabs'|trans }}</span>
+                <span data-view-order-target="count">{{ 'saved_view.tab_count'|trans({count: tabCount, max: manageViews.maxTabs}) }}</span>
+            </li>
+            <li class="flex min-h-touch items-center gap-1 rounded-control pr-1" data-view-manage-row="all">
+                <span class="grid size-8 shrink-0 place-items-center text-muted" title="{{ 'saved_view.all_fixed'|trans }}">{{ ux_icon('lucide:lock', {class: 'size-4', 'aria-hidden': 'true'}) }}</span>
+                <span class="min-w-0 flex-1 truncate py-2 pl-1.5">{{ manageViews.all.translated ? manageViews.all.name|trans : manageViews.all.name }} <span class="text-small text-muted">{{ 'saved_view.all_fixed'|trans }}</span></span>
+            </li>
+            {% for row in manageViews.tabs %}
+                {{ include('@Ui/components/_view_manage_row.html.twig') }}
+            {% endfor %}
+            <li class="mt-3 flex items-baseline gap-2 px-1.5 pb-1 text-small font-medium text-muted" data-view-manage-section="more" data-view-order-target="divider">
+                {% if reorder %}<input type="hidden" name="views[]" value="" form="view-order-form">{% endif %}
+                <span>{{ 'saved_view.section.more'|trans }}</span>
+            </li>
+            {% for row in manageViews.more %}
+                {{ include('@Ui/components/_view_manage_row.html.twig') }}
+            {% endfor %}
+        </ol>
+        {% if reorder %}
+            <p class="m-0 text-small text-badge-red-text" hidden data-view-order-target="full" data-view-order-full>{{ 'saved_view.error.primary_full'|trans }}</p>
+            <p class="sr-only" role="status" aria-live="polite" data-view-order-target="status"></p>
+        {% endif %}
+        {% if manageViews.hidden is not empty %}
+            <section class="grid gap-0.5" aria-labelledby="view-manage-hidden" data-view-manage-hidden>
+                <h3 id="view-manage-hidden" class="m-0 px-1.5 pb-1 text-small font-medium text-muted">{{ 'saved_view.section.hidden'|trans }}</h3>
+                <ul class="m-0 grid list-none gap-0.5 p-0">
+                    {% for row in manageViews.hidden %}
+                        {% set label = row.translated ? row.name|trans : row.name %}
+                        <li class="flex min-h-touch items-center gap-2 rounded-control pr-1 pl-1.5" data-view-manage-row="{{ row.key }}">
+                            <span class="min-w-0 flex-1 truncate py-2 text-muted">{{ label }}</span>
+                            <form method="post" action="{{ path('app_view_edit') }}">
                                 <input type="hidden" name="_token" value="{{ token }}">
                                 <input type="hidden" name="ref" value="{{ row.ref }}">
+                                <input type="hidden" name="hidden" value="0">
                                 <input type="hidden" name="return" value="{{ manageViews.return }}">
-                                <twig:Ui:Button type="submit" variant="ghost" size="sm" icon="trash-2" data-view-delete>{{ 'saved_view.delete'|trans }}</twig:Ui:Button>
+                                <twig:Ui:Button type="submit" size="sm" icon="eye" aria-label="{{ 'saved_view.show_named'|trans({name: label}) }}" data-view-show>{{ 'saved_view.show'|trans }}</twig:Ui:Button>
                             </form>
-                        {% endif %}
-                        <twig:Ui:Button type="submit" size="sm" form="view-edit-{{ loop.index }}" data-view-edit-submit>{{ 'saved_view.save_changes'|trans }}</twig:Ui:Button>
-                    </div>
-                {% else %}
-                    <p class="m-0 flex items-center gap-1.5 font-medium text-ink">
-                        {%- if row.private %}{{ ux_icon('lucide:lock', {class: 'size-3.5 shrink-0', 'aria-hidden': 'true'}) }}{% endif -%}
-                        <a href="{{ row.href }}" class="text-ink">{{ label }}</a>
-                    </p>
-                    <p class="m-0 text-small text-muted">{{ 'saved_view.not_yours'|trans }}</p>
-                {% endif %}
-            </li>
-        {% else %}
-            <li class="text-muted">{{ 'saved_view.none'|trans }}</li>
-        {% endfor %}
-    </ul>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+    </div>
     <twig:block name="footer">
+        {% if manageViews.canRestore %}
+            <form method="post" action="{{ path('app_view_restore') }}" class="mr-auto max-sm:w-full" data-turbo-confirm="{{ 'saved_view.restore_confirm'|trans }}" data-confirm-text="{{ 'saved_view.restore_confirm_text'|trans }}" data-confirm-accept="{{ 'saved_view.restore'|trans }}" data-confirm-cancel="{{ 'saved_view.cancel'|trans }}">
+                <input type="hidden" name="_token" value="{{ token }}">
+                <input type="hidden" name="list" value="{{ manageViews.list }}">
+                <input type="hidden" name="return" value="{{ manageViews.return }}">
+                <twig:Ui:Button type="submit" variant="ghost" icon="history" data-view-manage-restore>{{ 'saved_view.restore'|trans }}</twig:Ui:Button>
+            </form>
+        {% endif %}
         <twig:Ui:Button data-action="dialog#close">{{ 'ui.dialog.close'|trans }}</twig:Ui:Button>
+        {% if reorder %}
+            <twig:Ui:Button type="submit" variant="primary" form="view-order-form" data-view-order-save>{{ 'saved_view.save_order'|trans }}</twig:Ui:Button>
+        {% endif %}
     </twig:block>
 </twig:Ui:Sheet>
+
+{# Rename in its own small dialog, as Shopify renames a view: the sheet keeps one line per view. #}
+{% for row in manageViews.tabs|merge(manageViews.more)|filter(row => row.editable) %}
+    {% set viewName = row.translated ? row.name|trans : row.name %}
+    <twig:Ui:Dialog id="view-rename-{{ row.key }}" :title="'saved_view.rename_title'|trans" size="sm" :fields="true">
+        <form method="post" action="{{ path('app_view_edit') }}" id="view-rename-{{ row.key }}-form" class="grid gap-4" data-view-rename-form="{{ row.key }}">
+            <input type="hidden" name="_token" value="{{ token }}">
+            <input type="hidden" name="ref" value="{{ row.ref }}">
+            <input type="hidden" name="return" value="{{ manageViews.return }}">
+            <twig:Ui:TextInput name="name" id="view-rename-{{ row.key }}-name" :label="'saved_view.field.name'|trans" :value="viewName" required maxlength="60" autocomplete="off" />
+        </form>
+        <twig:block name="footer">
+            <twig:Ui:Button data-action="dialog#close">{{ 'saved_view.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" variant="primary" form="view-rename-{{ row.key }}-form">{{ 'saved_view.rename_submit'|trans }}</twig:Ui:Button>
+        </twig:block>
+    </twig:Ui:Dialog>
+{% endfor %}

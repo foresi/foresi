@@ -536,16 +536,41 @@ saved_view:
   reset: Obnovit
   cancel: Zrušit
   manage: Spravovat pohledy
-  manage_description: Přejmenujte své pohledy, sdílejte je a vyberte, které se ukazují jako záložky.
+  manage_description: Přetáhněte pohledy do pořadí, jaké chcete, a uložte ho. Filtry nebo sloupce pohledu změníte tak, že ho otevřete z menu ⋯, upravíte na seznamu a dáte Uložit.
+  manage_description_member: Pořadí a záložky nastavuje vlastník. Filtry nebo sloupce pohledu změníte tak, že ho otevřete z menu ⋯, upravíte na seznamu a dáte Uložit.
+  save_order: Uložit pořadí
+  ordered: Pořadí pohledů je uložené.
+  hidden: Pohled je skrytý. Znovu ho zobrazíte ve Správě pohledů.
+  shown: Pohled se zase ukazuje.
+  all_fixed: vždy první záložka
+  read_only: mění ho jen autor nebo vlastník
+  row_actions: 'Akce pro {name}'
+  open_edit: Otevřít a upravit
+  open: Otevřít
+  rename: Přejmenovat…
+  rename_title: Přejmenovat pohled
+  rename_submit: Přejmenovat
+  share: Sdílet se všemi
+  make_private: Jen pro mě
+  to_more: Přesunout do Dalších pohledů
+  to_tabs: Přesunout do záložek
+  hide: Skrýt
+  show: Zobrazit
+  show_named: 'Zobrazit {name}'
+  move_up: 'Posunout {name} nahoru'
+  move_down: 'Posunout {name} dolů'
+  moved: 'Pohled {label} je teď v části {place}.'
+  tab_count: '{count} z {max}'
+  section:
+    tabs: Záložky
+    more: Další pohledy
+    hidden: Skryté
   restore: Obnovit výchozí pohledy
   restore_confirm: Obnovit výchozí pohledy?
   restore_confirm_text: Pohledy, se kterými seznam přišel, dostanou zpět své názvy, filtry a místa. Pohledy, které někdo vytvořil, zůstanou, jak jsou.
   delete: Smazat
   delete_confirm: 'Smazat pohled „{name}“?'
   delete_confirm_text: Přijdou o něj i všichni, se kterými je sdílený.
-  save_changes: Uložit změny
-  not_yours: Tento pohled mění jen jeho autor nebo vlastník. Své změny uložte jako nový pohled.
-  none: Seznam nemá jiné pohledy než Vše.
   saved: Pohled je uložený.
   created: Nový pohled je uložený.
   updated: Pohled je změněný.
@@ -556,14 +581,9 @@ saved_view:
     visibility: Kdo ho vidí
     visibility_help: Sdílený pohled vidí každý vlastník a člen.
     show_count: Ukazovat počet na záložce
-    placement: Ukazuje se jako
-    placement_full: Seznam už má šest záložek; nejdřív přesuňte jiný pohled do Dalších pohledů.
   visibility:
     private: Jen já
     shared: Všichni
-  placement:
-    primary: Záložka
-    overflow: V Dalších pohledech
   error:
     forbidden: Tento pohled mění jen jeho autor nebo vlastník. Své změny uložte jako nový pohled.
     name: Název pohledu má 1 až 60 znaků.

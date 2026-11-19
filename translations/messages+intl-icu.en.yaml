@@ -536,16 +536,41 @@ saved_view:
   reset: Reset
   cancel: Cancel
   manage: Manage views
-  manage_description: Rename your views, share them, and choose which show as tabs.
+  manage_description: Drag the views into the order you want, then save it. To change a view's filters or columns, open it from its ⋯ menu, change it on the list and press Save.
+  manage_description_member: Owners set the order and the tabs. To change a view's filters or columns, open it from its ⋯ menu, change it on the list and press Save.
+  save_order: Save order
+  ordered: The order of the views is saved.
+  hidden: The view is hidden. Show it again in Manage views.
+  shown: The view shows again.
+  all_fixed: always the first tab
+  read_only: only its creator or an owner changes it
+  row_actions: 'Actions for {name}'
+  open_edit: Open and edit
+  open: Open
+  rename: Rename…
+  rename_title: Rename view
+  rename_submit: Rename
+  share: Share with everyone
+  make_private: Keep to myself
+  to_more: Move to More views
+  to_tabs: Move to the tabs
+  hide: Hide
+  show: Show
+  show_named: 'Show {name}'
+  move_up: 'Move {name} up'
+  move_down: 'Move {name} down'
+  moved: 'The view {label} is now in {place}.'
+  tab_count: '{count} of {max}'
+  section:
+    tabs: Tabs
+    more: More views
+    hidden: Hidden
   restore: Restore default views
   restore_confirm: Restore the default views?
   restore_confirm_text: The views the list comes with get back their names, filters and places. Views people made stay as they are.
   delete: Delete
   delete_confirm: 'Delete the view "{name}"?'
   delete_confirm_text: Everyone it is shared with loses it too.
-  save_changes: Save changes
-  not_yours: Only its creator or an owner changes this view. Save your changes as a new view instead.
-  none: The list has no views besides All.
   saved: The view is saved.
   created: The new view is saved.
   updated: The view is changed.
@@ -556,14 +581,9 @@ saved_view:
     visibility: Who sees it
     visibility_help: A shared view is seen by every owner and member.
     show_count: Show the count on its tab
-    placement: Shows as
-    placement_full: The list already shows six tabs; move another view to More views first.
   visibility:
     private: Only me
     shared: Everyone
-  placement:
-    primary: A tab
-    overflow: In More views
   error:
     forbidden: Only its creator or an owner changes this view. Save your changes as a new view instead.
     name: A view's name has 1 to 60 characters.
