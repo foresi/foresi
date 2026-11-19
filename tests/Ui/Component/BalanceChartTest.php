@@ -152,4 +152,134 @@ final class BalanceChartTest extends KernelTestCase
         $this->expectException(\Throwable::class);
         $this->renderTwigComponent('Ui:BalanceChart', ['label' => 'Chart', 'legend' => self::LEGEND, 'periods' => []]);
     }
+
+    /**
+     * @return iterable<string, array{0: int, 1: list<string>}>
+     */
+    public static function steps(): iterable
+    {
+        yield 'a step of 1 × 10ⁿ' => [400, ['0', '100', '200', '300', '400']];
+        yield 'a step of 2 × 10ⁿ' => [800, ['0', '200', '400', '600', '800']];
+        yield 'a step of 5 × 10ⁿ, not 2.5' => [1000, ['0', '500', '1,000']];
+        yield 'a step of 5 × 10ⁿ' => [2000, ['0', '500', '1,000', '1,500', '2,000']];
+        yield 'a step of 10 × 10ⁿ' => [2400, ['0', '1,000', '2,000', '3,000']];
+    }
+
+    /**
+     * @param list<string> $texts
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('steps')]
+    public function testTheStepIsOneTwoOrFiveTimesAPowerOfTen(int $high, array $texts): void
+    {
+        self::assertSame($texts, array_column($this->chart([[0, 0, $high]])->ticks(), 'text'));
+    }
+
+    public function testTheAxisStartsAtZeroWhenEveryAmountIsAboveIt(): void
+    {
+        self::assertSame(['0', '100', '200', '300', '400'], array_column($this->chart([[100, 100, 400]])->ticks(), 'text'));
+    }
+
+    public function testTheAxisEndsAtZeroWhenEveryAmountIsBelowIt(): void
+    {
+        $ticks = $this->chart([[0, 0, -500]])->ticks();
+
+        self::assertSame(['-600', '-400', '-200', '0'], array_column($ticks, 'text'));
+        self::assertSame([false, false, false, true], array_column($ticks, 'zero'));
+    }
+
+    public function testAnAxisAroundZeroPutsZeroInTheMiddle(): void
+    {
+        $chart = $this->chart([[1000, 0, -1000]]);
+
+        self::assertSame(['-1,000', '-500', '0', '500', '1,000'], array_column($chart->ticks(), 'text'));
+        self::assertSame(122.0, $chart->y(0));
+        self::assertSame([232.0, 177.0, 122.0, 67.0, 12.0], array_column($chart->ticks(), 'y'));
+    }
+
+    public function testAPointIsPlacedToATenthOfAUnit(): void
+    {
+        // 0 to 3,000 over 220 units of plot: 1,000 is two thirds down from the top.
+        self::assertSame(158.7, $this->chart([[0, 0, 2400]])->y(1000));
+    }
+
+    public function testTheColumnsAreExactPathsEitherSideOfTheCentre(): void
+    {
+        $columns = $this->chart([[400, 200, 0]])->columns();
+
+        self::assertSame(116.0, $columns[0]['centre']);
+        self::assertSame('M94,232 V15 Q94,12 97,12 H111 Q114,12 114,15 V232 Z', $columns[0]['inPath']);
+        self::assertSame('M118,232 V125 Q118,122 121,122 H135 Q138,122 138,125 V232 Z', $columns[0]['outPath']);
+        self::assertSame(232.0, $columns[0]['closingY']);
+    }
+
+    public function testALowColumnIsRoundedNoMoreThanItIsHigh(): void
+    {
+        // 1 of 400 is 0.55 units of plot, its top rounded to 231.5: half a unit high, and half a unit of rounding.
+        $columns = $this->chart([[1, 0, 400]])->columns();
+
+        self::assertSame('M94,232 V232 Q94,231.5 94.5,231.5 H113.5 Q114,231.5 114,232 V232 Z', $columns[0]['inPath']);
+        self::assertNull($columns[0]['outPath']);
+    }
+
+    public function testTheChartIsAsWideAsItsPeriods(): void
+    {
+        $chart = $this->chart(array_fill(0, 24, [0, 0, 1]));
+
+        self::assertSame(BalanceChart::LEFT + 24 * BalanceChart::SLOT + BalanceChart::RIGHT, $chart->width());
+        self::assertSame(BalanceChart::HEIGHT, $chart->height());
+        self::assertFalse($chart->columns()[0]['below']);
+    }
+
+    public function testRefusesMoreThanTwentyFourPeriods(): void
+    {
+        $this->expectExceptionMessage('A balance chart shows 1 to 24 periods.');
+        $this->chart(array_fill(0, 25, [0, 0, 1]));
+    }
+
+    public function testRefusesALegendWithoutMoneyIn(): void
+    {
+        $chart = new BalanceChart(new LocaleSwitcher('en', []));
+        $chart->label = 'Chart';
+        $chart->legend = ['out' => 'Out', 'closing' => 'Closing'];
+        $chart->periods = $this->periods([[1, 2, 3]]);
+
+        $this->expectExceptionMessage('The legend of a balance chart');
+        $chart->validate();
+    }
+
+    public function testAMinimumNeedsItsNameInTheLegendAndNoneDoesNot(): void
+    {
+        $chart = new BalanceChart(new LocaleSwitcher('en', []));
+        $chart->label = 'Chart';
+        $chart->legend = ['in' => 'In', 'out' => 'Out', 'closing' => 'Closing'];
+        $chart->periods = $this->periods([[1, 2, 3]]);
+        $chart->validate();
+        self::assertNull($chart->minimumY());
+
+        $chart->minimum = 2;
+        $this->expectExceptionMessage('The legend of a balance chart with a minimum');
+        $chart->validate();
+    }
+
+    public function testRefusesAPeriodWithoutWholeMoneyIn(): void
+    {
+        $chart = new BalanceChart(new LocaleSwitcher('en', []));
+        $chart->label = 'Chart';
+        $chart->legend = self::LEGEND;
+        $chart->periods = [['label' => 'P', 'in' => '1', 'out' => 2, 'closing' => 3, 'inText' => 'a', 'outText' => 'b', 'closingText' => 'c']];
+
+        $this->expectExceptionMessage('A period of a balance chart needs the whole number "in".');
+        $chart->validate();
+    }
+
+    public function testABelowPeriodIsMarked(): void
+    {
+        $chart = new BalanceChart(new LocaleSwitcher('en', []));
+        $chart->label = 'Chart';
+        $chart->legend = self::LEGEND;
+        $chart->periods = [['label' => 'P', 'in' => 1, 'out' => 2, 'closing' => 3, 'inText' => 'a', 'outText' => 'b', 'closingText' => 'c', 'below' => true]];
+        $chart->validate();
+
+        self::assertTrue($chart->columns()[0]['below']);
+    }
 }
