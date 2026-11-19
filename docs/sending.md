@@ -19,7 +19,7 @@ A reminder can lose its reason while it waits in the queue. Just before it leave
 
 ## Setting up the mail server
 
-Each firm sends through its own SMTP server. The owner sets it under **My firms › (firm) › E-mails › Mail server**: host, port, encryption (STARTTLS on port 587, or TLS on 465), user name, password, sender address and name. "Send a test e-mail" sends one message to the signed-in owner. There is no shared fallback server: a firm without a server cannot send, and the dialog says where to set it.
+Each firm sends through its own SMTP server. The owner sets it under **Firm › E-mails › Mail server**: host, port, encryption (STARTTLS on port 587, or TLS on 465), user name, password, sender address and name. "Send a test e-mail" sends one message to the signed-in owner. There is no shared fallback server: a firm without a server cannot send, and the dialog says where to set it.
 
 - The connection is always encrypted and the certificate is always checked. There is no unencrypted mode.
 - A host that resolves to a private, loopback or link-local address is refused, when saving and again before connecting, unless the operator sets `app.mail.allow_private_hosts: true` (for a mail relay inside the operator's own network).

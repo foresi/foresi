@@ -68,7 +68,7 @@ nav:
     advances: Zálohové faktury
     tax_documents: Daňové doklady
     corrections: Opravné doklady
-    firms: Moje firmy
+    firm: Firma
     import: Import a export
     sent_mail: Odeslané e-maily
     recurring: Pravidelné faktury
@@ -349,24 +349,14 @@ format:
   date: "j.\u00A0n.\u00A0Y"
   datetime: 'j. n. Y H:i'
 firm:
-  title: Moje firmy
-  new: Nová firma
-  edit: Upravit firmu
+  title: Firma
+  new: Nastavit firmu
   sections: Části firmy
   tab:
     details: Údaje
     invoicing: Fakturace
     mail: E-maily
     bank: Banka
-  empty:
-    title: Zatím tu nejsou žádné firmy
-    text: Vaše vlastní firmy, které vystavují doklady.
-  summary: '{total, plural, one {# firma} few {# firmy} other {# firem}}'
-  column:
-    name: Název
-    registration: IČO
-    vat: DIČ
-    vat_status: Vztah k DPH
   card:
     tax: DPH
     seat: Sídlo

@@ -16,7 +16,7 @@ use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
 
 /**
  * The address book in the sidebar for the staff, with the number of active
- * contacts, and for the owner the firms of the organisation.
+ * contacts, and for the owner the settings of the instance's firm.
  */
 final readonly class PartyNavigation implements NavigationItemProvider
 {
@@ -31,7 +31,7 @@ final readonly class PartyNavigation implements NavigationItemProvider
         }
         yield new NavigationItem('contacts', 'nav.item.contacts', 'users', 'app_contacts', $this->count, weight: 10, routePrefixes: ['app_contact'], area: CoreNavigationAreas::CONTACTS);
         if ($this->role->isOwner()) {
-            yield new NavigationItem('settings', 'nav.item.firms', 'building-2', 'app_firm_index', weight: 10, routePrefixes: ['app_firm', 'app_series'], area: NavigationArea::SETTINGS);
+            yield new NavigationItem('settings', 'nav.item.firm', 'building-2', 'app_firm', weight: 10, routePrefixes: ['app_firm', 'app_series'], area: NavigationArea::SETTINGS);
         }
     }
 }

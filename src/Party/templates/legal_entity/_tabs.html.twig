@@ -3,7 +3,7 @@
     The sections of one firm. Variables: firm (LegalEntity), active ("details" or the key of a tab
     another module adds through the slot Foresi\Party\Contract\FirmTabs).
 #}
-{% set items = [{label: 'firm.tab.details'|trans, href: path('app_firm_edit', {id: firm.id}), active: 'details' == active}] %}
+{% set items = [{label: 'firm.tab.details'|trans, href: path('app_firm'), active: 'details' == active}] %}
 {% for tab in slot_items(constant('Foresi\\Party\\Contract\\FirmTabs::SLOT'), {firmId: firm.id}) %}
     {% set items = items|merge([{label: tab.data.label, href: tab.data.href, active: tab.data.key == active}]) %}
 {% endfor %}

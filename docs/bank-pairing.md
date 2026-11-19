@@ -45,7 +45,7 @@ BANK_INBOX_ADDRESS=bank+{token}@example.com
 
 The mailbox must deliver every plus-addressed variant, `bank+<anything>@example.com`, into the one inbox, or a catch-all must do the same for a template such as `{token}@bank.example.com`. Check this with your mail provider before handing out addresses: some providers drop or reject plus addressing unless it is turned on.
 
-- The owner generates the address under **My firms › (firm) › Bank › Pairing**, per account.
+- The owner generates the address under **Firm › Bank › Pairing**, per account.
 - A token has 128 random bits, written as 26 characters of lowercase base32. The database keeps only its SHA-256 hash, for the lookup, and a copy sealed with `MAIL_SECRET_KEYS` (see [sending.md](sending.md#passwords-mail_secret_keys)), so the address can be shown again. Without a key no address can be generated. A copy of the database alone does not reveal any address.
 - "Generate a new one" replaces the token. The old address stops working at once: mail sent to it is treated as for an unknown address. Enter the new address in the bank, or in the forwarding rule, straight away.
 - The address is the only secret. Whoever knows it can send mail to it; what such mail can do is limited by the [trust rule](#what-foresi-believes) and the [account check](#the-account-check).
@@ -222,7 +222,7 @@ Why so strict: a receiving server copies text the sender chose, such as the HELO
 
 ### Checking the setup
 
-The owner's **My firms › (firm) › Bank › Pairing** tab shows, under each account's address, a check of the last e-mail that account received: the channel it came by (IMAP or webhook), the authserv-id of its topmost `Authentication-Results`, whether that server is trusted for the channel, and the verdict, such as "Verified sender (dmarc)" or "Sender not verified (no-results)". Nothing else of the mail is shown there. An id that is yours but shown as not trusted belongs in `BANK_INBOX_TRUSTED_AUTHSERV` (IMAP) or `INBOUND_WEBHOOK_TRUSTED_AUTHSERV` (webhook); an id that is not your server's means your server added no header of its own, and nothing from that path will ever verify.
+The owner's **Firm › Bank › Pairing** tab shows, under each account's address, a check of the last e-mail that account received: the channel it came by (IMAP or webhook), the authserv-id of its topmost `Authentication-Results`, whether that server is trusted for the channel, and the verdict, such as "Verified sender (dmarc)" or "Sender not verified (no-results)". Nothing else of the mail is shown there. An id that is yours but shown as not trusted belongs in `BANK_INBOX_TRUSTED_AUTHSERV` (IMAP) or `INBOUND_WEBHOOK_TRUSTED_AUTHSERV` (webhook); an id that is not your server's means your server added no header of its own, and nothing from that path will ever verify.
 
 When notifications arrive but stay unverified, open one under **Bank › Messages › Show**: the verification line says why. Compare its raw headers with the rule above.
 
@@ -291,7 +291,7 @@ A refund is an outgoing payment: its allocation on the invoice is below zero, so
 
 ### Pairing settings
 
-Per firm, under **My firms › (firm) › Bank › Pairing**:
+Per firm, under **Firm › Bank › Pairing**:
 
 | Switch | Default | What it does |
 |---|---|---|
@@ -374,7 +374,7 @@ Raw bank messages hold the names and account numbers of payers, the amounts, and
 ## Upgrading
 
 - Run `bin/console doctrine:migrations:migrate`. The new tables hold payments and their allocations, the firms' bank accounts, inbound addresses, pairing settings, inbound messages and bank movements.
-- **Firm bank accounts became records.** The migration copies each firm's list in order and makes the first account the primary one. The list held no currency, so the migration guesses it from the firm's country: CZK in Czechia, EUR in a euro-area country, USD in the United States, and CZK elsewhere. Check each account under **My firms › (firm) › Bank › Accounts** and correct the currency of an account kept in another one. The currency locks once the account has a movement.
+- **Firm bank accounts became records.** The migration copies each firm's list in order and makes the first account the primary one. The list held no currency, so the migration guesses it from the firm's country: CZK in Czechia, EUR in a euro-area country, USD in the United States, and CZK elsewhere. Check each account under **Firm › Bank › Accounts** and correct the currency of an account kept in another one. The currency locks once the account has a movement.
 - **Country modules:** the interface `InvoicingCountry` has a new method, `settlementLimit(Currency $currency): ?int`, the most minor units a firm of the country may write off on an invoice in the currency, or null for none. A third-party country module must implement it; return null to keep small differences unsettled.
 - **New environment variables**, all empty by default, so bank mail stays off until set: `BANK_INBOX_ADDRESS`, `BANK_INBOX_TRUSTED_AUTHSERV`, `BANK_INBOX_TRUSTED_ARC`, `BANK_INBOX_HOST`, `BANK_INBOX_PORT` (993), `BANK_INBOX_ENCRYPTION` (`ssl`), `BANK_INBOX_USER`, `BANK_INBOX_PASSWORD`, `BANK_INBOX_FOLDER` (`INBOX`), `INBOUND_WEBHOOK_SECRET` and `INBOUND_WEBHOOK_TRUSTED_AUTHSERV`. Inbound addresses also need `MAIL_SECRET_KEYS`.
 - Include `inbound-mail` in backups.
