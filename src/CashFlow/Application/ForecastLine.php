@@ -14,7 +14,8 @@ use Foresi\Shared\Domain\Money;
 
 /**
  * One expected flow in the forecast: as its source gave it, in CZK, and the
- * day it is counted on. An overdue flow is counted on the first day.
+ * day it is counted on. An overdue flow is counted on the first day. The
+ * source's own day, such as a due date, is kept when an expected day moved it.
  */
 final readonly class ForecastLine
 {
@@ -22,7 +23,16 @@ final readonly class ForecastLine
         public ExpectedFlow $flow,
         public Money $amount,
         public \DateTimeImmutable $countedOn,
+        public ?\DateTimeImmutable $sourceOn = null,
     ) {
+    }
+
+    /**
+     * The day the source gave, before an expected day replaced it.
+     */
+    public function dueOn(): \DateTimeImmutable
+    {
+        return $this->sourceOn ?? $this->flow->expectedOn;
     }
 
     /**

@@ -124,6 +124,37 @@ cash_flow:
     error:
       amount_required: Zadejte minimální zůstatek, nebo ho zrušte.
       amount_invalid: Zadejte částku s nejvýš dvěma desetinnými místy, třeba 50000.
+  expected:
+    title: Očekávané z dokladů
+    intro: Neuhrazené faktury a přijaté doklady podle dne, kdy s nimi předpověď počítá.
+    dialog_title: Očekávaný den
+    description: '{document}, splatnost {due}: předpověď s ním bude počítat v den, který zadáte.'
+    description_no_due: '{document} nemá splatnost. Předpověď s ním bude počítat v den, který zadáte.'
+    clear: Zrušit očekávaný den
+    flash_saved: '{document} se očekává {day}.'
+    flash_cleared: '{document} se zase očekává v den splatnosti.'
+    empty_title: Žádné neuhrazené doklady
+    empty_text: Neuhrazené faktury, opakované faktury a přijaté doklady se tu ukážou s dnem, kdy se očekávají.
+    column:
+      document: Doklad
+      source: Druh
+      due: Splatnost
+      expected: Očekává se
+      flags: Příznaky
+      amount: Částka
+    none:
+      due: Bez splatnosti
+      expected: V den splatnosti
+      flags: Žádné
+    action:
+      set: Nastavit očekávaný den
+      change: Změnit očekávaný den
+    field:
+      day: Očekávaný den
+      day_help: Den, kdy čekáte peníze.
+    error:
+      required: Zadejte den, nebo očekávaný den zrušte.
+      date_invalid: Zadejte den, třeba 31. 12. 2026.
   links:
     label: Plánované peníze
     planned_income: Plánované příjmy

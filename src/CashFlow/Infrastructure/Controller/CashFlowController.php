@@ -11,11 +11,16 @@ namespace Foresi\CashFlow\Infrastructure\Controller;
 use Foresi\CashFlow\Application\BalanceWrites;
 use Foresi\CashFlow\Application\CashFlowAccess;
 use Foresi\CashFlow\Application\CashFlowRefused;
+use Foresi\CashFlow\Application\ClearExpectedDateInput;
 use Foresi\CashFlow\Application\Forecast;
+use Foresi\CashFlow\Application\ForecastLine;
 use Foresi\CashFlow\Application\RecordCheckpointInput;
+use Foresi\CashFlow\Application\SetExpectedDateInput;
 use Foresi\CashFlow\Application\SetMinimumBalanceInput;
 use Foresi\CashFlow\Contract\FlowCategory;
 use Foresi\CashFlow\Contract\FlowDirection;
+use Foresi\CashFlow\Contract\FlowFlag;
+use Foresi\CashFlow\Infrastructure\Screen\ExpectedDocumentsScreen;
 use Foresi\CashFlow\Infrastructure\Screen\ForecastScreen;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Domain\FirmBankAccount;
@@ -42,9 +47,11 @@ final class CashFlowController extends AbstractController
     public const string ROUTE = 'app_cash_flow';
     public const string BALANCE_TOKEN = 'cash_flow_balance';
     public const string MINIMUM_TOKEN = 'cash_flow_minimum';
+    public const string EXPECTED_TOKEN = 'cash_flow_expected';
 
     public function __construct(
         private readonly ForecastScreen $screen,
+        private readonly ExpectedDocumentsScreen $documents,
         private readonly BalanceWrites $balances,
         private readonly CashFlowAccess $access,
         private readonly InstanceClock $clock,
@@ -71,6 +78,8 @@ final class CashFlowController extends AbstractController
             'chart' => $this->screen->chart($forecast),
             'views' => $this->screen->views($view),
             'minimumSet' => $forecast->minimum instanceof Money,
+            'documentColumns' => $this->documents->columns(),
+            'documentRows' => $this->documents->rows($forecast, ForecastScreen::WEEKS === $view ? $view : null),
         ]);
     }
 
@@ -156,6 +165,46 @@ final class CashFlowController extends AbstractController
     }
 
     /**
+     * When a document is really expected to be paid, as Float and Xero's expected
+     * payment date: a small dialog that sets the day or clears it, so the
+     * forecast counts the document then instead of on its due day.
+     */
+    #[Route('/cash-flow/expected/{type}/{id}', name: 'app_cash_flow_expected', requirements: ['type' => '[a-z][a-z0-9_]{0,39}', 'id' => '[^/]{1,64}'], methods: ['GET', 'POST'])]
+    public function expected(Request $request, string $type, string $id): Response
+    {
+        $forecast = $this->forecastOrNull() ?? throw new NotFoundHttpException();
+        $line = $this->documents->line($forecast, $type, $id) ?? throw new NotFoundHttpException();
+        $current = $this->documents->expectedOn($line);
+        $view = ForecastScreen::WEEKS === $request->query->getString('view') ? ForecastScreen::WEEKS : null;
+        $values = ['expectedOn' => ($current ?? $line->dueOn())->format('Y-m-d')];
+        if (!$request->isMethod('POST')) {
+            return $this->expectedForm($line, $view, $values, [], $current instanceof \DateTimeImmutable, Response::HTTP_OK);
+        }
+
+        $this->checkToken($request, self::EXPECTED_TOKEN);
+        $clear = '1' === $request->request->getString('clear');
+        $values = ['expectedOn' => trim($request->request->getString('expectedOn'))];
+        try {
+            if ($clear) {
+                $this->balances->clearExpected(new ClearExpectedDateInput($type, $id));
+            } elseif ('' === $values['expectedOn']) {
+                return $this->expectedForm($line, $view, $values, ['expectedOn' => 'cash_flow.expected.error.required'], $current instanceof \DateTimeImmutable, Response::HTTP_UNPROCESSABLE_ENTITY);
+            } else {
+                $this->balances->expect(new SetExpectedDateInput($type, $id, $values['expectedOn']));
+            }
+        } catch (CashFlowRefused $refused) {
+            $this->denyIfForbidden($refused);
+
+            return $this->expectedForm($line, $view, $values, ['expectedOn' => 'cash_flow.expected.error.date_invalid'], $current instanceof \DateTimeImmutable, Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+        $this->addFlash('success', $clear
+            ? $this->translator->trans('cash_flow.expected.flash_cleared', ['document' => $line->flow->label])
+            : $this->translator->trans('cash_flow.expected.flash_saved', ['document' => $line->flow->label, 'day' => $this->documents->day(new \DateTimeImmutable($values['expectedOn'], $this->clock->timezone()))]));
+
+        return $this->redirectToRoute(self::ROUTE, null === $view ? [] : ['view' => $view]);
+    }
+
+    /**
      * The forecast of a view, or null before the first-run setup gave the instance its firm.
      */
     private function forecastOrNull(string $view = ForecastScreen::MONTHS): ?Forecast
@@ -228,6 +277,26 @@ final class CashFlowController extends AbstractController
     private function minimumForm(array $values, array $errors, bool $set, int $status): Response
     {
         return $this->render('@CashFlow/minimum.html.twig', [
+            'values' => $values,
+            'errors' => array_map(fn (string $key): string => $this->translator->trans($key), $errors),
+            'set' => $set,
+        ], new Response(status: $status));
+    }
+
+    /**
+     * @param array<string, string> $values
+     * @param array<string, string> $errors translation keys by field
+     */
+    private function expectedForm(ForecastLine $line, ?string $view, array $values, array $errors, bool $set, int $status): Response
+    {
+        $flow = $line->flow;
+
+        return $this->render('@CashFlow/expected.html.twig', [
+            'type' => $flow->subject->type,
+            'id' => $flow->subject->id,
+            'view' => $view,
+            'document' => $flow->label,
+            'due' => $flow->hasFlag(FlowFlag::NoDueDate) ? null : $this->documents->day($line->dueOn()),
             'values' => $values,
             'errors' => array_map(fn (string $key): string => $this->translator->trans($key), $errors),
             'set' => $set,
