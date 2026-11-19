@@ -39,8 +39,8 @@
         {% endfor %}
 
         <div class="flex flex-wrap items-center gap-2" data-party-summary>
-            <twig:Ui:Badge tone="gray">{{ kind }}</twig:Ui:Badge>
-            {% for role in roles %}<twig:Ui:Badge tone="green">{{ role }}</twig:Ui:Badge>{% endfor %}
+            <twig:Ui:Value list="party.contacts" attribute="kind" :value="party.kind" />
+            <twig:Ui:Value list="party.contacts" attribute="roles" :value="party.roles" />
             {% if party.archived %}<twig:Ui:Badge tone="gray">{{ 'party.archived'|trans }}</twig:Ui:Badge>{% endif %}
             {% for check in checks %}
                 <span class="inline-flex items-center gap-1.5 text-small text-muted">
@@ -72,7 +72,7 @@
                     {% else %}
                         {% set checkItems = [] %}
                         {% for check in checks %}
-                            {% set checkItems = checkItems|merge([{label: check.label, badge: {label: check.text, tone: check.tone}, note: 'party.check.at'|trans({time: check.checkedAt|date(formatTime)})}]) %}
+                            {% set checkItems = checkItems|merge([{label: check.label, value: {label: check.text, tone: check.tone}, note: 'party.check.at'|trans({time: check.checkedAt|date(formatTime)})}]) %}
                         {% endfor %}
                         <twig:Ui:DescriptionList :items="checkItems" data-party-checks />
                         {% if accounts is not empty %}

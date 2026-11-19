@@ -8,13 +8,7 @@
                     {% if item.note %}<span class="mt-0.5 block text-caption text-muted">{{ item.note }}</span>{% endif %}
                 </dt>
                 <dd class="m-0 shrink-0 text-right font-medium text-ink">
-                    {%- if item.badge -%}
-                        <twig:Ui:Badge :tone="item.badge.tone">{{ item.badge.label }}</twig:Ui:Badge>
-                    {%- elseif item.value is null -%}
-                        <twig:Ui:EmptyValue :label="item.empty" />
-                    {%- else -%}
-                        {{ item.value }}
-                    {%- endif -%}
+                    <twig:Ui:Value :value="item.value" :empty="item.empty" />
                 </dd>
             </div>
         {% endfor %}

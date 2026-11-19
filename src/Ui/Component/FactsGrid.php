@@ -17,21 +17,26 @@ final class FactsGrid
     private const int MAX_COLUMNS = 6;
 
     /**
-     * @var list<array<string, mixed>> each with a string label and a string value (null or '' for not set, shown as Ui:EmptyValue with an optional "empty" label), optional bool big and an
-     *                                 optional href that turns the value into a link (checked like every href)
+     * @var list<array<string, mixed>> each with a string label and a value as Ui:Value takes it (null or '' for not set, shown as
+     *                                 Ui:EmptyValue with an optional "empty" label), optional bool big and an optional href
+     *                                 that turns a text value into a link (checked like every href)
      */
     public array $items = [];
 
-    /** @var list<array{label: string, value: ?string, empty: ?string, big: bool, href: string|null}> */
+    /** @var list<array{label: string, value: mixed, text: ?string, empty: ?string, big: bool, href: string|null}> */
     private array $views = [];
 
     #[PostMount]
     public function validate(): void
     {
         foreach ($this->items as $item) {
+            $value = $item['value'] ?? null;
+            $shown = Value::view($value);
             $this->views[] = [
                 'label' => Style::requireString($item, 'label', 'A fact'),
-                'value' => Style::optionalString($item, 'value', 'A fact'),
+                'value' => $value,
+                // A text is the title of its cell, which truncates it; a badge says it in full.
+                'text' => 'text' === $shown['kind'] ? $shown['text'] : null,
                 'empty' => Style::optionalString($item, 'empty', 'A fact'),
                 'big' => true === ($item['big'] ?? false),
                 'href' => $this->href($item),
@@ -54,7 +59,7 @@ final class FactsGrid
     }
 
     /**
-     * @return list<array{label: string, value: ?string, empty: ?string, big: bool, href: string|null}>
+     * @return list<array{label: string, value: mixed, text: ?string, empty: ?string, big: bool, href: string|null}>
      */
     public function views(): array
     {

@@ -27,7 +27,6 @@ use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyBankAccount;
 use Foresi\Party\Domain\PartyKind;
-use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\RegistryCheck;
 use Foresi\Party\Domain\RegistryResult;
 use Foresi\Party\Domain\VatId;
@@ -177,8 +176,6 @@ final class PartyController extends AbstractController
             'badge' => $badge,
             'tab' => $tab,
             'tabs' => $this->detailTabs($party, $tab),
-            'kind' => $this->translator->trans('party.kind.'.$party->kind()->value),
-            'roles' => array_map(fn (PartyRole $role): string => $this->translator->trans('party.role.'.$role->value), $party->roles()),
             'facts' => $this->facts($party),
             'checks' => $this->checks($vies, $reliability),
             'accounts' => $unreliable ? $party->publishedBankAccounts() : [],

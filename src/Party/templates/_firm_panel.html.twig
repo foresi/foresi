@@ -40,9 +40,9 @@
             <fieldset class="m-0 min-w-0 border-0 p-0" aria-label="{{ scope.name }}" data-firm-scope-role="fields"{% if not scope.shared and not scope.own %} disabled{% endif %}>
                 {% if panel.key == 'roles' %}
                     {% if scope.shared %}
-                        <twig:Ui:ChoiceChips name="roles[]" id="roles" :legend="'party.field.roles'|trans" :options="roleOptions" :values="scope.values.roles" />
+                        <twig:Ui:ChoiceChips name="roles[]" id="roles" :legend="'party.field.roles'|trans" list="party.contacts" attribute="roles" :options="roleOptions" :values="scope.values.roles" />
                     {% else %}
-                        <twig:Ui:ChoiceChips :name="prefix ~ '[roles][]'" :id="idPrefix ~ 'roles'" :legend="'party.field.roles'|trans" :options="roleOptions" :values="scope.values.roles" />
+                        <twig:Ui:ChoiceChips :name="prefix ~ '[roles][]'" :id="idPrefix ~ 'roles'" :legend="'party.field.roles'|trans" list="party.contacts" attribute="roles" :options="roleOptions" :values="scope.values.roles" />
                     {% endif %}
                 {% elseif panel.key == 'invoicing' %}
                     <div class="grid gap-3 sm:grid-cols-2">

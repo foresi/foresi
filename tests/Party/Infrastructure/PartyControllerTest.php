@@ -94,6 +94,19 @@ final class PartyControllerTest extends WebTestCase
         self::assertSelectorTextContains('#sidebar', 'Address book');
     }
 
+    public function testTheRolesAreTheSameBadgesInTheListAndOnTheContact(): void
+    {
+        $this->signIn();
+        $party = $this->party('Example Company s.r.o.', roles: [PartyRole::Customer, PartyRole::Supplier]);
+        $badges = static fn (Crawler $crawler, string $scope): array => $crawler->filter($scope.' [data-badges] > span.bg-badge-green')->each(static fn (Crawler $badge): string => trim($badge->text()));
+
+        $list = $this->client->request('GET', '/contacts');
+        $detail = $this->client->request('GET', '/contacts/'.$party->id());
+
+        self::assertSame(['Customer', 'Supplier'], $badges($list, 'main tbody'));
+        self::assertSame(['Customer', 'Supplier'], $badges($detail, '[data-party-summary]'));
+    }
+
     public function testArchivedContactsAreHiddenUnlessTheArchivedViewIsOpen(): void
     {
         $this->signIn();

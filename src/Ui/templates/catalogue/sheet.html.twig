@@ -15,7 +15,7 @@
         </div>
     {% else %}
         <div class="grid gap-6">
-            <twig:Ui:DescriptionList :items="[{label: 'Odběratel', value: 'Example Company s.r.o.'}, {label: 'Vystaveno', value: '16. 11. 2026'}, {label: 'Splatnost', value: '30. 11. 2026'}, {label: 'Celkem', value: '12 100,00 Kč'}, {label: 'Stav', badge: {label: 'Neuhrazeno', tone: 'amber'}}]" />
+            <twig:Ui:DescriptionList :items="[{label: 'Odběratel', value: 'Example Company s.r.o.'}, {label: 'Vystaveno', value: '16. 11. 2026'}, {label: 'Splatnost', value: '30. 11. 2026'}, {label: 'Celkem', value: '12 100,00 Kč'}, {label: 'Stav', value: {label: 'Neuhrazeno', tone: 'amber'}}]" />
             <p class="m-0 text-text">Příliš žluťoučký kůň úpěl ďábelské ódy. Šířku panelu změníte tažením za levý okraj nebo šipkami na zaměřeném okraji.</p>
         </div>
     {% endif %}

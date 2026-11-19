@@ -44,6 +44,12 @@ final readonly class ContactSource implements DataSource
     /** Every contact has a status: active unless archived or an unreliable VAT payer. */
     private const array STATUSES = ['active' => 'party.active', 'unreliable' => 'registry.result.unreliable', 'archived' => 'party.archived'];
 
+    /** A contact that can be invoiced is green, a payer the register flags red; archived is neutral. */
+    private const array STATUS_TONES = ['active' => 'green', 'unreliable' => 'red'];
+
+    /** A role is what the firm does with the contact, green as the contact's page has shown it. */
+    private const array ROLE_TONES = ['customer' => 'green', 'supplier' => 'green', 'partner' => 'green', 'authority' => 'green'];
+
     /** The billing address of the contact "p", which the filters of its city and country read in. */
     private const string BILLING = PartyAddress::class.' a WHERE a.party = p AND a.type = \'billing\'';
 
@@ -65,12 +71,12 @@ final readonly class ContactSource implements DataSource
             // Shown by default, as the list has always shown them.
             new Attribute('name', $label('name'), AttributeType::Text, static fn (PartyRow $row): string => $row->displayName, sort: 'LOWER(p.displayName)', defaultVisible: true, defaultPosition: 10, locked: true, truncate: true, filterable: true, filter: 'p.displayName'),
             new Attribute('kind', $label('kind'), AttributeType::Enum, static fn (PartyRow $row): PartyKind => $row->kind, sort: 'p.kind', defaultVisible: true, defaultPosition: 20, options: $this->options(PartyKind::cases(), 'party.kind.'), phone: false, filterable: true),
-            new Attribute('roles', $label('roles'), AttributeType::MultiEnum, static fn (PartyRow $row): array => $row->roles, defaultVisible: true, defaultPosition: 30, options: $this->options(PartyRole::cases(), 'party.role.'), cell: $this->roles(...), aliases: ['role'], phone: false, filterable: true, filter: 'p.roles'),
+            new Attribute('roles', $label('roles'), AttributeType::MultiEnum, static fn (PartyRow $row): array => $row->roles, defaultVisible: true, defaultPosition: 30, options: $this->options(PartyRole::cases(), 'party.role.'), aliases: ['role'], phone: false, filterable: true, filter: 'p.roles', tones: self::ROLE_TONES),
             new Attribute('registration_number', $label('registration_number'), AttributeType::Text, static fn (PartyRow $row): ?string => $row->registrationNumber, sort: 'p.registrationKey', defaultVisible: true, defaultPosition: 40, aliases: ['registration'], phone: false, filterable: true, filter: 'p.registrationNumber'),
             new Attribute('vat_id', $label('vat_id'), AttributeType::Text, static fn (PartyRow $row): ?string => $row->vatId, sort: 'p.vatId', defaultVisible: true, defaultPosition: 50, aliases: ['vat'], phone: false, filterable: true),
             // The list has shown the address as text, in a row that opens the contact.
             new Attribute('email', $label('email'), AttributeType::Email, static fn (PartyRow $row): ?string => $row->email, defaultVisible: true, defaultPosition: 60, cell: static fn (PartyRow $row): ?string => $row->email, phone: false, truncate: true, filterable: true, filter: 'e.address', within: PartyEmail::class.' e WHERE e.party = p AND e.legalEntity IS NULL'),
-            new Attribute('status', $label('status'), AttributeType::Enum, static fn (PartyRow $row): string => self::statusOf($row), defaultVisible: true, defaultPosition: 70, options: self::STATUSES, cell: $this->status(...)),
+            new Attribute('status', $label('status'), AttributeType::Enum, static fn (PartyRow $row): string => self::statusOf($row), defaultVisible: true, defaultPosition: 70, options: self::STATUSES, tones: self::STATUS_TONES),
             // What a person can add (DS3), in the order of the contact's page.
             new Attribute('phone', $label('phone'), AttributeType::Phone, static fn (PartyRow $row): string => $row->phone, sort: 'p.phone', defaultPosition: 110, phone: false, filterable: true),
             new Attribute('mobile', $label('mobile'), AttributeType::Phone, $party(static fn (Party $contact): string => $contact->mobile()), sort: 'p.mobile', defaultPosition: 120, phone: false, filterable: true),
@@ -111,23 +117,12 @@ final readonly class ContactSource implements DataSource
         return $sorts;
     }
 
+    /**
+     * The roles as one line of text, for the second line of a row on a phone.
+     */
     public function roles(PartyRow $row): string
     {
         return implode(', ', array_map(fn (PartyRole $role): string => $this->translator->trans('party.role.'.$role->value), $row->roles));
-    }
-
-    /**
-     * @return array{label: string, tone: string}
-     */
-    private function status(PartyRow $row): array
-    {
-        $status = self::statusOf($row);
-
-        return ['label' => $this->translator->trans(self::STATUSES[$status]), 'tone' => match ($status) {
-            'unreliable' => 'red',
-            'archived' => 'gray',
-            default => 'green',
-        }];
     }
 
     private static function statusOf(PartyRow $row): string

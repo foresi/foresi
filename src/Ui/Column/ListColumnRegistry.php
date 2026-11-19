@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Ui\Column;
 
+use Foresi\Ui\Contract\Attribute;
 use Foresi\Ui\Contract\Column;
 use Foresi\Ui\Contract\DataSource;
 use Foresi\Ui\Contract\ListDisplay;
@@ -61,6 +62,24 @@ final class ListColumnRegistry
     public function key(string $list, string $name): ?string
     {
         return $this->list($list)['keys'][$name] ?? null;
+    }
+
+    /**
+     * The attribute of the list named by its key or an alias, so a detail page shows its value
+     * as the list does.
+     *
+     * @throws \InvalidArgumentException for an attribute the list does not have
+     */
+    public function attribute(string $list, string $name): Attribute
+    {
+        $key = $this->key($list, $name);
+        foreach ($this->list($list)['columns'] as $column) {
+            if ($column->key === $key) {
+                return $column->attribute;
+            }
+        }
+
+        throw new \InvalidArgumentException(\sprintf('The list "%s" has no attribute "%s".', $list, $name));
     }
 
     /**

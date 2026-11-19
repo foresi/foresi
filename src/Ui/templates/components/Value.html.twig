@@ -1,0 +1,19 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set shown = this.shown -%}
+{%- if shown.kind == 'empty' -%}
+    <twig:Ui:EmptyValue :label="empty" />
+{%- elseif shown.kind == 'badge' -%}
+    {%- set badge = shown.badges|first -%}
+    <twig:Ui:Badge :tone="badge.tone" :title="shown.hint ?: false">{{ badge.label }}{% if shown.hint %}<span class="sr-only"> · {{ shown.hint }}</span>{% endif %}</twig:Ui:Badge>
+{%- elseif shown.kind == 'badges' -%}
+    <span {{ attributes.defaults({class: 'inline-flex flex-wrap items-center gap-1', 'data-badges': true}) }}>
+        {%- for badge in shown.badges %}<twig:Ui:Badge :tone="badge.tone">{{ badge.label }}</twig:Ui:Badge>{% endfor -%}
+    </span>
+{%- elseif shown.kind == 'links' -%}
+    {%- for link in shown.links -%}
+        {%- if not loop.first %}, {% endif -%}
+        <a href="{{ link.href }}"{% if link.opens == 'page' %} data-turbo="false"{% else %} data-{{ link.opens }} aria-haspopup="dialog"{% endif %} class="underline decoration-control-line underline-offset-2 hover:decoration-ink {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ link.text }}</a>
+    {%- endfor -%}
+{%- else -%}
+    {{ shown.text }}
+{%- endif -%}

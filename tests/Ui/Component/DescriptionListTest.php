@@ -19,7 +19,7 @@ final class DescriptionListTest extends KernelTestCase
     {
         $html = (string) $this->renderTwigComponent('Ui:DescriptionList', ['items' => [
             ['label' => 'Currency', 'value' => 'CZK'],
-            ['label' => 'VIES', 'badge' => ['label' => 'Valid', 'tone' => 'green'], 'note' => 'Checked today'],
+            ['label' => 'VIES', 'value' => ['label' => 'Valid', 'tone' => 'green'], 'note' => 'Checked today'],
         ]]);
 
         self::assertSame(2, substr_count($html, '<dt'));
@@ -27,6 +27,21 @@ final class DescriptionListTest extends KernelTestCase
         self::assertStringContainsString('CZK', $html);
         self::assertStringContainsString('bg-badge-green', $html);
         self::assertStringContainsString('Checked today', $html);
+    }
+
+    public function testAValueIsShownByUiValueAsInAListCell(): void
+    {
+        $crawler = new \Symfony\Component\DomCrawler\Crawler((string) $this->renderTwigComponent('Ui:DescriptionList', ['items' => [
+            ['label' => 'Role', 'value' => ['badges' => [['label' => 'Customer', 'tone' => 'green'], ['label' => 'Supplier', 'tone' => 'green']]]],
+        ]]));
+
+        self::assertSame(['Customer', 'Supplier'], $crawler->filter('dd [data-badges] > span.bg-badge-green')->each(static fn ($badge): string => $badge->text()));
+    }
+
+    public function testAnInvalidValueIsRefusedWhenMounted(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mountTwigComponent('Ui:DescriptionList', ['items' => [['label' => 'Role', 'value' => ['badges' => 'Customer']]]]);
     }
 
     public function testRendersNothingWithoutItems(): void

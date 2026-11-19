@@ -12,26 +12,27 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * Label and value pairs, one per row, for the details inside a card. A value
- * is plain text or a badge; a row can carry a short note under its label.
+ * Label and value pairs, one per row, for the details inside a card. A value is anything
+ * Ui:Value shows (a text, a badge, badges, links, or not set), shown by Ui:Value, so it looks
+ * as it does in a list cell; a row can carry a short note under its label.
  */
 #[AsTwigComponent]
 final class DescriptionList
 {
     /**
-     * @var list<array<string, mixed>> each with a string label and either a string value (null or '' for not set, shown as Ui:EmptyValue with an optional "empty" label) or a badge (label, tone), optional string note
+     * @var list<array<string, mixed>> each with a string label and a value as Ui:Value takes it (null or '' for not set, shown as Ui:EmptyValue with an optional "empty" label), optional string note
      */
     public array $items = [];
 
-    /** @var list<array{label: string, value: ?string, empty: ?string, badge: ?array{label: string, tone: string}, note: ?string}> */
+    /** @var list<array{label: string, value: mixed, empty: ?string, note: ?string}> */
     private array $views = [];
 
     #[PostMount]
     public function validate(): void
     {
         foreach ($this->items as $item) {
-            $badge = isset($item['badge']) ? Style::badge($item['badge'], 'A description') : null;
-            $value = null === $badge ? Style::optionalString($item, 'value', 'A description') : null;
+            $value = $item['value'] ?? null;
+            Value::view($value);
             $note = $item['note'] ?? null;
             if (null !== $note && !\is_string($note)) {
                 throw new \InvalidArgumentException('A description note must be a string.');
@@ -40,14 +41,13 @@ final class DescriptionList
                 'label' => Style::requireString($item, 'label', 'A description'),
                 'value' => $value,
                 'empty' => Style::optionalString($item, 'empty', 'A description'),
-                'badge' => $badge,
                 'note' => $note,
             ];
         }
     }
 
     /**
-     * @return list<array{label: string, value: ?string, empty: ?string, badge: ?array{label: string, tone: string}, note: ?string}>
+     * @return list<array{label: string, value: mixed, empty: ?string, note: ?string}>
      */
     public function views(): array
     {

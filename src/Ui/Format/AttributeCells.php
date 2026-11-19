@@ -18,10 +18,12 @@ use Foresi\Ui\Contract\Opens;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The cell of an attribute in a Ui:DataTable, one formatter per type, shared by every list
- * (spec DS4): money with its currency, dates in the format of the language, an enum by the label
- * of its value, a boolean as Yes or No, an e-mail, phone or web address as a link chip, a
- * country by its name. An attribute with a cell of its own renders that instead.
+ * The value of an attribute as Ui:Value shows it, one formatter per type, shared by every list
+ * cell and every detail page (one renderer per value type, spec DS4): money with its currency,
+ * dates in the format of the language, an enum as a badge with the tone its attribute gives the
+ * value, a multi-enum as one such badge per value, a boolean as Yes or No, an e-mail, phone or
+ * web address as a link chip, a country by its name, nothing as null (Ui:EmptyValue). An
+ * attribute with a cell of its own renders that instead in a list.
  *
  * A datetime is shown as its value reads; the module gives it in the instance's zone.
  */
@@ -40,9 +42,18 @@ final readonly class AttributeCells
     }
 
     /**
-     * The value as the table shows it: a text, a link chip, or null for an empty cell.
+     * The value as Ui:Value, Ui:DataTable, Ui:DescriptionList and Ui:FactsGrid show it: a text, a
+     * badge, badges, a link chip, or null for not set.
      *
-     * @return string|array{links: list<array{text: string, href: string, opens: string}>, plain: true}|null
+     * @return string|array{label: string, tone: string}|array{badges: non-empty-list<array{label: string, tone: string}>}|array{links: list<array{text: string, href: string, opens: string}>, plain: true}|null
+     */
+    public function shown(Attribute $attribute, mixed $value): string|array|null
+    {
+        return $this->format($attribute, $value);
+    }
+
+    /**
+     * @return string|array{label: string, tone: string}|array{badges: non-empty-list<array{label: string, tone: string}>}|array{links: list<array{text: string, href: string, opens: string}>, plain: true}|null
      */
     private function format(Attribute $attribute, mixed $value): string|array|null
     {
@@ -55,8 +66,8 @@ final readonly class AttributeCells
             AttributeType::Number => $this->number($value),
             AttributeType::Date => $value instanceof \DateTimeInterface ? $value->format($this->translator->trans('format.date')) : $this->text($value),
             AttributeType::DateTime => $value instanceof \DateTimeInterface ? $value->format($this->translator->trans('format.datetime')) : $this->text($value),
-            AttributeType::Enum => $this->option($attribute, $value),
-            AttributeType::MultiEnum => implode(', ', array_map(fn (mixed $one): string => $this->option($attribute, $one), \is_array($value) ? $value : [$value])),
+            AttributeType::Enum => $this->badge($attribute, $value),
+            AttributeType::MultiEnum => ['badges' => array_values(array_map(fn (mixed $one): array => $this->badge($attribute, $one), \is_array($value) ? $value : [$value]))],
             AttributeType::Boolean => $this->translator->trans(true === $value ? 'ui.attribute.yes' : 'ui.attribute.no'),
             AttributeType::Email => $this->link($this->text($value), 'mailto:'),
             AttributeType::Phone => $this->phone($this->text($value)),
@@ -86,12 +97,17 @@ final readonly class AttributeCells
         return str_replace('.', $formatter->getSymbol(\NumberFormatter::DECIMAL_SEPARATOR_SYMBOL), $this->text($value));
     }
 
-    private function option(Attribute $attribute, mixed $value): string
+    /**
+     * The label of the value with the tone its attribute declares for it (neutral by default).
+     *
+     * @return array{label: string, tone: string}
+     */
+    private function badge(Attribute $attribute, mixed $value): array
     {
         $value = $this->text($value);
         $label = $attribute->options[$value] ?? null;
 
-        return null === $label ? $value : $this->translator->trans($label);
+        return ['label' => null === $label ? $value : $this->translator->trans($label), 'tone' => $attribute->tone($value)];
     }
 
     /**

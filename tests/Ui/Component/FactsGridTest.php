@@ -115,6 +115,14 @@ final class FactsGridTest extends KernelTestCase
         self::assertNull($crawler->filter('dd')->first()->attr('title'));
     }
 
+    public function testABadgeValueIsTheBadgeOfAListCell(): void
+    {
+        $html = (string) $this->renderTwigComponent('Ui:FactsGrid', ['items' => [['label' => 'Status', 'value' => ['label' => 'Paid', 'tone' => 'green']]]]);
+
+        self::assertStringContainsString('bg-badge-green', $html);
+        self::assertStringNotContainsString('title=', $html);
+    }
+
     public function testEmptyItemsRenderNothing(): void
     {
         self::assertSame('', trim((string) $this->renderTwigComponent('Ui:FactsGrid', ['items' => []])));
