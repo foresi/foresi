@@ -10,8 +10,13 @@ namespace Foresi\Tests\CashFlow\Infrastructure;
 
 use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\ExchangeRate\Contract\RateSource;
+use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\EmailPurpose;
 use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyEmail;
+use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Tests\ExchangeRate\Support\FakeRateSource;
@@ -201,6 +206,45 @@ final class PlannedItemControllerTest extends WebTestCase
 
         $links = $crawler->filter('[data-cash-flow-planned-links] a');
         self::assertSame(['/cash-flow/planned-income', '/cash-flow/planned-costs'], $links->each(static fn (Crawler $link): ?string => $link->attr('href')));
+    }
+
+    public function testTheCounterpartyFieldOffersTheMatchingContactsInNameOrder(): void
+    {
+        $em = self::getContainer()->get('doctrine.orm.entity_manager');
+        $second = new Party(PartyKind::Person, 'Landlord Second', null, null, '');
+        $first = new Party(PartyKind::Company, 'Landlord First s.r.o.', new RegistrationNumber('CZ', '11223344'), null, '');
+        $archived = new Party(PartyKind::Company, 'Landlord Archived s.r.o.', new RegistrationNumber('CZ', '27074358'), null, '');
+        $archived->archive(new \DateTimeImmutable('2026-11-01'));
+        $other = new Party(PartyKind::Company, 'Other Example s.r.o.', new RegistrationNumber('CZ', '25596641'), null, '');
+        foreach ([$second, $first, $archived, $other] as $party) {
+            $em->persist($party);
+        }
+        $em->persist(new PartyEmail($first, 'first@example.com', EmailPurpose::General));
+        $em->flush();
+
+        $this->client->request('GET', '/cash-flow/planned/contacts?q=Landlord');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(['results' => [
+            ['id' => $first->id(), 'label' => 'Landlord First s.r.o.', 'hint' => 'first@example.com'],
+            ['id' => $second->id(), 'label' => 'Landlord Second', 'hint' => null],
+        ]], json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR));
+    }
+
+    public function testTheCounterpartyFieldOffersOnlyTheFirstPage(): void
+    {
+        $em = self::getContainer()->get('doctrine.orm.entity_manager');
+        foreach (range(1, PartyQuery::PER_PAGE + 1) as $number) {
+            $em->persist(new Party(PartyKind::Person, \sprintf('Tenant %02d', $number), null, null, ''));
+        }
+        $em->flush();
+
+        $this->client->request('GET', '/cash-flow/planned/contacts?q=Tenant');
+
+        $body = json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR);
+        self::assertIsArray($body);
+        self::assertIsArray($body['results']);
+        self::assertSame(array_map(static fn (int $number): string => \sprintf('Tenant %02d', $number), range(1, PartyQuery::PER_PAGE)), array_column($body['results'], 'label'));
     }
 
     private function item(): PlannedItem

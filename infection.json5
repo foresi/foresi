@@ -80,7 +80,8 @@
             // Equivalent mutant: the sums of a filter add up all its pages, whatever page it names.
             "Foresi\\Invoicing\\Application\\InvoicingOverview::month::96",
             // Equivalent mutant: the party search reads page 0 as its first page.
-            "Foresi\\Purchasing\\Application\\Query\\SupplierChoices::search::43"
+            "Foresi\\Purchasing\\Application\\Query\\SupplierChoices::search::43",
+            "Foresi\\CashFlow\\Application\\CashFlowAccess::contacts::108"
         ]},
         // The same, and the length of a month read from its second day instead of its first.
         "IncrementInteger": {"ignore": [
