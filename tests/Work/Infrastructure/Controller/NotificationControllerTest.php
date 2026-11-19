@@ -12,8 +12,12 @@ use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
+use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Tests\Identity\Support\IdentityFixtures;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Work\Application\View\NotificationLists;
 use Foresi\Work\Domain\Notification;
 use Foresi\Work\Domain\NotificationKind;
 use Foresi\Work\Domain\Project;
@@ -88,51 +92,114 @@ final class NotificationControllerTest extends WebTestCase
         self::assertSame('2', trim($crawler->filter('#sidebar [data-nav-group="main"] a[href="/notifications"] [data-nav-count]')->text()));
         self::assertSame('page', $crawler->filter('#sidebar a[href="/notifications"]')->attr('aria-current'));
         self::assertSame(['/', '/notifications'], $crawler->filter('#sidebar [data-nav-group="main"] li > a')->each(static fn (Crawler $a): string => (string) $a->attr('href')));
-        self::assertSame(['New', 'Done'], $crawler->filter('main nav[aria-label="Notification views"] a')->each(static fn (Crawler $a): string => trim($a->text())));
+        self::assertSame(['All', 'Done'], $crawler->filter('main nav[aria-label="Notification views"] a')->each(static fn (Crawler $a): string => trim($a->text())));
         self::assertCount(0, $crawler->filter('[data-notifications-kept]'));
         self::assertCount(0, $crawler->filter('main nav[aria-label="Pagination"]'));
     }
 
-    public function testTheDoneTabListsTheDoneRowsAndSaysHowLongTheyAreKept(): void
+    public function testTheDoneViewListsTheDoneRowsAndSaysHowLongTheyAreKept(): void
     {
         $this->seed();
 
-        $crawler = $this->client->request('GET', '/notifications?tab=done');
+        // The old address of the tab opens the view it became.
+        foreach (['/notifications?tab=done', '/notifications?view=done'] as $url) {
+            $crawler = $this->client->request('GET', $url);
 
-        self::assertResponseIsSuccessful();
-        self::assertSame(['Old news'], $this->titles($crawler));
+            self::assertResponseIsSuccessful();
+            self::assertSame(['Old news'], $this->titles($crawler), $url);
+            self::assertSame('page', $crawler->filter('main nav[aria-label="Notification views"] a')->eq(1)->attr('aria-current'), $url);
+        }
+        $crawler = $this->client->request('GET', '/notifications?tab=done');
         self::assertStringContainsString('Jana Example: Shared the task with you', $crawler->filter('[data-notifications] tbody tr')->text());
         self::assertSame('Done notifications are kept for 3 months, then deleted.', trim($crawler->filter('[data-notifications-kept]')->text()));
         $back = $crawler->filter('[data-notifications] [data-row-actions] form')->first();
-        self::assertSame('/notifications/'.$this->notificationId('Old news', 'owner').'/undone?tab=done', $back->attr('action'));
+        self::assertSame('/notifications/'.$this->notificationId('Old news', 'owner').'/undone?view=done', $back->attr('action'));
         self::assertSame('Back to new', $back->filter('button[role="menuitem"]')->text());
-        self::assertSame('done', $crawler->filter('[data-notifications-filter] [data-filter-sheet-form] input[name="tab"]')->attr('value'));
-        self::assertSame('/notifications/read?tab=done', $crawler->filter('[data-notifications-read-all]')->attr('action'));
+        self::assertSame('done', $crawler->filter('[data-notifications-filter] [data-filter-sheet-form] input[name="view"]')->attr('value'));
+        self::assertSame('/notifications/read?view=done', $crawler->filter('[data-notifications-read-all]')->attr('action'));
+        self::assertSame(['/notifications', '/notifications?view=done'], $crawler->filter('main nav[aria-label="Notification views"] a')->each(static fn (Crawler $a): string => (string) $a->attr('href')));
     }
 
-    public function testTheFilterNarrowsToMentionsOrToAssignments(): void
+    public function testTheOldFilterIsAConditionOfTheBuilder(): void
     {
         $this->seed();
 
-        $crawler = $this->client->request('GET', '/notifications');
-        self::assertSame(['All', 'Mentions', 'Assigned'], $crawler->filter('[data-filter-sheet-form] select[name=filter] option')->each(static fn (Crawler $option): string => trim($option->text())));
-        self::assertCount(0, $crawler->filter('[data-notifications-filter] [data-filter-clear-all]'));
-        $crawler = $this->client->submit($crawler->filter('[data-notifications-filter] [data-filter-sheet-form]')->form(['filter' => 'mentions']));
+        $crawler = $this->client->request('GET', '/notifications?filter=mentions');
         self::assertSame(['Fix the form'], $this->titles($crawler));
-        self::assertSame('mentions', $crawler->filter('[data-filter-sheet-form] select[name=filter] option[selected]')->attr('value'));
-        self::assertSame('/notifications', $crawler->filter('[data-notifications-filter] [data-filter-clear-all]')->attr('href'));
-        self::assertSame('/notifications?tab=done&filter=mentions', $crawler->filter('main nav a')->reduce(static fn (Crawler $a): bool => 'Done' === trim($a->text()))->attr('href'));
+        // No fixed select sits above "+ Filter" (spec D11); the condition is a chip, and the links carry it in f=.
+        self::assertCount(0, $crawler->filter('select[name="filter"]'));
+        self::assertSame(['All, unsaved changes', 'Done'], $this->tabs($crawler));
+        self::assertStringContainsString('Reason: Mentions', $crawler->filter('[data-notifications-filter]')->text());
+        self::assertSame($this->mentions(), $crawler->filter('[data-notifications-filter] [data-filter-sheet-form] input[name="f"]')->attr('value'));
+        self::assertSame('/notifications/read?f='.$this->mentions(), $crawler->filter('[data-notifications-read-all]')->attr('action'));
+        self::assertSame(['mentions', 'assigned'], $crawler->filter('[data-filter-rows] [data-filter-row="reason"] input[type="checkbox"]')->each(static fn (Crawler $box): string => $box->attr('value') ?? ''));
 
         $crawler = $this->client->request('GET', '/notifications?filter=assigned');
         self::assertSame(['Call the client'], $this->titles($crawler));
 
         $crawler = $this->client->request('GET', '/notifications?tab=done&filter=assigned');
         self::assertSame('Nothing done yet', $this->emptyTitle($crawler));
-        self::assertSame('Nothing here with this filter.', $this->emptyText($crawler));
-        self::assertSame('/notifications?tab=done', $crawler->filter('[data-notifications-filter] [data-filter-clear-all]')->attr('href'));
+        self::assertSame('Nothing matches the filters.', $this->emptyText($crawler));
+        self::assertSame('/notifications?view=done', $crawler->filter('[data-notifications-empty] a')->attr('href'));
 
-        $crawler = $this->client->request('GET', '/notifications?filter=nonsense');
+        // A value the select did not have narrows nothing, as before.
+        foreach (['all', 'nonsense'] as $value) {
+            $crawler = $this->client->request('GET', '/notifications?filter='.$value);
+            self::assertSame(['Fix the form', 'Call the client', 'Write the copy'], $this->titles($crawler), $value);
+            self::assertSame(['All', 'Done'], $this->tabs($crawler), $value);
+        }
+        // A condition of the address wins over the old select.
+        $assigned = WorkingFilter::encode(ViewFilter::all(new Condition(NotificationLists::REASON, 'is', NotificationLists::ASSIGNED)));
+        self::assertSame(['Call the client'], $this->titles($this->client->request('GET', '/notifications?filter=mentions&f='.$assigned)));
+    }
+
+    public function testTheBuilderNarrowsTheInboxAndItsChangesAreSavedAsANewView(): void
+    {
+        $this->seed();
+        $unread = '/notifications?f='.WorkingFilter::encode(ViewFilter::all(new Condition(NotificationLists::UNREAD, 'is', true)));
+
+        $this->client->request('GET', '/notifications?'.http_build_query(['filter' => 'assigned', 'page' => '2', 'conditions' => '1', 'c' => [
+            ['field' => 'unread', 'op' => 'is', 'value' => '1'],
+        ]]));
+        self::assertResponseStatusCodeSame(303);
+        self::assertSame($unread, $this->client->getResponse()->headers->get('Location'), 'The old select and the page go; All is the bare list.');
+        $crawler = $this->client->followRedirect();
+        self::assertSame(['Fix the form', 'Call the client'], $this->titles($crawler));
+        self::assertSame(['All, unsaved changes', 'Done'], $this->tabs($crawler));
+        // The Done view says which of done it wants: its read rows.
+        $this->client->request('GET', '/notifications?'.http_build_query(['view' => 'done', 'conditions' => '1', 'c' => [['field' => 'done', 'op' => 'is', 'value' => '1'], ['field' => 'unread', 'op' => 'is', 'value' => '0']]]));
+        self::assertSame(['Old news'], $this->titles($this->client->followRedirect()));
+
+        $crawler = $this->client->request('GET', $unread);
+        $this->client->submit($crawler->filter('[data-view-save-as-form]')->form(['name' => 'Unread']));
+        $crawler = $this->client->followRedirect();
+        self::assertSame(['All', 'Done', 'Unread'], $this->tabs($crawler));
+        self::assertSame(['Fix the form', 'Call the client'], $this->titles($crawler));
+    }
+
+    public function testATimeOrAReasonNarrowsTheInbox(): void
+    {
+        $this->seed();
+        $at = static fn (string $op, string $day): string => '/notifications?f='.WorkingFilter::encode(ViewFilter::all(new Condition(NotificationLists::AT, $op, $day)));
+
+        self::assertSame(['Fix the form', 'Call the client', 'Write the copy'], $this->titles($this->client->request('GET', $at('is', '2026-11-20'))));
+        self::assertSame([], $this->titles($this->client->request('GET', $at('before', '2026-11-20'))));
+        $crawler = $this->client->request('GET', '/notifications?f='.WorkingFilter::encode(ViewFilter::all(new Condition(NotificationLists::DONE, 'is', false), new Condition(NotificationLists::REASON, 'is_none_of', [NotificationLists::MENTIONS, NotificationLists::ASSIGNED]))));
+        self::assertSame(['Write the copy'], $this->titles($crawler));
+        // A view of its own that holds nothing says so in words of its own.
+        $crawler = $this->client->request('GET', $at('before', '2026-11-20'));
+        self::assertSame('No new notifications', $this->emptyTitle($crawler));
+    }
+
+    public function testTheColumnsSheetHidesAColumn(): void
+    {
+        $this->seed();
+
+        $crawler = $this->client->request('GET', '/notifications?cols=task,at');
+
+        self::assertSame(['Task', 'When', 'Actions'], $crawler->filter('[data-notifications] thead th')->reduce(static fn (Crawler $th): bool => '' !== trim($th->text()))->each(static fn (Crawler $th): string => trim($th->text())));
         self::assertSame(['Fix the form', 'Call the client', 'Write the copy'], $this->titles($crawler));
+        self::assertSame('/notifications/'.$this->notificationId('Fix the form', 'owner').'/done?cols=task,at', urldecode((string) $crawler->filter('[data-notifications] tbody tr')->first()->filter('[data-row-actions] form')->attr('action')));
     }
 
     public function testMarkingAllReadClearsTheCountAndKeepsTheView(): void
@@ -142,7 +209,7 @@ final class NotificationControllerTest extends WebTestCase
 
         $this->client->submit($crawler->filter('[data-notifications-read-all]')->form());
 
-        self::assertResponseRedirects('/notifications?filter=mentions');
+        self::assertResponseRedirects('/notifications?f='.$this->mentions());
         $crawler = $this->client->followRedirect();
         self::assertSame(['false'], $crawler->filter('[data-notifications] [data-unread]')->each(static fn (Crawler $mark): string => (string) $mark->attr('data-unread')));
         self::assertCount(0, $crawler->filter('#sidebar a[href="/notifications"] [data-nav-count]'));
@@ -160,7 +227,7 @@ final class NotificationControllerTest extends WebTestCase
 
         $this->client->submit($crawler->filter('[data-notifications] [data-row-actions] form')->first()->form());
 
-        self::assertResponseRedirects('/notifications?filter=mentions');
+        self::assertResponseRedirects('/notifications?f='.$this->mentions());
         self::assertNotNull($this->field('Fix the form', 'owner', 'done_at'));
         // Done reads it too.
         self::assertNotNull($this->field('Fix the form', 'owner', 'read_at'));
@@ -168,11 +235,11 @@ final class NotificationControllerTest extends WebTestCase
         self::assertSame('No new notifications', $this->emptyTitle($crawler));
         self::assertSame('1', trim($crawler->filter('#sidebar a[href="/notifications"] [data-nav-count]')->text()));
 
-        $crawler = $this->client->request('GET', '/notifications?tab=done');
+        $crawler = $this->client->request('GET', '/notifications?view=done');
         self::assertSame(['Fix the form', 'Old news'], $this->titles($crawler));
         $this->client->submit($crawler->filter('[data-notifications] [data-row-actions] form')->first()->form());
 
-        self::assertResponseRedirects('/notifications?tab=done');
+        self::assertResponseRedirects('/notifications?view=done');
         self::assertNull($this->field('Fix the form', 'owner', 'done_at'));
         $crawler = $this->client->request('GET', '/notifications');
         self::assertSame(['Fix the form', 'Call the client', 'Write the copy'], $this->titles($crawler));
@@ -261,7 +328,7 @@ final class NotificationControllerTest extends WebTestCase
 
         // A page past the end goes back to the first.
         $this->client->request('GET', '/notifications?page=9&filter=mentions');
-        self::assertResponseRedirects('/notifications?filter=mentions');
+        self::assertResponseRedirects('/notifications?f='.$this->mentions());
     }
 
     public function testAGuestHasTheInboxOfWhatIsSharedWithThem(): void
@@ -275,6 +342,14 @@ final class NotificationControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSame(['Sign the lease'], $this->titles($crawler));
+        // A guest has no saved views: the tabs and the filter, without the views' menu, actions or dialogs.
+        self::assertSame(['All', 'Done'], $this->tabs($crawler));
+        self::assertCount(0, $crawler->filter('[data-view-save-as-open], [data-view-manage-open], [data-view-save-as-form]'));
+        self::assertCount(1, $crawler->filter('[data-notifications-filter] [data-filter-sheet-form]'));
+        $crawler = $this->client->request('GET', '/notifications?cols=task&f='.WorkingFilter::encode(ViewFilter::all(new Condition(NotificationLists::UNREAD, 'is', true))));
+        self::assertSame(['Sign the lease'], $this->titles($crawler));
+        self::assertCount(0, $crawler->filter('[data-view-actions]'));
+        $crawler = $this->client->request('GET', '/notifications');
         self::assertStringContainsString('Example Company: Shared the task with you', $crawler->filter('[data-notifications] tbody tr')->text());
         self::assertSame(['/shared', '/notifications'], $crawler->filter('#sidebar [data-nav-group="main"] li > a')->each(static fn (Crawler $a): string => (string) $a->attr('href')));
         self::assertSame('1', trim($crawler->filter('#sidebar a[href="/notifications"] [data-nav-count]')->text()));
@@ -358,6 +433,19 @@ final class NotificationControllerTest extends WebTestCase
         self::assertIsString($id);
 
         return $this->em->find(Membership::class, $id) ?? throw new \LogicException('Membership.');
+    }
+
+    private function mentions(): string
+    {
+        return WorkingFilter::encode(ViewFilter::all(new Condition(NotificationLists::REASON, 'is', NotificationLists::MENTIONS)));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function tabs(Crawler $crawler): array
+    {
+        return $crawler->filter('main nav[aria-label="Notification views"] a')->each(static fn (Crawler $tab): string => trim((string) preg_replace('/\s+/', ' ', $tab->text())));
     }
 
     /**

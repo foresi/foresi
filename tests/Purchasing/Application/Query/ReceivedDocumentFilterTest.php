@@ -9,8 +9,11 @@ declare(strict_types=1);
 namespace Foresi\Tests\Purchasing\Application\Query;
 
 use Foresi\Purchasing\Application\Query\ReceivedDocumentFilter;
+use Foresi\Purchasing\Application\View\ReceivedDocumentLists;
 use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
 use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Application\View\ViewFilter;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -32,21 +35,35 @@ final class ReceivedDocumentFilterTest extends TestCase
         new ReceivedDocumentFilter('archive');
     }
 
-    public function testAnotherTabKeepsTheNarrowingAndStartsOnTheFirstPage(): void
+    public function testATabWithoutAViewListsWhatItsDefaultViewHolds(): void
     {
-        $filter = new ReceivedDocumentFilter(ReceivedDocumentFilter::DRAFTS, 'firm', '2026-10', 'supplier', ReceivedDocumentKind::CreditNote, PurchaseTaxTreatment::EuService, 'text', 4);
+        $lists = ReceivedDocumentLists::list();
 
-        $moved = $filter->onTab(ReceivedDocumentFilter::TRASH);
+        foreach (ReceivedDocumentFilter::TABS as $tab) {
+            self::assertSame($lists->default($tab)?->filter->toArray(), new ReceivedDocumentFilter($tab)->view->toArray(), $tab);
+        }
+        self::assertSame([['field' => 'state', 'op' => 'is', 'value' => 'draft']], new ReceivedDocumentFilter()->view->toArray()['conditions']);
+    }
 
-        self::assertSame(ReceivedDocumentFilter::TRASH, $moved->tab);
-        self::assertSame(1, $moved->page);
-        self::assertSame('firm', $moved->firmId);
-        self::assertSame('2026-10', $moved->month);
-        self::assertSame('supplier', $moved->supplierId);
-        self::assertSame(ReceivedDocumentKind::CreditNote, $moved->kind);
-        self::assertSame(PurchaseTaxTreatment::EuService, $moved->treatment);
-        self::assertSame('text', $moved->text);
-        self::assertSame(4, $filter->page);
+    public function testAViewGivenIsTheViewListed(): void
+    {
+        $view = ViewFilter::all(new Condition(ReceivedDocumentLists::KIND, 'is', 'credit_note'));
+        $counted = ['drafts' => new ViewFilter()];
+
+        $filter = new ReceivedDocumentFilter(ReceivedDocumentFilter::TRASH, 'firm', 'last_month', 'text', 4, $view, $counted);
+
+        self::assertSame($view, $filter->view);
+        self::assertSame($counted, $filter->counted);
+        self::assertSame('last_month', $filter->month);
+    }
+
+    public function testAMonthIsAFilterDateValue(): void
+    {
+        self::assertNull(ReceivedDocumentFilter::monthValue(null));
+        self::assertSame(['month' => '2026-10'], ReceivedDocumentFilter::monthValue('2026-10'));
+        foreach (ReceivedDocumentFilter::RELATIVE_MONTHS as $period) {
+            self::assertSame(['relative' => $period], ReceivedDocumentFilter::monthValue($period));
+        }
     }
 
     #[DataProvider('months')]
@@ -70,6 +87,12 @@ final class ReceivedDocumentFilterTest extends TestCase
         yield 'something after' => ['2026-11x', null];
         yield 'a line break after' => ["2026-11\n", null];
         yield 'nothing' => ['', null];
+        yield 'year zero' => ['0999-11', null];
+        yield 'this month' => ['this_month', 'this_month'];
+        yield 'last month' => ['last_month', 'last_month'];
+        yield 'this quarter' => ['this_quarter', 'this_quarter'];
+        yield 'this year' => ['this_year', 'this_year'];
+        yield 'a period the chip lacks' => ['next_month', null];
     }
 
     public function testADocumentIsPlacedByItsIssueDateOnlyWhenItComesFromAbroad(): void

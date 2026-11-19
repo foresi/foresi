@@ -357,7 +357,11 @@ Query parameters of `GET /api/v1/received-documents`:
 | `unpaid` | `true` lists only recorded documents with something left to pay. Default `false`. |
 | `due_before` | `YYYY-MM-DD`: only documents due before this day, not on it. |
 | `trashed` | `true` lists only the documents in the trash. Default `false`. |
+| `view` | The id of a saved view of the list `purchasing.received`, or the system key of one it ships, such as `purchasing.received.drafts`: only the documents it holds. Needs `views:read` too. |
+| `filter` | Conditions as JSON in the format of [Saved views](#saved-views), such as `{"conditions": [{"field": "kind", "op": "is", "value": "credit_note"}]}`. A condition on `trashed` decides it instead of the `trashed` parameter. |
 | `limit`, `cursor` | Paging, as above. |
+
+The answer has `data`, `next_cursor` and `applied_view`, and refuses a view or filter as the invoices do; a view of another list is refused with `parameter` `view`.
 
 The payables of a month are `?unpaid=true&due_before=` the first day of the next month.
 

@@ -46,7 +46,7 @@ test.describe.serial('recurring list', () => {
       }
       await expect(page.getByRole('heading', { level: 1, name: 'Pravidelné faktury' })).toBeVisible();
       const tabs = page.getByRole('navigation', { name: 'Seznamy pravidelných faktur' });
-      await expect(tabs.getByRole('link')).toHaveText([/Aktivní\s*5/, /Pozastavené\s*1/, /Ukončené\s*1/, /Selhaly\s*1/]);
+      await expect(tabs.getByRole('link')).toHaveText([/Vše\s*7/, /Aktivní\s*5/, /Pozastavené\s*1/, /Ukončené\s*1/, /Selhaly\s*1/]);
       await expect(row(page, 'Domain renewal')).toContainText('Ročně');
       await expect(row(page, 'Support licence')).toContainText(name === 'desktop' ? 'Každých 12 měsíců' : 'Support licence');
       await page.screenshot({ path: `${SHOTS}/recurring-list-${name}.png`, fullPage: true });
@@ -114,7 +114,7 @@ test.describe.serial('recurring list', () => {
 
   test('the keyboard pauses a template from the row menu and focus comes back', async ({ page }) => {
     await page.setViewportSize(DESKTOP);
-    await page.goto('/invoices/recurring');
+    await page.goto('/invoices/recurring?view=active');
     const opener = row(page, 'Domain renewal').getByRole('button', { name: /Další akce/ });
     await opener.focus();
     await page.keyboard.press('ArrowDown');
@@ -142,7 +142,7 @@ test.describe.serial('recurring list', () => {
     await settled(dialog);
     await page.keyboard.press('Enter');
     await expect(page.locator('[role=status]').filter({ hasText: 'je pozastavená' })).toBeVisible();
-    await expect(page.getByRole('navigation', { name: 'Seznamy pravidelných faktur' }).getByRole('link')).toHaveText([/Aktivní\s*4/, /Pozastavené\s*2/, /Ukončené\s*1/, /Selhaly\s*1/]);
+    await expect(page.getByRole('navigation', { name: 'Seznamy pravidelných faktur' }).getByRole('link')).toHaveText([/Vše\s*7/, /Aktivní\s*4/, /Pozastavené\s*2/, /Ukončené\s*1/, /Selhaly\s*1/]);
     await expect(row(page, 'Domain renewal')).toHaveCount(0);
   });
 });

@@ -69,12 +69,10 @@ test.describe('the inbox', () => {
   });
 
   test('narrows to mentions or to assignments', async ({ page }) => {
-    await page.goto('/notifications');
-    // The kind is a pinned chip: a menu of links, applied at once.
-    await page.locator('[data-filter-chip="filter"]').getByRole('button', { name: 'Zobrazit' }).click();
-    await page.getByRole('menuitemradio', { name: 'Zmínky' }).click();
-    await expect(page).toHaveURL(/filter=mentions/);
+    // The kind is a field of "+ Filter" (saved views D11); the old address of the select still narrows.
+    await page.goto('/notifications?filter=mentions');
     await expect(inbox(page).locator('tbody tr td:first-child [data-row-link]')).toHaveText(['Set up the domain']);
+    await expect(page.locator('[data-notifications-filter]')).toContainText('Důvod: Zmínky');
     await page.goto('/notifications?filter=assigned');
     await expect(inbox(page).locator('tbody tr td:first-child [data-row-link]')).toHaveText(['Book the launch venue']);
   });
@@ -103,7 +101,7 @@ test.describe('the inbox', () => {
     await expect(row(page, 'Set up the domain')).toHaveCount(0);
 
     await page.getByRole('navigation', { name: 'Pohledy na oznámení' }).getByRole('link', { name: 'Hotové' }).click();
-    await expect(page).toHaveURL(/tab=done/);
+    await expect(page).toHaveURL(/view=done/);
     await expect(page.locator('[data-notifications-kept]')).toHaveText('Hotová oznámení se uchovávají 3 měsíce, pak se smažou.');
     await expect(inbox(page).locator('tbody tr td:first-child [data-row-link]')).toHaveText(['Set up the domain']);
     await row(page, 'Set up the domain').getByRole('button', { name: /Další akce/ }).click();

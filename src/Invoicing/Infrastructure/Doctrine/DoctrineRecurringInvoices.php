@@ -8,28 +8,36 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
+use Foresi\Instance\Application\InstanceClock;
 use Foresi\Invoicing\Application\RecurringFilter;
 use Foresi\Invoicing\Application\RecurringInvoices;
 use Foresi\Invoicing\Application\RecurringPage;
 use Foresi\Invoicing\Application\UnknownRecurringInvoice;
+use Foresi\Invoicing\Application\View\RecurringLists;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\RecurringInvoiceLine;
 use Foresi\Invoicing\Domain\RecurringState;
 use Foresi\Invoicing\Domain\SendPurpose;
 use Foresi\Invoicing\Domain\SendStatus;
+use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Infrastructure\View\DqlConditions;
 
 /**
  * The lock is the write that changes nothing of DoctrineInvoiceStore, for the same
  * reason: it works alike on SQLite and PostgreSQL.
+ *
+ * @phpstan-type Parameters array<string, array{mixed, string|ArrayParameterType|null}>
  */
 final readonly class DoctrineRecurringInvoices implements RecurringInvoices
 {
     private const string LOCK = 'UPDATE recurring_invoice SET version = version WHERE id = :id';
 
-    public function __construct(private EntityManagerInterface $em)
+    public function __construct(private EntityManagerInterface $em, private InstanceClock $clock)
     {
     }
 
@@ -144,33 +152,43 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
         $parameters = [];
         if (null !== $filter->firmId) {
             $conditions[] = 'r.firm = :firm';
-            $parameters['firm'] = $filter->firmId;
+            $parameters['firm'] = [$filter->firmId, null];
         }
         if ($filter->state instanceof RecurringState) {
             $conditions[] = 'r.state = :state';
-            $parameters['state'] = $filter->state->value;
+            $parameters['state'] = [$filter->state->value, null];
         }
         if ($filter->failing) {
             $conditions[] = RecurringFailing::dql('r');
+            $parameters += self::failingParameters();
         }
         $where = implode(' AND ', $conditions);
+        $today = $this->today();
 
-        $count = $this->em->createQuery('SELECT COUNT(r.id) FROM '.RecurringInvoice::class.' r WHERE '.$where);
-        $this->bind($count, $parameters);
-        if ($filter->failing) {
-            RecurringFailing::bind($count);
+        // One query counts the views the list shows a count for, and the one it lists (spec D9).
+        $sums = [];
+        $counting = $parameters;
+        foreach ([...array_values($filter->counted), $filter->view ?? new ViewFilter()] as $index => $view) {
+            [$condition, $bound] = $this->inView($view, 'c'.$index, $today);
+            $sums[] = 'SUM(CASE WHEN '.$condition.' THEN 1 ELSE 0 END)';
+            $counting += $bound;
         }
-        $total = (int) $count->getSingleScalarResult();
+        /** @var list<numeric-string|int|null> $results */
+        $results = array_values((array) $this->bind($this->em->createQuery('SELECT '.implode(', ', $sums).' FROM '.RecurringInvoice::class.' r WHERE '.$where), $counting)->getSingleResult(Query::HYDRATE_ARRAY));
+        $values = array_map(static fn (int|string|null $value): int => (int) $value, $results);
+        $total = (int) array_pop($values);
         $pages = max(1, (int) ceil($total / self::PER_PAGE));
         $page = max(1, min($filter->page, $pages));
+        [$condition, $bound] = $this->inView($filter->view ?? new ViewFilter(), 'l', $today);
 
         // Whether each template is failing now comes with it, so the rows need no query of their own.
+        $descending = str_starts_with($filter->sort, '-');
+        $order = RecurringFilter::NAME === ltrim($filter->sort, '-') ? 'LOWER(r.name)'.($descending ? ' DESC' : '').', r.nextOccurrence' : 'without_next'.($descending ? ' DESC' : '').', r.nextOccurrence'.($descending ? ' DESC' : '');
         $list = $this->em->createQuery(
             'SELECT r, CASE WHEN r.nextOccurrence IS NULL THEN 1 ELSE 0 END AS HIDDEN without_next, CASE WHEN '.RecurringFailing::dql('r', 'now').' THEN 1 ELSE 0 END AS failing_now'
-            .' FROM '.RecurringInvoice::class.' r WHERE '.$where.' ORDER BY without_next, r.nextOccurrence, r.id',
+            .' FROM '.RecurringInvoice::class.' r WHERE '.$where.' AND '.$condition.' ORDER BY '.$order.', r.id',
         );
-        $this->bind($list, $parameters);
-        RecurringFailing::bind($list);
+        $this->bind($list, $parameters + $bound + self::failingParameters());
         /** @var list<array{0: RecurringInvoice, failing_now: int|string}> $found */
         $found = $list->setFirstResult(($page - 1) * self::PER_PAGE)->setMaxResults(self::PER_PAGE)->getResult();
         $templates = [];
@@ -182,7 +200,7 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
             }
         }
 
-        return new RecurringPage($templates, $total, $page, $pages, $failing);
+        return new RecurringPage($templates, $total, $page, $pages, $failing, array_combine(array_map(strval(...), array_keys($filter->counted)), $values));
     }
 
     public function failing(): int
@@ -217,13 +235,72 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
     }
 
     /**
-     * @param Query<mixed, mixed>   $query
-     * @param array<string, string> $parameters
+     * The templates a view holds; each view under its own prefix, so one count query
+     * holds many side by side. The state, delivery, next issue and name are columns;
+     * failing is the SQL the tab counted with.
+     *
+     * @param \Closure(): \DateTimeImmutable $today
+     *
+     * @return array{string, Parameters}
      */
-    private function bind(Query $query, array $parameters): void
+    private function inView(ViewFilter $view, string $prefix, \Closure $today): array
     {
-        foreach ($parameters as $name => $value) {
-            $query->setParameter($name, $value);
+        $derived = static fn (Condition $condition, string $name): array => match ($condition->field) {
+            RecurringLists::FAILING => [DqlConditions::derivedBoolean($condition, RecurringFailing::dql('r', $name)), self::failingParameters()],
+            default => throw new \LogicException(\sprintf('The field "%s" of the recurring invoices has no SQL.', $condition->field)),
+        };
+
+        return new DqlConditions(RecurringLists::list(), [
+            RecurringLists::STATE => 'r.state',
+            RecurringLists::DELIVERY => 'r.delivery',
+            RecurringLists::NEXT_OCCURRENCE => 'r.nextOccurrence',
+            RecurringLists::NAME => 'r.name',
+        ], $derived(...))->compile($view, $today, $prefix);
+    }
+
+    /**
+     * The parameters of RecurringFailing::dql(), as RecurringFailing::bind() sets them.
+     *
+     * @return Parameters
+     */
+    private static function failingParameters(): array
+    {
+        return [
+            'failingEnded' => [RecurringState::Ended->value, null],
+            'failingPurpose' => [SendPurpose::Invoice->value, null],
+            'failingDelivering' => [[SendStatus::Queued->value, SendStatus::Sent->value], ArrayParameterType::STRING],
+        ];
+    }
+
+    /**
+     * The instance's today for relative dates, read once and only when a date needs it.
+     *
+     * @return \Closure(): \DateTimeImmutable
+     */
+    private function today(): \Closure
+    {
+        $day = null;
+
+        return function () use (&$day): \DateTimeImmutable {
+            return $day ??= $this->clock->today();
+        };
+    }
+
+    /**
+     * @template TKey
+     * @template TResult
+     *
+     * @param Query<TKey, TResult> $query
+     * @param Parameters           $parameters
+     *
+     * @return Query<TKey, TResult>
+     */
+    private function bind(Query $query, array $parameters): Query
+    {
+        foreach ($parameters as $name => [$value, $type]) {
+            $query->setParameter($name, $value, $type);
         }
+
+        return $query;
     }
 }

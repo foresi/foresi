@@ -554,6 +554,7 @@ nelmio_api_doc:
                     properties:
                         data: { type: array, items: { $ref: '#/components/schemas/ReceivedDocument' } }
                         next_cursor: { type: string, nullable: true }
+                        applied_view: { allOf: [{ $ref: '#/components/schemas/SavedView' }], nullable: true, description: 'The saved view the view parameter named; null without one.' }
                 WebhookEndpoint:
                     type: object
                     description: An HTTPS address that receives the events it subscribes to as signed Standard Webhooks requests. It never holds the secret.

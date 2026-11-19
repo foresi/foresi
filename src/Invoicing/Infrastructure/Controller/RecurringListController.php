@@ -24,20 +24,38 @@ use Foresi\Invoicing\Application\RecurringInvoices;
 use Foresi\Invoicing\Application\RecurringLifecycle;
 use Foresi\Invoicing\Application\RecurringOutcome;
 use Foresi\Invoicing\Application\RecurringOverview;
+use Foresi\Invoicing\Application\RecurringPage;
 use Foresi\Invoicing\Application\RecurringRefused;
 use Foresi\Invoicing\Application\UnknownRecurringInvoice;
+use Foresi\Invoicing\Application\View\RecurringLists;
 use Foresi\Invoicing\Contract\Percent;
 use Foresi\Invoicing\Domain\DocumentTotals;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\PeriodText;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\RecurringState;
+use Foresi\Invoicing\Infrastructure\Column\RecurringColumns;
+use Foresi\Invoicing\Infrastructure\Column\RecurringRow;
 use Foresi\Invoicing\Infrastructure\Form\AmountText;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\ActorRole;
+use Foresi\Shared\Application\View\FilterRows;
+use Foresi\Shared\Application\View\ListDefinition;
+use Foresi\Shared\Application\View\ListView;
+use Foresi\Shared\Application\View\ListViews;
+use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Application\View\ViewState;
+use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
+use Foresi\Ui\Column\RememberedDisplay;
+use Foresi\Ui\Column\WorkingDisplay;
+use Foresi\Ui\Column\WorkingState;
+use Foresi\Ui\View\ViewBar;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -59,7 +77,9 @@ final class RecurringListController extends AbstractController
 {
     public const string ACTION_TOKEN = 'recurring_action';
     /** The parts of the list's query an action carries back to it. */
-    private const array LIST_QUERY = ['tab', 'firm', 'page'];
+    /** The views the list ships, whose empty state has words of its own. */
+    private const array SHIPPED = [ListDefinition::ALL, 'active', 'paused', 'ended', 'failing'];
+    private const array LIST_QUERY = ['view', 'tab', 'firm', 'sort', 'page', WorkingFilter::PARAM, WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY];
 
     public function __construct(
         private readonly RecurringInvoices $templates,
@@ -76,6 +96,11 @@ final class RecurringListController extends AbstractController
         private readonly StaffCheck $staff,
         private readonly OwnerCheck $owner,
         private readonly TranslatorInterface $translator,
+        private readonly ListViews $listViews,
+        private readonly ActorRole $actor,
+        private readonly RememberedDisplay $rememberedDisplay,
+        private readonly ViewBar $viewBar,
+        private readonly FilterSheet $filterSheet,
     ) {
     }
 
@@ -83,39 +108,57 @@ final class RecurringListController extends AbstractController
     public function index(Request $request): Response
     {
         $this->denyUnlessStaff();
-        $tab = $request->query->getString('tab', RecurringOverview::ACTIVE);
-        $tab = \in_array($tab, RecurringOverview::TABS, true) ? $tab : RecurringOverview::ACTIVE;
+        // The builder's rows (spec D11) become the list's working filter, in its address.
+        if ($request->query->has(FilterRows::MARKER)) {
+            return $this->redirectToRoute('app_recurring', $this->builtQuery($request->query), Response::HTTP_SEE_OTHER);
+        }
+        [$views, $view, $shown] = $this->views($request->query);
+        $list = RecurringLists::list();
+        $filterParam = WorkingFilter::param($shown, $view->filter);
+        // A view keeps its own order; the address names the sort only when it differs (spec D10).
+        $viewSort = ViewState::sortParam($view->sort, RecurringFilter::NEXT);
+        $sort = $request->query->getString('sort', $viewSort);
+        $sort = \in_array(ltrim($sort, '-'), RecurringFilter::SORTS, true) ? $sort : RecurringFilter::NEXT;
         $firms = $this->firmNames();
         $firm = $request->query->getString('firm');
         $firm = isset($firms[$firm]) ? $firm : '';
         $firmId = '' === $firm ? null : $firm;
+        $severalFirms = \count($firms) > 1;
 
-        $counts = $this->overview->counts($firmId);
-        $page = $this->templates->page(new RecurringFilter(
-            $firmId,
-            RecurringOverview::FAILING === $tab ? null : RecurringState::from($tab),
-            RecurringOverview::FAILING === $tab,
-            max(1, $request->query->getInt('page', 1)),
-        ));
+        $page = $this->templates->page(new RecurringFilter($firmId, null, false, max(1, $request->query->getInt('page', 1)), $shown, $this->counted($views), $sort));
         $lines = $this->overview->prepare($page->templates);
         $today = $this->clock->today();
         $amounts = $this->amounts->payable($page->templates, $lines, $today);
 
-        $query = array_filter(['tab' => RecurringOverview::ACTIVE === $tab ? null : $tab, 'firm' => $firmId], static fn (?string $value): bool => null !== $value);
+        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'firm' => $firmId, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
+        // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $working = $this->rememberedDisplay->read(RecurringColumns::LIST, ['severalFirms' => $severalFirms], $list->key, $view, $request->query->all());
+        $query += $working->query;
         $here = http_build_query(1 === $page->page ? $query : $query + ['page' => (string) $page->page]);
-        $severalFirms = \count($firms) > 1;
+        $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, RecurringFilter::NEXT, $working, 'app_recurring', null === $firmId ? [] : ['firm' => $firmId]);
+        // The failure sits under the description, or under the name when the description is hidden.
+        $alertColumn = \in_array('description', $working->display->keys(), true) ? 'description' : 'name';
 
         return $this->render('@Invoicing/recurring/index.html.twig', [
-            'firstRun' => 0 === array_sum(null === $firmId ? $counts : $this->overview->counts(null)),
+            'firstRun' => 0 === (null === $firmId && isset($page->counts[ListDefinition::ALL]) ? $page->counts[ListDefinition::ALL] : array_sum($this->overview->counts(null))),
             'page' => $page,
-            'tab' => $tab,
+            'view' => $view->isAll() ? '' : $view->key,
+            'emptyTitle' => $this->emptyTitle($view),
+            'working' => $filterParam ?? '',
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl('app_recurring', [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true]))),
+            'sort' => $sort,
+            'sortKept' => $viewSort === $sort ? null : $sort,
+            ...$bar,
             'firm' => $firm,
             'firms' => $severalFirms ? ['' => $this->translator->trans('invoice.list.all_firms')] + $firms : [],
-            'tabs' => $this->tabs($counts, $tab, $query),
-            'columns' => $this->columns($severalFirms),
-            'rows' => array_map(fn (RecurringInvoice $template): array => $this->row($template, $page->isFailing($template), $amounts[$template->id()] ?? null, $severalFirms, $here, $today), $page->templates),
+            ...$this->tabs($views, $view->key, $page, $query, $bar['viewBar']['modified']),
+            'columns' => $working->display->table($sort, fn (string $next): string => $this->generateUrl('app_recurring', ['sort' => $next, 'page' => null] + $query)),
+            'rows' => array_map(fn (RecurringInvoice $template): array => $this->row($template, $page->isFailing($template), $amounts[$template->id()] ?? null, $working, $alertColumn, $here, $today), $page->templates),
+            'density' => $working->tableDensity(),
+            'picker' => $this->picker($working, $query),
+            'workingQuery' => $working->query,
             'baseUrl' => $this->generateUrl('app_recurring', $query),
-            'filtered' => null !== $firmId,
+            'filtered' => null !== $firmId || null !== $filterParam,
         ]);
     }
 
@@ -378,52 +421,115 @@ final class RecurringListController extends AbstractController
     }
 
     /**
-     * @param array<string, int>    $counts
-     * @param array<string, string> $query
+     * The list's views as its address names them (spec D10): the person's views, the one
+     * ?view= names (or ?tab=, the address of the tabs the list had), its All when none,
+     * and the filter the list shows, the view's own unless f= changed it.
      *
-     * @return list<array<string, mixed>>
+     * @param InputBag<string> $input
+     *
+     * @return array{list<ListView>, ListView, ViewFilter}
      */
-    private function tabs(array $counts, string $tab, array $query): array
+    private function views(InputBag $input): array
     {
-        $tabs = [];
-        foreach (RecurringOverview::TABS as $key) {
-            $tabs[] = [
-                'label' => $this->translator->trans('recurring.list.tab.'.$key),
-                'href' => $this->generateUrl('app_recurring', ['tab' => RecurringOverview::ACTIVE === $key ? null : $key] + $query),
-                'count' => $counts[$key] ?? 0,
-                'active' => $key === $tab,
-            ];
-        }
+        $views = $this->listViews->of(RecurringLists::list(), $this->actor->userId());
+        $view = ListViews::chosen($views, $input->getString('view', $input->getString('tab')));
 
-        return $tabs;
+        return [$views, $view, WorkingFilter::decode($input->getString(WorkingFilter::PARAM), RecurringLists::list()) ?? $view->filter];
     }
 
     /**
-     * @return list<array<string, mixed>>
+     * The views that show a count, by key: the primary tabs alone (spec D9).
+     *
+     * @param list<ListView> $views
+     *
+     * @return array<string, ViewFilter>
      */
-    private function columns(bool $severalFirms): array
+    private function counted(array $views): array
     {
-        // The name first, as iDoklad lists its templates; it is the link to the form.
-        $keys = ['name' => true, 'customer' => false, 'description' => false];
-        if ($severalFirms) {
-            $keys['firm'] = false;
-        }
-        // No state column: the tabs say it, and a failing row says why in its description.
-        $keys += ['interval' => false, 'next' => false, 'delivery' => false, 'amount' => true];
-        $columns = [];
-        foreach ($keys as $key => $phone) {
-            // The names and the description give way, cut short with their full text in a title.
-            $truncate = \in_array($key, ['name', 'customer', 'description', 'firm'], true);
-            $columns[] = ['key' => $key, 'label' => $this->translator->trans('recurring.list.column.'.$key), 'align' => 'amount' === $key ? 'right' : 'left', 'phone' => $phone, 'truncate' => $truncate];
+        $counted = [];
+        foreach (ListViews::placed($views)[0] as $tab) {
+            if ($tab->showCount) {
+                $counted[$tab->key] = $tab->filter;
+            }
         }
 
-        return $columns;
+        return $counted;
+    }
+
+    /**
+     * The list's address after the builder's Apply: what the sheet sent, its rows read
+     * into the working filter, which is left out when it is the view's own.
+     *
+     * @param InputBag<string> $input
+     *
+     * @return array<string, mixed>
+     */
+    private function builtQuery(InputBag $input): array
+    {
+        [, $view] = $this->views($input);
+        $query = array_diff_key($input->all(), [FilterRows::PARAM => true, FilterRows::MARKER => true, WorkingFilter::PARAM => true, 'page' => true]);
+
+        return array_filter($query + [WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), RecurringLists::list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
+    }
+
+    /**
+     * The tabs of the list and its "More views" menu (spec D7): All and the primary views
+     * as tabs, with the count of those that show one; the other views in the menu.
+     *
+     * @param list<ListView>        $views
+     * @param array<string, string> $query
+     *
+     * @return array{tabs: list<array<string, mixed>>, moreViews: list<array<string, mixed>>}
+     */
+    private function tabs(array $views, string $active, RecurringPage $page, array $query, bool $modified): array
+    {
+        [$primary, $overflow] = ListViews::placed($views);
+        $link = fn (ListView $view, bool $count): array => [
+            'label' => $view->translated ? $this->translator->trans($view->name) : $view->name,
+            // A view opens with its own filter and columns: the changed ones belong to the view they were changed on (spec D10).
+            'href' => $this->generateUrl('app_recurring', ['view' => $view->isAll() ? null : $view->key] + array_diff_key($query, ['view' => true, 'sort' => true, 'page' => true, WorkingFilter::PARAM => true] + array_flip(WorkingDisplay::KEYS))),
+            'count' => $count && $view->showCount ? ($page->counts[$view->key] ?? null) : null,
+            'active' => $view->key === $active,
+            'modified' => $modified && $view->key === $active,
+            'private' => $view->private,
+        ];
+
+        return ['tabs' => array_map(static fn (ListView $view): array => $link($view, true), $primary), 'moreViews' => array_map(static fn (ListView $view): array => $link($view, false), $overflow)];
+    }
+
+    /**
+     * The Columns sheet: what it keeps of the list, and the list without the changed columns.
+     *
+     * @param array<string, string> $query
+     *
+     * @return array<string, mixed>
+     */
+    private function picker(WorkingState $working, array $query): array
+    {
+        $kept = array_diff_key($query, array_flip(WorkingDisplay::KEYS));
+
+        return [
+            'keep' => $kept,
+            'columns' => $working->picker(),
+            'density' => $working->density,
+            // An empty density names the view's own display, which forgets the one remembered (D-display-3).
+            'resetHref' => $this->generateUrl('app_recurring', $kept + [WorkingDisplay::DENSITY => '']),
+            'modified' => $working->modified,
+        ];
+    }
+
+    /**
+     * What an empty view says: a shipped view its own words, any other view that nothing matches.
+     */
+    private function emptyTitle(ListView $view): string
+    {
+        return $this->translator->trans(\in_array($view->key, self::SHIPPED, true) ? 'recurring.list.empty.'.$view->key : 'recurring.list.empty.view');
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function row(RecurringInvoice $template, bool $failing, ?Money $amount, bool $severalFirms, string $return, \DateTimeImmutable $today): array
+    private function row(RecurringInvoice $template, bool $failing, ?Money $amount, WorkingState $working, string $alertColumn, string $return, \DateTimeImmutable $today): array
     {
         $state = $template->state();
         $next = $template->nextOccurrence();
@@ -432,18 +538,17 @@ final class RecurringListController extends AbstractController
         $failure = null === $code ? null : $this->failureText($code);
         $description = $this->description($template, $next ?? $today);
         $nextText = RecurringState::Active === $state && $next instanceof \DateTimeImmutable ? $this->date($next) : '';
-        $cells = [
-            'name' => $template->name(),
-            'customer' => ['links' => [['text' => $customer, 'href' => $this->generateUrl('app_contact_show', ['id' => $template->customer()->id()])]], 'title' => $customer],
-            'description' => $description,
-            'interval' => $this->schedule($template),
-            'next' => $nextText,
-            'delivery' => $this->translator->trans('recurring.list.delivery.'.$template->delivery()->value),
-            'amount' => $amount instanceof Money ? $this->amountText->shown($amount) : '',
-        ];
-        if ($severalFirms) {
-            $cells['firm'] = $template->firm()->name();
-        }
+        $cells = $working->display->cells(new RecurringRow(
+            $template->name(),
+            $customer,
+            $this->generateUrl('app_contact_show', ['id' => $template->customer()->id()]),
+            $description,
+            $template->firm()->name(),
+            $this->schedule($template),
+            $nextText,
+            $this->translator->trans('recurring.list.delivery.'.$template->delivery()->value),
+            $amount instanceof Money ? $this->amountText->shown($amount) : '',
+        ));
 
         return [
             'id' => $template->id(),
@@ -452,7 +557,7 @@ final class RecurringListController extends AbstractController
             'label' => $template->name(),
             'secondary' => implode(' · ', array_filter([$customer, $description, $this->schedule($template), $nextText], static fn (string $part): bool => '' !== $part)),
             // The description stays; the failure is a line of its own, with the way to the place that fixes it.
-            'alert' => null === $code || null === $failure ? null : ['text' => $this->translator->trans('recurring.list.failed', ['reason' => $failure]), 'column' => 'description'] + $this->fix($template, $code),
+            'alert' => null === $code || null === $failure ? null : ['text' => $this->translator->trans('recurring.list.failed', ['reason' => $failure]), 'column' => $alertColumn] + $this->fix($template, $code),
             'cells' => $cells,
             'actions' => $this->actions($template, $return),
         ];

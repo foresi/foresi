@@ -38,14 +38,14 @@ final class ModulesCommandTest extends TestCase
         $json = json_decode($output->fetch(), true, flags: \JSON_THROW_ON_ERROR);
         self::assertIsArray($json);
         self::assertIsArray($json['modules']);
-        self::assertCount(19, $json['modules']);
-        $timesheet = array_values(array_filter($json['modules'], static fn (mixed $module): bool => \is_array($module) && 'timesheet' === $module['id']))[0] ?? null;
-        self::assertIsArray($timesheet);
-        self::assertSame('module', $timesheet['kind']);
-        self::assertSame('foresi/timesheet', $timesheet['package']);
-        self::assertIsArray($timesheet['requires']);
-        self::assertContains('work', $timesheet['requires']);
-        self::assertSame([], $timesheet['optional']);
+        self::assertCount(\count(new InstalledModules(\dirname(__DIR__, 4))->graph()->all()), $json['modules']);
+        $webhooks = array_values(array_filter($json['modules'], static fn (mixed $module): bool => \is_array($module) && 'webhooks' === $module['id']))[0] ?? null;
+        self::assertIsArray($webhooks);
+        self::assertSame('core', $webhooks['kind']);
+        self::assertSame('foresi/webhooks', $webhooks['package']);
+        self::assertIsArray($webhooks['requires']);
+        self::assertContains('events', $webhooks['requires']);
+        self::assertSame([], $webhooks['optional']);
         self::assertSame([], $json['problems']);
     }
 
@@ -57,7 +57,7 @@ final class ModulesCommandTest extends TestCase
 
         self::assertSame(Command::SUCCESS, $status);
         $text = $output->fetch();
-        self::assertStringContainsString('foresi/timesheet', $text);
+        self::assertStringContainsString('foresi/webhooks', $text);
         self::assertStringContainsString('No problems.', $text);
     }
 
