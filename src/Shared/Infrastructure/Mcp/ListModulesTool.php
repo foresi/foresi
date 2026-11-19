@@ -17,7 +17,7 @@ use Foresi\Shared\Infrastructure\Module\ModulesView;
  * The modules of this installation and their dependencies, the same answer as
  * bin/console app:modules --format=json.
  */
-final readonly class ListModulesTool implements ReadTool
+final readonly class ListModulesTool implements ReadTool, StaffOnlyTool
 {
     public function __construct(
         private InstalledModules $modules,
@@ -33,6 +33,14 @@ final readonly class ListModulesTool implements ReadTool
     public function title(): string
     {
         return 'List modules';
+    }
+
+    /**
+     * The organisation's own setup, never a guest's (ADR 0041).
+     */
+    public function staffOnly(): bool
+    {
+        return true;
     }
 
     public function scope(): string

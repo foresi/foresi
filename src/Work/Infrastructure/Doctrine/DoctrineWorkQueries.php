@@ -380,7 +380,8 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $this->visibility->canShare($task),
             $this->visibility->canManage(),
             $scope->opens($project),
-            $task->estimateMinutes(),
+            // The estimate sits in the time block, which a guest never sees.
+            $this->visibility->canManage() ? $task->estimateMinutes() : null,
         );
     }
 
@@ -713,7 +714,8 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         return new ProjectDetail(
             $this->projectRows([$project], $this->visibility->scope())[0],
             $project->description(),
-            $project->billsTimeByDefault(),
+            // Billing is the organisation's: a guest is not told.
+            $this->visibility->canManage() ? $project->billsTimeByDefault() : null,
             array_map(static fn (ProjectStatus $status): StatusChoice => new StatusChoice($status->id(), $status->name(), $status->type()), $this->projects->statuses($project)),
             array_map(static fn (Section $section): Choice => new Choice($section->id(), $section->name()), $this->sections($project)),
         );
@@ -733,9 +735,11 @@ final readonly class DoctrineWorkQueries implements WorkQueries
 
             return $this->assignable([$taskId])[$taskId] ?? null;
         }
+        // A guest is not told who else the organisation works with: its own people only, as on the project screen.
+        $staff = $this->visibility->canManage();
         $people = [];
         foreach ($this->people->all() as $person) {
-            $membership = $person->active ? $this->people->membership($person->membershipId) : null;
+            $membership = $person->active && ($staff || $person->role->isStaff()) ? $this->people->membership($person->membershipId) : null;
             if ($membership instanceof Membership && $membership->isActive() && $this->visibility->scopeOf($membership)->opens($project)) {
                 $people[] = new Choice($person->membershipId, $person->name);
             }

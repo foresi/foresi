@@ -20,6 +20,7 @@ use Foresi\Work\Application\TimeQueries;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Application\WorkUnit;
+use Foresi\Work\Application\WorkVisibility;
 use Foresi\Work\Domain\Priority;
 use Foresi\Work\Domain\WorkflowTemplate;
 
@@ -42,6 +43,7 @@ final readonly class WorkWrites
         private Comments $commentStore,
         private WorkUnit $unit,
         private Projects $store,
+        private WorkVisibility $visibility,
     ) {
     }
 
@@ -137,6 +139,10 @@ final readonly class WorkWrites
      */
     public function comment(AddTaskCommentInput $input): array
     {
+        // The screen never offers a guest an internal comment; the API says no rather than posting it for everyone.
+        if ($input->internal && !$this->visibility->canSeeInternal()) {
+            throw new WorkRefused('not_allowed');
+        }
         $comment = $this->comments->add($input->taskId, $input->body, $input->internal);
 
         return [$comment->id(), $comment->task()->id()];

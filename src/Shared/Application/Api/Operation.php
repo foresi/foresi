@@ -30,6 +30,7 @@ final readonly class Operation
      * @param bool        $destructive       it destroys something or cannot be taken back (destructiveHint)
      * @param bool        $needsConfirmation a person must confirm it in Foresi; until that exists it is refused over the API
      * @param string|null $response          the schema of the answer's data in the OpenAPI document, such as "ContactDetail"
+     * @param bool        $staffOnly         never a guest's, though a guest may hold its scope: the MCP tool is hidden from a guest's token and refused to it (ADR 0041)
      */
     public function __construct(
         public string $name,
@@ -43,6 +44,7 @@ final readonly class Operation
         public bool $destructive = false,
         public bool $needsConfirmation = false,
         public ?string $response = null,
+        public bool $staffOnly = false,
     ) {
     }
 }

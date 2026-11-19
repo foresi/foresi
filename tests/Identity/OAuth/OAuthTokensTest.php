@@ -24,6 +24,7 @@ use Foresi\Identity\Domain\OAuth\RefreshToken;
 use Foresi\Identity\Domain\Role;
 use Foresi\Tests\Identity\Support\InMemoryApiTokens;
 use Foresi\Tests\Identity\Support\InMemoryOAuthStore;
+use Foresi\Tests\Identity\Support\WorkApiResources;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;
 
@@ -139,12 +140,27 @@ final class OAuthTokensTest extends TestCase
 
     public function testACodeOfSomeoneWhoLeftIsRefused(): void
     {
-        $secret = $this->code();
+        $this->role = null;
+
+        self::assertSame('The person is no longer in the organisation.', $this->refused($this->exchangeParameters($this->code()))->description);
+        self::assertSame([], $this->tokens->tokens);
+    }
+
+    public function testAGuestsCodeBecomesAConnectionWithTheScopesAGuestMayHold(): void
+    {
         $this->role = Role::Guest;
 
-        self::assertSame('The person no longer works for the organisation.', $this->refused($this->exchangeParameters($secret))->description);
-        $this->role = null;
-        self::assertSame('The person no longer works for the organisation.', $this->refused($this->exchangeParameters($this->code()))->description);
+        $response = $this->exchange($this->code());
+
+        self::assertSame(['projects:read', 'tasks:read'], $this->values($response->scopes));
+        self::assertSame(['projects:read', 'tasks:read'], $this->values($this->tokens->tokens[0]->scopes()));
+    }
+
+    public function testAGuestsCodeWithNothingAGuestMayHoldIsRefused(): void
+    {
+        $this->role = Role::Guest;
+
+        self::assertSame('A guest may hold none of the scopes of this connection.', $this->refused($this->exchangeParameters($this->code([ApiScope::from('contacts:write')])))->description);
         self::assertSame([], $this->tokens->tokens);
     }
 
@@ -222,16 +238,31 @@ final class OAuthTokensTest extends TestCase
     public function testARefreshOfSomeoneWhoLeftIsRefused(): void
     {
         $first = $this->exchange($this->code());
-        $this->role = Role::Guest;
+        $this->role = null;
 
-        self::assertSame('The person no longer works for the organisation.', $this->refused($this->refreshParameters($first->refreshToken))->description);
+        self::assertSame('The person is no longer in the organisation.', $this->refused($this->refreshParameters($first->refreshToken))->description);
         self::assertSame([], $this->tokens->rotations);
     }
 
-    private function code(): string
+    public function testARefreshOfSomeoneWhoBecameAGuestCannotWidenTheScopes(): void
+    {
+        $first = $this->exchange($this->code());
+        $this->role = Role::Guest;
+
+        self::assertSame('A refresh cannot add scopes.', $this->refused($this->refreshParameters($first->refreshToken, ['scope' => 'contacts:read']))->description);
+        self::assertSame('A refresh cannot add scopes.', $this->refused($this->refreshParameters($first->refreshToken, ['scope' => 'tasks:write']))->description);
+        $second = $this->grant($this->refreshParameters($first->refreshToken, ['scope' => 'tasks:read']));
+
+        self::assertSame(['projects:read', 'tasks:read'], $this->values($second->scopes));
+    }
+
+    /**
+     * @param list<ApiScope>|null $scopes
+     */
+    private function code(?array $scopes = null): string
     {
         $secret = ApiTokenSecret::random();
-        $this->store->addCode(new AuthorizationCode(ApiTokenSecret::hash($secret), $this->client->id(), self::USER, self::REDIRECT, Pkce::challenge($this->verifier), [ApiScope::read(), ApiScope::from('contacts:write')], self::RESOURCE, $this->clock->now()));
+        $this->store->addCode(new AuthorizationCode(ApiTokenSecret::hash($secret), $this->client->id(), self::USER, self::REDIRECT, Pkce::challenge($this->verifier), $scopes ?? [ApiScope::read(), ApiScope::from('contacts:write')], self::RESOURCE, $this->clock->now()));
 
         return $secret;
     }
@@ -298,6 +329,6 @@ final class OAuthTokensTest extends TestCase
         $memberships->method('roleOf')->willReturn($this->role);
         $memberships->method('organisationOf')->willReturn(null);
 
-        return new OAuthTokens(new OAuthClients($this->store, self::createStub(ClientMetadataDocuments::class), $this->clock), $this->store, $this->tokens, $memberships, $this->clock);
+        return new OAuthTokens(new OAuthClients($this->store, self::createStub(ClientMetadataDocuments::class), $this->clock), $this->store, $this->tokens, $memberships, $this->clock, WorkApiResources::guestScopes());
     }
 }

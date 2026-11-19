@@ -19,4 +19,13 @@ interface ApiResources
      * @return list<string> sorted
      */
     public function declared(): array;
+
+    /**
+     * The scopes a guest's token may hold, as the modules open their resources
+     * to guests (ADR 0041): "tasks:write" up to writing, "projects:read" for
+     * reading only.
+     *
+     * @return list<string> sorted
+     */
+    public function guest(): array;
 }

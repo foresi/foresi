@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Shared\Infrastructure\Operation;
 
 use Foresi\Shared\Application\Refused;
+use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
 use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
 use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 use Foresi\Shared\Infrastructure\Mcp\WriteTool;
@@ -22,7 +23,7 @@ use Symfony\Component\DependencyInjection\Attribute\Exclude;
  * invalid_argument for a value and the reason otherwise.
  */
 #[Exclude]
-final readonly class OperationTool implements WriteTool
+final readonly class OperationTool implements WriteTool, StaffOnlyTool
 {
     public function __construct(private OperationDefinition $definition, private OperationRunner $runner)
     {
@@ -51,6 +52,11 @@ final readonly class OperationTool implements WriteTool
     public function inputSchema(): array
     {
         return InputSchema::of($this->definition->fields);
+    }
+
+    public function staffOnly(): bool
+    {
+        return $this->definition->operation->staffOnly;
     }
 
     public function isDestructive(): bool

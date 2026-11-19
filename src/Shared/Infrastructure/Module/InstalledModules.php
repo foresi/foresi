@@ -21,7 +21,9 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  * Composer installed. Being installed is being enabled; there is no other
  * switch. Each module's manifest is its composer.json: hard dependencies in
  * "require", the rest in "extra.foresi", its API resources in "scopes" and
- * its Symfony bundle in "bundle".
+ * its Symfony bundle in "bundle". A resource a guest may hold is written as
+ * {"resource": "tasks", "guest": "write"} (or "read") instead of "tasks"
+ * (ADR 0041).
  */
 final readonly class InstalledModules
 {
@@ -85,7 +87,7 @@ final readonly class InstalledModules
             throw new InvalidManifest(\sprintf('Package %s has no valid extra.foresi.namespace such as "Foresi\\\\Timesheet\\\\".', $package));
         }
         $optional = self::strings($extra['optional'] ?? [], \sprintf('Package %s: extra.foresi.optional must be a list of module ids.', $package));
-        $scopes = self::strings($extra['scopes'] ?? [], \sprintf('Package %s: extra.foresi.scopes must be a list of resources.', $package));
+        [$scopes, $guestScopes] = self::scopes($extra['scopes'] ?? [], $package);
         $bundle = $extra['bundle'] ?? null;
         if (!\is_string($bundle)) {
             throw new InvalidManifest(\sprintf('Package %s has no extra.foresi.bundle, the class of its bundle such as "Foresi\\\\Timesheet\\\\TimesheetBundle".', $package));
@@ -105,7 +107,36 @@ final readonly class InstalledModules
             array_map(ModuleId::of(...), $optional),
             $scopes,
             $bundle,
+            $guestScopes,
         );
+    }
+
+    /**
+     * The resources of "extra.foresi.scopes", and those a guest may hold.
+     *
+     * @return array{list<string>, array<string, bool>}
+     */
+    private static function scopes(mixed $value, string $package): array
+    {
+        $error = \sprintf('Package %s: extra.foresi.scopes must be a list of resources, each "tasks" or {"resource": "tasks", "guest": "read" or "write"}.', $package);
+        if (!\is_array($value) || !array_is_list($value)) {
+            throw new InvalidManifest($error);
+        }
+        $scopes = [];
+        $guest = [];
+        foreach ($value as $item) {
+            if (\is_string($item)) {
+                $scopes[] = $item;
+                continue;
+            }
+            if (!\is_array($item) || !\is_string($item['resource'] ?? null) || !\in_array($item['guest'] ?? null, ['read', 'write'], true) || [] !== array_diff(array_keys($item), ['resource', 'guest'])) {
+                throw new InvalidManifest($error);
+            }
+            $scopes[] = $item['resource'];
+            $guest[$item['resource']] = 'write' === $item['guest'];
+        }
+
+        return [$scopes, $guest];
     }
 
     /**

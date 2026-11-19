@@ -18,6 +18,9 @@ final class InstalledApiResources implements ApiResources
     /** @var list<string>|null */
     private ?array $resources = null;
 
+    /** @var list<string>|null */
+    private ?array $guest = null;
+
     public function __construct(private readonly InstalledModules $modules)
     {
     }
@@ -25,5 +28,10 @@ final class InstalledApiResources implements ApiResources
     public function declared(): array
     {
         return $this->resources ??= $this->modules->graph()->resources();
+    }
+
+    public function guest(): array
+    {
+        return $this->guest ??= $this->modules->graph()->guestScopes();
     }
 }

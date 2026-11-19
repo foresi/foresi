@@ -140,6 +140,10 @@ api_tokens:
   connections: Connected apps
   connections_empty: No app is connected with OAuth sign-in yet.
   connections_how: How to connect an app
+  guest:
+    title: Connected apps
+    server: Connect your own app
+    server_text: An MCP client such as Claude connects to this address and asks you to sign in. It then sees and changes only the work shared with you.
   others_connections: Apps connected by other people
   others_connections_empty: The other people have connected no apps.
   connection:

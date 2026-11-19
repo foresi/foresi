@@ -40,9 +40,9 @@ final class GuestStartPageTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Shared with me');
         self::assertSelectorTextContains('main', 'Nothing is shared with you yet');
-        // The sidebar offers what is shared, their inbox and their tasks, nothing else of the
+        // The sidebar offers what is shared, their inbox, their connected apps and their tasks, nothing else of the
         // modules (the extensions group holds the test environment's own probe item).
-        self::assertSame(['/shared', '/notifications', '/my-tasks'], $crawler->filter('#sidebar [data-nav-group]:not([data-nav-group="extensions"]) li > a')->each(static fn ($link): string => (string) $link->attr('href')));
+        self::assertSame(['/shared', '/notifications', '/connected-apps', '/my-tasks'], $crawler->filter('#sidebar [data-nav-group]:not([data-nav-group="extensions"]) li > a')->each(static fn ($link): string => (string) $link->attr('href')));
     }
 
     private function signIn(Role $role): void

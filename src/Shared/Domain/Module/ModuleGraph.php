@@ -84,6 +84,26 @@ final readonly class ModuleGraph
     }
 
     /**
+     * The scopes a guest's token may hold, as the modules open them to guests:
+     * "tasks:write" for a resource a guest may change, "projects:read" for one
+     * a guest may only read (ADR 0041).
+     *
+     * @return list<string> sorted
+     */
+    public function guestScopes(): array
+    {
+        $scopes = [];
+        foreach ($this->modules as $module) {
+            foreach ($module->guestScopes as $resource => $write) {
+                $scopes[] = $resource.':'.($write ? 'write' : 'read');
+            }
+        }
+        sort($scopes, \SORT_STRING);
+
+        return $scopes;
+    }
+
+    /**
      * Every module after the modules it requires. Modules in a cycle come
      * together, in id order; otherwise ties are broken by id.
      *

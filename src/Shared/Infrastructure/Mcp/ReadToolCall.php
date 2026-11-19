@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Infrastructure\Mcp;
 
+use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Application\Api\IdempotencyKeyInFlight;
 use Foresi\Shared\Application\Api\IdempotencyKeyReused;
 use Foresi\Shared\Application\Api\SavedAnswer;
@@ -22,7 +23,8 @@ use Symfony\Component\RateLimiter\RateLimit;
 
 /**
  * Runs one call of a read or a write tool. The caller is confirmed and the
- * tool's scope checked first (ADR 0032). A write tool then spends a write of
+ * tool's scope checked first (ADR 0032), and a tool for the organisation's own
+ * people refused to a guest (ADR 0041). A write tool then spends a write of
  * the token's budget and, given an idempotency_key, claims it: a repeat with
  * the same arguments answers what the first call answered, with
  * idempotent_replayed. The answer marks everything the tool returns as data: much
@@ -41,6 +43,7 @@ final readonly class ReadToolCall
         private LoggerInterface $logger,
         private WriteBudget $writes,
         private Idempotency $idempotency,
+        private ActorRole $role,
     ) {
     }
 
@@ -57,6 +60,9 @@ final readonly class ReadToolCall
                 $this->scopes->require($scope);
             } catch (\DomainException) {
                 throw new ToolRefusal(ToolRefusal::INSUFFICIENT_SCOPE, ScopeGuard::ANY === $scope ? 'The connection has no valid token.' : \sprintf('The token does not have the "%s" scope.', $scope));
+            }
+            if ($tool instanceof StaffOnlyTool && $tool->staffOnly() && !$this->role->isStaff()) {
+                throw new ToolRefusal(ToolRefusal::FORBIDDEN, 'The tool is for the organisation\'s own people; a guest cannot call it.');
             }
             $retired = RetiredParameters::first(array_keys($arguments));
             if (null !== $retired) {

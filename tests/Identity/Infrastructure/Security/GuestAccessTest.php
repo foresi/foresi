@@ -36,11 +36,14 @@ final class GuestAccessTest extends WebTestCase
         // Machines: the uptime monitor and the bank mail relay, on firewalls without a session.
         'app_health', 'app_inbound_mail',
         // OAuth for MCP clients (ADR 0036): metadata, registration and the token endpoint hold no data and
-        // take no session; the consent screen refuses a guest.
+        // take no session; a guest connects their own agent on the consent screen and manages it
+        // on Connected apps (ADR 0041).
         'oauth_resource_metadata', 'oauth_resource_metadata_root', 'oauth_server_metadata', 'oauth_register', 'oauth_token',
+        'oauth_authorize', 'app_connected_apps', 'app_connected_app_disconnect',
         // The setup guide for AI agents and the llms.txt: public, only this installation's addresses.
         'app_mcp_setup', 'app_llms_txt',
-        // The API and MCP, whose firewalls only a personal API token signs in to; a guest gets none.
+        // The API and MCP, whose firewalls only an API token signs in to: a guest has no personal token,
+        // and a guest's OAuth connection holds only the scopes a guest may hold (ADR 0041).
         'api_v1_me', 'api_v1_invoices', 'api_v1_invoice', 'api_v1_contacts', 'api_v1_contact', 'api_v1_firm', 'api_v1_payments', 'api_v1_payment', 'api_v1_events',
         'api_v1_webhook_endpoints', 'api_v1_webhook_endpoint_create', 'api_v1_webhook_endpoint', 'api_v1_webhook_endpoint_update', 'api_v1_webhook_endpoint_delete',
         'api_v1_webhook_endpoint_rotate', 'api_v1_webhook_endpoint_secret', 'api_v1_webhook_endpoint_ping',

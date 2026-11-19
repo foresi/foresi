@@ -10,13 +10,14 @@ namespace Foresi\Shared\Infrastructure\View\Mcp;
 
 use Foresi\Shared\Application\View\ListDefinitions;
 use Foresi\Shared\Infrastructure\Mcp\ReadTool;
+use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
 use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
 use Foresi\Shared\Infrastructure\View\Api\ViewJson;
 
 /**
  * The lists saved views filter, as GET /api/v1/lists writes them.
  */
-final readonly class ListListsTool implements ReadTool
+final readonly class ListListsTool implements ReadTool, StaffOnlyTool
 {
     public function __construct(private ListDefinitions $lists, private ViewJson $json)
     {
@@ -30,6 +31,14 @@ final readonly class ListListsTool implements ReadTool
     public function title(): string
     {
         return 'List the lists views filter';
+    }
+
+    /**
+     * The organisation's own setup, never a guest's (ADR 0041).
+     */
+    public function staffOnly(): bool
+    {
+        return true;
     }
 
     public function scope(): string

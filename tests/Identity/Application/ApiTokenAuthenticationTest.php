@@ -17,6 +17,7 @@ use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Domain\ApiTokenSecret;
 use Foresi\Identity\Domain\Role;
 use Foresi\Tests\Identity\Support\InMemoryApiTokens;
+use Foresi\Tests\Identity\Support\WorkApiResources;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;
@@ -29,6 +30,7 @@ final class ApiTokenAuthenticationTest extends TestCase
 {
     private const string USER = '019a0000-0000-7000-8000-000000000001';
     private const string TOKEN = '019a0000-0000-7000-8000-0000000000aa';
+    private const string CLIENT = '019a0000-0000-7000-8000-0000000000cc';
 
     private InMemoryApiTokens $tokens;
     private MockClock $clock;
@@ -113,10 +115,31 @@ final class ApiTokenAuthenticationTest extends TestCase
         self::assertSame([], $this->tokens->touches);
     }
 
-    public function testAGuestIsRefused(): void
+    public function testAGuestsPersonalTokenIsRefused(): void
     {
         $this->role = Role::Guest;
         $this->tokens->records = [$this->record()];
+
+        $this->expectRefusal(ApiTokenRefused::GUEST, fn (): ApiTokenGrant => $this->service()->authenticate($this->secret));
+    }
+
+    public function testAGuestsConnectionKeepsOnlyTheScopesAGuestMayHold(): void
+    {
+        $this->role = Role::Guest;
+        $this->tokens->records = [$this->record(scopes: [ApiScope::write()], oauthClientId: self::CLIENT)];
+
+        $grant = $this->service()->authenticate($this->secret);
+
+        self::assertSame(['projects:read', 'tasks:write'], array_map(static fn (ApiScope $scope): string => $scope->value, $grant->scopes));
+        self::assertTrue($grant->allows(ApiScope::from('tasks:write')));
+        self::assertFalse($grant->allows(ApiScope::from('projects:write')));
+        self::assertFalse($grant->allows(ApiScope::from('contacts:read')));
+    }
+
+    public function testAMemberWhoBecameAGuestKeepsNothingElse(): void
+    {
+        $this->role = Role::Guest;
+        $this->tokens->records = [$this->record(scopes: [ApiScope::from('contacts:write')], oauthClientId: self::CLIENT)];
 
         $this->expectRefusal(ApiTokenRefused::GUEST, fn (): ApiTokenGrant => $this->service()->authenticate($this->secret));
     }
@@ -150,18 +173,22 @@ final class ApiTokenAuthenticationTest extends TestCase
         yield '61 seconds ago' => ['2026-11-10 09:58:59', 1];
     }
 
-    private function record(string $expiresAt = '2026-12-01 00:00:00', ?string $revokedAt = null, ?string $lastUsedAt = null): ApiTokenRecord
+    /**
+     * @param list<ApiScope> $scopes
+     */
+    private function record(string $expiresAt = '2026-12-01 00:00:00', ?string $revokedAt = null, ?string $lastUsedAt = null, array $scopes = [], ?string $oauthClientId = null): ApiTokenRecord
     {
         return new ApiTokenRecord(
             self::TOKEN,
             self::USER,
             'Reporting',
-            [ApiScope::read()],
+            [] === $scopes ? [ApiScope::read()] : $scopes,
             'wxyz',
             new \DateTimeImmutable('2026-11-01 00:00:00'),
             new \DateTimeImmutable($expiresAt),
             null === $lastUsedAt ? null : new \DateTimeImmutable($lastUsedAt),
             null === $revokedAt ? null : new \DateTimeImmutable($revokedAt),
+            $oauthClientId,
         );
     }
 
@@ -181,6 +208,6 @@ final class ApiTokenAuthenticationTest extends TestCase
         $memberships = self::createStub(MembershipDirectory::class);
         $memberships->method('roleOf')->willReturnCallback(fn (string $userId): ?Role => self::USER === $userId ? $this->role : null);
 
-        return new ApiTokenAuthentication($this->tokens, $memberships, $this->clock);
+        return new ApiTokenAuthentication($this->tokens, $memberships, $this->clock, WorkApiResources::guestScopes());
     }
 }

@@ -1,0 +1,37 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A guest's connected apps (ADR 0041): the MCP clients they connected with OAuth sign-in, each
+    disconnected after a confirmation, and the address a client connects to. A guest has no
+    personal tokens and no settings; the organisation's people have this in Settings > API.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'api_tokens.guest.title'|trans}] %}
+
+{% block title %}{{ 'api_tokens.guest.title'|trans }}{% endblock %}
+
+{% block content %}
+    {% set token = csrf_token(constant('Foresi\\Identity\\Infrastructure\\Controller\\ApiTokenController::TOKEN')) %}
+    {% for tone in ['success', 'error'] %}
+        {% for message in app.flashes(tone) %}
+            <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
+        {% endfor %}
+    {% endfor %}
+    <div class="grid gap-6">
+        <section class="grid gap-2" aria-labelledby="connected-apps-server-title" data-connected-apps="server">
+            <h2 id="connected-apps-server-title" class="m-0 text-heading font-semibold text-ink">{{ 'api_tokens.guest.server'|trans }}</h2>
+            <div class="grid gap-2 rounded-panel border border-container bg-white px-4 py-3">
+                <p class="m-0 text-small text-muted">{{ 'api_tokens.guest.server_text'|trans }}</p>
+                <code class="block break-all text-small text-ink" data-mcp-server>{{ server }}</code>
+            </div>
+        </section>
+        <section class="grid gap-2" aria-labelledby="connected-apps-title" data-api-connections="mine">
+            <h2 id="connected-apps-title" class="m-0 text-heading font-semibold text-ink">{{ 'api_tokens.connections'|trans }}</h2>
+            <twig:Ui:DataTable :caption="'api_tokens.connections'|trans" :columns="columns" :rows="rows" :actionToken="token">
+                <twig:block name="empty">
+                    <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted">{{ 'api_tokens.connections_empty'|trans }}</p>
+                </twig:block>
+            </twig:Ui:DataTable>
+        </section>
+    </div>
+{% endblock %}

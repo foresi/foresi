@@ -26,8 +26,14 @@
             "bundle": "Foresi\\Work\\WorkBundle",
             "optional": [],
             "scopes": [
-                "projects",
-                "tasks",
+                {
+                    "resource": "projects",
+                    "guest": "read"
+                },
+                {
+                    "resource": "tasks",
+                    "guest": "write"
+                },
                 "time_entries"
             ]
         }

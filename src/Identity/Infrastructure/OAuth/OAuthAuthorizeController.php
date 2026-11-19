@@ -12,6 +12,7 @@ use Foresi\Identity\Application\ApiTokenRefused;
 use Foresi\Identity\Application\OAuth\AuthorizationRequest;
 use Foresi\Identity\Application\OAuth\OAuthAuthorization;
 use Foresi\Identity\Application\OAuth\OAuthRefused;
+use Foresi\Identity\Application\OpenToGuest;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Domain\OAuth\RedirectUri;
 use Foresi\Identity\Infrastructure\Controller\ApiScopeOptions;
@@ -28,8 +29,10 @@ use Symfony\Component\Routing\Attribute\Route;
  * the person back here after it. The screen names the client, where it sends
  * the person back and what it may do; read access the client asked for stays
  * ticked, everything else can be changed. Errors about the client or its
- * redirect URI are shown here and never redirected to.
+ * redirect URI are shown here and never redirected to. A guest reaches it too
+ * and is offered only the scopes a guest may hold (ADR 0041).
  */
+#[OpenToGuest]
 final class OAuthAuthorizeController extends AbstractController
 {
     public const string ROUTE = 'oauth_authorize';
@@ -75,7 +78,7 @@ final class OAuthAuthorizeController extends AbstractController
             if ('allow' !== $request->request->getString('decision')) {
                 return $this->leave($this->authorization->deny($authorization, $issuer));
             }
-            $granted = array_values(array_intersect(array_keys($this->scopes->offered()), array_filter($request->request->all('scopes'), \is_string(...))));
+            $granted = array_values(array_intersect(array_keys($this->offered()), array_filter($request->request->all('scopes'), \is_string(...))));
             try {
                 return $this->leave($this->authorization->approve($authorization, array_map(ApiScope::from(...), $granted), $issuer));
             } catch (ApiTokenRefused $refused) {
@@ -101,14 +104,40 @@ final class OAuthAuthorizeController extends AbstractController
      */
     private function scopeRows(AuthorizationRequest $authorization): array
     {
-        $asked = array_map(static fn (ApiScope $scope): string => $scope->value, $authorization->scopes);
-        $required = array_map(static fn (ApiScope $scope): string => $scope->value, $authorization->requiredScopes());
+        $offered = $this->offered();
+        if ($this->authorization->connectsAsGuest()) {
+            // A guest's rows are what the asked scopes come to for a guest: "write" ticks writing tasks and reading projects.
+            $asked = $this->granted($authorization->scopes, array_keys($offered));
+            $required = $this->granted($authorization->requiredScopes(), array_keys($offered));
+        } else {
+            $asked = array_map(static fn (ApiScope $scope): string => $scope->value, $authorization->scopes);
+            $required = array_map(static fn (ApiScope $scope): string => $scope->value, $authorization->requiredScopes());
+        }
         $rows = [];
-        foreach ($this->scopes->offered() as $value => $label) {
+        foreach ($offered as $value => $label) {
             $rows[] = ['value' => $value, 'label' => $label, 'checked' => \in_array($value, $asked, true), 'required' => \in_array($value, $required, true)];
         }
 
         return $rows;
+    }
+
+    /**
+     * @param list<ApiScope> $scopes
+     * @param list<string>   $values
+     *
+     * @return list<string> the values the scopes grant
+     */
+    private function granted(array $scopes, array $values): array
+    {
+        return array_values(array_filter($values, static fn (string $value): bool => array_any($scopes, static fn (ApiScope $scope): bool => $scope->grants(ApiScope::from($value)))));
+    }
+
+    /**
+     * @return array<string, string> scope => label, for a guest only those a guest may hold
+     */
+    private function offered(): array
+    {
+        return $this->authorization->connectsAsGuest() ? $this->scopes->offeredToGuests() : $this->scopes->offered();
     }
 
     /**

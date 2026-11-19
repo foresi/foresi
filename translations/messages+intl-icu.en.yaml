@@ -60,6 +60,7 @@ nav:
   item:
     people: People
     api: API and MCP
+    connected_apps: Connected apps
     webhooks: Webhooks
     dashboard: Dashboard
     shared_with_me: Shared with me
