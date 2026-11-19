@@ -106,14 +106,23 @@ invoice:
       text: Zkuste to prosím znovu za minutu.
   mail:
     default:
-      subject: 'Faktura {number}'
+      subject: 'Faktura {number} od {firm_name}'
       body: |-
-        Na základě Vaší objednávky Vám zasílám fakturu č. {number} na částku {amount_total} se splatností {due_date}.
+        Dobrý den,
 
-        Děkuji,
-        {sender_name}
+        v tomto e-mailu Vám posílám fakturu č. {number}. Níže najdete vše potřebné k její úhradě.
 
+        - Částka k úhradě: **{amount_total}**
+        - Splatnost: **{due_date}**
+
+        Fakturu si můžete prohlédnout a stáhnout na tomto odkazu:
         {link}
+
+        Kdybyste měli k faktuře jakýkoli dotaz, stačí se ozvat.
+
+        Děkuji a přeji hezký den
+        {sender_name}
+        {firm_name}
   mark:
     none: Neodesláno
     queued: Odesílá se
@@ -1165,18 +1174,21 @@ reminder:
   templates_help: Upomínka k faktuře po splatnosti se posílá v jazyce dokladu.
   mail:
     default:
-      subject: 'Upomínka: faktura {number}'
+      subject: 'Připomínka platby faktury {number}'
       body: |-
         Dobrý den,
 
-        dovolujeme si Vás upozornit, že faktura č. {number} se splatností {due_date} zatím není uhrazená. Zbývá uhradit {amount_due}.
+        rádi bychom Vám připomněli fakturu č. {number}, která byla splatná {due_date}. Zatím u ní neevidujeme platbu.
 
-        Pokud jste ji mezitím zaplatili, považujte prosím tuto zprávu za bezpředmětnou.
+        Zbývá uhradit: **{amount_due}**
 
-        Děkujeme,
-        {firm_name}
-
+        Fakturu najdete na tomto odkazu:
         {link}
+
+        Pokud jste mezitím zaplatili, moc děkujeme a tuto zprávu prosím neberte v potaz. Platby k nám někdy dorazí s malým zpožděním. A kdyby bylo potřeba cokoli vyjasnit, dejte nám prosím vědět, rádi to s Vámi vyřešíme.
+
+        Děkujeme a přejeme hezký den
+        {firm_name}
   variable:
     days_overdue: Dní po splatnosti
     reminder_step: Pořadí upomínky
@@ -1271,14 +1283,23 @@ advance:
   templates_help: Zálohová faktura odchází v jazyce dokladu.
   mail:
     default:
-      subject: 'Zálohová faktura {number}'
+      subject: 'Zálohová faktura {number} od {firm_name}'
       body: |-
-        Na základě naší dohody Vám zasílám zálohovou fakturu č. {number} na částku {amount_total} se splatností {due_date}. Po přijetí platby Vám zašlu daňový doklad.
+        Dobrý den,
 
-        Děkuji,
-        {sender_name}
+        v tomto e-mailu Vám posílám zálohovou fakturu č. {number}. Níže najdete vše potřebné k její úhradě.
 
+        - Záloha k úhradě: **{amount_total}**
+        - Splatnost: **{due_date}**
+
+        Zálohovou fakturu najdete na tomto odkazu:
         {link}
+
+        Jakmile platba dorazí, pošlu Vám k ní daňový doklad.
+
+        Děkuji a přeji hezký den
+        {sender_name}
+        {firm_name}
 correction:
   title: 'Opravný daňový doklad {number}'
   new: Nový opravný daňový doklad
@@ -1303,12 +1324,20 @@ correction:
     default:
       subject: 'Opravný daňový doklad {number}'
       body: |-
-        Zasílám Vám opravný daňový doklad č. {number} k dokladu č. {original_number} na částku {amount_total}.
+        Dobrý den,
 
-        Děkuji,
-        {sender_name}
+        posílám Vám opravný daňový doklad č. {number}, který opravuje doklad č. {original_number}.
 
+        Částka: **{amount_total}**
+
+        Opravný doklad najdete na tomto odkazu:
         {link}
+
+        Kdyby Vám v něm cokoli nebylo jasné, stačí se ozvat.
+
+        Děkuji a přeji hezký den
+        {sender_name}
+        {firm_name}
 tax_document:
   waiting_notice: '{late, select, yes {{count, plural, one {Doklad je} few {# doklady jsou} other {# dokladů je}} po termínu daňového nebo opravného dokladu.} other {{count, plural, one {Doklad čeká} few {# doklady čekají} other {# dokladů čeká}} na daňový nebo opravný doklad, první do {date}.}}'
   needs_correction: Platba tohoto daňového dokladu byla zrušena nebo vrácena poté, co ho odběratel dostal. Je potřeba opravný daňový doklad.
@@ -1340,11 +1369,18 @@ tax_document:
   templates_help: Daňový doklad k přijaté platbě odchází v jazyce dokladu.
   mail:
     default:
-      subject: 'Daňový doklad {number}'
+      subject: 'Daňový doklad {number} k Vaší platbě'
       body: |-
-        Děkuji za platbu. Zasílám Vám daňový doklad k přijaté platbě č. {number} na částku {amount_total}. Doklad je již uhrazen, nic dalšího neplaťte.
+        Dobrý den,
 
-        Děkuji,
-        {sender_name}
+        děkuji za Vaši platbu, v pořádku dorazila. Posílám Vám k ní daňový doklad č. {number}.
 
+        Přijatá platba: **{amount_total}**
+        Doklad je už uhrazený, nic dalšího platit nemusíte.
+
+        Daňový doklad najdete na tomto odkazu:
         {link}
+
+        Děkuji a přeji hezký den
+        {sender_name}
+        {firm_name}

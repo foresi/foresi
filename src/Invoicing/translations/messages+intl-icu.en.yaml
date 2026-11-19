@@ -106,14 +106,23 @@ invoice:
       text: Please try again in a minute.
   mail:
     default:
-      subject: 'Invoice {number}'
+      subject: 'Invoice {number} from {firm_name}'
       body: |-
-        Based on your order I am sending invoice no. {number} for {amount_total}, due on {due_date}.
+        Hello,
 
-        Thank you,
-        {sender_name}
+        Please find your invoice {number} below, together with everything you need to pay it.
 
+        - Amount due: **{amount_total}**
+        - Due date: **{due_date}**
+
+        You can view and download the invoice here:
         {link}
+
+        If you have any questions about it, just let me know.
+
+        Thank you and have a great day,
+        {sender_name}
+        {firm_name}
   mark:
     none: Not sent
     queued: Sending
@@ -1165,18 +1174,21 @@ reminder:
   templates_help: Reminders go out in the language of the document.
   mail:
     default:
-      subject: 'Reminder: invoice {number}'
+      subject: 'Friendly reminder: invoice {number}'
       body: |-
         Hello,
 
-        this is a friendly reminder that invoice {number}, due on {due_date}, has not been paid yet. The amount due is {amount_due}.
+        Just a gentle reminder about invoice {number}, which was due on {due_date}. We have not received payment for it yet.
 
-        If you have paid it in the meantime, please disregard this message.
+        Amount still due: **{amount_due}**
 
-        Thank you,
-        {firm_name}
-
+        You can view the invoice here:
         {link}
+
+        If you have already paid, thank you very much, and please ignore this message. Payments sometimes take a few days to reach us. And if anything about the invoice is not right, just let us know and we will gladly sort it out together.
+
+        Thank you and have a great day,
+        {firm_name}
   variable:
     days_overdue: Days overdue
     reminder_step: Reminder number
@@ -1271,14 +1283,23 @@ advance:
   templates_help: An advance invoice goes out in the language of the document.
   mail:
     default:
-      subject: 'Advance invoice {number}'
+      subject: 'Advance invoice {number} from {firm_name}'
       body: |-
-        Based on our agreement I am sending advance invoice no. {number} for {amount_total}, due on {due_date}. Once the payment arrives you will get a tax document for it.
+        Hello,
 
-        Thank you,
-        {sender_name}
+        Please find your advance invoice {number} below, together with everything you need to pay it.
 
+        - Amount due: **{amount_total}**
+        - Due date: **{due_date}**
+
+        You can view and download it here:
         {link}
+
+        As soon as your payment arrives, I will send you a tax document for it.
+
+        Thank you and have a great day,
+        {sender_name}
+        {firm_name}
 correction:
   title: 'Corrective tax document {number}'
   new: New corrective tax document
@@ -1303,12 +1324,20 @@ correction:
     default:
       subject: 'Corrective tax document {number}'
       body: |-
-        I am sending corrective tax document no. {number} to document no. {original_number} for {amount_total}.
+        Hello,
 
-        Thank you,
-        {sender_name}
+        Here is corrective tax document {number}, which corrects document {original_number}.
 
+        Amount: **{amount_total}**
+
+        You can view and download it here:
         {link}
+
+        If anything in it is unclear, just let me know.
+
+        Thank you and have a great day,
+        {sender_name}
+        {firm_name}
 tax_document:
   waiting_notice: '{late, select, yes {{count, plural, one {A document is} other {# documents are}} past the deadline for a tax or corrective document.} other {{count, plural, one {A document waits} other {# documents wait}} for a tax or corrective document, the first by {date}.}}'
   needs_correction: The payment of this tax document was cancelled or refunded after the customer got it. It needs a corrective tax document.
@@ -1340,11 +1369,18 @@ tax_document:
   templates_help: A tax document goes out in the language of the document.
   mail:
     default:
-      subject: 'Tax document {number}'
+      subject: 'Tax document {number} for your payment'
       body: |-
-        Thank you for your payment. I am sending tax document no. {number} for the payment of {amount_total}. It is paid already; there is nothing more to pay.
+        Hello,
 
-        Thank you,
-        {sender_name}
+        Thank you for your payment, it has arrived safely. Here is tax document {number} for it.
 
+        Payment received: **{amount_total}**
+        This document is already settled, so there is nothing more to pay.
+
+        You can view and download it here:
         {link}
+
+        Thank you and have a great day,
+        {sender_name}
+        {firm_name}

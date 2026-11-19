@@ -53,9 +53,9 @@ test.describe.serial('sending an invoice', () => {
       await expect(page.getByRole('checkbox', { name: 'billing@example.com' })).toBeChecked();
       await expect(page.getByRole('checkbox', { name: 'accounts@example.com (kopie)' })).toBeChecked();
       await expect(page.getByRole('checkbox', { name: 'Poslat kopii i mně na sending@example.com' })).toBeChecked();
-      await expect(page.locator('#subject')).toHaveValue('Faktura 20260001');
-      await expect(page.locator('#body')).toHaveValue(/^Na základě Vaší objednávky Vám zasílám fakturu č\. 20260001 na částku 29\s040,00\sKč/);
-      await expect(page.locator('#body')).toHaveValue(/\{Odkaz na doklad\}$/);
+      await expect(page.locator('#subject')).toHaveValue('Faktura 20260001 od Example Sending s.r.o.');
+      await expect(page.locator('#body')).toHaveValue(/^Dobrý den,\n\nv tomto e-mailu Vám posílám fakturu č\. 20260001\.[\s\S]*Částka k úhradě: \*\*29\s040,00\sKč\*\*/);
+      await expect(page.locator('#body')).toHaveValue(/\n\{Odkaz na doklad\}\n/);
       await expectNoSeriousViolations(page);
       await expectNoSidewaysScroll(page);
       await page.screenshot({ path: `${SHOTS}/send-dialog-${name}.png`, fullPage: true });

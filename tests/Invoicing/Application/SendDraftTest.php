@@ -126,11 +126,11 @@ final class SendDraftTest extends SendingTestCase
 
         $draft = $this->draft()->for($invoice);
 
-        self::assertSame('Invoice 20260001', $draft->subject);
+        self::assertStringStartsWith('Invoice 20260001 from ', $draft->subject);
         // Filled in and readable, all but the link, which only the sent mail has.
-        self::assertStringStartsWith('Based on your order I am sending invoice no. 20260001 for ', $draft->body);
-        self::assertStringContainsString('due on 15 Nov 2026.', $draft->body);
-        self::assertStringEndsWith('{link}', $draft->body);
+        self::assertStringStartsWith("Hello,\n\nPlease find your invoice 20260001 below", $draft->body);
+        self::assertStringContainsString('- Due date: **15 Nov 2026**', $draft->body);
+        self::assertStringContainsString("\n{link}\n", $draft->body);
         self::assertSame(DocumentLanguage::English, $draft->language);
     }
 
@@ -142,8 +142,8 @@ final class SendDraftTest extends SendingTestCase
         $draft = $this->draft()->for($credit);
 
         self::assertSame('Opravný daňový doklad '.$credit->number(), $draft->subject);
-        self::assertStringStartsWith('Zasílám Vám opravný daňový doklad č. '.$credit->number().' k dokladu č. '.$original->number().' na částku ', $draft->body);
-        self::assertStringEndsWith('{link}', $draft->body);
+        self::assertStringContainsString('posílám Vám opravný daňový doklad č. '.$credit->number().', který opravuje doklad č. '.$original->number().'.', $draft->body);
+        self::assertStringContainsString("\n{link}\n", $draft->body);
     }
 
     public function testTheFirmsOwnTemplateIsUsed(): void
@@ -193,8 +193,8 @@ final class SendDraftTest extends SendingTestCase
 
         $body = $this->draft()->for($invoice)->body;
 
-        self::assertStringContainsString("\nExample Sender\n", $body);
-        self::assertStringNotContainsString('Example Firm', $body, 'not signed by the firm');
+        // The person signs, the firm stands under the name.
+        self::assertStringEndsWith("\nExample Sender\nExample Firm s.r.o.", $body);
     }
 
     public function testTheCopyAddressIsTakenWithoutSpaces(): void

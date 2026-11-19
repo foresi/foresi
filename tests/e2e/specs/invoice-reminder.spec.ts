@@ -94,7 +94,7 @@ test.describe.serial('reminders of overdue invoices', () => {
 
       await expect(page).toHaveURL(/\/invoices$/);
       await expect(dialog.locator('[data-reminder-intro]')).toContainText('16 dní po splatnosti, upomínka 1 z nejvýš 10.');
-      await expect(dialog.locator('[data-send-preview-subject]')).toHaveText('Upomínka: faktura S0001');
+      await expect(dialog.locator('[data-send-preview-subject]')).toHaveText('Připomínka platby faktury S0001');
       await expect(dialog.getByRole('checkbox', { name: 'billing@example.com' })).toBeChecked();
       await expect(dialog.getByRole('button', { name: 'Odeslat upomínku' })).toBeFocused();
       await expectNoSeriousViolations(page);

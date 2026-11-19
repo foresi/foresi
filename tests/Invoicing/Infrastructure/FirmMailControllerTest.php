@@ -95,9 +95,9 @@ final class FirmMailControllerTest extends WebTestCase
     {
         $this->signedInFirm();
         $crawler = $this->client->request('GET', $this->templateUrl('advance'));
-        self::assertSame('Zálohová faktura {Číslo dokladu}', $crawler->filter('#advance-subject-cs')->attr('value'));
+        self::assertSame('Zálohová faktura {Číslo dokladu} od {Název firmy}', $crawler->filter('#advance-subject-cs')->attr('value'));
         $crawler = $this->client->request('GET', $this->templateUrl('tax_document'));
-        self::assertSame('Tax document {Document number}', $crawler->filter('#tax-document-subject-en')->attr('value'));
+        self::assertSame('Tax document {Document number} for your payment', $crawler->filter('#tax-document-subject-en')->attr('value'));
 
         $this->saveTemplates(['advance_subject' => ['cs' => 'Záloha {Číslo dokladu}'], 'advance_body' => ['cs' => "Záloha {Částka k úhradě}.\n{Odkaz na doklad}"]]);
 
@@ -166,10 +166,10 @@ final class FirmMailControllerTest extends WebTestCase
         self::assertSame('true', $crawler->filter('#language-tab-cs')->attr('aria-selected'));
         self::assertSame('language-cs', $crawler->filter('#language-tab-cs')->attr('aria-controls'));
         // The editor shows each token as a label in the template's own language.
-        self::assertSame('Invoice {Document number}', $crawler->filter('#subject-en')->attr('value'));
-        self::assertSame('Faktura {Číslo dokladu}', $crawler->filter('#subject-cs')->attr('value'));
-        self::assertStringContainsString('for {Amount to pay}, due on {Due date}.', $crawler->filter('#body-en')->text(null, false));
-        self::assertStringContainsString('na částku {Částka k úhradě} se splatností {Datum splatnosti}.', $crawler->filter('#body-cs')->text());
+        self::assertSame('Invoice {Document number} from {Firm name}', $crawler->filter('#subject-en')->attr('value'));
+        self::assertSame('Faktura {Číslo dokladu} od {Název firmy}', $crawler->filter('#subject-cs')->attr('value'));
+        self::assertStringContainsString("- Amount due: **{Amount to pay}**\n- Due date: **{Due date}**", $crawler->filter('#body-en')->text(null, false));
+        self::assertStringContainsString('- Částka k úhradě: **{Částka k úhradě}** - Splatnost: **{Datum splatnosti}**', $crawler->filter('#body-cs')->text());
         self::assertStringNotContainsString('{amount_total}', (string) $this->client->getResponse()->getContent());
         self::assertSelectorTextContains('#body-cs-help', '{Odkaz na doklad}');
         // The body is a Markdown editor whose preview sends the subject along.
@@ -519,7 +519,7 @@ final class FirmMailControllerTest extends WebTestCase
     {
         $this->signedInFirm();
         $crawler = $this->client->request('GET', $this->templateUrl('reminder'));
-        self::assertSame('Upomínka: faktura {Číslo dokladu}', $crawler->filter('#reminder-subject-cs')->attr('value'));
+        self::assertSame('Připomínka platby faktury {Číslo dokladu}', $crawler->filter('#reminder-subject-cs')->attr('value'));
         self::assertStringContainsString('{Zbývá uhradit}', $crawler->filter('#reminder-body-cs')->text(null, false));
         self::assertStringContainsString('{Amount due}', $crawler->filter('#reminder-body-en')->text(null, false));
         $tokens = $crawler->filter('[role="toolbar"][aria-labelledby~="variables-cs"] button[data-token]')->each(static fn ($chip): string => (string) $chip->attr('data-token'));

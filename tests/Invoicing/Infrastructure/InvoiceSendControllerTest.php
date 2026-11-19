@@ -112,10 +112,10 @@ final class InvoiceSendControllerTest extends WebTestCase
         self::assertSame(['billing@example.com'], $this->checked($crawler, 'to[]'));
         self::assertSame(['accounts@example.com'], $this->checked($crawler, 'cc[]'));
         self::assertSelectorTextContains('label[for="recipient-2"]', 'accounts@example.com (copy)');
-        self::assertSame('Faktura 20260001', $crawler->filter('#subject')->attr('value'));
+        self::assertSame('Faktura 20260001 od Example Firm s.r.o.', $crawler->filter('#subject')->attr('value'));
         // Filled in, with the link as a readable token in the document's language.
-        self::assertStringStartsWith('Na základě Vaší objednávky Vám zasílám fakturu č. 20260001 na částku', $crawler->filter('#body')->text());
-        self::assertStringEndsWith('{Odkaz na doklad}', $crawler->filter('#body')->text());
+        self::assertStringStartsWith("Dobrý den,\n\nv tomto e-mailu Vám posílám fakturu č. 20260001.", $crawler->filter('#body')->text(normalizeWhitespace: false));
+        self::assertStringContainsString("\n{Odkaz na doklad}\n", $crawler->filter('#body')->text(normalizeWhitespace: false));
         self::assertSelectorTextContains('#body-help', '{Odkaz na doklad}');
         self::assertNotNull($crawler->filter('#copyToMe')->attr('checked'));
         self::assertSelectorTextContains('label[for="copyToMe"]', 'office@example.com');
@@ -149,7 +149,7 @@ final class InvoiceSendControllerTest extends WebTestCase
         self::assertCount(1, $edit->filter('#others'));
         $preview = $crawler->filter('[data-send-preview]');
         self::assertStringContainsString('Faktura 20260001', $preview->filter('[data-send-preview-subject]')->text());
-        self::assertStringStartsWith('Na základě Vaší objednávky', $preview->filter('[data-send-preview-body]')->text());
+        self::assertStringStartsWith('Dobrý den, v tomto e-mailu Vám posílám fakturu č. 20260001.', $preview->filter('[data-send-preview-body]')->text());
         self::assertSame('Odkaz na doklad', trim($preview->filter('[data-link-token]')->text()));
         self::assertSame('tab=unpaid', $crawler->filter('input[name="return"]')->attr('value'));
     }
@@ -168,7 +168,7 @@ final class InvoiceSendControllerTest extends WebTestCase
         $row = $this->onlySend();
         self::assertSame('queued', $row['status']);
         self::assertSame(['billing@example.com'], json_decode($this->string($row['recipients_to']), true));
-        self::assertSame('Faktura 20260001', $row['subject']);
+        self::assertSame('Faktura 20260001 od Example Firm s.r.o.', $row['subject']);
         $this->client->request('GET', '/invoices?tab=unpaid');
         self::assertAnySelectorTextContains('[role="status"]', 'Invoice 20260001 is queued for sending to billing@example.com.');
     }
@@ -239,10 +239,10 @@ final class InvoiceSendControllerTest extends WebTestCase
         $crawler = $this->open($invoice);
 
         self::assertSelectorTextContains('h1', 'Odeslat fakturu 20260001');
-        self::assertSame('Invoice 20260001', $crawler->filter('#subject')->attr('value'));
+        self::assertSame('Invoice 20260001 from Example Firm s.r.o.', $crawler->filter('#subject')->attr('value'));
         self::assertSame('en', $crawler->filter('#body')->attr('lang'));
-        self::assertStringContainsString('due on 15 Nov 2026', $crawler->filter('#body')->text());
-        self::assertStringEndsWith('{Link to the document}', $crawler->filter('#body')->text());
+        self::assertStringContainsString('Due date: **15 Nov 2026**', $crawler->filter('#body')->text());
+        self::assertStringContainsString("\n{Link to the document}\n", $crawler->filter('#body')->text(normalizeWhitespace: false));
     }
 
     public function testAContactWithoutAnInvoicingAddressOffersTheDocumentsOne(): void
@@ -559,8 +559,8 @@ final class InvoiceSendControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Reminder 1 for invoice 20260001');
-        self::assertSame('Upomínka: faktura 20260001', $crawler->filter('#subject')->attr('value'));
-        self::assertStringContainsString('faktura č. 20260001 se splatností', $crawler->filter('#body')->text());
+        self::assertSame('Připomínka platby faktury 20260001', $crawler->filter('#subject')->attr('value'));
+        self::assertStringContainsString('fakturu č. 20260001, která byla splatná', $crawler->filter('#body')->text());
         self::assertSame('1', $crawler->filter('input[name="step"]')->attr('value'));
         self::assertSelectorTextContains('[data-reminder-intro]', '5 days overdue');
         self::assertSelectorTextContains('#send-submit', 'Send reminder');
@@ -572,7 +572,7 @@ final class InvoiceSendControllerTest extends WebTestCase
         $row = $this->onlySend();
         self::assertSame('reminder', $row['purpose']);
         self::assertEquals(1, $row['reminder_step']);
-        self::assertSame('Upomínka: faktura 20260001', $row['subject']);
+        self::assertSame('Připomínka platby faktury 20260001', $row['subject']);
         self::assertNotNull($row['created_by'], 'a person queued it');
         $this->client->followRedirect();
         self::assertAnySelectorTextContains('[role="status"]', 'Reminder 1 of invoice 20260001 is queued for sending to billing@example.com.');
@@ -672,7 +672,7 @@ final class InvoiceSendControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $body = $crawler->filter('#body')->text();
-        self::assertStringContainsString("Zbývá uhradit 1\u{a0}000,00\u{a0}Kč", $body);
+        self::assertStringContainsString("Zbývá uhradit: **1\u{a0}000,00\u{a0}Kč**", $body);
         self::assertStringNotContainsString("1\u{a0}210,00", $body);
 
         $this->postReminder($invoice, $this->reminderForm($crawler));
@@ -745,7 +745,7 @@ final class InvoiceSendControllerTest extends WebTestCase
         self::assertSame('Reminder 1 for invoice 20260001', $crawler->filter('dialog h2')->text());
         self::assertSame('/invoices/'.$invoice->id().'/remind', $crawler->filter('form#send-form')->attr('action'));
         self::assertNotNull($crawler->filter('footer button#send-submit')->attr('autofocus'));
-        self::assertStringContainsString('Upomínka: faktura 20260001', $crawler->filter('[data-send-preview-subject]')->text());
+        self::assertStringContainsString('Připomínka platby faktury 20260001', $crawler->filter('[data-send-preview-subject]')->text());
     }
 
     public function testRemindIsStaffOnly(): void
