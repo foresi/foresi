@@ -6,9 +6,9 @@ on:
   pull_request:
   # Kept for the merge queue, which is switched off (ruleset "main merge queue").
   merge_group:
-  # The full mutation run, once a week, on main.
+  # The full mutation run, every night, on main.
   schedule:
-    - cron: '0 3 * * 1'
+    - cron: '0 3 * * *'
   # Runs everything, the full mutation run included, on a branch when asked.
   workflow_dispatch:
 
@@ -25,7 +25,7 @@ jobs:
   # "Quality gate (sqlite)" below puts them together. Static checks, migrations and the
   # production build need no tests. The tests run once, with coverage, in parallel shards
   # whose coverage is merged into one. Mutation testing then runs on that coverage: the
-  # changed lines on a pull request, everything in parallel shards on main and once a week.
+  # changed lines on a pull request, everything in parallel shards every night on main.
   static:
     name: Static analysis and build
     runs-on: ubuntu-latest
@@ -285,16 +285,17 @@ jobs:
 
   # Mutation testing, on the coverage above, with no initial test run. A pull request
   # mutates only the lines it adds or modifies, and must reach the minimum scores on them
-  # (shard 0). The merge queue does not repeat that: the lines are the same, and main
-  # gets the full run once the change lands. On main, once a week and when started by hand the
-  # whole code is mutated in parallel shards: Infection has no sharding of its own, so a
+  # (shard 0). The merge queue does not repeat that: the lines are the same. A push to main
+  # does not either: the full run of ten shards after every merge held the runners that pull
+  # requests wait for, so it runs every night instead. Every night on main and when started by
+  # hand the whole code is mutated in parallel shards: Infection has no sharding of its own, so a
   # shard is a set of source files (bin/infection-shard), balanced by size, and the quality
   # gate judges the total of all shards. Keep SHARD_COUNT and the matrix in step; a shard
   # that is missing fails the gate.
   mutation:
     name: ${{ matrix.shard == 0 && 'Mutation testing (changed lines)' || format('Mutation testing (shard {0})', matrix.shard) }}
     needs: coverage
-    if: ${{ github.event_name != 'merge_group' }}
+    if: ${{ github.event_name != 'merge_group' && github.event_name != 'push' }}
     runs-on: ubuntu-latest
     # Generous on purpose: a mutant may wait up to 30 minutes for slow covering tests
     # (infection.json5), and no shard may be cut short.
@@ -304,7 +305,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON((github.event_name == 'pull_request' || github.event_name == 'merge_group') && '[0]' || '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]') }}
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[0]' || '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]') }}
     env:
       SHARD_COUNT: '10'
     steps:
@@ -462,7 +463,7 @@ jobs:
     permissions:
       contents: read
     env:
-      FULL_RUN: ${{ github.event_name != 'pull_request' && github.event_name != 'merge_group' }}
+      FULL_RUN: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     steps:
       - name: The jobs before it passed
         env:
@@ -473,8 +474,8 @@ jobs:
         run: |
           echo "Static: ${STATIC}, tests: ${COVERAGE}, mutation: ${MUTATION}"
           [ "${STATIC}" = success ] && [ "${COVERAGE}" = success ] || { echo "A job before the gate did not pass."; exit 1; }
-          if [ "${EVENT}" = merge_group ]; then
-            [ "${MUTATION}" = skipped ] || { echo "Mutation testing is not expected in the merge queue."; exit 1; }
+          if [ "${EVENT}" = merge_group ] || [ "${EVENT}" = push ]; then
+            [ "${MUTATION}" = skipped ] || { echo "Mutation testing is not expected on ${EVENT}; main gets it every night."; exit 1; }
           else
             [ "${MUTATION}" = success ] || { echo "Mutation testing did not pass."; exit 1; }
           fi
@@ -507,7 +508,7 @@ jobs:
   # migrations, mapping and the test suite run here. Infection is not run:
   # its parallel processes would share this one database.
   #
-  # The PostgreSQL and PHP 8.5 legs run after each merge to main, once a week and when
+  # The PostgreSQL and PHP 8.5 legs run after each merge to main, every night and when
   # started by hand, not on a pull request. A failure on main is fixed by the next pull
   # request. On a pull request they are skipped, and a skipped job counts as passed for
   # the required check.
