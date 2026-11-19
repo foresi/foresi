@@ -38,7 +38,7 @@ final class DescriptionListTest extends KernelTestCase
     {
         $html = (string) $this->renderTwigComponent('Ui:DescriptionList', ['items' => [['label' => 'Currency'], ['label' => 'Description', 'value' => null, 'empty' => 'None']]]);
 
-        self::assertSame(['Nezadáno', 'None'], (new \Symfony\Component\DomCrawler\Crawler($html))->filter('dd [data-empty-value]')->each(static fn ($badge): string => $badge->text()));
+        self::assertSame(['Nezadáno', 'None'], new \Symfony\Component\DomCrawler\Crawler($html)->filter('dd [data-empty-value]')->each(static fn ($badge): string => $badge->text()));
     }
 
     public function testRejectsANoteThatIsNotText(): void

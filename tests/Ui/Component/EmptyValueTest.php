@@ -18,7 +18,7 @@ final class EmptyValueTest extends KernelTestCase
 
     public function testAMissingValueSaysSoInWordsAScreenReaderReads(): void
     {
-        $badge = (new Crawler((string) $this->renderTwigComponent('Ui:EmptyValue')))->filter('[data-empty-value]');
+        $badge = new Crawler((string) $this->renderTwigComponent('Ui:EmptyValue'))->filter('[data-empty-value]');
 
         self::assertSame('Nezadáno', $badge->text());
         self::assertNull($badge->attr('aria-hidden'));
@@ -26,7 +26,7 @@ final class EmptyValueTest extends KernelTestCase
 
     public function testItIsOutlinedNotFilledSoItNeverReadsAsAStatus(): void
     {
-        $class = (string) (new Crawler((string) $this->renderTwigComponent('Ui:EmptyValue')))->filter('[data-empty-value]')->attr('class');
+        $class = (string) new Crawler((string) $this->renderTwigComponent('Ui:EmptyValue'))->filter('[data-empty-value]')->attr('class');
 
         self::assertStringContainsString('border-dashed', $class);
         self::assertStringContainsString('text-muted', $class);
@@ -35,6 +35,6 @@ final class EmptyValueTest extends KernelTestCase
 
     public function testItTakesWordsOfItsOwn(): void
     {
-        self::assertSame('No response', (new Crawler((string) $this->renderTwigComponent('Ui:EmptyValue', ['label' => 'No response'])))->filter('[data-empty-value]')->text());
+        self::assertSame('No response', new Crawler((string) $this->renderTwigComponent('Ui:EmptyValue', ['label' => 'No response']))->filter('[data-empty-value]')->text());
     }
 }
