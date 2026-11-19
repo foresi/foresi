@@ -34,6 +34,34 @@ final class ChoiceChipsTest extends KernelTestCase
         self::assertStringNotContainsString('aria-describedby', $html);
     }
 
+    public function testAChosenChipWithoutTonesIsTheGreenOfASelectedControl(): void
+    {
+        $html = (string) $this->renderTwigComponent('Ui:ChoiceChips', ['name' => 'events[]', 'id' => 'events', 'legend' => 'Events', 'options' => ['sent' => 'Sent']]);
+
+        self::assertStringContainsString('has-[:checked]:bg-green-tint', $html);
+    }
+
+    public function testAChosenChipOfAnAttributeWearsTheBadgeOfItsValue(): void
+    {
+        $html = (string) $this->renderTwigComponent('Ui:ChoiceChips', [
+            'name' => 'roles[]',
+            'id' => 'roles',
+            'legend' => 'Roles',
+            'list' => 'party.contacts',
+            'attribute' => 'roles',
+            'options' => ['customer' => 'Customer', 'supplier' => 'Supplier'],
+        ]);
+
+        self::assertSame(2, substr_count($html, 'has-[:checked]:bg-badge-green has-[:checked]:text-badge-green-text'));
+        self::assertStringNotContainsString('bg-green-tint', $html);
+    }
+
+    public function testATonedChipOutsideTheOptionsIsRefused(): void
+    {
+        $this->expectException(\Throwable::class);
+        $this->renderTwigComponent('Ui:ChoiceChips', ['name' => 'roles[]', 'id' => 'roles', 'legend' => 'Roles', 'options' => ['customer' => 'Customer'], 'tones' => ['partner' => 'green']]);
+    }
+
     public function testErrorAndHelpAreLinkedToTheFieldset(): void
     {
         $html = (string) $this->renderTwigComponent('Ui:ChoiceChips', [

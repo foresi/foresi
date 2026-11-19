@@ -35,8 +35,8 @@ final class AttributeCellsTest extends TestCase
         yield 'money in another currency' => [AttributeType::Money, Money::ofMinor(-500, Currency::EUR), "-5,00\u{a0}EUR"];
         yield 'a date in the format of the language' => [AttributeType::Date, new \DateTimeImmutable('2026-11-18'), '18. 11. 2026'];
         yield 'a datetime as it reads' => [AttributeType::DateTime, new \DateTimeImmutable('2026-11-18 09:05', new \DateTimeZone('Europe/Prague')), '18. 11. 2026 9:05'];
-        yield 'an enum by the label of its value' => [AttributeType::Enum, Currency::CZK, 'Czech crowns'];
-        yield 'an enum value without a label' => [AttributeType::Enum, 'other', 'other'];
+        yield 'an enum as a neutral badge with the label of its value' => [AttributeType::Enum, Currency::CZK, ['label' => 'Czech crowns', 'tone' => 'gray']];
+        yield 'an enum value without a label' => [AttributeType::Enum, 'other', ['label' => 'other', 'tone' => 'gray']];
         yield 'yes' => [AttributeType::Boolean, true, 'Ano'];
         yield 'no' => [AttributeType::Boolean, false, 'Ne'];
         yield 'a country by its name' => [AttributeType::Country, 'DE', 'Německo'];

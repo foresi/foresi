@@ -73,7 +73,7 @@
         </div>
 
         {% if forContacts|default(false) %}
-            <twig:Ui:ChoiceChips name="roles[]" id="roles" :legend="'party.field.roles'|trans" :options="roleOptions" :values="values.roles" :error="errors.roles|default(null)" />
+            <twig:Ui:ChoiceChips name="roles[]" id="roles" :legend="'party.field.roles'|trans" list="party.contacts" attribute="roles" :options="roleOptions" :values="values.roles" :error="errors.roles|default(null)" />
         {% endif %}
 
         <details data-quick-address class="rounded-control border border-divider px-3 py-2"{% if addressProblem %} open{% endif %}>

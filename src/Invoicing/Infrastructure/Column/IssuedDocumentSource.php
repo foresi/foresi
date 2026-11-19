@@ -89,7 +89,7 @@ final readonly class IssuedDocumentSource implements DataSource
             new Attribute('issue_date', $label('issue_date'), AttributeType::Date, static fn (InvoiceRow $row): \DateTimeImmutable => $row->issueDate, sort: 'i.issueDate', defaultVisible: true, defaultPosition: 40, aliases: ['issueDate'], phone: false, wide: true, available: $notTrash),
             new Attribute('due_date', $label('due_date'), AttributeType::Date, static fn (InvoiceRow $row): \DateTimeImmutable => $row->dueDate, sort: 'i.dueDate', defaultVisible: true, defaultPosition: 50, cell: $this->dueDate(...), aliases: ['dueDate'], phone: false, available: $notTrash),
             new Attribute('payable', $label('payable'), AttributeType::Money, static fn (InvoiceRow $row): Money => $row->payable, sort: 'i.payableMinor', defaultVisible: true, defaultPosition: 70),
-            new Attribute('status', $label('status'), AttributeType::Enum, static fn (InvoiceRow $row): InvoiceStatus => self::statusOf($row), defaultVisible: true, defaultPosition: 80, options: $this->options(InvoiceStatus::cases(), 'invoice.list.status.'), cell: $this->status(...), phone: false),
+            new Attribute('status', $label('status'), AttributeType::Enum, static fn (InvoiceRow $row): InvoiceStatus => self::statusOf($row), defaultVisible: true, defaultPosition: 80, options: $this->options(InvoiceStatus::cases(), 'invoice.list.status.'), tones: self::statusTones(), cell: $this->status(...), phone: false),
             new Attribute('sent', $label('sent'), AttributeType::Enum, static fn (InvoiceRow $row): SendMark => $row->sendMark, defaultVisible: true, defaultPosition: 90, options: $this->options(SendMark::cases(), 'invoice.mark.'), cell: $this->sent(...), phone: false, wide: true, available: $notTrash),
             new Attribute('export', $label('export'), AttributeType::Enum, static fn (InvoiceRow $row): ExportState => $row->exportState(), defaultVisible: true, defaultPosition: 100, options: $this->options(ExportState::cases(), 'invoice.export_state.'), cell: $this->export(...), phone: false, wide: true, available: $notTrash),
             // What a person can add (DS3), in the order of the document.
@@ -165,7 +165,7 @@ final readonly class IssuedDocumentSource implements DataSource
             default => null,
         };
 
-        return ['text' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()] + (null === $left ? [] : ['hint' => $left]);
+        return ['text' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => self::statusTones()[$status->value]] + (null === $left ? [] : ['hint' => $left]);
     }
 
     /**
@@ -224,6 +224,21 @@ final readonly class IssuedDocumentSource implements DataSource
             $row->settledByAdvances && !$row->trashed => InvoiceStatus::SettledByAdvances,
             default => InvoiceStatus::of($row->delivered, $row->overdue, $row->trashed, $row->payment),
         };
+    }
+
+    /**
+     * The badge tone of each status, as the attribute declares it for every page that shows one.
+     *
+     * @return array<string, string>
+     */
+    private static function statusTones(): array
+    {
+        $tones = [];
+        foreach (InvoiceStatus::cases() as $status) {
+            $tones[$status->value] = $status->tone();
+        }
+
+        return $tones;
     }
 
     /**
