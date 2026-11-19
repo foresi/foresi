@@ -488,6 +488,7 @@ final class FirmBankControllerTest extends WebTestCase
     private function actionToken(): string
     {
         $crawler = $this->client->request('GET', $this->url());
+
         return Scalars::text($crawler->filter('[data-row-actions] form input[name="_token"]')->first()->attr('value'));
     }
 
@@ -495,6 +496,7 @@ final class FirmBankControllerTest extends WebTestCase
     {
         $crawler = $this->client->request('GET', $this->url('pairing'));
         $token = $crawler->filter('[data-bank-feed] form input[name="_token"]');
+
         return $token->count() > 0 ? Scalars::text($token->first()->attr('value')) : 'none';
     }
 

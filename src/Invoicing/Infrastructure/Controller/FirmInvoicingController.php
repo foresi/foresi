@@ -291,7 +291,7 @@ final class FirmInvoicingController extends AbstractController
             'errors' => $this->messages($errors),
             'roundings' => $this->roundings(),
             'columns' => array_map(fn (string $key): array => ['key' => $key, 'label' => $this->translator->trans('series.column.'.$key)], ['name', 'kind', 'format', 'next', 'default']),
-            'rows' => array_map(fn (Series $one): array => $this->row($one), $series),
+            'rows' => array_map($this->row(...), $series),
             'firstNumber' => $this->counter->peek($this->catalog->defaultFor($firm), $this->today()),
             'action' => $this->generateUrl('app_firm_invoicing'),
             'cancel' => $this->generateUrl('app_firm'),
