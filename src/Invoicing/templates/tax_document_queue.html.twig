@@ -1,0 +1,49 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A list a tax document waits in (the advances missing one, the tax documents waiting for
+    a correction), a tab of the list it belongs to: that list's tabs, its own one open, and the
+    controls of every list (docs/design/list-pages.md): the views saved on it under More views,
+    the search, "+ Filter", the Columns sheet, Save, Save as new and Reset.
+#}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: page.parent.label|trans, href: path(page.parent.route)}, {label: (page.prefix ~ '.tab')|trans}] %}
+
+{% block title %}{{ (page.prefix ~ '.title')|trans }}{% endblock %}
+
+{% block content %}
+    {% set messages %}
+        {% for message in app.flashes('success') %}<twig:Ui:Alert tone="success" role="status">{{ message }}</twig:Ui:Alert>{% endfor %}
+        {% for message in app.flashes('error') %}<twig:Ui:Alert tone="error" role="alert">{{ message }}</twig:Ui:Alert>{% endfor %}
+    {% endset %}
+    {% if messages|trim %}<div class="mb-4 grid gap-2">{{ messages }}</div>{% endif %}
+
+    <div class="grid grid-cols-1 gap-4">
+        <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
+            <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'invoice.list.views'|trans" class="min-w-0 sm:flex-1">
+                <twig:block name="actions">{{ include('components/Ui/_view_menu.html.twig') }}</twig:block>
+            </twig:Ui:Tabs>
+            {{ include('components/Ui/_view_actions.html.twig') }}
+        </div>
+        <p class="m-0 text-small text-muted">{{ (page.prefix ~ '.intro')|trans }}</p>
+        <twig:Ui:FilterBar id="tax-document-queue-filters" :action="path(route)" :keep="{view: view != '' ? view : null, sort: sortKept, f: working != '' ? working : null}|merge(workingQuery)"
+            :search="{name: 'q', value: text, label: 'invoice.list.search_label'|trans, placeholder: 'invoice.list.search_placeholder'|trans}"
+            :conditions="chips" :builder="builder" :empty="rows is empty">
+            <twig:block name="end">
+                <twig:Ui:ColumnPicker id="tax-document-queue-columns" :action="path(route)" :keep="picker.keep" :columns="picker.columns" :density="picker.density" :resetHref="picker.resetHref" :modified="picker.modified" />
+            </twig:block>
+        </twig:Ui:FilterBar>
+        <twig:Ui:DataTable :caption="(page.prefix ~ '.title')|trans" :columns="columns" :rows="rows" :density="density" :actionToken="csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN'))">
+            <twig:block name="empty">
+                {% if filtered %}
+                    <twig:Ui:EmptyState icon="search" :title="'recurring.list.empty.filtered_title'|trans">
+                        <twig:Ui:Button :href="path(route, view != '' ? {view: view} : {})">{{ 'recurring.list.empty.reset'|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                {% else %}
+                    <twig:Ui:EmptyState icon="circle-check" :title="(page.prefix ~ '.empty')|trans" />
+                {% endif %}
+            </twig:block>
+        </twig:Ui:DataTable>
+    </div>
+    {{ include('components/Ui/_view_dialogs.html.twig') }}
+{% endblock %}

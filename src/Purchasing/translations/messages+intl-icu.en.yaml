@@ -8,7 +8,6 @@ purchasing:
       drafts: "To complete"
       recorded: "Recorded"
       trash: "Trash"
-    all_firms: "All firms"
     all_months: "All months"
     month: "Month"
     month_period:

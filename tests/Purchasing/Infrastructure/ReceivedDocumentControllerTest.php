@@ -133,6 +133,10 @@ final class ReceivedDocumentControllerTest extends WebTestCase
         self::assertSame('last_month', $crawler->filter('select[name="month"]')->first()->filter('option[selected]')->attr('value'));
         self::assertCount(0, $this->page('/purchasing?month=this_month')->filter('main table tbody tr'));
         self::assertCount(1, $this->page('/purchasing?month=this_quarter')->filter('main table tbody tr'));
+        // The month is the only chip: an instance holds one firm (ADR 0039), and an old ?firm= narrows nothing.
+        $crawler = $this->page('/purchasing?firm=0190a8a8-0000-7000-8000-000000000000');
+        self::assertSame(['month'], $crawler->filter('[data-filter-chips] [data-filter-chip]')->each(static fn (Crawler $chip): string => (string) $chip->attr('data-filter-chip')));
+        self::assertCount(1, $crawler->filter('main table tbody tr'));
     }
 
     public function testTheOldSheetParametersAreConditionsOfTheBuilder(): void
