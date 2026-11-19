@@ -49,6 +49,7 @@ use Foresi\Invoicing\Domain\Payment;
 use Foresi\Invoicing\Domain\PaymentAllocation;
 use Foresi\Invoicing\Domain\SendPurpose;
 use Foresi\Invoicing\Domain\SendStatus;
+use Foresi\Invoicing\Infrastructure\Column\IssuedDocumentSource;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Application\View\Condition;
 use Foresi\Shared\Application\View\ListDefinition;
@@ -79,19 +80,15 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
     private const string COUNTRY = 'i.issuer.address.countryCode';
     /** The column of each date a list can be filtered by. */
     private const array DATE_COLUMNS = [InvoiceLists::ISSUE_DATE => 'i.issueDate', InvoiceLists::TAX_POINT_DATE => 'i.taxPointDate', InvoiceLists::DUE_DATE => 'i.dueDate'];
+    /** What a list sorts by when its sort names nothing it can sort by; the number breaks every tie. */
+    private const string ORDER_FALLBACK = 'i.issueDate';
+    private const string ORDER_TIE = 'i.numberKey';
 
     /**
      * The stored fields of a view: the dates, the customer, and the amount in whole units
      * of the currency, which every supported one divides into a hundred (Currency::minorUnits).
      */
     private const array VIEW_COLUMNS = self::DATE_COLUMNS + [InvoiceLists::CUSTOMER => 'i.customerParty', InvoiceLists::AMOUNT => 'i.payableMinor'];
-    private const array ORDER = [
-        'number' => ['i.numberKey'],
-        'customer' => ['LOWER(i.customer.name)', 'i.numberKey'],
-        'issueDate' => ['i.issueDate', 'i.numberKey'],
-        'dueDate' => ['i.dueDate', 'i.numberKey'],
-        'payable' => ['i.payableMinor', 'i.numberKey'],
-    ];
 
     public function __construct(
         private EntityManagerInterface $em,
@@ -100,6 +97,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
         private InvoiceSends $sends,
         private InvoicePayments $payments,
         private InstanceClock $instanceClock,
+        private IssuedDocumentSource $source,
     ) {
     }
 
@@ -854,12 +852,16 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
         return ['('.implode(' OR ', $conditions).')', $parameters];
     }
 
+    /**
+     * The order of a sort such as "-due_date": by the expression the data source gives the
+     * attribute (spec DS10), then by the number and the id, all in the one direction.
+     */
     private function order(string $sort): string
     {
         $direction = str_starts_with($sort, '-') ? ' DESC' : ' ASC';
-        $columns = self::ORDER[ltrim($sort, '-')] ?? self::ORDER['issueDate'];
+        $columns = array_unique([$this->source->sorts()[ltrim($sort, '-')] ?? self::ORDER_FALLBACK, self::ORDER_TIE, 'i.id']);
 
-        return implode(', ', array_map(static fn (string $column): string => $column.$direction, [...$columns, 'i.id']));
+        return implode(', ', array_map(static fn (string $column): string => $column.$direction, $columns));
     }
 
     /**
@@ -911,6 +913,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
             $corrections,
             $invoice->exportedAt(),
             $invoice->changedAfterExportAt(),
+            $invoice,
         );
     }
 }

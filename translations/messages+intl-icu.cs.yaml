@@ -117,6 +117,10 @@ ui:
     density_dense_hint: 44 px
     reset: Obnovit výchozí
     apply: Použít
+    add: Přidat sloupec
+  attribute:
+    yes: Ano
+    no: Ne
   tabs:
     modified: neuložené změny
   filter_bar:
@@ -346,7 +350,6 @@ firm:
   title: Moje firmy
   new: Nová firma
   edit: Upravit firmu
-  views: Pohledy na firmy
   sections: Části firmy
   tab:
     details: Údaje
@@ -356,12 +359,6 @@ firm:
   empty:
     title: Zatím tu nejsou žádné firmy
     text: Vaše vlastní firmy, které vystavují doklady.
-  empty_view:
-    title: Nic tu není
-    text: V tomto pohledu není žádná z vašich vlastních firem.
-  view:
-    active: Aktivní
-    archived: Archivované
   summary: '{total, plural, one {# firma} few {# firmy} other {# firem}}'
   column:
     name: Název
@@ -390,21 +387,14 @@ firm:
     registered: Plátce DPH
     not_registered: Neplátce DPH
     identified_person: Identifikovaná osoba
-  confirm:
-    archive: 'Archivovat firmu {name}?'
-    archive_text: Archivovanou firmu už nepůjde obnovit.
-    archive_accept: Archivovat firmu
-    archive_cancel: Ponechat firmu
   flash:
     created: Firma je uložená.
     updated: Změny jsou uložené.
-    archived: Firma je archivovaná.
   error:
     registration_taken: Toto IČO už má jiná firma.
     vat_status: Vyberte vztah k DPH.
     vat_id_required: Zadejte DIČ této firmy.
     save_failed: Firmu se nepodařilo uložit. Zkontrolujte údaje a zkuste to znovu.
-    last_active: Poslední aktivní firmu nelze archivovat.
     one_per_instance: Foresi vede jednu firmu na instanci. Další firma potřebuje vlastní instanci.
     image_type: Nahrajte obrázek PNG nebo JPEG.
     image_size: Obrázek může mít nejvýš 1 MB.
@@ -537,6 +527,7 @@ system_mail:
   footer_organisation: 'Odesláno systémem {product} jménem {organisation}'
 saved_view:
   save: Uložit
+  more_views: Další pohledy
   save_as: Uložit jako nový pohled
   save_as_submit: Uložit pohled
   save_as_description: Filtry, řazení a sloupce seznamu se stanou samostatným pohledem.

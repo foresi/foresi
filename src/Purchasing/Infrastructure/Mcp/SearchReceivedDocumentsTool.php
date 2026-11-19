@@ -10,12 +10,19 @@ namespace Foresi\Purchasing\Infrastructure\Mcp;
 
 use Foresi\Purchasing\Application\PurchasingNotAllowed;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentBalances;
+use Foresi\Purchasing\Application\View\ReceivedDocumentLists;
 use Foresi\Purchasing\Infrastructure\Api\ReceivedDocumentJson;
 use Foresi\Purchasing\Infrastructure\Api\ReceivedDocumentListQuery;
+use Foresi\Shared\Application\Api\ScopeGuard;
+use Foresi\Shared\Application\View\AppliedView;
+use Foresi\Shared\Application\View\SavedViewRefused;
+use Foresi\Shared\Application\View\SavedViews;
+use Foresi\Shared\Domain\View\SavedView;
 use Foresi\Shared\Infrastructure\Mcp\ReadTool;
 use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
 use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
 use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Infrastructure\View\Api\ViewJson;
 
 /**
  * The received documents of the organisation, narrowed and paged as GET
@@ -23,7 +30,7 @@ use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
  */
 final readonly class SearchReceivedDocumentsTool implements ReadTool
 {
-    public function __construct(private ReceivedDocumentBalances $balances, private ToolArguments $arguments)
+    public function __construct(private ReceivedDocumentBalances $balances, private ToolArguments $arguments, private SavedViews $views, private ScopeGuard $scope, private ViewJson $json)
     {
     }
 
@@ -46,7 +53,8 @@ final readonly class SearchReceivedDocumentsTool implements ReadTool
     {
         return 'Searches the documents the organisation\'s firms received from suppliers (invoices, receipts, credit notes, advance requests), newest first, drafts and recorded ones, outside the trash unless trashed is true. '
             .'unpaid: true returns the recorded documents with something left to pay, due_before the ones due before a day; together they are the payables of a period. '
-            .'Returns {items, next_cursor}: each document has its id, firm, state, kind, treatment, evidence number, supplier, supplier number, variable symbol, dates, total, base, VAT, what is paid and what remains. '
+            .'view_id lists what a saved view holds (find views with foresi_list_views; it needs the views:read scope) and filter adds conditions in the format of foresi_list_lists, such as {"conditions": [{"field": "kind", "op": "is", "value": "credit_note"}]}; a condition on trashed decides it instead of the trashed argument. '
+            .'Returns {items, next_cursor, applied_view}: each document has its id, firm, state, kind, treatment, evidence number, supplier, supplier number, variable symbol, dates, total, base, VAT, what is paid and what remains. '
             .'Money is {amount_minor, currency}, in hundredths of the currency; a credit note has a negative total, while paid and remaining are positive. '
             .'When next_cursor is not null, more documents match: call again with the same arguments and next_cursor as cursor. '
             .'Use foresi_list_firms for a firm_id and foresi_search_contacts for a supplier_id.';
@@ -63,6 +71,8 @@ final readonly class SearchReceivedDocumentsTool implements ReadTool
                 'unpaid' => ['type' => 'boolean', 'default' => false, 'description' => 'True returns only recorded documents with something left to pay.'],
                 'due_before' => ToolArguments::dateSchema('Only documents due before this day, not on it.'),
                 'trashed' => ['type' => 'boolean', 'default' => false, 'description' => 'True returns only the documents in the trash.'],
+                'view_id' => ['type' => 'string', 'description' => 'Only the documents a saved view of the list purchasing.received holds: its id as foresi_list_views gives it, or the system key of a view a module ships, such as "purchasing.received.drafts".'],
+                'filter' => ['type' => 'object', 'description' => 'Conditions all documents meet, {"conditions": [{"field", "op", "value"}]}, checked against the list purchasing.received; its fields and operators are in foresi_list_lists.'],
             ] + ToolArguments::pagingSchema(),
             'additionalProperties' => false,
         ];
@@ -82,12 +92,24 @@ final readonly class SearchReceivedDocumentsTool implements ReadTool
         );
         $this->arguments->validate($query);
         $afterId = ToolArguments::afterId($query->cursor);
+        $viewId = ToolArguments::text($arguments, 'view_id');
+        if (null !== $viewId && !$this->scope->allows(AppliedView::VIEWS_SCOPE)) {
+            throw new ToolRefusal(ToolRefusal::INSUFFICIENT_SCOPE, \sprintf('The token does not have the "%s" scope a saved view needs.', AppliedView::VIEWS_SCOPE));
+        }
         try {
-            $slice = $this->balances->slice($query->filter(), $afterId, $query->limit);
+            $applied = AppliedView::of($this->views, $this->scope, ReceivedDocumentLists::list(), $viewId, $arguments['filter'] ?? null);
+            $slice = $this->balances->slice($query->filter($applied->filter), $afterId, $query->limit);
+        } catch (SavedViewRefused $refused) {
+            throw ToolRefusal::of($refused);
         } catch (PurchasingNotAllowed) {
             throw ToolRefusal::forbidden('Only the owners and members of the organisation read its received documents.');
         }
+        $page = ToolArguments::page(array_map(ReceivedDocumentJson::row(...), $slice->items), $slice->hasMore ? $slice->lastId() : null, 'received document', 'received documents');
+        if (!$applied->view instanceof SavedView) {
+            return new ToolOutput($page->data + ['applied_view' => null], $page->summary);
+        }
+        $view = $this->json->view($applied->view);
 
-        return ToolArguments::page(array_map(ReceivedDocumentJson::row(...), $slice->items), $slice->hasMore ? $slice->lastId() : null, 'received document', 'received documents');
+        return new ToolOutput($page->data + ['applied_view' => $view], \sprintf('Through the view %s: %s', \is_string($view['name']) ? $view['name'] : '', $page->summary));
     }
 }

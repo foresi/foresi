@@ -1,26 +1,30 @@
 name: Release
 
+# Every merge to main whose Conventional Commit type is feat, fix or perf, or
+# which is breaking, is published as a release; see .github/scripts/release.sh.
+# A run publishes whatever is missing since the newest release, so a queued run
+# replaced by a newer one loses nothing.
 on:
   push:
-    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+    branches: [main]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: Existing tag to publish, such as v0.4.0
-        required: true
 
 permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 
 jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    # Creating the release is the only thing that needs write access.
+    timeout-minutes: 10
+    # Creating releases and tags needs write access; reading the notes from the
+    # merged pull request needs read access to pull requests.
     permissions:
       contents: write
-    env:
-      TAG: ${{ inputs.tag || github.ref_name }}
-      GH_TOKEN: ${{ github.token }}
+      pull-requests: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -29,15 +33,21 @@ jobs:
           # gh authenticates with GH_TOKEN; git never pushes in this job.
           persist-credentials: false
 
-      # The notes are the changelog section of this version, read as it was at the tag.
-      - name: Read the release notes
-        run: |
-          git show "$TAG:CHANGELOG.md" | awk -v version="${TAG#v}" '
-            index($0, "## [" version "]") == 1 { found = 1; next }
-            found && /^## \[/ { exit }
-            found { print }
-          ' > notes.md
-          test -s notes.md || { echo "CHANGELOG.md has no section for $TAG."; exit 1; }
+      - name: Publish the releases
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .github/scripts/release.sh
 
-      - name: Publish the release
-        run: gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md
+      # Releases made with the workflow token start no other workflow, so the
+      # website, whose release pages read them, is asked to rebuild here.
+      - name: Rebuild the website
+        if: steps.release.outputs.published != '0'
+        env:
+          DEPLOY_HOOK: ${{ secrets.WEBSITE_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "WEBSITE_DEPLOY_HOOK is not set; nothing to do."
+            exit 0
+          fi
+          curl --fail --silent --show-error --retry 3 --max-time 30 -X POST "$DEPLOY_HOOK" > /dev/null

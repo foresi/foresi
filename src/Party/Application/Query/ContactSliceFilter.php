@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Party\Application\Query;
 
 use Foresi\Party\Domain\PartyRole;
+use Foresi\Shared\Application\View\ViewFilter;
 
 /**
  * What a slice of the address book is narrowed to. Every field narrows; the
@@ -17,11 +18,12 @@ use Foresi\Party\Domain\PartyRole;
 final readonly class ContactSliceFilter
 {
     /**
-     * @param string         $text               matches the name, the registration number, the VAT id and the e-mail addresses, as the search of the screen does
-     * @param PartyRole|null $role               only the contacts with this role
-     * @param bool           $archived           true lists the archived contacts alone, false those that are not archived
-     * @param string|null    $registrationNumber the registration number, ignoring spaces and punctuation
-     * @param string|null    $vatId              the VAT id, ignoring spaces and case
+     * @param string          $text               matches the name, the registration number, the VAT id and the e-mail addresses, as the search of the screen does
+     * @param PartyRole|null  $role               only the contacts with this role
+     * @param bool            $archived           true lists the archived contacts alone, false those that are not archived
+     * @param string|null     $registrationNumber the registration number, ignoring spaces and punctuation
+     * @param string|null     $vatId              the VAT id, ignoring spaces and case
+     * @param ViewFilter|null $view               the conditions of a saved view and a filter (spec D13); one on the archived state decides it instead of $archived
      */
     public function __construct(
         public string $text = '',
@@ -29,6 +31,7 @@ final readonly class ContactSliceFilter
         public bool $archived = false,
         public ?string $registrationNumber = null,
         public ?string $vatId = null,
+        public ?ViewFilter $view = null,
     ) {
     }
 }

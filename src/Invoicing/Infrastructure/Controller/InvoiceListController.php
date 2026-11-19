@@ -49,7 +49,7 @@ use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceSend;
 use Foresi\Invoicing\Domain\SendPurpose;
 use Foresi\Invoicing\Domain\SendStatus;
-use Foresi\Invoicing\Infrastructure\Column\IssuedDocumentColumns;
+use Foresi\Invoicing\Infrastructure\Column\IssuedDocumentSource;
 use Foresi\Invoicing\Infrastructure\Form\AmountText;
 use Foresi\Invoicing\Infrastructure\Form\MailTokenLabels;
 use Foresi\Invoicing\Infrastructure\Form\SendFailureText;
@@ -266,7 +266,8 @@ final class InvoiceListController extends AbstractController
             '' === $firm ? null : $firm,
             $this->tabOf($view, $working, $kind),
             trim(mb_substr($input->getString('q'), 0, self::MAX_TEXT)),
-            \in_array(ltrim($sort, '-'), InvoiceFilter::SORTS, true) ? $sort : InvoiceFilter::DEFAULT_SORT,
+            // By any attribute the list sorts by, under its key; an older key such as dueDate still sorts (spec DS2).
+            $this->listColumns->sort($this->listKey($kind), $sort, InvoiceFilter::DEFAULT_SORT),
             max(1, $input->getInt('page', 1)),
             // The invoices recurring templates issued that wait to be sent, as the review notice links to them.
             '1' === $input->getString('toSend'),
@@ -764,7 +765,7 @@ final class InvoiceListController extends AbstractController
     {
         $kind = $kind instanceof DocumentKind ? $kind->value : $kind;
 
-        return IssuedDocumentColumns::LISTS[$kind] ?? IssuedDocumentColumns::LISTS[DocumentKind::Invoice->value];
+        return IssuedDocumentSource::LISTS[$kind] ?? IssuedDocumentSource::LISTS[DocumentKind::Invoice->value];
     }
 
     /**
@@ -803,8 +804,8 @@ final class InvoiceListController extends AbstractController
         };
         $status = $this->joined([$text('status'), $text('status', 'hint')]);
         $secondary = InvoiceFilter::TRASH === $tab
-            ? $this->joined([$row->customerName, $text('deletedBy'), $text('deletedAt'), $text('reason')])
-            : $this->joined([$row->customerName, $text('dueDate'), $status, $text('sent'), $text('export')]);
+            ? $this->joined([$row->customerName, $text('deleted_by'), $text('deleted_at'), $text('deleted_reason')])
+            : $this->joined([$row->customerName, $text('due_date'), $status, $text('sent'), $text('export')]);
 
         return [
             'id' => $row->id,

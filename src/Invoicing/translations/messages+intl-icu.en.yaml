@@ -112,6 +112,7 @@ invoice:
 
         {link}
   mark:
+    none: Not sent
     queued: Sending
     sent: Sent
     read: Read
@@ -155,7 +156,6 @@ invoice:
       failed: Failed
     column:
       when: When
-      firm: Firm
       number: Document
       customer: Customer
       recipients: Recipients
@@ -410,13 +410,46 @@ invoice:
       number: Number
       firm: Firm
       customer: Customer
-      issueDate: Issued
-      dueDate: Due
+      issue_date: Issued
+      due_date: Due
       payable: Total
       status: Status
-      deletedBy: Deleted by
-      deletedAt: Deleted
-      reason: Reason
+      deleted_by: Deleted by
+      deleted_at: Deleted
+      deleted_reason: Reason
+      customer_registration_number: Customer reg. no. (as invoiced)
+      customer_vat_id: Customer VAT ID (as invoiced)
+      customer_city: Customer city (as invoiced)
+      customer_country: Customer country (as invoiced)
+      customer_email: Customer e-mail (as invoiced)
+      tax_point_date: Tax point
+      currency: Currency
+      net: Without VAT
+      vat: VAT
+      paid: Paid
+      remaining: Left to pay
+      payment_state: Payment state
+      overdue: Overdue
+      payment_method: Payment method
+      bank_account: Bank account
+      variable_symbol: Variable symbol
+      order_number: Order number
+      language: Language
+      vat_regime: VAT regime
+      description: Description
+      delivered_at: Delivered
+      created_at: Created
+      recurring: From a recurring invoice
+      import_source: Imported from
+    payment_state:
+      unpaid: Unpaid
+      partly_paid: Partly paid
+      paid: Paid
+      overpaid: Overpaid
+      to_refund: To refund
+    vat_regime:
+      payer: VAT payer
+      non_payer: Not a VAT payer
     status:
       settled_by_advances: Settled by advances
       issued: Issued
@@ -1033,6 +1066,7 @@ recurring:
       edit: Edit the recurring invoice
     summary: '{total, plural, one {# recurring invoice} other {# recurring invoices}}'
     tab:
+      all: All
       active: Active
       paused: Paused
       ended: Ended
@@ -1073,8 +1107,10 @@ recurring:
       title: No recurring invoices yet
       text: Create a new one, or make one from an issued invoice with Recurring invoice in its menu.
       from_invoice: Pick an invoice
-      filtered_title: Nothing here for this firm
-      reset: Show all firms
+      filtered_title: Nothing matches these filters
+      reset: Clear the filters
+      all: No recurring invoice
+      view: Nothing matches this view
       active: No active recurring invoice
       paused: Nothing is paused
       ended: Nothing has ended
@@ -1164,7 +1200,6 @@ reminder:
     send_help: When the firm reminds overdue invoices automatically.
   log:
     column: Type
-    all: All types
     purpose:
       invoice: Invoice
       reminder: Reminder

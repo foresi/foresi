@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Tests\Webhooks\Infrastructure\Api;
 
 use Foresi\Audit\Domain\AuditEntry;
-use Foresi\Invoicing\Infrastructure\Events\InvoicingEventAccess;
+use Foresi\Party\Infrastructure\Events\PartyEventAccess;
 use Foresi\Shared\Application\Event\EventReadAccess;
 use Foresi\Shared\Application\SealerUnavailable;
 use Foresi\Webhooks\Application\AttemptTrigger;
@@ -30,7 +30,7 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
 {
     public function testCreateAnswers201WithSecretAndQueuesPing(): void
     {
-        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/foresi', 'description' => 'Accounting sync', 'event_types' => ['invoicing.invoice.paid', 'invoicing.*']]);
+        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/foresi', 'description' => 'Accounting sync', 'event_types' => ['party.contact.archived', 'party.*']]);
 
         self::assertResponseStatusCodeSame(201);
         $id = $this->at('data', 'id');
@@ -38,7 +38,7 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
         self::assertResponseHeaderSame('Location', self::ENDPOINTS.'/'.$id);
         self::assertSame('https://hooks.example.com/foresi', $this->at('data', 'url'));
         self::assertSame('Accounting sync', $this->at('data', 'description'));
-        self::assertSame(['invoicing.invoice.paid', 'invoicing.*'], $this->at('data', 'event_types'));
+        self::assertSame(['party.contact.archived', 'party.*'], $this->at('data', 'event_types'));
         self::assertSame(1, $this->at('data', 'version'));
         self::assertTrue($this->at('data', 'active'));
         self::assertNull($this->at('data', 'disabled_reason'));
@@ -77,7 +77,7 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
 
     public function testCreateWithReadScopeIs403(): void
     {
-        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['invoicing.*']], $this->secret);
+        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['party.*']], $this->secret);
 
         $this->assertProblem(403, 'insufficient_scope');
         self::assertSame([], $this->endpoints());
@@ -86,7 +86,7 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
 
     public function testHttpUrlIs400(): void
     {
-        $this->send('POST', self::ENDPOINTS, ['url' => 'http://hooks.example.com/foresi', 'event_types' => ['invoicing.*']]);
+        $this->send('POST', self::ENDPOINTS, ['url' => 'http://hooks.example.com/foresi', 'event_types' => ['party.*']]);
 
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'url']);
         self::assertSame([], $this->endpoints());
@@ -94,7 +94,7 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
 
     public function testPrivateHostIs400(): void
     {
-        $this->send('POST', self::ENDPOINTS, ['url' => 'https://internal.example.com/foresi', 'event_types' => ['invoicing.*']]);
+        $this->send('POST', self::ENDPOINTS, ['url' => 'https://internal.example.com/foresi', 'event_types' => ['party.*']]);
 
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'url']);
         self::assertSame([], $this->endpoints());
@@ -110,7 +110,7 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
 
     public function testUnknownTypeIs400(): void
     {
-        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['invoicing.invoice.exploded']]);
+        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['party.contact.exploded']]);
 
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'event_types']);
         self::assertSame([], $this->endpoints());
@@ -126,11 +126,11 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
     public function testUnreadableModuleIs403(): void
     {
         $id = $this->stored();
-        // The person no longer works with invoices: their access service says no.
-        self::getContainer()->set(InvoicingEventAccess::class, new class implements EventReadAccess {
+        // The person no longer works with contacts: their access service says no.
+        self::getContainer()->set(PartyEventAccess::class, new class implements EventReadAccess {
             public function module(): string
             {
-                return 'invoicing';
+                return 'party';
             }
 
             public function mayRead(): bool
@@ -144,7 +144,7 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
             }
         });
 
-        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/other', 'event_types' => ['invoicing.*']]);
+        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/other', 'event_types' => ['party.*']]);
         $this->assertProblem(403, 'forbidden');
 
         $this->get(self::ENDPOINTS.'/'.$id, secret: $this->writer);
@@ -159,7 +159,7 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
 
     public function testListAndShowNeverContainTheSecret(): void
     {
-        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['invoicing.*']]);
+        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['party.*']]);
         $id = $this->at('data', 'id');
         $secret = $this->at('data', 'secret');
         self::assertIsString($id);
@@ -193,7 +193,7 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
 
     public function testAuditEntryHoldsNoSecret(): void
     {
-        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['invoicing.*']]);
+        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['party.*']]);
         $id = $this->at('data', 'id');
         $created = $this->at('data', 'secret');
         self::assertIsString($id);
@@ -222,7 +222,7 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
 
     public function testRotateKeepsPreviousForGivenHours(): void
     {
-        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['invoicing.*']]);
+        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['party.*']]);
         $id = $this->at('data', 'id');
         $old = $this->at('data', 'secret');
         self::assertIsString($id);
@@ -272,7 +272,7 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
 
     public function testRevealNeedsWrite(): void
     {
-        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['invoicing.*']]);
+        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['party.*']]);
         $id = $this->at('data', 'id');
         $secret = $this->at('data', 'secret');
         self::assertIsString($id);
@@ -303,13 +303,13 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
 
     public function testPatchChangesOnlyWhatIsGiven(): void
     {
-        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/foresi', 'description' => 'Accounting sync', 'event_types' => ['invoicing.*']]);
+        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/foresi', 'description' => 'Accounting sync', 'event_types' => ['party.*']]);
         $id = $this->at('data', 'id');
         self::assertIsString($id);
 
-        $this->send('PATCH', self::ENDPOINTS.'/'.$id, ['event_types' => ['invoicing.invoice.paid'], 'version' => 2]);
+        $this->send('PATCH', self::ENDPOINTS.'/'.$id, ['event_types' => ['party.contact.archived'], 'version' => 2]);
         self::assertResponseStatusCodeSame(200);
-        self::assertSame(['invoicing.invoice.paid'], $this->at('data', 'event_types'));
+        self::assertSame(['party.contact.archived'], $this->at('data', 'event_types'));
         self::assertSame(2, $this->at('data', 'version'));
         self::assertSame('Accounting sync', $this->at('data', 'description'));
         self::assertSame('https://hooks.example.com/foresi', $this->at('data', 'url'));
@@ -398,7 +398,7 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
             }
         });
 
-        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['invoicing.*']]);
+        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['party.*']]);
         $this->assertProblem(503, 'service_unavailable');
         $this->get(self::ENDPOINTS.'/'.$id.'/secret', secret: $this->writer);
         $this->assertProblem(503, 'service_unavailable');

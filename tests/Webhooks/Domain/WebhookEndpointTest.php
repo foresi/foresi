@@ -29,7 +29,7 @@ final class WebhookEndpointTest extends TestCase
         self::assertSame(self::ID, $endpoint->id());
         self::assertSame('https://hooks.example.com/x', $endpoint->url()->value);
         self::assertSame('Accounting sync', $endpoint->description());
-        self::assertSame(['invoicing.*'], $endpoint->eventTypes()->patterns());
+        self::assertSame(['party.*'], $endpoint->eventTypes()->patterns());
         self::assertSame(1, $endpoint->version());
         self::assertSame(self::OWNER, $endpoint->ownerId());
         self::assertTrue($endpoint->isActive());
@@ -45,7 +45,7 @@ final class WebhookEndpointTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        WebhookEndpoint::create(self::ID, new EndpointUrl('https://hooks.example.com/x'), null, EventTypes::of(['invoicing.*']), $version, 'sealed-1', self::OWNER, new \DateTimeImmutable());
+        WebhookEndpoint::create(self::ID, new EndpointUrl('https://hooks.example.com/x'), null, EventTypes::of(['party.*']), $version, 'sealed-1', self::OWNER, new \DateTimeImmutable());
     }
 
     /**
@@ -61,7 +61,7 @@ final class WebhookEndpointTest extends TestCase
     public function testTheLongestDescriptionAndHighestVersionAreAccepted(): void
     {
         $description = str_repeat('č', WebhookEndpoint::DESCRIPTION_MAX_LENGTH);
-        $endpoint = WebhookEndpoint::create(self::ID, new EndpointUrl('https://hooks.example.com/x'), $description, EventTypes::of(['invoicing.*']), WebhookEndpoint::MAX_VERSION, 'sealed-1', self::OWNER, new \DateTimeImmutable());
+        $endpoint = WebhookEndpoint::create(self::ID, new EndpointUrl('https://hooks.example.com/x'), $description, EventTypes::of(['party.*']), WebhookEndpoint::MAX_VERSION, 'sealed-1', self::OWNER, new \DateTimeImmutable());
 
         self::assertSame($description, $endpoint->description());
         self::assertSame(WebhookEndpoint::MAX_VERSION, $endpoint->version());
@@ -78,10 +78,10 @@ final class WebhookEndpointTest extends TestCase
         self::assertSame('https://hooks.example.com/x', $endpoint->url()->value);
         self::assertEquals($later, $endpoint->updatedAt());
 
-        $endpoint->change($later, new EndpointUrl('https://other.example.com/y'), '  ', EventTypes::of(['invoicing.invoice.issued']));
+        $endpoint->change($later, new EndpointUrl('https://other.example.com/y'), '  ', EventTypes::of(['party.contact.created']));
         self::assertSame('https://other.example.com/y', $endpoint->url()->value);
         self::assertNull($endpoint->description(), 'A blank description clears it.');
-        self::assertSame(['invoicing.invoice.issued'], $endpoint->eventTypes()->patterns());
+        self::assertSame(['party.contact.created'], $endpoint->eventTypes()->patterns());
     }
 
     public function testSigningSecretsIncludePreviousUntilItExpires(): void
@@ -182,15 +182,15 @@ final class WebhookEndpointTest extends TestCase
     {
         yield 'nothing' => [[]];
         yield 'everything' => [['*']];
-        yield 'a wildcard inside a name' => [['invoicing.invoice.*']];
-        yield 'a module alone' => [['invoicing']];
-        yield 'upper case' => [['Invoicing.*']];
+        yield 'a wildcard inside a name' => [['party.contact.*']];
+        yield 'a module alone' => [['party']];
+        yield 'upper case' => [['Party.*']];
     }
 
     public function testEventTypesKeepEachPatternOnce(): void
     {
-        self::assertSame(['invoicing.*', 'exchange-rate.rate.published'], EventTypes::of(['invoicing.*', 'exchange-rate.rate.published', 'invoicing.*'])->patterns());
-        self::assertSame(['invoicing.*', 'exchange-rate.rate.published'], EventTypes::of(['invoicing.*', 'invoicing.*', 'exchange-rate.rate.published'])->patterns(), 'The patterns stay a list.');
+        self::assertSame(['party.*', 'exchange-rate.rate.published'], EventTypes::of(['party.*', 'exchange-rate.rate.published', 'party.*'])->patterns());
+        self::assertSame(['party.*', 'exchange-rate.rate.published'], EventTypes::of(['party.*', 'party.*', 'exchange-rate.rate.published'])->patterns(), 'The patterns stay a list.');
     }
 
     public function testAnEndpointUrlNamesItsHost(): void
@@ -220,6 +220,6 @@ final class WebhookEndpointTest extends TestCase
 
     private function endpoint(\DateTimeImmutable $now): WebhookEndpoint
     {
-        return WebhookEndpoint::create(self::ID, new EndpointUrl('https://hooks.example.com/x'), 'Accounting sync', EventTypes::of(['invoicing.*']), 1, 'sealed-1', self::OWNER, $now);
+        return WebhookEndpoint::create(self::ID, new EndpointUrl('https://hooks.example.com/x'), 'Accounting sync', EventTypes::of(['party.*']), 1, 'sealed-1', self::OWNER, $now);
     }
 }

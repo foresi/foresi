@@ -26,19 +26,29 @@
         </twig:Ui:EmptyState>
     {% else %}
         <div class="grid grid-cols-1 gap-4">
-            <twig:Ui:Tabs :items="tabs" :label="'recurring.list.views'|trans" />
-            {% if firms is not empty %}
-                <twig:Ui:FilterBar id="recurring-filters" :action="path('app_recurring')" :keep="{tab: tab != 'active' ? tab : null}" :filters="[{name: 'firm', label: 'invoice.field.firm'|trans, options: firms, value: firm, pinned: true}]" />
-            {% endif %}
+            {# The view's unsaved changes sit at the end of its tabs, as on every list (saved views D10). #}
+            <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
+                <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'recurring.list.views'|trans" class="min-w-0 sm:flex-1">
+                    <twig:block name="actions">{{ include('components/Ui/_view_menu.html.twig') }}</twig:block>
+                </twig:Ui:Tabs>
+                {{ include('components/Ui/_view_actions.html.twig') }}
+            </div>
+            {% set firmFilters = firms is not empty ? [{name: 'firm', label: 'invoice.field.firm'|trans, options: firms, value: firm, pinned: true}] : [] %}
+            <twig:Ui:FilterBar id="recurring-filters" :action="path('app_recurring')" :keep="{view: view != '' ? view : null, sort: sortKept, f: working != '' ? working : null}|merge(workingQuery)"
+                :filters="firmFilters" :conditions="chips" :builder="builder" :empty="rows is empty">
+                <twig:block name="end">
+                    <twig:Ui:ColumnPicker id="recurring-columns" :action="path('app_recurring')" :keep="picker.keep" :columns="picker.columns" :density="picker.density" :resetHref="picker.resetHref" :modified="picker.modified" />
+                </twig:block>
+            </twig:Ui:FilterBar>
 
-            <twig:Ui:DataTable :caption="'recurring.list.title'|trans" :columns="columns" :rows="rows">
+            <twig:Ui:DataTable :caption="'recurring.list.title'|trans" :columns="columns" :rows="rows" :density="density">
                 <twig:block name="empty">
                     {% if filtered %}
                         <twig:Ui:EmptyState icon="search" :title="'recurring.list.empty.filtered_title'|trans">
-                            <twig:Ui:Button :href="path('app_recurring', tab == 'active' ? {} : {tab: tab})">{{ 'recurring.list.empty.reset'|trans }}</twig:Ui:Button>
+                            <twig:Ui:Button :href="path('app_recurring', view != '' ? {view: view} : {})">{{ 'recurring.list.empty.reset'|trans }}</twig:Ui:Button>
                         </twig:Ui:EmptyState>
                     {% else %}
-                        <twig:Ui:EmptyState :icon="tab == 'failing' ? 'circle-check' : 'refresh-cw'" :title="('recurring.list.empty.' ~ tab)|trans" />
+                        <twig:Ui:EmptyState :icon="view == 'failing' ? 'circle-check' : 'refresh-cw'" :title="emptyTitle" />
                     {% endif %}
                 </twig:block>
                 <twig:block name="footer">
@@ -47,5 +57,6 @@
                 </twig:block>
             </twig:Ui:DataTable>
         </div>
+        {{ include('components/Ui/_view_dialogs.html.twig') }}
     {% endif %}
 {% endblock %}

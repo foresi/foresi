@@ -14,10 +14,10 @@ namespace Foresi\Invoicing\Application;
 final readonly class SendLogPage
 {
     /**
-     * @param list<SendLogRow>      $rows
-     * @param array<string, string> $firms name by id of every firm with a send
+     * @param list<SendLogRow> $rows
+     * @param bool             $anySent whether anything was ever sent, whatever the filter holds
      */
-    public function __construct(public array $rows, public int $total, public int $page, public int $pages, public array $firms)
+    public function __construct(public array $rows, public int $total, public int $page, public int $pages, public bool $anySent)
     {
     }
 }

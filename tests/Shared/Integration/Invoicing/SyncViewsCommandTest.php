@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Shared\Infrastructure\View;
+namespace Foresi\Tests\Shared\Integration\Invoicing;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -19,6 +19,10 @@ use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
+/**
+ * app:views:sync stores the default views the modules declare, here the lists
+ * of invoices, and keeps the ones a person edited or hid.
+ */
 final class SyncViewsCommandTest extends KernelTestCase
 {
     private EntityManagerInterface $em;

@@ -427,13 +427,14 @@ work:
     views: Notification views
     read_all: Mark all as read
     tab:
-      new: New
+      all: All
       done: Done
     filter:
-      label: Show
-      all: All
       mentions: Mentions
       assigned: Assigned
+    field:
+      reason: Reason
+      unread: Unread
     column:
       task: Task
       event: What happened
@@ -453,7 +454,9 @@ work:
       new_text: Mentions, tasks assigned to you and news on the tasks you watch show up here.
       done_title: Nothing done yet
       done_text: Notifications you mark as done stay here for 3 months.
-      filtered: Nothing here with this filter.
+      filtered: Nothing matches the filters.
+      reset: Clear the filters
+      view: Nothing matches this view
   notification_settings:
     title: Notification settings
     email_card: E-mails
@@ -516,8 +519,12 @@ work:
     views: Project views
     new: New project
     tab:
-      active: Active
+      all: All
       archived: Archived
+    field:
+      archived: Archived
+      visibility: Who sees the project
+      billable: Bill the time
     column:
       name: Name
       client: Client
@@ -527,6 +534,9 @@ work:
       title: No projects yet
       text: Start a project and add its tasks.
       archived_title: No archived projects
+      view_title: Nothing matches this view
+      filtered_title: Nothing matches these filters
+      reset: Clear the filters
   project:
     create: Create project
     archived: Archived
@@ -577,6 +587,11 @@ work:
     due_next_7_days: Next 7 days
     due_none: No date
   list:
+    views: Task views
+    tab:
+      all: All
+      mine: Mine
+      finished: Finished
     no_section: No section
     loose_caption: 'Tasks of {project}'
     empty: No tasks yet.
