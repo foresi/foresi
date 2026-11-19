@@ -19,6 +19,8 @@ composer isdoc:schema   # the ISDOC schema for the tests, fetched and checked by
 composer qa
 ```
 
+Before you push, run `bin/check`: it fixes the code style, runs every static check and the tests of the modules your branch touches, and with `--infection` mutation testing of the changed lines. See [CONTRIBUTING.md](../CONTRIBUTING.md#before-you-push-bincheck).
+
 Styles are built by Tailwind CSS (standalone binary, downloaded by the bundle into `var/tailwind/` on first use; no Node needed). Build them before opening the app in a browser:
 
 ```bash
