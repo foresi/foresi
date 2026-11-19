@@ -123,6 +123,8 @@ test.describe('navigation', () => {
     await page.goto('/settings/firm');
     await openMenuOnPhone(page);
     await expect(page.locator('#sidebar [aria-current="page"]')).toHaveText(/Firma/);
+    // On a phone the menu stays open over the page; load it again to reach the tabs.
+    await page.goto('/settings/firm');
 
     const tabs = page.getByRole('navigation', { name: 'Části firmy' });
     await expect(tabs.getByRole('link')).toHaveText(['Údaje', 'Fakturace', 'E-maily', 'Banka']);
