@@ -40,7 +40,7 @@ CI splits the run so that it takes minutes, with the same thresholds. The suite 
 
 ### Module subsets
 
-Nobody knows which modules an instance will have, so CI also installs and tests each module on its own, with the core and only the modules and libraries it requires: the `Module subsets` workflow, one job per `src/*/composer.json`. Each job runs `bin/module-subset composer <Module>`, which rewrites `composer.json` around that module, then `composer update 'foresi/*'`, which removes everything the module does not require and keeps the versions of `composer.lock`. `bin/module-subset prune` deletes the source and tests of the modules that are not installed. The job then boots the kernel, lints the container, routes and templates, runs the migrations on PostgreSQL and runs `tests/<Module>/`. A test under `tests/<Module>/Integration/<Other>/` runs only when `<Other>` is installed, so a test that needs another module goes there. To try one locally, run the same commands in a copy of the checkout, never in your own: they rewrite `composer.json` and delete code.
+Nobody knows which modules an instance will have, so CI also installs and tests each module on its own, with the core and only the modules and libraries it requires: the `Module subsets` workflow, one job per `src/*/composer.json`. It runs after each merge to main, every night and when started by hand, not on a pull request: a pull request runs the full suite, and a coupling the workflow finds on main is fixed by a follow-up pull request. Each job runs `bin/module-subset composer <Module>`, which rewrites `composer.json` around that module, then `composer update 'foresi/*'`, which removes everything the module does not require and keeps the versions of `composer.lock`. `bin/module-subset prune` deletes the source and tests of the modules that are not installed. The job then boots the kernel, lints the container, routes and templates, runs the migrations on PostgreSQL and runs `tests/<Module>/`. A test under `tests/<Module>/Integration/<Other>/` runs only when `<Other>` is installed, so a test that needs another module goes there. A test that goes through every module reads the installed ones (`InstalledModules`) instead of a list, sample domain events are the core's (the address book's `party.*`), and helpers that tests of several modules share live in `tests/Support/`. To try one locally, run the same commands in a copy of the checkout, never in your own: they rewrite `composer.json` and delete code.
 
 A module declares the third-party libraries its own code uses in its `composer.json`, with the root's constraint; the skeleton keeps the framework and the rest of the root's requirements.
 
@@ -58,7 +58,7 @@ A module declares the third-party libraries its own code uses in its `composer.j
 
 - Use [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, `ci:`.
 - Keep pull requests focused. One logical change per pull request.
-- Update [CHANGELOG.md](CHANGELOG.md) under `Unreleased` for user-visible changes.
+- Describe a change users notice in the `## Release notes` section of the pull request (see the [template](.github/pull_request_template.md)). The Conventional Commits check refuses a feat, fix or perf pull request without it.
 - Never commit secrets or personal data. Use obviously fictional data in tests.
 - Pull requests are squash-merged. There is no merge queue, so a green pull request does not merge by itself: maintainers turn on auto-merge as soon as it is opened, and it then merges once the required checks pass:
 
@@ -72,8 +72,9 @@ Do not open a public issue. Follow [SECURITY.md](SECURITY.md).
 
 ## Releases
 
-A maintainer releases from `main`:
+Every merge to `main` that users notice is a release; there is no release branch and no release day. The Release workflow publishes a GitHub release and its tag for each merged pull request whose title is a `feat`, `fix` or `perf` commit, or breaking (`!`), with the pull request's Release notes as the notes. Other types publish nothing.
 
-1. Move the `Unreleased` changes in [CHANGELOG.md](CHANGELOG.md) to a section for the new version, through a pull request.
-2. Create an annotated tag whose name and message are both the version, such as `git tag -a v1.2.3 -m v1.2.3`.
-3. Push the tag. The Release workflow publishes a GitHub release with that changelog section as its notes.
+The version follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Before 1.0.0, a breaking change raises the minor version (0.5.3 to 0.6.0) and anything else the patch (0.5.3 to 0.5.4). From 1.0.0, a breaking change raises the major version, a feature the minor one and a fix the patch.
+
+Operators may skip versions: the migrations run in order whatever the gap, and the Upgrading notes of every release in between say what else to do. [CHANGELOG.md](CHANGELOG.md) holds the history up to 0.5.0.
+

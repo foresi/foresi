@@ -12,13 +12,28 @@ use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\OpenToGuest;
 use Foresi\Identity\Application\People;
 use Foresi\Identity\Domain\Membership;
+use Foresi\Shared\Application\ActorRole;
+use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Application\View\FilterRows;
+use Foresi\Shared\Application\View\ListView;
+use Foresi\Shared\Application\View\ListViews;
+use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Application\View\WorkingFilter;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
+use Foresi\Ui\Column\RememberedDisplay;
+use Foresi\Ui\Column\WorkingDisplay;
+use Foresi\Ui\Column\WorkingState;
 use Foresi\Ui\Component\DataTable;
+use Foresi\Ui\View\ViewBar;
 use Foresi\Work\Application\ManageNotifications;
-use Foresi\Work\Application\NotificationFilter;
 use Foresi\Work\Application\NotificationQueries;
 use Foresi\Work\Application\NotificationRow;
+use Foresi\Work\Application\View\NotificationLists;
 use Foresi\Work\Application\WorkRefused;
+use Foresi\Work\Infrastructure\Column\NotificationCells;
+use Foresi\Work\Infrastructure\Column\NotificationColumns;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -31,23 +46,36 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The inbox of the signed-in person, a guest's too: one row per task, newest
  * first, with its latest event and who did it, as ClickUp, GitHub and Linear
- * group theirs. "Nové" holds what is not done, "Hotové" what is (GitHub
- * Done, ClickUp Cleared), kept three months; both narrow to mentions or to
- * assignments. Each row is done or back again; the header reads them all.
+ * group theirs. It runs on saved views as the other lists do (NotificationLists):
+ * "Nové" holds what is not done, "Hotové" what is (GitHub Done, ClickUp Cleared),
+ * kept three months; "+ Filter" narrows to mentions, assignments, unread rows or
+ * a time. Each row is done or back again; the header reads them all.
+ *
+ * The old addresses keep working: ?tab=done opens the Done view, ?filter=mentions
+ * and ?filter=assigned become a condition of the working filter.
  */
 #[OpenToGuest]
 final class NotificationController extends AbstractController
 {
     public const string ROUTE = 'app_notifications';
     public const string TOKEN = 'work_notifications';
-    private const string DONE = 'done';
+    /** The one order of the inbox, newest first. */
+    private const string ORDER = '-at';
+    /** The parts of the inbox's address an action carries back to it. */
+    private const array LIST_QUERY = ['view', 'tab', 'filter', WorkingFilter::PARAM, 'page', WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY];
 
     public function __construct(
         private readonly NotificationQueries $queries,
         private readonly ManageNotifications $notifications,
         private readonly People $people,
-        private readonly AuditActor $actor,
+        private readonly AuditActor $auditActor,
         private readonly TranslatorInterface $translator,
+        private readonly ListViews $listViews,
+        private readonly ActorRole $actor,
+        private readonly RememberedDisplay $rememberedDisplay,
+        private readonly WorkingDisplay $workingDisplay,
+        private readonly ViewBar $viewBar,
+        private readonly FilterSheet $filterSheet,
     ) {
     }
 
@@ -55,36 +83,48 @@ final class NotificationController extends AbstractController
     public function index(Request $request): Response
     {
         $me = $this->me();
-        [$done, $filter, $page] = $this->view($request);
-        $inbox = $this->queries->inbox($me, $filter, $done, $page);
-        if ([] === $inbox->rows && $page > 1) {
-            return $this->redirect($this->inboxUrl($done, $filter));
+        // The builder's rows (spec D11) become the list's working filter, in its address.
+        if ($request->query->has(FilterRows::MARKER)) {
+            return $this->redirectToRoute(self::ROUTE, $this->builtQuery($request->query), Response::HTTP_SEE_OTHER);
         }
-        $url = $this->generateUrl(self::ROUTE);
-        $back = $this->query($done, $filter, $page);
+        [$views, $view, $shown] = $this->views($request->query);
+        $list = NotificationLists::list();
+        $filterParam = WorkingFilter::param($shown, $view->filter);
+        $page = max(1, $request->query->getInt('page', 1));
+        $inbox = $this->queries->inbox($me, $shown, $page);
+        $query = array_filter(['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
+        // Columns and density are kept for staff with the view; a guest has no saved views, only the address.
+        $working = $this->actor->isStaff()
+            ? $this->rememberedDisplay->read(NotificationColumns::LIST, [], $list->key, $view, $request->query->all())
+            : $this->workingDisplay->read(NotificationColumns::LIST, [], $view->display, $request->query->all());
+        $query += $working->query;
+        if ([] === $inbox->rows && $page > 1) {
+            return $this->redirectToRoute(self::ROUTE, $query);
+        }
+        $back = $this->generateUrl(self::ROUTE, $page > 1 ? $query + ['page' => (string) $page] : $query);
+        $back = substr($back, \strlen($this->generateUrl(self::ROUTE)));
+        $bar = $this->viewBar->of($list, $views, $view, $shown, self::ORDER, self::ORDER, $working, self::ROUTE, []);
+        $done = \in_array(true, array_map(static fn (Condition $condition): bool => true === $condition->value, $shown->on(NotificationLists::DONE)), true);
 
         return $this->render('@Work/notifications/index.html.twig', [
             'done' => $done,
-            'filter' => $filter->value,
+            'staff' => $this->actor->isStaff(),
             'unread' => $this->queries->unreadCount($me),
-            'tabs' => [
-                ['label' => $this->translator->trans('work.notifications.tab.new'), 'href' => $url.$this->query(false, $filter), 'active' => !$done],
-                ['label' => $this->translator->trans('work.notifications.tab.done'), 'href' => $url.$this->query(true, $filter), 'active' => $done],
-            ],
-            'filters' => array_combine(
-                array_map(static fn (NotificationFilter $case): string => $case->value, NotificationFilter::cases()),
-                array_map(fn (NotificationFilter $case): string => $this->translator->trans('work.notifications.filter.'.$case->value), NotificationFilter::cases()),
-            ),
-            'columns' => [
-                ['key' => 'task', 'label' => $this->translator->trans('work.notifications.column.task'), 'truncate' => true],
-                ['key' => 'project', 'label' => $this->translator->trans('work.task.field.project'), 'truncate' => true, 'phone' => false],
-                ['key' => 'event', 'label' => $this->translator->trans('work.notifications.column.event'), 'truncate' => true, 'phone' => false],
-                ['key' => 'at', 'label' => $this->translator->trans('work.notifications.column.at'), 'phone' => false],
-            ],
-            'rows' => array_map(fn (NotificationRow $row): array => $this->row($row, $back), $inbox->rows),
+            'view' => $view->isAll() ? '' : $view->key,
+            'working' => $filterParam ?? '',
+            'workingQuery' => $working->query,
+            'filtered' => null !== $filterParam,
+            'emptyState' => $this->emptyState($view),
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true]))),
+            ...$bar,
+            ...$this->tabs($views, $view->key, $query, $bar['viewBar']['modified']),
+            'columns' => $working->display->table(),
+            'rows' => array_map(fn (NotificationRow $row): array => $this->row($row, $working, $back), $inbox->rows),
+            'density' => $working->tableDensity(),
+            'picker' => $this->picker($working, $query),
             'page' => $inbox->page,
             'pages' => $inbox->page + ($inbox->hasNext ? 1 : 0),
-            'baseUrl' => $url.$this->query($done, $filter),
+            'baseUrl' => $this->generateUrl(self::ROUTE, $query),
             'readAllUrl' => $this->generateUrl('app_notifications_read_all').$back,
         ]);
     }
@@ -117,47 +157,120 @@ final class NotificationController extends AbstractController
     }
 
     /**
-     * The tab, the filter and the page asked for; anything else is the first page of everything new.
+     * The inbox's views as its address names them (spec D10): the person's views, the
+     * one ?view= names (or ?tab=, the address of the tabs the inbox had), its All when
+     * none, and the filter the list shows, the view's own unless f= changed it. The
+     * ?filter= of the select the inbox had narrows it as a condition (D11).
      *
-     * @return array{bool, NotificationFilter, int}
+     * @param InputBag<string> $input
+     *
+     * @return array{list<ListView>, ListView, ViewFilter}
      */
-    private function view(Request $request): array
+    private function views(InputBag $input): array
     {
-        return [
-            self::DONE === $request->query->getString('tab'),
-            NotificationFilter::tryFrom($request->query->getString('filter')) ?? NotificationFilter::All,
-            max(1, $request->query->getInt('page', 1)),
-        ];
-    }
+        $list = NotificationLists::list();
+        $views = $this->listViews->of($list, $this->actor->userId());
+        $view = ListViews::chosen($views, $input->getString('view', $input->getString('tab')));
+        $shown = WorkingFilter::decode($input->getString(WorkingFilter::PARAM), $list) ?? $view->filter;
+        $reason = $input->getString('filter');
+        if (\in_array($reason, [NotificationLists::MENTIONS, NotificationLists::ASSIGNED], true) && [] === $shown->on(NotificationLists::REASON)) {
+            $shown = $shown->with(new Condition(NotificationLists::REASON, 'is', $reason));
+        }
 
-    private function query(bool $done, NotificationFilter $filter, int $page = 1): string
-    {
-        $query = array_filter([
-            'tab' => $done ? self::DONE : null,
-            'filter' => NotificationFilter::All === $filter ? null : $filter->value,
-            'page' => $page > 1 ? $page : null,
-        ], static fn (string|int|null $value): bool => null !== $value);
-
-        return [] === $query ? '' : '?'.http_build_query($query);
-    }
-
-    private function inboxUrl(bool $done, NotificationFilter $filter, int $page = 1): string
-    {
-        return $this->generateUrl(self::ROUTE).$this->query($done, $filter, $page);
+        return [$views, $view, $shown];
     }
 
     /**
-     * Back to the view the action was asked from.
+     * The inbox's address after the builder's Apply: what the sheet sent, its rows read
+     * into the working filter, which is left out when it is the view's own.
+     *
+     * @param InputBag<string> $input
+     *
+     * @return array<string, mixed>
+     */
+    private function builtQuery(InputBag $input): array
+    {
+        [, $view] = $this->views($input);
+        $query = array_diff_key($input->all(), [FilterRows::PARAM => true, FilterRows::MARKER => true, WorkingFilter::PARAM => true, 'page' => true, 'filter' => true]);
+
+        return array_filter($query + [WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), NotificationLists::list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
+    }
+
+    /**
+     * The tabs of the inbox and its "More views" menu (spec D7), without counts (D9).
+     *
+     * @param list<ListView>        $views
+     * @param array<string, string> $query
+     *
+     * @return array{tabs: list<array<string, mixed>>, moreViews: list<array<string, mixed>>}
+     */
+    private function tabs(array $views, string $active, array $query, bool $modified): array
+    {
+        [$primary, $overflow] = ListViews::placed($views);
+        $link = fn (ListView $view): array => [
+            'label' => $view->translated ? $this->translator->trans($view->name) : $view->name,
+            // A view opens with its own filter and columns: the changed ones belong to the view they were changed on (spec D10).
+            'href' => $this->generateUrl(self::ROUTE, ['view' => $view->isAll() ? null : $view->key] + array_diff_key($query, ['view' => true, WorkingFilter::PARAM => true] + array_flip(WorkingDisplay::KEYS))),
+            'active' => $view->key === $active,
+            'modified' => $modified && $view->key === $active,
+            'private' => $view->private,
+        ];
+
+        return ['tabs' => array_map($link, $primary), 'moreViews' => array_map($link, $overflow)];
+    }
+
+    /**
+     * The Columns sheet: what it keeps of the list, and the list without the changed columns.
+     *
+     * @param array<string, string> $query
+     *
+     * @return array<string, mixed>
+     */
+    private function picker(WorkingState $working, array $query): array
+    {
+        $kept = array_diff_key($query, array_flip(WorkingDisplay::KEYS));
+
+        return [
+            'keep' => $kept,
+            'columns' => $working->picker(),
+            'density' => $working->density,
+            // An empty density names the view's own display, which forgets the one remembered (D-display-3).
+            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::DENSITY => '']),
+            'modified' => $working->modified,
+        ];
+    }
+
+    /**
+     * What an empty inbox says: New and Done their own words, any other view that nothing matches.
+     *
+     * @return array{title: string, text: string}
+     */
+    private function emptyState(ListView $view): array
+    {
+        $key = match (true) {
+            $view->isAll() => 'new',
+            NotificationLists::DONE_VIEW === $view->key => 'done',
+            default => null,
+        };
+        if (null === $key) {
+            return ['title' => $this->translator->trans('work.notifications.empty.view'), 'text' => ''];
+        }
+
+        return ['title' => $this->translator->trans('work.notifications.empty.'.$key.'_title'), 'text' => $this->translator->trans('work.notifications.empty.'.$key.'_text')];
+    }
+
+    /**
+     * Back to the view the action was asked from: only the known parts of its address.
      */
     private function back(Request $request): RedirectResponse
     {
-        return $this->redirect($this->inboxUrl(...$this->view($request)));
+        return $this->redirectToRoute(self::ROUTE, array_filter(array_intersect_key($request->query->all(), array_flip(self::LIST_QUERY)), \is_string(...)));
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function row(NotificationRow $row, string $back): array
+    private function row(NotificationRow $row, WorkingState $working, string $back): array
     {
         $event = $this->translator->trans('work.history.entry', [
             'who' => $row->actorName,
@@ -178,12 +291,7 @@ final class NotificationController extends AbstractController
             'label' => $row->taskTitle,
             'unread' => !$row->read,
             'secondary' => implode(' · ', [$row->projectName, $event, $at]),
-            'cells' => [
-                'task' => $row->taskTitle,
-                'project' => $row->projectName,
-                'event' => $event,
-                'at' => $at,
-            ],
+            'cells' => $working->display->cells(new NotificationCells($row->taskTitle, $row->projectName, $event, $at)),
             'actions' => [$action],
         ];
     }
@@ -202,7 +310,7 @@ final class NotificationController extends AbstractController
 
     private function me(): Membership
     {
-        $userId = $this->actor->userId();
+        $userId = $this->auditActor->userId();
         $me = null === $userId ? null : $this->people->membershipOf($userId);
 
         return $me ?? throw new AccessDeniedHttpException('Only a member of the organisation has an inbox.');

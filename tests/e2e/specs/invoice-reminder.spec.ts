@@ -140,18 +140,9 @@ test.describe.serial('reminders of overdue invoices', () => {
   test('the send log tells reminders from invoices and filters them @a11y @layout', async ({ page }) => {
     for (const [name, size] of SIZES) {
       await page.setViewportSize(size);
-      await page.goto('/invoices/sent');
-      if (name === 'desktop') {
-        // The purpose is a pinned chip: a menu of links, applied at once.
-        await page.locator('[data-filter-chip="purpose"]').getByRole('button', { name: 'Druh' }).click();
-        await page.getByRole('menuitemradio', { name: 'Upomínka', exact: true }).click();
-      } else {
-        // On a phone the filters are in the sheet, sent with Apply.
-        await page.getByRole('button', { name: 'Filtry' }).click();
-        await page.locator('#send-filters-purpose-field').selectOption('reminder');
-        await page.getByRole('button', { name: 'Použít' }).click();
-      }
-      await expect(page).toHaveURL(/purpose=reminder/);
+      // The type is a condition of "+ Filtr" (saved views D11); the old address of the select still narrows.
+      await page.goto('/invoices/sent?purpose=reminder');
+      await expect(page.locator('[data-filter-condition]:visible').first()).toContainText('Upomínka');
       await expect(page.locator('tbody tr')).toHaveCount(3);
       if (name === 'desktop') {
         await expect(page.locator('tbody tr').first().locator('[data-icon-cell="bell-ring"]')).toHaveText(/^Upomínka \d$/);

@@ -39,7 +39,7 @@ final class WebhookEndpointPersistenceTest extends KernelTestCase
         $second = WebhookSecret::generate();
         $now = new \DateTimeImmutable('2026-11-13 10:00:00');
 
-        $endpoint = WebhookEndpoint::create(Id::generate(), new EndpointUrl('https://hooks.example.com/x'), null, EventTypes::of(['invoicing.*']), 1, $secrets->seal($first), $user->id(), $now);
+        $endpoint = WebhookEndpoint::create(Id::generate(), new EndpointUrl('https://hooks.example.com/x'), null, EventTypes::of(['party.*']), 1, $secrets->seal($first), $user->id(), $now);
         $em->persist($endpoint);
         $em->flush();
         $endpoint->rotate($secrets->seal($second), $now->modify('+24 hours'), $now->modify('+1 minute'));
@@ -49,7 +49,7 @@ final class WebhookEndpointPersistenceTest extends KernelTestCase
         $stored = $em->find(WebhookEndpoint::class, $endpoint->id());
         self::assertInstanceOf(WebhookEndpoint::class, $stored);
         self::assertSame([$second->key(), $first->key()], array_map(static fn (string $sealed): string => $secrets->open($sealed)->key(), $stored->signingSecrets($now)));
-        self::assertSame(['invoicing.*'], $stored->eventTypes()->patterns());
+        self::assertSame(['party.*'], $stored->eventTypes()->patterns());
 
         /** @var list<AuditEntry> $entries */
         $entries = $em->createQuery('SELECT e FROM '.AuditEntry::class.' e WHERE e.entityClass = :class ORDER BY e.occurredAt, e.id')

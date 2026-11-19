@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Tests\Party\Infrastructure;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\TransactionRequiredException;
 use Foresi\Identity\Domain\Role;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\LegalEntities;
@@ -364,17 +363,17 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSame('12345687', $this->stored($this->firmNamed('Example Firm'))->registrationNumber()->value);
     }
 
-    public function testActiveFirmsAreLockedOnlyInsideATransaction(): void
+    public function testTheFirmIsNotArchivedFromItsPage(): void
     {
         $this->signIn();
-        $this->archive($this->firm('Old Firm', '12345687'));
-        $firm = $this->firm('Example Firm', '12345695');
-        $firms = self::getContainer()->get(LegalEntities::class);
+        $this->firm('Example Firm', '12345695');
 
-        self::assertSame([$firm->id()], $this->em()->wrapInTransaction(static fn (): array => array_map(static fn (LegalEntity $active): string => $active->id(), $firms->lockActive())));
+        $crawler = $this->client->request('GET', '/settings/firm');
 
-        $this->expectException(TransactionRequiredException::class);
-        $firms->lockActive();
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('form[action$="/archive"]'));
+        self::assertSelectorNotExists('#firm-actions');
+        self::assertFalse($this->storedFirm()->isArchived());
     }
 
     public function testAForgedSaveIsRefused(): void

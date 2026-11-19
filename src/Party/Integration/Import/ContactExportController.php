@@ -14,8 +14,8 @@ use Foresi\Party\Application\ContactImports;
 use Foresi\Party\Application\ImportedBy;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Domain\Party;
-use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Infrastructure\Controller\PartyController;
+use Foresi\Party\Infrastructure\View\ContactViews;
 use Foresi\Shared\Domain\Id;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -38,6 +38,7 @@ final class ContactExportController extends AbstractController
         private readonly RecordExport $export,
         private readonly ContactImports $imports,
         private readonly ClockInterface $clock,
+        private readonly ContactViews $contactViews,
     ) {
     }
 
@@ -55,18 +56,14 @@ final class ContactExportController extends AbstractController
         $format = 'xlsx' === $request->request->getString('format') ? SourceFormat::Xlsx : SourceFormat::Csv;
         // The header action exports the whole view as it is filtered, not a selection.
         if ('view' === $request->request->getString('scope')) {
-            $view = $request->request->getString('view', 'all');
-            $role = match ($view) {
-                'customers' => PartyRole::Customer,
-                'suppliers' => PartyRole::Supplier,
-                default => null,
-            };
+            // The view as the list shows it, the conditions changed in its builder among them.
+            [, , $working] = $this->contactViews->of($request->request);
             // A list narrowed to an import exports exactly what it shows; an unknown import narrows nothing.
             $importedBy = ImportedBy::tryFrom($request->request->getString('import'), $request->request->getString('outcome', 'create'));
             if ($importedBy instanceof ImportedBy && null === $this->imports->fileName($importedBy->importId)) {
                 $importedBy = null;
             }
-            $ids = $this->parties->matchingIds(trim(mb_substr($request->request->getString('q'), 0, PartyController::MAX_SEARCH)), $role, 'archived' === $view, $importedBy);
+            $ids = $this->parties->matchingIds(trim(mb_substr($request->request->getString('q'), 0, PartyController::MAX_SEARCH)), null, false, $importedBy, $working);
         } else {
             $selected = $this->selectedIds($request);
             $found = [] === $selected ? [] : $this->parties->findMany($selected);

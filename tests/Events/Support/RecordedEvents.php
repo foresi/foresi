@@ -10,20 +10,18 @@ namespace Foresi\Tests\Events\Support;
 
 use Doctrine\DBAL\Connection;
 use Foresi\Events\Infrastructure\Relay\EventRelay;
-use Foresi\Invoicing\Contract\Event\DocumentKindValue;
-use Foresi\Invoicing\Contract\Event\InvoiceIssued;
-use Foresi\Invoicing\Contract\Event\InvoicePaid;
-use Foresi\Invoicing\Contract\Event\InvoiceTrashed;
-use Foresi\Invoicing\Contract\Event\PaidState;
-use Foresi\Invoicing\Contract\Event\PaymentDirection;
-use Foresi\Invoicing\Contract\Event\PaymentRecorded;
+use Foresi\Party\Contract\Event\ContactArchived;
+use Foresi\Party\Contract\Event\ContactCreated;
+use Foresi\Party\Contract\Event\ContactKind;
+use Foresi\Party\Contract\Event\ContactRestored;
+use Foresi\Party\Contract\Event\ContactUpdated;
 use Foresi\Shared\Application\Event\EventRecorder;
 use Foresi\Shared\Domain\Event\DomainEventPayload;
-use Foresi\Shared\Domain\Id;
 
 /**
  * Real contract events recorded as a use case records them, and numbered by
- * the relay, for the tests of the feed.
+ * the relay, for the tests of the feed. They are the events of the address
+ * book, which is in the core, so the tests run without any other module.
  */
 final readonly class RecordedEvents
 {
@@ -46,23 +44,23 @@ final readonly class RecordedEvents
         $this->relay->relayAll();
     }
 
-    public static function issued(string $invoiceId): InvoiceIssued
+    public static function created(string $contactId): ContactCreated
     {
-        return new InvoiceIssued($invoiceId, DocumentKindValue::Invoice, '2026-0001', Id::generate(), Id::generate(), Id::generate(), 'CZK', '1210.00', '2026-11-12', '2026-11-26', null);
+        return new ContactCreated($contactId, ContactKind::Company);
     }
 
-    public static function paid(string $invoiceId): InvoicePaid
+    public static function updated(string $contactId): ContactUpdated
     {
-        return new InvoicePaid($invoiceId, PaidState::Paid, Id::generate());
+        return new ContactUpdated($contactId, ContactKind::Company);
     }
 
-    public static function trashed(string $invoiceId): InvoiceTrashed
+    public static function archived(string $contactId): ContactArchived
     {
-        return new InvoiceTrashed($invoiceId, DocumentKindValue::Invoice);
+        return new ContactArchived($contactId, ContactKind::Company);
     }
 
-    public static function payment(string $paymentId, string $invoiceId): PaymentRecorded
+    public static function restored(string $contactId): ContactRestored
     {
-        return new PaymentRecorded($paymentId, Id::generate(), '1210.00', 'CZK', '2026-11-12', PaymentDirection::Incoming, 'manual', [$invoiceId]);
+        return new ContactRestored($contactId, ContactKind::Company);
     }
 }

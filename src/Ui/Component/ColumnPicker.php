@@ -15,11 +15,14 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
  * The Columns button at the right of a list's toolbar and its 400 px side sheet (spec
  * D-display-4 and D-display-6; Airtable, HubSpot and Attio column pickers):
  *
- * - a checkbox per column; the column that names the row is locked, always shown and first;
- * - each other row has a drag handle and Move up / Move down buttons, so every reorder works
- *   with a single pointer and a keyboard too (WCAG 2.2 SC 2.5.7, Atlassian's drag and drop
+ * - the shown columns first, in their order, each with a checkbox; the column that names the row
+ *   is locked, always shown and first;
+ * - each other shown row has a drag handle and Move up / Move down buttons, so every reorder
+ *   works with a single pointer and a keyboard too (WCAG 2.2 SC 2.5.7, Atlassian's drag and drop
  *   guidance); each move is said in a live region;
- * - a search over the columns once there are more than SEARCH_FROM;
+ * - under "Add column", every other attribute of the list with a checkbox; one checked is added
+ *   after the shown ones (spec DS5; Attio "Add column", Airtable, Level);
+ * - a search over all of them once there are more than SEARCH_FROM;
  * - the row density, Comfortable (56 px) or Compact (44 px);
  * - "Reset to default", back to the view's own display, and one Apply.
  *
@@ -75,11 +78,23 @@ final class ColumnPicker
     }
 
     /**
+     * The columns the list shows, in their order.
+     *
      * @return list<array{key: string, label: string, visible: bool, locked: bool, id: string}>
      */
-    public function views(): array
+    public function shown(): array
     {
-        return $this->views;
+        return array_values(array_filter($this->views, static fn (array $view): bool => $view['visible']));
+    }
+
+    /**
+     * What can be added: the other columns, in the list's default order.
+     *
+     * @return list<array{key: string, label: string, visible: bool, locked: bool, id: string}>
+     */
+    public function addable(): array
+    {
+        return array_values(array_filter($this->views, static fn (array $view): bool => !$view['visible']));
     }
 
     public function searchable(): bool

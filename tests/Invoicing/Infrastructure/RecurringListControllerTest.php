@@ -32,6 +32,7 @@ use Foresi\Invoicing\Domain\RecurringState;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
 use Foresi\Invoicing\Domain\TaxPointRule;
+use Foresi\Invoicing\Infrastructure\View\RecurringRecordCounter;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
 use Foresi\Party\Domain\DocumentLanguage;
@@ -43,6 +44,9 @@ use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Application\View\FilterRows;
+use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Domain\Schedule\Recurrence;
@@ -119,7 +123,7 @@ final class RecurringListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices/recurring');
 
         self::assertResponseIsSuccessful();
-        self::assertSame(['Active 3', 'Paused 0', 'Ended 0', 'Failing 0'], $this->tabs($crawler));
+        self::assertSame(['All 3', 'Active 3', 'Paused 0', 'Ended 0', 'Failing 0'], $this->tabs($crawler));
         self::assertSame(['Template name', 'Customer', 'Description', 'Repeats', 'Next issue', 'After issue', 'Amount'], $this->headers($crawler));
         $rows = $this->rowTexts($crawler);
         self::assertCount(3, $rows);
@@ -138,6 +142,126 @@ final class RecurringListControllerTest extends WebTestCase
         self::assertStringContainsString('Every 12 months', $rows[2]);
         self::assertStringContainsString('Every 12 months · 3 more', $rows[2]);
         self::assertStringContainsString('Review', $rows[2]);
+    }
+
+    public function testTheTabsAreTheShippedViewsAndTheOldAddressesAlias(): void
+    {
+        // Saved views, D12: the tabs it had, with the same counts (D9), after All (D7).
+        $this->signedIn();
+        $this->template(description: 'Running');
+        $paused = $this->template(description: 'Paused one');
+        $ended = $this->template(description: 'Ended one');
+        $failing = $this->template(description: 'Failing one');
+        $this->scoped(function () use ($paused, $ended): void {
+            self::getContainer()->get(RecurringLifecycle::class)->pause($paused->id());
+            self::getContainer()->get(RecurringLifecycle::class)->end($ended->id());
+        });
+        $this->failed($failing, 'invoice.problem.customer_archived');
+
+        $crawler = $this->client->request('GET', '/invoices/recurring');
+        self::assertSame(['All 4', 'Active 2', 'Paused 1', 'Ended 1', 'Failing 1'], $this->tabs($crawler));
+        self::assertSelectorCount(4, 'main tbody tr');
+        self::assertSame('/invoices/recurring?view=paused', $crawler->filter('nav[aria-label="Recurring invoice lists"] a')->eq(2)->attr('href'));
+        self::assertCount(1, $crawler->filter('[data-filter-sheet-form]'));
+
+        foreach (['tab=paused' => 'Paused one', 'view=paused' => 'Paused one', 'tab=ended' => 'Ended one', 'view=failing' => 'Failing one'] as $address => $shown) {
+            $crawler = $this->client->request('GET', '/invoices/recurring?'.$address);
+            self::assertSame([$shown], array_map(static fn (string $row): string => str_contains($row, $shown) ? $shown : $row, $this->rowTexts($crawler)), $address);
+        }
+        $crawler = $this->client->request('GET', '/invoices/recurring?view=active');
+        self::assertCount(2, $crawler->filter('tbody tr'), 'a failing template is active too, as before');
+        // An unknown view is the whole list.
+        $this->client->request('GET', '/invoices/recurring?view=friends');
+        self::assertSelectorCount(4, 'main tbody tr');
+    }
+
+    public function testTheBuilderNarrowsTheViewAndItsChangesAreSavedAsANewView(): void
+    {
+        $this->signedIn();
+        $this->template(description: 'Sent one');
+        $this->template(description: 'Reviewed one', delivery: RecurringDelivery::Review);
+
+        $this->client->request('GET', '/invoices/recurring?'.http_build_query(['view' => 'active', 'conditions' => '1', 'c' => [
+            ['field' => 'state', 'op' => 'is', 'values' => ['active']],
+            ['field' => 'delivery', 'op' => 'is', 'values' => ['review']],
+        ]]));
+        self::assertResponseStatusCodeSame(303);
+        $crawler = $this->client->followRedirect();
+
+        self::assertCount(1, $crawler->filter('tbody tr'));
+        self::assertStringContainsString('Reviewed one', $crawler->filter('tbody tr')->text());
+        self::assertSame('Active, unsaved changes 2', $this->tabs($crawler)[1]);
+        self::assertSame(['All 2', 'Active, unsaved changes 2', 'Paused 0', 'Ended 0', 'Failing 0'], $this->tabs($crawler), 'the tabs count their own views');
+        $this->client->submit($crawler->filter('[data-view-save-as-form]')->form(['name' => 'For review']));
+        $crawler = $this->client->followRedirect();
+        self::assertCount(1, $crawler->filter('tbody tr'));
+        self::assertContains('For review', $this->tabs($crawler));
+    }
+
+    public function testTheBuilderFieldsNarrowTheList(): void
+    {
+        $this->signedIn();
+        $this->template(description: 'Monthly one', name: 'Example monthly');
+        $this->template(recurrence: $this->recurrence(first: '2027-03-01'), description: 'Later one', name: 'Example later');
+        $failing = $this->template(description: 'Failing one', name: 'Broken');
+        $this->failed($failing, 'invoice.problem.customer_archived');
+
+        $shown = function (array $conditions): array {
+            $this->client->request('GET', '/invoices/recurring?'.http_build_query(['conditions' => '1', 'c' => $conditions]));
+            $crawler = $this->client->followRedirect();
+
+            return $crawler->filter('tbody tr')->each(static fn (Crawler $row): string => trim($row->filter('td a')->first()->text()));
+        };
+
+        self::assertSame(['Example monthly', 'Example later'], $shown([['field' => 'failing', 'op' => 'is', 'value' => '0']]));
+        self::assertSame(['Broken'], $shown([['field' => 'failing', 'op' => 'is', 'value' => '1']]));
+        self::assertSame(['Example later'], $shown([['field' => 'next_occurrence', 'op' => 'after', 'from' => ['rule' => FilterRows::DAY, 'day' => '2027-01-01']]]));
+        self::assertSame(['Example monthly', 'Example later'], $shown([['field' => 'name', 'op' => 'contains', 'value' => 'example']]));
+        self::assertSame(['Example monthly', 'Broken', 'Example later'], $shown([['field' => 'state', 'op' => 'is_not', 'values' => ['paused']]]));
+    }
+
+    public function testTheListSortsByName(): void
+    {
+        $this->signedIn();
+        $this->template(description: 'B', name: 'Beta');
+        $this->template(recurrence: $this->recurrence(first: '2027-03-01'), description: 'A', name: 'Alpha');
+
+        $names = fn (string $query): array => $this->client->request('GET', '/invoices/recurring'.$query)->filter('tbody tr td:first-child a')->each(static fn (Crawler $name): string => trim($name->text()));
+
+        self::assertSame(['Beta', 'Alpha'], $names(''), 'by the next issue');
+        self::assertSame(['Alpha', 'Beta'], $names('?sort=name'));
+        self::assertSame(['Beta', 'Alpha'], $names('?sort=-name'));
+        self::assertSame(['Alpha', 'Beta'], $names('?sort=-next'));
+        self::assertSame(['Beta', 'Alpha'], $names('?sort=amount'), 'an unknown sort is the list\'s own');
+    }
+
+    public function testTheColumnsSheetHidesAColumnAndTheFailureMovesUnderTheName(): void
+    {
+        $this->signedIn();
+        $failing = $this->template(description: 'Failing one');
+        $this->failed($failing, 'invoice.problem.customer_archived');
+
+        $crawler = $this->client->request('GET', '/invoices/recurring?view=failing&cols=name,customer,amount');
+
+        self::assertSame(['Template name', 'Customer', 'Amount'], $this->headers($crawler));
+        self::assertCount(1, $crawler->filter('[data-column-picker-form]'));
+        self::assertStringContainsString('Failed', $crawler->filter('tbody tr td')->eq(0)->text(), 'the failure stays in sight');
+    }
+
+    public function testTheRecordCounterCountsAViewAsTheListDoes(): void
+    {
+        $this->signedIn();
+        $this->template(description: 'Running');
+        $paused = $this->template(description: 'Paused one');
+        $this->scoped(fn () => self::getContainer()->get(RecurringLifecycle::class)->pause($paused->id()));
+        $counter = self::getContainer()->get(RecurringRecordCounter::class);
+
+        self::assertSame(['invoicing.recurring'], $counter->lists());
+        self::assertSame('invoices:read', $counter->scope());
+        self::assertSame(2, $counter->count('invoicing.recurring', new ViewFilter()));
+        self::assertSame(1, $counter->count('invoicing.recurring', ViewFilter::all(new Condition('state', 'is', 'paused'))));
+        $this->expectException(\InvalidArgumentException::class);
+        $counter->count('party.contacts', new ViewFilter());
     }
 
     public function testTheListTakesNoQueryPerRow(): void
@@ -162,11 +286,11 @@ final class RecurringListControllerTest extends WebTestCase
         $this->template(description: 'Other firm', firm: $second, series: false);
 
         $crawler = $this->client->request('GET', '/invoices/recurring');
-        self::assertSame(['Active 2', 'Paused 1', 'Ended 0', 'Failing 0'], $this->tabs($crawler));
+        self::assertSame(['All 3', 'Active 2', 'Paused 1', 'Ended 0', 'Failing 0'], $this->tabs($crawler));
         self::assertContains('Firm', $this->headers($crawler), 'several firms name theirs');
 
         $crawler = $this->client->request('GET', '/invoices/recurring?firm='.$second->id());
-        self::assertSame(['Active 1', 'Paused 0', 'Ended 0', 'Failing 0'], $this->tabs($crawler));
+        self::assertSame(['All 1', 'Active 1', 'Paused 0', 'Ended 0', 'Failing 0'], $this->tabs($crawler));
         self::assertCount(1, $crawler->filter('tbody tr'));
         self::assertStringContainsString('Other firm', $crawler->filter('tbody tr')->text());
 
@@ -396,7 +520,7 @@ final class RecurringListControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/invoices/recurring?tab=failing');
 
-        self::assertSame(['Active 1', 'Paused 0', 'Ended 0', 'Failing 1'], $this->tabs($crawler));
+        self::assertSame(['All 1', 'Active 1', 'Paused 0', 'Ended 0', 'Failing 1'], $this->tabs($crawler));
         $row = $crawler->filter('tbody tr');
         self::assertCount(1, $row);
         self::assertStringContainsString('Failed', $row->text());

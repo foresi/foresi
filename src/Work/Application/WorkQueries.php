@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Application;
 
+use Foresi\Shared\Application\View\ViewFilter;
+
 /**
  * The read side of the work module. Every query shows only what WorkVisibility
  * lets the signed-in person see; a project or task outside it is null, as if
@@ -19,6 +21,14 @@ interface WorkQueries
      * @return list<ProjectRow> by name
      */
     public function projects(bool $archived = false): array;
+
+    /**
+     * The projects of the index a view holds (saved views, spec D4); the archived ones
+     * only when a condition of the view asks for them.
+     *
+     * @return list<ProjectRow> by name, or by name backwards
+     */
+    public function projectIndex(ViewFilter $view, bool $descending = false): array;
 
     public function projectList(string $projectId, TaskFilter $filter = new TaskFilter()): ?ProjectList;
 
