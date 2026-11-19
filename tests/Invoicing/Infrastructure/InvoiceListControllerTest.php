@@ -58,6 +58,7 @@ use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Application\View\Condition;
 use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Domain\Currency;
@@ -925,7 +926,7 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertStringNotContainsString('export', $crawler->filter('tr[data-id="'.$none->id().'"] [data-row-secondary]')->text());
     }
 
-    public function testTheExportFilterNarrowsTheListAndTheTabsKeepIt(): void
+    public function testAnOldExportLinkBecomesAConditionOfTheWorkingFilter(): void
     {
         $this->signedIn();
         $none = $this->issue('2026-11-01', '2026-12-01');
@@ -935,17 +936,25 @@ final class InvoiceListControllerTest extends WebTestCase
         $this->changedAfterExport($changed);
 
         $crawler = $this->client->request('GET', '/invoices?export=exported');
+
         self::assertSame([$exported->number()], $this->numbers($crawler));
-        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 0', 'To refund 0', 'Trash 0'], $this->tabs($crawler));
-        self::assertSame('/invoices?view=unpaid&export=exported', $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(2)->attr('href'));
-        self::assertSame('exported', $crawler->filter('[data-filter-sheet-form] select[name="export"] option[selected]')->attr('value'));
-        self::assertSame(['', 'not_exported', 'exported', 'changed'], $crawler->filter('[data-filter-sheet-form] select[name="export"] option')->each(static fn (Crawler $option): string => $option->attr('value') ?? ''));
-        self::assertSame(['All', 'Not exported', 'Exported', 'Changed after export'], $crawler->filter('[data-filter-sheet-form] select[name="export"] option')->each(static fn (Crawler $option): string => $option->text()));
+        // The sheet holds only the conditions the person adds (spec D11): no fixed export select.
+        self::assertCount(0, $crawler->filter('[data-filter-sheet-form] select[name="export"]'));
+        self::assertSame(['not_exported', 'exported', 'changed'], $crawler->filter('[data-filter-rows] [data-filter-row="export"] input[type="checkbox"]')->each(static fn (Crawler $box): string => $box->attr('value') ?? ''));
+        self::assertSame(['exported'], $crawler->filter('[data-filter-rows] [data-filter-row="export"] input[type="checkbox"][checked]')->each(static fn (Crawler $box): string => $box->attr('value') ?? ''));
+        self::assertSame('Accountant export', $crawler->filter('[data-filter-add] [data-field="export"]')->text());
+        // The list's links and its download carry the condition in f=, no longer the old parameter.
+        $f = WorkingFilter::encode(ViewFilter::all(new Condition(InvoiceLists::EXPORT, 'is', ExportState::Exported->value)));
+        self::assertSame($f, $crawler->filter('form[data-list-export] input[name="f"]')->attr('value'));
+        self::assertCount(0, $crawler->filter('form[data-list-export] input[name="export"]'));
+        self::assertSame([$exported->number()], $this->numbers($this->client->request('GET', '/invoices?f='.$f)));
 
         self::assertSame([$changed->number()], $this->numbers($this->client->request('GET', '/invoices?export=changed')));
         self::assertSame([$none->number()], $this->numbers($this->client->request('GET', '/invoices?export=not_exported')));
         self::assertSame([$changed->number(), $exported->number(), $none->number()], $this->numbers($this->client->request('GET', '/invoices?export=other')));
-        self::assertSame([], $this->rows(new InvoiceFilter(null, 'trash', '', '-issueDate', 1, export: ExportState::Exported)));
+        $either = ViewFilter::all(new Condition(InvoiceLists::EXPORT, 'is_any_of', [ExportState::NotExported->value, ExportState::Changed->value]));
+        self::assertSame([$changed->number(), $none->number()], array_map(static fn (InvoiceRow $row): string => $row->number, $this->rows(new InvoiceFilter(null, 'all', '', '-issueDate', 1, view: $either))));
+        self::assertSame([], $this->rows(new InvoiceFilter(null, 'trash', '', '-issueDate', 1, view: ViewFilter::all(new Condition(InvoiceLists::TRASHED, 'is', true), new Condition(InvoiceLists::EXPORT, 'is', ExportState::Exported->value)))));
     }
 
     public function testAnExportFilterFindingNothingOffersToReset(): void
@@ -959,7 +968,8 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSelectorTextContains('main', 'No invoice matches');
         // The empty state's reset, besides the filter bar's own ways back.
         self::assertCount(1, $crawler->filter('main a[data-filter-clear-all][href="/invoices"]'));
-        self::assertSame(1, $crawler->filter('main a[href="/invoices"]')->count() - $crawler->filter('[data-filter-bar] a[href="/invoices"]')->count());
+        $reset = $crawler->filter('main a[href="/invoices"]')->reduce(static fn (Crawler $link): bool => 'Show all invoices' === trim($link->text()));
+        self::assertCount(1, $reset);
     }
 
     public function testClearingTheExportStateIsOfferedOnceExportedAndTheNextExportTakesItAgain(): void
@@ -976,10 +986,11 @@ final class InvoiceListControllerTest extends WebTestCase
         $form = $row->filter('form[action="/invoices/'.$invoice->id().'/clear-export"]');
         self::assertCount(0, $form->filter('[data-turbo-confirm]'));
         $return = $form->filter('input[name="return"]')->attr('value');
-        self::assertSame('export=exported', $return);
+        $f = WorkingFilter::encode(ViewFilter::all(new Condition(InvoiceLists::EXPORT, 'is', ExportState::Exported->value)));
+        self::assertSame('f='.$f, $return);
 
         $this->client->request('POST', '/invoices/'.$invoice->id().'/clear-export', ['_token' => $this->token(), 'return' => $return]);
-        self::assertResponseRedirects('/invoices?export=exported');
+        self::assertResponseRedirects('/invoices?f='.$f);
         $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'Document 20260002 has no export state now; the next export takes it.');
         self::assertSame(ExportState::NotExported, $this->stored($invoice)->exportState());
@@ -1258,7 +1269,7 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame([['standard', '21.00', 30000, 6300, 36300]], $this->sumLines($trash));
 
         // The filters of the page narrow the sums too, the page itself does not.
-        self::assertSame(2, $this->sumsOf(new InvoiceFilter(null, 'all', 'Consulting', '-issueDate', 3, export: ExportState::NotExported, month: '2026-11'))->count);
+        self::assertSame(2, $this->sumsOf(new InvoiceFilter(null, 'all', 'Consulting', '-issueDate', 3, month: '2026-11', view: ViewFilter::all(new Condition(InvoiceLists::EXPORT, 'is', ExportState::NotExported->value))))->count);
         $none = $this->sumsOf(new InvoiceFilter(null, 'all', '', '-issueDate', 1, month: '2026-10'));
         self::assertSame([0, 0, 0, 0, []], [$none->count, $none->base->minor(), $none->vat->minor(), $none->total->minor(), $none->lines]);
     }

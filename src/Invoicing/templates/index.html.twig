@@ -16,7 +16,7 @@
             <form method="post" action="{{ path('app_invoices_list_export') }}" data-turbo="false" role="none" data-list-export>
                 <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN')) }}">
                 <input type="hidden" name="kind" value="{{ kind }}">
-                {% for name, value in {view: view, q: text, sort: sort, toSend: toSend ? '1' : '', export: export, month: month, f: working} %}
+                {% for name, value in {view: view, q: text, sort: sort, toSend: toSend ? '1' : '', month: month, f: working} %}
                     {% if value != '' %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endif %}
                 {% endfor %}
                 <twig:Ui:MenuItem type="submit" name="format" value="csv" icon="download">{{ 'invoice.list_export.csv'|trans }}</twig:Ui:MenuItem>
@@ -51,7 +51,6 @@
             {# The months with a document, not a native month field: it overflows its box and Safari has no picker. #}
             {% set invoiceFilters = [
                 {name: 'month', label: 'invoice.month.label'|trans, options: months, value: month, pinned: true},
-                {name: 'export', label: 'invoice.export_state.label'|trans, options: exportStates, value: export},
             ] %}
             <twig:Ui:FilterBar id="invoice-filters" :action="path(route)" :keep="{view: view != '' ? view : null, sort: sortKept, toSend: toSend ? '1' : null, f: working != '' ? working : null}|merge(workingQuery)"
                 :search="{name: 'q', value: text, label: 'invoice.list.search_label'|trans, placeholder: 'invoice.list.search_placeholder'|trans}"

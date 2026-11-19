@@ -15,6 +15,7 @@ use Foresi\Invoicing\Application\InvoiceInput;
 use Foresi\Invoicing\Application\IssueInvoice;
 use Foresi\Invoicing\Application\LineInput;
 use Foresi\Invoicing\Application\TrashInvoice;
+use Foresi\Invoicing\Application\View\InvoiceLists;
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Contract\Percent;
 use Foresi\Invoicing\Contract\PriceType;
@@ -35,6 +36,9 @@ use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
@@ -220,7 +224,7 @@ final class InvoiceListExportControllerTest extends WebTestCase
         });
         unset($fields['_token']);
         // An old ?firm= is no filter: an instance holds one firm (ADR 0039).
-        self::assertSame(['kind' => 'advance', 'view' => 'paid', 'q' => 'Work', 'sort' => 'number', 'export' => 'exported', 'month' => '2026-10'], $fields);
+        self::assertSame(['kind' => 'advance', 'view' => 'paid', 'q' => 'Work', 'sort' => 'number', 'month' => '2026-10', 'f' => WorkingFilter::encode(ViewFilter::all(new Condition(InvoiceLists::PAYMENT, 'is', 'paid'), new Condition(InvoiceLists::EXPORT, 'is', 'exported')))], $fields);
         self::assertSame(['csv', 'xlsx'], $form->filter('button[name="format"]')->each(static fn ($button): string => (string) $button->attr('value')));
         // The export sits in the header's "⋯" menu.
         self::assertCount(1, $crawler->filter('#invoices-actions form[data-list-export]'));

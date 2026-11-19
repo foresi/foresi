@@ -52,6 +52,7 @@ use Foresi\Invoicing\Infrastructure\Form\SendFailureText;
 use Foresi\Invoicing\Infrastructure\View\TaxDocumentQueueTabs;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Shared\Application\View\Condition;
 use Foresi\Shared\Application\View\DateRange;
 use Foresi\Shared\Application\View\FilterRows;
 use Foresi\Shared\Application\View\ListView;
@@ -96,7 +97,7 @@ final class InvoiceListController extends AbstractController
     public const string ACTION_TOKEN = 'invoice_action';
     private const int MAX_TEXT = 100;
     /** The parts of the list's query an action carries back to it. */
-    public const array LIST_QUERY = ['view', 'tab', 'q', 'sort', 'page', 'toSend', 'export', 'month', WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY, WorkingFilter::PARAM];
+    public const array LIST_QUERY = ['view', 'tab', 'q', 'sort', 'page', 'toSend', 'month', WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY, WorkingFilter::PARAM];
     /** The list of each kind of document, as iDoklad keeps one per kind. */
     public const array ROUTES = ['invoice' => 'app_invoices', 'advance' => 'app_advances', 'payment_tax_document' => 'app_tax_documents', 'correction_document' => 'app_corrections'];
 
@@ -147,11 +148,11 @@ final class InvoiceListController extends AbstractController
         [$filter, $views, $view] = $this->filterOf($request->query, $kind);
         $shown = $filter->view ?? $view->filter;
         $filterParam = WorkingFilter::param($shown, $view->filter);
-        [$tab, $text, $sort, $toSend, $export, $month] = [$filter->tab, $filter->text, $filter->sort, $filter->toSend, $filter->export, $filter->month];
+        [$tab, $text, $sort, $toSend, $month] = [$filter->tab, $filter->text, $filter->sort, $filter->toSend, $filter->month];
         $page = $this->list->page($filter);
         // A view keeps its own order; the address names the sort only when it differs (spec D10).
         $viewSort = ViewState::sortParam($view->sort, InvoiceFilter::DEFAULT_SORT);
-        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null, 'export' => $export?->value, 'month' => $month, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
+        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null, 'month' => $month, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
         $toSendCount = $this->recurring->inReview();
         $severalFirms = \count($page->firms) > 1;
         // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
@@ -179,11 +180,6 @@ final class InvoiceListController extends AbstractController
             'sort' => $sort,
             'sortKept' => $viewSort === $sort ? null : $sort,
             ...$bar,
-            'export' => $export->value ?? '',
-            'exportStates' => ['' => $this->translator->trans('invoice.export_state.all')] + array_combine(
-                array_map(static fn (ExportState $state): string => $state->value, ExportState::cases()),
-                array_map(fn (ExportState $state): string => $this->translator->trans('invoice.export_state.'.$state->value), ExportState::cases()),
-            ),
             'kind' => $kind->value,
             'route' => $route,
             'titleKey' => 'invoice.list.title_'.$kind->value,
@@ -203,13 +199,13 @@ final class InvoiceListController extends AbstractController
             // The months with a document of the list, and the one asked for, though it has none.
             'months' => $this->monthOptions($kind, $month),
             // An empty list adds up to nothing to show, and saves the queries.
-            'filtered' => '' !== $text || $toSend || $export instanceof ExportState || null !== $month || null !== $filterParam,
+            'filtered' => '' !== $text || $toSend || null !== $month || null !== $filterParam,
         ]);
     }
 
     /**
-     * Downloads exactly what the list shows, its filter posted back: the same tab, firm,
-     * month, export state, text and order, over all pages. It is streamed and read in
+     * Downloads exactly what the list shows, its filter posted back: the same view and
+     * its working filter, firm, month, text and order, over all pages. It is streamed and read in
      * batches, so a long list needs no limit. The name says the kind and the month only.
      */
     #[Route('/invoices/list-export', name: 'app_invoices_list_export', methods: ['POST'])]
@@ -238,7 +234,9 @@ final class InvoiceListController extends AbstractController
      * The filter of a list from its query, or from the form of its download: anything
      * it does not know falls back to the whole list. The view is named by ?view=, or by
      * the ?tab= of the tabs it replaced, so old links and bookmarks still open it
-     * (spec D12). Its page counts the tabs that show a count.
+     * (spec D12). The ?export= of the select the filter sheet had becomes a condition of
+     * the working filter (spec D11), so those links still narrow the list. Its page counts
+     * the tabs that show a count.
      *
      * @param InputBag<string> $input
      *
@@ -249,6 +247,10 @@ final class InvoiceListController extends AbstractController
         $views = $this->viewsOf($kind);
         $view = ListViews::chosen($views, $input->getString('view', $input->getString('tab')));
         $working = WorkingFilter::decode($input->getString(WorkingFilter::PARAM), InvoiceLists::of($kind)) ?? $view->filter;
+        $export = ExportState::tryFrom($input->getString('export'));
+        if ($export instanceof ExportState) {
+            $working = $working->with(new Condition(InvoiceLists::EXPORT, 'is', $export->value));
+        }
         $sort = $input->getString('sort', ViewState::sortParam($view->sort, InvoiceFilter::DEFAULT_SORT));
 
         // An instance holds one firm (ADR 0039): an old ?firm= filters nothing.
@@ -262,7 +264,6 @@ final class InvoiceListController extends AbstractController
             // The invoices recurring templates issued that wait to be sent, as the review notice links to them.
             '1' === $input->getString('toSend'),
             $kind,
-            ExportState::tryFrom($input->getString('export')),
             InvoiceFilter::monthOf($input->getString('month')),
             $working,
             $this->countedOf($views),

@@ -112,11 +112,13 @@ test.describe.serial('the accountant pack', () => {
       await expect(row(page, number).locator('[data-icon-cell="archive"]')).toHaveText('Exportováno');
     }
     await expect(page.locator('tbody [data-icon-cell="archive"]')).toHaveCount(2);
-    // The export state waits in the filter sheet, opened by "+ Filter", sent with Apply.
+    // The export state is a field of "+ Add filter" in the filter sheet, sent with Apply as a condition in f=.
     await page.getByRole('button', { name: 'Filtr', exact: true }).click();
-    await page.locator('#invoice-filters-export-field').selectOption('exported');
+    await page.getByRole('button', { name: 'Přidat filtr' }).click();
+    await page.getByRole('menuitem', { name: 'Export pro účetní' }).click();
+    await page.locator('[data-filter-sheet-form] [data-filter-row="export"]').getByLabel('Exportováno', { exact: true }).check();
     await page.getByRole('button', { name: 'Použít' }).click();
-    await expect(page).toHaveURL(/export=exported/);
+    await expect(page).toHaveURL(/[?&]f=/);
     await expect(page.locator('tbody tr')).toHaveCount(2);
     await expect(row(page, FIRST)).toBeVisible();
 
