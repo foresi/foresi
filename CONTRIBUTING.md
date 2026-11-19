@@ -23,7 +23,7 @@ Requirements and the local setup are described in [docs/development.md](docs/dev
 `bin/check` runs the checks of a pull request locally, so that CI is not the first to find them:
 
 1. It fixes the code with `composer cs:fix` and `rector process`. Review and commit what they change.
-2. It runs every static check, each of them even when one fails, and lists the failed ones at the end: lint, phpstan, `modules:check`, `events:check` and deptrac (`bin/qa-static`; CI runs the same script).
+2. It runs every static check, each of them even when one fails, and lists the failed ones at the end: lint, phpstan, `modules:check`, `events:check` and deptrac (`bin/qa-static`, also `composer qa:static`; the Static checks step of CI runs the same script).
 3. It runs the tests of the modules the branch touches: `tests/<Module>` for every changed file under `src/<Module>/` or `tests/<Module>/` since the merge base with `origin/main`. Changed files outside a module (configuration, templates, migrations, shared test helpers) are listed; CI runs the whole suite for them, and `--all-tests` does so locally.
 
 ```bash
@@ -92,6 +92,14 @@ A module declares the third-party libraries its own code uses in its `composer.j
   ```bash
   gh pr merge <number> --auto --squash
   ```
+
+- Judge a pull request by its required checks only: `Quality gate (sqlite)`, the E2E checks and `Conventional Commits`. Jobs run side by side, so one job can be red while the others and the Quality gate still run. Take a red job as the hint to start fixing, not as the verdict, and let the run finish: it shows every failure of the round at once.
+
+  ```bash
+  gh pr checks <number> --required --watch
+  ```
+
+- Do not stack pull requests. Every pull request is based on `main`. Required checks and auto-merge protect only `main`, so a pull request based on another branch merges into it even when red. When a change depends on another one that is not merged yet, open it only after the first has merged, then `git rebase origin/main`. Parallel work goes to separate parts of the code instead.
 
 ## Reporting security issues
 
