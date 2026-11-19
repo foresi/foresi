@@ -22,9 +22,9 @@ final class RowConditionsTest extends TestCase
 {
     /** Rows by name: a customer, a state, a reference, an amount and a flag; "empty" holds nothing. */
     private const array ROWS = [
-        'acme' => ['customer' => 'Šťastná Acme s.r.o.', 'state' => 'open', 'contact' => 'c1', 'amount' => 100.5, 'late' => true],
-        'beta' => ['customer' => 'Beta Example a.s.', 'state' => 'done', 'contact' => 'c2', 'amount' => 2000, 'late' => false],
-        'empty' => ['customer' => '', 'state' => null, 'contact' => null, 'amount' => null, 'late' => false],
+        'acme' => ['customer' => 'Šťastná Acme s.r.o.', 'state' => 'open', 'contact' => 'c1', 'amount' => 100.5, 'late' => true, 'tags' => ['a', 'b']],
+        'beta' => ['customer' => 'Beta Example a.s.', 'state' => 'done', 'contact' => 'c2', 'amount' => 2000, 'late' => false, 'tags' => ['b']],
+        'empty' => ['customer' => '', 'state' => null, 'contact' => null, 'amount' => null, 'late' => false, 'tags' => []],
     ];
     /** The deadline of each row, apart: a day is a DateTimeImmutable. */
     private const array DEADLINES = ['acme' => '2026-11-10', 'beta' => '2026-11-25', 'empty' => null];
@@ -38,6 +38,10 @@ final class RowConditionsTest extends TestCase
         yield 'enum is not keeps the empty one' => [new Condition('state', 'is_not', 'open'), ['beta', 'empty']];
         yield 'enum is any of' => [new Condition('state', 'is_any_of', ['open', 'done']), ['acme', 'beta']];
         yield 'enum is none of keeps the empty one' => [new Condition('state', 'is_none_of', ['done']), ['acme', 'empty']];
+        yield 'list has any of' => [new Condition('tags', 'has_any_of', ['a', 'c']), ['acme']];
+        yield 'list has all of' => [new Condition('tags', 'has_all_of', ['a', 'b']), ['acme']];
+        yield 'list has none of keeps the empty one' => [new Condition('tags', 'has_none_of', ['a']), ['beta', 'empty']];
+        yield 'list is empty' => [new Condition('tags', 'is_empty'), ['empty']];
         yield 'reference is' => [new Condition('contact', 'is', 'c2'), ['beta']];
         yield 'reference is empty' => [new Condition('contact', 'is_empty'), ['empty']];
         yield 'reference is not empty' => [new Condition('contact', 'is_not_empty'), ['acme', 'beta']];
@@ -131,6 +135,7 @@ final class RowConditionsTest extends TestCase
             new Field('amount', FieldType::Number, 'amount'),
             new Field('deadline', FieldType::Date, 'deadline'),
             new Field('late', FieldType::Boolean, 'late'),
+            new Field('tags', FieldType::MultiEnum, 'tags', options: ['a', 'b', 'c']),
         ], [new DefaultView(ListDefinition::ALL, 'all')]);
         $today = new \DateTimeImmutable('2026-11-18', new \DateTimeZone('Europe/Prague'));
         $value = static function (string $name, string $field): mixed {
