@@ -495,10 +495,10 @@ invoice:
       unsettled_text: Nothing paid waits to be deducted on a final invoice.
   trash:
     title: 'Delete invoice {number}'
-    keeps: It moves to the trash and keeps its number, which is never used again.
+    keeps: It moves to the trash and keeps its number, which is never used again. It can be restored from the trash.
     reason: Reason
     reason_help: Stays in the history of the invoice.
-    submit: Move to the trash
+    submit: Delete invoice
   history:
     title: 'History of invoice {number}'
     card: History
@@ -592,7 +592,7 @@ invoice:
     number_changed: 'Invoice saved as {number}. The number changed.'
     already_saved: This form was saved already.
     trashed: 'Invoice {number} is in the trash.'
-    restored: 'Invoice {number} is back in the list.'
+    restored: 'Invoice {number} is restored.'
     delivered: 'Invoice {number} is marked as delivered.'
     export_cleared: 'Document {number} has no export state now; the next export takes it.'
   card:
@@ -1058,6 +1058,8 @@ recurring:
   list:
     title: Recurring invoices
     views: Recurring invoice lists
+    # The next issue date of a paused or ended recurring invoice.
+    no_next: None scheduled
     failed: 'Failed: {reason}'
     fix:
       mail: Set up the mail server

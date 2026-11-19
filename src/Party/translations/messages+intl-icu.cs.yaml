@@ -30,6 +30,8 @@ party:
   archive: Archivovat
   restore: Obnovit
   archived: Archivováno
+  # The status of a contact that is neither archived nor an unreliable VAT payer.
+  active: Aktivní
   yes: Ano
   no: Ne
   views: Zobrazení kontaktů

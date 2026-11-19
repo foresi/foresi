@@ -170,10 +170,10 @@ test.describe('received documents', () => {
     await page.locator('dialog#sheet').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     await expect(page.locator('main h1')).toHaveText('R20260002');
 
-    await (await openMoreActions(page)).getByRole('menuitem', { name: 'Do koše' }).click();
-    const dialog = page.getByRole('dialog', { name: 'Přesunout R20260002 do koše' });
+    await (await openMoreActions(page)).getByRole('menuitem', { name: 'Smazat', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Smazat doklad R20260002' });
     await dialog.locator('#trash-reason').fill('Nahráno omylem');
-    await dialog.getByRole('button', { name: 'Přesunout do koše' }).click();
+    await dialog.getByRole('button', { name: 'Smazat doklad', exact: true }).click();
     await expect(page.locator('[role=status]').filter({ hasText: 'Doklad R20260002 je v koši.' })).toBeVisible();
 
     await page.goto('/purchasing?tab=trash');
@@ -185,8 +185,8 @@ test.describe('received documents', () => {
     await expect(page.locator('#supplierNumber')).toBeDisabled();
     await expect(page.locator('main header').getByRole('button', { name: 'Uložit' })).toHaveCount(0);
 
-    await page.locator('main header').getByRole('button', { name: 'Obnovit z koše' }).click();
-    await expect(page.locator('[role=status]').filter({ hasText: 'Doklad R20260002 je zpět z koše.' })).toBeVisible();
+    await page.locator('main header').getByRole('button', { name: 'Obnovit', exact: true }).click();
+    await expect(page.locator('[role=status]').filter({ hasText: 'Doklad R20260002 je obnovený.' })).toBeVisible();
     await expect(page.locator('main h1')).toHaveText('R20260002');
     await expect(page.locator('[data-purchasing-trashed]')).toHaveCount(0);
     await expect(page.locator('#supplierNumber')).toHaveValue('FV-7741');

@@ -140,10 +140,10 @@ test.describe.serial('the invoice list', () => {
     await expect(page.getByRole('textbox', { name: /Důvod/ })).toBeVisible();
     await expectNoSeriousViolations(page);
 
-    await page.getByRole('button', { name: 'Přesunout do koše' }).click();
+    await page.getByRole('button', { name: 'Smazat fakturu', exact: true }).click();
     await expect(page.getByText('Napište, proč fakturu mažete.')).toBeVisible();
     await page.getByRole('textbox', { name: /Důvod/ }).fill('Špatný zákazník');
-    await page.getByRole('button', { name: 'Přesunout do koše' }).click();
+    await page.getByRole('button', { name: 'Smazat fakturu', exact: true }).click();
     await expect(page.getByText(/je v koši\./)).toBeVisible();
 
     await page.getByRole('link', { name: /Koš/ }).click();
@@ -155,7 +155,7 @@ test.describe.serial('the invoice list', () => {
 
     await page.locator('tbody tr').getByRole('button', { name: /Další akce/ }).click();
     await page.locator('tbody tr').getByRole('menuitem', { name: 'Obnovit' }).click();
-    await expect(page.getByText(/je zpět v seznamu\./)).toBeVisible();
+    await expect(page.getByText(/je obnovená\./)).toBeVisible();
     await expect(page).toHaveURL(/view=trash/);
     await expect(page.getByRole('heading', { name: 'Koš je prázdný' })).toBeVisible();
   });

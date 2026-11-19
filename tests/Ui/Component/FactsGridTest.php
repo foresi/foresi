@@ -87,8 +87,8 @@ final class FactsGridTest extends KernelTestCase
     public static function invalid(): iterable
     {
         yield 'no label' => [[['value' => 'x']]];
-        yield 'no value' => [[['label' => 'x']]];
         yield 'non-string value' => [[['label' => 'x', 'value' => ['a']]]];
+        yield 'non-string empty label' => [[['label' => 'x', 'value' => null, 'empty' => ['a']]]];
         yield 'non-string href' => [[['label' => 'x', 'value' => 'y', 'href' => ['a']]]];
         yield 'unsafe href' => [[['label' => 'x', 'value' => 'y', 'href' => 'javascript:alert(1)']]];
     }
@@ -101,6 +101,18 @@ final class FactsGridTest extends KernelTestCase
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->mountTwigComponent('Ui:FactsGrid', ['items' => $items]);
+    }
+
+    public function testAMissingValueIsTheEmptyBadge(): void
+    {
+        $crawler = new \Symfony\Component\DomCrawler\Crawler((string) $this->renderTwigComponent('Ui:FactsGrid', ['items' => [
+            ['label' => 'Phone', 'value' => null],
+            ['label' => 'E-mail', 'value' => ''],
+            ['label' => 'Next', 'value' => null, 'empty' => 'None scheduled'],
+        ]]));
+
+        self::assertSame(['Nezadáno', 'Nezadáno', 'None scheduled'], $crawler->filter('dd [data-empty-value]')->each(static fn ($badge): string => $badge->text()));
+        self::assertNull($crawler->filter('dd')->first()->attr('title'));
     }
 
     public function testEmptyItemsRenderNothing(): void

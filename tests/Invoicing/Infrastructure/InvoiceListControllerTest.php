@@ -654,7 +654,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $cancel = $crawler->filter('footer button[data-action="dialog#dismiss"]');
         self::assertNotNull($cancel->attr('autofocus'));
         $submit = $crawler->filter('footer button[type="submit"][form="trash-form"]');
-        self::assertSame('Move to the trash', trim($submit->text()));
+        self::assertSame('Delete invoice', trim($submit->text()));
         self::assertStringContainsString('badge-red-text', (string) $submit->attr('class'));
         self::assertStringContainsString('max-w-[400px]', (string) $crawler->filter('dialog')->attr('class'));
 
@@ -769,7 +769,7 @@ final class InvoiceListControllerTest extends WebTestCase
 
         self::assertResponseRedirects('/invoices');
         $crawler = $this->client->followRedirect();
-        self::assertSelectorTextContains('main', 'Invoice 20260001 is back in the list.');
+        self::assertSelectorTextContains('main', 'Invoice 20260001 is restored.');
         self::assertSame(['20260001'], $this->numbers($crawler));
         self::assertFalse($this->stored($invoice)->isTrashed());
     }
@@ -784,7 +784,7 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertResponseRedirects('/invoices');
         $crawler = $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'This invoice is not in the trash.');
-        self::assertStringNotContainsString('is back in the list', $crawler->filter('main')->text());
+        self::assertStringNotContainsString('is restored', $crawler->filter('main')->text());
     }
 
     public function testMarkingDeliveredRemovesDeleteAndCannotHappenInTheTrash(): void
@@ -1155,7 +1155,7 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('tr[data-id="'.$read->id().'"] [data-icon-cell] svg'));
         self::assertStringContainsString('Read', $crawler->filter('tr[data-id="'.$read->id().'"] [data-row-secondary]')->text());
         // The status badge is separate and stays as it was.
-        self::assertSame('Delivered', $crawler->filter('tr[data-id="'.$sent->id().'"] td .rounded-sm')->last()->text());
+        self::assertSame('Delivered', $crawler->filter('tr[data-id="'.$sent->id().'"] td .rounded-sm:not([data-empty-value])')->last()->text());
     }
 
     public function testReadSurvivesALaterFailedResend(): void

@@ -184,9 +184,9 @@ final class RecurringListController extends AbstractController
 
         $facts = [
             ['label' => $this->translator->trans('recurring.list.column.customer'), 'value' => $template->customer()->displayName()],
-            ['label' => $this->translator->trans('invoice.total.payable'), 'value' => $totals instanceof DocumentTotals ? $this->amountText->shown($totals->payable) : '–', 'big' => true],
+            ['label' => $this->translator->trans('invoice.total.payable'), 'value' => $totals instanceof DocumentTotals ? $this->amountText->shown($totals->payable) : null, 'big' => true],
             ['label' => $this->translator->trans('recurring.list.column.interval'), 'value' => $this->schedule($template)],
-            ['label' => $this->translator->trans('recurring.list.column.next'), 'value' => RecurringState::Active === $state && $next instanceof \DateTimeImmutable ? $this->date($next) : '–'],
+            ['label' => $this->translator->trans('recurring.list.column.next'), 'value' => RecurringState::Active === $state && $next instanceof \DateTimeImmutable ? $this->date($next) : null, 'empty' => $this->translator->trans('recurring.list.no_next')],
             ['label' => $this->translator->trans('recurring.list.column.delivery'), 'value' => $this->translator->trans('recurring.list.delivery.'.$template->delivery()->value)],
         ];
         if (\count($this->firmNames()) > 1) {
