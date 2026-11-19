@@ -254,6 +254,16 @@ class Party implements Audited
         $this->roles = array_values(array_unique(array_map(static fn (PartyRole $role): string => $role->value, $roles)));
     }
 
+    /**
+     * Adds a role and leaves the others alone.
+     */
+    public function addRole(PartyRole $role): void
+    {
+        if (!$this->hasRole($role)) {
+            $this->roles[] = $role->value;
+        }
+    }
+
     public function changePrivateNote(string $note): void
     {
         $this->privateNote = $note;

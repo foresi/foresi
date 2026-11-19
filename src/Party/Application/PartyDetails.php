@@ -27,13 +27,18 @@ interface PartyDetails
     public function billingAddress(Party $party): ?PartyAddress;
 
     /**
-     * The shared e-mails. A firm's own invoicing e-mails are not among them.
-     *
      * @return list<PartyEmail>
      */
     public function emails(Party $party): array;
 
     public function generalEmail(Party $party): ?PartyEmail;
+
+    /**
+     * The addresses invoices go to and are copied to; the general e-mail is not one of them.
+     *
+     * @return list<PartyEmail>
+     */
+    public function invoicingEmails(Party $party): array;
 
     /**
      * @return list<PartyBankAccount> the primary account first

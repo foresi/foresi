@@ -27,19 +27,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class SendDraftTest extends SendingTestCase
 {
-    public function testRecipientsComeFromTheContactForThisFirm(): void
+    public function testRecipientsComeFromTheContact(): void
     {
-        $other = $this->firm(registrationNumber: '12345687');
-        $otherSeries = $this->seriesOf($other);
-        $this->em->persist(new PartyEmail($this->customer, 'firm-billing@example.com', EmailPurpose::Invoices, $this->firm));
-        $this->em->flush();
-        $own = $this->issue->issue($this->input());
-        $shared = $this->issue->issue($this->input(overrides: ['firmId' => $other->id(), 'seriesId' => $otherSeries->id()]));
+        $invoice = $this->issue->issue($this->input());
 
-        // The firm's own address replaces the shared one; another firm keeps the shared one.
-        self::assertSame([['firm-billing@example.com', 'to', true]], $this->recipientsOf($own));
-        self::assertSame([['billing@example.com', 'to', true]], $this->recipientsOf($shared));
-        self::assertFalse($this->draft()->for($own)->fromDocument);
+        self::assertSame([['billing@example.com', 'to', true]], $this->recipientsOf($invoice));
+        self::assertFalse($this->draft()->for($invoice)->fromDocument);
     }
 
     public function testCopyPurposeBecomesCc(): void

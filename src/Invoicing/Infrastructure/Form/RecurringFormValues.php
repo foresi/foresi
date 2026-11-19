@@ -82,7 +82,7 @@ final readonly class RecurringFormValues
         $first = $recurrence->firstIssueOn();
         $lines = array_map(static fn (RecurringInvoiceLine $line): LineInput => new LineInput($line->text(), $line->quantity(), $line->unit(), $line->price(), $line->priceType(), $line->treatment(), $line->rateKind(), $line->supplyCode(), $line->discount()), $this->templates->lines($template));
         $draft = new InvoiceDraftValues($firm->id(), $regime, $template->currency(), $template->series()?->id(), '', $first, $first, $first, $template->paymentMethod(), $template->bankAccount(), '', $template->constantSymbol(), $template->textBefore(), $template->textAfter(), $template->language(), $lines, description: $template->description());
-        $values = $this->values->withCustomerShown($this->values->ofDraft($draft), $this->picker->option($template->customer(), $firm));
+        $values = $this->values->withCustomerShown($this->values->ofDraft($draft), $this->picker->option($template->customer()));
 
         return [
             ...$values,

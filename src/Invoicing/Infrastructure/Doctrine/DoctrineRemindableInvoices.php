@@ -21,11 +21,9 @@ use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Money;
 
 /**
- * One query per firm. The contact flag is the firm's own when the contact has
- * invoicing values of its own for the firm, else the shared one. An address to
- * send to is the one the document holds, or an invoicing address of the contact:
- * its own for the firm when it has any, else the shared ones, as SendDraft picks
- * them. Times of earlier reminders are stored in the server's zone and compared
+ * One query per firm, reading the reminder flag of the contact. An address to
+ * send to is the one the document holds, or an invoicing address of the
+ * contact, as SendDraft picks them. Times of earlier reminders are stored in the server's zone and compared
  * against the start of the firm's day, so the previous reminder counts on the
  * firm's own date.
  *
@@ -41,7 +39,6 @@ final readonly class DoctrineRemindableInvoices implements RemindableInvoices
         SELECT i.id, r.steps, r.last_at
         FROM invoice i
         INNER JOIN party p ON p.id = i.customer_id
-        LEFT JOIN party_firm_settings s ON s.party_id = i.customer_id AND s.legal_entity_id = i.legal_entity_id
         LEFT JOIN (
             SELECT invoice_id, MAX(reminder_step) AS steps, MAX(created_at) AS last_at
             FROM invoice_send
@@ -52,10 +49,7 @@ final readonly class DoctrineRemindableInvoices implements RemindableInvoices
             AND i.deleted_at IS NULL
             AND i.delivered_at IS NOT NULL
             AND i.due_date >= :enabledOn
-            AND (
-                (s.invoicing_due_days IS NOT NULL AND (s.invoicing_send_reminders IS NULL OR s.invoicing_send_reminders = :yes))
-                OR (s.invoicing_due_days IS NULL AND p.invoicing_send_reminders = :yes)
-            )
+            AND p.invoicing_send_reminders = :yes
             AND (
                 (r.steps IS NULL AND i.due_date <= :firstDueBy)
                 OR (r.steps < :maxSteps AND r.last_at < :nextBefore)
@@ -65,12 +59,6 @@ final readonly class DoctrineRemindableInvoices implements RemindableInvoices
                 OR EXISTS (
                     SELECT 1 FROM party_email e
                     WHERE e.party_id = i.customer_id AND e.purpose = :invoices
-                        AND (
-                            e.legal_entity_id = i.legal_entity_id
-                            OR (e.legal_entity_id IS NULL AND NOT EXISTS (
-                                SELECT 1 FROM party_email o WHERE o.party_id = i.customer_id AND o.legal_entity_id = i.legal_entity_id
-                            ))
-                        )
                 )
             )
         SQL;

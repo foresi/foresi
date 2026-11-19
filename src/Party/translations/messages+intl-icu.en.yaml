@@ -242,34 +242,6 @@ party:
     currency: Currency
     language: Document language
     reverse_charge: Reverse charge
-  scope:
-    all_firms: All firms
-    own: own
-    applies_to: Applies to
-    set: Set for this firm
-    reset: Back to shared
-    reset_confirm: Go back to the shared values?
-    reset_confirm_text: "This firm's own values are deleted when you save."
-    reset_confirm_accept: Go back to shared
-    reset_confirm_cancel: Keep own values
-    emails: Invoicing e-mails
-    archive: Archive state
-    invoice_emails: E-mails for invoices
-    copy_emails: Invoice copies
-    emails_help: One address per line.
-    archived_all: Archived for all firms
-    archived_firm: Archived for this firm
-    archived_help: Archiving for all firms takes precedence.
-  firm_settings:
-    due_days: Due period in days
-    due_days_help: Applies to new documents.
-    currency: Currency
-    language: Document language
-    payment_method: Payment method
-    reverse_charge: Reverse charge
-    hourly_rate: Hourly rate
-    hourly_rate_help: For the client's projects without a rate of their own.
-    hourly_rate_currency: Rate currency
   payment_method:
     bank_transfer: Bank transfer
     cash: Cash

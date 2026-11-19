@@ -19,12 +19,12 @@ use Foresi\Invoicing\Domain\InvoiceChange;
 use Foresi\Invoicing\Domain\InvoiceLine;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\VariableSymbol;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\PartyRole;
 use Foresi\Shared\Application\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 
@@ -59,7 +59,6 @@ final readonly class IssueInvoice
         private ConflictRetry $retry,
         private AuditActor $actor,
         private ClockInterface $clock,
-        private ContactSettingsForFirm $contacts,
         private AdvanceDeductions $deductions,
         private CorrectionRules $corrections,
         private BilledWork $billedWork,
@@ -87,7 +86,7 @@ final readonly class IssueInvoice
             }
             $party = $this->parties->find($input->customerId) ?? throw new \LogicException('IssueRules refuses an unknown customer.');
             $series = null === $input->seriesId ? $this->catalog->defaultFor($firm, $input->kind) : $this->catalog->get($input->seriesId);
-            $customer = $this->copies->for($input, $party, $firm, null) ?? throw new \LogicException('IssueRules refuses a customer without an address.');
+            $customer = $this->copies->for($input, $party, null) ?? throw new \LogicException('IssueRules refuses a customer without an address.');
             $settings = $this->settings->for($firm);
             $regime = VatRegime::of($firm->vatStatus());
             $issuer = DocumentParties::ofIssuer($firm, $settings);
@@ -102,7 +101,7 @@ final readonly class IssueInvoice
 
             return $this->work->run(function () use ($input, $firm, $series, $regime, $settings, $issuer, $content, $party, $origin, $rateDate): Invoice {
                 [$invoice, $lines] = $this->write($input, $firm, $series, $regime, $settings->rounding(), $issuer, $content, $origin, $rateDate);
-                $this->contacts->makeCustomer($party, $firm);
+                $party->addRole(PartyRole::Customer);
                 $origin?->recordIn($invoice, $lines);
                 $this->corrections->claim($input, null, $regime, $this->countries->for($firm->address()->countryCode));
                 $this->events->record(new InvoiceIssued(

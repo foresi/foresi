@@ -143,7 +143,7 @@ final readonly class PartyConditions
             $conditions[] = 'p.registrationKey LIKE :key ESCAPE \'!\'';
             $parameters['key'] = '%'.$this->like($key).'%';
         }
-        $conditions[] = 'EXISTS (SELECT 1 FROM '.PartyEmail::class.' e WHERE e.party = p AND e.legalEntity IS NULL AND LOWER(e.address) LIKE :email ESCAPE \'!\')';
+        $conditions[] = 'EXISTS (SELECT 1 FROM '.PartyEmail::class.' e WHERE e.party = p AND LOWER(e.address) LIKE :email ESCAPE \'!\')';
         $parameters['email'] = '%'.$this->like(mb_strtolower($text)).'%';
 
         return [' AND ('.implode(' OR ', $conditions).')', $this->untyped($parameters)];

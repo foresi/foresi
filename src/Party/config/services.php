@@ -9,7 +9,6 @@ declare(strict_types=1);
 use Foresi\Party\Application\AccountNumbers;
 use Foresi\Party\Application\CompanyRegistry;
 use Foresi\Party\Application\ContactImports;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\CreateParty;
 use Foresi\Party\Application\ImportPartyValues;
 use Foresi\Party\Application\LegalEntities;
@@ -91,7 +90,6 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
 
         // Public for the tests, which use the ports directly.
         $services->alias(TransactionalWork::class, DoctrineTransactionalWork::class)->public();
-        $services->set(ContactSettingsForFirm::class)->public();
         $services->alias(BankAccountUsage::class, CollectedBankAccountUsage::class)->public();
 
         // Lets a test make storing a party fail with a domain error after it was written.

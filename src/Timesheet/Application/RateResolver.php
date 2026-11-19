@@ -10,7 +10,6 @@ namespace Foresi\Timesheet\Application;
 
 use Foresi\Identity\Application\People;
 use Foresi\Identity\Domain\Membership;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Party\Domain\Party;
@@ -23,9 +22,8 @@ use Foresi\Work\Domain\Project;
 
 /**
  * The hourly rate of time a person worked on a project, when a firm invoices
- * it: the project's own rate; else the rate of its client for that firm (the
- * firm's own invoicing defaults if it has them, else the ones the firms share,
- * as the client's other defaults resolve); else the person's rate. With none
+ * it: the project's own rate; else the rate among its client's invoicing
+ * defaults; else the person's rate. With none
  * of them, as for an internal project of a person without a rate, there is none.
  *
  * It reads what is stored now; an invoice keeps the rate it took, so a change
@@ -39,7 +37,6 @@ final readonly class RateResolver
         private Projects $projects,
         private People $people,
         private LegalEntities $firms,
-        private ContactSettingsForFirm $contacts,
     ) {
     }
 
@@ -57,14 +54,15 @@ final readonly class RateResolver
         if (!$membership instanceof Membership) {
             throw new UnknownRateTarget('Unknown membership.');
         }
-        $firm = $this->firms->get($firmId);
+        // Still refuses a firm the instance does not have.
+        $this->firms->get($firmId);
 
         $rate = $project->hourlyRate();
         if ($rate instanceof Money) {
             return new ResolvedRate($rate, RateSource::Project);
         }
         $client = $project->client();
-        $rate = $client instanceof Party ? $this->contacts->defaultsFor($client, $firm)->hourlyRate() : null;
+        $rate = $client instanceof Party ? $client->invoicingDefaults()->hourlyRate() : null;
         if ($rate instanceof Money) {
             return new ResolvedRate($rate, RateSource::Client);
         }

@@ -17,13 +17,13 @@ use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceChange;
 use Foresi\Invoicing\Domain\InvoiceLine;
 use Foresi\Invoicing\Domain\Series;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyRole;
 use Foresi\Shared\Domain\Currency;
 use Psr\Clock\ClockInterface;
 
@@ -64,7 +64,6 @@ final readonly class ImportIssuedDocument
         private ConflictRetry $retry,
         private AuditActor $actor,
         private ClockInterface $clock,
-        private ContactSettingsForFirm $contacts,
         private AdvanceDeductions $deductions,
         private AdvanceDocuments $advances,
         private InvoicePayments $payments,
@@ -96,7 +95,7 @@ final readonly class ImportIssuedDocument
             \assert($party instanceof Party);
             \assert(null !== $input->seriesId);
             $series = $this->catalog->get($input->seriesId);
-            $customer = $this->copies->for($input, $party, $firm, null);
+            $customer = $this->copies->for($input, $party, null);
             \assert($customer instanceof DocumentParty);
             $content = $input->change($party, $customer, $series->kind());
             $country = $this->countries->for($import->issuer->address->countryCode);
@@ -166,7 +165,7 @@ final readonly class ImportIssuedDocument
                 if (null !== $import->originalPdf) {
                     $invoice->keepOriginal($this->originals->store($invoice->id(), $import->originalPdf), hash('sha256', $import->originalPdf));
                 }
-                $this->contacts->makeCustomer($content->customerParty, $firm);
+                $content->customerParty->addRole(PartyRole::Customer);
 
                 return $invoice->id();
             });

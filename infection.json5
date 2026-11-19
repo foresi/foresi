@@ -231,7 +231,6 @@
             // are always both set or both empty.
             "Foresi\\Identity\\Domain\\Membership::hourlyRate",
             "Foresi\\Party\\Domain\\InvoicingDefaults::hourlyRate",
-            "Foresi\\Party\\Domain\\PartyFirmSettings::invoicingDefaults::136",
             "Foresi\\Work\\Domain\\Project::hourlyRate",
             "Foresi\\Work\\Domain\\TimeEntry::invoicedRate"
         ]},

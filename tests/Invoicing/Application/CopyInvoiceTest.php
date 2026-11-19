@@ -23,7 +23,6 @@ use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesCounter;
 use Foresi\Invoicing\Domain\SeriesFormat;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\InvoicingDefaults;
@@ -159,10 +158,10 @@ final class CopyInvoiceTest extends InvoiceTestCase
         self::assertSame($this->customer->id(), $draft->customerId);
     }
 
-    public function testACopyForACustomerArchivedForTheFirmWarnsAndNeedsAnotherCustomer(): void
+    public function testACopyForAnArchivedCustomerWarnsAndNeedsAnotherCustomer(): void
     {
         $source = $this->source();
-        self::getContainer()->get(ContactSettingsForFirm::class)->changeArchived($this->customer, $this->firm, true);
+        $this->customer->archive(new \DateTimeImmutable('2026-11-01'));
         $this->em->flush();
 
         $draft = $this->copy->valuesFrom($source);
@@ -175,7 +174,7 @@ final class CopyInvoiceTest extends InvoiceTestCase
     public function testAContactWhoStoppedBeingACustomerStaysOnTheCopy(): void
     {
         $source = $this->source();
-        self::getContainer()->get(ContactSettingsForFirm::class)->changeRoles($this->customer, $this->firm, [\Foresi\Party\Domain\PartyRole::Supplier]);
+        $this->customer->assignRoles([\Foresi\Party\Domain\PartyRole::Supplier]);
         $this->em->flush();
 
         $draft = $this->copy->valuesFrom($source);

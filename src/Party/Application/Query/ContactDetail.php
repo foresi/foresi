@@ -16,7 +16,7 @@ final readonly class ContactDetail
 {
     /**
      * @param list<ContactAddress>     $addresses    the billing address first
-     * @param list<ContactEmail>       $emails       the shared addresses; a firm's own invoicing addresses are not among them
+     * @param list<ContactEmail>       $emails       the contact's addresses
      * @param list<ContactBankAccount> $bankAccounts the primary account first
      * @param list<ContactPersonLink>  $contactLinks where the contact is the company, or the person
      */

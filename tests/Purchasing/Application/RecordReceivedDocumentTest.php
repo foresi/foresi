@@ -8,10 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Purchasing\Application;
 
-use Foresi\Party\Application\ContactSettingsForFirm;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
-use Foresi\Party\Domain\PartyFirmSettings;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Purchasing\Application\PurchasingNotAllowed;
 use Foresi\Purchasing\Application\ReceivedDocumentWarning;
@@ -88,24 +85,7 @@ final class RecordReceivedDocumentTest extends PurchasingTestCase
         $this->em->clear();
         $supplier = $this->em->find(Party::class, $this->supplier->id());
         self::assertInstanceOf(Party::class, $supplier);
-        self::assertSame([PartyRole::Supplier], $supplier->roles(), 'With one firm, the shared roles change.');
-    }
-
-    public function testWithSeveralFirmsTheSupplierBecomesASupplierOfThatFirmOnly(): void
-    {
-        $other = $this->firm('Other Firm s.r.o.', '25596641');
-        $this->supplier->assignRoles([PartyRole::Customer]);
-        $this->em->flush();
-
-        $this->recording()->record($this->draft(), $this->input());
-
-        $this->em->clear();
-        $supplier = $this->em->find(Party::class, $this->supplier->id());
-        self::assertInstanceOf(Party::class, $supplier);
-        $contacts = self::getContainer()->get(ContactSettingsForFirm::class);
-        self::assertSame([PartyRole::Customer, PartyRole::Supplier], $contacts->rolesFor($supplier, $this->firmOf($this->firm->id())));
-        self::assertSame([PartyRole::Customer], $contacts->rolesFor($supplier, $this->firmOf($other->id())));
-        self::assertCount(1, $this->em->getRepository(PartyFirmSettings::class)->findAll());
+        self::assertSame([PartyRole::Supplier], $supplier->roles());
     }
 
     public function testARateIsTakenFromThePublishedRatesOfTheTaxPoint(): void
@@ -226,10 +206,5 @@ final class RecordReceivedDocumentTest extends PurchasingTestCase
         }
         $this->expectException(PurchasingNotAllowed::class);
         $this->recording()->create($this->firm->id(), $this->input());
-    }
-
-    private function firmOf(string $id): LegalEntity
-    {
-        return $this->em->find(LegalEntity::class, $id) ?? throw new \LogicException('No such firm.');
     }
 }

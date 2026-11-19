@@ -11,9 +11,7 @@ namespace Foresi\Invoicing\Application;
 use Foresi\Invoicing\Contract\DocumentParty;
 use Foresi\Invoicing\Domain\DocumentParties;
 use Foresi\Invoicing\Domain\Invoice;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\PartyDetails;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 
@@ -25,29 +23,29 @@ use Foresi\Party\Domain\PartyAddress;
  */
 final readonly class CustomerCopies
 {
-    public function __construct(private PartyDetails $details, private ContactSettingsForFirm $settings)
+    public function __construct(private PartyDetails $details)
     {
     }
 
     /**
      * @return DocumentParty|null null when the contact has no billing address to copy
      */
-    public function for(InvoiceInput $input, Party $party, LegalEntity $firm, ?Invoice $existing): ?DocumentParty
+    public function for(InvoiceInput $input, Party $party, ?Invoice $existing): ?DocumentParty
     {
         if ($existing instanceof Invoice) {
-            return $party->id() === $existing->customerParty()->id() ? $input->customerOnDocument ?? $existing->customer() : $this->ofContact($party, $firm);
+            return $party->id() === $existing->customerParty()->id() ? $input->customerOnDocument ?? $existing->customer() : $this->ofContact($party);
         }
 
-        return $input->customerOnDocument ?? $this->ofContact($party, $firm);
+        return $input->customerOnDocument ?? $this->ofContact($party);
     }
 
-    private function ofContact(Party $party, LegalEntity $firm): ?DocumentParty
+    private function ofContact(Party $party): ?DocumentParty
     {
         $billing = $this->details->billingAddress($party);
         if (!$billing instanceof PartyAddress) {
             return null;
         }
-        $email = $this->settings->emailsFor($party, $firm)[0] ?? $this->details->generalEmail($party);
+        $email = $this->details->invoicingEmails($party)[0] ?? $this->details->generalEmail($party);
 
         return DocumentParties::ofCustomer($party, $billing->address(), $email?->address());
     }

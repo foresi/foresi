@@ -19,7 +19,6 @@ use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\RecurringState;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Id;
@@ -76,9 +75,9 @@ final class SaveRecurringInvoiceTest extends RecurringTestCase
         self::assertSame('2026-11-02', $this->templateRow($today->id())['next_occurrence']);
     }
 
-    public function testAnArchivedCustomerForTheFirmIsRefused(): void
+    public function testAnArchivedCustomerIsRefused(): void
     {
-        self::getContainer()->get(ContactSettingsForFirm::class)->changeArchived($this->customer, $this->firm, true);
+        $this->customer->archive(new \DateTimeImmutable('2026-11-01'));
         $this->em->flush();
 
         self::assertSame(['invoice.problem.customer_archived'], $this->recurringRefusalOf(fn (): RecurringInvoice => $this->save->create($this->recurringInput())));

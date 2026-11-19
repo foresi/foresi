@@ -47,7 +47,6 @@ use Foresi\Invoicing\Domain\TaxOnReceiptChoice;
 use Foresi\Invoicing\Infrastructure\Form\InvoiceErrorTargets;
 use Foresi\Invoicing\Infrastructure\Form\InvoiceFormReader;
 use Foresi\Invoicing\Infrastructure\View\TaxDocumentQueueRecordCounter;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
 use Foresi\Party\Domain\DocumentLanguage;
@@ -304,14 +303,13 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSame('Still editable', $this->stored($source)->description());
     }
 
-    public function testACopyForACustomerArchivedForTheFirmWarnsAndNeedsAnotherCustomer(): void
+    public function testACopyForAnArchivedCustomerWarnsAndNeedsAnotherCustomer(): void
     {
         $this->signedIn();
         $source = $this->issued();
         $this->scoped(function (): void {
             $party = $this->em()->getRepository(Party::class)->find($this->customer->id()) ?? throw new \LogicException('Customer.');
-            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
-            self::getContainer()->get(ContactSettingsForFirm::class)->changeArchived($party, $firm, true);
+            $party->archive(new \DateTimeImmutable('2026-11-01'));
             $this->em()->flush();
         });
 
@@ -424,8 +422,7 @@ final class InvoiceControllerTest extends WebTestCase
         $source = $this->issued();
         $this->scoped(function (): void {
             $party = $this->em()->getRepository(Party::class)->find($this->customer->id()) ?? throw new \LogicException('Customer.');
-            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
-            self::getContainer()->get(ContactSettingsForFirm::class)->changeArchived($party, $firm, true);
+            $party->archive(new \DateTimeImmutable('2026-11-01'));
             $this->em()->flush();
         });
         $values = $this->openCopy($source);
@@ -2598,26 +2595,6 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSame('none', $reopened['lines'][0]['vat']);
         self::assertSame('Work', $reopened['lines'][0]['text']);
         self::assertSame($this->customer->id(), $reopened['customerId']);
-    }
-
-    public function testACustomerWhoDoesNotFitTheNewFirmIsDropped(): void
-    {
-        $this->signedIn();
-        $second = $this->secondFirm(VatStatus::Registered);
-        $this->scoped(function () use ($second): void {
-            $firm = $this->em()->getRepository(LegalEntity::class)->find($second->id()) ?? throw new \LogicException('Firm.');
-            $party = $this->em()->getRepository(Party::class)->find($this->customer->id()) ?? throw new \LogicException('Party.');
-            $settings = new \Foresi\Party\Domain\PartyFirmSettings($party, $firm);
-            $settings->archive(new \DateTimeImmutable());
-            $this->em()->persist($settings);
-            $this->em()->flush();
-        });
-        $values = $this->filled();
-        $values['firmId'] = $second->id();
-
-        $this->save(array_merge($values, ['_action' => 'refresh']));
-
-        self::assertSame('', $this->currentValues()['customerId']);
     }
 
     public function testTwoFirmsShowTheIssuerAndTheLastUsedOneOpens(): void

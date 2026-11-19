@@ -18,7 +18,6 @@ use Foresi\Import\Contract\RecordMatch;
 use Foresi\Import\Contract\RowError;
 use Foresi\Import\Domain\NormalisationOptions;
 use Foresi\Import\Domain\ValueNormaliser;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\ImportPartyValues;
 use Foresi\Party\Application\PartyDetails;
 use Foresi\Party\Application\PartyQuery;
@@ -34,7 +33,7 @@ use Foresi\Shared\Domain\Countries;
  * contact found gets only what it lacks, never a value the user has. Neither
  * found nor creatable (a value Foresi cannot read, a country iDoklad does not
  * name) is a refusal with the reasons, never a guess. The reminder setting is
- * the firm's own setting of a created contact.
+ * that of a created contact.
  */
 final readonly class ContactsStage implements ImportStage
 {
@@ -78,7 +77,6 @@ final readonly class ContactsStage implements ImportStage
         private ImportPartyValues $reader,
         private PartyQuery $parties,
         private PartyDetails $details,
-        private ContactSettingsForFirm $settings,
         private ContactNames $names,
     ) {
     }
@@ -137,7 +135,7 @@ final readonly class ContactsStage implements ImportStage
             if ([] === $found) {
                 $partyId = $target->create($values)->id;
                 $byName[$this->fold($row->displayName)][] = $partyId;
-                $this->remind($context, $partyId, $record->payload()['SendReminders'] ?? null);
+                $this->remind($partyId, $record->payload()['SendReminders'] ?? null);
                 $context->link(IdokladResource::Contacts, $id, $partyId);
                 $context->report(self::KEY, $id, ImportOutcome::Created, $partyId);
 
@@ -285,17 +283,17 @@ final readonly class ContactsStage implements ImportStage
     }
 
     /**
-     * A created contact sends reminders for this firm as iDoklad did.
+     * A created contact sends reminders as iDoklad did.
      */
-    private function remind(ImportContext $context, string $partyId, mixed $sendReminders): void
+    private function remind(string $partyId, mixed $sendReminders): void
     {
         if (!\is_bool($sendReminders)) {
             return;
         }
         $party = $this->parties->find($partyId) ?? throw new \LogicException('The created contact is stored.');
-        $defaults = $this->settings->defaultsFor($party, $context->firm);
+        $defaults = $party->invoicingDefaults();
         if ($defaults->sendReminders !== $sendReminders) {
-            $this->settings->changeDefaults($party, $context->firm, new InvoicingDefaults($defaults->dueDays, $defaults->currency, $defaults->language, $defaults->paymentMethod, $defaults->reverseCharge, $sendReminders, $defaults->hourlyRate()));
+            $party->changeInvoicingDefaults(new InvoicingDefaults($defaults->dueDays, $defaults->currency, $defaults->language, $defaults->paymentMethod, $defaults->reverseCharge, $sendReminders, $defaults->hourlyRate()));
         }
     }
 

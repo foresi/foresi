@@ -39,7 +39,6 @@ use Foresi\Invoicing\Contract\VatRateKind;
 use Foresi\Invoicing\Domain\RecurringDelivery;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\TaxPointRule;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\EmailPurpose;
@@ -404,7 +403,7 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         $this->em->flush();
         $refused = $this->template(customer: $archived);
         $other = $this->template();
-        self::getContainer()->get(ContactSettingsForFirm::class)->changeArchived($this->partyNow($archived), $this->firmNow(), true);
+        $this->partyNow($archived)->archive(new \DateTimeImmutable('2026-11-01'));
         $this->em->flush();
 
         $this->runOn('2026-12-01 05:30:00');
@@ -519,7 +518,7 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         $archived = $this->customer();
         $this->em->flush();
         $template = $this->template(customer: $archived);
-        self::getContainer()->get(ContactSettingsForFirm::class)->changeArchived($this->partyNow($archived), $this->firmNow(), true);
+        $this->partyNow($archived)->archive(new \DateTimeImmutable('2026-11-01'));
         $this->em->flush();
 
         $this->runOn('2026-12-01 05:30:00');
@@ -626,7 +625,7 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         $this->em->flush();
         $refused = $this->template(customer: $archived);
         $this->template();
-        self::getContainer()->get(ContactSettingsForFirm::class)->changeArchived($this->partyNow($archived), $this->firmNow(), true);
+        $this->partyNow($archived)->archive(new \DateTimeImmutable('2026-11-01'));
         $this->em->flush();
         // The second template breaks on what no rule foresaw: the table of invoice lines is gone.
         $this->connection->executeStatement('ALTER TABLE invoice_line RENAME TO invoice_line_gone');

@@ -13,7 +13,6 @@ use Foresi\Invoicing\Application\CustomerOption;
 use Foresi\Invoicing\Application\CustomerPicker;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\UnknownLegalEntity;
-use Foresi\Party\Domain\LegalEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -47,15 +46,16 @@ final class CustomerPickerController extends AbstractController
 
         $id = $request->query->getString('firm');
         try {
-            $firm = Uuid::isValid($id) ? $this->firms->get($id) : throw new NotFoundHttpException();
+            // The firm no longer changes what a contact is, but an unknown one is still not found.
+            Uuid::isValid($id) ? $this->firms->get($id) : throw new NotFoundHttpException();
         } catch (UnknownLegalEntity) {
             throw new NotFoundHttpException();
         }
 
         $contact = $request->query->getString('id');
         $options = '' === $contact
-            ? $this->picker->search(mb_substr($request->query->getString('q'), 0, self::MAX_QUERY), $firm)
-            : $this->one($contact, $firm);
+            ? $this->picker->search(mb_substr($request->query->getString('q'), 0, self::MAX_QUERY))
+            : $this->one($contact);
 
         return $this->json(['results' => array_map(static fn (CustomerOption $option): array => [
             'id' => $option->id,
@@ -82,9 +82,9 @@ final class CustomerPickerController extends AbstractController
     /**
      * @return list<CustomerOption>
      */
-    private function one(string $id, LegalEntity $firm): array
+    private function one(string $id): array
     {
-        $option = Uuid::isValid($id) ? $this->picker->find($id, $firm) : null;
+        $option = Uuid::isValid($id) ? $this->picker->find($id) : null;
 
         return $option instanceof CustomerOption ? [$option] : [];
     }

@@ -11,7 +11,6 @@ namespace Foresi\Invoicing\Application;
 use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\RecurringInvoice;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Domain\Iban;
@@ -32,7 +31,6 @@ final readonly class RecurringRules
         private LineRules $shared,
         private InvoicingCountries $countries,
         private PartyQuery $parties,
-        private ContactSettingsForFirm $contacts,
         private SeriesCatalog $catalog,
         private FirmInvoicingSettings $settings,
         private FirmBankAccounts $accounts,
@@ -53,7 +51,7 @@ final readonly class RecurringRules
             ...$this->firm($input, $firm, $existing),
             ...$this->document($input, $firm),
             ...$this->series($input, $firm),
-            ...$this->customer($input, $firm, $customer),
+            ...$this->customer($input, $customer),
             ...$this->shared->unprintable([
                 'orderNumber' => $input->orderNumber,
                 'description' => $input->description,
@@ -156,14 +154,14 @@ final readonly class RecurringRules
      *
      * @return list<IssueProblem>
      */
-    private function customer(RecurringInput $input, LegalEntity $firm, ?Party &$customer): array
+    private function customer(RecurringInput $input, ?Party &$customer): array
     {
         $customer = $this->parties->find($input->customerId);
         if (!$customer instanceof Party) {
             return [new IssueProblem('customer', 'invoice.problem.customer_unknown')];
         }
 
-        return $this->contacts->isArchivedFor($customer, $firm) ? [new IssueProblem('customer', 'invoice.problem.customer_archived')] : [];
+        return $customer->isArchived() ? [new IssueProblem('customer', 'invoice.problem.customer_archived')] : [];
     }
 
     /**

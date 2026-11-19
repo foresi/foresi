@@ -39,7 +39,7 @@ final class TranslatedRecurringAlertTextsTest extends KernelTestCase
         $english = $texts->compose('Example Firm', DocumentLanguage::English, [...$two, ['customer' => 'Third Ltd', 'code' => 'invoice.problem.customer_archived']], new \DateTimeImmutable('2026-12-01'));
         self::assertSame('3 recurring invoices could not be issued or sent', $english['subject']);
         self::assertStringContainsString("- First a.s.: The firm has used up its daily budget of e-mails.\n", $english['text']);
-        self::assertStringContainsString('- Third Ltd: The customer is archived for this firm.', $english['text']);
+        self::assertStringContainsString('- Third Ltd: The customer is archived.', $english['text']);
         self::assertStringContainsString('(code invoice.problem.unheard_of)', $texts->compose('Example Firm', DocumentLanguage::English, [['customer' => 'X', 'code' => 'invoice.problem.unheard_of']], new \DateTimeImmutable('2026-12-01'))['text'], 'a code without a text of its own is named');
     }
 
