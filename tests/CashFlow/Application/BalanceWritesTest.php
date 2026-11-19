@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Tests\CashFlow\Application;
 
 use Foresi\CashFlow\Application\BalanceWrites;
+use Foresi\CashFlow\Application\CashFlowAccess;
 use Foresi\CashFlow\Application\CashFlowRefused;
 use Foresi\CashFlow\Application\CashFlowStore;
 use Foresi\CashFlow\Application\ClearExpectedDateInput;
@@ -123,6 +124,13 @@ final class BalanceWritesTest extends CashFlowTestCase
         $this->assertRefused('forbidden', null, fn (): ExpectedDate => $this->writer()->expect(new SetExpectedDateInput('invoice', 'inv-1', '2026-12-15')));
         $this->assertRefused('forbidden', null, fn (): array => $this->writer()->clearExpected(new ClearExpectedDateInput('invoice', 'inv-1')));
         $this->assertRefused('forbidden', null, fn (): ?MinimumBalance => $this->writer()->minimum(new SetMinimumBalanceInput('1.00')));
+    }
+
+    public function testAGuestSearchesNoContacts(): void
+    {
+        $this->signIn($this->guest);
+
+        $this->assertRefused('forbidden', null, fn (): array => self::getContainer()->get(CashFlowAccess::class)->contacts('a'));
     }
 
     private function writer(): BalanceWrites

@@ -1,6 +1,8 @@
 nav:
   item:
     cash_flow: Cash flow
+    planned_income: Plánované příjmy
+    planned_costs: Plánované výdaje
 cash_flow:
   title: Cash flow
   cancel: Zrušit
@@ -120,3 +122,134 @@ cash_flow:
     error:
       amount_required: Zadejte minimální zůstatek, nebo ho zrušte.
       amount_invalid: Zadejte částku s nejvýš dvěma desetinnými místy, třeba 50000.
+  links:
+    label: Plánované peníze
+    planned_income: Plánované příjmy
+    planned_costs: Plánované výdaje
+  planned:
+    create: Vytvořit
+    outside_books: Plánované položky zůstávají mimo účetnictví; předpověď je počítá, dokud jejich místo nezaujme doklad nebo bankovní pohyb.
+    see_forecast: Zobrazit cash flow
+    detail: Podrobnosti
+    left_out_note: Vynecháno z předpovědi. Položka zůstává; zahrňte ji znovu, aby se počítala.
+    end_description: Po tomto dni už žádný výskyt nebude.
+    in:
+      title: Plánované příjmy
+      new: Nový plánovaný příjem
+      name_placeholder: Například klient, který zatím nedostal fakturu
+      empty_title: Zatím žádné plánované příjmy
+      empty_text: Naplánujte peníze, které firma čeká a které zatím nenese žádná faktura, například klienta bez faktury nebo dotaci.
+    out:
+      title: Plánované výdaje
+      new: Nový plánovaný výdaj
+      name_placeholder: Například nájem kanceláře
+      empty_title: Zatím žádné plánované výdaje
+      empty_text: Naplánujte peníze, které firma zaplatí a které zatím nenese žádný přijatý doklad, například nájem, software, pojištění nebo zálohy na daně.
+    column:
+      name: Název
+      category: Kategorie
+      repeat: Opakování
+      next: Příště
+      amount: Částka
+      included: V předpovědi
+    state:
+      included: Zahrnuto
+      left_out: Vynecháno
+    none:
+      next: Už žádný
+      counterparty: Bez kontaktu
+      match: Bez pravidla
+    repeat:
+      once: Neopakuje se
+      last_day: poslední den v měsíci
+      unit:
+        day: Denně
+        week: Týdně
+        month: Měsíčně
+        year: Ročně
+      every:
+        day: '{every, plural, one {Každý den} few {Každé # dny} other {Každých # dní}}'
+        week: '{every, plural, one {Každý týden} few {Každé # týdny} other {Každých # týdnů}}'
+        month: '{every, plural, one {Každý měsíc} few {Každé # měsíce} other {Každých # měsíců}}'
+        year: '{every, plural, one {Každý rok} few {Každé # roky} other {Každých # let}}'
+    end:
+      never: Nikdy
+      on_date: Ke dni
+      after_count: Po počtu opakování
+    ends_on: 'K {day}'
+    ends_after: '{count, plural, one {Po # opakování} few {Po # opakováních} other {Po # opakováních}}'
+    match:
+      variable_symbol: 'VS {symbol}'
+      tolerance: '± {amount}'
+    field:
+      name: Název
+      category: Kategorie
+      amount: Částka
+      currency: Měna
+      on: Den
+      first_on: První den
+      on_or_first: Den, nebo první den, když se opakuje
+      repeat: Opakování
+      every: Každý
+      every_help: 1 = každý den, týden, měsíc či rok; 2 = každý druhý.
+      last_day: Poslední den v měsíci
+      end: Konec
+      ends_on: Poslední den
+      ends_after: Počet opakování
+      last_on: Poslední den
+      counterparty: Kontakt
+      counterparty_help: Nepovinné. Od koho peníze přijdou nebo komu odejdou.
+      counterparty_placeholder: Hledat v kontaktech
+      counterparty_empty: Žádný kontakt neodpovídá.
+      included: Zahrnout do předpovědi
+      included_help: Odškrtnutá se nepočítá, ale zůstane uložená.
+      match: Pravidlo párování
+      match_intro: Bankovní pohyb, který pravidlu odpovídá v období výskytu, ho splní.
+      match_account: Účet protistrany
+      match_variable_symbol: Variabilní symbol
+      match_tolerance: Tolerance
+    occurrences:
+      title: Další výskyty
+      title_once: Den
+      none: Žádný výskyt už nezbývá.
+      skip: Vynechat tento
+      skip_label: 'Vynechat výskyt {day}'
+      skipped: Vynecháno
+    action:
+      edit: Upravit
+      include: Zahrnout do předpovědi
+      leave_out: Vynechat z předpovědi
+      end: Ukončit
+      delete: Smazat
+    confirm:
+      delete_title: 'Smazat {name}?'
+      delete_text: Všechny její výskyty z předpovědi zmizí. Nejde to vrátit; chcete-li ji ponechat, vynechte ji z předpovědi.
+    flash:
+      created: 'Naplánováno: {name}.'
+      saved: Plánovaná položka je uložena.
+      included: Položka je zahrnuta do předpovědi.
+      left_out: Položka je vynechána z předpovědi.
+      skipped: Výskyt je vynechán.
+      ended: Položka je ukončena.
+      deleted: 'Smazáno: {name}.'
+    error:
+      name_required: Zadejte název o délce nejvýše 120 znaků.
+      category_unknown: Vyberte kategorii.
+      currency_unknown: Vyberte měnu.
+      amount_required: Zadejte částku.
+      amount_invalid: Zadejte částku s nejvýše dvěma desetinnými místy, například 1500,50.
+      amount_not_positive: Zadejte částku větší než nula.
+      date_invalid: Zadejte den, například 31. 12. 2026.
+      repeat_unknown: Vyberte, jak se opakuje.
+      not_recurring: Konec nebo poslední den v měsíci má jen opakovaná položka.
+      every_invalid: Zadejte celé číslo od 1 do 99.
+      recurrence_invalid: Zkontrolujte opakování a konec; konec nemůže být před prvním dnem.
+      end_ambiguous: Vyberte jeden konec.
+      ends_after_invalid: Zadejte celé číslo od 1 do 999.
+      ends_before_start: Poslední den nemůže být před prvním dnem.
+      counterparty_unknown: Vyberte kontakt ze seznamu.
+      match_account_invalid: Zadejte číslo účtu, například 19-2000145399/0800.
+      variable_symbol_invalid: Zadejte nejvýše 10 číslic.
+      tolerance_negative: Zadejte toleranci nula nebo více.
+      not_an_occurrence: Položka na tento den nepřipadá.
+      not_found: Plánovaná položka už neexistuje.

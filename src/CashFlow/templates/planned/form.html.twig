@@ -1,0 +1,40 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A new planned item, or one changed. New is a dialog over its list; Edit takes the place of the item
+    in its side sheet (layout/record.html.twig) and is a dialog from the item's page; each URL is a page
+    of its own too. Variables: item (null for a new one), direction, listTitle, listRoute, action, values,
+    errors, matchOpen, categories, currencies, repeats, ends.
+#}
+{% extends item and overlay() == 'sheet' ? '@Ui/layout/record.html.twig' : (overlay() == 'dialog' ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig') %}
+
+{% set heading = item ? 'cash_flow.planned.action.edit'|trans : ('cash_flow.planned.' ~ direction ~ '.new')|trans %}
+{% set back = item ? path(itemRoute, {id: item.id}) : path(listRoute) %}
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: listTitle, href: path(listRoute)}]|merge(item ? [{label: item.name, href: back}] : [])|merge([{label: heading}]) %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+{% set record_fields = true %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="planned-form" action="{{ action }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\CashFlow\\Infrastructure\\Controller\\PlannedItemController::TOKEN')) }}">
+        {% include '@CashFlow/planned/_fields.html.twig' %}
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'cash_flow.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="planned-form" variant="primary">{{ (item ? 'cash_flow.save' : 'cash_flow.planned.create')|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="heading" :icon="item ? 'pencil' : 'plus'" class="max-w-2xl">{{ body }}</twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="back" data-in-place>{{ 'cash_flow.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="planned-form" variant="primary">{{ (item ? 'cash_flow.save' : 'cash_flow.planned.create')|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

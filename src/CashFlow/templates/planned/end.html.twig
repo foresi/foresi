@@ -1,0 +1,39 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Ends a recurring planned item, Pulse's "stop date": no occurrence falls after the day. A small dialog
+    over the item; the same URL is a page. Variables: item, listTitle, listRoute, values, errors.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: listTitle, href: path(listRoute)}, {label: item.name, href: path(itemRoute, {id: item.id})}, {label: 'cash_flow.planned.action.end'|trans}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'sm' %}
+{% set dialog_description = 'cash_flow.planned.end_description'|trans %}
+
+{% block title %}{{ 'cash_flow.planned.action.end'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="planned-end-form" action="{{ path(itemRoute ~ '_end', {id: item.id}) }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\CashFlow\\Infrastructure\\Controller\\PlannedItemController::TOKEN')) }}">
+        <twig:Ui:TextInput type="date" name="on" id="on" :label="'cash_flow.planned.field.last_on'|trans" :value="values.on" :error="errors.on|default(null)" required />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'cash_flow.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="planned-end-form" variant="primary">{{ 'cash_flow.planned.action.end'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'cash_flow.planned.action.end'|trans" icon="calendar" class="max-w-2xl">
+        <p class="m-0 mb-4 text-small text-muted">{{ 'cash_flow.planned.end_description'|trans }}</p>
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path(itemRoute, {id: item.id})">{{ 'cash_flow.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="planned-end-form" variant="primary">{{ 'cash_flow.planned.action.end'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}
