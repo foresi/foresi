@@ -1,0 +1,179 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# The checks of a pull request, run locally before a push so that CI is not the first to fail.
+#
+#   1. Fixes the code: php-cs-fixer and rector rewrite what they would otherwise fail on.
+#   2. Runs every static check, all of them even when one fails (bin/qa-static).
+#   3. Runs the tests of the modules this branch touches: tests/<Module> for each changed
+#      src/<Module> or tests/<Module> since the merge base with BASE.
+#   4. With --infection, runs those tests with coverage and Infection on the changed lines,
+#      with the thresholds of CI.
+#   5. With --title and --body-file, checks the pull request title, the commit subjects and
+#      the Release notes (bin/pr-check).
+#
+# Options:
+#   --base REF          compare with REF instead of origin/main (fetch it first)
+#   --infection         also run mutation testing of the changed lines
+#   --all-tests         run the whole test suite instead of the touched modules
+#   --no-tests          skip the tests (and Infection)
+#   --no-fix            do not rewrite code; cs:check and rector only report
+#   --title TITLE       check this pull request title ...
+#   --body-file FILE    ... with this description (- for standard input)
+#
+# Every step runs even when one before it fails; the summary at the end lists what failed,
+# and the exit status is 1 if anything did. CI stays the judge: the local Infection run sees
+# only the touched modules' tests, so it may report a mutant that a test elsewhere kills.
+set -uo pipefail
+
+root="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$root" || exit 2
+
+usage() {
+	sed -n '4,26p' "$0" | sed 's/^# \{0,1\}//'
+	exit 2
+}
+
+base=origin/main
+infection=
+tests=touched
+fix=1
+title=
+body_file=
+while [ $# -gt 0 ]; do
+	case "$1" in
+	--base) [ $# -ge 2 ] || usage; base=$2; shift 2 ;;
+	--infection) infection=1; shift ;;
+	--all-tests) tests=all; shift ;;
+	--no-tests) tests=none; shift ;;
+	--no-fix) fix=; shift ;;
+	--title) [ $# -ge 2 ] || usage; title=$2; shift 2 ;;
+	--body-file) [ $# -ge 2 ] || usage; body_file=$2; shift 2 ;;
+	-h | --help) usage ;;
+	*) usage ;;
+	esac
+done
+if [ -n "$title" ] || [ -n "$body_file" ]; then
+	[ -n "$title" ] && [ -n "$body_file" ] || { echo "--title and --body-file go together."; exit 2; }
+fi
+
+php=(php -d max_execution_time=0 -d memory_limit=2G)
+failed=()
+step() {
+	printf '\n\033[1m== %s\033[0m\n' "$1"
+}
+
+# The Release notes first: they take a second, and a description read from standard input
+# must be read before anything else does.
+if [ -n "$title" ]; then
+	step "Pull request title, commits and Release notes"
+	BASE=$base bin/pr-check --title "$title" --body-file "$body_file" || failed+=("release notes")
+fi
+
+fingerprint() {
+	git diff | git hash-object --stdin
+}
+before_fix=$(fingerprint)
+if [ -n "$fix" ]; then
+	step "Fix the code (php-cs-fixer, rector)"
+	composer --no-interaction cs:fix || failed+=("cs:fix")
+	"${php[@]}" vendor/bin/rector process --ansi || failed+=("rector process")
+fi
+
+step "Static checks"
+bin/qa-static || failed+=("static checks")
+
+if ! git rev-parse --verify --quiet "$base" >/dev/null; then
+	echo "$base does not exist; run git fetch origin main, or pass --base."
+	failed+=("base $base")
+	tests=none
+	infection=
+fi
+
+# Committed, staged, unstaged and untracked changes since the merge base.
+changed=$( {
+	[ "$tests" = none ] || git diff --name-only "$(git merge-base "$base" HEAD)"
+	git ls-files --others --exclude-standard
+} | sort -u)
+
+suites=()
+if [ "$tests" = touched ]; then
+	unmapped=()
+	modules=$(printf '%s\n' "$changed" | sed -nE 's#^(src|tests)/([A-Z][A-Za-z]+)/.*#\2#p' | sort -u)
+	for module in $modules; do
+		case "$module" in Support | Fixtures | Smoke) continue ;; esac
+		[ -d "tests/$module" ] && suites+=("tests/$module")
+	done
+	while IFS= read -r file; do
+		case "$file" in
+		'' | docs/* | *.md | .github/* | tests/e2e/*) ;;
+		src/*/* | tests/*/*)
+			module=$(printf '%s\n' "$file" | cut -d/ -f2)
+			case "$module" in Support | Fixtures | Smoke) unmapped+=("$file") ;; *) [ -d "tests/$module" ] || unmapped+=("$file") ;; esac
+			;;
+		*) unmapped+=("$file") ;;
+		esac
+	done <<<"$changed"
+	if [ ${#unmapped[@]} -gt 0 ]; then
+		echo
+		echo "Changed files outside a module's tests (CI runs the whole suite; --all-tests does here):"
+		printf '  %s\n' "${unmapped[@]}" | head -n 20
+	fi
+	if [ ${#suites[@]} -eq 0 ]; then
+		echo "No module tests to run for the changed files."
+		infection=
+	fi
+elif [ "$tests" = all ]; then
+	suites=(tests)
+fi
+
+if [ ${#suites[@]} -gt 0 ]; then
+	# One configuration with a suite of the chosen directories, so one paratest run covers all.
+	config=phpunit.check.xml
+	directories=$(printf '            <directory>%s</directory>\\n' "${suites[@]}")
+	sed "s#^ *<directory>tests</directory>#${directories%\\n}#" phpunit.dist.xml >"$config"
+
+	if [ -n "$infection" ]; then
+		step "Tests with coverage: ${suites[*]}"
+		rm -rf var/coverage
+		"${php[@]}" vendor/bin/paratest --configuration="$config" \
+			--passthru-php="'-d' 'max_execution_time=0' '-d' 'memory_limit=2G'" \
+			--coverage-xml=var/coverage/coverage-xml --log-junit=var/coverage/junit.xml
+		tests_status=$?
+	else
+		step "Tests: ${suites[*]}"
+		"${php[@]}" vendor/bin/paratest --configuration="$config" \
+			--passthru-php="'-d' 'max_execution_time=0' '-d' 'memory_limit=2G'"
+		tests_status=$?
+	fi
+	rm -f "$config"
+	[ "$tests_status" -eq 0 ] || failed+=("tests")
+
+	if [ -n "$infection" ]; then
+		step "Mutation testing of the changed lines"
+		if [ -f var/coverage/junit.xml ]; then
+			"${php[@]}" vendor/bin/infection \
+				--coverage=var/coverage --skip-initial-tests \
+				--git-diff-lines --git-diff-base="$base" \
+				--threads=max --only-covering-test-cases \
+				--min-msi=80 --min-covered-msi=90 --ignore-msi-with-no-mutations \
+				--show-mutations=max --no-progress || failed+=("infection")
+		else
+			echo "No coverage was written, so Infection cannot run."
+			failed+=("infection")
+		fi
+	fi
+fi
+
+echo
+if [ ${#failed[@]} -gt 0 ]; then
+	summary=$(printf '%s, ' "${failed[@]}")
+	printf '\033[31mbin/check failed: %s\033[0m\n' "${summary%, }"
+	exit 1
+fi
+if [ -n "$fix" ] && [ "$(fingerprint)" != "$before_fix" ]; then
+	echo "bin/check passed, after the fixers changed files. Review and commit them before you push:"
+	git diff --name-only | sed 's/^/  /'
+	exit 0
+fi
+echo "bin/check passed."

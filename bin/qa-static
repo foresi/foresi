@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# Runs every static check, each of them even when one before it fails, and fails at the end
+# with the list of the checks that failed. `composer qa:static` stops at the first failing
+# script, so one failure (most often rector, which fixes itself) would hide the others until
+# the next round.
+#
+#   bin/qa-static            all checks
+#   bin/qa-static CHECK...   only these, by their Composer script names
+#
+# The checks are the Composer scripts below; their commands live in composer.json.
+set -uo pipefail
+
+cd "$(dirname "$0")/.." || exit 2
+
+checks=("$@")
+if [ ${#checks[@]} -eq 0 ]; then
+	checks=(cs:check rector lint phpstan modules:check events:check deptrac)
+fi
+
+github=${GITHUB_ACTIONS:-}
+failed=()
+for check in "${checks[@]}"; do
+	if [ -n "$github" ]; then
+		echo "::group::composer $check"
+	else
+		printf '\n\033[1m== composer %s\033[0m\n' "$check"
+	fi
+	started=$SECONDS
+	composer --no-interaction "$check"
+	status=$?
+	[ -n "$github" ] && echo "::endgroup::"
+	if [ "$status" -ne 0 ]; then
+		failed+=("$check")
+		[ -n "$github" ] && echo "::error title=Static checks::composer $check failed (exit $status)"
+		printf 'composer %s failed (exit %d, %ds)\n' "$check" "$status" $((SECONDS - started))
+	else
+		printf 'composer %s passed (%ds)\n' "$check" $((SECONDS - started))
+	fi
+done
+
+echo
+if [ ${#failed[@]} -gt 0 ]; then
+	echo "Static checks failed: ${failed[*]}"
+	exit 1
+fi
+echo "Static checks passed: ${checks[*]}"
