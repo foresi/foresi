@@ -25,6 +25,8 @@ interface TimeEntries
     public function running(Membership $membership): ?TimeEntry;
 
     /**
+     * Every entry of the task, those in the trash too.
+     *
      * @return list<TimeEntry>
      */
     public function ofTask(Task $task): array;
@@ -47,6 +49,13 @@ interface TimeEntries
      * @return list<string>
      */
     public function idsInvoicedBy(string $invoiceId): array;
+
+    /**
+     * The entries put in the trash before the moment, of every project.
+     *
+     * @return list<TimeEntry>
+     */
+    public function trashedBefore(\DateTimeImmutable $moment): array;
 
     public function add(TimeEntry $entry): void;
 

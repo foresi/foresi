@@ -123,7 +123,8 @@ final class TimeControllerTest extends WebTestCase
         $edit = $crawler->filter('#time-'.$entry.' a[data-time-edit]');
         self::assertSame('/time/'.$entry.'/edit', $edit->attr('href'));
         self::assertNotNull($edit->attr('data-dialog'));
-        self::assertSame('Delete the logged time?', $crawler->filter('#time-'.$entry.' form[data-time-delete]')->attr('data-confirm-title'));
+        // Deleting asks no question: the message undoes it.
+        self::assertNull($crawler->filter('#time-'.$entry.' form[data-time-delete]')->attr('data-confirm-title'));
 
         $crawler = $this->client->request('GET', '/time/'.$entry.'/edit');
         self::assertSame('1 h 30 min', $crawler->filter('#time-duration')->attr('value'));
@@ -140,8 +141,48 @@ final class TimeControllerTest extends WebTestCase
         $this->client->submit($crawler->filter('#time-'.$entry.' form[data-time-delete]')->form());
         self::assertResponseRedirects('/tasks/'.$id.'#task-time-title');
         $crawler = $this->client->followRedirect();
-        self::assertSelectorTextContains('main', 'The time is deleted.');
+        self::assertSelectorTextContains('main', 'The time is in the trash.');
         self::assertCount(0, $crawler->filter('[data-time-entry]'));
+        self::assertSame(1, $this->rows('SELECT COUNT(*) FROM time_entry WHERE id = ? AND deleted_at IS NOT NULL', [$entry]));
+
+        // Undo brings it back where it was.
+        $undo = $crawler->filter('[data-alert-action]');
+        self::assertSame('Undo', trim($undo->text()));
+        self::assertSame('/time/'.$entry.'/restore', $undo->attr('action'));
+        $this->client->submit($undo->form());
+        self::assertResponseRedirects('/tasks/'.$id.'#task-time-title');
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'The time is restored.');
+        self::assertCount(1, $crawler->filter('#time-'.$entry));
+    }
+
+    public function testTheTrashOfTheProjectListsDeletedTimeAndRestoresIt(): void
+    {
+        $project = $this->seed();
+        $id = $this->taskId('Wireframes');
+        $entry = $this->logged($id, 90);
+        $crawler = $this->client->request('GET', '/tasks/'.$id);
+        $this->client->submit($crawler->filter('#time-'.$entry.' form[data-time-delete]')->form());
+
+        $crawler = $this->client->request('GET', '/projects/'.$project);
+        self::assertSame('Trash (1)', trim($crawler->filter('a[href="/projects/'.$project.'/trash"]')->text()));
+
+        $crawler = $this->client->request('GET', '/projects/'.$project.'/trash');
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Tasks and time in the trash are deleted for good after 30 days.', $crawler->filter('[data-trash-purge]')->text());
+        self::assertCount(0, $crawler->filter('[data-trash-tasks]'));
+        $time = $crawler->filter('[data-trash-time]');
+        self::assertSame('Time', trim($time->filter('h2')->text()));
+        self::assertStringContainsString('1 h 30 min', $time->text());
+        self::assertStringContainsString('Wireframes', $time->text());
+        $restore = $time->filter('form[action="/time/'.$entry.'/restore"]');
+        self::assertSame('Restore', trim($restore->text()));
+        $this->client->submit($restore->form());
+        self::assertResponseRedirects('/projects/'.$project.'/trash');
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'The time is restored.');
+        self::assertCount(0, $crawler->filter('[data-trash-time]'));
+        self::assertSame(0, $this->rows('SELECT COUNT(*) FROM time_entry WHERE deleted_at IS NOT NULL', []));
     }
 
     public function testAColleagueCannotChangeTheTimeOfAnotherButAnOwnerCan(): void

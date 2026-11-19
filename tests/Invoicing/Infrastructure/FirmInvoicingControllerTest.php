@@ -50,9 +50,9 @@ final class FirmInvoicingControllerTest extends WebTestCase
 
     public function testAFirmStartsWithTheStandardSettings(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
-        $this->client->request('GET', $this->settingsUrl($firm));
+        $this->client->request('GET', $this->settingsUrl());
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Invoicing');
@@ -64,7 +64,7 @@ final class FirmInvoicingControllerTest extends WebTestCase
     {
         $firm = $this->signedInFirm();
 
-        $this->saveSettings($firm, [
+        $this->saveSettings([
             'rounding' => 'none',
             'constantSymbol' => '0308',
             'textBefore' => 'Thank you for your order.',
@@ -74,7 +74,7 @@ final class FirmInvoicingControllerTest extends WebTestCase
             'contactWeb' => 'example.com',
         ]);
 
-        self::assertResponseRedirects($this->settingsUrl($firm));
+        self::assertResponseRedirects($this->settingsUrl());
         $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'The invoicing settings are saved.');
 
@@ -92,8 +92,8 @@ final class FirmInvoicingControllerTest extends WebTestCase
     {
         $firm = $this->signedInFirm();
 
-        $this->saveSettings($firm, ['constantSymbol' => '0308']);
-        $this->saveSettings($firm, ['constantSymbol' => '0008']);
+        $this->saveSettings(['constantSymbol' => '0308']);
+        $this->saveSettings(['constantSymbol' => '0008']);
 
         self::assertSame('0008', $this->storedSettings($firm)->constantSymbol());
         self::assertCount(1, $this->em()->getConnection()->fetchFirstColumn('SELECT id FROM firm_invoicing'));
@@ -101,9 +101,9 @@ final class FirmInvoicingControllerTest extends WebTestCase
 
     public function testASavedChangeIsAudited(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
-        $this->saveSettings($firm, ['constantSymbol' => '0308']);
+        $this->saveSettings(['constantSymbol' => '0308']);
 
         self::assertNotSame([], $this->em()->getConnection()->fetchFirstColumn("SELECT id FROM audit_entry WHERE entity_class LIKE '%FirmInvoicing'"));
     }
@@ -114,9 +114,9 @@ final class FirmInvoicingControllerTest extends WebTestCase
     #[\PHPUnit\Framework\Attributes\DataProvider('wrongSettings')]
     public function testWrongSettingsGiveAFormError(array $values, string $field): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
-        $this->saveSettings($firm, $values);
+        $this->saveSettings($values);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('#'.$field.'-error');
@@ -141,61 +141,61 @@ final class FirmInvoicingControllerTest extends WebTestCase
     public function testAMemberGets403(): void
     {
         $this->browser->seed(role: Role::Member);
-        $firm = $this->firm();
+        $this->firm();
         $this->browser->signIn();
 
         foreach (['/invoicing', '/invoicing/series/new'] as $path) {
-            $this->client->request('GET', '/settings/firms/'.$firm->id().$path);
+            $this->client->request('GET', '/settings/firm'.$path);
             self::assertResponseStatusCodeSame(403);
         }
     }
 
     public function testASeriesOfAnotherFirmGets404(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
         $other = $this->firm('12345687');
         $series = $this->series($other);
 
-        $this->client->request('GET', $this->editUrl($firm, $series));
+        $this->client->request('GET', $this->editUrl($series));
 
         self::assertResponseStatusCodeSame(404);
     }
 
     public function testACsrfFailureChangesNothing(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
-        $this->client->request('POST', $this->settingsUrl($firm), ['_token' => 'wrong', 'rounding' => 'none']);
+        $this->client->request('POST', $this->settingsUrl(), ['_token' => 'wrong', 'rounding' => 'none']);
 
         self::assertResponseStatusCodeSame(403);
     }
 
     public function testTheFirmFormLinksToTheSettings(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
-        $this->client->request('GET', '/settings/firms/'.$firm->id().'/edit');
+        $this->client->request('GET', '/settings/firm');
 
-        self::assertSelectorExists('a[href="'.$this->settingsUrl($firm).'"]');
+        self::assertSelectorExists('a[href="'.$this->settingsUrl().'"]');
     }
 
     public function testTheScreensAreTranslated(): void
     {
         $this->browser->seed('cs');
-        $firm = $this->firm();
+        $this->firm();
         $this->browser->signIn();
 
-        $this->client->request('GET', $this->settingsUrl($firm));
+        $this->client->request('GET', $this->settingsUrl());
         self::assertSelectorTextContains('h1', 'Fakturace');
 
-        $this->client->request('GET', $this->settingsUrl($firm).'/series/new');
+        $this->client->request('GET', $this->settingsUrl().'/series/new');
         self::assertSelectorTextContains('h1', 'Nová číselná řada');
     }
 
     public function testAFormatWhoseNumbersWouldNotFitIsRefused(): void
     {
-        $firm = $this->signedInFirm();
-        $this->saveNewSeries($firm, ['name' => 'Long', 'format' => str_repeat('A', 31).'{NNNN}']);
+        $this->signedInFirm();
+        $this->saveNewSeries(['name' => 'Long', 'format' => str_repeat('A', 31).'{NNNN}']);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#format-error', '40');
@@ -205,9 +205,9 @@ final class FirmInvoicingControllerTest extends WebTestCase
     {
         $firm = $this->signedInFirm();
 
-        $this->saveNewSeries($firm, ['name' => 'Standard', 'format' => 'FV{YY}-{NNN}']);
+        $this->saveNewSeries(['name' => 'Standard', 'format' => 'FV{YY}-{NNN}']);
 
-        self::assertResponseRedirects($this->settingsUrl($firm));
+        self::assertResponseRedirects($this->settingsUrl());
         $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'The series is saved.');
         self::assertSelectorTextContains('main table', 'FV{YY}-{NNN}');
@@ -221,13 +221,13 @@ final class FirmInvoicingControllerTest extends WebTestCase
     public function testTheSameSubmissionTwiceSavesOnce(): void
     {
         $firm = $this->signedInFirm();
-        $form = $this->newSeriesForm($firm);
+        $form = $this->newSeriesForm();
         $values = ['name' => 'Standard', 'format' => '{YYYY}{NNNN}'] + $form;
 
-        $this->client->request('POST', $this->settingsUrl($firm).'/series/new', $values);
-        $this->client->request('POST', $this->settingsUrl($firm).'/series/new', $values);
+        $this->client->request('POST', $this->settingsUrl().'/series/new', $values);
+        $this->client->request('POST', $this->settingsUrl().'/series/new', $values);
 
-        self::assertResponseRedirects($this->settingsUrl($firm));
+        self::assertResponseRedirects($this->settingsUrl());
         self::assertCount(1, $this->allSeries($firm));
     }
 
@@ -235,7 +235,7 @@ final class FirmInvoicingControllerTest extends WebTestCase
     {
         $firm = $this->signedInFirm();
 
-        $this->saveNewSeries($firm, ['name' => 'Standard', 'format' => '{YYYY}{Q}{NNNN}']);
+        $this->saveNewSeries(['name' => 'Standard', 'format' => '{YYYY}{Q}{NNNN}']);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#format-error', 'Use only');
@@ -247,15 +247,15 @@ final class FirmInvoicingControllerTest extends WebTestCase
         $firm = $this->signedInFirm();
         $this->series($firm);
 
-        $this->saveNewSeries($firm, ['name' => '', 'format' => 'Z{NNNN}']);
+        $this->saveNewSeries(['name' => '', 'format' => 'Z{NNNN}']);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('#name-error');
 
-        $this->saveNewSeries($firm, ['name' => 'Standard', 'format' => 'Z{NNNN}']);
+        $this->saveNewSeries(['name' => 'Standard', 'format' => 'Z{NNNN}']);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('#name-error');
 
-        $this->saveNewSeries($firm, ['name' => str_repeat('a', 101), 'format' => 'Z{NNNN}']);
+        $this->saveNewSeries(['name' => str_repeat('a', 101), 'format' => 'Z{NNNN}']);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('#name-error');
     }
@@ -265,7 +265,7 @@ final class FirmInvoicingControllerTest extends WebTestCase
         $firm = $this->signedInFirm();
         $this->series($firm, 'FV{YY}{NNN}');
 
-        $this->saveNewSeries($firm, ['name' => 'Second', 'format' => 'FV-{YY}/{NNN}']);
+        $this->saveNewSeries(['name' => 'Second', 'format' => 'FV-{YY}/{NNN}']);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('#format-error');
@@ -276,7 +276,7 @@ final class FirmInvoicingControllerTest extends WebTestCase
         $firm = $this->signedInFirm();
         $this->series($firm, '{YYYY}{NNNN}');
 
-        $this->saveNewSeries($firm, ['name' => 'Second', 'format' => '{YYYY}{NNN}']);
+        $this->saveNewSeries(['name' => 'Second', 'format' => '{YYYY}{NNN}']);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('#format-error');
@@ -287,11 +287,11 @@ final class FirmInvoicingControllerTest extends WebTestCase
         $firm = $this->signedInFirm();
         $this->archive($this->series($firm, 'FV{YY}{NNN}'));
 
-        $this->saveNewSeries($firm, ['name' => 'Second', 'format' => 'FV{YY}{NNN}']);
+        $this->saveNewSeries(['name' => 'Second', 'format' => 'FV{YY}{NNN}']);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('#format-error');
 
-        $this->saveNewSeries($firm, ['name' => 'Standard', 'format' => 'Z{YY}{NNN}']);
+        $this->saveNewSeries(['name' => 'Standard', 'format' => 'Z{YY}{NNN}']);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('#name-error');
     }
@@ -301,9 +301,9 @@ final class FirmInvoicingControllerTest extends WebTestCase
         $firm = $this->signedInFirm();
         $series = $this->series($firm);
 
-        $this->saveSeries($firm, $series, ['name' => 'Renamed', 'format' => 'Z{YYYY}{NNNN}']);
+        $this->saveSeries($series, ['name' => 'Renamed', 'format' => 'Z{YYYY}{NNNN}']);
 
-        self::assertResponseRedirects($this->settingsUrl($firm));
+        self::assertResponseRedirects($this->settingsUrl());
         $stored = $this->onlySeries($firm);
         self::assertSame('Renamed', $stored->name());
         self::assertSame('Z{YYYY}{NNNN}', $stored->format()->toString());
@@ -315,14 +315,14 @@ final class FirmInvoicingControllerTest extends WebTestCase
         $series = $this->series($firm);
         $this->issue($series);
 
-        $crawler = $this->client->request('GET', $this->editUrl($firm, $series));
+        $crawler = $this->client->request('GET', $this->editUrl($series));
         self::assertNotNull($crawler->filter('#format')->attr('disabled'));
 
         // The browser sends no disabled field, and the rest of the series still saves.
-        $this->saveSeries($firm, $series, ['name' => 'Renamed', 'format' => '']);
-        self::assertResponseRedirects($this->settingsUrl($firm));
+        $this->saveSeries($series, ['name' => 'Renamed', 'format' => '']);
+        self::assertResponseRedirects($this->settingsUrl());
 
-        $this->saveSeries($firm, $series, ['name' => 'Renamed', 'format' => 'Z{NNNN}']);
+        $this->saveSeries($series, ['name' => 'Renamed', 'format' => 'Z{NNNN}']);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('#format-error');
         self::assertSame(Series::STANDARD_FORMAT, $this->onlySeries($firm)->format()->toString());
@@ -333,9 +333,9 @@ final class FirmInvoicingControllerTest extends WebTestCase
         $firm = $this->signedInFirm();
         $series = $this->series($firm);
 
-        $this->saveSeries($firm, $series, ['name' => 'Standard', 'format' => Series::STANDARD_FORMAT, 'nextNumber' => '90']);
+        $this->saveSeries($series, ['name' => 'Standard', 'format' => Series::STANDARD_FORMAT, 'nextNumber' => '90']);
 
-        self::assertResponseRedirects($this->settingsUrl($firm));
+        self::assertResponseRedirects($this->settingsUrl());
         self::assertSame(90, $this->onlySeries($firm)->startFor('2026'));
         $this->client->followRedirect();
         self::assertSelectorTextContains('main table', '20260090');
@@ -347,7 +347,7 @@ final class FirmInvoicingControllerTest extends WebTestCase
         $series = $this->series($firm);
         $this->issue($series);
 
-        $crawler = $this->client->request('GET', $this->editUrl($firm, $series));
+        $crawler = $this->client->request('GET', $this->editUrl($series));
 
         self::assertSame('2026', $crawler->filter('#startYear')->attr('value'));
         self::assertSame('', $crawler->filter('#nextNumber')->attr('value'));
@@ -360,9 +360,9 @@ final class FirmInvoicingControllerTest extends WebTestCase
         $series = $this->series($firm);
         $this->issue($series);
 
-        $this->saveSeries($firm, $series, ['name' => 'Standard', 'format' => '', 'nextNumber' => '500', 'startYear' => '2027']);
+        $this->saveSeries($series, ['name' => 'Standard', 'format' => '', 'nextNumber' => '500', 'startYear' => '2027']);
 
-        self::assertResponseRedirects($this->settingsUrl($firm));
+        self::assertResponseRedirects($this->settingsUrl());
         $stored = $this->onlySeries($firm);
         self::assertSame(500, $stored->startFor('2027'));
         self::assertSame(1, $stored->startFor('2026'));
@@ -373,9 +373,9 @@ final class FirmInvoicingControllerTest extends WebTestCase
         $firm = $this->signedInFirm();
         $series = $this->series($firm);
 
-        $this->saveSeries($firm, $series, ['name' => 'Standard', 'format' => Series::STANDARD_FORMAT, 'startYear' => '2027']);
+        $this->saveSeries($series, ['name' => 'Standard', 'format' => Series::STANDARD_FORMAT, 'startYear' => '2027']);
 
-        self::assertResponseRedirects($this->settingsUrl($firm));
+        self::assertResponseRedirects($this->settingsUrl());
         self::assertSame(1, $this->onlySeries($firm)->startFor('2027'));
     }
 
@@ -383,7 +383,7 @@ final class FirmInvoicingControllerTest extends WebTestCase
     {
         $firm = $this->signedInFirm();
 
-        $this->saveNewSeries($firm, ['name' => 'Standard', 'format' => '{NNNN}', 'nextNumber' => '7', 'startYear' => '2027']);
+        $this->saveNewSeries(['name' => 'Standard', 'format' => '{NNNN}', 'nextNumber' => '7', 'startYear' => '2027']);
 
         $stored = $this->onlySeries($firm);
         self::assertSame(7, $stored->startFor('all'));
@@ -397,12 +397,12 @@ final class FirmInvoicingControllerTest extends WebTestCase
         $this->issue($series, '2025-06-01');
         $this->issue($series, '2025-06-01');
 
-        $this->saveSeries($firm, $series, ['name' => 'Standard', 'format' => '', 'nextNumber' => '2', 'startYear' => '2025']);
+        $this->saveSeries($series, ['name' => 'Standard', 'format' => '', 'nextNumber' => '2', 'startYear' => '2025']);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#nextNumber-error', '3');
 
-        $this->saveSeries($firm, $series, ['name' => 'Standard', 'format' => '', 'nextNumber' => '2', 'startYear' => '2026']);
-        self::assertResponseRedirects($this->settingsUrl($firm));
+        $this->saveSeries($series, ['name' => 'Standard', 'format' => '', 'nextNumber' => '2', 'startYear' => '2026']);
+        self::assertResponseRedirects($this->settingsUrl());
     }
 
     /**
@@ -423,7 +423,7 @@ final class FirmInvoicingControllerTest extends WebTestCase
         $firm = $this->signedInFirm();
         $series = $this->series($firm);
 
-        $this->saveSeries($firm, $series, ['name' => 'Standard', 'format' => Series::STANDARD_FORMAT, 'nextNumber' => '5', 'startYear' => $year]);
+        $this->saveSeries($series, ['name' => 'Standard', 'format' => Series::STANDARD_FORMAT, 'nextNumber' => '5', 'startYear' => $year]);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('#startYear-error');
@@ -433,7 +433,7 @@ final class FirmInvoicingControllerTest extends WebTestCase
     {
         $firm = $this->signedInFirm();
 
-        $this->saveNewSeries($firm, ['name' => 'Standard', 'format' => '{NNNN}', 'nextNumber' => '5']);
+        $this->saveNewSeries(['name' => 'Standard', 'format' => '{NNNN}', 'nextNumber' => '5']);
 
         self::assertSame(5, $this->onlySeries($firm)->startFor('all'));
     }
@@ -445,7 +445,7 @@ final class FirmInvoicingControllerTest extends WebTestCase
         $this->issue($series);
         $this->issue($series);
 
-        $this->saveSeries($firm, $series, ['name' => 'Standard', 'format' => '', 'nextNumber' => '2']);
+        $this->saveSeries($series, ['name' => 'Standard', 'format' => '', 'nextNumber' => '2']);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#nextNumber-error', '3');
@@ -458,9 +458,9 @@ final class FirmInvoicingControllerTest extends WebTestCase
         $series = $this->series($firm);
         $this->issue($series);
 
-        $this->saveSeries($firm, $series, ['name' => 'Standard', 'format' => '', 'nextNumber' => '2']);
+        $this->saveSeries($series, ['name' => 'Standard', 'format' => '', 'nextNumber' => '2']);
 
-        self::assertResponseRedirects($this->settingsUrl($firm));
+        self::assertResponseRedirects($this->settingsUrl());
     }
 
     /**
@@ -480,7 +480,7 @@ final class FirmInvoicingControllerTest extends WebTestCase
         $firm = $this->signedInFirm();
         $series = $this->series($firm);
 
-        $this->saveSeries($firm, $series, ['name' => 'Standard', 'format' => Series::STANDARD_FORMAT, 'nextNumber' => $number]);
+        $this->saveSeries($series, ['name' => 'Standard', 'format' => Series::STANDARD_FORMAT, 'nextNumber' => $number]);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('#nextNumber-error');
@@ -489,8 +489,8 @@ final class FirmInvoicingControllerTest extends WebTestCase
     public function testThereIsOneDefaultPerFirm(): void
     {
         $firm = $this->signedInFirm();
-        $this->saveNewSeries($firm, ['name' => 'First', 'format' => '{YYYY}{NNNN}']);
-        $this->saveNewSeries($firm, ['name' => 'Second', 'format' => 'Z{YYYY}{NNNN}', 'default' => '1']);
+        $this->saveNewSeries(['name' => 'First', 'format' => '{YYYY}{NNNN}']);
+        $this->saveNewSeries(['name' => 'Second', 'format' => 'Z{YYYY}{NNNN}', 'default' => '1']);
 
         $defaults = array_filter($this->allSeries($firm), static fn (Series $series): bool => $series->isDefault());
 
@@ -501,8 +501,8 @@ final class FirmInvoicingControllerTest extends WebTestCase
     public function testASecondSeriesIsNoDefaultByItself(): void
     {
         $firm = $this->signedInFirm();
-        $this->saveNewSeries($firm, ['name' => 'First', 'format' => '{YYYY}{NNNN}']);
-        $this->saveNewSeries($firm, ['name' => 'Second', 'format' => 'Z{YYYY}{NNNN}']);
+        $this->saveNewSeries(['name' => 'First', 'format' => '{YYYY}{NNNN}']);
+        $this->saveNewSeries(['name' => 'Second', 'format' => 'Z{YYYY}{NNNN}']);
 
         $defaults = array_filter($this->allSeries($firm), static fn (Series $series): bool => $series->isDefault());
 
@@ -512,10 +512,10 @@ final class FirmInvoicingControllerTest extends WebTestCase
     public function testTheDefaultStaysWhenItsBoxIsNotSent(): void
     {
         $firm = $this->signedInFirm();
-        $this->saveNewSeries($firm, ['name' => 'First', 'format' => '{YYYY}{NNNN}']);
+        $this->saveNewSeries(['name' => 'First', 'format' => '{YYYY}{NNNN}']);
         $series = $this->onlySeries($firm);
 
-        $this->saveSeries($firm, $series, ['name' => 'First', 'format' => '{YYYY}{NNNN}']);
+        $this->saveSeries($series, ['name' => 'First', 'format' => '{YYYY}{NNNN}']);
 
         self::assertTrue($this->onlySeries($firm)->isDefault());
     }
@@ -524,9 +524,9 @@ final class FirmInvoicingControllerTest extends WebTestCase
     {
         $firm = $this->signedInFirm();
 
-        $this->saveNewSeries($firm, ['name' => 'Advances', 'format' => 'ZF{YYYY}{NNNN}', 'kind' => 'advance']);
+        $this->saveNewSeries(['name' => 'Advances', 'format' => 'ZF{YYYY}{NNNN}', 'kind' => 'advance']);
 
-        self::assertResponseRedirects($this->settingsUrl($firm));
+        self::assertResponseRedirects($this->settingsUrl());
         $this->client->followRedirect();
         self::assertSelectorTextContains('main table', 'Advance invoice');
         self::assertSame(DocumentKind::Advance, $this->onlySeries($firm)->kind());
@@ -534,9 +534,9 @@ final class FirmInvoicingControllerTest extends WebTestCase
 
     public function testTheNewSeriesFormStartsWithTheFormatOfTheKind(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
-        $crawler = $this->client->request('GET', $this->settingsUrl($firm).'/series/new?kind=payment_tax_document');
+        $crawler = $this->client->request('GET', $this->settingsUrl().'/series/new?kind=payment_tax_document');
 
         self::assertSame('D8{YYYY}{NNNN}', $crawler->filter('input[name="format"]')->attr('value'));
         self::assertSame('payment_tax_document', $crawler->filter('select[name="kind"] option[selected]')->attr('value'));
@@ -546,7 +546,7 @@ final class FirmInvoicingControllerTest extends WebTestCase
     {
         $firm = $this->signedInFirm();
 
-        $this->saveNewSeries($firm, ['name' => 'Odd', 'format' => 'O{YYYY}{NNNN}', 'kind' => 'receipt']);
+        $this->saveNewSeries(['name' => 'Odd', 'format' => 'O{YYYY}{NNNN}', 'kind' => 'receipt']);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('main', 'Choose the kind of documents.');
@@ -556,25 +556,25 @@ final class FirmInvoicingControllerTest extends WebTestCase
     public function testTheKindOfAStoredSeriesStays(): void
     {
         $firm = $this->signedInFirm();
-        $this->saveNewSeries($firm, ['name' => 'Advances', 'format' => 'ZF{YYYY}{NNNN}', 'kind' => 'advance']);
+        $this->saveNewSeries(['name' => 'Advances', 'format' => 'ZF{YYYY}{NNNN}', 'kind' => 'advance']);
         $series = $this->onlySeries($firm);
 
-        $this->saveSeries($firm, $series, ['name' => 'Renamed', 'format' => 'ZF{YYYY}{NNNN}', 'kind' => 'invoice']);
+        $this->saveSeries($series, ['name' => 'Renamed', 'format' => 'ZF{YYYY}{NNNN}', 'kind' => 'invoice']);
 
-        self::assertResponseRedirects($this->settingsUrl($firm));
+        self::assertResponseRedirects($this->settingsUrl());
         $stored = $this->onlySeries($firm);
         self::assertSame('Renamed', $stored->name());
         self::assertSame(DocumentKind::Advance, $stored->kind());
-        $crawler = $this->client->request('GET', $this->editUrl($firm, $stored));
+        $crawler = $this->client->request('GET', $this->editUrl($stored));
         self::assertCount(1, $crawler->filter('select[name="kind"][disabled]'));
     }
 
     public function testEachKindHasADefaultOfItsOwn(): void
     {
         $firm = $this->signedInFirm();
-        $this->saveNewSeries($firm, ['name' => 'Invoices', 'format' => '{YYYY}{NNNN}']);
-        $this->saveNewSeries($firm, ['name' => 'Advances', 'format' => 'ZF{YYYY}{NNNN}', 'kind' => 'advance']);
-        $this->saveNewSeries($firm, ['name' => 'More advances', 'format' => 'ZG{YYYY}{NNNN}', 'kind' => 'advance', 'default' => '1']);
+        $this->saveNewSeries(['name' => 'Invoices', 'format' => '{YYYY}{NNNN}']);
+        $this->saveNewSeries(['name' => 'Advances', 'format' => 'ZF{YYYY}{NNNN}', 'kind' => 'advance']);
+        $this->saveNewSeries(['name' => 'More advances', 'format' => 'ZG{YYYY}{NNNN}', 'kind' => 'advance', 'default' => '1']);
 
         $defaults = array_values(array_filter($this->allSeries($firm), static fn (Series $series): bool => $series->isDefault()));
 
@@ -589,7 +589,7 @@ final class FirmInvoicingControllerTest extends WebTestCase
         $this->em()->persist(Series::standard($stored, DocumentKind::PaymentTaxDocument));
         $this->em()->flush();
 
-        $this->client->request('GET', $this->settingsUrl($firm));
+        $this->client->request('GET', $this->settingsUrl());
 
         self::assertSelectorTextContains('main table', 'Advance invoices');
         self::assertSelectorTextContains('main table', 'Tax documents on payment');
@@ -599,13 +599,13 @@ final class FirmInvoicingControllerTest extends WebTestCase
 
     public function testAFirmWithoutSeriesIsToldWhatItGets(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
-        $this->client->request('GET', $this->settingsUrl($firm));
+        $this->client->request('GET', $this->settingsUrl());
 
         self::assertSelectorNotExists('main table');
         self::assertSelectorTextContains('main', '20260001');
-        self::assertSelectorExists('main a[href="'.$this->settingsUrl($firm).'/series/new"]');
+        self::assertSelectorExists('main a[href="'.$this->settingsUrl().'/series/new"]');
     }
 
     private function signedInFirm(): LegalEntity
@@ -650,19 +650,19 @@ final class FirmInvoicingControllerTest extends WebTestCase
     /**
      * @param array<string, string> $values
      */
-    private function saveSettings(LegalEntity $firm, array $values): void
+    private function saveSettings(array $values): void
     {
-        $crawler = $this->client->request('GET', $this->settingsUrl($firm));
+        $crawler = $this->client->request('GET', $this->settingsUrl());
         $form = $crawler->filter('main form')->last()->form();
-        $this->client->request('POST', $this->settingsUrl($firm), $values + $form->getPhpValues());
+        $this->client->request('POST', $this->settingsUrl(), $values + $form->getPhpValues());
     }
 
     /**
      * @return array<array-key, mixed>
      */
-    private function newSeriesForm(LegalEntity $firm): array
+    private function newSeriesForm(): array
     {
-        $crawler = $this->client->request('GET', $this->settingsUrl($firm).'/series/new');
+        $crawler = $this->client->request('GET', $this->settingsUrl().'/series/new');
 
         return $crawler->filter('main form')->form()->getPhpValues();
     }
@@ -670,29 +670,29 @@ final class FirmInvoicingControllerTest extends WebTestCase
     /**
      * @param array<string, string> $values
      */
-    private function saveNewSeries(LegalEntity $firm, array $values): void
+    private function saveNewSeries(array $values): void
     {
-        $this->client->request('POST', $this->settingsUrl($firm).'/series/new', $values + $this->newSeriesForm($firm));
+        $this->client->request('POST', $this->settingsUrl().'/series/new', $values + $this->newSeriesForm());
     }
 
     /**
      * @param array<string, string> $values
      */
-    private function saveSeries(LegalEntity $firm, Series $series, array $values): void
+    private function saveSeries(Series $series, array $values): void
     {
-        $crawler = $this->client->request('GET', $this->editUrl($firm, $series));
+        $crawler = $this->client->request('GET', $this->editUrl($series));
         $form = $crawler->filter('main form')->form();
-        $this->client->request('POST', $this->editUrl($firm, $series), $values + $form->getPhpValues());
+        $this->client->request('POST', $this->editUrl($series), $values + $form->getPhpValues());
     }
 
-    private function settingsUrl(LegalEntity $firm): string
+    private function settingsUrl(): string
     {
-        return '/settings/firms/'.$firm->id().'/invoicing';
+        return '/settings/firm/invoicing';
     }
 
-    private function editUrl(LegalEntity $firm, Series $series): string
+    private function editUrl(Series $series): string
     {
-        return $this->settingsUrl($firm).'/series/'.$series->id().'/edit';
+        return $this->settingsUrl().'/series/'.$series->id().'/edit';
     }
 
     private function storedSettings(LegalEntity $firm): FirmInvoicing

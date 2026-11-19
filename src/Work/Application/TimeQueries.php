@@ -68,4 +68,14 @@ interface TimeQueries
      * An entry the signed-in person may change, as its line; null otherwise.
      */
     public function editable(string $entryId): ?TimeEntryRow;
+
+    /**
+     * The time in the trash of the project that the person sees, the last
+     * deleted first; nothing for whom does not see time.
+     *
+     * @return list<TrashedTime>
+     */
+    public function trash(string $projectId): array;
+
+    public function trashCount(string $projectId): int;
 }

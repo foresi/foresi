@@ -35,9 +35,8 @@ use Foresi\Invoicing\Domain\MailTemplateKind;
 use Foresi\Invoicing\Infrastructure\Form\AmountText;
 use Foresi\Invoicing\Infrastructure\Form\FirmMailSubmission;
 use Foresi\Invoicing\Infrastructure\Form\MailTokenLabels;
-use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\TransactionalWork;
-use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Currency;
@@ -54,7 +53,6 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -83,7 +81,7 @@ final class FirmMailController extends AbstractController
     ];
 
     public function __construct(
-        private readonly LegalEntities $firms,
+        private readonly InstanceFirm $instanceFirm,
         private readonly MailServers $servers,
         private readonly MailSecrets $secrets,
         private readonly MailHostPolicy $hosts,
@@ -104,11 +102,11 @@ final class FirmMailController extends AbstractController
     ) {
     }
 
-    #[Route('/settings/firms/{id}/mail', name: 'app_firm_mail', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
-    public function settings(string $id, Request $request): Response
+    #[Route('/settings/firm/mail', name: 'app_firm_mail', methods: ['GET', 'POST'])]
+    public function settings(Request $request): Response
     {
         $this->denyUnlessOwner();
-        $firm = $this->firm($id);
+        $firm = $this->firm();
         if (!$request->isMethod('POST')) {
             $tab = self::SERVER === $request->query->getString('tab') ? self::SERVER : self::TEMPLATES;
 
@@ -122,13 +120,13 @@ final class FirmMailController extends AbstractController
         };
     }
 
-    #[Route('/settings/firms/{id}/mail/test', name: 'app_firm_mail_test', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
-    public function test(string $id, Request $request): RedirectResponse
+    #[Route('/settings/firm/mail/test', name: 'app_firm_mail_test', methods: ['POST'])]
+    public function test(Request $request): RedirectResponse
     {
         $this->denyUnlessOwner();
-        $firm = $this->firm($id);
+        $firm = $this->firm();
         $this->checkToken($request, self::TEST_TOKEN);
-        $back = $this->redirectToRoute('app_firm_mail', ['id' => $firm->id(), 'tab' => self::SERVER]);
+        $back = $this->redirectToRoute('app_firm_mail', ['tab' => self::SERVER]);
 
         $server = $this->servers->for($firm);
         $recipient = $this->getUser()?->getUserIdentifier() ?? '';
@@ -169,7 +167,7 @@ final class FirmMailController extends AbstractController
             $this->transaction->run(fn () => $this->templates->reset($firm, $kind, $language));
             $this->addFlash('success', $this->translator->trans('firm.mail.flash.reset'));
 
-            return $this->redirectToRoute('app_firm_mail', ['id' => $firm->id()]);
+            return $this->redirectToRoute('app_firm_mail');
         }
 
         $submissions = [];
@@ -222,7 +220,7 @@ final class FirmMailController extends AbstractController
         }
         $this->addFlash('success', $this->translator->trans('firm.mail.flash.saved'));
 
-        return $this->redirectToRoute('app_firm_mail', ['id' => $firm->id()]);
+        return $this->redirectToRoute('app_firm_mail');
     }
 
     /**
@@ -300,7 +298,7 @@ final class FirmMailController extends AbstractController
         }
         $this->addFlash('success', $this->translator->trans('firm.mail.flash.server_saved'));
 
-        return $this->redirectToRoute('app_firm_mail', ['id' => $firm->id(), 'tab' => self::SERVER]);
+        return $this->redirectToRoute('app_firm_mail', ['tab' => self::SERVER]);
     }
 
     private function testMessage(FirmMailServer $server, string $recipient): MailMessage
@@ -330,7 +328,7 @@ final class FirmMailController extends AbstractController
     private function page(LegalEntity $firm, string $tab, array $templates, array $reminders, array $server, array $errors, int $status): Response
     {
         $stored = $this->servers->for($firm);
-        $url = $this->generateUrl('app_firm_mail', ['id' => $firm->id()]);
+        $url = $this->generateUrl('app_firm_mail');
         $settings = $this->reminders->for($firm);
         $home = $this->homeCurrency($firm);
         $kinds = [];
@@ -386,8 +384,8 @@ final class FirmMailController extends AbstractController
             'recipient' => $this->getUser()?->getUserIdentifier() ?? '',
             'errors' => array_map(fn (array $error): string => $this->translator->trans($error[0], $error[1] ?? []), $errors),
             'action' => $url,
-            'testAction' => $this->generateUrl('app_firm_mail_test', ['id' => $firm->id()]),
-            'cancel' => $this->generateUrl('app_firm_edit', ['id' => $firm->id()]),
+            'testAction' => $this->generateUrl('app_firm_mail_test'),
+            'cancel' => $this->generateUrl('app_firm'),
         ], new Response(status: $status));
     }
 
@@ -476,13 +474,12 @@ final class FirmMailController extends AbstractController
         ];
     }
 
-    private function firm(string $id): LegalEntity
+    /**
+     * The firm of this instance; before the first-run setup there is none to set up.
+     */
+    private function firm(): LegalEntity
     {
-        try {
-            return $this->firms->get($id);
-        } catch (UnknownLegalEntity) {
-            throw new NotFoundHttpException();
-        }
+        return $this->instanceFirm->find() ?? throw new NotFoundHttpException();
     }
 
     private function denyUnlessOwner(): void

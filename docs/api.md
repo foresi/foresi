@@ -109,13 +109,13 @@ A detail answers `{"data": {...}}`.
 
 ## Endpoints
 
-The endpoints below are `GET`. The writes of contacts are under [Contact writes](#contact-writes), those of saved views under [Saved views](#saved-views), those of the cash flow under [Cash flow](#cash-flow), those of received documents under [Received documents](#received-documents), and those of webhooks under [Webhooks](#webhooks).
+The endpoints below are `GET`. The writes of invoices are under [Invoice writes](#invoice-writes), those of contacts under [Contact writes](#contact-writes), those of saved views under [Saved views](#saved-views), those of the cash flow under [Cash flow](#cash-flow), those of received documents under [Received documents](#received-documents), and those of webhooks under [Webhooks](#webhooks).
 
 | Endpoint | Scope | What it returns |
 | --- | --- | --- |
 | `/api/v1/me` | none | The person and the token. |
 | `/api/v1/invoices` | `invoices:read` | Sales documents, newest first. |
-| `/api/v1/invoices/{id}` | `invoices:read` | One document with its lines, payments, corrections and balances. |
+| `/api/v1/invoices/{invoiceId}` | `invoices:read` | One document with its lines, payments, corrections and balances. |
 | `/api/v1/contacts` | `contacts:read` | Contacts, newest first. |
 | `/api/v1/contacts/{contactId}` | `contacts:read` | One contact with its addresses, e-mails, bank accounts and contact persons. |
 | `/api/v1/payments` | `payments:read` | Payments, newest first. |
@@ -152,6 +152,40 @@ Query parameters of `GET /api/v1/invoices`. All of them narrow the list.
 All parameters are joined by AND, `view` and `filter` included. The answer has `data`, `next_cursor` and `applied_view`, the saved view `view` named, or `null`. A filter that cannot be used is answered `400 invalid_parameter`, with `parameter` naming its path, such as `filter.conditions[0].op`, and `reason` `filter_invalid`; a view of another list than `kind` is refused the same way with `parameter` `view`. A view the person does not see is `404 not_found`, and one whose conditions its list no longer has is `409 view_outdated`.
 
 A list item has `id`, `number`, `kind`, `firm`, `customer`, `issue_date`, `due_date`, `tax_point_date`, `total`, `paid`, `remaining`, `payment_state` (`unpaid`, `partly_paid`, `paid`, `overpaid` or `to_refund`), `overdue`, `delivered`, `trashed` and `created_at`. The detail adds the customer's identification and address, the currency, the variable symbol, the lines with their VAT, the payments and corrections, and the balances.
+
+### Invoice writes
+
+Issuing and changing sales invoices and advance invoices needs `invoices:write`. Foresi has no drafts: a created invoice is issued at once, with the next number of its series, as saving the invoice form does. The writes run the same rules as the form, and answer `{"data": {...}}` with the document as `GET /api/v1/invoices/{invoiceId}` shows it.
+
+| Method and path | What it does |
+| --- | --- |
+| `POST /api/v1/invoices` | Issues an invoice. `201` with `Location`. |
+| `PATCH /api/v1/invoices/{invoiceId}` | Changes the fields given; a field left out keeps its value. |
+| `POST /api/v1/invoices/{invoiceId}/trash` | Moves it to the trash with a `reason`. |
+| `POST /api/v1/invoices/{invoiceId}/restore` | Brings it back from the trash. |
+
+The body of `POST /api/v1/invoices`:
+
+| Field | Value |
+| --- | --- |
+| `customer_id` | Required. The id of a contact with a billing address. |
+| `lines` | Required. Objects of `text`, `unit_price` (a decimal string such as `"1500.00"`), and optional `quantity` (default `"1"`), `unit`, `price_type` (`without_vat` by default, `with_vat` or `base_only`), `vat` (`base`, `reduced`, `second_reduced`, `reverse_charge`, `exempt` or `none`) and `discount` (a percentage, such as `"10"`). Without `vat` a line gets the base rate, reverse charge for a customer taxed instead, or `none` for a firm that is no VAT payer. |
+| `firm_id` | The firm that issues it; the firm of the instance when left out. |
+| `kind` | `invoice` (default) or `advance`. |
+| `series_id` | A series of the firm and kind; the default series when left out. |
+| `number` | A number typed by hand, such as one continuing the numbering of another system; it must fit the series and be free. Without it the series' counter gives the next number. |
+| `issue_date`, `tax_point_date`, `due_date` | `YYYY-MM-DD`. Today, the issue date, and the issue date plus the customer's due days when left out. |
+| `currency` | ISO 4217; the currency of the firm when left out. |
+| `payment_method` | `bank_transfer`, `cash` or `card`; the customer's when left out. |
+| `bank_account` | The IBAN of an account of the firm; its primary account when left out. |
+| `variable_symbol` | Up to 10 digits; it follows the number when left out. |
+| `constant_symbol`, `text_before`, `text_after` | The firm's defaults when left out. |
+| `order_number`, `description` | The customer's order number, and what the invoice is for (the first line's text when left out). |
+| `language` | `cs` or `en`; the customer's when left out. |
+
+`PATCH` takes the same fields except `firm_id`, `kind` and `currency`, which never change. `lines` replaces every line; left out, the lines stay as they are. `series_id` or `number` renumber the document, which is refused once it was delivered (`number_locked`), sent by e-mail (`number_locked_sent`) or queued to be sent (`number_locked_sending`); a variable symbol that followed the number follows the new one. A document in the trash (`trashed`) and a tax document on payment (`tax_document_fixed`) do not change.
+
+What the rules refuse is answered with every problem at once: the first one gives the status, the `reason` and, for `400`, the `parameter`, and `problems` lists them all as `"parameter: reason"`, such as `["variable_symbol: variable_symbol_invalid", "customer_id: customer_unknown"]`. A line is named by its position, such as `lines[0].unit_price`. A state of the data that does not allow the change, such as `number_taken`, `number_locked` or `trashed`, is `409`. The trash refuses a delivered document and one already in the trash with `409 not_trashable`, and one with payments with `409 has_payments`; correct a delivered document with a correction document in Foresi.
 
 ### Contacts
 
@@ -220,7 +254,7 @@ A view has `id`, `list`, `name`, `system_key`, `visibility` (`private` or `share
 
 | Method and path | Body | What it does |
 | --- | --- | --- |
-| `POST /api/v1/views` | `list_key`, `name`, optional `visibility` (`private`), `conditions`, `sort` (`{field, dir}`, at most 3), `columns` (column keys or `{key, width}`; `null` for the list's default), `density`, `show_count`, `placement` | Creates a view, `201` with its `Location`. Any owner or member may share one. |
+| `POST /api/v1/views` | `list_key`, `name`, optional `visibility` (`private`), `conditions`, `sort` (`{field, dir}`, at most 3), `columns` (column keys or `{key, width}`; `null` for the list's default), `density`, `group_by` (what the rows are grouped by, on a list that groups them, such as `person` on `work.time_report`), `show_count`, `placement` | Creates a view, `201` with its `Location`. Any owner or member may share one. |
 | `PATCH /api/v1/views/{viewId}` | Any of the fields above but `list_key`, plus `position` and `hidden` | Changes the fields sent; `conditions`, `sort` and `columns` replace what the view had. A shared view is changed by its creator and the owners, a view a module ships by the owners only, who also hide it with `hidden`. |
 | `DELETE /api/v1/views/{viewId}` | none | Deletes a view for everyone. A view a module ships is refused with `409 default_view`. |
 | `POST /api/v1/views/restore-defaults` | `list_key` | Brings the views a module ships on a list back to what it declares. Owners only. |

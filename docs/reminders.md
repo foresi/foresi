@@ -1,6 +1,6 @@
 # Automatic reminders
 
-Foresi can remind customers of overdue invoices by e-mail, through the same sending path as invoices (see [sending.md](sending.md)). Each firm decides whether it reminds and when, under **My firms › (firm) › E-mails**, and each contact can be left out.
+Foresi can remind customers of overdue invoices by e-mail, through the same sending path as invoices (see [sending.md](sending.md)). Each firm decides whether it reminds and when, under **Firm › E-mails**, and each contact can be left out.
 
 ## The rule
 

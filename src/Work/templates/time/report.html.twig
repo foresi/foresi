@@ -1,9 +1,11 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    The time report: the filter (period, project, client, person, billable, invoiced and what the totals
-    add up by), the sums of the period, the totals and the entries, newest first, as Freelo reports and
-    Productive do. The header downloads the entries as CSV with the same filter. Only the time the person
-    sees is in it. On a phone the tables keep the work and the time, with when, who and where under it.
+    The time report on saved views, as every list has them: All, This month (where it opens) and Last month,
+    the person's own views, "+ Filter" (day, project, client, person, billable, invoiced) and the Columns sheet
+    of the entries; what the totals add up by is the view's display. Then the sums, the totals and the
+    entries, newest first, as Freelo reports and Productive do. The header downloads the entries as CSV with
+    the same view and filter. Only the time the person sees is in it. On a phone the tables keep the work and
+    the time, with when, who and where under it.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
@@ -18,7 +20,7 @@
         {% if not empty %}
             <form method="post" action="{{ path('app_time_report_export') }}" data-turbo="false" role="none" data-time-report-export>
                 <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TimeReportController::TOKEN')) }}">
-                {% for name, value in query %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+                {% for name, value in query|filter((value, name) => name in ['view', 'f']) %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
                 <twig:Ui:MenuItem type="submit" icon="download">{{ 'work.time.report.export'|trans }}</twig:Ui:MenuItem>
             </form>
         {% endif %}
@@ -30,18 +32,20 @@
     <div class="grid grid-cols-1 gap-4">
         {{ include('@Work/time/_tabs.html.twig', {active: 'report'}) }}
 
-        {% set reportFilters = [
-            {name: 'period', label: 'work.time.report.period.label'|trans, options: options.periods, value: query.period, default: 'this_month', pinned: true},
-            {name: 'person', label: 'work.time.report.column.person'|trans, options: options.people, value: query.person|default(''), pinned: true},
-            {name: 'from', label: 'work.time.report.from'|trans, type: 'date', value: query.from|default(''), text: query.from is defined ? from|date('j. n. Y') : ''},
-            {name: 'until', label: 'work.time.report.until'|trans, type: 'date', value: query.until|default(''), text: query.until is defined ? until|date('j. n. Y') : ''},
-            {name: 'project', label: 'work.task.field.project'|trans, options: options.projects, value: query.project|default('')},
-            {name: 'client', label: 'work.project.field.client'|trans, options: options.clients, value: query.client|default('')},
-            {name: 'billable', label: 'work.time.billable'|trans, options: options.billable, value: query.billable|default('')},
-            {name: 'invoiced', label: 'work.time.invoiced'|trans, options: options.invoiced, value: query.invoiced|default('')},
-            {name: 'group', label: 'work.time.report.group'|trans, options: options.groupings, value: query.group|default('project'), default: 'project'},
-        ] %}
-        <twig:Ui:FilterBar id="report-filters" :action="path('app_time_report')" :keep="{shown: query.period}" :filters="reportFilters" data-time-report-filter />
+        {# The view's unsaved changes sit at the end of its tabs, as on every list (saved views D10). #}
+        <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
+            <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'work.time.report.views'|trans" class="min-w-0 sm:flex-1">
+                <twig:block name="actions">{{ include('@Ui/components/_view_menu.html.twig') }}</twig:block>
+            </twig:Ui:Tabs>
+            {{ include('@Ui/components/_view_actions.html.twig') }}
+        </div>
+        {# The day, the project, the client, the person, billable and invoiced are conditions of "+ Filter" (saved views D11). #}
+        <twig:Ui:FilterBar id="report-filters" :action="path('app_time_report')" :keep="{view: view, f: working != '' ? working : null}|merge(workingQuery)"
+            :conditions="chips" :builder="builder" :empty="empty" data-time-report-filter>
+            <twig:block name="end">
+                <twig:Ui:ColumnPicker id="report-columns" :action="path('app_time_report')" :keep="picker.keep" :columns="picker.columns" :density="picker.density" :resetHref="picker.resetHref" :modified="picker.modified" />
+            </twig:block>
+        </twig:Ui:FilterBar>
 
         <section class="grid gap-3" aria-labelledby="report-range" data-time-report>
             <h2 id="report-range" class="m-0 text-heading font-semibold text-ink">{{ range }}</h2>
@@ -50,12 +54,20 @@
                 <twig:Ui:EmptyState icon="clock-3" data-time-report-empty :title="'work.time.report.empty_title'|trans" :text="'work.time.report.empty_text'|trans" />
             {% else %}
                 <section class="grid gap-2" aria-labelledby="report-totals-title" data-time-report-totals>
-                    <h3 id="report-totals-title" class="m-0 text-small font-semibold text-ink">{{ ('work.time.report.totals.' ~ grouping)|trans }}</h3>
+                    <div class="flex items-center justify-between gap-3">
+                        <h3 id="report-totals-title" class="m-0 text-small font-semibold text-ink">{{ ('work.time.report.totals.' ~ grouping)|trans }}</h3>
+                        {# What the totals add up by is the view's display, saved with it as its columns are (D-display-2). #}
+                        <twig:Ui:Menu id="report-group" :label="'work.time.report.group'|trans ~ ': ' ~ ('work.time.report.by.' ~ grouping)|trans" size="sm" chevron="down" data-time-report-group>
+                            {% for group in groupings %}
+                                <twig:Ui:MenuItem :href="group.href" :checked="group.checked" size="sm">{{ group.label }}</twig:Ui:MenuItem>
+                            {% endfor %}
+                        </twig:Ui:Menu>
+                    </div>
                     <twig:Ui:DataTable :caption="('work.time.report.totals.' ~ grouping)|trans" :columns="totalColumns" density="dense" :rows="totalRows" :totals="totalSums" />
                 </section>
                 <section class="grid gap-2" aria-labelledby="report-entries-title" data-time-report-entries>
                     <h3 id="report-entries-title" class="m-0 text-small font-semibold text-ink">{{ 'work.time.report.entries'|trans }}</h3>
-                    <twig:Ui:DataTable :caption="'work.time.report.entries'|trans" :columns="entryColumns" density="dense" :rows="entryRows">
+                    <twig:Ui:DataTable :caption="'work.time.report.entries'|trans" :columns="entryColumns" :density="density" :rows="entryRows">
                         <twig:block name="footer">
                             {%- if pages > 1 -%}
                                 <span class="num">{{ 'work.time.report.entries_count'|trans({count: entryCount}) }}</span>
@@ -67,4 +79,5 @@
             {% endif %}
         </section>
     </div>
+    {{ include('@Ui/components/_view_dialogs.html.twig') }}
 {% endblock %}

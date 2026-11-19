@@ -11,8 +11,8 @@ namespace Foresi\Party\Application;
 use Foresi\Party\Domain\PartyBankAccount;
 
 /**
- * Adds bank accounts to parties and keeps at most one of them primary. Both
- * operations own their unit of work: they change and flush inside one
+ * Adds and removes bank accounts of parties and keeps at most one of them
+ * primary. Adding and making primary own their unit of work: they change and flush inside one
  * transaction, so a failure after the old primary was demoted rolls that back.
  */
 interface PartyBankAccounts
@@ -23,4 +23,9 @@ interface PartyBankAccounts
     public function add(PartyBankAccount $account): void;
 
     public function makePrimary(PartyBankAccount $account): void;
+
+    /**
+     * Deletes the account; the surrounding unit of work flushes.
+     */
+    public function remove(PartyBankAccount $account): void;
 }

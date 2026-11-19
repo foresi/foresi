@@ -147,7 +147,7 @@ final readonly class SavedViews
         $this->storeDefaults($list);
         $filters = $this->filters($input->conditions, $list);
         $sort = $this->checked(static fn (): array => ViewRules::sort($input->sort));
-        $display = $this->keyed($list->key, $this->checked(static fn (): ?array => ViewRules::display($input->columns, $input->density)));
+        $display = $this->keyed($list->key, $this->checked(static fn (): ?array => ViewRules::display($input->columns, $input->density, $input->groupBy)));
         $name = $this->name($input->name);
         $positions = array_map(static fn (SavedView $view): int => $view->position(), $this->store->ofList($list->key));
         $view = SavedView::made(
@@ -207,11 +207,12 @@ final readonly class SavedViews
             position: $input->position instanceof Omitted ? null : $input->position,
             hidden: $input->hidden instanceof Omitted ? null : $input->hidden,
         );
-        if (!$input->columns instanceof Omitted || !$input->density instanceof Omitted) {
+        if (!$input->columns instanceof Omitted || !$input->density instanceof Omitted || !$input->groupBy instanceof Omitted) {
             $was = $view->display();
             $columns = $input->columns instanceof Omitted ? (\is_array($was['columns'] ?? null) ? array_values($was['columns']) : null) : $input->columns;
             $density = $input->density instanceof Omitted ? (\is_string($was['density'] ?? null) ? $was['density'] : null) : $input->density;
-            $view->redisplay($this->keyed($list->key, $this->checked(static fn (): ?array => ViewRules::display($columns, $density))), $user, $now);
+            $groupBy = $input->groupBy instanceof Omitted ? (\is_string($was['group_by'] ?? null) ? $was['group_by'] : null) : $input->groupBy;
+            $view->redisplay($this->keyed($list->key, $this->checked(static fn (): ?array => ViewRules::display($columns, $density, $groupBy))), $user, $now);
         }
         $this->store->flush();
 

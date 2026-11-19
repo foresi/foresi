@@ -110,6 +110,41 @@ test.describe('the week', () => {
     await expect(page.locator('[data-time-entry]')).toHaveCount(1);
     await expect(page.locator('[data-time-entry]')).toContainText('Pick the colour palette');
   });
+
+  test('deleted time goes to the trash, back by its Undo and from the trash of its project', async ({ page }) => {
+    const { lastMonday } = await mondays(page);
+    await page.goto(`/time?week=${lastMonday}`);
+    const friday = page.locator('[data-time-day]').nth(4);
+    const call = friday.locator('[data-time-entry]');
+    const project = (await call.locator('[data-time-link]').getAttribute('href')) ?? '';
+
+    // No question first: the message undoes it.
+    await call.getByRole('button', { name: /^Smazat čas ze dne/ }).click();
+    const flash = page.locator('[data-task-trashed]');
+    await expect(flash).toContainText('Čas je v koši.');
+    await expect(call).toHaveCount(0);
+    await expect(page.locator('[data-time-week-total]')).toHaveText('3 h 45 min');
+    await flash.getByRole('button', { name: 'Vrátit zpět' }).click();
+    await expect(page.locator('main')).toContainText('Čas je obnovený.');
+    await expect(page).toHaveURL(new RegExp(`week=${lastMonday}`));
+    await expect(page.locator('[data-time-week-total]')).toHaveText('4 h 15 min');
+
+    await call.getByRole('button', { name: /^Smazat čas ze dne/ }).click();
+    await expect(page.locator('[data-task-trashed]')).toContainText('Čas je v koši.');
+    await page.goto(project);
+    await page.getByRole('link', { name: 'Koš (1)' }).click();
+    await expect(page.locator('[data-trash-purge]')).toHaveText('Úkoly a čas v koši se po 30 dnech smažou natrvalo.');
+    const trashed = page.locator('[data-trash-time] tbody tr');
+    await expect(trashed).toHaveCount(1);
+    await expect(trashed).toContainText('30 min');
+    await trashed.getByRole('button', { name: /Další akce/ }).click();
+    await trashed.getByRole('menuitem', { name: 'Obnovit' }).click();
+    await expect(page.locator('main')).toContainText('Čas je obnovený.');
+    await expect(page.locator('main')).toContainText('Koš je prázdný');
+
+    await page.goto(`/time?week=${lastMonday}`);
+    await expect(page.locator('[data-time-week-total]')).toHaveText('4 h 15 min');
+  });
 });
 
 test.describe('the task', () => {
@@ -180,32 +215,32 @@ test.describe('the task', () => {
 });
 
 test.describe('the report', () => {
-  test('narrows the period to a person and downloads the same entries as CSV', async ({ page }) => {
+  test('opens on this month, keeps its old addresses and downloads the same entries as CSV', async ({ page }) => {
     const { lastMonday, thisMonday } = await mondays(page);
     await page.goto('/time');
     await page.getByRole('navigation', { name: 'Pohledy na čas' }).getByRole('link', { name: 'Výkaz' }).click();
     await expect(page).toHaveURL(/\/time\/report$/);
     await expect(page.locator('main h1')).toHaveText('Výkaz');
 
+    // The report opens on its view This month, the tab after All (saved views D7, D12).
+    await expect(page.getByRole('navigation', { name: 'Pohledy na výkaz' }).locator('[aria-current="page"]')).toHaveText('Tento měsíc');
+
     const sunday = shift(thisMonday, 6);
-    // The dates wait in the More filters sheet, sent with Apply; the person is a pinned chip.
-    await page.getByRole('button', { name: 'Další filtry' }).click();
-    await page.locator('#report-filters-from-field').fill(lastMonday);
-    await page.locator('#report-filters-until-field').fill(sunday);
-    await page.getByRole('button', { name: 'Použít' }).click();
-    await expect(page.locator('[data-filter-chip="period"]')).toContainText('Vlastní');
-    await page.locator('[data-filter-chip="person"]').getByRole('button', { name: 'Osoba' }).click();
-    await page.getByRole('menuitemradio', { name: 'Jana Example' }).click();
+    // The report's addresses from before saved views still open the same time: two weeks of Jana's.
+    const people = await (await page.request.get('/time/report/people?q=Jana')).json();
+    const jana = people.results[0].id;
+    await page.goto(`/time/report?period=custom&from=${lastMonday}&until=${sunday}&person=${jana}`);
+    await expect(page).toHaveURL(/view=this_month/);
+    await expect(page.locator('[data-time-report-filter]')).toContainText('Jana Example');
     await expect(reportRows(page)).toHaveCount(2);
     await expect(reportRows(page).first()).toContainText('Write the copy for the about page');
     await expect(reportRows(page).last()).toContainText('Pick the colour palette');
     await expect(page.locator('[data-time-report]')).toContainText('3 h 30 min');
     await expect(page.locator('[data-time-report]')).not.toContainText('Design the homepage');
 
-    // Totals by task instead of by project.
-    await page.getByRole('button', { name: 'Další filtry' }).click();
-    await page.locator('#report-filters-group-field').selectOption('task');
-    await page.getByRole('button', { name: 'Použít' }).click();
+    // Totals by task instead of by project, a change of the view's display.
+    await page.locator('[data-time-report-group]').getByRole('button').click();
+    await page.locator('[data-time-report-group] a', { hasText: 'Úkol' }).click();
     await expect(page.locator('[data-time-report-totals] h3')).toHaveText('Součty po úkolech');
     await expect(page.locator('[data-time-report-totals] tbody tr')).toHaveCount(2);
 

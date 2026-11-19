@@ -1,0 +1,63 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Adding or editing a bank account of a contact: a small dialog over the contact, and the same form
+    as a page of its own. The number is the account, so it is shown, not edited, once stored; a wrong
+    one is deleted and added again.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set editing = account is not null %}
+{% set crumbs = [{label: 'party.title'|trans, href: path('app_contacts')}, {label: party.displayName, href: cancel}, {label: (editing ? 'party.accounts.edit' : 'party.accounts.add')|trans}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'sm' %}
+
+{% block title %}{{ (editing ? 'party.accounts.edit' : 'party.accounts.add')|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="contact-account-form" action="{{ action }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Party\\Infrastructure\\Controller\\ContactPartsController::FORM_TOKEN')) }}">
+
+        {% if errors.form is defined %}
+            <twig:Ui:Alert tone="error" tabindex="-1" data-error-summary :autofocus="true">{{ errors.form }}</twig:Ui:Alert>
+        {% endif %}
+
+        {% if editing %}
+            <div class="grid gap-1.5" id="number">
+                <p class="m-0 text-small font-medium text-ink">{{ 'party.accounts.number'|trans }}</p>
+                <p class="num m-0 text-body font-medium text-ink">{{ iban }}</p>
+                <p class="m-0 text-caption text-muted">{{ 'party.accounts.number_locked_help'|trans }}</p>
+            </div>
+        {% else %}
+            <twig:Ui:TextInput name="number" id="number" :label="'party.accounts.number'|trans" :help="'party.accounts.number_help'|trans" :value="values.number" :error="errors.number|default(null)" maxlength="64" autocomplete="off" autocapitalize="characters" spellcheck="false" required />
+        {% endif %}
+
+        <div class="grid gap-4 sm:grid-cols-[10rem_1fr]">
+            <twig:Ui:TextInput name="bic" id="bic" :label="'party.column.bic'|trans" :help="'party.accounts.bic_help'|trans" :value="values.bic" :error="errors.bic|default(null)" maxlength="11" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+            <twig:Ui:TextInput name="label" id="label" :label="'party.column.label'|trans" :help="'party.accounts.label_help'|trans" :value="values.label" :error="errors.label|default(null)" maxlength="100" />
+        </div>
+
+        {% if editing and account.primary %}
+            <twig:Ui:Checkbox name="primary" id="primary" value="1" :checked="true" :disabled="true" :label="'party.accounts.primary'|trans" :help="'party.accounts.primary_kept_help'|trans" />
+        {% else %}
+            <twig:Ui:Checkbox name="primary" id="primary" value="1" :checked="values.primary" :label="'party.accounts.primary'|trans" :help="'party.accounts.primary_help'|trans" />
+        {% endif %}
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'party.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="contact-account-form" variant="primary">{{ (editing ? 'party.save' : 'party.accounts.submit')|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set form %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="(editing ? 'party.accounts.edit' : 'party.accounts.add')|trans" icon="landmark" class="max-w-2xl">
+        {{ form }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="cancel">{{ 'party.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="contact-account-form" variant="primary">{{ (editing ? 'party.save' : 'party.accounts.submit')|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

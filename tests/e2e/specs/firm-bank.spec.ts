@@ -22,8 +22,7 @@ async function expectNoSidewaysScroll(page: Page): Promise<void> {
 }
 
 async function openBank(page: Page): Promise<void> {
-  await page.goto('/settings/firms');
-  await page.getByRole('link', { name: 'Example Bank Settings s.r.o.', exact: true }).click();
+  await page.goto('/settings/firm');
   await page.getByRole('navigation', { name: 'Části firmy' }).getByRole('link', { name: 'Banka' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Banka' })).toBeVisible();
 }

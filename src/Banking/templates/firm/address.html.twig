@@ -7,7 +7,7 @@
 #}
 {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
-{% set crumbs = [{label: 'firm.title'|trans, href: path('app_firm_index')}, {label: firm.name, href: path('app_firm_edit', {id: firm.id})}, {label: 'bank.account.title'|trans, href: cancel}, {label: account.name}] %}
+{% set crumbs = [{label: 'firm.title'|trans, href: path('app_firm')}, {label: 'bank.account.title'|trans, href: cancel}, {label: account.name}] %}
 {% set dialog_size = 'md' %}
 {% set dialog_fields = false %}
 {% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}

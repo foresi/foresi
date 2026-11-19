@@ -54,6 +54,8 @@ final readonly class CreateViewInput
         public bool $showCount = false,
         #[Field('primary: a tab of the list; overflow: in its "More views" menu.', enum: ['primary', 'overflow'])]
         public string $placement = 'primary',
+        #[Field('What the rows are grouped by, on a list that groups them, such as "person" on the time report; null for the list\'s default.', maxLength: 64)]
+        public ?string $groupBy = null,
     ) {
     }
 }

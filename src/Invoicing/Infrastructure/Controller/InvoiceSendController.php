@@ -393,7 +393,7 @@ final class InvoiceSendController extends AbstractController
             'token' => $token,
             'return' => $return,
             'cancel' => $this->listUrl($return),
-            'settingsUrl' => $this->owner->isOwner() ? $this->generateUrl('app_firm_mail', ['id' => $invoice->firm()->id(), 'tab' => 'server']) : null,
+            'settingsUrl' => $this->owner->isOwner() ? $this->generateUrl('app_firm_mail', ['tab' => 'server']) : null,
             'maxOthers' => self::MAX_OTHERS,
         ], new Response(status: $status));
     }

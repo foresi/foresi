@@ -92,6 +92,19 @@ class PartyBankAccount implements Audited, AuditRooted
         return true === $this->primaryFlag;
     }
 
+    public function relabel(string $label): void
+    {
+        $this->label = trim($label);
+    }
+
+    /**
+     * @throws \DomainException when the BIC has neither 8 nor 11 characters
+     */
+    public function changeBic(?string $bic): void
+    {
+        $this->bic = $this->validateBic($bic);
+    }
+
     public function makePrimary(): void
     {
         $this->primaryFlag = true;

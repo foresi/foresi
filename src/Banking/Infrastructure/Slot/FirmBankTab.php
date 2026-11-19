@@ -29,6 +29,6 @@ final readonly class FirmBankTab implements SlotProvider
             return [];
         }
 
-        return [new SlotItem(data: ['key' => 'bank', 'label' => $this->translator->trans('firm.tab.bank'), 'href' => $this->urls->generate('app_firm_bank', ['id' => $context['firmId']])], weight: 30)];
+        return [new SlotItem(data: ['key' => 'bank', 'label' => $this->translator->trans('firm.tab.bank'), 'href' => $this->urls->generate('app_firm_bank')], weight: 30)];
     }
 }

@@ -57,6 +57,8 @@ final readonly class UpdateViewInput
         public int|Omitted $position = new Omitted(),
         #[Field('A hidden view a module ships is left off the list until it is shown again or the defaults are restored. Only owners hide.')]
         public bool|Omitted $hidden = new Omitted(),
+        #[Field('What the rows are grouped by, on a list that groups them; null for the list\'s default.', maxLength: 64)]
+        public string|Omitted|null $groupBy = new Omitted(),
     ) {
     }
 }

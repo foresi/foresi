@@ -173,15 +173,67 @@ party:
     refresh: Check again
   contacts:
     empty: There is no contact person yet.
+    empty_text: Choose a person from the address book, or create a new one right here.
     empty_person: This person is not a contact of any company yet.
     add: Add a contact person
     person: Person
+    person_placeholder: Choose a person
+    name: Full name
     primary: Primary contact person
+    primary_help: Replaces the current primary contact person.
+    position_help: For example director or accountant.
     link: Add person
-    no_candidates: There is no other person in the address book. Add one as a new contact of kind Person first.
+    create: Create and add
+    no_candidates: There is no person in the address book to add. Create one under New person.
     person_invalid: Choose a person who is not listed for the company yet.
+    mode:
+      label: How to add the person
+      existing: From the address book
+      new: New person
+    action:
+      primary: Make primary
+      unlink: Remove from the company
+    confirm:
+      unlink: 'Remove {name} from the company?'
+      unlink_text: The person stays in the address book; only the link to this company goes.
+      unlink_accept: Remove
   accounts:
     empty: There is no bank account yet.
+    empty_text: Add the account the contact pays from or that you send money to.
+    add: Add account
+    edit: Edit account
+    submit: Add account
+    number: Account number
+    number_help: 'An IBAN, or a domestic number like 19-2000145399/0800.'
+    number_locked_help: Fixed once saved. Delete a wrong account and add it again.
+    bic_help: Optional, for payments abroad.
+    label_help: For example Main or Euro account.
+    primary: Primary account
+    primary_help: Replaces the contact's current primary account.
+    primary_kept_help: It stays primary until you make another account primary.
+    action:
+      primary: Make primary
+      delete: Delete
+    confirm:
+      delete: 'Delete the account {iban}?'
+      delete_text: The account goes from the contact. Documents that already show it do not change.
+      delete_accept: Delete
+    error:
+      number: Enter an IBAN or a domestic account number with a bank code.
+      bic: A BIC has 8 or 11 characters, for example GIBACZPX.
+      duplicate: The contact has this account already.
+  addresses:
+    add: Add address
+    edit: Edit address
+    submit: Add address
+    label_help: For example Warehouse or Brno branch.
+    billing_kept: The billing address cannot be deleted, only changed.
+    action:
+      delete: Delete
+    confirm:
+      delete: Delete the address?
+      delete_text: The address goes from the contact. Documents that already show it do not change.
+      delete_accept: Delete
   defaults:
     due_days: Due period
     days: '{count, plural, one {# day} other {# days}}'
@@ -244,6 +296,16 @@ party:
     archived_many: '{count, plural, one {# contact archived.} other {# contacts archived.}}'
     restored: The contact is restored.
     linked: The contact person is added.
+    person_created: The person is created and added as a contact person.
+    person_primary: The primary contact person is changed.
+    unlinked: '{name} is no longer a contact person of the company.'
+    account_added: The bank account is added.
+    account_changed: The bank account is saved.
+    account_primary: The primary account is changed.
+    account_deleted: The bank account is deleted.
+    address_added: The address is added.
+    address_changed: The address is saved.
+    address_deleted: The address is deleted.
     checks_refreshed: The register checks are updated.
     checks_recent: 'The registers were checked recently ({time}), so these are their answers. They are asked again after 24 hours at the earliest.'
     checks_rate_limited: Too many refreshes. Try again in a minute.

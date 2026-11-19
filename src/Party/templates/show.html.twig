@@ -4,9 +4,6 @@
 {% set crumbs = [{label: 'party.title'|trans, href: path('app_contacts')}, {label: party.displayName}] %}
 {% set formatTime = 'format.datetime'|trans %}
 {% set token = csrf_token(constant('Foresi\\Party\\Infrastructure\\Controller\\PartyController::ACTION_TOKEN')) %}
-{% set linkErrors = linkErrors|default({}) %}
-{% set linkValues = linkValues|default({person: '', position: '', primary: false}) %}
-{% set form_invalid = linkErrors is not empty %}
 
 {% block title %}{{ party.displayName }}{% endblock %}
 
@@ -107,36 +104,48 @@
                 </twig:Ui:Card>
             </div>
         {% elseif tab == 'contacts' %}
-            <twig:Ui:DataTable :caption="'party.tab.contacts'|trans" :columns="[{key: 'name', label: 'party.column.name'|trans}, {key: 'position', label: 'party.column.position'|trans}, {key: 'primary', label: 'party.column.primary'|trans}]" :rows="contactRows">
-                <twig:block name="empty">
-                    <twig:Ui:EmptyState icon="users" :title="(isPerson ? 'party.contacts.empty_person' : 'party.contacts.empty')|trans" />
-                </twig:block>
-            </twig:Ui:DataTable>
-            {% if not isPerson %}
-                <twig:Ui:Card :title="'party.contacts.add'|trans" icon="user-plus">
-                    {% if candidates is empty %}
-                        {# A refused person who is no candidate any more (linked meanwhile) has no select to show the message at. #}
-                        {% if linkErrors.person is defined %}<twig:Ui:Alert tone="error" class="mb-3" data-link-error>{{ linkErrors.person }}</twig:Ui:Alert>{% endif %}
-                        <p class="text-muted">{{ 'party.contacts.no_candidates'|trans }}</p>
-                    {% else %}
-                        <form method="post" action="{{ path('app_contact_link', {id: id}) }}" class="grid gap-3 sm:grid-cols-2" novalidate>
-                            <input type="hidden" name="_token" value="{{ token }}">
-                            <twig:Ui:Select name="person" id="link-person" :label="'party.contacts.person'|trans" :options="candidates" :value="linkValues.person" :error="linkErrors.person|default(null)" required />
-                            <twig:Ui:TextInput name="position" id="link-position" :label="'party.column.position'|trans" :value="linkValues.position" :error="linkErrors.position|default(null)" maxlength="100" />
-                            <twig:Ui:Checkbox name="primary" id="link-primary" value="1" :label="'party.contacts.primary'|trans" :checked="linkValues.primary" />
-                            <div class="sm:col-span-2"><twig:Ui:Button type="submit" variant="primary" icon="user-plus">{{ 'party.contacts.link'|trans }}</twig:Ui:Button></div>
-                        </form>
+            {# Each tab adds in a dialog over the contact; the sheet then shows the tab again (docs/design/overlays.md). #}
+            {% set addPerson = path('app_contact_person_new', {id: id}) %}
+            <twig:Ui:Card :title="'party.tab.contacts'|trans" icon="users">
+                <twig:block name="actions">
+                    {% if not isPerson and contactRows is not empty %}
+                        <twig:Ui:Button :href="addPerson" size="sm" icon="user-plus" id="contact-person-add" data-dialog data-dialog-then="follow" aria-haspopup="dialog">{{ 'party.contacts.add'|trans }}</twig:Ui:Button>
                     {% endif %}
-                </twig:Ui:Card>
-            {% endif %}
-        {% elseif tab == 'addresses' %}
-            <twig:Ui:DataTable :caption="'party.tab.addresses'|trans" :columns="[{key: 'type', label: 'party.column.type'|trans}, {key: 'label', label: 'party.column.label'|trans}, {key: 'address', label: 'party.column.address'|trans}]" :rows="addressRows" />
-        {% elseif tab == 'bank-accounts' %}
-            <twig:Ui:DataTable :caption="'party.tab.bank-accounts'|trans" :columns="[{key: 'iban', label: 'party.column.iban'|trans}, {key: 'bic', label: 'party.column.bic'|trans}, {key: 'label', label: 'party.column.label'|trans}, {key: 'primary', label: 'party.column.primary'|trans}]" :rows="accountRows">
-                <twig:block name="empty">
-                    <twig:Ui:EmptyState icon="landmark" :title="'party.accounts.empty'|trans" />
                 </twig:block>
-            </twig:Ui:DataTable>
+                {% if contactRows is empty %}
+                    <twig:Ui:EmptyState icon="users" :title="(isPerson ? 'party.contacts.empty_person' : 'party.contacts.empty')|trans" :text="isPerson ? null : 'party.contacts.empty_text'|trans" class="py-10">
+                        {% if not isPerson %}
+                            <twig:Ui:Button :href="addPerson" variant="primary" icon="user-plus" id="contact-person-add" data-dialog data-dialog-then="follow" aria-haspopup="dialog">{{ 'party.contacts.add'|trans }}</twig:Ui:Button>
+                        {% endif %}
+                    </twig:Ui:EmptyState>
+                {% else %}
+                    <twig:Ui:DataTable :caption="'party.tab.contacts'|trans" :columns="[{key: 'name', label: 'party.column.name'|trans}, {key: 'position', label: 'party.column.position'|trans}, {key: 'primary', label: 'party.column.primary'|trans}]" :rows="contactRows" :actionToken="token" />
+                {% endif %}
+            </twig:Ui:Card>
+        {% elseif tab == 'addresses' %}
+            {% set addAddress = path('app_contact_address_new', {id: id}) %}
+            <twig:Ui:Card :title="'party.tab.addresses'|trans" icon="building-2">
+                <twig:block name="actions">
+                    <twig:Ui:Button :href="addAddress" size="sm" icon="plus" id="contact-address-add" data-dialog data-dialog-then="follow" aria-haspopup="dialog">{{ 'party.addresses.add'|trans }}</twig:Ui:Button>
+                </twig:block>
+                <twig:Ui:DataTable :caption="'party.tab.addresses'|trans" :columns="[{key: 'type', label: 'party.column.type'|trans}, {key: 'label', label: 'party.column.label'|trans}, {key: 'address', label: 'party.column.address'|trans}]" :rows="addressRows" :actionToken="token" />
+            </twig:Ui:Card>
+        {% elseif tab == 'bank-accounts' %}
+            {% set addAccount = path('app_contact_account_new', {id: id}) %}
+            <twig:Ui:Card :title="'party.tab.bank-accounts'|trans" icon="landmark">
+                <twig:block name="actions">
+                    {% if accountRows is not empty %}
+                        <twig:Ui:Button :href="addAccount" size="sm" icon="plus" id="contact-account-add" data-dialog data-dialog-then="follow" aria-haspopup="dialog">{{ 'party.accounts.add'|trans }}</twig:Ui:Button>
+                    {% endif %}
+                </twig:block>
+                {% if accountRows is empty %}
+                    <twig:Ui:EmptyState icon="landmark" :title="'party.accounts.empty'|trans" :text="'party.accounts.empty_text'|trans" class="py-10">
+                        <twig:Ui:Button :href="addAccount" variant="primary" icon="plus" id="contact-account-add" data-dialog data-dialog-then="follow" aria-haspopup="dialog">{{ 'party.accounts.add'|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                {% else %}
+                    <twig:Ui:DataTable :caption="'party.tab.bank-accounts'|trans" :columns="[{key: 'iban', label: 'party.column.iban'|trans}, {key: 'bic', label: 'party.column.bic'|trans}, {key: 'label', label: 'party.column.label'|trans}, {key: 'primary', label: 'party.column.primary'|trans}]" :rows="accountRows" :actionToken="token" />
+                {% endif %}
+            </twig:Ui:Card>
         {% else %}
             {% if timeline is empty %}
                 <twig:Ui:EmptyState icon="history" :title="'party.history.empty'|trans" />
