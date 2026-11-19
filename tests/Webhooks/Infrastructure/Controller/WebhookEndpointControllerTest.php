@@ -28,6 +28,7 @@ use Foresi\Webhooks\Domain\WebhookEndpoint;
 use Foresi\Webhooks\Domain\WebhookSecret;
 use Foresi\Webhooks\Infrastructure\Crypto\SodiumWebhookSecrets;
 use Foresi\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
+use Foresi\Work\Infrastructure\Events\WorkEventAccess;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -192,7 +193,7 @@ final class WebhookEndpointControllerTest extends WebTestCase
         $id = $this->stored();
         // The person no longer works with the bank, the cash flow, invoices, contacts or received documents: the access services
         // of the installed modules say no.
-        foreach ([BankingEventAccess::class => 'banking', CashFlowEventAccess::class => 'cash-flow', InvoicingEventAccess::class => 'invoicing', PartyEventAccess::class => 'party', PurchasingEventAccess::class => 'purchasing'] as $service => $module) {
+        foreach ([BankingEventAccess::class => 'banking', CashFlowEventAccess::class => 'cash-flow', InvoicingEventAccess::class => 'invoicing', PartyEventAccess::class => 'party', PurchasingEventAccess::class => 'purchasing', WorkEventAccess::class => 'work'] as $service => $module) {
             if (!class_exists($service)) {
                 continue;
             }

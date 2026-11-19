@@ -173,6 +173,9 @@ api_tokens:
     cashflow: Cash flow
     received_documents: Přijaté doklady
     views: Uložené pohledy
+    projects: Projekty
+    tasks: Úkoly a komentáře
+    time_entries: Čas
   state:
     expired: Vypršel
     revoked: Zrušen

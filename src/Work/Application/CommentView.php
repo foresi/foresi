@@ -21,6 +21,7 @@ final readonly class CommentView
      * @param bool                    $canDelete   whether the signed-in person may delete it: its author or an owner, while it stands
      * @param bool                    $canRestore  whether the signed-in person may restore it: its author or an owner, while deleted and its text is kept
      * @param list<CommentAttachment> $attachments oldest first
+     * @param string|null             $authorId    the membership of its author
      */
     public function __construct(
         public string $id,
@@ -36,6 +37,7 @@ final readonly class CommentView
         public bool $canDelete,
         public bool $canRestore,
         public array $attachments,
+        public ?string $authorId = null,
     ) {
     }
 }

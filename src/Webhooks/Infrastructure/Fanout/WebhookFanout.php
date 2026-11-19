@@ -17,6 +17,8 @@ use Foresi\Events\Application\Query\EventRow;
 use Foresi\Events\Infrastructure\Api\EventView;
 use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
 use Foresi\Shared\Application\Event\EventReadAccess;
+use Foresi\Shared\Application\Event\EventSubjectAccess;
+use Foresi\Shared\Domain\Event\EventSubject;
 use Foresi\Shared\Domain\Id;
 use Foresi\Webhooks\Application\AttemptTrigger;
 use Foresi\Webhooks\Application\SendWebhook;
@@ -54,7 +56,8 @@ final class WebhookFanout implements EventSink, ResetInterface
     private array $owners = [];
 
     /**
-     * @param iterable<EventReadAccess> $access
+     * @param iterable<EventReadAccess>    $access
+     * @param iterable<EventSubjectAccess> $subjects
      */
     public function __construct(
         private readonly Connection $connection,
@@ -66,6 +69,8 @@ final class WebhookFanout implements EventSink, ResetInterface
         private readonly iterable $access,
         private readonly EndpointDisabledMailer $mailer,
         private readonly LoggerInterface $logger,
+        #[AutowireIterator('app.event_subject_access')]
+        private readonly iterable $subjects = [],
     ) {
     }
 
@@ -82,6 +87,10 @@ final class WebhookFanout implements EventSink, ResetInterface
                 $this->mailer->notify($endpoint['owner'], $id, $endpoint['host'], DisabledReason::OwnerLostAccess);
                 unset($this->endpoints[$id]);
 
+                continue;
+            }
+            // An event about what the owner does not see, such as a private task, is not theirs to receive.
+            if (!$this->ownerSees($endpoint['owner'], $module, $row)) {
                 continue;
             }
             $body ??= $this->body($row);
@@ -153,6 +162,17 @@ final class WebhookFanout implements EventSink, ResetInterface
         }
 
         return $this->owners[$key] = $may;
+    }
+
+    private function ownerSees(string $owner, string $module, EventRow $row): bool
+    {
+        foreach ($this->subjects as $subjects) {
+            if ($subjects->module() === $module && !$subjects->userSees($owner, new EventSubject($row->subjectType, $row->subjectId))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function disable(string $endpointId): void

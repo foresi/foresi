@@ -94,7 +94,7 @@ final class InstalledModulesTest extends TestCase
         $graph = new InstalledModules(\dirname(__DIR__, 4))->graph();
 
         // The resources of each module that declares some, as many as are installed.
-        $resources = ['cash-flow' => ['cashflow'], 'events' => ['events'], 'invoicing' => ['invoices', 'payments'], 'party' => ['contacts'], 'purchasing' => ['received_documents'], 'shared' => ['views'], 'webhooks' => ['webhooks']];
+        $resources = ['cash-flow' => ['cashflow'], 'events' => ['events'], 'invoicing' => ['invoices', 'payments'], 'party' => ['contacts'], 'purchasing' => ['received_documents'], 'shared' => ['views'], 'webhooks' => ['webhooks'], 'work' => ['projects', 'tasks', 'time_entries']];
         $expected = array_merge(...array_values(array_intersect_key($resources, array_flip($this->installed()))));
         sort($expected);
         self::assertSame($expected, $graph->resources());

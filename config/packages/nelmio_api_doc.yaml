@@ -233,6 +233,145 @@ nelmio_api_doc:
                         data: { type: array, items: { $ref: '#/components/schemas/Contact' } }
                         next_cursor: { type: string, nullable: true }
                         applied_view: { allOf: [{ $ref: '#/components/schemas/SavedView' }], nullable: true, description: 'The saved view the view parameter named; null without one.' }
+                Project:
+                    type: object
+                    required: [id, name, client, visibility, workflow, open_tasks, nearest_due_on, archived]
+                    properties:
+                        id: { type: string, format: uuid }
+                        name: { type: string }
+                        client: { allOf: [{ $ref: '#/components/schemas/Reference' }], nullable: true }
+                        visibility: { type: string, enum: [organisation, chosen], description: 'Open to the whole organisation, or to the people it is shared with.' }
+                        workflow: { type: string, enum: [simple, development] }
+                        open_tasks: { type: integer, description: 'Tasks and subtasks the person sees that are not finished.' }
+                        nearest_due_on: { type: string, format: date, nullable: true }
+                        archived: { type: boolean }
+                ProjectDetail:
+                    allOf:
+                        - $ref: '#/components/schemas/Project'
+                        - type: object
+                          required: [description, billable_by_default, statuses, sections]
+                          properties:
+                              description: { type: string, description: Markdown. }
+                              billable_by_default: { type: boolean }
+                              statuses:
+                                  type: array
+                                  items:
+                                      type: object
+                                      properties:
+                                          id: { type: string, format: uuid }
+                                          name: { type: string }
+                                          type: { type: string, enum: [open, active, done, closed], description: 'done and closed finish a task.' }
+                                          position: { type: integer }
+                              sections:
+                                  type: array
+                                  description: The sections the person sees.
+                                  items:
+                                      type: object
+                                      properties:
+                                          id: { type: string, format: uuid }
+                                          name: { type: string }
+                                          position: { type: integer }
+                ProjectPage:
+                    type: object
+                    required: [data, next_cursor]
+                    properties:
+                        data: { type: array, items: { $ref: '#/components/schemas/Project' } }
+                        next_cursor: { type: string, nullable: true }
+                        applied_view: { allOf: [{ $ref: '#/components/schemas/SavedView' }], nullable: true, description: 'The saved view the view parameter named; null without one.' }
+                Label:
+                    type: object
+                    required: [id, name, colour]
+                    properties:
+                        id: { type: string, format: uuid }
+                        name: { type: string }
+                        colour: { type: string, enum: [gray, green, amber, red] }
+                Task:
+                    type: object
+                    required: [id, title, project, section_id, parent_id, status, responsible, due_on, priority, labels, subtask_count, done, private, url]
+                    properties:
+                        id: { type: string, format: uuid }
+                        title: { type: string }
+                        project: { $ref: '#/components/schemas/Reference' }
+                        section_id: { type: string, format: uuid, nullable: true }
+                        parent_id: { type: string, format: uuid, nullable: true, description: 'The task this is a subtask of.' }
+                        status:
+                            type: object
+                            properties:
+                                id: { type: string, format: uuid }
+                                name: { type: string }
+                                type: { type: string, enum: [open, active, done, closed] }
+                        responsible: { allOf: [{ $ref: '#/components/schemas/Reference' }], nullable: true, description: 'The id is a membership, as responsible_id takes it.' }
+                        due_on: { type: string, format: date, nullable: true }
+                        priority: { type: string, enum: [none, low, medium, high, urgent] }
+                        labels: { type: array, items: { $ref: '#/components/schemas/Label' } }
+                        subtask_count: { type: integer }
+                        done: { type: boolean, description: 'Its status is of type done or closed.' }
+                        private: { type: boolean, description: 'Only the people it is shared with see it.' }
+                        url: { type: string, format: uri, description: 'The page of the task, for a person to open.' }
+                TaskDetail:
+                    allOf:
+                        - $ref: '#/components/schemas/Task'
+                        - type: object
+                          required: [description, section, parent, watchers, subtasks, estimate_minutes, project_archived, created_at, completed_at]
+                          properties:
+                              description: { type: string, description: Markdown. }
+                              section: { allOf: [{ $ref: '#/components/schemas/Reference' }], nullable: true }
+                              parent:
+                                  type: object
+                                  nullable: true
+                                  properties:
+                                      id: { type: string, format: uuid }
+                                      title: { type: string }
+                              watchers: { type: array, items: { $ref: '#/components/schemas/Reference' } }
+                              subtasks: { type: array, items: { $ref: '#/components/schemas/Task' } }
+                              estimate_minutes: { type: integer, nullable: true }
+                              project_archived: { type: boolean }
+                              created_at: { type: string, format: date-time }
+                              completed_at: { type: string, format: date-time, nullable: true }
+                TaskPage:
+                    type: object
+                    required: [data, next_cursor]
+                    properties:
+                        data: { type: array, items: { $ref: '#/components/schemas/Task' } }
+                        next_cursor: { type: string, nullable: true }
+                        applied_view: { allOf: [{ $ref: '#/components/schemas/SavedView' }], nullable: true, description: 'The saved view of the list work.my_tasks the view parameter named; null without one.' }
+                TaskComment:
+                    type: object
+                    required: [id, author, text, internal, created_at, edited_at]
+                    properties:
+                        id: { type: string, format: uuid }
+                        author: { $ref: '#/components/schemas/Reference' }
+                        text: { type: string, description: 'Markdown, written by a person.' }
+                        internal: { type: boolean, description: 'Read by the people of the organisation only.' }
+                        created_at: { type: string, format: date-time }
+                        edited_at: { type: string, format: date-time, nullable: true }
+                TimeEntry:
+                    type: object
+                    required: [id, project, task, person, worked_on, minutes, started_at, ended_at, note, billable, running, invoiced]
+                    properties:
+                        id: { type: string, format: uuid }
+                        project: { $ref: '#/components/schemas/Reference' }
+                        task:
+                            type: object
+                            nullable: true
+                            properties:
+                                id: { type: string, format: uuid }
+                                title: { type: string }
+                        person: { $ref: '#/components/schemas/Reference' }
+                        worked_on: { type: string, format: date }
+                        minutes: { type: integer, nullable: true, description: 'Null while the timer runs.' }
+                        started_at: { type: string, format: date-time, nullable: true }
+                        ended_at: { type: string, format: date-time, nullable: true }
+                        note: { type: string }
+                        billable: { type: boolean }
+                        running: { type: boolean }
+                        invoiced: { type: boolean }
+                TimeEntryPage:
+                    type: object
+                    required: [data, next_cursor]
+                    properties:
+                        data: { type: array, items: { $ref: '#/components/schemas/TimeEntry' } }
+                        next_cursor: { type: string, nullable: true }
                 Payment:
                     type: object
                     properties:

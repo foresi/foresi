@@ -59,7 +59,7 @@ A scope says what a token may reach. A token has one or more:
 | `<resource>:read` | Reading one kind of record. |
 | `<resource>:write` | Changing one kind of record, and reading it. |
 
-The resources are `cashflow`, `contacts`, `invoices`, `payments`, `received_documents`, `events`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
+The resources are `cashflow`, `contacts`, `invoices`, `payments`, `received_documents`, `events`, `projects`, `tasks` (comments and labels included), `time_entries`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
 
 ## Using the API
 
@@ -109,7 +109,7 @@ A detail answers `{"data": {...}}`.
 
 ## Endpoints
 
-The endpoints below are `GET`. The writes of invoices are under [Invoice writes](#invoice-writes), those of contacts under [Contact writes](#contact-writes), those of saved views under [Saved views](#saved-views), those of the cash flow under [Cash flow](#cash-flow), those of received documents under [Received documents](#received-documents), and those of webhooks under [Webhooks](#webhooks).
+The endpoints below are `GET`. The writes of invoices are under [Invoice writes](#invoice-writes), those of contacts under [Contact writes](#contact-writes), those of saved views under [Saved views](#saved-views), those of the cash flow under [Cash flow](#cash-flow), those of received documents under [Received documents](#received-documents), those of projects, tasks and time under [Work writes](#work-writes), and those of webhooks under [Webhooks](#webhooks).
 
 | Endpoint | Scope | What it returns |
 | --- | --- | --- |
@@ -124,6 +124,14 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/received-documents/{documentId}` | `received_documents:read` | One received document with its VAT recap and payments. |
 | `/api/v1/received-documents/{documentId}/payments` | `received_documents:read` | The payments of one received document, by the day paid. |
 | `/api/v1/events` | `events:read` | Domain events of the last 30 days, oldest first. |
+| `/api/v1/projects` | `projects:read` | Projects the token's person sees, newest first. |
+| `/api/v1/projects/{projectId}` | `projects:read` | One project with its statuses and the sections the person sees. |
+| `/api/v1/projects/{projectId}/people` | `tasks:read` | Who may be responsible for a task of the project; `task_id` narrows it to who sees that task. |
+| `/api/v1/tasks` | `tasks:read` | Tasks the token's person sees, subtasks included, newest first. |
+| `/api/v1/tasks/{taskId}` | `tasks:read` | One task with its description, watchers and subtasks. |
+| `/api/v1/tasks/{taskId}/comments` | `tasks:read` | The comments of a task, oldest first, without paging. |
+| `/api/v1/labels` | `tasks:read` | The labels of the organisation, by name. |
+| `/api/v1/time-entries` | `time_entries:read` | Time the person sees, newest first, a running timer included. |
 | `/api/v1/cash-flow/forecast` | `cashflow:read` | The cash-flow forecast of a firm; see [Cash flow](#cash-flow). |
 | `/api/v1/cash-flow/planned-items` | `cashflow:read` | The planned items of a firm (`firm_id`, required), oldest first, without paging. |
 | `/api/v1/cash-flow/planned-items/{plannedItemId}` | `cashflow:read` | One planned item. |
@@ -219,7 +227,7 @@ Query parameters of `GET /api/v1/payments`:
 
 ### Events
 
-`GET /api/v1/events` is the feed of what happened in the organisation: an invoice was issued, delivered, paid, trashed or restored, a payment was recorded, a contact was created, updated, archived or restored, a received document was recorded or paid in full. Query parameters:
+`GET /api/v1/events` is the feed of what happened in the organisation: an invoice was issued, delivered, paid, trashed or restored, a payment was recorded, a contact was created, updated, archived or restored, a received document was recorded or paid in full, a task was created, updated, completed or trashed, a task was commented on. An event of a task is shown only to who sees the task, as its lists show it: a private task or a project not shared with a team member stays out of their feed and their webhooks. Query parameters:
 
 | Parameter | Value |
 | --- | --- |
@@ -229,6 +237,28 @@ Query parameters of `GET /api/v1/payments`:
 An item has `id`, `type`, `version`, `position`, `occurred_at`, `subject` (`type`, `id` and the API path `url` to read it), `data`, `correlation_id` and `actor` (`kind`). The `data` holds ids, codes and amounts as text, and no personal data. The feed is in ascending order of `position`, and the events of the last 30 days are kept. To follow it, store the `next_cursor` of the last answer and call again with it as `cursor`: it continues after the last event you got. A page with fewer items than `limit` means you are caught up; call again later with the same `cursor`, and `next_cursor` stays where it was until something new happens. `next_cursor` is `null` only while you have seen no event at all. Delivery to you is at least once, so handle an `id` you have seen before. A type only gains facts within a `version`.
 
 A value an endpoint cannot use, such as a date that is not a date or a `limit` above 100, is answered `400 invalid_parameter`, with the name of the parameter.
+
+### Projects and tasks
+
+Projects, tasks, comments and time are read as the token's person sees them on the screens (see [projects](projects.md)): the owners see everything, a team member the projects open to the organisation and what is shared with them. A project or task they may not see answers `404 not_found`, exactly as one that does not exist, and a private task is not found unless it is shared with them. A person is written as `{"id", "name"}`, the id being their membership in the organisation; that id is the `responsible_id` of a task.
+
+Query parameters of `GET /api/v1/tasks`:
+
+| Parameter | Value |
+| --- | --- |
+| `q` | Text to search for in the title. |
+| `project_id` | Only the tasks of one project. Without it, the tasks of archived projects are left out. |
+| `assignee` | `me` for the tasks the token's person is responsible for, or the id of a person. |
+| `status_type` | `open`, `active`, `done` or `closed`. |
+| `finished` | `true` for tasks in a status of type `done` or `closed`, `false` for the others. |
+| `due` | `overdue` (before today and not finished), `today`, `next_7_days` (today and the seven days after) or `none`. |
+| `view` | A saved view of the list `work.my_tasks`, such as `work.my_tasks.assigned` or `work.my_tasks.watching`. Needs `views:read` too. |
+| `filter` | Conditions as JSON in the format of [Saved views](#saved-views), checked against `work.my_tasks`. |
+| `limit`, `cursor` | Paging, as above. |
+
+"My tasks" in an instance is `GET /api/v1/tasks?assignee=me&finished=false`. The order is by id, newest first, so a client that wants the tasks by due date sorts them by `due_on` itself.
+
+Query parameters of `GET /api/v1/projects`: `q` (the name), `archived` (`true` lists the archived projects), `client_id`, `view` (a saved view of the list `work.projects`), `filter`, `limit` and `cursor`. `GET /api/v1/time-entries` takes `project_id`, `task_id`, `person` (`me` or the id of a person), `from` and `until` (`YYYY-MM-DD`, both included), `limit` and `cursor`; a running timer has `minutes` `null` and `running` `true`. Hourly rates and sharing stay on the screens.
 
 ## Saved views
 
@@ -312,6 +342,48 @@ What a contact write refuses:
 | 409 | `already_linked` | The person is linked to the company already. |
 
 There is no upsert. To keep a contact you may have created before, search for it first (`q` also matches e-mails), and on `duplicate` read the contact in `existing_ids` and update it.
+
+## Work writes
+
+The writes of projects need `projects:write`, those of tasks and comments `tasks:write`, those of time `time_entries:write`. Each runs the use case of the screens, so the person of the token may do over the API what they may do there and no more. Bodies are JSON with snake case fields.
+
+| Method and path | Answer |
+| --- | --- |
+| `POST /api/v1/tasks` | `201` with the task as `GET /api/v1/tasks/{taskId}` shows it, and `Location`. |
+| `PATCH /api/v1/tasks/{taskId}` | The task as it is now. |
+| `POST /api/v1/tasks/{taskId}/trash` | `{"id", "trashed": true}`. The task and its subtasks go to the trash for 30 days. |
+| `POST /api/v1/tasks/{taskId}/restore` | The task out of the trash. |
+| `POST /api/v1/tasks/{taskId}/comments` | `201` with the comment. |
+| `PATCH /api/v1/task-comments/{commentId}` | The comment with its new text. Only its author edits it. |
+| `POST /api/v1/task-comments/{commentId}/trash` | `{"id", "task_id", "deleted": true}`. Its author or an owner restores it on the screens for 30 days. |
+| `POST /api/v1/projects` | `201` with the project as `GET /api/v1/projects/{projectId}` shows it, and `Location`. |
+| `PATCH /api/v1/projects/{projectId}` | The project as it is now. |
+| `POST /api/v1/projects/{projectId}/archive` | The archived project. |
+| `POST /api/v1/projects/{projectId}/restore` | The project, active again. |
+| `POST /api/v1/time-entries` | `201` with the entry. |
+| `POST /api/v1/time-entries/timer` | `201` with the running entry. A timer that ran already is stopped and saved first. |
+| `POST /api/v1/time-entries/{entryId}/stop` | The stopped entry. The entry must be the person's running timer. |
+
+Fields of a task: `project_id` (required on create, it does not change), `title` (required, at most 500 characters), `description` (Markdown), `section_id`, `parent_id` (create only: a subtask of a task of the same project), `status_id` (a status of its project; the first open one when left out), `responsible_id` (a person from `GET /api/v1/projects/{projectId}/people`), `due_on` (`YYYY-MM-DD`), `priority` (`none`, `low`, `medium`, `high` or `urgent`) and `label_ids` (it replaces the labels of the task). `PATCH` changes only the fields sent; `responsible_id`, `due_on` and `section_id` sent as `null` are cleared. A `PATCH` is saved whole or not at all. To complete a task, set `status_id` to a status of type `done` or `closed`; to reopen it, to one of type `open`. A new responsible is told, and the watchers hear of a new status, as on the screens.
+
+```bash
+curl -X PATCH -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
+  -d '{"status_id": "0193a1b2-0000-7000-8000-000000000003"}' \
+  "https://app.example.com/api/v1/tasks/0193a1b2-0000-7000-8000-000000000010"
+```
+
+A comment takes `body` (Markdown, at most 20,000 characters) and `internal` (`true` keeps it to the people of the organisation). A project takes `name` (at most 200 characters), `client_id` (a contact), `description` and, on create, `workflow` (`simple` or `development`); its sharing and sections are kept on the screens. Time takes `project_id`, `task_id`, `worked_on` (`YYYY-MM-DD`), `minutes` or `started_at` and `ended_at` (ISO 8601 with the offset) but not both, `note` (at most 2,000 characters) and `billable` (the default of the project when left out); a timer takes `project_id`, `task_id`, `note` and `billable`.
+
+What a work write refuses:
+
+| Status | `code` | When |
+| --- | --- | --- |
+| 400 | `invalid_parameter` | A field breaks a rule. `parameter` names it and `reason` says which: `name`, `date`, `client`, `parent`, `responsible`, `comment_empty`, `comment_too_long`, `duration`, `time_note` or `time_task`. |
+| 403 | `forbidden` | Only the owners and team members do this, such as starting a project. |
+| 403 | `task_not_yours`, `comment_not_yours`, `time_not_yours` | Only who created it, or an owner, may. |
+| 404 | `not_found` | No such project, section, status, task, label, comment or entry the person sees. |
+| 409 | `archived` | The project is archived. |
+| 409 | `parent_in_trash`, `comment_deleted`, `time_invoiced`, `timer_running`, `timer_not_running` | The record is in a state that does not allow it. |
 
 ## Cash flow
 

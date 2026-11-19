@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Application;
 
+use Foresi\Work\Domain\ProjectVisibility;
 use Foresi\Work\Domain\WorkflowTemplate;
 
 /**
@@ -28,6 +29,7 @@ final readonly class ProjectRow
         public int $openTasks,
         public ?\DateTimeImmutable $nearestDue,
         public bool $archived,
+        public ProjectVisibility $visibility = ProjectVisibility::Organisation,
     ) {
     }
 }

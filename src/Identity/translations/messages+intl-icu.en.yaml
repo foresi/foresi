@@ -173,6 +173,9 @@ api_tokens:
     cashflow: Cash flow
     received_documents: Received documents
     views: Saved views
+    projects: Projects
+    tasks: Tasks and comments
+    time_entries: Time
   state:
     expired: Expired
     revoked: Revoked

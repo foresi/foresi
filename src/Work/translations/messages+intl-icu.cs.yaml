@@ -101,8 +101,10 @@ work:
     time_not_yours: Čas může změnit nebo smazat jen ten, kdo ho zapsal, nebo vlastník organizace.
     time_invoiced: Tento čas je vyfakturovaný a už ho nelze měnit.
     timer_running: Nejdřív zastavte časovač.
+    timer_not_running: Neběží žádný časovač.
     time_task_in_trash: Nejdřív obnovte úkol, ke kterému čas patří.
     estimate: Zadejte odhad alespoň minutu a nejvýš 9 999 hodin.
+    date: Zadejte datum jako RRRR-MM-DD.
   time:
     title: Čas
     log: Zapsat čas

@@ -101,8 +101,10 @@ work:
     time_not_yours: Only whoever logged the time or an owner of the organisation can change or delete it.
     time_invoiced: This time has been invoiced and can no longer be changed.
     timer_running: Stop the timer first.
+    timer_not_running: No timer is running.
     time_task_in_trash: Restore the task the time belongs to first.
     estimate: Enter an estimate of at least a minute and at most 9,999 hours.
+    date: Enter the date as YYYY-MM-DD.
   time:
     title: Time
     log: Log time

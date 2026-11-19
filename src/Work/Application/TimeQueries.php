@@ -78,4 +78,17 @@ interface TimeQueries
     public function trash(string $projectId): array;
 
     public function trashCount(string $projectId): int;
+
+    /**
+     * The time entries the person sees, running timers included, newest first,
+     * those after the id, at most limit of them: a slice of the API. Guests see none.
+     *
+     * @return list<TimeEntryRow> by id, the newest first
+     */
+    public function slice(TimeEntrySliceFilter $filter, ?string $afterId, int $limit): array;
+
+    /**
+     * An entry the person sees, out of the trash.
+     */
+    public function entry(string $entryId): ?TimeEntryRow;
 }
