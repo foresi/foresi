@@ -155,6 +155,10 @@ test.describe('received documents', () => {
     await page.goto('/purchasing');
     await expect(page.getByRole('link', { name: /^K doplnění 0/ })).toBeVisible();
     await page.getByRole('link', { name: /^Zaevidované/ }).click();
+    // All, the view the list opens on, holds the same four rows: wait for the visit to land,
+    // as Turbo marks the whole page busy (aria-busy on html) until it does.
+    await expect(page.getByRole('link', { name: /^Zaevidované/ })).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator('html')).not.toHaveAttribute('aria-busy');
     // The two recorded here and the two of the seeded studio firm.
     await expect(page.locator('tbody tr')).toHaveCount(4);
     await expectNoSeriousViolations(page);
