@@ -12,14 +12,25 @@
         </twig:Ui:EmptyState>
     {% else %}
         <div class="grid grid-cols-1 gap-4">
-            <twig:Ui:Tabs :items="tabs" :label="'invoice.sends.views'|trans" />
-            {% set sendFilters = [{name: 'purpose', label: 'reminder.log.column'|trans, options: purposes, value: purpose, pinned: true}]|merge(firms is not empty ? [{name: 'firm', label: 'invoice.field.firm'|trans, options: firms, value: firm, pinned: true}] : []) %}
-            <twig:Ui:FilterBar id="send-filters" :action="path('app_invoice_sends')" :keep="{status: status != 'all' ? status : null}" :filters="sendFilters" />
+            {# The view's unsaved changes sit at the end of its tabs, as on every list (saved views D10). #}
+            <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
+                <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'invoice.list.more_views'|trans" :label="'invoice.sends.views'|trans" class="min-w-0 sm:flex-1">
+                    <twig:block name="actions">{{ include('components/Ui/_view_menu.html.twig') }}</twig:block>
+                </twig:Ui:Tabs>
+                {{ include('components/Ui/_view_actions.html.twig') }}
+            </div>
+            {# The state and the type of a send are conditions of "+ Filter" (saved views D11). #}
+            <twig:Ui:FilterBar id="send-filters" :action="path('app_invoice_sends')" :keep="{view: view != '' ? view : null, f: working != '' ? working : null}|merge(workingQuery)"
+                :conditions="chips" :builder="builder" :empty="rows is empty">
+                <twig:block name="end">
+                    <twig:Ui:ColumnPicker id="send-columns" :action="path('app_invoice_sends')" :keep="picker.keep" :columns="picker.columns" :density="picker.density" :resetHref="picker.resetHref" :modified="picker.modified" />
+                </twig:block>
+            </twig:Ui:FilterBar>
 
-            <twig:Ui:DataTable :caption="'invoice.sends.title'|trans" :columns="columns" :rows="rows" data-send-log>
+            <twig:Ui:DataTable :caption="'invoice.sends.title'|trans" :columns="columns" :rows="rows" :density="density" data-send-log>
                 <twig:block name="empty">
                     <twig:Ui:EmptyState icon="search" :title="'invoice.sends.empty.filtered_title'|trans">
-                        <twig:Ui:Button :href="path('app_invoice_sends')">{{ 'invoice.sends.empty.reset'|trans }}</twig:Ui:Button>
+                        <twig:Ui:Button :href="resetHref">{{ 'invoice.sends.empty.reset'|trans }}</twig:Ui:Button>
                     </twig:Ui:EmptyState>
                 </twig:block>
                 <twig:block name="footer">
@@ -28,5 +39,6 @@
                 </twig:block>
             </twig:Ui:DataTable>
         </div>
+        {{ include('components/Ui/_view_dialogs.html.twig') }}
     {% endif %}
 {% endblock %}
