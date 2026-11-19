@@ -28,7 +28,9 @@
         "@default": true,
         // Column lengths and join columns in mapping attributes are verified by doctrine:schema:validate; the jsonb
         // option only picks PostgreSQL's column type, which the migrations create, and the tests run on SQLite.
-        "global-ignoreSourceCodeByRegex": [".*#\\[ORM\\\\.*\\blength: .*", ".*#\\[ORM\\\\.*'jsonb' => .*", ".*#\\[ORM\\\\JoinColumn\\(.*"],
+        // The lengths an API field declares are read from its attribute by reflection, which covers no line, so the
+        // tests of the operation's input schema assert them instead.
+        "global-ignoreSourceCodeByRegex": [".*#\\[ORM\\\\.*\\blength: .*", ".*#\\[ORM\\\\.*'jsonb' => .*", ".*#\\[ORM\\\\JoinColumn\\(.*", ".*#\\[Field\\(.*\\bmaxLength: .*"],
         // Equivalent mutants: a numeric string added to an int yields the same value, and so it does when
         // compared with an int or taken by max(); false from strrpos() plus one is one, cast or not.
         "CastInt": {"ignore": [
@@ -292,10 +294,18 @@
         // Equivalent mutant: Iban::fromString() upper-cases itself, and the domestic pattern does not depend on case.
         "UnwrapStrToUpper": {"ignore": ["Foresi\\Country\\Integration\\Banking\\CzechRepublic\\KbNotificationParser::iban::414"]},
         // Equivalent mutants: a date without a time parses to the same midnight; a working file of a pack named
-        // beside its directory instead of in it is as unique (the pack path is) and is deleted all the same.
+        // beside its directory instead of in it is as unique (the pack path is) and is deleted all the same; the
+        // fallback problem of a refusal without problems loses its prefix in reasonOf() either way.
         "ConcatOperandRemoval": {"ignore": [
             "Foresi\\Country\\Integration\\Banking\\CzechRepublic\\KbNotificationParser::bookedOn::474",
-            "Foresi\\Invoicing\\Application\\InvoiceBundle::add::174"
+            "Foresi\\Invoicing\\Application\\InvoiceBundle::add::174",
+            "Foresi\\Invoicing\\Application\\Api\\InvoicingRefused::of::87"
+        ]},
+        // Equivalent mutants: the left side of ?? is read as isset() reads it, so a property of null is null there
+        // without the nullsafe operator too.
+        "NullSafePropertyCall": {"ignore": [
+            "Foresi\\Invoicing\\Application\\Api\\InvoiceWrites::create::101",
+            "Foresi\\Invoicing\\Application\\Api\\InvoiceWrites::update::138"
         ]},
         // Equivalent mutants: the subject is always exactly one character, and rawurlencode() output has no regex
         // metacharacters.

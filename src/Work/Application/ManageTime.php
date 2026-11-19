@@ -32,7 +32,8 @@ use Psr\Clock\ClockInterface;
  *
  * The author edits and deletes their entries, an owner of the organisation
  * anyone's, until an entry is invoiced (Teamwork). A running timer is stopped
- * or deleted, not edited.
+ * or deleted, not edited. Deleting puts an entry in the trash, from which the
+ * same people restore it, once its task is out of the trash (ClickUp).
  */
 final readonly class ManageTime
 {
@@ -106,14 +107,44 @@ final readonly class ManageTime
     }
 
     /**
-     * Deleting a running timer discards it.
+     * Puts the entry in the trash; a running timer is stopped first.
      *
      * @throws WorkRefused
      */
-    public function delete(string $entryId): void
+    public function delete(string $entryId): TimeEntry
     {
         $entry = $this->editable($entryId);
-        $this->unit->run(fn () => $this->entries->remove($entry));
+        $userId = $this->me()->user()->id();
+
+        return $this->unit->run(function () use ($entry, $userId): TimeEntry {
+            $entry->trash($userId, $this->clock->now());
+
+            return $entry;
+        });
+    }
+
+    /**
+     * Takes the entry out of the trash, for whom may delete it; its task, when
+     * in the trash itself, comes out first.
+     *
+     * @throws WorkRefused
+     */
+    public function restore(string $entryId): TimeEntry
+    {
+        $entry = $this->entries->entry($entryId);
+        if (!$entry instanceof TimeEntry || !$entry->isDeleted() || !$this->visibility->scope()->seesTime($entry->project(), $entry->task())) {
+            throw new WorkRefused('unknown');
+        }
+        $this->mayChange($entry);
+        if (true === $entry->task()?->isDeleted()) {
+            throw new WorkRefused('time_task_in_trash');
+        }
+
+        return $this->unit->run(static function () use ($entry): TimeEntry {
+            $entry->restore();
+
+            return $entry;
+        });
     }
 
     /**
@@ -233,7 +264,7 @@ final readonly class ManageTime
 
     /**
      * An entry the person sees and may change: their own, or anyone's for an
-     * owner, and not invoiced.
+     * owner, not invoiced and not in the trash.
      *
      * @throws WorkRefused
      */
@@ -241,17 +272,27 @@ final readonly class ManageTime
     {
         $entry = $this->entries->entry($entryId);
         $task = $entry?->task();
-        if (!$entry instanceof TimeEntry || true === $task?->isDeleted() || !$this->visibility->scope()->seesTime($entry->project(), $task)) {
+        if (!$entry instanceof TimeEntry || $entry->isDeleted() || true === $task?->isDeleted() || !$this->visibility->scope()->seesTime($entry->project(), $task)) {
             throw new WorkRefused('unknown');
         }
-        if ($entry->membership()->id() !== $this->me()->id() && !$this->owner->isOwner()) {
-            throw new WorkRefused('time_not_yours');
-        }
+        $this->mayChange($entry);
         if ($entry->isInvoiced()) {
             throw new WorkRefused('time_invoiced');
         }
 
         return $entry;
+    }
+
+    /**
+     * The person's own entry, or anyone's for an owner.
+     *
+     * @throws WorkRefused
+     */
+    private function mayChange(TimeEntry $entry): void
+    {
+        if ($entry->membership()->id() !== $this->me()->id() && !$this->owner->isOwner()) {
+            throw new WorkRefused('time_not_yours');
+        }
     }
 
     /**

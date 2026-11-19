@@ -6,6 +6,7 @@
 
 declare(strict_types=1);
 
+use Foresi\Party\Application\AccountNumbers;
 use Foresi\Party\Application\CompanyRegistry;
 use Foresi\Party\Application\ContactImports;
 use Foresi\Party\Application\ContactSettingsForFirm;
@@ -64,6 +65,8 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services->set(ImportPartyValues::class)
         ->arg('$domesticAccounts', tagged_iterator('app.domestic_bank_account'));
     $services->set(ManageFirmBankAccounts::class)
+        ->arg('$domesticAccounts', tagged_iterator('app.domestic_bank_account'));
+    $services->set(AccountNumbers::class)
         ->arg('$domesticAccounts', tagged_iterator('app.domestic_bank_account'));
     // Modules that record movements, such as Banking, fix an account's currency.
     $services->alias(BankAccountUsage::class, CollectedBankAccountUsage::class);

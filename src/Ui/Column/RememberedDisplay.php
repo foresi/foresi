@@ -37,16 +37,17 @@ final readonly class RememberedDisplay
      * @param array<string, mixed>    $context the list's context, as ListColumnRegistry::display() takes it
      * @param string                  $list    the list's key among the saved views' lists
      * @param array<array-key, mixed> $query   the list's query
+     * @param list<string>            $groups  what the list can group by, its default first (WorkingDisplay::read())
      */
-    public function read(string $columns, array $context, string $list, ListView $view, array $query, string $density = ListDisplay::COMFORTABLE): WorkingState
+    public function read(string $columns, array $context, string $list, ListView $view, array $query, string $density = ListDisplay::COMFORTABLE, array $groups = []): WorkingState
     {
         $user = $this->actor->userId();
-        $named = \array_key_exists(WorkingDisplay::COLUMNS, $query) || \array_key_exists(WorkingDisplay::DENSITY, $query);
+        $named = [] !== array_intersect_key($query, array_flip(WorkingDisplay::KEYS));
         if (null === $user) {
-            return $this->display->read($columns, $context, $view->display, $query, $density);
+            return $this->display->read($columns, $context, $view->display, $query, $density, $groups);
         }
         $remembered = $named || null === $view->id ? null : $this->states->display($view->id, $user);
-        $working = $this->display->read($columns, $context, $view->display, null === $remembered ? $query : $this->query($remembered) + $query, $density);
+        $working = $this->display->read($columns, $context, $view->display, null === $remembered ? $query : $this->query($remembered) + $query, $density, $groups);
         if ($named) {
             if ($working->modified) {
                 // A shipped view nobody stored yet is stored first, so the state has its id.
@@ -61,7 +62,7 @@ final readonly class RememberedDisplay
 
     /**
      * The address of a remembered display payload, which WorkingDisplay wrote: its
-     * columns in order and its density.
+     * columns in order, its density and what it groups by.
      *
      * @param array<array-key, mixed> $display
      *
@@ -76,8 +77,9 @@ final readonly class RememberedDisplay
             }
         }
         $density = $display['density'] ?? null;
+        $group = $display['group_by'] ?? null;
 
         // An empty density is the view's own.
-        return [WorkingDisplay::COLUMNS => implode(',', $keys), WorkingDisplay::DENSITY => \is_string($density) ? $density : ''];
+        return [WorkingDisplay::COLUMNS => implode(',', $keys), WorkingDisplay::DENSITY => \is_string($density) ? $density : ''] + (\is_string($group) ? [WorkingDisplay::GROUP => $group] : []);
     }
 }

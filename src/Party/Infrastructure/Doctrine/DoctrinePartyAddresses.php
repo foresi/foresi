@@ -28,6 +28,15 @@ final readonly class DoctrinePartyAddresses implements PartyAddresses
         $this->em->persist($address);
     }
 
+    public function remove(PartyAddress $address): void
+    {
+        if (AddressType::Billing === $address->type()) {
+            throw new \DomainException('The billing address is changed, never removed.');
+        }
+
+        $this->em->remove($address);
+    }
+
     private function hasBilling(PartyAddress $address): bool
     {
         $party = $address->party();

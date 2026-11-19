@@ -30,12 +30,10 @@ final readonly class InvoicingSubjectUrls implements EventSubjectUrl
 
     public function url(EventSubject $subject): ?string
     {
-        $route = match ($subject->type) {
-            'invoice' => InvoiceApiController::SHOW,
-            'payment' => PaymentApiController::SHOW,
+        return match ($subject->type) {
+            'invoice' => $this->urls->generate(InvoiceApiController::SHOW, ['invoiceId' => $subject->id], UrlGeneratorInterface::ABSOLUTE_PATH),
+            'payment' => $this->urls->generate(PaymentApiController::SHOW, ['id' => $subject->id], UrlGeneratorInterface::ABSOLUTE_PATH),
             default => null,
         };
-
-        return null === $route ? null : $this->urls->generate($route, ['id' => $subject->id], UrlGeneratorInterface::ABSOLUTE_PATH);
     }
 }

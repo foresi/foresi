@@ -2,15 +2,18 @@
 {% extends '@Ui/layout/app.html.twig' %}
 
 {% set editing = firm is not null %}
-{% set crumbs = editing
-    ? [{label: 'firm.title'|trans, href: cancel}, {label: firm.name}]
-    : [{label: 'firm.title'|trans, href: cancel}, {label: 'firm.new'|trans}] %}
-{% set badge = editing and firm.archived ? {label: 'party.archived'|trans, tone: 'gray'} : null %}
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: (editing ? 'firm.title' : 'firm.new')|trans}] %}
 {% set form_invalid = errors is not empty %}
 
-{% block title %}{{ editing ? 'firm.edit'|trans : 'firm.new'|trans }}{% endblock %}
+{% block title %}{{ (editing ? 'firm.title' : 'firm.new')|trans }}{% endblock %}
 
 {% block content %}
+    {% for message in app.flashes('success') %}
+        <twig:Ui:Alert tone="success" class="mb-4">{{ message }}</twig:Ui:Alert>
+    {% endfor %}
+    {% for message in app.flashes('error') %}
+        <twig:Ui:Alert tone="error" class="mb-4">{{ message }}</twig:Ui:Alert>
+    {% endfor %}
     {% if editing %}<div class="mb-4">{% include '@Party/legal_entity/_tabs.html.twig' with {firm: firm, active: 'details'} only %}</div>{% endif %}
     <form method="post" action="{{ action }}" enctype="multipart/form-data" class="grid max-w-4xl gap-4" novalidate data-controller="party-lookup" data-party-lookup-url-value="{{ path('app_contact_lookup') }}" data-party-lookup-existing-value="{{ 'party.lookup.existing'|trans }}" data-party-lookup-empty-value="{{ 'party.lookup.empty'|trans }}" data-party-lookup-limited-value="{{ 'party.lookup.limited'|trans }}">
         <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Party\\Infrastructure\\Controller\\LegalEntityController::FORM_TOKEN')) }}">

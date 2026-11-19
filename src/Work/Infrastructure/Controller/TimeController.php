@@ -34,7 +34,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * dialog over the page (a page of its own without JavaScript) with the day,
  * the duration as one types it (Kimai), a note and whether it is billable,
  * the project's default unless changed (Kimai, Toggl); its author or an owner
- * edits it in the same dialog and deletes it from its line.
+ * edits it in the same dialog and deletes it from its line: it goes to the
+ * trash of its project, which the message of the deletion undoes.
  *
  * The timer starts from the header of a task and stops from the bar at the
  * top of every page (Freelo, ClickUp); starting it on another task saves the
@@ -207,21 +208,52 @@ final class TimeController extends AbstractController
         return $this->form($entry->projectId, $entry->projectName, $entry->taskId, $entry->taskTitle, $values, $errors, $entry, $this->returnPath($request));
     }
 
+    /**
+     * Puts the entry in the trash, with no question first: the message says so
+     * and undoes it, as for tasks.
+     */
     #[Route('/time/{id}/delete', name: 'app_time_delete', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function delete(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
         $entry = $this->queries->editable($id) ?? throw new NotFoundHttpException();
+        $return = $this->returnPath($request);
         try {
             $this->time->delete($id);
-            $this->addFlash('success', $this->translator->trans('work.time.deleted'));
+            $this->addFlash(TaskController::UNDO_FLASH, [
+                'message' => $this->translator->trans('work.time.trash.deleted'),
+                'label' => $this->translator->trans('work.trash.undo'),
+                'href' => $this->generateUrl('app_time_restore', ['id' => $id] + (null === $return ? [] : ['return' => $return])),
+                'token' => self::TOKEN,
+            ]);
         } catch (WorkRefused $refused) {
             $this->notFoundIfUnknown($refused);
             $this->addFlash('error', $this->translator->trans('work.refused.'.$refused->reason));
         }
-        $return = $this->returnPath($request);
 
         return null === $return ? $this->back($entry->projectId, $entry->taskId) : $this->redirect($return, Response::HTTP_SEE_OTHER);
+    }
+
+    /**
+     * Takes the entry out of the trash and goes back to where it was asked:
+     * the trash of its project, or the page whose message undid a deletion.
+     */
+    #[Route('/time/{id}/restore', name: 'app_time_restore', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function restore(string $id, Request $request): RedirectResponse
+    {
+        $this->checkToken($request);
+        $return = $this->returnPath($request);
+        try {
+            $entry = $this->time->restore($id);
+        } catch (WorkRefused $refused) {
+            $this->notFoundIfUnknown($refused);
+            $this->addFlash('error', $this->translator->trans('work.refused.'.$refused->reason));
+
+            return null === $return ? $this->redirectToRoute(ProjectController::ROUTE, status: Response::HTTP_SEE_OTHER) : $this->redirect($return, Response::HTTP_SEE_OTHER);
+        }
+        $this->addFlash('success', $this->translator->trans('work.time.trash.restored'));
+
+        return null === $return ? $this->back($entry->project()->id(), $entry->task()?->id()) : $this->redirect($return, Response::HTTP_SEE_OTHER);
     }
 
     /**

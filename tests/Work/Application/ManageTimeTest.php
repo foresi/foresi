@@ -194,8 +194,8 @@ final class ManageTimeTest extends WorkTestCase
 
         $this->signIn($this->member);
         $this->assertRefused('time_not_yours', fn () => $this->time->edit($theirs->id(), null, $day, 30, null, null, '', false));
-        $this->assertRefused('time_not_yours', fn () => $this->time->delete($theirs->id()));
-        $this->assertRefused('unknown', fn () => $this->time->delete(Id::generate()));
+        $this->assertRefused('time_not_yours', fn (): TimeEntry => $this->time->delete($theirs->id()));
+        $this->assertRefused('unknown', fn (): TimeEntry => $this->time->delete(Id::generate()));
         $timer = $this->time->startTimer($this->project->id(), null);
         $this->assertRefused('timer_running', fn () => $this->time->edit($timer->id(), null, $day, 30, null, null, '', false));
 
@@ -205,12 +205,12 @@ final class ManageTimeTest extends WorkTestCase
         self::assertSame([null, 50], [$mine->task(), $mine->minutes()]);
         $this->time->delete($mine->id());
 
-        // Deleting a running timer discards it.
+        // Deleting a running timer stops it and puts it in the trash.
         $this->signIn($this->member);
         $this->time->delete($timer->id());
         $this->em->clear();
-        self::assertNull($this->em->find(TimeEntry::class, $mine->id()));
-        self::assertNull($this->em->find(TimeEntry::class, $timer->id()));
+        self::assertTrue($this->em->find(TimeEntry::class, $mine->id())?->isDeleted());
+        self::assertTrue($this->em->find(TimeEntry::class, $timer->id())?->isDeleted());
         self::assertNull($this->timeQueries->running());
     }
 
@@ -219,7 +219,7 @@ final class ManageTimeTest extends WorkTestCase
         $entry = $this->time->log($this->project->id(), $this->task->id(), new \DateTimeImmutable('2026-11-09'), 30);
 
         $this->signIn($this->guest);
-        $this->assertRefused('unknown', fn () => $this->time->delete($entry->id()));
+        $this->assertRefused('unknown', fn (): TimeEntry => $this->time->delete($entry->id()));
         self::assertNull($this->timeQueries->ofTask($this->task->id()));
     }
 
@@ -231,7 +231,7 @@ final class ManageTimeTest extends WorkTestCase
         $this->em->clear();
 
         $this->assertRefused('time_invoiced', fn () => $this->time->edit($entry->id(), null, new \DateTimeImmutable('2026-11-09'), 60, null, null, '', false));
-        $this->assertRefused('time_invoiced', fn () => $this->time->delete($entry->id()));
+        $this->assertRefused('time_invoiced', fn (): TimeEntry => $this->time->delete($entry->id()));
     }
 
     public function testAnEstimateIsSetOnATaskTheTeamSees(): void
@@ -260,7 +260,7 @@ final class ManageTimeTest extends WorkTestCase
         $underTask = array_values(array_filter($trail->rootHistory(Task::class, $this->task->id()), static fn (AuditEntry $entry): bool => TimeEntry::class === $entry->entityClass()));
         $underProject = array_values(array_filter($trail->rootHistory(Project::class, $this->project->id()), static fn (AuditEntry $entry): bool => TimeEntry::class === $entry->entityClass()));
         self::assertSame([[$onTask->id(), AuditAction::Created]], array_map(static fn (AuditEntry $entry): array => [$entry->entityId(), $entry->action()], $underTask));
-        self::assertSame([[$onProject->id(), AuditAction::Created], [$onProject->id(), AuditAction::Deleted]], array_map(static fn (AuditEntry $entry): array => [$entry->entityId(), $entry->action()], $underProject));
+        self::assertSame([[$onProject->id(), AuditAction::Created], [$onProject->id(), AuditAction::Updated]], array_map(static fn (AuditEntry $entry): array => [$entry->entityId(), $entry->action()], $underProject));
         self::assertContains('work.task.field.estimate', $this->taskHistoryFields());
     }
 

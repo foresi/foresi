@@ -14,7 +14,7 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
  * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, opens: string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string, opens: string}>, avatar: ?array{name: string, seed: string}, badges: list<array{label: string, tone: string}>, flag: ?array{label: string, tone: string, icon: ?string}, edit: ?array<array-key, mixed>, empty: ?string}
- * @phpstan-type Confirm array{title: string, text: ?string, accept: ?string, cancel: ?string, tone: ?string}
+ * @phpstan-type Confirm array{title: string, text: ?string, accept: ?string, cancel: ?string, tone: ?string, overlay: bool}
  * @phpstan-type Action array{label: string, href: string, method: string, confirm: ?Confirm, icon: ?string, plain: bool, dialog: bool, fields: array<string, string>}
  * @phpstan-type RowAlert array{text: string, column: string, href: ?string, action: ?string}
  * @phpstan-type RowView array{id: string, href: ?string, label: string, selected: bool, child: bool, unread: ?bool, cells: list<Cell>, actions: list<Action>, secondary: ?string, alert: ?RowAlert}
@@ -352,7 +352,9 @@ final class DataTable
 
     /**
      * A confirmation is the question alone, or the question with its consequence,
-     * the labels of the two answers and the danger tone.
+     * the labels of the two answers and the danger tone. A table shown in an
+     * overlay (a record in the sheet) sets overlay: its host posts the form
+     * itself, so the question is asked by confirm-submit.
      *
      * @return Confirm|null
      */
@@ -375,6 +377,7 @@ final class DataTable
             'accept' => $optional('accept'),
             'cancel' => $optional('cancel'),
             'tone' => $optional('tone'),
+            'overlay' => true === ($confirm['overlay'] ?? false),
         ];
     }
 

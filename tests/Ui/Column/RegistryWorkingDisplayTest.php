@@ -213,6 +213,46 @@ final class RegistryWorkingDisplayTest extends TestCase
         self::assertSame(['density' => 'dense'], $state->query);
     }
 
+    public function testAGroupingFromTheAddressIsAChangeKeptInThePayload(): void
+    {
+        $state = $this->working()->read(self::LIST, [], null, ['group' => 'email'], groups: ['kind', 'email']);
+
+        self::assertTrue($state->modified);
+        self::assertSame('email', $state->display->groupBy);
+        self::assertSame(['group' => 'email'], $state->query);
+        self::assertSame(['columns' => [['key' => 'name'], ['key' => 'kind'], ['key' => 'email']], 'density' => 'comfortable', 'group_by' => 'email'], $state->payload);
+    }
+
+    public function testTheViewsGroupingOrTheListsDefaultIsNoChange(): void
+    {
+        $groups = ['kind', 'email'];
+        self::assertFalse($this->working()->read(self::LIST, [], null, ['group' => 'kind'], groups: $groups)->modified, 'the list\'s default');
+        $saved = ['group_by' => 'email'];
+        $state = $this->working()->read(self::LIST, [], $saved, ['group' => 'email'], groups: $groups);
+        self::assertFalse($state->modified);
+        self::assertSame([], $state->query);
+        $state = $this->working()->read(self::LIST, [], $saved, ['group' => 'kind'], groups: $groups);
+        self::assertTrue($state->modified, 'back to the default from the view\'s own');
+        self::assertSame(['group' => 'kind'], $state->query);
+    }
+
+    public function testAGroupingTheListDoesNotOfferIsIgnored(): void
+    {
+        $groups = ['kind', 'email'];
+        self::assertFalse($this->working()->read(self::LIST, [], null, ['group' => 'phone'], groups: $groups)->modified);
+        self::assertFalse($this->working()->read(self::LIST, [], ['group_by' => 'phone'], ['group' => 'kind'], groups: $groups)->modified, 'a stored grouping the list lost is its default');
+        self::assertFalse($this->working()->read(self::LIST, [], null, ['group' => 'kind'])->modified, 'a list that does not group');
+        self::assertSame([], $this->working()->read(self::LIST, [], null, ['group' => 'kind'])->query);
+    }
+
+    public function testColumnsChangedKeepTheGroupingAsked(): void
+    {
+        $state = $this->working()->read(self::LIST, [], null, ['cols' => 'name,email', 'group' => 'email'], groups: ['kind', 'email']);
+
+        self::assertSame(['cols' => 'name,email', 'group' => 'email'], $state->query);
+        self::assertSame('email', $state->payload['group_by'] ?? null);
+    }
+
     public function working(): RegistryWorkingDisplay
     {
         $provider = new class implements DataSource {

@@ -2,18 +2,16 @@
 
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { INVOICING_OWNER_STATE } from '../support/session';
+import { FIRM_MAIL_OWNER_STATE } from '../support/session';
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 // Set it to a folder to save screenshots of the screen for review. They are not baselines.
 const SHOTS = process.env.MAIL_SHOTS;
 
-test.use({ storageState: INVOICING_OWNER_STATE });
+test.use({ storageState: FIRM_MAIL_OWNER_STATE });
 
-async function openMailSettings(page: Page, firm: string): Promise<void> {
-  await page.goto('/settings/firms');
-  await page.getByRole('link', { name: firm, exact: true }).click();
-  await page.getByRole('navigation', { name: 'Části firmy' }).getByRole('link', { name: 'E-maily' }).click();
+async function openMailSettings(page: Page): Promise<void> {
+  await page.goto('/settings/firm/mail');
   await expect(page.getByRole('heading', { level: 1, name: 'E-maily' })).toBeVisible();
 }
 
@@ -34,7 +32,7 @@ async function save(page: Page): Promise<void> {
 
 test.describe.serial('the e-mail settings of a firm', () => {
   test('insert variables at the caret from the chip toolbar, undo one, and keep the text after a reload', async ({ page }) => {
-    await openMailSettings(page, 'Example Small Trader');
+    await openMailSettings(page);
     const body = page.locator('#body-cs');
     await body.fill('Zasílám fakturu .');
     await body.press('End');
@@ -68,7 +66,7 @@ test.describe.serial('the e-mail settings of a firm', () => {
 
   for (const code of ['cs', 'en']) {
     test(`Enter in the ${code} subject saves and never resets the saved text`, async ({ page }) => {
-      await openMailSettings(page, 'Example Small Trader');
+      await openMailSettings(page);
       await expect(page.getByRole('button', { name: 'Obnovit výchozí text' })).toBeVisible();
       page.on('dialog', (dialog) => {
         throw new Error(`Enter asked to confirm: ${dialog.message()}`);
@@ -87,7 +85,7 @@ test.describe.serial('the e-mail settings of a firm', () => {
   }
 
   test('names an unknown variable and keeps the typed text', async ({ page }) => {
-    await openMailSettings(page, 'Example Small Trader');
+    await openMailSettings(page);
     await page.locator('#body-en').fill('Pay {amount} now');
     await save(page);
 
@@ -96,7 +94,7 @@ test.describe.serial('the e-mail settings of a firm', () => {
   });
 
   test('restores the built-in text only after a confirmation', async ({ page }) => {
-    await openMailSettings(page, 'Example Small Trader');
+    await openMailSettings(page);
     const reset = page.getByRole('button', { name: 'Obnovit výchozí text' }).first();
 
     const confirm = page.getByRole('alertdialog', { name: 'Vrátit text pro Čeština na výchozí?' });
@@ -114,7 +112,7 @@ test.describe.serial('the e-mail settings of a firm', () => {
   });
 
   test('saves a server, presets the port, keeps a blank password and sends a test to the owner', async ({ page }) => {
-    await openMailSettings(page, 'Example Small Trader');
+    await openMailSettings(page);
     await page.getByRole('link', { name: 'Poštovní server' }).click();
     await expect(page.getByText('Zkušební e-mail půjde poslat po uložení serveru.')).toBeVisible();
 
@@ -152,12 +150,12 @@ test.describe.serial('the e-mail settings of a firm', () => {
     await expect(page.locator('#host')).toHaveValue('mail.example.com');
 
     await page.getByRole('button', { name: 'Poslat zkušební e-mail' }).click();
-    await expect(page.getByText('Zkušební e-mail odešel na invoicing@example.com.')).toBeVisible();
+    await expect(page.getByText('Zkušební e-mail odešel na firm-mail@example.com.')).toBeVisible();
     await expect(page.locator('#mail-test-result')).toContainText(/Ověřeno \d/);
   });
 
   test('switches reminders on and sets their days with the keyboard, with no serious violation at either width', async ({ page }) => {
-    await openMailSettings(page, 'Example Small Trader');
+    await openMailSettings(page);
     const reminder = page.getByRole('toolbar', { name: 'Proměnné Upomínka Čeština' });
     await expect(reminder.getByRole('button', { name: 'Zbývá uhradit' })).toBeVisible();
     await expect(page.getByText('Nejvýš 10 upomínek k jedné faktuře.')).toBeVisible();

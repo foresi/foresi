@@ -14,7 +14,8 @@ test('an empty organisation gets from nothing to the first invoice and its PDF',
   await page.screenshot({ path: `${SHOTS}/first-run-no-firm.png`, fullPage: true });
 
   await page.getByRole('link', { name: 'Přidat firmu' }).last().click();
-  await expect(page).toHaveURL(/\/settings\/firms\/new$/);
+  await expect(page).toHaveURL(/\/settings\/firm$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Nastavit firmu' })).toBeVisible();
   await page.locator('#lookup').fill('12345687');
   await page.getByRole('button', { name: /Example Company s\.r\.o\./ }).click();
   await expect(page.locator('#name')).toHaveValue('Example Company s.r.o.');
@@ -24,21 +25,20 @@ test('an empty organisation gets from nothing to the first invoice and its PDF',
   await page.locator('#vatStatus').selectOption('registered');
   await page.locator('#registerEntry').fill('Example register, entry C 7');
   await page.locator('button[type=submit]').last().click();
-  await expect(page).toHaveURL(/\/settings\/firms$/);
-
-  await page.getByRole('link', { name: 'Example Company s.r.o.' }).first().click();
-  await expect(page).toHaveURL(/\/settings\/firms\/[0-9a-f-]+\/edit$/);
-  const firm = /\/settings\/firms\/([0-9a-f-]+)\//.exec(page.url())?.[1];
+  // After saving, the same page shows the firm's edit form.
+  await expect(page).toHaveURL(/\/settings\/firm$/);
+  await expect(page.getByText('Firma je uložená.')).toBeVisible();
+  await expect(page.locator('#lookup')).toHaveCount(0);
   // The firm's details lead to its bank tab, where the first account is added in a dialog.
   await page.locator('#bank-accounts-note a').click();
-  await expect(page).toHaveURL(/\/bank$/);
+  await expect(page).toHaveURL(/\/settings\/firm\/bank$/);
   await page.locator('#bank-account-add').click();
   const accountDialog = page.getByRole('dialog', { name: 'Nový bankovní účet' });
   await accountDialog.locator('#number').fill('CZ65 0800 0000 1920 0014 5399');
   await accountDialog.getByRole('button', { name: 'Přidat účet' }).click();
   await expect(accountDialog).toBeHidden();
   await expect(page.locator('tbody tr')).toContainText('Hlavní');
-  await page.goto(`/settings/firms/${firm}/invoicing/series/new`);
+  await page.goto('/settings/firm/invoicing/series/new');
   await page.locator('#name').fill('Faktury');
   await page.locator('#format').fill('F{YYYY}{NNN}');
   await page.locator('#default').check();

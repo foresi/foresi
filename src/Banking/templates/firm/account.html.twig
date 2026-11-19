@@ -7,7 +7,7 @@
 {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set editing = account is not null %}
-{% set crumbs = [{label: 'firm.title'|trans, href: path('app_firm_index')}, {label: firm.name, href: path('app_firm_edit', {id: firm.id})}, {label: 'bank.account.title'|trans, href: cancel}, {label: editing ? 'bank.account.edit'|trans : 'bank.account.new'|trans}] %}
+{% set crumbs = [{label: 'firm.title'|trans, href: path('app_firm')}, {label: 'bank.account.title'|trans, href: cancel}, {label: editing ? 'bank.account.edit'|trans : 'bank.account.new'|trans}] %}
 {% set form_invalid = errors is not empty %}
 {% set dialog_size = 'sm' %}
 

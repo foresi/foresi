@@ -58,6 +58,11 @@ final class ReceivedDocumentListsTest extends KernelTestCase
         self::assertSame(100, $fields['total']->scale);
     }
 
+    public function testTheListIsBuiltOnce(): void
+    {
+        self::assertSame($this->lists()->list(), $this->lists()->list());
+    }
+
     private function lists(): ReceivedDocumentLists
     {
         return self::getContainer()->get(ReceivedDocumentLists::class);

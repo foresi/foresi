@@ -28,7 +28,7 @@
 
     {% if noFirm %}
         <twig:Ui:EmptyState icon="building-2" :title="'purchasing.list.no_firm_title'|trans" :text="'purchasing.list.no_firm_text'|trans">
-            <twig:Ui:Button :href="path('app_firm_new')" variant="primary" icon="plus">{{ 'purchasing.list.add_firm'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button :href="path('app_firm')" variant="primary" icon="plus">{{ 'purchasing.list.add_firm'|trans }}</twig:Ui:Button>
         </twig:Ui:EmptyState>
     {% else %}
         <div class="grid grid-cols-1 gap-4">

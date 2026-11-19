@@ -54,6 +54,11 @@ final class ProjectListsTest extends KernelTestCase
         self::assertSame('work.projects.field.billable', $fields['billable']->label);
     }
 
+    public function testTheListIsBuiltOnce(): void
+    {
+        self::assertSame($this->lists()->list(), $this->lists()->list());
+    }
+
     private function lists(): ProjectLists
     {
         return self::getContainer()->get(ProjectLists::class);

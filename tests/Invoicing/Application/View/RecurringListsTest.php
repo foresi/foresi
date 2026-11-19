@@ -54,6 +54,11 @@ final class RecurringListsTest extends KernelTestCase
         self::assertSame(['recurring.list.column.state', 'recurring.list.tab.failing', 'recurring.list.column.delivery', 'recurring.list.column.name', 'recurring.list.column.description', 'recurring.list.column.next'], array_values(array_map(static fn (\Foresi\Shared\Application\View\Field $field): string => $field->label, $fields)));
     }
 
+    public function testTheListIsBuiltOnce(): void
+    {
+        self::assertSame($this->lists()->list(), $this->lists()->list());
+    }
+
     private function lists(): RecurringLists
     {
         return self::getContainer()->get(RecurringLists::class);

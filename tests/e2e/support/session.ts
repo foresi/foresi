@@ -14,6 +14,7 @@ export const DIALOGS_OWNER = 'dialogs@example.com';
 export const BANK_OWNER = 'bank@example.com';
 export const RECURRING_OWNER = 'recurring@example.com';
 export const REMINDERS_OWNER = 'reminders@example.com';
+export const FIRM_MAIL_OWNER = 'firm-mail@example.com';
 export const PROJECTS_OWNER = 'projects@example.com';
 export const PURCHASING_OWNER = 'purchasing@example.com';
 // The team member and the guest of the client in the organisation of PROJECTS_OWNER.
@@ -32,6 +33,7 @@ export const DIALOGS_OWNER_STATE = '.auth/dialogs-owner.json';
 export const BANK_OWNER_STATE = '.auth/bank-owner.json';
 export const RECURRING_OWNER_STATE = '.auth/recurring-owner.json';
 export const REMINDERS_OWNER_STATE = '.auth/reminders-owner.json';
+export const FIRM_MAIL_OWNER_STATE = '.auth/firm-mail-owner.json';
 export const PROJECTS_OWNER_STATE = '.auth/projects-owner.json';
 export const PROJECTS_GUEST_STATE = '.auth/projects-guest.json';
 export const PURCHASING_OWNER_STATE = '.auth/purchasing-owner.json';
@@ -50,6 +52,7 @@ const WORLD_OF: Record<string, string> = {
   [BANK_OWNER]: 'bank',
   [RECURRING_OWNER]: 'recurring',
   [REMINDERS_OWNER]: 'reminders',
+  [FIRM_MAIL_OWNER]: 'firm-mail',
   [PROJECTS_OWNER]: 'projects',
   [PROJECTS_MEMBER]: 'projects',
   [PROJECTS_GUEST]: 'projects',

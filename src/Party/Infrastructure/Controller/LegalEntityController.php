@@ -15,7 +15,6 @@ use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\LegalEntityInput;
 use Foresi\Party\Application\TransactionalWork;
-use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Party\Infrastructure\Form\CountryOptions;
@@ -23,21 +22,18 @@ use Foresi\Party\Infrastructure\Form\LegalEntitySubmission;
 use Foresi\Party\Infrastructure\Form\LegalEntitySubmissionReader;
 use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Infrastructure\Http\SubmissionTokens;
-use Foresi\Ui\Contract\Opens;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The firm of the instance, for its owner: list and form. The form works like
- * the contact form. A firm that does not exist answers 404. A firm is not
- * archived here: the instance has one, and it is never archived (ADR 0039).
+ * The firm of the instance, for its owner: one page that sets it up on the
+ * first run and edits it after. The form works like the contact form.
  */
 final class LegalEntityController extends AbstractController
 {
@@ -57,30 +53,44 @@ final class LegalEntityController extends AbstractController
     ) {
     }
 
-    #[Route('/settings/firms', name: 'app_firm_index', methods: ['GET'])]
-    public function index(): Response
+    /**
+     * The one firm of the instance (ADR 0039). Before the first-run setup there
+     * is none, and the page sets it up; after that it edits it.
+     */
+    #[Route('/settings/firm', name: 'app_firm', methods: ['GET', 'POST'])]
+    public function settings(Request $request): Response
     {
         $this->denyUnlessOwner();
-        $firms = $this->firms->all();
+        // An instance whose one firm was archived while archiving existed still edits that firm.
+        $firm = $this->instanceFirm->find() ?? $this->firms->all()[0] ?? null;
 
-        return $this->render('@Party/legal_entity/index.html.twig', [
-            'firstRun' => [] === $firms,
-            // The name gives way, cut short with its full text in a title. A phone shows the name;
-            // the rest goes in the line under it.
-            'columns' => array_map(fn (string $key): array => ['key' => $key, 'label' => $this->translator->trans('firm.column.'.$key), 'truncate' => 'name' === $key, 'phone' => 'name' === $key], ['name', 'registration', 'vat', 'vat_status']),
-            'rows' => array_map($this->row(...), $firms),
-            'total' => \count($firms),
-        ]);
+        return $firm instanceof LegalEntity ? $this->edit($firm, $request) : $this->setUp($request);
     }
 
-    #[Route('/settings/firms/new', name: 'app_firm_new', methods: ['GET', 'POST'])]
-    public function new(Request $request): Response
+    /**
+     * The firm settings lived under /settings/firms with the firm's id in the
+     * path while an instance could hold several firms. Old bookmarks and links
+     * land on the same page without the id; 308 keeps the method of a form
+     * sent from a page opened before the change.
+     */
+    #[Route('/settings/firms/{rest}', name: 'app_firm_legacy', requirements: ['rest' => '.*'], defaults: ['rest' => ''], methods: ['GET', 'HEAD', 'POST'])]
+    public function legacy(string $rest, Request $request): RedirectResponse
     {
-        $this->denyUnlessOwner();
-        // One firm per instance (ADR 0039): this screen is the first-run setup only.
-        if ([] !== $this->firms->all()) {
-            return $this->refuseAnotherFirm();
+        $parts = '' === $rest ? [] : explode('/', $rest);
+        if ([] !== $parts && 1 === preg_match('#^'.Requirement::UUID_V7.'$#D', $parts[0])) {
+            array_shift($parts);
         }
+        // The list, the new-firm screen and a firm's own form are all the firm page now.
+        if (\in_array($parts, [[], ['new'], ['edit']], true)) {
+            $parts = [];
+        }
+        $query = $request->getQueryString();
+
+        return new RedirectResponse('/settings/firm'.([] === $parts ? '' : '/'.implode('/', $parts)).(null === $query ? '' : '?'.$query), Response::HTTP_PERMANENTLY_REDIRECT);
+    }
+
+    private function setUp(Request $request): Response
+    {
         if (!$request->isMethod('POST')) {
             return $this->form($request, null, $this->defaults(), [], $this->tokens->issue(), Response::HTTP_OK);
         }
@@ -89,13 +99,8 @@ final class LegalEntityController extends AbstractController
             return $this->form($request, null, $this->defaults(), self::IMAGE_TOO_LARGE, $this->tokens->issue(), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $this->checkToken($request, self::FORM_TOKEN);
+        $this->checkToken($request);
         $token = $request->request->getString('_submission');
-        if ($this->tokens->isIssued($token) && null !== $this->tokens->createdId($token)) {
-            // The same submission again: it is in the list already.
-            return $this->redirectToRoute('app_firm_index');
-        }
-
         $submission = $this->reader->read($request);
         if (!$this->tokens->isIssued($token)) {
             $token = $this->tokens->issue();
@@ -105,11 +110,8 @@ final class LegalEntityController extends AbstractController
         return $this->handle($request, null, $submission, $token);
     }
 
-    #[Route('/settings/firms/{id}/edit', name: 'app_firm_edit', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
-    public function edit(string $id, Request $request): Response
+    private function edit(LegalEntity $firm, Request $request): Response
     {
-        $this->denyUnlessOwner();
-        $firm = $this->firm($id);
         if (!$request->isMethod('POST')) {
             return $this->form($request, $firm, $this->valuesOf($firm), [], '', Response::HTTP_OK);
         }
@@ -117,7 +119,13 @@ final class LegalEntityController extends AbstractController
             return $this->form($request, $firm, $this->valuesOf($firm), self::IMAGE_TOO_LARGE, '', Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $this->checkToken($request, self::FORM_TOKEN);
+        $this->checkToken($request);
+        $token = $request->request->getString('_submission');
+        if ('' !== $token) {
+            // A setup form sent after the firm was set up: again after it saved the firm, or
+            // from another tab, which would have been a second firm.
+            return null !== $this->tokens->createdId($token) ? $this->redirectToRoute('app_firm') : $this->refuseAnotherFirm();
+        }
 
         return $this->handle($request, $firm, $this->reader->read($request), '');
     }
@@ -162,14 +170,14 @@ final class LegalEntityController extends AbstractController
 
         $this->addFlash('success', $this->translator->trans($firm instanceof LegalEntity ? 'firm.flash.updated' : 'firm.flash.created'));
 
-        return $this->redirectToRoute('app_firm_index');
+        return $this->redirectToRoute('app_firm');
     }
 
     private function refuseAnotherFirm(): RedirectResponse
     {
         $this->addFlash('error', $this->translator->trans('firm.error.one_per_instance'));
 
-        return $this->redirectToRoute('app_firm_index');
+        return $this->redirectToRoute('app_firm');
     }
 
     /**
@@ -218,10 +226,10 @@ final class LegalEntityController extends AbstractController
             'token' => $token,
             'statuses' => $this->statusOptions(),
             'countries' => CountryOptions::options($request->getLocale()),
-            'action' => $firm instanceof LegalEntity ? $this->generateUrl('app_firm_edit', ['id' => $firm->id()]) : $this->generateUrl('app_firm_new'),
-            'cancel' => $this->generateUrl('app_firm_index'),
+            'action' => $this->generateUrl('app_firm'),
+            'cancel' => $this->generateUrl('app_firm'),
             // A new firm gets its accounts once it is saved, on its bank tab.
-            'bankUrl' => $firm instanceof LegalEntity ? $this->generateUrl('app_firm_bank', ['id' => $firm->id()]) : null,
+            'bankUrl' => $firm instanceof LegalEntity ? $this->generateUrl('app_firm_bank') : null,
         ], new Response(status: $status));
     }
 
@@ -280,38 +288,6 @@ final class LegalEntityController extends AbstractController
         ];
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function row(LegalEntity $firm): array
-    {
-        $cells = [
-            'name' => $firm->name(),
-            'registration' => $firm->registrationNumber()->value,
-            'vat' => $firm->vatId()?->toString(),
-            'vat_status' => $this->translator->trans('firm.vat_status.'.$firm->vatStatus()->value),
-        ];
-
-        return [
-            'id' => $firm->id(),
-            'label' => $firm->name(),
-            'href' => $this->generateUrl('app_firm_edit', ['id' => $firm->id()]),
-            // A firm is a settings hub of tabs (details, invoicing, bank, mail): it opens as a page (docs/design/overlays.md).
-            'opens' => Opens::PAGE,
-            'secondary' => implode(' · ', array_filter([$cells['registration'], $cells['vat'], $cells['vat_status']], static fn (?string $part): bool => null !== $part && '' !== $part)),
-            'cells' => $cells,
-        ];
-    }
-
-    private function firm(string $id): LegalEntity
-    {
-        try {
-            return $this->firms->get($id);
-        } catch (UnknownLegalEntity) {
-            throw new NotFoundHttpException();
-        }
-    }
-
     private function denyUnlessOwner(): void
     {
         if (!$this->role->isOwner()) {
@@ -319,9 +295,9 @@ final class LegalEntityController extends AbstractController
         }
     }
 
-    private function checkToken(Request $request, string $id): void
+    private function checkToken(Request $request): void
     {
-        if (!$this->isCsrfTokenValid($id, $request->request->getString('_token'))) {
+        if (!$this->isCsrfTokenValid(self::FORM_TOKEN, $request->request->getString('_token'))) {
             throw new AccessDeniedHttpException('Invalid CSRF token.');
         }
     }

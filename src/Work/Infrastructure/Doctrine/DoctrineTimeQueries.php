@@ -8,13 +8,20 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Infrastructure\Doctrine;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\OwnerCheck;
 use Foresi\Identity\Application\People;
+use Foresi\Identity\Application\UserRepository;
 use Foresi\Identity\Domain\Membership;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Application\View\FieldType;
+use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Infrastructure\View\DqlConditions;
 use Foresi\Work\Application\TaskTime;
 use Foresi\Work\Application\TimeDay;
 use Foresi\Work\Application\TimeEntries;
@@ -26,6 +33,8 @@ use Foresi\Work\Application\TimeReportFilter;
 use Foresi\Work\Application\TimeTarget;
 use Foresi\Work\Application\TimeTotal;
 use Foresi\Work\Application\TimeWeek;
+use Foresi\Work\Application\TrashedTime;
+use Foresi\Work\Application\View\TimeReportLists;
 use Foresi\Work\Application\WorkScope;
 use Foresi\Work\Application\WorkVisibility;
 use Foresi\Work\Contract\InvoiceNumbers;
@@ -36,17 +45,27 @@ use Foresi\Work\Domain\TimeEntry;
 /**
  * The read side of time in DQL. A query keeps to the scope of WorkVisibility
  * through ScopedDql, so a report over a year reads only what the person sees and adds it up in the database; a single entry is
- * checked in PHP through WorkScope, the rule commands use too. Time on a task
- * in the trash is left out everywhere. The lines of a task and of a week name
+ * checked in PHP through WorkScope, the rule commands use too. Time in the
+ * trash, and time on a task in the trash, is left out everywhere but the trash. The lines of a task and of a week name
  * the invoice that billed them.
  */
 final readonly class DoctrineTimeQueries implements TimeQueries
 {
     private const string ENTRIES = 'SELECT e, p, c, t, m, u FROM '.TimeEntry::class.' e JOIN e.project p LEFT JOIN p.client c LEFT JOIN e.task t JOIN e.membership m JOIN m.user u';
     private const string FROM = ' FROM '.TimeEntry::class.' e JOIN e.project p LEFT JOIN p.client c LEFT JOIN e.task t JOIN e.membership m JOIN m.user u';
-    private const string NOT_TRASHED = ' AND (t.id IS NULL OR t.deletedAt IS NULL)';
+    private const string NOT_TRASHED = ' AND e.deletedAt IS NULL AND (t.id IS NULL OR t.deletedAt IS NULL)';
     public const int PAGE_SIZE = 100;
     private const int BATCH = 200;
+    /** The columns of the fields of TimeReportLists; invoiced is a link to an invoice line, compiled as a boolean. */
+    private const array REPORT_COLUMNS = [
+        TimeReportLists::WORKED_ON => 'e.workedOn',
+        TimeReportLists::PROJECT => 'p.id',
+        TimeReportLists::CLIENT => 'c.id',
+        TimeReportLists::PERSON => 'm.id',
+        TimeReportLists::BILLABLE => 'e.billable',
+    ];
+    /** What a reference that is no id at all matches: nothing, as one no longer there (spec D4). */
+    private const string NO_ID = '00000000-0000-0000-0000-000000000000';
 
     public function __construct(
         private EntityManagerInterface $entityManager,
@@ -56,6 +75,8 @@ final readonly class DoctrineTimeQueries implements TimeQueries
         private AuditActor $actor,
         private OwnerCheck $owner,
         private InvoiceNumbers $invoices,
+        private UserRepository $users,
+        private InstanceClock $clock,
     ) {
     }
 
@@ -68,7 +89,7 @@ final readonly class DoctrineTimeQueries implements TimeQueries
         // The task is seen, and its time with it.
         /** @var list<TimeEntry> $entries */
         $entries = $this->entityManager
-            ->createQuery(self::ENTRIES.' WHERE e.task = :task ORDER BY e.workedOn DESC, e.createdAt DESC, e.id DESC')
+            ->createQuery(self::ENTRIES.' WHERE e.task = :task AND e.deletedAt IS NULL ORDER BY e.workedOn DESC, e.createdAt DESC, e.id DESC')
             ->setParameter('task', $task->id())
             ->getResult();
         $me = $this->me();
@@ -235,15 +256,20 @@ final readonly class DoctrineTimeQueries implements TimeQueries
     /**
      * The condition of a report, its values and the scope of the person.
      *
-     * @return array{string, array<string, array{mixed, string}>, ScopedDql}
+     * @return array{string, array<string, array{mixed, string|ArrayParameterType|null}>, ScopedDql}
      */
     private function reportWhere(TimeReportFilter $filter): array
     {
-        $where = 'e.minutes IS NOT NULL AND e.workedOn >= :from AND e.workedOn <= :until'.self::NOT_TRASHED;
-        $parameters = [
-            'from' => [$filter->from, Types::DATE_IMMUTABLE],
-            'until' => [$filter->until, Types::DATE_IMMUTABLE],
-        ];
+        $where = 'e.minutes IS NOT NULL'.self::NOT_TRASHED;
+        $parameters = [];
+        if ($filter->from instanceof \DateTimeImmutable) {
+            $where .= ' AND e.workedOn >= :from';
+            $parameters['from'] = [$filter->from, Types::DATE_IMMUTABLE];
+        }
+        if ($filter->until instanceof \DateTimeImmutable) {
+            $where .= ' AND e.workedOn <= :until';
+            $parameters['until'] = [$filter->until, Types::DATE_IMMUTABLE];
+        }
         if (null !== $filter->projectId) {
             $where .= ' AND p.id = :project';
             $parameters['project'] = [$filter->projectId, Types::GUID];
@@ -263,6 +289,15 @@ final readonly class DoctrineTimeQueries implements TimeQueries
         if (null !== $filter->invoiced) {
             $where .= ' AND e.invoiceLineId IS '.($filter->invoiced ? 'NOT ' : '').'NULL';
         }
+        if ([] !== $filter->conditions->conditions) {
+            $derived = static fn (Condition $condition): array => [match ($condition->field) {
+                TimeReportLists::INVOICED => DqlConditions::derivedBoolean($condition, 'e.invoiceLineId IS NOT NULL'),
+                default => throw new \LogicException(\sprintf('The field "%s" of the time report has no SQL.', $condition->field)),
+            }, []];
+            [$condition, $bound] = new DqlConditions(TimeReportLists::list(), self::REPORT_COLUMNS, $derived(...))->compile($this->ids($filter->conditions), $this->clock->today(...), 'v');
+            $where .= ' AND '.$condition;
+            $parameters += $bound;
+        }
         // Guests never see time; nor does anyone without a membership.
         $seen = ScopedDql::time($this->visibility->canManage() ? $this->visibility->scope() : WorkScope::nothing(), 'p', 't');
 
@@ -270,11 +305,25 @@ final readonly class DoctrineTimeQueries implements TimeQueries
     }
 
     /**
+     * The conditions with every reference that is no id made one that matches nothing:
+     * an id column compares only with an id.
+     */
+    private function ids(ViewFilter $filter): ViewFilter
+    {
+        $list = TimeReportLists::list();
+        $id = static fn (mixed $value): mixed => \is_string($value) && 1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $value) ? self::NO_ID : $value;
+
+        return new ViewFilter(array_map(static fn (Condition $condition): Condition => FieldType::Reference === ($list->fields[$condition->field] ?? null)?->type
+            ? new Condition($condition->field, $condition->op, \is_array($condition->value) ? array_map($id, $condition->value) : $id($condition->value))
+            : $condition, $filter->conditions));
+    }
+
+    /**
      * @template TKey
      * @template TResult
      *
-     * @param Query<TKey, TResult>                $query
-     * @param array<string, array{mixed, string}> $parameters
+     * @param Query<TKey, TResult>                                        $query
+     * @param array<string, array{mixed, string|ArrayParameterType|null}> $parameters
      *
      * @return Query<TKey, TResult>
      */
@@ -299,8 +348,54 @@ final readonly class DoctrineTimeQueries implements TimeQueries
         return [] !== $rows && $rows[0]->editable ? $rows[0] : null;
     }
 
+    public function trash(string $projectId): array
+    {
+        /** @var list<TimeEntry> $entries */
+        $entries = $this->trashed($projectId, 'SELECT e, t, m, u', ' ORDER BY e.deletedAt DESC, e.id DESC')?->getResult() ?? [];
+        $names = $this->users->namesOf(array_values(array_unique(array_filter(array_map(static fn (TimeEntry $entry): ?string => $entry->deletedBy(), $entries), \is_string(...)))));
+        $me = $this->me()?->id();
+        $owner = $this->owner->isOwner();
+
+        return array_map(static fn (TimeEntry $entry): TrashedTime => new TrashedTime(
+            $entry->id(),
+            $entry->workedOn(),
+            $entry->membership()->user()->displayName(),
+            $entry->minutes() ?? 0,
+            $entry->task()?->title(),
+            null === $entry->deletedBy() ? null : ($names[$entry->deletedBy()] ?? null),
+            $entry->deletedAt() ?? throw new \LogicException('Time in the trash has its date.'),
+            $owner || $entry->membership()->id() === $me,
+        ), $entries);
+    }
+
+    public function trashCount(string $projectId): int
+    {
+        $count = $this->trashed($projectId, 'SELECT COUNT(e.id)', '')?->getSingleScalarResult() ?? 0;
+
+        return is_numeric($count) ? (int) $count : 0;
+    }
+
     /**
-     * The entries seen, those on a task in the trash left out.
+     * The query of the time in the trash of the project, within what the
+     * person sees; null for whom sees no time of it.
+     *
+     * @return ?Query<mixed, mixed>
+     */
+    private function trashed(string $projectId, string $select, string $order): ?Query
+    {
+        $project = $this->entityManager->getRepository(Project::class)->findOneBy(['id' => $projectId]);
+        if (!$project instanceof Project || !$this->me() instanceof Membership || !$this->visibility->canManage()) {
+            return null;
+        }
+        $seen = ScopedDql::time($this->visibility->scope(), 'p', 't');
+
+        return $seen->apply($this->entityManager
+            ->createQuery($select.self::FROM.$seen->joins.' WHERE e.project = :project AND e.deletedAt IS NOT NULL'.$seen->where.$order))
+            ->setParameter('project', $project->id());
+    }
+
+    /**
+     * The entries seen, those in the trash or on a task in the trash left out.
      *
      * @param list<TimeEntry> $entries
      *
@@ -312,7 +407,7 @@ final readonly class DoctrineTimeQueries implements TimeQueries
         $rows = [];
         foreach ($entries as $entry) {
             $task = $entry->task();
-            if (true !== $task?->isDeleted() && $scope->seesTime($entry->project(), $task)) {
+            if (!$entry->isDeleted() && true !== $task?->isDeleted() && $scope->seesTime($entry->project(), $task)) {
                 $rows[] = $this->row($entry, $me?->id(), $owner);
             }
         }

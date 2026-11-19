@@ -117,8 +117,10 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/me' => ['get' => '200'],
             ],
             'invoicing' => [
-                '/api/v1/invoices' => ['get' => '200'],
-                '/api/v1/invoices/{id}' => ['get' => '200'],
+                '/api/v1/invoices' => ['get' => '200', 'post' => '201'],
+                '/api/v1/invoices/{invoiceId}' => ['get' => '200', 'patch' => '200'],
+                '/api/v1/invoices/{invoiceId}/trash' => ['post' => '200'],
+                '/api/v1/invoices/{invoiceId}/restore' => ['post' => '200'],
                 '/api/v1/payments' => ['get' => '200'],
                 '/api/v1/payments/{id}' => ['get' => '200'],
             ],

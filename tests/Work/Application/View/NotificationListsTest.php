@@ -51,6 +51,11 @@ final class NotificationListsTest extends KernelTestCase
         self::assertSame('n.createdAt', $fields['at']->expression);
     }
 
+    public function testTheListIsBuiltOnce(): void
+    {
+        self::assertSame($this->lists()->list(), $this->lists()->list());
+    }
+
     private function lists(): NotificationLists
     {
         return self::getContainer()->get(NotificationLists::class);

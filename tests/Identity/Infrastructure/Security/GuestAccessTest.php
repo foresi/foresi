@@ -55,6 +55,7 @@ final class GuestAccessTest extends WebTestCase
         'api_v1_operation_received_documents.record', 'api_v1_operation_received_documents.trash',
         'api_v1_operation_received_documents.add_payment', 'api_v1_operation_received_documents.mark_paid',
         'api_v1_operation_received_documents.remove_payment',
+        'api_v1_operation_invoices.create', 'api_v1_operation_invoices.update', 'api_v1_operation_invoices.trash', 'api_v1_operation_invoices.restore',
         'api_v1_lists', 'api_v1_views', 'api_v1_view', 'api_v1_view_count',
         'api_v1_operation_views.create', 'api_v1_operation_views.update', 'api_v1_operation_views.delete', 'api_v1_operation_views.restore_defaults',
         // The OpenAPI document, which describes the API and holds no data.

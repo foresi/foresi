@@ -68,7 +68,7 @@ nav:
     advances: Advance invoices
     tax_documents: Tax documents
     corrections: Corrective documents
-    firms: My firms
+    firm: Firm
     import: Import and export
     sent_mail: Sent e-mails
     recurring: Recurring invoices
@@ -362,24 +362,14 @@ format:
   date: 'Y-m-d'
   datetime: 'Y-m-d H:i'
 firm:
-  title: My firms
-  new: New firm
-  edit: Edit firm
+  title: Firm
+  new: Set up the firm
   sections: Firm sections
   tab:
     details: Details
     invoicing: Invoicing
     mail: E-mail
     bank: Bank
-  empty:
-    title: No firms yet
-    text: Your own companies that issue documents.
-  summary: '{total, plural, one {# firm} other {# firms}}'
-  column:
-    name: Name
-    registration: Reg. no.
-    vat: VAT ID
-    vat_status: VAT status
   card:
     tax: VAT
     seat: Registered office

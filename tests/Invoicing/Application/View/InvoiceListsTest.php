@@ -88,6 +88,11 @@ final class InvoiceListsTest extends KernelTestCase
         }
     }
 
+    public function testTheListIsBuiltOnce(): void
+    {
+        self::assertSame($this->lists()->of(DocumentKind::Invoice), $this->lists()->of(DocumentKind::Invoice));
+    }
+
     private function lists(): InvoiceLists
     {
         return self::getContainer()->get(InvoiceLists::class);
