@@ -15,30 +15,28 @@ use Foresi\Invoicing\Application\InvoiceRow;
 use Foresi\Invoicing\Application\InvoicingCountries;
 use Foresi\Invoicing\Application\MailGateway;
 use Foresi\Invoicing\Application\MailHostPolicy;
+use Foresi\Invoicing\Application\MailMarkdown;
 use Foresi\Invoicing\Application\MailMessage;
 use Foresi\Invoicing\Application\MailRefused;
 use Foresi\Invoicing\Application\MailSecrets;
 use Foresi\Invoicing\Application\MailServers;
 use Foresi\Invoicing\Application\MailTemplates;
-use Foresi\Invoicing\Application\MailVariables;
 use Foresi\Invoicing\Application\PlannedReminder;
 use Foresi\Invoicing\Application\ReminderPreview;
 use Foresi\Invoicing\Application\ReminderSettings;
-use Foresi\Invoicing\Application\UnknownMailVariables;
 use Foresi\Invoicing\Application\UnsupportedCountry;
 use Foresi\Invoicing\Domain\FirmMailServer;
 use Foresi\Invoicing\Domain\FirmReminders;
 use Foresi\Invoicing\Domain\InvalidMailServer;
-use Foresi\Invoicing\Domain\InvalidMailTemplate;
 use Foresi\Invoicing\Domain\MailEncryption;
 use Foresi\Invoicing\Domain\MailTemplateKind;
 use Foresi\Invoicing\Infrastructure\Form\AmountText;
 use Foresi\Invoicing\Infrastructure\Form\FirmMailSubmission;
-use Foresi\Invoicing\Infrastructure\Form\MailTokenLabels;
 use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Application\Markdown;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Money;
@@ -56,9 +54,10 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The e-mail settings of a firm, for the owner: the texts its documents and its
- * reminders are sent with, when reminders go, and its own mail server. Two tabs of
- * one page, each a form of its own. A firm in a country without invoicing rules
+ * The e-mail settings of a firm, for the owner: the list of the texts its
+ * documents and its reminders are sent with (each edited in a side sheet,
+ * FirmMailTemplateController), when reminders go, and its own mail server. Two
+ * tabs of one page; the reminders and the server are each a form of its own. A firm in a country without invoicing rules
  * has no home currency to set a minimum in, so its page has no reminders card and
  * its stored reminder settings stay as they are. The
  * password is never sent back to the browser; a blank one keeps what is stored. An
@@ -67,18 +66,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class FirmMailController extends AbstractController
 {
     public const string TEMPLATES_TOKEN = 'firm_mail_templates';
+    public const string REMINDERS_TOKEN = 'firm_mail_reminders';
     public const string SERVER_TOKEN = 'firm_mail_server';
     public const string TEST_TOKEN = 'firm_mail_test';
     private const string TEMPLATES = 'templates';
     private const string SERVER = 'server';
-    /** The card of each kind of template: its title, help and icon, in the order of MailTemplateKind. */
-    private const array CARDS = [
-        'invoice' => ['title' => 'firm.mail.card.invoice', 'help' => 'firm.mail.templates_help', 'icon' => 'receipt-text'],
-        'reminder' => ['title' => 'reminder.card.template', 'help' => 'reminder.templates_help', 'icon' => 'clock-3'],
-        'advance' => ['title' => 'advance.card.template', 'help' => 'advance.templates_help', 'icon' => 'banknote'],
-        'tax_document' => ['title' => 'tax_document.card.template', 'help' => 'tax_document.templates_help', 'icon' => 'file-signature'],
-        'correction' => ['title' => 'correction.mail.card', 'help' => 'correction.mail.templates_help', 'icon' => 'file-pen-line'],
-    ];
+    private const string REMINDERS = 'reminders';
 
     public function __construct(
         private readonly InstanceFirm $instanceFirm,
@@ -86,7 +79,6 @@ final class FirmMailController extends AbstractController
         private readonly MailSecrets $secrets,
         private readonly MailHostPolicy $hosts,
         private readonly MailTemplates $templates,
-        private readonly MailTokenLabels $labels,
         private readonly ReminderSettings $reminders,
         private readonly ReminderPreview $preview,
         private readonly InvoicingCountries $countries,
@@ -97,6 +89,7 @@ final class FirmMailController extends AbstractController
         private readonly AuditActor $actor,
         private readonly ClockInterface $clock,
         private readonly TranslatorInterface $translator,
+        private readonly Markdown $markdown,
         #[Autowire(service: 'limiter.mail_test')]
         private readonly RateLimiterFactory $testLimiter,
     ) {
@@ -110,11 +103,11 @@ final class FirmMailController extends AbstractController
         if (!$request->isMethod('POST')) {
             $tab = self::SERVER === $request->query->getString('tab') ? self::SERVER : self::TEMPLATES;
 
-            return $this->page($firm, $tab, $this->storedTemplates($firm), $this->storedReminders($firm), $this->storedServer($firm), [], Response::HTTP_OK);
+            return $this->page($firm, $tab, $this->storedReminders($firm), $this->storedServer($firm), [], Response::HTTP_OK);
         }
 
         return match ($request->request->getString('section')) {
-            self::TEMPLATES => $this->saveTemplates($firm, $request),
+            self::REMINDERS => $this->saveReminders($firm, $request),
             self::SERVER => $this->saveServer($firm, $request),
             default => throw new BadRequestHttpException('Unknown section.'),
         };
@@ -157,68 +150,35 @@ final class FirmMailController extends AbstractController
         return $back;
     }
 
-    private function saveTemplates(LegalEntity $firm, Request $request): Response
+    private function saveReminders(LegalEntity $firm, Request $request): Response
     {
-        $this->checkToken($request, self::TEMPLATES_TOKEN);
-        $reset = $request->request->getString('reset');
-        if ('' !== $reset) {
-            $language = DocumentLanguage::tryFrom($reset) ?? throw new BadRequestHttpException('Unknown language.');
-            $kind = MailTemplateKind::tryFrom($request->request->getString('kind', MailTemplateKind::Invoice->value)) ?? throw new BadRequestHttpException('Unknown kind.');
-            $this->transaction->run(fn () => $this->templates->reset($firm, $kind, $language));
-            $this->addFlash('success', $this->translator->trans('firm.mail.flash.reset'));
-
-            return $this->redirectToRoute('app_firm_mail');
-        }
-
-        $submissions = [];
-        $errors = [];
-        foreach (MailTemplateKind::cases() as $kind) {
-            $submissions[$kind->value] = FirmMailSubmission::templates($request, $this->labels, $kind);
-            $errors += $submissions[$kind->value]->errors;
-        }
-        $home = $this->homeCurrency($firm);
-        $reminders = $home instanceof Currency ? FirmMailSubmission::reminders($request, $home, $request->getLocale()) : null;
-        $values = $reminders instanceof FirmMailSubmission ? $reminders->values : $this->storedReminders($firm);
-        $errors += $reminders->errors ?? [];
+        $this->checkToken($request, self::REMINDERS_TOKEN);
+        $home = $this->homeCurrency($firm) ?? throw new BadRequestHttpException('This firm has no reminders.');
+        $reminders = FirmMailSubmission::reminders($request, $home, $request->getLocale());
+        $values = $reminders->values;
+        $errors = $reminders->errors;
         $stored = $this->reminders->for($firm);
         $enabled = '1' === $values['enabled'];
-        if ($reminders instanceof FirmMailSubmission && $enabled && !$stored->enabled() && !$this->reminders->canSwitchOn()) {
+        if ($enabled && !$stored->enabled() && !$this->reminders->canSwitchOn()) {
             $errors['reminders-enabled'] = ['reminder.error.gate'];
         }
-        $typed = array_map(static fn (FirmMailSubmission $submission): array => $submission->typed, $submissions);
         if ([] !== $errors) {
-            return $this->page($firm, self::TEMPLATES, $typed, $values, $this->storedServer($firm), $errors, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->page($firm, self::TEMPLATES, $values, $this->storedServer($firm), $errors, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $texts = array_map(static fn (FirmMailSubmission $submission): array => $submission->texts, $submissions);
         $first = (int) $values['firstAfterDays'];
         $every = (int) $values['everyDays'];
-        $minimum = $reminders?->minimum;
-        $advances = '1' === ($values['advances'] ?? '');
-        $card = $reminders instanceof FirmMailSubmission;
+        $minimum = $reminders->minimum;
+        $advances = '1' === $values['advances'];
         $today = $this->preview->today();
-        try {
-            $this->transaction->run(function () use ($firm, $texts, $stored, $card, $enabled, $first, $every, $minimum, $today, $advances): void {
-                foreach (MailTemplateKind::cases() as $kind) {
-                    foreach (DocumentLanguage::cases() as $language) {
-                        $text = $texts[$kind->value][$language->value];
-                        $this->storeTemplate($firm, $kind, $language, $text['subject'], $text['body']);
-                    }
-                }
-                if ($card && ($this->changes($stored, $enabled, $first, $every, $minimum) || $stored->remindsAdvances() !== $advances)) {
-                    $stored->change($enabled, $first, $every, $minimum, $today);
-                    $stored->remindAdvances($advances);
-                    $this->reminders->save($stored);
-                }
-            });
-        } catch (UnknownMailVariables) {
-            // The form checks the tokens first; this is the store's own check agreeing.
-            return $this->page($firm, self::TEMPLATES, $typed, $values, $this->storedServer($firm), ['form' => ['firm.mail.error.unknown_token']], Response::HTTP_UNPROCESSABLE_ENTITY);
-        } catch (InvalidMailTemplate|UniqueConstraintViolationException) {
-            // A control character the form let through, or another request storing the same text meanwhile.
-            return $this->page($firm, self::TEMPLATES, $typed, $values, $this->storedServer($firm), ['form' => ['firm.mail.error.save_failed']], Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
-        $this->addFlash('success', $this->translator->trans('firm.mail.flash.saved'));
+        $this->transaction->run(function () use ($stored, $enabled, $first, $every, $minimum, $today, $advances): void {
+            if ($this->changes($stored, $enabled, $first, $every, $minimum) || $stored->remindsAdvances() !== $advances) {
+                $stored->change($enabled, $first, $every, $minimum, $today);
+                $stored->remindAdvances($advances);
+                $this->reminders->save($stored);
+            }
+        });
+        $this->addFlash('success', $this->translator->trans('firm.mail.flash.reminders_saved'));
 
         return $this->redirectToRoute('app_firm_mail');
     }
@@ -236,20 +196,6 @@ final class FirmMailController extends AbstractController
             || $stored->everyDays() !== $every
             || ($current instanceof Money) !== ($minimum instanceof Money)
             || ($current instanceof Money && $minimum instanceof Money && !$current->equals($minimum));
-    }
-
-    /**
-     * The built-in text is not stored as a copy, so it follows the translations.
-     */
-    private function storeTemplate(LegalEntity $firm, MailTemplateKind $kind, DocumentLanguage $language, string $subject, string $body): void
-    {
-        $builtIn = $this->templates->builtIn($kind, $language);
-        if (FirmMailSubmission::sameText($builtIn, $subject, $body)) {
-            $this->templates->reset($firm, $kind, $language);
-
-            return;
-        }
-        $this->templates->save($firm, $kind, $language, $subject, $body);
     }
 
     private function saveServer(LegalEntity $firm, Request $request): Response
@@ -275,7 +221,7 @@ final class FirmMailController extends AbstractController
             }
         }
         if ([] !== $errors) {
-            return $this->page($firm, self::SERVER, $this->storedTemplates($firm), $this->storedReminders($firm), $submission->values, $errors, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->page($firm, self::SERVER, $this->storedReminders($firm), $submission->values, $errors, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $values = $submission->values;
@@ -291,10 +237,10 @@ final class FirmMailController extends AbstractController
                 $this->servers->save(FirmMailServer::define($firm, $values['host'], (int) $values['port'], $encryption, $values['username'], $sealed ?? '', $values['fromAddress'], $values['fromName']));
             });
         } catch (InvalidMailServer) {
-            return $this->page($firm, self::SERVER, $this->storedTemplates($firm), $this->storedReminders($firm), $values, ['host' => ['firm.mail.error.host']], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->page($firm, self::SERVER, $this->storedReminders($firm), $values, ['host' => ['firm.mail.error.host']], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (UniqueConstraintViolationException) {
             // Another request stored the first server of this firm meanwhile.
-            return $this->page($firm, self::SERVER, $this->storedTemplates($firm), $this->storedReminders($firm), $values, ['form' => ['firm.mail.error.save_failed']], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->page($firm, self::SERVER, $this->storedReminders($firm), $values, ['form' => ['firm.mail.error.save_failed']], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         $this->addFlash('success', $this->translator->trans('firm.mail.flash.server_saved'));
 
@@ -314,33 +260,23 @@ final class FirmMailController extends AbstractController
             [],
             $this->translator->trans('firm.mail.test.subject', ['firm' => $server->firm()->name()]),
             $text,
-            '<p>'.htmlspecialchars($text, \ENT_QUOTES | \ENT_HTML5, 'UTF-8').'</p>',
+            // Sent as the templates are: Markdown, the values in it as text.
+            $this->markdown->toMailHtml(MailMarkdown::escape($text, true)),
             \sprintf('<test.%s@%s>', Id::generate(), substr($from, (int) strrpos($from, '@') + 1)),
         );
     }
 
     /**
-     * @param array<string, array<string, array{subject: string, body: string}>> $templates kind => language => text
-     * @param array<string, string>                                              $reminders the reminders card
-     * @param array<string, string>                                              $server
-     * @param array<string, array{0: string, 1?: array<string, string>}>         $errors
+     * @param array<string, string>                                      $reminders the reminders card
+     * @param array<string, string>                                      $server
+     * @param array<string, array{0: string, 1?: array<string, string>}> $errors
      */
-    private function page(LegalEntity $firm, string $tab, array $templates, array $reminders, array $server, array $errors, int $status): Response
+    private function page(LegalEntity $firm, string $tab, array $reminders, array $server, array $errors, int $status): Response
     {
         $stored = $this->servers->for($firm);
         $url = $this->generateUrl('app_firm_mail');
         $settings = $this->reminders->for($firm);
         $home = $this->homeCurrency($firm);
-        $kinds = [];
-        foreach (MailTemplateKind::cases() as $kind) {
-            $kinds[$kind->value] = array_map(fn (DocumentLanguage $language): array => [
-                'code' => $language->value,
-                'label' => $this->translator->trans('firm.mail.language.'.$language->value),
-                'custom' => $this->templates->isCustom($firm, $kind, $language),
-                'variables' => array_map(static fn (string $label): array => ['token' => '{'.$label.'}', 'label' => $label], array_values($this->labels->labels($language, $kind))),
-                'link' => $this->labels->token(MailVariables::LINK, $language, $kind),
-            ], DocumentLanguage::cases());
-        }
 
         return $this->render('@Invoicing/firm/mail.html.twig', [
             'firm' => $firm,
@@ -349,14 +285,19 @@ final class FirmMailController extends AbstractController
                 ['label' => $this->translator->trans('firm.mail.tab.templates'), 'href' => $url, 'active' => self::TEMPLATES === $tab],
                 ['label' => $this->translator->trans('firm.mail.tab.server'), 'href' => $url.'?tab='.self::SERVER, 'active' => self::SERVER === $tab],
             ],
-            'cards' => array_map(static fn (MailTemplateKind $kind): array => [
+            // Each kind with, per language, whether the firm wrote its own text.
+            'templates' => array_map(fn (MailTemplateKind $kind): array => [
                 'kind' => $kind->value,
-                'title' => self::CARDS[$kind->value]['title'],
-                'help' => self::CARDS[$kind->value]['help'],
-                'icon' => self::CARDS[$kind->value]['icon'],
-                'languages' => $kinds[$kind->value],
-                'templates' => $templates[$kind->value],
-            ], MailTemplateKind::cases()),
+                'title' => FirmMailTemplateController::KINDS[$kind->value]['title'],
+                'help' => FirmMailTemplateController::KINDS[$kind->value]['help'],
+                'icon' => FirmMailTemplateController::KINDS[$kind->value]['icon'],
+                'href' => $this->generateUrl('app_firm_mail_template', ['kind' => $kind->value]),
+                'languages' => array_map(fn (DocumentLanguage $language): array => [
+                    'code' => $language->value,
+                    'label' => $this->translator->trans('firm.mail.language.'.$language->value),
+                    'custom' => $this->templates->isCustom($firm, $kind, $language),
+                ], DocumentLanguage::cases()),
+            ], FirmMailTemplateController::ORDER),
             'reminders' => $reminders,
             'remindersCard' => $home instanceof Currency,
             // Closed until payments are recorded; a switch that is on stays usable, so it can be turned off.
@@ -403,24 +344,6 @@ final class FirmMailController extends AbstractController
             'amount' => $this->amounts->shown($row->payable->minus($row->paid)),
             'href' => $this->generateUrl('app_invoice_show', ['id' => $row->id]),
         ];
-    }
-
-    /**
-     * In the editor's form, with readable labels for the tokens.
-     *
-     * @return array<string, array<string, array{subject: string, body: string}>> kind => language => text
-     */
-    private function storedTemplates(LegalEntity $firm): array
-    {
-        $texts = [];
-        foreach (MailTemplateKind::cases() as $kind) {
-            foreach (DocumentLanguage::cases() as $language) {
-                $text = $this->templates->textFor($firm, $kind, $language);
-                $texts[$kind->value][$language->value] = ['subject' => $this->labels->toEditor($text->subject, $language, $kind), 'body' => $this->labels->toEditor($text->body, $language, $kind)];
-            }
-        }
-
-        return $texts;
     }
 
     /**

@@ -99,7 +99,7 @@ final readonly class SendDraft
             $fromDocument,
             $copyAddress,
             $text->render($template->subject, $values, true),
-            $text->render($template->body, $values, false),
+            $text->renderBody($template->body, $values),
             $invoice->language(),
             $this->lastSentAt($invoice),
         );

@@ -27,6 +27,7 @@ use Symfony\Component\HtmlSanitizer\HtmlSanitizerInterface;
  * Markdown, plus mentions. Raw HTML in the source is escaped; the output then
  * passes an allow-list sanitizer, so a gap in the parser cannot reach the page.
  * Headings start at h3, so a text never outranks the headings of the page it is on.
+ * A mail gets the same, without images: it could not load them.
  */
 #[AsAlias(Markdown::class)]
 final readonly class CommonMarkMarkdown implements Markdown
@@ -37,6 +38,8 @@ final readonly class CommonMarkMarkdown implements Markdown
     private MarkdownConverter $converter;
 
     private HtmlSanitizerInterface $sanitizer;
+
+    private HtmlSanitizerInterface $mailSanitizer;
 
     public function __construct()
     {
@@ -62,7 +65,8 @@ final readonly class CommonMarkMarkdown implements Markdown
             }
         });
         $this->converter = new MarkdownConverter($environment);
-        $this->sanitizer = new HtmlSanitizer($this->sanitizerConfig());
+        $this->sanitizer = new HtmlSanitizer($this->sanitizerConfig(true));
+        $this->mailSanitizer = new HtmlSanitizer($this->sanitizerConfig(false));
     }
 
     public function toHtml(string $source): string
@@ -74,7 +78,16 @@ final readonly class CommonMarkMarkdown implements Markdown
         return trim($this->sanitizer->sanitize($this->converter->convert($source)->getContent()));
     }
 
-    private function sanitizerConfig(): HtmlSanitizerConfig
+    public function toMailHtml(string $source): string
+    {
+        if ('' === trim($source)) {
+            return '';
+        }
+
+        return trim($this->mailSanitizer->sanitize($this->converter->convert($source)->getContent()));
+    }
+
+    private function sanitizerConfig(bool $images): HtmlSanitizerConfig
     {
         $config = new HtmlSanitizerConfig()
             ->withMaxInputLength(-1)
@@ -86,11 +99,13 @@ final readonly class CommonMarkMarkdown implements Markdown
             ->withAttributeSanitizer(new MentionClass())
             ->allowElement('a', ['href'])
             ->forceAttribute('a', 'rel', 'noopener noreferrer nofollow')
-            ->allowElement('img', ['src', 'alt'])
             ->allowElement('input', ['type', 'checked', 'disabled'])
             ->forceAttribute('input', 'type', 'checkbox')
             ->forceAttribute('input', 'disabled', 'disabled')
             ->allowElement('span', ['class']);
+        if ($images) {
+            $config = $config->allowElement('img', ['src', 'alt']);
+        }
         foreach (['p', 'br', 'strong', 'em', 'del', 'ul', 'ol', 'li', 'code', 'pre', 'blockquote', 'h3', 'h4', 'h5', 'h6', 'hr'] as $element) {
             $config = $config->allowElement($element);
         }

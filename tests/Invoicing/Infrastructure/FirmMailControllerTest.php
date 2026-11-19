@@ -94,9 +94,10 @@ final class FirmMailControllerTest extends WebTestCase
     public function testTheAdvanceAndTaxDocumentTemplatesAreEditedLikeTheInvoice(): void
     {
         $this->signedInFirm();
-        $crawler = $this->client->request('GET', $this->url());
+        $crawler = $this->client->request('GET', $this->templateUrl('advance'));
         self::assertSame('Zálohová faktura {Číslo dokladu}', $crawler->filter('#advance-subject-cs')->attr('value'));
-        self::assertSame('Tax document {Document number}', $crawler->filter('#tax_document-subject-en')->attr('value'));
+        $crawler = $this->client->request('GET', $this->templateUrl('tax_document'));
+        self::assertSame('Tax document {Document number}', $crawler->filter('#tax-document-subject-en')->attr('value'));
 
         $this->saveTemplates(['advance_subject' => ['cs' => 'Záloha {Číslo dokladu}'], 'advance_body' => ['cs' => "Záloha {Částka k úhradě}.\n{Odkaz na doklad}"]]);
 
@@ -105,14 +106,15 @@ final class FirmMailControllerTest extends WebTestCase
             [['kind' => 'advance', 'language' => 'cs', 'subject' => 'Záloha {number}', 'body' => "Záloha {amount_total}.\n{link}"]],
             $this->connection()->fetchAllAssociative('SELECT kind, language, subject, body FROM mail_template'),
         );
-        $this->client->request('GET', $this->url());
-        self::assertSelectorExists('form#mail-reset-advance-cs input[name="kind"][value="advance"]');
+        $this->client->request('GET', $this->templateUrl('advance'));
+        self::assertSelectorExists('form#mail-reset-cs[action$="/templates/advance"]');
+        self::assertSelectorNotExists('form#mail-reset-en');
     }
 
     public function testTheCorrectionTemplateKnowsTheNumberOfTheOriginal(): void
     {
         $this->signedInFirm();
-        $crawler = $this->client->request('GET', $this->url());
+        $crawler = $this->client->request('GET', $this->templateUrl('correction'));
         self::assertSame('Opravný daňový doklad {Číslo dokladu}', $crawler->filter('#correction-subject-cs')->attr('value'));
         self::assertStringContainsString('{Number of the corrected document}', $crawler->filter('#correction-body-en')->text());
 
@@ -125,16 +127,44 @@ final class FirmMailControllerTest extends WebTestCase
         );
     }
 
-    public function testThePageHasBothTabsAndTheChips(): void
+    public function testThePageListsTheTemplatesAndEachOpensInASheet(): void
     {
         $this->signedInFirm();
+        $this->saveTemplates(['subject' => ['en' => 'Own {Document number}']]);
 
         $crawler = $this->client->request('GET', $this->url());
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorExists('main [data-action-bar]');
         self::assertCount(2, $crawler->filter('main nav[aria-label="E-mail settings sections"] a'));
         self::assertSame('page', $crawler->filter('main nav[aria-label="Firm sections"] a[href$="/mail"]')->attr('aria-current'));
+        // The documents first, the reminder last, each a link that opens the sheet.
+        self::assertSame(
+            ['invoice', 'advance', 'tax_document', 'correction', 'reminder'],
+            $crawler->filter('#mail-templates [data-mail-template]')->each(static fn ($row): string => (string) $row->attr('data-mail-template')),
+        );
+        $links = $crawler->filter('#mail-templates a[data-sheet]');
+        self::assertSame('/settings/firm/mail/templates/invoice', $links->first()->attr('href'));
+        self::assertSame('dialog', $links->first()->attr('aria-haspopup'));
+        // Per language, whether the firm wrote its own text.
+        self::assertSame(['Czech: built-in text', 'English: own text'], $crawler->filter('[data-mail-template="invoice"] li')->each(static fn ($badge): string => trim($badge->text())));
+        self::assertSame(['Czech: built-in text', 'English: built-in text'], $crawler->filter('[data-mail-template="reminder"] li')->each(static fn ($badge): string => trim($badge->text())));
+        // No editor and no save of all templates on the list.
+        self::assertCount(0, $crawler->filter('#subject-cs, textarea'));
+        self::assertCount(1, $crawler->filter('form#mail-reminders'));
+    }
+
+    public function testTheSheetHasTheLanguagesTheEditorAndTheChips(): void
+    {
+        $this->signedInFirm();
+
+        $crawler = $this->client->request('GET', $this->templateUrl('invoice'), server: ['HTTP_X_FORESI_DIALOG' => 'sheet']);
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('dialog#sheet-page'));
+        self::assertSame('Invoice', trim($crawler->filter('dialog#sheet-page h2')->text()));
+        self::assertSame(['Czech', 'English'], $crawler->filter('[role="tablist"][data-mail-languages-target] [role="tab"]')->each(static fn ($tab): string => trim($tab->text())));
+        self::assertSame('true', $crawler->filter('#language-tab-cs')->attr('aria-selected'));
+        self::assertSame('language-cs', $crawler->filter('#language-tab-cs')->attr('aria-controls'));
         // The editor shows each token as a label in the template's own language.
         self::assertSame('Invoice {Document number}', $crawler->filter('#subject-en')->attr('value'));
         self::assertSame('Faktura {Číslo dokladu}', $crawler->filter('#subject-cs')->attr('value'));
@@ -142,21 +172,54 @@ final class FirmMailControllerTest extends WebTestCase
         self::assertStringContainsString('na částku {Částka k úhradě} se splatností {Datum splatnosti}.', $crawler->filter('#body-cs')->text());
         self::assertStringNotContainsString('{amount_total}', (string) $this->client->getResponse()->getContent());
         self::assertSelectorTextContains('#body-cs-help', '{Odkaz na doklad}');
-        self::assertSelectorTextContains('#body-en-help', '{Link to the document}');
+        // The body is a Markdown editor whose preview sends the subject along.
+        $editor = $crawler->filter('[data-controller="markdown-editor"]')->first();
+        self::assertSame('/settings/firm/mail/templates/invoice/preview/cs', $editor->attr('data-markdown-editor-preview-url-value'));
+        self::assertSame('{"subject":"subject-cs"}', $editor->attr('data-markdown-editor-preview-fields-value'));
         // One toolbar per language, named with it, and one Tab stop in each.
         self::assertSame(
-            [
-                'variables-cs language-cs', 'variables-en language-en',
-                'variables-advance-cs kind-advance-cs language-advance-cs', 'variables-advance-en kind-advance-en language-advance-en',
-                'variables-tax_document-cs kind-tax_document-cs language-tax_document-cs', 'variables-tax_document-en kind-tax_document-en language-tax_document-en',
-                'variables-correction-cs kind-correction-cs language-correction-cs', 'variables-correction-en kind-correction-en language-correction-en',
-                'variables-reminder-cs kind-reminder-cs language-reminder-cs', 'variables-reminder-en kind-reminder-en language-reminder-en',
-            ],
-            $crawler->filter('[role="toolbar"]')->each(static fn ($toolbar): string => (string) $toolbar->attr('aria-labelledby')),
+            ['variables-cs language-title-cs', 'variables-en language-title-en'],
+            $crawler->filter('[role="toolbar"][aria-describedby]')->each(static fn ($toolbar): string => (string) $toolbar->attr('aria-labelledby')),
         );
-        self::assertSame(array_fill(0, 10, '0'), $crawler->filter('[role="toolbar"] button[tabindex="0"]')->each(static fn ($chip): string => (string) $chip->attr('tabindex')));
-        $chips = $crawler->filter('[role="toolbar"][aria-labelledby] button[type="button"][data-token]');
+        $chips = $crawler->filter('[role="toolbar"][aria-describedby] button[type="button"][data-token]');
         self::assertSame(['{Číslo dokladu}', '{Odkaz na doklad}', '{Document number}'], [$chips->first()->attr('data-token'), $chips->eq(19)->attr('data-token'), $chips->eq(20)->attr('data-token')]);
+        // Cancel and Save in the footer, Save for the form of both languages.
+        self::assertCount(1, $crawler->filter('dialog#sheet-page button[type="submit"][form="mail-template"]'));
+        self::assertCount(0, $crawler->filter('form[id^="mail-reset-"]'), 'nothing to restore while both texts are built in');
+    }
+
+    public function testTheSheetShowsTheLanguageWithAProblemFirst(): void
+    {
+        $this->signedInFirm();
+
+        $this->saveTemplates(['subject' => ['en' => '']]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('true', $this->client->getCrawler()->filter('#language-tab-en')->attr('aria-selected'));
+        self::assertSame('false', $this->client->getCrawler()->filter('#language-tab-cs')->attr('aria-selected'));
+        self::assertSelectorExists('#subject-en-error');
+    }
+
+    public function testThePreviewFillsTheVariablesWithSampleValues(): void
+    {
+        $this->signedInFirm();
+        $token = $this->previewToken();
+
+        $this->client->request('POST', '/settings/firm/mail/templates/reminder/preview/cs', [
+            '_token' => $token,
+            'subject' => 'Upomínka {Číslo dokladu}',
+            'text' => "Dobrý den, **{Název odběratele}**,\nzbývá {Zbývá uhradit}.\n\n[Otevřít]({Odkaz na doklad})",
+        ]);
+
+        self::assertResponseIsSuccessful();
+        $content = (string) $this->client->getResponse()->getContent();
+        self::assertSelectorTextContains('[data-mail-preview-subject]', 'Upomínka 20260042');
+        self::assertStringContainsString('<strong>Vzorový odběratel s.r.o.</strong>', $content);
+        self::assertMatchesRegularExpression('/zbývá 7\\s260,00\\sKč\\./u', $content);
+        self::assertStringContainsString('<a href="https://example.com/d/sample" rel="noopener noreferrer nofollow">Otevřít</a>', $content);
+
+        $this->client->request('POST', '/settings/firm/mail/templates/invoice/preview/en', ['_token' => 'wrong', 'text' => 'x']);
+        self::assertResponseStatusCodeSame(403);
     }
 
     public function testSavingStoresServerAndTemplate(): void
@@ -168,7 +231,7 @@ final class FirmMailControllerTest extends WebTestCase
         $this->saveTemplates(['subject' => ['cs' => 'Faktura {number} od nás'], 'body' => ['cs' => "Dobrý den,\n{link}"]]);
         self::assertResponseRedirects($this->url());
         $this->client->followRedirect();
-        self::assertSelectorTextContains('main', 'The e-mail templates are saved.');
+        self::assertSelectorTextContains('main', 'The “Invoice” template is saved.');
 
         $server = $this->connection()->fetchAssociative('SELECT legal_entity_id, host, port, encryption, username, from_address, from_name, verified_at FROM firm_mail_server');
         self::assertSame(['legal_entity_id' => $firm->id(), 'host' => 'smtp.example.com', 'port' => 587, 'encryption' => 'starttls', 'username' => 'invoices@example.com', 'from_address' => 'invoices@example.com', 'from_name' => 'Example Firm', 'verified_at' => null], $server);
@@ -189,7 +252,7 @@ final class FirmMailControllerTest extends WebTestCase
         self::assertResponseRedirects($this->url());
         self::assertSame(['cs' => 'Faktura {number} pro {customer_name}', 'en' => 'Invoice {number}'], $this->connection()->fetchAllKeyValue('SELECT language, subject FROM mail_template ORDER BY language'));
         self::assertSame(['cs' => "Splatnost {due_date}.\n{link}", 'en' => "Due {due_date}.\n{link}"], $this->connection()->fetchAllKeyValue('SELECT language, body FROM mail_template ORDER BY language'));
-        $crawler = $this->client->request('GET', $this->url());
+        $crawler = $this->client->request('GET', $this->templateUrl('invoice'));
         self::assertSame('Faktura {Číslo dokladu} pro {Název odběratele}', $crawler->filter('#subject-cs')->attr('value'));
         self::assertSame("Due {Due date}.\n{Link to the document}", $crawler->filter('#body-en')->text(null, false));
     }
@@ -277,7 +340,7 @@ final class FirmMailControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', $this->url());
         self::assertCount(1, $crawler->filter('#reminders-advances[checked]'));
 
-        $form = $crawler->filter('#mail-templates')->form()->getPhpValues();
+        $form = $crawler->filter('#mail-reminders')->form()->getPhpValues();
         self::assertIsArray($form['reminders']);
         unset($form['reminders']['advances']);
         $this->client->request('POST', $this->url(), $form);
@@ -292,7 +355,7 @@ final class FirmMailControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('#reminders-card'));
-        self::assertCount(1, $crawler->filter('#subject-cs'));
+        self::assertCount(1, $crawler->filter('[data-mail-template="invoice"]'));
 
         $this->saveTemplates(['subject' => ['cs' => 'Faktura {number} od nás']]);
 
@@ -455,11 +518,11 @@ final class FirmMailControllerTest extends WebTestCase
     public function testAReminderTemplateIsStoredPerLanguage(): void
     {
         $this->signedInFirm();
-        $crawler = $this->client->request('GET', $this->url());
+        $crawler = $this->client->request('GET', $this->templateUrl('reminder'));
         self::assertSame('Upomínka: faktura {Číslo dokladu}', $crawler->filter('#reminder-subject-cs')->attr('value'));
         self::assertStringContainsString('{Zbývá uhradit}', $crawler->filter('#reminder-body-cs')->text(null, false));
         self::assertStringContainsString('{Amount due}', $crawler->filter('#reminder-body-en')->text(null, false));
-        $tokens = $crawler->filter('[role="toolbar"][aria-labelledby~="variables-reminder-cs"] button[data-token]')->each(static fn ($chip): string => (string) $chip->attr('data-token'));
+        $tokens = $crawler->filter('[role="toolbar"][aria-labelledby~="variables-cs"] button[data-token]')->each(static fn ($chip): string => (string) $chip->attr('data-token'));
         self::assertSame(['{Dní po splatnosti}', '{Pořadí upomínky}', '{Zbývá uhradit}', '{Odkaz na doklad}'], \array_slice($tokens, -4), 'the reminder chips come before the link');
 
         $this->saveTemplates(['reminder_subject' => ['cs' => 'Upomínka {Číslo dokladu}'], 'reminder_body' => ['cs' => "Faktura je {Dní po splatnosti} dní po splatnosti, zbývá {Zbývá uhradit}.\n{Odkaz na doklad}"]]);
@@ -477,11 +540,11 @@ final class FirmMailControllerTest extends WebTestCase
         self::assertSelectorTextContains('#subject-cs-error', '{Dní po splatnosti}');
 
         // Each kind has its own reset.
-        $this->client->request('GET', $this->url());
+        $this->client->request('GET', $this->templateUrl('invoice'));
         self::assertSelectorNotExists('form#mail-reset-cs');
-        $reset = $this->client->getCrawler()->filter('form#mail-reset-reminder-cs');
+        $reset = $this->client->request('GET', $this->templateUrl('reminder'))->filter('form#mail-reset-cs');
         self::assertCount(1, $reset);
-        $this->client->request('POST', $this->url(), $reset->form()->getPhpValues());
+        $this->client->request('POST', $this->templateUrl('reminder'), $reset->form()->getPhpValues());
         self::assertResponseRedirects($this->url());
         self::assertSame([], $this->connection()->fetchFirstColumn('SELECT id FROM mail_template'));
     }
@@ -702,14 +765,17 @@ final class FirmMailControllerTest extends WebTestCase
         $this->signedInFirm();
         $this->saveTemplates(['subject' => ['cs' => 'Vlastní {Číslo dokladu}']]);
 
-        $crawler = $this->client->request('GET', $this->url());
+        $crawler = $this->client->request('GET', $this->templateUrl('invoice'));
 
-        self::assertCount(0, $crawler->filter('#mail-templates button[name="reset"]'), 'no reset button inside the save form');
+        self::assertCount(0, $crawler->filter('#mail-template button[name="reset"]'), 'no reset button inside the save form');
         $reset = $crawler->filter('form#mail-reset-cs');
         self::assertCount(1, $reset);
-        self::assertNotSame('', (string) $reset->attr('data-turbo-confirm'));
+        // In the sheet its host posts the form itself, so it asks with confirm-submit.
+        self::assertSame('confirm-submit', $reset->attr('data-controller'));
+        self::assertNotSame('', (string) $reset->attr('data-confirm-title'));
         self::assertCount(1, $crawler->filter('button[type="submit"][form="mail-reset-cs"]'));
-        $this->client->request('POST', $this->url(), $reset->form()->getPhpValues());
+        self::assertCount(0, $crawler->filter('form#mail-reset-en'));
+        $this->client->request('POST', $this->templateUrl('invoice'), $reset->form()->getPhpValues());
         self::assertResponseRedirects($this->url());
         self::assertSame([], $this->connection()->fetchFirstColumn('SELECT id FROM mail_template'));
     }
@@ -807,6 +873,20 @@ final class FirmMailControllerTest extends WebTestCase
         return '/settings/firm/mail'.(null === $tab ? '' : '?tab='.$tab);
     }
 
+    private function templateUrl(string $kind): string
+    {
+        return '/settings/firm/mail/templates/'.$kind;
+    }
+
+    private function previewToken(): string
+    {
+        $crawler = $this->client->request('GET', $this->templateUrl('invoice'));
+        $token = $crawler->filter('[data-controller="markdown-editor"]')->first()->attr('data-markdown-editor-token-value');
+        self::assertIsString($token);
+
+        return $token;
+    }
+
     /**
      * @param array<string, string> $values
      */
@@ -818,16 +898,31 @@ final class FirmMailControllerTest extends WebTestCase
     }
 
     /**
+     * Posts the sheet of one kind of template, the kind read from the field names
+     * (reminder_subject is the reminder's), or the reminders card for "reminders".
+     *
      * @param array<string, mixed> $values
      */
-    private function saveTemplates(array $values): void
+    private function saveTemplates(array $values, ?string $kind = null): void
     {
-        $crawler = $this->client->request('GET', $this->url());
-        $this->client->request('POST', $this->url(), array_replace_recursive($crawler->filter('#mail-templates')->form()->getPhpValues(), $values));
+        if (isset($values['reminders'])) {
+            $crawler = $this->client->request('GET', $this->url());
+            $this->client->request('POST', $this->url(), array_replace_recursive($crawler->filter('#mail-reminders')->form()->getPhpValues(), $values));
+
+            return;
+        }
+        foreach (array_keys($values) as $name) {
+            if (1 === preg_match('/^(.+)_(?:subject|body)$/', $name, $match)) {
+                $kind ??= $match[1];
+            }
+        }
+        $url = $this->templateUrl($kind ?? 'invoice');
+        $crawler = $this->client->request('GET', $url);
+        $this->client->request('POST', $url, array_replace_recursive($crawler->filter('#mail-template')->form()->getPhpValues(), $values));
     }
 
     /**
-     * The templates form of the page on screen, with fields of the reminders card
+     * The reminders form of the page on screen, with fields of the reminders card
      * replaced; null leaves a field out, as an unchecked box does.
      *
      * @param array<string, string|null> $reminders
@@ -836,7 +931,7 @@ final class FirmMailControllerTest extends WebTestCase
      */
     private function formValues(array $reminders): array
     {
-        $values = $this->client->getCrawler()->filter('#mail-templates')->form()->getPhpValues();
+        $values = $this->client->getCrawler()->filter('#mail-reminders')->form()->getPhpValues();
         $card = $values['reminders'] ?? [];
         self::assertIsArray($card);
         foreach ($reminders as $field => $value) {

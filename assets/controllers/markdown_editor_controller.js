@@ -13,8 +13,9 @@ const fold = (value) => value.normalize('NFD').replace(/\p{Diacritic}/gu, '').to
 /**
  * A text area for Markdown (see the Ui:MarkdownEditor component).
  *
- * Write and Preview are tabs (WAI-ARIA APG tabs): Preview sends the text to the
- * server, which answers the sanitised HTML. The toolbar wraps or prefixes the
+ * Write and Preview are tabs (WAI-ARIA APG tabs): Preview sends the text, and
+ * the values of the fields named in previewFields, to the server, which answers
+ * the sanitised HTML. The toolbar wraps or prefixes the
  * selection, also with Ctrl/Cmd+B, I and K; the text goes in with
  * execCommand('insertText') so that undo keeps working, else setRangeText.
  *
@@ -32,7 +33,7 @@ const fold = (value) => value.normalize('NFD').replace(/\p{Diacritic}/gu, '').to
 export default class extends Controller {
     static targets = ['bar', 'toolbar', 'writeTab', 'previewTab', 'writePanel', 'previewPanel', 'input', 'list', 'empty', 'status', 'option', 'nothing', 'failed', 'rendered', 'uploadError'];
     static values = {
-        previewUrl: String, token: String, mentionsUrl: String, found: String,
+        previewUrl: String, token: String, previewFields: Object, mentionsUrl: String, found: String,
         uploadUrl: String, uploadToken: String, uploadKind: String, uploadOwner: String, uploading: String, uploadFailed: String,
     };
 
@@ -88,6 +89,9 @@ export default class extends Controller {
         const body = new FormData();
         body.set('text', text);
         body.set('_token', this.tokenValue);
+        for (const [name, id] of Object.entries(this.previewFieldsValue)) {
+            body.set(name, document.getElementById(id)?.value ?? '');
+        }
         try {
             const response = await fetch(this.previewUrlValue, { method: 'POST', body, headers: { Accept: 'text/html' }, signal: this.request.signal });
             if (!response.ok) {

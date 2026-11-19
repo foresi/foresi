@@ -413,10 +413,19 @@ firm:
       templates: Templates
       server: Mail server
     card:
+      templates: E-mail templates
       invoice: Invoice
       server: Outgoing mail server (SMTP)
       test: Test e-mail
     templates_help: The text is sent in the language of the document.
+    templates_list_help: Open a template to change its subject and text for each document language.
+    languages: Template languages
+    custom: own text
+    built_in: built-in text
+    built_in_now: Built-in text
+    language_invalid: has a problem
+    sample:
+      customer: Sample Customer Ltd
     language:
       cs: Czech
       en: English
@@ -452,7 +461,7 @@ firm:
     field:
       subject: Subject
       body: Message
-      body_help: 'Without {token} the link is added at the end.'
+      body_help: 'Format with Markdown: **bold**, _italic_, "- " bullets. Without {token} the link is added at the end.'
       host: Host
       host_help: For example smtp.example.com
       port: Port
@@ -478,6 +487,8 @@ firm:
       subject: 'Test e-mail: {firm}'
       body: 'This message checks that the server {host}:{port} sends the mail of the firm. No reply is needed.'
     flash:
+      template_saved: 'The “{name}” template is saved.'
+      reminders_saved: The reminder settings are saved.
       saved: The e-mail templates are saved.
       reset: The template has its built-in text again.
       server_saved: The mail server is saved.

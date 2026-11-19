@@ -1,0 +1,95 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    One kind of mail template, both document languages: a side sheet over the list of templates (a
+    detail in the sheet, docs/design/overlays.md); the same URL is a page of its own. The languages are
+    WAI-ARIA tabs once the mail-languages controller connects; without JavaScript both show, one under
+    the other. Each language has its subject, its body in Markdown (Write and Preview, the preview with
+    made-up values), the variable chips and, for an own text, Restore the built-in text.
+#}
+{% extends in_dialog() ? '@Ui/layout/sheet.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'firm.title'|trans, href: path('app_firm')}, {label: 'firm.mail.title'|trans, href: cancel}, {label: title}] %}
+{% set form_invalid = errors is not empty %}
+{% set sheet_size = 'md' %}
+{% set sheet_fields = true %}
+{% set sheet_description = help %}
+{% set chip_class = 'inline-flex h-control-sm cursor-grab select-none items-center rounded-control border border-control-line bg-white px-2.5 text-small font-medium text-text hover:border-muted active:cursor-grabbing ' ~ constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{% set tab_class = 'inline-flex h-control shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap border-0 border-b-2 border-transparent bg-transparent px-0 font-medium text-muted hover:border-control-line hover:text-ink aria-selected:border-green aria-selected:text-ink focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-green' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block sheet_body %}
+    <div class="grid gap-4" data-controller="mail-languages" data-mail-languages-selected-value="{{ selected }}">
+        <form id="mail-template" method="post" action="{{ action }}" class="grid gap-4" novalidate>
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\FirmMailController::TEMPLATES_TOKEN')) }}">
+
+            {% if errors.form is defined %}
+                <twig:Ui:Alert tone="error">{{ errors.form }}</twig:Ui:Alert>
+            {% endif %}
+
+            <div hidden role="tablist" aria-label="{{ 'firm.mail.languages'|trans }}" class="flex gap-x-5 inset-shadow-rail" data-mail-languages-target="list" data-action="keydown->mail-languages#key">
+                {% for language in languages %}
+                    <button type="button" role="tab" id="language-tab-{{ language.code }}" aria-controls="language-{{ language.code }}" aria-selected="{{ language.code == selected ? 'true' : 'false' }}" tabindex="{{ language.code == selected ? 0 : -1 }}" class="{{ tab_class }}" data-mail-languages-target="tab" data-language="{{ language.code }}" data-action="mail-languages#select">
+                        {{- language.label -}}
+                        {%- if language.invalid %}<span class="size-2 shrink-0 rounded-sm bg-badge-red-text" aria-hidden="true"></span><span class="sr-only">, {{ 'firm.mail.language_invalid'|trans }}</span>{% endif -%}
+                    </button>
+                {% endfor %}
+            </div>
+
+            {% for language in languages %}
+                {% set code = language.code %}
+                <section id="language-{{ code }}" class="grid gap-3" aria-labelledby="language-title-{{ code }}" data-mail-languages-target="panel" data-language="{{ code }}" data-controller="mail-chips">
+                    <div class="flex min-h-control flex-wrap items-center justify-between gap-2">
+                        {# The heading names the panel without JavaScript; with the tabs it is for screen readers only. #}
+                        <h3 id="language-title-{{ code }}" class="m-0 text-small font-semibold text-ink" data-mail-languages-target="heading">{{ language.label }}</h3>
+                        {% if language.custom %}
+                            {# Its own form, after this one in source order, so Enter in a field saves and never resets. #}
+                            <twig:Ui:Button type="submit" size="sm" variant="ghost" icon="history" :form="'mail-reset-' ~ code">{{ 'firm.mail.reset'|trans }}</twig:Ui:Button>
+                        {% else %}
+                            <span class="text-small text-muted">{{ 'firm.mail.built_in_now'|trans }}</span>
+                        {% endif %}
+                    </div>
+                    <twig:Ui:TextInput :name="language.subject.name" :id="language.subject.id" :label="'firm.mail.field.subject'|trans" :value="language.text.subject" :error="errors[language.subject.id]|default(null)" :lang="code" data-mail-chips-target="field" data-action="focus->mail-chips#remember" />
+                    <twig:Ui:MarkdownEditor :name="language.body.name" :id="language.body.id" :label="'firm.mail.field.body'|trans" :help="'firm.mail.field.body_help'|trans({token: language.link})" :value="language.text.body" :error="errors[language.body.id]|default(null)" :rows="10" :lang="code" :previewUrl="language.preview" :previewFields="{subject: language.subject.id}" data-mail-chips-target="field" data-mail-chips-default data-action="focus->mail-chips#remember" />
+                    <div class="grid gap-1.5">
+                        <p id="variables-{{ code }}" class="m-0 text-small font-medium text-ink">{{ 'firm.mail.variables'|trans }}</p>
+                        <p id="variables-{{ code }}-help" class="m-0 text-caption text-muted">{{ 'firm.mail.variables_help'|trans }}</p>
+                        {# A toolbar: one Tab stop, the arrow keys move between the chips. #}
+                        <div role="toolbar" aria-labelledby="variables-{{ code }} language-title-{{ code }}" aria-describedby="variables-{{ code }}-help" class="flex flex-wrap gap-1.5" lang="{{ code }}" data-action="keydown->mail-chips#move">
+                            {% for variable in language.variables %}
+                                <button type="button" draggable="true" tabindex="{{ loop.first ? 0 : -1 }}" data-token="{{ variable.token }}" data-mail-chips-target="chip" data-action="mail-chips#insert dragstart->mail-chips#drag" class="{{ chip_class }}">{{ variable.label }}</button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <p class="sr-only" aria-live="polite" data-mail-chips-target="status" data-inserted="{{ 'firm.mail.inserted'|trans }}"></p>
+                </section>
+            {% endfor %}
+        </form>
+
+        {% for language in languages|filter(language => language.custom) %}
+            <form id="mail-reset-{{ language.code }}" method="post" action="{{ action }}" hidden data-controller="confirm-submit" data-action="submit->confirm-submit#ask" data-confirm-title="{{ 'firm.mail.reset_confirm'|trans({language: language.label}) }}" data-confirm-text="{{ 'firm.mail.reset_confirm_text'|trans }}" data-confirm-accept="{{ 'firm.mail.reset_confirm_accept'|trans }}" data-confirm-cancel="{{ 'firm.mail.reset_confirm_cancel'|trans }}" data-confirm-tone="danger">
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\FirmMailController::TEMPLATES_TOKEN')) }}">
+                <input type="hidden" name="reset" value="{{ language.code }}">
+            </form>
+        {% endfor %}
+    </div>
+{% endblock %}
+
+{% block sheet_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'party.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="mail-template" variant="primary">{{ 'party.save'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('sheet_body') }}{% endset %}
+    <div class="grid max-w-4xl gap-4">
+        <twig:Ui:Card :title="title" icon="send">
+            <p class="m-0 mb-3 text-small text-muted">{{ help }}</p>
+            {{ body }}
+        </twig:Ui:Card>
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="cancel">{{ 'party.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="mail-template" variant="primary">{{ 'party.save'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

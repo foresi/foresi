@@ -117,8 +117,22 @@ final class DeliverInvoiceSendTest extends SendingTestCase
         self::assertStringNotContainsString('<script>', $message->html);
         self::assertStringNotContainsString('<b>', $message->html);
         self::assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt; &amp; &lt;b&gt;bold&lt;/b&gt;', $message->html);
-        self::assertStringContainsString('<a href="'.$this->linkOf($send->id()).'">', $message->html);
+        self::assertStringContainsString('<a href="'.$this->linkOf($send->id()).'" rel="noopener noreferrer nofollow">', $message->html);
         self::assertStringContainsString('<script>alert(1)</script>', $message->text);
+    }
+
+    public function testTheBodyIsSentAsMarkdown(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $send = $this->sent($invoice, ['body' => "Pay **by Friday**:\n\n- online\n\n[Open the invoice]({link})"]);
+
+        $this->worker->run();
+
+        $message = $this->onlyMessage();
+        self::assertStringContainsString('<strong>by Friday</strong>', $message->html);
+        self::assertStringContainsString("<ul>\n<li>online</li>\n</ul>", $message->html);
+        self::assertStringContainsString('<a href="'.$this->linkOf($send->id()).'" rel="noopener noreferrer nofollow">Open the invoice</a>', $message->html);
+        self::assertStringContainsString('[Open the invoice]('.$this->linkOf($send->id()).')', $message->text);
     }
 
     public function testATemporaryFailureRecordsTheAttemptAndRethrows(): void
