@@ -10,8 +10,8 @@ namespace Foresi\Invoicing\Infrastructure\Navigation;
 
 use Foresi\Identity\Application\OwnerCheck;
 use Foresi\Instance\Application\Schedule\Heartbeats;
-use Foresi\Ui\Notice\ShellNotice;
-use Foresi\Ui\Notice\ShellNoticeProvider;
+use Foresi\Ui\Contract\Notice\ShellNotice;
+use Foresi\Ui\Contract\Notice\ShellNoticeProvider;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;

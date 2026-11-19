@@ -5,7 +5,7 @@
     kind, the treatment or the currency sends the form back for what they need, and so do the buttons of
     the recap; none of them records.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'purchasing.list.title'|trans, href: path('app_purchasing')}, {label: 'purchasing.new'|trans}] %}
 {% set dialog_size = 'lg' %}

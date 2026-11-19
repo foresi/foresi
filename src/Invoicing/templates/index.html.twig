@@ -1,5 +1,5 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{% extends 'layout/app.html.twig' %}
+{% extends '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.sales'|trans}, {label: titleKey|trans}] %}
 {% set newKey = kind == 'advance' ? 'advance.new' : 'invoice.new' %}
@@ -16,7 +16,7 @@
             <form method="post" action="{{ path('app_invoices_list_export') }}" data-turbo="false" role="none" data-list-export>
                 <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN')) }}">
                 <input type="hidden" name="kind" value="{{ kind }}">
-                {% for name, value in {view: view, firm: firm, q: text, sort: sort, toSend: toSend ? '1' : '', export: export, month: month, f: working} %}
+                {% for name, value in {view: view, firm: firm, q: text, sort: sort, toSend: toSend ? '1' : '', month: month, f: working} %}
                     {% if value != '' %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endif %}
                 {% endfor %}
                 <twig:Ui:MenuItem type="submit" name="format" value="csv" icon="download">{{ 'invoice.list_export.csv'|trans }}</twig:Ui:MenuItem>
@@ -44,14 +44,13 @@
             {# The view's unsaved changes sit at the end of its tabs, as Attio and GitHub Projects put them (saved views D10). #}
             <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
                 <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'invoice.list.more_views'|trans" :label="'invoice.list.views'|trans" class="min-w-0 sm:flex-1">
-                    <twig:block name="actions">{{ include('components/Ui/_view_menu.html.twig') }}</twig:block>
+                    <twig:block name="actions">{{ include('@Ui/components/_view_menu.html.twig') }}</twig:block>
                 </twig:Ui:Tabs>
-                {{ include('components/Ui/_view_actions.html.twig') }}
+                {{ include('@Ui/components/_view_actions.html.twig') }}
             </div>
             {# The months with a document, not a native month field: it overflows its box and Safari has no picker. #}
             {% set invoiceFilters = (firms is not empty ? [{name: 'firm', label: 'invoice.field.firm'|trans, options: firms, value: firm, pinned: true}] : [])|merge([
                 {name: 'month', label: 'invoice.month.label'|trans, options: months, value: month, pinned: true},
-                {name: 'export', label: 'invoice.export_state.label'|trans, options: exportStates, value: export},
             ]) %}
             <twig:Ui:FilterBar id="invoice-filters" :action="path(route)" :keep="{view: view != '' ? view : null, sort: sortKept, toSend: toSend ? '1' : null, f: working != '' ? working : null}|merge(workingQuery)"
                 :search="{name: 'q', value: text, label: 'invoice.list.search_label'|trans, placeholder: 'invoice.list.search_placeholder'|trans}"
@@ -98,6 +97,6 @@
                 </twig:block>
             </twig:Ui:DataTable>
         </div>
-        {{ include('components/Ui/_view_dialogs.html.twig') }}
+        {{ include('@Ui/components/_view_dialogs.html.twig') }}
     {% endif %}
 {% endblock %}

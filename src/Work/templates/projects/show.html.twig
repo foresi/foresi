@@ -8,7 +8,7 @@
     to show; so does the sharing dialog. A private section or task has its badge. A row's menu deletes its task; the trash of the project is linked at the end while it
     holds something.
 #}
-{% extends 'layout/app.html.twig' %}
+{% extends '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = (project.manageable ? [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}] : [{label: 'shared_with_me.title'|trans, href: path('app_shared_with_me')}])|merge([{label: project.name}]) %}
 {% if project.archivedAt %}{% set badge = {label: 'work.project.archived'|trans, tone: 'gray'} %}{% endif %}
@@ -37,9 +37,9 @@
         <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
             {% if viewsEditable %}
                 <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'work.list.views'|trans" class="min-w-0 sm:flex-1">
-                    <twig:block name="actions">{{ include('components/Ui/_view_menu.html.twig') }}</twig:block>
+                    <twig:block name="actions">{{ include('@Ui/components/_view_menu.html.twig') }}</twig:block>
                 </twig:Ui:Tabs>
-                {{ include('components/Ui/_view_actions.html.twig') }}
+                {{ include('@Ui/components/_view_actions.html.twig') }}
             {% else %}
                 <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'work.list.views'|trans" class="min-w-0 sm:flex-1" />
             {% endif %}
@@ -82,5 +82,5 @@
             <div><twig:Ui:Button variant="ghost" size="sm" icon="trash-2" :href="path('app_project_trash', {id: project.id})" data-project-trash>{{ 'work.trash.link'|trans({count: trashCount}) }}</twig:Ui:Button></div>
         {% endif %}
     </div>
-    {% if viewsEditable %}{{ include('components/Ui/_view_dialogs.html.twig') }}{% endif %}
+    {% if viewsEditable %}{{ include('@Ui/components/_view_dialogs.html.twig') }}{% endif %}
 {% endblock %}

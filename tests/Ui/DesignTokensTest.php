@@ -25,7 +25,7 @@ final class DesignTokensTest extends TestCase
      */
     private const array ALLOWED = [
         // The step markers are circles: a number or a check in a ring.
-        'templates/components/Ui/Stepper.html.twig' => ['rounded-full'],
+        'src/Ui/templates/components/Stepper.html.twig' => ['rounded-full'],
         // A dialog with fields fills a phone screen edge to edge, where a rounded corner would be cut off.
         'src/Ui/Component/Dialog.php' => ['rounded-none'],
     ];

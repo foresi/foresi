@@ -10,7 +10,7 @@ namespace Foresi\Purchasing\Infrastructure\Navigation;
 
 use Foresi\Purchasing\Application\PurchasingNotAllowed;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentList;
-use Foresi\Ui\Navigation\NavigationCountProvider;
+use Foresi\Ui\Contract\Navigation\NavigationCountProvider;
 
 /**
  * The drafts that wait to be completed, in one count query; none shows no number.

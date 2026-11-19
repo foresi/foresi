@@ -38,7 +38,7 @@ use Foresi\Tests\Banking\Support\InboundMailKit;
 use Foresi\Tests\Banking\Support\InboundTestCase;
 use Foresi\Tests\Banking\Support\Scalars;
 use Foresi\Tests\Party\Support\FirmAccounts;
-use Foresi\Ui\Notice\ShellNotice;
+use Foresi\Ui\Contract\Notice\ShellNotice;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;

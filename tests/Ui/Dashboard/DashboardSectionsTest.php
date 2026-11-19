@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Ui\Dashboard;
 
-use Foresi\Ui\Dashboard\DashboardSection;
-use Foresi\Ui\Dashboard\DashboardSectionProvider;
+use Foresi\Ui\Contract\Dashboard\DashboardSection;
+use Foresi\Ui\Contract\Dashboard\DashboardSectionProvider;
 use Foresi\Ui\Dashboard\DashboardSections;
 use PHPUnit\Framework\TestCase;
 

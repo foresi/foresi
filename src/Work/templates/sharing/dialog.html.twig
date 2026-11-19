@@ -7,7 +7,7 @@
     them; a task tells them in its own history. A dialog over the page it was opened from, which is
     loaded again when the dialog closes after a change; the same URL is a page of its own.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set token = csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\SharingController::TOKEN')) %}
 {% set dialog_description = view.name %}
