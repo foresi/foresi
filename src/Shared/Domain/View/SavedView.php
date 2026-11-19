@@ -21,7 +21,7 @@ use Foresi\Shared\Domain\Id;
  * The filters are stored as {match, conditions}; the module's list definition
  * checks them when the view is read. The display belongs to the list columns
  * (D-display-2): kept here as it comes and read leniently by the list columns
- * (Foresi\Ui\Column\WorkingDisplay), which validate it.
+ * (Foresi\Ui\Contract\WorkingDisplay), which validate it.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'saved_view')]

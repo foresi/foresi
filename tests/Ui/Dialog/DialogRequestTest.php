@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Ui\Dialog;
 
+use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Foresi\Ui\Dialog\DialogRedirects;
-use Foresi\Ui\Dialog\DialogRequest;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;

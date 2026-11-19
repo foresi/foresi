@@ -1,6 +1,6 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {# The code step of the sign-in, rendered by the two-factor bundle's form controller. #}
-{% extends 'layout/auth.html.twig' %}
+{% extends '@Ui/layout/auth.html.twig' %}
 
 {% set form_invalid = authenticationError is not null %}
 {# A wrong code is the bundle's own message; throttling is the firewall's. #}
