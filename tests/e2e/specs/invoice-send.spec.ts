@@ -53,9 +53,9 @@ test.describe.serial('sending an invoice', () => {
       await expect(page.getByRole('checkbox', { name: 'billing@example.com' })).toBeChecked();
       await expect(page.getByRole('checkbox', { name: 'accounts@example.com (kopie)' })).toBeChecked();
       await expect(page.getByRole('checkbox', { name: 'Poslat kopii i mně na sending@example.com' })).toBeChecked();
-      await expect(page.locator('#subject')).toHaveValue('Faktura 20260001');
-      await expect(page.locator('#body')).toHaveValue(/^Na základě Vaší objednávky Vám zasílám fakturu č\. 20260001 na částku 29\s040,00\sKč/);
-      await expect(page.locator('#body')).toHaveValue(/\{Odkaz na doklad\}$/);
+      await expect(page.locator('#subject')).toHaveValue('Faktura 20260001 od Example Sending s.r.o.');
+      await expect(page.locator('#body')).toHaveValue(/^Dobrý den,\n\nv tomto e-mailu Vám posílám fakturu č\. 20260001\.[\s\S]*Částka k úhradě: \*\*29\s040,00\sKč\*\*/);
+      await expect(page.locator('#body')).toHaveValue(/\n\{Odkaz na doklad\}\n/);
       await expectNoSeriousViolations(page);
       await expectNoSidewaysScroll(page);
       await page.screenshot({ path: `${SHOTS}/send-dialog-${name}.png`, fullPage: true });
@@ -110,12 +110,12 @@ test.describe.serial('sending an invoice', () => {
       if (name === 'desktop') {
         await expect(failed.locator('[data-icon-cell]')).toHaveText('Neodešlo');
         await expect(failed.locator('[data-icon-cell]')).toHaveAttribute('title', 'E-mail se nepodařilo odeslat');
-        await expect(read.locator('[data-icon-cell]')).toHaveText('Přečteno');
+        await expect(read.locator('[data-icon-cell]')).toHaveAttribute('title', 'Odběratel otevřel doklad');
         await expect(row(page, '20260001').locator('[data-icon-cell]')).toHaveCount(0);
       } else {
         // On a phone the mark is part of the line under the number, label included.
         await expect(failed.locator('[data-row-secondary]')).toContainText('Neodešlo');
-        await expect(read.locator('[data-row-secondary]')).toContainText('Přečteno');
+        await expect(read.locator('[data-row-secondary]')).toContainText(/\d{1,2}\.\s\d{1,2}\.\s\d{4}/);
       }
       await expectNoSeriousViolations(page);
       await expectNoSidewaysScroll(page);
@@ -207,10 +207,10 @@ test.describe.serial('sending an invoice', () => {
 
     await expect(page).toHaveURL(/\/invoices$/);
     await expect(page.getByText('Faktura 20260004 je zařazená k odeslání na billing@example.com, accounts@example.com.')).toBeVisible();
-    // The e2e queue delivers at once: the recording gateway accepted it, which marks the invoice delivered.
+    // The e2e queue delivers at once: the recording gateway accepted it, which marks the invoice sent.
     const sent = page.locator('tbody tr').filter({ has: page.getByRole('button', { name: 'Další akce pro 20260004', exact: true }) });
-    await expect(sent).toContainText('Doručeno');
-    await expect(sent.locator('[data-icon-cell]')).toHaveText('Odesláno');
+    await expect(sent).toContainText('Odeslaná');
+    await expect(sent.locator('[data-icon-cell]')).toHaveAttribute('title', 'Odesláno odběrateli');
     await page.screenshot({ path: `${SHOTS}/send-queued-desktop.png`, fullPage: true });
 
     // Sent once: a second look at the dialog says so.

@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Contract\Event;
 
 /**
- * How a document reached the customer.
+ * How a document was sent to the customer.
  */
 enum DeliveryChannel: string
 {

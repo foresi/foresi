@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# Checks the title and the "## Release notes" section of a pull request locally, with the
+# same script as the Conventional Commits workflow, so a missing or malformed section is
+# found before `gh pr create` or `gh pr edit --body`, not one CI round later.
+#
+#   bin/pr-check --title TITLE --body-file FILE   a description you are about to send
+#                                                 (FILE may be - for standard input)
+#   bin/pr-check NUMBER                           an open pull request, read with gh
+#
+# It also checks the commit subjects since BASE (default origin/main), as the workflow does.
+set -euo pipefail
+
+root="$(cd "$(dirname "$0")/.." && pwd)"
+
+usage() {
+	sed -n '4,12p' "$0" | sed 's/^# \{0,1\}//'
+	exit 2
+}
+
+title=
+body=
+body_set=
+while [ $# -gt 0 ]; do
+	case "$1" in
+	--title)
+		[ $# -ge 2 ] || usage
+		title=$2
+		shift 2
+		;;
+	--body-file)
+		[ $# -ge 2 ] || usage
+		if [ "$2" = - ]; then body=$(cat); else body=$(cat "$2"); fi
+		body_set=1
+		shift 2
+		;;
+	-h | --help) usage ;;
+	[0-9]*)
+		title=$(gh pr view "$1" --json title --jq .title)
+		body=$(gh pr view "$1" --json body --jq .body)
+		body_set=1
+		shift
+		;;
+	*) usage ;;
+	esac
+done
+
+[ -n "$title" ] && [ -n "$body_set" ] || usage
+
+# The same title pattern as the Commits workflow, read from it so the two cannot drift apart.
+pattern=$(sed -nE "s/^ *PATTERN: '(.*)'$/\1/p" "$root/.github/workflows/commits.yml")
+[ -n "$pattern" ] || { echo "No PATTERN in .github/workflows/commits.yml"; exit 2; }
+
+status=0
+if ! printf '%s' "$(printf '%s\n' "$title" | head -n 1)" | grep -Eq "$pattern"; then
+	echo "The title is not a Conventional Commit: $title"
+	status=1
+fi
+
+# The commits on this branch, as the workflow checks them (merge commits aside).
+base=${BASE:-origin/main}
+if git -C "$root" rev-parse --verify --quiet "$base" >/dev/null; then
+	while IFS= read -r subject; do
+		case "$subject" in Merge\ *) continue ;; esac
+		if ! printf '%s' "$subject" | grep -Eq "$pattern"; then
+			echo "Not a Conventional Commit: $subject"
+			status=1
+		fi
+	done < <(git -C "$root" log --format=%s "$base..HEAD")
+fi
+
+if grep -q '^## \[Unreleased\]' "$root/CHANGELOG.md"; then
+	echo "CHANGELOG.md is closed at 0.5.0: write the changes in the Release notes of the pull request instead."
+	status=1
+fi
+
+PR_TITLE=$title PR_BODY=$body "$root/.github/scripts/check-release-notes.sh" || status=1
+exit $status

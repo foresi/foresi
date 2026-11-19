@@ -91,7 +91,7 @@ The public link is limited to 60 requests a minute per client IP address, counte
 
 Once the invoice is paid or overpaid, the page says "Paid" and shows no account, no QR code and no other way to pay, so the customer cannot pay twice; the PDF keeps the payment details it was sent with, and the page notes the date it was paid and that nothing is left to pay. After a part payment the page shows what is left to pay, without the QR code, which would ask for the whole amount. See [bank-pairing.md](bank-pairing.md).
 
-A link keeps showing the PDF that was sent, also after the invoice is edited; the invoice form warns that the invoice changed since it was sent, so you can send it again. Trash cancels sends that have not gone out and revokes their links. A delivered invoice cannot be trashed, so to end a link that went to a wrong address, the operator runs:
+A link keeps showing the PDF that was sent, also after the invoice is edited; the invoice form warns that the invoice changed since it was sent, so you can send it again. Trash cancels sends that have not gone out and revokes their links. A sent invoice cannot be trashed, so to end a link that went to a wrong address, the operator runs:
 
 ```bash
 php bin/console app:invoice:revoke-link <send-id>
@@ -104,7 +104,7 @@ The send id is in the address of the "PDF as sent" link on the invoice's history
 | State | Meaning | What it does not mean |
 |---|---|---|
 | Sending | Stored and waiting for the worker, or being retried after a temporary refusal | That the worker runs |
-| Sent | The firm's mail server accepted the message. The invoice is then marked delivered | That it reached an inbox. A later bounce goes to the firm's own mailbox, as the envelope sender is the firm's address; Foresi does not read it |
+| Sent | The firm's mail server accepted the message. The invoice is then marked sent | That it reached an inbox. A later bounce goes to the firm's own mailbox, as the envelope sender is the firm's address; Foresi does not read it |
 | Read | Someone opened or downloaded the PDF from the customer's link, by a click | That the customer read it. Opening the page, a mail filter following the link, the firm's own copy and a signed-in member of the firm never count |
 | Failed | The server refused the message for good, or the retries ran out. The reason is shown in the user's language, with the SMTP code | Anything about the recipient beyond that answer |
 | Cancelled | The send did not leave: the invoice went to the trash before it did, or, for a reminder, it was paid meanwhile or is no longer to be reminded | That anything reached the customer |

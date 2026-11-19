@@ -98,7 +98,7 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         $sends = $this->sendsOf(self::text($invoices[0], 'id'));
         self::assertCount(1, $sends);
         self::assertSame(['["billing@example.com"]', 'office@example.com', 'invoice'], [$sends[0]['recipients_to'], $sends[0]['copy_to'], $sends[0]['purpose']]);
-        self::assertSame('Faktura '.self::text($invoices[0], 'number'), $sends[0]['subject'], 'the firm\'s text in the document\'s language');
+        self::assertStringStartsWith('Faktura '.self::text($invoices[0], 'number').' od ', self::text($sends[0], 'subject'), 'the firm\'s text in the document\'s language');
         self::assertStringContainsString('{link}', self::text($sends[0], 'body'));
         self::assertNull($sends[0]['created_by'], 'the run sends it, not a person');
         self::assertCount(1, $this->mailQueue->getSent(), 'handed to the mail worker');

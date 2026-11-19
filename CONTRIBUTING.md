@@ -18,6 +18,33 @@ vendor/bin/phpunit
 
 Requirements and the local setup are described in [docs/development.md](docs/development.md).
 
+### Before you push: `bin/check`
+
+`bin/check` runs the checks of a pull request locally, so that CI is not the first to find them:
+
+1. It fixes the code with `composer cs:fix` and `rector process`. Review and commit what they change.
+2. It runs every static check, each of them even when one fails, and lists the failed ones at the end: lint, phpstan, `modules:check`, `events:check` and deptrac (`bin/qa-static`, also `composer qa:static`; the Static checks step of CI runs the same script).
+3. It runs the tests of the modules the branch touches: `tests/<Module>` for every changed file under `src/<Module>/` or `tests/<Module>/` since the merge base with `origin/main`. Changed files outside a module (configuration, templates, migrations, shared test helpers) are listed; CI runs the whole suite for them, and `--all-tests` does so locally.
+
+```bash
+git fetch origin main
+bin/check
+```
+
+Options:
+
+- `--infection` also runs those tests with coverage and Infection on the changed lines, with the thresholds of CI. The coverage comes from the touched modules' tests only, so Infection may report a mutant as escaped that a test in another module kills in CI. CI stays the judge.
+- `--title TITLE --body-file FILE` also checks the pull request title, the commit subjects and the `## Release notes` section, as the Conventional Commits check does. Run it before `gh pr create` and before `gh pr edit --body`; `bin/pr-check --title TITLE --body-file FILE` does only this part, and `bin/pr-check NUMBER` checks an open pull request.
+- `--all-tests`, `--no-tests`, `--no-fix` and `--base REF` change what runs and what the branch is compared with.
+
+Measured on an 8-core Mac: the static part takes about 15 seconds with warm caches and about 90 seconds cold. The tests of the biggest module, Invoicing, take about 3 minutes with coverage, and Infection on the changed lines of a typical change about 15 seconds. A CI round takes about 12 minutes.
+
+To run it on every push, add a pre-push hook to your clone (opt-in; it does not rewrite code, so a failure stops the push and you fix and commit):
+
+```bash
+printf '#!/bin/sh\nexec bin/check --no-fix\n' > "$(git rev-parse --git-common-dir)/hooks/pre-push" && chmod +x "$(git rev-parse --git-common-dir)/hooks/pre-push"
+```
+
 ### PDF conformance check (veraPDF)
 
 The tests of the invoice PDF validate it against PDF/A-3a with [veraPDF](https://verapdf.org) (Java 11 or newer). Install it with the official installer, or with `brew install verapdf`, and make sure `verapdf` is on your `PATH`; `VERAPDF_BIN` can point at the binary instead. Without it, these checks are skipped locally with a message. CI sets `REQUIRE_VERAPDF=1`, which turns a missing binary into a failure.
@@ -65,6 +92,14 @@ A module declares the third-party libraries its own code uses in its `composer.j
   ```bash
   gh pr merge <number> --auto --squash
   ```
+
+- Judge a pull request by its required checks only: `Quality gate (sqlite)`, the E2E checks and `Conventional Commits`. Jobs run side by side, so one job can be red while the others and the Quality gate still run. Take a red job as the hint to start fixing, not as the verdict, and let the run finish: it shows every failure of the round at once.
+
+  ```bash
+  gh pr checks <number> --required --watch
+  ```
+
+- Do not stack pull requests. Every pull request is based on `main`. Required checks and auto-merge protect only `main`, so a pull request based on another branch merges into it even when red. When a change depends on another one that is not merged yet, open it only after the first has merged, then `git rebase origin/main`. Parallel work goes to separate parts of the code instead.
 
 ## Reporting security issues
 

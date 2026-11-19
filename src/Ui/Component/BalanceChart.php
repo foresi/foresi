@@ -126,13 +126,13 @@ final class BalanceChart
      */
     public function ticks(): array
     {
+        // The steps are whole numbers, so the gridlines fall on whole units exactly.
         $formatter = new \NumberFormatter($this->locales->getLocale(), \NumberFormatter::DECIMAL);
-        $formatter->setAttribute(\NumberFormatter::MAX_FRACTION_DIGITS, 0);
         $ticks = [];
-        $count = (int) round(($this->high - $this->low) / $this->step);
-        for ($i = 0; $i <= $count; ++$i) {
-            $value = $this->low + $i * $this->step;
-            $ticks[] = ['y' => $this->y($value), 'text' => (string) $formatter->format($value), 'zero' => 0.0 === round($value, 6)];
+        // range(), not a loop of our own: a mutant of a loop's step never ends and takes the CI runner's memory with it.
+        foreach (range($this->low, $this->high, $this->step) as $value) {
+            $text = $formatter->format($value);
+            $ticks[] = ['y' => $this->y($value), 'text' => false === $text ? '' : $text, 'zero' => 0.0 === $value];
         }
 
         return $ticks;
@@ -188,10 +188,10 @@ final class BalanceChart
     private function bar(float $x, float $top, float $base): ?string
     {
         $height = $base - $top;
-        if ($height < 0.5) {
+        if ($height <= 0.0) {
             return null;
         }
-        $r = min(self::RADIUS, $height, self::BAR / 2);
+        $r = min(self::RADIUS, $height);
         $right = $x + self::BAR;
 
         return \sprintf(
@@ -231,7 +231,8 @@ final class BalanceChart
     }
 
     /**
-     * 1, 2, 2.5 or 5 times a power of ten, the steps people read at a glance.
+     * 1, 2 or 5 times a power of ten, the steps people read at a glance (Heckbert's nice numbers);
+     * the step is at least 1, so every gridline is a whole number.
      */
     private function niceStep(float $raw): float
     {
@@ -240,7 +241,6 @@ final class BalanceChart
         $nice = match (true) {
             $normal <= 1.0 => 1.0,
             $normal <= 2.0 => 2.0,
-            $normal <= 2.5 => 2.5,
             $normal <= 5.0 => 5.0,
             default => 10.0,
         };

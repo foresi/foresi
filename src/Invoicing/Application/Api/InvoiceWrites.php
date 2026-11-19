@@ -19,6 +19,7 @@ use Foresi\Invoicing\Application\InvoicingNotAllowed;
 use Foresi\Invoicing\Application\IssueInvoice;
 use Foresi\Invoicing\Application\IssueRefused;
 use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Application\MarkDelivered;
 use Foresi\Invoicing\Application\NewInvoiceDefaults;
 use Foresi\Invoicing\Application\PaymentRefused;
 use Foresi\Invoicing\Application\TrashInvoice;
@@ -49,7 +50,7 @@ use Foresi\Shared\Domain\Money;
  * The writes of sales invoices over the API and MCP. It reads the text of the
  * inputs into an InvoiceInput, fills what is left out as the invoice form does
  * (NewInvoiceDefaults for a new invoice, the stored invoice for a change), and
- * calls the use cases of the form: IssueInvoice, EditInvoice and TrashInvoice.
+ * calls the use cases of the form: IssueInvoice, EditInvoice, TrashInvoice and MarkDelivered.
  * Every rule, the number of the series included, stays theirs; what IssueRules
  * refuses leaves here as IssueRefused, for the caller to word. Each returns the
  * id of the invoice to answer with.
@@ -67,6 +68,7 @@ final readonly class InvoiceWrites
         private IssueInvoice $issue,
         private EditInvoice $edit,
         private TrashInvoice $trash,
+        private MarkDelivered $sent,
         private InvoiceStore $store,
         private NewInvoiceDefaults $defaults,
         private CustomerPicker $customers,
@@ -183,7 +185,7 @@ final readonly class InvoiceWrites
         } catch (UnknownInvoice $unknown) {
             throw InvoicingRefused::notFound($unknown);
         } catch (\DomainException $refused) {
-            throw InvoicingRefused::conflict(InvoicingRefused::NOT_TRASHABLE, 'A delivered document, or one in the trash already, cannot go to the trash. Correct a delivered one with a correction document in Foresi.', $refused);
+            throw InvoicingRefused::conflict(InvoicingRefused::NOT_TRASHABLE, 'A sent document, or one in the trash already, cannot go to the trash. Correct a sent one with a correction document in Foresi.', $refused);
         }
 
         return $id;
@@ -201,6 +203,27 @@ final readonly class InvoiceWrites
             $this->trash->restore($id);
         } catch (PaymentRefused $refused) {
             throw InvoicingRefused::conflict(InvoicingRefused::CANCELLED, 'The document taxes a payment that was cancelled or replaced, so it stays in the trash.', $refused);
+        }
+
+        return $id;
+    }
+
+    /**
+     * Marks it sent by hand through MarkDelivered, as the row menu does: once only, so a
+     * repeated call answers the document as it is.
+     *
+     * @throws InvoicingRefused
+     */
+    public function markSent(MarkInvoiceSentInput $input): string
+    {
+        $this->allowed();
+        $id = $this->invoice($input->invoiceId)->id();
+        try {
+            $this->sent->mark($id);
+        } catch (UnknownInvoice $unknown) {
+            throw InvoicingRefused::notFound($unknown);
+        } catch (\DomainException $refused) {
+            throw InvoicingRefused::conflict(InvoicingRefused::TRASHED, 'The document is in the trash; restore it with foresi_restore_invoice before it is marked sent.', $refused);
         }
 
         return $id;

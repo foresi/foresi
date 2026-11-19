@@ -32,8 +32,8 @@ final class MailTemplatesTest extends InvoiceTestCase
 
         self::assertNotSame($czech->body, $english->body);
         self::assertNotSame($czech->subject, $english->subject);
-        self::assertSame('Invoice {number}', $english->subject);
-        self::assertStringStartsWith('Based on your order I am sending invoice no. {number} for {amount_total}, due on {due_date}.', $english->body);
+        self::assertSame('Invoice {number} from {firm_name}', $english->subject);
+        self::assertStringStartsWith("Hello,\n\nPlease find your invoice {number} below, together with everything you need to pay it.", $english->body);
         foreach ([$czech, $english] as $text) {
             self::assertStringContainsString('{number}', $text->subject);
             foreach (['{number}', '{amount_total}', '{due_date}', '{sender_name}', '{link}'] as $token) {
@@ -62,7 +62,7 @@ final class MailTemplatesTest extends InvoiceTestCase
         self::assertSame('Faktura {number} od nás', $saved->subject);
         self::assertSame("Dobrý den,\n{link}", $saved->body);
         self::assertTrue($this->templates->isCustom($firm, MailTemplateKind::Invoice, DocumentLanguage::Czech));
-        self::assertSame('Invoice {number}', $this->templates->textFor($firm, MailTemplateKind::Invoice, DocumentLanguage::English)->subject);
+        self::assertSame('Invoice {number} from {firm_name}', $this->templates->textFor($firm, MailTemplateKind::Invoice, DocumentLanguage::English)->subject);
         $otherFirm = $this->em->find($other::class, $other->id());
         \assert(null !== $otherFirm);
         self::assertNotSame('Faktura {number} od nás', $this->templates->textFor($otherFirm, MailTemplateKind::Invoice, DocumentLanguage::Czech)->subject);

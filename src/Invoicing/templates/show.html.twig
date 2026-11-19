@@ -35,6 +35,16 @@
             {% if not invoice.trashed %}<twig:Ui:MenuItem :href="path('app_recurring_new', {from: invoice.id})" data-turbo="false">{{ 'recurring.form.from_invoice'|trans }}</twig:Ui:MenuItem>{% endif %}
         {% endif %}
         {% if corrects %}<twig:Ui:MenuItem :href="path('app_invoice_correct', doc)" data-turbo="false">{{ 'invoice.list.action.correct'|trans }}</twig:Ui:MenuItem>{% endif %}
+        {# Marking it sent by hand, as the row menu does; it cannot be undone, so it asks first. #}
+        {% if not invoice.delivered and not invoice.trashed %}
+            <form method="post" action="{{ path('app_invoice_delivered', doc) }}" role="none" data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
+                data-confirm-title="{{ 'invoice.list.delivered_confirm'|trans({number: invoice.number}) }}" data-confirm-text="{{ 'invoice.list.delivered_confirm_text'|trans }}"
+                data-confirm-accept="{{ 'invoice.list.delivered_confirm_accept'|trans }}" data-invoice-mark-sent>
+                <input type="hidden" name="_token" value="{{ csrf_token('invoice_action') }}">
+                <input type="hidden" name="from" value="detail">
+                <twig:Ui:MenuItem type="submit" icon="send">{{ 'invoice.list.action.delivered'|trans }}</twig:Ui:MenuItem>
+            </form>
+        {% endif %}
         <twig:Ui:MenuItem :href="path('app_invoice_history', doc)">{{ 'invoice.list.action.history'|trans }}</twig:Ui:MenuItem>
         <twig:block name="last">
             {% if not invoice.delivered and not invoice.trashed %}

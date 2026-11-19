@@ -22,6 +22,8 @@ final readonly class InvoiceListItem
         public string $customerId,
         public ?\DateTimeImmutable $taxPointDate,
         public \DateTimeImmutable $createdAt,
+        /** When it was first sent to the customer, by e-mail or marked by hand. */
+        public ?\DateTimeImmutable $sentAt = null,
     ) {
     }
 }

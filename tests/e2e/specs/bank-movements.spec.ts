@@ -116,7 +116,7 @@ test.describe.serial('the bank movements', () => {
     await expectNoSeriousViolations(page);
     await page.screenshot({ path: `${SHOTS}/bank-paired-desktop.png`, fullPage: true });
     await page.goto('/invoices');
-    await expect(page.locator('tbody tr').filter({ hasText: '20260002' })).toContainText('Uhrazeno');
+    await expect(page.locator('tbody tr').filter({ hasText: '20260002' })).toContainText('Uhrazená');
 
     await page.goBack();
     await page.goto('/bank?tab=unmatched');
@@ -160,7 +160,7 @@ test.describe.serial('the bank movements', () => {
     await expect(page.getByRole('status').filter({ hasText: 'Spárování je zrušené. Faktura 20260003 je znovu neuhrazená.' })).toBeVisible();
     await expect(row(page, '350,00')).toContainText('Zrušené spárování, spárujte ručně');
     await page.goto('/invoices');
-    await expect(page.locator('tbody tr').filter({ hasText: '20260003' })).toContainText('Vystaveno');
+    await expect(page.locator('tbody tr').filter({ hasText: '20260003' })).toContainText('Vystavená');
   });
 
   test('the pair dialog fills the phone @a11y @layout', async ({ page }) => {

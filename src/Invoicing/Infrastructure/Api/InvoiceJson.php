@@ -19,7 +19,8 @@ use Foresi\Shared\Infrastructure\Api\JsonValues;
 
 /**
  * Sales documents as the REST API and the MCP tools write them. The names are the
- * ones the document holds. The history stays on the screen.
+ * ones the document holds. The history stays on the screen. "sent" and "sent_at" say
+ * whether and when it went to the customer; "delivered" is their older, deprecated name.
  */
 final class InvoiceJson
 {
@@ -44,6 +45,9 @@ final class InvoiceJson
             'remaining' => JsonValues::money($row->remaining()),
             'payment_state' => $row->payment->value,
             'overdue' => $row->overdue,
+            'sent' => $row->delivered,
+            'sent_at' => JsonValues::timestamp($item->sentAt),
+            // Deprecated: the same as "sent", kept for the clients that read it.
             'delivered' => $row->delivered,
             'trashed' => $row->trashed,
             'created_at' => JsonValues::timestamp($item->createdAt),
@@ -82,6 +86,9 @@ final class InvoiceJson
             'vat' => JsonValues::money($invoice->vat()),
             'total' => JsonValues::money($invoice->payable()),
             'payment_state' => PaymentState::ofDocument($invoice->kind(), $invoice->payable(), $detail->paid, $detail->corrections)->value,
+            'sent' => $invoice->isDelivered(),
+            'sent_at' => JsonValues::timestamp($invoice->deliveredAt()),
+            // Deprecated: the same as "sent", kept for the clients that read it.
             'delivered' => $invoice->isDelivered(),
             'trashed' => $invoice->isTrashed(),
             'created_at' => JsonValues::timestamp($invoice->createdAt()),

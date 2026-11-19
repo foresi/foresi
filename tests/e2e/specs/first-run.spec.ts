@@ -79,6 +79,6 @@ test('an empty organisation gets from nothing to the first invoice and its PDF',
   await page.goto('/invoices');
   await expect(page.locator('tbody tr')).toHaveCount(1);
   await expect(page.locator('tbody tr')).toContainText('F2026');
-  await expect(page.locator('tbody tr')).toContainText('Vystaveno');
+  await expect(page.locator('tbody tr')).toContainText('Vystavená');
   await page.screenshot({ path: `${SHOTS}/first-run-list.png`, fullPage: true });
 });

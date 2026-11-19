@@ -106,14 +106,23 @@ invoice:
       text: Please try again in a minute.
   mail:
     default:
-      subject: 'Invoice {number}'
+      subject: 'Invoice {number} from {firm_name}'
       body: |-
-        Based on your order I am sending invoice no. {number} for {amount_total}, due on {due_date}.
+        Hello,
 
-        Thank you,
-        {sender_name}
+        Please find your invoice {number} below, together with everything you need to pay it.
 
+        - Amount due: **{amount_total}**
+        - Due date: **{due_date}**
+
+        You can view and download the invoice here:
         {link}
+
+        If you have any questions about it, just let me know.
+
+        Thank you and have a great day,
+        {sender_name}
+        {firm_name}
   mark:
     none: Not sent
     queued: Sending
@@ -125,6 +134,8 @@ invoice:
       sent: Sent to the customer
       read: The customer opened the document
       failed: The e-mail could not be sent
+      manual: Marked as sent by hand
+    sent_on: 'Sent {date}'
   changed_after_send: 'This invoice changed after it was sent on {date}. The customer''s link shows the version sent, so send it again.'
   imported_original: 'This document was imported. Its PDF is the original from {source}.'
   import_source:
@@ -388,14 +399,14 @@ invoice:
     search_placeholder: Number, customer or description
     summary: '{kind, select, advance {{total, plural, one {# advance invoice} other {# advance invoices}}} payment_tax_document {{total, plural, one {# tax document} other {# tax documents}}} correction_document {{total, plural, one {# corrective document} other {# corrective documents}}} other {{total, plural, one {# invoice} other {# invoices}}}}'
     reason_missing: Say why the invoice is being deleted.
-    delete_delivered: A delivered document cannot be deleted.
+    delete_delivered: A sent document cannot be deleted.
     not_in_trash: This invoice is not in the trash.
     not_exported: This document has no export state.
     already_trashed: This invoice is in the trash already.
     delivered_trashed: This invoice is in the trash. Restore it first.
-    delivered_confirm: 'Mark invoice {number} as delivered?'
-    delivered_confirm_text: A delivered invoice can no longer be deleted.
-    delivered_confirm_accept: Mark as delivered
+    delivered_confirm: 'Mark invoice {number} as sent?'
+    delivered_confirm_text: A sent invoice can no longer be deleted. This cannot be undone.
+    delivered_confirm_accept: Mark as sent
     tab:
       all: All
       paid: Paid
@@ -406,7 +417,7 @@ invoice:
       to_refund: To refund
       trash: Trash
     column:
-      sent: E-mail
+      sent: Sent
       entries_count: '{count, plural, one {# entry} other {# entries}}'
       export: Export
       number: Number
@@ -439,7 +450,6 @@ invoice:
       language: Language
       vat_regime: VAT regime
       description: Description
-      delivered_at: Delivered
       created_at: Created
       recurring: From a recurring invoice
       import_source: Imported from
@@ -455,7 +465,18 @@ invoice:
     status:
       settled_by_advances: Settled by advances
       issued: Issued
-      delivered: Delivered
+      sent: Sent
+      partly_paid: Partly paid
+      overdue: Overdue
+      paid: Paid
+      overpaid: Overpaid
+      to_refund: To refund
+      trashed: In the trash
+    # The same statuses of a tax document on payment or a correction document; Czech words them in another gender.
+    document_status:
+      settled_by_advances: Settled by advances
+      issued: Issued
+      sent: Sent
       partly_paid: Partly paid
       overdue: Overdue
       paid: Paid
@@ -469,7 +490,7 @@ invoice:
       pdf: PDF
       copy: Copy
       correct: Issue a corrective document
-      delivered: Mark as delivered
+      delivered: Mark as sent
       history: History
       delete: Delete
       restore: Restore
@@ -510,7 +531,7 @@ invoice:
     changed: '{who} changed the invoice'
     trashed: '{who} moved the invoice to the trash: {reason}'
     restored: '{who} restored the invoice'
-    delivered: '{who} marked the invoice as delivered'
+    delivered: '{who} marked the invoice as sent'
     exported: '{who} exported the invoice for the accountant'
     export_cleared: '{who} cleared the export state'
     paid: '{who}: payment of {amount} recorded'
@@ -595,7 +616,7 @@ invoice:
     already_saved: This form was saved already.
     trashed: 'Invoice {number} is in the trash.'
     restored: 'Invoice {number} is restored.'
-    delivered: 'Invoice {number} is marked as delivered.'
+    delivered: 'Invoice {number} is marked as sent.'
     export_cleared: 'Document {number} has no export state now; the next export takes it.'
   card:
     issuer: Issuer
@@ -644,6 +665,8 @@ invoice:
     taxPointDate: Tax point
     supplyDate: Date of supply
     dueDate: Due date
+    sentAt: Sent on
+    paidAt: Paid on
     paymentMethod: Payment
     bankAccount: Bank account
     bankAccount_none: The firm has no bank account yet.
@@ -847,9 +870,9 @@ invoice:
     line_text_missing: Enter the text of the item.
     no_lines: Add at least one line.
     number_invalid: Enter a number with at least one letter or digit, up to 80 characters.
-    number_locked: Series and number cannot change once the document is delivered.
+    number_locked: Series and number cannot change once the document is sent.
     number_locked_sending: Series and number cannot change while the document is being sent.
-    number_locked_sent: Series and number cannot change once the customer got the document by e-mail.
+    number_locked_sent: Series and number cannot change once the document went out by e-mail.
     number_out_of_range: This number is beyond what the series can count.
     number_taken: This number has been used in this firm already.
     import_number_missing: An imported document needs its series and number.
@@ -861,7 +884,7 @@ invoice:
     correction_kind: Only a corrective tax document names a corrected document.
     correction_link_missing: Choose the invoice this document corrects.
     correction_link_locked: A corrective document keeps the invoice it corrects.
-    correction_original_invalid: Only an issued invoice that is not in the trash, or a delivered tax document on payment, can be corrected.
+    correction_original_invalid: Only an issued invoice that is not in the trash, or a sent tax document on payment, can be corrected.
     correction_deducted: A final invoice deducts this tax document. Release the deduction first by moving the final invoice to the trash or removing the deduction from it.
     correction_payment_change: A tax document on payment is corrected as a change after the supply, on the day the payment was cancelled or refunded.
     correction_firm: The correction must be issued by the firm of the invoice.
@@ -1165,18 +1188,21 @@ reminder:
   templates_help: Reminders go out in the language of the document.
   mail:
     default:
-      subject: 'Reminder: invoice {number}'
+      subject: 'Friendly reminder: invoice {number}'
       body: |-
         Hello,
 
-        this is a friendly reminder that invoice {number}, due on {due_date}, has not been paid yet. The amount due is {amount_due}.
+        Just a gentle reminder about invoice {number}, which was due on {due_date}. We have not received payment for it yet.
 
-        If you have paid it in the meantime, please disregard this message.
+        Amount still due: **{amount_due}**
 
-        Thank you,
-        {firm_name}
-
+        You can view the invoice here:
         {link}
+
+        If you have already paid, thank you very much, and please ignore this message. Payments sometimes take a few days to reach us. And if anything about the invoice is not right, just let us know and we will gladly sort it out together.
+
+        Thank you and have a great day,
+        {firm_name}
   variable:
     days_overdue: Days overdue
     reminder_step: Reminder number
@@ -1271,14 +1297,23 @@ advance:
   templates_help: An advance invoice goes out in the language of the document.
   mail:
     default:
-      subject: 'Advance invoice {number}'
+      subject: 'Advance invoice {number} from {firm_name}'
       body: |-
-        Based on our agreement I am sending advance invoice no. {number} for {amount_total}, due on {due_date}. Once the payment arrives you will get a tax document for it.
+        Hello,
 
-        Thank you,
-        {sender_name}
+        Please find your advance invoice {number} below, together with everything you need to pay it.
 
+        - Amount due: **{amount_total}**
+        - Due date: **{due_date}**
+
+        You can view and download it here:
         {link}
+
+        As soon as your payment arrives, I will send you a tax document for it.
+
+        Thank you and have a great day,
+        {sender_name}
+        {firm_name}
 correction:
   title: 'Corrective tax document {number}'
   new: New corrective tax document
@@ -1303,12 +1338,20 @@ correction:
     default:
       subject: 'Corrective tax document {number}'
       body: |-
-        I am sending corrective tax document no. {number} to document no. {original_number} for {amount_total}.
+        Hello,
 
-        Thank you,
-        {sender_name}
+        Here is corrective tax document {number}, which corrects document {original_number}.
 
+        Amount: **{amount_total}**
+
+        You can view and download it here:
         {link}
+
+        If anything in it is unclear, just let me know.
+
+        Thank you and have a great day,
+        {sender_name}
+        {firm_name}
 tax_document:
   waiting_notice: '{late, select, yes {{count, plural, one {A document is} other {# documents are}} past the deadline for a tax or corrective document.} other {{count, plural, one {A document waits} other {# documents wait}} for a tax or corrective document, the first by {date}.}}'
   needs_correction: The payment of this tax document was cancelled or refunded after the customer got it. It needs a corrective tax document.
@@ -1340,11 +1383,18 @@ tax_document:
   templates_help: A tax document goes out in the language of the document.
   mail:
     default:
-      subject: 'Tax document {number}'
+      subject: 'Tax document {number} for your payment'
       body: |-
-        Thank you for your payment. I am sending tax document no. {number} for the payment of {amount_total}. It is paid already; there is nothing more to pay.
+        Hello,
 
-        Thank you,
-        {sender_name}
+        Thank you for your payment, it has arrived safely. Here is tax document {number} for it.
 
+        Payment received: **{amount_total}**
+        This document is already settled, so there is nothing more to pay.
+
+        You can view and download it here:
         {link}
+
+        Thank you and have a great day,
+        {sender_name}
+        {firm_name}

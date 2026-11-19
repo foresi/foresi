@@ -158,13 +158,8 @@
             "@php -d max_execution_time=0 -d memory_limit=2G vendor/bin/infection --threads=max --initial-tests-php-options='-d max_execution_time=0 -d memory_limit=2G' --min-msi=80 --min-covered-msi=90 --show-mutations --no-progress"
         ],
         "qa:static": [
-            "@cs:check",
-            "@rector",
-            "@lint",
-            "@phpstan",
-            "@modules:check",
-            "@events:check",
-            "@deptrac"
+            "Composer\\Config::disableProcessTimeout",
+            "bin/qa-static"
         ],
         "qa": [
             "@qa:static",

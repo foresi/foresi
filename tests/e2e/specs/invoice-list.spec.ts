@@ -126,7 +126,7 @@ test.describe.serial('the invoice list', () => {
     await page.keyboard.press('ArrowDown');
     await expect(menu.getByRole('menuitem', { name: 'Vystavit opravný doklad' })).toBeFocused();
     await page.keyboard.press('ArrowDown');
-    await expect(menu.getByRole('menuitem', { name: 'Označit jako doručené' })).toBeFocused();
+    await expect(menu.getByRole('menuitem', { name: 'Označit jako odeslanou' })).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(menu).toBeHidden();
     await expect(first.getByRole('button', { name: /Další akce/ })).toBeFocused();
@@ -160,18 +160,18 @@ test.describe.serial('the invoice list', () => {
     await expect(page.getByRole('heading', { name: 'Koš je prázdný' })).toBeVisible();
   });
 
-  test('marks a document delivered, which leaves no delete', async ({ page }) => {
+  test('marks a document sent, which leaves no delete', async ({ page }) => {
     await page.goto('/invoices');
     const first = page.locator('tbody tr').first();
     await first.getByRole('button', { name: /Další akce/ }).click();
-    await first.getByRole('menuitem', { name: 'Označit jako doručené' }).click();
-    await page.getByRole('alertdialog').getByRole('button', { name: 'Označit jako doručenou' }).click();
-    await expect(page.getByText(/je označená jako doručená\./)).toBeVisible();
+    await first.getByRole('menuitem', { name: 'Označit jako odeslanou' }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Označit jako odeslanou' }).click();
+    await expect(page.getByText(/je označená jako odeslaná\./)).toBeVisible();
 
     const delivered = page.locator('tbody tr').first();
-    await expect(delivered).toContainText('Doručeno');
+    await expect(delivered).toContainText('Odeslaná');
     await delivered.getByRole('link').first().click();
-    await expect(page.locator('main')).toContainText('Doručeno');
+    await expect(page.locator('main')).toContainText('Odeslaná');
     await page.goto('/invoices');
     await delivered.getByRole('button', { name: /Další akce/ }).click();
     await expect(delivered.getByRole('menuitem', { name: 'Smazat' })).toHaveCount(0);

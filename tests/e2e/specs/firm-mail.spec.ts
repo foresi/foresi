@@ -151,8 +151,8 @@ test.describe.serial('the e-mail settings of a firm', () => {
     await expect(page.getByText('Šablona má zase výchozí text.')).toBeVisible();
     await expect(page.locator('[data-mail-template="invoice"]')).toContainText('Čeština: výchozí text');
     const again = await openTemplate(page, 'Faktura');
-    await expect(again.locator('#subject-cs')).toHaveValue('Faktura {Číslo dokladu}');
-    await expect(again.locator('#body-cs')).toHaveValue(/^Na základě Vaší objednávky/);
+    await expect(again.locator('#subject-cs')).toHaveValue('Faktura {Číslo dokladu} od {Název firmy}');
+    await expect(again.locator('#body-cs')).toHaveValue(/^Dobrý den,\n\nv tomto e-mailu Vám posílám fakturu č\. \{Číslo dokladu\}\./);
   });
 
   test('saves a server, presets the port, keeps a blank password and sends a test to the owner', async ({ page }) => {

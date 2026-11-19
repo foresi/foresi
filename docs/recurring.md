@@ -85,13 +85,13 @@ System sends use at most **80%** of a firm's daily budget of 500 sends, so a run
 
 ### To send
 
-**Invoices › To send** lists invoices issued from a template that are not delivered and have no invoice e-mail queued or sent. A failed send leaves an invoice there. It holds:
+**Invoices › To send** lists invoices issued from a template that are not sent and have no invoice e-mail queued or sent. A failed send leaves an invoice there. It holds:
 
 - invoices of templates set to "Hold for my review";
 - occurrences issued more than 3 days late;
 - invoices whose send was refused: no mail server, no recipient, or the budget spent.
 
-Send them from there, or mark them delivered.
+Send them from there, or mark them sent.
 
 ## When something goes wrong
 
