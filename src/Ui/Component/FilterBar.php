@@ -62,10 +62,11 @@ final class FilterBar
 
     /**
      * The filter builder of the sheet (spec D11): the fields one can add a row for, the rows
-     * of the conditions set, the conditions it sends back as they are (JSON) and the rules
-     * a date end is picked from; null for a list without one.
+     * of the conditions set, the conditions it sends back as they are (JSON), the rules
+     * a date end is picked from and the address parameter the conditions travel in, which
+     * clearing the bar drops; null for a list without one.
      *
-     * @var array{fields: list<array<string, mixed>>, rows: list<array<string, mixed>>, kept: list<string>, rules: array<string, string>}|null
+     * @var array{fields: list<array<string, mixed>>, rows: list<array<string, mixed>>, kept: list<string>, rules: array<string, string>, param?: string}|null
      */
     public ?array $builder = null;
 
@@ -196,7 +197,7 @@ final class FilterBar
      */
     public function clearHref(): string
     {
-        return $this->href($this->kept());
+        return $this->href(array_diff_key($this->kept(), [$this->builder['param'] ?? '' => true]));
     }
 
     /**

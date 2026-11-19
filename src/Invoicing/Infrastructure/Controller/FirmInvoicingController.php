@@ -28,7 +28,7 @@ use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Infrastructure\Http\SubmissionTokens;
-use Foresi\Ui\Component\DataTable;
+use Foresi\Ui\Contract\Opens;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -342,7 +342,7 @@ final class FirmInvoicingController extends AbstractController
             'label' => $this->seriesName($series),
             'href' => $this->generateUrl('app_series_edit', ['id' => $firm->id(), 'series' => $series->id()]),
             // A series is a small record: it opens in a modal over the list (docs/design/overlays.md).
-            'opens' => DataTable::OPENS_DIALOG,
+            'opens' => Opens::DIALOG,
             'cells' => [
                 'name' => $this->seriesName($series),
                 'kind' => $this->translator->trans('series.kind.'.$series->kind()->value),

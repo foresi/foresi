@@ -39,7 +39,7 @@ use Foresi\Party\Infrastructure\Registry\RegistryLookup;
 use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Infrastructure\Http\SubmissionTokens;
-use Foresi\Ui\Dialog\DialogRequest;
+use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;

@@ -1,0 +1,9 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<div class="w-full rounded-panel border border-container"><twig:Ui:PageHeader title="Example Company s.r.o." :crumbs="[{label: 'Contacts', href: '#'}, {label: 'Example Company s.r.o.'}]" :badge="{label: 'Active', tone: 'green'}"><twig:Ui:MoreActions menuId="catalogue-header-actions"><twig:block name="primary"><twig:Ui:Button variant="primary" icon="pencil">Edit</twig:Ui:Button></twig:block><twig:block name="buttons"><twig:Ui:Button icon="share-2">Share</twig:Ui:Button></twig:block><twig:block name="phone"><twig:Ui:MenuItem icon="share-2">Share</twig:Ui:MenuItem></twig:block><twig:Ui:MenuItem icon="download">Export as CSV</twig:Ui:MenuItem><twig:Ui:MenuItem icon="settings">Settings</twig:Ui:MenuItem><twig:block name="last"><twig:Ui:MenuItem icon="archive">Archive</twig:Ui:MenuItem><twig:Ui:MenuItem icon="trash-2" tone="danger">Delete</twig:Ui:MenuItem></twig:block></twig:Ui:MoreActions></twig:Ui:PageHeader></div>
+{% endblock %}{% endembed %}
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<div class="w-full rounded-panel border border-container"><twig:Ui:PageHeader title="Example Company Holding of Central European Trading s.r.o." :crumbs="[{label: 'Contacts', href: '#'}, {label: 'Example Company Holding of Central European Trading s.r.o.'}]" :badge="{label: 'Archived', tone: 'gray'}"><twig:Ui:MoreActions menuId="catalogue-header-long"><twig:block name="last"><twig:Ui:MenuItem icon="archive-restore">Restore</twig:Ui:MenuItem></twig:block></twig:Ui:MoreActions></twig:Ui:PageHeader></div>
+{% endblock %}{% endembed %}
+</div>

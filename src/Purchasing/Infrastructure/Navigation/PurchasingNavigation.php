@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Purchasing\Infrastructure\Navigation;
 
 use Foresi\Identity\Application\StaffCheck;
-use Foresi\Ui\Navigation\CoreNavigationAreas;
-use Foresi\Ui\Navigation\NavigationItem;
-use Foresi\Ui\Navigation\NavigationItemProvider;
+use Foresi\Ui\Contract\Navigation\CoreNavigationAreas;
+use Foresi\Ui\Contract\Navigation\NavigationItem;
+use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
 
 /**
  * The received documents in the sidebar, under Finance next to the bank, as

@@ -1,0 +1,54 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Shown open in a box of the page, without the top layer, so every state can be seen at once. In the
+    app a sheet opens with showModal() at the right edge, over a lightly dimmed page; on a phone it
+    fills the screen. The live sample opens the real one.
+#}
+{% set preview = {open: true, 'data-dialog-preview': true, class: 'absolute'} %}
+{% set sample_open %}
+<div class="relative h-120 w-full overflow-hidden rounded-panel border border-container bg-frame">
+    <twig:Ui:Sheet id="cat-sheet-filters" title="Filtry" description="Vyberte filtry, které se mají použít na seznam faktur." size="sm" {{ ...preview }}>
+        <div class="grid gap-3">
+            <twig:Ui:Checkbox name="cat-sheet-status" id="cat-sheet-status" label="Stav" :checked="true" />
+            <twig:Ui:Checkbox name="cat-sheet-customer" id="cat-sheet-customer" label="Zákazník" :checked="true" />
+            <twig:Ui:Checkbox name="cat-sheet-due" id="cat-sheet-due" label="Splatnost" />
+            <twig:Ui:Checkbox name="cat-sheet-currency" id="cat-sheet-currency" label="Měna" />
+        </div>
+        <twig:block name="footer"><twig:Ui:Button>Zavřít</twig:Ui:Button></twig:block>
+    </twig:Ui:Sheet>
+</div>
+{% endset %}
+{% set sample_detail %}
+<div class="relative h-120 w-full overflow-hidden rounded-panel border border-container bg-frame">
+    <twig:Ui:Sheet id="cat-sheet-detail" title="Faktura 2026-EXAMPLE-COMPANY-HOLDING-OF-CENTRAL-EUROPEAN-TRADING-0042" description="Example Company s.r.o. · splatnost 30. 11. 2026" size="md" {{ ...preview }}>
+        <div class="grid gap-6">
+            <twig:Ui:DescriptionList :items="[{label: 'Odběratel', value: 'Example Company s.r.o.'}, {label: 'Celkem', value: '12 100,00 Kč'}, {label: 'Stav', badge: {label: 'Neuhrazeno', tone: 'amber'}}]" />
+            <p class="m-0 text-text">Příliš žluťoučký kůň úpěl ďábelské ódy. Levý okraj panelu mění jeho šířku.</p>
+        </div>
+        <twig:block name="footer">
+            <twig:Ui:Button>Zavřít</twig:Ui:Button>
+            <twig:Ui:Button variant="primary" icon="check">Označit jako uhrazenou</twig:Ui:Button>
+        </twig:block>
+    </twig:Ui:Sheet>
+</div>
+{% endset %}
+{% set sample_unsaved %}
+<div class="relative h-120 w-full overflow-hidden rounded-panel border border-container bg-frame">
+    <twig:Ui:Sheet id="cat-sheet-unsaved" title="Upravit poznámku" size="sm" :fields="true" :asking="true" {{ ...preview }}>
+        <twig:Ui:Textarea name="cat-sheet-note" id="cat-sheet-note" label="Poznámka" value="Zavolat před splatností" :rows="3" />
+        <twig:block name="footer">
+            <twig:Ui:Button>Zrušit</twig:Ui:Button>
+            <twig:Ui:Button type="submit" variant="primary">Uložit</twig:Ui:Button>
+        </twig:block>
+    </twig:Ui:Sheet>
+</div>
+{% endset %}
+<div class="grid gap-5">
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'live'} %}{% block sample %}
+    <twig:Ui:Button :href="path('catalogue_sheet', {size: 'sm'})" data-sheet>Filtry · 400 px</twig:Ui:Button>
+    <twig:Ui:Button :href="path('catalogue_sheet')" data-sheet>Detail · 640 px</twig:Ui:Button>
+{% endblock %}{% endembed %}
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'open'} %}{% block sample %}{{ sample_open }}{% endblock %}{% endembed %}
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'sizes'} %}{% block sample %}{{ sample_detail }}{% endblock %}{% endembed %}
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'unsaved'} %}{% block sample %}{{ sample_unsaved }}{% endblock %}{% endembed %}
+</div>
