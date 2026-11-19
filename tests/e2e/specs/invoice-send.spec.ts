@@ -115,7 +115,7 @@ test.describe.serial('sending an invoice', () => {
       } else {
         // On a phone the mark is part of the line under the number, label included.
         await expect(failed.locator('[data-row-secondary]')).toContainText('Neodešlo');
-        await expect(read.locator('[data-row-secondary]')).toContainText(/\d{1,2}\. \d{1,2}\. \d{4}/);
+        await expect(read.locator('[data-row-secondary]')).toContainText(/\d{1,2}\.\s\d{1,2}\.\s\d{4}/);
       }
       await expectNoSeriousViolations(page);
       await expectNoSidewaysScroll(page);

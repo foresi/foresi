@@ -55,7 +55,7 @@ test.describe.serial('reminders of overdue invoices', () => {
       if (name === 'desktop') {
         const count = row(page, 'R0001').locator('[data-icon-cell="bell-ring"]');
         await expect(count).toHaveText('2 upomínky');
-        await expect(count).toHaveAttribute('title', /^Poslední upomínka \d{1,2}\.\s\d{1,2}\.\s\d{4} · Odesláno$/);
+        await expect(count).toHaveAttribute('title', /^Poslední upomínka \d{1,2}\.\s\d{1,2}\.\s\d{4} · Odesláno \d{1,2}\.\s\d{1,2}\.\s\d{4}$/);
         await expect(row(page, 'R0002').locator('[data-icon-cell="bell-ring"]')).toHaveCount(0);
       } else {
         await expect(row(page, 'R0001').locator('[data-row-secondary]')).toContainText('2 upomínky');

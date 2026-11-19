@@ -197,7 +197,7 @@ test.describe.serial('dialogs', () => {
       await page.setViewportSize(size);
       await page.goto('/invoices');
       await fromMenu(page, '20260002', 'Označit jako odeslanou');
-      const dialog = page.getByRole('alertdialog', { name: 'Označit fakturu 20260002 jako doručenou?' });
+      const dialog = page.getByRole('alertdialog', { name: 'Označit fakturu 20260002 jako odeslanou?' });
       await settled(dialog);
       await expect(dialog).toContainText('Odeslanou fakturu už nepůjde smazat. Označení nejde vrátit.');
       // The safe answer has the focus; a confirmation stays centred on a phone.

@@ -188,6 +188,7 @@ final readonly class IssuedDocumentSource implements DataSource
         $date = $this->translator->trans('format.date');
         $sentAt = $row->document?->deliveredAt()?->setTimezone($this->instanceClock->timezone());
         $mark = SendMark::None === $row->sendMark ? null : $this->translator->trans('invoice.mark.hint.'.$row->sendMark->value);
+        // "Sent" says no more than the day it was sent, so the hint leaves it out.
         $reminders = \is_array($context['reminders'] ?? null) ? ($context['reminders'][$row->id] ?? null) : null;
         if (\is_array($reminders) && SendMark::Failed !== $row->sendMark && $reminders['lastAt'] instanceof \DateTimeImmutable && \is_int($reminders['count'])) {
             $last = $this->translator->trans('reminder.list.last', ['date' => $reminders['lastAt']->setTimezone($this->instanceClock->timezone())->format($date)]);
@@ -197,7 +198,7 @@ final readonly class IssuedDocumentSource implements DataSource
                 'text' => $this->translator->trans('reminder.list.count', ['count' => $reminders['count']]),
                 'icon' => 'bell-ring',
                 'tone' => SendMark::Read === $row->sendMark ? 'green' : 'gray',
-                'hint' => implode(' · ', array_filter([$last, $first, SendMark::None === $row->sendMark ? null : $this->translator->trans('invoice.mark.'.$row->sendMark->value)], static fn (?string $part): bool => null !== $part && '' !== $part)),
+                'hint' => implode(' · ', array_filter([$last, $first, \in_array($row->sendMark, [SendMark::None, SendMark::Sent], true) ? null : $this->translator->trans('invoice.mark.'.$row->sendMark->value)], static fn (?string $part): bool => null !== $part && '' !== $part)),
             ];
         }
         if (!$sentAt instanceof \DateTimeImmutable) {
