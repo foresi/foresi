@@ -57,7 +57,7 @@ Under the task, **Discussion and history** is one timeline, oldest first: every 
 - **Adding.** Drop files on the area, choose them with **Add file**, or paste an image or drop files into the comment box or the description: the file is uploaded and linked in the text as Markdown (an image shows in place). Each upload shows its progress and, if refused, why. Without JavaScript the area is a plain form with one file.
 - **Limit.** A file may be up to 50 MB. An empty file is refused. The type is read from the file itself, never taken from its name or from the browser.
 - **Viewing.** Images and PDFs open in a dialog with a download link; videos play in the list. Any other file downloads. Files are served only to people who may see the task, never from a public address.
-- **Deleting.** The person who uploaded a file may delete it, and so may an owner of the organisation, after a confirmation.
+- **Deleting.** The person who uploaded a file may delete it, and so may an owner of the organisation. Deleting asks nothing: the message says so and **Undo** brings the file back. Whoever may delete a file finds it for 30 days under the collapsed **Deleted files** below the list, with who deleted it and when, and **Restore** puts it back. A deleted file is never served, to anyone, until it is restored. After 30 days the file is removed for good, from the disk too.
 
 ## Trash
 
@@ -133,7 +133,7 @@ Every entry, its change and its deletion reach the audit log, under its task or 
 
 ## Operating it
 
-Notification e-mails need the system mailer (see [operations](operations.md)). The trash is emptied by the scheduled job `task-trash-purge`, the text of comments deleted 30 days ago by `comment-trash-purge`, the daily summaries are sent by `notification-digest` and old done notifications removed by `notification-purge`, all run by the normal worker (see [ADR 0016](adr/0016-scheduled-jobs.md)); without the worker deleted tasks stay in the trash. Projects, tasks, comments, labels and time entries are rows of the application database, and every change, watchers and labels included, reaches the audit log. Attachments are files in the `attachments` directory of the share directory, outside the web root; the ops backup already includes the whole share directory (see [operations](operations.md)). Include the database in your backups as usual. Run `bin/console doctrine:migrations:migrate` on upgrade.
+Notification e-mails need the system mailer (see [operations](operations.md)). The trash is emptied by the scheduled job `task-trash-purge`, the text of comments deleted 30 days ago by `comment-trash-purge`, files deleted 30 days ago by `attachment-trash-purge`, the daily summaries are sent by `notification-digest` and old done notifications removed by `notification-purge`, all run by the normal worker (see [ADR 0016](adr/0016-scheduled-jobs.md)); without the worker deleted tasks stay in the trash. Projects, tasks, comments, labels and time entries are rows of the application database, and every change, watchers and labels included, reaches the audit log. Attachments are files in the `attachments` directory of the share directory, outside the web root; the ops backup already includes the whole share directory (see [operations](operations.md)). Include the database in your backups as usual. Run `bin/console doctrine:migrations:migrate` on upgrade.
 
 ## What comes later
 

@@ -15,12 +15,14 @@ use Foresi\Shared\Domain\Id;
 /**
  * A file kept for a record of any module, named by the kind of the record and
  * its id. The bytes live in the private file store under the storage key and
- * are checked against the SHA-256 on every read. Deleting only marks it: a
- * later purge removes the file.
+ * are checked against the SHA-256 on every read. Deleting only marks it, with
+ * who did it, so it can be restored for 30 days; then the purge removes the
+ * record and the file for good.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'attachment')]
 #[ORM\Index(name: 'idx_attachment_owner', columns: ['owner_kind', 'owner_id'])]
+#[ORM\Index(name: 'idx_attachment_deleted', columns: ['deleted_at'])]
 class Attachment implements Audited
 {
     public const int MAX_OWNER_KIND_LENGTH = 40;
@@ -40,6 +42,10 @@ class Attachment implements Audited
 
     #[ORM\Column(name: 'deleted_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $deletedAt = null;
+
+    /** The user who deleted the attachment. */
+    #[ORM\Column(name: 'deleted_by', type: 'guid', nullable: true)]
+    private ?string $deletedBy = null;
 
     /**
      * @throws \DomainException when a value cannot describe a stored file
@@ -90,9 +96,24 @@ class Attachment implements Audited
         $this->mediaType = $mediaType;
     }
 
-    public function delete(\DateTimeImmutable $now): void
+    /**
+     * Deleting twice keeps the first date and who.
+     */
+    public function delete(string $userId, \DateTimeImmutable $now): void
     {
-        $this->deletedAt ??= $now;
+        if (!$this->isDeleted()) {
+            $this->deletedAt = $now;
+            $this->deletedBy = $userId;
+        }
+    }
+
+    /**
+     * Puts it back on its record. Restoring one that stands changes nothing.
+     */
+    public function restore(): void
+    {
+        $this->deletedAt = null;
+        $this->deletedBy = null;
     }
 
     public function isDeleted(): bool
@@ -158,6 +179,11 @@ class Attachment implements Audited
     public function deletedAt(): ?\DateTimeImmutable
     {
         return $this->deletedAt;
+    }
+
+    public function deletedBy(): ?string
+    {
+        return $this->deletedBy;
     }
 
     private function isGuid(string $value): bool

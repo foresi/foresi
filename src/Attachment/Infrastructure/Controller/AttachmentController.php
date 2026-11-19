@@ -41,7 +41,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *
  * The upload answers the editor with JSON; a plain form gives a return path
  * and is sent back there with the error, as the file upload pattern of GOV.UK.
- * Deleting is a form that goes back to its return path. A guest reaches it
+ * Deleting is a form that goes back to its return path with no question
+ * first: the message says so and its Undo restores the file, as Shopify's
+ * Toast API recommends for an action that can be undone. A guest reaches it
  * too: the module of the record decides what they see, attach and delete.
  */
 #[OpenToGuest]
@@ -50,6 +52,9 @@ final class AttachmentController extends AbstractController
     public const string ROUTE = 'app_attachment';
     public const string UPLOAD_ROUTE = 'app_attachment_upload';
     public const string DELETE_ROUTE = 'app_attachment_delete';
+    public const string RESTORE_ROUTE = 'app_attachment_restore';
+    /** The message of a deletion with its Undo: a message, a label, the URL that restores and the token it sends. */
+    public const string UNDO_FLASH = 'attachment_undo';
     public const string TOKEN = 'attachment_upload';
     public const string DELETE_TOKEN = 'attachment_delete';
 
@@ -167,12 +172,43 @@ final class AttachmentController extends AbstractController
         }
         $return = self::localPath($request->request->getString('return')) ?? '/';
         try {
-            $this->delete->delete($id);
+            $attachment = $this->delete->delete($id);
+            $this->addFlash(self::UNDO_FLASH, [
+                'message' => $this->translator->trans('attachment.trash.deleted', ['name' => $attachment->fileName()]),
+                'label' => $this->translator->trans('attachment.trash.undo'),
+                'href' => $this->generateUrl(self::RESTORE_ROUTE, ['id' => $id, 'return' => $return]),
+                'token' => self::DELETE_TOKEN,
+            ]);
         } catch (AttachmentRefused $refused) {
             if (AttachmentRefused::UNKNOWN === $refused->reason) {
                 throw new NotFoundHttpException('No such attachment.', $refused);
             }
             $this->addFlash('error', $this->translator->trans('attachment.error.cannot_delete'));
+        }
+
+        return new RedirectResponse($return, Response::HTTP_SEE_OTHER);
+    }
+
+    /**
+     * Puts a deleted file back on its record, from the Undo of the message or
+     * from the deleted files of the record, and goes back to the return path.
+     */
+    #[Route('/attachments/{id}/restore', name: self::RESTORE_ROUTE, requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function restore(string $id, Request $request): RedirectResponse
+    {
+        if (!$this->isCsrfTokenValid(self::DELETE_TOKEN, $request->request->getString('_token'))) {
+            throw new AccessDeniedHttpException('Invalid CSRF token.');
+        }
+        // The Undo of a message sends only its token; the return path rides in its address.
+        $return = self::localPath($request->request->getString('return', $request->query->getString('return'))) ?? '/';
+        try {
+            $attachment = $this->delete->restore($id);
+            $this->addFlash('success', $this->translator->trans('attachment.trash.restored', ['name' => $attachment->fileName()]));
+        } catch (AttachmentRefused $refused) {
+            if (AttachmentRefused::UNKNOWN === $refused->reason) {
+                throw new NotFoundHttpException('No such attachment.', $refused);
+            }
+            $this->addFlash('error', $this->translator->trans('attachment.error.cannot_restore'));
         }
 
         return new RedirectResponse($return, Response::HTTP_SEE_OTHER);

@@ -9,12 +9,17 @@ attachment:
   preview: Preview
   open: 'Open {name}'
   download: Download
-  delete: Delete
   delete_label: 'Delete {name}'
-  delete_confirm:
-    title: 'Delete {name}?'
-    text: The file is removed from the task.
+  trash:
+    title: 'Deleted files ({count})'
+    deleted: 'The file {name} is deleted.'
+    undo: Undo
+    restore: Restore
+    restore_label: 'Restore {name}'
+    restored: 'The file {name} is restored.'
+    deleted_by: 'Deleted by {name}'
   error:
+    cannot_restore: You cannot restore this file
     cannot_delete: You cannot delete this file
     too_big: The selected file must be smaller than 50 MB
     empty: The selected file is empty

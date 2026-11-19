@@ -43,6 +43,16 @@ final class AttachmentPermissions
         return $this->of($attachment->ownerKind())?->canDelete($attachment) ?? false;
     }
 
+    /**
+     * Whether the person deletes, and so restores, the attachment: its
+     * uploader, or whom the module of the record lets. Seeing the record is
+     * asked apart.
+     */
+    public function canRemove(Attachment $attachment, ?string $userId): bool
+    {
+        return null !== $userId && ($attachment->uploadedBy() === $userId || $this->canDelete($attachment));
+    }
+
     private function of(string $ownerKind): ?AttachmentAccess
     {
         if (null === $this->byKind) {

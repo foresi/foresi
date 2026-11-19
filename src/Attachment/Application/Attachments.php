@@ -11,8 +11,8 @@ namespace Foresi\Attachment\Application;
 use Foresi\Attachment\Domain\Attachment;
 
 /**
- * The attachments of the instance. Deleted ones are not found, except by
- * the purge, which removes them for good.
+ * The attachments of the instance. Deleted ones are not found, except to be
+ * restored or purged: by withDeleted(), deletedOf() and deletedBefore().
  */
 interface Attachments
 {
@@ -24,6 +24,25 @@ interface Attachments
     public function of(string $ownerKind, string $ownerId): array;
 
     public function get(string $id): ?Attachment;
+
+    /**
+     * An attachment whether deleted or not, for a restore.
+     */
+    public function withDeleted(string $id): ?Attachment;
+
+    /**
+     * The deleted attachments of a record, the most recently deleted first.
+     *
+     * @return list<Attachment>
+     */
+    public function deletedOf(string $ownerKind, string $ownerId): array;
+
+    /**
+     * The attachments deleted before the moment, of every record.
+     *
+     * @return list<Attachment>
+     */
+    public function deletedBefore(\DateTimeImmutable $moment): array;
 
     /**
      * Every attachment of these records, deleted ones included.
