@@ -32,7 +32,7 @@
     {% if compact %}
         {# Without JavaScript the person reads as plain text. #}
         <span class="hidden min-w-0 items-center gap-1.5 [@media(scripting:none)]:flex">
-            {%- if chosen %}<twig:Ui:Avatar :name="chosen.name" :seed="chosen.seed" /><span class="min-w-0 truncate">{{ chosen.name }}</span>{% else %}<span class="text-muted" aria-hidden="true">—</span><span class="sr-only">{{ label }}: {{ noneLabel }}</span>{% endif -%}
+            {%- if chosen %}<twig:Ui:Avatar :name="chosen.name" :seed="chosen.seed" /><span class="min-w-0 truncate">{{ chosen.name }}</span>{% else %}<span class="sr-only">{{ label }}: </span><twig:Ui:EmptyValue :label="noneLabel" />{% endif -%}
         </span>
     {% else %}
         <noscript>

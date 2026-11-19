@@ -11,6 +11,7 @@ namespace Foresi\Work\Infrastructure\Dashboard;
 use Foresi\Ui\Contract\Dashboard\DashboardSection;
 use Foresi\Ui\Contract\Dashboard\DashboardSectionProvider;
 use Foresi\Work\Application\TaskGroup;
+use Foresi\Work\Application\View\MyTaskLists;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Infrastructure\Controller\MyTasksController;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -43,7 +44,8 @@ final readonly class MyTasksDashboard implements DashboardSectionProvider
         if (0 === array_sum($counts)) {
             return [];
         }
-        $href = $this->urls->generate(MyTasksController::ROUTE);
+        // The counts are of the tasks I am responsible for: the view of those.
+        $href = $this->urls->generate(MyTasksController::ROUTE, ['view' => MyTaskLists::ASSIGNED]);
 
         return [new DashboardSection('@Work/dashboard.html.twig', [
             'kpis' => array_map(fn (string $key): array => [

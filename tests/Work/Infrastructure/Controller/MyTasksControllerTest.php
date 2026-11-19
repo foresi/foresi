@@ -30,7 +30,8 @@ use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * My tasks: those I am responsible for, or watch, in groups by when they are
- * due on 20 November 2026, narrowed by client, and their count in the sidebar.
+ * due on 20 November 2026, on saved views narrowed by client, and their count in
+ * the sidebar.
  */
 final class MyTasksControllerTest extends WebTestCase
 {
@@ -83,7 +84,7 @@ final class MyTasksControllerTest extends WebTestCase
         $this->signIn();
         $this->seed();
 
-        $crawler = $this->client->request('GET', '/my-tasks');
+        $crawler = $this->client->request('GET', '/my-tasks?view=assigned');
 
         self::assertResponseIsSuccessful();
         self::assertSame(['Overdue (1)', 'Today (2)', 'Next 7 days (1)', 'Later (1)'], $crawler->filter('[data-task-group] h2')->each(static fn (Crawler $title): string => trim($title->text())));
@@ -96,7 +97,7 @@ final class MyTasksControllerTest extends WebTestCase
         // The row opens the task in the sheet.
         self::assertNotNull($overdue->eq(0)->filter('a[data-row-link]')->attr('data-sheet'));
         self::assertSame('/tasks/'.$this->taskId('Fix the form').'/due', $overdue->eq(4)->filter('form')->attr('action'));
-        self::assertSame('/my-tasks', $overdue->eq(4)->filter('input[name="return"]')->attr('value'));
+        self::assertSame('/my-tasks?view=assigned', $overdue->eq(4)->filter('input[name="return"]')->attr('value'));
         self::assertSame('Priority: High', self::shown($crawler->filter('[data-task-group="today"] tbody tr')->eq(0)->filter('td')->eq(5)));
         self::assertSame(['Write the copy'], $this->titles($crawler, 'upcoming'));
         self::assertSame(['Plan the launch'], $this->titles($crawler, 'later'));
@@ -106,32 +107,90 @@ final class MyTasksControllerTest extends WebTestCase
         self::assertSame('3', trim($crawler->filter('#sidebar a[href="/my-tasks"] [data-nav-count]')->text()));
     }
 
-    public function testTheClientFilterNarrowsBothTabs(): void
+    public function testAllHoldsTheTasksIAmResponsibleForAndThoseIWatch(): void
     {
+        // Saved views, D12: All, then the tabs the list had, none with a count (D9).
         $this->signIn();
         $this->seed();
 
         $crawler = $this->client->request('GET', '/my-tasks');
-        self::assertSame(['All clients', 'Example Client'], $crawler->filter('[data-filter-sheet-form] select[name=client] option')->each(static fn (Crawler $option): string => trim($option->text())));
-        $crawler = $this->client->submit($crawler->filter('[data-my-tasks-filter] [data-filter-sheet-form]')->form(['client' => $this->clientId()]));
 
-        self::assertSame(['Fix the form', 'Call the client', 'Write the copy', 'Plan the launch'], $crawler->filter('[data-task-group] tbody tr td:first-child [data-row-link]')->each(static fn (Crawler $cell): string => trim($cell->text())));
-        self::assertSame('/my-tasks?tab=watching&client='.$this->clientId(), $crawler->filter('nav a')->reduce(static fn (Crawler $a): bool => 'Watching' === trim($a->text()))->attr('href'));
-
-        $this->client->request('GET', '/my-tasks?tab=watching&client='.$this->clientId());
-        self::assertSelectorTextContains('main', 'Nothing here for this client.');
+        self::assertSame(['All', 'Assigned to me', 'Watching'], $this->tabs($crawler));
+        self::assertSame('page', $crawler->filter('nav[aria-label="Views of my tasks"] a')->eq(0)->attr('aria-current'));
+        self::assertSame(['/my-tasks', '/my-tasks?view=assigned', '/my-tasks?view=watching'], $crawler->filter('nav[aria-label="Views of my tasks"] a')->each(static fn (Crawler $a): string => (string) $a->attr('href')));
+        self::assertSame(['Overdue (1)', 'Today (2)', 'Next 7 days (1)', 'Later (1)', 'No date (1)'], $crawler->filter('[data-task-group] h2')->each(static fn (Crawler $title): string => trim($title->text())));
+        self::assertSame(['Review the budget'], $this->titles($crawler, 'no_date'));
+        self::assertCount(1, $crawler->filter('[data-filter-sheet-form]'));
     }
 
-    public function testTheWatchingTabShowsTheTasksIWatch(): void
+    public function testTheWatchingViewShowsTheTasksIWatchAndTheOldTabStillOpensIt(): void
     {
         $this->signIn();
         $this->seed();
 
-        $crawler = $this->client->request('GET', '/my-tasks?tab=watching');
+        foreach (['/my-tasks?view=watching', '/my-tasks?tab=watching'] as $watching) {
+            $crawler = $this->client->request('GET', $watching);
 
-        self::assertSame(['No date (1)'], $crawler->filter('[data-task-group] h2')->each(static fn (Crawler $title): string => trim($title->text())));
+            self::assertSame(['No date (1)'], $crawler->filter('[data-task-group] h2')->each(static fn (Crawler $title): string => trim($title->text())), $watching);
+            self::assertSame(['Review the budget'], $this->titles($crawler, 'no_date'), $watching);
+            self::assertSame('page', $crawler->filter('nav[aria-label="Views of my tasks"] a')->eq(2)->attr('aria-current'), $watching);
+            self::assertSame('watching', $crawler->filter('[data-my-tasks-filter] [data-filter-sheet-form] input[name="view"]')->attr('value'), $watching);
+        }
+    }
+
+    public function testTheOldClientParameterIsAConditionOfTheBuilder(): void
+    {
+        $this->signIn();
+        $this->seed();
+
+        $crawler = $this->client->request('GET', '/my-tasks?tab=assigned&client='.$this->clientId());
+
+        self::assertSame(['Fix the form', 'Call the client', 'Write the copy', 'Plan the launch'], $crawler->filter('[data-task-group] tbody tr td:first-child [data-row-link]')->each(static fn (Crawler $cell): string => trim($cell->text())));
+        self::assertSame('Assigned to me, unsaved changes', $this->tabs($crawler)[1]);
+        // No fixed select sits in the sheet above "+ Filter" (spec D11).
+        self::assertCount(0, $crawler->filter('select[name="client"]'));
+        self::assertStringContainsString('Example Client', $crawler->filter('main')->text());
+
+        $crawler = $this->client->request('GET', '/my-tasks?tab=watching&client='.$this->clientId());
+        self::assertSelectorTextContains('main', 'No task matches these conditions.');
+        self::assertSame('/my-tasks?view=watching', $crawler->filter('main a')->reduce(static fn (Crawler $a): bool => 'Reset the view' === trim($a->text()))->attr('href'));
+        // What is no contact's id narrows nothing, as the sheet ignored it.
+        $crawler = $this->client->request('GET', '/my-tasks?view=assigned&client=nobody');
+        self::assertCount(5, $crawler->filter('[data-task-group] tbody tr'));
+        self::assertSame('Assigned to me', $this->tabs($crawler)[1]);
+    }
+
+    public function testTheBuilderNarrowsTheViewAndItsChangesAreSavedAsANewView(): void
+    {
+        $this->signIn();
+        $this->seed();
+
+        $this->client->request('GET', '/my-tasks?'.http_build_query(['view' => 'all', 'client' => 'old', 'conditions' => '1', 'c' => [
+            ['field' => 'involvement', 'op' => 'is', 'value' => 'watcher'],
+            ['field' => 'client', 'op' => 'is_empty'],
+        ]]));
+        self::assertResponseStatusCodeSame(303);
+        $location = (string) $this->client->getResponse()->headers->get('Location');
+        self::assertStringNotContainsString('client=', $location);
+        self::assertStringNotContainsString('view=', $location, 'All is the bare list.');
+        $crawler = $this->client->followRedirect();
+
         self::assertSame(['Review the budget'], $this->titles($crawler, 'no_date'));
-        self::assertSame('watching', $crawler->filter('[data-my-tasks-filter] [data-filter-sheet-form] input[name="tab"]')->attr('value'));
+        self::assertSame('All, unsaved changes', $this->tabs($crawler)[0]);
+        $this->client->submit($crawler->filter('[data-view-save-as-form]')->form(['name' => 'Watched, no client']));
+        $crawler = $this->client->followRedirect();
+        self::assertSame(['Review the budget'], $this->titles($crawler, 'no_date'));
+        self::assertContains('Watched, no client', $this->tabs($crawler));
+    }
+
+    public function testTheColumnsSheetHidesAColumn(): void
+    {
+        $this->signIn();
+        $this->seed();
+
+        $crawler = $this->client->request('GET', '/my-tasks?view=assigned&cols=title,due');
+
+        self::assertSame(['Title', 'Due date'], $crawler->filter('[data-task-group="today"] table thead th')->each(static fn (Crawler $th): string => trim($th->text())));
     }
 
     private function signIn(Role $role = Role::Owner): void
@@ -181,6 +240,14 @@ final class MyTasksControllerTest extends WebTestCase
             }
         }
         $this->em->flush();
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function tabs(Crawler $crawler): array
+    {
+        return $crawler->filter('nav[aria-label="Views of my tasks"] a')->each(static fn (Crawler $tab): string => trim((string) preg_replace('/\s+/', ' ', $tab->text())));
     }
 
     /**

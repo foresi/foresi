@@ -17,12 +17,12 @@ final class FactsGrid
     private const int MAX_COLUMNS = 6;
 
     /**
-     * @var list<array<string, mixed>> each with a string label and value, optional bool big and an
+     * @var list<array<string, mixed>> each with a string label and a string value (null or '' for not set, shown as Ui:EmptyValue with an optional "empty" label), optional bool big and an
      *                                 optional href that turns the value into a link (checked like every href)
      */
     public array $items = [];
 
-    /** @var list<array{label: string, value: string, big: bool, href: string|null}> */
+    /** @var list<array{label: string, value: ?string, empty: ?string, big: bool, href: string|null}> */
     private array $views = [];
 
     #[PostMount]
@@ -31,7 +31,8 @@ final class FactsGrid
         foreach ($this->items as $item) {
             $this->views[] = [
                 'label' => Style::requireString($item, 'label', 'A fact'),
-                'value' => Style::requireString($item, 'value', 'A fact'),
+                'value' => Style::optionalString($item, 'value', 'A fact'),
+                'empty' => Style::optionalString($item, 'empty', 'A fact'),
                 'big' => true === ($item['big'] ?? false),
                 'href' => $this->href($item),
             ];
@@ -53,7 +54,7 @@ final class FactsGrid
     }
 
     /**
-     * @return list<array{label: string, value: string, big: bool, href: string|null}>
+     * @return list<array{label: string, value: ?string, empty: ?string, big: bool, href: string|null}>
      */
     public function views(): array
     {

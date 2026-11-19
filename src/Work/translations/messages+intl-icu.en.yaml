@@ -88,6 +88,7 @@ work:
     comment_too_long: A comment can have at most 20,000 characters.
     comment_not_yours: Only the author can change this comment.
     comment_deleted: This comment has been deleted.
+    comment_purged: The text of this comment is deleted for good.
     task_not_yours: Only whoever created the task or an owner of the organisation can delete or restore it.
     parent_in_trash: The parent task has to be restored first.
     share_person: Choose an active person of the organisation to share with.
@@ -227,7 +228,7 @@ work:
     labels_removed: '{count, plural, one {Label removed} other {Labels removed}}: {names}'
     due: 'Due date {from} → {to}'
     priority: 'Priority {from} → {to}'
-    no_date: —
+    no_date: not set
     shared: 'Shared with: {names}'
     unshared: 'Stopped sharing with: {names}'
     private:
@@ -298,11 +299,12 @@ work:
     edited: edited
     edited_at: 'Edited {date}'
     deleted: This comment was deleted
+    trash:
+      mine: The comment is deleted
+      deleted: The comment is deleted.
+      restored: The comment is restored.
     actions: 'Actions for the comment by {name}'
     delete: Delete
-    delete_confirm:
-      title: Delete the comment?
-      text: This cannot be undone.
     edit_label: Edit comment
     composer: Comment
     internal_switch: Internal
@@ -413,10 +415,14 @@ work:
     title: My tasks
     views: Views of my tasks
     tab:
+      all: All
       assigned: Assigned to me
       watching: Watching
     client: Client
-    client_any: All clients
+    involvement: Mine as
+    involvement_option:
+      responsible: Responsible
+      watcher: Watching
     group:
       overdue: Overdue
       today: Today
@@ -424,11 +430,15 @@ work:
       later: Later
       no_date: No date
     empty:
+      all_title: You have no unfinished tasks
+      all_text: The tasks you are responsible for or watch show here.
       assigned_title: You have no unfinished tasks
       assigned_text: The tasks you are responsible for show here.
       watching_title: You watch no unfinished tasks
       watching_text: Watch a task from its page.
-      filtered: Nothing here for this client.
+      filtered_title: Nothing matches
+      filtered: No task matches these conditions.
+      reset: Reset the view
   notifications:
     settings: Settings
     title: Notifications

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Infrastructure\Doctrine;
 
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Shared\Domain\Id;
 use Foresi\Work\Application\Comments;
@@ -32,6 +33,15 @@ final readonly class DoctrineComments implements Comments
         return $this->entityManager
             ->createQuery('SELECT c, a, u FROM '.TaskComment::class.' c JOIN c.author a JOIN a.user u WHERE c.task = :task ORDER BY c.createdAt ASC, c.id ASC')
             ->setParameter('task', $task->id())
+            ->getResult();
+    }
+
+    public function deletedBefore(\DateTimeImmutable $moment): array
+    {
+        /* @var list<TaskComment> */
+        return $this->entityManager
+            ->createQuery('SELECT c FROM '.TaskComment::class." c WHERE c.deletedAt IS NOT NULL AND c.deletedAt < :moment AND c.body <> '' ORDER BY c.deletedAt ASC, c.id ASC")
+            ->setParameter('moment', $moment, Types::DATETIME_IMMUTABLE)
             ->getResult();
     }
 

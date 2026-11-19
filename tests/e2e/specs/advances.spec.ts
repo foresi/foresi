@@ -38,8 +38,8 @@ test.describe.serial('advances and tax documents on payment', () => {
       await page.setViewportSize(size);
       await page.goto('/advances');
       await expect(page.getByRole('heading', { level: 1 })).toHaveText('Zálohové faktury');
-      // The advances waiting for a tax document are a list of their own, in the "More views" menu.
-      await expect(page.locator('[data-more-views] a', { hasText: 'Chybí daňový doklad' })).toContainText('1');
+      // The advances waiting for a tax document are a tab of the advances, after their views.
+      await expect(page.locator('main nav a[href="/advances/needs-tax-document"]')).toContainText('1');
       await expect(page.locator('[data-table-footer]')).toContainText('2 zálohové faktury');
       await expectNoSeriousViolations(page);
       await expectNoSidewaysScroll(page);

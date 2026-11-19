@@ -46,6 +46,7 @@ use Foresi\Invoicing\Domain\SeriesFormat;
 use Foresi\Invoicing\Domain\TaxOnReceiptChoice;
 use Foresi\Invoicing\Infrastructure\Form\InvoiceErrorTargets;
 use Foresi\Invoicing\Infrastructure\Form\InvoiceFormReader;
+use Foresi\Invoicing\Infrastructure\View\TaxDocumentQueueRecordCounter;
 use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
@@ -62,6 +63,8 @@ use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
@@ -72,6 +75,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Yaml\Yaml;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -1105,8 +1109,14 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSelectorTextContains('h1', 'Paid advances without a tax document');
         self::assertSelectorTextContains('main table', 'Z920260001');
         self::assertSelectorTextContains('main table', '14 days left');
-        // A list of its own, in the "More views" menu after the tabs (saved views, D12).
-        self::assertSelectorExists('main [data-more-views] a[href="/advances/needs-tax-document"][aria-checked="true"]');
+        // A tab of the advances (A1): their tabs lead back, its own is the one open; the controls of every list (docs/design/list-pages.md).
+        self::assertSame(['All1', 'Paid1', 'Unpaid0', 'Overdue0', 'Unsettled1', 'Trash0', 'Needs tax document1'], $crawler->filter('main nav[aria-label="Invoice lists"] a')->each(static fn (Crawler $tab): string => trim($tab->text())));
+        self::assertSelectorExists('main nav a[href="/advances?view=paid"]');
+        self::assertSelectorExists('main nav a[href="/advances/needs-tax-document"][aria-current="page"]');
+        self::assertSelectorNotExists('main nav a[href="/advances"][aria-current]');
+        self::assertCount(1, $crawler->filter('main [data-filter-builder], main [data-filter-sheet-form]')->slice(0, 1));
+        self::assertCount(1, $crawler->filter('#tax-document-queue-columns, [id^="tax-document-queue-columns"]')->slice(0, 1));
+        self::assertSelectorExists('a[href="/advances"]');
         self::assertSelectorTextContains('[data-shell-notices]', 'A paid advance waits for a tax document, the first by 2026-11-15.');
         $form = $crawler->filter('form[action$="/tax-document"]')->form();
 
@@ -1120,17 +1130,77 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertCount(1, $documents);
     }
 
-    public function testTheAdvanceListLinksToTheAdvancesWaitingForATaxDocument(): void
+    public function testTheAdvancesWaitingForATaxDocumentHaveTheControlsOfEveryList(): void
+    {
+        $this->signedIn();
+        $this->paidAdvanceWithoutTaxDocument();
+        $numbers = static fn (Crawler $crawler): array => $crawler->filter('main tbody tr td:first-child a')->each(static fn (Crawler $cell): string => trim($cell->text()));
+        $tabs = static fn (Crawler $crawler): array => $crawler->filter('main nav[aria-label="Invoice lists"] a[href^="/advances/needs-tax-document"]')->each(static fn (Crawler $tab): string => trim($tab->text()));
+        $more = static fn (Crawler $crawler): array => $crawler->filter('main [data-more-views] a')->each(static fn (Crawler $item): string => trim($item->text()));
+
+        // The All tab is the old address, as ?tab= names it on every list.
+        $crawler = $this->client->request('GET', '/advances/needs-tax-document?tab=all');
+        self::assertSame(['Z920260001'], $numbers($crawler));
+        self::assertSame(['Needs tax document1'], $tabs($crawler));
+        self::assertSame([], $more($crawler));
+        self::assertCount(1, $crawler->filter('[data-column-picker-form]'));
+        self::assertSame('More views', trim($this->client->request('GET', '/advances')->filter('[data-more-views]')->filter('button, summary')->first()->text()));
+
+        // The search, the builder and the sort narrow and order the rows, as on every list.
+        self::assertSame([], $numbers($this->client->request('GET', '/advances/needs-tax-document?q=nobody')));
+        self::assertSame(['Z920260001'], $numbers($this->client->request('GET', '/advances/needs-tax-document?q=z9202&sort=-number')));
+        $this->client->request('GET', '/advances/needs-tax-document?'.http_build_query(['conditions' => '1', 'c' => [
+            ['field' => 'customer', 'op' => 'contains', 'value' => 'other'],
+        ]]));
+        self::assertResponseStatusCodeSame(303);
+        $crawler = $this->client->followRedirect();
+        self::assertSame([], $numbers($crawler));
+        self::assertSame(['Needs tax document, unsaved changes1'], $tabs($crawler), 'the tab counts the queue and marks the change');
+        self::assertSelectorTextContains('main', 'Nothing matches these filters');
+
+        $this->client->submit($crawler->filter('[data-view-save-as-form]')->form(['name' => 'Other customers']));
+        $crawler = $this->client->followRedirect();
+        // A view saved on the queue waits under More views, open there; the queue's tab is not.
+        self::assertSame(['Needs tax document1'], $tabs($crawler));
+        self::assertSelectorNotExists('main nav a[aria-current]');
+        self::assertSame(['Other customers'], $more($crawler));
+        self::assertSame([], $numbers($crawler));
+
+        // The Columns sheet hides a column.
+        $crawler = $this->client->request('GET', '/advances/needs-tax-document?cols=number,deadline');
+        self::assertSame(['Advance invoice', 'Deadline', 'Actions'], $crawler->filter('main thead th')->each(static fn (Crawler $th): string => trim($th->text())));
+    }
+
+    public function testTheRecordCounterCountsTheListsATaxDocumentWaitsIn(): void
+    {
+        $this->signedIn();
+        $this->cancelledTaxDocument(deducted: true);
+        $counter = self::getContainer()->get(TaxDocumentQueueRecordCounter::class);
+
+        self::assertSame(['invoicing.advances_missing_tax_document', 'invoicing.tax_documents_uncorrected'], $counter->lists());
+        self::assertSame('invoices:read', $counter->scope());
+        self::assertSame(1, $counter->count('invoicing.tax_documents_uncorrected', new ViewFilter()));
+        self::assertSame(1, $counter->count('invoicing.tax_documents_uncorrected', ViewFilter::all(new Condition('deducted', 'is', true))));
+        self::assertSame(0, $counter->count('invoicing.tax_documents_uncorrected', ViewFilter::all(new Condition('deducted', 'is', false))));
+        self::assertSame(0, $counter->count('invoicing.advances_missing_tax_document', new ViewFilter()), 'its payment was cancelled');
+        $this->expectException(\InvalidArgumentException::class);
+        $counter->count('party.contacts', new ViewFilter());
+    }
+
+    public function testTheAdvanceListHasATabOfTheAdvancesWaitingForATaxDocument(): void
     {
         $this->signedIn();
         $this->paidAdvanceWithoutTaxDocument();
 
         $crawler = $this->client->request('GET', '/advances');
 
-        $item = $crawler->filter('main [data-more-views] a[href="/advances/needs-tax-document"]');
-        self::assertSame('Needs tax document1', trim($item->text()));
-        $this->client->request('GET', '/invoices');
+        // A tab after the views, never active on the list itself (A1).
+        $tab = $crawler->filter('main nav a[href="/advances/needs-tax-document"]');
+        self::assertSame('Needs tax document1', trim($tab->text()));
+        self::assertNull($tab->attr('aria-current'));
         self::assertSelectorNotExists('main [data-more-views] a[href="/advances/needs-tax-document"]');
+        $this->client->request('GET', '/invoices');
+        self::assertSelectorNotExists('main nav a[href="/advances/needs-tax-document"]');
     }
 
     public function testTheAdvanceListShowsWhatNoFinalInvoiceDeductedYet(): void
@@ -1140,8 +1210,8 @@ final class InvoiceControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/advances', ['tab' => 'unsettled']);
 
-        self::assertSame(['All1', 'Paid1', 'Unpaid0', 'Overdue0', 'Unsettled1', 'Trash0'], $crawler->filter('main nav a')->each(static fn ($link): string => trim($link->text())));
-        self::assertSame(['Needs tax document1'], $crawler->filter('main [data-more-views] a')->each(static fn ($link): string => trim($link->text())));
+        self::assertSame(['All1', 'Paid1', 'Unpaid0', 'Overdue0', 'Unsettled1', 'Trash0', 'Needs tax document1'], $crawler->filter('main nav a')->each(static fn ($link): string => trim($link->text())));
+        self::assertSame([], $crawler->filter('main [data-more-views] a')->each(static fn ($link): string => trim($link->text())));
         self::assertSelectorExists('main nav a[href="/advances?view=unsettled"][aria-current="page"]');
         self::assertSelectorTextContains('main table', $advance->number());
     }
@@ -1209,8 +1279,8 @@ final class InvoiceControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/tax-documents', ['tab' => 'settled']);
 
-        self::assertSame(['All1', 'Settled0', 'Unsettled1', 'Trash0'], $crawler->filter('main nav a')->each(static fn ($link): string => trim($link->text())));
-        self::assertSame(['Waiting for correction0'], $crawler->filter('main [data-more-views] a')->each(static fn ($link): string => trim($link->text())));
+        self::assertSame(['All1', 'Settled0', 'Unsettled1', 'Trash0', 'Waiting for correction0'], $crawler->filter('main nav a')->each(static fn ($link): string => trim($link->text())));
+        self::assertSame([], $crawler->filter('main [data-more-views] a')->each(static fn ($link): string => trim($link->text())));
         self::assertSelectorTextContains('main', 'Nothing is settled yet');
         $this->client->request('GET', '/tax-documents', ['tab' => 'unsettled']);
         self::assertSelectorTextContains('main table', 'D820260001');
@@ -1281,12 +1351,15 @@ final class InvoiceControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/tax-documents/needs-correction');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorExists('main [data-more-views] a[href="/tax-documents/needs-correction"][aria-checked="true"]');
+        $tabs = static fn (Crawler $crawler): array => $crawler->filter('main nav[aria-label="Invoice lists"] a')->each(static fn (Crawler $tab): string => trim($tab->text()));
+        self::assertSame(['All1', 'Settled1', 'Unsettled0', 'Trash0', 'Waiting for correction1'], $tabs($crawler));
+        self::assertSelectorExists('main nav a[href="/tax-documents/needs-correction"][aria-current="page"]');
+        self::assertSelectorExists('a[href="/tax-documents"]');
         self::assertStringContainsString($document->number(), $crawler->filter('main table')->text());
         self::assertStringContainsString('deducted on a final invoice', $crawler->filter('main table')->text());
         self::assertSelectorExists('main table a[href="/invoices/'.$document->id().'/correct"]');
-        $this->client->request('GET', '/tax-documents');
-        self::assertSelectorTextContains('main [data-more-views] a[href="/tax-documents/needs-correction"]', '1');
+        // The list counts its tabs as the queue's page does.
+        self::assertSame($tabs($crawler), $tabs($this->client->request('GET', '/tax-documents')));
         self::assertSelectorTextContains('body', 'A tax document waits for a corrective document');
     }
 

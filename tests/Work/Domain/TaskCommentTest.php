@@ -73,17 +73,34 @@ final class TaskCommentTest extends TestCase
         $comment->edit('', new \DateTimeImmutable('2026-11-07 11:00'));
     }
 
-    public function testDeletingKeepsTheCommentButClearsItsText(): void
+    public function testDeletingKeepsTheTextForARestoreAndWhoDeletedIt(): void
     {
         $comment = $this->comment('Secret');
-        $comment->delete(new \DateTimeImmutable('2026-11-07 09:00'));
-        $comment->delete(new \DateTimeImmutable('2026-11-07 10:00'));
+        $comment->restore();
+        $comment->purge();
+        self::assertSame([false, 'Secret'], [$comment->isDeleted(), $comment->text()]);
 
-        self::assertTrue($comment->isDeleted());
-        self::assertSame(['', '2026-11-07 09:00'], [$comment->text(), $comment->deletedAt()?->format('Y-m-d H:i')]);
+        $comment->delete('user-1', new \DateTimeImmutable('2026-11-07 09:00'));
+        $comment->delete('user-2', new \DateTimeImmutable('2026-11-07 10:00'));
+        self::assertSame([true, true, 'Secret', 'user-1', '2026-11-07 09:00'], [$comment->isDeleted(), $comment->isRestorable(), $comment->text(), $comment->deletedBy(), $comment->deletedAt()?->format('Y-m-d H:i')]);
 
+        $comment->restore();
+        self::assertSame([false, null, null, 'Secret'], [$comment->isDeleted(), $comment->deletedAt(), $comment->deletedBy(), $comment->text()]);
+
+        $comment->delete('user-1', new \DateTimeImmutable('2026-11-07 11:00'));
         $this->expectException(\DomainException::class);
         $comment->edit('Again', new \DateTimeImmutable('2026-11-07 11:00'));
+    }
+
+    public function testThePurgeClearsTheTextForGood(): void
+    {
+        $comment = $this->comment('Secret');
+        $comment->delete('user-1', new \DateTimeImmutable('2026-11-07 09:00'));
+        $comment->purge();
+        self::assertSame([true, false, ''], [$comment->isDeleted(), $comment->isRestorable(), $comment->text()]);
+
+        $this->expectException(\DomainException::class);
+        $comment->restore();
     }
 
     public function testTheBodyIsCheckedAndTrimmedWithoutAComment(): void
