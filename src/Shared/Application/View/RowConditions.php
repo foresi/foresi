@@ -46,13 +46,14 @@ final readonly class RowConditions
 
     private static function matches(Field $field, Condition $condition, mixed $actual, \DateTimeImmutable $today): bool
     {
-        $empty = null === $actual || (FieldType::Text === $field->type && '' === $actual);
+        $empty = null === $actual || (FieldType::Text === $field->type && '' === $actual) || (FieldType::MultiEnum === $field->type && [] === $actual);
 
         return match ($condition->op) {
             'is_empty' => $empty,
             'is_not_empty' => !$empty,
             default => match ($field->type) {
                 FieldType::Enum, FieldType::Reference => self::choice($condition, $actual),
+                FieldType::MultiEnum => self::set($condition, \is_array($actual) ? $actual : []),
                 FieldType::Boolean => $actual === $condition->value,
                 FieldType::Text => self::text($condition, \is_string($actual) ? $actual : null),
                 FieldType::Number => !$empty && self::number($condition, $actual),
@@ -67,6 +68,24 @@ final readonly class RowConditions
         $in = null !== $actual && \in_array($actual, $values, true);
 
         return \in_array($condition->op, ['is_not', 'is_none_of'], true) ? !$in : $in;
+    }
+
+    /**
+     * A row holds a list of values: any, all or none of the wanted ones.
+     *
+     * @param array<mixed> $actual
+     */
+    private static function set(Condition $condition, array $actual): bool
+    {
+        $wanted = array_values(array_filter(\is_array($condition->value) ? $condition->value : [$condition->value], \is_string(...)));
+        $held = array_intersect($wanted, array_filter($actual, \is_string(...)));
+
+        return match ($condition->op) {
+            'has_any_of' => [] !== $held,
+            'has_all_of' => \count($held) === \count($wanted),
+            'has_none_of' => [] === $held,
+            default => throw new \LogicException('A checked operator matches.'),
+        };
     }
 
     private static function text(Condition $condition, ?string $actual): bool
