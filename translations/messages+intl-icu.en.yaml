@@ -527,6 +527,7 @@ system_mail:
   footer_organisation: 'Sent by {product} on behalf of {organisation}'
 saved_view:
   save: Save
+  more_views: More views
   save_as: Save as new view
   save_as_submit: Save view
   save_as_description: The list's filters, sort and columns become a view of their own.

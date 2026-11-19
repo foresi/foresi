@@ -131,7 +131,7 @@ final class McpServerTest extends ApiTestCase
 
         self::assertFalse($this->in($call, 'isError'));
         self::assertSame(ReadToolCall::UNTRUSTED_TEXT_NOTICE, $this->in($call, 'structuredContent', 'untrusted_text_notice'));
-        self::assertSame(['items' => $rest, 'next_cursor' => null], $this->in($call, 'structuredContent', 'data'));
+        self::assertSame(['items' => $rest, 'next_cursor' => null, 'applied_view' => null], $this->in($call, 'structuredContent', 'data'));
         self::assertSame($this->customerId, $this->in($call, 'structuredContent', 'data', 'items', '0', 'id'));
         $text = $this->text($call, 'content', '0', 'text');
         self::assertStringStartsWith(ReadToolCall::UNTRUSTED_TEXT_NOTICE."\n\n1 contact, newest first; no more match.\n\n", $text);

@@ -1067,6 +1067,7 @@ recurring:
       edit: Edit the recurring invoice
     summary: '{total, plural, one {# recurring invoice} other {# recurring invoices}}'
     tab:
+      all: All
       active: Active
       paused: Paused
       ended: Ended
@@ -1107,8 +1108,10 @@ recurring:
       title: No recurring invoices yet
       text: Create a new one, or make one from an issued invoice with Recurring invoice in its menu.
       from_invoice: Pick an invoice
-      filtered_title: Nothing here for this firm
-      reset: Show all firms
+      filtered_title: Nothing matches these filters
+      reset: Clear the filters
+      all: No recurring invoice
+      view: Nothing matches this view
       active: No active recurring invoice
       paused: Nothing is paused
       ended: Nothing has ended

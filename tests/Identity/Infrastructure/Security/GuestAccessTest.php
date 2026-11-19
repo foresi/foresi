@@ -68,7 +68,7 @@ final class GuestAccessTest extends WebTestCase
         // The work shared with them: the projects index sends them to it, the project, its board and
         // the task are what they see of them, the rest what they do on a task they see. Each answers
         // 404 for what is not shared with them (tests/Work/Infrastructure/Controller/GuestWorkTest.php).
-        'app_projects', 'app_project', 'app_project_board', 'app_project_task_new', 'app_task_move', 'app_my_tasks',
+        'app_projects', 'app_project', 'app_project_board', 'app_project_people', 'app_project_task_new', 'app_task_move', 'app_my_tasks',
         'app_task', 'app_task_comment_add', 'app_task_comment_edit', 'app_task_comment_delete', 'app_task_mention_candidates',
         'app_task_title', 'app_task_description', 'app_task_status', 'app_task_responsible', 'app_task_due', 'app_task_priority',
         'app_task_labels', 'app_task_section', 'app_task_watch', 'app_task_unwatch', 'app_task_watchers', 'app_task_subtask_new',

@@ -24,6 +24,7 @@ use Foresi\Party\Application\Query\ContactDetails;
 use Foresi\Party\Application\Query\ContactList;
 use Foresi\Party\Application\RefreshRegistryChecks;
 use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Application\View\ContactLists;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyBankAccount;
@@ -35,11 +36,22 @@ use Foresi\Party\Domain\VatId;
 use Foresi\Party\Infrastructure\Column\ContactSource;
 use Foresi\Party\Infrastructure\Form\PartySubmissionReader;
 use Foresi\Party\Infrastructure\Http\WebsiteLink;
+use Foresi\Party\Infrastructure\View\ContactViews;
+use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Application\View\FilterRows;
+use Foresi\Shared\Application\View\ListView;
+use Foresi\Shared\Application\View\ListViews;
+use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Application\View\ViewState;
+use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Column\ListColumnRegistry;
+use Foresi\Ui\Column\RememberedDisplay;
 use Foresi\Ui\Column\WorkingDisplay;
 use Foresi\Ui\Column\WorkingState;
 use Foresi\Ui\Component\DataTable;
+use Foresi\Ui\View\ViewBar;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -62,7 +74,7 @@ final class PartyController extends AbstractController
 {
     public const string ACTION_TOKEN = 'party_action';
 
-    private const array VIEWS = ['all', 'customers', 'suppliers', 'archived'];
+    private const string DEFAULT_SORT = 'name';
     private const array TABS = ['overview', 'contacts', 'addresses', 'bank-accounts', 'history'];
     public const int MAX_BULK = 1000;
     public const int MAX_SEARCH = 100;
@@ -84,51 +96,63 @@ final class PartyController extends AbstractController
         #[Autowire(service: 'limiter.party_refresh_checks')]
         private readonly RateLimiterFactory $refreshLimiter,
         private readonly ContactSource $contactSource,
-        private readonly WorkingDisplay $workingDisplay,
         private readonly ListColumnRegistry $listColumns,
+        private readonly RememberedDisplay $rememberedDisplay,
+        private readonly ContactViews $contactViews,
+        private readonly ViewBar $viewBar,
+        private readonly FilterSheet $filterSheet,
     ) {
     }
 
     #[Route('/contacts', name: 'app_contacts', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $view = $request->query->getString('view', 'all');
-        $view = \in_array($view, self::VIEWS, true) ? $view : 'all';
+        // The builder's rows (spec D11) become the list's working filter, in its address.
+        if ($request->query->has(FilterRows::MARKER)) {
+            return $this->redirectToRoute('app_contacts', $this->builtQuery($request->query), Response::HTTP_SEE_OTHER);
+        }
+        [$views, $view, $shown] = $this->contactViews->of($request->query);
+        $list = ContactLists::list();
+        $filterParam = WorkingFilter::param($shown, $view->filter);
         $text = trim(mb_substr($request->query->getString('q'), 0, self::MAX_SEARCH));
-        $sort = $request->query->getString('sort', 'name');
+        // A view keeps its own order; the address names the sort only when it differs (spec D10).
+        $viewSort = ViewState::sortParam($view->sort, self::DEFAULT_SORT);
         // By any attribute the list sorts by, under its key; an older key such as vat still sorts (spec DS2).
-        $sort = $this->listColumns->sort(ContactSource::LIST, $sort, 'name');
-        $role = match ($view) {
-            'customers' => PartyRole::Customer,
-            'suppliers' => PartyRole::Supplier,
-            default => null,
-        };
+        $sort = $this->listColumns->sort(ContactSource::LIST, $request->query->getString('sort', $viewSort), self::DEFAULT_SORT);
 
         [$importedBy, $importName] = $this->importedBy($request->query);
-        $page = $this->contacts->search($text, $role, 'archived' === $view, $sort, max(1, $request->query->getInt('page', 1)), $importedBy);
+        $page = $this->contacts->inView($text, $shown, $this->counted($views), $sort, max(1, $request->query->getInt('page', 1)), $importedBy);
         $counts = $this->contacts->counts();
-        // The columns and density changed in the Columns sheet, kept in the address (spec D10); the contacts have no saved views yet.
-        $working = $this->workingDisplay->read(ContactSource::LIST, [], null, $request->query->all());
-        $query = ['view' => 'all' === $view ? null : $view, 'q' => '' === $text ? null : $text, 'sort' => 'name' === $sort ? null : $sort]
-            + ($importedBy instanceof ImportedBy ? ['import' => $importedBy->importId, 'outcome' => $importedBy->outcome] : [])
-            + $working->query;
+        $import = $importedBy instanceof ImportedBy ? ['import' => $importedBy->importId, 'outcome' => $importedBy->outcome] : [];
+        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value) + $import;
+        // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $working = $this->rememberedDisplay->read(ContactSource::LIST, [], $list->key, $view, $request->query->all());
+        $query += $working->query;
+        $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, self::DEFAULT_SORT, $working, 'app_contacts', '' === $text ? [] : ['q' => $text]);
+        $archived = [] !== array_filter($shown->on(ContactLists::ARCHIVED), static fn (Condition $condition): bool => true === $condition->value);
 
         return $this->render('@Party/index.html.twig', [
             'firstRun' => 0 === $counts->all && 0 === $counts->archived,
-            'view' => $view,
+            'view' => $view->isAll() ? '' : $view->key,
+            // The archived contacts are archived already: the list offers no bulk archive.
+            'archived' => $archived,
+            'working' => $filterParam ?? '',
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl('app_contacts', [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true]))),
             'text' => $text,
             'sort' => $sort,
+            'sortKept' => $viewSort === $sort ? null : $sort,
+            ...$bar,
             'page' => $page,
-            'tabs' => $this->tabs($view, $text, $counts->all, $counts->customers, $counts->suppliers, $counts->archived, $working),
+            ...$this->tabs($views, $view->key, $page, $query, $bar['viewBar']['modified']),
             'columns' => $working->display->table($sort, fn (string $next): string => $this->generateUrl('app_contacts', ['sort' => $next, 'page' => null] + $query)),
             'rows' => $this->rows($page, $working),
             'density' => $working->tableDensity(),
             'picker' => $this->picker($working, $query),
             'workingQuery' => $working->query,
             'baseUrl' => $this->generateUrl('app_contacts', $query),
-            'filtered' => '' !== $text || 'all' !== $view || $importedBy instanceof ImportedBy,
+            'filtered' => '' !== $text || null !== $filterParam || $importedBy instanceof ImportedBy,
             'importedBy' => $importedBy instanceof ImportedBy ? ['text' => $this->translator->trans('party.imported_by.'.$importedBy->outcome, ['name' => $importName]), 'href' => $this->imports->summaryUrl($importedBy->importId)] : null,
-            'listQuery' => ['view' => $view, 'q' => $text] + ($importedBy instanceof ImportedBy ? ['import' => $importedBy->importId, 'outcome' => $importedBy->outcome] : []),
+            'listQuery' => ['view' => $view->isAll() ? '' : $view->key, 'q' => $text, 'f' => $filterParam ?? ''] + $import,
         ]);
     }
 
@@ -330,23 +354,63 @@ final class PartyController extends AbstractController
     }
 
     /**
-     * @return list<array{label: string, href: string, count: int, active: bool}>
+     * The views that show a count, by key: the primary tabs alone (spec D9).
+     *
+     * @param list<ListView> $views
+     *
+     * @return array<string, ViewFilter>
      */
-    private function tabs(string $view, string $text, int $all, int $customers, int $suppliers, int $archived, WorkingState $working): array
+    private function counted(array $views): array
     {
-        $tabs = [];
-        foreach (['all' => $all, 'customers' => $customers, 'suppliers' => $suppliers, 'archived' => $archived] as $key => $count) {
-            $tabs[] = [
-                'label' => $this->translator->trans('party.view.'.$key),
-                // The tabs share one display, so the columns changed on one stay on the others.
-                'href' => $this->generateUrl('app_contacts', ['view' => 'all' === $key ? null : $key, 'q' => '' === $text ? null : $text] + $working->query),
-                'count' => $count,
-                'active' => $key === $view,
-                'modified' => $key === $view && $working->modified,
-            ];
+        $counted = [];
+        foreach (ListViews::placed($views)[0] as $tab) {
+            if ($tab->showCount) {
+                $counted[$tab->key] = $tab->filter;
+            }
         }
 
-        return $tabs;
+        return $counted;
+    }
+
+    /**
+     * The list's address after the builder's Apply: what the sheet sent, its rows read
+     * into the working filter, which is left out when it is the view's own.
+     *
+     * @param InputBag<string> $input
+     *
+     * @return array<string, mixed>
+     */
+    private function builtQuery(InputBag $input): array
+    {
+        [, $view] = $this->contactViews->of($input);
+        $query = array_diff_key($input->all(), [FilterRows::PARAM => true, FilterRows::MARKER => true, WorkingFilter::PARAM => true, 'page' => true]);
+
+        return array_filter($query + [WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), ContactLists::list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
+    }
+
+    /**
+     * The tabs of the list and its "More views" menu (spec D7): All and the primary views
+     * as tabs, with the count of those that show one; the other views in the menu.
+     *
+     * @param list<ListView>        $views
+     * @param array<string, string> $query
+     *
+     * @return array{tabs: list<array<string, mixed>>, moreViews: list<array<string, mixed>>}
+     */
+    private function tabs(array $views, string $active, PartyPage $page, array $query, bool $modified): array
+    {
+        [$primary, $overflow] = ListViews::placed($views);
+        $link = fn (ListView $view, bool $count): array => [
+            'label' => $view->translated ? $this->translator->trans($view->name) : $view->name,
+            // A view opens with its own filter and columns: the changed ones belong to the view they were changed on (spec D10).
+            'href' => $this->generateUrl('app_contacts', ['view' => $view->isAll() ? null : $view->key] + array_diff_key($query, ['view' => true, 'page' => true, WorkingFilter::PARAM => true] + array_flip(WorkingDisplay::KEYS))),
+            'count' => $count && $view->showCount ? ($page->counts[$view->key] ?? null) : null,
+            'active' => $view->key === $active,
+            'modified' => $modified && $view->key === $active,
+            'private' => $view->private,
+        ];
+
+        return ['tabs' => array_map(static fn (ListView $view): array => $link($view, true), $primary), 'moreViews' => array_map(static fn (ListView $view): array => $link($view, false), $overflow)];
     }
 
     /**
@@ -364,7 +428,8 @@ final class PartyController extends AbstractController
             'keep' => $kept,
             'columns' => $working->picker(),
             'density' => $working->density,
-            'resetHref' => $this->generateUrl('app_contacts', $kept),
+            // An empty density names the view's own display, which forgets the one remembered (D-display-3).
+            'resetHref' => $this->generateUrl('app_contacts', $kept + [WorkingDisplay::DENSITY => '']),
             'modified' => $working->modified,
         ];
     }

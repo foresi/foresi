@@ -527,6 +527,7 @@ system_mail:
   footer_organisation: 'Odesláno systémem {product} jménem {organisation}'
 saved_view:
   save: Uložit
+  more_views: Další pohledy
   save_as: Uložit jako nový pohled
   save_as_submit: Uložit pohled
   save_as_description: Filtry, řazení a sloupce seznamu se stanou samostatným pohledem.

@@ -15,8 +15,9 @@ use Foresi\Purchasing\Application\Query\ReceivedDocumentFilter;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentList;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentQueries;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentSliceFilter;
-use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
-use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Purchasing\Application\View\ReceivedDocumentLists;
+use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Tests\Purchasing\Application\PurchasingTestCase;
 
 final class ReceivedDocumentListTest extends PurchasingTestCase
@@ -63,60 +64,53 @@ final class ReceivedDocumentListTest extends PurchasingTestCase
         ], $this->list(new ListedQueries())->activeFirms());
     }
 
-    public function testAKnownFirmAndSupplierNarrowTheList(): void
+    public function testAKnownFirmNarrowsTheList(): void
     {
         $queries = new ListedQueries();
-        $queries->suppliers = ['supplier-1' => 'Supplier Example s.r.o.'];
         $archived = $this->firm('Old Firm s.r.o.', '25596641');
         $archived->archive($this->clock->now());
         $this->em->flush();
+        $view = ViewFilter::all(new Condition(ReceivedDocumentLists::KIND, 'is', 'credit_note'));
+        $counted = ['drafts' => new ViewFilter()];
 
-        $page = $this->list($queries)->page(new ReceivedDocumentFilter(ReceivedDocumentFilter::RECORDED, $this->firm->id(), '2026-10', 'supplier-1'));
+        $page = $this->list($queries)->page(new ReceivedDocumentFilter(ReceivedDocumentFilter::RECORDED, $this->firm->id(), '2026-10', view: $view, counted: $counted));
 
         self::assertSame($this->firm->id(), $page->filter->firmId);
-        self::assertSame('supplier-1', $page->filter->supplierId);
         self::assertSame('2026-10', $page->filter->month);
         self::assertSame(ReceivedDocumentFilter::RECORDED, $page->filter->tab);
+        self::assertSame($view, $page->filter->view);
+        self::assertSame($counted, $page->filter->counted);
         self::assertSame([$this->firm->id(), $archived->id()], array_keys($page->firms), 'Every firm of the organisation, the archived one too.');
-        self::assertSame(['supplier-1' => 'Supplier Example s.r.o.'], $page->suppliers);
-        self::assertSame($this->firm->id(), $queries->suppliersOf);
         self::assertSame($this->firm->id(), $queries->monthsOf);
     }
 
-    public function testAFirmOrASupplierTheOrganisationDoesNotKnowIsNoFilter(): void
+    public function testAFirmTheOrganisationDoesNotKnowIsNoFilter(): void
     {
         $queries = new ListedQueries();
-        $queries->suppliers = ['supplier-1' => 'Supplier Example s.r.o.'];
 
-        $page = $this->list($queries)->page(new ReceivedDocumentFilter(ReceivedDocumentFilter::DRAFTS, 'other-firm', null, 'other-supplier'));
+        $page = $this->list($queries)->page(new ReceivedDocumentFilter(ReceivedDocumentFilter::DRAFTS, 'other-firm'));
 
         self::assertNull($page->filter->firmId);
-        self::assertNull($page->filter->supplierId);
-        self::assertNull($queries->suppliersOf);
         self::assertNull($queries->monthsOf);
         self::assertNull($queries->filters[0]->firmId);
-        self::assertNull($queries->filters[0]->supplierId);
     }
 
-    public function testNoFirmAndNoSupplierStayNone(): void
+    public function testAViewCountsWhatItHoldsOfEveryFirmMonthAndText(): void
     {
         $queries = new ListedQueries();
-        $queries->suppliers = ['' => 'Nameless'];
+        $queries->total = 4;
+        $view = ViewFilter::all(new Condition(ReceivedDocumentLists::TRASHED, 'is', true));
 
-        $page = $this->list($queries)->page(new ReceivedDocumentFilter());
+        self::assertSame(4, $this->list($queries)->count($view));
+        self::assertSame($view, $queries->filters[0]->view);
+        self::assertSame([], $queries->filters[0]->counted);
+        self::assertNull($queries->filters[0]->firmId);
+        self::assertNull($queries->filters[0]->month);
+        self::assertSame('', $queries->filters[0]->text);
 
-        self::assertNull($page->filter->firmId);
-        self::assertNull($page->filter->supplierId);
-    }
-
-    public function testTheKindAndTheTreatmentPassThrough(): void
-    {
-        $queries = new ListedQueries();
-
-        $page = $this->list($queries)->page(new ReceivedDocumentFilter(kind: ReceivedDocumentKind::CreditNote, treatment: PurchaseTaxTreatment::EuService));
-
-        self::assertSame(ReceivedDocumentKind::CreditNote, $page->filter->kind);
-        self::assertSame(PurchaseTaxTreatment::EuService, $page->filter->treatment);
+        $this->signIn($this->guest);
+        $this->expectException(PurchasingNotAllowed::class);
+        $this->list($queries)->count($view);
     }
 
     public function testTheTextIsCutToItsLimitAndTrimmed(): void
@@ -133,29 +127,23 @@ final class ReceivedDocumentListTest extends PurchasingTestCase
         self::assertSame('abc', $short->filter->text);
     }
 
-    public function testEveryTabCountsUnderTheSameFilter(): void
+    public function testThePageCarriesTheCountsOfTheViews(): void
     {
         $queries = new ListedQueries();
-        $queries->counts = [
-            ReceivedDocumentFilter::DRAFTS => 2,
-            ReceivedDocumentFilter::RECORDED => 3,
-            ReceivedDocumentFilter::TRASH => 1,
-        ];
-        $list = $this->list($queries);
+        $queries->total = 3;
+        $queries->counts = ['all' => 5, 'drafts' => 2, 'recorded' => 3, 'trash' => 1];
 
-        foreach (ReceivedDocumentFilter::TABS as $tab) {
-            $page = $list->page(new ReceivedDocumentFilter($tab, text: 'x'));
+        $page = $this->list($queries)->page(new ReceivedDocumentFilter(ReceivedDocumentFilter::RECORDED, text: 'x'));
 
-            self::assertSame($queries->counts, $page->tabCounts, $tab);
-            self::assertSame($queries->counts[$tab], $page->total, $tab);
-        }
+        self::assertSame($queries->counts, $page->counts);
+        self::assertSame(3, $page->total);
     }
 
     public function testThePagesAreTheTotalByThePageSizeRoundedUpAndNeverFewerThanOne(): void
     {
         foreach ([[0, 1], [1, 1], [25, 1], [26, 2], [50, 2], [51, 3], [60, 3], [250, 10]] as [$total, $pages]) {
             $queries = new ListedQueries();
-            $queries->counts = [ReceivedDocumentFilter::DRAFTS => $total];
+            $queries->total = $total;
 
             $page = $this->list($queries)->page(new ReceivedDocumentFilter());
 
@@ -168,7 +156,7 @@ final class ReceivedDocumentListTest extends PurchasingTestCase
     public function testARowsPageStartsAfterThePagesBefore(): void
     {
         $queries = new ListedQueries();
-        $queries->counts = [ReceivedDocumentFilter::DRAFTS => 60];
+        $queries->total = 60;
         $list = $this->list($queries);
 
         foreach ([[1, 0, 1], [2, 25, 2], [3, 50, 3]] as [$asked, $offset, $shown]) {
@@ -182,7 +170,7 @@ final class ReceivedDocumentListTest extends PurchasingTestCase
     public function testAPagePastTheLastIsTheLastAndOneBeforeTheFirstIsTheFirst(): void
     {
         $queries = new ListedQueries();
-        $queries->counts = [ReceivedDocumentFilter::DRAFTS => 60];
+        $queries->total = 60;
         $list = $this->list($queries);
 
         $past = $list->page(new ReceivedDocumentFilter(page: 99));
@@ -223,24 +211,22 @@ final class ReceivedDocumentListTest extends PurchasingTestCase
 final class ListedQueries implements ReceivedDocumentQueries
 {
     public int $drafts = 0;
+    public int $total = 0;
     /** @var array<string, int> */
     public array $counts = [];
-    /** @var array<string, string> */
-    public array $suppliers = [];
     /** @var list<string> */
     public array $months = [];
-    public ?string $suppliersOf = 'unasked';
     public ?string $monthsOf = 'unasked';
     /** @var list<ReceivedDocumentFilter> */
     public array $filters = [];
     /** @var array{int, int}|null */
     public ?array $lastRange = null;
 
-    public function count(ReceivedDocumentFilter $filter): int
+    public function counts(ReceivedDocumentFilter $filter): array
     {
         $this->filters[] = $filter;
 
-        return $this->counts[$filter->tab] ?? 0;
+        return [$this->total, $this->counts];
     }
 
     public function rows(ReceivedDocumentFilter $filter, int $offset, int $limit): array
@@ -253,13 +239,6 @@ final class ListedQueries implements ReceivedDocumentQueries
     public function drafts(): int
     {
         return $this->drafts;
-    }
-
-    public function suppliers(?string $firmId): array
-    {
-        $this->suppliersOf = $firmId;
-
-        return $this->suppliers;
     }
 
     public function months(?string $firmId): array

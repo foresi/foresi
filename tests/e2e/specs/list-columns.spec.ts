@@ -60,6 +60,16 @@ test.describe('list columns', () => {
 
     await expect(page).toHaveURL(/cols=name%2Ckind%2Croles%2Cregistration_number%2Cvat_id%2Cemail%2Cstatus%2Cphone/);
     await expect(page.locator('thead th')).toHaveText(['', 'Název', 'Druh', 'Role', 'IČO', 'DIČ', 'E-mail', 'Stav', 'Telefon']);
+
+    // The list remembers the changed columns for the person (D-display-3): opened again without
+    // any in the address, it still shows the added one, until Reset forgets them.
+    await page.goto('/contacts');
+    await expect(page.locator('thead th')).toHaveText(['', 'Název', 'Druh', 'Role', 'IČO', 'DIČ', 'E-mail', 'Stav', 'Telefon']);
+    await page.getByRole('button', { name: /Sloupce/ }).click();
+    await page.getByRole('dialog', { name: 'Sloupce' }).getByRole('link', { name: 'Obnovit výchozí' }).click();
+    await expect(page).not.toHaveURL(/cols=/);
+    await page.goto('/contacts');
+    await expect(page.locator('thead th')).toHaveText(['', 'Název', 'Druh', 'Role', 'IČO', 'DIČ', 'E-mail', 'Stav']);
   });
 
   test('moves a column by dragging its handle', async ({ page }) => {
