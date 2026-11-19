@@ -156,7 +156,6 @@ invoice:
       failed: Failed
     column:
       when: When
-      firm: Firm
       number: Document
       customer: Customer
       recipients: Recipients
@@ -1202,7 +1201,6 @@ reminder:
     send_help: When the firm reminds overdue invoices automatically.
   log:
     column: Type
-    all: All types
     purpose:
       invoice: Invoice
       reminder: Reminder

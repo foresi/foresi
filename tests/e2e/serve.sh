@@ -22,6 +22,10 @@ export BANK_INBOX_ADDRESS="bank+{token}@example.com"
 export BANK_INBOX_TRUSTED_AUTHSERV="mx.example.com"
 # The seed posts its bank mail as a relay would, through the webhook's channel.
 export INBOUND_WEBHOOK_TRUSTED_AUTHSERV="mx.example.com"
+# The seeded firms are Czech, so the instance's zone is Prague. A seed that counts its due
+# dates before it creates a firm would otherwise get UTC, the zone of an instance without
+# one, and between 23:00 and 24:00 UTC its today is the day before the application's.
+export APP_TIMEZONE="Europe/Prague"
 
 # Fresh state: the login throttle and the registry cache live in the file cache.
 rm -rf var/cache/e2e var/e2e

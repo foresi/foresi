@@ -156,7 +156,6 @@ invoice:
       failed: Neodešlo
     column:
       when: Kdy
-      firm: Firma
       number: Doklad
       customer: Zákazník
       recipients: Příjemci
@@ -1202,7 +1201,6 @@ reminder:
     send_help: Když firma posílá upomínky po splatnosti automaticky.
   log:
     column: Druh
-    all: Všechny druhy
     purpose:
       invoice: Faktura
       reminder: Upomínka

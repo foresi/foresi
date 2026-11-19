@@ -587,6 +587,11 @@ work:
     due_next_7_days: Next 7 days
     due_none: No date
   list:
+    views: Task views
+    tab:
+      all: All
+      mine: Mine
+      finished: Finished
     no_section: No section
     loose_caption: 'Tasks of {project}'
     empty: No tasks yet.
