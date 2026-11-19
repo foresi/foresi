@@ -91,7 +91,7 @@ final readonly class PlannedItemScreen
         foreach ($items as $item) {
             $next[$item->id()] = $this->next($item);
         }
-        usort($items, static fn (PlannedItem $a, PlannedItem $b): int => [null === $next[$a->id()], $next[$a->id()]?->format('Y-m-d'), $a->name()] <=> [null === $next[$b->id()], $next[$b->id()]?->format('Y-m-d'), $b->name()]);
+        usort($items, static fn (PlannedItem $a, PlannedItem $b): int => [!$next[$a->id()] instanceof \DateTimeImmutable, $next[$a->id()]?->format('Y-m-d'), $a->name()] <=> [!$next[$b->id()] instanceof \DateTimeImmutable, $next[$b->id()]?->format('Y-m-d'), $b->name()]);
 
         return array_map(function (PlannedItem $item) use ($next): array {
             $on = $next[$item->id()];
@@ -206,7 +206,7 @@ final readonly class PlannedItemScreen
         return [
             'name' => $item->name(),
             'category' => $item->category()->value,
-            'amount' => self::field($item->amount(), $locale),
+            'amount' => $this->field($item->amount(), $locale),
             'currency' => $item->amount()->currency()->value,
             'on' => $item->firstOn()->format('Y-m-d'),
             'repeat' => $recurrence?->unit()->value ?? '',
@@ -220,7 +220,7 @@ final readonly class PlannedItemScreen
             'included' => $item->isIncluded() ? '1' : '',
             'matchAccount' => $match->counterpartyAccount() ?? '',
             'matchVariableSymbol' => $match->variableSymbol() ?? '',
-            'matchTolerance' => null === $tolerance ? '' : self::field(Money::ofMinor($tolerance, $item->amount()->currency()), $locale),
+            'matchTolerance' => null === $tolerance ? '' : $this->field(Money::ofMinor($tolerance, $item->amount()->currency()), $locale),
         ];
     }
 
@@ -308,7 +308,7 @@ final readonly class PlannedItemScreen
     /**
      * For a field, without grouping: "1500,00" in Czech, from the decimal the API writes.
      */
-    private static function field(Money $money, string $locale): string
+    private function field(Money $money, string $locale): string
     {
         $symbol = new \NumberFormatter($locale, \NumberFormatter::DECIMAL)->getSymbol(\NumberFormatter::DECIMAL_SEPARATOR_SYMBOL);
 
