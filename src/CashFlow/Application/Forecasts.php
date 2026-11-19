@@ -241,6 +241,7 @@ final class Forecasts
     private function line(ExpectedFlow $flow, array $expected, \DateTimeImmutable $today, \DateTimeImmutable $start, \DateTimeImmutable $end): ?ForecastLine
     {
         $override = $expected[$flow->subject->type.':'.$flow->subject->id] ?? null;
+        $sourceOn = $flow->expectedOn;
         if (FlowCertainty::Document === $flow->certainty && $override instanceof \DateTimeImmutable) {
             $flow = $flow->movedTo(new \DateTimeImmutable($override->format('Y-m-d'), $today->getTimezone()), FlowFlag::ExpectedDate);
         }
@@ -254,7 +255,7 @@ final class Forecasts
         }
         $amount = $this->czk($flow->amount, $today);
 
-        return $amount instanceof Money ? new ForecastLine($flow, $amount, $overdue ? $start : new \DateTimeImmutable($day, $today->getTimezone())) : null;
+        return $amount instanceof Money ? new ForecastLine($flow, $amount, $overdue ? $start : new \DateTimeImmutable($day, $today->getTimezone()), $sourceOn) : null;
     }
 
     /**

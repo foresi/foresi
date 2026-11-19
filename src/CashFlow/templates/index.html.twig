@@ -121,6 +121,19 @@
                         </div>
                     </div>
                 </section>
+
+                {# The documents the forecast counts, with the day each is due and the day it is expected on, as Float and Xero's expected payment date. A row opens the document in its own sheet. #}
+                <section aria-labelledby="cash-flow-documents-title" class="grid grid-cols-1 gap-2" data-cash-flow-documents>
+                    <div class="grid gap-0.5">
+                        <h2 id="cash-flow-documents-title" class="m-0 text-body font-semibold text-ink">{{ 'cash_flow.expected.title'|trans }}</h2>
+                        <p class="m-0 text-small text-muted">{{ 'cash_flow.expected.intro'|trans }}</p>
+                    </div>
+                    <twig:Ui:DataTable :caption="'cash_flow.expected.title'|trans" :columns="documentColumns" :rows="documentRows">
+                        <twig:block name="empty">
+                            <twig:Ui:EmptyState icon="file-text" :title="'cash_flow.expected.empty_title'|trans" :text="'cash_flow.expected.empty_text'|trans" />
+                        </twig:block>
+                    </twig:Ui:DataTable>
+                </section>
             {% endif %}
         </div>
     {% endif %}
