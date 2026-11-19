@@ -1,0 +1,40 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Entering the balance of a bank account at the end of a day, as Pulse takes its starting amount:
+    a small dialog over the Cash flow page, and the same form as a page of its own. Bank movements
+    booked after the day are added to it.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'cash_flow.title'|trans, href: path('app_cash_flow')}, {label: 'cash_flow.balance.title'|trans}] %}
+{% set dialog_size = 'sm' %}
+
+{% block title %}{{ 'cash_flow.balance.title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="cash-flow-balance-form" action="{{ path('app_cash_flow_balance') }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\CashFlow\\Infrastructure\\Controller\\CashFlowController::BALANCE_TOKEN')) }}">
+        <twig:Ui:Select name="account" id="account" :label="'cash_flow.balance.field.account'|trans" :options="accounts" :value="values.account" :error="errors.account|default(null)" required />
+        <div class="grid gap-4 sm:grid-cols-2">
+            <twig:Ui:TextInput type="date" name="on" id="on" :label="'cash_flow.balance.field.on'|trans" :value="values.on" :error="errors.on|default(null)" max="{{ today }}" required />
+            <twig:Ui:TextInput name="amount" id="amount" :label="'cash_flow.balance.field.amount'|trans" :value="values.amount" :error="errors.amount|default(null)" inputmode="decimal" autocomplete="off" required />
+        </div>
+        <p class="m-0 text-caption text-muted">{{ 'cash_flow.balance.hint'|trans }}</p>
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'cash_flow.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="cash-flow-balance-form" variant="primary">{{ 'cash_flow.save'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'cash_flow.balance.title'|trans" icon="landmark" class="max-w-2xl">{{ body }}</twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_cash_flow')">{{ 'cash_flow.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="cash-flow-balance-form" variant="primary">{{ 'cash_flow.save'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

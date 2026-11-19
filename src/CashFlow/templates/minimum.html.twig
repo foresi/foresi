@@ -1,0 +1,40 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The balance the firm wants to keep, in CZK: the forecast then names the first day it falls below it,
+    a date on screen and not an alert, as Float shows its threshold. Save, and Clear once it is set.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'cash_flow.title'|trans, href: path('app_cash_flow')}, {label: 'cash_flow.minimum.title'|trans}] %}
+{% set dialog_size = 'sm' %}
+{% set dialog_description = 'cash_flow.minimum.description'|trans %}
+
+{% block title %}{{ 'cash_flow.minimum.title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="cash-flow-minimum-form" action="{{ path('app_cash_flow_minimum') }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\CashFlow\\Infrastructure\\Controller\\CashFlowController::MINIMUM_TOKEN')) }}">
+        <twig:Ui:TextInput name="amount" id="amount" :label="'cash_flow.minimum.field.amount'|trans" :help="'cash_flow.minimum.field.amount_help'|trans" :value="values.amount" :error="errors.amount|default(null)" inputmode="decimal" autocomplete="off" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    {% if set %}<twig:Ui:Button type="submit" form="cash-flow-minimum-form" name="clear" value="1" variant="danger" class="mr-auto" data-cash-flow-minimum-clear>{{ 'cash_flow.minimum.clear'|trans }}</twig:Ui:Button>{% endif %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'cash_flow.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="cash-flow-minimum-form" variant="primary">{{ 'cash_flow.save'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'cash_flow.minimum.title'|trans" icon="target" class="max-w-2xl">
+        <p class="mt-0 mb-4 text-small text-muted">{{ 'cash_flow.minimum.description'|trans }}</p>
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            {% if set %}<twig:Ui:Button type="submit" form="cash-flow-minimum-form" name="clear" value="1" variant="danger">{{ 'cash_flow.minimum.clear'|trans }}</twig:Ui:Button>{% endif %}
+            <twig:Ui:Button :href="path('app_cash_flow')">{{ 'cash_flow.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="cash-flow-minimum-form" variant="primary">{{ 'cash_flow.save'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

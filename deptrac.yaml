@@ -923,6 +923,8 @@ deptrac:
       - InstanceApplication
       - PartyDomain
       - IdentityApplication
+      # The screens: the navigation, the components and how an amount is shown.
+      - Ui
     # Purchasing builds on Party (firms and suppliers), Identity (people), the
     # attachment store, which keeps the original files, and the exchange rates;
     # no module uses Purchasing but the navigation of Ui, and it never uses

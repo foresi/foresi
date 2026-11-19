@@ -1,0 +1,110 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The Cash flow page under Money: the four figures Float and QuickBooks lead with (the balance today
+    and where it comes from, the lowest point, the minimum balance as a date on screen, the end of the
+    horizon), what the forecast is missing, and the periods as a table, as Agicap lays out categories as
+    rows and periods as columns. A cell with money opens its items in the sheet. Enter balance and the
+    minimum balance are small dialogs from the header.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'cash_flow.title'|trans}] %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+
+{% block title %}{{ 'cash_flow.title'|trans }}{% endblock %}
+
+{% block actions %}
+    {% if not noFirm and not noAccount %}
+        <twig:Ui:MoreActions menuId="cash-flow-actions">
+            <twig:block name="buttons">
+                <twig:Ui:Button icon="landmark" :href="path('app_cash_flow_balance')" data-dialog aria-haspopup="dialog" data-cash-flow-balance>{{ 'cash_flow.balance.open'|trans }}</twig:Ui:Button>
+            </twig:block>
+            <twig:block name="phone">
+                <twig:Ui:MenuItem icon="landmark" :href="path('app_cash_flow_balance')" data-dialog aria-haspopup="dialog">{{ 'cash_flow.balance.open'|trans }}</twig:Ui:MenuItem>
+            </twig:block>
+            <twig:Ui:MenuItem icon="target" :href="path('app_cash_flow_minimum')" data-dialog aria-haspopup="dialog" data-cash-flow-minimum>{{ 'cash_flow.minimum.open'|trans }}</twig:Ui:MenuItem>
+        </twig:Ui:MoreActions>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% set messages %}
+        {% for message in app.flashes('success') %}<twig:Ui:Alert tone="success" role="status">{{ message }}</twig:Ui:Alert>{% endfor %}
+        {% for message in app.flashes('error') %}<twig:Ui:Alert tone="error" role="alert">{{ message }}</twig:Ui:Alert>{% endfor %}
+    {% endset %}
+    {% if messages|trim %}<div class="mb-4 grid gap-2">{{ messages }}</div>{% endif %}
+
+    {% if noFirm %}
+        <twig:Ui:EmptyState icon="building-2" :title="'cash_flow.empty.no_firm_title'|trans" :text="'cash_flow.empty.no_firm_text'|trans">
+            <twig:Ui:Button :href="path('app_firm')" variant="primary" icon="plus">{{ 'cash_flow.empty.no_firm_action'|trans }}</twig:Ui:Button>
+        </twig:Ui:EmptyState>
+    {% elseif noAccount %}
+        <twig:Ui:EmptyState icon="landmark" :title="'cash_flow.empty.no_account_title'|trans" :text="'cash_flow.empty.no_account_text'|trans" data-cash-flow-empty>
+            <twig:Ui:Button :href="path('app_firm_bank')" variant="primary" icon="plus">{{ 'cash_flow.empty.no_account_action'|trans }}</twig:Ui:Button>
+        </twig:Ui:EmptyState>
+    {% else %}
+        <div class="grid grid-cols-1 gap-4">
+            {% if alert %}
+                <twig:Ui:Alert tone="warning" :title="alert.title" icon="triangle-alert" data-cash-flow-alert>
+                    <ul class="m-0 grid list-none gap-1 p-0">
+                        {% for line in alert.lines %}<li>{{ line }}</li>{% endfor %}
+                    </ul>
+                    {# The empty state below leads with the same button, so the alert does not repeat it. #}
+                    {% if not empty %}<div class="mt-2">
+                        <twig:Ui:Button size="sm" icon="landmark" :href="path('app_cash_flow_balance', alert.account ? {account: alert.account} : {})" data-dialog aria-haspopup="dialog" data-cash-flow-alert-balance>{{ 'cash_flow.balance.open'|trans }}</twig:Ui:Button>
+                    </div>{% endif %}
+                </twig:Ui:Alert>
+            {% endif %}
+
+            {% if empty %}
+                <twig:Ui:EmptyState icon="trending-up" :title="'cash_flow.empty.title'|trans" :text="'cash_flow.empty.text'|trans" data-cash-flow-empty>
+                    <twig:Ui:Button variant="primary" icon="landmark" :href="path('app_cash_flow_balance', alert and alert.account ? {account: alert.account} : {})" data-dialog aria-haspopup="dialog">{{ 'cash_flow.balance.open'|trans }}</twig:Ui:Button>
+                </twig:Ui:EmptyState>
+            {% else %}
+                <twig:Ui:KpiStrip :items="kpis" data-cash-flow-kpis />
+
+                <section aria-labelledby="cash-flow-periods-title" class="grid grid-cols-1 gap-2">
+                    <h2 id="cash-flow-periods-title" class="m-0 text-body font-semibold text-ink">{{ 'cash_flow.table.title'|trans }}</h2>
+                    <div class="overflow-hidden rounded-panel border border-container bg-white">
+                        <div class="overflow-x-auto">
+                            <table class="w-full border-collapse text-small" data-cash-flow-table>
+                                <caption class="sr-only">{{ 'cash_flow.table.caption'|trans }}</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col" class="sticky left-0 z-10 h-row whitespace-nowrap border-b border-divider bg-head px-4 text-left text-caption font-medium text-muted"><span class="sr-only">{{ 'cash_flow.table.row'|trans }}</span></th>
+                                        {% for column in table.columns %}
+                                            <th scope="col" class="h-row whitespace-nowrap border-b border-divider bg-head px-4 text-right text-caption font-medium text-muted" data-period="{{ column.key }}">
+                                                <span class="block">{{ column.label }}</span>
+                                                {% if column.range %}<span class="block font-normal">{{ column.range }}</span>{% endif %}
+                                            </th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in table.rows %}
+                                        {% set strong = row.kind in ['opening', 'closing', 'total'] %}
+                                        <tr data-row="{{ row.kind }}" class="{{ row.kind == 'closing' ? 'bg-head' : '' }}">
+                                            <th scope="row" class="sticky left-0 z-10 h-row whitespace-nowrap border-b border-divider px-4 text-left {{ row.kind == 'closing' ? 'bg-head' : 'bg-white' }} {{ row.kind == 'category' ? 'pl-8 font-normal text-muted' : 'font-semibold text-ink' }}">{{ row.label }}</th>
+                                            {% for cell in row.cells %}
+                                                <td class="num h-row whitespace-nowrap border-b border-divider px-4 text-right {{ strong ? 'font-semibold' : '' }} {{ cell.below ? 'bg-badge-red text-badge-red-text' : (row.kind == 'category' ? 'text-muted' : 'text-ink') }}"{% if cell.below %} data-below-minimum{% endif %}>
+                                                    {%- if cell.href -%}
+                                                        <a href="{{ cell.href }}" data-sheet class="text-current underline decoration-control-line underline-offset-2 hover:decoration-ink {{ focus }}">{{ cell.text }}</a>
+                                                    {%- elseif cell.text -%}
+                                                        {{ cell.text }}
+                                                    {%- else -%}
+                                                        <span class="text-control-line" aria-hidden="true">–</span><span class="sr-only">{{ 'cash_flow.table.none'|trans }}</span>
+                                                    {%- endif -%}
+                                                    {%- if cell.below %}<span class="sr-only"> {{ 'cash_flow.table.below_minimum'|trans }}</span>{% endif -%}
+                                                </td>
+                                            {% endfor %}
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endblock %}

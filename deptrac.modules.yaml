@@ -275,6 +275,8 @@ deptrac:
       - party_contract
       - shared
       - shared_contract
+      - ui
+      - ui_contract
     cash_flow_contract:
       - audit
       - audit_contract
@@ -287,6 +289,7 @@ deptrac:
       - party_contract
       - shared
       - shared_contract
+      - ui_contract
     country:
       - country_contract
       - party
