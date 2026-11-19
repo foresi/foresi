@@ -10,6 +10,7 @@ namespace Foresi\Work\Infrastructure\Doctrine;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\LockMode;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Shared\Domain\Id;
@@ -69,6 +70,16 @@ final readonly class DoctrineTimeEntries implements TimeEntries
             ->getSingleColumnResult();
 
         return $ids;
+    }
+
+    public function trashedBefore(\DateTimeImmutable $moment): array
+    {
+        /** @var list<TimeEntry> $entries */
+        $entries = $this->entityManager->createQuery('SELECT e FROM '.TimeEntry::class.' e WHERE e.deletedAt IS NOT NULL AND e.deletedAt < :moment ORDER BY e.deletedAt ASC, e.id ASC')
+            ->setParameter('moment', $moment, Types::DATETIME_IMMUTABLE)
+            ->getResult();
+
+        return $entries;
     }
 
     public function add(TimeEntry $entry): void

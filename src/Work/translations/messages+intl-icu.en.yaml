@@ -98,6 +98,7 @@ work:
     time_not_yours: Only whoever logged the time or an owner of the organisation can change or delete it.
     time_invoiced: This time has been invoiced and can no longer be changed.
     timer_running: Stop the timer first.
+    time_task_in_trash: Restore the task the time belongs to first.
     estimate: Enter an estimate of at least a minute and at most 9,999 hours.
   time:
     title: Time
@@ -106,9 +107,6 @@ work:
     edit_label: 'Edit the time of {date}'
     delete: Delete
     delete_label: 'Delete the time of {date}'
-    delete_confirm:
-      title: Delete the logged time?
-      text: This cannot be undone.
     none: No time logged yet.
     hours: '{hours} h'
     minutes: '{minutes} min'
@@ -122,8 +120,18 @@ work:
     estimate_help: For example 5 h or 2h 30m.
     logged: '{duration} logged.'
     edited: The time is changed.
-    deleted: The time is deleted.
     stopped: 'The timer is stopped, {duration} logged on “{title}”.'
+    trash:
+      deleted: The time is in the trash.
+      restored: The time is restored.
+      tasks: Tasks
+      section: Time
+      purge: '{days, plural, one {Tasks and time in the trash are deleted for good after # day.} other {Tasks and time in the trash are deleted for good after # days.}}'
+      column:
+        worked_on: Day
+        person: Who
+        duration: Duration
+        task: Task
     error:
       worked_on: Enter the day as a date.
       project: Choose a project.

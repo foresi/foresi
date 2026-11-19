@@ -98,6 +98,7 @@ work:
     time_not_yours: Čas může změnit nebo smazat jen ten, kdo ho zapsal, nebo vlastník organizace.
     time_invoiced: Tento čas je vyfakturovaný a už ho nelze měnit.
     timer_running: Nejdřív zastavte časovač.
+    time_task_in_trash: Nejdřív obnovte úkol, ke kterému čas patří.
     estimate: Zadejte odhad alespoň minutu a nejvýš 9 999 hodin.
   time:
     title: Čas
@@ -106,9 +107,6 @@ work:
     edit_label: 'Upravit čas ze dne {date}'
     delete: Smazat
     delete_label: 'Smazat čas ze dne {date}'
-    delete_confirm:
-      title: Smazat zapsaný čas?
-      text: Tohle nejde vrátit.
     none: Zatím žádný zapsaný čas.
     hours: '{hours} h'
     minutes: '{minutes} min'
@@ -122,8 +120,18 @@ work:
     estimate_help: Třeba 5 h nebo 2h 30m.
     logged: 'Zapsáno {duration}.'
     edited: Čas je upravený.
-    deleted: Čas je smazaný.
     stopped: 'Časovač je zastavený, zapsáno {duration} na „{title}“.'
+    trash:
+      deleted: Čas je v koši.
+      restored: Čas je obnovený.
+      tasks: Úkoly
+      section: Čas
+      purge: '{days, plural, one {Úkoly a čas v koši se po # dni smažou natrvalo.} other {Úkoly a čas v koši se po # dnech smažou natrvalo.}}'
+      column:
+        worked_on: Den
+        person: Kdo
+        duration: Délka
+        task: Úkol
     error:
       worked_on: Zadejte den jako datum.
       project: Vyberte projekt.

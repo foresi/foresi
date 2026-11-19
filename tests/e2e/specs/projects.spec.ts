@@ -176,7 +176,7 @@ test.describe('projects', () => {
     await expect(row).toHaveCount(0);
     await page.getByRole('link', { name: 'Koš (1)' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Koš');
-    await expect(page.locator('[data-trash-purge]')).toHaveText('Úkoly v koši se po 30 dnech smažou natrvalo.');
+    await expect(page.locator('[data-trash-purge]')).toHaveText('Úkoly a čas v koši se po 30 dnech smažou natrvalo.');
     const trashed = page.locator('tbody tr').filter({ hasText: title });
     await trashed.getByRole('button', { name: /Další akce/ }).click();
     await trashed.getByRole('menuitem', { name: 'Obnovit' }).click();
