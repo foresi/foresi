@@ -15,6 +15,7 @@ use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Application\View\FilterRows;
 use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Application\View\WorkingFilter;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -40,7 +41,7 @@ final readonly class FilterSheet
      * @param \Closure(ViewFilter): string $href       the list with another working filter
      * @param array<string, Reference>     $references by source
      *
-     * @return array{chips: list<Chip>, builder: array{fields: list<FieldView>, rows: list<array<string, mixed>>, kept: list<string>, rules: array<string, string>}}
+     * @return array{chips: list<Chip>, builder: array{fields: list<FieldView>, rows: list<array<string, mixed>>, kept: list<string>, rules: array<string, string>, param: string}}
      */
     public function of(ListDefinition $list, ViewFilter $filter, \Closure $href, array $references = []): array
     {
@@ -75,6 +76,8 @@ final readonly class FilterSheet
             'rows' => $rows,
             'kept' => $kept,
             'rules' => $this->rules(),
+            // The address parameter of the working filter, which clearing the bar drops.
+            'param' => WorkingFilter::PARAM,
         ]];
     }
 

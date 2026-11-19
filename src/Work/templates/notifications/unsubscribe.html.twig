@@ -3,7 +3,7 @@
     The page of the link that stops a kind of notification e-mail: a question with a button first, as
     mail filters open links, then what changed and where to change it back.
 #}
-{% extends 'layout/auth.html.twig' %}
+{% extends '@Ui/layout/auth.html.twig' %}
 
 {% block title %}{{ (done ? 'work.unsubscribe.done_title' : 'work.unsubscribe.title')|trans({}, 'messages', locale) }}{% endblock %}
 

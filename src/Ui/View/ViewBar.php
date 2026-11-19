@@ -18,8 +18,8 @@ use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Application\View\ViewState;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Domain\View\Placement;
-use Foresi\Ui\Column\WorkingDisplay;
-use Foresi\Ui\Column\WorkingState;
+use Foresi\Ui\Contract\WorkingDisplay;
+use Foresi\Ui\Contract\WorkingState;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

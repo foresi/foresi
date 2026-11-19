@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Party\Infrastructure\Navigation;
 
 use Foresi\Party\Application\PartyQuery;
-use Foresi\Ui\Navigation\NavigationCountProvider;
+use Foresi\Ui\Contract\Navigation\NavigationCountProvider;
 
 final readonly class PartyNavigationCount implements NavigationCountProvider
 {

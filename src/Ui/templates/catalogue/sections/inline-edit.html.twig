@@ -1,0 +1,18 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set statuses = [{value: 's-1', label: 'Open', tone: 'gray'}, {value: 's-2', label: 'In progress', tone: 'amber'}, {value: 's-3', label: 'Done', tone: 'green'}] %}
+{% set priorities = [{value: 'none', label: 'No priority'}, {value: 'low', label: 'Low'}, {value: 'high', label: 'High'}] %}
+{% set people = [{value: 'm-1', name: 'Example Company', seed: 'user-1'}, {value: 'm-2', name: 'Jana Example', seed: 'user-2'}] %}
+<div class="grid gap-5">
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<twig:Ui:InlineEdit id="cat-edit-status" action="#" name="status" label="Status" value="s-2" :options="statuses" tone="amber" />
+<twig:Ui:InlineEdit id="cat-edit-responsible" kind="person" action="#" name="responsible" label="Responsible" value="m-2" :people="people" noneLabel="Nobody" />
+<twig:Ui:InlineEdit id="cat-edit-due" kind="date" action="#" name="due" label="Due date" value="2026-12-24" text="24. 12. 2026" emptyLabel="No due date" />
+<twig:Ui:InlineEdit id="cat-edit-priority" action="#" name="priority" label="Priority" value="high" :options="priorities" emptyLabel="No priority" />
+{% endblock %}{% endembed %}
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'empty'} %}{% block sample %}
+<twig:Ui:InlineEdit id="cat-edit-responsible-empty" kind="person" action="#" name="responsible" label="Responsible" value="" :people="people" noneLabel="Nobody" />
+<twig:Ui:InlineEdit id="cat-edit-due-empty" kind="date" action="#" name="due" label="Due date" text="" emptyLabel="No due date" />
+<twig:Ui:InlineEdit id="cat-edit-due-card" kind="date" action="#" name="due" label="Due date" text="" emptyLabel="No due date" emptyIcon="calendar" />
+<twig:Ui:InlineEdit id="cat-edit-priority-empty" action="#" name="priority" label="Priority" value="none" text="" :options="priorities" emptyLabel="No priority" />
+{% endblock %}{% endembed %}
+</div>

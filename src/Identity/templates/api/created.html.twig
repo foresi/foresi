@@ -5,7 +5,7 @@
     loaded again when the dialog closes; the page leaves a Turbo visit nothing to keep.
     Variables: name, secret, expires, server (the MCP server, for the Claude Code command with this token).
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'api_tokens.title'|trans, href: path('app_api_tokens')}, {label: 'api_tokens.created.title'|trans}] %}
 {% set dialog_size = 'md' %}

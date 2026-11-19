@@ -744,7 +744,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
 
     /**
      * The documents a view holds, compiled for the query (spec D3): the dates are
-     * columns; the payment, overdue and settlement are the SQL the tabs counted with,
+     * columns; the payment, overdue, settlement and export are the SQL the tabs counted with,
      * each value of a field under its own suffix, so its subqueries never share an alias.
      * Out of the trash unless the view asks for it.
      *
@@ -766,6 +766,11 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
             InvoiceLists::SETTLEMENT => [DqlConditions::derivedEnum($condition, [
                 InvoiceFilter::SETTLED => 'i.deductedByInvoiceId IS NOT NULL',
                 InvoiceFilter::UNSETTLED => 'i.deductedByInvoiceId IS NULL AND '.$this->deductible($kind, $name),
+            ]), []],
+            InvoiceLists::EXPORT => [DqlConditions::derivedEnum($condition, [
+                ExportState::NotExported->value => 'i.exportedAt IS NULL',
+                ExportState::Exported->value => '(i.exportedAt IS NOT NULL AND i.changedAfterExportAt IS NULL)',
+                ExportState::Changed->value => 'i.changedAfterExportAt IS NOT NULL',
             ]), []],
             default => throw new \LogicException(\sprintf('The field "%s" of the documents has no SQL.', $condition->field)),
         });
@@ -812,12 +817,6 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
             $parameters['invoicePurpose'] = [SendPurpose::Invoice->value, null];
             $parameters['deliveringStatuses'] = [[SendStatus::Queued->value, SendStatus::Sent->value], null];
         }
-        $where .= match ($filter->export) {
-            ExportState::NotExported => ' AND i.exportedAt IS NULL',
-            ExportState::Exported => ' AND i.exportedAt IS NOT NULL AND i.changedAfterExportAt IS NULL',
-            ExportState::Changed => ' AND i.changedAfterExportAt IS NOT NULL',
-            null => '',
-        };
         $month = InvoiceFilter::monthValue($filter->month);
         if (null !== $month) {
             // A tax document belongs to the month of its tax point, an advance to that of its issue.

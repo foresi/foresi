@@ -1,0 +1,17 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set columns = [
+    {key: 'number', label: 'Číslo', visible: true, locked: true},
+    {key: 'customer', label: 'Zákazník', visible: true, locked: false},
+    {key: 'due_date', label: 'Splatnost', visible: true, locked: false},
+    {key: 'firm', label: 'Firma', visible: false, locked: false},
+    {key: 'tax_point_date', label: 'DUZP', visible: false, locked: false},
+    {key: 'vat', label: 'DPH', visible: false, locked: false},
+] %}
+<div class="grid gap-5">
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<div class="flex"><twig:Ui:ColumnPicker id="catalogue-columns" action="/_catalogue" :keep="{}" :columns="columns" density="comfortable" resetHref="/_catalogue" /></div>
+{% endblock %}{% endembed %}
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'modified'} %}{% block sample %}
+<div class="flex"><twig:Ui:ColumnPicker id="catalogue-columns-modified" action="/_catalogue" :keep="{}" :columns="columns" density="dense" resetHref="/_catalogue" :modified="true" /></div>
+{% endblock %}{% endembed %}
+</div>

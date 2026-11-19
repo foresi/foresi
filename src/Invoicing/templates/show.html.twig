@@ -4,7 +4,7 @@
     sheet. Edit loads the form in the same sheet, full screen while the lines are edited, and
     Save or Cancel bring this detail back (docs/design/overlays.md).
 #}
-{% extends 'layout/record.html.twig' %}
+{% extends '@Ui/layout/record.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.sales'|trans}, {label: ('invoice.list.title_' ~ invoice.kind.value)|trans, href: path(listRoute)}, {label: invoice.number}] %}
 {% set doc = {id: invoice.id} %}

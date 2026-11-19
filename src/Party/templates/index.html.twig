@@ -1,5 +1,5 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{% extends 'layout/app.html.twig' %}
+{% extends '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.contacts'|trans}, {label: 'party.title'|trans}] %}
 
@@ -28,9 +28,9 @@
             {# The view's unsaved changes sit at the end of its tabs, as on every list (saved views D10). #}
             <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
                 <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'party.views'|trans" class="min-w-0 sm:flex-1">
-                    <twig:block name="actions">{{ include('components/Ui/_view_menu.html.twig') }}</twig:block>
+                    <twig:block name="actions">{{ include('@Ui/components/_view_menu.html.twig') }}</twig:block>
                 </twig:Ui:Tabs>
-                {{ include('components/Ui/_view_actions.html.twig') }}
+                {{ include('@Ui/components/_view_actions.html.twig') }}
             </div>
             <twig:Ui:FilterBar id="contact-filters" :action="path('app_contacts')" :keep="{view: view != '' ? view : null, sort: sortKept, f: working != '' ? working : null}|merge(workingQuery)"
                 :search="{name: 'q', value: text, label: 'party.search.label'|trans, placeholder: 'party.search.placeholder'|trans}" :conditions="chips" :builder="builder" :empty="rows is empty">
@@ -69,6 +69,6 @@
                 </twig:Ui:DataTable>
             </form>
         </div>
-        {{ include('components/Ui/_view_dialogs.html.twig') }}
+        {{ include('@Ui/components/_view_dialogs.html.twig') }}
     {% endif %}
 {% endblock %}

@@ -1,0 +1,10 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set options = [{value: 'l-1', label: 'Design', tone: 'green'}, {value: 'l-2', label: 'Urgent', tone: 'red'}, {value: 'l-3', label: 'Client', tone: 'gray'}] %}
+<div class="grid gap-5">
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<twig:Ui:MultiSelect id="cat-labels" name="labels[]" label="Labels" trigger="Choose labels" icon="tag" action="#" href="#" :options="options" :values="['l-2']" searchLabel="Search labels" emptyLabel="No label matches." createName="create" createLabel="Create label “{name}”" />
+{% endblock %}{% endembed %}
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'empty'} %}{% block sample %}
+<twig:Ui:MultiSelect id="cat-labels-pick" name="labels[]" label="Labels" trigger="Choose labels" icon="tag" action="#" href="#" :options="options" searchLabel="Search labels" emptyLabel="No label matches." />
+{% endblock %}{% endembed %}
+</div>
