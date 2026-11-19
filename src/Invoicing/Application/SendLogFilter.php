@@ -8,22 +8,19 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
-use Foresi\Invoicing\Domain\SendPurpose;
-use Foresi\Invoicing\Domain\SendStatus;
+use Foresi\Shared\Application\View\ViewFilter;
 
 /**
- * Which sends the send log shows: of one firm or all, in one state or all, the
- * invoices or the reminders or both, newest first.
+ * Which sends the send log shows, newest first: those the view's filter holds
+ * (SendLogLists), on one page.
  */
 final readonly class SendLogFilter
 {
     public const int PER_PAGE = 25;
 
     public function __construct(
-        public ?string $firmId = null,
-        public ?SendStatus $status = null,
+        public ViewFilter $view = new ViewFilter(),
         public int $page = 1,
-        public ?SendPurpose $purpose = null,
     ) {
     }
 }

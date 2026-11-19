@@ -14,8 +14,9 @@ use Foresi\Purchasing\Application\View\ReceivedDocumentLists;
 use Foresi\Purchasing\Infrastructure\Form\PurchasingText;
 use Foresi\Purchasing\Infrastructure\Form\ReceivedDocumentScreen;
 use Foresi\Shared\Domain\Money;
-use Foresi\Ui\Contract\Column;
-use Foresi\Ui\Contract\ListColumns;
+use Foresi\Shared\Domain\View\AttributeType;
+use Foresi\Ui\Contract\Attribute;
+use Foresi\Ui\Contract\DataSource;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -26,7 +27,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * shows only when there are several. A draft has no number yet: it reads as a draft of
  * the day it came.
  */
-final readonly class ReceivedDocumentColumns implements ListColumns
+final readonly class ReceivedDocumentColumns implements DataSource
 {
     public const string LIST = ReceivedDocumentLists::KEY;
 
@@ -39,7 +40,7 @@ final readonly class ReceivedDocumentColumns implements ListColumns
     ) {
     }
 
-    public function columns(string $list): iterable
+    public function attributes(string $list): iterable
     {
         if (self::LIST !== $list) {
             return [];
@@ -47,15 +48,15 @@ final readonly class ReceivedDocumentColumns implements ListColumns
         $label = static fn (string $key): string => 'purchasing.list.column.'.$key;
 
         return [
-            new Column('number', $label('number'), $this->number(...), defaultPosition: 10, locked: true),
-            new Column('firm', $label('firm'), static fn (ReceivedDocumentRow $row): string => $row->firmName, defaultPosition: 20, phone: false, truncate: true, available: static fn (array $context): bool => true === ($context['severalFirms'] ?? false)),
-            new Column('supplier', $label('supplier'), $this->supplier(...), defaultPosition: 30, phone: false, truncate: true),
-            new Column('supplierNumber', $label('supplierNumber'), static fn (ReceivedDocumentRow $row): string => $row->supplierNumber, defaultPosition: 40, phone: false, wide: true),
-            new Column('monthDay', $label('monthDay'), fn (ReceivedDocumentRow $row): string => $row->monthDay()?->format($this->translator->trans('format.date')) ?? '', defaultPosition: 50, phone: false),
-            new Column('total', $label('total'), $this->total(...), defaultPosition: 60, align: 'right'),
-            new Column('vatCzk', $label('vatCzk'), fn (ReceivedDocumentRow $row): string => $row->total instanceof Money && $row->vatCzk instanceof Money ? $this->text->amount($row->vatCzk) : '', defaultPosition: 70, align: 'right', phone: false),
-            new Column('treatment', $label('treatment'), fn (ReceivedDocumentRow $row): string => $this->translator->trans('purchasing.treatment.'.$row->treatment->value), defaultPosition: 80, phone: false, wide: true),
-            new Column('state', $label('state'), $this->state(...), defaultPosition: 90, phone: false),
+            new Attribute('number', $label('number'), AttributeType::Text, $this->number(...), defaultVisible: true, defaultPosition: 10, cell: $this->number(...), locked: true),
+            new Attribute('firm', $label('firm'), AttributeType::Text, static fn (ReceivedDocumentRow $row): string => $row->firmName, defaultVisible: true, defaultPosition: 20, cell: static fn (ReceivedDocumentRow $row): string => $row->firmName, phone: false, truncate: true, available: static fn (array $context): bool => true === ($context['severalFirms'] ?? false)),
+            new Attribute('supplier', $label('supplier'), AttributeType::Reference, static fn (ReceivedDocumentRow $row): string => $row->supplierName, defaultVisible: true, defaultPosition: 30, cell: $this->supplier(...), phone: false, truncate: true),
+            new Attribute('supplier_number', $label('supplierNumber'), AttributeType::Text, static fn (ReceivedDocumentRow $row): string => $row->supplierNumber, defaultVisible: true, defaultPosition: 40, cell: static fn (ReceivedDocumentRow $row): string => $row->supplierNumber, aliases: ['supplierNumber'], phone: false, wide: true),
+            new Attribute('month_day', $label('monthDay'), AttributeType::Date, static fn (ReceivedDocumentRow $row): ?\DateTimeImmutable => $row->monthDay(), defaultVisible: true, defaultPosition: 50, cell: fn (ReceivedDocumentRow $row): string => $row->monthDay()?->format($this->translator->trans('format.date')) ?? '', aliases: ['monthDay'], phone: false),
+            new Attribute('total', $label('total'), AttributeType::Money, static fn (ReceivedDocumentRow $row): ?Money => $row->total, defaultVisible: true, defaultPosition: 60, cell: $this->total(...)),
+            new Attribute('vat_czk', $label('vatCzk'), AttributeType::Money, static fn (ReceivedDocumentRow $row): ?Money => $row->vatCzk, defaultVisible: true, defaultPosition: 70, cell: fn (ReceivedDocumentRow $row): string => $row->total instanceof Money && $row->vatCzk instanceof Money ? $this->text->amount($row->vatCzk) : '', aliases: ['vatCzk'], phone: false),
+            new Attribute('treatment', $label('treatment'), AttributeType::Text, static fn (ReceivedDocumentRow $row): string => $row->treatment->value, defaultVisible: true, defaultPosition: 80, cell: fn (ReceivedDocumentRow $row): string => $this->translator->trans('purchasing.treatment.'.$row->treatment->value), phone: false, wide: true),
+            new Attribute('state', $label('state'), AttributeType::Text, fn (ReceivedDocumentRow $row): string => $this->badge($row)['label'], defaultVisible: true, defaultPosition: 90, cell: $this->state(...), phone: false),
         ];
     }
 

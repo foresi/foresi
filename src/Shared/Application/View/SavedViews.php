@@ -14,6 +14,7 @@ use Foresi\Shared\Domain\View\Placement;
 use Foresi\Shared\Domain\View\SavedView;
 use Foresi\Shared\Domain\View\Visibility;
 use Symfony\Component\Clock\ClockInterface;
+use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**
  * Reading and writing saved views as a person may (spec D6), for the list
@@ -36,6 +37,9 @@ final readonly class SavedViews
         private ListDefinitions $lists,
         private ActorRole $actor,
         private ClockInterface $clock,
+        /** @var iterable<ListColumnCatalog> */
+        #[AutowireIterator(ListColumnCatalog::TAG)]
+        private iterable $catalogs = [],
     ) {
     }
 
@@ -97,6 +101,43 @@ final readonly class SavedViews
     }
 
     /**
+     * The display with each column under its key: an older key, such as dueDate, is stored as
+     * the key it names (due_date), and a column named twice is kept once, where it first comes.
+     * A name no list column answers to is kept as it is; the list leaves it out when it shows.
+     *
+     * @param array<string, mixed>|null $display
+     *
+     * @return array<string, mixed>|null
+     */
+    private function keyed(string $listKey, ?array $display): ?array
+    {
+        if (!\is_array($display['columns'] ?? null)) {
+            return $display;
+        }
+        $columns = [];
+        foreach ($display['columns'] as $column) {
+            /** @var array{key: string, width?: int} $column */
+            $key = $this->columnKey($listKey, $column['key']);
+            $columns[$key] ??= ['key' => $key] + $column;
+        }
+        $display['columns'] = array_values($columns);
+
+        return $display;
+    }
+
+    private function columnKey(string $listKey, string $name): string
+    {
+        foreach ($this->catalogs as $catalog) {
+            $key = $catalog->key($listKey, $name);
+            if (null !== $key) {
+                return $key;
+            }
+        }
+
+        return $name;
+    }
+
+    /**
      * @throws SavedViewRefused
      */
     public function create(CreateViewInput $input): SavedView
@@ -106,7 +147,7 @@ final readonly class SavedViews
         $this->storeDefaults($list);
         $filters = $this->filters($input->conditions, $list);
         $sort = $this->checked(static fn (): array => ViewRules::sort($input->sort));
-        $display = $this->checked(static fn (): ?array => ViewRules::display($input->columns, $input->density, $input->groupBy));
+        $display = $this->keyed($list->key, $this->checked(static fn (): ?array => ViewRules::display($input->columns, $input->density, $input->groupBy)));
         $name = $this->name($input->name);
         $positions = array_map(static fn (SavedView $view): int => $view->position(), $this->store->ofList($list->key));
         $view = SavedView::made(
@@ -171,7 +212,7 @@ final readonly class SavedViews
             $columns = $input->columns instanceof Omitted ? (\is_array($was['columns'] ?? null) ? array_values($was['columns']) : null) : $input->columns;
             $density = $input->density instanceof Omitted ? (\is_string($was['density'] ?? null) ? $was['density'] : null) : $input->density;
             $groupBy = $input->groupBy instanceof Omitted ? (\is_string($was['group_by'] ?? null) ? $was['group_by'] : null) : $input->groupBy;
-            $view->redisplay($this->checked(static fn (): ?array => ViewRules::display($columns, $density, $groupBy)), $user, $now);
+            $view->redisplay($this->keyed($list->key, $this->checked(static fn (): ?array => ViewRules::display($columns, $density, $groupBy))), $user, $now);
         }
         $this->store->flush();
 

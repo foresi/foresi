@@ -16,10 +16,13 @@ use Foresi\Invoicing\Application\SendLogPage;
 use Foresi\Invoicing\Application\SendLogRow;
 use Foresi\Invoicing\Application\SendMark;
 use Foresi\Invoicing\Application\UnknownInvoiceSend;
+use Foresi\Invoicing\Application\View\SendLogLists;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceSend;
 use Foresi\Invoicing\Domain\SendPurpose;
 use Foresi\Invoicing\Domain\SendStatus;
+use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Infrastructure\View\DqlConditions;
 
 /**
  * Sends. Trash and restore change the rows one by one,
@@ -28,6 +31,8 @@ use Foresi\Invoicing\Domain\SendStatus;
 final readonly class DoctrineInvoiceSends implements InvoiceSends
 {
     private const string LOCK = 'UPDATE invoice_send SET attempts = attempts WHERE id = :id';
+    /** The fields of the send log's views, each a column of the send. */
+    private const array VIEW_COLUMNS = [SendLogLists::STATUS => 's.status', SendLogLists::PURPOSE => 's.purpose'];
 
     public function __construct(private EntityManagerInterface $em)
     {
@@ -114,36 +119,22 @@ final readonly class DoctrineInvoiceSends implements InvoiceSends
 
     public function page(SendLogFilter $filter): SendLogPage
     {
-        /** @var list<array{id: string, name: string}> $firmRows */
-        $firmRows = $this->em->createQuery('SELECT DISTINCT f.id AS id, f.name AS name FROM '.InvoiceSend::class.' s JOIN s.invoice i JOIN i.firm f ORDER BY f.name, f.id')->getArrayResult();
-        $firms = array_column($firmRows, 'name', 'id');
-
-        $where = '1 = 1';
-        $parameters = [];
-        if (null !== $filter->firmId && isset($firms[$filter->firmId])) {
-            $where .= ' AND i.firm = :firm';
-            $parameters['firm'] = $filter->firmId;
-        }
-        if ($filter->status instanceof SendStatus) {
-            $where .= ' AND s.status = :status';
-            $parameters['status'] = $filter->status->value;
-        }
-        if ($filter->purpose instanceof SendPurpose) {
-            $where .= ' AND s.purpose = :purpose';
-            $parameters['purpose'] = $filter->purpose->value;
-        }
-        $count = $this->em->createQuery('SELECT COUNT(s.id) FROM '.InvoiceSend::class.' s JOIN s.invoice i WHERE '.$where);
-        foreach ($parameters as $name => $value) {
-            $count->setParameter($name, $value);
+        // The view's fields are columns of the send (SendLogLists): no field is derived.
+        [$where, $parameters] = new DqlConditions(SendLogLists::list(), self::VIEW_COLUMNS, static fn (Condition $condition): never => throw new \LogicException(\sprintf('The field "%s" of the send log has no SQL.', $condition->field)))
+            ->compile($filter->view, static fn (): \DateTimeImmutable => new \DateTimeImmutable(), 'v');
+        $count = $this->em->createQuery('SELECT COUNT(s.id) FROM '.InvoiceSend::class.' s WHERE '.$where);
+        foreach ($parameters as $name => [$value, $type]) {
+            $count->setParameter($name, $value, $type);
         }
         $total = (int) $count->getSingleScalarResult();
         $pages = max(1, (int) ceil($total / SendLogFilter::PER_PAGE));
         $page = max(1, min($filter->page, $pages));
+        $anySent = $total > 0 || [] !== $this->em->createQuery('SELECT s.id FROM '.InvoiceSend::class.' s')->setMaxResults(1)->getArrayResult();
 
         // The invoice comes along, for the country of its issuer.
         $list = $this->em->createQuery('SELECT s, i FROM '.InvoiceSend::class.' s JOIN s.invoice i WHERE '.$where.' ORDER BY s.createdAt DESC, s.id DESC');
-        foreach ($parameters as $name => $value) {
-            $list->setParameter($name, $value);
+        foreach ($parameters as $name => [$value, $type]) {
+            $list->setParameter($name, $value, $type);
         }
         /** @var list<InvoiceSend> $sends */
         $sends = $list->setFirstResult(($page - 1) * SendLogFilter::PER_PAGE)->setMaxResults(SendLogFilter::PER_PAGE)->getResult();
@@ -164,7 +155,7 @@ final readonly class DoctrineInvoiceSends implements InvoiceSends
             $send->lastErrorSmtp(),
             $send->purpose(),
             $send->reminderStep(),
-        ), $sends), $total, $page, $pages, $firms);
+        ), $sends), $total, $page, $pages, $anySent);
     }
 
     public function failing(): int

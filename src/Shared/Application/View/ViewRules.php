@@ -87,7 +87,7 @@ final class ViewRules
                 throw new InvalidFilter($path, 'A column is a key, or an object of key and width.');
             }
             if (!\is_string($column['key'] ?? null) || 1 !== preg_match(self::KEY, $column['key'])) {
-                throw new InvalidFilter($path.'.key', 'A column is named by its key, such as "dueDate".');
+                throw new InvalidFilter($path.'.key', 'A column is named by its key, such as "due_date".');
             }
             $width = $column['width'] ?? null;
             if (null !== $width && (!\is_int($width) || $width < 1 || $width > 2000)) {

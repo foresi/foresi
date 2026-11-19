@@ -92,7 +92,9 @@ final class ViewApiTest extends ApiTestCase
         self::assertSame(['key', 'label', 'sortable', 'default', 'locked'], array_keys($columns[0]));
         $byKey = array_column($columns, null, 'key');
         self::assertTrue($this->in($byKey, 'number', 'sortable'));
-        self::assertFalse($this->in($byKey, 'firm', 'sortable'));
+        self::assertTrue($this->in($byKey, 'due_date', 'sortable'));
+        self::assertArrayNotHasKey('dueDate', $byKey);
+        self::assertFalse($this->in($byKey, 'status', 'sortable'));
         self::assertSame('invoicing.invoices.overdue', $this->in($invoices, 'default_views', 3));
         $counted = $this->at('date_values', 'relative_counted');
         self::assertIsArray($counted);
@@ -192,6 +194,11 @@ final class ViewApiTest extends ApiTestCase
         $this->send('PATCH', '/api/v1/views/'.$id, ['group_by' => 'customer']);
         self::assertResponseIsSuccessful();
         self::assertSame('customer', $this->at('data', 'display', 'group_by'), 'what the rows are grouped by goes with the display');
+
+        // An older column key is stored under the key it names, a column named twice once, and an unknown one as it is.
+        $this->send('PATCH', '/api/v1/views/'.$id, ['columns' => ['number', ['key' => 'dueDate', 'width' => 120], 'due_date', 'gone']]);
+        self::assertResponseIsSuccessful();
+        self::assertSame(['columns' => [['key' => 'number'], ['key' => 'due_date', 'width' => 120], ['key' => 'gone']], 'group_by' => 'customer'], $this->at('data', 'display'), 'changing the columns keeps the grouping');
 
         $this->send('DELETE', '/api/v1/views/'.$id);
         self::assertResponseIsSuccessful();

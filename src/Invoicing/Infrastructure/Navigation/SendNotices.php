@@ -51,7 +51,7 @@ final readonly class SendNotices implements ShellNoticeProvider
                 'error',
                 $this->translator->trans('invoice.sends.notice.failed', ['count' => $failing]),
                 $this->translator->trans('invoice.sends.notice.link'),
-                $this->urls->generate('app_invoice_sends', ['status' => SendStatus::Failed->value]),
+                $this->urls->generate('app_invoice_sends', ['view' => SendStatus::Failed->value]),
             );
         }
         $before = \DateTimeImmutable::createFromInterface($this->clock->now())->modify(\sprintf('-%d minutes', self::STUCK_AFTER_MINUTES));
@@ -61,7 +61,7 @@ final readonly class SendNotices implements ShellNoticeProvider
                 'warning',
                 $this->translator->trans('invoice.sends.notice.stuck', ['count' => $waiting, 'minutes' => self::STUCK_AFTER_MINUTES]),
                 $this->translator->trans('invoice.sends.notice.link'),
-                $this->urls->generate('app_invoice_sends', ['status' => SendStatus::Queued->value]),
+                $this->urls->generate('app_invoice_sends', ['view' => SendStatus::Queued->value]),
             );
         }
         // Tried and refused for now: the retries are running, which is no sign of a missing worker.
@@ -71,7 +71,7 @@ final readonly class SendNotices implements ShellNoticeProvider
                 'info',
                 $this->translator->trans('invoice.sends.notice.retrying', ['count' => $retrying]),
                 $this->translator->trans('invoice.sends.notice.link'),
-                $this->urls->generate('app_invoice_sends', ['status' => SendStatus::Queued->value]),
+                $this->urls->generate('app_invoice_sends', ['view' => SendStatus::Queued->value]),
             );
         }
     }
