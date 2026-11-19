@@ -418,7 +418,7 @@ firm:
       server: Server odchozí pošty (SMTP)
       test: Zkušební e-mail
     templates_help: Text se posílá v jazyce dokladu.
-    templates_list_help: Otevřením šablony upravíte předmět a text pro každý jazyk dokladu.
+    templates_list_help: Šablonu otevřete a upravte pro každý jazyk dokladu.
     languages: Jazyky šablony
     custom: vlastní text
     built_in: výchozí text
@@ -461,7 +461,7 @@ firm:
     field:
       subject: Předmět
       body: Text e-mailu
-      body_help: 'Formátujte jako Markdown: **tučně**, _kurzívou_, odrážky „- “. Bez {token} se odkaz připojí na konec.'
+      body_help: 'Text je Markdown. Bez {token} se odkaz připojí na konec.'
       host: Server
       host_help: Například smtp.example.com
       port: Port

@@ -418,7 +418,7 @@ firm:
       server: Outgoing mail server (SMTP)
       test: Test e-mail
     templates_help: The text is sent in the language of the document.
-    templates_list_help: Open a template to change its subject and text for each document language.
+    templates_list_help: Open a template to edit it for each document language.
     languages: Template languages
     custom: own text
     built_in: built-in text
@@ -461,7 +461,7 @@ firm:
     field:
       subject: Subject
       body: Message
-      body_help: 'Format with Markdown: **bold**, _italic_, "- " bullets. Without {token} the link is added at the end.'
+      body_help: 'Text is Markdown. Without {token} the link goes at the end.'
       host: Host
       host_help: For example smtp.example.com
       port: Port

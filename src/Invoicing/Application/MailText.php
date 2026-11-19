@@ -42,7 +42,8 @@ final readonly class MailText
     public function renderBody(string $template, array $values): string
     {
         $template = str_replace(["\r\n", "\r"], "\n", $template);
-        $text = (string) preg_replace_callback(
+
+        return (string) preg_replace_callback(
             self::TOKEN,
             static function (array $token) use ($values, $template): string {
                 [$whole, $at] = $token[0];
@@ -58,7 +59,5 @@ final readonly class MailText
             $template,
             flags: \PREG_OFFSET_CAPTURE,
         );
-
-        return $text;
     }
 }
