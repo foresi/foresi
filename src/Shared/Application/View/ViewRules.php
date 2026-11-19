@@ -54,8 +54,9 @@ final class ViewRules
     }
 
     /**
-     * The display payload {columns: [{key, width?}], density?}, or null for the
-     * list's defaults.
+     * The display payload {columns: [{key, width?}], density?, group_by?}, or null for
+     * the list's defaults. What a list groups by is checked for its shape only; a list
+     * that does not group by it shows its own grouping (D-display-2).
      *
      * @param list<mixed>|null $columns
      *
@@ -63,13 +64,17 @@ final class ViewRules
      *
      * @throws InvalidFilter
      */
-    public static function display(?array $columns, ?string $density): ?array
+    public static function display(?array $columns, ?string $density, ?string $groupBy = null): ?array
     {
         if (null !== $density && !\in_array($density, self::DENSITIES, true)) {
             throw new InvalidFilter('density', \sprintf('The density is one of %s.', implode(', ', self::DENSITIES)));
         }
+        if (null !== $groupBy && 1 !== preg_match(self::KEY, $groupBy)) {
+            throw new InvalidFilter('group_by', 'A grouping is named by its key, such as "person".');
+        }
+        $rest = (null === $density ? [] : ['density' => $density]) + (null === $groupBy ? [] : ['group_by' => $groupBy]);
         if (null === $columns) {
-            return null === $density ? null : ['density' => $density];
+            return [] === $rest ? null : $rest;
         }
         if (\count($columns) > self::MAX_COLUMNS) {
             throw new InvalidFilter('columns', \sprintf('A view shows at most %d columns.', self::MAX_COLUMNS));
@@ -91,6 +96,6 @@ final class ViewRules
             $checked[] = null === $width ? ['key' => $column['key']] : ['key' => $column['key'], 'width' => $width];
         }
 
-        return ['columns' => $checked] + (null === $density ? [] : ['density' => $density]);
+        return ['columns' => $checked] + $rest;
     }
 }

@@ -215,32 +215,32 @@ test.describe('the task', () => {
 });
 
 test.describe('the report', () => {
-  test('narrows the period to a person and downloads the same entries as CSV', async ({ page }) => {
+  test('opens on this month, keeps its old addresses and downloads the same entries as CSV', async ({ page }) => {
     const { lastMonday, thisMonday } = await mondays(page);
     await page.goto('/time');
     await page.getByRole('navigation', { name: 'Pohledy na čas' }).getByRole('link', { name: 'Výkaz' }).click();
     await expect(page).toHaveURL(/\/time\/report$/);
     await expect(page.locator('main h1')).toHaveText('Výkaz');
 
+    // The report opens on its view This month, the tab after All (saved views D7, D12).
+    await expect(page.getByRole('navigation', { name: 'Pohledy na výkaz' }).locator('[aria-current="page"]')).toHaveText('Tento měsíc');
+
     const sunday = shift(thisMonday, 6);
-    // The dates wait in the More filters sheet, sent with Apply; the person is a pinned chip.
-    await page.getByRole('button', { name: 'Další filtry' }).click();
-    await page.locator('#report-filters-from-field').fill(lastMonday);
-    await page.locator('#report-filters-until-field').fill(sunday);
-    await page.getByRole('button', { name: 'Použít' }).click();
-    await expect(page.locator('[data-filter-chip="period"]')).toContainText('Vlastní');
-    await page.locator('[data-filter-chip="person"]').getByRole('button', { name: 'Osoba' }).click();
-    await page.getByRole('menuitemradio', { name: 'Jana Example' }).click();
+    // The report's addresses from before saved views still open the same time: two weeks of Jana's.
+    const people = await (await page.request.get('/time/report/people?q=Jana')).json();
+    const jana = people.results[0].id;
+    await page.goto(`/time/report?period=custom&from=${lastMonday}&until=${sunday}&person=${jana}`);
+    await expect(page).toHaveURL(/view=this_month/);
+    await expect(page.locator('[data-time-report-filter]')).toContainText('Jana Example');
     await expect(reportRows(page)).toHaveCount(2);
     await expect(reportRows(page).first()).toContainText('Write the copy for the about page');
     await expect(reportRows(page).last()).toContainText('Pick the colour palette');
     await expect(page.locator('[data-time-report]')).toContainText('3 h 30 min');
     await expect(page.locator('[data-time-report]')).not.toContainText('Design the homepage');
 
-    // Totals by task instead of by project.
-    await page.getByRole('button', { name: 'Další filtry' }).click();
-    await page.locator('#report-filters-group-field').selectOption('task');
-    await page.getByRole('button', { name: 'Použít' }).click();
+    // Totals by task instead of by project, a change of the view's display.
+    await page.locator('[data-time-report-group]').getByRole('button').click();
+    await page.locator('[data-time-report-group] a', { hasText: 'Úkol' }).click();
     await expect(page.locator('[data-time-report-totals] h3')).toHaveText('Součty po úkolech');
     await expect(page.locator('[data-time-report-totals] tbody tr')).toHaveCount(2);
 

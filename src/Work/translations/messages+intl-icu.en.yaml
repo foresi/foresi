@@ -160,13 +160,11 @@ work:
     person_inactive: '{name} (inactive)'
     report:
       title: Time report
-      period:
-        label: Period
+      view:
+        all: All
         this_month: This month
         last_month: Last month
-        custom: Custom
-      from: From
-      until: Until
+      views: Report views
       group: Totals by
       by:
         project: Project
@@ -176,15 +174,6 @@ work:
         project: Totals by project
         person: Totals by person
         task: Totals by task
-      any: Any
-      billable:
-        all: All
-        'yes': Billable
-        'no': Not billable
-      invoiced:
-        all: All
-        'yes': Invoiced
-        'no': Not invoiced
       total: Total time
       billable_total: Billable time
       unbillable_total: Not billable
@@ -198,7 +187,8 @@ work:
       file: time-report
       archived: '{name} (archived)'
       empty_title: No time in this period
-      empty_text: Choose another period or filter, or log time on a task.
+      empty_text: Choose another view or filter, or log time on a task.
+      range_all: All time
       csv:
         date: Date
         person: Person

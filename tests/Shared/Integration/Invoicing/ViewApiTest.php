@@ -191,11 +191,14 @@ final class ViewApiTest extends ApiTestCase
         $this->send('PATCH', '/api/v1/views/'.$id, ['name' => 'Due soon', 'visibility' => 'shared']);
         self::assertResponseIsSuccessful();
         self::assertSame(['Due soon', 'shared'], [$this->at('data', 'name'), $this->at('data', 'visibility')]);
+        $this->send('PATCH', '/api/v1/views/'.$id, ['group_by' => 'customer']);
+        self::assertResponseIsSuccessful();
+        self::assertSame('customer', $this->at('data', 'display', 'group_by'), 'what the rows are grouped by goes with the display');
 
         // An older column key is stored under the key it names, a column named twice once, and an unknown one as it is.
         $this->send('PATCH', '/api/v1/views/'.$id, ['columns' => ['number', ['key' => 'dueDate', 'width' => 120], 'due_date', 'gone']]);
         self::assertResponseIsSuccessful();
-        self::assertSame(['columns' => [['key' => 'number'], ['key' => 'due_date', 'width' => 120], ['key' => 'gone']]], $this->at('data', 'display'));
+        self::assertSame(['columns' => [['key' => 'number'], ['key' => 'due_date', 'width' => 120], ['key' => 'gone']], 'group_by' => 'customer'], $this->at('data', 'display'), 'changing the columns keeps the grouping');
 
         $this->send('DELETE', '/api/v1/views/'.$id);
         self::assertResponseIsSuccessful();

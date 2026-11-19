@@ -161,6 +161,7 @@ final class SavedViewsTest extends TestCase
         yield 'bad sort' => [static fn (): CreateViewInput => new CreateViewInput('test.items', 'Broken', sort: [['field' => 'due_date', 'dir' => 'sideways']]), 'sort[0].dir'];
         yield 'bad column' => [static fn (): CreateViewInput => new CreateViewInput('test.items', 'Broken', columns: [['key' => 'number', 'width' => -4]]), 'columns[0].width'];
         yield 'bad density' => [static fn (): CreateViewInput => new CreateViewInput('test.items', 'Broken', density: 'airy'), 'density'];
+        yield 'bad grouping' => [static fn (): CreateViewInput => new CreateViewInput('test.items', 'Broken', groupBy: 'by what?'), 'group_by'];
         yield 'empty name' => [static fn (): CreateViewInput => new CreateViewInput('test.items', '  '), 'name'];
         yield 'unknown list' => [static fn (): CreateViewInput => new CreateViewInput('test.nothing', 'Broken'), 'listKey'];
     }
@@ -317,6 +318,19 @@ final class SavedViewsTest extends TestCase
         $this->views->update(new UpdateViewInput($view->id(), visibility: 'private'));
         self::assertSame(self::OWNER, $view->updatedBy());
         $this->assertRefused(RefusalKind::NotFound, fn (): SavedView => $this->views->update(new UpdateViewInput($view->id(), visibility: 'shared')));
+    }
+
+    public function testTheGroupingIsKeptWithTheDisplay(): void
+    {
+        $view = $this->views->create(new CreateViewInput('test.items', 'Grouped', density: 'dense', groupBy: 'customer'));
+        self::assertSame(['density' => 'dense', 'group_by' => 'customer'], $view->display());
+
+        $this->views->update(new UpdateViewInput($view->id(), columns: ['number']));
+        self::assertSame(['columns' => [['key' => 'number']], 'density' => 'dense', 'group_by' => 'customer'], $view->display(), 'changing the columns keeps it');
+        $this->views->update(new UpdateViewInput($view->id(), groupBy: 'status'));
+        self::assertSame(['columns' => [['key' => 'number']], 'density' => 'dense', 'group_by' => 'status'], $view->display());
+        $this->views->update(new UpdateViewInput($view->id(), groupBy: null));
+        self::assertSame(['columns' => [['key' => 'number']], 'density' => 'dense'], $view->display());
     }
 
     public function testUpdatingOnlyTheColumnsKeepsTheDensityAndTheOtherWayRound(): void
