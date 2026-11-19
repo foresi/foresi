@@ -167,7 +167,7 @@ test.describe('projects', () => {
     await expect(flash).toContainText(`Úkol „${title}“ je v koši.`);
     await expect(row).toHaveCount(0);
     await flash.getByRole('button', { name: 'Vrátit zpět' }).click();
-    await expect(page.locator('main')).toContainText(`Úkol „${title}“ je zpět.`);
+    await expect(page.locator('main')).toContainText(`Úkol „${title}“ je obnovený.`);
     await expect(row).toBeVisible();
 
     await row.getByRole('button', { name: `Další akce pro ${title}` }).click();
@@ -180,7 +180,7 @@ test.describe('projects', () => {
     const trashed = page.locator('tbody tr').filter({ hasText: title });
     await trashed.getByRole('button', { name: /Další akce/ }).click();
     await trashed.getByRole('menuitem', { name: 'Obnovit' }).click();
-    await expect(page.locator('main')).toContainText(`Úkol „${title}“ je zpět.`);
+    await expect(page.locator('main')).toContainText(`Úkol „${title}“ je obnovený.`);
     await expect(page.locator('main')).toContainText('Koš je prázdný');
 
     await openWebsite(page);

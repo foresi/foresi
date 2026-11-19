@@ -100,7 +100,7 @@ final class TaskTrashControllerTest extends WebTestCase
 
         self::assertResponseRedirects('/projects/'.$project);
         $crawler = $this->client->followRedirect();
-        self::assertSelectorTextContains('main [role="status"]', 'The task “Wireframes” is back.');
+        self::assertSelectorTextContains('main [role="status"]', 'The task “Wireframes” is restored.');
         self::assertSame(['Brief', 'Wireframes', 'Logo'], $this->listed($crawler));
         self::assertCount(0, $crawler->filter('[data-project-trash]'));
     }
@@ -190,7 +190,7 @@ final class TaskTrashControllerTest extends WebTestCase
 
         self::assertResponseRedirects('/projects/'.$project.'/trash');
         $crawler = $this->client->followRedirect();
-        self::assertSelectorTextContains('main [role="status"]', 'The task “Brief” is back.');
+        self::assertSelectorTextContains('main [role="status"]', 'The task “Brief” is restored.');
         self::assertSame(['Logo'], $crawler->filter('tbody tr td:first-child')->each(static fn (Crawler $cell): string => trim($cell->filter('span')->first()->text())));
         self::assertNull($this->deletedAt('Brief'));
     }
