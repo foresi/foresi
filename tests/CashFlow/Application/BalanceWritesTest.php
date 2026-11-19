@@ -102,18 +102,17 @@ final class BalanceWritesTest extends CashFlowTestCase
 
     public function testSetsChangesAndRemovesTheMinimumBalance(): void
     {
-        $set = $this->writer()->minimum(new SetMinimumBalanceInput($this->firm->id(), '50000.00'));
-        $changed = $this->writer()->minimum(new SetMinimumBalanceInput($this->firm->id(), '60000.00'));
+        $set = $this->writer()->minimum(new SetMinimumBalanceInput('50000.00'));
+        $changed = $this->writer()->minimum(new SetMinimumBalanceInput('60000.00'));
 
         self::assertSame($set?->id(), $changed?->id());
         self::assertSame(6000000, self::getContainer()->get(CashFlowStore::class)->minimumBalance($this->firm->id())?->amount()->minor());
         self::assertSame($this->firm->id(), $changed?->firm()->id());
-        self::assertNull($this->writer()->minimum(new SetMinimumBalanceInput($this->firm->id(), null)));
-        self::assertNull($this->writer()->minimum(new SetMinimumBalanceInput($this->firm->id(), null)));
+        self::assertNull($this->writer()->minimum(new SetMinimumBalanceInput(null)));
+        self::assertNull($this->writer()->minimum(new SetMinimumBalanceInput(null)));
         self::assertSame([], $this->em->getRepository(MinimumBalance::class)->findAll());
         self::assertNull(self::getContainer()->get(CashFlowStore::class)->minimumBalance('not-an-id'));
-        $this->assertRefused('amount_invalid', 'amount', fn (): ?MinimumBalance => $this->writer()->minimum(new SetMinimumBalanceInput($this->firm->id(), 'lots')));
-        $this->assertRefused('not_found', null, fn (): ?MinimumBalance => $this->writer()->minimum(new SetMinimumBalanceInput('0198a4f0-8b1e-7000-8000-000000000001', '1.00')));
+        $this->assertRefused('amount_invalid', 'amount', fn (): ?MinimumBalance => $this->writer()->minimum(new SetMinimumBalanceInput('lots')));
     }
 
     public function testAGuestWritesNoBalance(): void
@@ -123,7 +122,7 @@ final class BalanceWritesTest extends CashFlowTestCase
         $this->assertRefused('forbidden', null, fn (): Checkpoint => $this->writer()->checkpoint(new RecordCheckpointInput($this->account->id(), '2026-11-17', '1.00')));
         $this->assertRefused('forbidden', null, fn (): ExpectedDate => $this->writer()->expect(new SetExpectedDateInput('invoice', 'inv-1', '2026-12-15')));
         $this->assertRefused('forbidden', null, fn (): array => $this->writer()->clearExpected(new ClearExpectedDateInput('invoice', 'inv-1')));
-        $this->assertRefused('forbidden', null, fn (): ?MinimumBalance => $this->writer()->minimum(new SetMinimumBalanceInput($this->firm->id(), '1.00')));
+        $this->assertRefused('forbidden', null, fn (): ?MinimumBalance => $this->writer()->minimum(new SetMinimumBalanceInput('1.00')));
     }
 
     private function writer(): BalanceWrites

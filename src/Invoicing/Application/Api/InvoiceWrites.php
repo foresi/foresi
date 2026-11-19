@@ -36,10 +36,8 @@ use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceLine;
 use Foresi\Invoicing\Domain\VariableSymbol;
 use Foresi\Party\Application\InstanceFirm;
-use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\NoFirmYet;
 use Foresi\Party\Application\PartyQuery;
-use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
@@ -73,7 +71,6 @@ final readonly class InvoiceWrites
         private NewInvoiceDefaults $defaults,
         private CustomerPicker $customers,
         private PartyQuery $parties,
-        private LegalEntities $firms,
         private InstanceFirm $instance,
     ) {
     }
@@ -85,7 +82,7 @@ final readonly class InvoiceWrites
     public function create(CreateInvoiceInput $input): string
     {
         $this->allowed();
-        $firm = $this->firm($input->firmId);
+        $firm = $this->firm();
         $kind = DocumentKind::from($input->kind);
         $issueDate = $this->date($input->issueDate, 'issueDate');
         try {
@@ -227,11 +224,11 @@ final readonly class InvoiceWrites
         }
     }
 
-    private function firm(?string $id): LegalEntity
+    private function firm(): LegalEntity
     {
         try {
-            $firm = null === $id ? $this->instance->get() : $this->firms->get($this->id($id, 'firmId') ?? '');
-        } catch (UnknownLegalEntity|NoFirmYet $unknown) {
+            $firm = $this->instance->get();
+        } catch (NoFirmYet $unknown) {
             throw InvoicingRefused::unknownFirm($unknown);
         }
 

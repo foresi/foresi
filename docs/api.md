@@ -2,7 +2,7 @@
 
 Foresi has a REST API. Scripts and other systems use it to read the data of an organisation and to change its contacts. The decisions behind it are in [ADR 0027](adr/0027-api-and-mcp.md) and [ADR 0032](adr/0032-api-writes.md). Assistants use the [MCP server](mcp.md), which is built on the same code.
 
-The API lists and shows invoices, contacts and payments, and follows the feed of domain events. It keeps the [cash flow](#cash-flow) of a firm and answers its forecast. It writes [contacts](#contact-writes) and [webhook endpoints](#webhooks): addresses of your own that receive the events as signed requests.
+The API lists and shows invoices, contacts and payments, and follows the feed of domain events. It keeps the [cash flow](#cash-flow) of the firm and answers its forecast. It writes [contacts](#contact-writes) and [webhook endpoints](#webhooks): addresses of your own that receive the events as signed requests.
 
 ## Personal API tokens
 
@@ -72,7 +72,7 @@ curl -H "Authorization: Bearer $FORESI_API_TOKEN" "https://app.example.com/api/v
 - The API is stateless. It never uses cookies or CSRF tokens.
 - Answers are JSON (`application/json`), errors `application/problem+json`.
 - Put the token in an environment variable or a secret store, never in a URL.
-- The organisation comes from the token. The firm is part of the data (`firm` on an invoice or payment); filter by `firm_id` to read one firm.
+- The organisation comes from the token. An instance holds one firm ([ADR 0039](adr/0039-one-firm-per-instance.md)): read it with `GET /api/v1/firm`. It is still part of the data (`firm` on an invoice or payment), but no read or write takes a firm. A request that sends `firm_id` is refused with `400 invalid_parameter` and `parameter` `firm_id`, not ignored, so a client written for several firms does not read more than it asked for without noticing.
 
 To check a set-up, call `GET /api/v1/me`. It returns the person and the token (its name, scopes and expiry). It never returns the secret.
 
@@ -118,14 +118,15 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/invoices/{invoiceId}` | `invoices:read` | One document with its lines, payments, corrections and balances. |
 | `/api/v1/contacts` | `contacts:read` | Contacts, newest first. |
 | `/api/v1/contacts/{contactId}` | `contacts:read` | One contact with its addresses, e-mails, bank accounts and contact persons. |
+| `/api/v1/firm` | `contacts:read` | The firm of the instance: id, name, registration number, VAT ID, VAT status, register entry and address. `404` before the first-run setup. |
 | `/api/v1/payments` | `payments:read` | Payments, newest first. |
 | `/api/v1/payments/{id}` | `payments:read` | One payment with the invoices it pays. |
 | `/api/v1/received-documents` | `received_documents:read` | Received documents, newest first, with what is paid and what remains. |
 | `/api/v1/received-documents/{documentId}` | `received_documents:read` | One received document with its VAT recap and payments. |
 | `/api/v1/received-documents/{documentId}/payments` | `received_documents:read` | The payments of one received document, by the day paid. |
 | `/api/v1/events` | `events:read` | Domain events of the last 30 days, oldest first. |
-| `/api/v1/cash-flow/forecast` | `cashflow:read` | The cash-flow forecast of a firm; see [Cash flow](#cash-flow). |
-| `/api/v1/cash-flow/planned-items` | `cashflow:read` | The planned items of a firm (`firm_id`, required), oldest first, without paging. |
+| `/api/v1/cash-flow/forecast` | `cashflow:read` | The cash-flow forecast of the firm; see [Cash flow](#cash-flow). |
+| `/api/v1/cash-flow/planned-items` | `cashflow:read` | The planned items of the firm, oldest first, without paging. |
 | `/api/v1/cash-flow/planned-items/{plannedItemId}` | `cashflow:read` | One planned item. |
 | `/api/v1/lists` | `views:read` | The lists saved views filter, with their fields, operators, values and columns; see [Saved views](#saved-views). |
 | `/api/v1/views?list=` | `views:read` | The saved views of a list the token's person sees. |
@@ -139,7 +140,6 @@ Query parameters of `GET /api/v1/invoices`. All of them narrow the list.
 | Parameter | Value |
 | --- | --- |
 | `kind` | `invoice`, `advance`, `payment_tax_document` or `correction_document`. |
-| `firm_id` | The id of a firm. |
 | `customer_id` | The id of a contact. |
 | `state` | `unpaid`, `overdue` or `paid`. |
 | `trashed` | `true` lists documents in the trash. Default `false`. |
@@ -170,7 +170,6 @@ The body of `POST /api/v1/invoices`:
 | --- | --- |
 | `customer_id` | Required. The id of a contact with a billing address. |
 | `lines` | Required. Objects of `text`, `unit_price` (a decimal string such as `"1500.00"`), and optional `quantity` (default `"1"`), `unit`, `price_type` (`without_vat` by default, `with_vat` or `base_only`), `vat` (`base`, `reduced`, `second_reduced`, `reverse_charge`, `exempt` or `none`) and `discount` (a percentage, such as `"10"`). Without `vat` a line gets the base rate, reverse charge for a customer taxed instead, or `none` for a firm that is no VAT payer. |
-| `firm_id` | The firm that issues it; the firm of the instance when left out. |
 | `kind` | `invoice` (default) or `advance`. |
 | `series_id` | A series of the firm and kind; the default series when left out. |
 | `number` | A number typed by hand, such as one continuing the numbering of another system; it must fit the series and be free. Without it the series' counter gives the next number. |
@@ -183,7 +182,7 @@ The body of `POST /api/v1/invoices`:
 | `order_number`, `description` | The customer's order number, and what the invoice is for (the first line's text when left out). |
 | `language` | `cs` or `en`; the customer's when left out. |
 
-`PATCH` takes the same fields except `firm_id`, `kind` and `currency`, which never change. `lines` replaces every line; left out, the lines stay as they are. `series_id` or `number` renumber the document, which is refused once it was delivered (`number_locked`), sent by e-mail (`number_locked_sent`) or queued to be sent (`number_locked_sending`); a variable symbol that followed the number follows the new one. A document in the trash (`trashed`) and a tax document on payment (`tax_document_fixed`) do not change.
+`PATCH` takes the same fields except `kind` and `currency`, which never change. `lines` replaces every line; left out, the lines stay as they are. `series_id` or `number` renumber the document, which is refused once it was delivered (`number_locked`), sent by e-mail (`number_locked_sent`) or queued to be sent (`number_locked_sending`); a variable symbol that followed the number follows the new one. A document in the trash (`trashed`) and a tax document on payment (`tax_document_fixed`) do not change.
 
 What the rules refuse is answered with every problem at once: the first one gives the status, the `reason` and, for `400`, the `parameter`, and `problems` lists them all as `"parameter: reason"`, such as `["variable_symbol: variable_symbol_invalid", "customer_id: customer_unknown"]`. A line is named by its position, such as `lines[0].unit_price`. A state of the data that does not allow the change, such as `number_taken`, `number_locked` or `trashed`, is `409`. The trash refuses a delivered document and one already in the trash with `409 not_trashable`, and one with payments with `409 has_payments`; correct a delivered document with a correction document in Foresi.
 
@@ -210,7 +209,6 @@ Query parameters of `GET /api/v1/payments`:
 
 | Parameter | Value |
 | --- | --- |
-| `firm_id` | The id of a firm. |
 | `invoice_id` | The id of an invoice the payment pays. |
 | `direction` | `incoming` or `refund`. |
 | `received_from`, `received_to` | Date received range, `YYYY-MM-DD`, both ends included. |
@@ -315,7 +313,7 @@ There is no upsert. To keep a contact you may have created before, search for it
 
 ## Cash flow
 
-The cash flow of a firm: planned items, bank balance checkpoints, the expected days of documents, the minimum balance and the forecast. What each one means is in [cash-flow.md](cash-flow.md). The writes need `cashflow:write`, the reads `cashflow:read`, and the owners and team members of the organisation may use them. Bodies are JSON with snake case fields.
+The cash flow of the firm: planned items, bank balance checkpoints, the expected days of documents, the minimum balance and the forecast. What each one means is in [cash-flow.md](cash-flow.md). The writes need `cashflow:write`, the reads `cashflow:read`, and the owners and team members of the organisation may use them. Bodies are JSON with snake case fields.
 
 | Method and path | Answer |
 | --- | --- |
@@ -327,22 +325,21 @@ The cash flow of a firm: planned items, bank balance checkpoints, the expected d
 | `POST /api/v1/cash-flow/checkpoints` | `201` with the checkpoint: `bank_account_id`, `on` (today or before) and `amount` in the currency of the account. The same account and day again corrects it. |
 | `POST /api/v1/cash-flow/expected-dates` | The expected day: `subject_type` and `subject_id` as a forecast item names its subject, and `expected_on`. Setting it again moves it. |
 | `DELETE /api/v1/cash-flow/expected-dates/{subjectType}/{subjectId}` | The subject with `expected_on: null`. Clearing one that is not set changes nothing. |
-| `POST /api/v1/cash-flow/firms/{firmId}/minimum-balance` | The minimum balance in CZK (`amount`); `null` removes it. |
+| `POST /api/v1/cash-flow/minimum-balance` | The minimum balance in CZK (`amount`); `null` removes it. |
 
 ```bash
 curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
-  -d '{"firm_id": "0198a4f0-8b1e-7000-8000-000000000001", "direction": "out", "name": "Office rent", "category": "rent", "amount": "15000.00", "on": "2026-12-15", "repeat": "month"}' \
+  -d '{"direction": "out", "name": "Office rent", "category": "rent", "amount": "15000.00", "on": "2026-12-15", "repeat": "month"}' \
   "https://app.example.com/api/v1/cash-flow/planned-items"
 
 curl -H "Authorization: Bearer $FORESI_API_TOKEN" \
-  "https://app.example.com/api/v1/cash-flow/forecast?firm_id=0198a4f0-8b1e-7000-8000-000000000001"
+  "https://app.example.com/api/v1/cash-flow/forecast?months=6"
 ```
 
 Fields of a planned item:
 
 | Field | Value |
 | --- | --- |
-| `firm_id` | Required on create. The firm the money belongs to. |
 | `direction` | Required on create. `in` or `out`. |
 | `name` | Required. At most 120 characters. |
 | `category` | Required. `revenue`, `purchases`, `rent`, `software`, `payroll`, `taxes`, `insurance`, `vat`, `loans`, `owner_draws` or `other`. |
@@ -361,7 +358,6 @@ Query parameters of `GET /api/v1/cash-flow/forecast`:
 
 | Parameter | Value |
 | --- | --- |
-| `firm_id` | Required. The firm. |
 | `from` | The first day, today or later. Today by default. |
 | `months` | How many calendar months the forecast covers, 1 to 24. 12 by default. |
 | `weeks_until` | Weeks are used up to the week that holds this day, then months. The end of next month by default. |
@@ -374,20 +370,19 @@ What the cash flow refuses:
 
 | Status | `code` | When |
 | --- | --- | --- |
-| 400 | `invalid_parameter` | A field or parameter breaks a rule. `parameter` names it and `reason` says which rule, such as `name_required`, `amount_invalid`, `amount_not_positive`, `date_invalid`, `date_in_future`, `repeat_unknown`, `recurrence_invalid`, `end_ambiguous`, `not_recurring`, `not_an_occurrence`, `ends_before_start`, `counterparty_unknown`, `firm_required`, `from_in_past` or `months_invalid`. |
+| 400 | `invalid_parameter` | A field or parameter breaks a rule. `parameter` names it and `reason` says which rule, such as `name_required`, `amount_invalid`, `amount_not_positive`, `date_invalid`, `date_in_future`, `repeat_unknown`, `recurrence_invalid`, `end_ambiguous`, `not_recurring`, `not_an_occurrence`, `ends_before_start`, `counterparty_unknown`, `from_in_past` or `months_invalid`. |
 | 403 | `forbidden` | A guest of the organisation. |
-| 404 | `not_found` | The organisation has no such firm, bank account or planned item. |
+| 404 | `not_found` | The instance has no firm yet, or the organisation has no such bank account or planned item. |
 | 409 | `not_recurring` | Ending a one-off item. |
 
 ## Received documents
 
-The documents the firms received from suppliers (see [received documents](purchasing.md)). Reading needs `received_documents:read`, writing `received_documents:write`. An item has the firm, `state` (`draft` or `recorded`), `kind`, `treatment`, the evidence number, the supplier, the supplier's number, the variable symbol, the dates, `total` (negative for a credit note), `base`, `vat`, and the derived `paid`, `remaining` (both positive), `is_paid` and `last_paid_on`. The detail adds the supplier as the document names it, `vat_recap`, the exchange rate, the deduction period and `payments`.
+The documents the firm received from suppliers (see [received documents](purchasing.md)). Reading needs `received_documents:read`, writing `received_documents:write`. An item has the firm, `state` (`draft` or `recorded`), `kind`, `treatment`, the evidence number, the supplier, the supplier's number, the variable symbol, the dates, `total` (negative for a credit note), `base`, `vat`, and the derived `paid`, `remaining` (both positive), `is_paid` and `last_paid_on`. The detail adds the supplier as the document names it, `vat_recap`, the exchange rate, the deduction period and `payments`.
 
 Query parameters of `GET /api/v1/received-documents`:
 
 | Parameter | Value |
 | --- | --- |
-| `firm_id` | The id of a firm. |
 | `supplier_id` | The id of the supplier, a contact. |
 | `state` | `draft` or `recorded`. |
 | `unpaid` | `true` lists only recorded documents with something left to pay. Default `false`. |
@@ -414,7 +409,7 @@ The writes answer `{"data": {...}}` with the document as `GET /api/v1/received-d
 ```bash
 curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
   -H "Idempotency-Key: 7c1d-record-fv-2026-123" \
-  -d '{"firm_id": "…", "kind": "tax_invoice", "supplier_id": "…", "supplier_number": "FV-2026-123", "issue_date": "2026-11-02", "due_date": "2026-11-16", "total": "1210.00", "vat_recap": ["21:1000.00:210.00"]}' \
+  -d '{"kind": "tax_invoice", "supplier_id": "…", "supplier_number": "FV-2026-123", "issue_date": "2026-11-02", "due_date": "2026-11-16", "total": "1210.00", "vat_recap": ["21:1000.00:210.00"]}' \
   "https://app.example.com/api/v1/received-documents"
 ```
 
@@ -422,7 +417,7 @@ Recording takes the next evidence number of the firm, as the screen does, and ne
 
 | Field | Value |
 | --- | --- |
-| `firm_id`, `kind`, `supplier_id`, `issue_date`, `total` | Required. `kind` is `tax_invoice`, `simplified_receipt`, `foreign_invoice`, `credit_note`, `advance_request` or `other`. The supplier is a contact; find it by `registration_number` first, or create it with a contact write. |
+| `kind`, `supplier_id`, `issue_date`, `total` | Required. `kind` is `tax_invoice`, `simplified_receipt`, `foreign_invoice`, `credit_note`, `advance_request` or `other`. The supplier is a contact; find it by `registration_number` first, or create it with a contact write. |
 | `treatment` | `domestic` (default), `domestic_reverse_charge`, `eu_service`, `non_eu_service`, `non_deductible`, or `not_vat_document` for a document without VAT. |
 | `supplier_number`, `variable_symbol` | The supplier's number of the document and the symbol to pay with. |
 | `tax_point_date`, `due_date`, `received_date` | `YYYY-MM-DD`. The tax point is the issue date when left out, the received date today. |
@@ -441,7 +436,7 @@ What a received document write refuses:
 | --- | --- | --- |
 | 400 | `invalid_parameter` | A field breaks a rule. `parameter` names it and `reason` says which, such as `date_invalid`, `amount_invalid`, `currency_unsupported`, `vat_recap_line_invalid`, `supplier_unknown`, `vat_recap_missing`, `exchange_rate_missing`, `variable_symbol` or `payment_amount`. |
 | 404 | `not_found` | The organisation has no such received document. |
-| 404 | `firm_unknown` | The organisation has no such firm. |
+| 404 | `firm_unknown` | The instance has no firm yet: its first-run setup has not happened. |
 | 409 | `overpaid` | The payment is more than what remains. |
 | 409 | `paid` | The document is paid in full already. |
 | 409 | `not_recorded` | The document is a draft; only a recorded one takes payments. |

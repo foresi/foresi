@@ -49,7 +49,7 @@ final class CashFlowApiTest extends ApiTestCase
 
     public function testCreatesAPlannedItemAnswering201WithTheItemAndItsLocation(): void
     {
-        $this->send('POST', '/api/v1/cash-flow/planned-items', ['firm_id' => $this->firmId] + self::RENT);
+        $this->send('POST', '/api/v1/cash-flow/planned-items', self::RENT);
 
         self::assertResponseStatusCodeSame(201);
         $id = $this->at('data', 'id');
@@ -61,7 +61,7 @@ final class CashFlowApiTest extends ApiTestCase
 
         $this->get('/api/v1/cash-flow/planned-items/'.$id, secret: $this->writer);
         self::assertSame($created, $this->json()['data']);
-        $this->get('/api/v1/cash-flow/planned-items', ['firm_id' => $this->firmId], $this->writer);
+        $this->get('/api/v1/cash-flow/planned-items', [], $this->writer);
         self::assertSame([$created], $this->json()['data']);
     }
 
@@ -87,7 +87,7 @@ final class CashFlowApiTest extends ApiTestCase
 
     public function testARefusalNamesTheParameterAsTheClientSendsIt(): void
     {
-        $this->send('POST', '/api/v1/cash-flow/planned-items', ['firm_id' => $this->firmId, 'ends_on' => '2027-01-01'] + self::RENT);
+        $this->send('POST', '/api/v1/cash-flow/planned-items', ['ends_on' => '2027-01-01'] + self::RENT);
 
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'ends_after', 'reason' => 'end_ambiguous']);
     }
@@ -100,14 +100,14 @@ final class CashFlowApiTest extends ApiTestCase
         $this->send('POST', '/api/v1/cash-flow/checkpoints', ['bank_account_id' => $account, 'on' => '2026-11-16', 'amount' => '50000.00']);
         self::assertResponseStatusCodeSame(201);
         self::assertSame(['2026-11-16', 5000000, self::IBAN], [$this->at('data', 'on'), $this->at('data', 'amount', 'amount_minor'), $this->at('data', 'bank_account', 'iban')]);
-        $this->send('POST', '/api/v1/cash-flow/firms/'.$this->firmId.'/minimum-balance', ['amount' => '45000.00']);
+        $this->send('POST', '/api/v1/cash-flow/minimum-balance', ['amount' => '45000.00']);
         self::assertSame(['firm_id' => $this->firmId, 'amount' => ['amount_minor' => 4500000, 'currency' => 'CZK']], $this->json()['data']);
         $this->send('POST', '/api/v1/cash-flow/expected-dates', ['subject_type' => 'invoice', 'subject_id' => 'inv-1', 'expected_on' => '2026-12-15']);
         self::assertSame(['subject_type' => 'invoice', 'subject_id' => 'inv-1', 'expected_on' => '2026-12-15'], $this->json()['data']);
         $this->send('DELETE', '/api/v1/cash-flow/expected-dates/invoice/inv-1');
         self::assertSame(['subject_type' => 'invoice', 'subject_id' => 'inv-1', 'expected_on' => null], $this->json()['data']);
 
-        $this->get('/api/v1/cash-flow/forecast', ['firm_id' => $this->firmId, 'months' => '3'], $this->writer);
+        $this->get('/api/v1/cash-flow/forecast', ['months' => '3'], $this->writer);
         self::assertResponseIsSuccessful();
         $forecast = $this->json()['data'];
         self::assertSame(['CZK', '2026-11-17', '2026-11-17', '2027-01-31'], [$this->at('data', 'currency'), $this->at('data', 'today'), $this->at('data', 'from'), $this->at('data', 'to')]);
@@ -133,32 +133,51 @@ final class CashFlowApiTest extends ApiTestCase
         ], $this->at('data', 'periods', 1, 'items', 0));
         self::assertSame(['2027-01-25', ['amount_minor' => 4500000, 'currency' => 'CZK'], '2026-11-25', false, [], []], [$this->at('data', 'lowest', 'on'), $this->at('data', 'minimum_balance'), $this->at('data', 'shortfall_on'), $this->at('data', 'incomplete'), $this->at('data', 'unavailable_sources'), $this->at('data', 'unavailable_rates')]);
 
-        $call = $this->tool('foresi_cash_flow_forecast', ['firm_id' => $this->firmId, 'months' => 3]);
+        $call = $this->tool('foresi_cash_flow_forecast', ['months' => 3]);
         self::assertFalse($call['isError'] ?? false);
         self::assertEquals($forecast, $this->in($call, 'structuredContent', 'data'));
     }
 
     public function testTheForecastRefusesABadParameterOnBothSurfaces(): void
     {
-        $this->get('/api/v1/cash-flow/forecast', ['months' => '3'], $this->writer);
-        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'firm_id', 'reason' => 'firm_required']);
-        $this->get('/api/v1/cash-flow/forecast', ['firm_id' => $this->firmId, 'months' => 'many'], $this->writer);
+        $this->get('/api/v1/cash-flow/forecast', ['months' => 'many'], $this->writer);
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'months', 'reason' => 'months_invalid']);
-        $this->get('/api/v1/cash-flow/planned-items', [], $this->writer);
-        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'firm_id', 'reason' => 'firm_required']);
 
-        $call = $this->tool('foresi_cash_flow_forecast', ['firm_id' => $this->firmId, 'from' => '2026-01-01']);
+        $call = $this->tool('foresi_cash_flow_forecast', ['from' => '2026-01-01']);
         self::assertTrue($call['isError'] ?? false);
         self::assertSame(['code' => 'invalid_argument', 'message' => 'A forecast starts today or later; what happened before is in the balance.', 'details' => ['parameter' => 'from', 'reason' => 'from_in_past']], $this->in($call, 'structuredContent', 'error'));
-        $call = $this->tool('foresi_list_planned_items', ['firm_id' => '0198a4f0-8b1e-7000-8000-000000000001']);
-        self::assertSame('not_found', $this->in($call, 'structuredContent', 'error', 'code'));
+    }
+
+    public function testTheRestReadsRefuseAFirm(): void
+    {
+        $firm = '0198a4f0-8b1e-7000-8000-000000000001';
+        foreach (['/api/v1/cash-flow/forecast', '/api/v1/cash-flow/planned-items'] as $path) {
+            $this->get($path, ['firm_id' => $firm], $this->writer);
+            $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'firm_id']);
+        }
+    }
+
+    public function testTheMcpToolsRefuseAFirm(): void
+    {
+        $firm = '0198a4f0-8b1e-7000-8000-000000000001';
+        foreach (['foresi_cash_flow_forecast', 'foresi_list_planned_items'] as $name) {
+            if (null === $this->session) {
+                $this->mcp('initialize', ['protocolVersion' => '2025-06-18', 'capabilities' => new \stdClass(), 'clientInfo' => ['name' => 'test', 'version' => '1.0']]);
+            }
+            // The schema of the tool has no firm_id, and the server refuses what it does not list.
+            $answer = $this->mcp('tools/call', ['name' => $name, 'arguments' => ['firm_id' => $firm]]);
+            self::assertSame(-32602, $this->in($answer, 'error', 'code'));
+            $message = $this->in($answer, 'error', 'message');
+            self::assertIsString($message);
+            self::assertStringContainsString('firm_id', $message);
+        }
     }
 
     public function testListsThePlannedItemsOverMcp(): void
     {
         $id = $this->createdRent();
 
-        $call = $this->tool('foresi_list_planned_items', ['firm_id' => $this->firmId]);
+        $call = $this->tool('foresi_list_planned_items', []);
 
         self::assertSame([$id], array_column((array) $this->in($call, 'structuredContent', 'data', 'items'), 'id'));
         $text = $this->in($call, 'content', 0, 'text');
@@ -168,14 +187,14 @@ final class CashFlowApiTest extends ApiTestCase
 
     public function testATokenWithoutTheCashFlowScopeReadsNothing(): void
     {
-        $this->get('/api/v1/cash-flow/forecast', ['firm_id' => $this->firmId], $this->issued([ApiScope::from('contacts:read')]));
+        $this->get('/api/v1/cash-flow/forecast', [], $this->issued([ApiScope::from('contacts:read')]));
 
         $this->assertProblem(403, 'insufficient_scope');
     }
 
     private function createdRent(): string
     {
-        $this->send('POST', '/api/v1/cash-flow/planned-items', ['firm_id' => $this->firmId] + self::RENT);
+        $this->send('POST', '/api/v1/cash-flow/planned-items', self::RENT);
         self::assertResponseStatusCodeSame(201);
         $id = $this->at('data', 'id');
         self::assertIsString($id);

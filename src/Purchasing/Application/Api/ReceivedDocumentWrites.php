@@ -9,6 +9,8 @@ declare(strict_types=1);
 namespace Foresi\Purchasing\Application\Api;
 
 use Foresi\Instance\Application\InstanceClock;
+use Foresi\Party\Application\InstanceFirm;
+use Foresi\Party\Application\NoFirmYet;
 use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Purchasing\Application\PayReceivedDocument;
 use Foresi\Purchasing\Application\PurchasingAccess;
@@ -43,6 +45,7 @@ final readonly class ReceivedDocumentWrites
         private InstanceClock $today,
         private PurchasingAccess $access,
         private ReceivedDocuments $documents,
+        private InstanceFirm $firm,
     ) {
     }
 
@@ -55,7 +58,7 @@ final readonly class ReceivedDocumentWrites
         $currency = Currency::tryFrom($input->currency)
             ?? throw PurchasingRefused::unreadable(PurchasingRefused::CURRENCY, 'currency', 'The currency is not an ISO 4217 code Foresi knows, such as CZK or EUR.');
 
-        return $this->refusing(fn (): string => $this->recording->create($input->firmId, new ReceivedDocumentInput(
+        return $this->refusing(fn (): string => $this->recording->create($this->firm->get()->id(), new ReceivedDocumentInput(
             ReceivedDocumentKind::from($input->kind),
             PurchaseTaxTreatment::from($input->treatment),
             $input->supplierId,
@@ -138,7 +141,7 @@ final readonly class ReceivedDocumentWrites
             return $write();
         } catch (ReceivedDocumentRefused $refused) {
             throw PurchasingRefused::of($refused);
-        } catch (UnknownLegalEntity $unknown) {
+        } catch (NoFirmYet|UnknownLegalEntity $unknown) {
             throw PurchasingRefused::unknownFirm($unknown);
         }
     }

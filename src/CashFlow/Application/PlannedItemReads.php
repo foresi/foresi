@@ -25,11 +25,11 @@ final readonly class PlannedItemReads
      *
      * @throws CashFlowRefused
      */
-    public function of(string $firmId): array
+    public function all(): array
     {
         $this->access->denyUnlessStaff();
 
-        return $this->store->plannedItemsOf($this->access->firm($firmId)->id());
+        return $this->store->plannedItemsOf($this->access->firm()->id());
     }
 
     /**

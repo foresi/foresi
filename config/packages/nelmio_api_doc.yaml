@@ -179,6 +179,24 @@ nelmio_api_doc:
                         email: { type: string, nullable: true }
                         billing_address: { allOf: [{ $ref: '#/components/schemas/Address' }], nullable: true }
                         archived: { type: boolean }
+                Firm:
+                    type: object
+                    description: The one firm of the instance, the company that issues its documents and receives its payments.
+                    properties:
+                        id: { type: string, format: uuid }
+                        name: { type: string }
+                        registration_country: { type: string, example: CZ }
+                        registration_number: { type: string }
+                        vat_id: { type: string, nullable: true }
+                        vat_status: { type: string, enum: [registered, not_registered, identified_person] }
+                        register_entry: { type: string }
+                        address:
+                            type: object
+                            properties:
+                                street: { type: string }
+                                city: { type: string }
+                                postal_code: { type: string }
+                                country_code: { type: string }
                 ContactDetail:
                     allOf:
                         - $ref: '#/components/schemas/Contact'

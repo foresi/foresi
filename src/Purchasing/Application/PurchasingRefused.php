@@ -114,7 +114,7 @@ final class PurchasingRefused extends \DomainException implements Refused
 
     public static function unknownFirm(?\Throwable $previous = null): self
     {
-        return new self(self::FIRM_UNKNOWN, RefusalKind::NotFound, 'firmId', 'The organisation has no firm with this id. Find the id with foresi_list_firms.', $previous);
+        return new self(self::FIRM_UNKNOWN, RefusalKind::NotFound, null, 'The instance has no firm yet: its first-run setup has not happened.', $previous);
     }
 
     public function reason(): string

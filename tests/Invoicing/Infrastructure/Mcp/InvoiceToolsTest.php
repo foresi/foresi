@@ -38,10 +38,9 @@ final class InvoiceToolsTest extends ReadToolTestCase
         self::assertSame('object', $schema['type']);
         self::assertFalse($schema['additionalProperties']);
         self::assertArrayNotHasKey('required', $schema);
-        self::assertSame(['kind', 'firm_id', 'customer_id', 'state', 'trashed', 'issued_from', 'issued_to', 'query', 'view_id', 'filter', 'limit', 'cursor'], self::argumentNames($tool));
+        self::assertSame(['kind', 'customer_id', 'state', 'trashed', 'issued_from', 'issued_to', 'query', 'view_id', 'filter', 'limit', 'cursor'], self::argumentNames($tool));
         self::assertSame(['invoice', 'advance', 'payment_tax_document', 'correction_document'], self::argument($tool, 'kind')['enum']);
         self::assertSame(['unpaid', 'overdue', 'paid'], self::argument($tool, 'state')['enum']);
-        self::assertSame(['type' => 'string', 'format' => 'uuid', 'description' => 'Only documents issued by this firm of the organisation.'], self::argument($tool, 'firm_id'));
         self::assertSame('uuid', self::argument($tool, 'customer_id')['format']);
         self::assertSame(['type' => 'string', 'format' => 'date', 'description' => 'Only documents issued on this day or later. As YYYY-MM-DD, the day included.'], self::argument($tool, 'issued_from'));
         self::assertSame('date', self::argument($tool, 'issued_to')['format']);
@@ -93,7 +92,7 @@ final class InvoiceToolsTest extends ReadToolTestCase
         self::assertSame('The document with its lines, payments, corrections and balances.', $output->summary);
     }
 
-    public function testTheKindTheFirmAndTheCustomerNarrowTheSearch(): void
+    public function testTheKindAndTheCustomerNarrowTheSearch(): void
     {
         [$first, $other, $otherCustomer] = $this->flushed(function (): array {
             $first = $this->invoice();
@@ -105,8 +104,6 @@ final class InvoiceToolsTest extends ReadToolTestCase
 
         self::assertSame([$other->id(), $first->id()], self::itemIds($this->call(SearchInvoicesTool::class, ['kind' => 'invoice'])));
         self::assertSame([], self::itemIds($this->call(SearchInvoicesTool::class, ['kind' => 'advance'])));
-        self::assertSame([$first->id()], self::itemIds($this->call(SearchInvoicesTool::class, ['firm_id' => $this->firmId])));
-        self::assertSame([$other->id()], self::itemIds($this->call(SearchInvoicesTool::class, ['firm_id' => strtoupper($other->firm()->id())])));
         self::assertSame([$other->id()], self::itemIds($this->call(SearchInvoicesTool::class, ['customer_id' => $otherCustomer])));
         self::assertSame([$first->id()], self::itemIds($this->call(SearchInvoicesTool::class, ['customer_id' => strtoupper($this->customerId)])));
     }
@@ -171,7 +168,6 @@ final class InvoiceToolsTest extends ReadToolTestCase
         yield 'a limit below one' => [['limit' => 0], 'The argument "limit" cannot be used: This value should be between 1 and 100.'];
         yield 'an unknown kind' => [['kind' => 'receipt'], 'The argument "kind" cannot be used: The value you selected is not a valid choice.'];
         yield 'an unknown state' => [['state' => 'cancelled'], 'The argument "state" cannot be used: The value you selected is not a valid choice.'];
-        yield 'a firm that is no id' => [['firm_id' => 'nope'], 'The argument "firm_id" cannot be used: This is not a valid UUID.'];
         yield 'a customer that is no id' => [['customer_id' => 'nope'], 'The argument "customer_id" cannot be used: This is not a valid UUID.'];
         yield 'a cursor no search gave' => [['cursor' => '!!!'], 'The argument "cursor" is not one a search gave. Pass next_cursor of the previous answer unchanged, or leave cursor out for the first page.'];
         yield 'a limit that is no integer' => [['limit' => '5'], 'The argument "limit" must be an integer.'];

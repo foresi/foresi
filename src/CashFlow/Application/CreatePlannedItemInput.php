@@ -23,15 +23,13 @@ use Foresi\Shared\Application\Api\Operation;
     tool: 'foresi_create_planned_item',
     scope: 'cashflow:write',
     title: 'Create a planned item',
-    description: 'Plans money a firm expects to receive or pay that no document carries yet, such as rent, software, insurance or tax advances, or a client not invoiced yet. It is kept outside the books and appears in foresi_cash_flow_forecast. Without repeat it falls once on its day; with repeat it recurs from that day every N days, weeks, months or years, until ends_on or after ends_after occurrences. Find firm ids with foresi_list_firms and contact ids with foresi_search_contacts.',
+    description: 'Plans money a firm expects to receive or pay that no document carries yet, such as rent, software, insurance or tax advances, or a client not invoiced yet. It is kept outside the books and appears in foresi_cash_flow_forecast. Without repeat it falls once on its day; with repeat it recurs from that day every N days, weeks, months or years, until ends_on or after ends_after occurrences. Find contact ids with foresi_search_contacts.',
     status: 201,
     response: 'CashFlowPlannedItem',
 )]
 final readonly class CreatePlannedItemInput
 {
     public function __construct(
-        #[Field('The id of the firm the money belongs to.', format: 'uuid')]
-        public string $firmId,
         #[Field('in for money the firm receives, out for money it pays.', enum: ['in', 'out'])]
         public string $direction,
         #[Field('What it is, such as "Office rent".', maxLength: PlannedItem::MAX_NAME)]

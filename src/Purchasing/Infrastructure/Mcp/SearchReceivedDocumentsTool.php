@@ -57,7 +57,7 @@ final readonly class SearchReceivedDocumentsTool implements ReadTool
             .'Returns {items, next_cursor, applied_view}: each document has its id, firm, state, kind, treatment, evidence number, supplier, supplier number, variable symbol, dates, total, base, VAT, what is paid and what remains. '
             .'Money is {amount_minor, currency}, in hundredths of the currency; a credit note has a negative total, while paid and remaining are positive. '
             .'When next_cursor is not null, more documents match: call again with the same arguments and next_cursor as cursor. '
-            .'Use foresi_list_firms for a firm_id and foresi_search_contacts for a supplier_id.';
+            .'Use foresi_search_contacts for a supplier_id.';
     }
 
     public function inputSchema(): array
@@ -65,7 +65,6 @@ final readonly class SearchReceivedDocumentsTool implements ReadTool
         return [
             'type' => 'object',
             'properties' => [
-                'firm_id' => ToolArguments::idSchema('Only documents of this firm of the organisation.'),
                 'supplier_id' => ToolArguments::idSchema('Only documents of this supplier, a contact.'),
                 'state' => ToolArguments::choiceSchema(['draft', 'recorded'], 'Only drafts waiting to be completed, or only recorded documents.'),
                 'unpaid' => ['type' => 'boolean', 'default' => false, 'description' => 'True returns only recorded documents with something left to pay.'],
@@ -81,7 +80,6 @@ final readonly class SearchReceivedDocumentsTool implements ReadTool
     public function call(array $arguments): ToolOutput
     {
         $query = new ReceivedDocumentListQuery(
-            ToolArguments::text($arguments, 'firm_id'),
             ToolArguments::text($arguments, 'supplier_id'),
             ToolArguments::text($arguments, 'state'),
             ToolArguments::flag($arguments, 'unpaid'),

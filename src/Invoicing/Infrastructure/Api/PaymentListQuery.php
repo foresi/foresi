@@ -19,9 +19,6 @@ use Symfony\Component\Validator\Constraints as Assert;
 final readonly class PaymentListQuery
 {
     public function __construct(
-        #[SerializedName('firm_id')]
-        #[Assert\Uuid(versions: [Assert\Uuid::V7_MONOTONIC])]
-        public ?string $firmId = null,
         #[SerializedName('invoice_id')]
         #[Assert\Uuid(versions: [Assert\Uuid::V7_MONOTONIC])]
         public ?string $invoiceId = null,
@@ -44,7 +41,7 @@ final readonly class PaymentListQuery
     public function filter(): PaymentSliceFilter
     {
         return new PaymentSliceFilter(
-            null === $this->firmId ? null : strtolower($this->firmId),
+            null,
             null === $this->invoiceId ? null : strtolower($this->invoiceId),
             null === $this->direction ? null : PaymentDirection::from($this->direction),
             null === $this->receivedFrom ? null : new \DateTimeImmutable($this->receivedFrom),

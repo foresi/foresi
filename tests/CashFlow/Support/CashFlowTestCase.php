@@ -128,7 +128,6 @@ abstract class CashFlowTestCase extends KernelTestCase
         ?string $counterpartyId = null,
     ): PlannedItem {
         return $this->writes()->create(new CreatePlannedItemInput(
-            $this->firm->id(),
             $direction,
             $name,
             $category,

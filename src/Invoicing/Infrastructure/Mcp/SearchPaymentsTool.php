@@ -50,7 +50,7 @@ final readonly class SearchPaymentsTool implements ReadTool
             .'Returns {items, next_cursor}: each payment has its id, firm, day, amount, direction, method, source, note, the bank movement it came from, when it was cancelled, and the documents it is allocated to with the amounts. '
             .'Money is {amount_minor, currency}, in hundredths of the currency; amounts are positive both ways, the direction tells which way the money went. '
             .'When next_cursor is not null, more payments match: call again with the same arguments and next_cursor as cursor. '
-            .'Use foresi_search_invoices for an invoice_id and foresi_list_firms for a firm_id.';
+            .'Use foresi_search_invoices for an invoice_id.';
     }
 
     public function inputSchema(): array
@@ -58,7 +58,6 @@ final readonly class SearchPaymentsTool implements ReadTool
         return [
             'type' => 'object',
             'properties' => [
-                'firm_id' => ToolArguments::idSchema('Only payments of this firm of the organisation.'),
                 'invoice_id' => ToolArguments::idSchema('Only payments allocated to this document, paying or refunding it.'),
                 'direction' => ToolArguments::choiceSchema(array_column(PaymentDirection::cases(), 'value'), 'Only money received (incoming) or paid back (refund).'),
                 'received_from' => ToolArguments::dateSchema('Only payments received on this day or later.'),
@@ -72,7 +71,6 @@ final readonly class SearchPaymentsTool implements ReadTool
     public function call(array $arguments): ToolOutput
     {
         $query = new PaymentListQuery(
-            ToolArguments::text($arguments, 'firm_id'),
             ToolArguments::text($arguments, 'invoice_id'),
             ToolArguments::text($arguments, 'direction'),
             ToolArguments::text($arguments, 'received_from'),

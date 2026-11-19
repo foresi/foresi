@@ -37,8 +37,7 @@ final class PaymentToolsTest extends ReadToolTestCase
         $schema = $tool->inputSchema();
         self::assertSame('object', $schema['type']);
         self::assertFalse($schema['additionalProperties']);
-        self::assertSame(['firm_id', 'invoice_id', 'direction', 'received_from', 'received_to', 'include_cancelled', 'limit', 'cursor'], self::argumentNames($tool));
-        self::assertSame('uuid', self::argument($tool, 'firm_id')['format']);
+        self::assertSame(['invoice_id', 'direction', 'received_from', 'received_to', 'include_cancelled', 'limit', 'cursor'], self::argumentNames($tool));
         self::assertSame('uuid', self::argument($tool, 'invoice_id')['format']);
         self::assertSame(['incoming', 'refund'], self::argument($tool, 'direction')['enum']);
         self::assertSame('date', self::argument($tool, 'received_from')['format']);
@@ -83,17 +82,14 @@ final class PaymentToolsTest extends ReadToolTestCase
 
     public function testEveryFilterNarrowsTheSearch(): void
     {
-        [$first, $other, $refund, $otherFirm, $invoice, $cancelled] = $this->flushed(function (): array {
+        [$first, $other, $refund, $invoice, $cancelled] = $this->flushed(function (): array {
             $invoice = $this->invoice();
             $first = $this->payment('2026-11-01', [$invoice->id() => '1000']);
             $refund = $this->payment('2026-11-05', [$invoice->id() => '100'], direction: PaymentDirection::Refund);
-            [$firm] = $this->firmWithCustomer('Other Firm s.r.o.', '25596641');
 
-            return [$first, $this->payment('2026-11-10', firmId: $firm, amount: '100'), $refund, $firm, $invoice, $this->payment(amount: '100', cancelled: true)];
+            return [$first, $this->payment('2026-11-10', amount: '100'), $refund, $invoice, $this->payment(amount: '100', cancelled: true)];
         });
 
-        self::assertSame([$other->id()], self::itemIds($this->call(SearchPaymentsTool::class, ['firm_id' => $otherFirm])));
-        self::assertSame([$refund->id(), $first->id()], self::itemIds($this->call(SearchPaymentsTool::class, ['firm_id' => $this->firmId])));
         self::assertSame([$refund->id(), $first->id()], self::itemIds($this->call(SearchPaymentsTool::class, ['invoice_id' => strtoupper($invoice->id())])));
         self::assertSame([$refund->id()], self::itemIds($this->call(SearchPaymentsTool::class, ['direction' => 'refund'])));
         self::assertSame([$other->id(), $first->id()], self::itemIds($this->call(SearchPaymentsTool::class, ['direction' => 'incoming'])));
@@ -121,7 +117,6 @@ final class PaymentToolsTest extends ReadToolTestCase
     {
         yield 'a day that is no day' => [['received_from' => '2026-02-30'], 'The argument "received_from" cannot be used: This value is not a valid date.'];
         yield 'a last day that is no day' => [['received_to' => 'yesterday'], 'The argument "received_to" cannot be used: This value is not a valid date.'];
-        yield 'a firm that is no id' => [['firm_id' => 'nope'], 'The argument "firm_id" cannot be used: This is not a valid UUID.'];
         yield 'an invoice that is no id' => [['invoice_id' => 'nope'], 'The argument "invoice_id" cannot be used: This is not a valid UUID.'];
         yield 'an unknown direction' => [['direction' => 'sideways'], 'The argument "direction" cannot be used: The value you selected is not a valid choice.'];
         yield 'a limit above the maximum' => [['limit' => 101], 'The argument "limit" cannot be used: This value should be between 1 and 100.'];

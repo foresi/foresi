@@ -137,7 +137,7 @@ final class InvoiceApiTest extends ApiTestCase
         self::assertSame([], $this->ids());
     }
 
-    public function testTheFirmAndTheCustomerNarrowTheList(): void
+    public function testTheCustomerNarrowsTheList(): void
     {
         [$first, $other, $otherCustomer] = $this->flushed(function (): array {
             $first = $this->invoice();
@@ -147,10 +147,6 @@ final class InvoiceApiTest extends ApiTestCase
             return [$first, $this->invoice(firmId: $firm, seriesId: $series, customerId: $customer), $customer];
         });
 
-        $this->get('/api/v1/invoices', ['firm_id' => $this->firmId]);
-        self::assertSame([$first->id()], $this->ids());
-        $this->get('/api/v1/invoices', ['firm_id' => $other->firm()->id()]);
-        self::assertSame([$other->id()], $this->ids());
         $this->get('/api/v1/invoices', ['customer_id' => $otherCustomer]);
         self::assertSame([$other->id()], $this->ids());
         $this->get('/api/v1/invoices', ['customer_id' => strtoupper($this->customerId)]);
@@ -245,7 +241,7 @@ final class InvoiceApiTest extends ApiTestCase
         yield 'a limit that is no number' => [['limit' => 'many'], 'limit'];
         yield 'an unknown kind' => [['kind' => 'receipt'], 'kind'];
         yield 'an unknown state' => [['state' => 'cancelled'], 'state'];
-        yield 'a firm that is no id' => [['firm_id' => 'nope'], 'firm_id'];
+        yield 'a retired firm' => [['firm_id' => 'nope'], 'firm_id'];
         yield 'a customer that is no id' => [['customer_id' => 'nope'], 'customer_id'];
         yield 'a trash flag that is no boolean' => [['trashed' => 'maybe'], 'trashed'];
         yield 'a first day that is no day' => [['issued_from' => '2026-13-01'], 'issued_from'];
@@ -292,7 +288,7 @@ final class InvoiceApiTest extends ApiTestCase
         self::assertResponseIsSuccessful();
         $parameters = $this->at('paths', '/api/v1/invoices', 'get', 'parameters');
         self::assertIsArray($parameters);
-        self::assertSame(['kind', 'firm_id', 'customer_id', 'state', 'trashed', 'issued_from', 'issued_to', 'q', 'limit', 'cursor', 'view', 'filter'], array_column($parameters, 'name'));
+        self::assertSame(['kind', 'customer_id', 'state', 'trashed', 'issued_from', 'issued_to', 'q', 'limit', 'cursor', 'view', 'filter'], array_column($parameters, 'name'));
         self::assertSame('#/components/schemas/InvoicePage', $this->at('paths', '/api/v1/invoices', 'get', 'responses', '200', 'content', 'application/json', 'schema', '$ref'));
         $this->at('components', 'schemas', 'InvoiceDetail');
     }
