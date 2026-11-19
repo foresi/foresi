@@ -97,6 +97,7 @@ final class PartyController extends AbstractController
         private readonly ContactViews $contactViews,
         private readonly ViewBar $viewBar,
         private readonly FilterSheet $filterSheet,
+        private readonly ContactLists $contactLists,
     ) {
     }
 
@@ -108,7 +109,7 @@ final class PartyController extends AbstractController
             return $this->redirectToRoute('app_contacts', $this->builtQuery($request->query), Response::HTTP_SEE_OTHER);
         }
         [$views, $view, $shown] = $this->contactViews->of($request->query);
-        $list = ContactLists::list();
+        $list = $this->contactLists->list();
         $filterParam = WorkingFilter::param($shown, $view->filter);
         $text = trim(mb_substr($request->query->getString('q'), 0, self::MAX_SEARCH));
         // A view keeps its own order; the address names the sort only when it differs (spec D10).
@@ -340,7 +341,7 @@ final class PartyController extends AbstractController
         [, $view] = $this->contactViews->of($input);
         $query = array_diff_key($input->all(), [FilterRows::PARAM => true, FilterRows::MARKER => true, WorkingFilter::PARAM => true, 'page' => true]);
 
-        return array_filter($query + [WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), ContactLists::list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
+        return array_filter($query + [WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), $this->contactLists->list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
     }
 
     /**

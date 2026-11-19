@@ -14,7 +14,6 @@ use Foresi\Party\Application\ContactImports;
 use Foresi\Party\Application\ImportedBy;
 use Foresi\Party\Application\View\ContactLists;
 use Foresi\Party\Domain\PartyEmail;
-use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\RegistryResult;
 use Foresi\Shared\Application\View\Condition;
@@ -25,13 +24,13 @@ use Psr\Clock\ClockInterface;
 /**
  * The conditions that narrow the address book, as DQL over the alias "p": the
  * one search of the screen and of the API, and the views of the list (spec D3),
- * whose fields compile to the SQL the tabs counted with.
+ * whose fields compile to the expressions of the list's data source.
  *
  * @phpstan-type Parameters array<string, array{mixed, string|ArrayParameterType|null}>
  */
 final readonly class PartyConditions
 {
-    public function __construct(private ContactImports $imports, private ClockInterface $clock)
+    public function __construct(private ContactImports $imports, private ClockInterface $clock, private ContactLists $lists)
     {
     }
 
@@ -117,22 +116,14 @@ final readonly class PartyConditions
      */
     private function compiled(ViewFilter $view, string $prefix): array
     {
-        $derived = fn (Condition $condition): array => [match ($condition->field) {
+        // The fields of the data source bring their expressions; these two the module compiles.
+        $derived = static fn (Condition $condition): array => [match ($condition->field) {
             ContactLists::ARCHIVED => DqlConditions::derivedBoolean($condition, 'p.archivedAt IS NOT NULL'),
-            ContactLists::ROLE => DqlConditions::derivedEnum($condition, array_combine(
-                array_column(PartyRole::cases(), 'value'),
-                array_map(fn (PartyRole $role): string => $this->role($role->value), PartyRole::cases()),
-            )),
-            // The kinds are the module's own values, never what a person typed.
-            ContactLists::KIND => DqlConditions::derivedEnum($condition, array_combine(
-                array_column(PartyKind::cases(), 'value'),
-                array_map(static fn (PartyKind $kind): string => 'p.kind = \''.$kind->value.'\'', PartyKind::cases()),
-            )),
             ContactLists::UNRELIABLE_PAYER => DqlConditions::derivedBoolean($condition, 'p.unreliablePayerResult = \''.RegistryResult::Unreliable->value.'\''),
             default => throw new \LogicException(\sprintf('The field "%s" of the contacts has no SQL.', $condition->field)),
         }, []];
 
-        return new DqlConditions(ContactLists::list(), [], $derived(...))->compile($view, $this->clock->now(...), $prefix);
+        return new DqlConditions($this->lists->list(), [], $derived(...))->compile($view, $this->clock->now(...), $prefix);
     }
 
     /**

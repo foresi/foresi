@@ -24,7 +24,7 @@ use Symfony\Component\HttpFoundation\InputBag;
  */
 final readonly class ContactViews
 {
-    public function __construct(private ListViews $views, private ActorRole $actor)
+    public function __construct(private ListViews $views, private ActorRole $actor, private ContactLists $lists)
     {
     }
 
@@ -35,9 +35,9 @@ final readonly class ContactViews
      */
     public function of(InputBag $input): array
     {
-        $views = $this->views->of(ContactLists::list(), $this->actor->userId());
+        $views = $this->views->of($this->lists->list(), $this->actor->userId());
         $view = ListViews::chosen($views, $input->getString('view'));
 
-        return [$views, $view, WorkingFilter::decode($input->getString(WorkingFilter::PARAM), ContactLists::list()) ?? $view->filter];
+        return [$views, $view, WorkingFilter::decode($input->getString(WorkingFilter::PARAM), $this->lists->list()) ?? $view->filter];
     }
 }

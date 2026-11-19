@@ -192,6 +192,37 @@ final class ContactApiTest extends ApiTestCase
         self::assertSame([], $this->ids());
     }
 
+    public function testEveryAttributeOfTheCatalogueFiltersTheList(): void
+    {
+        [$alpha, $beta, $gamma] = $this->flushed(fn (): array => [
+            $this->contact('Alpha Example s.r.o.', roles: [PartyRole::Supplier], number: '12345679', email: 'billing@alpha.example.com'),
+            $this->contact('Beta Example a.s.', roles: [PartyRole::Partner, PartyRole::Customer], number: '25596641', vatId: 'CZ25596641'),
+            $this->contact('Gamma Example', roles: [], number: null, vatId: 'CZ12345679'),
+        ]);
+        $ids = function (array ...$conditions) use ($alpha, $beta, $gamma): array {
+            $this->get('/api/v1/contacts', ['filter' => json_encode(['conditions' => $conditions], \JSON_THROW_ON_ERROR)]);
+            self::assertResponseIsSuccessful();
+
+            return array_values(array_intersect($this->ids(), [$alpha->id(), $beta->id(), $gamma->id()]));
+        };
+
+        self::assertSame([$gamma->id(), $beta->id(), $alpha->id()], $ids(['field' => 'name', 'op' => 'contains', 'value' => 'a EXAMPLE']));
+        self::assertSame([$gamma->id()], $ids(['field' => 'name', 'op' => 'does_not_contain', 'value' => 's.r.o.'], ['field' => 'name', 'op' => 'is_not', 'value' => 'Beta Example a.s.']));
+        self::assertSame([$gamma->id()], $ids(['field' => 'registration_number', 'op' => 'is_empty']));
+        self::assertSame([$alpha->id()], $ids(['field' => 'vat_id', 'op' => 'is_empty']));
+        // An e-mail and a billing address are read from the contact's own rows.
+        self::assertSame([$alpha->id()], $ids(['field' => 'email', 'op' => 'contains', 'value' => 'ALPHA.example']));
+        self::assertSame([$gamma->id(), $beta->id()], $ids(['field' => 'email', 'op' => 'is_empty']));
+        self::assertSame([$gamma->id(), $beta->id(), $alpha->id()], $ids(['field' => 'billing_city', 'op' => 'is', 'value' => 'Example City']));
+        self::assertSame([], $ids(['field' => 'billing_city', 'op' => 'does_not_contain', 'value' => 'example']));
+        // The roles are a set (Airtable's operators); the older "role" still reads as them.
+        self::assertSame([$beta->id(), $alpha->id()], $ids(['field' => 'roles', 'op' => 'has_any_of', 'value' => ['supplier', 'partner']]));
+        self::assertSame([$beta->id()], $ids(['field' => 'roles', 'op' => 'has_all_of', 'value' => ['partner', 'customer']]));
+        self::assertSame([$gamma->id(), $alpha->id()], $ids(['field' => 'roles', 'op' => 'has_none_of', 'value' => ['customer']]));
+        self::assertSame([$gamma->id()], $ids(['field' => 'roles', 'op' => 'is_empty']));
+        self::assertSame([$beta->id()], $ids(['field' => 'role', 'op' => 'is', 'value' => 'partner']));
+    }
+
     /**
      * @return iterable<string, array{array<string, string>, string}>
      */

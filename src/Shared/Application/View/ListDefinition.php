@@ -20,8 +20,13 @@ final readonly class ListDefinition
 {
     public const string ALL = 'all';
 
+    /** The operators of a single enum and what they read as on a set. */
+    private const array SET_OPERATORS = ['is' => 'has_any_of', 'is_any_of' => 'has_any_of', 'is_not' => 'has_none_of', 'is_none_of' => 'has_none_of'];
+
     /** @var array<string, Field> by key */
     public array $fields;
+    /** @var array<string, string> the key of each field by its key and its aliases */
+    private array $keys;
     /** @var list<DefaultView> */
     public array $defaults;
 
@@ -35,6 +40,19 @@ final readonly class ListDefinition
             throw new \InvalidArgumentException(\sprintf('The list key "%s" is "<module>.<list>".', $key));
         }
         $this->fields = array_combine(array_map(static fn (Field $field): string => $field->key, $fields), $fields);
+        if (\count($this->fields) !== \count($fields)) {
+            throw new \InvalidArgumentException(\sprintf('The list "%s" has two fields of one key.', $key));
+        }
+        $keys = array_combine(array_keys($this->fields), array_keys($this->fields));
+        foreach ($this->fields as $field) {
+            foreach ($field->aliases as $alias) {
+                if (isset($keys[$alias])) {
+                    throw new \InvalidArgumentException(\sprintf('The list "%s" names two fields "%s".', $key, $alias));
+                }
+                $keys[$alias] = $field->key;
+            }
+        }
+        $this->keys = $keys;
         if ([] === $defaults || self::ALL !== $defaults[0]->slug || [] !== $defaults[0]->filter->conditions) {
             throw new \InvalidArgumentException(\sprintf('The list "%s" starts with its All view, which holds no condition.', $key));
         }
@@ -46,6 +64,37 @@ final readonly class ListDefinition
             $view->filter->check($this);
         }
         $this->defaults = $defaults;
+    }
+
+    /**
+     * The field a condition names, by its key or by an alias.
+     */
+    public function field(string $name): ?Field
+    {
+        $key = $this->keys[$name] ?? null;
+
+        return null === $key ? null : $this->fields[$key];
+    }
+
+    /**
+     * A condition as the list reads it: under its field's key, and on a field that holds a set,
+     * with the operators of the single enum it was before read as their set counterparts, so a
+     * view kept as "role is customer" is "roles has any of customer" (spec D4).
+     */
+    public function canonical(Condition $condition): Condition
+    {
+        $field = $this->field($condition->field);
+        if (!$field instanceof Field) {
+            return $condition;
+        }
+        $op = $condition->op;
+        $value = $condition->value;
+        if (FieldType::MultiEnum === $field->type && isset(self::SET_OPERATORS[$op])) {
+            $op = self::SET_OPERATORS[$op];
+            $value = \is_array($value) ? $value : [$value];
+        }
+
+        return $field->key === $condition->field && $op === $condition->op ? $condition : new Condition($field->key, $op, $value);
     }
 
     public function systemKey(DefaultView $view): string

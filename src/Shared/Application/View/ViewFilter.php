@@ -64,7 +64,7 @@ final readonly class ViewFilter
             if (!\is_string($item['field'] ?? null) || !\is_string($item['op'] ?? null)) {
                 throw new InvalidFilter($path, 'A condition has a field and an op.');
             }
-            $conditions[] = new Condition($item['field'], $item['op'], $item['value'] ?? null);
+            $conditions[] = $list->canonical(new Condition($item['field'], $item['op'], $item['value'] ?? null));
         }
         $filter = new self($conditions);
         $filter->check($list);
@@ -126,6 +126,9 @@ final readonly class ViewFilter
         switch ($field->type) {
             case FieldType::Enum:
                 $this->checkEnum($field, $condition, $path);
+                break;
+            case FieldType::MultiEnum:
+                $this->checkList($value, $path, static fn (mixed $one): bool => \is_string($one) && \in_array($one, $field->options, true), 'values of '.implode(', ', $field->options));
                 break;
             case FieldType::Reference:
                 if ('is_any_of' === $condition->op) {

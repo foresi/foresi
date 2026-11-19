@@ -21,6 +21,8 @@ enum AttributeType: string
     case Date = 'date';
     case DateTime = 'datetime';
     case Enum = 'enum';
+    /** A set of an enum's values, such as the roles of a contact. */
+    case MultiEnum = 'multi_enum';
     case Boolean = 'boolean';
     /** A linked record, shown by its name. */
     case Reference = 'reference';

@@ -16,9 +16,11 @@ namespace Foresi\Shared\Application\View;
  * failing the others.
  *
  * An enum is ticked as Linear's filters are: "is" with the values ticked, which is
- * "is any of" once more than one is (and "is not" "is none of"). A date end is a
- * rule (a day, a month, a period or a count of days, spec D5) with its day, month
- * or count.
+ * "is any of" once more than one is (and "is not" "is none of"); "is any of" and
+ * "is none of" are offered as Airtable offers them, and keep their list. A set
+ * (multi_enum) is ticked with Airtable's "has any of", "has all of" and "has none
+ * of". A text takes one typed value. A date end is a rule (a day, a month, a
+ * period or a count of days, spec D5) with its day, month or count.
  *
  * @phpstan-type DateEnd array{rule: string, day: string, month: string, n: string}
  * @phpstan-type Row array{field: string, op: string, values: list<string>, value: string, from: string|DateEnd, to: string|DateEnd}
@@ -55,18 +57,13 @@ final readonly class FilterRows
     }
 
     /**
-     * The operators the builder offers for a field: an enum's "is" and "is not" tick
-     * several values; a reference is picked one at a time.
+     * The operators the builder offers for a field; a reference is picked one at a time.
      *
      * @return list<string>
      */
     public static function operators(Field $field): array
     {
-        return match ($field->type) {
-            FieldType::Enum => array_values(array_filter(['is', 'is_not'], static fn (string $op): bool => [] !== array_intersect($field->operators, 'is' === $op ? ['is', 'is_any_of'] : ['is_not', 'is_none_of']))),
-            FieldType::Reference => array_values(array_diff($field->operators, ['is_any_of'])),
-            default => $field->operators,
-        };
+        return FieldType::Reference === $field->type ? array_values(array_diff($field->operators, ['is_any_of'])) : $field->operators;
     }
 
     /**
@@ -75,7 +72,7 @@ final readonly class FilterRows
      */
     public static function editable(Condition $condition, Field $field): bool
     {
-        return FieldType::Text !== $field->type && (FieldType::Reference !== $field->type || 'is_any_of' !== $condition->op);
+        return FieldType::Reference !== $field->type || 'is_any_of' !== $condition->op;
     }
 
     /**
@@ -90,7 +87,7 @@ final readonly class FilterRows
         $between = 'between' === $condition->op && \is_array($value);
         switch ($field->type) {
             case FieldType::Enum:
-                $row['op'] = \in_array($condition->op, ['is_not', 'is_none_of'], true) ? 'is_not' : 'is';
+            case FieldType::MultiEnum:
                 $row['values'] = array_values(array_filter(\is_array($value) ? $value : [$value], \is_string(...)));
                 break;
             case FieldType::Boolean:
@@ -139,9 +136,9 @@ final readonly class FilterRows
                 return null;
             }
 
-            return \is_array($data) && \is_string($data['field'] ?? null) && \is_string($data['op'] ?? null) ? self::checked(new Condition($data['field'], $data['op'], $data['value'] ?? null), $list) : null;
+            return \is_array($data) && \is_string($data['field'] ?? null) && \is_string($data['op'] ?? null) ? self::checked($list->canonical(new Condition($data['field'], $data['op'], $data['value'] ?? null)), $list) : null;
         }
-        $field = $list->fields[self::text($row['field'] ?? null)] ?? null;
+        $field = $list->field(self::text($row['field'] ?? null));
         $op = self::text($row['op'] ?? null);
         if (!$field instanceof Field || '' === $op) {
             return null;
@@ -150,16 +147,23 @@ final readonly class FilterRows
             return self::checked(new Condition($field->key, $op), $list);
         }
         $value = null;
+        $ticked = \is_array($row['values'] ?? null) ? array_map(self::text(...), $row['values']) : [];
+        // In the order the field lists them, so the same choice is the same filter.
+        $values = array_values(array_intersect($field->options, $ticked));
         switch ($field->type) {
             case FieldType::Enum:
-                $ticked = \is_array($row['values'] ?? null) ? array_map(self::text(...), $row['values']) : [];
-                // In the order the field lists them, so the same choice is the same filter.
-                $values = array_values(array_intersect($field->options, $ticked));
                 if ([] === $values) {
                     return null;
                 }
                 $negated = \in_array($op, ['is_not', 'is_none_of'], true);
+                if (\in_array($op, ['is_any_of', 'is_none_of'], true)) {
+                    $value = $values;
+                    break;
+                }
                 [$op, $value] = 1 === \count($values) ? [$negated ? 'is_not' : 'is', $values[0]] : [$negated ? 'is_none_of' : 'is_any_of', $values];
+                break;
+            case FieldType::MultiEnum:
+                $value = [] === $values ? null : $values;
                 break;
             case FieldType::Boolean:
                 $value = match (self::text($row['value'] ?? null)) {

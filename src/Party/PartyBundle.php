@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Party;
 
 use Foresi\Party\Application\RecheckRegistry;
-use Foresi\Party\Infrastructure\Doctrine\CastTextFunction;
 use Foresi\Party\Infrastructure\Doctrine\VatIdType;
 use Foresi\Shared\Infrastructure\Module\ModuleBundle;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -32,7 +31,6 @@ final class PartyBundle extends ModuleBundle
     {
         $builder->prependExtensionConfig('doctrine', [
             'dbal' => ['types' => ['vat_id' => VatIdType::class]],
-            'orm' => ['dql' => ['string_functions' => ['CAST_TEXT' => CastTextFunction::class]]],
         ]);
     }
 }

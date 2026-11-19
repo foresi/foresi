@@ -241,13 +241,14 @@ A filter is `{"match": "all", "conditions": [{"field", "op", "value"}]}`, every 
 | Type | Operators | Value |
 | --- | --- | --- |
 | `enum` | `is`, `is_not`, `is_any_of`, `is_none_of` | One of `options`, or a list of them. |
+| `multi_enum` | `has_any_of`, `has_all_of`, `has_none_of`, `is_empty`, `is_not_empty` | A list of `options`. A record without any value has none of them. |
 | `reference` | `is`, `is_not`, `is_any_of`, `is_empty`, `is_not_empty` | An id, or a list of ids. |
-| `text` | `contains`, `does_not_contain`, `is`, `is_empty` | A text. |
-| `number` | `eq`, `ne`, `lt`, `le`, `gt`, `ge`, `between` | A number. |
-| `date` | `is`, `before`, `after`, `on_or_before`, `on_or_after`, `between`, `is_empty` | A day `YYYY-MM-DD`, a month `{"month": "YYYY-MM"}` or a relative date. |
+| `text` | `contains`, `does_not_contain`, `is`, `is_not`, `is_empty`, `is_not_empty` | A text; `contains` ignores case. |
+| `number` | `eq`, `ne`, `lt`, `le`, `gt`, `ge`, `between`, `is_empty`, `is_not_empty` | A number; an amount in whole units. |
+| `date` | `is`, `before`, `after`, `on_or_before`, `on_or_after`, `between`, `is_empty`, `is_not_empty` | A day `YYYY-MM-DD`, a month `{"month": "YYYY-MM"}` or a relative date. |
 | `boolean` | `is` | `true` or `false`. |
 
-`between` takes `{"from": …, "to": …}`, both ends included; `is_empty` and `is_not_empty` take no value. A relative date is resolved when the query runs, in the organisation's time zone: `{"relative": "today"}`, likewise `yesterday`, `tomorrow`, `this_week`, `last_week`, `this_month`, `last_month`, `next_month`, `this_quarter`, `last_quarter`, `this_year` and `last_year`, or a count of days from 1 to 365: `{"relative": "next_n_days", "n": 7}`, `last_n_days`, `n_days_ago` and `n_days_from_now`. A period with `is` covers all of it; `before` is before it starts and `after` after it ends.
+`between` takes `{"from": …, "to": …}`, both ends included; `is_empty` and `is_not_empty` take no value. A field of a related record, such as a contact's e-mail, matches when one of them matches, and its negation (`does_not_contain`, `is_not`, `is_empty`) when none does. A field may still answer to an older key, such as `role` for the contacts' `roles`; a condition on `role` with `is` reads as `has_any_of`. A relative date is resolved when the query runs, in the organisation's time zone: `{"relative": "today"}`, likewise `yesterday`, `tomorrow`, `this_week`, `last_week`, `this_month`, `last_month`, `next_month`, `this_quarter`, `last_quarter`, `this_year` and `last_year`, or a count of days from 1 to 365: `{"relative": "next_n_days", "n": 7}`, `last_n_days`, `n_days_ago` and `n_days_from_now`. A period with `is` covers all of it; `before` is before it starts and `after` after it ends.
 
 A view has `id`, `list`, `name`, `system_key`, `visibility` (`private` or `shared`), `owner_id`, `filters`, `sort`, `display`, `show_count`, `placement` (`primary` or `overflow`), `position`, `hidden`, `may_edit` (whether the token's person may change it), `created_at` and `updated_at`.
 

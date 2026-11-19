@@ -46,7 +46,7 @@ final readonly class AttributeCells
      */
     private function format(Attribute $attribute, mixed $value): string|array|null
     {
-        if (null === $value || '' === $value) {
+        if (null === $value || '' === $value || [] === $value) {
             return null;
         }
 
@@ -56,6 +56,7 @@ final readonly class AttributeCells
             AttributeType::Date => $value instanceof \DateTimeInterface ? $value->format($this->translator->trans('format.date')) : $this->text($value),
             AttributeType::DateTime => $value instanceof \DateTimeInterface ? $value->format($this->translator->trans('format.datetime')) : $this->text($value),
             AttributeType::Enum => $this->option($attribute, $value),
+            AttributeType::MultiEnum => implode(', ', array_map(fn (mixed $one): string => $this->option($attribute, $one), \is_array($value) ? $value : [$value])),
             AttributeType::Boolean => $this->translator->trans(true === $value ? 'ui.attribute.yes' : 'ui.attribute.no'),
             AttributeType::Email => $this->link($this->text($value), 'mailto:'),
             AttributeType::Phone => $this->phone($this->text($value)),

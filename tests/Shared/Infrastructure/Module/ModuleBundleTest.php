@@ -27,7 +27,6 @@ use Foresi\Import\Application\Message\UndoImportChunk;
 use Foresi\Import\ImportBundle;
 use Foresi\Instance\InstanceBundle;
 use Foresi\Party\Application\RecheckRegistry;
-use Foresi\Party\Infrastructure\Doctrine\CastTextFunction;
 use Foresi\Party\Infrastructure\Doctrine\VatIdType;
 use Foresi\Party\PartyBundle;
 use Foresi\Purchasing\PurchasingBundle;
@@ -123,7 +122,16 @@ final class ModuleBundleTest extends KernelTestCase
                 'alias' => $name,
             ]]]];
         }
-        self::assertSame($expected, $builder->getExtensionConfig('doctrine'));
+        // A module's other Doctrine configuration, such as a DQL function, is tested on its own.
+        self::assertSame($expected, array_values(array_filter($builder->getExtensionConfig('doctrine'), static fn (array $config): bool => \is_array($config['orm'] ?? null) && isset($config['orm']['mappings']))));
+    }
+
+    public function testSharedAddsTheFunctionThatMatchesAJsonListAsText(): void
+    {
+        $builder = $this->builder('prod');
+        new SharedBundle()->prependExtension($this->configurator($builder, 'prod'), $builder);
+
+        self::assertContains(['orm' => ['dql' => ['string_functions' => ['CAST_TEXT' => \Foresi\Shared\Infrastructure\Doctrine\CastTextFunction::class]]]], $builder->getExtensionConfig('doctrine'));
     }
 
     /**
@@ -178,7 +186,7 @@ final class ModuleBundleTest extends KernelTestCase
         yield 'work' => [WorkBundle::class, 'prod', ['Work'], [SendNotificationMail::class => 'async']];
     }
 
-    public function testPartyAddsItsTypeAndFunctionBeforeItsMappingAndRouting(): void
+    public function testPartyAddsItsTypeBeforeItsMappingAndRouting(): void
     {
         $builder = $this->builder('prod');
         new PartyBundle()->prependExtension($this->configurator($builder, 'prod'), $builder);
@@ -186,7 +194,6 @@ final class ModuleBundleTest extends KernelTestCase
         self::assertSame(['Party'], $this->mappings($builder));
         self::assertSame([
             'dbal' => ['types' => ['vat_id' => VatIdType::class]],
-            'orm' => ['dql' => ['string_functions' => ['CAST_TEXT' => CastTextFunction::class]]],
         ], $builder->getExtensionConfig('doctrine')[0]);
         self::assertSame([['messenger' => ['routing' => [RecheckRegistry::class => 'registry']]]], $builder->getExtensionConfig('framework'));
     }
