@@ -76,8 +76,11 @@ jobs:
       - name: Migration round trip
         run: bin/migration-roundtrip
 
+      # Every check runs even when one before it fails, and the step fails at the end with
+      # the list of failed ones, so one failure (most often rector) does not hide the others
+      # until the next round. bin/check runs the same script locally.
       - name: Static checks
-        run: composer qa:static
+        run: bin/qa-static
 
       # A production build must fail on any missing asset or import. Strict
       # missing_import_mode makes asset-map:compile throw; the output is also

@@ -23,7 +23,7 @@ Requirements and the local setup are described in [docs/development.md](docs/dev
 `bin/check` runs the checks of a pull request locally, so that CI is not the first to find them:
 
 1. It fixes the code with `composer cs:fix` and `rector process`. Review and commit what they change.
-2. It runs every static check, each of them even when one fails, and lists the failed ones at the end: lint, phpstan, `modules:check`, `events:check` and deptrac (`bin/qa-static`; CI runs the same script).
+2. It runs every static check, each of them even when one fails, and lists the failed ones at the end: lint, phpstan, `modules:check`, `events:check` and deptrac (`bin/qa-static`, also `composer qa:static`; the Static checks step of CI runs the same script).
 3. It runs the tests of the modules the branch touches: `tests/<Module>` for every changed file under `src/<Module>/` or `tests/<Module>/` since the merge base with `origin/main`. Changed files outside a module (configuration, templates, migrations, shared test helpers) are listed; CI runs the whole suite for them, and `--all-tests` does so locally.
 
 ```bash
