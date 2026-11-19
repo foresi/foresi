@@ -3,6 +3,4 @@ twig_component:
     defaults:
         # Namespace & directory for components
         Foresi\Twig\Components\: 'components/'
-        Foresi\Ui\Component\:
-            template_directory: 'components/Ui/'
-            name_prefix: 'Ui'
+        # Foresi\Ui\Component\ is mapped by Foresi\Ui\UiBundle, which owns the templates.

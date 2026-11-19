@@ -5,7 +5,7 @@
     revoking a token and disconnecting an app ask first. Without two-factor sign-in there is
     no new token, only the way to set it up. The tab next to it tells how to connect a client.
 #}
-{% extends 'layout/app.html.twig' %}
+{% extends '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'api_tokens.title'|trans}] %}
 

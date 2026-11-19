@@ -1,0 +1,42 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The rail: the Foresi mark, the business areas, and at the bottom search, settings and the account.
+    On a phone it is the top app bar: the menu button and the product name leading, search and the
+    account trailing (Android Developers, "App bars"); the overlay behind the menu button lists the
+    areas instead. Search and the account are one instance each, placed by the breakpoint, so their
+    ids stay unique.
+    Variables: shell (ShellView), areas (nav_areas()).
+#}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{% set notifications = constant('Foresi\\Work\\Infrastructure\\Controller\\NotificationController::ROUTE') %}
+{% set settings = constant('Foresi\\Ui\\Contract\\Navigation\\NavigationArea::SETTINGS') %}
+{% set commands = [] %}
+{% for entry in areas %}
+    {% for group in entry.groups %}
+        {% for item in group.items %}
+            {% set commands = commands|merge([{label: item.labelKey|trans, href: path(item.route), icon: item.icon, group: 'shell.palette.go_to'|trans}]) %}
+            {% if item.commandRoute %}
+                {% set commands = commands|merge([{label: item.commandLabelKey|trans, href: path(item.commandRoute), icon: 'plus', group: 'shell.palette.go_to'|trans}]) %}
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+{% endfor %}
+
+{% macro area(entry, focus, notifications) %}
+    {% set first = (entry.groups|first).items|first %}
+    {% set unread = entry.groups|filter(g => g.items|filter(i => i.route == notifications and i.count)|length > 0)|length > 0 %}
+    <a href="{{ path(first.route) }}" data-nav-area="{{ entry.area.id }}" data-nav-sync{% if entry.current %} aria-current="true"{% endif %} class="group relative flex w-15 flex-col items-center gap-0.5 rounded-panel py-1.5 text-micro font-medium text-muted no-underline hover:text-ink aria-[current=true]:text-ink max-shell:hidden {{ focus }}">
+        <span class="grid h-8 w-10 place-items-center rounded-control group-hover:bg-frame group-aria-[current=true]:bg-white group-aria-[current=true]:text-green group-aria-[current=true]:shadow-raised">{{ ux_icon('lucide:' ~ entry.area.icon, {class: 'size-5', 'aria-hidden': 'true'}) }}</span>
+        <span class="max-w-full truncate px-0.5">{{ entry.area.labelKey|trans }}</span>
+        {% if unread %}<span data-nav-unread data-nav-sync class="absolute right-3 top-1 size-2 rounded-sm bg-badge-red-text ring-2 ring-frame-hover"><span class="sr-only">{{ 'shell.unread_notifications'|trans }}</span></span>{% endif %}
+    </a>
+{% endmacro %}
+
+<twig:Ui:IconButton icon="menu" :label="'shell.menu.open'|trans" variant="ghost" class="max-shell:h-touch max-shell:w-touch shell:hidden" data-sidebar-target="toggle" data-action="sidebar#toggle" aria-controls="navigation" aria-expanded="false" />
+<span class="font-semibold text-ink shell:hidden">{{ product_name }}</span>
+<a href="{{ path('app_dashboard') }}" class="grid size-9 shrink-0 place-items-center rounded-control bg-green text-heading font-bold text-white no-underline shell:mb-3 max-shell:hidden {{ focus }}" aria-label="{{ product_name }}">{{ product_name|first|upper }}</a>
+{% for entry in areas|filter(a => a.area.id != settings) %}{{ _self.area(entry, focus, notifications) }}{% endfor %}
+<div class="flex-1"></div>
+<twig:Ui:CommandPalette :commands="commands" trigger="rail" />
+{% for entry in areas|filter(a => a.area.id == settings) %}{{ _self.area(entry, focus, notifications) }}{% endfor %}
+{% include '@Ui/layout/_user_menu.html.twig' with {shell: shell} only %}

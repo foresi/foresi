@@ -5,7 +5,7 @@
     Productive do. The header downloads the entries as CSV with the same filter. Only the time the person
     sees is in it. On a phone the tables keep the work and the time, with when, who and where under it.
 #}
-{% extends 'layout/app.html.twig' %}
+{% extends '@Ui/layout/app.html.twig' %}
 
 {% set title = 'work.time.report.title'|trans %}
 {% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.time.title'|trans, href: path('app_time')}, {label: title}] %}

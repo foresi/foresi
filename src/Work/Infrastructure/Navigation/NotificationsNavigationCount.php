@@ -11,7 +11,7 @@ namespace Foresi\Work\Infrastructure\Navigation;
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\People;
 use Foresi\Identity\Domain\Membership;
-use Foresi\Ui\Navigation\NavigationCountProvider;
+use Foresi\Ui\Contract\Navigation\NavigationCountProvider;
 use Foresi\Work\Application\NotificationQueries;
 
 /**

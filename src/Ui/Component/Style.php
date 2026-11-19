@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Ui\Component;
 
+use Foresi\Ui\Contract\Guard;
+
 /**
  * Shared Tailwind class maps of the component vocabulary. Looking a key up
  * doubles as validation: an unknown key throws at mount time.
@@ -78,12 +80,7 @@ final class Style
 
     public static function icon(?string $name): void
     {
-        if (null === $name) {
-            return;
-        }
-        if (1 !== preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $name) || !is_file(dirname(__DIR__, 3).'/assets/icons/lucide/'.$name.'.svg')) {
-            throw new \InvalidArgumentException(sprintf('Icon "%s" is not in the locked icon set.', $name));
-        }
+        Guard::icon($name);
     }
 
     /**
@@ -91,24 +88,7 @@ final class Style
      */
     public static function href(?string $href): void
     {
-        if (null === $href) {
-            return;
-        }
-        if (str_contains($href, '\\') || 1 === preg_match('/[\x00-\x20]/', $href) || 1 === preg_match('#^[/\\\\]{2}#', $href)) {
-            throw new \InvalidArgumentException('Unsafe href.');
-        }
-        if (1 !== preg_match('/^([a-z][a-z0-9+.\-]*):/i', $href, $m)) {
-            return;
-        }
-        $scheme = strtolower($m[1]);
-        $valid = match ($scheme) {
-            'http', 'https' => 1 === preg_match('#^[a-z]+://[^/?\#]+#i', $href),
-            'mailto', 'tel' => true,
-            default => false,
-        };
-        if (!$valid) {
-            throw new \InvalidArgumentException('Unsupported URL in href.');
-        }
+        Guard::href($href);
     }
 
     public static function tone(string $tone): string

@@ -10,6 +10,8 @@ namespace Foresi\Ui\Column;
 
 use Foresi\Ui\Contract\Column;
 use Foresi\Ui\Contract\DataSource;
+use Foresi\Ui\Contract\ListDisplay;
+use Foresi\Ui\Contract\ResolvedColumn;
 use Foresi\Ui\Format\AttributeCells;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\Contracts\Translation\TranslatorInterface;

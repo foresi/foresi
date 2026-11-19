@@ -6,7 +6,7 @@
     focuses Cancel, the safe answer (APG); the others focus their button. With "available" false the
     action no longer applies and only Cancel is left.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'recurring.list.title'|trans, href: path('app_recurring')}, {label: customer}] %}
 {% set dialog_size = 'sm' %}

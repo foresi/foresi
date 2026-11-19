@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Infrastructure\Slot;
 
-use Foresi\Ui\Slot\SlotItem;
-use Foresi\Ui\Slot\SlotProvider;
-use Foresi\Ui\Slot\Slots;
+use Foresi\Ui\Contract\Slot\SlotItem;
+use Foresi\Ui\Contract\Slot\SlotProvider;
+use Foresi\Ui\Contract\Slot\Slots;
 
 /**
  * What Work adds to the shell: the running timer over every page of a member, and the

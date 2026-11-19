@@ -1,0 +1,35 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set badgeView = this.badgeView %}
+{% set actionsHtml %}{% block content %}{% endblock %}{% endset %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+<header {{ attributes.defaults({class: 'flex flex-wrap items-center gap-3 border-b border-divider px-6 py-4 max-shell:px-3.5'}) }}>
+    <div class="min-w-0">
+        {% if this.crumbViews is not empty %}
+            <nav aria-label="{{ 'ui.breadcrumb.label'|trans }}" class="mb-1 text-small text-muted">
+                <ol class="m-0 flex list-none flex-wrap items-center gap-1.5 p-0">
+                    {% for crumb in this.crumbViews %}
+                        <li class="flex items-center gap-1.5">
+                            {% if loop.last %}
+                                <span aria-current="page">{{ crumb.label }}</span>
+                            {% else %}
+                                {% if crumb.href %}<a href="{{ crumb.href }}" class="text-muted no-underline hover:text-ink hover:underline {{ focus }}">{{ crumb.label }}</a>{% else %}<span>{{ crumb.label }}</span>{% endif %}
+                                {{ ux_icon('lucide:chevron-right', {class: 'size-3.5', 'aria-hidden': 'true'}) }}
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ol>
+            </nav>
+        {% endif %}
+        <div class="flex min-w-0 items-center gap-2.5">
+            {% set te = this.titleEditView %}
+            {% if te %}
+                {{ include('@Ui/components/_title_edit.html.twig', {te: te, title: title, tag: 'h1'}) }}
+            {% else %}
+                <h1 class="m-0 min-w-0 max-w-[60ch] truncate text-title font-semibold text-ink" title="{{ title }}">{{ title }}</h1>
+            {% endif %}
+            {% if badgeView %}<twig:Ui:Badge :tone="badgeView.tone" class="shrink-0">{{ badgeView.label }}</twig:Ui:Badge>{% endif %}
+            {% for extra in this.badgeViews %}<twig:Ui:Badge :tone="extra.tone" class="shrink-0 gap-1" data-header-badge>{% if extra.icon %}{{ ux_icon('lucide:' ~ extra.icon, {class: 'size-3 shrink-0', 'aria-hidden': 'true'}) }}{% endif %}{{ extra.label }}</twig:Ui:Badge>{% endfor %}
+        </div>
+    </div>
+    {% if actionsHtml|trim is not empty %}<div data-page-actions class="grid w-full grid-cols-2 gap-2 [&>:last-child:nth-child(odd)]:col-span-2 max-sm:[&_a]:h-control-lg max-sm:[&_a]:w-full max-sm:[&_button]:h-control-lg max-sm:[&_button]:w-full sm:ml-auto sm:flex sm:w-auto sm:flex-wrap sm:items-center">{{ actionsHtml|raw }}</div>{% endif %}
+</header>

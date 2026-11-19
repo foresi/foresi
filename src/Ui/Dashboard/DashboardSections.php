@@ -8,19 +8,19 @@ declare(strict_types=1);
 
 namespace Foresi\Ui\Dashboard;
 
+use Foresi\Ui\Contract\Dashboard\DashboardSection;
+use Foresi\Ui\Contract\Dashboard\DashboardSectionProvider;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Twig\Attribute\AsTwigFunction;
 
 /** Collects the sections of all providers for the start page. */
 final readonly class DashboardSections
 {
-    public const string TAG = 'app.dashboard_section';
-
     /**
      * @param iterable<DashboardSectionProvider> $providers
      */
     public function __construct(
-        #[AutowireIterator(self::TAG)]
+        #[AutowireIterator(DashboardSectionProvider::TAG)]
         private iterable $providers,
     ) {
     }

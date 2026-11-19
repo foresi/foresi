@@ -26,7 +26,7 @@ Chosen option: "server-rendered Twig with Symfony UX and Tailwind", because it k
 
 ### Rules
 
-* Screens are built only from components in `templates/components/Ui` with classes in `src/Ui/Component`. A new pattern becomes a component first and appears in the development catalogue. A screen may add layout classes (grid, spacing, widths) around components, but not its own copy of a component's look.
+* Screens are built only from components in `src/Ui/templates/components` with classes in `src/Ui/Component`. A new pattern becomes a component first and appears in the development catalogue. A screen may add layout classes (grid, spacing, widths) around components, but not its own copy of a component's look.
 * Colours, radii and sizes come from the design tokens in `assets/styles/app.css`, in templates and in component classes alike. Two exceptions exist: shadows use the ink colour with some transparency as an `rgba()` value, and the `Tag` component takes a colour chosen by the user, validated as a hexadecimal value.
 * Component inputs are validated when the component mounts: unknown variants, icons outside the locked Lucide set and unsafe links throw.
 * Assets are served through AssetMapper with Tailwind's standalone binary; no Node.js toolchain is needed to run the application.

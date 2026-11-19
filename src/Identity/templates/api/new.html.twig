@@ -3,7 +3,7 @@
     A new personal API token: its name, how long it lasts and what it may do (ADR 0032). A dialog over
     the tokens; the same URL is a page of its own. The form answers with the page that shows the secret.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'api_tokens.title'|trans, href: path('app_api_tokens')}, {label: 'api_tokens.new'|trans}] %}
 {% set form_invalid = errors is not empty %}

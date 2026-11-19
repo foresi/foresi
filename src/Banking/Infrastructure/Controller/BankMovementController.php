@@ -34,7 +34,7 @@ use Foresi\Invoicing\Application\PaymentRefused;
 use Foresi\Invoicing\Application\UnknownInvoice;
 use Foresi\Invoicing\Domain\Payment;
 use Foresi\Shared\Domain\Money;
-use Foresi\Ui\Component\DataTable;
+use Foresi\Ui\Contract\Opens;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -588,7 +588,7 @@ final class BankMovementController extends AbstractController
         $matched = [] === $row->invoices
             ? $state
             // A paired invoice opens over the list in the side sheet, docs/design/overlays.md.
-            : ['links' => array_map(fn (string $invoiceId, string $number): array => ['text' => $number, 'href' => $this->generateUrl('app_invoice_show', ['id' => $invoiceId]), 'opens' => DataTable::OPENS_SHEET], array_keys($row->invoices), array_values($row->invoices))];
+            : ['links' => array_map(fn (string $invoiceId, string $number): array => ['text' => $number, 'href' => $this->generateUrl('app_invoice_show', ['id' => $invoiceId]), 'opens' => Opens::SHEET], array_keys($row->invoices), array_values($row->invoices))];
         $date = $row->bookedOn->format($this->translator->trans('format.date'));
         $cells = [
             'date' => $date,

@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Ui\Twig;
 
-use Foresi\Ui\Dialog\DialogRequest;
+use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Foresi\Ui\Twig\DialogFunctions;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
