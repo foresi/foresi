@@ -41,7 +41,7 @@ final class GuestAccessTest extends WebTestCase
         // The setup guide for AI agents and the llms.txt: public, only this installation's addresses.
         'app_mcp_setup', 'app_llms_txt',
         // The API and MCP, whose firewalls only a personal API token signs in to; a guest gets none.
-        'api_v1_me', 'api_v1_invoices', 'api_v1_invoice', 'api_v1_contacts', 'api_v1_contact', 'api_v1_payments', 'api_v1_payment', 'api_v1_events',
+        'api_v1_me', 'api_v1_invoices', 'api_v1_invoice', 'api_v1_contacts', 'api_v1_contact', 'api_v1_firm', 'api_v1_payments', 'api_v1_payment', 'api_v1_events',
         'api_v1_webhook_endpoints', 'api_v1_webhook_endpoint_create', 'api_v1_webhook_endpoint', 'api_v1_webhook_endpoint_update', 'api_v1_webhook_endpoint_delete',
         'api_v1_webhook_endpoint_rotate', 'api_v1_webhook_endpoint_secret', 'api_v1_webhook_endpoint_ping',
         'api_v1_webhook_deliveries', 'api_v1_webhook_delivery', 'api_v1_webhook_delivery_redeliver', '_mcp_endpoint_default',
