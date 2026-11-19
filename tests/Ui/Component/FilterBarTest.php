@@ -84,6 +84,18 @@ final class FilterBarTest extends KernelTestCase
         self::assertSame('f1', $crawler->filter('form[data-filter-search] input[type=hidden][name=firm]')->attr('value'), 'The search keeps the filters.');
     }
 
+    public function testClearAllDropsTheConditionsOfTheBuilderAndKeepsTheRest(): void
+    {
+        $crawler = $this->render([
+            'keep' => ['tab' => 'unpaid', 'f' => 'eyJ9'],
+            'conditions' => [['label' => 'Accountant export: Exported', 'href' => '/invoices?tab=unpaid', 'removeLabel' => 'Remove filter Accountant export']],
+            'builder' => ['fields' => [], 'rows' => [], 'kept' => [], 'rules' => [], 'param' => 'f'],
+        ]);
+
+        self::assertSame('/invoices?tab=unpaid', $crawler->filter('[data-filter-chips] a[data-filter-clear-all]')->attr('href'));
+        self::assertSame('/invoices?tab=unpaid', $crawler->filter('a[data-filter-sheet-clear]')->attr('href'));
+    }
+
     public function testClearAllOnlyWhenSomethingIsSet(): void
     {
         self::assertCount(0, $this->render()->filter('a[data-filter-clear-all]'));
