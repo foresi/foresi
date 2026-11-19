@@ -86,6 +86,21 @@ final class TaskConditionsTest extends TestCase
         self::assertSame(['task on 2026-12-04'], array_values(array_map(static fn (TaskRow $task): string => $task->title, array_filter([$this->task('task on 2026-12-04', null, '2026-12-04', false), $this->task('task on 2026-12-05', null, '2026-12-05', false)], $conditions->matches(...)))));
     }
 
+    public function testATitleMatchesAsWrittenWhateverTheCaseOfALetterWithAMark(): void
+    {
+        $tasks = [$this->task('Účetní uzávěrka', null, null, false), $this->task('Website copy', null, null, false)];
+        $kept = function (string $op, string $value) use ($tasks): array {
+            $conditions = new TaskConditions(ViewFilter::all(new Condition('title', $op, $value)), null, new \DateTimeImmutable('2026-11-18'));
+
+            return array_values(array_map(static fn (TaskRow $task): string => $task->title, array_filter($tasks, $conditions->matches(...))));
+        };
+
+        self::assertSame(['Účetní uzávěrka'], $kept('contains', 'ÚČETNÍ'));
+        self::assertSame(['Účetní uzávěrka'], $kept('is', '  účetní UZÁVĚRKA '));
+        self::assertSame(['Website copy'], $kept('does_not_contain', 'účetní'));
+        self::assertSame(['Účetní uzávěrka', 'Website copy'], $kept('is_not_empty', ''));
+    }
+
     /**
      * @return list<TaskRow>
      */
