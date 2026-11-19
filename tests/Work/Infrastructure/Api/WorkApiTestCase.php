@@ -164,13 +164,28 @@ abstract class WorkApiTestCase extends ReadToolTestCase
      */
     protected function mcpTool(string $name, array $arguments): array
     {
-        if (null === $this->session) {
-            $this->mcp('initialize', ['protocolVersion' => '2025-06-18', 'capabilities' => new \stdClass(), 'clientInfo' => ['name' => 'test', 'version' => '1.0']]);
-        }
-        $result = self::in($this->mcp('tools/call', ['name' => $name, 'arguments' => [] === $arguments ? new \stdClass() : $arguments]), 'result');
+        $answer = $this->mcpRequest('tools/call', ['name' => $name, 'arguments' => [] === $arguments ? new \stdClass() : $arguments]);
+        self::assertArrayHasKey('result', $answer, $name.' '.json_encode($answer, \JSON_THROW_ON_ERROR));
+        $result = $answer['result'];
         self::assertIsArray($result);
 
         return $result;
+    }
+
+    /**
+     * Sends one request over the MCP endpoint with the writer's token, after the initialisation.
+     *
+     * @param array<string, mixed> $params
+     *
+     * @return array<mixed>
+     */
+    protected function mcpRequest(string $method, array $params = []): array
+    {
+        if (null === $this->session) {
+            $this->mcp('initialize', ['protocolVersion' => '2025-06-18', 'capabilities' => new \stdClass(), 'clientInfo' => ['name' => 'test', 'version' => '1.0']]);
+        }
+
+        return $this->mcp($method, [] === $params ? new \stdClass() : $params);
     }
 
     /**
@@ -213,11 +228,11 @@ abstract class WorkApiTestCase extends ReadToolTestCase
     }
 
     /**
-     * @param array<string, mixed> $params
+     * @param array<string, mixed>|\stdClass $params
      *
      * @return array<mixed>
      */
-    private function mcp(string $method, array $params): array
+    private function mcp(string $method, array|\stdClass $params): array
     {
         $server = [
             'HTTP_AUTHORIZATION' => 'Bearer '.$this->writer,

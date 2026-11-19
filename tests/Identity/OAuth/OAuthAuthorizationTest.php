@@ -11,6 +11,7 @@ namespace Foresi\Tests\Identity\OAuth;
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Audit\Domain\ActorKind;
 use Foresi\Identity\Application\ApiTokenRefused;
+use Foresi\Identity\Application\GuestScopes;
 use Foresi\Identity\Application\MembershipDirectory;
 use Foresi\Identity\Application\OAuth\AuthorizationRequest;
 use Foresi\Identity\Application\OAuth\ClientMetadataDocuments;
@@ -162,6 +163,27 @@ final class OAuthAuthorizationTest extends TestCase
         self::assertSame($code, $this->store->codeByHash(ApiTokenSecret::hash($match[1])));
     }
 
+    public function testAGuestApprovesOnlyWhatAGuestMayHold(): void
+    {
+        $this->role = Role::Guest;
+        $request = $this->request([ApiScope::read(), ApiScope::write()], 'st');
+
+        self::assertTrue($this->service()->connectsAsGuest());
+        self::assertSame(['projects:read', 'tasks:read'], $this->values($this->service()->forPerson($request->requiredScopes())));
+        $this->service()->approve($request, [ApiScope::write(), ApiScope::from('contacts:write'), ApiScope::from('projects:write')], self::ISSUER);
+
+        self::assertSame(['projects:read', 'tasks:write'], $this->values($this->store->codes[0]->scopes()));
+    }
+
+    public function testAGuestApprovingNothingAGuestMayHoldIsRefused(): void
+    {
+        $this->role = Role::Guest;
+        $request = $this->request([ApiScope::from('contacts:read')], 'st');
+
+        $this->expectException(OAuthRefused::class);
+        $this->service()->approve($request, [ApiScope::from('contacts:write')], self::ISSUER);
+    }
+
     public function testApprovingWithoutAnythingRequiredTakesTheGrantedScopes(): void
     {
         $request = $this->request([ApiScope::from('contacts:write'), ApiScope::write()], null);
@@ -211,11 +233,13 @@ final class OAuthAuthorizationTest extends TestCase
         );
     }
 
-    public function testOnlyStaffWithTwoFactorSignInMayConnect(): void
+    public function testAnyoneOfTheOrganisationWithTwoFactorSignInMayConnect(): void
     {
         self::assertSame($this->userId, $this->service()->connectingPerson());
+        $this->role = Role::Guest;
+        self::assertSame($this->userId, $this->service()->connectingPerson());
+        $this->role = Role::Member;
 
-        $this->assertConnectRefused(ApiTokenRefused::NOT_STAFF, fn (): Role => $this->role = Role::Guest);
         $this->assertConnectRefused(ApiTokenRefused::NOT_STAFF, fn (): null => $this->role = null);
         $this->assertConnectRefused(ApiTokenRefused::NOT_STAFF, fn (): null => $this->userId = null);
         $this->assertConnectRefused(ApiTokenRefused::TWO_FACTOR_REQUIRED, fn (): null => $this->user = null);
@@ -333,10 +357,11 @@ final class OAuthAuthorizationTest extends TestCase
         $users = self::createStub(UserRepository::class);
         $users->method('findById')->willReturn($this->user);
         $resources = self::createStub(ApiResources::class);
-        $resources->method('declared')->willReturn(['contacts']);
+        $resources->method('declared')->willReturn(['contacts', 'projects', 'tasks']);
+        $resources->method('guest')->willReturn(['projects:read', 'tasks:write']);
         $documents = self::createStub(ClientMetadataDocuments::class);
 
-        return new OAuthAuthorization(new OAuthClients($this->store, $documents, $this->clock), $this->store, $resources, $actor, $users, $memberships, $this->clock);
+        return new OAuthAuthorization(new OAuthClients($this->store, $documents, $this->clock), $this->store, $resources, $actor, $users, $memberships, $this->clock, new GuestScopes($resources));
     }
 
     public function currentUserId(): ?string

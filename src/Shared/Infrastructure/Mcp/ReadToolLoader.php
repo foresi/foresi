@@ -72,6 +72,23 @@ final readonly class ReadToolLoader implements LoaderInterface
     }
 
     /**
+     * The tools that are for the organisation's own people only (ADR 0041), by name.
+     *
+     * @return array<string, true>
+     */
+    public function staffOnly(): array
+    {
+        $names = [];
+        foreach ([...$this->tools, ...$this->writeTools()] as $tool) {
+            if ($tool instanceof StaffOnlyTool && $tool->staffOnly()) {
+                $names[$tool->name()] = true;
+            }
+        }
+
+        return $names;
+    }
+
+    /**
      * The write tools of the modules and one for each declared operation (ADR 0032).
      *
      * @return list<WriteTool>

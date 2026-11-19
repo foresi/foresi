@@ -20,7 +20,7 @@ final class ApiTokenRefused extends \DomainException
     public const string REVOKED = 'revoked';
     /** The person no longer belongs to the organisation of the token. */
     public const string MEMBERSHIP_GONE = 'membership_gone';
-    /** Guests see only what is shared with them, never through a token. */
+    /** A guest signs in only through an OAuth connection that keeps a scope a guest may hold. */
     public const string GUEST = 'guest';
     /** Only the owner and the members of the organisation have tokens. */
     public const string NOT_STAFF = 'not_staff';

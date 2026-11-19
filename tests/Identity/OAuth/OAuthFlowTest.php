@@ -12,11 +12,13 @@ use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Identity\Application\UserRepository;
 use Foresi\Identity\Domain\ApiToken;
 use Foresi\Identity\Domain\OAuth\Pkce;
+use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
 use Foresi\Shared\Application\Sealer;
 use Foresi\Tests\Identity\Support\IdentityFixtures;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 
 /**
@@ -140,6 +142,41 @@ final class OAuthFlowTest extends WebTestCase
         $this->assertTokenError('invalid_grant', ['grant_type' => 'refresh_token', 'refresh_token' => $tokens['refresh_token'], 'client_id' => $clientId]);
         self::assertSame(401, $this->mcp($renewed['access_token']));
         $this->assertTokenError('invalid_grant', ['grant_type' => 'refresh_token', 'refresh_token' => $renewed['refresh_token'], 'client_id' => $clientId]);
+    }
+
+    public function testAGuestConnectsTheirAgentWithOnlyWhatAGuestMayHold(): void
+    {
+        $fixtures = new IdentityFixtures($this->em);
+        $fixtures->join($fixtures->user('guest@example.com'), Role::Guest);
+        $clientId = $this->register();
+        $this->signIn(email: 'guest@example.com');
+
+        $crawler = $this->client->request('GET', '/oauth/authorize?'.$this->query($clientId, ['scope' => 'read write contacts:write']));
+        self::assertResponseIsSuccessful();
+        $offered = $crawler->filter('input[name="scopes[]"]')->each(static fn (Crawler $box): string => (string) $box->attr('value'));
+        self::assertSame(['projects:read', 'tasks:read', 'tasks:write'], $offered);
+        // What a guest reads stays ticked; writing tasks can be unticked.
+        self::assertNotNull($crawler->filter('#scope-tasks-read')->attr('disabled'));
+        self::assertNotNull($crawler->filter('#scope-tasks-write')->attr('checked'));
+
+        $this->client->submit($crawler->filter('button[value="allow"]')->form());
+        $answer = $this->answer();
+        $tokens = $this->token(['grant_type' => 'authorization_code', 'code' => $answer['code'] ?? '', 'redirect_uri' => self::REDIRECT, 'client_id' => $clientId, 'code_verifier' => self::VERIFIER, 'resource' => self::MCP]);
+        self::assertResponseIsSuccessful();
+        self::assertSame('projects:read tasks:write', $tokens['scope']);
+        self::assertSame(200, $this->mcp($tokens['access_token']));
+
+        // A refresh cannot widen what the guest gave.
+        $this->assertTokenError('invalid_scope', ['grant_type' => 'refresh_token', 'refresh_token' => $tokens['refresh_token'], 'client_id' => $clientId, 'scope' => 'contacts:read']);
+
+        // The guest sees and disconnects the agent on their own page.
+        $crawler = $this->client->request('GET', '/connected-apps');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-api-connections="mine"]', 'Example Agent');
+        self::assertSelectorTextContains('[data-mcp-server]', self::MCP);
+        $this->client->submit($crawler->filter('[data-api-connections="mine"] form')->form());
+        self::assertResponseRedirects('/connected-apps');
+        self::assertSame(401, $this->mcp($tokens['access_token']));
     }
 
     public function testACodeWorksOnceAndOnlyWithItsVerifierRedirectAndClient(): void
@@ -388,12 +425,12 @@ final class OAuthFlowTest extends WebTestCase
         return $members;
     }
 
-    private function signIn(bool $twoFactor = true): void
+    private function signIn(bool $twoFactor = true, string $email = IdentityFixtures::EMAIL): void
     {
         $crawler = $this->client->request('GET', '/login');
-        $this->client->submit($crawler->filter('form button[type="submit"]')->form(['_username' => IdentityFixtures::EMAIL, '_password' => IdentityFixtures::PASSWORD]));
+        $this->client->submit($crawler->filter('form button[type="submit"]')->form(['_username' => $email, '_password' => IdentityFixtures::PASSWORD]));
         if ($twoFactor) {
-            $user = $this->em->getRepository(User::class)->findOneBy(['email' => IdentityFixtures::EMAIL]);
+            $user = $this->em->getRepository(User::class)->findOneBy(['email' => $email]);
             self::assertInstanceOf(User::class, $user);
             $user->enrolTwoFactor(self::getContainer()->get(Sealer::class)->seal('JBSWY3DPEHPK3PXP'), ['recovery-hash']);
             self::getContainer()->get(UserRepository::class)->save($user);

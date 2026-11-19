@@ -23,6 +23,7 @@ use Foresi\Shared\Application\Api\Operation;
     title: 'Trash a task',
     description: 'Moves a task to the trash with its subtasks, as the task page deletes it: it leaves every list, and it is purged after 30 days. Only whoever created it or an owner may (task_not_yours). Ask the person before you call it. Bring it back with foresi_restore_task.',
     destructive: true,
+    staffOnly: true,
 )]
 final readonly class TrashTaskInput
 {

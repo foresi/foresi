@@ -20,8 +20,9 @@ use Psr\Clock\ClockInterface;
 /**
  * Personal API tokens of the instance: the owner and the members
  * issue, list and revoke their own; an owner may also list and revoke anyone's.
- * Guests have none. Issuing needs two-factor sign-in, except for the operator
- * on the console, who issues for a person and revokes any token.
+ * Guests have none; a guest lists and revokes only the OAuth clients they
+ * connected (ADR 0041). Issuing needs two-factor sign-in, except for the
+ * operator on the console, who issues for a person and revokes any token.
  */
 final readonly class ManageApiTokens
 {
@@ -99,13 +100,13 @@ final readonly class ManageApiTokens
     }
 
     /**
-     * @return list<ApiToken> the OAuth clients the signed-in person connected, newest first (ADR 0036)
+     * @return list<ApiToken> the OAuth clients the signed-in person connected, newest first (ADR 0036); a guest's too (ADR 0041)
      *
      * @throws ApiTokenRefused
      */
     public function myConnections(): array
     {
-        return $this->tokens->connections($this->staff());
+        return $this->tokens->connections($this->person()[0]);
     }
 
     /**
@@ -124,16 +125,20 @@ final readonly class ManageApiTokens
 
     /**
      * Revokes one's own token, or any token of the organisation as its owner.
-     * Revoking an OAuth connection disconnects its client: the refresh token dies with it.
+     * A guest revokes only their own OAuth connections. Revoking an OAuth
+     * connection disconnects its client: the refresh token dies with it.
      *
      * @throws ApiTokenRefused
      */
     public function revoke(string $id): ApiToken
     {
-        $userId = $this->staff();
+        [$userId, $role] = $this->person();
         $token = $this->tokens->find($id) ?? throw new ApiTokenRefused(ApiTokenRefused::UNKNOWN);
-        if ($token->userId() !== $userId && Role::Owner !== $this->roleOf($userId)) {
+        if ($token->userId() !== $userId && Role::Owner !== $role) {
             throw new ApiTokenRefused(ApiTokenRefused::NOT_YOURS);
+        }
+        if (!$role->isStaff() && null === $token->oauthClientId()) {
+            throw new ApiTokenRefused(ApiTokenRefused::NOT_STAFF);
         }
         $token->revoke($userId, $this->clock->now());
         $this->tokens->flush();
@@ -193,6 +198,20 @@ final readonly class ManageApiTokens
         }
 
         return $userId;
+    }
+
+    /**
+     * @return array{string, Role} the id and the role of the signed-in person, a guest included
+     */
+    private function person(): array
+    {
+        $userId = $this->actor->userId();
+        $role = null === $userId ? null : $this->roleOf($userId);
+        if (null === $userId || !$role instanceof Role) {
+            throw new ApiTokenRefused(ApiTokenRefused::NOT_STAFF);
+        }
+
+        return [$userId, $role];
     }
 
     private function roleOf(string $userId): ?Role

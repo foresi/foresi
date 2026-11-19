@@ -21,7 +21,7 @@ final readonly class ProjectDetail
     public function __construct(
         public ProjectRow $row,
         public string $description,
-        public bool $billableByDefault,
+        public ?bool $billableByDefault,
         public array $statuses,
         public array $sections,
     ) {

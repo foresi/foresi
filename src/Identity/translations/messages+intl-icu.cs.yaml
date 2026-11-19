@@ -139,6 +139,10 @@ api_tokens:
   others_empty: Ostatní lidé nemají žádné tokeny.
   connections: Připojené aplikace
   connections_empty: Zatím není žádná aplikace připojená přes přihlášení OAuth.
+  guest:
+    title: Připojené aplikace
+    server: Připojte vlastní aplikaci
+    server_text: Klient MCP, například Claude, se připojí na tuto adresu a požádá vás o přihlášení. Pak vidí a mění jen práci, kterou s vámi sdílíme.
   connections_how: Jak aplikaci připojit
   others_connections: Aplikace připojené ostatními lidmi
   others_connections_empty: Ostatní lidé nemají připojené žádné aplikace.

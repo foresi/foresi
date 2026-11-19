@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Identity\Application\OAuth;
 
 use Foresi\Identity\Application\ApiTokens;
+use Foresi\Identity\Application\GuestScopes;
 use Foresi\Identity\Application\MembershipDirectory;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Domain\ApiToken;
@@ -24,7 +25,8 @@ use Psr\Clock\ClockInterface;
  * an API token row linked to the client, with an access token for an hour and
  * a refresh token for 30 days. A refresh puts a new access token into the same
  * row and replaces the refresh token. A code or a refresh token presented a
- * second time ends the connection, as it may have been stolen.
+ * second time ends the connection, as it may have been stolen. A guest's
+ * connection holds and answers only the scopes a guest may hold (ADR 0041).
  */
 final readonly class OAuthTokens
 {
@@ -36,6 +38,7 @@ final readonly class OAuthTokens
         private ApiTokens $tokens,
         private MembershipDirectory $memberships,
         private ClockInterface $clock,
+        private GuestScopes $guestScopes,
     ) {
     }
 
@@ -85,10 +88,10 @@ final readonly class OAuthTokens
         if (!$this->store->claimCode($code->id(), $now)) {
             throw $this->invalidGrant('The authorization code was used already.');
         }
-        $this->checkStaff($code->userId());
+        $scopes = $this->scopesOf($code->userId(), $code->scopes());
 
         $access = ApiTokenSecret::generateOAuth();
-        $token = new ApiToken($code->userId(), $client->name(), $code->scopes(), ApiTokenSecret::hash($access), ApiTokenSecret::lastFour($access), $now, $this->accessExpiry($now), $client->id());
+        $token = new ApiToken($code->userId(), $client->name(), $scopes, ApiTokenSecret::hash($access), ApiTokenSecret::lastFour($access), $now, $this->accessExpiry($now), $client->id());
         $this->tokens->add($token);
         $this->tokens->flush();
         $this->store->attachToken($code->id(), $token->id());
@@ -122,17 +125,17 @@ final readonly class OAuthTokens
             throw $this->invalidGrant('The refresh token has expired.');
         }
         $this->checkResource($parameters, $resource);
-        $this->checkNarrowerScope($this->string($parameters, 'scope'), $token);
+        $scopes = $this->scopesOf($token->userId(), $token->scopes());
+        $this->checkNarrowerScope($this->string($parameters, 'scope'), $scopes);
         if (!$this->store->claimRefreshToken($refresh->id(), $now)) {
             $this->endConnection($token->id());
             throw $this->invalidGrant('The refresh token was used already; the connection is revoked.');
         }
-        $this->checkStaff($token->userId());
 
         $access = ApiTokenSecret::generateOAuth();
         $this->tokens->rotate($token->id(), ApiTokenSecret::hash($access), ApiTokenSecret::lastFour($access), $this->accessExpiry($now));
 
-        return new TokenResponse($access, self::ACCESS_LIFETIME_SECONDS, $this->newRefreshToken($token->id(), $now), $token->scopes());
+        return new TokenResponse($access, self::ACCESS_LIFETIME_SECONDS, $this->newRefreshToken($token->id(), $now), $scopes);
     }
 
     private function newRefreshToken(string $apiTokenId, \DateTimeImmutable $now): string
@@ -175,27 +178,42 @@ final readonly class OAuthTokens
      * A refresh may ask for the same scopes or fewer (RFC 6749, 6); the
      * connection keeps its scopes either way, so asking for more is refused.
      *
+     * @param list<ApiScope> $held
+     *
      * @throws OAuthRefused
      */
-    private function checkNarrowerScope(string $scope, ApiToken $token): void
+    private function checkNarrowerScope(string $scope, array $held): void
     {
         foreach (OAuthAuthorization::scopeValues($scope) as $value) {
             $wanted = ApiScope::tryFrom($value);
-            if (!$wanted instanceof ApiScope || !array_any($token->scopes(), static fn (ApiScope $granted): bool => $granted->grants($wanted))) {
+            if (!$wanted instanceof ApiScope || !array_any($held, static fn (ApiScope $granted): bool => $granted->grants($wanted))) {
                 throw new OAuthRefused(OAuthRefused::INVALID_SCOPE, 'A refresh cannot add scopes.');
             }
         }
     }
 
     /**
+     * The scopes the person may hold now: all granted ones while they work for
+     * the organisation, those open to guests while they are a guest.
+     *
+     * @param list<ApiScope> $granted
+     *
+     * @return list<ApiScope>
+     *
      * @throws OAuthRefused
      */
-    private function checkStaff(string $userId): void
+    private function scopesOf(string $userId, array $granted): array
     {
         $role = $this->memberships->roleOf($userId);
-        if (!$role instanceof Role || !$role->isStaff()) {
-            throw $this->invalidGrant('The person no longer works for the organisation.');
+        if (!$role instanceof Role) {
+            throw $this->invalidGrant('The person is no longer in the organisation.');
         }
+        if ($role->isStaff()) {
+            return $granted;
+        }
+        $scopes = $this->guestScopes->narrow($granted);
+
+        return [] === $scopes ? throw $this->invalidGrant('A guest may hold none of the scopes of this connection.') : $scopes;
     }
 
     private function invalidGrant(string $description): OAuthRefused

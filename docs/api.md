@@ -6,7 +6,7 @@ The API lists and shows invoices, contacts and payments, and follows the feed of
 
 ## Personal API tokens
 
-Every request is signed in with a personal API token. A token belongs to one person in one organisation. It acts as that person: it sees what the person sees and nothing more. Guests cannot have tokens.
+Every request is signed in with a personal API token. A token belongs to one person in one organisation. It acts as that person: it sees what the person sees and nothing more. Guests cannot have tokens, and the REST API is not for guests: a guest connects their own agent over [MCP](mcp.md#guests) with OAuth sign-in ([ADR 0041](adr/0041-guests-over-mcp.md)).
 
 ### Issue a token
 
@@ -258,6 +258,8 @@ Query parameters of `GET /api/v1/tasks`:
 "My tasks" in an instance is `GET /api/v1/tasks?assignee=me&finished=false`. The order is by id, newest first, so a client that wants the tasks by due date sorts them by `due_on` itself.
 
 Query parameters of `GET /api/v1/projects`: `q` (the name), `archived` (`true` lists the archived projects), `client_id`, `view` (a saved view of the list `work.projects`), `filter`, `limit` and `cursor`. `GET /api/v1/time-entries` takes `project_id`, `task_id`, `person` (`me` or the id of a person), `from` and `until` (`YYYY-MM-DD`, both included), `limit` and `cursor`; a running timer has `minutes` `null` and `running` `true`. Hourly rates and sharing stay on the screens.
+
+A guest's agent reads the same answers over MCP, as the guest's screens show them: `estimate_minutes` of a task and `billable_by_default` of a project are `null`, and the people of a project are the organisation's own, not other guests.
 
 ## Saved views
 

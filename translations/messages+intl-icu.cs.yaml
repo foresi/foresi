@@ -60,6 +60,7 @@ nav:
   item:
     people: Lidé
     api: API a MCP
+    connected_apps: Připojené aplikace
     webhooks: Webhooky
     dashboard: Přehled
     shared_with_me: Sdíleno se mnou

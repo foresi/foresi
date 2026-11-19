@@ -10,6 +10,7 @@ namespace Foresi\Identity\Application\OAuth;
 
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\ApiTokenRefused;
+use Foresi\Identity\Application\GuestScopes;
 use Foresi\Identity\Application\MembershipDirectory;
 use Foresi\Identity\Application\UserRepository;
 use Foresi\Identity\Domain\ApiScope;
@@ -25,7 +26,8 @@ use Psr\Clock\ClockInterface;
  * The authorization endpoint (ADR 0036): checks a request before the consent
  * screen shows it, and turns the person's answer into a redirect back to the
  * client, with an authorization code or with access_denied. A request whose
- * client or redirect URI is not trusted never redirects anywhere.
+ * client or redirect URI is not trusted never redirects anywhere. A guest
+ * connects too, with only the scopes a guest may hold (ADR 0041).
  */
 final readonly class OAuthAuthorization
 {
@@ -37,6 +39,7 @@ final readonly class OAuthAuthorization
         private UserRepository $users,
         private MembershipDirectory $memberships,
         private ClockInterface $clock,
+        private GuestScopes $guestScopes,
     ) {
     }
 
@@ -102,7 +105,7 @@ final readonly class OAuthAuthorization
     {
         $userId = $this->connectingPerson();
         $scopes = [];
-        foreach ([...$request->requiredScopes(), ...$this->declared($granted)] as $scope) {
+        foreach ($this->forPerson([...$request->requiredScopes(), ...$this->declared($granted)]) as $scope) {
             $scopes[$scope->value] = $scope;
         }
         if ([] === $scopes) {
@@ -130,8 +133,9 @@ final readonly class OAuthAuthorization
     }
 
     /**
-     * Whether the person signed in may connect a client: someone who works for
-     * the organisation and has two-factor sign-in, as for a token (ADR 0027).
+     * Whether the person signed in may connect a client: someone of the
+     * organisation, a guest included (ADR 0041), with two-factor sign-in, as
+     * for a token (ADR 0027).
      *
      * @throws ApiTokenRefused
      */
@@ -139,7 +143,7 @@ final readonly class OAuthAuthorization
     {
         $userId = $this->actor->userId();
         $role = null === $userId ? null : $this->memberships->roleOf($userId);
-        if (null === $userId || !$role instanceof Role || !$role->isStaff()) {
+        if (null === $userId || !$role instanceof Role) {
             throw new ApiTokenRefused(ApiTokenRefused::NOT_STAFF);
         }
         $user = $this->users->findById($userId);
@@ -148,6 +152,30 @@ final readonly class OAuthAuthorization
         }
 
         return $userId;
+    }
+
+    /**
+     * Whether the person signed in connects as a guest, who is offered only the scopes a guest may hold.
+     */
+    public function connectsAsGuest(): bool
+    {
+        $userId = $this->actor->userId();
+        $role = null === $userId ? null : $this->memberships->roleOf($userId);
+
+        return $role instanceof Role && !$role->isStaff();
+    }
+
+    /**
+     * The scopes the person signed in may give a client: all of them for
+     * someone who works for the organisation, those open to guests for a guest.
+     *
+     * @param list<ApiScope> $scopes
+     *
+     * @return list<ApiScope>
+     */
+    public function forPerson(array $scopes): array
+    {
+        return $this->connectsAsGuest() ? $this->guestScopes->narrow($scopes) : $scopes;
     }
 
     /**

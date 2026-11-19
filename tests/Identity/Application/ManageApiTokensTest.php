@@ -206,11 +206,13 @@ final class ManageApiTokensTest extends TestCase
         self::assertSame([$token], $this->service()->mine(), 'A connection is not a personal token.');
     }
 
-    public function testAGuestListsNoConnections(): void
+    public function testAGuestListsOnlyTheirOwnConnections(): void
     {
+        $mine = $this->connection($this->me);
+        $this->connection($this->colleague);
         $this->roles[$this->me->id()] = Role::Guest;
 
-        $this->expectRefusal(ApiTokenRefused::NOT_STAFF, fn (): array => $this->service()->myConnections());
+        self::assertSame([$mine], $this->service()->myConnections());
         $this->expectRefusal(ApiTokenRefused::NOT_STAFF, fn (): array => $this->service()->organisationConnections());
     }
 
@@ -273,12 +275,18 @@ final class ManageApiTokensTest extends TestCase
         $this->expectRefusal(ApiTokenRefused::UNKNOWN, fn (): ApiToken => $this->service()->revoke('019a0000-0000-7000-8000-0000000000ff'));
     }
 
-    public function testAGuestRevokesNothing(): void
+    public function testAGuestRevokesOnlyTheirOwnConnections(): void
     {
         $token = $this->token($this->me);
+        $mine = $this->connection($this->me);
+        $theirs = $this->connection($this->colleague);
         $this->roles[$this->me->id()] = Role::Guest;
 
         $this->expectRefusal(ApiTokenRefused::NOT_STAFF, fn (): ApiToken => $this->service()->revoke($token->id()));
+        $this->expectRefusal(ApiTokenRefused::NOT_YOURS, fn (): ApiToken => $this->service()->revoke($theirs->id()));
+        self::assertSame($mine, $this->service()->revoke($mine->id()));
+        self::assertNotNull($mine->revokedAt());
+        self::assertNull($token->revokedAt());
     }
 
     public function testTheOperatorRevokesAnyToken(): void
@@ -336,6 +344,11 @@ final class ManageApiTokensTest extends TestCase
             public function declared(): array
             {
                 return ['contacts'];
+            }
+
+            public function guest(): array
+            {
+                return [];
             }
         });
     }

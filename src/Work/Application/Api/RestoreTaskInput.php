@@ -23,6 +23,7 @@ use Foresi\Shared\Application\Api\Operation;
     title: 'Restore a task',
     description: 'Takes a task out of the trash with the subtasks that went there with it; a subtask brings its task back too. Only whoever created it or an owner may (task_not_yours). Restoring a task out of the trash changes nothing.',
     response: 'TaskDetail',
+    staffOnly: true,
 )]
 final readonly class RestoreTaskInput
 {

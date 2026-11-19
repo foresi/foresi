@@ -12,8 +12,10 @@ use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\ApiTokenRefused;
 use Foresi\Identity\Application\ManageApiTokens;
 use Foresi\Identity\Application\OAuth\OAuthStore;
+use Foresi\Identity\Application\OpenToGuest;
 use Foresi\Identity\Application\People;
 use Foresi\Identity\Application\Person;
+use Foresi\Identity\Application\StaffCheck;
 use Foresi\Identity\Application\UserRepository;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Domain\ApiToken;
@@ -36,8 +38,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * The personal API tokens in the settings: a person lists, issues and revokes
  * their own, an owner sees and revokes those of the other people too. The OAuth
  * clients a person connected (ADR 0036) are listed apart and disconnected with
- * the same revoke. Who may
- * do what is decided by the service; this controller only turns its refusals
+ * the same revoke. A guest has no tokens and no settings: their own page,
+ * Connected apps, lists and disconnects the clients they connected (ADR 0041).
+ * Who may do what is decided by the service; this controller only turns its refusals
  * into answers. The secret of a new token is in the answer to the form that
  * issued it, once, and is never stored, redirected to or cached.
  */
@@ -47,6 +50,8 @@ final class ApiTokenController extends AbstractController
     public const string NEW_ROUTE = 'app_api_token_new';
     public const string REVOKE_ROUTE = 'app_api_token_revoke';
     public const string CONNECT_ROUTE = 'app_api_connect';
+    public const string GUEST_ROUTE = 'app_connected_apps';
+    public const string GUEST_DISCONNECT_ROUTE = 'app_connected_app_disconnect';
     /** The MCP server over Streamable HTTP (config/packages/mcp.yaml). */
     private const string MCP_ROUTE = '_mcp_endpoint_default';
     public const string TOKEN = 'api_tokens';
@@ -60,6 +65,7 @@ final class ApiTokenController extends AbstractController
         private readonly ClockInterface $clock,
         private readonly ApiScopeOptions $scopeOptions,
         private readonly OAuthStore $oauth,
+        private readonly StaffCheck $staff,
     ) {
     }
 
@@ -92,6 +98,45 @@ final class ApiTokenController extends AbstractController
             'othersConnectionColumns' => $this->connectionColumns(true),
             'othersConnectionRows' => null === $othersConnections ? null : array_map(fn (ApiToken $token): array => $this->connectionRow($token, true, $people[$token->userId()] ?? null), $othersConnections),
         ]);
+    }
+
+    /**
+     * A guest's own connected apps and the address their MCP client connects
+     * to; the organisation's people have all of it in the settings.
+     */
+    #[Route('/connected-apps', name: self::GUEST_ROUTE, methods: ['GET'])]
+    #[OpenToGuest]
+    public function connectedApps(): Response
+    {
+        if ($this->staff->isStaff()) {
+            return $this->redirectToRoute(self::ROUTE);
+        }
+        try {
+            $connections = $this->live($this->tokens->myConnections());
+        } catch (ApiTokenRefused $refused) {
+            throw $this->denied($refused);
+        }
+
+        return $this->render('@Identity/api/connected-apps.html.twig', [
+            'server' => $this->mcpServer(),
+            'columns' => $this->connectionColumns(false),
+            'rows' => array_map(fn (ApiToken $token): array => $this->connectionRow($token, false, null, self::GUEST_DISCONNECT_ROUTE), $connections),
+        ]);
+    }
+
+    #[Route('/connected-apps/{id}/disconnect', name: self::GUEST_DISCONNECT_ROUTE, requirements: ['id' => Requirement::UUID], methods: ['POST'])]
+    #[OpenToGuest]
+    public function disconnect(string $id, Request $request): RedirectResponse
+    {
+        $this->checkToken($request);
+        try {
+            $token = $this->tokens->revoke($id);
+        } catch (ApiTokenRefused $refused) {
+            throw ApiTokenRefused::UNKNOWN === $refused->reason ? new NotFoundHttpException($refused->getMessage(), $refused) : $this->denied($refused);
+        }
+        $this->addFlash('success', $this->translator->trans(null === $token->oauthClientId() ? 'api_tokens.flash.revoked' : 'api_tokens.flash.disconnected'));
+
+        return $this->redirectToRoute(self::GUEST_ROUTE);
     }
 
     /**
@@ -265,7 +310,7 @@ final class ApiTokenController extends AbstractController
      *
      * @return array<string, mixed>
      */
-    private function connectionRow(ApiToken $token, bool $withPerson, ?Person $person): array
+    private function connectionRow(ApiToken $token, bool $withPerson, ?Person $person, string $disconnectRoute = self::REVOKE_ROUTE): array
     {
         $clientId = $token->oauthClientId();
         $client = null === $clientId ? null : $this->oauth->client($clientId);
@@ -288,7 +333,7 @@ final class ApiTokenController extends AbstractController
                 'lastUsed' => $lastUsed instanceof \DateTimeImmutable ? $lastUsed->format($this->translator->trans('format.datetime')) : $this->translator->trans('api_tokens.never'),
             ],
             'actions' => [
-                ['label' => $this->translator->trans('api_tokens.action.disconnect'), 'href' => $this->generateUrl(self::REVOKE_ROUTE, ['id' => $token->id()]), 'method' => 'POST', 'confirm' => [
+                ['label' => $this->translator->trans('api_tokens.action.disconnect'), 'href' => $this->generateUrl($disconnectRoute, ['id' => $token->id()]), 'method' => 'POST', 'confirm' => [
                     'title' => $this->translator->trans('api_tokens.confirm.disconnect.title', ['name' => $token->name()]),
                     'text' => $this->translator->trans('api_tokens.confirm.disconnect.text'),
                     'accept' => $this->translator->trans('api_tokens.action.disconnect'),

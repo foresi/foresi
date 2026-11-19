@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Infrastructure\Mcp;
 
+use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Application\Api\ApiClient;
 use Foresi\Shared\Infrastructure\Api\Idempotency;
 use Foresi\Shared\Infrastructure\Api\WriteBudget;
@@ -27,6 +28,7 @@ final class ToolCalls
         RecordingLogger $logger = new RecordingLogger(),
         FakeIdempotencyKeys $keys = new FakeIdempotencyKeys(),
         int $writes = 120,
+        bool $staff = true,
     ): ReadToolCall {
         $limiter = new RateLimiterFactory(['id' => 'writes', 'policy' => 'fixed_window', 'limit' => $writes, 'interval' => '10 minutes'], new InMemoryStorage());
         $client = new class implements ApiClient {
@@ -36,6 +38,35 @@ final class ToolCalls
             }
         };
 
-        return new ReadToolCall($caller, $scopes, $logger, new WriteBudget($limiter, $client), new Idempotency($keys));
+        return new ReadToolCall($caller, $scopes, $logger, new WriteBudget($limiter, $client), new Idempotency($keys), self::role($staff));
+    }
+
+    public static function role(bool $staff): ActorRole
+    {
+        return new readonly class($staff) implements ActorRole {
+            public function __construct(private bool $staff)
+            {
+            }
+
+            public function userId(): string
+            {
+                return '019a0000-0000-7000-8000-0000000000bb';
+            }
+
+            public function isOwner(): bool
+            {
+                return false;
+            }
+
+            public function isStaff(): bool
+            {
+                return $this->staff;
+            }
+
+            public function isStaffMember(string $userId): bool
+            {
+                return $this->staff;
+            }
+        };
     }
 }

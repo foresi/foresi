@@ -100,6 +100,20 @@ final class InstalledModulesTest extends TestCase
         self::assertSame($expected, $graph->resources());
         self::assertSame(['contacts'], $graph->get(\Foresi\Shared\Domain\Module\ModuleId::of('party'))->scopes);
         self::assertSame([], InstalledModules::manifestFrom(self::composer(), [])->scopes);
+        // A guest may change tasks and read projects, and nothing else (ADR 0041).
+        $guest = ['work' => ['projects:read', 'tasks:write']];
+        $expected = array_merge([], ...array_values(array_intersect_key($guest, array_flip($this->installed()))));
+        self::assertSame($expected, $graph->guestScopes());
+    }
+
+    public function testAResourceOpenToGuestsIsWrittenWithHowFar(): void
+    {
+        $composer = array_replace_recursive(self::composer(), ['extra' => ['foresi' => ['scopes' => ['hours', ['resource' => 'reports', 'guest' => 'read'], ['resource' => 'notes', 'guest' => 'write']]]]]);
+
+        $manifest = InstalledModules::manifestFrom($composer, []);
+
+        self::assertSame(['hours', 'reports', 'notes'], $manifest->scopes);
+        self::assertSame(['reports' => false, 'notes' => true], $manifest->guestScopes);
     }
 
     public function testExtraMissingIsRefused(): void
@@ -123,6 +137,9 @@ final class InstalledModulesTest extends TestCase
         yield 'package not named after the id' => [array_replace_recursive($composer, ['name' => 'foresi/time'])];
         yield 'namespace outside App' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['namespace' => 'Vendor\\Timesheet\\']]])];
         yield 'scopes not a list' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['scopes' => 'hours']]])];
+        yield 'a guest scope without how far' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['scopes' => [['resource' => 'hours']]]]])];
+        yield 'a guest scope going further than writing' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['scopes' => [['resource' => 'hours', 'guest' => 'admin']]]]])];
+        yield 'a guest scope that is not a word' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['scopes' => [['resource' => 'Hours', 'guest' => 'read']]]]])];
         yield 'a scope that is not a word' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['scopes' => ['Hours:read']]]])];
         yield 'optional not a list of ids' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['optional' => 'invoicing']]])];
         yield 'bundle missing' => [self::composer(bundle: false)];

@@ -1,6 +1,6 @@
 # MCP server
 
-Foresi has an MCP server (Model Context Protocol). An assistant such as Claude connects to it with OAuth sign-in, or with a personal API token, reads invoices, contacts, payments and events of your organisation, keeps its contacts, and manages its webhook endpoints. The decisions behind it are in [ADR 0027](adr/0027-api-and-mcp.md), [ADR 0032](adr/0032-api-writes.md) and, for OAuth, [ADR 0036](adr/0036-oauth-for-mcp.md). The same data is available to programs through the [REST API](api.md).
+Foresi has an MCP server (Model Context Protocol). An assistant such as Claude connects to it with OAuth sign-in, or with a personal API token, reads invoices, contacts, payments and events of your organisation, keeps its contacts, and manages its webhook endpoints. A guest, a client you share work with, connects their own agent too and reaches only that work (see [Guests](#guests)). The decisions behind it are in [ADR 0027](adr/0027-api-and-mcp.md), [ADR 0032](adr/0032-api-writes.md), for OAuth [ADR 0036](adr/0036-oauth-for-mcp.md) and for guests [ADR 0041](adr/0041-guests-over-mcp.md). The same data is available to programs through the [REST API](api.md).
 
 Most tools **only read**, and are marked read-only (`readOnlyHint`). The tools that change anything are the six that keep [contacts](api.md#contact-writes) and the five that manage [webhook endpoints](api.md#webhooks); they need a token with `contacts:write` or `webhooks:write` (or `write`) and are marked `readOnlyHint: false`. Deleting an endpoint and rotating a secret are also marked `destructiveHint: true`, so a client can ask before it runs them.
 
@@ -170,7 +170,15 @@ This is the default way to connect a remote client. Foresi is its own authorizat
 2. **The client.** A client that publishes a client ID metadata document (CIMD) uses its https URL as `client_id`; Foresi fetches the document and its name is verified by its domain. A client without one registers itself at `/oauth/register` (dynamic client registration, RFC 7591) and gets a random `client_id`; its name is only what it says. Every client is a public client without a secret, and its redirect URIs must match exactly (a loopback redirect on any port, for native clients).
 3. **Consent.** The client sends you to `/oauth/authorize`. You sign in as usual, two-factor step included; who has not set up two-factor sign-in cannot connect a client. The consent screen shows the client's name, whether the name is verified and where it sends you back, and the scopes as checkboxes: what the client asked for is ticked, read access it asked for stays ticked, anything else you can untick or add.
 4. **Tokens.** The client exchanges the code for an **access token** (`foresi_oat_`), valid for **one hour** and accepted **on `/mcp` only**, never on the REST API, and a **refresh token** (`foresi_ort_`), valid for **30 days** and **rotated** on every use. A refresh token used twice disconnects the client.
-5. **Disconnecting.** Every connected client is listed under **Settings > API and MCP > Connected apps**, with its name, the domain that verified it, its access and its last use; an owner sees those of the other people too. **Disconnect** revokes the connection at once: its access token stops at the next call and its refresh token is dead, so the client has to be connected again.
+5. **Disconnecting.** Every connected client is listed under **Settings > API and MCP > Connected apps**, with its name, the domain that verified it, its access and its last use; an owner sees those of the other people too, guests included. A guest has their own **Connected apps** page in the sidebar. **Disconnect** revokes the connection at once: its access token stops at the next call and its refresh token is dead, so the client has to be connected again.
+
+### Guests
+
+A guest connects an MCP client with OAuth sign-in like everyone, two-factor sign-in included, and never with a personal token. The address of the server is on their **Connected apps** page. What the agent may do is what the guest may do on the screens:
+
+- **Scopes.** The consent screen offers a guest only the scopes a module opens to guests: today `tasks:read`, `tasks:write` and `projects:read`. `read` and `write` asked by a client mean all of these. A connection of someone who turns from member into guest keeps only these scopes from its next call; one that keeps none is refused.
+- **Tools.** A guest's agent lists the tools of tasks and projects and `foresi_whoami`. The tools of the organisation's setup (`foresi_list_modules`, `foresi_list_lists`) and trashing or restoring a task are for the organisation's own people: hidden from a guest and refused with `forbidden` if called. There are no events and no webhooks for a guest; their client asks again for what changed.
+- **Data.** The agent sees only the projects, sections and tasks shared with the guest, the public comments, and the organisation's own people. Unsharing the work, or removing the guest, ends that at the next call.
 
 ### Claude Code
 
@@ -265,7 +273,7 @@ Stdio: the command prints one line on **stderr**, because stdout belongs to the 
 | `The token in FORESI_API_TOKEN was refused: it has expired.` | Issue a new token. |
 | `The token in FORESI_API_TOKEN was refused: it has been revoked.` | Issue a new token. |
 | `The token in FORESI_API_TOKEN was refused: its person no longer works for its organisation.` | Ask the owner to invite the person again, then issue a new token. |
-| `The token in FORESI_API_TOKEN was refused: guests do not sign in with a token.` | Guests cannot use tokens. |
+| `The token in FORESI_API_TOKEN was refused: guests do not sign in with a token.` | Guests cannot use tokens; a guest connects a remote client with [OAuth sign-in](#guests). |
 | `The token in FORESI_API_TOKEN was refused: it is not a valid Foresi API token.` | A typo, a truncated paste, or a token of another installation. |
 
 The stdio process serves one client for as long as it runs and checks the token again before every tool call. If the token is refused during a session, the tool answers that it was refused, and every later call too. Fix the token and restart the server.

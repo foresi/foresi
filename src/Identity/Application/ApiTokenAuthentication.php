@@ -15,8 +15,10 @@ use Psr\Clock\ClockInterface;
 
 /**
  * Turns the secret a request presents into what it may do. The token must be
- * known, neither revoked nor expired, and its person must still work for the
- * organisation; guests never sign in with a token. The time of last use is
+ * known, neither revoked nor expired, and its person must still be in the
+ * organisation. A guest signs in only through an OAuth connection, never with a
+ * personal token, and only with the scopes a guest may hold (ADR 0041); a
+ * connection that keeps none of them is refused. The time of last use is
  * recorded at most once a minute, so a busy client does not write on every call.
  */
 final readonly class ApiTokenAuthentication
@@ -28,6 +30,7 @@ final readonly class ApiTokenAuthentication
         private ApiTokens $tokens,
         private MembershipDirectory $memberships,
         private ClockInterface $clock,
+        private GuestScopes $guestScopes,
     ) {
     }
 
@@ -54,8 +57,12 @@ final readonly class ApiTokenAuthentication
         if (!$role instanceof Role) {
             throw new ApiTokenRefused(ApiTokenRefused::MEMBERSHIP_GONE);
         }
+        $scopes = $record->scopes;
         if (!$role->isStaff()) {
-            throw new ApiTokenRefused(ApiTokenRefused::GUEST);
+            $scopes = null === $record->oauthClientId ? [] : $this->guestScopes->narrow($scopes);
+            if ([] === $scopes) {
+                throw new ApiTokenRefused(ApiTokenRefused::GUEST);
+            }
         }
 
         $usedAfter = $now->modify(\sprintf('-%d seconds', self::LAST_USED_PRECISION));
@@ -63,6 +70,6 @@ final readonly class ApiTokenAuthentication
             $this->tokens->touch($record->id, $now, $usedAfter);
         }
 
-        return new ApiTokenGrant($record->userId, $record->id, $record->name, $record->scopes, $record->expiresAt, $record->oauthClientId);
+        return new ApiTokenGrant($record->userId, $record->id, $record->name, $scopes, $record->expiresAt, $record->oauthClientId);
     }
 }

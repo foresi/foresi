@@ -274,7 +274,7 @@ nelmio_api_doc:
                           required: [description, billable_by_default, statuses, sections]
                           properties:
                               description: { type: string, description: Markdown. }
-                              billable_by_default: { type: boolean }
+                              billable_by_default: { type: boolean, nullable: true, description: Null for a guest. }
                               statuses:
                                   type: array
                                   items:
@@ -346,7 +346,7 @@ nelmio_api_doc:
                                       title: { type: string }
                               watchers: { type: array, items: { $ref: '#/components/schemas/Reference' } }
                               subtasks: { type: array, items: { $ref: '#/components/schemas/Task' } }
-                              estimate_minutes: { type: integer, nullable: true }
+                              estimate_minutes: { type: integer, nullable: true, description: Null for a guest. }
                               project_archived: { type: boolean }
                               created_at: { type: string, format: date-time }
                               completed_at: { type: string, format: date-time, nullable: true }
