@@ -11,7 +11,6 @@ namespace Foresi\Purchasing\Application\Api;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\NoFirmYet;
-use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Purchasing\Application\PayReceivedDocument;
 use Foresi\Purchasing\Application\PurchasingAccess;
 use Foresi\Purchasing\Application\PurchasingRefused;
@@ -141,7 +140,7 @@ final readonly class ReceivedDocumentWrites
             return $write();
         } catch (ReceivedDocumentRefused $refused) {
             throw PurchasingRefused::of($refused);
-        } catch (NoFirmYet|UnknownLegalEntity $unknown) {
+        } catch (NoFirmYet $unknown) {
             throw PurchasingRefused::unknownFirm($unknown);
         }
     }
