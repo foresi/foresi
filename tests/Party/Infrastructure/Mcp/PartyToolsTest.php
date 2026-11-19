@@ -23,7 +23,7 @@ use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatId;
 use Foresi\Party\Infrastructure\Mcp\GetContactTool;
-use Foresi\Party\Infrastructure\Mcp\ListFirmsTool;
+use Foresi\Party\Infrastructure\Mcp\GetFirmTool;
 use Foresi\Party\Infrastructure\Mcp\SearchContactsTool;
 use Foresi\Shared\Domain\Id;
 use Foresi\Tests\Shared\Infrastructure\Mcp\ReadToolTestCase;
@@ -31,7 +31,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * foresi_search_contacts and foresi_get_contact answer what GET /api/v1/contacts
- * and /api/v1/contacts/{id} answer; foresi_list_firms names the firms. The
+ * and /api/v1/contacts/{id} answer; foresi_get_firm answers the one firm. The
  * customer of the firm is in the address book from the start.
  */
 final class PartyToolsTest extends ReadToolTestCase
@@ -55,7 +55,7 @@ final class PartyToolsTest extends ReadToolTestCase
         self::assertSame(1, self::argument($tool, 'limit')['minimum']);
     }
 
-    public function testTheGetAndTheFirmsDescribeTheirArguments(): void
+    public function testTheGetAndTheFirmDescribeTheirArguments(): void
     {
         $get = $this->tool(GetContactTool::class);
         self::assertSame('foresi_get_contact', $get->name());
@@ -68,11 +68,12 @@ final class PartyToolsTest extends ReadToolTestCase
             'additionalProperties' => false,
         ], $get->inputSchema());
 
-        $firms = $this->tool(ListFirmsTool::class);
-        self::assertSame('foresi_list_firms', $firms->name());
-        self::assertSame('List firms', $firms->title());
-        self::assertStringStartsWith('Returns the firms of the organisation', $firms->description());
-        self::assertEquals(['type' => 'object', 'properties' => new \stdClass(), 'additionalProperties' => false], $firms->inputSchema());
+        $firm = $this->tool(GetFirmTool::class);
+        self::assertSame('foresi_get_firm', $firm->name());
+        self::assertSame('Get the firm', $firm->title());
+        self::assertSame('contacts:read', $firm->scope());
+        self::assertStringStartsWith('Returns the firm of this Foresi instance', $firm->description());
+        self::assertEquals(['type' => 'object', 'properties' => new \stdClass(), 'additionalProperties' => false], $firm->inputSchema());
     }
 
     public function testTheContactIsAnsweredAsTheRestApiWritesIt(): void
@@ -167,41 +168,42 @@ final class PartyToolsTest extends ReadToolTestCase
         $this->assertRefused('not_found', 'The organisation has no contact with this id. Find the id with foresi_search_contacts.', GetContactTool::class);
     }
 
-    public function testTheFirmsAreListedByNameArchivedOnesToo(): void
+    public function testTheFirmIsAnsweredAsTheRestApiWritesIt(): void
     {
-        [$other, $archived] = $this->flushed(function (): array {
-            [$other] = $this->firmWithCustomer('Alpha Firm s.r.o.', '25596641');
-            [$archived] = $this->firmWithCustomer('Zulu Firm s.r.o.', '27082440');
-            $this->em()->find(LegalEntity::class, $archived)?->archive(new \DateTimeImmutable('2026-11-01 10:00:00'));
+        $output = $this->call(GetFirmTool::class);
 
-            return [$other, $archived];
+        self::assertSame($this->rest('/api/v1/firm'), $output->data);
+        self::assertSame([
+            'id' => $this->firmId,
+            'name' => 'Example Firm s.r.o.',
+            'registration_country' => 'CZ',
+            'registration_number' => '12345695',
+            'vat_id' => 'CZ12345695',
+            'vat_status' => 'registered',
+            'register_entry' => 'Example register, entry C 1',
+            'address' => ['street' => 'Example Street 1', 'city' => 'Example City', 'postal_code' => '100 00', 'country_code' => 'CZ'],
+        ], $output->data);
+        self::assertSame('The firm of the instance.', $output->summary);
+    }
+
+    public function testAnInstanceWithoutAFirmSaysSo(): void
+    {
+        $this->flushed(function (): void {
+            $firm = $this->em()->find(LegalEntity::class, $this->firmId);
+            self::assertNotNull($firm);
+            $this->em()->remove($firm);
         });
 
-        $output = $this->call(ListFirmsTool::class);
-
-        self::assertSame(['items' => [
-            ['id' => $other, 'name' => 'Alpha Firm s.r.o.', 'archived' => false],
-            ['id' => $this->firmId, 'name' => 'Example Firm s.r.o.', 'archived' => false],
-            ['id' => $archived, 'name' => 'Zulu Firm s.r.o.', 'archived' => true],
-        ]], $output->data);
-        self::assertSame('3 firms, by name.', $output->summary);
+        $this->assertRefused('not_found', 'The instance has no firm yet: its first-run setup has not happened.', GetFirmTool::class);
     }
 
-    public function testOneFirmIsSaidSo(): void
-    {
-        $output = $this->call(ListFirmsTool::class);
-
-        self::assertSame(['items' => [['id' => $this->firmId, 'name' => 'Example Firm s.r.o.', 'archived' => false]]], $output->data);
-        self::assertSame('1 firm.', $output->summary);
-    }
-
-    public function testAGuestReadsNoContactsAndNoFirms(): void
+    public function testAGuestReadsNoContactsAndNoFirm(): void
     {
         $guest = $this->guest();
 
         $this->assertRefused('forbidden', 'Only the owners and members of the organisation read its contacts.', SearchContactsTool::class, [], $guest);
         $this->assertRefused('forbidden', 'Only the owners and members of the organisation read its contacts.', GetContactTool::class, ['id' => $this->customerId], $guest);
-        $this->assertRefused('forbidden', 'Only the owners and members of the organisation read its firms.', ListFirmsTool::class, [], $guest);
+        $this->assertRefused('forbidden', 'Only the owners and members of the organisation read its firm.', GetFirmTool::class, [], $guest);
     }
 
     /**

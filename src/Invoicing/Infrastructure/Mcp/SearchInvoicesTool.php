@@ -59,7 +59,7 @@ final readonly class SearchInvoicesTool implements ReadTool
             .'Returns {items, next_cursor, applied_view}: each item has the id, number, kind, firm, customer, issue, due and tax point dates, the total, paid and remaining amounts, the payment state and whether it is overdue, delivered or in the trash. '
             .'Money is {amount_minor, currency}, in hundredths of the currency. '
             .'When next_cursor is not null, more documents match: call again with the same arguments and next_cursor as cursor. '
-            .'Use foresi_get_invoice for the lines, payments and balances of one document, foresi_list_firms for a firm_id and foresi_search_contacts for a customer_id.';
+            .'Use foresi_get_invoice for the lines, payments and balances of one document, foresi_search_contacts for a customer_id.';
     }
 
     public function inputSchema(): array
@@ -68,7 +68,6 @@ final readonly class SearchInvoicesTool implements ReadTool
             'type' => 'object',
             'properties' => [
                 'kind' => ToolArguments::choiceSchema(array_column(DocumentKind::cases(), 'value'), 'Only documents of this kind.'),
-                'firm_id' => ToolArguments::idSchema('Only documents issued by this firm of the organisation.'),
                 'customer_id' => ToolArguments::idSchema('Only documents issued to this contact.'),
                 'state' => ToolArguments::choiceSchema(InvoiceSliceFilter::STATES, 'Only documents in this payment state: unpaid (overdue ones too), overdue (unpaid after the due date) or paid. Ignored with trashed.'),
                 'trashed' => ['type' => 'boolean', 'default' => false, 'description' => 'True returns only the documents in the trash, false only those that are not.'],
@@ -86,7 +85,6 @@ final readonly class SearchInvoicesTool implements ReadTool
     {
         $query = new InvoiceListQuery(
             ToolArguments::text($arguments, 'kind'),
-            ToolArguments::text($arguments, 'firm_id'),
             ToolArguments::text($arguments, 'customer_id'),
             ToolArguments::text($arguments, 'state'),
             ToolArguments::flag($arguments, 'trashed'),

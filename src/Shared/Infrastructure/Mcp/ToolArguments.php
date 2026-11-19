@@ -173,7 +173,7 @@ final readonly class ToolArguments
     }
 
     /**
-     * The name of an argument as the model sends it: firmId is firm_id.
+     * The name of an argument as the model sends it: customerId is customer_id.
      */
     private function name(string $propertyPath): string
     {

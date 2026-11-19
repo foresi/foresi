@@ -55,7 +55,7 @@ final readonly class PlannedItemWrites
 
         return $this->transaction->run(function () use ($input, $direction): PlannedItem {
             $terms = $this->rules->terms(new PlannedItemDraft($input->name, $input->category, $input->amount, $input->currency, $input->on, $input->repeat, $input->every, $input->lastDayOfMonth, $input->endsOn, $input->endsAfter, $input->counterpartyId, $input->included, $input->matchAccount, $input->matchVariableSymbol, $input->matchTolerance), $this->instanceClock->timezone());
-            $item = new PlannedItem($this->access->firm($input->firmId), $direction, $terms, $this->clock->now());
+            $item = new PlannedItem($this->access->firm(), $direction, $terms, $this->clock->now());
             $this->store->add($item);
             $this->events->record(new PlannedItemCreated($item->id(), $item->firm()->id(), $this->direction($item), self::decimal($item->amount()), $item->amount()->currency()->value, $item->isRecurring()));
 

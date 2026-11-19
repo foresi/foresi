@@ -107,8 +107,8 @@ final readonly class BalanceWrites
         $this->access->denyUnlessStaff();
         $amount = null === $input->amount ? null : PlannedItemRules::money($input->amount, Currency::CZK, 'amount');
 
-        return $this->transaction->run(function () use ($input, $amount): ?MinimumBalance {
-            $firm = $this->access->firm($input->firmId);
+        return $this->transaction->run(function () use ($amount): ?MinimumBalance {
+            $firm = $this->access->firm();
             $minimum = $this->store->minimumBalance($firm->id());
             if (!$amount instanceof \Foresi\Shared\Domain\Money) {
                 if ($minimum instanceof MinimumBalance) {

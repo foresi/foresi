@@ -124,7 +124,7 @@ final class PlannedFulfilmentTest extends CashFlowTestCase
         $hidden = new FakeSource('test.invoices', [$flow('a', '2026-11-18', '100.00', FlowCategory::Revenue), $flow('b', '2026-11-19', '50.00', FlowCategory::Revenue), $flow('c', '2026-11-19', '7.00', FlowCategory::Other)], details: false);
         $this->planned(on: '2026-11-20');
 
-        $forecast = $this->forecasts([$hidden, new PlannedItemFlows(self::getContainer()->get(CashFlowStore::class))], [])->of($this->firm->id());
+        $forecast = $this->forecasts([$hidden, new PlannedItemFlows(self::getContainer()->get(CashFlowStore::class))], [])->of();
 
         $week = $forecast->periods[0];
         self::assertSame(['planned_item'], array_map(static fn (\Foresi\CashFlow\Application\ForecastLine $line): string => $line->flow->subject->type, $week->lines));
@@ -202,7 +202,7 @@ final class PlannedFulfilmentTest extends CashFlowTestCase
      */
     private function meets(?string $ruleAccount, ?string $ruleSymbol, ?string $tolerance, ?string $account = null, ?string $symbol = null, string $amount = '5000.00'): bool
     {
-        $item = $this->writes()->create(new CreatePlannedItemInput($this->firm->id(), 'out', 'Insurance', 'taxes', '5000.00', '2026-11-20', matchAccount: $ruleAccount, matchVariableSymbol: $ruleSymbol, matchTolerance: $tolerance));
+        $item = $this->writes()->create(new CreatePlannedItemInput('out', 'Insurance', 'taxes', '5000.00', '2026-11-20', matchAccount: $ruleAccount, matchVariableSymbol: $ruleSymbol, matchTolerance: $tolerance));
         $day = new \DateTimeImmutable('2026-11-20', new \DateTimeZone(self::ZONE));
 
         return PlannedFulfilment::isFulfilled($item, $day, [$this->actual('2026-11-20', $amount, FlowDirection::Out, account: $account, symbol: $symbol)]);
@@ -210,7 +210,7 @@ final class PlannedFulfilmentTest extends CashFlowTestCase
 
     public function testASourceTheCallerMayNotReadIsListedOnceWhateverHowManyGiveItsKey(): void
     {
-        $forecast = $this->forecasts([new FakeSource('test.a', details: false), new FakeSource('test.a', details: false), new FakeSource('test.b', details: false)], [])->of($this->firm->id());
+        $forecast = $this->forecasts([new FakeSource('test.a', details: false), new FakeSource('test.a', details: false), new FakeSource('test.b', details: false)], [])->of();
 
         self::assertSame(['test.a', 'test.b'], $forecast->restrictedSources);
     }
@@ -226,7 +226,7 @@ final class PlannedFulfilmentTest extends CashFlowTestCase
         ], details: false);
         $long = new FakeSource('xp', [$flow('xp', 'e', FlowDirection::In, FlowCategory::Revenue, '4.00')], details: false);
 
-        $forecast = $this->forecasts([$short, $long], [])->of($this->firm->id());
+        $forecast = $this->forecasts([$short, $long], [])->of();
 
         self::assertSame(
             [['xp', 'in', 'revenue', 400, 1], ['x', 'in', 'other', 300, 1], ['x', 'in', 'revenue', 100, 1], ['x', 'out', 'revenue', 700, 2]],
@@ -259,7 +259,7 @@ final class PlannedFulfilmentTest extends CashFlowTestCase
         $working = new FakeActualSource('test.working', [$this->actual('2026-11-03', '10000.00', FlowDirection::Out, counterpartyId: $landlord->id())]);
         $logger = new SpyLogger();
 
-        $forecast = $this->forecasts([new PlannedItemFlows(self::getContainer()->get(CashFlowStore::class))], [$broken, $working], $logger)->of($this->firm->id());
+        $forecast = $this->forecasts([new PlannedItemFlows(self::getContainer()->get(CashFlowStore::class))], [$broken, $working], $logger)->of();
 
         self::assertSame('2026-12-25', $this->days($forecast, $rent)[0]);
         self::assertSame(['test.broken'], $forecast->unavailableSources);
@@ -274,7 +274,7 @@ final class PlannedFulfilmentTest extends CashFlowTestCase
      */
     private function forecast(array $actuals): Forecast
     {
-        return $this->forecasts([new PlannedItemFlows(self::getContainer()->get(CashFlowStore::class))], $actuals)->of($this->firm->id());
+        return $this->forecasts([new PlannedItemFlows(self::getContainer()->get(CashFlowStore::class))], $actuals)->of();
     }
 
     /**
@@ -317,7 +317,7 @@ final class PlannedFulfilmentTest extends CashFlowTestCase
 
     private function matched(string $name, string $amount, ?string $account, ?string $symbol, ?string $tolerance): PlannedItem
     {
-        return $this->writes()->create(new CreatePlannedItemInput($this->firm->id(), 'out', $name, 'taxes', $amount, '2026-11-20', repeat: 'month', matchAccount: $account, matchVariableSymbol: $symbol, matchTolerance: $tolerance));
+        return $this->writes()->create(new CreatePlannedItemInput('out', $name, 'taxes', $amount, '2026-11-20', repeat: 'month', matchAccount: $account, matchVariableSymbol: $symbol, matchTolerance: $tolerance));
     }
 
     private function actual(string $on, string $amount, FlowDirection $direction, ?string $account = null, ?string $symbol = null, ?string $counterpartyId = null): ActualFlow

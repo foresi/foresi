@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Tests\Purchasing\Infrastructure\Api;
 
 use Foresi\Identity\Domain\ApiScope;
+use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Infrastructure\Operation\InputSchema;
 use Foresi\Shared\Infrastructure\Operation\Operations;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
@@ -74,10 +75,26 @@ final class ReceivedDocumentApiTest extends ApiTestCase
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'currency', 'reason' => 'currency_unsupported']);
 
         $this->send('POST', '/api/v1/received-documents', ['firm_id' => '01940000-0000-7000-8000-000000000001'] + $this->fields());
-        $this->assertProblem(404, 'firm_unknown');
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'firm_id', 'reason' => 'invalid_input']);
+
+        $this->get('/api/v1/received-documents', ['firm_id' => '01940000-0000-7000-8000-000000000001'], $this->writer);
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'firm_id']);
 
         $this->send('POST', '/api/v1/received-documents/01940000-0000-7000-8000-000000000001/payments', ['paid_on' => '2026-11-12', 'amount' => '1.00']);
         $this->assertProblem(404, 'not_found');
+    }
+
+    public function testWithoutAnActiveFirmNothingIsRecorded(): void
+    {
+        $this->flushed(function (): void {
+            $firm = $this->em()->find(LegalEntity::class, $this->firmId);
+            self::assertNotNull($firm);
+            $firm->archive(new \DateTimeImmutable('2026-11-01'));
+        });
+
+        $this->send('POST', '/api/v1/received-documents', $this->fields());
+
+        $this->assertProblem(404, 'firm_unknown');
     }
 
     public function testADocumentInAnotherCurrencyKeepsTheVatInCzkItPrints(): void
@@ -121,7 +138,7 @@ final class ReceivedDocumentApiTest extends ApiTestCase
         $this->send('POST', '/api/v1/received-documents/'.$paid.'/mark-paid', []);
         $this->assertProblem(409, 'paid');
 
-        $this->get('/api/v1/received-documents', ['unpaid' => 'true', 'due_before' => '2026-12-01', 'firm_id' => $this->firmId], $this->writer);
+        $this->get('/api/v1/received-documents', ['unpaid' => 'true', 'due_before' => '2026-12-01'], $this->writer);
         self::assertSame([$open], $this->ids());
         $this->get('/api/v1/received-documents/'.$paid.'/payments', secret: $this->writer);
         $data = $this->at('data');
@@ -257,7 +274,6 @@ final class ReceivedDocumentApiTest extends ApiTestCase
     private function fields(string $number = 'FV-2026-123'): array
     {
         return [
-            'firm_id' => $this->firmId,
             'kind' => 'tax_invoice',
             'supplier_id' => $this->customerId,
             'supplier_number' => $number,

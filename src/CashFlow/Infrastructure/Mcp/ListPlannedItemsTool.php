@@ -14,11 +14,10 @@ use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\CashFlow\Infrastructure\Api\CashFlowJson;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
 use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
 
 /**
- * The planned items of a firm, as GET /api/v1/cash-flow/planned-items writes them.
+ * The planned items of the firm, as GET /api/v1/cash-flow/planned-items writes them.
  */
 final readonly class ListPlannedItemsTool implements ReadTool
 {
@@ -43,16 +42,15 @@ final readonly class ListPlannedItemsTool implements ReadTool
 
     public function description(): string
     {
-        return 'Returns the planned items of a firm, oldest first: {items} with the id, direction, name, category, amount, day or schedule, skipped days, whether the forecast includes it and its match rule. '
-            .'A firm has few, so there is no paging. Use an id with foresi_change_planned_item, foresi_skip_planned_occurrence, foresi_end_planned_item or foresi_delete_planned_item.';
+        return 'Returns the planned items of the firm, oldest first: {items} with the id, direction, name, category, amount, day or schedule, skipped days, whether the forecast includes it and its match rule. '
+            .'There are few, so there is no paging. Use an id with foresi_change_planned_item, foresi_skip_planned_occurrence, foresi_end_planned_item or foresi_delete_planned_item.';
     }
 
     public function inputSchema(): array
     {
         return [
             'type' => 'object',
-            'properties' => ['firm_id' => ToolArguments::idSchema('The id of the firm, as foresi_list_firms returns it.')],
-            'required' => ['firm_id'],
+            'properties' => new \stdClass(),
             'additionalProperties' => false,
         ];
     }
@@ -60,7 +58,7 @@ final readonly class ListPlannedItemsTool implements ReadTool
     public function call(array $arguments): ToolOutput
     {
         try {
-            $items = $this->items->of(ToolArguments::text($arguments, 'firm_id') ?? '');
+            $items = $this->items->all();
         } catch (CashFlowRefused $refused) {
             throw CashFlowToolRefusal::of($refused);
         }

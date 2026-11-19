@@ -28,7 +28,7 @@ final class McpServerTest extends ApiTestCase
         'events' => ['foresi_list_event_types', 'foresi_list_events'],
         'identity' => ['foresi_whoami'],
         'invoicing' => ['foresi_create_invoice', 'foresi_get_invoice', 'foresi_get_payment', 'foresi_restore_invoice', 'foresi_search_invoices', 'foresi_search_payments', 'foresi_trash_invoice', 'foresi_update_invoice'],
-        'party' => ['foresi_archive_contact', 'foresi_create_contact', 'foresi_get_contact', 'foresi_link_contact_person', 'foresi_list_firms', 'foresi_restore_contact', 'foresi_search_contacts', 'foresi_unlink_contact_person', 'foresi_update_contact'],
+        'party' => ['foresi_archive_contact', 'foresi_create_contact', 'foresi_get_contact', 'foresi_get_firm', 'foresi_link_contact_person', 'foresi_restore_contact', 'foresi_search_contacts', 'foresi_unlink_contact_person', 'foresi_update_contact'],
         'purchasing' => ['foresi_add_received_document_payment', 'foresi_get_received_document', 'foresi_list_received_document_payments', 'foresi_mark_received_document_paid', 'foresi_record_received_document', 'foresi_remove_received_document_payment', 'foresi_search_received_documents', 'foresi_trash_received_document'],
         'shared' => ['foresi_create_view', 'foresi_delete_view', 'foresi_get_view', 'foresi_list_lists', 'foresi_list_modules', 'foresi_list_views', 'foresi_restore_default_views', 'foresi_update_view'],
         'work' => ['foresi_add_task_comment', 'foresi_archive_project', 'foresi_create_project', 'foresi_create_task', 'foresi_get_project', 'foresi_get_task', 'foresi_list_labels', 'foresi_list_project_people', 'foresi_list_task_comments', 'foresi_log_time', 'foresi_restore_project', 'foresi_restore_task', 'foresi_search_projects', 'foresi_search_tasks', 'foresi_search_time_entries', 'foresi_start_timer', 'foresi_stop_timer', 'foresi_trash_task', 'foresi_trash_task_comment', 'foresi_update_project', 'foresi_update_task', 'foresi_update_task_comment'],
@@ -198,7 +198,7 @@ final class McpServerTest extends ApiTestCase
         $names = array_column($tools, 'name');
         sort($names);
 
-        self::assertSame(['foresi_get_contact', 'foresi_list_firms', 'foresi_list_modules', 'foresi_search_contacts', 'foresi_whoami'], $names);
+        self::assertSame(['foresi_get_contact', 'foresi_get_firm', 'foresi_list_modules', 'foresi_search_contacts', 'foresi_whoami'], $names);
     }
 
     public function testAContactsWriteTokenListsTheContactToolsAlone(): void
@@ -217,8 +217,8 @@ final class McpServerTest extends ApiTestCase
             'foresi_archive_contact',
             'foresi_create_contact',
             'foresi_get_contact',
+            'foresi_get_firm',
             'foresi_link_contact_person',
-            'foresi_list_firms',
             'foresi_list_modules',
             'foresi_restore_contact',
             'foresi_search_contacts',

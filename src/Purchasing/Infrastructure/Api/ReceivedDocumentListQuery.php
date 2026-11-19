@@ -20,9 +20,6 @@ use Symfony\Component\Validator\Constraints as Assert;
 final readonly class ReceivedDocumentListQuery
 {
     public function __construct(
-        #[SerializedName('firm_id')]
-        #[Assert\Uuid(versions: [Assert\Uuid::V7_MONOTONIC])]
-        public ?string $firmId = null,
         #[SerializedName('supplier_id')]
         #[Assert\Uuid(versions: [Assert\Uuid::V7_MONOTONIC])]
         public ?string $supplierId = null,
@@ -46,7 +43,7 @@ final readonly class ReceivedDocumentListQuery
     public function filter(?ViewFilter $view = null): ReceivedDocumentSliceFilter
     {
         return new ReceivedDocumentSliceFilter(
-            null === $this->firmId ? null : strtolower($this->firmId),
+            null,
             null === $this->state ? null : ReceivedDocumentState::from($this->state),
             $this->unpaid,
             null === $this->dueBefore ? null : new \DateTimeImmutable($this->dueBefore),

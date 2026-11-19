@@ -4,15 +4,15 @@ Foresi has an MCP server (Model Context Protocol). An assistant such as Claude c
 
 Most tools **only read**, and are marked read-only (`readOnlyHint`). The tools that change anything are the six that keep [contacts](api.md#contact-writes) and the five that manage [webhook endpoints](api.md#webhooks); they need a token with `contacts:write` or `webhooks:write` (or `write`) and are marked `readOnlyHint: false`. Deleting an endpoint and rotating a secret are also marked `destructiveHint: true`, so a client can ask before it runs them.
 
-A connection lists only the tools its token's [scopes](api.md#scopes) allow: a token with `contacts:write` sees the contact tools, `foresi_list_firms`, `foresi_whoami` and `foresi_list_modules`, and nothing of invoices, payments, events or webhooks.
+A connection lists only the tools its token's [scopes](api.md#scopes) allow: a token with `contacts:write` sees the contact tools, `foresi_get_firm`, `foresi_whoami` and `foresi_list_modules`, and nothing of invoices, payments, events or webhooks.
 
 ## Tools
 
 | Tool | What it does |
 | --- | --- |
 | `foresi_whoami` | The person of the connection, and the name, scopes and expiry of its token. Use it first to check the set-up. |
-| `foresi_list_firms` | The firms of the organisation with their ids, for the `firm_id` filter of the other tools. |
-| `foresi_search_invoices` | Searches sales documents, newest first, with filters such as state, firm, customer and issue dates, through a saved view (`view_id`) or conditions (`filter`). |
+| `foresi_get_firm` | The firm of the instance: id, name, registration number, VAT ID, VAT status, register entry and address. An instance holds one firm ([ADR 0039](adr/0039-one-firm-per-instance.md)), so no other tool takes a firm. |
+| `foresi_search_invoices` | Searches sales documents, newest first, with filters such as state, customer and issue dates, through a saved view (`view_id`) or conditions (`filter`). |
 | `foresi_get_invoice` | One document with its lines, payments, corrections and balances. |
 | `foresi_create_invoice` | **Write.** Issues an invoice or advance invoice to a customer (`customer_id`) with its `lines`; it gets the next number of its series, or a `number` typed by hand. Foresi has no drafts. |
 | `foresi_update_invoice` | **Write.** Changes the fields given of an invoice (`invoice_id`); `lines` replaces every line. The number is locked once the document was delivered, sent or queued to be sent. |
@@ -45,8 +45,8 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_delete_webhook_endpoint` | **Write, destructive.** Deletes an endpoint with its deliveries and attempts for good. |
 | `foresi_rotate_webhook_secret` | **Write, destructive.** Makes a new secret and returns it with `previous_secret_expires_at`. The old secret keeps signing for `keep_previous_hours` (0 to 168, default 24). |
 | `foresi_redeliver_webhook` | **Write.** Sends a finished delivery (`endpoint_id`, `delivery_id`) once more, with the same `webhook-id` and a new signature. Queues one attempt and returns `delivery_id` and `attempt_id`. |
-| `foresi_cash_flow_forecast` | The cash-flow forecast of a firm (`firm_id`) in CZK: by weeks until the end of next month, then by months, 12 in all, with the balance, the items of each period from planned items, invoices, recurring invoices and received documents, the lowest point and the shortfall. Planned occurrences already invoiced or paid are left out; a module the token may not read shows totals only (`hidden_items`, `restricted_sources`). Takes `from`, `months` and `weeks_until`. |
-| `foresi_list_planned_items` | The planned items of a firm (`firm_id`), oldest first. |
+| `foresi_cash_flow_forecast` | The cash-flow forecast of the firm in CZK: by weeks until the end of next month, then by months, 12 in all, with the balance, the items of each period from planned items, invoices, recurring invoices and received documents, the lowest point and the shortfall. Planned occurrences already invoiced or paid are left out; a module the token may not read shows totals only (`hidden_items`, `restricted_sources`). Takes `from`, `months` and `weeks_until`. |
+| `foresi_list_planned_items` | The planned items of the firm, oldest first. |
 | `foresi_create_planned_item` | **Write.** Plans money in or out that no document carries yet, once on its day or recurring. |
 | `foresi_change_planned_item` | **Write.** Changes the fields given of a planned item (`planned_item_id`); `included: false` leaves it out of the forecast. |
 | `foresi_skip_planned_occurrence` | **Write.** Leaves one occurrence (`on`) of a planned item out. |
@@ -55,7 +55,6 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_record_balance_checkpoint` | **Write.** Records the balance of a firm bank account (`bank_account_id`, from `balance.accounts` of the forecast) at the end of a day. |
 | `foresi_set_expected_date` | **Write.** Sets the day a document is expected to be paid, which replaces its due date in the forecast. |
 | `foresi_clear_expected_date` | **Write.** Removes the expected day of a document. |
-| `foresi_set_minimum_balance` | **Write.** Sets the minimum balance of a firm in CZK, or removes it with `null`. |
 | `foresi_search_projects` | Searches the projects you see, newest first, by `query`, `archived` and `client_id`, through a saved view of `work.projects` (`view_id`) or conditions (`filter`). |
 | `foresi_get_project` | One project with its statuses (id, name, type, position) and the sections you see. A status of type `done` or `closed` completes a task. |
 | `foresi_list_project_people` | Who may be responsible for a task of a project (`project_id`, optional `task_id`): their ids are the `responsible_id` of a task. |
@@ -78,6 +77,7 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_log_time` | **Write.** Logs time on a project or task: `worked_on` with `minutes`, or `started_at` and `ended_at`. |
 | `foresi_start_timer` | **Write.** Starts your timer on a project or task; one that runs is stopped first. |
 | `foresi_stop_timer` | **Write.** Stops your running timer (`entry_id`). |
+| `foresi_set_minimum_balance` | **Write.** Sets the minimum balance of the firm in CZK, or removes it with `null`. |
 | `foresi_list_lists` | The lists saved views filter, such as `invoicing.invoices`: their fields with operators and values, their columns, and the date values every date field takes. |
 | `foresi_list_views` | The saved views of a list (`list`) you see, shared and private, with whether you may change each. |
 | `foresi_get_view` | One saved view (`view_id`, an id or a system key such as `invoicing.invoices.overdue`). |
@@ -87,7 +87,7 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_restore_default_views` | **Write.** Brings the views a module ships on a list (`list_key`) back to what it declares. Owners only. |
 | `foresi_list_modules` | The modules installed in the application, their dependencies and the known problems of the dependency graph. |
 
-The search tools take the filters of the matching REST list, with the same names (`firm_id`, `customer_id`, `state`, `issued_from`, `role`, `direction` and so on), except that the text search is called `query`, not `q`. They page the same way: a result has `items` and a `next_cursor`; when it is not `null`, call again with the same arguments and `next_cursor` as `cursor`. See [the REST API](api.md#endpoints) for what each filter means. Money, dates and ids have the same formats.
+The search tools take the filters of the matching REST list, with the same names (`customer_id`, `state`, `issued_from`, `role`, `direction` and so on), except that the text search is called `query`, not `q`. They page the same way: a result has `items` and a `next_cursor`; when it is not `null`, call again with the same arguments and `next_cursor` as `cursor`. See [the REST API](api.md#endpoints) for what each filter means. Money, dates and ids have the same formats. A tool called with `firm_id`, which the tools took while an instance could hold several firms, is refused as an argument its schema does not list (JSON-RPC error `-32602`).
 
 The webhook tools take the fields of the matching [REST routes](api.md#webhooks) and answer the same data (`foresi_update_webhook_endpoint` takes `endpoint_id` and the fields of the PATCH body; a `description` of `null` clears it). A write tool refuses with a code the model can act on: `invalid_argument` (it names the argument, such as `url` or `event_types`), `forbidden` (you may not read events of a module in `event_types`), `not_found`, `conflict` (the endpoint is disabled, or the delivery is still on its schedule or is a ping) and `unavailable` (the operator has not configured `WEBHOOK_SECRET_KEYS`).
 

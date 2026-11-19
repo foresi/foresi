@@ -34,7 +34,7 @@ A `BalanceSource` of another module may add what was booked after the checkpoint
 
 ## The forecast
 
-`GET /api/v1/cash-flow/forecast?firm_id=...` or the MCP tool `foresi_cash_flow_forecast`.
+`GET /api/v1/cash-flow/forecast` or the MCP tool `foresi_cash_flow_forecast`.
 
 - **Today** is the instance's today (`InstanceClock::today()`), so the hour after midnight in Prague is the new Prague day, though UTC is still on the day before.
 - **Periods**: ISO weeks (Monday to Sunday) from `from` (today by default) while a week starts on or before `weeks_until` (the end of next month by default), then calendar months up to the end of the month `months - 1` after the month of `from` (`months` is 12 by default, 1 to 24). The first week starts on `from` and the first month on the day after the last week, so either may be shorter.

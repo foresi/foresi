@@ -1,0 +1,63 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\Tests\Party\Infrastructure\Api;
+
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
+
+/**
+ * GET /api/v1/firm: the one firm of the instance, read with the contacts:read scope.
+ */
+final class FirmApiTest extends ApiTestCase
+{
+    public function testTheFirmOfTheInstanceIsAnswered(): void
+    {
+        $this->get('/api/v1/firm');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(['data' => [
+            'id' => $this->firmId,
+            'name' => 'Example Firm s.r.o.',
+            'registration_country' => 'CZ',
+            'registration_number' => '12345695',
+            'vat_id' => 'CZ12345695',
+            'vat_status' => 'registered',
+            'register_entry' => 'Example register, entry C 1',
+            'address' => ['street' => 'Example Street 1', 'city' => 'Example City', 'postal_code' => '100 00', 'country_code' => 'CZ'],
+        ]], $this->json());
+    }
+
+    public function testATokenWithoutTheContactsReadScopeReadsNoFirm(): void
+    {
+        $this->get('/api/v1/firm', secret: $this->issued([ApiScope::from('invoices:write')]));
+
+        $this->assertProblem(403, 'insufficient_scope');
+    }
+
+    public function testAnInstanceWithoutAFirmAnswersNotFound(): void
+    {
+        $this->flushed(function (): void {
+            $firm = $this->em()->find(LegalEntity::class, $this->firmId);
+            self::assertNotNull($firm);
+            $this->em()->remove($firm);
+        });
+
+        $this->get('/api/v1/firm');
+
+        $this->assertProblem(404, 'not_found');
+    }
+
+    public function testWithoutATokenTheFirmIsNotRead(): void
+    {
+        $this->client->request('GET', '/api/v1/firm');
+
+        self::assertResponseStatusCodeSame(401);
+    }
+}

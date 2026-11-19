@@ -62,7 +62,6 @@ final class InvoiceWritesTest extends InvoicingReadTestCase
                 ['text' => '  Design  ', 'unit_price' => '1000.00', 'quantity' => '2', 'unit' => 'h', 'price_type' => 'with_vat', 'vat' => 'reduced', 'discount' => '10'],
                 ['text' => 'Training', 'unit_price' => '50.00', 'vat' => 'exempt'],
             ],
-            firmId: strtoupper($this->firm->id()),
             seriesId: $this->series->id(),
             number: '  OLD-2026-0042  ',
             issueDate: '2026-11-02',

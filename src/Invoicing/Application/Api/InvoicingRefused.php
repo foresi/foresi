@@ -108,7 +108,7 @@ final class InvoicingRefused extends \DomainException implements Refused
 
     public static function unknownFirm(?\Throwable $previous = null): self
     {
-        return new self(self::FIRM_UNKNOWN, RefusalKind::NotFound, 'firmId', 'The instance has no active firm with this id. Leave firm_id out to issue for the firm of the instance.', previous: $previous);
+        return new self(self::FIRM_UNKNOWN, RefusalKind::NotFound, null, 'The instance has no firm yet: its first-run setup has not happened.', previous: $previous);
     }
 
     public static function notFound(?\Throwable $previous = null): self

@@ -147,7 +147,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
         $this->recurring('2026-12-15');
         $this->em->clear();
 
-        $forecast = self::getContainer()->get(Forecasts::class)->of($this->firm->id());
+        $forecast = self::getContainer()->get(Forecasts::class)->of();
 
         self::assertSame('2026-12-01', $forecast->today->format('Y-m-d'));
         self::assertSame(10_400_000, $forecast->opening->minor());
@@ -657,7 +657,6 @@ final class CashFlowSourcesTest extends CashFlowTestCase
     private function plannedItem(string $name, string $amount, string $on, ?string $counterpartyId = null, ?string $matchAccount = null, ?string $matchVariableSymbol = null): string
     {
         return $this->writes()->create(new CreatePlannedItemInput(
-            $this->firm->id(),
             'out',
             $name,
             'other',

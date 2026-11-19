@@ -24,9 +24,6 @@ final readonly class InvoiceListQuery
     public function __construct(
         #[Assert\Choice(choices: ['invoice', 'advance', 'payment_tax_document', 'correction_document'])]
         public ?string $kind = null,
-        #[SerializedName('firm_id')]
-        #[Assert\Uuid(versions: [Assert\Uuid::V7_MONOTONIC])]
-        public ?string $firmId = null,
         #[SerializedName('customer_id')]
         #[Assert\Uuid(versions: [Assert\Uuid::V7_MONOTONIC])]
         public ?string $customerId = null,
@@ -57,7 +54,7 @@ final readonly class InvoiceListQuery
     {
         return new InvoiceSliceFilter(
             null === $this->kind ? $kind : DocumentKind::from($this->kind),
-            null === $this->firmId ? null : strtolower($this->firmId),
+            null,
             null === $this->customerId ? null : strtolower($this->customerId),
             $this->state,
             $this->trashed,
