@@ -543,6 +543,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $deleted,
             !$deleted && $mine,
             !$deleted && ($mine || $owner),
+            $comment->isRestorable() && ($mine || $owner),
             $deleted ? [] : array_map(
                 static fn (Attachment $file): CommentAttachment => new CommentAttachment($file->id(), $file->fileName(), $file->mediaType(), $file->size()),
                 $this->attachments->of(TaskAttachmentAccess::COMMENT_KIND, $comment->id()),

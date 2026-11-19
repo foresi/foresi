@@ -88,6 +88,7 @@ work:
     comment_too_long: A comment can have at most 20,000 characters.
     comment_not_yours: Only the author can change this comment.
     comment_deleted: This comment has been deleted.
+    comment_purged: The text of this comment is deleted for good.
     task_not_yours: Only whoever created the task or an owner of the organisation can delete or restore it.
     parent_in_trash: The parent task has to be restored first.
     share_person: Choose an active person of the organisation to share with.
@@ -290,11 +291,12 @@ work:
     edited: edited
     edited_at: 'Edited {date}'
     deleted: This comment was deleted
+    trash:
+      mine: The comment is deleted
+      deleted: The comment is deleted.
+      restored: The comment is restored.
     actions: 'Actions for the comment by {name}'
     delete: Delete
-    delete_confirm:
-      title: Delete the comment?
-      text: This cannot be undone.
     edit_label: Edit comment
     composer: Comment
     internal_switch: Internal
