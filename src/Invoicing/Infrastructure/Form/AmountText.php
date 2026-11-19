@@ -10,16 +10,20 @@ namespace Foresi\Invoicing\Infrastructure\Form;
 
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
+use Foresi\Ui\Format\MoneyText;
 use Symfony\Component\Translation\LocaleSwitcher;
 
 /**
  * Amounts as text in the language of the user, from integer minor units: no float
- * ever holds the amount.
+ * ever holds the amount. On screen they read as every list shows money (MoneyText).
  */
 final readonly class AmountText
 {
+    private MoneyText $money;
+
     public function __construct(private LocaleSwitcher $locales)
     {
+        $this->money = new MoneyText($locales);
     }
 
     /**
@@ -27,7 +31,7 @@ final readonly class AmountText
      */
     public function shown(Money $money): string
     {
-        return \sprintf("%s\u{a0}%s", $this->grouped($money), $this->unit($money->currency()));
+        return $this->money->shown($money);
     }
 
     /**
@@ -35,7 +39,7 @@ final readonly class AmountText
      */
     public function unit(Currency $currency): string
     {
-        return Currency::CZK === $currency ? 'Kč' : $currency->value;
+        return $this->money->unit($currency);
     }
 
     /**
@@ -59,11 +63,7 @@ final readonly class AmountText
      */
     public function grouped(Money $money): string
     {
-        $minor = abs($money->minor());
-        $formatter = new \NumberFormatter($this->locales->getLocale(), \NumberFormatter::DECIMAL);
-        $whole = (string) $formatter->format(intdiv($minor, 100), \NumberFormatter::TYPE_INT64);
-
-        return \sprintf('%s%s%s%02d', $money->isNegative() ? '-' : '', $whole, $this->symbol(\NumberFormatter::DECIMAL_SEPARATOR_SYMBOL), $minor % 100);
+        return $this->money->grouped($money);
     }
 
     /**

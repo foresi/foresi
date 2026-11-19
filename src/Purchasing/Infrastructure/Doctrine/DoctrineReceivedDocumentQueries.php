@@ -8,49 +8,80 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Infrastructure\Doctrine;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
+use Foresi\Instance\Application\InstanceClock;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentFilter;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentQueries;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentRow;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentSliceFilter;
+use Foresi\Purchasing\Application\View\ReceivedDocumentLists;
 use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentKind;
 use Foresi\Purchasing\Domain\ReceivedDocumentPayment;
 use Foresi\Purchasing\Domain\ReceivedDocumentState;
+use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Application\View\DateRange;
+use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Infrastructure\View\DqlConditions;
 
 /**
  * The lists of received documents in DQL over scalar columns, so a page loads
- * no document.
+ * no document. A view's fields compile to the columns the sheet filtered by, and
+ * the state and the trash to the SQL the tabs counted with (spec D3, D12).
+ *
+ * @phpstan-type Parameters array<string, array{mixed, string|ArrayParameterType|null}>
  */
 final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocumentQueries
 {
     private const string COLUMNS = 'd.id, f.id AS firmId, f.name AS firmName, d.state, d.kind, d.treatment, d.evidenceNumber, d.supplier.name AS supplierName, d.supplierNumber, '
         .'d.issueDate, d.taxPointDate, d.receivedDate, d.currency, d.totalMinor, d.vatCzkMinor, d.createdAt, d.deletedAt, d.deletedBy, d.deletedReason, IDENTITY(d.supplierParty) AS supplierId';
+    /** The fields of a view stored in a column of their own. */
+    private const array VIEW_COLUMNS = [
+        ReceivedDocumentLists::STATE => 'd.state',
+        ReceivedDocumentLists::SUPPLIER => 'IDENTITY(d.supplierParty)',
+        ReceivedDocumentLists::KIND => 'd.kind',
+        ReceivedDocumentLists::TREATMENT => 'd.treatment',
+    ];
     /** A document from abroad belongs to the month of its issue date (ReceivedDocumentFilter::byIssueDate). */
     private const string FROM_ABROAD = '(d.kind = :abroadKind OR d.treatment IN (:abroadTreatments))';
 
-    public function __construct(private EntityManagerInterface $em)
+    public function __construct(private EntityManagerInterface $em, private InstanceClock $clock)
     {
     }
 
-    public function count(ReceivedDocumentFilter $filter): int
+    public function counts(ReceivedDocumentFilter $filter): array
     {
         [$where, $parameters] = $this->narrowed($filter);
-        $query = $this->em->createQuery('SELECT COUNT(d.id) FROM '.ReceivedDocument::class.' d WHERE '.$where);
+        // One query counts the views the list shows a count for, and the one it lists (spec D9).
+        $sums = [];
+        foreach ([...array_values($filter->counted), $filter->view] as $index => $view) {
+            [$condition, $bound] = $this->inView($view, 'c'.$index);
+            $sums[] = 'SUM(CASE WHEN '.$condition.' THEN 1 ELSE 0 END)';
+            $parameters += $bound;
+        }
+        $query = $this->em->createQuery('SELECT '.implode(', ', $sums).' FROM '.ReceivedDocument::class.' d WHERE '.$where);
         $this->bind($query, $parameters);
+        /** @var list<numeric-string|int|null> $results */
+        $results = array_values((array) $query->getSingleResult(Query::HYDRATE_ARRAY));
+        $values = array_map(static fn (int|string|null $value): int => (int) $value, $results);
+        $total = (int) array_pop($values);
 
-        return (int) $query->getSingleScalarResult();
+        return [$total, array_combine(array_map(strval(...), array_keys($filter->counted)), $values)];
     }
 
     public function rows(ReceivedDocumentFilter $filter, int $offset, int $limit): array
     {
         [$where, $parameters] = $this->narrowed($filter);
+        [$condition, $bound] = $this->inView($filter->view, 'l');
+        $where .= ' AND '.$condition;
+        $parameters += $bound;
         $order = match ($filter->tab) {
             ReceivedDocumentFilter::DRAFTS => 'd.createdAt DESC, d.id DESC',
             ReceivedDocumentFilter::TRASH => 'd.deletedAt DESC, d.id DESC',
@@ -67,23 +98,6 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
         return (int) $this->em->createQuery('SELECT COUNT(d.id) FROM '.ReceivedDocument::class.' d WHERE d.state = :draft AND d.deletedAt IS NULL')
             ->setParameter('draft', ReceivedDocumentState::Draft->value)
             ->getSingleScalarResult();
-    }
-
-    public function suppliers(?string $firmId): array
-    {
-        $query = $this->em->createQuery('SELECT IDENTITY(d.supplierParty) AS id, d.supplier.name AS name, d.createdAt FROM '.ReceivedDocument::class.' d WHERE d.supplierParty IS NOT NULL'
-            .(null === $firmId ? '' : ' AND d.firm = :firm').' ORDER BY d.createdAt ASC');
-        if (null !== $firmId) {
-            $query->setParameter('firm', $firmId);
-        }
-        $names = [];
-        /** @var array{id: string, name: string} $row */
-        foreach ($query->getArrayResult() as $row) {
-            $names[$row['id']] = $row['name'];
-        }
-        asort($names, \SORT_NATURAL | \SORT_FLAG_CASE);
-
-        return $names;
     }
 
     public function months(?string $firmId): array
@@ -121,43 +135,27 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
     }
 
     /**
-     * @return array{string, array<string, array{mixed, string|null}>}
+     * What the firm, the month and the text leave, before any view: the tabs count within this.
+     *
+     * @return array{string, Parameters}
      */
     private function narrowed(ReceivedDocumentFilter $filter): array
     {
-        $where = match ($filter->tab) {
-            ReceivedDocumentFilter::DRAFTS => 'd.state = :state AND d.deletedAt IS NULL',
-            ReceivedDocumentFilter::RECORDED => 'd.state = :state AND d.deletedAt IS NULL',
-            default => 'd.deletedAt IS NOT NULL',
-        };
+        $where = '1 = 1';
         $parameters = [];
-        if (ReceivedDocumentFilter::TRASH !== $filter->tab) {
-            $parameters['state'] = [ReceivedDocumentFilter::DRAFTS === $filter->tab ? ReceivedDocumentState::Draft->value : ReceivedDocumentState::Recorded->value, null];
-        }
         if (null !== $filter->firmId) {
             $where .= ' AND d.firm = :firm';
             $parameters['firm'] = [$filter->firmId, null];
         }
-        if (null !== $filter->supplierId) {
-            $where .= ' AND d.supplierParty = :supplier';
-            $parameters['supplier'] = [$filter->supplierId, null];
-        }
-        if ($filter->kind instanceof ReceivedDocumentKind) {
-            $where .= ' AND d.kind = :kind';
-            $parameters['kind'] = [$filter->kind->value, null];
-        }
-        if ($filter->treatment instanceof PurchaseTaxTreatment) {
-            $where .= ' AND d.treatment = :treatment';
-            $parameters['treatment'] = [$filter->treatment->value, null];
-        }
-        if (null !== $filter->month) {
-            $start = new \DateTimeImmutable($filter->month.'-01');
+        $month = ReceivedDocumentFilter::monthValue($filter->month);
+        if (null !== $month) {
+            $range = DateRange::of($month, $this->clock->today());
             $where .= ' AND (('.self::FROM_ABROAD.' AND d.issueDate >= :monthStart AND d.issueDate < :monthEnd)'
                 .' OR (NOT '.self::FROM_ABROAD.' AND ((d.taxPointDate >= :monthStart AND d.taxPointDate < :monthEnd) OR (d.taxPointDate IS NULL AND d.issueDate >= :monthStart AND d.issueDate < :monthEnd))))';
-            $parameters['monthStart'] = [$start, Types::DATE_IMMUTABLE];
-            $parameters['monthEnd'] = [$start->modify('first day of next month'), Types::DATE_IMMUTABLE];
+            $parameters['monthStart'] = [$range->start, Types::DATE_IMMUTABLE];
+            $parameters['monthEnd'] = [$range->end, Types::DATE_IMMUTABLE];
             $parameters['abroadKind'] = [ReceivedDocumentKind::ForeignInvoice->value, null];
-            $parameters['abroadTreatments'] = [[PurchaseTaxTreatment::EuService->value, PurchaseTaxTreatment::NonEuService->value], null];
+            $parameters['abroadTreatments'] = [[PurchaseTaxTreatment::EuService->value, PurchaseTaxTreatment::NonEuService->value], ArrayParameterType::STRING];
         }
         $text = trim($filter->text);
         if ('' !== $text) {
@@ -166,6 +164,25 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
         }
 
         return [$where, $parameters];
+    }
+
+    /**
+     * The documents a view holds, out of the trash unless it asks for it; each view
+     * under its own prefix, so one count query holds many side by side.
+     *
+     * @param string $trash the trash condition of a view that holds none
+     *
+     * @return array{string, Parameters}
+     */
+    private function inView(ViewFilter $view, string $prefix, string $trash = 'd.deletedAt IS NULL'): array
+    {
+        $derived = static fn (Condition $condition): array => [match ($condition->field) {
+            ReceivedDocumentLists::TRASHED => DqlConditions::derivedBoolean($condition, 'd.deletedAt IS NOT NULL'),
+            default => throw new \LogicException(\sprintf('The field "%s" of the received documents has no SQL.', $condition->field)),
+        }, []];
+        [$condition, $parameters] = new DqlConditions(ReceivedDocumentLists::list(), self::VIEW_COLUMNS, $derived(...))->compile($view, $this->clock->today(...), $prefix);
+
+        return [([] === $view->on(ReceivedDocumentLists::TRASHED) ? $trash.' AND ' : '').$condition, $parameters];
     }
 
     public function slice(ReceivedDocumentSliceFilter $filter, ?string $afterId, int $limit): array
@@ -178,6 +195,10 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
         }
         $conditions = [$filter->trashed ? 'd.deletedAt IS NOT NULL' : 'd.deletedAt IS NULL'];
         $parameters = [];
+        if ($filter->view instanceof ViewFilter) {
+            // A condition of the view on the trash decides instead of $trashed.
+            [$conditions[0], $parameters] = $this->inView($filter->view, 'v', $conditions[0]);
+        }
         if (null !== $filter->firmId) {
             if (!Id::isValid($filter->firmId)) {
                 return [[], false];
@@ -220,8 +241,8 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
     }
 
     /**
-     * @param Query<mixed, mixed>                      $query
-     * @param array<string, array{mixed, string|null}> $parameters
+     * @param Query<mixed, mixed> $query
+     * @param Parameters          $parameters
      */
     private function bind(Query $query, array $parameters): void
     {

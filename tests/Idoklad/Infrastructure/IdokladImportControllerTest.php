@@ -54,7 +54,7 @@ use Foresi\Shared\Domain\Schedule\Recurrence;
 use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
 use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
-use Foresi\Tests\Import\Support\RunMessages;
+use Foresi\Tests\Support\Messenger\RunMessages;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;

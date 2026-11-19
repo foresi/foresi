@@ -9,53 +9,74 @@ declare(strict_types=1);
 namespace Foresi\Ui\Column;
 
 use Foresi\Ui\Contract\Column;
-use Foresi\Ui\Contract\ListColumns;
+use Foresi\Ui\Contract\DataSource;
+use Foresi\Ui\Format\AttributeCells;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The columns of every list, filled by tag (ListColumns), and how one list shows them: the
- * registry's defaults, or a view's display payload read leniently, as a stored view may name a
- * column a disabled module took away.
+ * The columns of every list, one per attribute of its data source (DataSource, spec DS1), and
+ * how one list shows them: the registry's defaults, or a view's display payload read leniently,
+ * as a stored view may name a column a disabled module took away.
  *
  * The payload is {columns: [{key, width?}], density?, group_by?}. Its order is the column order
  * and presence means visible; a width is in px and an absent one sizes the column to its content.
- * Reading it drops unknown and repeated keys and the columns the context makes unavailable, and
- * re-adds the locked columns it leaves out, first, in their default order.
+ * Reading it resolves an alias to its key (DS2), drops unknown and repeated keys and the columns
+ * the context makes unavailable, and re-adds the locked columns it leaves out, first, in their
+ * default order.
  */
-final readonly class ListColumnRegistry
+final class ListColumnRegistry
 {
+    /** @var array<string, array{columns: list<Column>, keys: array<string, string>}> by list */
+    private array $lists = [];
+
     /**
-     * @param iterable<ListColumns> $providers
+     * @param iterable<DataSource> $sources
      */
     public function __construct(
-        #[AutowireIterator(ListColumns::TAG)]
-        private iterable $providers,
-        private TranslatorInterface $translator,
+        #[AutowireIterator(DataSource::TAG)]
+        private readonly iterable $sources,
+        private readonly TranslatorInterface $translator,
+        private readonly AttributeCells $cells,
     ) {
     }
 
     /**
      * Every column of a list, available or not, in the default order (by default position, then
-     * in the order the providers declare them).
+     * in the order the sources declare them).
      *
      * @return list<Column>
      */
     public function columns(string $list): array
     {
-        $columns = [];
-        foreach ($this->providers as $provider) {
-            foreach ($provider->columns($list) as $column) {
-                if (isset($columns[$column->key])) {
-                    throw new \LogicException(\sprintf('The list "%s" has two columns "%s".', $list, $column->key));
-                }
-                $columns[$column->key] = $column;
+        return $this->list($list)['columns'];
+    }
+
+    /**
+     * The key of a column of the list named by its key or by an alias, such as "issueDate" for
+     * "issue_date"; null for none.
+     */
+    public function key(string $list, string $name): ?string
+    {
+        return $this->list($list)['keys'][$name] ?? null;
+    }
+
+    /**
+     * A sort of the list, such as "-due_date": by a column the list's query sorts by, named by its
+     * key or an alias (today's ?sort=dueDate), a minus for descending. Anything else gives the
+     * fallback.
+     */
+    public function sort(string $list, string $sort, string $fallback): string
+    {
+        $descending = str_starts_with($sort, '-');
+        $key = $this->key($list, substr($sort, $descending ? 1 : 0));
+        foreach ($this->columns($list) as $column) {
+            if ($column->key === $key && null !== $column->sortKey) {
+                return ($descending ? '-' : '').$column->sortKey;
             }
         }
-        // usort is stable since PHP 8.0, so equal positions keep the declared order.
-        usort($columns, static fn (Column $a, Column $b): int => $a->defaultPosition <=> $b->defaultPosition);
 
-        return $columns;
+        return $fallback;
     }
 
     /**
@@ -74,7 +95,8 @@ final readonly class ListColumnRegistry
             $columns = [];
             foreach ($wanted as $entry) {
                 $key = \is_array($entry) ? ($entry['key'] ?? null) : $entry;
-                if (!\is_string($key) || !isset($byKey[$key]) || isset($columns[$key])) {
+                $key = \is_string($key) ? $this->key($list, $key) : null;
+                if (null === $key || !isset($byKey[$key]) || isset($columns[$key])) {
                     continue;
                 }
                 $column = $byKey[$key];
@@ -94,6 +116,41 @@ final readonly class ListColumnRegistry
             \is_string($density) && \in_array($density, ListDisplay::DENSITIES, true) ? $density : null,
             \is_string($groupBy) && '' !== $groupBy ? $groupBy : null,
         );
+    }
+
+    /**
+     * @return array{columns: list<Column>, keys: array<string, string>}
+     */
+    private function list(string $list): array
+    {
+        if (isset($this->lists[$list])) {
+            return $this->lists[$list];
+        }
+        $columns = [];
+        foreach ($this->sources as $source) {
+            foreach ($source->attributes($list) as $attribute) {
+                if (isset($columns[$attribute->key])) {
+                    throw new \LogicException(\sprintf('The list "%s" has two attributes "%s".', $list, $attribute->key));
+                }
+                $columns[$attribute->key] = new Column($attribute, fn (mixed $row, array $context): mixed => $this->cells->cell($attribute, $row, $context));
+            }
+        }
+        // usort is stable since PHP 8.0, so equal positions keep the declared order.
+        usort($columns, static fn (Column $a, Column $b): int => $a->defaultPosition <=> $b->defaultPosition);
+        $keys = [];
+        foreach ($columns as $column) {
+            $keys[$column->key] = $column->key;
+        }
+        foreach ($columns as $column) {
+            foreach ($column->attribute->aliases as $alias) {
+                if (isset($keys[$alias])) {
+                    throw new \LogicException(\sprintf('The list "%s" names two attributes "%s".', $list, $alias));
+                }
+                $keys[$alias] = $column->key;
+            }
+        }
+
+        return $this->lists[$list] = ['columns' => $columns, 'keys' => $keys];
     }
 
     private function resolved(Column $column, ?int $width): ResolvedColumn

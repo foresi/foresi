@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Tests\Party\Infrastructure;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\TransactionRequiredException;
 use Foresi\Identity\Domain\Role;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\LegalEntities;
@@ -282,7 +281,7 @@ final class LegalEntityControllerTest extends WebTestCase
         $this->browser->signIn();
         $id = $this->firm('Example Firm', '12345695')->id();
 
-        foreach ([['GET', '/settings/firms'], ['GET', '/settings/firms/new'], ['POST', '/settings/firms/new'], ['GET', '/settings/firms/'.$id.'/edit'], ['POST', '/settings/firms/'.$id.'/edit'], ['POST', '/settings/firms/'.$id.'/archive']] as [$method, $url]) {
+        foreach ([['GET', '/settings/firms'], ['GET', '/settings/firms/new'], ['POST', '/settings/firms/new'], ['GET', '/settings/firms/'.$id.'/edit'], ['POST', '/settings/firms/'.$id.'/edit']] as [$method, $url]) {
             $this->client->request($method, $url);
 
             self::assertResponseStatusCodeSame(403, $method.' '.$url);
@@ -369,112 +368,32 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSame(1, $this->firmCount());
     }
 
-    public function testArchivingMovesAFirmToTheArchivedView(): void
+    public function testTheFirmIsNotArchivedFromItsPage(): void
     {
         $this->signIn();
         $firm = $this->firm('Example Firm', '12345695');
-        $this->firm('Other Firm', '12345687');
 
         $crawler = $this->client->request('GET', '/settings/firms/'.$firm->id().'/edit');
-        $this->client->submit($crawler->filter('form[action$="/archive"]')->form());
 
-        self::assertResponseRedirects('/settings/firms');
-        $this->client->followRedirect();
-        self::assertSelectorTextContains('main', 'The firm is archived.');
-        self::assertSelectorTextNotContains('main table', 'Example Firm');
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('form[action$="/archive"]'));
+        self::assertSelectorNotExists('#firm-actions');
+
+        $this->client->request('POST', '/settings/firms/'.$firm->id().'/archive');
+
+        self::assertResponseStatusCodeSame(404);
+        self::assertFalse($this->storedFirm()->isArchived());
+    }
+
+    public function testTheListShowsTheFirmWithoutViews(): void
+    {
+        $this->signIn();
+        $this->firm('Example Firm', '12345695');
 
         $this->client->request('GET', '/settings/firms?view=archived');
+
         self::assertSelectorTextContains('main table', 'Example Firm');
-        self::assertSelectorTextNotContains('main table', 'Other Firm');
-    }
-
-    public function testTheArchiveButtonAsksForConfirmationNamingTheOutcome(): void
-    {
-        $this->signIn();
-        $firm = $this->firm('Example Firm', '12345695');
-
-        $crawler = $this->client->request('GET', '/settings/firms/'.$firm->id().'/edit');
-
-        $form = $crawler->filter('form[action$="/archive"]');
-        self::assertSame('Archive firm Example Firm?', $form->attr('data-turbo-confirm'));
-        self::assertSame('An archived firm cannot be restored.', $form->attr('data-confirm-text'));
-        self::assertSame('Archive firm', $form->attr('data-confirm-accept'));
-        self::assertSame('Keep firm', $form->attr('data-confirm-cancel'));
-        self::assertSame('danger', $form->attr('data-confirm-tone'));
-    }
-
-    public function testTheLastActiveFirmCannotBeArchived(): void
-    {
-        $this->signIn();
-        $firm = $this->firm('Example Firm', '12345695');
-
-        $this->client->request('POST', '/settings/firms/'.$firm->id().'/archive', ['_token' => $this->actionToken($firm)]);
-
-        self::assertResponseRedirects('/settings/firms');
-        $this->client->followRedirect();
-        self::assertSelectorTextContains('main', 'The last active firm cannot be archived.');
-        self::assertSelectorTextNotContains('main', 'The firm is archived.');
-        self::assertFalse($this->storedFirm()->isArchived());
-    }
-
-    public function testTheRefusalIsTranslated(): void
-    {
-        $this->signIn('cs');
-        $firm = $this->firm('Example Firm', '12345695');
-
-        $this->client->request('POST', '/settings/firms/'.$firm->id().'/archive', ['_token' => $this->actionToken($firm)]);
-        $this->client->followRedirect();
-
-        self::assertSelectorTextContains('main', 'Poslední aktivní firmu nelze archivovat.');
-    }
-
-    public function testAnArchivedFirmDoesNotKeepTheLastActiveOneArchivable(): void
-    {
-        $this->signIn();
-        $this->archive($this->firm('Old Firm', '12345687'));
-        $firm = $this->firm('Example Firm', '12345695');
-
-        $this->client->request('POST', '/settings/firms/'.$firm->id().'/archive', ['_token' => $this->actionToken($firm)]);
-
-        self::assertFalse($this->stored($firm)->isArchived());
-    }
-
-    public function testArchivingStopsAtTheLastActiveFirm(): void
-    {
-        $this->signIn();
-        $first = $this->firm('Example Firm', '12345695');
-        $second = $this->firm('Other Firm', '12345687');
-        $token = $this->actionToken($first);
-
-        $this->client->request('POST', '/settings/firms/'.$first->id().'/archive', ['_token' => $token]);
-        $this->client->request('POST', '/settings/firms/'.$second->id().'/archive', ['_token' => $token]);
-
-        self::assertTrue($this->stored($first)->isArchived());
-        self::assertFalse($this->stored($second)->isArchived());
-    }
-
-    public function testActiveFirmsAreLockedOnlyInsideATransaction(): void
-    {
-        $this->signIn();
-        $this->archive($this->firm('Old Firm', '12345687'));
-        $firm = $this->firm('Example Firm', '12345695');
-        $firms = self::getContainer()->get(LegalEntities::class);
-
-        self::assertSame([$firm->id()], $this->em()->wrapInTransaction(static fn (): array => array_map(static fn (LegalEntity $active): string => $active->id(), $firms->lockActive())));
-
-        $this->expectException(TransactionRequiredException::class);
-        $firms->lockActive();
-    }
-
-    public function testAForgedArchiveIsRefused(): void
-    {
-        $this->signIn();
-        $firm = $this->firm('Example Firm', '12345695');
-
-        $this->client->request('POST', '/settings/firms/'.$firm->id().'/archive', ['_token' => 'forged']);
-
-        self::assertResponseStatusCodeSame(403);
-        self::assertFalse($this->storedFirm()->isArchived());
+        self::assertSelectorTextNotContains('main', 'Archived');
     }
 
     public function testAForgedSaveIsRefused(): void
@@ -546,13 +465,6 @@ final class LegalEntityControllerTest extends WebTestCase
         $this->client->request('POST', '/settings/firms/new', $values + $form->getPhpValues());
     }
 
-    private function actionToken(LegalEntity $firm): string
-    {
-        $crawler = $this->client->request('GET', '/settings/firms/'.$firm->id().'/edit');
-
-        return (string) $crawler->filter('form[action$="/archive"] input[name="_token"]')->attr('value');
-    }
-
     private function storedFirm(): LegalEntity
     {
         $em = $this->em();
@@ -562,14 +474,6 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertCount(1, $firms);
 
         return $firms[0];
-    }
-
-    private function stored(LegalEntity $firm): LegalEntity
-    {
-        $em = $this->em();
-        $em->clear();
-
-        return $em->getRepository(LegalEntity::class)->find($firm->id()) ?? throw new \LogicException('The firm is missing.');
     }
 
     private function firmCount(): int

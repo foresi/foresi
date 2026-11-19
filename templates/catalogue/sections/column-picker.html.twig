@@ -2,8 +2,10 @@
 {% set columns = [
     {key: 'number', label: 'Číslo', visible: true, locked: true},
     {key: 'customer', label: 'Zákazník', visible: true, locked: false},
-    {key: 'dueDate', label: 'Splatnost', visible: true, locked: false},
+    {key: 'due_date', label: 'Splatnost', visible: true, locked: false},
     {key: 'firm', label: 'Firma', visible: false, locked: false},
+    {key: 'tax_point_date', label: 'DUZP', visible: false, locked: false},
+    {key: 'vat', label: 'DPH', visible: false, locked: false},
 ] %}
 <div class="grid gap-5">
 {% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}

@@ -37,13 +37,16 @@ final class ListModulesToolTest extends TestCase
         $json = json_decode(json_encode($output->data, \JSON_THROW_ON_ERROR), true, flags: \JSON_THROW_ON_ERROR);
         self::assertIsArray($json);
         self::assertIsArray($json['modules']);
-        self::assertCount(19, $json['modules']);
-        self::assertSame($this->modules()->acceptedProblems(), $json['problems']);
         $graph = $this->modules()->graph();
-        self::assertSame(ModulesView::toArray($graph, new ModuleIntegrations(\dirname(__DIR__, 4).'/src')->of($graph)), $output->data);
+        $count = \count($graph->all());
+        self::assertCount($count, $json['modules']);
+        self::assertSame($this->modules()->acceptedProblems(), $json['problems']);
+        $integrations = new ModuleIntegrations(\dirname(__DIR__, 4).'/src')->of($graph);
+        self::assertSame(ModulesView::toArray($graph, $integrations), $output->data);
         self::assertIsArray($json['integrations']);
-        self::assertSame(['banking', 'country', 'country', 'country', 'invoicing', 'party', 'purchasing'], array_column($json['integrations'], 'module'));
-        self::assertSame('19 installed modules, 0 problems in their dependencies.', $output->summary);
+        // Party, which every application has, uses Import when it is installed.
+        self::assertContains(['module' => 'party', 'uses' => 'import'], array_map(static fn (mixed $integration): array => \is_array($integration) ? ['module' => $integration['module'], 'uses' => $integration['uses']] : [], $json['integrations']));
+        self::assertSame(\sprintf('%d installed modules, 0 problems in their dependencies.', $count), $output->summary);
     }
 
     private function tool(): ListModulesTool

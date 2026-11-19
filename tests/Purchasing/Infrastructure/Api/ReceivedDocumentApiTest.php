@@ -12,6 +12,7 @@ use Foresi\Identity\Domain\ApiScope;
 use Foresi\Shared\Infrastructure\Operation\InputSchema;
 use Foresi\Shared\Infrastructure\Operation\Operations;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Received documents over REST and MCP (decision C4 of the cash flow spec):
@@ -141,6 +142,99 @@ final class ReceivedDocumentApiTest extends ApiTestCase
         self::assertTrue($call['isError'] ?? false);
     }
 
+    public function testASavedViewAndAFilterNarrowTheListLikeItsTabs(): void
+    {
+        $first = $this->recorded('FV-5');
+        $second = $this->recorded('FV-6');
+        $trashed = $this->recorded('FV-7');
+        self::assertFalse($this->tool('foresi_trash_received_document', ['document_id' => $trashed, 'reason' => 'Recorded twice.'])['isError'] ?? false);
+
+        $this->get('/api/v1/received-documents', ['view' => 'purchasing.received.recorded']);
+        self::assertSame([$second, $first], $this->ids());
+        self::assertSame('purchasing.received.recorded', $this->at('applied_view', 'system_key'));
+        // The trash condition of the view decides it instead of the trashed parameter.
+        $this->get('/api/v1/received-documents', ['view' => 'purchasing.received.trash']);
+        self::assertSame([$trashed], $this->ids());
+        $this->get('/api/v1/received-documents', ['view' => 'purchasing.received.drafts', 'trashed' => 'true']);
+        self::assertSame([], $this->ids());
+        $this->get('/api/v1/received-documents', ['filter' => '{"conditions": [{"field": "supplier", "op": "is", "value": "'.$this->customerId.'"}, {"field": "kind", "op": "is", "value": "tax_invoice"}]}']);
+        self::assertSame([$second, $first], $this->ids());
+        self::assertNull($this->json()['applied_view']);
+        $this->get('/api/v1/received-documents', ['filter' => '{"conditions": [{"field": "treatment", "op": "is_not", "value": "domestic"}]}', 'trashed' => 'true']);
+        self::assertSame([], $this->ids());
+        $this->get('/api/v1/received-documents', ['filter' => '{"conditions": [{"field": "state", "op": "is", "value": "recorded"}]}', 'trashed' => 'true']);
+        self::assertSame([$trashed], $this->ids());
+
+        $search = $this->tool('foresi_search_received_documents', ['filter' => ['conditions' => [['field' => 'kind', 'op' => 'is', 'value' => 'credit_note']]]]);
+        self::assertSame(['items' => [], 'next_cursor' => null, 'applied_view' => null], $this->pathOf($search, 'structuredContent', 'data'));
+        // The writer's token cannot read views.
+        $refused = $this->tool('foresi_search_received_documents', ['view_id' => 'purchasing.received.recorded']);
+        self::assertTrue($refused['isError'] ?? false);
+        self::assertSame('insufficient_scope', $this->pathOf($refused, 'structuredContent', 'error', 'code'));
+        $refused = $this->tool('foresi_search_received_documents', ['filter' => ['conditions' => [['field' => 'colour', 'op' => 'is', 'value' => 'red']]]]);
+        self::assertTrue($refused['isError'] ?? false);
+        self::assertStringContainsString('filter.conditions[0].field', (string) json_encode($refused));
+    }
+
+    public function testAViewThroughMcpSaysWhichViewItRead(): void
+    {
+        $id = $this->recorded('FV-8');
+        $this->writer = $this->issued([ApiScope::from('received_documents:write'), ApiScope::from('views:read')]);
+
+        $search = $this->tool('foresi_search_received_documents', ['view_id' => 'purchasing.received.recorded']);
+
+        self::assertFalse($search['isError'] ?? false);
+        $data = $this->pathOf($search, 'structuredContent', 'data');
+        self::assertIsArray($data);
+        self::assertSame([$id], array_column(\is_array($data['items'] ?? null) ? $data['items'] : [], 'id'));
+        self::assertSame('purchasing.received.recorded', \is_array($data['applied_view'] ?? null) ? $data['applied_view']['system_key'] ?? null : null);
+        $text = $this->pathOf($search, 'content', 0, 'text');
+        self::assertIsString($text);
+        self::assertStringContainsString('Through the view Recorded: 1 received document', $text);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, string>, string}>
+     */
+    public static function badFilters(): iterable
+    {
+        yield 'not JSON' => [['filter' => '{conditions'], 'filter'];
+        yield 'an unknown field' => [['filter' => '{"conditions": [{"field": "colour", "op": "is", "value": "red"}]}'], 'filter.conditions[0].field'];
+        yield 'an unknown kind' => [['filter' => '{"conditions": [{"field": "kind", "op": "is", "value": "receipt"}]}'], 'filter.conditions[0].value'];
+        yield 'a view of another list' => [['view' => 'party.contacts.suppliers'], 'view'];
+    }
+
+    /**
+     * @param array<string, string> $query
+     */
+    #[DataProvider('badFilters')]
+    public function testABadFilterIsRefusedWithItsPath(array $query, string $parameter): void
+    {
+        $this->get('/api/v1/received-documents', $query);
+
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => $parameter]);
+    }
+
+    public function testAViewOfTheDocumentsIsCounted(): void
+    {
+        $this->recorded('FV-9');
+        $this->recorded('FV-10');
+
+        $this->get('/api/v1/views/purchasing.received.recorded/count');
+        self::assertResponseIsSuccessful();
+        self::assertSame(2, $this->at('data', 'count'));
+        $this->get('/api/v1/views/purchasing.received.drafts/count');
+        self::assertSame(0, $this->at('data', 'count'));
+    }
+
+    public function testAViewNeedsTheViewsScope(): void
+    {
+        $this->get('/api/v1/received-documents', ['view' => 'purchasing.received.drafts'], $this->issued([ApiScope::from('received_documents:read')]));
+        $this->assertProblem(403, 'insufficient_scope');
+        $this->get('/api/v1/received-documents', ['view' => 'purchasing.received.drafts'], $this->issued([ApiScope::from('received_documents:read'), ApiScope::from('views:read')]));
+        self::assertSame([], $this->ids());
+    }
+
     public function testAReadTokenReadsButDoesNotWrite(): void
     {
         $id = $this->recorded('FV-4');
@@ -195,6 +289,21 @@ final class ReceivedDocumentApiTest extends ApiTestCase
             'CONTENT_TYPE' => 'application/json',
             'HTTP_ACCEPT' => 'application/json',
         ], content: null === $body ? null : json_encode((object) $body, \JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * The value at a path through nested arrays, null where the path ends early.
+     */
+    private function pathOf(mixed $value, string|int ...$path): mixed
+    {
+        foreach ($path as $key) {
+            if (!\is_array($value) || !\array_key_exists($key, $value)) {
+                return null;
+            }
+            $value = $value[$key];
+        }
+
+        return $value;
     }
 
     /**

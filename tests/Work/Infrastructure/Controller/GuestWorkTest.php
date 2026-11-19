@@ -109,8 +109,15 @@ final class GuestWorkTest extends WebTestCase
             self::assertCount(0, $crawler->filter('main a[href*="/delete"], main form[action*="/delete"]'), $page);
         }
         // The filter of who is responsible offers the people of the organisation and no other guest.
-        $crawler = $this->client->request('GET', '/projects/'.$website);
+        $crawler = $this->client->request('GET', '/projects/'.$website.'/board');
         self::assertSame(['Anyone', 'Me', 'Example Company', 'Jana Example'], $crawler->filter('[data-filter-sheet-form] select[name=responsible] option')->each(static fn (Crawler $option): string => trim($option->text())));
+        $this->client->request('GET', '/projects/people');
+        self::assertSame(['Me', 'Example Company', 'Jana Example'], array_column($this->results(), 'label'));
+        // A guest filters the list on its views but keeps no view: only the staff save them.
+        $crawler = $this->client->request('GET', '/projects/'.$website.'?view=mine&due=overdue');
+        self::assertResponseIsSuccessful();
+        self::assertSame(['All', 'Mine, unsaved changes', 'Finished'], $crawler->filter('nav[aria-label="Task views"] a')->each(static fn (Crawler $tab): string => trim((string) preg_replace('/\s+/', ' ', $tab->text()))));
+        self::assertCount(0, $crawler->filter('[data-view-actions], [data-view-save-as-open], #view-save-as'));
     }
 
     public function testWhatIsNotSharedIsNotFound(): void
@@ -439,5 +446,21 @@ final class GuestWorkTest extends WebTestCase
     private function scoped(callable $work): mixed
     {
         return $work();
+    }
+
+    /**
+     * The results of the last JSON answer.
+     *
+     * @phpstan-impure
+     *
+     * @return list<array<mixed>>
+     */
+    private function results(): array
+    {
+        $json = json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR);
+        self::assertIsArray($json);
+        self::assertIsArray($json['results'] ?? null);
+
+        return array_values(array_filter($json['results'], \is_array(...)));
     }
 }

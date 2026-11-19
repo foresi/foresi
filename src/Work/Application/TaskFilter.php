@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Application;
 
+use Foresi\Work\Application\View\TaskConditions;
 use Foresi\Work\Domain\StatusType;
 
 /**
@@ -16,13 +17,15 @@ use Foresi\Work\Domain\StatusType;
 final readonly class TaskFilter
 {
     /**
-     * @param bool|null $finished only the tasks whose status is finished (true) or not (false)
+     * @param bool|null           $finished   only the tasks whose status is finished (true) or not (false)
+     * @param TaskConditions|null $conditions the conditions of the list's view, which the tasks also hold
      */
     public function __construct(
         public ?string $responsibleId = null,
         public ?StatusType $statusType = null,
         public ?DueBucket $due = null,
         public ?bool $finished = null,
+        public ?TaskConditions $conditions = null,
     ) {
     }
 }

@@ -44,7 +44,7 @@ final class DataTable
      *                                 screen only, for one of low value) and truncate (true lets a column of long text give
      *                                 way, cut with an ellipsis and its full text in a title, so the table fits its frame;
      *                                 numbers, badges and the actions never give way) and width (px from the sm breakpoint
-     *                                 up; a phone keeps its own layout). A list declares its columns in a ListColumns
+     *                                 up; a phone keeps its own layout). A list declares its columns in a DataSource
      *                                 provider and passes ListDisplay::table() here.
      */
     public array $columns = [];
