@@ -3,7 +3,7 @@
     A new number series of a firm, or a change of one. A series is a small record: a modal over the
     firm's invoicing settings (docs/design/overlays.md); the same URL is a page of its own.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set editing = series is not null %}
 {% set crumbs = [{label: 'firm.title'|trans, href: firmUrl}, {label: 'firm.invoicing.title'|trans, href: settings}, {label: editing ? seriesName : 'series.new'|trans}] %}

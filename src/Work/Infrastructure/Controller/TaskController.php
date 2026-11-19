@@ -17,7 +17,7 @@ use Foresi\Identity\Application\People;
 use Foresi\Identity\Application\Person;
 use Foresi\Identity\Application\StaffCheck;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Ui\Component\DataTable;
+use Foresi\Ui\Contract\Opens;
 use Foresi\Ui\FileSize;
 use Foresi\Work\Application\Choice;
 use Foresi\Work\Application\Comments;
@@ -679,7 +679,7 @@ final class TaskController extends AbstractController
         return [
             'id' => $task->id,
             'href' => $this->generateUrl(self::ROUTE, ['id' => $task->id]),
-            'opens' => DataTable::OPENS_SHEET,
+            'opens' => Opens::SHEET,
             'label' => $task->title,
             // A phone hides the columns of who and when: the line under the title says them, and lets a long title wrap.
             'secondary' => implode(' · ', array_filter([$task->responsibleName ?? $this->translator->trans('work.task.nobody'), \is_array($due) ? $due['text'] : $due], \is_string(...))),

@@ -1,0 +1,15 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# Frame of the development catalogue: frame colour and one white panel; needs no sign-in. #}
+{% extends '@Ui/base.html.twig' %}
+
+{% block title %}{{ 'catalogue.title'|trans }}{% endblock %}
+
+{% block body %}
+    <div class="min-h-screen bg-frame p-2.5 text-text">
+        <main id="main" class="mx-auto max-w-[1100px] rounded-panel border border-container bg-white shadow-raised">
+            {% block panel %}{% endblock %}
+        </main>
+    </div>
+    {# The real dialog and sheet hosts, for the live samples. #}
+    {% include '@Ui/layout/_dialogs.html.twig' %}
+{% endblock %}

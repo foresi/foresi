@@ -1,0 +1,154 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The filter row of a list: the search, up to two pinned chips, the set filters as chips, "More
+    filters" and "Clear all"; on a phone the search and "Filters (n)". The chips and the sheet need
+    JavaScript, so without it (scripting: none) they step aside for the <noscript> form.
+#}
+{% set bar = this %}
+{% set noJs = '[@media(scripting:none)]:hidden' %}
+{% set setCount = bar.setCount %}
+{% set hasSheet = filters is not empty or builder %}
+{% import '@Ui/components/_filter_rows.html.twig' as rows %}
+{# Inside the sheet's blocks id is the sheet's own. #}
+{% set formId = id ~ '-sheet-form' %}
+{% macro condition(chip) %}
+    {# A condition of the builder: changed in the sheet, removed with its ✕ (Linear, Notion). #}
+    <span class="inline-flex h-control max-w-full items-center rounded-control border border-green bg-green-tint text-green" data-filter-condition>
+        <span class="truncate pl-3 pr-1 font-medium">{{ chip.label }}</span>
+        <a href="{{ chip.href }}" aria-label="{{ chip.removeLabel }}" class="mr-1 grid size-7 shrink-0 place-items-center rounded-control text-green no-underline hover:bg-white/60 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" data-filter-condition-remove>{{ ux_icon('lucide:x', {class: 'size-4', 'aria-hidden': 'true'}) }}</a>
+    </span>
+{% endmacro %}
+{% macro chip(view) %}
+    {# The options are rendered here: macros of this template are out of reach inside the menu's content block. #}
+    {% set items %}
+        {% for group in view.groups %}
+            {% if group.label %}
+                <twig:Ui:MenuSection :label="group.label">
+                    {% for option in group.options %}<twig:Ui:MenuItem :href="option.href" :checked="option.checked">{{ option.label }}</twig:Ui:MenuItem>{% endfor %}
+                </twig:Ui:MenuSection>
+            {% else %}
+                {% for option in group.options %}<twig:Ui:MenuItem :href="option.href" :checked="option.checked">{{ option.label }}</twig:Ui:MenuItem>{% endfor %}
+            {% endif %}
+        {% endfor %}
+    {% endset %}
+    {% if view.set %}
+        <span class="inline-flex h-control max-w-full items-center rounded-control border border-green bg-green-tint text-green" data-filter-chip="{{ view.name }}" data-set>
+            {% if view.type == 'date' %}
+                {# A day has no menu of values: it is changed in the sheet. #}
+                <span class="truncate pl-3 pr-1 font-medium">{{ view.label }}: {{ view.text }}</span>
+            {% else %}
+                <twig:Ui:Menu :id="view.id ~ '-menu'" :label="view.label ~ ': ' ~ view.text" variant="chip-set" align="start" :menuLabel="view.label" menuClass="max-h-80 min-w-56 overflow-y-auto">{{ items }}</twig:Ui:Menu>
+            {% endif %}
+            <a href="{{ view.clearHref }}" aria-label="{{ 'ui.filter_bar.clear_one'|trans({label: view.label}) }}" class="mr-1 grid size-7 shrink-0 place-items-center rounded-control text-green no-underline hover:bg-white/60 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" data-filter-clear>{{ ux_icon('lucide:x', {class: 'size-4', 'aria-hidden': 'true'}) }}</a>
+        </span>
+    {% else %}
+        <twig:Ui:Menu :id="view.id ~ '-menu'" :label="view.label" icon="plus" variant="chip" align="start" :menuLabel="view.label" menuClass="max-h-80 min-w-56 overflow-y-auto" data-filter-chip="{{ view.name }}">{{ items }}</twig:Ui:Menu>
+    {% endif %}
+{% endmacro %}
+{% if bar.shown %}
+    <div {{ attributes.defaults({id: id, class: 'grid min-w-0 gap-2', 'data-controller': 'filter-bar', 'data-filter-bar-dialog-outlet': '#' ~ id ~ '-sheet', 'data-filter-bar': ''}) }}>
+        <div class="flex min-w-0 flex-wrap items-center gap-2">
+            {% if search %}
+                <form method="get" action="{{ action }}" role="search" class="flex min-w-0 flex-1 items-center gap-2 sm:max-w-80" data-filter-search>
+                    {% for name, value in bar.hidden(false, true) %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+                    <twig:Ui:SearchField :name="search.name" :id="id ~ '-q'" :value="bar.searchValue" :label="search.label" :placeholder="search.placeholder ?? null" maxlength="{{ search.maxlength ?? 100 }}" class="min-w-0 flex-1" />
+                    <noscript><twig:Ui:Button type="submit" icon="search">{{ 'ui.filter_bar.search'|trans }}</twig:Ui:Button></noscript>
+                </form>
+            {% endif %}
+            {% if hasSheet %}
+                <div class="flex min-w-0 flex-wrap items-center gap-2 max-sm:hidden {{ noJs }}" data-filter-chips>
+                    {% for view in bar.pinned %}{{ _self.chip(view) }}{% endfor %}
+                    {% for view in bar.rest %}{% if view.set %}{{ _self.chip(view) }}{% endif %}{% endfor %}
+                    {% for chip in conditions %}{{ _self.condition(chip) }}{% endfor %}
+                    {% if builder %}
+                        <twig:Ui:Button variant="ghost" icon="plus" aria-haspopup="dialog" :aria-controls="id ~ '-sheet'" data-action="filter-bar#open" data-filter-more>{{ 'ui.view_filter.add'|trans }}</twig:Ui:Button>
+                    {% elseif bar.rest is not empty %}
+                        <twig:Ui:Button variant="ghost" icon="list-filter" aria-haspopup="dialog" :aria-controls="id ~ '-sheet'" data-action="filter-bar#open" data-filter-more>{{ 'ui.filter_bar.more'|trans }}</twig:Ui:Button>
+                    {% endif %}
+                    {% if bar.narrowed %}<a href="{{ bar.clearHref }}" class="px-2 font-medium text-green no-underline hover:underline {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" data-filter-clear-all>{{ 'ui.filter_bar.clear_all'|trans }}</a>{% endif %}
+                </div>
+                <twig:Ui:Button icon="list-filter" aria-haspopup="dialog" :aria-controls="id ~ '-sheet'" data-action="filter-bar#open" class="sm:hidden {{ noJs }}" data-filter-open>
+                    {{- 'ui.filter_bar.filters'|trans }}{% if setCount > 0 %} <span class="num">({{ setCount }})</span>{% endif -%}
+                </twig:Ui:Button>
+            {% elseif bar.narrowed %}
+                <a href="{{ bar.clearHref }}" class="px-2 font-medium text-green no-underline hover:underline {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" data-filter-clear-all>{{ 'ui.filter_bar.clear_all'|trans }}</a>
+            {% endif %}
+            {% block end %}{% endblock %}
+        </div>
+        {% if setCount > 0 %}
+            {# On a phone the set filters show under the search, each with its ✕. #}
+            <div class="flex flex-wrap items-center gap-2 sm:hidden {{ noJs }}" data-filter-chips-phone>
+                {% for view in bar.set %}
+                    <span class="inline-flex h-control max-w-full items-center gap-1 rounded-control border border-green bg-green-tint pl-3 text-green">
+                        <span class="truncate font-medium">{{ view.label }}: {{ view.text }}</span>
+                        <a href="{{ view.clearHref }}" aria-label="{{ 'ui.filter_bar.clear_one'|trans({label: view.label}) }}" class="mr-1 grid size-7 shrink-0 place-items-center rounded-control text-green no-underline {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ ux_icon('lucide:x', {class: 'size-4', 'aria-hidden': 'true'}) }}</a>
+                    </span>
+                {% endfor %}
+                {% for chip in conditions %}{{ _self.condition(chip) }}{% endfor %}
+            </div>
+        {% endif %}
+        {% if hasSheet %}
+            <twig:Ui:Sheet :id="id ~ '-sheet'" :title="'ui.filter_bar.title'|trans" :description="'ui.filter_bar.description'|trans" size="sm">
+                <form method="get" action="{{ bar.action }}" id="{{ formId }}" class="grid gap-4" data-filter-sheet-form data-action="change->filter-bar#sync">
+                    {% for name, value in bar.hidden(true, false) %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+                    {% for view in bar.views %}
+                        {# A pinned filter has its chip on a wider screen; its field here is for the phone. #}
+                        <div class="min-w-0{{ view.pinned ? ' sm:hidden' : '' }}">
+                            {% if view.type == 'date' %}
+                                <twig:Ui:TextInput type="date" :name="view.name" :id="view.id ~ '-field'" :label="view.label" :value="view.value" />
+                            {% else %}
+                                <twig:Ui:Select :name="view.name" :id="view.id ~ '-field'" :label="view.label" :options="view.options" :value="view.value" />
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    {% if builder %}
+                        {# Macros imported above are out of reach inside the sheet's block. #}
+                        {% import '@Ui/components/_filter_rows.html.twig' as rows %}
+                        {% set fields = bar.builderFields %}
+                        <input type="hidden" name="{{ constant('Foresi\\Shared\\Application\\View\\FilterRows::MARKER') }}" value="1">
+                        <div class="grid gap-3" data-filter-rows>
+                            {% for row in builder.rows %}{{ rows.row(fields[row.field], row, loop.index0, formId, false, builder.rules) }}{% endfor %}
+                        </div>
+                        {{ rows.kept(builder, builder.rows|length) }}
+                        <twig:Ui:Menu :id="id ~ '-add-menu'" :label="'ui.view_filter.add_row'|trans" icon="plus" variant="chip" align="start" :menuLabel="'ui.view_filter.add_row'|trans" menuClass="max-h-80 min-w-56 overflow-y-auto" data-filter-add>
+                            {% for field in builder.fields %}<twig:Ui:MenuItem type="button" data-action="filter-bar#addRow" data-field="{{ field.key }}">{{ field.label }}</twig:Ui:MenuItem>{% endfor %}
+                        </twig:Ui:Menu>
+                        {% for field in builder.fields %}
+                            <template data-filter-template="{{ field.key }}">{{ rows.row(field, field.blank|merge({op: field.ops|keys|first}), '__i__', formId, false, builder.rules) }}</template>
+                        {% endfor %}
+                    {% endif %}
+                </form>
+                <twig:block name="footer">
+                    {% if setCount > 0 %}<twig:Ui:Button variant="ghost" :href="bar.clearHref" data-filter-sheet-clear>{{ 'ui.filter_bar.clear_all'|trans }}</twig:Ui:Button>{% endif %}
+                    <twig:Ui:Button type="submit" variant="primary" form="{{ formId }}" data-filter-apply>{{ 'ui.filter_bar.apply'|trans }}</twig:Ui:Button>
+                </twig:block>
+            </twig:Ui:Sheet>
+            <noscript>
+                <form method="get" action="{{ action }}" class="flex flex-wrap items-end gap-2" data-filter-noscript>
+                    {% for name, value in bar.hidden(true, false) %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+                    {% if builder %}
+                        {% set fields = bar.builderFields %}
+                        {% set start = builder.rows|length + builder.kept|length %}
+                        <input type="hidden" name="{{ constant('Foresi\\Shared\\Application\\View\\FilterRows::MARKER') }}" value="1">
+                        {# The conditions set, then one row a field with its operator left empty. #}
+                        <div class="grid w-full gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                            {% for row in builder.rows %}{{ rows.row(fields[row.field], row, loop.index0, id ~ '-noscript', true, builder.rules) }}{% endfor %}
+                            {% for field in builder.fields %}{{ rows.row(field, field.blank, start + loop.index0, id ~ '-noscript', true, builder.rules) }}{% endfor %}
+                        </div>
+                        {{ rows.kept(builder, builder.rows|length) }}
+                    {% endif %}
+                    {% for view in bar.views %}
+                        <div class="w-full min-w-0 sm:w-48">
+                            {% if view.type == 'date' %}
+                                <twig:Ui:TextInput type="date" :name="view.name" :id="view.id ~ '-noscript'" :label="view.label" :value="view.value" />
+                            {% else %}
+                                <twig:Ui:Select :name="view.name" :id="view.id ~ '-noscript'" :label="view.label" :options="view.options" :value="view.value" />
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    <twig:Ui:Button type="submit" icon="list-filter">{{ 'ui.filter_bar.apply'|trans }}</twig:Ui:Button>
+                </form>
+            </noscript>
+        {% endif %}
+    </div>
+{% endif %}

@@ -7,7 +7,7 @@
     go, a header action that adds one in a dialog, and a workflow template that replaces them all, chosen and confirmed
     in a dialog.
 #}
-{% extends 'layout/app.html.twig' %}
+{% extends '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: project.name, href: path('app_project', {id: project.id})}, {label: 'work.settings.title'|trans}] %}
 {% if project.archivedAt %}{% set badge = {label: 'work.project.archived'|trans, tone: 'gray'} %}{% endif %}

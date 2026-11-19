@@ -9,10 +9,10 @@ declare(strict_types=1);
 namespace Foresi\Party\Infrastructure\Navigation;
 
 use Foresi\Shared\Application\ActorRole;
-use Foresi\Ui\Navigation\CoreNavigationAreas;
-use Foresi\Ui\Navigation\NavigationArea;
-use Foresi\Ui\Navigation\NavigationItem;
-use Foresi\Ui\Navigation\NavigationItemProvider;
+use Foresi\Ui\Contract\Navigation\CoreNavigationAreas;
+use Foresi\Ui\Contract\Navigation\NavigationArea;
+use Foresi\Ui\Contract\Navigation\NavigationItem;
+use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
 
 /**
  * The address book in the sidebar for the staff, with the number of active

@@ -23,7 +23,7 @@ final class ShellProbeController extends AbstractController
     public function __invoke(Request $request, Environment $twig): Response
     {
         $template = $twig->createTemplate(<<<'TWIG'
-            {% extends 'layout/app.html.twig' %}
+            {% extends '@Ui/layout/app.html.twig' %}
             {% set crumbs = [{label: 'Contacts', href: '/contacts'}, {label: title}] %}
             {% block title %}{{ title }}{% endblock %}
             {% block content %}<p>probe</p>{% endblock %}

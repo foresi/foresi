@@ -8,14 +8,14 @@ declare(strict_types=1);
 
 namespace Foresi\Ui\Twig;
 
-use Foresi\Ui\Dialog\DialogRequest;
+use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Twig\Attribute\AsTwigFunction;
 
 /**
  * Lets a page template that can also be a dialog pick its layout:
- * {% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}.
+ * {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}.
  * A record detail extends layout/record.html.twig instead, which asks overlay()
  * whether a sheet, a dialog or nothing (the page) loads it.
  */

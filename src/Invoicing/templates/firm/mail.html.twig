@@ -1,5 +1,5 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{% extends 'layout/app.html.twig' %}
+{% extends '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'firm.title'|trans, href: cancel}, {label: 'firm.mail.title'|trans}] %}
 {% set form_invalid = errors is not empty %}

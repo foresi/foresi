@@ -26,7 +26,7 @@ use Foresi\Party\Domain\VatStatus;
 use Foresi\Tests\Banking\Support\Scalars;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Tests\Party\Support\FirmAccounts;
-use Foresi\Ui\Dialog\DialogRequest;
+use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Clock;

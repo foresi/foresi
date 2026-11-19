@@ -5,7 +5,7 @@
     invoice form it is a new customer; over the contact list (forContacts) it is a new contact whose
     roles are chosen here. Everything else is in the full form, which stays the page at the same URL.
 #}
-{% extends 'layout/dialog.html.twig' %}
+{% extends '@Ui/layout/dialog.html.twig' %}
 
 {% set dialog_size = 'md' %}
 {% set copy = forContacts|default(false) ? 'party.quick.contact.' : 'party.quick.' %}

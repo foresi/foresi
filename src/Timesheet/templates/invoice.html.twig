@@ -7,7 +7,7 @@
     each entry change the totals in place. Continue opens the new invoice form with the lines.
     A dialog over the page it was opened from; the same URL is a page of its own.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set title = 'timesheet.invoice.title'|trans %}
 {% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.time.report.title'|trans, href: path('app_time_report')}, {label: title}] %}

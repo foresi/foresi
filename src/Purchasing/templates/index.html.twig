@@ -5,7 +5,7 @@
     views; the firm and month chips, "+ Filter", the search and the Columns sheet as the invoice list has
     them. Uploading and a new document open a dialog from the header.
 #}
-{% extends 'layout/app.html.twig' %}
+{% extends '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'purchasing.list.title'|trans}] %}
 
@@ -35,9 +35,9 @@
             {# The view's unsaved changes sit at the end of its tabs, as on every list (saved views D10). #}
             <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
                 <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'purchasing.list.views'|trans" class="min-w-0 sm:flex-1">
-                    <twig:block name="actions">{{ include('components/Ui/_view_menu.html.twig') }}</twig:block>
+                    <twig:block name="actions">{{ include('@Ui/components/_view_menu.html.twig') }}</twig:block>
                 </twig:Ui:Tabs>
-                {{ include('components/Ui/_view_actions.html.twig') }}
+                {{ include('@Ui/components/_view_actions.html.twig') }}
             </div>
             {# The firm and the month are chips; the supplier, the kind and the treatment are conditions of "+ Filter" (saved views D11). #}
             {% set purchasingFilters = (firms is not empty ? [{name: 'firm', label: 'purchasing.field.firm'|trans, options: firms, value: filter.firmId ?? '', pinned: true}] : [])|merge([
@@ -77,6 +77,6 @@
                 </twig:block>
             </twig:Ui:DataTable>
         </div>
-        {{ include('components/Ui/_view_dialogs.html.twig') }}
+        {{ include('@Ui/components/_view_dialogs.html.twig') }}
     {% endif %}
 {% endblock %}
