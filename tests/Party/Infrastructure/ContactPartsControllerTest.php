@@ -22,6 +22,7 @@ use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 /**
@@ -68,7 +69,9 @@ final class ContactPartsControllerTest extends WebTestCase
         self::assertSame('new', $crawler->filter('input[name="mode"]')->attr('value'));
         $form = $crawler->filter('#contact-person-form')->form(['name' => 'Alex Example', 'email' => 'alex@example.com', 'phone' => '+420 000 000 001', 'position' => 'Accountant']);
         // The first contact person is the primary one unless unticked.
-        self::assertSame('1', $form['primary']->getValue());
+        $primary = $form['primary'];
+        self::assertInstanceOf(ChoiceFormField::class, $primary);
+        self::assertSame('1', $primary->getValue());
         $this->client->submit($form);
 
         self::assertResponseRedirects('/contacts/'.$company->id().'?tab=contacts');
