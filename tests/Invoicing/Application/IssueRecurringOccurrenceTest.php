@@ -420,6 +420,11 @@ final class IssueRecurringOccurrenceTest extends RecurringTestCase
                 $this->inner->remove($template);
             }
 
+            public function trashedBefore(\DateTimeImmutable $moment): array
+            {
+                return $this->inner->trashedBefore($moment);
+            }
+
             public function lines(RecurringInvoice $template): array
             {
                 return $this->inner->lines($template);

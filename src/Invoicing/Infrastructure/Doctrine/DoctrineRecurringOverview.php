@@ -32,8 +32,8 @@ final readonly class DoctrineRecurringOverview implements RecurringOverview
             .' SUM(CASE WHEN r.state = :paused THEN 1 ELSE 0 END) AS paused,'
             .' SUM(CASE WHEN r.state = :ended THEN 1 ELSE 0 END) AS ended,'
             .' SUM(CASE WHEN '.RecurringFailing::dql('r').' THEN 1 ELSE 0 END) AS failing'
-            .' FROM '.RecurringInvoice::class.' r'
-            .(null === $firmId ? '' : ' WHERE r.firm = :firm'),
+            .' FROM '.RecurringInvoice::class.' r WHERE r.deletedAt IS NULL'
+            .(null === $firmId ? '' : ' AND r.firm = :firm'),
         )
             ->setParameter('active', RecurringState::Active->value)
             ->setParameter('paused', RecurringState::Paused->value)

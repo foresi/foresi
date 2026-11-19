@@ -909,6 +909,7 @@ recurring:
     ended: Tato pravidelná faktura je ukončená a nedá se změnit.
     first_issue_past: První fakturu nejde vystavit v minulosti.
     issued: Z této pravidelné faktury už vznikly faktury, dá se jen ukončit.
+    trashed: Tato pravidelná faktura je v koši. Nejdřív ji obnovte.
     no_occurrence_left: S tímto rozvrhem nezbývá žádná faktura k vystavení.
     choice_invalid: Vyberte jednu z možností.
     first_issue_missing: Zadejte datum prvního vystavení.
@@ -1001,7 +1002,9 @@ recurring:
     resumed_ended: Pravidelná faktura je obnovená, ale podle rozvrhu už žádná faktura nezbývá, takže skončila.
     skipped: '{count, plural, one {Přeskočený termín:} other {Přeskočené termíny:}} {dates}.'
     ended: 'Pravidelná faktura pro {customer} je ukončená.'
-    deleted: 'Pravidelná faktura pro {customer} je smazaná.'
+    deleted: 'Pravidelná faktura pro {customer} je v koši.'
+    restored: 'Pravidelná faktura pro {customer} je obnovená. Zůstává pozastavená, takže se nic nevystaví.'
+    not_in_trash: Tato pravidelná faktura v koši není.
     issued: 'Faktura {number} je vystavená.'
     issued_sent: 'Faktura {number} je vystavená a odesílá se odběrateli.'
     issued_review: 'Faktura {number} je vystavená a čeká v seznamu K odeslání.'
@@ -1075,6 +1078,7 @@ recurring:
       paused: Pozastavené
       ended: Ukončené
       failing: Selhaly
+      trash: Koš
     column:
       name: Název vzoru
       customer: Odběratel
@@ -1086,6 +1090,8 @@ recurring:
       delivery: Po vystavení
       amount: Částka
       state: Stav
+      deleted_by: Smazal(a)
+      deleted_at: Smazáno
     delivery:
       send: Odeslat
       review: Ke kontrole
@@ -1107,6 +1113,7 @@ recurring:
       resume: Obnovit
       end: Ukončit
       delete: Smazat
+      restore: Obnovit
     empty:
       title: Zatím žádné pravidelné faktury
       text: Založte novou, nebo ji vytvořte z vystavené faktury přes položku Pravidelná faktura v jejím menu.
@@ -1119,6 +1126,7 @@ recurring:
       paused: Nic není pozastavené
       ended: Nic není ukončené
       failing: Všechno se vystavuje bez potíží
+      trash: Koš je prázdný
   pause:
     title: Pozastavit pravidelnou fakturu
     text: 'Faktura plánovaná na {date} ani další se nevystaví, dokud pravidelnou fakturu neobnovíte.'
@@ -1137,7 +1145,9 @@ recurring:
     keeps: Vystavené faktury zůstanou beze změny.
   delete:
     title: Smazat pravidelnou fakturu
-    text: Zatím z ní nevznikla žádná faktura, smaže se celá.
+    text: Zatím z ní nevznikla žádná faktura. Přesune se do koše, odkud ji jde 30 dní obnovit, pak se smaže natrvalo.
+  trash:
+    notice: Tato pravidelná faktura je v koši a nic nevystavuje. Po obnovení bude pozastavená.
   issue_now:
     title: Vystavit fakturu nyní
     text: 'Vystaví se faktura za termín {occurrence}, s těmito daty:'

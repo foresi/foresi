@@ -46,7 +46,7 @@ test.describe.serial('recurring list', () => {
       }
       await expect(page.getByRole('heading', { level: 1, name: 'Pravidelné faktury' })).toBeVisible();
       const tabs = page.getByRole('navigation', { name: 'Seznamy pravidelných faktur' });
-      await expect(tabs.getByRole('link')).toHaveText([/Vše\s*7/, /Aktivní\s*5/, /Pozastavené\s*1/, /Ukončené\s*1/, /Selhaly\s*1/]);
+      await expect(tabs.getByRole('link')).toHaveText([/Vše\s*7/, /Aktivní\s*5/, /Pozastavené\s*1/, /Ukončené\s*1/, /Selhaly\s*1/, /Koš\s*0/]);
       await expect(row(page, 'Domain renewal')).toContainText('Ročně');
       await expect(row(page, 'Support licence')).toContainText(name === 'desktop' ? 'Každých 12 měsíců' : 'Support licence');
       await page.screenshot({ path: `${SHOTS}/recurring-list-${name}.png`, fullPage: true });
@@ -142,7 +142,32 @@ test.describe.serial('recurring list', () => {
     await settled(dialog);
     await page.keyboard.press('Enter');
     await expect(page.locator('[role=status]').filter({ hasText: 'je pozastavená' })).toBeVisible();
-    await expect(page.getByRole('navigation', { name: 'Seznamy pravidelných faktur' }).getByRole('link')).toHaveText([/Vše\s*7/, /Aktivní\s*4/, /Pozastavené\s*2/, /Ukončené\s*1/, /Selhaly\s*1/]);
+    await expect(page.getByRole('navigation', { name: 'Seznamy pravidelných faktur' }).getByRole('link')).toHaveText([/Vše\s*7/, /Aktivní\s*4/, /Pozastavené\s*2/, /Ukončené\s*1/, /Selhaly\s*1/, /Koš\s*0/]);
     await expect(row(page, 'Domain renewal')).toHaveCount(0);
+  });
+
+  test('a template that never issued goes to the trash and comes back paused @a11y', async ({ page }) => {
+    await page.setViewportSize(DESKTOP);
+    await page.goto('/invoices/recurring');
+    await row(page, 'Support licence').getByRole('button', { name: /Další akce/ }).click();
+    await row(page, 'Support licence').getByRole('menuitem', { name: 'Smazat', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Smazat pravidelnou fakturu' });
+    await settled(dialog);
+    await expect(dialog).toContainText('Přesune se do koše');
+    await dialog.getByRole('button', { name: 'Smazat', exact: true }).click();
+    await expect(page.locator('[role=status]').filter({ hasText: 'je v koši' })).toBeVisible();
+    const tabs = page.getByRole('navigation', { name: 'Seznamy pravidelných faktur' });
+    await expect(tabs.getByRole('link')).toHaveText([/Vše\s*6/, /Aktivní\s*3/, /Pozastavené\s*2/, /Ukončené\s*1/, /Selhaly\s*1/, /Koš\s*1/]);
+    await expect(row(page, 'Support licence')).toHaveCount(0);
+
+    await tabs.getByRole('link', { name: /Koš/ }).click();
+    await expect(page.locator('thead')).toContainText('Smazal(a)');
+    await expectNoSeriousViolations(page);
+    await page.screenshot({ path: `${SHOTS}/recurring-trash-desktop.png`, fullPage: true });
+    await row(page, 'Support licence').getByRole('button', { name: /Další akce/ }).click();
+    await row(page, 'Support licence').getByRole('menuitem', { name: 'Obnovit', exact: true }).click();
+    await expect(page.locator('[role=status]').filter({ hasText: 'je obnovená' })).toBeVisible();
+    await expect(page.getByText('Koš je prázdný')).toBeVisible();
+    await expect(tabs.getByRole('link')).toHaveText([/Vše\s*7/, /Aktivní\s*3/, /Pozastavené\s*3/, /Ukončené\s*1/, /Selhaly\s*1/, /Koš\s*0/]);
   });
 });

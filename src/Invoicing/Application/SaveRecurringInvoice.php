@@ -97,7 +97,7 @@ final readonly class SaveRecurringInvoice
      *
      * @return RecurringInvoice the template as saved; anything loaded before is detached
      *
-     * @throws RecurringRefused        when a rule refuses, when the template has ended, or when
+     * @throws RecurringRefused        when a rule refuses, when the template has ended or is in the trash, or when
      *                                 someone saved since the form was opened (field "version")
      * @throws UnknownRecurringInvoice
      */
@@ -105,6 +105,9 @@ final readonly class SaveRecurringInvoice
     {
         return $this->retry->run(fn (): RecurringInvoice => $this->work->run(function () use ($id, $version, $input): RecurringInvoice {
             $template = $this->templates->lock($id);
+            if ($template->isTrashed()) {
+                throw RecurringRefused::because('state', 'recurring.problem.trashed');
+            }
             if (RecurringState::Ended === $template->state()) {
                 throw RecurringRefused::because('state', 'recurring.problem.ended');
             }

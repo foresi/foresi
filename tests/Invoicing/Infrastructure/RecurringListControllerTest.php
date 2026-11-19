@@ -123,7 +123,7 @@ final class RecurringListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices/recurring');
 
         self::assertResponseIsSuccessful();
-        self::assertSame(['All 3', 'Active 3', 'Paused 0', 'Ended 0', 'Failing 0'], $this->tabs($crawler));
+        self::assertSame(['All 3', 'Active 3', 'Paused 0', 'Ended 0', 'Failing 0', 'Trash 0'], $this->tabs($crawler));
         self::assertSame(['Template name', 'Customer', 'Description', 'Repeats', 'Next issue', 'After issue', 'Amount'], $this->headers($crawler));
         $rows = $this->rowTexts($crawler);
         self::assertCount(3, $rows);
@@ -159,7 +159,7 @@ final class RecurringListControllerTest extends WebTestCase
         $this->failed($failing, 'invoice.problem.customer_archived');
 
         $crawler = $this->client->request('GET', '/invoices/recurring');
-        self::assertSame(['All 4', 'Active 2', 'Paused 1', 'Ended 1', 'Failing 1'], $this->tabs($crawler));
+        self::assertSame(['All 4', 'Active 2', 'Paused 1', 'Ended 1', 'Failing 1', 'Trash 0'], $this->tabs($crawler));
         self::assertSelectorCount(4, 'main tbody tr');
         self::assertSame('/invoices/recurring?view=paused', $crawler->filter('nav[aria-label="Recurring invoice lists"] a')->eq(2)->attr('href'));
         self::assertCount(1, $crawler->filter('[data-filter-sheet-form]'));
@@ -191,11 +191,13 @@ final class RecurringListControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('tbody tr'));
         self::assertStringContainsString('Reviewed one', $crawler->filter('tbody tr')->text());
         self::assertSame('Active, unsaved changes 2', $this->tabs($crawler)[1]);
-        self::assertSame(['All 2', 'Active, unsaved changes 2', 'Paused 0', 'Ended 0', 'Failing 0'], $this->tabs($crawler), 'the tabs count their own views');
+        self::assertSame(['All 2', 'Active, unsaved changes 2', 'Paused 0', 'Ended 0', 'Failing 0', 'Trash 0'], $this->tabs($crawler), 'the tabs count their own views');
         $this->client->submit($crawler->filter('[data-view-save-as-form]')->form(['name' => 'For review']));
         $crawler = $this->client->followRedirect();
         self::assertCount(1, $crawler->filter('tbody tr'));
-        self::assertContains('For review', $this->tabs($crawler));
+        // Six tabs are taken, the trash the last of them, so the new view is in More views, as on the invoice list.
+        self::assertNotContains('For review', $this->tabs($crawler));
+        self::assertStringContainsString('For review', $crawler->filter('main')->text());
     }
 
     public function testTheBuilderFieldsNarrowTheList(): void
@@ -287,12 +289,12 @@ final class RecurringListControllerTest extends WebTestCase
         $this->template(description: 'Other firm', firm: $second, series: false);
 
         $crawler = $this->client->request('GET', '/invoices/recurring');
-        self::assertSame(['All 3', 'Active 2', 'Paused 1', 'Ended 0', 'Failing 0'], $this->tabs($crawler));
+        self::assertSame(['All 3', 'Active 2', 'Paused 1', 'Ended 0', 'Failing 0', 'Trash 0'], $this->tabs($crawler));
         self::assertContains('Firm', $this->headers($crawler), 'several firms name theirs');
 
         // An instance holds one firm (ADR 0039): no firm select, and an old ?firm= narrows nothing.
         $crawler = $this->client->request('GET', '/invoices/recurring?firm='.$second->id());
-        self::assertSame(['All 3', 'Active 2', 'Paused 1', 'Ended 0', 'Failing 0'], $this->tabs($crawler));
+        self::assertSame(['All 3', 'Active 2', 'Paused 1', 'Ended 0', 'Failing 0', 'Trash 0'], $this->tabs($crawler));
         self::assertCount(0, $crawler->filter('[data-filter-chip="firm"], select[name="firm"]'));
 
         $crawler = $this->client->request('GET', '/invoices/recurring?tab=paused');
@@ -459,15 +461,46 @@ final class RecurringListControllerTest extends WebTestCase
         self::assertSame(['Edit', 'Delete'], $this->menu($crawler->filter('tbody tr')));
     }
 
-    public function testDeleteRemovesANeverIssuedTemplate(): void
+    public function testDeleteMovesANeverIssuedTemplateToTheTrashAndRestoreBringsItBackPaused(): void
     {
         $this->signedIn();
-        $template = $this->template();
+        $template = $this->template(description: 'Hosting');
+        $token = $this->token($template);
+        $dialog = $this->client->request('GET', '/invoices/recurring/'.$template->id().'/delete', server: self::DIALOG)->text();
+        self::assertStringContainsString('moves to the trash, where it can be restored for 30 days', $dialog);
 
-        $this->post($template, 'delete');
+        $this->client->request('POST', '/invoices/recurring/'.$template->id().'/delete', ['_token' => $token], server: self::DIALOG);
 
-        self::assertSame(0, $this->rowsIn('recurring_invoice'));
-        self::assertSame(0, $this->rowsIn('recurring_invoice_line'));
+        self::assertSame(1, $this->rowsIn('recurring_invoice'), 'it stays, in the trash');
+        $crawler = $this->client->request('GET', '/invoices/recurring');
+        self::assertStringContainsString('is in the trash', $this->flashes($crawler));
+        self::assertSame(['All 0', 'Active 0', 'Paused 0', 'Ended 0', 'Failing 0', 'Trash 1'], $this->tabs($crawler));
+        self::assertSelectorCount(0, 'main tbody tr[data-row-id]');
+
+        $crawler = $this->client->request('GET', '/invoices/recurring?view=trash');
+        self::assertCount(1, $crawler->filter('tbody tr'));
+        $headers = $crawler->filter('thead th')->each(static fn (Crawler $th): string => trim($th->text()));
+        self::assertContains('Deleted by', $headers);
+        self::assertContains('Deleted', $headers);
+        self::assertNotContains('Next issue', $headers);
+        self::assertSame(['Restore'], $this->menu($crawler->filter('tbody tr')));
+
+        // In the trash, an action is refused until it is restored.
+        $this->client->request('GET', '/invoices/recurring/'.$template->id().'/resume');
+        self::assertResponseRedirects('/invoices/recurring');
+        $detail = $this->client->request('GET', '/invoices/recurring/'.$template->id());
+        self::assertStringContainsString('in the trash and issues nothing', $detail->filter('main')->text());
+        self::assertCount(1, $detail->filter('form[action="/invoices/recurring/'.$template->id().'/restore"]'));
+
+        $this->client->request('POST', '/invoices/recurring/'.$template->id().'/restore', ['_token' => $token, 'return' => 'view=trash']);
+        self::assertResponseRedirects('/invoices/recurring?view=trash');
+        $crawler = $this->client->followRedirect();
+        self::assertStringContainsString('The recurring invoice for Example Customer a.s. is restored. It stays paused', $this->flashes($crawler));
+        self::assertEmpty($crawler->filter('tbody tr[data-row-id]'));
+        self::assertStringContainsString('The trash is empty', $crawler->filter('main')->text());
+        $row = $this->templateRow($template->id());
+        self::assertNull($row['deleted_at']);
+        self::assertSame('paused', $row['state']);
     }
 
     public function testDeleteIsRefusedAfterAnIssue(): void
@@ -521,7 +554,7 @@ final class RecurringListControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/invoices/recurring?tab=failing');
 
-        self::assertSame(['All 1', 'Active 1', 'Paused 0', 'Ended 0', 'Failing 1'], $this->tabs($crawler));
+        self::assertSame(['All 1', 'Active 1', 'Paused 0', 'Ended 0', 'Failing 1', 'Trash 0'], $this->tabs($crawler));
         $row = $crawler->filter('tbody tr');
         self::assertCount(1, $row);
         self::assertStringContainsString('Failed', $row->text());

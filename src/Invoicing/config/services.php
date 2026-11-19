@@ -45,6 +45,7 @@ use Foresi\Invoicing\Application\NumberCounter;
 use Foresi\Invoicing\Application\OriginalDocuments;
 use Foresi\Invoicing\Application\PaymentSourceRelease;
 use Foresi\Invoicing\Application\PublicDocuments;
+use Foresi\Invoicing\Application\PurgeTrashedRecurring;
 use Foresi\Invoicing\Application\RecordPayment;
 use Foresi\Invoicing\Application\RecurringAlertTexts;
 use Foresi\Invoicing\Application\RecurringInvoices;
@@ -207,7 +208,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
             MarkDelivered::class, IssuedDocumentFactory::class, IssueRules::class, CustomerCopies::class, LinePricing::class,
             NumberAllocator::class,
             // The recurring templates and their daily run, for the tests that drive them directly.
-            SaveRecurringInvoice::class, RecurringLifecycle::class, IssueRecurringOccurrence::class,
+            SaveRecurringInvoice::class, RecurringLifecycle::class, IssueRecurringOccurrence::class, PurgeTrashedRecurring::class,
         ] as $service) {
             $services->set($service)->public();
         }

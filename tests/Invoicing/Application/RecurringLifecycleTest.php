@@ -106,24 +106,6 @@ final class RecurringLifecycleTest extends RecurringTestCase
         $this->advance($template->id(), '2027-01-01');
     }
 
-    public function testDeleteOnlyBeforeTheFirstIssue(): void
-    {
-        $unused = $this->save->create($this->recurringInput([$this->line(text: 'One'), $this->line(text: 'Two')]));
-        $issued = $this->save->create($this->recurringInput());
-        $this->advance($issued->id(), '2026-12-01');
-
-        $this->lifecycle->delete($unused->id());
-
-        $connection = $this->em->getConnection();
-        self::assertFalse($connection->fetchOne('SELECT id FROM recurring_invoice WHERE id = :id', ['id' => $unused->id()]));
-        self::assertSame([], $this->lineRows($unused->id()));
-
-        $this->em->clear();
-        self::assertSame(['recurring.problem.issued'], $this->recurringRefusalOf(fn () => $this->lifecycle->delete($issued->id())));
-        self::assertSame('active', $this->templateRow($issued->id())['state']);
-        self::assertCount(1, $this->lineRows($issued->id()));
-    }
-
     public function testDueListsActiveTemplatesUpToToday(): void
     {
         $today = $this->save->create($this->recurringInput(overrides: ['recurrence' => $this->monthly('2026-11-02')]));
