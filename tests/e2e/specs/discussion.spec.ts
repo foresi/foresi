@@ -131,7 +131,7 @@ test.describe('discussion', () => {
     await expect(edited.locator('[data-comment-edited]')).toHaveText('upraveno');
   });
 
-  test('deleting one\'s own comment leaves a placeholder', async ({ page }) => {
+  test('deleting one\'s own comment leaves a placeholder that restores it', async ({ page }) => {
     await openTask(page);
     await write(page, 'To be deleted');
     await composer(page).getByRole('button', { name: 'Přidat komentář' }).click();
@@ -140,9 +140,13 @@ test.describe('discussion', () => {
     const id = (await own.getAttribute('data-comment')) ?? '';
     await own.locator('[data-comment-menu] button').first().click();
     await own.getByRole('menuitem', { name: 'Smazat' }).click();
-    await page.getByRole('alertdialog').or(page.getByRole('dialog')).getByRole('button', { name: 'Smazat' }).click();
-    await expect(page.locator('[data-comment="' + id + '"] [data-comment-deleted]')).toHaveText('Komentář byl smazán');
+    const deleted = page.locator('[data-comment="' + id + '"] [data-comment-deleted]');
+    await expect(deleted).toContainText('Komentář je smazaný');
+    await expect(page.locator('[data-task-trashed]')).toContainText('Komentář je smazaný.');
     await expect(page.getByText('To be deleted')).toHaveCount(0);
+    await deleted.getByRole('button', { name: 'Obnovit' }).click();
+    await expect(page.getByText('Komentář je obnovený.')).toBeVisible();
+    await expect(comment(page, 'To be deleted')).toBeVisible();
   });
 
   test('typing @ offers the people and Enter chooses one, which the preview shows as a chip', async ({ page }) => {

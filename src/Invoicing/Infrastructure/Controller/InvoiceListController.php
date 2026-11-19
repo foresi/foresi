@@ -29,15 +29,11 @@ use Foresi\Invoicing\Application\IssuePaymentTaxDocument;
 use Foresi\Invoicing\Application\IssueRefused;
 use Foresi\Invoicing\Application\ListFileFormat;
 use Foresi\Invoicing\Application\MarkDelivered;
-use Foresi\Invoicing\Application\MissingTaxDocument;
-use Foresi\Invoicing\Application\MissingTaxDocuments;
 use Foresi\Invoicing\Application\PaymentRefused;
 use Foresi\Invoicing\Application\Query\InvoiceDetails;
 use Foresi\Invoicing\Application\Query\InvoiceList;
 use Foresi\Invoicing\Application\RecurringInvoices;
 use Foresi\Invoicing\Application\TrashInvoice;
-use Foresi\Invoicing\Application\UncorrectedTaxDocument;
-use Foresi\Invoicing\Application\UncorrectedTaxDocuments;
 use Foresi\Invoicing\Application\UnknownInvoice;
 use Foresi\Invoicing\Application\UnsupportedCountry;
 use Foresi\Invoicing\Application\View\InvoiceLists;
@@ -53,8 +49,10 @@ use Foresi\Invoicing\Infrastructure\Column\IssuedDocumentSource;
 use Foresi\Invoicing\Infrastructure\Form\AmountText;
 use Foresi\Invoicing\Infrastructure\Form\MailTokenLabels;
 use Foresi\Invoicing\Infrastructure\Form\SendFailureText;
+use Foresi\Invoicing\Infrastructure\View\TaxDocumentQueueTabs;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Shared\Application\View\Condition;
 use Foresi\Shared\Application\View\DateRange;
 use Foresi\Shared\Application\View\FilterRows;
 use Foresi\Shared\Application\View\ListView;
@@ -66,10 +64,10 @@ use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Column\ListColumnRegistry;
-use Foresi\Ui\Column\ListDisplay;
 use Foresi\Ui\Column\RememberedDisplay;
-use Foresi\Ui\Column\WorkingDisplay;
-use Foresi\Ui\Column\WorkingState;
+use Foresi\Ui\Contract\ListDisplay;
+use Foresi\Ui\Contract\WorkingDisplay;
+use Foresi\Ui\Contract\WorkingState;
 use Foresi\Ui\View\ViewBar;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\HeaderUtils;
@@ -99,7 +97,7 @@ final class InvoiceListController extends AbstractController
     public const string ACTION_TOKEN = 'invoice_action';
     private const int MAX_TEXT = 100;
     /** The parts of the list's query an action carries back to it. */
-    public const array LIST_QUERY = ['view', 'tab', 'firm', 'q', 'sort', 'page', 'toSend', 'export', 'month', WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY, WorkingFilter::PARAM];
+    public const array LIST_QUERY = ['view', 'tab', 'q', 'sort', 'page', 'toSend', 'month', WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY, WorkingFilter::PARAM];
     /** The list of each kind of document, as iDoklad keeps one per kind. */
     public const array ROUTES = ['invoice' => 'app_invoices', 'advance' => 'app_advances', 'payment_tax_document' => 'app_tax_documents', 'correction_document' => 'app_corrections'];
 
@@ -117,9 +115,7 @@ final class InvoiceListController extends AbstractController
         private readonly SendFailureText $failures,
         private readonly RecurringInvoices $recurring,
         private readonly InstanceClock $instanceClock,
-        private readonly MissingTaxDocuments $missing,
         private readonly IssuePaymentTaxDocument $taxDocuments,
-        private readonly UncorrectedTaxDocuments $uncorrected,
         private readonly DocumentExports $exports,
         private readonly ExportDocumentList $listExport,
         private readonly DocumentMonths $months,
@@ -133,6 +129,7 @@ final class InvoiceListController extends AbstractController
         private readonly FilterSheet $filterSheet,
         private readonly CustomerPicker $customers,
         private readonly LegalEntities $firms,
+        private readonly TaxDocumentQueueTabs $queueTabs,
     ) {
     }
 
@@ -151,14 +148,12 @@ final class InvoiceListController extends AbstractController
         [$filter, $views, $view] = $this->filterOf($request->query, $kind);
         $shown = $filter->view ?? $view->filter;
         $filterParam = WorkingFilter::param($shown, $view->filter);
-        [$tab, $text, $sort, $firm, $toSend, $export, $month] = [$filter->tab, $filter->text, $filter->sort, $filter->firmId ?? '', $filter->toSend, $filter->export, $filter->month];
+        [$tab, $text, $sort, $toSend, $month] = [$filter->tab, $filter->text, $filter->sort, $filter->toSend, $filter->month];
         $page = $this->list->page($filter);
-        $firm = isset($page->firms[$firm]) ? $firm : '';
         // A view keeps its own order; the address names the sort only when it differs (spec D10).
         $viewSort = ViewState::sortParam($view->sort, InvoiceFilter::DEFAULT_SORT);
-        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'firm' => '' === $firm ? null : $firm, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null, 'export' => $export?->value, 'month' => $month, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
-        // Within the firm the list is filtered by, so the chip counts what pressing it shows.
-        $toSendCount = $this->recurring->inReview('' === $firm ? null : $firm);
+        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null, 'month' => $month, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
+        $toSendCount = $this->recurring->inReview();
         $severalFirms = \count($page->firms) > 1;
         // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $list = InvoiceLists::of($kind);
@@ -180,18 +175,11 @@ final class InvoiceListController extends AbstractController
             'tab' => $tab,
             'view' => $view->isAll() ? '' : $view->key,
             'working' => $filterParam ?? '',
-            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl($route, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references($page->firms, $firm)),
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl($route, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references($page->firms)),
             'text' => $text,
             'sort' => $sort,
             'sortKept' => $viewSort === $sort ? null : $sort,
             ...$bar,
-            'firm' => $firm,
-            'firms' => $severalFirms ? ['' => $this->translator->trans('invoice.list.all_firms')] + $page->firms : [],
-            'export' => $export->value ?? '',
-            'exportStates' => ['' => $this->translator->trans('invoice.export_state.all')] + array_combine(
-                array_map(static fn (ExportState $state): string => $state->value, ExportState::cases()),
-                array_map(fn (ExportState $state): string => $this->translator->trans('invoice.export_state.'.$state->value), ExportState::cases()),
-            ),
             'kind' => $kind->value,
             'route' => $route,
             'titleKey' => 'invoice.list.title_'.$kind->value,
@@ -209,15 +197,15 @@ final class InvoiceListController extends AbstractController
             'toSendHref' => $this->generateUrl($route, $toSend ? array_diff_key($query, ['toSend' => true]) : $query + ['toSend' => '1']),
             'month' => $month ?? '',
             // The months with a document of the list, and the one asked for, though it has none.
-            'months' => $this->monthOptions($kind, '' === $firm ? null : $firm, $month),
+            'months' => $this->monthOptions($kind, $month),
             // An empty list adds up to nothing to show, and saves the queries.
-            'filtered' => '' !== $text || '' !== $firm || $toSend || $export instanceof ExportState || null !== $month || null !== $filterParam,
+            'filtered' => '' !== $text || $toSend || null !== $month || null !== $filterParam,
         ]);
     }
 
     /**
-     * Downloads exactly what the list shows, its filter posted back: the same tab, firm,
-     * month, export state, text and order, over all pages. It is streamed and read in
+     * Downloads exactly what the list shows, its filter posted back: the same view and
+     * its working filter, firm, month, text and order, over all pages. It is streamed and read in
      * batches, so a long list needs no limit. The name says the kind and the month only.
      */
     #[Route('/invoices/list-export', name: 'app_invoices_list_export', methods: ['POST'])]
@@ -246,7 +234,9 @@ final class InvoiceListController extends AbstractController
      * The filter of a list from its query, or from the form of its download: anything
      * it does not know falls back to the whole list. The view is named by ?view=, or by
      * the ?tab= of the tabs it replaced, so old links and bookmarks still open it
-     * (spec D12). Its page counts the tabs that show a count.
+     * (spec D12). The ?export= of the select the filter sheet had becomes a condition of
+     * the working filter (spec D11), so those links still narrow the list. Its page counts
+     * the tabs that show a count.
      *
      * @param InputBag<string> $input
      *
@@ -257,11 +247,15 @@ final class InvoiceListController extends AbstractController
         $views = $this->viewsOf($kind);
         $view = ListViews::chosen($views, $input->getString('view', $input->getString('tab')));
         $working = WorkingFilter::decode($input->getString(WorkingFilter::PARAM), InvoiceLists::of($kind)) ?? $view->filter;
+        $export = ExportState::tryFrom($input->getString('export'));
+        if ($export instanceof ExportState) {
+            $working = $working->with(new Condition(InvoiceLists::EXPORT, 'is', $export->value));
+        }
         $sort = $input->getString('sort', ViewState::sortParam($view->sort, InvoiceFilter::DEFAULT_SORT));
-        $firm = $input->getString('firm');
 
+        // An instance holds one firm (ADR 0039): an old ?firm= filters nothing.
         return [new InvoiceFilter(
-            '' === $firm ? null : $firm,
+            null,
             $this->tabOf($view, $working, $kind),
             trim(mb_substr($input->getString('q'), 0, self::MAX_TEXT)),
             // By any attribute the list sorts by, under its key; an older key such as dueDate still sorts (spec DS2).
@@ -270,7 +264,6 @@ final class InvoiceListController extends AbstractController
             // The invoices recurring templates issued that wait to be sent, as the review notice links to them.
             '1' === $input->getString('toSend'),
             $kind,
-            ExportState::tryFrom($input->getString('export')),
             InvoiceFilter::monthOf($input->getString('month')),
             $working,
             $this->countedOf($views),
@@ -342,16 +335,15 @@ final class InvoiceListController extends AbstractController
     }
 
     /**
-     * The contacts a customer condition picks from and names: those of the firm the list
-     * is filtered by, or of its first.
+     * The contacts a customer condition picks from and names: those of the instance's firm.
      *
      * @param array<string, string> $firms
      *
      * @return array<string, array{url: string, name: \Closure(string): ?string}>
      */
-    private function references(array $firms, string $firm): array
+    private function references(array $firms): array
     {
-        $id = '' !== $firm ? $firm : (string) array_key_first($firms);
+        $id = (string) array_key_first($firms);
         if ('' === $id) {
             return [];
         }
@@ -374,7 +366,7 @@ final class InvoiceListController extends AbstractController
      *
      * @return array<int|string, string|array<int|string, string>>
      */
-    private function monthOptions(DocumentKind $kind, ?string $firm, ?string $month): array
+    private function monthOptions(DocumentKind $kind, ?string $month): array
     {
         $options = ['' => $this->translator->trans('invoice.month.all')];
         foreach (InvoiceFilter::RELATIVE_MONTHS as $period) {
@@ -383,7 +375,7 @@ final class InvoiceListController extends AbstractController
         $absolute = null === $month || \in_array($month, InvoiceFilter::RELATIVE_MONTHS, true) ? [] : [$month];
         // Grouped by year when there are many; else under one heading, below the periods.
         $flat = [];
-        foreach (MonthChoices::of([...$this->months->months($kind, $firm), ...$absolute], $this->translator->getLocale()) as $key => $choice) {
+        foreach (MonthChoices::of([...$this->months->months($kind, null), ...$absolute], $this->translator->getLocale()) as $key => $choice) {
             if (\is_array($choice)) {
                 $options[$key] = $choice;
             } else {
@@ -409,80 +401,6 @@ final class InvoiceListController extends AbstractController
             'this_year' => $start->format('Y'),
             default => $start->format('Y-m'),
         };
-    }
-
-    /**
-     * The paid advance invoices that wait for a tax document, soonest deadline first.
-     */
-    #[Route('/advances/needs-tax-document', name: 'app_advances_missing', methods: ['GET'])]
-    public function missing(): Response
-    {
-        $missing = $this->missing->on($this->today());
-        $date = $this->translator->trans('format.date');
-        $columns = array_map(fn (string $key): array => ['key' => $key, 'label' => $this->translator->trans('advance.missing.column.'.$key), 'align' => \in_array($key, ['received', 'daysLeft'], true) ? 'right' : 'left', 'phone' => \in_array($key, ['number', 'daysLeft'], true)], ['number', 'customer', 'receivedOn', 'received', 'deadline', 'daysLeft']);
-
-        return $this->render('@Invoicing/missing_tax_documents.html.twig', [
-            ...$this->ownListTabs(DocumentKind::Advance, 'app_advances_missing'),
-            'columns' => $columns,
-            'rows' => array_map(fn (MissingTaxDocument $row): array => [
-                'id' => $row->advanceId.'-'.$row->paymentId,
-                'href' => $this->generateUrl('app_invoice_show', ['id' => $row->advanceId]),
-                'opens' => 'sheet',
-                'label' => $row->advanceNumber,
-                'secondary' => $this->joined([$row->customerName, $this->amounts->shown($row->received), $this->daysLeft($row)]),
-                'cells' => [
-                    'number' => $row->advanceNumber,
-                    'customer' => $row->customerName,
-                    'receivedOn' => $row->receivedOn->format($date),
-                    'received' => $this->amounts->shown($row->received),
-                    'deadline' => $row->deadline->format($date),
-                    'daysLeft' => ['text' => $this->daysLeft($row), 'tone' => $row->isLate() ? 'red' : ($row->daysLeft <= 3 ? 'amber' : 'gray')],
-                ],
-                'actions' => [[
-                    'label' => $this->translator->trans('advance.missing.issue'),
-                    'href' => $this->generateUrl('app_advance_tax_document', ['id' => $row->advanceId, 'payment' => $row->paymentId]),
-                    'method' => 'POST',
-                    'icon' => 'file-signature',
-                ]],
-            ], $missing),
-        ]);
-    }
-
-    /**
-     * The delivered tax documents on payment that wait for a corrective tax document,
-     * soonest deadline first.
-     */
-    #[Route('/tax-documents/needs-correction', name: 'app_tax_documents_uncorrected', methods: ['GET'])]
-    public function uncorrected(): Response
-    {
-        $waiting = $this->uncorrected->on($this->today());
-        $date = $this->translator->trans('format.date');
-        $columns = array_map(fn (string $key): array => ['key' => $key, 'label' => $this->translator->trans('tax_document.uncorrected.column.'.$key), 'align' => \in_array($key, ['amount', 'daysLeft'], true) ? 'right' : 'left', 'phone' => \in_array($key, ['number', 'daysLeft'], true)], ['number', 'customer', 'decisiveDate', 'amount', 'deadline', 'daysLeft']);
-
-        return $this->render('@Invoicing/uncorrected_tax_documents.html.twig', [
-            ...$this->ownListTabs(DocumentKind::PaymentTaxDocument, 'app_tax_documents_uncorrected'),
-            'columns' => $columns,
-            'rows' => array_map(fn (UncorrectedTaxDocument $row): array => [
-                'id' => $row->documentId,
-                'href' => $this->generateUrl('app_invoice_show', ['id' => $row->documentId]),
-                'opens' => 'sheet',
-                'label' => $row->number,
-                'secondary' => $this->joined([$row->customerName, $this->amounts->shown($row->amount), $this->daysLeftOf($row->daysLeft)]),
-                'cells' => [
-                    'number' => $row->deducted ? $row->number.' · '.$this->translator->trans('tax_document.uncorrected.deducted') : $row->number,
-                    'customer' => $row->customerName,
-                    'decisiveDate' => $row->decisiveDate->format($date),
-                    'amount' => $this->amounts->shown($row->amount),
-                    'deadline' => $row->deadline->format($date),
-                    'daysLeft' => ['text' => $this->daysLeftOf($row->daysLeft), 'tone' => $row->isLate() ? 'red' : ($row->daysLeft <= 3 ? 'amber' : 'gray')],
-                ],
-                'actions' => [[
-                    'label' => $this->translator->trans('tax_document.correct'),
-                    'href' => $this->generateUrl('app_invoice_correct', ['id' => $row->documentId]),
-                    'icon' => 'file-signature',
-                ]],
-            ], $waiting),
-        ]);
     }
 
     /**
@@ -679,8 +597,8 @@ final class InvoiceListController extends AbstractController
 
     /**
      * The tabs of a list and its "More views" menu (spec D7): All and the primary views
-     * as tabs, with the count of those that show one; the other views in the menu, and
-     * the lists of their own an advance or a tax document waits in, as links.
+     * as tabs, with the count of those that show one, then the list of its own an
+     * advance or a tax document waits in; the other views in the menu.
      *
      * @param list<ListView>        $views
      * @param array<string, string> $query
@@ -699,43 +617,14 @@ final class InvoiceListController extends AbstractController
             'modified' => $modified && $view->key === $active,
             'private' => $view->private,
         ];
-        $more = array_map(static fn (ListView $view): array => $link($view, false), $overflow);
-        // The advances that wait for a tax document: their own list, as iDoklad gives tax documents theirs.
-        if (DocumentKind::Advance === $kind) {
-            $more[] = $this->otherList('advance.missing.tab', 'app_advances_missing', \count($this->missing->on($this->today())));
-        }
-        // The tax documents that wait for a corrective one, the same way.
-        if (DocumentKind::PaymentTaxDocument === $kind) {
-            $more[] = $this->otherList('tax_document.uncorrected.tab', 'app_tax_documents_uncorrected', \count($this->uncorrected->on($this->today())));
+        $tabs = array_map(static fn (ListView $view): array => $link($view, true), $primary);
+        // The list an advance or a tax document waits in, as the last tab (Shopify's Unfulfilled, Xero's Awaiting payment).
+        $queue = $this->queueTabs->of($kind);
+        if (null !== $queue) {
+            $tabs[] = $queue;
         }
 
-        return ['tabs' => array_map(static fn (ListView $view): array => $link($view, true), $primary), 'moreViews' => $more];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function otherList(string $label, string $route, int $count): array
-    {
-        return ['label' => $this->translator->trans($label), 'href' => $this->generateUrl($route), 'count' => $count, 'active' => false];
-    }
-
-    /**
-     * The tabs of a list of its own (the advances missing a tax document, the tax
-     * documents waiting for a correction): those of its kind, none active, and itself
-     * active in the menu.
-     *
-     * @return array{tabs: list<array<string, mixed>>, moreViews: list<array<string, mixed>>}
-     */
-    private function ownListTabs(DocumentKind $kind, string $route): array
-    {
-        $views = $this->viewsOf($kind);
-        $page = $this->list->page(new InvoiceFilter(null, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1, kind: $kind, counted: $this->countedOf($views)));
-        $tabs = $this->tabs($views, '', $page, [], self::ROUTES[$kind->value], $kind);
-        $here = $this->generateUrl($route);
-        $tabs['moreViews'] = array_map(static fn (array $item): array => $item['href'] === $here ? ['active' => true] + $item : $item, $tabs['moreViews']);
-
-        return $tabs;
+        return ['tabs' => $tabs, 'moreViews' => array_map(static fn (ListView $view): array => $link($view, false), $overflow)];
     }
 
     /**
@@ -889,18 +778,6 @@ final class InvoiceListController extends AbstractController
         }
 
         return $actions;
-    }
-
-    private function daysLeft(MissingTaxDocument $row): string
-    {
-        return $this->daysLeftOf($row->daysLeft);
-    }
-
-    private function daysLeftOf(int $days): string
-    {
-        return $days < 0
-            ? $this->translator->trans('advance.missing.days_late', ['days' => -$days])
-            : $this->translator->trans('advance.missing.days_left', ['days' => $days]);
     }
 
     private function label(string $action): string

@@ -24,11 +24,11 @@ use Foresi\Shared\Application\View\ListViews;
 use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
-use Foresi\Ui\Column\ListDisplay;
 use Foresi\Ui\Column\RememberedDisplay;
-use Foresi\Ui\Column\WorkingDisplay;
-use Foresi\Ui\Column\WorkingState;
-use Foresi\Ui\Component\DataTable;
+use Foresi\Ui\Contract\ListDisplay;
+use Foresi\Ui\Contract\Opens;
+use Foresi\Ui\Contract\WorkingDisplay;
+use Foresi\Ui\Contract\WorkingState;
 use Foresi\Ui\View\ViewBar;
 use Foresi\Work\Application\TimeEntryRow;
 use Foresi\Work\Application\TimeGrouping;
@@ -488,7 +488,7 @@ final class TimeReportController extends AbstractController
             'id' => $entry->id,
             'href' => null === $entry->taskId ? $this->generateUrl(ProjectController::PROJECT_ROUTE, ['id' => $entry->projectId]) : $this->generateUrl(TaskController::ROUTE, ['id' => $entry->taskId]),
             // A task opens in the sheet; a project is a place of its own, its page.
-            'opens' => null === $entry->taskId ? DataTable::OPENS_PAGE : DataTable::OPENS_SHEET,
+            'opens' => null === $entry->taskId ? Opens::PAGE : Opens::SHEET,
             'label' => $title,
             // On a phone the line under the work says when, who and where.
             'secondary' => implode(' · ', null === $entry->taskId ? [$day, $entry->personName] : [$day, $entry->personName, $entry->projectName]),

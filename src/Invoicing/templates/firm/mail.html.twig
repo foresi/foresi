@@ -1,7 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{% extends 'layout/app.html.twig' %}
+{% extends '@Ui/layout/app.html.twig' %}
 
-{% set crumbs = [{label: 'firm.title'|trans, href: path('app_firm_index')}, {label: firm.name, href: cancel}, {label: 'firm.mail.title'|trans}] %}
+{% set crumbs = [{label: 'firm.title'|trans, href: cancel}, {label: 'firm.mail.title'|trans}] %}
 {% set form_invalid = errors is not empty %}
 {% set chip_class = 'inline-flex h-control-sm cursor-grab select-none items-center rounded-control border border-control-line bg-white px-2.5 text-small font-medium text-text hover:border-muted active:cursor-grabbing ' ~ constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 

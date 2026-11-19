@@ -1,0 +1,16 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'variants'} %}{% block sample %}
+<div role="menu" aria-label="Menu items" class="w-64 {{ constant('Foresi\\Ui\\Component\\Menu::PANEL') }}">
+    <twig:Ui:MenuItem href="/_catalogue">Link</twig:Ui:MenuItem>
+    <twig:Ui:MenuItem type="submit" icon="download">Button with an icon</twig:Ui:MenuItem>
+    <twig:Ui:MenuItem :checked="true">Selected</twig:Ui:MenuItem>
+    <twig:Ui:MenuItem tone="danger" icon="trash-2">Delete</twig:Ui:MenuItem>
+</div>
+{% endblock %}{% endembed %}
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'disabled'} %}{% block sample %}
+<div role="menu" aria-label="Disabled menu item" class="w-64 {{ constant('Foresi\\Ui\\Component\\Menu::PANEL') }}">
+    <twig:Ui:MenuItem icon="user" :disabled="true">Profile</twig:Ui:MenuItem>
+</div>
+{% endblock %}{% endembed %}
+</div>

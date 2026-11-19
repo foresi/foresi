@@ -1,0 +1,72 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The page frame of every signed-in page: the rail of areas, the sidebar of the current area, and one
+    white panel with the page header. On a phone the rail is the top app bar and the sidebar a full-screen overlay.
+    Pages extend it and fill the blocks "title" (plain text), "actions" (header buttons) and "content".
+    The timer the person runs shows in a bar over the page header, on every page.
+    Breadcrumbs are given as a "crumbs" variable: {% set crumbs = [{label: 'Contacts', href: path('...')}, {label: 'Detail'}] %}.
+    A status badge next to the title is given as a "badge" variable: {% set badge = {label: 'Archived', tone: 'gray'} %};
+    more after it as "badges", each with an optional icon: {% set badges = [{label: 'Private', tone: 'gray', icon: 'lock'}] %}.
+#}
+{% extends '@Ui/base.html.twig' %}
+
+{% block document_title %}{{ page_title(block('title')|striptags|html_decode|trim, app.current_route) }}{% endblock %}
+
+{% block body %}
+    {% set shell = shell() %}
+    {% set pageTitle = block('title')|striptags|html_decode|trim %}
+    {% set headerActions %}{% block actions %}{% endblock %}{% endset %}
+    {% set areas = nav_areas(app.current_route, shell.member) %}
+    {# The rail and the sidebar are kept across Turbo visits; the nav controller copies the state the server renders for the next page onto them. #}
+    {% set navKey = [app.request.locale, shell.userEmail, shell.organisation ? shell.organisation.name : '', shell.organisation ? shell.organisation.role.value : '']|join('|') %}
+    {#
+        Phone (below the shell breakpoint): the rail is the top app bar, sticky over the page, and the
+        sidebar is a full-screen overlay behind the menu button. The content runs edge to edge: no
+        frame around the panel, only its 14 px padding, kept clear of the notch in landscape.
+    #}
+    <div class="grid min-h-dvh shell:grid-cols-[var(--spacing-rail)_var(--spacing-sidebar)_minmax(0,1fr)] max-shell:grid-rows-[auto_1fr]" data-controller="sidebar nav">
+        <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-control focus:bg-white focus:px-3 focus:py-2 focus:text-ink focus:outline-2 focus:outline-green">{{ 'shell.skip_to_content'|trans }}</a>
+        {#
+            Wide screen: the rail and the sidebar are grid columns, the rail one tonal step darker than
+            the sidebar (level.io separates its columns by tone, not by a line). Phone: the rail is the
+            top app bar (Android Developers, "App bars": the navigation icon leading, the actions
+            trailing), with the menu button, the product name, search and the account.
+        #}
+        <nav id="rail" data-turbo-permanent data-nav-key="{{ navKey }}" data-sidebar-target="page" aria-label="{{ 'shell.rail_label'|trans }}" class="flex items-center shell:sticky shell:bg-frame-hover shell:top-0 shell:z-10 shell:h-dvh shell:flex-col shell:gap-1 shell:overflow-y-auto shell:px-2 shell:py-3.5 max-shell:sticky max-shell:top-0 max-shell:z-30 max-shell:gap-1 max-shell:border-b max-shell:border-divider max-shell:bg-white max-shell:pb-1.5 max-shell:pl-[calc(0.5rem+env(safe-area-inset-left,0px))] max-shell:pr-[calc(0.5rem+env(safe-area-inset-right,0px))] max-shell:pt-[calc(0.375rem+env(safe-area-inset-top,0px))]">
+            {% include '@Ui/layout/_rail.html.twig' with {shell: shell, areas: areas} only %}
+        </nav>
+        {#
+            Phone: the navigation fills the screen edge to edge on the frame colour, so it needs no
+            scrim; its top row repeats the app bar's geometry, so the X sits where the menu button was.
+            Wide screen: only the sidebar, as a grid column.
+        #}
+        <div id="navigation" data-sidebar-target="panel" class="shell:contents max-shell:invisible max-shell:fixed max-shell:inset-0 max-shell:z-40 max-shell:flex max-shell:h-dvh max-shell:flex-col max-shell:bg-frame max-shell:pb-[env(safe-area-inset-bottom,0px)] max-shell:pl-[env(safe-area-inset-left,0px)] max-shell:pr-[env(safe-area-inset-right,0px)] max-shell:pt-[env(safe-area-inset-top,0px)] max-shell:data-[open]:visible">
+            <div class="flex shrink-0 items-center gap-1 border-b border-divider px-2 py-1.5 shell:hidden">
+                <twig:Ui:IconButton icon="x" :label="'shell.menu.close'|trans" variant="ghost" class="max-shell:h-touch max-shell:w-touch" data-action="sidebar#close" />
+                <span class="font-semibold text-ink">{{ product_name }}</span>
+            </div>
+            <aside id="sidebar" data-turbo-permanent data-nav-key="{{ navKey }}" class="min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-2 shell:sticky shell:top-0 shell:h-dvh shell:pb-4 shell:pl-1.5 shell:pr-2.5 shell:pt-4 max-shell:overscroll-contain">
+                {% include '@Ui/layout/_sidebar.html.twig' with {areas: areas} only %}
+            </aside>
+        </div>
+        <main id="main" tabindex="-1" data-sidebar-target="page" class="min-w-0 bg-white outline-none [view-transition-name:content] shell:my-2.5 shell:mr-2.5 shell:rounded-xl shell:border shell:border-container shell:shadow-raised">
+            {% for widget in slot_items(constant('Foresi\\Ui\\Contract\\Slot\\Slots::SHELL_WIDGETS'), {member: shell ? shell.member : false}) %}{{ include(widget.template, widget.data) }}{% endfor %}
+            <twig:Ui:PageHeader :title="pageTitle" :crumbs="crumbs|default([])" :badge="badge|default(null)" :badges="badges|default([])" :titleEdit="titleEdit|default(null)">{{ headerActions }}</twig:Ui:PageHeader>
+            <div class="p-6 max-shell:py-3.5 max-shell:pl-[calc(0.875rem+env(safe-area-inset-left,0px))] max-shell:pr-[calc(0.875rem+env(safe-area-inset-right,0px))]">
+                {% set notices = shell_notices(shell ? shell.member : false) %}
+                {% if notices is not empty %}
+                    <div data-shell-notices class="mb-4 grid gap-2">
+                        {% for notice in notices %}
+                            <twig:Ui:Alert :tone="notice.tone">
+                                <span class="block">{{ notice.text }}</span>
+                                <a href="{{ notice.href }}" class="mt-0.5 inline-block font-semibold text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ notice.linkLabel }}</a>
+                            </twig:Ui:Alert>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+    {% include '@Ui/layout/_dialogs.html.twig' %}
+{% endblock %}

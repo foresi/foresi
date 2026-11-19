@@ -12,6 +12,9 @@ use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Application\View\ListView;
 use Foresi\Shared\Application\View\SavedViews;
 use Foresi\Shared\Application\View\SavedViewUserStates;
+use Foresi\Ui\Contract\ListDisplay;
+use Foresi\Ui\Contract\WorkingDisplay;
+use Foresi\Ui\Contract\WorkingState;
 
 /**
  * The working display of a view with what the person last used on it (spec D-display-3):

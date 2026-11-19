@@ -28,7 +28,7 @@ use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Identity\Support\IdentityFixtures;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Tests\Party\Support\FirmAccounts;
-use Foresi\Ui\Dialog\DialogRequest;
+use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\ProjectStatus;
 use Foresi\Work\Domain\Task;
@@ -182,7 +182,7 @@ final class TimeInvoiceControllerTest extends WebTestCase
 
         $crawler = $this->dialog('/time/invoice?project='.$this->shop);
         self::assertCount(1, $crawler->filter('[data-time-invoice-no-rate]'));
-        self::assertSame('—', trim($crawler->filter('[data-time-invoice-amount]')->text()));
+        self::assertSame('Not set', $crawler->filter('[data-empty-value][data-time-invoice-target=amountEmpty]')->text());
         $form = $crawler->filter('#time-invoice-form')->form();
         $this->tick($form, 'projects', [$this->website, $this->shop]);
         $crawler = $this->client->submit($form);

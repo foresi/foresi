@@ -1,5 +1,5 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{% extends 'layout/record.html.twig' %}
+{% extends '@Ui/layout/record.html.twig' %}
 
 {% set crumbs = [{label: 'party.title'|trans, href: path('app_contacts')}, {label: party.displayName}] %}
 {% set formatTime = 'format.datetime'|trans %}
@@ -94,7 +94,7 @@
                             {{ billing.street }}<br>{{ billing.postalCode }} {{ billing.city }}<br>{{ billing.countryCode }}
                         </address>
                     {% else %}
-                        <p class="text-muted">—</p>
+                        <p><twig:Ui:EmptyValue /></p>
                     {% endif %}
                 </twig:Ui:Card>
 

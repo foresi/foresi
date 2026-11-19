@@ -77,6 +77,11 @@ final class LoggingBankMovements implements BankMovements
         return $this->movements->count($filter);
     }
 
+    public function counts(string $text, array $views): array
+    {
+        return $this->movements->counts($text, $views);
+    }
+
     public function rows(MovementFilter $filter, int $offset, int $limit): array
     {
         return $this->movements->rows($filter, $offset, $limit);

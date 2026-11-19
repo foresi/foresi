@@ -15,7 +15,7 @@ use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
 use Foresi\Shared\Domain\Id;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
-use Foresi\Ui\Dialog\DialogRequest;
+use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Foresi\Work\Domain\Label;
 use Foresi\Work\Domain\LabelColour;
 use Foresi\Work\Domain\Priority;
@@ -127,7 +127,7 @@ final class TaskControllerTest extends WebTestCase
         $this->client->submit($crawler->filter('[data-task-property="section"]')->form(['section' => '']));
         self::assertSame(['due_on' => null, 'section_id' => null], $this->em->getConnection()->fetchAssociative('SELECT due_on, section_id FROM task WHERE id = ?', [$id]));
         $this->client->request('GET', '/tasks/'.$id);
-        self::assertSelectorTextContains('[data-task-history]', 'Due date 2026-12-24 → —');
+        self::assertSelectorTextContains('[data-task-history]', 'Due date 2026-12-24 → not set');
     }
 
     public function testTheTitleIsEditedInPlaceAndMustNotBeEmpty(): void
@@ -809,7 +809,7 @@ final class TaskControllerTest extends WebTestCase
         self::assertStringStartsWith('Edited ', (string) $edited->attr('title'));
     }
 
-    public function testICannotEditTheCommentOfAnotherButTheOwnerDeletesIt(): void
+    public function testICannotEditTheCommentOfAnotherButTheOwnerDeletesAndRestoresIt(): void
     {
         $this->signIn();
         $this->seed();
@@ -818,9 +818,9 @@ final class TaskControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/tasks/'.$id);
         self::assertCount(0, $crawler->filter('#comment-'.$comment.' [data-comment-edit]'));
+        // Deleting asks nothing: the message undoes it.
         $delete = $crawler->filter('#comment-'.$comment.' form[data-comment-delete]');
-        self::assertSame('Delete the comment?', $delete->attr('data-confirm-title'));
-        self::assertSame('This cannot be undone.', $delete->attr('data-confirm-text'));
+        self::assertNull($delete->attr('data-confirm-title'));
 
         // Its form does not open, and a post is refused.
         $crawler = $this->client->request('GET', '/tasks/'.$id.'?edit_comment='.$comment);
@@ -835,10 +835,33 @@ final class TaskControllerTest extends WebTestCase
         self::assertResponseRedirects('/tasks/'.$id.'#comment-'.$comment);
         $crawler = $this->client->followRedirect();
         $item = $crawler->filter('#comment-'.$comment);
-        self::assertSame('This comment was deleted', trim($item->filter('[data-comment-deleted]')->text()));
+        self::assertSame('The comment is deleted · Restore', trim(preg_replace('/\s+/', ' ', $item->filter('[data-comment-deleted]')->text()) ?? ''));
         self::assertCount(0, $item->filter('[data-comment-body]'));
         self::assertCount(0, $item->filter('[data-comment-menu]'));
-        self::assertStringNotContainsString('Jana was here.', $item->text());
+        // The text is kept for a restore, yet never sent while deleted.
+        self::assertStringNotContainsString('Jana was here.', (string) $this->client->getResponse()->getContent());
+        self::assertSame(['Jana was here.', 1], [
+            $this->em->getConnection()->fetchOne('SELECT body FROM task_comment WHERE id = ?', [$comment]),
+            $this->rows('SELECT COUNT(*) FROM task_comment WHERE id = ? AND deleted_by IS NOT NULL', [$comment]),
+        ]);
+        $flash = $crawler->filter('[data-task-trashed]');
+        self::assertStringContainsString('The comment is deleted.', $flash->text());
+        $undo = $flash->filter('form[data-alert-action]');
+        self::assertSame('/comments/'.$comment.'/restore', $undo->attr('action'));
+        self::assertSame('Undo', trim($undo->filter('button')->text()));
+
+        $this->client->submit($undo->form());
+        self::assertResponseRedirects('/tasks/'.$id.'#comment-'.$comment);
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'The comment is restored.');
+        self::assertSame('Jana was here.', trim($crawler->filter('#comment-'.$comment.' [data-comment-body]')->text()));
+
+        // Restored from its place in the discussion as well.
+        $this->client->submit($crawler->filter('#comment-'.$comment.' form[data-comment-delete]')->form());
+        $crawler = $this->client->followRedirect();
+        $this->client->submit($crawler->filter('#comment-'.$comment.' form[data-comment-restore]')->form());
+        $crawler = $this->client->followRedirect();
+        self::assertCount(1, $crawler->filter('#comment-'.$comment.' [data-comment-body]'));
     }
 
     private function signIn(Role $role = Role::Owner): void

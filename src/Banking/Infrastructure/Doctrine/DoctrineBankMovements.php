@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Infrastructure\Doctrine;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
 use Foresi\Banking\Application\BankMovements;
@@ -30,7 +31,7 @@ final readonly class DoctrineBankMovements implements BankMovements
     private const string LOCK = 'UPDATE bank_movement SET version = version WHERE id = :id';
     private const string LOCK_ACCOUNT = 'UPDATE firm_bank_account SET position = position WHERE id = :id';
 
-    public function __construct(private EntityManagerInterface $em)
+    public function __construct(private EntityManagerInterface $em, private MovementConditions $conditions)
     {
     }
 
@@ -119,28 +120,39 @@ final readonly class DoctrineBankMovements implements BankMovements
 
     public function count(MovementFilter $filter): int
     {
-        if (MovementFilter::MESSAGES === $filter->tab) {
+        if ($filter->mail()) {
             return 0;
         }
         [$where, $parameters] = $this->narrowed($filter);
-        $query = $this->em->createQuery('SELECT COUNT(m.id) FROM '.BankMovement::class.' m WHERE '.$where);
-        foreach ($parameters as $name => $value) {
-            $query->setParameter($name, $value);
-        }
 
-        return (int) $query->getSingleScalarResult();
+        return (int) MovementConditions::bind($this->em->createQuery('SELECT COUNT(m.id) FROM '.BankMovement::class.' m WHERE '.$where), $parameters)->getSingleScalarResult();
+    }
+
+    public function counts(string $text, array $views): array
+    {
+        if ([] === $views) {
+            return [];
+        }
+        [$where, $parameters] = $this->searched($text);
+        $sums = [];
+        foreach (array_values($views) as $index => $view) {
+            [$condition, $bound] = $this->conditions->movements($view, 'c'.$index);
+            $sums[] = 'SUM(CASE WHEN '.$condition.' THEN 1 ELSE 0 END)';
+            $parameters += $bound;
+        }
+        /** @var array<array-key, numeric-string|int|null> $results */
+        $results = MovementConditions::bind($this->em->createQuery('SELECT '.implode(', ', $sums).' FROM '.BankMovement::class.' m WHERE '.$where), $parameters)->getSingleResult(Query::HYDRATE_ARRAY);
+
+        return array_combine(array_map(strval(...), array_keys($views)), array_map(static fn (int|string|null $value): int => (int) $value, array_values($results)));
     }
 
     public function rows(MovementFilter $filter, int $offset, int $limit): array
     {
-        if (MovementFilter::MESSAGES === $filter->tab) {
+        if ($filter->mail()) {
             return [];
         }
         [$where, $parameters] = $this->narrowed($filter);
-        $query = $this->em->createQuery('SELECT m, a, f FROM '.BankMovement::class.' m JOIN m.account a JOIN m.firm f WHERE '.$where.' ORDER BY m.bookedOn DESC, m.id DESC');
-        foreach ($parameters as $name => $value) {
-            $query->setParameter($name, $value);
-        }
+        $query = MovementConditions::bind($this->em->createQuery('SELECT m, a, f FROM '.BankMovement::class.' m JOIN m.account a JOIN m.firm f WHERE '.$where.' ORDER BY m.bookedOn DESC, m.id DESC'), $parameters);
         /** @var list<BankMovement> $movements */
         $movements = $query->setFirstResult(max(0, $offset))->setMaxResults(max(1, $limit))->getResult();
         $invoices = $this->invoicesOf(array_values(array_filter(array_map(static fn (BankMovement $movement): ?string => $movement->paymentId(), $movements), \is_string(...))));
@@ -168,53 +180,43 @@ final readonly class DoctrineBankMovements implements BankMovements
     }
 
     /**
-     * @return array{string, array<string, mixed>}
+     * The view's movements within the text; one movement asked for by its id, whichever
+     * view it is in.
+     *
+     * @return array{string, array<string, array{mixed, string|ArrayParameterType|null}>}
      */
     private function narrowed(MovementFilter $filter): array
     {
-        $where = ['1 = 1'];
-        $parameters = [];
         if (null !== $filter->movementId) {
-            // One movement asked for by its id, whichever way it went.
-            $where[] = 'm.id = :movement';
-            $parameters['movement'] = $filter->movementId;
-        } elseif (MovementFilter::OUTGOING === $filter->tab || MovementFilter::OUTGOING_UNMATCHED === $filter->tab) {
-            $where[] = 'm.direction = :direction';
-            $parameters['direction'] = MovementDirection::Outgoing;
-            if (MovementFilter::OUTGOING_UNMATCHED === $filter->tab) {
-                $where[] = 'm.state = :state';
-                $parameters['state'] = MovementState::Unmatched;
-            }
-        } else {
-            $where[] = 'm.direction = :direction';
-            $parameters['direction'] = MovementDirection::Incoming;
-            if (MovementFilter::UNMATCHED === $filter->tab) {
-                $where[] = 'm.state = :state';
-                $parameters['state'] = MovementState::Unmatched;
-            }
+            return ['m.id = :movement', ['movement' => [$filter->movementId, null]]];
         }
-        if (null !== $filter->firmId) {
-            $where[] = 'm.firm = :firm';
-            $parameters['firm'] = $filter->firmId;
+        [$where, $parameters] = $this->searched($filter->text);
+        [$condition, $bound] = $this->conditions->movements($filter->view, 'v');
+
+        return [$where.' AND '.$condition, $parameters + $bound];
+    }
+
+    /**
+     * The movements the text finds by partner, message, symbol, account or amount.
+     *
+     * @return array{string, array<string, array{mixed, string|ArrayParameterType|null}>}
+     */
+    private function searched(string $text): array
+    {
+        $text = trim($text);
+        if ('' === $text) {
+            return ['1 = 1', []];
         }
-        if (null !== $filter->accountId) {
-            $where[] = 'm.account = :account';
-            $parameters['account'] = $filter->accountId;
-        }
-        $text = trim($filter->text);
-        if ('' !== $text) {
-            $found = ["LOWER(m.counterName) LIKE :text ESCAPE '!'", "LOWER(m.message) LIKE :text ESCAPE '!'", "m.variableSymbol LIKE :text ESCAPE '!'", "m.counterAccount LIKE :text ESCAPE '!'"];
-            $parameters['text'] = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($text)).'%';
-            $amount = str_replace([' ', "\u{a0}", "\u{202f}", ','], ['', '', '', '.'], $text);
-            if (1 === preg_match('/^\d{1,13}(?:\.\d{1,2})?$/D', $amount)) {
-                [$whole, $decimals] = explode('.', $amount.'.', 3);
-                $found[] = 'm.amountMinor = :minor';
-                $parameters['minor'] = (int) $whole * 100 + (int) str_pad($decimals, 2, '0');
-            }
-            $where[] = '('.implode(' OR ', $found).')';
+        $found = ["LOWER(m.counterName) LIKE :text ESCAPE '!'", "LOWER(m.message) LIKE :text ESCAPE '!'", "m.variableSymbol LIKE :text ESCAPE '!'", "m.counterAccount LIKE :text ESCAPE '!'"];
+        $parameters = ['text' => ['%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($text)).'%', null]];
+        $amount = str_replace([' ', "\u{a0}", "\u{202f}", ','], ['', '', '', '.'], $text);
+        if (1 === preg_match('/^\d{1,13}(?:\.\d{1,2})?$/D', $amount)) {
+            [$whole, $decimals] = explode('.', $amount.'.', 3);
+            $found[] = 'm.amountMinor = :minor';
+            $parameters['minor'] = [(int) $whole * 100 + (int) str_pad($decimals, 2, '0'), null];
         }
 
-        return [implode(' AND ', $where), $parameters];
+        return ['('.implode(' OR ', $found).')', $parameters];
     }
 
     /**

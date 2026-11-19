@@ -54,6 +54,11 @@ webhooks:
       owner_lost_access: Jeho vlastník už nesmí číst události, které odebírá.
       manual: Byl vypnut ručně.
     enable: Až bude příjemce zase fungovat, zapněte ho a zmeškané události doručte znovu.
+  # Shown instead of a value that is not there, with the reason.
+  none:
+    response: Bez odpovědi
+    error: Bez chyby
+    retry: Žádný další pokus
   delivery:
     title: Doručení
     ping: Ping

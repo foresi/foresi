@@ -36,7 +36,8 @@ final readonly class ContactSource implements DataSource
 {
     public const string LIST = 'party.contacts';
 
-    private const array STATUSES = ['unreliable' => 'registry.result.unreliable', 'archived' => 'party.archived'];
+    /** Every contact has a status: active unless archived or an unreliable VAT payer. */
+    private const array STATUSES = ['active' => 'party.active', 'unreliable' => 'registry.result.unreliable', 'archived' => 'party.archived'];
 
     public function __construct(private TranslatorInterface $translator, private InstanceClock $instanceClock)
     {
@@ -61,7 +62,7 @@ final readonly class ContactSource implements DataSource
             new Attribute('vat_id', $label('vat_id'), AttributeType::Text, static fn (PartyRow $row): ?string => $row->vatId, sort: 'p.vatId', defaultVisible: true, defaultPosition: 50, aliases: ['vat'], phone: false),
             // The list has shown the address as text, in a row that opens the contact.
             new Attribute('email', $label('email'), AttributeType::Email, static fn (PartyRow $row): ?string => $row->email, defaultVisible: true, defaultPosition: 60, cell: static fn (PartyRow $row): ?string => $row->email, phone: false, truncate: true),
-            new Attribute('status', $label('status'), AttributeType::Enum, static fn (PartyRow $row): ?string => self::statusOf($row), defaultVisible: true, defaultPosition: 70, options: self::STATUSES, cell: $this->status(...)),
+            new Attribute('status', $label('status'), AttributeType::Enum, static fn (PartyRow $row): string => self::statusOf($row), defaultVisible: true, defaultPosition: 70, options: self::STATUSES, cell: $this->status(...)),
             // What a person can add (DS3), in the order of the contact's page.
             new Attribute('phone', $label('phone'), AttributeType::Phone, static fn (PartyRow $row): string => $row->phone, sort: 'p.phone', defaultPosition: 110, phone: false),
             new Attribute('mobile', $label('mobile'), AttributeType::Phone, $party(static fn (Party $contact): string => $contact->mobile()), sort: 'p.mobile', defaultPosition: 120, phone: false),
@@ -108,21 +109,25 @@ final readonly class ContactSource implements DataSource
     }
 
     /**
-     * @return array{label: string, tone: string}|null
+     * @return array{label: string, tone: string}
      */
-    private function status(PartyRow $row): ?array
+    private function status(PartyRow $row): array
     {
         $status = self::statusOf($row);
 
-        return null === $status ? null : ['label' => $this->translator->trans(self::STATUSES[$status]), 'tone' => 'unreliable' === $status ? 'red' : 'gray'];
+        return ['label' => $this->translator->trans(self::STATUSES[$status]), 'tone' => match ($status) {
+            'unreliable' => 'red',
+            'archived' => 'gray',
+            default => 'green',
+        }];
     }
 
-    private static function statusOf(PartyRow $row): ?string
+    private static function statusOf(PartyRow $row): string
     {
         return match (true) {
             $row->unreliablePayer => 'unreliable',
             $row->archived => 'archived',
-            default => null,
+            default => 'active',
         };
     }
 

@@ -1,0 +1,17 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'sizes'} %}{% block sample %}
+<twig:Ui:Avatar name="Jana Example" seed="user-1" />
+<twig:Ui:Avatar name="Jana Example" seed="user-1" size="md" />
+<twig:Ui:Avatar name="Jana Example" seed="user-1" size="lg" />
+{% endblock %}{% endembed %}
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'variants'} %}{% block sample %}
+{% for name in ['Example Company', 'Jana Example', 'Šimon', 'Petr Novák Example', 'Eva Example'] %}
+<span class="inline-flex items-center gap-2 text-small text-ink"><twig:Ui:Avatar :name="name" :seed="'user-' ~ loop.index" />{{ name }}</span>
+{% endfor %}
+{% endblock %}{% endembed %}
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'empty'} %}{% block sample %}
+<twig:Ui:Avatar name="" :labelled="true" />
+<twig:Ui:Avatar name="" size="md" :labelled="true" />
+{% endblock %}{% endembed %}
+</div>

@@ -110,6 +110,41 @@ test.describe('the week', () => {
     await expect(page.locator('[data-time-entry]')).toHaveCount(1);
     await expect(page.locator('[data-time-entry]')).toContainText('Pick the colour palette');
   });
+
+  test('deleted time goes to the trash, back by its Undo and from the trash of its project', async ({ page }) => {
+    const { lastMonday } = await mondays(page);
+    await page.goto(`/time?week=${lastMonday}`);
+    const friday = page.locator('[data-time-day]').nth(4);
+    const call = friday.locator('[data-time-entry]');
+    const project = (await call.locator('[data-time-link]').getAttribute('href')) ?? '';
+
+    // No question first: the message undoes it.
+    await call.getByRole('button', { name: /^Smazat čas ze dne/ }).click();
+    const flash = page.locator('[data-task-trashed]');
+    await expect(flash).toContainText('Čas je v koši.');
+    await expect(call).toHaveCount(0);
+    await expect(page.locator('[data-time-week-total]')).toHaveText('3 h 45 min');
+    await flash.getByRole('button', { name: 'Vrátit zpět' }).click();
+    await expect(page.locator('main')).toContainText('Čas je obnovený.');
+    await expect(page).toHaveURL(new RegExp(`week=${lastMonday}`));
+    await expect(page.locator('[data-time-week-total]')).toHaveText('4 h 15 min');
+
+    await call.getByRole('button', { name: /^Smazat čas ze dne/ }).click();
+    await expect(page.locator('[data-task-trashed]')).toContainText('Čas je v koši.');
+    await page.goto(project);
+    await page.getByRole('link', { name: 'Koš (1)' }).click();
+    await expect(page.locator('[data-trash-purge]')).toHaveText('Úkoly a čas v koši se po 30 dnech smažou natrvalo.');
+    const trashed = page.locator('[data-trash-time] tbody tr');
+    await expect(trashed).toHaveCount(1);
+    await expect(trashed).toContainText('30 min');
+    await trashed.getByRole('button', { name: /Další akce/ }).click();
+    await trashed.getByRole('menuitem', { name: 'Obnovit' }).click();
+    await expect(page.locator('main')).toContainText('Čas je obnovený.');
+    await expect(page.locator('main')).toContainText('Koš je prázdný');
+
+    await page.goto(`/time?week=${lastMonday}`);
+    await expect(page.locator('[data-time-week-total]')).toHaveText('4 h 15 min');
+  });
 });
 
 test.describe('the task', () => {

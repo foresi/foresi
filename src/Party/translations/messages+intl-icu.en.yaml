@@ -30,6 +30,8 @@ party:
   archive: Archive
   restore: Restore
   archived: Archived
+  # The status of a contact that is neither archived nor an unreliable VAT payer.
+  active: Active
   yes: Yes
   no: 'No'
   views: Contact views

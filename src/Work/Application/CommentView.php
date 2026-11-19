@@ -19,6 +19,7 @@ final readonly class CommentView
      * @param string                  $html        the body rendered from Markdown, safe to print; empty once deleted
      * @param bool                    $canEdit     whether the signed-in person may edit it: its author, while it stands
      * @param bool                    $canDelete   whether the signed-in person may delete it: its author or an owner, while it stands
+     * @param bool                    $canRestore  whether the signed-in person may restore it: its author or an owner, while deleted and its text is kept
      * @param list<CommentAttachment> $attachments oldest first
      */
     public function __construct(
@@ -33,6 +34,7 @@ final readonly class CommentView
         public bool $deleted,
         public bool $canEdit,
         public bool $canDelete,
+        public bool $canRestore,
         public array $attachments,
     ) {
     }

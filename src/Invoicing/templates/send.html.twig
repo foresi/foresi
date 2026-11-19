@@ -6,7 +6,7 @@
     same dialog, which then grows. It opens with the text open when something needs a fix.
     A reminder by hand is the same dialog with the reminder text, its step and how long the invoice is overdue.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'invoice.list.title'|trans, href: cancel}, {label: invoice.number}] %}
 {% set form_invalid = problems is not empty %}

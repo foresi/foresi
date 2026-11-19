@@ -130,7 +130,7 @@ final class TimeInvoiceIssueTest extends WorkTestCase
         self::assertNull($this->entry($planning)->invoiceId());
 
         // Invoiced time is locked, and no longer offered.
-        foreach ([fn () => $this->time->edit($design, $this->homepage->id(), new \DateTimeImmutable('2026-10-05'), 45, null, null, '', true), fn () => $this->time->delete($design)] as $change) {
+        foreach ([fn () => $this->time->edit($design, $this->homepage->id(), new \DateTimeImmutable('2026-10-05'), 45, null, null, '', true), fn (): TimeEntry => $this->time->delete($design)] as $change) {
             try {
                 $change();
                 self::fail('Invoiced time is not changed.');

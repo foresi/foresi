@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Ui\Notice;
 
-use Foresi\Ui\Notice\ShellNotice;
-use Foresi\Ui\Notice\ShellNoticeProvider;
+use Foresi\Ui\Contract\Notice\ShellNotice;
+use Foresi\Ui\Contract\Notice\ShellNoticeProvider;
 use Foresi\Ui\Notice\ShellNotices;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

@@ -10,10 +10,10 @@ namespace Foresi\Work\Infrastructure\Navigation;
 
 use Foresi\Identity\Application\GuestCheck;
 use Foresi\Identity\Application\StaffCheck;
-use Foresi\Ui\Navigation\CoreNavigationAreas;
-use Foresi\Ui\Navigation\NavigationArea;
-use Foresi\Ui\Navigation\NavigationItem;
-use Foresi\Ui\Navigation\NavigationItemProvider;
+use Foresi\Ui\Contract\Navigation\CoreNavigationAreas;
+use Foresi\Ui\Contract\Navigation\NavigationArea;
+use Foresi\Ui\Contract\Navigation\NavigationItem;
+use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
 use Foresi\Work\Infrastructure\Controller\LabelController;
 use Foresi\Work\Infrastructure\Controller\MyTasksController;
 use Foresi\Work\Infrastructure\Controller\NotificationController;

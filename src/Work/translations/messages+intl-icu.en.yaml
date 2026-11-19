@@ -88,6 +88,7 @@ work:
     comment_too_long: A comment can have at most 20,000 characters.
     comment_not_yours: Only the author can change this comment.
     comment_deleted: This comment has been deleted.
+    comment_purged: The text of this comment is deleted for good.
     task_not_yours: Only whoever created the task or an owner of the organisation can delete or restore it.
     parent_in_trash: The parent task has to be restored first.
     share_person: Choose an active person of the organisation to share with.
@@ -97,6 +98,7 @@ work:
     time_not_yours: Only whoever logged the time or an owner of the organisation can change or delete it.
     time_invoiced: This time has been invoiced and can no longer be changed.
     timer_running: Stop the timer first.
+    time_task_in_trash: Restore the task the time belongs to first.
     estimate: Enter an estimate of at least a minute and at most 9,999 hours.
   time:
     title: Time
@@ -105,9 +107,6 @@ work:
     edit_label: 'Edit the time of {date}'
     delete: Delete
     delete_label: 'Delete the time of {date}'
-    delete_confirm:
-      title: Delete the logged time?
-      text: This cannot be undone.
     none: No time logged yet.
     hours: '{hours} h'
     minutes: '{minutes} min'
@@ -121,8 +120,18 @@ work:
     estimate_help: For example 5 h or 2h 30m.
     logged: '{duration} logged.'
     edited: The time is changed.
-    deleted: The time is deleted.
     stopped: 'The timer is stopped, {duration} logged on “{title}”.'
+    trash:
+      deleted: The time is in the trash.
+      restored: The time is restored.
+      tasks: Tasks
+      section: Time
+      purge: '{days, plural, one {Tasks and time in the trash are deleted for good after # day.} other {Tasks and time in the trash are deleted for good after # days.}}'
+      column:
+        worked_on: Day
+        person: Who
+        duration: Duration
+        task: Task
     error:
       worked_on: Enter the day as a date.
       project: Choose a project.
@@ -209,7 +218,7 @@ work:
     labels_removed: '{count, plural, one {Label removed} other {Labels removed}}: {names}'
     due: 'Due date {from} → {to}'
     priority: 'Priority {from} → {to}'
-    no_date: —
+    no_date: not set
     shared: 'Shared with: {names}'
     unshared: 'Stopped sharing with: {names}'
     private:
@@ -280,11 +289,12 @@ work:
     edited: edited
     edited_at: 'Edited {date}'
     deleted: This comment was deleted
+    trash:
+      mine: The comment is deleted
+      deleted: The comment is deleted.
+      restored: The comment is restored.
     actions: 'Actions for the comment by {name}'
     delete: Delete
-    delete_confirm:
-      title: Delete the comment?
-      text: This cannot be undone.
     edit_label: Edit comment
     composer: Comment
     internal_switch: Internal
@@ -352,7 +362,7 @@ work:
     deleted: 'The task “{title}” is in the trash.'
     undo: Undo
     restore: Restore
-    restored: 'The task “{title}” is back.'
+    restored: 'The task “{title}” is restored.'
     purge: '{days, plural, one {Tasks in the trash are deleted for good after # day.} other {Tasks in the trash are deleted for good after # days.}}'
     subtask_of: 'Subtask of {title}'
     column:
@@ -395,10 +405,14 @@ work:
     title: My tasks
     views: Views of my tasks
     tab:
+      all: All
       assigned: Assigned to me
       watching: Watching
     client: Client
-    client_any: All clients
+    involvement: Mine as
+    involvement_option:
+      responsible: Responsible
+      watcher: Watching
     group:
       overdue: Overdue
       today: Today
@@ -406,11 +420,15 @@ work:
       later: Later
       no_date: No date
     empty:
+      all_title: You have no unfinished tasks
+      all_text: The tasks you are responsible for or watch show here.
       assigned_title: You have no unfinished tasks
       assigned_text: The tasks you are responsible for show here.
       watching_title: You watch no unfinished tasks
       watching_text: Watch a task from its page.
-      filtered: Nothing here for this client.
+      filtered_title: Nothing matches
+      filtered: No task matches these conditions.
+      reset: Reset the view
   notifications:
     settings: Settings
     title: Notifications

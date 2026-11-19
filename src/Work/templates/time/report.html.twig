@@ -7,7 +7,7 @@
     the same view and filter. Only the time the person sees is in it. On a phone the tables keep the work and
     the time, with when, who and where under it.
 #}
-{% extends 'layout/app.html.twig' %}
+{% extends '@Ui/layout/app.html.twig' %}
 
 {% set title = 'work.time.report.title'|trans %}
 {% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.time.title'|trans, href: path('app_time')}, {label: title}] %}
@@ -35,9 +35,9 @@
         {# The view's unsaved changes sit at the end of its tabs, as on every list (saved views D10). #}
         <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
             <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'work.time.report.views'|trans" class="min-w-0 sm:flex-1">
-                <twig:block name="actions">{{ include('components/Ui/_view_menu.html.twig') }}</twig:block>
+                <twig:block name="actions">{{ include('@Ui/components/_view_menu.html.twig') }}</twig:block>
             </twig:Ui:Tabs>
-            {{ include('components/Ui/_view_actions.html.twig') }}
+            {{ include('@Ui/components/_view_actions.html.twig') }}
         </div>
         {# The day, the project, the client, the person, billable and invoiced are conditions of "+ Filter" (saved views D11). #}
         <twig:Ui:FilterBar id="report-filters" :action="path('app_time_report')" :keep="{view: view, f: working != '' ? working : null}|merge(workingQuery)"
@@ -79,5 +79,5 @@
             {% endif %}
         </section>
     </div>
-    {{ include('components/Ui/_view_dialogs.html.twig') }}
+    {{ include('@Ui/components/_view_dialogs.html.twig') }}
 {% endblock %}

@@ -1,6 +1,6 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {# A record's form (layout/record.html.twig): a row of the list opens it in the sheet, which fills the content panel while the lines are edited (record_full). #}
-{% extends 'layout/record.html.twig' %}
+{% extends '@Ui/layout/record.html.twig' %}
 
 {# The invoice form without a number and dates, laid out as iDoklad's recurring invoice on the invoice form's primitives: the template and its customer, the schedule beside the sending, the dates beside the payment, then the same line rows and controller as the invoice form. #}
 {% set crumbs = [] %}
@@ -20,7 +20,7 @@
 {% block content %}
     {% if blocked|default(null) == 'no_firm' %}
         <twig:Ui:EmptyState icon="building-2" :title="'invoice.blocked.no_firm_title'|trans" :text="'invoice.blocked.no_firm_text'|trans">
-            <twig:Ui:Button :href="path('app_firm_new')" variant="primary" icon="plus">{{ 'invoice.blocked.add_firm'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button :href="path('app_firm')" variant="primary" icon="plus">{{ 'invoice.blocked.add_firm'|trans }}</twig:Ui:Button>
         </twig:Ui:EmptyState>
     {% elseif blocked|default(null) == 'cut_off' %}
         <twig:Ui:Alert tone="error" role="alert" data-cut-off>
