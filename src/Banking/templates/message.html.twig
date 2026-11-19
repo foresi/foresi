@@ -3,7 +3,7 @@
     One bank mail as it came: who sent it, what became of it, and its text, escaped: a body is shown
     as text, never as markup. The parser is named only when one read it.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'bank.movement.title'|trans, href: cancel}, {label: 'bank.message.view.crumb'|trans}] %}
 {% set dialog_size = 'lg' %}

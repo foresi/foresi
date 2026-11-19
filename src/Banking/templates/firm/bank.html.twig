@@ -4,7 +4,7 @@
     invoices, with the inbound address of each account. Adding and editing an account and the setup
     steps of an address open as dialogs; their URLs are pages too.
 #}
-{% extends 'layout/app.html.twig' %}
+{% extends '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'firm.title'|trans, href: path('app_firm_index')}, {label: firm.name, href: cancel}, {label: 'bank.account.title'|trans}] %}
 {% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}

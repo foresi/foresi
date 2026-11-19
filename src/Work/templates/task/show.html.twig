@@ -18,7 +18,7 @@
     Linear's peek previews an issue from a list; everything above changes there in place: the
     title in the sheet's header, the properties, the files, the discussion, a subtask in the same sheet.
 #}
-{% extends 'layout/record.html.twig' %}
+{% extends '@Ui/layout/record.html.twig' %}
 
 {% set row = task.task %}
 {% set crumbs = task.manageable ? [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}] : [{label: 'shared_with_me.title'|trans, href: path('app_shared_with_me')}] %}

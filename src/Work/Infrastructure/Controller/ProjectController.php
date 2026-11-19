@@ -26,9 +26,9 @@ use Foresi\Shared\Application\View\ViewState;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Column\RememberedDisplay;
-use Foresi\Ui\Column\WorkingDisplay;
-use Foresi\Ui\Column\WorkingState;
-use Foresi\Ui\Component\DataTable;
+use Foresi\Ui\Contract\Opens;
+use Foresi\Ui\Contract\WorkingDisplay;
+use Foresi\Ui\Contract\WorkingState;
 use Foresi\Ui\View\ViewBar;
 use Foresi\Work\Application\DueBucket;
 use Foresi\Work\Application\LabelBadge;
@@ -731,7 +731,7 @@ final class ProjectController extends AbstractController
         return [
             'id' => $task->id,
             'href' => $this->generateUrl(TaskController::ROUTE, ['id' => $task->id]),
-            'opens' => DataTable::OPENS_SHEET,
+            'opens' => Opens::SHEET,
             'label' => $task->title,
             'child' => $child,
             // A phone hides the columns of who and when: the line under the title says them, and lets a long title wrap.
@@ -848,7 +848,7 @@ final class ProjectController extends AbstractController
             'id' => $project->id,
             'href' => $this->generateUrl(self::PROJECT_ROUTE, ['id' => $project->id]),
             // A project is a place to work in, not a record: it opens as a page (docs/design/overlays.md).
-            'opens' => DataTable::OPENS_PAGE,
+            'opens' => Opens::PAGE,
             'label' => $project->name,
             'secondary' => $project->clientName,
             'cells' => $working->display->cells(new ProjectIndexRow(

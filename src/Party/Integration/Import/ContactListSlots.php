@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace Foresi\Party\Integration\Import;
 
 use Foresi\Party\Contract\ContactListActions;
-use Foresi\Ui\Slot\SlotItem;
-use Foresi\Ui\Slot\SlotProvider;
+use Foresi\Ui\Contract\Slot\SlotItem;
+use Foresi\Ui\Contract\Slot\SlotProvider;
 
 /**
  * Import and export on the address book.

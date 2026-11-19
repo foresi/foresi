@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Application;
 
 use Foresi\Invoicing\Contract\DocumentKind;
-use Foresi\Invoicing\Domain\ExportState;
 use Foresi\Shared\Application\View\ViewFilter;
 
 /**
@@ -17,8 +16,7 @@ use Foresi\Shared\Application\View\ViewFilter;
  * in what order, on what page. A sort is the key of an attribute of the list that its query sorts
  * by, such as "due_date", with a minus for descending.
  * To send narrows any tab to the invoices a recurring template issued that were
- * never sent: held for review, or refused for sending. An export state narrows any
- * tab to the documents in it; null takes them all. A month, as YYYY-MM, narrows it to the
+ * never sent: held for review, or refused for sending. A month, as YYYY-MM, narrows it to the
  * documents of that month: a tax document by its tax point, an advance by its issue date.
  */
 final readonly class InvoiceFilter
@@ -53,7 +51,7 @@ final readonly class InvoiceFilter
      *
      * @param array<string, ViewFilter> $counted
      */
-    public function __construct(public ?string $firmId, public string $tab, public string $text, public string $sort, public int $page, public bool $toSend = false, public DocumentKind $kind = DocumentKind::Invoice, public ?ExportState $export = null, public ?string $month = null, public ?ViewFilter $view = null, public array $counted = [])
+    public function __construct(public ?string $firmId, public string $tab, public string $text, public string $sort, public int $page, public bool $toSend = false, public DocumentKind $kind = DocumentKind::Invoice, public ?string $month = null, public ?ViewFilter $view = null, public array $counted = [])
     {
     }
 

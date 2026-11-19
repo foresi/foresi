@@ -25,9 +25,9 @@ use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Column\RememberedDisplay;
-use Foresi\Ui\Column\WorkingDisplay;
-use Foresi\Ui\Column\WorkingState;
-use Foresi\Ui\Component\DataTable;
+use Foresi\Ui\Contract\Opens;
+use Foresi\Ui\Contract\WorkingDisplay;
+use Foresi\Ui\Contract\WorkingState;
 use Foresi\Ui\View\ViewBar;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\InputBag;
@@ -217,7 +217,7 @@ final class SendLogController extends AbstractController
             'id' => $row->sendId,
             'href' => $this->generateUrl('app_invoice_history', $id),
             // The history of a send is a small record: it opens in a modal over the log (docs/design/overlays.md).
-            'opens' => DataTable::OPENS_DIALOG,
+            'opens' => Opens::DIALOG,
             'label' => $row->documentNumber,
             'secondary' => implode(' · ', array_filter([$reminder ? $this->columns->purpose($row) : null, $this->columns->when($row), $this->columns->recipients($row), $this->columns->error($row)], static fn (?string $part): bool => null !== $part && '' !== $part)),
             'cells' => $working->display->cells($row),
