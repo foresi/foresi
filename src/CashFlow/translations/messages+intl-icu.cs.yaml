@@ -1,0 +1,114 @@
+nav:
+  item:
+    cash_flow: Cash flow
+cash_flow:
+  title: Cash flow
+  cancel: Zrušit
+  save: Uložit
+  kpi:
+    today: Zůstatek dnes
+    today_none: Zůstatek zatím není zadaný
+    today_entered: 'Zadaný zůstatek k {day}'
+    today_banked: 'Zadaný zůstatek + pohyby na účtu do {day}'
+    lowest: Nejnižší bod
+    on_day: '{day}'
+    minimum: Minimální zůstatek
+    minimum_unset: '—'
+    minimum_unset_note: Nenastaven, nastavíte ho pod ⋯
+    below_on: 'Pod ním {day}'
+    never_below: Nikdy pod ním
+    end: Konec předpovědi
+  alert:
+    incomplete_title: Předpověď není úplná
+    stale_title: Zůstatek je zastaralý
+    no_balance: '{account} zatím nemá zůstatek, předpověď u něj začíná od nuly.'
+    no_account: Firma nemá žádný bankovní účet.
+    stale: 'Zůstatek je z {day}, starší než 7 dní.'
+    source: '{source} se nepodařilo načíst, nic z nich se nepočítá.'
+    rate: 'Pro {currency} dnes není kurz, jeho částky jsou vynechané.'
+  table:
+    title: Podle období
+    caption: Počáteční zůstatek, příjmy a výdaje podle kategorií a konečný zůstatek každého období
+    row: Řádek
+    opening: Počáteční zůstatek
+    in: Příjmy
+    out: Výdaje
+    closing: Konečný zůstatek
+    range: '{from} – {to}'
+    below_minimum: pod minimálním zůstatkem
+    none: nic
+  category:
+    revenue: Tržby
+    purchases: Nákupy
+    rent: Nájem
+    software: Software
+    payroll: Mzdy a dodavatelé práce
+    taxes: Daně
+    insurance: Sociální a zdravotní pojištění
+    vat: DPH
+    loans: Úvěry
+    owner_draws: Výběry majitele
+    other: Ostatní
+  items:
+    empty: Nic se tu neočekává.
+    total: Celkem
+  subject:
+    invoice: Faktura
+    recurring_invoice: Opakovaná faktura
+    received_document: Přijatý doklad
+    planned_item: Plán
+    bank_movement: Pohyb na účtu
+  certainty:
+    document: Doklad
+    schedule: Plán vystavení
+    plan: Plán
+    estimate: Odhad
+  flag:
+    overdue: Po splatnosti
+    expected_date: Očekávaný den
+    no_due_date: Bez splatnosti
+    estimated: Odhad
+  source:
+    cash_flow_planned_items: Plánované položky
+    invoicing_invoices: Faktury
+    invoicing_recurring_invoices: Opakované faktury
+    purchasing_received_documents: Přijaté doklady
+    banking_movements: Pohyby na účtu
+  empty:
+    no_firm_title: Nejdřív nastavte firmu
+    no_firm_text: Cash flow předpovídá peníze firmy, z jejích bankovních účtů a dokladů.
+    no_firm_action: Nastavit firmu
+    no_account_title: Přidejte bankovní účet
+    no_account_text: Předpověď začíná zůstatkem bankovních účtů firmy. Přidejte účet v nastavení banky firmy.
+    no_account_action: Přidat bankovní účet
+    title: Zatím není co předpovídat
+    text: Zadejte zůstatek bankovního účtu. Otevřené faktury, přijaté doklady a plánované položky pak ukážou, kolik bude mít firma peněz.
+  balance:
+    open: Zadat zůstatek
+    title: Zadat zůstatek
+    hint: Pohyby na účtu zaúčtované po tomto dni se připočtou samy.
+    flash: 'Zůstatek účtu {account} k {day} je uložený.'
+    field:
+      account: Účet
+      on: Den
+      amount: Zůstatek na konci dne
+    error:
+      account: Vyberte účet firmy.
+      not_found: Vyberte účet firmy.
+      amount_required: Zadejte zůstatek.
+      amount_invalid: Zadejte částku s nejvýš dvěma desetinnými místy, třeba 125000,50.
+      date_invalid: Zadejte den, třeba 19. 11. 2026.
+      date_in_future: Zůstatek se zadává k dnešku nebo k dřívějšímu dni.
+  minimum:
+    open: Minimální zůstatek
+    title: Minimální zůstatek
+    description: Předpověď ukáže první den, kdy zůstatek klesne pod tuto hranici.
+    clear: Zrušit hranici
+    flash_saved: Minimální zůstatek je uložený.
+    flash_cleared: Minimální zůstatek je zrušený.
+    field:
+      amount: Minimální zůstatek v Kč
+      amount_help: Třeba 50000.
+    error:
+      amount_required: Zadejte minimální zůstatek, nebo ho zrušte.
+      amount_invalid: Zadejte částku s nejvýš dvěma desetinnými místy, třeba 50000.

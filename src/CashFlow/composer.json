@@ -9,7 +9,8 @@
         "foresi/identity": "*",
         "foresi/instance": "*",
         "foresi/party": "*",
-        "foresi/shared": "*"
+        "foresi/shared": "*",
+        "foresi/ui": "*"
     },
     "autoload": {
         "psr-4": {

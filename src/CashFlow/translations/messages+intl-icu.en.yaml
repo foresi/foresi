@@ -1,0 +1,114 @@
+nav:
+  item:
+    cash_flow: Cash flow
+cash_flow:
+  title: Cash flow
+  cancel: Cancel
+  save: Save
+  kpi:
+    today: Balance today
+    today_none: No balance entered yet
+    today_entered: 'Entered balance of {day}'
+    today_banked: 'Entered balance + bank movements to {day}'
+    lowest: Lowest point
+    on_day: 'on {day}'
+    minimum: Minimum balance
+    minimum_unset: '—'
+    minimum_unset_note: Not set; set it under ⋯
+    below_on: 'Below on {day}'
+    never_below: Never below
+    end: End of the forecast
+  alert:
+    incomplete_title: The forecast is incomplete
+    stale_title: The balance is out of date
+    no_balance: '{account} has no balance yet, so the forecast starts from zero for it.'
+    no_account: The firm has no bank account.
+    stale: 'The balance is from {day}, more than 7 days ago.'
+    source: '{source} could not be read; nothing of it is counted.'
+    rate: 'There is no exchange rate for {currency} today; its amounts are left out.'
+  table:
+    title: By period
+    caption: Opening, money in and out by category and closing balance of each period
+    row: Row
+    opening: Opening balance
+    in: Money in
+    out: Money out
+    closing: Closing balance
+    range: '{from} – {to}'
+    below_minimum: below the minimum balance
+    none: none
+  category:
+    revenue: Revenue
+    purchases: Purchases
+    rent: Rent
+    software: Software
+    payroll: Salaries and contractors
+    taxes: Taxes
+    insurance: Social and health insurance
+    vat: VAT
+    loans: Loans
+    owner_draws: Owner draws
+    other: Other
+  items:
+    empty: Nothing is expected here.
+    total: Total
+  subject:
+    invoice: Invoice
+    recurring_invoice: Recurring invoice
+    received_document: Received document
+    planned_item: Plan
+    bank_movement: Bank movement
+  certainty:
+    document: Document
+    schedule: Schedule
+    plan: Plan
+    estimate: Estimate
+  flag:
+    overdue: Overdue
+    expected_date: Expected day
+    no_due_date: No due date
+    estimated: Estimated
+  source:
+    cash_flow_planned_items: The planned items
+    invoicing_invoices: The invoices
+    invoicing_recurring_invoices: The recurring invoices
+    purchasing_received_documents: The received documents
+    banking_movements: The bank movements
+  empty:
+    no_firm_title: Set up the firm first
+    no_firm_text: The cash flow forecasts the money of the firm, its bank accounts and its documents.
+    no_firm_action: Set up the firm
+    no_account_title: Add a bank account
+    no_account_text: The forecast starts from the balance of the firm's bank accounts. Add one in the bank settings of the firm.
+    no_account_action: Add a bank account
+    title: Nothing to forecast yet
+    text: Enter the balance of your bank account. Open invoices, received documents and planned items then show how much money the firm will have.
+  balance:
+    open: Enter balance
+    title: Enter balance
+    hint: Bank movements booked after this day are added automatically.
+    flash: 'The balance of {account} on {day} is saved.'
+    field:
+      account: Account
+      on: Day
+      amount: Balance at the end of the day
+    error:
+      account: Choose an account of the firm.
+      not_found: Choose an account of the firm.
+      amount_required: Enter the balance.
+      amount_invalid: Enter an amount with at most two decimals, such as 125000.50.
+      date_invalid: Enter a day, such as 2026-11-19.
+      date_in_future: A balance is entered for today or a day before.
+  minimum:
+    open: Minimum balance
+    title: Minimum balance
+    description: The forecast shows the first day the balance falls below it.
+    clear: Clear
+    flash_saved: The minimum balance is saved.
+    flash_cleared: The minimum balance is cleared.
+    field:
+      amount: Minimum balance in CZK
+      amount_help: Such as 50000.
+    error:
+      amount_required: Enter the minimum balance, or clear it.
+      amount_invalid: Enter an amount with at most two decimals, such as 50000.

@@ -4,7 +4,17 @@ The Cash flow module (`src/CashFlow`, id `cash-flow`, scope `cashflow`) tells a 
 
 The module is optional. It requires Party, Identity, the exchange rates and the core modules, and no module that feeds it. Other modules plug in through its contract (ADR 0033), so Cash flow knows none of them by name. Invoicing, Purchasing and Banking do so when Cash flow is installed; see [Sources](#sources).
 
-Everything is available through the [REST API](api.md#cash-flow) and the [MCP server](mcp.md#tools). There are no screens yet.
+Everything is available through the [REST API](api.md#cash-flow) and the [MCP server](mcp.md#tools), and owners and members see it on the [Cash flow page](#the-cash-flow-page).
+
+## The Cash flow page
+
+**Money → Cash flow** (`/cash-flow`) reads `Forecasts::of()`, the same forecast as the API, for owners and members.
+
+- **Header**: **Enter balance** opens a dialog (account, day, the balance at its end); **⋯ → Minimum balance** opens a dialog with Save and, once set, Clear.
+- **Alert**: when the forecast is stale or incomplete, a warning names each account without a balance, a balance older than 7 days, a source that failed and a currency without a rate, with its own Enter balance button.
+- **Figures**: the balance today with where it comes from (the entered balance and its day, and whether bank movements were added), the lowest point and its day, the minimum balance with "Below on" the first day under it or "Never below", and the balance at the end of the forecast.
+- **By period**: twelve calendar months from today (no week in front of them; the first month starts today), with the opening balance, money in and money out by category, and the closing balance, red when it is below the minimum balance. A cell with money opens its items in the side sheet: the label, a badge for where each comes from (invoice, recurring invoice, received document, plan), the day it is counted on, its flags and the amount in its own currency.
+- **Empty states**: before the first-run setup; a firm without a bank account; and a firm with no balance and nothing expected, which asks for the balance first.
 
 ## Planned items
 

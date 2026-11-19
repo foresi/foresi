@@ -1721,7 +1721,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/CashFlow",
-                "reference": "c960e6e20c7b55615489e6f9583b2beb04fb1cbd"
+                "reference": "066e6eef965950985cbf3e3557fd07bc0b4632c1"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1729,7 +1729,8 @@
                 "foresi/identity": "*",
                 "foresi/instance": "*",
                 "foresi/party": "*",
-                "foresi/shared": "*"
+                "foresi/shared": "*",
+                "foresi/ui": "*"
             },
             "type": "foresi-module",
             "extra": {
@@ -2203,7 +2204,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "4e8a9284fedef7c25c56ad285d039725cf5210cb"
+                "reference": "bb24ed6f76037034cc6f52d82f453bce7e7f7717"
             },
             "require": {
                 "brick/math": "^1.0",
