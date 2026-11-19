@@ -12,6 +12,7 @@ use Foresi\Invoicing\Application\View\InvoiceLists;
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Shared\Application\Api\ScopeGuard;
 use Foresi\Shared\Application\View\InvalidFilter;
+use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\SavedViewRefused;
 use Foresi\Shared\Application\View\SavedViews;
 use Foresi\Shared\Application\View\ViewFilter;
@@ -43,7 +44,7 @@ final readonly class InvoiceViewFilter
      * @throws SavedViewRefused
      * @throws \DomainException when the token lacks views:read for a view
      */
-    public static function of(SavedViews $views, ScopeGuard $scope, ?string $kind, ?string $viewId, mixed $filter): self
+    public static function of(SavedViews $views, InvoiceLists $lists, ScopeGuard $scope, ?string $kind, ?string $viewId, mixed $filter): self
     {
         $documents = null === $kind ? null : DocumentKind::tryFrom($kind);
         $saved = null;
@@ -62,7 +63,7 @@ final readonly class InvoiceViewFilter
             $conditions = $views->filterOf($saved);
         }
         if (null !== $filter && '' !== $filter) {
-            $parsed = self::parse($filter, $documents ?? DocumentKind::Invoice);
+            $parsed = self::parse($filter, $lists->of($documents ?? DocumentKind::Invoice));
             foreach ($parsed->conditions as $condition) {
                 $conditions = ($conditions ?? new ViewFilter())->with($condition);
             }
@@ -72,7 +73,7 @@ final readonly class InvoiceViewFilter
         return new self($documents, $conditions, $saved);
     }
 
-    private static function parse(mixed $filter, DocumentKind $kind): ViewFilter
+    private static function parse(mixed $filter, ListDefinition $list): ViewFilter
     {
         if (\is_string($filter)) {
             try {
@@ -82,7 +83,7 @@ final readonly class InvoiceViewFilter
             }
         }
         try {
-            return ViewFilter::parse($filter, InvoiceLists::of($kind));
+            return ViewFilter::parse($filter, $list);
         } catch (InvalidFilter $invalid) {
             throw SavedViewRefused::invalid('filter_invalid', 'filters' === $invalid->path ? 'filter' : 'filter.'.$invalid->path, $invalid->getMessage().' Find the fields and operators with GET /api/v1/lists or foresi_list_lists.');
         }

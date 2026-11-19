@@ -34,7 +34,7 @@ final readonly class ProjectTaskViews
     /** The parameters of the old filters. */
     public const array OLD_PARAMS = [ProjectTaskLists::RESPONSIBLE => true, ProjectTaskLists::STATUS => true, ProjectTaskLists::DUE => true];
 
-    public function __construct(private ListViews $views, private ActorRole $actor)
+    public function __construct(private ProjectTaskLists $taskLists, private ListViews $views, private ActorRole $actor)
     {
     }
 
@@ -45,7 +45,7 @@ final readonly class ProjectTaskViews
      */
     public function of(InputBag $input): array
     {
-        $list = ProjectTaskLists::list();
+        $list = $this->taskLists->list();
         $views = $this->views->of($list, $this->actor->userId());
         $view = ListViews::chosen($views, $input->getString('view'));
         $working = WorkingFilter::decode($input->getString(WorkingFilter::PARAM), $list) ?? $view->filter;

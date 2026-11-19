@@ -37,10 +37,8 @@ final class ReceivedDocumentFilterTest extends TestCase
 
     public function testATabWithoutAViewListsWhatItsDefaultViewHolds(): void
     {
-        $lists = ReceivedDocumentLists::list();
-
         foreach (ReceivedDocumentFilter::TABS as $tab) {
-            self::assertSame($lists->default($tab)?->filter->toArray(), new ReceivedDocumentFilter($tab)->view->toArray(), $tab);
+            self::assertSame(ReceivedDocumentLists::defaultFilter($tab)?->toArray(), new ReceivedDocumentFilter($tab)->view->toArray(), $tab);
         }
         self::assertSame([['field' => 'state', 'op' => 'is', 'value' => 'draft']], new ReceivedDocumentFilter()->view->toArray()['conditions']);
     }

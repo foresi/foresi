@@ -14,6 +14,7 @@ use Foresi\Shared\Application\View\Field;
 use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ListDefinitionSource;
+use Foresi\Shared\Application\View\ListFields;
 use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Work\Domain\ProjectVisibility;
 
@@ -24,8 +25,11 @@ use Foresi\Work\Domain\ProjectVisibility;
  * The list leaves out the archived projects unless a condition asks for them, as the
  * address book leaves out its archived contacts: All holds no condition, as every
  * list's All, and shows the projects the Active tab showed, so ?tab=active opens it.
+ *
+ * The name is a filterable attribute of the list's data source (DS1); the archive, the
+ * client, the visibility and billable are the module's own fields.
  */
-final readonly class ProjectLists implements ListDefinitionSource
+final class ProjectLists implements ListDefinitionSource
 {
     public const string KEY = 'work.projects';
     public const string ARCHIVED = 'archived';
@@ -38,18 +42,24 @@ final readonly class ProjectLists implements ListDefinitionSource
 
     public function lists(): iterable
     {
-        yield self::list();
+        yield $this->list();
     }
 
-    public static function list(): ListDefinition
+    private ?ListDefinition $list = null;
+
+    public function __construct(private readonly ListFields $fields)
     {
-        return new ListDefinition(self::KEY, self::fields(), self::defaults());
+    }
+
+    public function list(): ListDefinition
+    {
+        return $this->list ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, $this->ownFields()), $this->defaults());
     }
 
     /**
      * @return list<Field>
      */
-    private static function fields(): array
+    private function ownFields(): array
     {
         $visibilities = array_column(ProjectVisibility::cases(), 'value');
 
@@ -64,7 +74,7 @@ final readonly class ProjectLists implements ListDefinitionSource
     /**
      * @return list<DefaultView>
      */
-    private static function defaults(): array
+    private function defaults(): array
     {
         return [
             new DefaultView(ListDefinition::ALL, 'work.projects.tab.all', showCount: false, position: 0),

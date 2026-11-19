@@ -14,6 +14,7 @@ use Foresi\Shared\Application\View\Field;
 use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ListDefinitionSource;
+use Foresi\Shared\Application\View\ListFields;
 use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Work\Application\DueBucket;
 
@@ -27,13 +28,18 @@ use Foresi\Work\Application\DueBucket;
  * as the list left them out by default and as ClickUp hides closed tasks and Asana
  * shows incomplete ones: All holds no condition, as every list's All, and shows the
  * unfinished tasks, which was the list's default.
+ *
+ * The title and the priority are filterable attributes of the list's data source (DS1).
  */
-final readonly class ProjectTaskLists implements ListDefinitionSource
+final class ProjectTaskLists implements ListDefinitionSource
 {
     public const string KEY = 'work.project_tasks';
     public const string RESPONSIBLE = 'responsible';
     public const string STATUS = 'status';
     public const string DUE = 'due';
+    /** Fields of the list's data source, which TaskConditions matches on the row. */
+    public const string TITLE = 'title';
+    public const string PRIORITY = 'priority';
 
     /** The status values: a task not finished yet, or finished. */
     public const string OPEN = 'open';
@@ -50,26 +56,32 @@ final readonly class ProjectTaskLists implements ListDefinitionSource
 
     public function lists(): iterable
     {
-        yield self::list();
+        yield $this->list();
     }
 
-    public static function list(): ListDefinition
+    private ?ListDefinition $list = null;
+
+    public function __construct(private readonly ListFields $fields)
     {
-        return new ListDefinition(self::KEY, self::fields(), self::defaults());
+    }
+
+    public function list(): ListDefinition
+    {
+        return $this->list ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, $this->ownFields()), $this->defaults());
     }
 
     /**
      * @return list<Field>
      */
-    private static function fields(): array
+    private function ownFields(): array
     {
         $statuses = [self::OPEN, self::FINISHED];
         $dues = array_column(DueBucket::cases(), 'value');
 
         return [
             new Field(self::RESPONSIBLE, FieldType::Reference, 'work.filter.responsible', source: self::PERSON),
-            new Field(self::STATUS, FieldType::Enum, 'work.filter.status', options: $statuses, optionLabels: self::labels('work.filter.status_', $statuses)),
-            new Field(self::DUE, FieldType::Enum, 'work.filter.due', options: $dues, optionLabels: self::labels('work.filter.due_', $dues)),
+            new Field(self::STATUS, FieldType::Enum, 'work.filter.status', options: $statuses, optionLabels: $this->labels('work.filter.status_', $statuses)),
+            new Field(self::DUE, FieldType::Enum, 'work.filter.due', options: $dues, optionLabels: $this->labels('work.filter.due_', $dues)),
         ];
     }
 
@@ -78,7 +90,7 @@ final readonly class ProjectTaskLists implements ListDefinitionSource
      *
      * @return array<string, string>
      */
-    private static function labels(string $prefix, array $values): array
+    private function labels(string $prefix, array $values): array
     {
         return array_combine($values, array_map(static fn (string $value): string => $prefix.$value, $values));
     }
@@ -88,7 +100,7 @@ final readonly class ProjectTaskLists implements ListDefinitionSource
      *
      * @return list<DefaultView>
      */
-    private static function defaults(): array
+    private function defaults(): array
     {
         return [
             new DefaultView(ListDefinition::ALL, 'work.list.tab.all', showCount: false, position: 0),

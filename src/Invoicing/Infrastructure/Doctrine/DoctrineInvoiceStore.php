@@ -78,17 +78,15 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
 {
     private const string LOCK = 'UPDATE invoice SET version = version WHERE id = :id';
     private const string COUNTRY = 'i.issuer.address.countryCode';
-    /** The column of each date a list can be filtered by. */
-    private const array DATE_COLUMNS = [InvoiceLists::ISSUE_DATE => 'i.issueDate', InvoiceLists::TAX_POINT_DATE => 'i.taxPointDate', InvoiceLists::DUE_DATE => 'i.dueDate'];
     /** What a list sorts by when its sort names nothing it can sort by; the number breaks every tie. */
     private const string ORDER_FALLBACK = 'i.issueDate';
     private const string ORDER_TIE = 'i.numberKey';
 
     /**
-     * The stored fields of a view: the dates, the customer, and the amount in whole units
-     * of the currency, which every supported one divides into a hundred (Currency::minorUnits).
+     * The stored field of a view the data source does not filter by: the customer picked. The
+     * dates and the amounts are attributes of the data source, which bring their expressions.
      */
-    private const array VIEW_COLUMNS = self::DATE_COLUMNS + [InvoiceLists::CUSTOMER => 'i.customerParty', InvoiceLists::AMOUNT => 'i.payableMinor'];
+    private const array VIEW_COLUMNS = [InvoiceLists::CUSTOMER => 'i.customerParty'];
 
     public function __construct(
         private EntityManagerInterface $em,
@@ -98,6 +96,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
         private InvoicePayments $payments,
         private InstanceClock $instanceClock,
         private IssuedDocumentSource $source,
+        private InvoiceLists $lists,
     ) {
     }
 
@@ -736,16 +735,13 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
 
     private function listOf(DocumentKind $kind): ListDefinition
     {
-        /** @var array<string, ListDefinition> $lists */
-        static $lists = [];
-
-        return $lists[$kind->value] ??= InvoiceLists::of($kind);
+        return $this->lists->of($kind);
     }
 
     /**
-     * The documents a view holds, compiled for the query (spec D3): the dates are
-     * columns; the payment, overdue, settlement and export are the SQL the tabs counted with,
-     * each value of a field under its own suffix, so its subqueries never share an alias.
+     * The documents a view holds, compiled for the query (spec D3): the fields of the
+     * data source bring their expressions, the customer is a column; the payment, overdue,
+     * settlement and export are the SQL the tabs counted with, each value of a field under its own suffix, so its subqueries never share an alias.
      * Out of the trash unless the view asks for it.
      *
      * @param array<string, array{mixed, string|ArrayParameterType|null}> $overdueParameters
@@ -774,7 +770,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
             ]), []],
             default => throw new \LogicException(\sprintf('The field "%s" of the documents has no SQL.', $condition->field)),
         });
-        $compiler = new DqlConditions($this->listOf($kind), self::VIEW_COLUMNS, $derived(...), [InvoiceLists::AMOUNT => 100]);
+        $compiler = new DqlConditions($this->listOf($kind), self::VIEW_COLUMNS, $derived(...));
         [$condition, $parameters] = $compiler->compile($view, $today, $suffix);
 
         return [([] === $view->on(InvoiceLists::TRASHED) ? 'i.deletedAt IS NULL AND ' : '').$condition, $parameters];
@@ -820,7 +816,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
         $month = InvoiceFilter::monthValue($filter->month);
         if (null !== $month) {
             // A tax document belongs to the month of its tax point, an advance to that of its issue.
-            $compiler = new DqlConditions($this->listOf($filter->kind), self::DATE_COLUMNS, static fn (): never => throw new \LogicException('A month is a date.'));
+            $compiler = new DqlConditions($this->listOf($filter->kind), [], static fn (): never => throw new \LogicException('A month is a date.'));
             [$condition, $bound] = $compiler->compile(ViewFilter::all(new Condition(InvoiceLists::monthField($filter->kind), 'is', $month)), $this->today(), 'month');
             $where .= ' AND '.$condition;
             $parameters += $bound;

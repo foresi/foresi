@@ -97,7 +97,7 @@ final class ProjectController extends AbstractController
     private const array STATUS_FILTERS = ['open', 'all', 'finished'];
     private const array STATUS_TONES = ['open' => 'gray', 'active' => 'amber', 'done' => 'green', 'closed' => 'gray'];
 
-    public function __construct(
+    public function __construct(private readonly ProjectTaskLists $taskLists, private readonly ProjectLists $projectLists,
         private readonly WorkQueries $queries,
         private readonly ManageProjects $projects,
         private readonly ManageTasks $tasks,
@@ -141,7 +141,7 @@ final class ProjectController extends AbstractController
             return $this->redirectToRoute(self::ROUTE, $this->builtQuery($input), Response::HTTP_SEE_OTHER);
         }
         [$views, $view, $shown] = $this->projectViews($input);
-        $list = ProjectLists::list();
+        $list = $this->projectLists->list();
         $filterParam = WorkingFilter::param($shown, $view->filter);
         // A view keeps its own order; the address names the sort only when it differs (spec D10).
         $viewSort = ViewState::sortParam($view->sort, self::SORT_NAME);
@@ -243,7 +243,7 @@ final class ProjectController extends AbstractController
         }
         [$views, $view, $shown] = $this->taskViews->of($input);
         $list = $this->queries->projectList($id, new TaskFilter(conditions: new TaskConditions($shown, $this->myMembership(), $this->clock->today()))) ?? throw new NotFoundHttpException();
-        $definition = ProjectTaskLists::list();
+        $definition = $this->taskLists->list();
         $query = array_filter([
             'view' => $view->isAll() ? null : $view->key,
             WorkingFilter::PARAM => WorkingFilter::param($shown, $view->filter),
@@ -835,7 +835,7 @@ final class ProjectController extends AbstractController
         [, $view] = $this->taskViews->of($input);
         $query = array_diff_key($input->all(), [FilterRows::PARAM => true, FilterRows::MARKER => true, WorkingFilter::PARAM => true, 'view' => true] + ProjectTaskViews::OLD_PARAMS);
 
-        return array_filter($query + ['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), ProjectTaskLists::list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
+        return array_filter($query + ['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), $this->taskLists->list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
     }
 
     /**
@@ -906,7 +906,7 @@ final class ProjectController extends AbstractController
      */
     private function projectViews(InputBag $input): array
     {
-        $list = ProjectLists::list();
+        $list = $this->projectLists->list();
         $views = $this->listViews->of($list, $this->actorRole->userId());
         $view = ListViews::chosen($views, $input->getString('view', $input->getString('tab')));
 
@@ -926,7 +926,7 @@ final class ProjectController extends AbstractController
         [, $view] = $this->projectViews($input);
         $query = array_diff_key($input->all(), [FilterRows::PARAM => true, FilterRows::MARKER => true, WorkingFilter::PARAM => true, 'view' => true, 'tab' => true]);
 
-        return array_filter($query + ['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), ProjectLists::list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
+        return array_filter($query + ['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), $this->projectLists->list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
     }
 
     /**

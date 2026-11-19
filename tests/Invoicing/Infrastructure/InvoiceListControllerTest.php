@@ -1387,7 +1387,7 @@ final class InvoiceListControllerTest extends WebTestCase
 
         self::assertSame([$late->number()], $this->numbers($crawler));
         self::assertNotContains($notDue->number(), $this->numbers($crawler));
-        self::assertSame(['Payment state: Unpaid', 'Due date: before today'], $crawler->filter('[data-filter-chips] [data-filter-condition] span')->each(static fn (Crawler $chip): string => $chip->text()));
+        self::assertSame(['Payment state: Unpaid', 'Due: before today'], $crawler->filter('[data-filter-chips] [data-filter-condition] span')->each(static fn (Crawler $chip): string => $chip->text()));
         // The tabs keep their counts and leave the working filter behind.
         self::assertSame('/invoices?view=paid', $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(1)->attr('href'));
         // Each chip's ✕ is the list without that condition.
@@ -1672,7 +1672,7 @@ final class InvoiceListControllerTest extends WebTestCase
         return WorkingFilter::encode(ViewFilter::parse(['conditions' => [
             ['field' => 'payment', 'op' => 'is', 'value' => 'unpaid'],
             ['field' => 'due_date', 'op' => 'before', 'value' => ['relative' => 'today']],
-        ]], InvoiceLists::of(DocumentKind::Invoice)));
+        ]], self::getContainer()->get(InvoiceLists::class)->of(DocumentKind::Invoice)));
     }
 
     public function testABuilderFilterEqualToTheViewLeavesTheAddressClean(): void
@@ -1705,6 +1705,25 @@ final class InvoiceListControllerTest extends WebTestCase
 
         self::assertSame([$small->number()], $this->numbers($crawler));
         self::assertSame(['Customer: Acme Example', 'Total: ≤ 1,000.5'], $crawler->filter('[data-filter-chips] [data-filter-condition] span')->each(static fn (Crawler $chip): string => $chip->text()));
+    }
+
+    public function testTheColumnsOfTheInvoiceAreFieldsOfTheBuilder(): void
+    {
+        // Every column with an expression filters too (D4): text, money and a date of the document.
+        $this->signedIn();
+        $hosting = $this->issue('2026-11-02', '2026-12-01', description: 'Hosting', price: '100.00', variableSymbol: '777');
+        $consulting = $this->issue('2026-11-05', '2026-12-05', price: '5000.00');
+
+        $shown = function (array $condition): array {
+            $this->client->request('GET', '/invoices?'.http_build_query(['conditions' => '1', 'c' => [$condition]]));
+
+            return $this->numbers($this->client->followRedirect());
+        };
+
+        self::assertSame([$hosting->number()], $shown(['field' => 'description', 'op' => 'contains', 'value' => 'host']));
+        self::assertSame([$hosting->number()], $shown(['field' => 'variable_symbol', 'op' => 'is', 'value' => '777']));
+        self::assertSame([$consulting->number()], $shown(['field' => 'net', 'op' => 'ge', 'from' => '1 000']));
+        self::assertSame([$hosting->number()], $shown(['field' => 'issue_date', 'op' => 'before', 'from' => ['rule' => 'day', 'day' => '2026-11-03']]));
     }
 
     public function testAnAddressWithABrokenFilterShowsTheView(): void

@@ -44,11 +44,11 @@ final readonly class ProjectTaskColumns implements DataSource
         $label = static fn (string $key): string => 'work.task.field.'.$key;
 
         return [
-            new Attribute('title', $label('title'), AttributeType::Text, static fn (TaskRow $task): string => $task->title, defaultVisible: true, defaultPosition: 10, cell: $this->title(...), locked: true, truncate: true),
+            new Attribute('title', $label('title'), AttributeType::Text, static fn (TaskRow $task): string => $task->title, defaultVisible: true, defaultPosition: 10, cell: $this->title(...), locked: true, truncate: true, filterable: true, filter: 't.title'),
             new Attribute('status', $label('status'), AttributeType::Text, static fn (TaskRow $task): string => $task->statusName, defaultVisible: true, defaultPosition: 20, cell: $this->status(...)),
             new Attribute('responsible', $label('responsible'), AttributeType::Reference, static fn (TaskRow $task): ?string => $task->responsibleName, defaultVisible: true, defaultPosition: 30, cell: $this->responsible(...), phone: false, truncate: true),
             new Attribute('due', $label('due_on'), AttributeType::Date, static fn (TaskRow $task): ?\DateTimeImmutable => $task->dueOn, defaultVisible: true, defaultPosition: 40, cell: $this->dueCell(...), phone: false),
-            new Attribute('priority', $label('priority'), AttributeType::Enum, static fn (TaskRow $task): Priority => $task->priority, defaultVisible: true, defaultPosition: 50, options: array_combine(array_map(static fn (Priority $priority): string => $priority->value, Priority::cases()), array_map(static fn (Priority $priority): string => 'work.priority.'.$priority->value, Priority::cases())), cell: $this->priority(...), phone: false),
+            new Attribute('priority', $label('priority'), AttributeType::Enum, static fn (TaskRow $task): Priority => $task->priority, defaultVisible: true, defaultPosition: 50, options: array_combine(array_map(static fn (Priority $priority): string => $priority->value, Priority::cases()), array_map(static fn (Priority $priority): string => 'work.priority.'.$priority->value, Priority::cases())), cell: $this->priority(...), phone: false, filterable: true, filter: 't.priority'),
             new Attribute('labels', $label('labels'), AttributeType::Text, static fn (TaskRow $task): string => implode(', ', array_map(static fn (LabelBadge $badge): string => $badge->name, $task->labels)), defaultVisible: true, defaultPosition: 60, cell: static fn (TaskRow $task): ?array => [] === $task->labels ? null : ['badges' => array_map(static fn (LabelBadge $badge): array => ['label' => $badge->name, 'tone' => $badge->colour->value], $task->labels)], phone: false, wide: true),
         ];
     }

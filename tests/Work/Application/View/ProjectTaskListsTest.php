@@ -12,19 +12,19 @@ use Foresi\Shared\Application\View\DefaultView;
 use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Domain\View\Placement;
 use Foresi\Work\Application\View\ProjectTaskLists;
-use PHPUnit\Framework\TestCase;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
  * A project's task list definition (saved views D3, D12): its fields, the filters
  * it had, and the views it ships, none of which counts (D9).
  */
-final class ProjectTaskListsTest extends TestCase
+final class ProjectTaskListsTest extends KernelTestCase
 {
     public function testItShipsAllMineAndFinishedWithoutCounts(): void
     {
-        $list = ProjectTaskLists::list();
+        $list = $this->lists()->list();
 
-        self::assertEquals([$list], iterator_to_array(new ProjectTaskLists()->lists()));
+        self::assertEquals([$list], iterator_to_array($this->lists()->lists()));
         self::assertSame('work.project_tasks', $list->key);
         self::assertSame(
             [
@@ -42,9 +42,9 @@ final class ProjectTaskListsTest extends TestCase
 
     public function testItsFieldsAreTheFiltersTheListHad(): void
     {
-        $fields = ProjectTaskLists::list()->fields;
+        $fields = $this->lists()->list()->fields;
 
-        self::assertSame(['responsible', 'status', 'due'], array_keys($fields));
+        self::assertSame(['responsible', 'status', 'due', 'title', 'priority'], array_keys($fields));
         self::assertSame(FieldType::Reference, $fields['responsible']->type);
         self::assertSame('person', $fields['responsible']->source);
         self::assertSame('work.filter.responsible', $fields['responsible']->label);
@@ -52,5 +52,15 @@ final class ProjectTaskListsTest extends TestCase
         self::assertSame('work.filter.status', $fields['status']->label);
         self::assertSame(['overdue' => 'work.filter.due_overdue', 'today' => 'work.filter.due_today', 'next_7_days' => 'work.filter.due_next_7_days', 'none' => 'work.filter.due_none'], $fields['due']->optionLabels);
         self::assertSame('work.filter.due', $fields['due']->label);
+    }
+
+    public function testTheListIsBuiltOnce(): void
+    {
+        self::assertSame($this->lists()->list(), $this->lists()->list());
+    }
+
+    private function lists(): ProjectTaskLists
+    {
+        return self::getContainer()->get(ProjectTaskLists::class);
     }
 }

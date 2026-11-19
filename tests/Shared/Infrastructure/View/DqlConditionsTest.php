@@ -55,6 +55,7 @@ final class DqlConditionsTest extends TestCase
         yield 'a set is not empty' => ['tags', 'is_not_empty', null, 'NOT (x.tags IS NULL OR CAST_TEXT(x.tags) = \'[]\')', []];
         yield 'a related row matches' => ['email', 'contains', 'acme', 'EXISTS (SELECT 1 FROM App\\Email e_v_0 WHERE e_v_0.owner = x AND LOWER(e_v_0.address) LIKE :v_0 ESCAPE \'!\')', ['v_0' => ['%acme%', null]]];
         yield 'no related row matches' => ['email', 'does_not_contain', 'acme', 'NOT EXISTS (SELECT 1 FROM App\\Email e_v_0 WHERE e_v_0.owner = x AND LOWER(e_v_0.address) LIKE :v_0 ESCAPE \'!\')', ['v_0' => ['%acme%', null]]];
+        yield 'the related row is the alias itself' => ['invoice', 'is', 'A1', 'EXISTS (SELECT 1 FROM App\\Invoice si_v_0 WHERE si_v_0 = x.invoice AND si_v_0.number = :v_0)', ['v_0' => ['A1', null]]];
         yield 'no related row has a value' => ['email', 'is_empty', null, 'NOT EXISTS (SELECT 1 FROM App\\Email e_v_0 WHERE e_v_0.owner = x AND (e_v_0.address IS NOT NULL AND e_v_0.address <> \'\'))', []];
         yield 'an amount in whole units against minor ones' => ['price', 'ge', 12.5, 'x.priceMinor >= :v_0', ['v_0' => [1250, null]]];
     }
@@ -136,6 +137,7 @@ final class DqlConditionsTest extends TestCase
             new Field('city', FieldType::Text, 'City', expression: 'x.city'),
             new Field('tags', FieldType::MultiEnum, 'Tags', options: ['a', 'b'], expression: 'x.tags'),
             new Field('email', FieldType::Text, 'E-mail', expression: 'e.address', within: 'App\\Email e WHERE e.owner = x'),
+            new Field('invoice', FieldType::Text, 'Invoice', expression: 'si.number', within: 'App\\Invoice si WHERE si = x.invoice'),
             new Field('price', FieldType::Number, 'Price', expression: 'x.priceMinor', scale: 100),
         ], [new DefaultView('all', 'All')]);
     }

@@ -11,6 +11,7 @@ namespace Foresi\Invoicing\Infrastructure\Mcp;
 use Foresi\Invoicing\Application\InvoicingNotAllowed;
 use Foresi\Invoicing\Application\Query\InvoiceList;
 use Foresi\Invoicing\Application\Query\InvoiceSliceFilter;
+use Foresi\Invoicing\Application\View\InvoiceLists;
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Infrastructure\Api\InvoiceJson;
 use Foresi\Invoicing\Infrastructure\Api\InvoiceListQuery;
@@ -31,7 +32,7 @@ use Foresi\Shared\Infrastructure\View\Api\ViewJson;
  */
 final readonly class SearchInvoicesTool implements ReadTool
 {
-    public function __construct(private InvoiceList $list, private ToolArguments $arguments, private SavedViews $views, private ScopeGuard $scope, private ViewJson $json)
+    public function __construct(private InvoiceList $list, private ToolArguments $arguments, private SavedViews $views, private ScopeGuard $scope, private ViewJson $json, private InvoiceLists $lists)
     {
     }
 
@@ -102,7 +103,7 @@ final readonly class SearchInvoicesTool implements ReadTool
             throw new ToolRefusal(ToolRefusal::INSUFFICIENT_SCOPE, \sprintf('The token does not have the "%s" scope a saved view needs.', InvoiceViewFilter::VIEWS_SCOPE));
         }
         try {
-            $applied = InvoiceViewFilter::of($this->views, $this->scope, $query->kind, $viewId, $arguments['filter'] ?? null);
+            $applied = InvoiceViewFilter::of($this->views, $this->lists, $this->scope, $query->kind, $viewId, $arguments['filter'] ?? null);
             $slice = $this->list->slice($query->filter($applied->filter, $applied->kind), $afterId, $query->limit);
         } catch (SavedViewRefused $refused) {
             throw ToolRefusal::of($refused);

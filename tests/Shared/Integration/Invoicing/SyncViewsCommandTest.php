@@ -81,7 +81,7 @@ final class SyncViewsCommandTest extends KernelTestCase
     public function testTheListShowsStoredViewsAsTheyAreAndDeclaredOnesUntilStored(): void
     {
         $views = self::getContainer()->get(ListViews::class);
-        $list = InvoiceLists::of(DocumentKind::Invoice);
+        $list = self::getContainer()->get(InvoiceLists::class)->of(DocumentKind::Invoice);
         $declared = array_map(static fn ($view): string => $view->key, $views->of($list, null));
         self::assertSame(['all', 'paid', 'unpaid', 'overdue', 'to_refund', 'trash'], $declared);
 

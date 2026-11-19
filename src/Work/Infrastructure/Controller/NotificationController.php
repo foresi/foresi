@@ -64,7 +64,7 @@ final class NotificationController extends AbstractController
     /** The parts of the inbox's address an action carries back to it. */
     private const array LIST_QUERY = ['view', 'tab', 'filter', WorkingFilter::PARAM, 'page', WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY];
 
-    public function __construct(
+    public function __construct(private readonly NotificationLists $notificationLists,
         private readonly NotificationQueries $queries,
         private readonly ManageNotifications $notifications,
         private readonly People $people,
@@ -88,7 +88,7 @@ final class NotificationController extends AbstractController
             return $this->redirectToRoute(self::ROUTE, $this->builtQuery($request->query), Response::HTTP_SEE_OTHER);
         }
         [$views, $view, $shown] = $this->views($request->query);
-        $list = NotificationLists::list();
+        $list = $this->notificationLists->list();
         $filterParam = WorkingFilter::param($shown, $view->filter);
         $page = max(1, $request->query->getInt('page', 1));
         $inbox = $this->queries->inbox($me, $shown, $page);
@@ -168,7 +168,7 @@ final class NotificationController extends AbstractController
      */
     private function views(InputBag $input): array
     {
-        $list = NotificationLists::list();
+        $list = $this->notificationLists->list();
         $views = $this->listViews->of($list, $this->actor->userId());
         $view = ListViews::chosen($views, $input->getString('view', $input->getString('tab')));
         $shown = WorkingFilter::decode($input->getString(WorkingFilter::PARAM), $list) ?? $view->filter;
@@ -193,7 +193,7 @@ final class NotificationController extends AbstractController
         [, $view] = $this->views($input);
         $query = array_diff_key($input->all(), [FilterRows::PARAM => true, FilterRows::MARKER => true, WorkingFilter::PARAM => true, 'page' => true, 'filter' => true]);
 
-        return array_filter($query + [WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), NotificationLists::list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
+        return array_filter($query + [WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), $this->notificationLists->list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
     }
 
     /**

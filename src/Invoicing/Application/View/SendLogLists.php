@@ -16,15 +16,17 @@ use Foresi\Shared\Application\View\Field;
 use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ListDefinitionSource;
+use Foresi\Shared\Application\View\ListFields;
 use Foresi\Shared\Application\View\ViewFilter;
 
 /**
  * The send log and the views it ships: the tabs it had, each the same sends as
  * before (spec D12), All first. The log counted none, so no view shows a count (D9).
  * The type of a send, an invoice or a reminder, was a select on the bar and is a
- * field of "+ Filter" now (D11).
+ * field of "+ Filter" now (D11). The document's number, its customer and when a send was
+ * made are filterable attributes of the log's data source (DS1).
  */
-final readonly class SendLogLists implements ListDefinitionSource
+final class SendLogLists implements ListDefinitionSource
 {
     public const string KEY = 'invoicing.sends';
     public const string STATUS = 'status';
@@ -35,25 +37,31 @@ final readonly class SendLogLists implements ListDefinitionSource
 
     public function lists(): iterable
     {
-        yield self::list();
+        yield $this->list();
     }
 
-    public static function list(): ListDefinition
+    private ?ListDefinition $list = null;
+
+    public function __construct(private readonly ListFields $fields)
     {
-        return new ListDefinition(self::KEY, self::fields(), self::defaults());
+    }
+
+    public function list(): ListDefinition
+    {
+        return $this->list ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, $this->ownFields()), $this->defaults());
     }
 
     /**
      * @return list<Field>
      */
-    private static function fields(): array
+    private function ownFields(): array
     {
         $statuses = array_column(SendStatus::cases(), 'value');
         $purposes = array_column(SendPurpose::cases(), 'value');
 
         return [
-            new Field(self::STATUS, FieldType::Enum, 'invoice.sends.column.status', options: $statuses, optionLabels: self::labels('invoice.sends.status.', $statuses)),
-            new Field(self::PURPOSE, FieldType::Enum, 'reminder.log.column', options: $purposes, optionLabels: self::labels('reminder.log.purpose.', $purposes)),
+            new Field(self::STATUS, FieldType::Enum, 'invoice.sends.column.status', options: $statuses, optionLabels: $this->labels('invoice.sends.status.', $statuses)),
+            new Field(self::PURPOSE, FieldType::Enum, 'reminder.log.column', options: $purposes, optionLabels: $this->labels('reminder.log.purpose.', $purposes)),
         ];
     }
 
@@ -62,7 +70,7 @@ final readonly class SendLogLists implements ListDefinitionSource
      *
      * @return array<string, string>
      */
-    private static function labels(string $prefix, array $values): array
+    private function labels(string $prefix, array $values): array
     {
         return array_combine($values, array_map(static fn (string $value): string => $prefix.$value, $values));
     }
@@ -70,7 +78,7 @@ final readonly class SendLogLists implements ListDefinitionSource
     /**
      * @return list<DefaultView>
      */
-    private static function defaults(): array
+    private function defaults(): array
     {
         $views = [new DefaultView(ListDefinition::ALL, 'invoice.sends.tab.all', showCount: false, position: 0)];
         foreach (self::TABS as $position => $status) {
