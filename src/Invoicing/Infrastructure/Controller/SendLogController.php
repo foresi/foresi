@@ -10,15 +10,27 @@ namespace Foresi\Invoicing\Infrastructure\Controller;
 
 use Foresi\Identity\Application\StaffCheck;
 use Foresi\Invoicing\Application\InvoiceSends;
-use Foresi\Invoicing\Application\InvoicingCountries;
 use Foresi\Invoicing\Application\SendLogFilter;
 use Foresi\Invoicing\Application\SendLogRow;
-use Foresi\Invoicing\Application\UnsupportedCountry;
+use Foresi\Invoicing\Application\View\SendLogLists;
 use Foresi\Invoicing\Domain\SendPurpose;
-use Foresi\Invoicing\Domain\SendStatus;
-use Foresi\Invoicing\Infrastructure\Form\SendFailureText;
+use Foresi\Invoicing\Infrastructure\Column\SendLogColumns;
+use Foresi\Shared\Application\ActorRole;
+use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Application\View\FilterRows;
+use Foresi\Shared\Application\View\InvalidFilter;
+use Foresi\Shared\Application\View\ListView;
+use Foresi\Shared\Application\View\ListViews;
+use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Application\View\WorkingFilter;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
+use Foresi\Ui\Column\RememberedDisplay;
+use Foresi\Ui\Column\WorkingDisplay;
+use Foresi\Ui\Column\WorkingState;
 use Foresi\Ui\Component\DataTable;
+use Foresi\Ui\View\ViewBar;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -26,130 +38,179 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Every e-mail an invoice was sent with, newest first, for staff: when, from which
- * firm, to whom, how it went and why it failed. A tab per state, and a firm when
- * there are several, and invoices or reminders. The number leads to the
- * invoice's history, the icon to sending again: the invoice for an invoice, the
- * next reminder for a reminder.
- * Times are in the time zone of the country that issued the invoice.
+ * Every e-mail an invoice was sent with, newest first, for staff: when, to whom,
+ * how it went and why it failed. The log runs on saved views as every list does
+ * (spec D7): All, Sent, Waiting and Failed ship as views, with the person's own
+ * beside them; the state and the type, an invoice or a reminder, are conditions
+ * of "+ Filter" (D11). The number leads to the invoice's history, the icon to
+ * sending again: the invoice for an invoice, the next reminder for a reminder.
+ *
+ * The old ?status= opens the view of that name, as the tabs it replaced did, and
+ * an old ?purpose= adds its condition, so bookmarks and the shell's notices still
+ * narrow (D12). There is one firm per instance, so no firm narrows the log.
  */
 final class SendLogController extends AbstractController
 {
-    private const string ALL = 'all';
-    private const array TABS = [self::ALL, 'sent', 'queued', 'failed'];
-    private const array TONES = ['queued' => 'gray', 'sent' => 'green', 'failed' => 'red', 'cancelled' => 'gray'];
+    public const string ROUTE = 'app_invoice_sends';
+    /** The parameter of the old tabs, which named the view. */
+    private const string OLD_TAB = 'status';
+    /** The parameter of the old select, by the field it now names. */
+    private const array OLD_PARAMS = ['purpose' => SendLogLists::PURPOSE];
 
     public function __construct(
         private readonly InvoiceSends $sends,
-        private readonly InvoicingCountries $countries,
-        private readonly SendFailureText $failures,
         private readonly StaffCheck $staff,
         private readonly TranslatorInterface $translator,
+        private readonly SendLogColumns $columns,
+        private readonly ListViews $listViews,
+        private readonly ActorRole $actorRole,
+        private readonly RememberedDisplay $rememberedDisplay,
+        private readonly ViewBar $viewBar,
+        private readonly FilterSheet $filterSheet,
     ) {
     }
 
-    #[Route('/invoices/sent', name: 'app_invoice_sends', methods: ['GET'])]
+    #[Route('/invoices/sent', name: self::ROUTE, methods: ['GET'])]
     public function index(Request $request): Response
     {
         if (!$this->staff->isStaff()) {
             throw new AccessDeniedHttpException('Only staff see sent invoices.');
         }
-        $status = \in_array($request->query->getString('status'), self::TABS, true) ? SendStatus::tryFrom($request->query->getString('status')) : null;
-        $purpose = SendPurpose::tryFrom($request->query->getString('purpose'));
-        $firm = $request->query->getString('firm');
-        $page = $this->sends->page(new SendLogFilter('' === $firm ? null : $firm, $status, max(1, $request->query->getInt('page', 1)), $purpose));
-        $firm = isset($page->firms[$firm]) ? $firm : '';
-        $query = array_filter(['status' => $status?->value, 'firm' => '' === $firm ? null : $firm, 'purpose' => $purpose?->value], static fn (?string $value): bool => null !== $value);
-        $severalFirms = \count($page->firms) > 1;
+        $input = $request->query;
+        // The builder's rows (spec D11) become the list's working filter, in its address.
+        if ($input->has(FilterRows::MARKER)) {
+            return $this->redirectToRoute(self::ROUTE, $this->builtQuery($input), Response::HTTP_SEE_OTHER);
+        }
+        [$views, $view, $shown] = $this->sendViews($input);
+        $list = SendLogLists::list();
+        $filterParam = WorkingFilter::param($shown, $view->filter);
+        $page = $this->sends->page(new SendLogFilter($shown, max(1, $input->getInt('page', 1))));
+        $query = array_filter(['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
+        // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $working = $this->rememberedDisplay->read(SendLogColumns::LIST, [], $list->key, $view, $input->all());
+        $query += $working->query;
+        $bar = $this->viewBar->of($list, $views, $view, $shown, '', '', $working, self::ROUTE, []);
 
         return $this->render('@Invoicing/send_log.html.twig', [
             'page' => $page,
-            'status' => $status->value ?? self::ALL,
-            'firm' => $firm,
-            'firms' => $severalFirms ? ['' => $this->translator->trans('invoice.list.all_firms')] + $page->firms : [],
-            'purpose' => $purpose->value ?? '',
-            'purposes' => ['' => $this->translator->trans('reminder.log.all')] + array_combine(
-                array_map(static fn (SendPurpose $case): string => $case->value, SendPurpose::cases()),
-                array_map(fn (SendPurpose $case): string => $this->translator->trans('reminder.log.purpose.'.$case->value), SendPurpose::cases()),
-            ),
-            'tabs' => $this->tabs($status->value ?? self::ALL, $firm, $purpose),
-            'columns' => $this->columns($severalFirms),
-            'rows' => array_map(fn (SendLogRow $row): array => $this->row($row, $severalFirms), $page->rows),
-            'baseUrl' => $this->generateUrl('app_invoice_sends', $query),
-            'filtered' => [] !== $query,
-            'nothingSent' => [] === $page->firms,
+            'view' => $view->isAll() ? '' : $view->key,
+            'working' => $filterParam ?? '',
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true]))),
+            ...$bar,
+            ...$this->viewTabs($views, $view->key, $query, $bar['viewBar']['modified']),
+            'columns' => $working->display->table(),
+            'rows' => array_map(fn (SendLogRow $row): array => $this->row($row, $working), $page->rows),
+            'density' => $working->tableDensity(),
+            'picker' => $this->picker($working, $query),
+            'workingQuery' => $working->query,
+            'baseUrl' => $this->generateUrl(self::ROUTE, $query),
+            'resetHref' => $this->generateUrl(self::ROUTE, ['view' => $view->isAll() ? null : $view->key]),
+            'nothingSent' => !$page->anySent,
         ]);
     }
 
     /**
-     * @return list<array{label: string, href: string, active: bool}>
+     * The log's views as its address names them (spec D10): the person's views, the one
+     * ?view= names (or ?status=, the address of the tabs the log had), All when none,
+     * and the filter the log shows, the view's own unless f= changed it. An old
+     * ?purpose= adds its condition; a value the field does not take narrows nothing,
+     * as the select ignored it.
+     *
+     * @param InputBag<string> $input
+     *
+     * @return array{list<ListView>, ListView, ViewFilter}
      */
-    private function tabs(string $status, string $firm, ?SendPurpose $purpose): array
+    private function sendViews(InputBag $input): array
     {
-        $tabs = [];
-        foreach (self::TABS as $key) {
-            $tabs[] = [
-                'label' => $this->translator->trans('invoice.sends.tab.'.$key),
-                'href' => $this->generateUrl('app_invoice_sends', array_filter(['status' => self::ALL === $key ? null : $key, 'firm' => '' === $firm ? null : $firm, 'purpose' => $purpose?->value], static fn (?string $value): bool => null !== $value)),
-                'active' => $key === $status,
-            ];
+        $list = SendLogLists::list();
+        $views = $this->listViews->of($list, $this->actorRole->userId());
+        $view = ListViews::chosen($views, $input->getString('view', $input->getString(self::OLD_TAB)));
+        $working = WorkingFilter::decode($input->getString(WorkingFilter::PARAM), $list) ?? $view->filter;
+        foreach (self::OLD_PARAMS as $param => $field) {
+            $value = $input->getString($param);
+            if ('' === $value) {
+                continue;
+            }
+            $condition = new Condition($field, 'is', $value);
+            try {
+                ViewFilter::all($condition)->check($list);
+                $working = $working->with($condition);
+            } catch (InvalidFilter) {
+                // A value the field does not take narrows nothing, as the select ignored it.
+            }
         }
 
-        return $tabs;
+        return [$views, $view, $working];
     }
 
     /**
-     * The names, addresses and errors give way, cut short with their full text in a title, so
-     * the table fits its frame.
+     * The log's address after the builder's Apply: what the sheet sent, its rows read
+     * into the working filter, which is left out when it is the view's own. The old
+     * parameters are in the rows by then.
      *
-     * @return list<array{key: string, label: string, phone: bool, truncate: bool}>
+     * @param InputBag<string> $input
+     *
+     * @return array<string, mixed>
      */
-    private function columns(bool $severalFirms): array
+    private function builtQuery(InputBag $input): array
     {
-        $keys = ['number' => true, 'when' => false, 'purpose' => false];
-        if ($severalFirms) {
-            $keys['firm'] = false;
-        }
-        $keys += ['customer' => false, 'recipients' => false, 'status' => true, 'error' => false];
-        $columns = [];
-        foreach ($keys as $key => $phone) {
-            $label = 'purpose' === $key ? 'reminder.log.column' : 'invoice.sends.column.'.$key;
-            $truncate = \in_array($key, ['firm', 'customer', 'recipients', 'error'], true);
-            $columns[] = ['key' => $key, 'label' => $this->translator->trans($label), 'phone' => $phone, 'truncate' => $truncate];
-        }
+        [, $view] = $this->sendViews($input);
+        $query = array_diff_key($input->all(), [FilterRows::PARAM => true, FilterRows::MARKER => true, WorkingFilter::PARAM => true, 'page' => true, 'view' => true, self::OLD_TAB => true] + self::OLD_PARAMS);
 
-        return $columns;
+        return array_filter($query + ['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), SendLogLists::list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
+    }
+
+    /**
+     * The tabs of the log and its "More views" menu (spec D7): All and the primary views
+     * as tabs, the other views in the menu. The log counts none (D9).
+     *
+     * @param list<ListView>        $views
+     * @param array<string, string> $query
+     *
+     * @return array{tabs: list<array<string, mixed>>, moreViews: list<array<string, mixed>>}
+     */
+    private function viewTabs(array $views, string $active, array $query, bool $modified): array
+    {
+        [$primary, $overflow] = ListViews::placed($views);
+        $link = fn (ListView $view): array => [
+            'label' => $view->translated ? $this->translator->trans($view->name) : $view->name,
+            // A view opens with its own filter and columns: the changed ones belong to the view they were changed on (spec D10).
+            'href' => $this->generateUrl(self::ROUTE, ['view' => $view->isAll() ? null : $view->key] + array_diff_key($query, ['view' => true, WorkingFilter::PARAM => true] + array_flip(WorkingDisplay::KEYS))),
+            'active' => $view->key === $active,
+            'modified' => $modified && $view->key === $active,
+            'private' => $view->private,
+        ];
+
+        return ['tabs' => array_map($link, $primary), 'moreViews' => array_map($link, $overflow)];
+    }
+
+    /**
+     * The Columns sheet: what it keeps of the log, and the log without the changed columns.
+     *
+     * @param array<string, string> $query
+     *
+     * @return array<string, mixed>
+     */
+    private function picker(WorkingState $working, array $query): array
+    {
+        $kept = array_diff_key($query, array_flip(WorkingDisplay::KEYS));
+
+        return [
+            'keep' => $kept,
+            'columns' => $working->picker(),
+            'density' => $working->density,
+            // An empty density names the view's own display, which forgets the one remembered (D-display-3).
+            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::DENSITY => '']),
+            'modified' => $working->modified,
+        ];
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function row(SendLogRow $row, bool $severalFirms): array
+    private function row(SendLogRow $row, WorkingState $working): array
     {
-        $timezone = $this->timezone($row->issuerCountry);
-        $format = $this->translator->trans('format.datetime');
-        $when = $row->createdAt->setTimezone($timezone)->format($format);
-        $read = $row->readAt?->setTimezone($timezone)->format($format);
-        // An opened send says so in its status, with the moment it was first opened.
-        $status = null === $read
-            ? ['text' => $this->translator->trans('invoice.sends.status.'.$row->status->value), 'tone' => self::TONES[$row->status->value]]
-            : ['text' => $this->translator->trans('invoice.history.send_read', ['date' => $read]), 'tone' => 'green'];
-        $recipients = implode(', ', $row->recipients);
-        $error = $this->failures->of($row->errorCode, $row->errorSmtp, $row->error);
         $reminder = SendPurpose::Reminder === $row->purpose;
-        $purpose = $reminder ? $this->translator->trans('reminder.log.step', ['step' => $row->reminderStep ?? 0]) : $this->translator->trans('reminder.log.purpose.invoice');
-        $cells = [
-            'number' => $row->documentNumber,
-            'when' => $when,
-            'purpose' => ['text' => $purpose, 'icon' => $reminder ? 'bell-ring' : 'receipt-text', 'tone' => 'gray'],
-            'customer' => $row->customerName,
-            'recipients' => $recipients,
-            'status' => $status,
-            'error' => $error ?? '',
-        ];
-        if ($severalFirms) {
-            $cells['firm'] = $row->firmName;
-        }
         $id = ['id' => $row->invoiceId];
 
         return [
@@ -158,22 +219,13 @@ final class SendLogController extends AbstractController
             // The history of a send is a small record: it opens in a modal over the log (docs/design/overlays.md).
             'opens' => DataTable::OPENS_DIALOG,
             'label' => $row->documentNumber,
-            'secondary' => implode(' · ', array_filter([$reminder ? $purpose : null, $when, $recipients, $error], static fn (?string $part): bool => null !== $part && '' !== $part)),
-            'cells' => $cells,
+            'secondary' => implode(' · ', array_filter([$reminder ? $this->columns->purpose($row) : null, $this->columns->when($row), $this->columns->recipients($row), $this->columns->error($row)], static fn (?string $part): bool => null !== $part && '' !== $part)),
+            'cells' => $working->display->cells($row),
             'actions' => [
                 $reminder
                     ? ['label' => $this->translator->trans('reminder.log.again'), 'href' => $this->generateUrl('app_invoice_remind', $id), 'method' => 'GET', 'icon' => 'bell-ring', 'dialog' => true]
                     : ['label' => $this->translator->trans('invoice.sends.action.again'), 'href' => $this->generateUrl('app_invoice_send', $id), 'method' => 'GET', 'icon' => 'send', 'dialog' => true],
             ],
         ];
-    }
-
-    private function timezone(string $country): \DateTimeZone
-    {
-        try {
-            return $this->countries->for($country)->timezone();
-        } catch (UnsupportedCountry) {
-            return new \DateTimeZone('UTC');
-        }
     }
 }

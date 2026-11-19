@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Party\Infrastructure\Doctrine;
 
-use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\UnknownLegalEntity;
@@ -54,16 +53,6 @@ final readonly class DoctrineLegalEntities implements LegalEntities
         }
 
         return $this->get($id);
-    }
-
-    public function lockActive(): array
-    {
-        /** @var list<LegalEntity> $firms */
-        $firms = $this->em->createQuery('SELECT f FROM '.LegalEntity::class.' f WHERE f.archivedAt IS NULL ORDER BY f.id')
-            ->setLockMode(LockMode::PESSIMISTIC_WRITE)
-            ->getResult();
-
-        return $firms;
     }
 
     public function add(LegalEntity $firm): void

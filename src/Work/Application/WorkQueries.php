@@ -22,6 +22,14 @@ interface WorkQueries
      */
     public function projects(bool $archived = false): array;
 
+    /**
+     * The projects of the index a view holds (saved views, spec D4); the archived ones
+     * only when a condition of the view asks for them.
+     *
+     * @return list<ProjectRow> by name, or by name backwards
+     */
+    public function projectIndex(ViewFilter $view, bool $descending = false): array;
+
     public function projectList(string $projectId, TaskFilter $filter = new TaskFilter()): ?ProjectList;
 
     public function board(string $projectId, TaskFilter $filter = new TaskFilter()): ?ProjectBoard;

@@ -22,7 +22,7 @@ final class ContactListsTest extends TestCase
     {
         $list = ContactLists::list();
 
-        self::assertEquals([$list], iterator_to_array((new ContactLists())->lists()));
+        self::assertEquals([$list], iterator_to_array(new ContactLists()->lists()));
         self::assertSame('party.contacts', $list->key);
         self::assertSame(
             [

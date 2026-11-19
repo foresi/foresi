@@ -215,6 +215,38 @@ final class PartyControllerTest extends WebTestCase
         self::assertSelectorExists('th[aria-sort="descending"]');
     }
 
+    public function testAnyAttributeCanBeAddedAsAColumnAndSortedBy(): void
+    {
+        $this->signIn();
+        $this->party('Alfa', phone: '+420 111 222 333');
+        $this->party('Beta', phone: '+420 999 888 777');
+
+        $crawler = $this->client->request('GET', '/contacts?cols=name,phone,billing_city&sort=-phone');
+
+        self::assertSame(['Name', 'Phone', 'Billing city'], array_values(array_diff($crawler->filter('main thead th')->each(static fn (Crawler $th): string => trim($th->text())), ['', 'Actions'])));
+        self::assertSame(['Beta', 'Alfa'], $crawler->filter('main tbody td [data-row-link]')->each(static fn (Crawler $link): string => trim($link->text())));
+        self::assertSelectorExists('th[aria-sort="descending"] a[href*="sort=phone"]');
+        // A phone is a link to dial, the city of the billing address its text.
+        self::assertSame('tel:+420999888777', $crawler->filter('main tbody tr')->first()->filter('a[data-chip]')->attr('href'));
+        self::assertSame('Example City', trim($crawler->filter('main tbody tr')->first()->filter('td')->eq(3)->text()));
+        // The other attributes wait under "Add column"; the shown ones lead the sheet.
+        self::assertSelectorExists('[data-column-picker-add] [data-key="mobile"]');
+        self::assertSelectorNotExists('[data-column-picker-add] [data-key="phone"]');
+    }
+
+    public function testTheOlderColumnAndSortKeysStillWorkAndAreWrittenBackUnderTheirKeys(): void
+    {
+        $this->signIn();
+        $this->party('Alfa', number: '27074358', vat: 'CZ27074358');
+        $this->party('Beta', number: '25596641', vat: 'CZ25596641');
+
+        $crawler = $this->client->request('GET', '/contacts?cols=name,registration,vat&sort=-vat');
+
+        self::assertSame(['Name', 'Reg. no.', 'VAT ID'], array_values(array_diff($crawler->filter('main thead th')->each(static fn (Crawler $th): string => trim($th->text())), ['', 'Actions'])));
+        self::assertSame(['Alfa', 'Beta'], $crawler->filter('main tbody td [data-row-link]')->each(static fn (Crawler $link): string => trim($link->text())));
+        self::assertSelectorExists('th[aria-sort="descending"] a[href="/contacts?sort=vat_id&cols=name,registration_number,vat_id"]');
+    }
+
     public function testAnEmptyAddressBookShowsTheEmptyStateWithTheAddAction(): void
     {
         $this->signIn();
@@ -879,7 +911,7 @@ final class PartyControllerTest extends WebTestCase
     /**
      * @param list<PartyRole> $roles
      */
-    private function party(string $name, ?PartyKind $kind = null, array $roles = [PartyRole::Customer], ?string $number = null, ?string $vat = null, string $email = '', bool $refresh = false): Party
+    private function party(string $name, ?PartyKind $kind = null, array $roles = [PartyRole::Customer], ?string $number = null, ?string $vat = null, string $email = '', bool $refresh = false, string $phone = ''): Party
     {
         // The fixture is set up by the application, not by the signed-in person.
         $tokens = self::getContainer()->get(TokenStorageInterface::class);
@@ -891,7 +923,7 @@ final class PartyControllerTest extends WebTestCase
             null === $number ? null : new RegistrationNumber('CZ', $number),
             null === $vat ? null : VatId::fromString($vat),
             $email,
-            '',
+            $phone,
             $roles,
             new Address('Example Street 1', 'Example City', '100 00', 'CZ'),
         );

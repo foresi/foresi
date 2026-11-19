@@ -31,7 +31,7 @@ test.describe('list columns', () => {
     await sheet.getByRole('radio', { name: /Kompaktní/ }).check();
     await sheet.getByRole('button', { name: 'Použít' }).click();
 
-    await expect(page).toHaveURL(/cols=name%2Ckind%2Cregistration%2Cstatus%2Cvat%2Cemail&density=dense/);
+    await expect(page).toHaveURL(/cols=name%2Ckind%2Cregistration_number%2Cstatus%2Cvat_id%2Cemail&density=dense/);
     await expect(page.locator('thead th')).toHaveText(['', 'Název', 'Druh', 'IČO', 'Stav', 'DIČ', 'E-mail']);
     await expect(page.getByRole('link', { name: /Všechny.*neuložené změny/ })).toBeVisible();
 
@@ -43,6 +43,32 @@ test.describe('list columns', () => {
     await page.getByRole('button', { name: /Sloupce/ }).click();
     await page.getByRole('dialog', { name: 'Sloupce' }).getByRole('link', { name: 'Obnovit výchozí' }).click();
     await expect(page).not.toHaveURL(/cols=/);
+    await expect(page.locator('thead th')).toHaveText(['', 'Název', 'Druh', 'Role', 'IČO', 'DIČ', 'E-mail', 'Stav']);
+  });
+
+  test('adds a column from the attributes the list does not show', async ({ page }) => {
+    await page.goto('/contacts');
+    await page.getByRole('button', { name: 'Sloupce' }).click();
+    const sheet = page.getByRole('dialog', { name: 'Sloupce' });
+    const add = sheet.getByRole('group', { name: 'Přidat sloupec' });
+
+    // The search goes over what is shown and what can be added.
+    await sheet.getByRole('searchbox', { name: 'Hledat sloupce' }).fill('telef');
+    await expect(add.getByRole('checkbox')).toHaveCount(1);
+    await add.getByRole('checkbox', { name: 'Telefon' }).check();
+    await sheet.getByRole('button', { name: 'Použít' }).click();
+
+    await expect(page).toHaveURL(/cols=name%2Ckind%2Croles%2Cregistration_number%2Cvat_id%2Cemail%2Cstatus%2Cphone/);
+    await expect(page.locator('thead th')).toHaveText(['', 'Název', 'Druh', 'Role', 'IČO', 'DIČ', 'E-mail', 'Stav', 'Telefon']);
+
+    // The list remembers the changed columns for the person (D-display-3): opened again without
+    // any in the address, it still shows the added one, until Reset forgets them.
+    await page.goto('/contacts');
+    await expect(page.locator('thead th')).toHaveText(['', 'Název', 'Druh', 'Role', 'IČO', 'DIČ', 'E-mail', 'Stav', 'Telefon']);
+    await page.getByRole('button', { name: /Sloupce/ }).click();
+    await page.getByRole('dialog', { name: 'Sloupce' }).getByRole('link', { name: 'Obnovit výchozí' }).click();
+    await expect(page).not.toHaveURL(/cols=/);
+    await page.goto('/contacts');
     await expect(page.locator('thead th')).toHaveText(['', 'Název', 'Druh', 'Role', 'IČO', 'DIČ', 'E-mail', 'Stav']);
   });
 

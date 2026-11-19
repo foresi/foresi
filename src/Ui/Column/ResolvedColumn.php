@@ -29,7 +29,7 @@ final readonly class ResolvedColumn
      * The column as a Ui:DataTable column. A column with a sort key links its header to the
      * list sorted by it, ascending first, then descending.
      *
-     * @param string                          $sort the list's sort, such as "dueDate" or "-dueDate"
+     * @param string                          $sort the list's sort, such as "due_date" or "-due_date"
      * @param (callable(string): string)|null $href the list's URL sorted by the given sort
      *
      * @return array<string, mixed>

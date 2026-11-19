@@ -114,11 +114,6 @@ final class InstanceFirmTest extends TestCase
                 return $this->get($id);
             }
 
-            public function lockActive(): array
-            {
-                return $this->active();
-            }
-
             public function add(LegalEntity $firm): void
             {
                 $this->stored[] = $firm;

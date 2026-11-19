@@ -3,7 +3,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { EMPTY_OWNER_STATE, OWNER_STATE } from '../support/session';
-import { openMoreActions } from '../support/header';
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
@@ -104,14 +103,13 @@ test.describe.serial('an owner sets up the one firm', () => {
     await expect(page.locator('tbody')).toContainText('Example Company s.r.o.');
   });
 
-  test('keeps the last active firm', async ({ page }) => {
+  test('offers no archive for the firm', async ({ page }) => {
     await page.goto('/settings/firms');
     await page.getByRole('link', { name: 'Example Company s.r.o.' }).click();
-    await (await openMoreActions(page)).getByRole('menuitem', { name: 'Archivovat' }).click();
-    await page.getByRole('alertdialog').getByRole('button', { name: 'Archivovat firmu' }).click();
+    await expect(page.locator('#name')).toBeVisible();
 
-    await expect(page.getByText('Poslední aktivní firmu nelze archivovat.')).toBeVisible();
-    await expect(page.locator('tbody')).toContainText('Example Company s.r.o.');
+    await expect(page.locator('#firm-actions')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Archivovat' })).toHaveCount(0);
   });
 
   test('has no serious accessibility violations @a11y', async ({ page }) => {
