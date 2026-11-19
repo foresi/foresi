@@ -21,11 +21,13 @@ use Foresi\Instance\Application\InstanceClock;
 use Foresi\Shared\Application\View\Condition;
 use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Infrastructure\View\DqlConditions;
 use Foresi\Work\Application\TaskTime;
 use Foresi\Work\Application\TimeDay;
 use Foresi\Work\Application\TimeEntries;
 use Foresi\Work\Application\TimeEntryRow;
+use Foresi\Work\Application\TimeEntrySliceFilter;
 use Foresi\Work\Application\TimeGrouping;
 use Foresi\Work\Application\TimeQueries;
 use Foresi\Work\Application\TimeReport;
@@ -334,6 +336,67 @@ final readonly class DoctrineTimeQueries implements TimeQueries
         }
 
         return $query;
+    }
+
+    public function slice(TimeEntrySliceFilter $filter, ?string $afterId, int $limit): array
+    {
+        $me = $this->me();
+        // Guests never see time; nor does anyone without a membership.
+        if (!$me instanceof Membership || !$this->visibility->canManage()) {
+            return [];
+        }
+        $where = 'e.deletedAt IS NULL AND (t.id IS NULL OR t.deletedAt IS NULL)';
+        $parameters = [];
+        foreach (['project' => [$filter->projectId, 'p.id'], 'task' => [$filter->taskId, 't.id']] as $name => [$id, $column]) {
+            if (null === $id) {
+                continue;
+            }
+            if (!Id::isValid($id)) {
+                return [];
+            }
+            $where .= ' AND '.$column.' = :'.$name;
+            $parameters[$name] = [$id, Types::GUID];
+        }
+        $person = TimeEntrySliceFilter::ME === $filter->person ? $me->id() : $filter->person;
+        if (null !== $person) {
+            if (!Id::isValid($person)) {
+                return [];
+            }
+            $where .= ' AND m.id = :membership';
+            $parameters['membership'] = [$person, Types::GUID];
+        }
+        if ($filter->from instanceof \DateTimeImmutable) {
+            $where .= ' AND e.workedOn >= :from';
+            $parameters['from'] = [$filter->from, Types::DATE_IMMUTABLE];
+        }
+        if ($filter->until instanceof \DateTimeImmutable) {
+            $where .= ' AND e.workedOn <= :until';
+            $parameters['until'] = [$filter->until, Types::DATE_IMMUTABLE];
+        }
+        if (null !== $afterId) {
+            $where .= ' AND e.id < :after';
+            $parameters['after'] = [$afterId, Types::GUID];
+        }
+        $seen = ScopedDql::time($this->visibility->scope(), 'p', 't');
+        /** @var list<TimeEntry> $entries */
+        $entries = $this->bind($seen->apply($this->entityManager->createQuery(self::ENTRIES.$seen->joins.' WHERE '.$where.$seen->where.' ORDER BY e.id DESC')), $parameters)
+            ->setMaxResults($limit)
+            ->getResult();
+        $numbers = $this->invoiceNumbers($entries);
+        $owner = $this->owner->isOwner();
+
+        return array_map(fn (TimeEntry $entry): TimeEntryRow => $this->row($entry, $me->id(), $owner, $numbers), $entries);
+    }
+
+    public function entry(string $entryId): ?TimeEntryRow
+    {
+        $me = $this->me();
+        $entry = $this->entries->entry($entryId);
+        if (!$me instanceof Membership || !$entry instanceof TimeEntry || !$this->visibility->canManage()) {
+            return null;
+        }
+
+        return $this->rows([$entry], $this->visibility->scope(), $me)[0] ?? null;
     }
 
     public function editable(string $entryId): ?TimeEntryRow

@@ -134,4 +134,36 @@ interface WorkQueries
      * @return list<TrashedLabel>
      */
     public function labelTrash(): array;
+
+    /**
+     * The tasks the person sees, newest first, those after the id, at most
+     * limit of them: a slice of the API. A task of an archived project is in
+     * it only when the filter names its project.
+     *
+     * @param string|null $afterId the id of the last task of the slice before
+     *
+     * @return list<TaskRow> by id, the newest first, each with the number of its subtasks
+     */
+    public function taskSlice(TaskSliceFilter $filter, ?string $afterId, int $limit): array;
+
+    /**
+     * The projects the person sees, newest first, those after the id, at most limit of them.
+     *
+     * @return list<ProjectRow> by id, the newest first
+     */
+    public function projectSlice(ProjectSliceFilter $filter, ?string $afterId, int $limit): array;
+
+    /**
+     * A project the person sees, with its workflow and the sections they see.
+     */
+    public function project(string $projectId): ?ProjectDetail;
+
+    /**
+     * The active people who may be responsible for a task of the project: who
+     * see all of it that is not private. With a task of it, those who see that
+     * task, as assignable() answers them.
+     *
+     * @return list<Choice>|null by name, membership ids; null when the project, or the task in it, is not visible
+     */
+    public function projectPeople(string $projectId, ?string $taskId = null): ?array;
 }

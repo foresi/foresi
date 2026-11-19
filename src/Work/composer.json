@@ -24,7 +24,12 @@
             "kind": "module",
             "namespace": "Foresi\\Work\\",
             "bundle": "Foresi\\Work\\WorkBundle",
-            "optional": []
+            "optional": [],
+            "scopes": [
+                "projects",
+                "tasks",
+                "time_entries"
+            ]
         }
     }
 }

@@ -11,6 +11,11 @@ namespace Foresi\Work\Application;
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\People;
 use Foresi\Identity\Domain\Membership;
+use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Work\Contract\Event\TaskCompleted;
+use Foresi\Work\Contract\Event\TaskCreated;
+use Foresi\Work\Contract\Event\TaskTrashed;
+use Foresi\Work\Contract\Event\TaskUpdated;
 use Foresi\Work\Domain\Priority;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\ProjectStatus;
@@ -33,6 +38,10 @@ use Psr\Clock\ClockInterface;
  * not come back without its task: restoring it restores the task too.
  *
  * Only someone who sees a task is responsible for it or follows it.
+ *
+ * Each change that changes something records its event in the same unit
+ * (ADR 0030): created, updated with the fields changed, completed when the
+ * task reaches a finished status, trashed for the task a person deleted.
  */
 final readonly class ManageTasks
 {
@@ -51,6 +60,7 @@ final readonly class ManageTasks
         private WorkUnit $unit,
         private TrashPermission $trash,
         private Notifier $notifier,
+        private EventRecorder $events,
     ) {
     }
 
@@ -118,6 +128,7 @@ final readonly class ManageTasks
             if ($responsible instanceof Membership) {
                 $this->notifier->assigned($task, $responsible);
             }
+            $this->events->record(new TaskCreated($task->id(), $task->project()->id(), $task->parent()?->id()));
 
             return $task;
         });
@@ -129,8 +140,9 @@ final readonly class ManageTasks
     public function rename(string $taskId, string $title): void
     {
         $task = $this->work->task($taskId);
+        $before = $task->title();
         WorkRefused::unlessNamed(static fn () => $task->rename($title));
-        $this->unit->run(static fn (): null => null);
+        $this->unit->run(fn () => $this->updated($task, $before !== $task->title(), TaskUpdated::TITLE));
     }
 
     /**
@@ -139,7 +151,11 @@ final readonly class ManageTasks
     public function describe(string $taskId, string $description): void
     {
         $task = $this->work->task($taskId);
-        $this->unit->run(static fn () => $task->describe($description));
+        $this->unit->run(function () use ($task, $description): void {
+            $before = $task->description();
+            $task->describe($description);
+            $this->updated($task, $before !== $task->description(), TaskUpdated::DESCRIPTION);
+        });
     }
 
     /**
@@ -160,6 +176,7 @@ final readonly class ManageTasks
                     $this->notifier->assigned($task, $responsible);
                 }
             }
+            $this->updated($task, $before?->id() !== $responsible?->id(), TaskUpdated::RESPONSIBLE);
         });
     }
 
@@ -169,7 +186,11 @@ final readonly class ManageTasks
     public function setDue(string $taskId, ?\DateTimeImmutable $dueOn): void
     {
         $task = $this->work->task($taskId);
-        $this->unit->run(static fn () => $task->dueOn($dueOn));
+        $this->unit->run(function () use ($task, $dueOn): void {
+            $before = $task->dueDate()?->format('Y-m-d');
+            $task->dueOn($dueOn);
+            $this->updated($task, $before !== $task->dueDate()?->format('Y-m-d'), TaskUpdated::DUE_ON);
+        });
     }
 
     /**
@@ -178,7 +199,11 @@ final readonly class ManageTasks
     public function prioritise(string $taskId, Priority $priority): void
     {
         $task = $this->work->task($taskId);
-        $this->unit->run(static fn () => $task->prioritise($priority));
+        $this->unit->run(function () use ($task, $priority): void {
+            $before = $task->priority();
+            $task->prioritise($priority);
+            $this->updated($task, $before !== $task->priority(), TaskUpdated::PRIORITY);
+        });
     }
 
     /**
@@ -194,7 +219,11 @@ final readonly class ManageTasks
             throw new WorkRefused('unknown');
         }
         $this->work->assertTaskIn($task->project(), $section);
-        $this->unit->run(static fn () => $task->moveToSection($section));
+        $this->unit->run(function () use ($task, $section): void {
+            $before = $task->section()?->id();
+            $task->moveToSection($section);
+            $this->updated($task, $before !== $task->section()?->id(), TaskUpdated::SECTION);
+        });
     }
 
     /**
@@ -208,8 +237,7 @@ final readonly class ManageTasks
         $status = $this->statusOf($task, $statusId);
         $this->unit->run(function () use ($task, $status): void {
             if ($task->status()->id() !== $status->id()) {
-                $task->moveToStatus($status, $this->clock->now());
-                $this->notifier->statusChanged($task);
+                $this->moveToStatus($task, $status);
             }
         });
     }
@@ -246,8 +274,7 @@ final readonly class ManageTasks
         $this->unit->run(function () use ($task, $status, $siblings, $index): void {
             Positions::place($siblings, $task, $index);
             if ($task->status()->id() !== $status->id()) {
-                $task->moveToStatus($status, $this->clock->now());
-                $this->notifier->statusChanged($task);
+                $this->moveToStatus($task, $status);
             }
         });
     }
@@ -268,6 +295,7 @@ final readonly class ManageTasks
             $wanted[$label->id()] = $label;
         }
         $this->unit->run(function () use ($task, $wanted): void {
+            $changed = false;
             foreach ($this->tasks->labels($task) as $taskLabel) {
                 // A label in the trash is not offered, so the task keeps it for its restore.
                 if ($taskLabel->label()->isDeleted()) {
@@ -277,11 +305,14 @@ final readonly class ManageTasks
                     unset($wanted[$taskLabel->label()->id()]);
                 } else {
                     $this->tasks->remove($taskLabel);
+                    $changed = true;
                 }
             }
             foreach ($wanted as $label) {
                 $this->tasks->add(new TaskLabel($task, $label));
+                $changed = true;
             }
+            $this->updated($task, $changed, TaskUpdated::LABELS);
         });
     }
 
@@ -332,6 +363,7 @@ final readonly class ManageTasks
             foreach ($this->tasks->subtasksOf($task) as $subtask) {
                 $subtask->delete($userId, $now);
             }
+            $this->events->record(new TaskTrashed($task->id(), $task->project()->id()));
 
             return $task;
         });
@@ -381,6 +413,28 @@ final readonly class ManageTasks
             if ($subtask->deletedAt()?->format(self::MOMENT) === $moment) {
                 $subtask->restore();
             }
+        }
+    }
+
+    /**
+     * A new status, heard by the watchers, recorded as a change and, when it
+     * finishes the task, as its completion.
+     */
+    private function moveToStatus(Task $task, ProjectStatus $status): void
+    {
+        $finished = $task->status()->type()->isFinished();
+        $task->moveToStatus($status, $this->clock->now());
+        $this->notifier->statusChanged($task);
+        $this->updated($task, true, TaskUpdated::STATUS);
+        if (!$finished && $status->type()->isFinished()) {
+            $this->events->record(new TaskCompleted($task->id(), $task->project()->id()));
+        }
+    }
+
+    private function updated(Task $task, bool $changed, string $field): void
+    {
+        if ($changed) {
+            $this->events->record(new TaskUpdated($task->id(), $task->project()->id(), [$field]));
         }
     }
 

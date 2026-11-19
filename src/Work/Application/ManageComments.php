@@ -12,7 +12,9 @@ use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\OwnerCheck;
 use Foresi\Identity\Application\People;
 use Foresi\Identity\Domain\Membership;
+use Foresi\Shared\Application\Event\EventRecorder;
 use Foresi\Shared\Application\MentionSyntax;
+use Foresi\Work\Contract\Event\CommentAdded;
 use Foresi\Work\Domain\CommentMention;
 use Foresi\Work\Domain\Task;
 use Foresi\Work\Domain\TaskComment;
@@ -52,6 +54,7 @@ final readonly class ManageComments
         private ClockInterface $clock,
         private WorkUnit $unit,
         private Notifier $notifier,
+        private EventRecorder $events,
     ) {
     }
 
@@ -69,6 +72,7 @@ final readonly class ManageComments
             $mentioned = $this->syncMentions($comment, []);
             $this->watch($task, [$author, ...$mentioned]);
             $this->notifier->commented($comment, $mentioned);
+            $this->events->record(new CommentAdded($comment->id(), $task->id(), $task->project()->id(), $comment->isInternal()));
 
             return $comment;
         });

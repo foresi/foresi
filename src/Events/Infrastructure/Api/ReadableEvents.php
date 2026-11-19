@@ -9,9 +9,12 @@ declare(strict_types=1);
 namespace Foresi\Events\Infrastructure\Api;
 
 use Foresi\Events\Application\Query\EventFeed;
+use Foresi\Events\Application\Query\EventRow;
 use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
 use Foresi\Events\Infrastructure\Catalogue\EventType;
 use Foresi\Shared\Application\Event\EventReadAccess;
+use Foresi\Shared\Application\Event\EventSubjectAccess;
+use Foresi\Shared\Domain\Event\EventSubject;
 use Foresi\Shared\Infrastructure\Api\InvalidParameter;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -24,7 +27,8 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 final readonly class ReadableEvents
 {
     /**
-     * @param iterable<EventReadAccess> $access
+     * @param iterable<EventReadAccess>    $access
+     * @param iterable<EventSubjectAccess> $subjects
      */
     public function __construct(
         private EventFeed $feed,
@@ -32,6 +36,8 @@ final readonly class ReadableEvents
         private EventView $view,
         #[AutowireIterator('app.event_read_access')]
         private iterable $access,
+        #[AutowireIterator('app.event_subject_access')]
+        private iterable $subjects = [],
     ) {
     }
 
@@ -55,7 +61,8 @@ final readonly class ReadableEvents
         $slice = $this->feed->slice($after, $names, $limit);
 
         return [
-            'items' => array_map($this->view->of(...), $slice->rows),
+            // An event whose subject the caller does not see is left out; the cursor still passes it.
+            'items' => array_values(array_map($this->view->of(...), array_filter($slice->rows, $this->seen(...)))),
             // Always the place to read on from: after the last event of the page, or where the caller was when nothing is new.
             'next_cursor' => PositionCursor::next($slice->lastPosition() ?? $after),
         ];
@@ -112,5 +119,17 @@ final readonly class ReadableEvents
         sort($modules, \SORT_STRING);
 
         return array_values(array_unique($modules));
+    }
+
+    private function seen(EventRow $row): bool
+    {
+        $module = explode('.', $row->name, 2)[0];
+        foreach ($this->subjects as $subjects) {
+            if ($subjects->module() === $module && !$subjects->sees(new EventSubject($row->subjectType, $row->subjectId))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

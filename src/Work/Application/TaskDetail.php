@@ -38,6 +38,7 @@ final readonly class TaskDetail
         public bool $shareable = false,
         public bool $manageable = false,
         public bool $projectOpen = false,
+        public ?int $estimateMinutes = null,
     ) {
     }
 }

@@ -1,0 +1,221 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\Tests\Work\Infrastructure\Api;
+
+use Foresi\Identity\Domain\ApiScope;
+use Foresi\Shared\Infrastructure\Api\Cursor;
+
+/**
+ * The reads of projects, tasks, comments, labels and time over REST: what the
+ * token's person sees, in the shapes the OpenAPI document gives, newest first
+ * and read by cursor.
+ */
+final class WorkReadApiTest extends WorkApiTestCase
+{
+    public function testATaskIsWrittenAsTheApiDocumentsIt(): void
+    {
+        $project = $this->project();
+        $me = $this->membershipOf($this->user);
+        $id = $this->task($project, 'Write the copy', $me->id());
+        $open = $this->statuses($project)[0];
+
+        $this->get('/api/v1/tasks', ['limit' => '1']);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame([], $this->client->getResponse()->headers->getCookies());
+        self::assertSame([
+            'data' => [[
+                'id' => $id,
+                'title' => 'Write the copy',
+                'project' => ['id' => $project->id(), 'name' => 'Website'],
+                'section_id' => null,
+                'parent_id' => null,
+                'status' => ['id' => $open->id(), 'name' => $open->name(), 'type' => 'open'],
+                'responsible' => ['id' => $me->id(), 'name' => $this->user->displayName()],
+                'due_on' => null,
+                'priority' => 'none',
+                'labels' => [],
+                'subtask_count' => 0,
+                'done' => false,
+                'private' => false,
+                'url' => 'http://localhost/tasks/'.$id,
+            ]],
+            'next_cursor' => null,
+            'applied_view' => null,
+        ], $this->json());
+    }
+
+    public function testTheDetailOfATaskHoldsWhatTheListLeavesOut(): void
+    {
+        $project = $this->project();
+        $id = $this->task($project, 'Launch');
+        $subtask = $this->as(fn (): string => $this->service(\Foresi\Work\Application\ManageTasks::class)->create($project->id(), 'Check links', parentId: $id)->id());
+        $this->as(fn () => $this->service(\Foresi\Work\Application\ManageTasks::class)->describe($id, 'All **pages**.'));
+
+        $this->get('/api/v1/tasks/'.$id);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('All **pages**.', $this->at('data', 'description'));
+        self::assertSame(1, $this->at('data', 'subtask_count'));
+        self::assertSame([$subtask], $this->column('id', 'data', 'subtasks'));
+        self::assertSame([['id' => $this->membershipOf($this->owner)->id(), 'name' => $this->owner->displayName()]], $this->at('data', 'watchers'));
+        self::assertNull($this->at('data', 'parent'));
+        self::assertNull($this->at('data', 'completed_at'));
+        self::assertFalse($this->at('data', 'project_archived'));
+        self::assertIsString($this->at('data', 'created_at'));
+
+        $this->get('/api/v1/tasks/'.$subtask);
+        self::assertSame(['id' => $id, 'title' => 'Launch'], $this->at('data', 'parent'));
+    }
+
+    public function testAssigneeMeAndTheAssignedViewListTheTasksOfThePerson(): void
+    {
+        $project = $this->project();
+        $mine = $this->task($project, 'Mine', $this->membershipOf($this->user)->id());
+        $this->task($project, 'Not mine');
+
+        $this->get('/api/v1/tasks', ['assignee' => 'me']);
+        self::assertSame([$mine], $this->ids());
+
+        $this->get('/api/v1/tasks', ['view' => 'work.my_tasks.assigned']);
+        self::assertSame([$mine], $this->ids());
+        self::assertSame('work.my_tasks', $this->at('applied_view', 'list'));
+
+        $this->get('/api/v1/tasks', ['assignee' => 'me', 'finished' => 'true']);
+        self::assertSame([], $this->ids());
+
+        $this->get('/api/v1/tasks', ['assignee' => 'somebody']);
+        $this->assertProblem(400, 'invalid_parameter');
+    }
+
+    public function testTasksArePagedNewestFirstAndNarrowedByProjectAndText(): void
+    {
+        $website = $this->project();
+        $shop = $this->project('Shop');
+        $first = $this->task($website, 'First');
+        $second = $this->task($website, 'Second');
+        $third = $this->task($shop, 'Third');
+
+        self::assertSame([[$third, $second], [$first]], $this->pages('/api/v1/tasks', 2));
+
+        $this->get('/api/v1/tasks', ['project_id' => $website->id()]);
+        self::assertSame([$second, $first], $this->ids());
+
+        $this->get('/api/v1/tasks', ['q' => 'sec']);
+        self::assertSame([$second], $this->ids());
+
+        $this->get('/api/v1/tasks', ['cursor' => Cursor::encode($second)]);
+        self::assertSame([$first], $this->ids());
+    }
+
+    public function testAProjectIsListedAndReadWithItsWorkflowAndSections(): void
+    {
+        $project = $this->project();
+        $section = $this->section($project, 'Design');
+        $this->task($project, 'Open task');
+        $statuses = $this->statuses($project);
+
+        $this->get('/api/v1/projects');
+        self::assertResponseIsSuccessful();
+        self::assertSame([[
+            'id' => $project->id(),
+            'name' => 'Website',
+            'client' => null,
+            'visibility' => 'organisation',
+            'workflow' => 'simple',
+            'open_tasks' => 1,
+            'nearest_due_on' => null,
+            'archived' => false,
+        ]], $this->at('data'));
+
+        $this->get('/api/v1/projects/'.$project->id());
+        self::assertSame('', $this->at('data', 'description'));
+        self::assertSame(array_map(static fn (\Foresi\Work\Domain\ProjectStatus $status): string => $status->id(), $statuses), $this->column('id', 'data', 'statuses'));
+        self::assertSame(['open', 'active', 'done'], $this->column('type', 'data', 'statuses'));
+        self::assertSame([['id' => $section, 'name' => 'Design', 'position' => 0]], $this->at('data', 'sections'));
+
+        $this->get('/api/v1/projects', ['archived' => 'true']);
+        self::assertSame([], $this->ids());
+    }
+
+    public function testThePeopleOfAProjectAreWhoMayBeResponsible(): void
+    {
+        $project = $this->project();
+
+        $this->get('/api/v1/projects/'.$project->id().'/people');
+
+        self::assertResponseIsSuccessful();
+        $names = $this->column('name', 'data');
+        self::assertContains($this->user->displayName(), $names);
+        self::assertContains($this->owner->displayName(), $names);
+        self::assertContains($this->membershipOf($this->user)->id(), $this->column('id', 'data'));
+    }
+
+    public function testCommentsAreOldestFirstWithTheInternalOnesForStaff(): void
+    {
+        $task = $this->task($this->project(), 'Discuss');
+        $first = $this->comment($task, 'First **thought**');
+        $internal = $this->comment($task, 'Between us', true);
+
+        $this->get('/api/v1/tasks/'.$task.'/comments');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame([$first, $internal], $this->ids());
+        self::assertSame(['id' => $this->membershipOf($this->owner)->id(), 'name' => $this->owner->displayName()], $this->at('data', 0, 'author'));
+        self::assertSame('First **thought**', $this->at('data', 0, 'text'));
+        self::assertSame([false, true], $this->column('internal', 'data'));
+        self::assertNull($this->at('data', 0, 'edited_at'));
+    }
+
+    public function testLabelsAndTimeAreRead(): void
+    {
+        $label = $this->label('Urgent');
+        $project = $this->project();
+        $task = $this->task($project, 'Billable work');
+        $mine = $this->logged($project, $task, 90, $this->user);
+        $this->logged($project, null, 30);
+
+        $this->get('/api/v1/labels');
+        self::assertSame([['id' => $label, 'name' => 'Urgent', 'colour' => 'green']], $this->at('data'));
+
+        $this->get('/api/v1/time-entries', ['person' => 'me']);
+        self::assertSame([$mine], $this->ids());
+        self::assertSame(['id' => $task, 'title' => 'Billable work'], $this->at('data', 0, 'task'));
+        self::assertSame(90, $this->at('data', 0, 'minutes'));
+        self::assertSame('2026-11-18', $this->at('data', 0, 'worked_on'));
+        self::assertFalse($this->at('data', 0, 'running'));
+
+        $this->get('/api/v1/time-entries', ['project_id' => $project->id()]);
+        self::assertCount(2, $this->ids());
+
+        $this->get('/api/v1/time-entries', ['from' => '19.11.2026']);
+        $this->assertProblem(400, 'invalid_parameter');
+    }
+
+    public function testWhatDoesNotExistIsNotFound(): void
+    {
+        $this->get('/api/v1/tasks/'.\Foresi\Shared\Domain\Id::generate());
+        $this->assertProblem(404, 'not_found');
+
+        $this->get('/api/v1/projects/not-an-id');
+        $this->assertProblem(404, 'not_found');
+    }
+
+    public function testEachResourceHasItsScope(): void
+    {
+        $projects = $this->issued([ApiScope::from('projects:read')]);
+
+        $this->get('/api/v1/projects', secret: $projects);
+        self::assertResponseIsSuccessful();
+        foreach (['/api/v1/tasks', '/api/v1/labels', '/api/v1/time-entries'] as $path) {
+            $this->get($path, secret: $projects);
+            $this->assertProblem(403, 'insufficient_scope');
+        }
+    }
+}

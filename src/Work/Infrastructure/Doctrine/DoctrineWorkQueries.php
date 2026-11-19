@@ -22,6 +22,7 @@ use Foresi\Instance\Application\InstanceClock;
 use Foresi\Shared\Application\Markdown;
 use Foresi\Shared\Application\View\Condition;
 use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Infrastructure\View\DqlConditions;
 use Foresi\Ui\Avatar;
 use Foresi\Work\Application\Choice;
@@ -35,10 +36,12 @@ use Foresi\Work\Application\LabelBadge;
 use Foresi\Work\Application\Labels;
 use Foresi\Work\Application\MentionCandidate;
 use Foresi\Work\Application\ProjectBoard;
+use Foresi\Work\Application\ProjectDetail;
 use Foresi\Work\Application\ProjectList;
 use Foresi\Work\Application\ProjectRow;
 use Foresi\Work\Application\Projects;
 use Foresi\Work\Application\ProjectSettings;
+use Foresi\Work\Application\ProjectSliceFilter;
 use Foresi\Work\Application\ProjectSummary;
 use Foresi\Work\Application\ProjectTrash;
 use Foresi\Work\Application\SectionTasks;
@@ -53,6 +56,7 @@ use Foresi\Work\Application\TaskGroup;
 use Foresi\Work\Application\TaskHistory;
 use Foresi\Work\Application\TaskRow;
 use Foresi\Work\Application\Tasks;
+use Foresi\Work\Application\TaskSliceFilter;
 use Foresi\Work\Application\TrashedLabel;
 use Foresi\Work\Application\TrashedTask;
 use Foresi\Work\Application\TrashPermission;
@@ -96,6 +100,8 @@ final readonly class DoctrineWorkQueries implements WorkQueries
     private const string TASKS = 'SELECT t, s, r, u, p FROM '.Task::class.' t JOIN t.status s JOIN t.project p LEFT JOIN t.responsible r LEFT JOIN r.user u';
     private const string ORDER = ' ORDER BY t.position ASC, t.createdAt ASC, t.id ASC';
     /** What the trash shows: a task that went there itself, not a subtask that went with its task. */
+    /** The longest text a search looks for. */
+    private const int MAX_TEXT = 100;
     private const string TRASHED = 't.project = :project AND t.deletedAt IS NOT NULL AND (pa.id IS NULL OR pa.deletedAt IS NULL OR pa.deletedAt <> t.deletedAt)';
 
     public function __construct(private ProjectLists $projectLists,
@@ -186,6 +192,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $open[$project->id()][0] ?? 0,
             $open[$project->id()][1] ?? null,
             $project->isArchived(),
+            $project->visibility(),
         ), $projects);
     }
 
@@ -373,6 +380,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $this->visibility->canShare($task),
             $this->visibility->canManage(),
             $scope->opens($project),
+            $task->estimateMinutes(),
         );
     }
 
@@ -568,6 +576,174 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         ), $labels);
     }
 
+    public function taskSlice(TaskSliceFilter $filter, ?string $afterId, int $limit): array
+    {
+        $me = $this->me();
+        $where = 't.deletedAt IS NULL';
+        /** @var array<string, array{mixed, string|ArrayParameterType|null}> $parameters */
+        $parameters = [];
+        if (null !== $filter->projectId) {
+            if (!Id::isValid($filter->projectId)) {
+                return [];
+            }
+            $where .= ' AND p.id = :project';
+            $parameters['project'] = [$filter->projectId, null];
+        } else {
+            $where .= ' AND p.archivedAt IS NULL';
+        }
+        if (TaskSliceFilter::ME === $filter->responsible) {
+            if (!$me instanceof Membership) {
+                return [];
+            }
+            $where .= ' AND '.self::RESPONSIBLE;
+        } elseif (null !== $filter->responsible) {
+            if (!Id::isValid($filter->responsible)) {
+                return [];
+            }
+            $where .= ' AND r.id = :responsible';
+            $parameters['responsible'] = [$filter->responsible, null];
+        }
+        if ($filter->statusType instanceof StatusType) {
+            $where .= ' AND s.type = :statusType';
+            $parameters['statusType'] = [$filter->statusType->value, null];
+        }
+        if (null !== $filter->finished) {
+            $where .= ' AND s.type '.($filter->finished ? 'NOT ' : '').'IN (:unfinished)';
+            $parameters['unfinished'] = [$this->unfinished(), ArrayParameterType::STRING];
+        }
+        if ($filter->due instanceof DueBucket) {
+            $today = $this->clock->today()->format('Y-m-d');
+            [$condition, $bound] = match ($filter->due) {
+                DueBucket::Overdue => ['t.dueOn < :today AND s.type IN (:dueUnfinished)', ['today' => [$today, null], 'dueUnfinished' => [$this->unfinished(), ArrayParameterType::STRING]]],
+                DueBucket::Today => ['t.dueOn = :today', ['today' => [$today, null]]],
+                DueBucket::NextSevenDays => ['t.dueOn >= :today AND t.dueOn <= :week', ['today' => [$today, null], 'week' => [$this->clock->today()->modify('+7 days')->format('Y-m-d'), null]]],
+                DueBucket::None => ['t.dueOn IS NULL', []],
+            };
+            $where .= ' AND '.$condition;
+            $parameters += $bound;
+        }
+        $text = trim($filter->text);
+        if ('' !== $text) {
+            $where .= ' AND LOWER(t.title) LIKE :text ESCAPE \'!\'';
+            $parameters['text'] = ['%'.$this->like(mb_strtolower(mb_substr($text, 0, self::MAX_TEXT))).'%', null];
+        }
+        if ($filter->view instanceof ViewFilter && [] !== $filter->view->conditions) {
+            if (!$me instanceof Membership) {
+                return [];
+            }
+            // Each condition's subquery has an alias of its own.
+            $derived = static fn (Condition $condition, string $name): array => [DqlConditions::derivedEnum($condition, [MyTaskLists::RESPONSIBLE => self::RESPONSIBLE, MyTaskLists::WATCHER => self::watched('w'.$name)]), []];
+            [$condition, $bound] = new DqlConditions(MyTaskLists::list(), [MyTaskLists::CLIENT => 'IDENTITY(p.client)'], $derived)->compile($filter->view, $this->clock->today(...), 'view');
+            $where .= ' AND '.$condition;
+            $parameters += $bound;
+        }
+        if (null !== $afterId) {
+            $where .= ' AND t.id < :after';
+            $parameters['after'] = [$afterId, null];
+        }
+        $seen = ScopedDql::tasks($this->visibility->scope(), 't');
+        $query = $seen->apply($this->entityManager
+            ->createQuery(self::TASKS.$seen->joins.' WHERE '.$where.$seen->where.' ORDER BY t.id DESC'))
+            ->setMaxResults($limit);
+        if ($me instanceof Membership && str_contains($where, ':me')) {
+            $query->setParameter('me', $me->id());
+        }
+        foreach ($parameters as $name => [$value, $type]) {
+            $query->setParameter($name, $value, $type);
+        }
+        /** @var list<Task> $tasks */
+        $tasks = $query->getResult();
+
+        return $this->flat($tasks);
+    }
+
+    public function projectSlice(ProjectSliceFilter $filter, ?string $afterId, int $limit): array
+    {
+        $view = $filter->view ?? new ViewFilter();
+        // The archived projects instead of the active ones, unless the view decides it.
+        $where = [] === $view->on(ProjectLists::ARCHIVED) ? 'p.archivedAt IS '.($filter->archived ? 'NOT ' : '').'NULL' : '1 = 1';
+        /** @var array<string, array{mixed, string|ArrayParameterType|null}> $parameters */
+        $parameters = [];
+        if (null !== $filter->clientId) {
+            if (!Id::isValid($filter->clientId)) {
+                return [];
+            }
+            $where .= ' AND c.id = :client';
+            $parameters['client'] = [$filter->clientId, null];
+        }
+        $text = trim($filter->text);
+        if ('' !== $text) {
+            $where .= ' AND LOWER(p.name) LIKE :text ESCAPE \'!\'';
+            $parameters['text'] = ['%'.$this->like(mb_strtolower(mb_substr($text, 0, self::MAX_TEXT))).'%', null];
+        }
+        if ([] !== $view->conditions) {
+            $derived = static fn (Condition $condition): array => [match ($condition->field) {
+                ProjectLists::ARCHIVED => DqlConditions::derivedBoolean($condition, 'p.archivedAt IS NOT NULL'),
+                default => throw new \LogicException(\sprintf('The field "%s" of the projects has no SQL.', $condition->field)),
+            }, []];
+            [$condition, $bound] = new DqlConditions($this->projectLists->list(), self::PROJECT_COLUMNS, $derived(...))->compile($view, $this->clock->today(...), 'v');
+            $where .= ' AND '.$condition;
+            $parameters += $bound;
+        }
+        if (null !== $afterId) {
+            $where .= ' AND p.id < :after';
+            $parameters['after'] = [$afterId, null];
+        }
+        $scope = $this->visibility->scope();
+        $seen = ScopedDql::projects($scope, 'p');
+        $query = $seen->apply($this->entityManager
+            ->createQuery('SELECT p, c FROM '.Project::class.' p LEFT JOIN p.client c WHERE '.$where.$seen->where.' ORDER BY p.id DESC'))
+            ->setMaxResults($limit);
+        foreach ($parameters as $name => [$value, $type]) {
+            $query->setParameter($name, $value, $type);
+        }
+        /** @var list<Project> $projects */
+        $projects = $query->getResult();
+
+        return $this->projectRows($projects, $scope);
+    }
+
+    public function project(string $projectId): ?ProjectDetail
+    {
+        $project = $this->visibleProject($projectId);
+        if (!$project instanceof Project) {
+            return null;
+        }
+
+        return new ProjectDetail(
+            $this->projectRows([$project], $this->visibility->scope())[0],
+            $project->description(),
+            $project->billsTimeByDefault(),
+            array_map(static fn (ProjectStatus $status): StatusChoice => new StatusChoice($status->id(), $status->name(), $status->type()), $this->projects->statuses($project)),
+            array_map(static fn (Section $section): Choice => new Choice($section->id(), $section->name()), $this->sections($project)),
+        );
+    }
+
+    public function projectPeople(string $projectId, ?string $taskId = null): ?array
+    {
+        $project = $this->visibleProject($projectId);
+        if (!$project instanceof Project) {
+            return null;
+        }
+        if (null !== $taskId) {
+            $task = $this->tasks->task($taskId);
+            if (!$task instanceof Task || $task->project()->id() !== $project->id()) {
+                return null;
+            }
+
+            return $this->assignable([$taskId])[$taskId] ?? null;
+        }
+        $people = [];
+        foreach ($this->people->all() as $person) {
+            $membership = $person->active ? $this->people->membership($person->membershipId) : null;
+            if ($membership instanceof Membership && $membership->isActive() && $this->visibility->scopeOf($membership)->opens($project)) {
+                $people[] = new Choice($person->membershipId, $person->name);
+            }
+        }
+
+        return $people;
+    }
+
     private function commentView(TaskComment $comment, ?Membership $me, bool $owner): CommentView
     {
         $name = $comment->author()->user()->displayName();
@@ -591,6 +767,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
                 static fn (Attachment $file): CommentAttachment => new CommentAttachment($file->id(), $file->fileName(), $file->mediaType(), $file->size()),
                 $this->attachments->of(TaskAttachmentAccess::COMMENT_KIND, $comment->id()),
             ),
+            $comment->author()->id(),
         );
     }
 
@@ -850,6 +1027,14 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             <=> [!$other->dueOn instanceof \DateTimeImmutable, $other->dueOn?->format('Y-m-d'), -$other->priority->rank()]);
 
         return $rows;
+    }
+
+    /**
+     * The text of a LIKE, its wildcards escaped with "!".
+     */
+    private function like(string $value): string
+    {
+        return str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $value);
     }
 
     private function me(): ?Membership
