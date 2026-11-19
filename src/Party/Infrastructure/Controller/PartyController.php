@@ -48,9 +48,9 @@ use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Column\ListColumnRegistry;
 use Foresi\Ui\Column\RememberedDisplay;
-use Foresi\Ui\Column\WorkingDisplay;
-use Foresi\Ui\Column\WorkingState;
-use Foresi\Ui\Component\DataTable;
+use Foresi\Ui\Contract\Opens;
+use Foresi\Ui\Contract\WorkingDisplay;
+use Foresi\Ui\Contract\WorkingState;
 use Foresi\Ui\View\ViewBar;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -449,7 +449,7 @@ final class PartyController extends AbstractController
                 'label' => $row->displayName,
                 'href' => $this->generateUrl('app_contact_show', ['id' => $row->id]),
                 // The contact opens in the side sheet over the list (docs/design/overlays.md).
-                'opens' => DataTable::OPENS_SHEET,
+                'opens' => Opens::SHEET,
                 'secondary' => implode(' · ', array_filter([$this->contactSource->roles($row), $row->registrationNumber, $row->email], static fn (?string $part): bool => null !== $part && '' !== $part)),
                 'cells' => $cells,
             ];

@@ -1,6 +1,6 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {# A page of its own, and from the header of the document a danger dialog over it, as an invoice goes to the trash. #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'purchasing.list.title'|trans, href: path('app_purchasing')}, {label: title, href: path('app_purchasing_document', {id: document.id})}] %}
 {% set dialog_size = 'sm' %}

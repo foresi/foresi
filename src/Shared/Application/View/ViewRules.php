@@ -16,7 +16,7 @@ namespace Foresi\Shared\Application\View;
  */
 final class ViewRules
 {
-    /** As the list columns read them (Foresi\Ui\Column\ListDisplay::DENSITIES). */
+    /** As the list columns read them (Foresi\Ui\Contract\ListDisplay::DENSITIES). */
     public const array DENSITIES = ['comfortable', 'dense'];
     public const int MAX_SORT = 3;
     public const int MAX_COLUMNS = 40;

@@ -75,7 +75,7 @@ use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Shared\Domain\Countries;
 use Foresi\Shared\Infrastructure\Http\SubmissionTokens;
-use Foresi\Ui\Dialog\DialogRequest;
+use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\HeaderUtils;

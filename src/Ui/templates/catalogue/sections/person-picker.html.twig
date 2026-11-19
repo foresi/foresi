@@ -1,0 +1,10 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set people = [{value: 'm-1', name: 'Example Company', seed: 'user-1'}, {value: 'm-2', name: 'Jana Example', seed: 'user-2'}, {value: 'm-3', name: 'Petr Novák Example', seed: 'user-3'}] %}
+<div class="grid gap-5">
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<form class="w-72"><twig:Ui:PersonPicker name="cat-responsible" id="cat-responsible" label="Responsible" :people="people" value="m-2" noneLabel="Nobody" /></form>
+{% endblock %}{% endembed %}
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'empty'} %}{% block sample %}
+<form class="w-72"><twig:Ui:PersonPicker name="cat-responsible-empty" id="cat-responsible-empty" label="Responsible" :people="people" value="" noneLabel="Nobody" /></form>
+{% endblock %}{% endembed %}
+</div>

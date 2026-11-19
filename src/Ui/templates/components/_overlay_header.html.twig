@@ -1,0 +1,45 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The header of a dialog or a sheet (`id`, `title`, `description`): the title, a muted line under
+    it and the X, as in level.io's modals and side panels. A record (docs/design/overlays.md) adds
+    `page` (its URL: Open as page), `fullscreen` (a sheet: the toggle to the width of the content
+    panel), `titleEdit` (its title changed where it is read, as on its page) and `actions` (the same buttons its page header holds, small: record_action_size in
+    layout/record.html.twig).
+
+    A record header is one row, as a page header is (Polaris Page, Primer PageHeader): the title at
+    the size of a page title, cut with an ellipsis, then the record's actions, a divider and the
+    window buttons. On a phone the actions go to a row of their own under the title.
+    [data-overlay-actions] is the one slot of the record's actions.
+#}
+{% set page = page|default(null) %}
+{% set actions = actions|default('') %}
+{% set record = actions|trim is not empty or page %}
+<header class="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-3 pl-6 pr-4 max-sm:pl-4 max-sm:pr-3 {{ record ? 'pb-4 pt-4' : 'items-start pb-4 pt-5' }}">
+    <div class="order-1 min-w-0 flex-1 pr-2 {{ record ? '' : 'pt-1' }}">
+        {% if record and titleEdit|default(null) %}
+            {# A record whose title changes where it is read, as on its page (Ui:PageHeader); the focus starts on it, not on its first field. #}
+            {{ include('@Ui/components/_title_edit.html.twig', {te: titleEdit, title: title, tag: 'h2', headingAttrs: 'id="' ~ id ~ '-title" tabindex="-1" data-dialog-target="title" autofocus'}) }}
+        {% elseif record %}
+            <h2 id="{{ id }}-title" tabindex="-1" data-dialog-target="title" title="{{ title }}" class="m-0 truncate text-title font-semibold text-ink outline-none">{{ title }}</h2>
+        {% else %}
+            <h2 id="{{ id }}-title" tabindex="-1" data-dialog-target="title" class="m-0 text-heading font-semibold text-ink outline-none [overflow-wrap:anywhere]">{{ title }}</h2>
+        {% endif %}
+        {% if description %}<p id="{{ id }}-description" data-dialog-target="description" class="m-0 mt-1 text-body text-muted">{{ description }}</p>{% endif %}
+    </div>
+    {% if actions|trim is not empty %}
+        {# The page header's actions, in Ui:MoreActions' order: the primary first, the "⋯" menu last. #}
+        <div data-overlay-actions class="order-2 flex shrink-0 items-center gap-2 max-sm:order-3 max-sm:basis-full max-sm:justify-end">{{ actions }}</div>
+        <span aria-hidden="true" class="order-2 mx-1 h-5 w-px shrink-0 bg-divider max-sm:hidden" data-overlay-divider></span>
+    {% endif %}
+    <div class="order-2 flex shrink-0 items-center gap-1">
+        {% if fullscreen|default(false) %}
+            {# A toggle button (APG Button: aria-pressed); a phone shows every sheet full screen already. #}
+            <twig:Ui:IconButton icon="maximize-2" :label="'ui.sheet.full_screen'|trans" variant="ghost" :size="record ? 'sm' : 'md'" aria-pressed="false" data-sheet-target="full" data-action="sheet#toggleFull" class="max-sm:hidden" data-overlay-full-screen />
+        {% endif %}
+        {% if page %}
+            {# The record's own URL: without JavaScript, in a new tab or from a bookmark it is the page. #}
+            <twig:Ui:IconButton icon="external-link" :href="page" :label="'ui.sheet.open_as_page'|trans" variant="ghost" :size="record ? 'sm' : 'md'" data-action="dialog#openPage" data-overlay-page />
+        {% endif %}
+        <twig:Ui:IconButton icon="x" :label="'ui.dialog.close'|trans" variant="ghost" :size="record ? 'sm' : 'md'" data-action="dialog#dismiss" />
+    </div>
+</header>

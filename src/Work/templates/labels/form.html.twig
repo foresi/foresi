@@ -3,7 +3,7 @@
     A new label, or a change of one: its name and its colour, one of the badge tones. A dialog over
     the labels; the same URL is a page of its own.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set heading = label ? 'work.labels.edit_title'|trans({name: label.name}) : 'work.labels.new'|trans %}
 {% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'work.labels.title'|trans, href: path('app_labels')}, {label: heading}] %}

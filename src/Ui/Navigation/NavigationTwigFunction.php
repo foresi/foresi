@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Ui\Navigation;
 
+use Foresi\Ui\Contract\Navigation\NavigationArea;
 use Twig\Attribute\AsTwigFunction;
 
 final readonly class NavigationTwigFunction

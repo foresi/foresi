@@ -1,0 +1,34 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The live sheet of the catalogue: a sheet for a dialog request, a page of its own otherwise. #}
+{% extends in_dialog() ? '@Ui/layout/sheet.html.twig' : '@Ui/catalogue/layout.html.twig' %}
+
+{% set sheet_description = sheet_size == 'sm' ? 'Vyberte filtry, které se mají použít na seznam faktur.' : 'Example Company Holding of Central European Trading s.r.o.' %}
+
+{% block title %}{{ sheet_size == 'sm' ? 'Filtry' : 'Faktura 20260001' }}{% endblock %}
+
+{% block sheet_body %}
+    {% if sheet_size == 'sm' %}
+        <div class="grid gap-3">
+            {% for name, label in {status: 'Stav', customer: 'Zákazník', due: 'Splatnost', currency: 'Měna', series: 'Číselná řada'} %}
+                <twig:Ui:Checkbox name="filter-{{ name }}" id="live-filter-{{ name }}" :label="label" :checked="loop.index < 3" />
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="grid gap-6">
+            <twig:Ui:DescriptionList :items="[{label: 'Odběratel', value: 'Example Company s.r.o.'}, {label: 'Vystaveno', value: '16. 11. 2026'}, {label: 'Splatnost', value: '30. 11. 2026'}, {label: 'Celkem', value: '12 100,00 Kč'}, {label: 'Stav', badge: {label: 'Neuhrazeno', tone: 'amber'}}]" />
+            <p class="m-0 text-text">Příliš žluťoučký kůň úpěl ďábelské ódy. Šířku panelu změníte tažením za levý okraj nebo šipkami na zaměřeném okraji.</p>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block sheet_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">Zavřít</twig:Ui:Button>
+    {% if sheet_size == 'md' %}<twig:Ui:Button variant="primary" icon="check">Označit jako uhrazenou</twig:Ui:Button>{% endif %}
+{% endblock %}
+
+{% block panel %}
+    <div class="grid gap-4 p-6">
+        <h1 class="m-0 text-title font-semibold text-ink">{{ block('title') }}</h1>
+        {{ block('sheet_body') }}
+    </div>
+{% endblock %}

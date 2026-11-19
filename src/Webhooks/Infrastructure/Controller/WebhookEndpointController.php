@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Webhooks\Infrastructure\Controller;
 
-use Foresi\Ui\Component\DataTable;
+use Foresi\Ui\Contract\Opens;
 use Foresi\Webhooks\Application\DeliveryNotRedeliverable;
 use Foresi\Webhooks\Application\InvalidWebhookEndpoint;
 use Foresi\Webhooks\Application\InvalidWebhookUrl;
@@ -521,7 +521,7 @@ final class WebhookEndpointController extends AbstractController
             'id' => $row->id,
             // A delivery's attempts are a small record: a modal over the endpoint (docs/design/overlays.md).
             'href' => $this->generateUrl(self::DELIVERY_ROUTE, $ids),
-            'opens' => DataTable::OPENS_DIALOG,
+            'opens' => Opens::DIALOG,
             'label' => $this->eventLabel($row),
             'cells' => [
                 'event' => $this->eventLabel($row),

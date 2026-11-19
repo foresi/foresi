@@ -23,7 +23,7 @@ use Foresi\Party\Infrastructure\Form\LegalEntitySubmission;
 use Foresi\Party\Infrastructure\Form\LegalEntitySubmissionReader;
 use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Infrastructure\Http\SubmissionTokens;
-use Foresi\Ui\Component\DataTable;
+use Foresi\Ui\Contract\Opens;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -297,7 +297,7 @@ final class LegalEntityController extends AbstractController
             'label' => $firm->name(),
             'href' => $this->generateUrl('app_firm_edit', ['id' => $firm->id()]),
             // A firm is a settings hub of tabs (details, invoicing, bank, mail): it opens as a page (docs/design/overlays.md).
-            'opens' => DataTable::OPENS_PAGE,
+            'opens' => Opens::PAGE,
             'secondary' => implode(' · ', array_filter([$cells['registration'], $cells['vat'], $cells['vat_status']], static fn (?string $part): bool => null !== $part && '' !== $part)),
             'cells' => $cells,
         ];

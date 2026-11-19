@@ -4,7 +4,7 @@
     hourly rate. A person is a small record: a modal over the people (docs/design/overlays.md); the
     same URL is a page of its own.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'people.title'|trans, href: path('app_people')}, {label: person.displayName}] %}
 {% set form_invalid = errors is not empty %}

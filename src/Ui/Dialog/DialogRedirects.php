@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Ui\Dialog;
 
+use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;

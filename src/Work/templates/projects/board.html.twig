@@ -5,7 +5,7 @@
     which are plain forms; the menu also deletes the task. A new task opens in a dialog from the
     header and starts in the first open status; so does the sharing dialog. A private task has its badge. The columns scroll sideways inside the board, never the page.
 #}
-{% extends 'layout/app.html.twig' %}
+{% extends '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = (project.manageable ? [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}] : [{label: 'shared_with_me.title'|trans, href: path('app_shared_with_me')}])|merge([{label: project.name}]) %}
 {% if project.archivedAt %}{% set badge = {label: 'work.project.archived'|trans, tone: 'gray'} %}{% endif %}

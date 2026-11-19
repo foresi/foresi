@@ -28,7 +28,7 @@ use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Identity\Support\IdentityFixtures;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Tests\Party\Support\FirmAccounts;
-use Foresi\Ui\Dialog\DialogRequest;
+use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\ProjectStatus;
 use Foresi\Work\Domain\Task;

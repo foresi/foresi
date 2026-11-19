@@ -8,7 +8,7 @@
     A movement the bank did not vouch for (checkFirst) gets a warning, nothing ticked or filled in,
     and a required box saying the payment was checked in the bank.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'bank.movement.title'|trans, href: cancel}, {label: 'bank.movement.pair.crumb'|trans}] %}
 {% set form_invalid = errors is not empty %}
