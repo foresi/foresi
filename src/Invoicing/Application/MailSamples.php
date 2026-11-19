@@ -51,7 +51,7 @@ final readonly class MailSamples
      */
     public function valuesFor(LegalEntity $firm, MailTemplateKind $kind, DocumentLanguage $language, Currency $currency, string $customer, string $documentType): array
     {
-        $today = \DateTimeImmutable::createFromInterface($this->clock->now())->setTime(0, 0);
+        $today = \DateTimeImmutable::createFromInterface($this->clock->now());
         $userId = $this->actor->userId();
         $user = null === $userId ? null : $this->users->findById($userId);
         $money = fn (string $amount): string => $this->format->money(Money::of($amount, $currency), $language);
