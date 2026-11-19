@@ -11,7 +11,6 @@ namespace Foresi\Tests\CashFlow\Infrastructure;
 use Foresi\CashFlow\Application\BalanceWrites;
 use Foresi\CashFlow\Application\RecordCheckpointInput;
 use Foresi\ExchangeRate\Contract\RateSource;
-use Foresi\Identity\Domain\User;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
