@@ -77,8 +77,8 @@ final readonly class RowConditions
      */
     private static function set(Condition $condition, array $actual): bool
     {
-        $wanted = \is_array($condition->value) ? $condition->value : [$condition->value];
-        $held = array_intersect($wanted, $actual);
+        $wanted = array_values(array_filter(\is_array($condition->value) ? $condition->value : [$condition->value], \is_string(...)));
+        $held = array_intersect($wanted, array_filter($actual, \is_string(...)));
 
         return match ($condition->op) {
             'has_any_of' => [] !== $held,
