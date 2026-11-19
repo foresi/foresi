@@ -1144,7 +1144,7 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSame(['Needs tax document1'], $tabs($crawler));
         self::assertSame([], $more($crawler));
         self::assertCount(1, $crawler->filter('[data-column-picker-form]'));
-        self::assertSame('More views', trim($this->client->request('GET', '/advances')->filter('[data-more-views]')->filter('button, summary')->first()->text()));
+        self::assertSame('More views', $this->client->request('GET', '/advances')->filter('[data-more-views] button')->first()->attr('aria-label'));
 
         // The search, the builder and the sort narrow and order the rows, as on every list.
         self::assertSame([], $numbers($this->client->request('GET', '/advances/needs-tax-document?q=nobody')));
