@@ -56,6 +56,7 @@ final class ContactApiTest extends ApiTestCase
                 'archived' => false,
             ]],
             'next_cursor' => Cursor::encode($contact->id()),
+            'applied_view' => null,
         ], $this->json());
     }
 
@@ -166,6 +167,65 @@ final class ContactApiTest extends ApiTestCase
         self::assertSame([$beta->id()], $this->ids());
         $this->get('/api/v1/contacts', ['vat_id' => 'cz 12345679']);
         self::assertSame([$alpha->id()], $this->ids());
+    }
+
+    public function testASavedViewAndAFilterNarrowTheListLikeItsTabs(): void
+    {
+        [$alpha, $beta, $archived] = $this->flushed(fn (): array => [
+            $this->contact('Alpha Example s.r.o.', roles: [PartyRole::Supplier], number: '12345679'),
+            $this->contact('Beta Example a.s.', roles: [PartyRole::Partner], number: '25596641'),
+            $this->contact('Archived Example', roles: [PartyRole::Supplier], archived: true),
+        ]);
+
+        $this->get('/api/v1/contacts', ['view' => 'party.contacts.suppliers']);
+        self::assertSame([$alpha->id()], $this->ids());
+        self::assertSame('party.contacts.suppliers', $this->at('applied_view', 'system_key'));
+        // The archived state of the view decides it instead of the archived parameter.
+        $this->get('/api/v1/contacts', ['view' => 'party.contacts.archived']);
+        self::assertSame([$archived->id()], $this->ids());
+        $this->get('/api/v1/contacts', ['filter' => '{"conditions": [{"field": "role", "op": "is_any_of", "value": ["partner", "supplier"]}]}']);
+        self::assertSame([$beta->id(), $alpha->id()], $this->ids());
+        self::assertNull($this->json()['applied_view']);
+        $this->get('/api/v1/contacts', ['filter' => '{"conditions": [{"field": "role", "op": "is", "value": "supplier"}]}', 'view' => 'party.contacts.archived']);
+        self::assertSame([$archived->id()], $this->ids());
+        $this->get('/api/v1/contacts', ['filter' => '{"conditions": [{"field": "kind", "op": "is_not", "value": "company"}]}']);
+        self::assertSame([], $this->ids());
+    }
+
+    /**
+     * @return iterable<string, array{array<string, string>, string}>
+     */
+    public static function badFilters(): iterable
+    {
+        yield 'not JSON' => [['filter' => '{conditions'], 'filter'];
+        yield 'an unknown field' => [['filter' => '{"conditions": [{"field": "colour", "op": "is", "value": "red"}]}'], 'filter.conditions[0].field'];
+        yield 'an unknown role' => [['filter' => '{"conditions": [{"field": "role", "op": "is", "value": "friend"}]}'], 'filter.conditions[0].value'];
+        yield 'a view of another list' => [['view' => 'invoicing.invoices.paid'], 'view'];
+    }
+
+    /**
+     * @param array<string, string> $query
+     */
+    #[DataProvider('badFilters')]
+    public function testABadFilterIsRefusedWithItsPath(array $query, string $parameter): void
+    {
+        $this->get('/api/v1/contacts', $query);
+
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => $parameter]);
+    }
+
+    public function testAViewNeedsTheViewsScopeAndARefusalSaysWhatToSend(): void
+    {
+        $this->get('/api/v1/contacts', ['view' => 'party.contacts.suppliers'], $this->issued([ApiScope::from('contacts:read')]));
+        $this->assertProblem(403, 'insufficient_scope');
+
+        $this->get('/api/v1/contacts', ['filter' => '{conditions']);
+        $this->assertProblem(400, 'invalid_parameter', ['detail' => 'filter is a JSON object, {"conditions": [{"field": …, "op": …, "value": …}]}.']);
+        $this->get('/api/v1/contacts', ['filter' => '{"conditions": [{"field": "colour", "op": "is", "value": "red"}]}']);
+        $detail = $this->at('detail');
+        self::assertIsString($detail);
+        self::assertStringEndsWith('. Find the fields and operators with GET /api/v1/lists or foresi_list_lists.', $detail);
+        self::assertStringStartsNotWith('.', $detail);
     }
 
     public function testTheCursorPagesThroughTheListWithoutOverlap(): void

@@ -171,10 +171,10 @@ final class ApiTokenSignInTest extends WebTestCase
         $this->start();
         $secret = $this->issued(scopes: [ApiScope::from('contacts:write')]);
 
-        $this->client->request('GET', '/api/v1/invoices', server: ['HTTP_AUTHORIZATION' => 'Bearer '.$secret]);
+        $this->client->request('GET', '/api/v1/events', server: ['HTTP_AUTHORIZATION' => 'Bearer '.$secret]);
 
         $this->assertProblem(403, 'insufficient_scope');
-        self::assertResponseHeaderSame('WWW-Authenticate', 'Bearer error="insufficient_scope", scope="invoices:read"');
+        self::assertResponseHeaderSame('WWW-Authenticate', 'Bearer error="insufficient_scope", scope="events:read"');
     }
 
     public function testASignInOnTheScreensDoesNotReachTheApi(): void

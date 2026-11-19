@@ -1,13 +1,14 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    The Columns button and its sheet: a checkbox per column, each movable by its handle or by Move
-    up / Move down, the density and "Reset to default"; one Apply sends it all to the list.
+    The Columns button and its sheet: the shown columns, each with a checkbox and movable by its
+    handle or by Move up / Move down, then "Add column" with every other one, the density and
+    "Reset to default"; one Apply sends it all to the list, an added column after the shown ones.
 #}
 {% set picker = this %}
 {% set sheetId = id ~ '-sheet' %}
 {% set formId = id ~ '-form' %}
-{% set views = picker.views %}
-{% set movable = views|filter(v => not v.locked)|length %}
+{% set views = picker.shown %}
+{% set addable = picker.addable %}
 <div {{ attributes.defaults({class: 'ml-auto', 'data-controller': 'column-picker', 'data-column-picker-dialog-outlet': '#' ~ sheetId, 'data-column-picker-moved-value': 'ui.column_picker.moved'|trans({label: '{label}', position: '{position}', total: '{total}'})}) }}>
     <twig:Ui:Button icon="columns-3" aria-haspopup="dialog" :aria-controls="sheetId" data-action="column-picker#open" data-column-picker-open>
         {{- 'ui.column_picker.button'|trans -}}
@@ -45,6 +46,20 @@
                 <p class="m-0 text-small text-muted" hidden data-column-picker-target="none">{{ 'ui.column_picker.no_match'|trans }}</p>
                 <p class="sr-only" role="status" aria-live="polite" data-column-picker-target="status"></p>
             </fieldset>
+            {% if addable is not empty %}
+                <fieldset class="m-0 grid min-w-0 gap-2 border-0 p-0" data-column-picker-target="add" data-column-picker-add>
+                    <legend class="mb-2 p-0 text-small font-medium text-muted">{{ 'ui.column_picker.add'|trans }}</legend>
+                    <ul class="m-0 grid list-none gap-0.5 p-0">
+                        {% for column in addable %}
+                            <li class="flex min-h-touch items-center gap-1 rounded-control bg-white pr-1" data-column-picker-target="option" data-key="{{ column.key }}" data-label="{{ column.label }}">
+                                <span class="size-8 shrink-0" aria-hidden="true"></span>
+                                <input type="checkbox" id="{{ column.id }}" name="cols[]" value="{{ column.key }}" class="size-4 shrink-0 accent-green {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" data-column-picker-target="box">
+                                <label for="{{ column.id }}" class="min-w-0 flex-1 truncate py-2 pl-1.5">{{ column.label }}</label>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </fieldset>
+            {% endif %}
             <fieldset class="m-0 grid min-w-0 gap-2 border-0 p-0" data-column-picker-density>
                 <legend class="mb-2 p-0 text-small font-medium text-muted">{{ 'ui.column_picker.density'|trans }}</legend>
                 <div class="grid grid-cols-2 gap-2">

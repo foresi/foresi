@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Infrastructure\Console;
 
+use Foresi\Shared\Domain\Module\ModuleManifest;
 use Foresi\Shared\Infrastructure\Console\ModulesDeptracCommand;
 use Foresi\Shared\Infrastructure\Module\DeptracModulesConfig;
 use Foresi\Shared\Infrastructure\Module\InstalledModules;
@@ -66,6 +67,15 @@ final class ModulesDeptracCommandTest extends TestCase
 
     public function testCommittedFileIsCurrent(): void
     {
+        // The committed file describes every module of the repository; an application with only some of them cannot match it.
+        preg_match_all('/^    - name: ([a-z_]+)$/m', (string) file_get_contents(\dirname(__DIR__, 4).'/deptrac.modules.yaml'), $layers);
+        $installed = array_map(static fn (ModuleManifest $module): string => str_replace('-', '_', $module->id->value), new InstalledModules(\dirname(__DIR__, 4))->graph()->all());
+        foreach ($layers[1] as $name) {
+            if (!str_contains($name, '_contract') && !str_contains($name, '_integration_') && !\in_array($name, $installed, true)) {
+                self::markTestSkipped(\sprintf('The module %s is not installed.', $name));
+            }
+        }
+
         self::assertSame(Command::SUCCESS, $this->command()($this->io(new BufferedOutput()), check: true));
     }
 

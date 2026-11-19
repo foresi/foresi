@@ -112,6 +112,7 @@ invoice:
 
         {link}
   mark:
+    none: Neodesláno
     queued: Odesílá se
     sent: Odesláno
     read: Přečteno
@@ -155,7 +156,6 @@ invoice:
       failed: Neodešlo
     column:
       when: Kdy
-      firm: Firma
       number: Doklad
       customer: Zákazník
       recipients: Příjemci
@@ -411,13 +411,46 @@ invoice:
       number: Číslo
       firm: Firma
       customer: Zákazník
-      issueDate: Vystaveno
-      dueDate: Splatnost
+      issue_date: Vystaveno
+      due_date: Splatnost
       payable: Celkem
       status: Stav
-      deletedBy: Smazal(a)
-      deletedAt: Smazáno
-      reason: Důvod
+      deleted_by: Smazal(a)
+      deleted_at: Smazáno
+      deleted_reason: Důvod
+      customer_registration_number: IČO zákazníka (na dokladu)
+      customer_vat_id: DIČ zákazníka (na dokladu)
+      customer_city: Město zákazníka (na dokladu)
+      customer_country: Stát zákazníka (na dokladu)
+      customer_email: E-mail zákazníka (na dokladu)
+      tax_point_date: DUZP
+      currency: Měna
+      net: Bez DPH
+      vat: DPH
+      paid: Uhrazeno
+      remaining: Zbývá uhradit
+      payment_state: Stav úhrady
+      overdue: Po splatnosti
+      payment_method: Způsob platby
+      bank_account: Bankovní účet
+      variable_symbol: Variabilní symbol
+      order_number: Číslo objednávky
+      language: Jazyk
+      vat_regime: Režim DPH
+      description: Popis
+      delivered_at: Doručeno
+      created_at: Vytvořeno
+      recurring: Z pravidelné faktury
+      import_source: Importováno z
+    payment_state:
+      unpaid: Neuhrazeno
+      partly_paid: Částečně uhrazeno
+      paid: Uhrazeno
+      overpaid: Přeplaceno
+      to_refund: K vrácení
+    vat_regime:
+      payer: Plátce DPH
+      non_payer: Neplátce DPH
     status:
       settled_by_advances: Uhrazeno zálohami
       issued: Vystaveno
@@ -1034,6 +1067,7 @@ recurring:
       edit: Upravit pravidelnou fakturu
     summary: '{total, plural, one {# pravidelná faktura} few {# pravidelné faktury} other {# pravidelných faktur}}'
     tab:
+      all: Vše
       active: Aktivní
       paused: Pozastavené
       ended: Ukončené
@@ -1074,8 +1108,10 @@ recurring:
       title: Zatím žádné pravidelné faktury
       text: Založte novou, nebo ji vytvořte z vystavené faktury přes položku Pravidelná faktura v jejím menu.
       from_invoice: Vybrat fakturu
-      filtered_title: Pro tuto firmu tu nic není
-      reset: Zobrazit všechny firmy
+      filtered_title: Filtrům nic neodpovídá
+      reset: Zrušit filtry
+      all: Žádná pravidelná faktura
+      view: Tomuto pohledu nic neodpovídá
       active: Žádná aktivní pravidelná faktura
       paused: Nic není pozastavené
       ended: Nic není ukončené
@@ -1165,7 +1201,6 @@ reminder:
     send_help: Když firma posílá upomínky po splatnosti automaticky.
   log:
     column: Druh
-    all: Všechny druhy
     purpose:
       invoice: Faktura
       reminder: Upomínka

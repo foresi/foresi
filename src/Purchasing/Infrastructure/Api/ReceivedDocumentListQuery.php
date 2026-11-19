@@ -10,6 +10,7 @@ namespace Foresi\Purchasing\Infrastructure\Api;
 
 use Foresi\Purchasing\Application\Query\ReceivedDocumentSliceFilter;
 use Foresi\Purchasing\Domain\ReceivedDocumentState;
+use Foresi\Shared\Application\View\ViewFilter;
 use Symfony\Component\Serializer\Attribute\SerializedName;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -35,10 +36,14 @@ final readonly class ReceivedDocumentListQuery
         #[Assert\Range(min: 1, max: 100)]
         public int $limit = 25,
         public ?string $cursor = null,
+        // A saved view's id or system key, such as "purchasing.received.drafts" (spec D13).
+        public ?string $view = null,
+        // D4 JSON, {"conditions": [...]}, joined with the view's by AND.
+        public ?string $filter = null,
     ) {
     }
 
-    public function filter(): ReceivedDocumentSliceFilter
+    public function filter(?ViewFilter $view = null): ReceivedDocumentSliceFilter
     {
         return new ReceivedDocumentSliceFilter(
             null === $this->firmId ? null : strtolower($this->firmId),
@@ -47,6 +52,7 @@ final readonly class ReceivedDocumentListQuery
             null === $this->dueBefore ? null : new \DateTimeImmutable($this->dueBefore),
             $this->trashed,
             null === $this->supplierId ? null : strtolower($this->supplierId),
+            $view,
         );
     }
 }

@@ -46,9 +46,9 @@ use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
-use Foresi\Tests\Import\Support\RunMessages;
 use Foresi\Tests\Party\Support\FirmAccounts;
 use Foresi\Tests\Support\Mail\RecordingMailGateway;
+use Foresi\Tests\Support\Messenger\RunMessages;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
@@ -88,17 +88,16 @@ final class SendLogControllerTest extends WebTestCase
         parent::tearDown();
     }
 
-    public function testTheLogFiltersByFirmAndStatusAndPaginates(): void
+    public function testTheLogFiltersByViewAndPaginates(): void
     {
         $this->signedIn();
-        $other = $this->firmWithServer('Example Other s.r.o.', '12345687');
         $invoice = $this->issued();
         for ($i = 0; $i < 25; ++$i) {
             $this->sent($invoice);
         }
         $this->deliver();
         self::mockTime('2026-11-03 11:00:00');
-        $failed = $this->issued(firm: $other);
+        $failed = $this->issued();
         $this->sent($failed, ['refuse@example.com']);
         $this->deliver();
 
@@ -112,22 +111,92 @@ final class SendLogControllerTest extends WebTestCase
         self::assertStringContainsString('SMTP 550', $crawler->filter('tbody tr')->first()->text());
         self::assertStringContainsString('Failed', $crawler->filter('tbody tr')->first()->text());
         self::assertSelectorTextContains('[data-table-footer]', '26');
+        // One firm per instance: no firm column and no firm filter.
+        self::assertSame(['Document', 'When', 'Type', 'Customer', 'Recipients', 'Status', 'Error', 'Actions'], $crawler->filter('thead th')->each(static fn (Crawler $th): string => trim($th->text())));
+        self::assertCount(0, $crawler->filter('[name="firm"]'));
 
         $crawler = $this->client->request('GET', '/invoices/sent?page=2');
         self::assertCount(1, $crawler->filter('tbody tr'));
 
-        $crawler = $this->client->request('GET', '/invoices/sent?firm='.$other[0]->id());
+        $crawler = $this->client->request('GET', '/invoices/sent?view=failed');
         self::assertCount(1, $crawler->filter('tbody tr'));
-        self::assertStringContainsString('Example Other s.r.o.', $crawler->filter('tbody tr')->text());
-
-        $crawler = $this->client->request('GET', '/invoices/sent?status=failed');
-        self::assertCount(1, $crawler->filter('tbody tr'));
-        $crawler = $this->client->request('GET', '/invoices/sent?status=sent&firm='.$other[0]->id());
+        self::assertSame('Failed', trim($crawler->filter('nav[aria-label="Send states"] [aria-current="page"]')->text()));
+        $crawler = $this->client->request('GET', '/invoices/sent?view=sent');
+        self::assertCount(25, $crawler->filter('tbody tr'));
+        self::assertSelectorTextContains('[data-table-footer]', '25');
+        $crawler = $this->client->request('GET', '/invoices/sent?view=queued');
         self::assertCount(0, $crawler->filter('tbody tr'));
-        // A value from nowhere is ignored, not an error.
-        $crawler = $this->client->request('GET', '/invoices/sent?status=bounced&firm=nonsense');
+        self::assertSelectorTextContains('main', 'No e-mail matches');
+        // A view from nowhere, and the firm of the old filter, are ignored, not an error.
+        $crawler = $this->client->request('GET', '/invoices/sent?view=bounced&firm=nonsense');
         self::assertResponseIsSuccessful();
         self::assertCount(25, $crawler->filter('tbody tr'));
+        self::assertSelectorTextContains('[data-table-footer]', '26');
+    }
+
+    public function testTheTabsAreTheShippedViewsAndTheOldStatusAddressesAlias(): void
+    {
+        // Saved views, D12: the tabs the log had, after All (D7), none with a count (D9).
+        $this->signedIn();
+        $invoice = $this->issued();
+        $this->sent($invoice);
+        $this->deliver();
+        $this->sent($invoice, ['refuse@example.com']);
+        $this->deliver();
+
+        $crawler = $this->client->request('GET', '/invoices/sent');
+        self::assertSame(['All', 'Sent', 'Waiting', 'Failed'], $this->viewTabs($crawler));
+        self::assertSame(['/invoices/sent', '/invoices/sent?view=sent', '/invoices/sent?view=queued', '/invoices/sent?view=failed'], $crawler->filter('nav[aria-label="Send states"] a')->each(static fn (Crawler $tab): ?string => $tab->attr('href')));
+        self::assertCount(1, $crawler->filter('[data-filter-sheet-form]'));
+        self::assertCount(1, $crawler->filter('[data-column-picker-form]'));
+
+        foreach (['?status=failed' => ['Failed', 1], '?status=sent' => ['Sent', 1], '?status=queued' => ['Waiting', 0], '?status=all' => ['All', 2], '?status=bounced' => ['All', 2]] as $address => [$tab, $rows]) {
+            $crawler = $this->client->request('GET', '/invoices/sent'.$address);
+            self::assertResponseIsSuccessful();
+            self::assertSame($tab, trim($crawler->filter('nav[aria-label="Send states"] [aria-current="page"]')->text()), $address);
+            self::assertCount($rows, $crawler->filter('tbody tr'), $address);
+        }
+    }
+
+    public function testTheBuilderNarrowsTheViewAndItsChangesAreSavedAsANewView(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        $this->sent($invoice);
+        $this->deliver();
+        self::mockTime('2026-11-25 10:00:00');
+        $this->reminded($invoice, 1);
+
+        $this->client->request('GET', '/invoices/sent?'.http_build_query(['view' => 'queued', 'purpose' => 'invoice', 'conditions' => '1', 'c' => [['field' => 'purpose', 'op' => 'is', 'values' => ['reminder']]]]));
+        self::assertResponseStatusCodeSame(303);
+        // The old select is in the rows by then: the address keeps the view and the rows alone.
+        $location = (string) $this->client->getResponse()->headers->get('Location');
+        self::assertStringStartsWith('/invoices/sent?view=queued&f=', $location);
+        self::assertStringNotContainsString('purpose=', $location);
+        $crawler = $this->client->followRedirect();
+        self::assertSame(['Reminder 1'], $crawler->filter('tbody tr [data-icon-cell]')->each(static fn (Crawler $cell): string => trim($cell->text())));
+        self::assertSame('Waiting, unsaved changes', $this->viewTabs($crawler)[2]);
+
+        $this->client->request('GET', '/invoices/sent?'.http_build_query(['conditions' => '1', 'c' => [['field' => 'purpose', 'op' => 'is', 'values' => ['reminder']]]]));
+        $crawler = $this->client->followRedirect();
+        self::assertSame(['Reminder 1'], $crawler->filter('tbody tr [data-icon-cell]')->each(static fn (Crawler $cell): string => trim($cell->text())));
+        self::assertSame('All, unsaved changes', $this->viewTabs($crawler)[0]);
+        $this->client->submit($crawler->filter('[data-view-save-as-form]')->form(['name' => 'Reminders']));
+        $crawler = $this->client->followRedirect();
+        self::assertSame(['Reminder 1'], $crawler->filter('tbody tr [data-icon-cell]')->each(static fn (Crawler $cell): string => trim($cell->text())));
+        self::assertContains('Reminders', $this->viewTabs($crawler));
+    }
+
+    public function testTheColumnsSheetHidesAColumn(): void
+    {
+        $this->signedIn();
+        $this->sent($this->issued());
+        $this->deliver();
+
+        $crawler = $this->client->request('GET', '/invoices/sent?cols=number,status');
+
+        self::assertSame(['Document', 'Status', 'Actions'], $crawler->filter('thead th')->each(static fn (Crawler $th): string => trim($th->text())));
+        self::assertCount(1, $crawler->filter('tbody tr'));
     }
 
     public function testAFailureReadsInTheLanguageOfTheUser(): void
@@ -317,7 +386,7 @@ final class SendLogControllerTest extends WebTestCase
         $notices = $crawler->filter('[data-shell-notices]')->text();
         self::assertStringNotContainsString('more than 15 minutes', $notices);
         self::assertStringContainsString('An e-mail is being tried again: the mail server has not taken it yet.', $notices);
-        self::assertSame('/invoices/sent?status=queued', $crawler->filter('[data-shell-notices] a')->attr('href'));
+        self::assertSame('/invoices/sent?view=queued', $crawler->filter('[data-shell-notices] a')->attr('href'));
     }
 
     public function testTheLogShowsWhenASendWasRead(): void
@@ -343,7 +412,7 @@ final class SendLogControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/contacts');
 
-        self::assertSame('/invoices/sent?status=failed', $crawler->filter('[data-shell-notices] a')->first()->attr('href'));
+        self::assertSame('/invoices/sent?view=failed', $crawler->filter('[data-shell-notices] a')->first()->attr('href'));
         $this->client->click($crawler->filter('[data-shell-notices] a')->first()->link());
         self::assertResponseIsSuccessful();
         self::assertCount(1, $this->client->getCrawler()->filter('tbody tr'));
@@ -364,18 +433,24 @@ final class SendLogControllerTest extends WebTestCase
         self::assertContains('Type', $crawler->filter('thead th')->each(static fn (Crawler $th): string => trim($th->text())));
         self::assertSame(['Reminder 1', 'Invoice'], $crawler->filter('tbody tr [data-icon-cell]')->each(static fn (Crawler $cell): string => trim($cell->text())));
 
+        // The old select is a condition of "+ Filter" now: its address still narrows (saved views D11, D12).
         $crawler = $this->client->request('GET', '/invoices/sent?purpose=reminder');
         self::assertCount(1, $crawler->filter('tbody tr'));
-        self::assertSame('reminder', $crawler->filter('#send-filters-purpose-field option[selected]')->attr('value'));
-        // The tabs keep the purpose, so a status narrows the reminders.
-        self::assertSame('/invoices/sent?status=queued&purpose=reminder', $crawler->filter('nav[aria-label="Send states"] a')->eq(2)->attr('href'));
+        self::assertSame('All, unsaved changes', $this->viewTabs($crawler)[0]);
+        self::assertStringContainsString('Reminder', $crawler->filter('[data-filter-condition]')->first()->text());
+        // The tabs open each view as it is saved: the purpose belongs to the view it was added on.
+        self::assertSame('/invoices/sent?view=queued', $crawler->filter('nav[aria-label="Send states"] a')->eq(2)->attr('href'));
+        $crawler = $this->client->request('GET', '/invoices/sent?status=sent&purpose=reminder');
+        self::assertCount(0, $crawler->filter('tbody tr'), 'the reminder waits, it was not sent');
         // A reminder row offers the next reminder, not the invoice again.
+        $crawler = $this->client->request('GET', '/invoices/sent?purpose=reminder');
         self::assertStringEndsWith('/invoices/'.$invoice->id().'/remind', (string) $crawler->filter('tbody tr a[data-dialog]:not([data-row-link])')->first()->attr('href'));
 
         $crawler = $this->client->request('GET', '/invoices/sent?purpose=invoice');
         self::assertSame(['Invoice'], $crawler->filter('tbody tr [data-icon-cell]')->each(static fn (Crawler $cell): string => trim($cell->text())));
         $crawler = $this->client->request('GET', '/invoices/sent?purpose=nonsense');
         self::assertCount(2, $crawler->filter('tbody tr'));
+        self::assertSame('All', $this->viewTabs($crawler)[0]);
     }
 
     public function testHistoryNamesTheReminderStep(): void
@@ -454,6 +529,14 @@ final class SendLogControllerTest extends WebTestCase
         self::assertIsString($hash);
 
         return $hash;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function viewTabs(Crawler $crawler): array
+    {
+        return $crawler->filter('nav[aria-label="Send states"] a')->each(static fn (Crawler $tab): string => trim($tab->text()));
     }
 
     /**

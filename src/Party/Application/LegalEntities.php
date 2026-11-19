@@ -42,12 +42,5 @@ interface LegalEntities
      */
     public function lock(string $id): LegalEntity;
 
-    /**
-     * The active firms, locked until the transaction ends. Call it inside TransactionalWork.
-     *
-     * @return list<LegalEntity>
-     */
-    public function lockActive(): array;
-
     public function add(LegalEntity $firm): void;
 }

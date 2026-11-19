@@ -20,6 +20,7 @@ final readonly class RecurringPage
      * @param list<string>           $failing   the ids of those on this page that are failing now: not
      *                                          ended, with a refused issue, or a refused send whose invoice
      *                                          still waits to be sent
+     * @param array<string, int>     $counts    the views of RecurringFilter::$counted, by key
      */
     public function __construct(
         public array $templates,
@@ -27,6 +28,7 @@ final readonly class RecurringPage
         public int $page,
         public int $pages,
         public array $failing = [],
+        public array $counts = [],
     ) {
     }
 

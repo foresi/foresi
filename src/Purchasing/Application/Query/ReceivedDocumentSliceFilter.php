@@ -9,12 +9,16 @@ declare(strict_types=1);
 namespace Foresi\Purchasing\Application\Query;
 
 use Foresi\Purchasing\Domain\ReceivedDocumentState;
+use Foresi\Shared\Application\View\ViewFilter;
 
 /**
  * What a slice of received documents for the API and MCP holds: the documents
  * outside the trash, or only those in it, narrowed by firm, state, whether
  * something remains to be paid and the day they are due before. An unpaid
  * document is a recorded one whose payments do not reach its total.
+ *
+ * A saved view and a filter (spec D13) narrow it besides; one on the trash decides
+ * it instead of $trashed.
  */
 final readonly class ReceivedDocumentSliceFilter
 {
@@ -25,6 +29,7 @@ final readonly class ReceivedDocumentSliceFilter
         public ?\DateTimeImmutable $dueBefore = null,
         public bool $trashed = false,
         public ?string $supplierId = null,
+        public ?ViewFilter $view = null,
     ) {
     }
 }

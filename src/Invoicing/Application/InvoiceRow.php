@@ -10,13 +10,15 @@ namespace Foresi\Invoicing\Application;
 
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\ExportState;
+use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Shared\Domain\Money;
 
 /**
  * One line of the invoice list, with the names as the document holds them. Overdue is
  * past the due date while something is still to pay. The deletion is
  * given in the time zone of the country that issued the document. The send mark says how
- * the newest e-mail of the invoice went.
+ * the newest e-mail of the invoice went. The document the row was read from, when a list read
+ * it, gives the attributes a person adds as columns, without another query.
  */
 final readonly class InvoiceRow
 {
@@ -43,6 +45,7 @@ final readonly class InvoiceRow
         public ?Money $corrections = null,
         public ?\DateTimeImmutable $exportedAt = null,
         public ?\DateTimeImmutable $changedAfterExportAt = null,
+        public ?Invoice $document = null,
     ) {
     }
 

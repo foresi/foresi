@@ -35,6 +35,19 @@ jobs:
             exit 1
           fi
 
+      # Merging a feat, fix or perf pull request publishes a release whose notes
+      # are the "## Release notes" section of the description.
+      - name: Validate release notes
+        if: github.event_name == 'pull_request'
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          .github/scripts/check-release-notes.sh
+          if grep -q '^## \[Unreleased\]' CHANGELOG.md; then
+            echo "CHANGELOG.md is closed at 0.5.0: write the changes in the Release notes of the pull request instead."
+            exit 1
+          fi
+
       - name: Validate commit subjects
         if: github.event_name == 'pull_request'
         env:

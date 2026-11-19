@@ -284,4 +284,16 @@ final class InvoiceApiTest extends ApiTestCase
         $this->get('/api/v1/invoices/'.$invoice->id(), secret: $secret);
         $this->assertProblem(403, 'insufficient_scope');
     }
+
+    public function testTheOpenApiDocumentDescribesTheListOfInvoices(): void
+    {
+        $this->client->request('GET', '/api/v1/openapi.json');
+
+        self::assertResponseIsSuccessful();
+        $parameters = $this->at('paths', '/api/v1/invoices', 'get', 'parameters');
+        self::assertIsArray($parameters);
+        self::assertSame(['kind', 'firm_id', 'customer_id', 'state', 'trashed', 'issued_from', 'issued_to', 'q', 'limit', 'cursor', 'view', 'filter'], array_column($parameters, 'name'));
+        self::assertSame('#/components/schemas/InvoicePage', $this->at('paths', '/api/v1/invoices', 'get', 'responses', '200', 'content', 'application/json', 'schema', '$ref'));
+        $this->at('components', 'schemas', 'InvoiceDetail');
+    }
 }
