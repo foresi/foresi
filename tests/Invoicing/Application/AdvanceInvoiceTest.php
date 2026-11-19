@@ -170,7 +170,7 @@ final class AdvanceInvoiceTest extends InvoiceTestCase
 
         $draft = $this->drafts()->for($this->reloaded($advance));
 
-        self::assertSame('Zálohová faktura Z920260001', $draft->subject);
+        self::assertSame('Zálohová faktura Z920260001 od Example Firm s.r.o.', $draft->subject);
         self::assertStringContainsString('zálohovou fakturu č. Z920260001', $draft->body);
     }
 
@@ -178,7 +178,7 @@ final class AdvanceInvoiceTest extends InvoiceTestCase
     {
         $draft = $this->drafts()->for($this->reloaded($this->issue->issue($this->input())));
 
-        self::assertSame('Faktura 20260001', $draft->subject);
+        self::assertSame('Faktura 20260001 od Example Firm s.r.o.', $draft->subject);
     }
 
     private function drafts(): SendDraft

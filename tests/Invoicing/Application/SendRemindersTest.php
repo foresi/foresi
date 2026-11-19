@@ -239,7 +239,7 @@ final class SendRemindersTest extends SendingTestCase
 
         $reminder = $this->reminders($invoice)[0];
         $body = self::text($reminder, 'body');
-        self::assertStringContainsString("Zbývá uhradit 1\u{a0}000,00\u{a0}Kč", $body);
+        self::assertStringContainsString("Zbývá uhradit: **1\u{a0}000,00\u{a0}Kč**", $body);
         self::assertStringNotContainsString("1\u{a0}210,00", $body);
         self::assertStringContainsString('*AM:1000.00*', self::text($reminder, 'payment_code'), 'the QR code asks for what is left');
         $pdf = PdfTools::text((string) file_get_contents($this->sentDocumentsDir().'/'.self::text($reminder, 'pdf_key')));
@@ -390,7 +390,7 @@ final class SendRemindersTest extends SendingTestCase
         self::assertSame("8 days overdue, 1,210.00\u{a0}CZK to pay.\n{link}", $reminder['body']);
         self::assertSame('en', $reminder['language']);
         $builtIn = $this->reminders($czech)[0];
-        self::assertSame('Upomínka: faktura '.$czech->number(), $builtIn['subject'], 'the built-in Czech reminder text');
+        self::assertSame('Připomínka platby faktury '.$czech->number(), $builtIn['subject'], 'the built-in Czech reminder text');
         self::assertStringContainsString("1\u{a0}210,00\u{a0}Kč", self::text($builtIn, 'body'));
     }
 
