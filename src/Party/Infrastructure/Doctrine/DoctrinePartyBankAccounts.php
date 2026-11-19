@@ -38,6 +38,11 @@ final readonly class DoctrinePartyBankAccounts implements PartyBankAccounts
         });
     }
 
+    public function remove(PartyBankAccount $account): void
+    {
+        $this->em->remove($account);
+    }
+
     /**
      * Demotes the party's other primary accounts, the stored ones first and
      * flushed: the unique index would refuse two primaries within one flush

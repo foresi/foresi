@@ -12,19 +12,17 @@ use Foresi\Audit\Application\AuditActor;
 use Foresi\Party\Application\ArchiveParty;
 use Foresi\Party\Application\ContactImports;
 use Foresi\Party\Application\ImportedBy;
-use Foresi\Party\Application\LinkContactPerson;
 use Foresi\Party\Application\PartyDetails;
 use Foresi\Party\Application\PartyHistoryEntry;
 use Foresi\Party\Application\PartyPage;
 use Foresi\Party\Application\PartyQuery;
-use Foresi\Party\Application\PartyRefused;
 use Foresi\Party\Application\PartyRow;
-use Foresi\Party\Application\PartyRules;
 use Foresi\Party\Application\Query\ContactDetails;
 use Foresi\Party\Application\Query\ContactList;
 use Foresi\Party\Application\RefreshRegistryChecks;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Application\View\ContactLists;
+use Foresi\Party\Domain\AddressType;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyBankAccount;
@@ -34,7 +32,6 @@ use Foresi\Party\Domain\RegistryCheck;
 use Foresi\Party\Domain\RegistryResult;
 use Foresi\Party\Domain\VatId;
 use Foresi\Party\Infrastructure\Column\ContactSource;
-use Foresi\Party\Infrastructure\Form\PartySubmissionReader;
 use Foresi\Party\Infrastructure\Http\WebsiteLink;
 use Foresi\Party\Infrastructure\View\ContactViews;
 use Foresi\Shared\Application\View\Condition;
@@ -86,7 +83,6 @@ final class PartyController extends AbstractController
         private readonly ContactList $contacts,
         private readonly ContactDetails $contactDetails,
         private readonly ArchiveParty $archiveParty,
-        private readonly LinkContactPerson $linkContactPerson,
         private readonly RefreshRegistryChecks $refreshChecks,
         private readonly TransactionalWork $transaction,
         private readonly TranslatorInterface $translator,
@@ -164,10 +160,7 @@ final class PartyController extends AbstractController
         return $this->detail($this->contactDetails->party($id), $id, \in_array($tab, self::TABS, true) ? $tab : 'overview', $request->getLocale());
     }
 
-    /**
-     * @param array<string, mixed> $extra what the contacts tab shows after a refused link
-     */
-    private function detail(Party $party, string $id, string $tab, string $locale, array $extra = [], int $status = Response::HTTP_OK): Response
+    private function detail(Party $party, string $id, string $tab, string $locale): Response
     {
         $vies = $party->viesCheck();
         $reliability = $party->unreliablePayerCheck();
@@ -194,13 +187,13 @@ final class PartyController extends AbstractController
             'locale' => $locale,
         ];
 
-        return $this->render('@Party/show.html.twig', $extra + $data + match ($tab) {
+        return $this->render('@Party/show.html.twig', $data + match ($tab) {
             'contacts' => $this->contactsTab($party),
-            'addresses' => ['addressRows' => $this->addressRows($this->details->addresses($party))],
-            'bank-accounts' => ['accountRows' => $this->accountRows($this->details->bankAccounts($party))],
+            'addresses' => ['addressRows' => $this->addressRows($party, $this->details->addresses($party))],
+            'bank-accounts' => ['accountRows' => $this->accountRows($party, $this->details->bankAccounts($party))],
             'history' => ['timeline' => $this->timeline($party)],
             default => ['billing' => $this->details->billingAddress($party)?->address()],
-        }, new Response(status: $status));
+        });
     }
 
     #[Route('/contacts/{id}/archive', name: 'app_contact_archive', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
@@ -243,44 +236,6 @@ final class PartyController extends AbstractController
         $this->addFlash('success', $this->translator->trans('party.flash.archived_many', ['count' => \count($found)]));
 
         return $this->redirectToRoute('app_contacts');
-    }
-
-    #[Route('/contacts/{id}/link', name: 'app_contact_link', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
-    public function link(string $id, Request $request): Response
-    {
-        $this->checkToken($request);
-        $company = $this->party($id);
-        $personId = $request->request->getString('person');
-        $position = trim($request->request->getString('position'));
-        $primary = $request->request->getBoolean('primary');
-        // A person the select never offered (or none at all) is not found, as everywhere.
-        $person = '' === $personId ? null : $this->party($personId);
-
-        $errors = [];
-        if (!$person instanceof Party) {
-            $errors['person'] = 'party.contacts.person_invalid';
-            // Without a person the rules never run, so the length is told here too.
-            if (mb_strlen($position) > PartyRules::MAX_POSITION) {
-                $errors['position'] = PartySubmissionReader::MESSAGES[PartyRefused::TOO_LONG];
-            }
-        } else {
-            try {
-                $this->linkContactPerson->link($company, $person, $position, $primary);
-            } catch (PartyRefused $refused) {
-                // The rules name the person by its id; the form has a field "person".
-                $errors['personId' === $refused->field ? 'person' : (string) $refused->field] = PartySubmissionReader::MESSAGES[$refused->reason] ?? 'party.contacts.person_invalid';
-            }
-        }
-        if ([] !== $errors) {
-            // Shown again with every problem at its field and what was entered kept.
-            return $this->detail($company, $id, 'contacts', $request->getLocale(), [
-                'linkErrors' => array_map(fn (string $key): string => $this->translator->trans($key), $errors),
-                'linkValues' => ['person' => $personId, 'position' => $position, 'primary' => $primary],
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
-        $this->addFlash('success', $this->translator->trans('party.flash.linked'));
-
-        return $this->redirectToRoute('app_contact_show', ['id' => $id, 'tab' => 'contacts']);
     }
 
     #[Route('/contacts/{id}/registry-checks', name: 'app_contact_refresh_checks', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
@@ -545,25 +500,36 @@ final class PartyController extends AbstractController
         $linked = PartyKind::Person === $party->kind();
         foreach ($this->details->contactLinks($party) as $link) {
             $other = $linked ? $link->company() : $link->person();
+            $ids = ['id' => $party->id(), 'part' => $link->id()];
+            $actions = [];
+            // The company changes its contact persons; a person only shows where it is one.
+            if (!$linked) {
+                if (!$link->isPrimary()) {
+                    $actions[] = ['label' => $this->translator->trans('party.contacts.action.primary'), 'href' => $this->generateUrl('app_contact_person_primary', $ids), 'method' => 'POST'];
+                }
+                $actions[] = ['label' => $this->translator->trans('party.contacts.action.unlink'), 'href' => $this->generateUrl('app_contact_person_unlink', $ids), 'method' => 'POST', 'confirm' => [
+                    'title' => $this->translator->trans('party.contacts.confirm.unlink', ['name' => $other->displayName()]),
+                    'text' => $this->translator->trans('party.contacts.confirm.unlink_text'),
+                    'accept' => $this->translator->trans('party.contacts.confirm.unlink_accept'),
+                    'cancel' => $this->translator->trans('party.cancel'),
+                    'tone' => 'danger',
+                    'overlay' => true,
+                ]];
+            }
             $rows[] = [
                 'id' => $link->id(),
+                'label' => $other->displayName(),
                 'href' => $this->generateUrl('app_contact_show', ['id' => $other->id()]),
                 'cells' => [
                     'name' => $other->displayName(),
                     'position' => $link->position(),
                     'primary' => $link->isPrimary() ? ['label' => $this->translator->trans('party.contact.primary'), 'tone' => 'green'] : null,
                 ],
+                'actions' => $actions,
             ];
         }
 
-        $candidates = [];
-        if (PartyKind::Person !== $party->kind()) {
-            foreach ($this->parties->contactPersonCandidates($party) as $person) {
-                $candidates[$person->id()] = $person->displayName();
-            }
-        }
-
-        return ['contactRows' => $rows, 'candidates' => $candidates, 'isPerson' => $linked];
+        return ['contactRows' => $rows, 'isPerson' => $linked];
     }
 
     /**
@@ -571,16 +537,39 @@ final class PartyController extends AbstractController
      *
      * @return list<array<string, mixed>>
      */
-    private function addressRows(array $addresses): array
+    private function addressRows(Party $party, array $addresses): array
     {
-        return array_map(fn (PartyAddress $address): array => [
-            'id' => $address->id(),
-            'cells' => [
-                'type' => $this->translator->trans('party.address_type.'.$address->type()->value),
-                'label' => $address->label(),
-                'address' => implode(', ', array_filter([$address->address()->street, trim($address->address()->postalCode.' '.$address->address()->city), $address->address()->countryCode], static fn (string $part): bool => '' !== $part)),
-            ],
-        ], $addresses);
+        return array_map(function (PartyAddress $address) use ($party): array {
+            $ids = ['id' => $party->id(), 'part' => $address->id()];
+            $type = $this->translator->trans('party.address_type.'.$address->type()->value);
+            $place = $address->address();
+            $actions = [['label' => $this->translator->trans('party.edit'), 'href' => $this->generateUrl('app_contact_address_edit', $ids), 'method' => 'GET', 'dialog' => true]];
+            // The billing address is changed, never deleted.
+            if (AddressType::Billing !== $address->type()) {
+                $actions[] = ['label' => $this->translator->trans('party.addresses.action.delete'), 'href' => $this->generateUrl('app_contact_address_delete', $ids), 'method' => 'POST', 'confirm' => [
+                    'title' => $this->translator->trans('party.addresses.confirm.delete'),
+                    'text' => $this->translator->trans('party.addresses.confirm.delete_text'),
+                    'accept' => $this->translator->trans('party.addresses.confirm.delete_accept'),
+                    'cancel' => $this->translator->trans('party.cancel'),
+                    'tone' => 'danger',
+                    'overlay' => true,
+                ]];
+            }
+
+            return [
+                'id' => $address->id(),
+                'label' => $type,
+                // An address is a small record: it opens in a modal over the contact (docs/design/overlays.md).
+                'href' => $this->generateUrl('app_contact_address_edit', $ids),
+                'opens' => Opens::DIALOG,
+                'cells' => [
+                    'type' => $type,
+                    'label' => $address->label(),
+                    'address' => implode(', ', array_filter([$place->street, trim($place->postalCode.' '.$place->city), $place->countryCode], static fn (string $part): bool => '' !== $part)),
+                ],
+                'actions' => $actions,
+            ];
+        }, $addresses);
     }
 
     /**
@@ -588,17 +577,39 @@ final class PartyController extends AbstractController
      *
      * @return list<array<string, mixed>>
      */
-    private function accountRows(array $accounts): array
+    private function accountRows(Party $party, array $accounts): array
     {
-        return array_map(fn (PartyBankAccount $account): array => [
-            'id' => $account->id(),
-            'cells' => [
-                'iban' => $account->iban()->toString(),
-                'bic' => $account->bic(),
-                'label' => $account->label(),
-                'primary' => $account->isPrimary() ? ['label' => $this->translator->trans('party.contact.primary'), 'tone' => 'green'] : null,
-            ],
-        ], $accounts);
+        return array_map(function (PartyBankAccount $account) use ($party): array {
+            $ids = ['id' => $party->id(), 'part' => $account->id()];
+            $iban = trim(chunk_split($account->iban()->toString(), 4, ' '));
+            $actions = [['label' => $this->translator->trans('party.edit'), 'href' => $this->generateUrl('app_contact_account_edit', $ids), 'method' => 'GET', 'dialog' => true]];
+            if (!$account->isPrimary()) {
+                $actions[] = ['label' => $this->translator->trans('party.accounts.action.primary'), 'href' => $this->generateUrl('app_contact_account_primary', $ids), 'method' => 'POST'];
+            }
+            $actions[] = ['label' => $this->translator->trans('party.accounts.action.delete'), 'href' => $this->generateUrl('app_contact_account_delete', $ids), 'method' => 'POST', 'confirm' => [
+                'title' => $this->translator->trans('party.accounts.confirm.delete', ['iban' => $iban]),
+                'text' => $this->translator->trans('party.accounts.confirm.delete_text'),
+                'accept' => $this->translator->trans('party.accounts.confirm.delete_accept'),
+                'cancel' => $this->translator->trans('party.cancel'),
+                'tone' => 'danger',
+                'overlay' => true,
+            ]];
+
+            return [
+                'id' => $account->id(),
+                'label' => $iban,
+                // A bank account is a small record: it opens in a modal over the contact (docs/design/overlays.md).
+                'href' => $this->generateUrl('app_contact_account_edit', $ids),
+                'opens' => Opens::DIALOG,
+                'cells' => [
+                    'iban' => $iban,
+                    'bic' => $account->bic(),
+                    'label' => $account->label(),
+                    'primary' => $account->isPrimary() ? ['label' => $this->translator->trans('party.contact.primary'), 'tone' => 'green'] : null,
+                ],
+                'actions' => $actions,
+            ];
+        }, $accounts);
     }
 
     /**
