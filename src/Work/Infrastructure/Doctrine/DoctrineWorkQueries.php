@@ -19,6 +19,9 @@ use Foresi\Identity\Application\UserRepository;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Shared\Application\Markdown;
+use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Infrastructure\View\DqlConditions;
 use Foresi\Ui\Avatar;
 use Foresi\Work\Application\Choice;
 use Foresi\Work\Application\CommentAttachment;
@@ -51,6 +54,8 @@ use Foresi\Work\Application\TaskRow;
 use Foresi\Work\Application\Tasks;
 use Foresi\Work\Application\TrashedTask;
 use Foresi\Work\Application\TrashPermission;
+use Foresi\Work\Application\View\ProjectLists;
+use Foresi\Work\Application\View\TaskConditions;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkScope;
 use Foresi\Work\Application\WorkVisibility;
@@ -77,6 +82,12 @@ use Foresi\Work\Infrastructure\Attachment\TaskAttachmentAccess;
  */
 final readonly class DoctrineWorkQueries implements WorkQueries
 {
+    /** The columns of the fields of ProjectLists; archived is a date, compiled as a boolean. */
+    private const array PROJECT_COLUMNS = [
+        ProjectLists::CLIENT => 'IDENTITY(p.client)',
+        ProjectLists::VISIBILITY => 'p.visibility',
+        ProjectLists::BILLABLE => 'p.billableByDefault',
+    ];
     private const string TASKS = 'SELECT t, s, r, u, p FROM '.Task::class.' t JOIN t.status s JOIN t.project p LEFT JOIN t.responsible r LEFT JOIN r.user u';
     private const string ORDER = ' ORDER BY t.position ASC, t.createdAt ASC, t.id ASC';
     /** What the trash shows: a task that went there itself, not a subtask that went with its task. */
@@ -109,6 +120,43 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         $projects = $seen->apply($this->entityManager
             ->createQuery('SELECT p, c FROM '.Project::class.' p LEFT JOIN p.client c WHERE p.archivedAt IS '.($archived ? 'NOT ' : '').'NULL'.$seen->where.' ORDER BY p.name ASC, p.id ASC'))
             ->getResult();
+
+        return $this->projectRows($projects, $scope);
+    }
+
+    public function projectIndex(ViewFilter $view, bool $descending = false): array
+    {
+        $scope = $this->visibility->scope();
+        $seen = ScopedDql::projects($scope, 'p');
+        $derived = static fn (Condition $condition): array => [match ($condition->field) {
+            ProjectLists::ARCHIVED => DqlConditions::derivedBoolean($condition, 'p.archivedAt IS NOT NULL'),
+            default => throw new \LogicException(\sprintf('The field "%s" of the projects has no SQL.', $condition->field)),
+        }, []];
+        [$condition, $parameters] = new DqlConditions(ProjectLists::list(), self::PROJECT_COLUMNS, $derived(...))->compile($view, $this->clock->today(...), 'v');
+        // The archived projects only when the view asks for them, as the Active tab showed.
+        $archived = [] === $view->on(ProjectLists::ARCHIVED) ? 'p.archivedAt IS NULL AND ' : '';
+        $direction = $descending ? 'DESC' : 'ASC';
+        $query = $seen->apply($this->entityManager
+            ->createQuery('SELECT p, c FROM '.Project::class.' p LEFT JOIN p.client c WHERE '.$archived.$condition.$seen->where.' ORDER BY p.name '.$direction.', p.id '.$direction));
+        foreach ($parameters as $name => [$value, $type]) {
+            $query->setParameter($name, $value, $type);
+        }
+        /** @var list<Project> $projects */
+        $projects = $query->getResult();
+
+        return $this->projectRows($projects, $scope);
+    }
+
+    /**
+     * The rows of the projects, each with what is left of it: one query counts the
+     * unfinished tasks the person sees and finds the nearest due date of each.
+     *
+     * @param list<Project> $projects
+     *
+     * @return list<ProjectRow>
+     */
+    private function projectRows(array $projects, WorkScope $scope): array
+    {
         if ([] === $projects) {
             return [];
         }
@@ -726,6 +774,9 @@ final readonly class DoctrineWorkQueries implements WorkQueries
                 return false;
             }
             if (null !== $filter->finished && $row->done !== $filter->finished) {
+                return false;
+            }
+            if ($filter->conditions instanceof TaskConditions && !$filter->conditions->matches($row)) {
                 return false;
             }
             $due = $row->dueOn?->format('Y-m-d');

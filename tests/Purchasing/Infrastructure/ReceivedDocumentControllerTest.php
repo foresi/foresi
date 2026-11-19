@@ -73,7 +73,7 @@ final class ReceivedDocumentControllerTest extends WebTestCase
         parent::tearDown();
     }
 
-    public function testTheListOpensOnTheDraftsAndTheSidebarCountsThem(): void
+    public function testTheListOpensOnAllAndTheSidebarCountsTheDrafts(): void
     {
         $this->signedIn();
         $this->upload(['first.pdf' => '%PDF-1.4 first', 'second.pdf' => '%PDF-1.4 second']);
@@ -81,7 +81,7 @@ final class ReceivedDocumentControllerTest extends WebTestCase
         $crawler = $this->page('/purchasing');
 
         self::assertSame('page', $crawler->filter('main nav a[href="/purchasing"]')->attr('aria-current'));
-        self::assertStringContainsString('To complete', $crawler->filter('main nav a[href="/purchasing"]')->text());
+        self::assertSame(['All2', 'To complete2', 'Recorded0', 'Trash0'], $this->tabs($crawler));
         self::assertCount(2, $crawler->filter('main table tbody tr'));
         self::assertStringContainsString('Draft of', $crawler->filter('main table tbody')->text());
         $sidebar = $crawler->filter('#sidebar [data-nav-group] a[href="/purchasing"]');
@@ -90,6 +90,102 @@ final class ReceivedDocumentControllerTest extends WebTestCase
         // Every action sits in the page header.
         self::assertCount(1, $crawler->filter('[data-page-actions] a[href="/purchasing/upload"][data-dialog]'));
         self::assertCount(1, $crawler->filter('[data-page-actions] a[href="/purchasing/new"][data-dialog]'));
+    }
+
+    public function testTheTabsAreTheShippedViewsCountedWithinTheSearchAndTheOldTabsStillOpen(): void
+    {
+        // Saved views, D12: the tabs it had, with the same counts (D9), counted within the firm, the month and the search.
+        $this->signedIn();
+        $recorded = $this->recorded();
+        $this->draft('%PDF-1.4 a draft');
+        $trashed = $this->draft('%PDF-1.4 a trashed draft');
+        $this->client->request('POST', '/purchasing/'.$trashed.'/trash', ['_token' => $this->token('/purchasing/'.$trashed), 'reason' => 'Twice'], server: self::DIALOG);
+
+        $crawler = $this->page('/purchasing');
+        self::assertSame(['All2', 'To complete1', 'Recorded1', 'Trash1'], $this->tabs($crawler));
+        self::assertSame('/purchasing?view=recorded', $crawler->filter('nav[aria-label="Received document views"] a')->eq(2)->attr('href'));
+        self::assertCount(1, $crawler->filter('[data-filter-sheet-form]'));
+
+        foreach (['/purchasing?view=drafts', '/purchasing?tab=drafts'] as $drafts) {
+            $crawler = $this->page($drafts);
+            self::assertCount(1, $crawler->filter('main table tbody tr'), $drafts);
+            self::assertSame('page', $crawler->filter('nav[aria-label="Received document views"] a')->eq(1)->attr('aria-current'), $drafts);
+        }
+        self::assertStringContainsString('Twice', $this->page('/purchasing?tab=trash')->filter('main table tbody')->text());
+
+        $crawler = $this->page('/purchasing?view=recorded&q=fv-2026');
+        self::assertSame(['All1', 'To complete0', 'Recorded1', 'Trash0'], $this->tabs($crawler));
+        self::assertStringContainsString('R20260001', $crawler->filter('main table tbody')->text());
+        $crawler = $this->page('/purchasing?month=2026-10');
+        self::assertSame(['All1', 'To complete0', 'Recorded1', 'Trash0'], $this->tabs($crawler), 'A draft names no month yet.');
+        self::assertCount(1, $crawler->filter('main table tbody tr a[href="/purchasing/'.$recorded.'"]'));
+    }
+
+    public function testTheMonthChipOffersThePeriodsRelativeToToday(): void
+    {
+        $this->signedIn();
+        $this->recorded();
+
+        $crawler = $this->page('/purchasing?month=last_month');
+
+        self::assertCount(1, $crawler->filter('main table tbody tr'), 'Today is in November; the document is of October.');
+        self::assertSame(['', 'this_month', 'last_month', 'this_quarter', 'this_year', '2026-10'], $crawler->filter('select[name="month"]')->first()->filter('option')->each(static fn (Crawler $option): string => (string) $option->attr('value')));
+        self::assertSame('last_month', $crawler->filter('select[name="month"]')->first()->filter('option[selected]')->attr('value'));
+        self::assertCount(0, $this->page('/purchasing?month=this_month')->filter('main table tbody tr'));
+        self::assertCount(1, $this->page('/purchasing?month=this_quarter')->filter('main table tbody tr'));
+    }
+
+    public function testTheOldSheetParametersAreConditionsOfTheBuilder(): void
+    {
+        $this->signedIn();
+        $this->recorded();
+
+        $crawler = $this->page('/purchasing?view=recorded&supplier='.$this->supplier->id().'&kind=tax_invoice&treatment=domestic');
+        self::assertCount(1, $crawler->filter('main table tbody tr'));
+        self::assertSame('Recorded, unsaved changes1', $this->tabs($crawler)[2]);
+        // No fixed select sits in the sheet above "+ Filter" (spec D11).
+        self::assertCount(0, $crawler->filter('select[name="supplier"], select[name="kind"], select[name="treatment"]'));
+        self::assertStringContainsString('Supplier Example s.r.o.', $crawler->filter('main')->text());
+
+        self::assertCount(0, $this->page('/purchasing?view=recorded&kind=credit_note')->filter('main table tbody tr'));
+        // A value the field does not take narrows nothing, as the sheet ignored it.
+        self::assertCount(1, $this->page('/purchasing?view=recorded&kind=invoice&treatment=')->filter('main table tbody tr'));
+    }
+
+    public function testTheBuilderNarrowsTheViewAndItsChangesAreSavedAsANewView(): void
+    {
+        $this->signedIn();
+        $this->recorded();
+        $this->draft('%PDF-1.4 a draft');
+
+        $this->client->request('GET', '/purchasing?'.http_build_query(['view' => 'all', 'kind' => 'other', 'page' => '2', 'conditions' => '1', 'c' => [
+            ['field' => 'kind', 'op' => 'is', 'values' => ['tax_invoice']],
+            ['field' => 'supplier', 'op' => 'is', 'value' => $this->supplier->id()],
+        ]]));
+        self::assertResponseStatusCodeSame(303);
+        $location = (string) $this->client->getResponse()->headers->get('Location');
+        self::assertStringNotContainsString('kind=', $location);
+        self::assertStringNotContainsString('page=', $location);
+        self::assertStringNotContainsString('view=', $location, 'All is the bare list.');
+        $crawler = $this->client->followRedirect();
+
+        self::assertCount(1, $crawler->filter('main tbody tr'));
+        self::assertSame('All, unsaved changes2', $this->tabs($crawler)[0]);
+        self::assertStringContainsString('Supplier Example s.r.o.', $crawler->filter('main')->text());
+        $this->client->submit($crawler->filter('[data-view-save-as-form]')->form(['name' => 'Supplier invoices']));
+        $crawler = $this->client->followRedirect();
+        self::assertCount(1, $crawler->filter('main tbody tr'));
+        self::assertContains('Supplier invoices', $this->tabs($crawler));
+    }
+
+    public function testTheColumnsSheetHidesAColumn(): void
+    {
+        $this->signedIn();
+        $this->recorded();
+
+        $crawler = $this->page('/purchasing?view=recorded&cols=number,total');
+
+        self::assertSame(['Our number', 'Total'], $crawler->filter('main table thead th')->each(static fn (Crawler $th): string => trim($th->text())));
     }
 
     public function testUploadingManyFilesMakesADraftOfEachAndTellsARefusedOne(): void
@@ -401,6 +497,14 @@ final class ReceivedDocumentControllerTest extends WebTestCase
             self::assertEqualsCanonicalizing(ReceivedDocumentRefused::REASONS, array_keys($messages['purchasing']['refused']), $locale);
             self::assertEqualsCanonicalizing($warnings, array_keys($messages['purchasing']['warning']), $locale);
         }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function tabs(Crawler $crawler): array
+    {
+        return $crawler->filter('nav[aria-label="Received document views"] a')->each(static fn (Crawler $tab): string => trim((string) preg_replace('/\s+/', ' ', $tab->text())));
     }
 
     private function signedIn(Role $role = Role::Owner): void

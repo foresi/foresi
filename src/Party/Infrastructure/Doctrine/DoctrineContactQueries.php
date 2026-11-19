@@ -31,23 +31,20 @@ final readonly class DoctrineContactQueries implements ContactQueries
 
     public function after(ContactSliceFilter $filter, ?string $afterId, int $limit): array
     {
-        [$where, $parameters] = $this->conditions->build(mb_substr($filter->text, 0, self::MAX_TEXT), $filter->role, $filter->archived);
+        [$where, $parameters] = $this->conditions->build(mb_substr($filter->text, 0, self::MAX_TEXT), $filter->role, $filter->archived, view: $filter->view);
         if (null !== $filter->registrationNumber) {
             $where .= ' AND p.registrationKey = :registrationKey';
-            $parameters['registrationKey'] = mb_strtoupper((string) preg_replace('/[^\p{L}\p{N}]/u', '', $filter->registrationNumber));
+            $parameters['registrationKey'] = [mb_strtoupper((string) preg_replace('/[^\p{L}\p{N}]/u', '', $filter->registrationNumber)), null];
         }
         if (null !== $filter->vatId) {
             $where .= ' AND p.vatId = :vatId';
-            $parameters['vatId'] = strtoupper((string) preg_replace('/\s+/', '', $filter->vatId));
+            $parameters['vatId'] = [strtoupper((string) preg_replace('/\s+/', '', $filter->vatId)), null];
         }
         if (null !== $afterId) {
             $where .= ' AND p.id < :afterId';
-            $parameters['afterId'] = $afterId;
+            $parameters['afterId'] = [$afterId, null];
         }
-        $query = $this->em->createQuery('SELECT p.id FROM '.Party::class.' p WHERE '.$where.' ORDER BY p.id DESC')->setMaxResults($limit);
-        foreach ($parameters as $name => $value) {
-            $query->setParameter($name, $value);
-        }
+        $query = PartyConditions::bind($this->em->createQuery('SELECT p.id FROM '.Party::class.' p WHERE '.$where.' ORDER BY p.id DESC'), $parameters)->setMaxResults($limit);
 
         /** @var list<string> $ids */
         $ids = array_values(array_filter($query->getSingleColumnResult(), \is_string(...)));

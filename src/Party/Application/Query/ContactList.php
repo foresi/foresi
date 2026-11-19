@@ -15,6 +15,7 @@ use Foresi\Party\Application\PartyNotAllowed;
 use Foresi\Party\Application\PartyPage;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Domain\PartyRole;
+use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Domain\Id;
 
 /**
@@ -44,6 +45,20 @@ final readonly class ContactList
         $this->access->denyUnlessStaff();
 
         return $this->parties->search($text, $role, $archived, $sort, $page, $import);
+    }
+
+    /**
+     * @param array<string, ViewFilter> $counted
+     *
+     * @throws PartyNotAllowed for anyone but the owners and members of the organisation
+     *
+     * @see PartyQuery::inView()
+     */
+    public function inView(string $text, ViewFilter $view, array $counted, string $sort, int $page, ?ImportedBy $import = null): PartyPage
+    {
+        $this->access->denyUnlessStaff();
+
+        return $this->parties->inView($text, $view, $counted, $sort, $page, $import);
     }
 
     /**

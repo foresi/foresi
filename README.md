@@ -6,7 +6,7 @@
 [![Latest release](https://img.shields.io/github/v/release/foresi/foresi)](https://github.com/foresi/foresi/releases)
 [![CI](https://github.com/foresi/foresi/actions/workflows/ci.yml/badge.svg)](https://github.com/foresi/foresi/actions/workflows/ci.yml)
 
-Website: [foresi.app](https://foresi.app) · [Changelog](CHANGELOG.md) · [Roadmap](ROADMAP.md) · [Discussions](https://github.com/foresi/foresi/discussions)
+Website: [foresi.app](https://foresi.app) · [Releases](https://github.com/foresi/foresi/releases) · [Roadmap](ROADMAP.md) · [Discussions](https://github.com/foresi/foresi/discussions)
 
 > **Status: early stage (0.x).** Foresi is in active development. Interfaces and data structures may change between releases. Czech rules (VAT, ISDOC, the business register) come first; other countries plug in as country modules.
 

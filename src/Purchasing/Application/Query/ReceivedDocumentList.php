@@ -11,6 +11,7 @@ namespace Foresi\Purchasing\Application\Query;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Purchasing\Application\PurchasingAccess;
 use Foresi\Purchasing\Application\PurchasingNotAllowed;
+use Foresi\Shared\Application\View\ViewFilter;
 
 /**
  * The lists of received documents for the screens, the API and MCP alike: a
@@ -27,8 +28,8 @@ final readonly class ReceivedDocumentList
     }
 
     /**
-     * A firm or a supplier the organisation does not know is no filter at all,
-     * and a page past the last is the last.
+     * A firm the organisation does not know is no filter at all, and a page past
+     * the last is the last.
      *
      * @throws PurchasingNotAllowed for anyone but the owners and members of the organisation
      */
@@ -40,15 +41,9 @@ final readonly class ReceivedDocumentList
             $firms[$firm->id()] = $firm->name();
         }
         $firmId = null !== $filter->firmId && isset($firms[$filter->firmId]) ? $filter->firmId : null;
-        $suppliers = $this->queries->suppliers($firmId);
-        $supplierId = null !== $filter->supplierId && isset($suppliers[$filter->supplierId]) ? $filter->supplierId : null;
-        $filter = new ReceivedDocumentFilter($filter->tab, $firmId, $filter->month, $supplierId, $filter->kind, $filter->treatment, trim(mb_substr($filter->text, 0, ReceivedDocumentFilter::MAX_TEXT)), $filter->page);
+        $filter = new ReceivedDocumentFilter($filter->tab, $firmId, $filter->month, trim(mb_substr($filter->text, 0, ReceivedDocumentFilter::MAX_TEXT)), $filter->page, $filter->view, $filter->counted);
 
-        $total = $this->queries->count($filter);
-        $counts = [];
-        foreach (ReceivedDocumentFilter::TABS as $tab) {
-            $counts[$tab] = $tab === $filter->tab ? $total : $this->queries->count($filter->onTab($tab));
-        }
+        [$total, $counts] = $this->queries->counts($filter);
         $pages = max(1, (int) ceil($total / ReceivedDocumentFilter::PER_PAGE));
         $page = max(1, min($filter->page, $pages));
 
@@ -60,9 +55,20 @@ final readonly class ReceivedDocumentList
             $pages,
             $counts,
             $firms,
-            $suppliers,
             $this->queries->months($firmId),
         );
+    }
+
+    /**
+     * How many documents a view holds, of every firm, month and text.
+     *
+     * @throws PurchasingNotAllowed for anyone but the owners and members of the organisation
+     */
+    public function count(ViewFilter $view): int
+    {
+        $this->access->denyUnlessStaff();
+
+        return $this->queries->counts(new ReceivedDocumentFilter(view: $view))[0];
     }
 
     /**

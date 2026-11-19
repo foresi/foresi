@@ -31,6 +31,7 @@ final class ContactListTest extends ContactTestCase
         $this->assertRefusedForGuestAndNobody(fn (): ContactSlice => $this->list()->slice(new ContactSliceFilter()));
         $this->assertRefusedForGuestAndNobody(fn (): \Foresi\Party\Application\PartyPage => $this->list()->search('', null, false, 'name', 1));
         $this->assertRefusedForGuestAndNobody(fn (): \Foresi\Party\Application\PartyCounts => $this->list()->counts());
+        $this->assertRefusedForGuestAndNobody(fn (): \Foresi\Party\Application\PartyPage => $this->list()->inView('', new \Foresi\Shared\Application\View\ViewFilter(), [], 'name', 1));
     }
 
     public function testOwnersAndMembersRead(): void
