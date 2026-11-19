@@ -156,7 +156,7 @@ final readonly class ExpectedDocumentsScreen
         if (FlowCertainty::Document === $flow->certainty) {
             $parameters = ['type' => $subject->type, 'id' => $subject->id] + (null === $view ? [] : ['view' => $view]);
             $actions[] = [
-                'label' => $this->trans(null === $expected ? 'cash_flow.expected.action.set' : 'cash_flow.expected.action.change'),
+                'label' => $this->trans($expected instanceof \DateTimeImmutable ? 'cash_flow.expected.action.change' : 'cash_flow.expected.action.set'),
                 'href' => $this->urls->generate('app_cash_flow_expected', $parameters),
                 'method' => 'GET',
                 'icon' => 'calendar',
