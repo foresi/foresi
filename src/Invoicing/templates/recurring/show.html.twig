@@ -13,6 +13,12 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block actions %}
+    {% if template.trashed %}
+        <form method="post" action="{{ path('app_recurring_restore', doc) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\RecurringListController::ACTION_TOKEN')) }}">
+            <twig:Ui:Button type="submit" variant="primary" icon="archive-restore" :size="record_action_size">{{ 'recurring.list.action.restore'|trans }}</twig:Ui:Button>
+        </form>
+    {% else %}
     <twig:Ui:MoreActions menuId="recurring-detail-more" :menuSize="record_action_size">
         <twig:block name="primary">
             {% if state != 'ended' %}
@@ -36,6 +42,7 @@
             {% endif %}
         </twig:block>
     </twig:Ui:MoreActions>
+    {% endif %}
 {% endblock %}
 
 {% block content %}
@@ -46,6 +53,7 @@
             {% endfor %}
         {% endset %}
         {% if flashes|trim %}<div class="grid gap-2">{{ flashes }}</div>{% endif %}
+        {% if template.trashed %}<twig:Ui:Alert tone="warning">{{ 'recurring.trash.notice'|trans }}</twig:Ui:Alert>{% endif %}
         {% if failure %}
             <twig:Ui:Alert tone="error" role="alert">
                 {{ failure.text }}

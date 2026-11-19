@@ -32,6 +32,7 @@ final class RecurringListsTest extends KernelTestCase
                 ['paused', 'recurring.list.tab.paused', [['field' => 'state', 'op' => 'is', 'value' => 'paused']], 2],
                 ['ended', 'recurring.list.tab.ended', [['field' => 'state', 'op' => 'is', 'value' => 'ended']], 3],
                 ['failing', 'recurring.list.tab.failing', [['field' => 'failing', 'op' => 'is', 'value' => true]], 4],
+                ['trash', 'recurring.list.tab.trash', [['field' => 'trashed', 'op' => 'is', 'value' => true]], 5],
             ],
             array_map(static fn (DefaultView $view): array => [$view->slug, $view->name, $view->filter->toArray()['conditions'], $view->position], $list->defaults),
         );
@@ -45,13 +46,13 @@ final class RecurringListsTest extends KernelTestCase
     {
         $fields = $this->lists()->list()->fields;
 
-        self::assertSame(['state', 'failing', 'delivery', 'name', 'description', 'next'], array_keys($fields));
-        self::assertSame([FieldType::Enum, FieldType::Boolean, FieldType::Enum, FieldType::Text, FieldType::Text, FieldType::Date], array_values(array_map(static fn (\Foresi\Shared\Application\View\Field $field): FieldType => $field->type, $fields)));
+        self::assertSame(['state', 'failing', 'trashed', 'delivery', 'name', 'description', 'next'], array_keys($fields));
+        self::assertSame([FieldType::Enum, FieldType::Boolean, FieldType::Boolean, FieldType::Enum, FieldType::Text, FieldType::Text, FieldType::Date], array_values(array_map(static fn (\Foresi\Shared\Application\View\Field $field): FieldType => $field->type, $fields)));
         self::assertSame(['active' => 'recurring.list.tab.active', 'paused' => 'recurring.list.tab.paused', 'ended' => 'recurring.list.tab.ended'], $fields['state']->optionLabels);
         self::assertSame(['send' => 'recurring.list.delivery.send', 'review' => 'recurring.list.delivery.review'], $fields['delivery']->optionLabels);
         self::assertSame(['next_occurrence'], $fields['next']->aliases);
         self::assertSame('r.nextOccurrence', $fields['next']->expression);
-        self::assertSame(['recurring.list.column.state', 'recurring.list.tab.failing', 'recurring.list.column.delivery', 'recurring.list.column.name', 'recurring.list.column.description', 'recurring.list.column.next'], array_values(array_map(static fn (\Foresi\Shared\Application\View\Field $field): string => $field->label, $fields)));
+        self::assertSame(['recurring.list.column.state', 'recurring.list.tab.failing', 'recurring.list.tab.trash', 'recurring.list.column.delivery', 'recurring.list.column.name', 'recurring.list.column.description', 'recurring.list.column.next'], array_values(array_map(static fn (\Foresi\Shared\Application\View\Field $field): string => $field->label, $fields)));
     }
 
     public function testTheListIsBuiltOnce(): void

@@ -69,6 +69,13 @@ interface RecurringInvoices
     public function remove(RecurringInvoice $template): void;
 
     /**
+     * The templates in the trash since before $moment, oldest first.
+     *
+     * @return list<RecurringInvoice>
+     */
+    public function trashedBefore(\DateTimeImmutable $moment): array;
+
+    /**
      * @return list<RecurringInvoiceLine> in the order of the template
      */
     public function lines(RecurringInvoice $template): array;
@@ -78,14 +85,15 @@ interface RecurringInvoices
     public function removeLine(RecurringInvoiceLine $line): void;
 
     /**
-     * The active templates whose next date is on or before the calendar day of $today.
+     * The active templates out of the trash whose next date is on or before the calendar day of $today.
      *
      * @return list<string> ids, in id order
      */
     public function due(\DateTimeImmutable $today): array;
 
     /**
-     * In the order of RecurringPage; a page out of range gives the nearest one.
+     * In the order of RecurringPage; a page out of range gives the nearest one. The
+     * templates in the trash only in a view on RecurringLists::TRASHED.
      */
     public function page(RecurringFilter $filter): RecurringPage;
 

@@ -25,6 +25,8 @@ final readonly class RecurringRow
         public string $next,
         public string $delivery,
         public string $amount,
+        public string $deletedBy = '',
+        public string $deletedAt = '',
     ) {
     }
 }

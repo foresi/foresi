@@ -511,6 +511,11 @@ final class IdokladImportControllerTest extends WebTestCase
                 throw new \RuntimeException('Example failure of a template.');
             }
 
+            public function trashedBefore(\DateTimeImmutable $moment): array
+            {
+                return $this->real->trashedBefore($moment);
+            }
+
             public function lines(RecurringInvoice $template): array
             {
                 return $this->real->lines($template);

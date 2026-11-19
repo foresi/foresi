@@ -115,6 +115,16 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
         $this->em->remove($template);
     }
 
+    public function trashedBefore(\DateTimeImmutable $moment): array
+    {
+        /** @var list<RecurringInvoice> $templates */
+        $templates = $this->em->createQuery('SELECT r FROM '.RecurringInvoice::class.' r WHERE r.deletedAt IS NOT NULL AND r.deletedAt < :moment ORDER BY r.deletedAt ASC, r.id ASC')
+            ->setParameter('moment', $moment, Types::DATETIME_IMMUTABLE)
+            ->getResult();
+
+        return $templates;
+    }
+
     public function lines(RecurringInvoice $template): array
     {
         /** @var list<RecurringInvoiceLine> $lines */
@@ -138,7 +148,7 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
     public function due(\DateTimeImmutable $today): array
     {
         /** @var list<string> $ids */
-        $ids = $this->em->createQuery('SELECT r.id FROM '.RecurringInvoice::class.' r WHERE r.state = :active AND r.nextOccurrence <= :today ORDER BY r.id')
+        $ids = $this->em->createQuery('SELECT r.id FROM '.RecurringInvoice::class.' r WHERE r.state = :active AND r.deletedAt IS NULL AND r.nextOccurrence <= :today ORDER BY r.id')
             ->setParameter('active', RecurringState::Active->value)
             ->setParameter('today', new \DateTimeImmutable($today->format('Y-m-d')), Types::DATE_IMMUTABLE)
             ->getSingleColumnResult();
@@ -237,7 +247,8 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
     /**
      * The templates a view holds; each view under its own prefix, so one count query
      * holds many side by side. The state, delivery, next issue and name are columns;
-     * failing is the SQL the tab counted with.
+     * failing is the SQL the tab counted with. A view shows the trash only when it
+     * asks for it, as the invoice list's does.
      *
      * @param \Closure(): \DateTimeImmutable $today
      *
@@ -247,13 +258,16 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
     {
         $derived = static fn (Condition $condition, string $name): array => match ($condition->field) {
             RecurringLists::FAILING => [DqlConditions::derivedBoolean($condition, RecurringFailing::dql('r', $name)), self::failingParameters()],
+            RecurringLists::TRASHED => [DqlConditions::derivedBoolean($condition, 'r.deletedAt IS NOT NULL'), []],
             default => throw new \LogicException(\sprintf('The field "%s" of the recurring invoices has no SQL.', $condition->field)),
         };
 
-        return new DqlConditions($this->recurringLists->list(), [
+        [$condition, $parameters] = new DqlConditions($this->recurringLists->list(), [
             RecurringLists::STATE => 'r.state',
             RecurringLists::DELIVERY => 'r.delivery',
         ], $derived(...))->compile($view, $today, $prefix);
+
+        return [([] === $view->on(RecurringLists::TRASHED) ? 'r.deletedAt IS NULL AND ' : '').$condition, $parameters];
     }
 
     /**

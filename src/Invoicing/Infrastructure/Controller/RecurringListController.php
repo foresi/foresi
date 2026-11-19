@@ -10,6 +10,7 @@ namespace Foresi\Invoicing\Infrastructure\Controller;
 
 use Foresi\Identity\Application\OwnerCheck;
 use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Application\UserRepository;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Invoicing\Application\DeliverRecurringInvoice;
 use Foresi\Invoicing\Application\IssueAfterTodaysRun;
@@ -67,18 +68,19 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The list of recurring templates, for staff, with tabs by state as the invoice list
- * has them. Pausing, resuming, ending, deleting and issuing the next invoice now are
+ * has them, and a trash as the invoice list's. Pausing, resuming, ending, deleting and issuing the next invoice now are
  * short decisions, so each opens in a dialog over the list and comes back to it; each
  * is also a page of its own at the same URL, which works without JavaScript. The
  * dialog states what will happen before anything does: resume names the dates the
- * pause skips, issue now the dates the invoice gets.
+ * pause skips, issue now the dates the invoice gets. A template in the trash is only
+ * restored, from its row or its detail.
  */
 final class RecurringListController extends AbstractController
 {
     public const string ACTION_TOKEN = 'recurring_action';
     /** The parts of the list's query an action carries back to it. */
     /** The views the list ships, whose empty state has words of its own. */
-    private const array SHIPPED = [ListDefinition::ALL, 'active', 'paused', 'ended', 'failing'];
+    private const array SHIPPED = [ListDefinition::ALL, 'active', 'paused', 'ended', 'failing', RecurringLists::TRASH];
     private const array LIST_QUERY = ['view', 'tab', 'sort', 'page', WorkingFilter::PARAM, WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY];
 
     public function __construct(private readonly RecurringLists $recurringLists,
@@ -101,6 +103,7 @@ final class RecurringListController extends AbstractController
         private readonly RememberedDisplay $rememberedDisplay,
         private readonly ViewBar $viewBar,
         private readonly FilterSheet $filterSheet,
+        private readonly UserRepository $users,
     ) {
     }
 
@@ -121,6 +124,7 @@ final class RecurringListController extends AbstractController
         $sort = \in_array(ltrim($sort, '-'), RecurringFilter::SORTS, true) ? $sort : RecurringFilter::NEXT;
         // An instance holds one firm (ADR 0039): an old ?firm= filters nothing.
         $severalFirms = \count($this->firmNames()) > 1;
+        $trash = [] !== $shown->on(RecurringLists::TRASHED);
 
         $page = $this->templates->page(new RecurringFilter(null, null, false, max(1, $request->query->getInt('page', 1)), $shown, $this->counted($views), $sort));
         $lines = $this->overview->prepare($page->templates);
@@ -129,15 +133,17 @@ final class RecurringListController extends AbstractController
 
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
         // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
-        $working = $this->rememberedDisplay->read(RecurringColumns::LIST, ['severalFirms' => $severalFirms], $list->key, $view, $request->query->all());
+        $working = $this->rememberedDisplay->read(RecurringColumns::LIST, ['severalFirms' => $severalFirms, 'trash' => $trash], $list->key, $view, $request->query->all());
         $query += $working->query;
         $here = http_build_query(1 === $page->page ? $query : $query + ['page' => (string) $page->page]);
         $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, RecurringFilter::NEXT, $working, 'app_recurring', []);
         // The failure sits under the description, or under the name when the description is hidden.
         $alertColumn = \in_array('description', $working->display->keys(), true) ? 'description' : 'name';
+        $names = $trash ? $this->users->namesOf(array_values(array_unique(array_filter(array_map(static fn (RecurringInvoice $template): ?string => $template->deletedBy(), $page->templates), \is_string(...))))) : [];
 
         return $this->render('@Invoicing/recurring/index.html.twig', [
-            'firstRun' => 0 === ($page->counts[ListDefinition::ALL] ?? array_sum($this->overview->counts(null))),
+            // Only the trash left still shows the list, so it can be restored.
+            'firstRun' => 0 === ($page->counts[ListDefinition::ALL] ?? array_sum($this->overview->counts(null))) && 0 === ($page->counts[RecurringLists::TRASH] ?? 0) && !$trash,
             'page' => $page,
             'view' => $view->isAll() ? '' : $view->key,
             'emptyTitle' => $this->emptyTitle($view),
@@ -148,7 +154,7 @@ final class RecurringListController extends AbstractController
             ...$bar,
             ...$this->tabs($views, $view->key, $page, $query, $bar['viewBar']['modified']),
             'columns' => $working->display->table($sort, fn (string $next): string => $this->generateUrl('app_recurring', ['sort' => $next, 'page' => null] + $query)),
-            'rows' => array_map(fn (RecurringInvoice $template): array => $this->row($template, $page->isFailing($template), $amounts[$template->id()] ?? null, $working, $alertColumn, $here, $today), $page->templates),
+            'rows' => array_map(fn (RecurringInvoice $template): array => $this->row($template, $page->isFailing($template), $amounts[$template->id()] ?? null, $working, $alertColumn, $here, $today, $names), $page->templates),
             'density' => $working->tableDensity(),
             'picker' => $this->picker($working, $query),
             'workingQuery' => $working->query,
@@ -191,7 +197,7 @@ final class RecurringListController extends AbstractController
         return $this->render('@Invoicing/recurring/show.html.twig', [
             'template' => $template,
             'title' => '' !== $template->name() ? $template->name() : $description,
-            'badge' => ['label' => $this->translator->trans('recurring.list.tab.'.$state->value), 'tone' => match ($state) {
+            'badge' => $template->isTrashed() ? ['label' => $this->translator->trans('recurring.list.tab.trash'), 'tone' => 'gray'] : ['label' => $this->translator->trans('recurring.list.tab.'.$state->value), 'tone' => match ($state) {
                 RecurringState::Active => 'green',
                 RecurringState::Paused => 'amber',
                 RecurringState::Ended => 'gray',
@@ -263,6 +269,35 @@ final class RecurringListController extends AbstractController
             $this->lifecycle->delete($template->id());
             $this->addFlash('success', $this->translator->trans('recurring.flash.deleted', ['customer' => $customer]));
         });
+    }
+
+    /**
+     * Back from the trash, paused, so it issues nothing it missed there; a button, not
+     * a dialog, as the invoice trash's Restore.
+     */
+    #[Route('/invoices/recurring/{id}/restore', name: 'app_recurring_restore', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function restore(string $id, Request $request): RedirectResponse
+    {
+        $this->denyUnlessStaff();
+        $template = $this->template($id);
+        if (!$this->isCsrfTokenValid(self::ACTION_TOKEN, $request->request->getString('_token'))) {
+            throw new AccessDeniedHttpException('Invalid CSRF token.');
+        }
+        $return = $request->request->getString('return');
+        if (!$template->isTrashed()) {
+            $this->addFlash('warning', $this->translator->trans('recurring.flash.not_in_trash'));
+
+            return $this->toList($return);
+        }
+        $customer = $template->customer()->displayName();
+        try {
+            $this->lifecycle->restore($template->id());
+        } catch (UnknownRecurringInvoice) {
+            throw new NotFoundHttpException();
+        }
+        $this->addFlash('success', $this->translator->trans('recurring.flash.restored', ['customer' => $customer]));
+
+        return $this->toList($return);
     }
 
     /**
@@ -359,6 +394,12 @@ final class RecurringListController extends AbstractController
         $this->denyUnlessStaff();
         $template = $this->template($id);
         $return = $request->isMethod('POST') ? $request->request->getString('return') : $request->query->getString('return');
+        if ($template->isTrashed()) {
+            // Nothing but Restore applies in the trash.
+            $this->addFlash('error', $this->translator->trans('recurring.problem.trashed'));
+
+            return $this->toList($return);
+        }
         if (!$request->isMethod('POST')) {
             return $this->dialog($template, $action, $return);
         }
@@ -522,9 +563,11 @@ final class RecurringListController extends AbstractController
     }
 
     /**
+     * @param array<string, string> $names the names of who deleted the templates in the trash, by user id
+     *
      * @return array<string, mixed>
      */
-    private function row(RecurringInvoice $template, bool $failing, ?Money $amount, WorkingState $working, string $alertColumn, string $return, \DateTimeImmutable $today): array
+    private function row(RecurringInvoice $template, bool $failing, ?Money $amount, WorkingState $working, string $alertColumn, string $return, \DateTimeImmutable $today, array $names): array
     {
         $state = $template->state();
         $next = $template->nextOccurrence();
@@ -543,6 +586,7 @@ final class RecurringListController extends AbstractController
             $nextText,
             $this->translator->trans('recurring.list.delivery.'.$template->delivery()->value),
             $amount instanceof Money ? $this->amountText->shown($amount) : '',
+            ...$this->deletion($template, $names),
         ));
 
         return [
@@ -550,7 +594,7 @@ final class RecurringListController extends AbstractController
             'href' => $this->generateUrl('app_recurring_show', ['id' => $template->id()]),
             'opens' => 'sheet',
             'label' => $template->name(),
-            'secondary' => implode(' · ', array_filter([$customer, $description, $this->schedule($template), $nextText], static fn (string $part): bool => '' !== $part)),
+            'secondary' => implode(' · ', array_filter($template->isTrashed() ? [$customer, $description, ...$this->deletion($template, $names)] : [$customer, $description, $this->schedule($template), $nextText], static fn (string $part): bool => '' !== $part)),
             // The description stays; the failure is a line of its own, with the way to the place that fixes it.
             'alert' => null === $code || null === $failure ? null : ['text' => $this->translator->trans('recurring.list.failed', ['reason' => $failure]), 'column' => $alertColumn] + $this->fix($template, $code),
             'cells' => $cells,
@@ -559,10 +603,34 @@ final class RecurringListController extends AbstractController
     }
 
     /**
+     * Who deleted a template in the trash and when; nothing for one out of it.
+     *
+     * @param array<string, string> $names by user id
+     *
+     * @return array{deletedBy: string, deletedAt: string}
+     */
+    private function deletion(RecurringInvoice $template, array $names): array
+    {
+        $at = $template->deletedAt();
+        if (!$at instanceof \DateTimeImmutable) {
+            return ['deletedBy' => '', 'deletedAt' => ''];
+        }
+
+        return [
+            'deletedBy' => $names[$template->deletedBy() ?? ''] ?? $this->translator->trans('invoice.history.system'),
+            'deletedAt' => $at->setTimezone($this->clock->timezone())->format($this->translator->trans('format.datetime')),
+        ];
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     private function actions(RecurringInvoice $template, string $return): array
     {
+        if ($template->isTrashed()) {
+            return [['label' => $this->translator->trans('recurring.list.action.restore'), 'href' => $this->generateUrl('app_recurring_restore', ['id' => $template->id()]), 'method' => 'POST', 'icon' => 'archive-restore', 'fields' => ['return' => $return]]];
+        }
+
         $dialog = fn (string $action): array => [
             'label' => $this->translator->trans('recurring.list.action.'.$action),
             'href' => $this->generateUrl('app_recurring_'.$action, ['id' => $template->id(), 'return' => '' === $return ? null : $return]),

@@ -19,7 +19,9 @@ use Foresi\Ui\Contract\DataSource;
  * cut short with their full text in a title. There is no state column: the views say
  * it, and a failing row says why under its description.
  *
- * The context holds "severalFirms", which offers the firm column.
+ * The context holds "severalFirms", which offers the firm column, and "trash", which
+ * offers who deleted a template and when in place of its next issue, as the invoice
+ * list's trash does.
  */
 final readonly class RecurringColumns implements DataSource
 {
@@ -31,6 +33,8 @@ final readonly class RecurringColumns implements DataSource
             return [];
         }
         $label = static fn (string $key): string => 'recurring.list.column.'.$key;
+        $trash = static fn (array $context): bool => true === ($context['trash'] ?? false);
+        $notTrash = static fn (array $context): bool => true !== ($context['trash'] ?? false);
 
         return [
             new Attribute('name', $label('name'), AttributeType::Text, static fn (RecurringRow $row): string => $row->name, sort: 'LOWER(r.name)', defaultVisible: true, defaultPosition: 10, cell: static fn (RecurringRow $row): string => $row->name, locked: true, truncate: true, filterable: true, filter: 'r.name'),
@@ -38,7 +42,9 @@ final readonly class RecurringColumns implements DataSource
             new Attribute('description', $label('description'), AttributeType::Text, static fn (RecurringRow $row): string => $row->description, defaultVisible: true, defaultPosition: 30, cell: static fn (RecurringRow $row): string => $row->description, phone: false, truncate: true, filterable: true, filter: 'r.description'),
             new Attribute('firm', $label('firm'), AttributeType::Text, static fn (RecurringRow $row): string => $row->firm, defaultVisible: true, defaultPosition: 40, cell: static fn (RecurringRow $row): string => $row->firm, phone: false, truncate: true, available: static fn (array $context): bool => true === ($context['severalFirms'] ?? false)),
             new Attribute('interval', $label('interval'), AttributeType::Text, static fn (RecurringRow $row): string => $row->interval, defaultVisible: true, defaultPosition: 50, cell: static fn (RecurringRow $row): string => $row->interval, phone: false),
-            new Attribute('next', $label('next'), AttributeType::Date, static fn (RecurringRow $row): string => $row->next, sort: 'r.nextOccurrence', defaultVisible: true, defaultPosition: 60, cell: static fn (RecurringRow $row): string => $row->next, aliases: ['next_occurrence'], phone: false, filterable: true),
+            new Attribute('next', $label('next'), AttributeType::Date, static fn (RecurringRow $row): string => $row->next, sort: 'r.nextOccurrence', defaultVisible: true, defaultPosition: 60, cell: static fn (RecurringRow $row): string => $row->next, aliases: ['next_occurrence'], phone: false, available: $notTrash, filterable: true),
+            new Attribute('deleted_by', $label('deleted_by'), AttributeType::Text, static fn (RecurringRow $row): string => $row->deletedBy, defaultVisible: true, defaultPosition: 62, cell: static fn (RecurringRow $row): string => $row->deletedBy, phone: false, truncate: true, available: $trash),
+            new Attribute('deleted_at', $label('deleted_at'), AttributeType::DateTime, static fn (RecurringRow $row): string => $row->deletedAt, defaultVisible: true, defaultPosition: 64, cell: static fn (RecurringRow $row): string => $row->deletedAt, phone: false, available: $trash),
             new Attribute('delivery', $label('delivery'), AttributeType::Text, static fn (RecurringRow $row): string => $row->delivery, defaultVisible: true, defaultPosition: 70, cell: static fn (RecurringRow $row): string => $row->delivery, phone: false),
             new Attribute('amount', $label('amount'), AttributeType::Money, static fn (RecurringRow $row): string => $row->amount, defaultVisible: true, defaultPosition: 80, cell: static fn (RecurringRow $row): string => $row->amount),
         ];

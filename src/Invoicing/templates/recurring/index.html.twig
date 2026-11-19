@@ -40,14 +40,14 @@
                 </twig:block>
             </twig:Ui:FilterBar>
 
-            <twig:Ui:DataTable :caption="'recurring.list.title'|trans" :columns="columns" :rows="rows" :density="density">
+            <twig:Ui:DataTable :caption="'recurring.list.title'|trans" :columns="columns" :rows="rows" :density="density" :actionToken="csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\RecurringListController::ACTION_TOKEN'))">
                 <twig:block name="empty">
                     {% if filtered %}
                         <twig:Ui:EmptyState icon="search" :title="'recurring.list.empty.filtered_title'|trans">
                             <twig:Ui:Button :href="path('app_recurring', view != '' ? {view: view} : {})">{{ 'recurring.list.empty.reset'|trans }}</twig:Ui:Button>
                         </twig:Ui:EmptyState>
                     {% else %}
-                        <twig:Ui:EmptyState :icon="view == 'failing' ? 'circle-check' : 'refresh-cw'" :title="emptyTitle" />
+                        <twig:Ui:EmptyState :icon="view == 'failing' ? 'circle-check' : (view == 'trash' ? 'trash-2' : 'refresh-cw')" :title="emptyTitle" />
                     {% endif %}
                 </twig:block>
                 <twig:block name="footer">

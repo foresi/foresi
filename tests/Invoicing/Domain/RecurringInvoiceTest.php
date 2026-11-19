@@ -197,6 +197,66 @@ final class RecurringInvoiceTest extends TestCase
         $template->change($this->content(), new \DateTimeImmutable('2026-11-21'));
     }
 
+    public function testTheTrashPausesItAndRestoreKeepsItPausedEachCountingAVersion(): void
+    {
+        $template = $this->template();
+
+        $template->trash(new \DateTimeImmutable('2026-11-20 10:00:00'), 'example-user');
+        self::assertTrue($template->isTrashed());
+        self::assertSame(RecurringState::Paused, $template->state());
+        self::assertSame('example-user', $template->deletedBy());
+        self::assertSame(2, $template->version());
+
+        $template->restore();
+        self::assertFalse($template->isTrashed());
+        self::assertNull($template->deletedAt());
+        self::assertNull($template->deletedBy());
+        self::assertSame(RecurringState::Paused, $template->state());
+        self::assertSame(3, $template->version());
+        $template->restore();
+        self::assertSame(3, $template->version(), 'restoring again changes nothing');
+    }
+
+    public function testATemplateThatIssuedCannotBeTrashed(): void
+    {
+        $template = $this->template(unit: RecurrenceUnit::Day);
+        $template->advance(new \DateTimeImmutable('2026-12-01'));
+
+        $this->expectException(\DomainException::class);
+
+        $template->trash(new \DateTimeImmutable('2026-12-02'), null);
+    }
+
+    public function testATemplateInTheTrashCannotBeTrashedAgain(): void
+    {
+        $template = $this->template();
+        $template->trash(new \DateTimeImmutable('2026-11-20'), null);
+
+        $this->expectException(\DomainException::class);
+
+        $template->trash(new \DateTimeImmutable('2026-11-21'), null);
+    }
+
+    public function testATemplateInTheTrashCannotBeResumed(): void
+    {
+        $template = $this->template();
+        $template->trash(new \DateTimeImmutable('2026-11-20'), null);
+
+        $this->expectException(\DomainException::class);
+
+        $template->resume(new \DateTimeImmutable('2026-11-21'));
+    }
+
+    public function testATemplateInTheTrashCannotBeChanged(): void
+    {
+        $template = $this->template();
+        $template->trash(new \DateTimeImmutable('2026-11-20'), null);
+
+        $this->expectException(\DomainException::class);
+
+        $template->change($this->content(), new \DateTimeImmutable('2026-11-21'));
+    }
+
     public function testResumingOnTheDayOfAnOccurrenceSkipsOnlyTheDatesBefore(): void
     {
         $template = $this->template(unit: RecurrenceUnit::Day);

@@ -909,6 +909,7 @@ recurring:
     ended: This recurring invoice has ended and cannot be changed.
     first_issue_past: The first invoice cannot be issued in the past.
     issued: This recurring invoice has issued invoices, so it can only be ended.
+    trashed: This recurring invoice is in the trash. Restore it first.
     no_occurrence_left: With this schedule no invoice is left to issue.
     choice_invalid: Choose one of the options.
     first_issue_missing: Enter the date of the first issue.
@@ -1001,7 +1002,9 @@ recurring:
     resumed_ended: The recurring invoice is resumed, but its schedule has no invoice left, so it has ended.
     skipped: '{count, plural, one {Skipped date:} other {Skipped dates:}} {dates}.'
     ended: 'The recurring invoice for {customer} has ended.'
-    deleted: 'The recurring invoice for {customer} is deleted.'
+    deleted: 'The recurring invoice for {customer} is in the trash.'
+    restored: 'The recurring invoice for {customer} is restored. It stays paused, so nothing is issued.'
+    not_in_trash: This recurring invoice is not in the trash.
     issued: 'Invoice {number} is issued.'
     issued_sent: 'Invoice {number} is issued and on its way to the customer.'
     issued_review: 'Invoice {number} is issued and waits under To send.'
@@ -1075,6 +1078,7 @@ recurring:
       paused: Paused
       ended: Ended
       failing: Failing
+      trash: Trash
     column:
       name: Template name
       customer: Customer
@@ -1086,6 +1090,8 @@ recurring:
       delivery: After issue
       amount: Amount
       state: State
+      deleted_by: Deleted by
+      deleted_at: Deleted
     delivery:
       send: Send
       review: Review
@@ -1107,6 +1113,7 @@ recurring:
       resume: Resume
       end: End
       delete: Delete
+      restore: Restore
     empty:
       title: No recurring invoices yet
       text: Create a new one, or make one from an issued invoice with Recurring invoice in its menu.
@@ -1119,6 +1126,7 @@ recurring:
       paused: Nothing is paused
       ended: Nothing has ended
       failing: Everything issues without trouble
+      trash: The trash is empty
   pause:
     title: Pause the recurring invoice
     text: 'Neither the invoice due on {date} nor any later one is issued until you resume it.'
@@ -1137,7 +1145,9 @@ recurring:
     keeps: The invoices already issued stay as they are.
   delete:
     title: Delete the recurring invoice
-    text: It has not issued any invoice yet, so it is deleted entirely.
+    text: It has not issued any invoice yet. It moves to the trash, where it can be restored for 30 days, and is then deleted for good.
+  trash:
+    notice: This recurring invoice is in the trash and issues nothing. Once restored, it is paused.
   issue_now:
     title: Issue the invoice now
     text: 'The invoice for {occurrence} is issued with these dates:'

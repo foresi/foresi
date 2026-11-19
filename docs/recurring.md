@@ -65,7 +65,7 @@ For each active template whose next date has come, the run issues every occurren
 - **Pausing and resuming.** Nothing is issued while a template is paused. Resuming skips the dates missed while it was paused and moves on to the first date on or after today; the resume dialog names the skipped dates. A skipped date is not issued later; issue it by hand as an ordinary invoice if it is still owed.
 - **Issue now.** The row menu issues the template's next occurrence at once, with today's dates, and sends or holds it as the template says. The run then moves on to the occurrence after it.
 - **Ending.** A template ends by its end rule after its last occurrence, or by hand. Ending is final.
-- **Deleting.** Only a template that has never issued an invoice can be deleted; one that has is ended instead, so its invoices keep where they came from.
+- **Deleting.** Only a template that has never issued an invoice can be deleted; one that has is ended instead, so its invoices keep where they came from. A deleted template moves to the **Trash** tab of the list, paused, so it never issues while it is there, and it is left out of the other tabs, the counts, the notices and the cash-flow forecast. **Restore** brings it back paused: the dates that fell while it was in the trash are skipped, as after any pause, and it issues again once resumed. The scheduled job `recurring-trash-purge` removes a template for good 30 days after it was deleted, daily from 03:00 in the organisation's time zone.
 
 ### The organisation's time zone
 

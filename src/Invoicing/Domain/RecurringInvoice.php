@@ -33,6 +33,10 @@ use Foresi\Shared\Domain\Schedule\RecurringSchedule;
  * after a count ignores dates skipped while paused. An ended template stays ended
  * and has no next date. The firm and the currency are fixed at creation. Create
  * and change templates through SaveRecurringInvoice and RecurringLifecycle.
+ *
+ * Only a template that never issued goes to the trash; one that did is ended, so its
+ * invoices keep where they came from. In the trash it is paused, so it never issues,
+ * and it comes back paused: the dates that fell while it was there are not issued.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'recurring_invoice')]
@@ -40,6 +44,7 @@ use Foresi\Shared\Domain\Schedule\RecurringSchedule;
 #[ORM\Index(name: 'idx_recurring_invoice_firm', columns: ['legal_entity_id'])]
 #[ORM\Index(name: 'idx_recurring_invoice_series', columns: ['series_id'])]
 #[ORM\Index(name: 'idx_recurring_invoice_customer', columns: ['customer_id'])]
+#[ORM\Index(name: 'idx_recurring_invoice_deleted', columns: ['deleted_at'])]
 class RecurringInvoice implements Audited
 {
     public const int MAX_DUE_DAYS = 365;
@@ -158,6 +163,12 @@ class RecurringInvoice implements Audited
     #[ORM\Column(name: 'last_failure_code', type: 'string', length: self::MAX_FAILURE_CODE_LENGTH, nullable: true)]
     private ?string $lastFailureCode = null;
 
+    #[ORM\Column(name: 'deleted_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $deletedAt = null;
+
+    #[ORM\Column(name: 'deleted_by', type: 'guid', nullable: true)]
+    private ?string $deletedBy = null;
+
     #[AuditExcluded]
     #[ORM\Column(name: 'last_alert_on', type: 'date_immutable', nullable: true)]
     private ?\DateTimeImmutable $lastAlertOn = null;
@@ -271,12 +282,13 @@ class RecurringInvoice implements Audited
     /**
      * Issued invoices stay as they are; the next date follows the new schedule.
      *
-     * @throws \DomainException once ended, for a series of another firm, or when the new
+     * @throws \DomainException once ended or in the trash, for a series of another firm, or when the new
      *                          schedule leaves no date
      */
     public function change(RecurringContent $content, \DateTimeImmutable $today): void
     {
         $this->refuseEnded();
+        $this->refuseTrashed();
         $next = $this->nextOccurrenceUnder($content->recurrence, $today)
             ?? throw new \DomainException('The schedule leaves no date to issue on.');
         $this->applyContent($content);
@@ -331,11 +343,12 @@ class RecurringInvoice implements Audited
      *
      * @return list<\DateTimeImmutable> the dates skipped, oldest first, at most MAX_SKIPPED
      *
-     * @throws \DomainException once ended
+     * @throws \DomainException once ended, or in the trash
      */
     public function resume(\DateTimeImmutable $today): array
     {
         $this->refuseEnded();
+        $this->refuseTrashed();
         if (RecurringState::Paused !== $this->state) {
             return [];
         }
@@ -384,6 +397,40 @@ class RecurringInvoice implements Audited
     }
 
     /**
+     * Pauses it, unless it ended, so nothing issues it while it is there.
+     *
+     * @throws \DomainException once it issued an invoice, or when it is in the trash already
+     */
+    public function trash(\DateTimeImmutable $at, ?string $userId): void
+    {
+        $this->refuseTrashed();
+        if ($this->isIssued()) {
+            throw new \DomainException('A template that issued an invoice is ended, never deleted.');
+        }
+        if (RecurringState::Active === $this->state) {
+            $this->state = RecurringState::Paused;
+            $this->pausedAt = $at;
+        }
+        $this->deletedAt = $at;
+        $this->deletedBy = $userId;
+        ++$this->version;
+    }
+
+    /**
+     * Back paused, as it was in the trash: resuming it starts from the day it is
+     * resumed. The audit log keeps who deleted it and when. Repeatable.
+     */
+    public function restore(): void
+    {
+        if (!$this->isTrashed()) {
+            return;
+        }
+        $this->deletedAt = null;
+        $this->deletedBy = null;
+        ++$this->version;
+    }
+
+    /**
      * A run could not issue or send; the next date stays, so the next run tries again.
      *
      * @throws \DomainException for an empty or overlong code
@@ -418,6 +465,21 @@ class RecurringInvoice implements Audited
     public function isUntouchedImport(): bool
     {
         return null !== $this->importedFrom && 1 === $this->version;
+    }
+
+    public function isTrashed(): bool
+    {
+        return $this->deletedAt instanceof \DateTimeImmutable;
+    }
+
+    public function deletedAt(): ?\DateTimeImmutable
+    {
+        return $this->deletedAt;
+    }
+
+    public function deletedBy(): ?string
+    {
+        return $this->deletedBy;
     }
 
     public function isIssued(): bool
@@ -662,6 +724,13 @@ class RecurringInvoice implements Audited
     {
         if (RecurringState::Ended === $this->state) {
             throw new \DomainException('An ended template stays ended.');
+        }
+    }
+
+    private function refuseTrashed(): void
+    {
+        if ($this->isTrashed()) {
+            throw new \DomainException('A template in the trash is restored first.');
         }
     }
 }
