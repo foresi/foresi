@@ -45,7 +45,7 @@ final readonly class DoctrineDuplicateFinder implements DuplicateFinder
             .(null === $excludePartyId ? '' : ' AND p.id <> :exclude')
             .' ORDER BY p.id',
         );
-        if ('' !== $key && $registrationNumber instanceof RegistrationNumber) {
+        if ('' !== $key) {
             $query->setParameter('country', $registrationNumber->countryCode);
             $query->setParameter('key', $key);
         }
@@ -61,7 +61,6 @@ final readonly class DoctrineDuplicateFinder implements DuplicateFinder
         $rows = $query->getResult();
         foreach ($rows as $row) {
             $sameNumber = '' !== $key
-                && $registrationNumber instanceof RegistrationNumber
                 && $registrationNumber->countryCode === $row['registrationCountry']
                 && $key === $row['registrationKey'];
             $sameVat = $vatId instanceof VatId && $row['vatId'] instanceof VatId && $vatId->toString() === $row['vatId']->toString();
