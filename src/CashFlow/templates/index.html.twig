@@ -74,7 +74,14 @@
                 </section>
 
                 <section aria-labelledby="cash-flow-periods-title" class="grid grid-cols-1 gap-2">
-                    <h2 id="cash-flow-periods-title" class="m-0 text-body font-semibold text-ink">{{ 'cash_flow.table.title'|trans }}</h2>
+                    <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                        <h2 id="cash-flow-periods-title" class="m-0 text-body font-semibold text-ink">{{ 'cash_flow.table.title'|trans }}</h2>
+                        {# The planned items behind the Money in and Money out rows have their own pages under Money (approved design, P1). #}
+                        <nav aria-label="{{ 'cash_flow.links.label'|trans }}" class="flex flex-wrap gap-x-4 gap-y-1 text-small" data-cash-flow-planned-links>
+                            <a href="{{ path('app_cash_flow_planned_income') }}" class="inline-flex items-center gap-1 font-medium text-ink underline decoration-control-line underline-offset-2 hover:decoration-ink {{ focus }}">{{ ux_icon('lucide:arrow-down', {class: 'size-3.5 shrink-0 text-muted', 'aria-hidden': 'true'}) }}{{ 'cash_flow.links.planned_income'|trans }}</a>
+                            <a href="{{ path('app_cash_flow_planned_costs') }}" class="inline-flex items-center gap-1 font-medium text-ink underline decoration-control-line underline-offset-2 hover:decoration-ink {{ focus }}">{{ ux_icon('lucide:arrow-up', {class: 'size-3.5 shrink-0 text-muted', 'aria-hidden': 'true'}) }}{{ 'cash_flow.links.planned_costs'|trans }}</a>
+                        </nav>
+                    </div>
                     <div class="overflow-hidden rounded-panel border border-container bg-white">
                         <div class="overflow-x-auto">
                             <table class="w-full border-collapse text-small" data-cash-flow-table>

@@ -1,6 +1,8 @@
 nav:
   item:
     cash_flow: Cash flow
+    planned_income: Planned income
+    planned_costs: Planned costs
 cash_flow:
   title: Cash flow
   cancel: Cancel
@@ -120,3 +122,134 @@ cash_flow:
     error:
       amount_required: Enter the minimum balance, or clear it.
       amount_invalid: Enter an amount with at most two decimals, such as 50000.
+  links:
+    label: Planned money
+    planned_income: Planned income
+    planned_costs: Planned costs
+  planned:
+    create: Create
+    outside_books: Planned items stay outside the books; the forecast counts them until a document or a bank movement takes their place.
+    see_forecast: See the cash flow
+    detail: Details
+    left_out_note: Left out of the forecast. The item is kept; include it again to count it.
+    end_description: No occurrence falls after this day.
+    in:
+      title: Planned income
+      new: New planned income
+      name_placeholder: Such as a client not invoiced yet
+      empty_title: No planned income yet
+      empty_text: Plan money the firm expects that no invoice carries yet, such as a client not invoiced yet or a grant.
+    out:
+      title: Planned costs
+      new: New planned cost
+      name_placeholder: Such as Office rent
+      empty_title: No planned costs yet
+      empty_text: Plan money the firm will pay that no received document carries yet, such as rent, software, insurance or tax advances.
+    column:
+      name: Name
+      category: Category
+      repeat: Repeats
+      next: Next
+      amount: Amount
+      included: In forecast
+    state:
+      included: Included
+      left_out: Left out
+    none:
+      next: None left
+      counterparty: No contact
+      match: No rule
+    repeat:
+      once: Does not repeat
+      last_day: on the last day of the month
+      unit:
+        day: Daily
+        week: Weekly
+        month: Monthly
+        year: Yearly
+      every:
+        day: '{every, plural, one {Every day} other {Every # days}}'
+        week: '{every, plural, one {Every week} other {Every # weeks}}'
+        month: '{every, plural, one {Every month} other {Every # months}}'
+        year: '{every, plural, one {Every year} other {Every # years}}'
+    end:
+      never: Never
+      on_date: On a day
+      after_count: After a number of times
+    ends_on: 'On {day}'
+    ends_after: '{count, plural, one {After # time} other {After # times}}'
+    match:
+      variable_symbol: 'VS {symbol}'
+      tolerance: '± {amount}'
+    field:
+      name: Name
+      category: Category
+      amount: Amount
+      currency: Currency
+      on: Day
+      first_on: First day
+      on_or_first: Day, or the first day when it repeats
+      repeat: Repeats
+      every: Every
+      every_help: 1 for every day, week, month or year; 2 for every other.
+      last_day: On the last day of the month
+      end: Ends
+      ends_on: Last day
+      ends_after: Number of times
+      last_on: Last day
+      counterparty: Contact
+      counterparty_help: Optional. Who the money comes from or goes to.
+      counterparty_placeholder: Search the contacts
+      counterparty_empty: No contact matches.
+      included: Include in the forecast
+      included_help: Untick it to leave it out without deleting it.
+      match: Match rule
+      match_intro: A bank movement that meets the rule in the period of an occurrence fulfils it.
+      match_account: Counterparty account
+      match_variable_symbol: Variable symbol
+      match_tolerance: Tolerance
+    occurrences:
+      title: Next occurrences
+      title_once: The day
+      none: No occurrence is left.
+      skip: Skip this one
+      skip_label: 'Skip the occurrence of {day}'
+      skipped: Skipped
+    action:
+      edit: Edit
+      include: Include in the forecast
+      leave_out: Leave out of the forecast
+      end: End
+      delete: Delete
+    confirm:
+      delete_title: 'Delete {name}?'
+      delete_text: All its occurrences leave the forecast. It cannot be restored; leave it out of the forecast to keep it.
+    flash:
+      created: '{name} is planned.'
+      saved: The planned item is saved.
+      included: The item is included in the forecast.
+      left_out: The item is left out of the forecast.
+      skipped: The occurrence is skipped.
+      ended: The item is ended.
+      deleted: '{name} is deleted.'
+    error:
+      name_required: Enter a name of up to 120 characters.
+      category_unknown: Choose a category.
+      currency_unknown: Choose a currency.
+      amount_required: Enter the amount.
+      amount_invalid: Enter an amount with at most two decimals, such as 1500.50.
+      amount_not_positive: Enter an amount more than zero.
+      date_invalid: Enter a day, such as 2026-12-31.
+      repeat_unknown: Choose how it repeats.
+      not_recurring: Only an item that repeats has an end or the last day of the month.
+      every_invalid: Enter a whole number from 1 to 99.
+      recurrence_invalid: Check how it repeats and when it ends; the end cannot be before the first day.
+      end_ambiguous: Choose one end.
+      ends_after_invalid: Enter a whole number from 1 to 999.
+      ends_before_start: The last day cannot be before the first day.
+      counterparty_unknown: Choose a contact from the list.
+      match_account_invalid: Enter an account number, such as 19-2000145399/0800.
+      variable_symbol_invalid: Enter up to 10 digits.
+      tolerance_negative: Enter a tolerance of zero or more.
+      not_an_occurrence: The item does not fall on this day.
+      not_found: The planned item no longer exists.

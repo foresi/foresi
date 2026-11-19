@@ -1,0 +1,90 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    One planned item, a record (docs/design/overlays.md): a row of the list opens it in the side sheet,
+    where Edit swaps to the form in place; the same URL is a page, where Edit is a dialog. The header
+    leaves it out of the forecast or includes it again (Pulse's Active, Float's switch), ends a recurring
+    one on a day and deletes it after asking. Its next occurrences each have Skip this one, as Xero and
+    Pulse change a single occurrence. Variables: item, direction, listTitle, listRoute, details,
+    occurrences, recurring.
+#}
+{% extends '@Ui/layout/record.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: listTitle, href: path(listRoute)}, {label: item.name}] %}
+{% set token = csrf_token(constant('Foresi\\CashFlow\\Infrastructure\\Controller\\PlannedItemController::TOKEN')) %}
+{% set record_reload = true %}
+
+{% block title %}{{ item.name }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:MoreActions menuId="planned-actions">
+        <twig:block name="primary">
+            <twig:Ui:Button variant="primary" icon="pencil" :size="record_action_size" :href="path(itemRoute ~ '_edit', {id: item.id})" data-dialog aria-haspopup="dialog" data-in-place data-planned-edit>{{ 'cash_flow.planned.action.edit'|trans }}</twig:Ui:Button>
+        </twig:block>
+        <twig:block name="buttons">
+            <form method="post" action="{{ path('app_cash_flow_planned_include', {id: item.id}) }}" data-planned-include>
+                <input type="hidden" name="_token" value="{{ token }}">
+                <input type="hidden" name="included" value="{{ item.included ? '0' : '1' }}">
+                <twig:Ui:Button type="submit" :icon="item.included ? 'eye-off' : 'eye'" :size="record_action_size">{{ (item.included ? 'cash_flow.planned.action.leave_out' : 'cash_flow.planned.action.include')|trans }}</twig:Ui:Button>
+            </form>
+        </twig:block>
+        <twig:block name="phone">
+            <form method="post" action="{{ path('app_cash_flow_planned_include', {id: item.id}) }}" role="none">
+                <input type="hidden" name="_token" value="{{ token }}">
+                <input type="hidden" name="included" value="{{ item.included ? '0' : '1' }}">
+                <twig:Ui:MenuItem type="submit" :icon="item.included ? 'eye-off' : 'eye'">{{ (item.included ? 'cash_flow.planned.action.leave_out' : 'cash_flow.planned.action.include')|trans }}</twig:Ui:MenuItem>
+            </form>
+        </twig:block>
+        {% if recurring %}
+            <twig:Ui:MenuItem icon="calendar" :href="path(itemRoute ~ '_end', {id: item.id})" data-dialog aria-haspopup="dialog" data-planned-end>{{ 'cash_flow.planned.action.end'|trans }}</twig:Ui:MenuItem>
+        {% endif %}
+        <twig:block name="last">
+            <form method="post" action="{{ path('app_cash_flow_planned_delete', {id: item.id}) }}" role="none" data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
+                data-confirm-title="{{ 'cash_flow.planned.confirm.delete_title'|trans({name: item.name}) }}" data-confirm-text="{{ 'cash_flow.planned.confirm.delete_text'|trans }}"
+                data-confirm-accept="{{ 'cash_flow.planned.action.delete'|trans }}" data-confirm-cancel="{{ 'cash_flow.cancel'|trans }}" data-confirm-tone="danger" data-planned-delete>
+                <input type="hidden" name="_token" value="{{ token }}">
+                <twig:Ui:MenuItem type="submit" tone="danger" icon="trash-2">{{ 'cash_flow.planned.action.delete'|trans }}</twig:Ui:MenuItem>
+            </form>
+        </twig:block>
+    </twig:Ui:MoreActions>
+{% endblock %}
+
+{% block content %}
+    <div class="grid gap-4">
+        {% for tone in ['success', 'error'] %}
+            {% for message in app.flashes(tone) %}
+                <twig:Ui:Alert :tone="tone">{{ message }}</twig:Ui:Alert>
+            {% endfor %}
+        {% endfor %}
+        {% if not item.included %}
+            <twig:Ui:Alert tone="info" data-planned-left-out>{{ 'cash_flow.planned.left_out_note'|trans }}</twig:Ui:Alert>
+        {% endif %}
+
+        <twig:Ui:Card :title="'cash_flow.planned.detail'|trans" :icon="direction == 'in' ? 'arrow-down' : 'arrow-up'">
+            <twig:Ui:DescriptionList :items="details" />
+        </twig:Ui:Card>
+
+        <section class="grid gap-2" aria-labelledby="planned-occurrences-title" data-planned-occurrences>
+            <h2 id="planned-occurrences-title" class="m-0 text-body font-semibold text-ink">{{ (recurring ? 'cash_flow.planned.occurrences.title' : 'cash_flow.planned.occurrences.title_once')|trans }}</h2>
+            {% if occurrences is empty %}
+                <p class="m-0 text-small text-muted">{{ 'cash_flow.planned.occurrences.none'|trans }}</p>
+            {% else %}
+                <ol class="m-0 grid list-none gap-0 rounded-panel border border-container bg-white p-0">
+                    {% for occurrence in occurrences %}
+                        <li class="flex min-h-row items-center gap-3 border-b border-divider px-4 last:border-b-0" data-occurrence="{{ occurrence.on }}"{% if occurrence.skipped %} data-skipped{% endif %}>
+                            <span class="min-w-0 flex-1 {{ occurrence.skipped ? 'text-muted line-through' : 'text-ink' }}">{{ occurrence.day }}</span>
+                            {% if occurrence.skipped %}
+                                <twig:Ui:Badge tone="gray">{{ 'cash_flow.planned.occurrences.skipped'|trans }}</twig:Ui:Badge>
+                            {% else %}
+                                <form method="post" action="{{ path('app_cash_flow_planned_skip', {id: item.id}) }}">
+                                    <input type="hidden" name="_token" value="{{ token }}">
+                                    <input type="hidden" name="on" value="{{ occurrence.on }}">
+                                    <twig:Ui:Button type="submit" size="sm" :aria-label="'cash_flow.planned.occurrences.skip_label'|trans({day: occurrence.day})">{{ 'cash_flow.planned.occurrences.skip'|trans }}</twig:Ui:Button>
+                                </form>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ol>
+            {% endif %}
+        </section>
+    </div>
+{% endblock %}
