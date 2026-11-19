@@ -93,32 +93,32 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testTheAdvanceAndTaxDocumentTemplatesAreEditedLikeTheInvoice(): void
     {
-        $firm = $this->signedInFirm();
-        $crawler = $this->client->request('GET', $this->url($firm));
+        $this->signedInFirm();
+        $crawler = $this->client->request('GET', $this->url());
         self::assertSame('Zálohová faktura {Číslo dokladu}', $crawler->filter('#advance-subject-cs')->attr('value'));
         self::assertSame('Tax document {Document number}', $crawler->filter('#tax_document-subject-en')->attr('value'));
 
-        $this->saveTemplates($firm, ['advance_subject' => ['cs' => 'Záloha {Číslo dokladu}'], 'advance_body' => ['cs' => "Záloha {Částka k úhradě}.\n{Odkaz na doklad}"]]);
+        $this->saveTemplates(['advance_subject' => ['cs' => 'Záloha {Číslo dokladu}'], 'advance_body' => ['cs' => "Záloha {Částka k úhradě}.\n{Odkaz na doklad}"]]);
 
-        self::assertResponseRedirects($this->url($firm));
+        self::assertResponseRedirects($this->url());
         self::assertSame(
             [['kind' => 'advance', 'language' => 'cs', 'subject' => 'Záloha {number}', 'body' => "Záloha {amount_total}.\n{link}"]],
             $this->connection()->fetchAllAssociative('SELECT kind, language, subject, body FROM mail_template'),
         );
-        $this->client->request('GET', $this->url($firm));
+        $this->client->request('GET', $this->url());
         self::assertSelectorExists('form#mail-reset-advance-cs input[name="kind"][value="advance"]');
     }
 
     public function testTheCorrectionTemplateKnowsTheNumberOfTheOriginal(): void
     {
-        $firm = $this->signedInFirm();
-        $crawler = $this->client->request('GET', $this->url($firm));
+        $this->signedInFirm();
+        $crawler = $this->client->request('GET', $this->url());
         self::assertSame('Opravný daňový doklad {Číslo dokladu}', $crawler->filter('#correction-subject-cs')->attr('value'));
         self::assertStringContainsString('{Number of the corrected document}', $crawler->filter('#correction-body-en')->text());
 
-        $this->saveTemplates($firm, ['correction_body' => ['cs' => "Oprava dokladu {Číslo opravovaného dokladu}.\n{Odkaz na doklad}"]]);
+        $this->saveTemplates(['correction_body' => ['cs' => "Oprava dokladu {Číslo opravovaného dokladu}.\n{Odkaz na doklad}"]]);
 
-        self::assertResponseRedirects($this->url($firm));
+        self::assertResponseRedirects($this->url());
         self::assertSame(
             [['kind' => 'correction', 'language' => 'cs', 'body' => "Oprava dokladu {original_number}.\n{link}"]],
             $this->connection()->fetchAllAssociative('SELECT kind, language, body FROM mail_template'),
@@ -127,9 +127,9 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testThePageHasBothTabsAndTheChips(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
-        $crawler = $this->client->request('GET', $this->url($firm));
+        $crawler = $this->client->request('GET', $this->url());
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('main [data-action-bar]');
@@ -163,10 +163,10 @@ final class FirmMailControllerTest extends WebTestCase
     {
         $firm = $this->signedInFirm();
 
-        $this->saveServer($firm, self::SERVER);
-        self::assertResponseRedirects($this->url($firm, 'server'));
-        $this->saveTemplates($firm, ['subject' => ['cs' => 'Faktura {number} od nás'], 'body' => ['cs' => "Dobrý den,\n{link}"]]);
-        self::assertResponseRedirects($this->url($firm));
+        $this->saveServer(self::SERVER);
+        self::assertResponseRedirects($this->url('server'));
+        $this->saveTemplates(['subject' => ['cs' => 'Faktura {number} od nás'], 'body' => ['cs' => "Dobrý den,\n{link}"]]);
+        self::assertResponseRedirects($this->url());
         $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'The e-mail templates are saved.');
 
@@ -179,26 +179,26 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testLabelsAreStoredAsStableNamesAndShownAgain(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
-        $this->saveTemplates($firm, [
+        $this->saveTemplates([
             'subject' => ['cs' => 'Faktura {číslo  dokladu} pro {Název odběratele}', 'en' => 'Invoice {Document number}'],
             'body' => ['cs' => "Splatnost {Datum splatnosti}.\n{Odkaz na doklad}", 'en' => "Due {due_date}.\n{Link to the document}"],
         ]);
 
-        self::assertResponseRedirects($this->url($firm));
+        self::assertResponseRedirects($this->url());
         self::assertSame(['cs' => 'Faktura {number} pro {customer_name}', 'en' => 'Invoice {number}'], $this->connection()->fetchAllKeyValue('SELECT language, subject FROM mail_template ORDER BY language'));
         self::assertSame(['cs' => "Splatnost {due_date}.\n{link}", 'en' => "Due {due_date}.\n{link}"], $this->connection()->fetchAllKeyValue('SELECT language, body FROM mail_template ORDER BY language'));
-        $crawler = $this->client->request('GET', $this->url($firm));
+        $crawler = $this->client->request('GET', $this->url());
         self::assertSame('Faktura {Číslo dokladu} pro {Název odběratele}', $crawler->filter('#subject-cs')->attr('value'));
         self::assertSame("Due {Due date}.\n{Link to the document}", $crawler->filter('#body-en')->text(null, false));
     }
 
     public function testAVeryLongTokenIsRefusedWithAMessage(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
-        $this->saveTemplates($firm, ['subject' => ['cs' => 'Faktura {'.str_repeat('a', 120).'}'], 'body' => ['cs' => '{'.str_repeat('b', 300).'} {Odkaz na doklad}']]);
+        $this->saveTemplates(['subject' => ['cs' => 'Faktura {'.str_repeat('a', 120).'}'], 'body' => ['cs' => '{'.str_repeat('b', 300).'} {Odkaz na doklad}']]);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#subject-cs-error', '{aaaa');
@@ -208,9 +208,9 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testAnUnknownStableNameIsRefusedNotA500(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
-        $this->saveTemplates($firm, ['subject' => ['en' => 'Invoice {number_'.str_repeat('x', 90).'}']]);
+        $this->saveTemplates(['subject' => ['en' => 'Invoice {number_'.str_repeat('x', 90).'}']]);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('#subject-en-error');
@@ -218,9 +218,9 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testALabelOfTheOtherLanguageIsUnknown(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
-        $this->saveTemplates($firm, ['subject' => ['en' => 'Invoice {Číslo dokladu}']]);
+        $this->saveTemplates(['subject' => ['en' => 'Invoice {Číslo dokladu}']]);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#subject-en-error', 'Unknown variable: {Číslo dokladu}.');
@@ -230,89 +230,89 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testResetGivesTheBuiltInTextBack(): void
     {
-        $firm = $this->signedInFirm();
-        $this->saveTemplates($firm, ['subject' => ['en' => 'Own {number}']]);
+        $this->signedInFirm();
+        $this->saveTemplates(['subject' => ['en' => 'Own {number}']]);
 
-        $this->saveTemplates($firm, ['reset' => 'en']);
+        $this->saveTemplates(['reset' => 'en']);
 
-        self::assertResponseRedirects($this->url($firm));
+        self::assertResponseRedirects($this->url());
         self::assertSame([], $this->connection()->fetchFirstColumn('SELECT id FROM mail_template'));
     }
 
     public function testReminderSettingsAreStored(): void
     {
         $firm = $this->signedInFirm();
-        $crawler = $this->client->request('GET', $this->url($firm));
+        $crawler = $this->client->request('GET', $this->url());
         self::assertCount(0, $crawler->filter('#reminders-enabled[checked]'), 'off until the owner switches it on');
         self::assertSame(['7', '7', ''], [$crawler->filter('#reminders-first')->attr('value'), $crawler->filter('#reminders-every')->attr('value'), $crawler->filter('#reminders-minimum')->attr('value')]);
         self::assertSelectorTextContains('#reminders-card', 'Up to 10 reminders');
 
-        $this->saveTemplates($firm, ['reminders' => ['enabled' => '1', 'firstAfterDays' => '10', 'everyDays' => '5', 'minimum' => '500.50']]);
+        $this->saveTemplates(['reminders' => ['enabled' => '1', 'firstAfterDays' => '10', 'everyDays' => '5', 'minimum' => '500.50']]);
 
-        self::assertResponseRedirects($this->url($firm));
+        self::assertResponseRedirects($this->url());
         self::assertEquals(
             ['legal_entity_id' => $firm->id(), 'enabled' => 1, 'enabled_on' => '2026-11-02', 'first_after_days' => 10, 'every_days' => 5, 'minimum_minor' => 50050, 'minimum_currency' => 'CZK'],
             $this->connection()->fetchAssociative('SELECT legal_entity_id, enabled, enabled_on, first_after_days, every_days, minimum_minor, minimum_currency FROM firm_reminders'),
         );
-        $crawler = $this->client->request('GET', $this->url($firm));
+        $crawler = $this->client->request('GET', $this->url());
         self::assertCount(1, $crawler->filter('#reminders-enabled[checked]'));
         self::assertSame(['10', '5', '500.50'], [$crawler->filter('#reminders-first')->attr('value'), $crawler->filter('#reminders-every')->attr('value'), $crawler->filter('#reminders-minimum')->attr('value')]);
 
         // A blank minimum is no minimum.
-        $this->saveTemplates($firm, ['reminders' => ['minimum' => '']]);
-        self::assertResponseRedirects($this->url($firm));
+        $this->saveTemplates(['reminders' => ['minimum' => '']]);
+        self::assertResponseRedirects($this->url());
         self::assertSame(['minimum_minor' => null, 'minimum_currency' => null], $this->connection()->fetchAssociative('SELECT minimum_minor, minimum_currency FROM firm_reminders'));
     }
 
     public function testAdvancesAreRemindedOnlyWhenSwitchedOn(): void
     {
-        $firm = $this->signedInFirm();
-        $crawler = $this->client->request('GET', $this->url($firm));
+        $this->signedInFirm();
+        $crawler = $this->client->request('GET', $this->url());
         self::assertCount(0, $crawler->filter('#reminders-advances[checked]'));
 
-        $this->saveTemplates($firm, ['reminders' => ['advances' => '1']]);
+        $this->saveTemplates(['reminders' => ['advances' => '1']]);
 
-        self::assertResponseRedirects($this->url($firm));
+        self::assertResponseRedirects($this->url());
         self::assertEquals(['remind_advances' => 1, 'enabled' => 0], $this->connection()->fetchAssociative('SELECT remind_advances, enabled FROM firm_reminders'));
-        $crawler = $this->client->request('GET', $this->url($firm));
+        $crawler = $this->client->request('GET', $this->url());
         self::assertCount(1, $crawler->filter('#reminders-advances[checked]'));
 
         $form = $crawler->filter('#mail-templates')->form()->getPhpValues();
         self::assertIsArray($form['reminders']);
         unset($form['reminders']['advances']);
-        $this->client->request('POST', $this->url($firm), $form);
+        $this->client->request('POST', $this->url(), $form);
         self::assertEquals(['remind_advances' => 0], $this->connection()->fetchAssociative('SELECT remind_advances FROM firm_reminders'));
     }
 
     public function testAFirmInACountryWithoutInvoicingRulesHasNoRemindersCard(): void
     {
-        $firm = $this->signedInFirm('DE');
+        $this->signedInFirm('DE');
 
-        $crawler = $this->client->request('GET', $this->url($firm));
+        $crawler = $this->client->request('GET', $this->url());
 
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('#reminders-card'));
         self::assertCount(1, $crawler->filter('#subject-cs'));
 
-        $this->saveTemplates($firm, ['subject' => ['cs' => 'Faktura {number} od nás']]);
+        $this->saveTemplates(['subject' => ['cs' => 'Faktura {number} od nás']]);
 
-        self::assertResponseRedirects($this->url($firm));
+        self::assertResponseRedirects($this->url());
         self::assertSame(['Faktura {number} od nás'], $this->connection()->fetchFirstColumn('SELECT subject FROM mail_template'));
         self::assertSame([], $this->connection()->fetchFirstColumn('SELECT legal_entity_id FROM firm_reminders'));
     }
 
     public function testThePreviewSaysWhatSwitchingOnTodayWouldSendWhileOff(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
-        $this->client->request('GET', $this->url($firm));
+        $this->client->request('GET', $this->url());
 
         self::assertSelectorTextContains('#reminders-preview h4', 'If you switched reminders on today');
         self::assertSelectorTextContains('#reminders-preview', 'Reminders are off.');
         self::assertSelectorTextContains('#reminders-preview', 'No first reminder would go out over the next 30 days.');
 
-        $this->saveTemplates($firm, ['reminders' => ['enabled' => '1']]);
-        $this->client->request('GET', $this->url($firm));
+        $this->saveTemplates(['reminders' => ['enabled' => '1']]);
+        $this->client->request('GET', $this->url());
 
         self::assertSelectorTextContains('#reminders-preview h4', 'Reminded tomorrow');
         self::assertSelectorTextContains('#reminders-preview', 'No reminder goes out tomorrow.');
@@ -325,7 +325,7 @@ final class FirmMailControllerTest extends WebTestCase
         [$firm, $invoices] = $this->firmWithDeliveredInvoices(['2026-11-10', '2026-10-20']);
 
         // Off: what switching on today would send, with the day of each first reminder.
-        $crawler = $this->client->request('GET', $this->url($firm));
+        $crawler = $this->client->request('GET', $this->url());
 
         $rows = $crawler->filter('#reminders-preview li');
         self::assertCount(1, $rows, 'due before today, so not reminded once switched on today');
@@ -337,9 +337,9 @@ final class FirmMailControllerTest extends WebTestCase
         self::assertStringContainsString('1,210.00', $rows->text());
 
         // On since October: tomorrow's reminders, dated by their due day.
-        $this->saveTemplates($firm, ['reminders' => ['enabled' => '1']]);
+        $this->saveTemplates(['reminders' => ['enabled' => '1']]);
         $this->connection()->executeStatement("UPDATE firm_reminders SET enabled_on = '2026-10-01'");
-        $crawler = $this->client->request('GET', $this->url($firm));
+        $crawler = $this->client->request('GET', $this->url());
 
         $rows = $crawler->filter('#reminders-preview li');
         self::assertCount(1, $rows);
@@ -360,7 +360,7 @@ final class FirmMailControllerTest extends WebTestCase
         $this->pay($firm, $paidOverdue, '1210.00');
 
         // Off: the plan of switching on today.
-        $rows = $this->client->request('GET', $this->url($firm))->filter('#reminders-preview li');
+        $rows = $this->client->request('GET', $this->url())->filter('#reminders-preview li');
 
         self::assertCount(1, $rows, 'the paid one is never planned');
         self::assertStringContainsString($partly->number(), $rows->text());
@@ -368,9 +368,9 @@ final class FirmMailControllerTest extends WebTestCase
         self::assertStringNotContainsString('1,210.00', $rows->text());
 
         // On since October: tomorrow's reminders.
-        $this->saveTemplates($firm, ['reminders' => ['enabled' => '1']]);
+        $this->saveTemplates(['reminders' => ['enabled' => '1']]);
         $this->connection()->executeStatement("UPDATE firm_reminders SET enabled_on = '2026-10-01'");
-        $rows = $this->client->request('GET', $this->url($firm))->filter('#reminders-preview li');
+        $rows = $this->client->request('GET', $this->url())->filter('#reminders-preview li');
 
         self::assertCount(1, $rows, 'the paid one is never reminded');
         self::assertStringContainsString($partlyOverdue->number(), $rows->text());
@@ -380,68 +380,68 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testRecordedPaymentsLiftTheGate(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
         $container = self::getContainer();
         // The bound balances decide.
         $container->set(ReminderSettings::class, new DoctrineReminderSettings($container->get('doctrine.orm.entity_manager'), $container->get(InvoiceBalances::class)));
 
-        $crawler = $this->client->request('GET', $this->url($firm));
+        $crawler = $this->client->request('GET', $this->url());
         self::assertCount(0, $crawler->filter('#reminders-enabled[disabled]'));
         self::assertSelectorTextNotContains('#reminders-card', 'once payments are recorded');
 
-        $this->client->request('POST', $this->url($firm), $this->formValues(['enabled' => '1']));
+        $this->client->request('POST', $this->url(), $this->formValues(['enabled' => '1']));
 
-        self::assertResponseRedirects($this->url($firm));
+        self::assertResponseRedirects($this->url());
         self::assertEquals(1, $this->connection()->fetchOne('SELECT enabled FROM firm_reminders'));
     }
 
     public function testSwitchingOnRecordsTheDay(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
-        $this->saveTemplates($firm, ['reminders' => ['enabled' => '1']]);
+        $this->saveTemplates(['reminders' => ['enabled' => '1']]);
         Clock::set(new MockClock('2026-11-10 12:00:00'));
-        $this->saveTemplates($firm, ['reminders' => ['everyDays' => '9']]);
+        $this->saveTemplates(['reminders' => ['everyDays' => '9']]);
         self::assertSame('2026-11-02', $this->connection()->fetchOne('SELECT enabled_on FROM firm_reminders'), 'saving again keeps the day it was switched on');
 
         // An unchecked box posts nothing.
-        $this->client->request('GET', $this->url($firm));
-        $this->client->request('POST', $this->url($firm), $this->formValues(['enabled' => null]));
-        self::assertResponseRedirects($this->url($firm));
+        $this->client->request('GET', $this->url());
+        $this->client->request('POST', $this->url(), $this->formValues(['enabled' => null]));
+        self::assertResponseRedirects($this->url());
         self::assertEquals(['enabled' => 0, 'enabled_on' => '2026-11-02'], $this->connection()->fetchAssociative('SELECT enabled, enabled_on FROM firm_reminders'));
 
         Clock::set(new MockClock('2026-11-12 23:30:00'));
-        $this->saveTemplates($firm, ['reminders' => ['enabled' => '1']]);
+        $this->saveTemplates(['reminders' => ['enabled' => '1']]);
         self::assertSame('2026-11-13', $this->connection()->fetchOne('SELECT enabled_on FROM firm_reminders'), 'the day of the firm, in Prague already the 13th');
     }
 
     public function testTheGateRefusesSwitchingOnWithoutPayments(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
         $container = self::getContainer();
         $container->set(ReminderSettings::class, new DoctrineReminderSettings($container->get('doctrine.orm.entity_manager'), new UnauthoritativeBalances($container->get(InvoiceBalances::class))));
 
-        $crawler = $this->client->request('GET', $this->url($firm));
+        $crawler = $this->client->request('GET', $this->url());
         self::assertCount(1, $crawler->filter('#reminders-enabled[disabled]'));
         self::assertSelectorTextContains('#reminders-card', 'Automatic reminders start once payments are recorded');
 
-        $this->client->request('POST', $this->url($firm), $this->formValues(['enabled' => '1']));
+        $this->client->request('POST', $this->url(), $this->formValues(['enabled' => '1']));
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#reminders-enabled-error', 'once payments are recorded');
         self::assertSame([], $this->connection()->fetchFirstColumn('SELECT id FROM firm_reminders'));
 
         // The rest of the card still saves while the switch stays off.
-        $this->client->request('POST', $this->url($firm), $this->formValues(['enabled' => null, 'firstAfterDays' => '14']));
-        self::assertResponseRedirects($this->url($firm));
+        $this->client->request('POST', $this->url(), $this->formValues(['enabled' => null, 'firstAfterDays' => '14']));
+        self::assertResponseRedirects($this->url());
         self::assertEquals(['enabled' => 0, 'enabled_on' => null, 'first_after_days' => 14], $this->connection()->fetchAssociative('SELECT enabled, enabled_on, first_after_days FROM firm_reminders'));
     }
 
     public function testDaysOutsideOneTo365AreRefused(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
-        $this->saveTemplates($firm, ['reminders' => ['enabled' => '1', 'firstAfterDays' => '0', 'everyDays' => '366', 'minimum' => '-5']]);
+        $this->saveTemplates(['reminders' => ['enabled' => '1', 'firstAfterDays' => '0', 'everyDays' => '366', 'minimum' => '-5']]);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#reminders-first-error', 'from 1 to 365');
@@ -454,17 +454,17 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testAReminderTemplateIsStoredPerLanguage(): void
     {
-        $firm = $this->signedInFirm();
-        $crawler = $this->client->request('GET', $this->url($firm));
+        $this->signedInFirm();
+        $crawler = $this->client->request('GET', $this->url());
         self::assertSame('Upomínka: faktura {Číslo dokladu}', $crawler->filter('#reminder-subject-cs')->attr('value'));
         self::assertStringContainsString('{Zbývá uhradit}', $crawler->filter('#reminder-body-cs')->text(null, false));
         self::assertStringContainsString('{Amount due}', $crawler->filter('#reminder-body-en')->text(null, false));
         $tokens = $crawler->filter('[role="toolbar"][aria-labelledby~="variables-reminder-cs"] button[data-token]')->each(static fn ($chip): string => (string) $chip->attr('data-token'));
         self::assertSame(['{Dní po splatnosti}', '{Pořadí upomínky}', '{Zbývá uhradit}', '{Odkaz na doklad}'], \array_slice($tokens, -4), 'the reminder chips come before the link');
 
-        $this->saveTemplates($firm, ['reminder_subject' => ['cs' => 'Upomínka {Číslo dokladu}'], 'reminder_body' => ['cs' => "Faktura je {Dní po splatnosti} dní po splatnosti, zbývá {Zbývá uhradit}.\n{Odkaz na doklad}"]]);
+        $this->saveTemplates(['reminder_subject' => ['cs' => 'Upomínka {Číslo dokladu}'], 'reminder_body' => ['cs' => "Faktura je {Dní po splatnosti} dní po splatnosti, zbývá {Zbývá uhradit}.\n{Odkaz na doklad}"]]);
 
-        self::assertResponseRedirects($this->url($firm));
+        self::assertResponseRedirects($this->url());
         self::assertSame(
             [['kind' => 'reminder', 'language' => 'cs', 'subject' => 'Upomínka {number}', 'body' => "Faktura je {days_overdue} dní po splatnosti, zbývá {amount_due}.\n{link}"]],
             $this->connection()->fetchAllAssociative('SELECT kind, language, subject, body FROM mail_template'),
@@ -472,40 +472,40 @@ final class FirmMailControllerTest extends WebTestCase
         );
 
         // A reminder variable in the invoice template is unknown there.
-        $this->saveTemplates($firm, ['subject' => ['cs' => 'Faktura {Dní po splatnosti}']]);
+        $this->saveTemplates(['subject' => ['cs' => 'Faktura {Dní po splatnosti}']]);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#subject-cs-error', '{Dní po splatnosti}');
 
         // Each kind has its own reset.
-        $this->client->request('GET', $this->url($firm));
+        $this->client->request('GET', $this->url());
         self::assertSelectorNotExists('form#mail-reset-cs');
         $reset = $this->client->getCrawler()->filter('form#mail-reset-reminder-cs');
         self::assertCount(1, $reset);
-        $this->client->request('POST', $this->url($firm), $reset->form()->getPhpValues());
-        self::assertResponseRedirects($this->url($firm));
+        $this->client->request('POST', $this->url(), $reset->form()->getPhpValues());
+        self::assertResponseRedirects($this->url());
         self::assertSame([], $this->connection()->fetchFirstColumn('SELECT id FROM mail_template'));
     }
 
     public function testBlankPasswordKeepsTheStoredOne(): void
     {
-        $firm = $this->signedInFirm();
-        $this->saveServer($firm, self::SERVER);
+        $this->signedInFirm();
+        $this->saveServer(self::SERVER);
 
-        $this->saveServer($firm, ['fromName' => 'Example Billing', 'password' => ''] + self::SERVER);
+        $this->saveServer(['fromName' => 'Example Billing', 'password' => ''] + self::SERVER);
 
-        self::assertResponseRedirects($this->url($firm, 'server'));
+        self::assertResponseRedirects($this->url('server'));
         self::assertSame('Example Billing', $this->connection()->fetchOne('SELECT from_name FROM firm_mail_server'));
         self::assertSame(self::PASSWORD, $this->storedPassword());
     }
 
     public function testABlankPasswordIsRefusedWhenTheConnectionChanges(): void
     {
-        $firm = $this->signedInFirm();
-        $this->saveServer($firm, self::SERVER);
+        $this->signedInFirm();
+        $this->saveServer(self::SERVER);
         $row = $this->connection()->fetchAssociative('SELECT * FROM firm_mail_server');
 
         foreach ([['host' => 'mail.example.com'], ['port' => '465'], ['encryption' => 'tls'], ['username' => 'other@example.com']] as $change) {
-            $this->saveServer($firm, $change + ['password' => ''] + self::SERVER);
+            $this->saveServer($change + ['password' => ''] + self::SERVER);
 
             self::assertResponseStatusCodeSame(422, array_key_first($change));
             self::assertSelectorTextContains('#password-error', 'Enter the password again', array_key_first($change));
@@ -516,9 +516,9 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testAFirstServerNeedsAPassword(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
-        $this->saveServer($firm, ['password' => ''] + self::SERVER);
+        $this->saveServer(['password' => ''] + self::SERVER);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('#password-error');
@@ -527,10 +527,10 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testAPrivateHostIsRefusedAtSave(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
         foreach (['internal.example.com', '127.0.0.1', 'smtp.example.com:587'] as $host) {
-            $this->saveServer($firm, ['host' => $host] + self::SERVER);
+            $this->saveServer(['host' => $host] + self::SERVER);
 
             self::assertResponseStatusCodeSame(422);
             self::assertSelectorExists('#host-error');
@@ -540,14 +540,14 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testThePasswordIsNeverInTheResponse(): void
     {
-        $firm = $this->signedInFirm();
-        $this->saveServer($firm, ['port' => '25'] + self::SERVER);
+        $this->signedInFirm();
+        $this->saveServer(['port' => '25'] + self::SERVER);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('#port-error');
         $refused = (string) $this->client->getResponse()->getContent();
-        $this->saveServer($firm, self::SERVER);
+        $this->saveServer(self::SERVER);
 
-        $this->client->request('GET', $this->url($firm, 'server'));
+        $this->client->request('GET', $this->url('server'));
 
         $page = (string) $this->client->getResponse()->getContent();
         self::assertSame('smtp.example.com', $this->client->getCrawler()->filter('#host')->attr('value'));
@@ -560,9 +560,9 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testUnknownVariableIsRefusedAndNamed(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
-        $this->saveTemplates($firm, ['subject' => ['cs' => 'Faktura {numbr}'], 'body' => ['en' => 'Pay {amount} now {link}']]);
+        $this->saveTemplates(['subject' => ['cs' => 'Faktura {numbr}'], 'body' => ['en' => 'Pay {amount} now {link}']]);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#subject-cs-error', '{numbr}');
@@ -573,9 +573,9 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testTheLinkInTheSubjectIsRefused(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
-        $this->saveTemplates($firm, ['subject' => ['cs' => 'Faktura {link}']]);
+        $this->saveTemplates(['subject' => ['cs' => 'Faktura {link}']]);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#subject-cs-error', '{Odkaz na doklad}');
@@ -587,11 +587,11 @@ final class FirmMailControllerTest extends WebTestCase
         $_SERVER['MAIL_SECRET_KEYS'] = $_ENV['MAIL_SECRET_KEYS'] = '';
         self::ensureKernelShutdown();
         $this->boot();
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
-        $this->client->request('GET', $this->url($firm, 'server'));
+        $this->client->request('GET', $this->url('server'));
         self::assertSelectorTextContains('main [role="alert"], main .alert, main', 'MAIL_SECRET_KEYS');
-        $this->saveServer($firm, self::SERVER);
+        $this->saveServer(self::SERVER);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('main', 'MAIL_SECRET_KEYS');
@@ -601,20 +601,20 @@ final class FirmMailControllerTest extends WebTestCase
     public function testAClientRoleGets403(): void
     {
         $this->browser->seed(role: Role::Guest);
-        $firm = $this->firm();
+        $this->firm();
         $this->browser->signIn();
 
-        $this->client->request('GET', $this->url($firm));
+        $this->client->request('GET', $this->url());
         self::assertResponseStatusCodeSame(403);
-        $this->client->request('POST', $this->url($firm).'/test');
+        $this->client->request('POST', $this->url().'/test');
         self::assertResponseStatusCodeSame(403);
     }
 
     public function testACsrfFailureChangesNothing(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
-        $this->client->request('POST', $this->url($firm), ['_token' => 'wrong', 'section' => 'server'] + self::SERVER);
+        $this->client->request('POST', $this->url(), ['_token' => 'wrong', 'section' => 'server'] + self::SERVER);
 
         self::assertResponseStatusCodeSame(403);
         self::assertSame([], $this->connection()->fetchFirstColumn('SELECT id FROM firm_mail_server'));
@@ -622,12 +622,12 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testTheTestMailGoesToTheUserAndSetsVerifiedAt(): void
     {
-        $firm = $this->signedInFirm();
-        $this->saveServer($firm, self::SERVER);
+        $this->signedInFirm();
+        $this->saveServer(self::SERVER);
 
-        $this->sendTest($firm);
+        $this->sendTest();
 
-        self::assertResponseRedirects($this->url($firm, 'server'));
+        self::assertResponseRedirects($this->url('server'));
         $messages = $this->gateway()->messages();
         self::assertCount(1, $messages);
         self::assertSame([IdentityFixtures::EMAIL], $messages[0]->to);
@@ -640,11 +640,11 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testARefusedTestShowsTheSafeReason(): void
     {
-        $firm = $this->signedInFirm();
-        $this->saveServer($firm, self::SERVER);
+        $this->signedInFirm();
+        $this->saveServer(self::SERVER);
         $this->gateway()->failNext(1, true);
 
-        $this->sendTest($firm);
+        $this->sendTest();
         $this->client->followRedirect();
 
         self::assertSelectorTextContains('main', 'SMTP 550: the mail server refused the message.');
@@ -653,14 +653,14 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testASettingsProblemClearsTheVerificationAndShowsTheLastResult(): void
     {
-        $firm = $this->signedInFirm();
-        $this->saveServer($firm, self::SERVER);
-        $this->sendTest($firm);
+        $this->signedInFirm();
+        $this->saveServer(self::SERVER);
+        $this->sendTest();
         self::assertNotNull($this->connection()->fetchOne('SELECT verified_at FROM firm_mail_server'));
         Clock::set(new MockClock('2026-11-02 12:30:00'));
         $this->gateway()->failNextAsSettingsProblem();
 
-        $this->sendTest($firm);
+        $this->sendTest();
         $this->client->followRedirect();
 
         self::assertNull($this->connection()->fetchOne('SELECT verified_at FROM firm_mail_server'));
@@ -671,10 +671,10 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testAPassingTestShowsItsTime(): void
     {
-        $firm = $this->signedInFirm();
-        $this->saveServer($firm, self::SERVER);
+        $this->signedInFirm();
+        $this->saveServer(self::SERVER);
 
-        $this->sendTest($firm);
+        $this->sendTest();
         $this->client->followRedirect();
 
         self::assertSelectorTextContains('#mail-test-result', 'Verified on 2 Nov 2026 at 12:00.');
@@ -682,53 +682,53 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testAHostNotFoundAndAMalformedHostHaveTheirOwnMessages(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
-        $this->saveServer($firm, ['host' => 'nowhere.invalid'] + self::SERVER);
+        $this->saveServer(['host' => 'nowhere.invalid'] + self::SERVER);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#host-error', 'No server of this name was found');
 
-        $this->saveServer($firm, ['host' => 'smtp_example.com'] + self::SERVER);
+        $this->saveServer(['host' => 'smtp_example.com'] + self::SERVER);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#host-error', 'Enter a host name or an IP address');
 
-        $this->saveServer($firm, ['host' => 'internal.example.com'] + self::SERVER);
+        $this->saveServer(['host' => 'internal.example.com'] + self::SERVER);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#host-error', 'cannot be reached from here');
     }
 
     public function testResetIsAFormOfItsOwnAndAsksFirst(): void
     {
-        $firm = $this->signedInFirm();
-        $this->saveTemplates($firm, ['subject' => ['cs' => 'Vlastní {Číslo dokladu}']]);
+        $this->signedInFirm();
+        $this->saveTemplates(['subject' => ['cs' => 'Vlastní {Číslo dokladu}']]);
 
-        $crawler = $this->client->request('GET', $this->url($firm));
+        $crawler = $this->client->request('GET', $this->url());
 
         self::assertCount(0, $crawler->filter('#mail-templates button[name="reset"]'), 'no reset button inside the save form');
         $reset = $crawler->filter('form#mail-reset-cs');
         self::assertCount(1, $reset);
         self::assertNotSame('', (string) $reset->attr('data-turbo-confirm'));
         self::assertCount(1, $crawler->filter('button[type="submit"][form="mail-reset-cs"]'));
-        $this->client->request('POST', $this->url($firm), $reset->form()->getPhpValues());
-        self::assertResponseRedirects($this->url($firm));
+        $this->client->request('POST', $this->url(), $reset->form()->getPhpValues());
+        self::assertResponseRedirects($this->url());
         self::assertSame([], $this->connection()->fetchFirstColumn('SELECT id FROM mail_template'));
     }
 
     public function testATestWithoutAServerSendsNothing(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
-        $this->client->request('GET', $this->url($firm, 'server'));
+        $this->client->request('GET', $this->url('server'));
         self::assertSelectorNotExists('button[form="mail-test"]');
     }
 
     public function testTheTestIsRateLimited(): void
     {
-        $firm = $this->signedInFirm();
-        $this->saveServer($firm, self::SERVER);
+        $this->signedInFirm();
+        $this->saveServer(self::SERVER);
 
         for ($i = 0; $i < 6; ++$i) {
-            $this->sendTest($firm);
+            $this->sendTest();
         }
         $this->client->followRedirect();
 
@@ -802,7 +802,7 @@ final class FirmMailControllerTest extends WebTestCase
         self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($firm->id(), new \DateTimeImmutable('2026-11-01'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $czk)]));
     }
 
-    private function url(LegalEntity $firm, ?string $tab = null): string
+    private function url(?string $tab = null): string
     {
         return '/settings/firm/mail'.(null === $tab ? '' : '?tab='.$tab);
     }
@@ -810,20 +810,20 @@ final class FirmMailControllerTest extends WebTestCase
     /**
      * @param array<string, string> $values
      */
-    private function saveServer(LegalEntity $firm, array $values): void
+    private function saveServer(array $values): void
     {
-        $crawler = $this->client->request('GET', $this->url($firm, 'server'));
+        $crawler = $this->client->request('GET', $this->url('server'));
         $form = $crawler->filter('#mail-server')->form();
-        $this->client->request('POST', $this->url($firm), $values + $form->getPhpValues());
+        $this->client->request('POST', $this->url(), $values + $form->getPhpValues());
     }
 
     /**
      * @param array<string, mixed> $values
      */
-    private function saveTemplates(LegalEntity $firm, array $values): void
+    private function saveTemplates(array $values): void
     {
-        $crawler = $this->client->request('GET', $this->url($firm));
-        $this->client->request('POST', $this->url($firm), array_replace_recursive($crawler->filter('#mail-templates')->form()->getPhpValues(), $values));
+        $crawler = $this->client->request('GET', $this->url());
+        $this->client->request('POST', $this->url(), array_replace_recursive($crawler->filter('#mail-templates')->form()->getPhpValues(), $values));
     }
 
     /**
@@ -851,10 +851,10 @@ final class FirmMailControllerTest extends WebTestCase
         return $values;
     }
 
-    private function sendTest(LegalEntity $firm): void
+    private function sendTest(): void
     {
-        $crawler = $this->client->request('GET', $this->url($firm, 'server'));
-        $this->client->request('POST', $this->url($firm).'/test', $crawler->filter('#mail-test')->form()->getPhpValues());
+        $crawler = $this->client->request('GET', $this->url('server'));
+        $this->client->request('POST', $this->url().'/test', $crawler->filter('#mail-test')->form()->getPhpValues());
     }
 
     private function storedPassword(): string

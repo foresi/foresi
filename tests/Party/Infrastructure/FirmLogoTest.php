@@ -79,7 +79,7 @@ final class FirmLogoTest extends WebTestCase
         $firm = $this->firm();
         $bytes = 'png' === $extension ? $this->png() : $this->jpeg();
 
-        $this->saveFirm($firm, [$field => $this->upload($bytes, 'image.'.$extension)]);
+        $this->saveFirm([$field => $this->upload($bytes, 'image.'.$extension)]);
 
         self::assertResponseRedirects('/settings/firm');
         $stored = $this->stored($firm);
@@ -90,9 +90,9 @@ final class FirmLogoTest extends WebTestCase
 
     public function testAnImageOfExactlyTheLimitPasses(): void
     {
-        $firm = $this->firm();
+        $this->firm();
 
-        $this->saveFirm($firm, ['logo' => $this->upload(str_pad($this->png(), self::MEGABYTE, "\0"), 'large.png')]);
+        $this->saveFirm(['logo' => $this->upload(str_pad($this->png(), self::MEGABYTE, "\0"), 'large.png')]);
 
         self::assertResponseRedirects('/settings/firm');
     }
@@ -115,7 +115,7 @@ final class FirmLogoTest extends WebTestCase
     {
         $firm = $this->firm();
 
-        $this->saveFirm($firm, ['logo' => $this->upload($bytes, $name)]);
+        $this->saveFirm(['logo' => $this->upload($bytes, $name)]);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('#logo-error');
@@ -125,9 +125,9 @@ final class FirmLogoTest extends WebTestCase
 
     public function testAHeaderWithoutImageDataIsRefusedBeforeItIsDecoded(): void
     {
-        $firm = $this->firm();
+        $this->firm();
 
-        $this->saveFirm($firm, ['logo' => $this->upload($this->pngHeader(100_000, 100_000), 'logo.png')]);
+        $this->saveFirm(['logo' => $this->upload($this->pngHeader(100_000, 100_000), 'logo.png')]);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#logo-error', '3000');
@@ -153,9 +153,9 @@ final class FirmLogoTest extends WebTestCase
 
     public function testAPngThatDoesNotDecodeIsRefused(): void
     {
-        $firm = $this->firm();
+        $this->firm();
 
-        $this->saveFirm($firm, ['logo' => $this->upload($this->pngHeader(10, 10), 'logo.png')]);
+        $this->saveFirm(['logo' => $this->upload($this->pngHeader(10, 10), 'logo.png')]);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#logo-error', 'PNG or JPEG');
@@ -197,9 +197,9 @@ final class FirmLogoTest extends WebTestCase
 
     public function testACmykJpegIsRefused(): void
     {
-        $firm = $this->firm();
+        $this->firm();
 
-        $this->saveFirm($firm, ['stamp' => $this->upload($this->cmykJpeg(), 'stamp.jpg')]);
+        $this->saveFirm(['stamp' => $this->upload($this->cmykJpeg(), 'stamp.jpg')]);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#stamp-error', 'RGB');
@@ -208,9 +208,9 @@ final class FirmLogoTest extends WebTestCase
 
     public function testAStampIsCheckedLikeALogo(): void
     {
-        $firm = $this->firm();
+        $this->firm();
 
-        $this->saveFirm($firm, ['stamp' => $this->upload('<?php echo "x";', 'stamp.png')]);
+        $this->saveFirm(['stamp' => $this->upload('<?php echo "x";', 'stamp.png')]);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('#stamp-error');
@@ -218,9 +218,9 @@ final class FirmLogoTest extends WebTestCase
 
     public function testAnOversizeFileGetsAFormError(): void
     {
-        $firm = $this->firm();
+        $this->firm();
 
-        $this->saveFirm($firm, ['logo' => $this->upload(str_pad($this->png(), self::MEGABYTE + 1, "\0"), 'large.png')]);
+        $this->saveFirm(['logo' => $this->upload(str_pad($this->png(), self::MEGABYTE + 1, "\0"), 'large.png')]);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#logo-error', '1 MB');
@@ -234,7 +234,7 @@ final class FirmLogoTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#logo-error', '1 MB');
 
-        $firm = $this->firm();
+        $this->firm();
         $this->client->request('POST', '/settings/firm', [], [], ['CONTENT_LENGTH' => '9000000']);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#logo-error', '1 MB');
@@ -243,10 +243,10 @@ final class FirmLogoTest extends WebTestCase
 
     public function testAFailedUploadGetsAFormError(): void
     {
-        $firm = $this->firm();
+        $this->firm();
         $path = $this->temporaryFile('');
 
-        $this->saveFirm($firm, ['logo' => new UploadedFile($path, 'logo.png', 'image/png', \UPLOAD_ERR_INI_SIZE, true)]);
+        $this->saveFirm(['logo' => new UploadedFile($path, 'logo.png', 'image/png', \UPLOAD_ERR_INI_SIZE, true)]);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('#logo-error');
@@ -258,8 +258,8 @@ final class FirmLogoTest extends WebTestCase
         $first = $this->png();
         $second = $this->jpeg();
 
-        $this->saveFirm($firm, ['logo' => $this->upload($first, 'first.png')]);
-        $this->saveFirm($firm, ['logo' => $this->upload($second, 'second.jpg')]);
+        $this->saveFirm(['logo' => $this->upload($first, 'first.png')]);
+        $this->saveFirm(['logo' => $this->upload($second, 'second.jpg')]);
 
         self::assertSame(hash('sha256', $second).'.jpg', $this->stored($firm)->logo());
         self::assertTrue(is_file($this->images()->path(hash('sha256', $first).'.png')));
@@ -268,9 +268,9 @@ final class FirmLogoTest extends WebTestCase
     public function testSavingWithoutAFileKeepsTheImages(): void
     {
         $firm = $this->firm();
-        $this->saveFirm($firm, ['logo' => $this->upload($this->png(), 'logo.png'), 'stamp' => $this->upload($this->jpeg(), 'stamp.jpg')]);
+        $this->saveFirm(['logo' => $this->upload($this->png(), 'logo.png'), 'stamp' => $this->upload($this->jpeg(), 'stamp.jpg')]);
 
-        $this->saveFirm($firm, []);
+        $this->saveFirm([]);
 
         self::assertNotNull($this->stored($firm)->logo());
         self::assertNotNull($this->stored($firm)->stamp());
@@ -279,9 +279,9 @@ final class FirmLogoTest extends WebTestCase
     public function testImagesCanBeRemovedAndTheFilesStay(): void
     {
         $firm = $this->firm();
-        $this->saveFirm($firm, ['logo' => $this->upload($this->png(), 'logo.png'), 'stamp' => $this->upload($this->jpeg(), 'stamp.jpg')]);
+        $this->saveFirm(['logo' => $this->upload($this->png(), 'logo.png'), 'stamp' => $this->upload($this->jpeg(), 'stamp.jpg')]);
 
-        $this->saveFirm($firm, [], ['removeLogo' => '1', 'removeStamp' => '1']);
+        $this->saveFirm([], ['removeLogo' => '1', 'removeStamp' => '1']);
 
         self::assertNull($this->stored($firm)->logo());
         self::assertNull($this->stored($firm)->stamp());
@@ -303,14 +303,14 @@ final class FirmLogoTest extends WebTestCase
 
     public function testTheFormIsMultipartAndKnowsWhatIsStored(): void
     {
-        $firm = $this->firm();
+        $this->firm();
 
         $crawler = $this->client->request('GET', '/settings/firm');
         self::assertSame('multipart/form-data', $crawler->filter('main form')->last()->attr('enctype'));
         self::assertSame('image/png,image/jpeg', $crawler->filter('#logo')->attr('accept'));
         self::assertSelectorNotExists('#removeLogo');
 
-        $this->saveFirm($firm, ['logo' => $this->upload($this->png(), 'logo.png')]);
+        $this->saveFirm(['logo' => $this->upload($this->png(), 'logo.png')]);
         $this->client->request('GET', '/settings/firm');
         self::assertSelectorExists('#removeLogo');
         self::assertSelectorNotExists('#removeStamp');
@@ -318,9 +318,9 @@ final class FirmLogoTest extends WebTestCase
 
     public function testNoPageNamesAStoredImage(): void
     {
-        $firm = $this->firm();
+        $this->firm();
         $bytes = $this->png();
-        $this->saveFirm($firm, ['stamp' => $this->upload($bytes, 'stamp.png')]);
+        $this->saveFirm(['stamp' => $this->upload($bytes, 'stamp.png')]);
 
         $this->client->request('GET', '/settings/firm');
 
@@ -465,7 +465,7 @@ final class FirmLogoTest extends WebTestCase
      * @param array<string, UploadedFile> $files
      * @param array<string, string>       $values
      */
-    private function saveFirm(LegalEntity $firm, array $files, array $values = []): void
+    private function saveFirm(array $files, array $values = []): void
     {
         $crawler = $this->client->request('GET', '/settings/firm');
         $form = $crawler->filter('main form')->last()->form();
