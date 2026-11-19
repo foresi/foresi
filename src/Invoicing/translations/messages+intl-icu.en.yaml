@@ -380,7 +380,6 @@ invoice:
     title_payment_tax_document: Tax documents on payment
     title_correction_document: Corrective documents
     views: Invoice lists
-    more_views: More views
     all_firms: All firms
     search_label: Search invoices
     search_placeholder: Number, customer or description
@@ -1058,6 +1057,8 @@ recurring:
   list:
     title: Recurring invoices
     views: Recurring invoice lists
+    # The next issue date of a paused or ended recurring invoice.
+    no_next: None scheduled
     failed: 'Failed: {reason}'
     fix:
       mail: Set up the mail server
@@ -1312,6 +1313,8 @@ tax_document:
     intro: When an advance payment is cancelled or refunded after the customer got its tax document, a corrective tax document is issued within 15 days of the cancellation or refund. A document a final invoice deducts is corrected once the deduction is released.
     empty: No tax document is waiting for correction.
     deducted: deducted on a final invoice
+    field:
+      deducted: Deducted on a final invoice
     notice: '{late, select, yes {{count, plural, one {A tax document is} other {# tax documents are}} past the deadline for correction.} other {{count, plural, one {A tax document waits} other {# tax documents wait}} for a corrective document, the first by {date}.}}'
     column:
       number: Tax document

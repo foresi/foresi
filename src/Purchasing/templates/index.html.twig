@@ -2,7 +2,7 @@
 {#
     The received documents, as Fakturoid lists its costs and Xero its bills, on saved views: All, the
     drafts to complete, the recorded ones and the trash, each a tab with its count, and the person's own
-    views; the firm and month chips, "+ Filter", the search and the Columns sheet as the invoice list has
+    views; the month chip, "+ Filter", the search and the Columns sheet as the invoice list has
     them. Uploading and a new document open a dialog from the header.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
@@ -39,10 +39,10 @@
                 </twig:Ui:Tabs>
                 {{ include('@Ui/components/_view_actions.html.twig') }}
             </div>
-            {# The firm and the month are chips; the supplier, the kind and the treatment are conditions of "+ Filter" (saved views D11). #}
-            {% set purchasingFilters = (firms is not empty ? [{name: 'firm', label: 'purchasing.field.firm'|trans, options: firms, value: filter.firmId ?? '', pinned: true}] : [])|merge([
+            {# The month is a chip; the supplier, the kind and the treatment are conditions of "+ Filter" (saved views D11). #}
+            {% set purchasingFilters = [
                 {name: 'month', label: 'purchasing.list.month'|trans, options: months, value: filter.month ?? '', pinned: true},
-            ]) %}
+            ] %}
             <twig:Ui:FilterBar id="purchasing-filters" :action="path('app_purchasing')" :keep="{view: view != '' ? view : null, f: working != '' ? working : null}|merge(workingQuery)"
                 :search="{name: 'q', value: filter.text, label: 'purchasing.list.search_label'|trans, placeholder: 'purchasing.list.search_placeholder'|trans}"
                 :filters="purchasingFilters" :conditions="chips" :builder="builder" :empty="rows is empty" data-purchasing-filter>

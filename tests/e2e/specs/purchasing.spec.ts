@@ -198,15 +198,13 @@ test.describe('received documents', () => {
 
 test.describe('screens', () => {
   test('the list and the detail look as approved @visual', async ({ page }) => {
-    // The seeded studio firm keeps its own two documents, whatever the other tests recorded.
+    // An instance holds one firm (ADR 0039), so the list has no firm filter: the seeded studio documents are among the recorded ones.
     await page.goto('/purchasing?tab=recorded');
-    const studio = await page.locator('[data-filter-chip="firm"] a[role="menuitemradio"]', { hasText: 'Example Studio s.r.o.' }).evaluate((link) => new URL((link as HTMLAnchorElement).href).searchParams.get('firm'));
-    await page.goto(`/purchasing?tab=recorded&firm=${studio}`);
-    await expect(page.locator('tbody tr')).toHaveCount(2);
+    await expect(page.getByRole('link', { name: 'R20260001' }).first()).toBeVisible();
     await page.mouse.move(0, 0);
     await expect(page.locator('main')).toHaveScreenshot('list-content.png');
 
-    await page.getByRole('link', { name: 'R20260001' }).click();
+    await page.getByRole('link', { name: 'R20260001' }).first().click();
     await page.locator('dialog#sheet').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     await expect(page.locator('main h1')).toHaveText('R20260001');
     await page.mouse.move(0, 0);

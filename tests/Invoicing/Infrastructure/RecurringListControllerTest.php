@@ -277,7 +277,7 @@ final class RecurringListControllerTest extends WebTestCase
         self::assertLessThanOrEqual(6, $one, 'count, page, customers, lines, firm settings and firm');
     }
 
-    public function testFiltersByFirmAndTab(): void
+    public function testFiltersByTabAndIgnoresAnOldFirm(): void
     {
         $this->signedIn();
         $this->template(description: 'Main');
@@ -290,10 +290,10 @@ final class RecurringListControllerTest extends WebTestCase
         self::assertSame(['All 3', 'Active 2', 'Paused 1', 'Ended 0', 'Failing 0'], $this->tabs($crawler));
         self::assertContains('Firm', $this->headers($crawler), 'several firms name theirs');
 
+        // An instance holds one firm (ADR 0039): no firm select, and an old ?firm= narrows nothing.
         $crawler = $this->client->request('GET', '/invoices/recurring?firm='.$second->id());
-        self::assertSame(['All 1', 'Active 1', 'Paused 0', 'Ended 0', 'Failing 0'], $this->tabs($crawler));
-        self::assertCount(1, $crawler->filter('tbody tr'));
-        self::assertStringContainsString('Other firm', $crawler->filter('tbody tr')->text());
+        self::assertSame(['All 3', 'Active 2', 'Paused 1', 'Ended 0', 'Failing 0'], $this->tabs($crawler));
+        self::assertCount(0, $crawler->filter('[data-filter-chip="firm"], select[name="firm"]'));
 
         $crawler = $this->client->request('GET', '/invoices/recurring?tab=paused');
         self::assertCount(1, $crawler->filter('tbody tr'));
@@ -576,7 +576,7 @@ final class RecurringListControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('[data-filter-search] input[name="toSend"][value="1"]'), 'a search keeps the filter');
     }
 
-    public function testTheToSendCountFollowsTheFirmFilter(): void
+    public function testTheToSendCountCountsTheWholeInstance(): void
     {
         $this->signedIn();
         $this->post($this->template(delivery: RecurringDelivery::Review), 'issue_now', ['occurrence' => '2026-12-01']);
@@ -585,10 +585,9 @@ final class RecurringListControllerTest extends WebTestCase
         $this->post($this->template(delivery: RecurringDelivery::Review, firm: $second, series: false), 'issue_now', ['occurrence' => '2026-12-01']);
 
         self::assertStringContainsString('3', $this->client->request('GET', '/invoices')->filter('[data-to-send] a')->text());
-        self::assertStringContainsString('2', $this->client->request('GET', '/invoices?firm='.$this->firm->id())->filter('[data-to-send] a')->text());
         $crawler = $this->client->request('GET', '/invoices?firm='.$second->id().'&toSend=1');
-        self::assertStringContainsString('1', $crawler->filter('[data-to-send] a')->text(), 'the count says what the list shows');
-        self::assertCount(1, $crawler->filter('tbody tr'));
+        self::assertStringContainsString('3', $crawler->filter('[data-to-send] a')->text(), 'an old ?firm= narrows nothing');
+        self::assertCount(3, $crawler->filter('tbody tr'), 'the count says what the list shows');
     }
 
     public function testIssueNowOnAPausedTemplateSaysItIsNotActive(): void

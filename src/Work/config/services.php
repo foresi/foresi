@@ -15,6 +15,7 @@ use Foresi\Work\Application\ManageSharing;
 use Foresi\Work\Application\ManageTasks;
 use Foresi\Work\Application\ManageTime;
 use Foresi\Work\Application\ManageWorkflow;
+use Foresi\Work\Application\PurgeDeletedComments;
 use Foresi\Work\Application\PurgeDeletedTasks;
 use Foresi\Work\Application\SharedWorkVisibility;
 use Foresi\Work\Application\TaskHistory;
@@ -49,7 +50,7 @@ return static function (ContainerConfigurator $container): void {
         // The tests drive the work services directly; the screens come next.
         foreach ([
             ManageProjects::class, ManageSections::class, ManageWorkflow::class, ManageTasks::class, ManageLabels::class,
-            TaskHistory::class, ManageComments::class, PurgeDeletedTasks::class, ManageSharing::class, ManageTime::class,
+            TaskHistory::class, ManageComments::class, PurgeDeletedTasks::class, PurgeDeletedComments::class, ManageSharing::class, ManageTime::class,
         ] as $service) {
             $services->set($service)->public();
         }

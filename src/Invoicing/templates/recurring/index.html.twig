@@ -33,9 +33,8 @@
                 </twig:Ui:Tabs>
                 {{ include('@Ui/components/_view_actions.html.twig') }}
             </div>
-            {% set firmFilters = firms is not empty ? [{name: 'firm', label: 'invoice.field.firm'|trans, options: firms, value: firm, pinned: true}] : [] %}
             <twig:Ui:FilterBar id="recurring-filters" :action="path('app_recurring')" :keep="{view: view != '' ? view : null, sort: sortKept, f: working != '' ? working : null}|merge(workingQuery)"
-                :filters="firmFilters" :conditions="chips" :builder="builder" :empty="rows is empty">
+                :conditions="chips" :builder="builder" :empty="rows is empty">
                 <twig:block name="end">
                     <twig:Ui:ColumnPicker id="recurring-columns" :action="path('app_recurring')" :keep="picker.keep" :columns="picker.columns" :density="picker.density" :resetHref="picker.resetHref" :modified="picker.modified" />
                 </twig:block>

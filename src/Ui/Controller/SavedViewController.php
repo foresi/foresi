@@ -33,9 +33,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The saved views' forms on a list (spec D6, D7, D10), all through SavedViews: Save the
- * working state into the view, Save as new view, and Manage views (rename, private or
- * shared, a tab or in More views, delete) and Restore default views. Each returns to the
- * list it came from, with a message.
+ * working state into the view, Save as new view, and Manage views (the order and the tabs,
+ * rename, private or shared, hide or show a shipped view, delete your own) and Restore
+ * default views. Each returns to the list it came from, with a message.
  */
 final class SavedViewController extends AbstractController
 {
@@ -106,6 +106,11 @@ final class SavedViewController extends AbstractController
     public function edit(Request $request): RedirectResponse
     {
         $input = $request->request;
+        $done = match (true) {
+            !$input->has('hidden') => 'saved_view.updated',
+            $input->getBoolean('hidden') => 'saved_view.hidden',
+            default => 'saved_view.shown',
+        };
 
         return $this->attempt($request, function () use ($input): string {
             $view = $this->views->get($input->getString('ref'));
@@ -117,10 +122,55 @@ final class SavedViewController extends AbstractController
                 // A view a module ships stays shared (spec D6).
                 visibility: !$input->has('visibility') || null !== $view->systemKey() ? new Omitted() : $input->getString('visibility'),
                 placement: '' === $placement || $placement === $view->placement()->value ? new Omitted() : $this->placement($view->listKey(), $placement, true),
+                // Only a view a module ships is hidden, and shown again (D6).
+                hidden: $input->has('hidden') ? $input->getBoolean('hidden') : new Omitted(),
             ));
 
             return $this->return($input->getString('return'));
-        }, 'saved_view.updated');
+        }, $done);
+    }
+
+    /**
+     * The order Manage views shows, top to bottom: the views before the empty marker are
+     * tabs, the ones after it wait in More views (spec D7). One order for everyone, set by
+     * owners; a view already where it belongs is left as it is.
+     */
+    #[Route('/views/order', name: 'app_view_order', methods: ['POST'])]
+    public function order(Request $request): RedirectResponse
+    {
+        $input = $request->request;
+
+        return $this->attempt($request, function () use ($input): string {
+            if (!$this->actor->isOwner()) {
+                throw SavedViewRefused::forbidden('Only an owner sets the order of the views on a list.');
+            }
+            $refs = array_values(array_filter($input->all('views'), \is_string(...)));
+            $split = array_search('', $refs, true);
+            $tabs = false === $split ? \count($refs) : $split;
+            // All is a tab too.
+            if ($tabs >= ListViews::MAX_PRIMARY) {
+                throw SavedViewRefused::invalid('primary_full', 'placement', 'A list shows at most six tabs; move another view to More views first.');
+            }
+            $position = 0;
+            foreach ($refs as $index => $ref) {
+                if ('' === $ref) {
+                    continue;
+                }
+                $view = $this->views->get($ref);
+                $placement = $index < $tabs ? Placement::Primary : Placement::Overflow;
+                ++$position;
+                if ($placement === $view->placement() && $position === $view->position()) {
+                    continue;
+                }
+                $this->views->update(new UpdateViewInput(
+                    $view->id(),
+                    placement: $placement === $view->placement() ? new Omitted() : $placement->value,
+                    position: $position === $view->position() ? new Omitted() : $position,
+                ));
+            }
+
+            return $this->return($input->getString('return'));
+        }, 'saved_view.ordered');
     }
 
     #[Route('/views/delete', name: 'app_view_delete', methods: ['POST'])]

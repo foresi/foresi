@@ -33,6 +33,11 @@ use Psr\Clock\ClockInterface;
  * text: only active people who can see the task, and the comment when it is
  * internal, whatever the text claims. They hear of the mention, the other
  * watchers of the comment; an edit tells only the people it adds.
+ *
+ * A deleted comment keeps its text for 30 days, so whoever may delete it may
+ * restore it, as GitHub and Linear keep a deleted comment in the thread. While
+ * deleted it mentions nobody; restoring brings its mentions back and tells
+ * nobody again, since they heard of it when it was written.
  */
 final readonly class ManageComments
 {
@@ -95,16 +100,59 @@ final readonly class ManageComments
      *
      * @throws WorkRefused
      */
-    public function delete(string $commentId): void
+    public function delete(string $commentId): TaskComment
     {
         $comment = $this->comment($commentId);
-        if ($comment->author()->id() !== $this->commenter($comment->task())->id() && !$this->owner->isOwner()) {
-            throw new WorkRefused('comment_not_yours');
+        $userId = $this->moderator($comment);
+        $this->unit->run(function () use ($comment, $userId): void {
+            $comment->delete($userId, $this->clock->now());
+            foreach ($this->comments->mentions($comment) as $mention) {
+                $this->comments->remove($mention);
+            }
+        });
+
+        return $comment;
+    }
+
+    /**
+     * Brings back the text of a deleted comment and the people it mentions,
+     * without telling them again. Restoring a comment that stands changes nothing.
+     *
+     * @throws WorkRefused
+     */
+    public function restore(string $commentId): TaskComment
+    {
+        $comment = $this->comment($commentId);
+        $this->moderator($comment);
+        if (!$comment->isDeleted()) {
+            return $comment;
+        }
+        if (!$comment->isRestorable()) {
+            throw new WorkRefused('comment_purged');
         }
         $this->unit->run(function () use ($comment): void {
-            $comment->delete($this->clock->now());
+            $comment->restore();
             $this->syncMentions($comment, $this->comments->mentions($comment));
         });
+
+        return $comment;
+    }
+
+    /**
+     * Its author or an owner of the organisation, who may delete or restore it.
+     *
+     * @return string the user id of who does it
+     *
+     * @throws WorkRefused
+     */
+    private function moderator(TaskComment $comment): string
+    {
+        $me = $this->commenter($comment->task());
+        if ($comment->author()->id() !== $me->id() && !$this->owner->isOwner()) {
+            throw new WorkRefused('comment_not_yours');
+        }
+
+        return $me->user()->id();
     }
 
     /**

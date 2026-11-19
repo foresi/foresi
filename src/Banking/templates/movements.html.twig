@@ -1,13 +1,13 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     The bank screen, as iDoklad's Finance, Bank: the incoming and outgoing movements, the incoming
-    and the outgoing ones waiting for a pairing, and the bank mail. Pair, unpair and the message open in dialogs over
-    the list. The flash after a pairing made by hand offers Undo, for that pairing only.
+    and the outgoing ones waiting for a pairing, and the bank mail, each a saved view (spec "Quick filters
+    and saved views"). Pair, unpair and the message open in dialogs over the list. The flash after a
+    pairing made by hand offers Undo, for that pairing only.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'bank.movement.title'|trans}] %}
-{% set messagesTab = tab == 'messages' %}
 
 {% block title %}{{ 'bank.movement.title'|trans }}{% endblock %}
 
@@ -37,33 +37,46 @@
             <twig:Ui:Button :href="path('app_firm_index')">{{ 'bank.movement.empty.no_accounts_link'|trans }}</twig:Ui:Button>
         </twig:Ui:EmptyState>
     {% else %}
+        {# The views it shipped have an empty state of their own; any other says what All says. #}
+        {% set empty = view in ['incoming', 'outgoing', 'unmatched', 'outgoing_unmatched', 'messages'] ? view : (mail ? 'messages' : 'all') %}
         <div class="grid grid-cols-1 gap-4">
-            <twig:Ui:Tabs :items="tabs" :label="'bank.movement.views'|trans" />
-            {% set bankFilters = (firms is not empty ? [{name: 'firm', label: 'bank.movement.list.firm'|trans, options: firms, value: firm, pinned: true}] : [])|merge(accounts is not empty ? [{name: 'account', label: 'bank.movement.list.account'|trans, options: accounts, value: account, pinned: true}] : []) %}
-            {% if bankFilters is not empty or not messagesTab %}
-                <twig:Ui:FilterBar id="bank-filters" :action="path('app_bank_movements')" :keep="{tab: tab != 'incoming' ? tab : null}"
-                    :search="messagesTab ? null : {name: 'q', value: text, label: 'bank.movement.list.search_label'|trans, placeholder: 'bank.movement.list.search_placeholder'|trans}"
-                    :filters="bankFilters" :empty="rows is empty" />
-            {% endif %}
+            {# The view's unsaved changes sit at the end of its tabs, as on every list (saved views D10). #}
+            <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
+                <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'bank.movement.views'|trans" class="min-w-0 sm:flex-1">
+                    <twig:block name="actions">{{ include('@Ui/components/_view_menu.html.twig') }}</twig:block>
+                </twig:Ui:Tabs>
+                {{ include('@Ui/components/_view_actions.html.twig') }}
+            </div>
+            {# The bank mail is not searched, and its columns are its own. #}
+            <twig:Ui:FilterBar id="bank-filters" :action="path('app_bank_movements')" :keep="{view: view != '' ? view : null, f: working != '' ? working : null}|merge(workingQuery)"
+                :search="mail ? null : {name: 'q', value: text, label: 'bank.movement.list.search_label'|trans, placeholder: 'bank.movement.list.search_placeholder'|trans}"
+                :conditions="chips" :builder="builder" :empty="rows is empty">
+                <twig:block name="end">
+                    {% if not mail %}
+                        <twig:Ui:ColumnPicker id="bank-columns" :action="path('app_bank_movements')" :keep="picker.keep" :columns="picker.columns" :density="picker.density" :resetHref="picker.resetHref" :modified="picker.modified" />
+                    {% endif %}
+                </twig:block>
+            </twig:Ui:FilterBar>
 
-            {% set token = messagesTab
+            {% set token = mail
                 ? csrf_token(constant('Foresi\\Banking\\Infrastructure\\Controller\\InboundMessageController::ACTION_TOKEN'))
                 : csrf_token(constant('Foresi\\Banking\\Infrastructure\\Controller\\BankMovementController::ACTION_TOKEN')) %}
-            <twig:Ui:DataTable :caption="('bank.movement.tab.' ~ tab)|trans" :columns="columns" :rows="rows" :actionToken="token" density="dense">
+            <twig:Ui:DataTable :caption="caption" :columns="columns" :rows="rows" :actionToken="token" :density="mail ? 'dense' : density">
                 <twig:block name="empty">
                     {% if filtered %}
                         <twig:Ui:EmptyState icon="search" :title="'bank.movement.empty.filtered_title'|trans" :text="'bank.movement.empty.filtered_text'|trans">
-                            <twig:Ui:Button :href="path('app_bank_movements', tab == 'incoming' ? {} : {tab: tab})">{{ 'bank.movement.empty.reset'|trans }}</twig:Ui:Button>
+                            <twig:Ui:Button :href="path('app_bank_movements', view != '' ? {view: view} : {})">{{ 'bank.movement.empty.reset'|trans }}</twig:Ui:Button>
                         </twig:Ui:EmptyState>
                     {% else %}
-                        <twig:Ui:EmptyState :icon="tab in ['unmatched', 'outgoing_unmatched'] ? 'circle-check' : (messagesTab ? 'inbox' : 'landmark')" :title="('bank.movement.empty.' ~ tab ~ '_title')|trans" :text="('bank.movement.empty.' ~ tab ~ '_text')|trans" />
+                        <twig:Ui:EmptyState :icon="empty in ['unmatched', 'outgoing_unmatched'] ? 'circle-check' : (mail ? 'inbox' : 'landmark')" :title="('bank.movement.empty.' ~ empty ~ '_title')|trans" :text="('bank.movement.empty.' ~ empty ~ '_text')|trans" />
                     {% endif %}
                 </twig:block>
                 <twig:block name="footer">
-                    <span class="num">{{ (messagesTab ? 'bank.message.list.summary' : 'bank.movement.list.summary')|trans({total: page.total}) }}</span>
+                    <span class="num">{{ (mail ? 'bank.message.list.summary' : 'bank.movement.list.summary')|trans({total: page.total}) }}</span>
                     <twig:Ui:Pagination :page="page.page" :pages="page.pages" :baseUrl="baseUrl" />
                 </twig:block>
             </twig:Ui:DataTable>
         </div>
+        {{ include('@Ui/components/_view_dialogs.html.twig') }}
     {% endif %}
 {% endblock %}

@@ -18,6 +18,9 @@ use Foresi\Identity\Domain\Role;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
+use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Tests\Banking\Support\BankScreenTestCase;
 use Foresi\Tests\Banking\Support\Scalars;
 use Foresi\Tests\Party\Support\FirmAccounts;
@@ -50,9 +53,14 @@ final class BankMovementControllerTest extends BankScreenTestCase
         $outgoingId = $this->movement('80.00', null, MovementDirection::Outgoing, account: $second);
         $otherId = $this->movement('70.00', null, account: $otherAccount);
 
-        $incoming = $this->page('/bank');
-        self::assertSame('page', $incoming->filter('main nav[aria-label="Bank views"] a[href="/bank"]')->attr('aria-current'));
+        $all = $this->page('/bank');
+        self::assertSame('page', $all->filter('main nav[aria-label="Bank views"] a[href="/bank"]')->attr('aria-current'));
+        self::assertSame([$otherId, $outgoingId, $unmatchedId, $pairedId], $this->rowIds($all), 'All of them, newest first.');
+
+        $incoming = $this->page('/bank?view=incoming');
+        self::assertSame('page', $incoming->filter('main nav[aria-label="Bank views"] a[href="/bank?view=incoming"]')->attr('aria-current'));
         self::assertSame([$otherId, $unmatchedId, $pairedId], $this->rowIds($incoming), 'Newest first, incoming only.');
+        self::assertSame([$otherId, $unmatchedId, $pairedId], $this->rowIds($this->page('/bank?tab=incoming')), 'The tab it was still opens it.');
         self::assertSame('20260001', $this->row($incoming, $pairedId)->filter('a[href="/invoices/'.$paid->id().'"][data-sheet]')->text());
         self::assertStringContainsString($this->nb('+1,210.00 Kč'), $this->row($incoming, $pairedId)->text());
         self::assertStringContainsString('Example Remitter Ltd', $this->row($incoming, $unmatchedId)->text());
@@ -62,12 +70,81 @@ final class BankMovementControllerTest extends BankScreenTestCase
         self::assertSame([$outgoingId], $this->rowIds($outgoing));
         self::assertStringContainsString($this->nb('−80.00 Kč'), $this->row($outgoing, $outgoingId)->text());
 
-        self::assertSame([$otherId], $this->rowIds($this->page('/bank?firm='.$otherFirm->id())));
-        self::assertSame([$unmatchedId, $pairedId], $this->rowIds($this->page('/bank?account='.$this->account->id())));
+        // The account the select named is a condition now; the firm select is gone with the one firm of an instance.
+        self::assertSame([$unmatchedId, $pairedId], $this->rowIds($this->page('/bank?tab=incoming&account='.$this->account->id())));
         self::assertSame([], $this->rowIds($this->page('/bank?tab=outgoing&account='.$this->account->id())));
+        self::assertSame([$otherId, $unmatchedId, $pairedId], $this->rowIds($this->page('/bank?view=incoming&firm='.$otherFirm->id())));
         self::assertSame([$unmatchedId], $this->rowIds($this->page('/bank?q=99999999')));
-        // A firm or an account of no one is no filter at all.
-        self::assertSame([$otherId, $unmatchedId, $pairedId], $this->rowIds($this->page('/bank?firm=nobody&account=nobody')));
+        // An account of no one is no filter at all.
+        self::assertSame([$otherId, $unmatchedId, $pairedId], $this->rowIds($this->page('/bank?view=incoming&account=nobody')));
+    }
+
+    public function testTheTabsAreTheShippedViewsCountedWithinTheSearch(): void
+    {
+        // Saved views, D12: All and the tabs it had, the same counts on the same tabs (D9), counted within the search.
+        $this->signedIn();
+        $this->invoice(vs: '20260001');
+        $this->movement('1210.00', '20260001', trust: MessageTrust::Verified);
+        $this->movement('500.00', '1');
+        $this->movement('600.00');
+        $this->movement('90.00', null, MovementDirection::Outgoing);
+        $this->received($this->notice('incoming-unknown-status'));
+
+        $crawler = $this->page('/bank');
+        self::assertSame(['All', 'Incoming', 'Outgoing', 'Unmatched2', 'Outgoing unmatched0', 'Messages1'], $this->tabs($crawler));
+        self::assertSame('/bank?view=unmatched', $crawler->filter('main nav[aria-label="Bank views"] a')->eq(3)->attr('href'));
+        self::assertCount(4, $crawler->filter('main tbody tr'));
+        self::assertCount(1, $crawler->filter('[data-filter-sheet-form]'));
+
+        $crawler = $this->page('/bank?view=unmatched&q=600');
+        self::assertSame(['All', 'Incoming', 'Outgoing', 'Unmatched1', 'Outgoing unmatched0', 'Messages1'], $this->tabs($crawler));
+        self::assertCount(1, $crawler->filter('main tbody tr'));
+        // An unknown view is every movement.
+        self::assertCount(4, $this->page('/bank?view=friends')->filter('main tbody tr'));
+    }
+
+    public function testTheBuilderNarrowsTheViewAndItsChangesAreSavedAsANewView(): void
+    {
+        $this->signedIn();
+        $this->movement('500.00', '1');
+        $this->movement('600.00');
+        $this->movement('90.00', null, MovementDirection::Outgoing);
+
+        $this->client->request('GET', '/bank?'.http_build_query(['view' => 'incoming', 'conditions' => '1', 'c' => [
+            ['field' => 'direction', 'op' => 'is', 'values' => ['incoming']],
+            ['field' => 'state', 'op' => 'is', 'values' => ['unmatched']],
+        ]]));
+        self::assertResponseStatusCodeSame(303);
+        $crawler = $this->client->followRedirect();
+
+        self::assertCount(2, $crawler->filter('main tbody tr'));
+        self::assertSame('Incoming, unsaved changes', $this->tabs($crawler)[1]);
+        $this->client->submit($crawler->filter('[data-view-save-as-form]')->form(['name' => 'Waiting incoming']));
+        $crawler = $this->client->followRedirect();
+        self::assertCount(2, $crawler->filter('main tbody tr'));
+        // Six tabs hold All and the views it shipped: a new one is under More views.
+        self::assertStringContainsString('Waiting incoming', $crawler->filter('main [data-more-views]')->text());
+    }
+
+    public function testAViewOfTheBankMailNarrowsByAccountAndFindsNoDirection(): void
+    {
+        $this->signedIn();
+        $second = $this->scoped(function (): FirmBankAccount {
+            $account = FirmAccounts::add($this->em(), $this->em()->find(LegalEntity::class, $this->firm->id()) ?? throw new \LogicException('The firm is gone.'), self::OTHER_IBAN);
+            $this->em()->flush();
+
+            return $account;
+        });
+        $main = $this->received($this->notice('incoming-unknown-status'));
+        $other = $this->received($this->notice('incoming-unknown-status', account: $second));
+        $mail = static fn (Condition $condition): string => '/bank?view=messages&f='.WorkingFilter::encode(ViewFilter::all(new Condition('bank_mail', 'is', true), $condition));
+
+        self::assertSame([$other, $main], $this->rowIds($this->page('/bank?view=messages')));
+        self::assertSame([$other], $this->rowIds($this->page('/bank?tab=messages&account='.$second->id())), 'The account the select named.');
+        self::assertSame([$main], $this->rowIds($this->page($mail(new Condition('account', 'is_none_of', [$second->id()])))));
+        self::assertSame([], $this->rowIds($this->page($mail(new Condition('direction', 'is', 'incoming')))), 'A message has no direction.');
+        self::assertSame([$other, $main], $this->rowIds($this->page($mail(new Condition('state', 'is_not', 'paired')))));
+        self::assertSame([], $this->rowIds($this->page('/bank?f='.WorkingFilter::encode(ViewFilter::all(new Condition('bank_mail', 'is', false), new Condition('direction', 'is', 'outgoing'))))));
     }
 
     public function testTheUnmatchedTabCountsOnlyUnmatchedIncoming(): void
@@ -506,6 +583,14 @@ final class BankMovementControllerTest extends BankScreenTestCase
     private function rowIds(Crawler $crawler): array
     {
         return $crawler->filter('main tbody tr')->each(static fn (Crawler $row): string => (string) $row->attr('data-id'));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function tabs(Crawler $crawler): array
+    {
+        return $crawler->filter('main nav[aria-label="Bank views"] a')->each(static fn (Crawler $tab): string => trim((string) preg_replace('/\s+/', ' ', $tab->text())));
     }
 
     private function row(Crawler $crawler, string $id): Crawler

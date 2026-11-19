@@ -23,20 +23,34 @@ use Foresi\Banking\Application\PairingRefused;
 use Foresi\Banking\Application\PairMovement;
 use Foresi\Banking\Application\UnknownBankMovement;
 use Foresi\Banking\Application\UnpairMovement;
+use Foresi\Banking\Application\View\BankMovementLists;
 use Foresi\Banking\Domain\BankMovement;
 use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\UnmatchedReason;
+use Foresi\Banking\Infrastructure\Column\MovementColumns;
+use Foresi\Banking\Infrastructure\View\BankMovementViews;
 use Foresi\Identity\Application\StaffCheck;
 use Foresi\Invoicing\Application\AllocationRequest;
 use Foresi\Invoicing\Application\InvoicePayments;
 use Foresi\Invoicing\Application\PaymentRefused;
 use Foresi\Invoicing\Application\UnknownInvoice;
 use Foresi\Invoicing\Domain\Payment;
+use Foresi\Shared\Application\View\FilterRows;
+use Foresi\Shared\Application\View\ListView;
+use Foresi\Shared\Application\View\ListViews;
+use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Domain\Money;
-use Foresi\Ui\Contract\Opens;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
+use Foresi\Ui\Column\RememberedDisplay;
+use Foresi\Ui\Contract\ListDisplay;
+use Foresi\Ui\Contract\WorkingDisplay;
+use Foresi\Ui\Contract\WorkingState;
+use Foresi\Ui\View\ViewBar;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -69,7 +83,9 @@ final class BankMovementController extends AbstractController
 {
     public const string ACTION_TOKEN = 'bank_movement';
     /** The parts of the screen's query an action carries back to it. */
-    public const array LIST_QUERY = ['tab', 'firm', 'account', 'q', 'page'];
+    public const array LIST_QUERY = ['view', 'tab', 'q', 'page', WorkingFilter::PARAM, WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY];
+    /** The screen lists the newest booked first, and takes no other order. */
+    private const string SORT = 'date';
     /** The pairing made just now, which the flash may undo. */
     private const string UNDO = 'bank.undo';
     /** How long Undo stays offered for a pairing; later, unpairing asks first. */
@@ -93,6 +109,11 @@ final class BankMovementController extends AbstractController
         private readonly InboundAddresses $addresses,
         private readonly Ownership $ownership,
         private readonly ClockInterface $clock,
+        private readonly BankMovementViews $views,
+        private readonly MovementColumns $movementColumns,
+        private readonly RememberedDisplay $rememberedDisplay,
+        private readonly ViewBar $viewBar,
+        private readonly FilterSheet $filterSheet,
     ) {
     }
 
@@ -100,45 +121,54 @@ final class BankMovementController extends AbstractController
     public function index(Request $request): Response
     {
         $this->denyUnlessStaff();
-        $tab = $request->query->getString('tab', MovementFilter::INCOMING);
-        $tab = \in_array($tab, MovementFilter::TABS, true) ? $tab : MovementFilter::INCOMING;
+        // The builder's rows (spec D11) become the list's working filter, in its address.
+        if ($request->query->has(FilterRows::MARKER)) {
+            return $this->redirectToRoute('app_bank_movements', $this->builtQuery($request->query), Response::HTTP_SEE_OTHER);
+        }
+        [$list, $views, $view, $shown] = $this->views->of($request->query);
+        $filterParam = WorkingFilter::param($shown, $view->filter);
         $text = trim(mb_substr($request->query->getString('q'), 0, self::MAX_TEXT));
         $movement = $request->query->getString('movement');
         $page = $this->screen->page(new MovementFilter(
-            $tab,
-            $this->optional($request->query->getString('firm')),
-            $this->optional($request->query->getString('account')),
+            $shown,
             $text,
             max(1, $request->query->getInt('page', 1)),
             1 === preg_match('/^'.Requirement::UUID.'$/D', $movement) ? $movement : null,
+            $this->counted($views),
         ));
-        $firm = $request->query->getString('firm');
-        $firm = isset($page->firms[$firm]) ? $firm : '';
-        $account = $request->query->getString('account');
-        $account = isset($page->accounts[$account]) && ('' === $firm || $page->accounts[$account]['firmId'] === $firm) ? $account : '';
-        $query = array_filter(['tab' => MovementFilter::INCOMING === $tab ? null : $tab, 'firm' => '' === $firm ? null : $firm, 'account' => '' === $account ? null : $account, 'q' => '' === $text ? null : $text], static fn (?string $value): bool => null !== $value);
-        $here = http_build_query(1 === $page->page ? $query : $query + ['page' => (string) $page->page]);
+        $mail = $page->mail;
+        // The bank mail is not searched: its tab has no search field.
+        $text = $mail ? '' : $text;
+        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
         $severalFirms = \count($page->firms) > 1;
-        $severalAccounts = \count($page->accounts) > 1;
         // The firm names the account already, unless a firm has more than one.
         $accountColumn = \count($page->accounts) > \count($page->firms);
-        $messages = MovementFilter::MESSAGES === $tab;
+        $context = [MovementColumns::SEVERAL_FIRMS => $severalFirms, MovementColumns::ACCOUNT_COLUMN => $accountColumn];
+        // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $working = $this->rememberedDisplay->read(MovementColumns::LIST, $context, $list->key, $view, $request->query->all(), ListDisplay::DENSE);
+        $query += $working->query;
+        $here = http_build_query(1 === $page->page ? $query : $query + ['page' => (string) $page->page]);
+        $bar = $this->viewBar->of($list, $views, $view, $shown, self::SORT, self::SORT, $working, 'app_bank_movements', '' === $text ? [] : ['q' => $text]);
 
         return $this->render('@Banking/movements.html.twig', [
             'page' => $page,
-            'tab' => $tab,
+            'mail' => $mail,
+            'caption' => $view->translated ? $this->translator->trans($view->name) : $view->name,
+            'view' => $view->isAll() ? '' : $view->key,
+            'working' => $filterParam ?? '',
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl('app_bank_movements', [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true]))),
+            ...$bar,
             'text' => $text,
-            'firm' => $firm,
-            'account' => $account,
-            'firms' => $severalFirms ? ['' => $this->translator->trans('bank.movement.list.all_firms')] + $page->firms : [],
-            'accounts' => $accountColumn ? ['' => $this->translator->trans('bank.movement.list.all_accounts')] + $this->accountOptions($page, $firm) : [],
-            'tabs' => $this->tabs($page, $tab, $query),
-            'columns' => $messages ? $this->messageColumns($severalAccounts) : $this->columns($severalFirms, $accountColumn),
-            'rows' => $messages
-                ? array_map(fn (MessageRow $row): array => $this->messageRow($row, $severalAccounts, $here), $page->messages)
-                : array_map(fn (MovementRow $row): array => $this->row($row, $severalFirms, $accountColumn, $here), $page->rows),
+            ...$this->tabs($views, $view->key, $page, $query, $bar['viewBar']['modified']),
+            'columns' => $mail ? $this->messageColumns(\count($page->accounts) > 1) : $working->display->table(),
+            'rows' => $mail
+                ? array_map(fn (MessageRow $row): array => $this->messageRow($row, \count($page->accounts) > 1, $here), $page->messages)
+                : array_map(fn (MovementRow $row): array => $this->row($row, $working, $here), $page->rows),
+            'density' => $working->tableDensity(),
+            'picker' => $this->picker($working, $query),
+            'workingQuery' => $working->query,
             'baseUrl' => $this->generateUrl('app_bank_movements', $query),
-            'filtered' => '' !== $text || '' !== $firm || '' !== $account,
+            'filtered' => '' !== $text || null !== $filterParam,
             'paired' => $this->pairedFlash($request),
             'noAccounts' => [] === $page->accounts,
         ]);
@@ -496,61 +526,87 @@ final class BankMovementController extends AbstractController
     }
 
     /**
-     * @param array<string, string> $query
+     * The views that show a count, by key: the primary tabs alone (spec D9).
      *
-     * @return list<array<string, mixed>>
+     * @param list<ListView> $views
+     *
+     * @return array<string, ViewFilter>
      */
-    private function tabs(MovementPage $page, string $tab, array $query): array
+    private function counted(array $views): array
     {
-        $counts = [MovementFilter::UNMATCHED => $page->unmatched, MovementFilter::OUTGOING_UNMATCHED => $page->outgoingUnmatched, MovementFilter::MESSAGES => $page->attention > 0 ? $page->attention : null];
-        $tabs = [];
-        foreach (MovementFilter::TABS as $key) {
-            $tabs[] = [
-                'label' => $this->translator->trans('bank.movement.tab.'.$key),
-                'href' => $this->generateUrl('app_bank_movements', ['tab' => MovementFilter::INCOMING === $key ? null : $key] + $query),
-                'count' => $counts[$key] ?? null,
-                'active' => $key === $tab,
-            ];
-        }
-
-        return $tabs;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function accountOptions(MovementPage $page, string $firm): array
-    {
-        $options = [];
-        foreach ($page->accounts as $id => $account) {
-            if ('' === $firm || $account['firmId'] === $firm) {
-                $name = $this->text->account($account['label'], $account['iban']);
-                $options[$id] = \count($page->firms) > 1 ? $page->firms[$account['firmId']].' · '.$name : $name;
+        $counted = [];
+        foreach (ListViews::placed($views)[0] as $tab) {
+            if ($tab->showCount) {
+                $counted[$tab->key] = $tab->filter;
             }
         }
 
-        return $options;
+        return $counted;
     }
 
     /**
-     * @return list<array<string, mixed>>
+     * The list's address after the builder's Apply: what the sheet sent, its rows read
+     * into the working filter, which is left out when it is the view's own.
+     *
+     * @param InputBag<string> $input
+     *
+     * @return array<string, mixed>
      */
-    private function columns(bool $severalFirms, bool $severalAccounts): array
+    private function builtQuery(InputBag $input): array
     {
-        $columns = [$this->column('date')];
-        if ($severalFirms) {
-            $columns[] = $this->column('firm', phone: false, truncate: true);
-        }
-        if ($severalAccounts) {
-            $columns[] = $this->column('account', phone: false, wide: true, truncate: true);
-        }
-        $columns[] = $this->column('amount', align: 'right');
-        $columns[] = $this->column('vs', phone: false);
-        $columns[] = $this->column('partner', phone: false, truncate: true);
-        $columns[] = $this->column('message', phone: false, wide: true, truncate: true);
-        $columns[] = $this->column('matched', phone: false);
+        [$list, , $view] = $this->views->of($input);
+        $query = array_diff_key($input->all(), [FilterRows::PARAM => true, FilterRows::MARKER => true, WorkingFilter::PARAM => true, 'page' => true, 'tab' => true, BankMovementLists::ACCOUNT => true]);
 
-        return $columns;
+        return array_filter($query + ['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), $list), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
+    }
+
+    /**
+     * The tabs of the screen and its "More views" menu (spec D7): All and the primary
+     * views as tabs, with the count of those that show one; the other views in the
+     * menu. A view of the bank mail shows its count only while a message waits.
+     *
+     * @param list<ListView>        $views
+     * @param array<string, string> $query
+     *
+     * @return array{tabs: list<array<string, mixed>>, moreViews: list<array<string, mixed>>}
+     */
+    private function tabs(array $views, string $active, MovementPage $page, array $query, bool $modified): array
+    {
+        [$primary, $overflow] = ListViews::placed($views);
+        $link = function (ListView $view, bool $count) use ($active, $page, $query, $modified): array {
+            $counted = $count && $view->showCount ? ($page->counts[$view->key] ?? null) : null;
+
+            return [
+                'label' => $view->translated ? $this->translator->trans($view->name) : $view->name,
+                // A view opens with its own filter and columns: the changed ones belong to the view they were changed on (spec D10).
+                'href' => $this->generateUrl('app_bank_movements', ['view' => $view->isAll() ? null : $view->key] + array_diff_key($query, ['view' => true, 'page' => true, WorkingFilter::PARAM => true] + array_flip(WorkingDisplay::KEYS))),
+                'count' => 0 === $counted && BankMovementLists::showsMail($view->filter) ? null : $counted,
+                'active' => $view->key === $active,
+                'modified' => $modified && $view->key === $active,
+                'private' => $view->private,
+            ];
+        };
+
+        return ['tabs' => array_map(static fn (ListView $view): array => $link($view, true), $primary), 'moreViews' => array_map(static fn (ListView $view): array => $link($view, false), $overflow)];
+    }
+
+    /**
+     * @param array<string, string> $query
+     *
+     * @return array<string, mixed>
+     */
+    private function picker(WorkingState $working, array $query): array
+    {
+        $kept = array_diff_key($query, array_flip(WorkingDisplay::KEYS));
+
+        return [
+            'keep' => $kept,
+            'columns' => $working->picker(),
+            'density' => $working->density,
+            // An empty density names the view's own display, which forgets the one remembered (D-display-3).
+            'resetHref' => $this->generateUrl('app_bank_movements', $kept + [WorkingDisplay::DENSITY => '']),
+            'modified' => $working->modified,
+        ];
     }
 
     /**
@@ -580,36 +636,17 @@ final class BankMovementController extends AbstractController
     /**
      * @return array<string, mixed>
      */
-    private function row(MovementRow $row, bool $severalFirms, bool $severalAccounts, string $return): array
+    private function row(MovementRow $row, WorkingState $working, string $return): array
     {
-        $amount = $this->text->amount($row->amount, $row->isIncoming());
-        $partner = implode(' · ', array_filter([$row->counterName, $row->counterAccount], static fn (?string $part): bool => null !== $part && '' !== $part));
+        $date = $this->movementColumns->date($row);
+        $amount = $this->movementColumns->amount($row);
         $state = $this->text->state($row->state, $row->reason);
-        $matched = [] === $row->invoices
-            ? $state
-            // A paired invoice opens over the list in the side sheet, docs/design/overlays.md.
-            : ['links' => array_map(fn (string $invoiceId, string $number): array => ['text' => $number, 'href' => $this->generateUrl('app_invoice_show', ['id' => $invoiceId]), 'opens' => Opens::SHEET], array_keys($row->invoices), array_values($row->invoices))];
-        $date = $row->bookedOn->format($this->translator->trans('format.date'));
-        $cells = [
-            'date' => $date,
-            'amount' => $amount,
-            'vs' => $row->variableSymbol ?? '',
-            'partner' => $partner,
-            'message' => $row->message ?? '',
-            'matched' => $matched,
-        ];
-        if ($severalFirms) {
-            $cells['firm'] = $row->firmName;
-        }
-        if ($severalAccounts) {
-            $cells['account'] = $this->text->account($row->accountLabel, $row->accountIban);
-        }
 
         return [
             'id' => $row->id,
             'label' => $date.' · '.$amount,
             'secondary' => implode(' · ', array_filter([$row->counterName, $row->variableSymbol, [] === $row->invoices ? $state['text'] : $this->translator->trans('bank.movement.list.paired_with', ['numbers' => implode(', ', $row->invoices)])], static fn (?string $part): bool => null !== $part && '' !== $part)),
-            'cells' => $cells,
+            'cells' => $working->display->cells($row),
             'actions' => $this->actions($row, $return),
         ];
     }
@@ -697,11 +734,6 @@ final class BankMovementController extends AbstractController
         parse_str($return, $query);
 
         return $this->generateUrl('app_bank_movements', array_filter(array_intersect_key($query, array_flip(self::LIST_QUERY)), \is_string(...)));
-    }
-
-    private function optional(string $value): ?string
-    {
-        return '' === $value ? null : $value;
     }
 
     private function denyUnlessStaff(): void

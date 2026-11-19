@@ -17,11 +17,14 @@ use Foresi\Banking\Application\ProcessingResult;
 use Foresi\Banking\Domain\BankMovement;
 use Foresi\Banking\Domain\InboundMessage;
 use Foresi\Banking\Domain\InboundStatus;
+use Foresi\Shared\Application\View\ViewFilter;
 
 /**
  * The two stores the bank screen reads, holding made-up counts and accounts, and
- * writing what it asked for: "movements:"/"messages:" with the tab, firm and
- * account of a count, "rows:"/"messageRows:" with the offset and limit of a page.
+ * writing what it asked for: "movements:"/"messages:" with the conditions of a
+ * count, "counts:" with the text and the views counted together, "attention:" with
+ * the moment and the view of the mail, "rows:"/"messageRows:" with the offset and
+ * limit of a page. Each view counted together holds 7 plus its conditions.
  * Nothing else of them is called.
  */
 final class ScreenStores
@@ -96,9 +99,16 @@ final class ScreenStores
 
             public function count(MovementFilter $filter): int
             {
-                ($this->log)(\sprintf('movements:%s:%s:%s', $filter->tab, $filter->firmId ?? '-', $filter->accountId ?? '-'));
+                ($this->log)('movements:'.json_encode($filter->view->toArray()['conditions']).':'.$filter->text);
 
-                return MovementFilter::UNMATCHED === $filter->tab ? 7 : $this->count;
+                return $this->count;
+            }
+
+            public function counts(string $text, array $views): array
+            {
+                ($this->log)('counts:'.$text.':'.implode(',', array_keys($views)));
+
+                return array_map(static fn (ViewFilter $view): int => 7 + \count($view->conditions), $views);
             }
 
             public function rows(MovementFilter $filter, int $offset, int $limit): array
@@ -166,14 +176,16 @@ final class ScreenStores
                 throw new \LogicException('Not read by the screen.');
             }
 
-            public function needingAttention(\DateTimeImmutable $stuckBefore, ?string $firmId = null, ?string $accountId = null): int
+            public function needingAttention(\DateTimeImmutable $stuckBefore, ?ViewFilter $view = null): int
             {
+                ($this->log)('attention:'.$stuckBefore->format('H:i').':'.json_encode($view?->toArray()['conditions']));
+
                 return $this->attention;
             }
 
             public function count(MovementFilter $filter): int
             {
-                ($this->log)(\sprintf('messages:%s:%s:%s', $filter->tab, $filter->firmId ?? '-', $filter->accountId ?? '-'));
+                ($this->log)('messages:'.json_encode($filter->view->toArray()['conditions']));
 
                 return $this->count;
             }
