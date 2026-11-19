@@ -12,6 +12,7 @@ use Foresi\Invoicing\Application\InvoiceFilter;
 use Foresi\Invoicing\Application\View\InvoiceLists;
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Application\View\FieldType;
 use PHPUnit\Framework\TestCase;
 
 final class InvoiceListsTest extends TestCase
@@ -33,6 +34,19 @@ final class InvoiceListsTest extends TestCase
 
         foreach ([InvoiceFilter::SETTLED, InvoiceFilter::UNSETTLED] as $tab) {
             self::assertEquals([new Condition(InvoiceLists::SETTLEMENT, 'is', $tab)], $list->default($tab)?->filter->conditions);
+        }
+    }
+
+    public function testEveryListFiltersByTheExportForTheAccountant(): void
+    {
+        foreach (DocumentKind::cases() as $kind) {
+            $field = InvoiceLists::of($kind)->fields[InvoiceLists::EXPORT];
+
+            self::assertSame(FieldType::Enum, $field->type, $kind->value);
+            self::assertSame('invoice.export_state.label', $field->label);
+            self::assertSame(['is', 'is_any_of'], $field->operators);
+            self::assertSame(['not_exported', 'exported', 'changed'], $field->options);
+            self::assertSame(['not_exported' => 'invoice.export_state.not_exported', 'exported' => 'invoice.export_state.exported', 'changed' => 'invoice.export_state.changed'], $field->optionLabels);
         }
     }
 }
