@@ -33,7 +33,7 @@ A corrective tax document is never reminded itself. Its invoice owes its total p
 
 A trashed invoice owes nothing and is never reminded. An invoice paid in full, or overpaid, owes nothing either and is never reminded, by hand or by the run.
 
-The reminder uses the firm's **Reminder** template in the document's language, on the templates tab beside the invoice template. Besides the invoice variables it offers the days overdue, the reminder number and the amount due, which is what is left to pay. Reminders run against the same daily budget of the firm as other system sends, which take at most 80% of it.
+The reminder uses the firm's **Reminder** template in the document's language, in the list of templates under Firm › E-mails, edited in a side sheet like the others. Besides the invoice variables it offers the days overdue, the reminder number and the amount due, which is what is left to pay. Reminders run against the same daily budget of the firm as other system sends, which take at most 80% of it.
 
 ## What is owed
 

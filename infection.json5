@@ -194,6 +194,9 @@
             "Foresi\\Country\\CzechRepublic\\Party\\CzechBankAccount::toIban",
             "Foresi\\Country\\CzechRepublic\\Party\\CzechRegistrationNumberValidator::normalize",
             "Foresi\\Invoicing\\Application\\MailText::render::27",
+            "Foresi\\Invoicing\\Application\\MailText::renderBody",
+            "Foresi\\Invoicing\\Application\\MailMarkdown::escape",
+            "Foresi\\Invoicing\\Application\\MailMarkdown::plain",
             "Foresi\\Invoicing\\Application\\DocumentFormat::money::31",
             // The first group of the pattern always takes part in a match.
             "Foresi\\Invoicing\\Domain\\PeriodText::resolve::43",

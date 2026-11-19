@@ -41,6 +41,7 @@ use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Party\Domain\PartyEmail;
 use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Application\Markdown;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -110,6 +111,7 @@ final readonly class DeliverInvoiceSendHandler
         private ReminderSettings $reminders,
         private SendDraft $drafts,
         private EventRecorder $events,
+        private Markdown $markdown,
     ) {
     }
 
@@ -366,7 +368,7 @@ final readonly class DeliverInvoiceSendHandler
         if (null === $stored || !hash_equals($stored, $this->tokens->hash($token))) {
             throw new MailRefused(true, self::LINK_CHANGED, reasonCode: MailRefused::LINK_CHANGED);
         }
-        $body = new LinkedMailBody($send->body(), $this->links->url($token));
+        $body = new LinkedMailBody($send->body(), $this->links->url($token), $this->markdown);
         $replyTo = trim($this->settings->for($send->invoice()->firm())->contactEmail());
 
         try {

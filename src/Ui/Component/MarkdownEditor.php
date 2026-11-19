@@ -16,7 +16,9 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
  * formatting toolbar with Ctrl/Cmd+B, I and K, and, given "mentionsUrl", a list of
  * people after "@" (WAI-ARIA combobox with list autocomplete) that inserts the
  * mention syntax. "previewUrl" takes a POST of "text" and "_token" (the CSRF token
- * "markdown_preview") and answers the sanitised HTML. Given "uploadUrl" with the
+ * "markdown_preview") and answers the sanitised HTML; "previewFields" maps more
+ * names to the ids of fields whose values go along, such as the subject of a mail
+ * for its preview. Given "uploadUrl" with the
  * kind and id of the record ("uploadKind", "uploadOwner"), an image pasted from the
  * clipboard or files dropped on the text area are uploaded there, as on GitHub, and
  * go into the text as Markdown images or links. Without JavaScript only the text
@@ -31,6 +33,12 @@ final class MarkdownEditor extends AbstractControl
     public int $rows = 4;
     public string $previewUrl = '';
     public ?string $mentionsUrl = null;
+    /**
+     * Name => id of a field on the page, posted with the text to the preview.
+     *
+     * @var array<string, string>
+     */
+    public array $previewFields = [];
     /** Takes a POST of "file", "owner_kind", "owner_id" and "_token" (the CSRF token "attachment_upload") and answers JSON. */
     public ?string $uploadUrl = null;
     public ?string $uploadKind = null;

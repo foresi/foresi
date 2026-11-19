@@ -1,0 +1,4 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The preview of a mail template as the customer gets it: the subject, then the body. The body is the sanitised HTML of the Markdown port. #}
+<p class="m-0 mb-3 border-b border-divider pb-2 text-small" data-mail-preview-subject><span class="text-muted">{{ 'firm.mail.field.subject'|trans }}:</span> <span class="font-semibold text-ink">{{ subject }}</span></p>
+<div data-mail-preview-body>{{ body|raw }}</div>

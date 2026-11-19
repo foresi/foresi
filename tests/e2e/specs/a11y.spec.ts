@@ -82,10 +82,14 @@ test.describe('e-mail settings', () => {
 
   test('templates have no serious accessibility violations and no sideways scroll @a11y @layout', async ({ page }) => {
     await open(page, 'Šablony');
-    await expect(page.locator('#body-cs')).toHaveValue(/\{Číslo dokladu\}/);
-    // At load on a phone the floating action bar covers the first chips, which axe counts
-    // against their target size; a keyboard or touch user reaches them scrolled clear of it.
-    await page.getByRole('toolbar', { name: 'Proměnné Čeština' }).scrollIntoViewIfNeeded();
+    await expect(page.locator('#mail-templates').getByRole('link', { name: 'Faktura', exact: true })).toBeVisible();
+    await expectNoSeriousViolations(page);
+    await expectNoSidewaysScroll(page);
+
+    // One template in its side sheet.
+    await page.locator('#mail-templates').getByRole('link', { name: 'Faktura', exact: true }).click();
+    const sheet = page.getByRole('dialog', { name: 'Faktura' });
+    await expect(sheet.locator('#body-cs')).toHaveValue(/\{Číslo dokladu\}/);
     await expectNoSeriousViolations(page);
     await expectNoSidewaysScroll(page);
   });

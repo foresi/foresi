@@ -32,4 +32,32 @@ final readonly class MailText
 
         return trim((string) preg_replace('/[\x00-\x1F\x7F\x{85}\x{2028}\x{2029}]+/u', ' ', $text));
     }
+
+    /**
+     * A body, which is Markdown: each value goes in as text, its markup escaped
+     * (MailMarkdown), so a customer's name cannot format the mail or add a link.
+     *
+     * @param array<string, string> $values
+     */
+    public function renderBody(string $template, array $values): string
+    {
+        $template = str_replace(["\r\n", "\r"], "\n", $template);
+
+        return (string) preg_replace_callback(
+            self::TOKEN,
+            static function (array $token) use ($values, $template): string {
+                [$whole, $at] = $token[0];
+                if (!isset($values[$token[1][0]])) {
+                    return $whole;
+                }
+                $before = substr($template, 0, $at);
+                // Only blanks between the start of its line and the token.
+                $atLineStart = '' === trim(substr($before, (int) strrpos($before, "\n")));
+
+                return MailMarkdown::escape(str_replace(["\r\n", "\r"], "\n", $values[$token[1][0]]), $atLineStart);
+            },
+            $template,
+            flags: \PREG_OFFSET_CAPTURE,
+        );
+    }
 }

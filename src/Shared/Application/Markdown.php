@@ -17,4 +17,10 @@ namespace Foresi\Shared\Application;
 interface Markdown
 {
     public function toHtml(string $source): string;
+
+    /**
+     * The same rules for the body of an e-mail, which cannot load the
+     * installation's files: images are left out.
+     */
+    public function toMailHtml(string $source): string;
 }

@@ -17,6 +17,12 @@ A reminder can lose its reason while it waits in the queue. Just before it leave
 
 "Copy to me" sends a second message, with a link of its own, to the firm's contact e-mail (or the signed-in user's), so opening your own copy never marks the customer's link as read.
 
+## Mail templates
+
+**Firm › E-mails › Templates** lists the kinds of mail (invoice, advance invoice, tax document on a payment, corrective tax document, reminder) and shows for each document language whether the firm has its own text or the built-in one. A row opens the template in a side sheet: a tab per language with the subject, the text and the variables to insert by click or drag, Restore the built-in text for a language with its own text, and Save for both languages of that kind.
+
+The text is Markdown: **bold**, _italic_, lists, quotes and links, such as `[Open the invoice]({Link to the document})`. Its Preview tab shows the mail as the customer gets it, the subject above, with the variables filled from a made-up document of the firm. The customer gets an HTML part, rendered with the same restricted rules as comments (raw HTML stays text, no images, links only to http, https and mailto), and a plain-text part, the text as written. A value filled in, such as the customer's name, is text: its Markdown characters are escaped, so it cannot format the mail or add a link. A text written before Markdown reads as it did.
+
 ## Setting up the mail server
 
 Each firm sends through its own SMTP server. The owner sets it under **Firm › E-mails › Mail server**: host, port, encryption (STARTTLS on port 587, or TLS on 465), user name, password, sender address and name. "Send a test e-mail" sends one message to the signed-in owner. There is no shared fallback server: a firm without a server cannot send, and the dialog says where to set it.
