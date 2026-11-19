@@ -12,14 +12,15 @@ use Foresi\Ui\Contract\Column;
 
 /**
  * The display a person works with on a list before anything is saved (spec D10, D-display-3):
- * the list's address carries it next to the view, as cols=number,customer,dueDate (the visible
+ * the list's address carries it next to the view, as cols=number,customer,due_date (the visible
  * columns in order) and density=comfortable|dense. With neither, the list shows its view's
  * stored display, or the registry's defaults when the view has none.
  *
  * Both are read leniently through the registry (D-display-2), so a link with a column a module
- * took away still opens. A working state that shows what the view shows is no change at all and
- * leaves the address. Until saved views keep a person's state (saved_view_user_state), the
- * address is where it lives.
+ * took away still opens, and one with an older key of a column (an alias, DS2) shows it and
+ * keeps its key from then on. A working state that shows what the view shows is no change at
+ * all and leaves the address. Until saved views keep a person's state (saved_view_user_state),
+ * the address is where it lives.
  */
 final readonly class WorkingDisplay
 {
@@ -93,6 +94,7 @@ final readonly class WorkingDisplay
         if (!\is_array($value)) {
             return null;
         }
+        // An older key stays as it is: the registry's display names its column under the key.
         $keys = array_unique(array_filter(array_map(static fn (mixed $key): string => \is_string($key) ? trim($key) : '', $value), static fn (string $key): bool => '' !== $key));
 
         return array_values(\array_slice($keys, 0, self::MAX_COLUMNS));

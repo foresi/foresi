@@ -76,7 +76,7 @@ final class WebhookEndpointControllerTest extends WebTestCase
         self::assertCount(1, $row);
         self::assertStringContainsString('https://hooks.example.com/stored', $row->text());
         self::assertStringContainsString('Accounting', $row->text());
-        self::assertStringContainsString('invoicing.*', $row->text());
+        self::assertStringContainsString('party.*', $row->text());
         self::assertStringContainsString('Active', $row->text());
         self::assertCount(1, $row->filter('a[href="/settings/webhooks/'.$id.'"]'));
         self::assertCount(1, $row->filter('a[href="/settings/webhooks/'.$id.'/edit"][data-dialog]'));
@@ -107,14 +107,14 @@ final class WebhookEndpointControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('<dialog', (string) $this->client->getResponse()->getContent());
         $options = $crawler->filter('input[name="event_types[]"]')->each(static fn (Crawler $box): string => (string) $box->attr('value'));
-        self::assertContains('invoicing.*', $options);
-        self::assertContains('invoicing.invoice.paid', $options);
+        self::assertContains('party.*', $options);
+        self::assertContains('party.contact.archived', $options);
 
         $this->client->request('POST', '/settings/webhooks/new', [
             '_token' => $this->csrf(),
             'url' => 'https://hooks.example.com/foresi',
             'description' => 'Accounting',
-            'event_types' => ['invoicing.*'],
+            'event_types' => ['party.*'],
             'version' => '1',
         ], server: [self::DIALOG => '1']);
 
@@ -147,7 +147,7 @@ final class WebhookEndpointControllerTest extends WebTestCase
         $this->client->request('POST', '/settings/webhooks/new', [
             '_token' => $this->csrf(),
             'url' => 'http://hooks.example.com/foresi',
-            'event_types' => ['invoicing.*'],
+            'event_types' => ['party.*'],
             'version' => '1',
         ], server: [self::DIALOG => '1']);
 
@@ -163,11 +163,11 @@ final class WebhookEndpointControllerTest extends WebTestCase
         ], server: [self::DIALOG => '1']);
 
         self::assertResponseStatusCodeSame(422);
-        self::assertSelectorExists('#event-types-banking-error');
+        self::assertSelectorExists('[id^="event-types-"][id$="-error"]');
         self::assertSame([], $this->endpoints());
     }
 
-    public function testNonStaffSeesNoInvoicingOption(): void
+    public function testNonStaffSeesNoEventOption(): void
     {
         $this->signIn(Role::Guest);
 
@@ -181,7 +181,7 @@ final class WebhookEndpointControllerTest extends WebTestCase
             self::assertCount(0, $this->client->getCrawler()->filter('input[name="event_types[]"]'), $url);
         }
 
-        $this->client->request('POST', '/settings/webhooks/new', ['_token' => 'x', 'url' => 'https://hooks.example.com/foresi', 'event_types' => ['invoicing.*'], 'version' => '1']);
+        $this->client->request('POST', '/settings/webhooks/new', ['_token' => 'x', 'url' => 'https://hooks.example.com/foresi', 'event_types' => ['party.*'], 'version' => '1']);
         self::assertResponseStatusCodeSame(403);
         self::assertSame([], $this->endpoints());
     }
@@ -190,8 +190,12 @@ final class WebhookEndpointControllerTest extends WebTestCase
     {
         $this->signIn();
         $id = $this->stored();
-        // The person no longer works with the bank, the cash flow, invoices, contacts or received documents: the access services of the modules say no.
+        // The person no longer works with the bank, the cash flow, invoices, contacts or received documents: the access services
+        // of the installed modules say no.
         foreach ([BankingEventAccess::class => 'banking', CashFlowEventAccess::class => 'cash-flow', InvoicingEventAccess::class => 'invoicing', PartyEventAccess::class => 'party', PurchasingEventAccess::class => 'purchasing'] as $service => $module) {
+            if (!class_exists($service)) {
+                continue;
+            }
             self::getContainer()->set($service, new readonly class($module) implements EventReadAccess {
                 public function __construct(private string $module)
                 {
@@ -313,13 +317,13 @@ final class WebhookEndpointControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/settings/webhooks/'.$id.'/edit', server: [self::DIALOG => '1']);
         self::assertResponseIsSuccessful();
         self::assertSame('https://hooks.example.com/stored', $crawler->filter('input[name="url"]')->attr('value'));
-        self::assertSame('invoicing.*', $crawler->filter('input[name="event_types[]"][checked]')->attr('value'));
+        self::assertSame('party.*', $crawler->filter('input[name="event_types[]"][checked]')->attr('value'));
 
         $this->client->request('POST', '/settings/webhooks/'.$id.'/edit', [
             '_token' => $this->csrf(),
             'url' => 'https://hooks.example.com/changed',
             'description' => '',
-            'event_types' => ['invoicing.invoice.paid', 'invoicing.invoice.issued'],
+            'event_types' => ['party.contact.archived', 'party.contact.created'],
             'version' => '1',
         ]);
 
@@ -327,13 +331,13 @@ final class WebhookEndpointControllerTest extends WebTestCase
         $endpoint = $this->endpoints()[0];
         self::assertSame('https://hooks.example.com/changed', $endpoint->url()->value);
         self::assertNull($endpoint->description());
-        self::assertEqualsCanonicalizing(['invoicing.invoice.paid', 'invoicing.invoice.issued'], $endpoint->eventTypes()->patterns());
+        self::assertEqualsCanonicalizing(['party.contact.archived', 'party.contact.created'], $endpoint->eventTypes()->patterns());
     }
 
     public function testRotateAndRevealShowTheSecretInADialog(): void
     {
         $this->signIn();
-        $this->client->request('POST', '/settings/webhooks/new', ['_token' => $this->csrf(), 'url' => 'https://hooks.example.com/foresi', 'event_types' => ['invoicing.*'], 'version' => '1']);
+        $this->client->request('POST', '/settings/webhooks/new', ['_token' => $this->csrf(), 'url' => 'https://hooks.example.com/foresi', 'event_types' => ['party.*'], 'version' => '1']);
         $first = (string) $this->client->getCrawler()->filter('input#webhook-secret')->attr('value');
         $id = $this->endpoints()[0]->id();
 
@@ -398,7 +402,7 @@ final class WebhookEndpointControllerTest extends WebTestCase
         $owner = self::getContainer()->get(UserRepository::class)->findByEmail(IdentityFixtures::EMAIL) ?? throw new \LogicException('The user is missing.');
         $secrets = new SodiumWebhookSecrets('stored:'.base64_encode(str_repeat("\x07", \SODIUM_CRYPTO_SECRETBOX_KEYBYTES)));
         $now = new \DateTimeImmutable('2026-11-13 10:00:00');
-        $endpoint = WebhookEndpoint::create(Id::generate(), new EndpointUrl('https://hooks.example.com/stored'), $description, EventTypes::of(['invoicing.*']), 1, $secrets->seal(WebhookSecret::generate()), $owner->id(), $now);
+        $endpoint = WebhookEndpoint::create(Id::generate(), new EndpointUrl('https://hooks.example.com/stored'), $description, EventTypes::of(['party.*']), 1, $secrets->seal(WebhookSecret::generate()), $owner->id(), $now);
         if ($disabled instanceof DisabledReason) {
             $endpoint->disable($disabled, $now);
         }

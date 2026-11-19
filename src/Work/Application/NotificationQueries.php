@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Work\Application;
 
 use Foresi\Identity\Domain\Membership;
+use Foresi\Shared\Application\View\ViewFilter;
 
 /**
  * The inbox of a person. Only rows of tasks the person sees now count: a task
@@ -25,9 +26,10 @@ interface NotificationQueries
     public function unreadCount(Membership $recipient): int;
 
     /**
-     * The rows not done, or the done ones, newest first.
+     * The rows a view of NotificationLists holds, newest first: those not done, unless
+     * the view says which of done it wants.
      *
      * @param int $page from 1
      */
-    public function inbox(Membership $recipient, NotificationFilter $filter = NotificationFilter::All, bool $done = false, int $page = 1): NotificationPage;
+    public function inbox(Membership $recipient, ViewFilter $view = new ViewFilter(), int $page = 1): NotificationPage;
 }

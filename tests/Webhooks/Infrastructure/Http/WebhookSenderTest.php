@@ -25,7 +25,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 #[CoversClass(WebhookSender::class)]
 final class WebhookSenderTest extends TestCase
 {
-    private const string BODY = '{"id":"evt_1","type":"invoicing.invoice.issued","data":{"note":"a/b é"}}';
+    private const string BODY = '{"id":"evt_1","type":"party.contact.created","data":{"note":"a/b é"}}';
 
     private function sender(HttpClientInterface $client): WebhookSender
     {

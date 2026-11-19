@@ -10,6 +10,7 @@ namespace Foresi\Tests\Identity;
 
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Shared\Infrastructure\Mcp\ReadToolCall;
+use Foresi\Shared\Infrastructure\Module\InstalledModules;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -21,58 +22,16 @@ use PHPUnit\Framework\Attributes\DataProvider;
  */
 final class McpServerTest extends ApiTestCase
 {
-    /** Every tool the server offers, by name. */
+    /** The tools of each module: the server lists those of the installed ones. */
     private const array TOOLS = [
-        'foresi_add_received_document_payment',
-        'foresi_archive_contact',
-        'foresi_cash_flow_forecast',
-        'foresi_change_planned_item',
-        'foresi_clear_expected_date',
-        'foresi_create_contact',
-        'foresi_create_planned_item',
-        'foresi_create_view',
-        'foresi_create_webhook_endpoint',
-        'foresi_delete_planned_item',
-        'foresi_delete_view',
-        'foresi_delete_webhook_endpoint',
-        'foresi_end_planned_item',
-        'foresi_get_contact',
-        'foresi_get_invoice',
-        'foresi_get_payment',
-        'foresi_get_received_document',
-        'foresi_get_view',
-        'foresi_link_contact_person',
-        'foresi_list_event_types',
-        'foresi_list_events',
-        'foresi_list_firms',
-        'foresi_list_lists',
-        'foresi_list_modules',
-        'foresi_list_planned_items',
-        'foresi_list_received_document_payments',
-        'foresi_list_views',
-        'foresi_list_webhook_deliveries',
-        'foresi_list_webhook_endpoints',
-        'foresi_mark_received_document_paid',
-        'foresi_record_balance_checkpoint',
-        'foresi_record_received_document',
-        'foresi_redeliver_webhook',
-        'foresi_remove_received_document_payment',
-        'foresi_restore_contact',
-        'foresi_restore_default_views',
-        'foresi_rotate_webhook_secret',
-        'foresi_search_contacts',
-        'foresi_search_invoices',
-        'foresi_search_payments',
-        'foresi_search_received_documents',
-        'foresi_set_expected_date',
-        'foresi_set_minimum_balance',
-        'foresi_skip_planned_occurrence',
-        'foresi_trash_received_document',
-        'foresi_unlink_contact_person',
-        'foresi_update_contact',
-        'foresi_update_view',
-        'foresi_update_webhook_endpoint',
-        'foresi_whoami',
+        'cash-flow' => ['foresi_cash_flow_forecast', 'foresi_change_planned_item', 'foresi_clear_expected_date', 'foresi_create_planned_item', 'foresi_delete_planned_item', 'foresi_end_planned_item', 'foresi_list_planned_items', 'foresi_record_balance_checkpoint', 'foresi_set_expected_date', 'foresi_set_minimum_balance', 'foresi_skip_planned_occurrence'],
+        'events' => ['foresi_list_event_types', 'foresi_list_events'],
+        'identity' => ['foresi_whoami'],
+        'invoicing' => ['foresi_get_invoice', 'foresi_get_payment', 'foresi_search_invoices', 'foresi_search_payments'],
+        'party' => ['foresi_archive_contact', 'foresi_create_contact', 'foresi_get_contact', 'foresi_link_contact_person', 'foresi_list_firms', 'foresi_restore_contact', 'foresi_search_contacts', 'foresi_unlink_contact_person', 'foresi_update_contact'],
+        'purchasing' => ['foresi_add_received_document_payment', 'foresi_get_received_document', 'foresi_list_received_document_payments', 'foresi_mark_received_document_paid', 'foresi_record_received_document', 'foresi_remove_received_document_payment', 'foresi_search_received_documents', 'foresi_trash_received_document'],
+        'shared' => ['foresi_create_view', 'foresi_delete_view', 'foresi_get_view', 'foresi_list_lists', 'foresi_list_modules', 'foresi_list_views', 'foresi_restore_default_views', 'foresi_update_view'],
+        'webhooks' => ['foresi_create_webhook_endpoint', 'foresi_delete_webhook_endpoint', 'foresi_list_webhook_deliveries', 'foresi_list_webhook_endpoints', 'foresi_redeliver_webhook', 'foresi_rotate_webhook_secret', 'foresi_update_webhook_endpoint'],
     ];
 
     /** The tools that change data, with whether they destroy: every other tool only reads. */
@@ -140,7 +99,7 @@ final class McpServerTest extends ApiTestCase
         self::assertIsArray($tools);
         $names = array_column($tools, 'name');
         sort($names);
-        self::assertSame(self::TOOLS, $names);
+        self::assertSame($this->installedTools(), $names);
         foreach ($tools as $tool) {
             self::assertStringStartsWith('foresi_', $this->text($tool, 'name'));
             $name = $this->text($tool, 'name');
@@ -172,7 +131,7 @@ final class McpServerTest extends ApiTestCase
 
         self::assertFalse($this->in($call, 'isError'));
         self::assertSame(ReadToolCall::UNTRUSTED_TEXT_NOTICE, $this->in($call, 'structuredContent', 'untrusted_text_notice'));
-        self::assertSame(['items' => $rest, 'next_cursor' => null], $this->in($call, 'structuredContent', 'data'));
+        self::assertSame(['items' => $rest, 'next_cursor' => null, 'applied_view' => null], $this->in($call, 'structuredContent', 'data'));
         self::assertSame($this->customerId, $this->in($call, 'structuredContent', 'data', 'items', '0', 'id'));
         $text = $this->text($call, 'content', '0', 'text');
         self::assertStringStartsWith(ReadToolCall::UNTRUSTED_TEXT_NOTICE."\n\n1 contact, newest first; no more match.\n\n", $text);
@@ -184,12 +143,12 @@ final class McpServerTest extends ApiTestCase
         $this->rpc('initialize', $this->initialize());
         $this->notify('notifications/initialized');
 
-        $call = $this->in($this->rpc('tools/call', ['name' => 'foresi_get_invoice', 'arguments' => ['id' => '01963c5e-0000-7000-8000-000000000001']]), 'result');
+        $call = $this->in($this->rpc('tools/call', ['name' => 'foresi_get_contact', 'arguments' => ['id' => '01963c5e-0000-7000-8000-000000000001']]), 'result');
         self::assertTrue($this->in($call, 'isError'));
         self::assertSame('not_found', $this->in($call, 'structuredContent', 'error', 'code'));
 
         // The SDK checks the arguments against the schema before the tool runs.
-        $this->post($this->message('tools/call', ['name' => 'foresi_search_invoices', 'arguments' => ['issued_from' => '1. 11. 2026']], 1));
+        $this->post($this->message('tools/call', ['name' => 'foresi_search_contacts', 'arguments' => ['limit' => 'ten']], 1));
         self::assertResponseIsSuccessful();
         $body = json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR);
         self::assertSame(-32602, $this->in($body, 'error', 'code'));
@@ -256,11 +215,11 @@ final class McpServerTest extends ApiTestCase
 
         $this->rpc('initialize', $this->initialize());
         $this->notify('notifications/initialized');
-        $call = $this->in($this->rpc('tools/call', ['name' => 'foresi_search_invoices', 'arguments' => ['firm_id' => $this->firmId]]), 'result');
+        $call = $this->in($this->rpc('tools/call', ['name' => 'foresi_list_events', 'arguments' => new \stdClass()]), 'result');
 
         self::assertTrue($this->in($call, 'isError'));
         self::assertSame('insufficient_scope', $this->in($call, 'structuredContent', 'error', 'code'));
-        self::assertSame('The token does not have the "invoices:read" scope.', $this->in($call, 'structuredContent', 'error', 'message'));
+        self::assertSame('The token does not have the "events:read" scope.', $this->in($call, 'structuredContent', 'error', 'message'));
     }
 
     public function testAWriteToolNeedsTheWriteScope(): void
@@ -367,5 +326,19 @@ final class McpServerTest extends ApiTestCase
         self::assertIsString($text);
 
         return $text;
+    }
+
+    /**
+     * @return list<string> the tools of the installed modules, sorted
+     */
+    private function installedTools(): array
+    {
+        $tools = [];
+        foreach (new InstalledModules(\dirname(__DIR__, 2))->graph()->all() as $module) {
+            array_push($tools, ...self::TOOLS[$module->id->value] ?? []);
+        }
+        sort($tools);
+
+        return $tools;
     }
 }

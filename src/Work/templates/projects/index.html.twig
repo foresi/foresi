@@ -1,7 +1,9 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    The projects of the organisation, active or archived, with what is left of each. A new project
-    starts in a dialog over the list; without JavaScript the same link is a page.
+    The projects of the organisation on saved views, as every list has them: All (the projects not
+    archived) and Archived, the person's own views, "+ Filter" and the Columns sheet; with what is left
+    of each project. A new project starts in a dialog over the list; without JavaScript the same link is
+    a page.
 #}
 {% extends 'layout/app.html.twig' %}
 
@@ -20,17 +22,36 @@
         {% endfor %}
     {% endfor %}
     <div class="grid grid-cols-1 gap-4">
-        <twig:Ui:Tabs :items="tabs" :label="'work.projects.views'|trans" />
-        <twig:Ui:DataTable :caption="'work.projects.title'|trans" :columns="columns" :rows="rows">
+        {# The view's unsaved changes sit at the end of its tabs, as on every list (saved views D10). #}
+        <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
+            <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'work.projects.views'|trans" class="min-w-0 sm:flex-1">
+                <twig:block name="actions">{{ include('components/Ui/_view_menu.html.twig') }}</twig:block>
+            </twig:Ui:Tabs>
+            {{ include('components/Ui/_view_actions.html.twig') }}
+        </div>
+        {# The client, the visibility and the billing are conditions of "+ Filter" (saved views D11). #}
+        <twig:Ui:FilterBar id="project-filters" :action="path('app_projects')" :keep="{view: view != '' ? view : null, sort: sortKept, f: working != '' ? working : null}|merge(workingQuery)"
+            :conditions="chips" :builder="builder" :empty="rows is empty">
+            <twig:block name="end">
+                <twig:Ui:ColumnPicker id="project-columns" :action="path('app_projects')" :keep="picker.keep" :columns="picker.columns" :density="picker.density" :resetHref="picker.resetHref" :modified="picker.modified" />
+            </twig:block>
+        </twig:Ui:FilterBar>
+
+        <twig:Ui:DataTable :caption="'work.projects.title'|trans" :columns="columns" :rows="rows" :density="density">
             <twig:block name="empty">
-                {% if archived %}
-                    <twig:Ui:EmptyState icon="archive" :title="'work.projects.empty.archived_title'|trans" />
-                {% else %}
+                {% if filtered %}
+                    <twig:Ui:EmptyState icon="search" :title="'work.projects.empty.filtered_title'|trans">
+                        <twig:Ui:Button :href="resetHref">{{ 'work.projects.empty.reset'|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                {% elseif view == '' %}
                     <twig:Ui:EmptyState icon="columns-3" :title="'work.projects.empty.title'|trans" :text="'work.projects.empty.text'|trans">
                         <twig:Ui:Button variant="primary" icon="plus" :href="path('app_project_new')" data-dialog data-dialog-then="follow" aria-haspopup="dialog">{{ 'work.projects.new'|trans }}</twig:Ui:Button>
                     </twig:Ui:EmptyState>
+                {% else %}
+                    <twig:Ui:EmptyState :icon="view == 'archived' ? 'archive' : 'columns-3'" :title="emptyTitle" />
                 {% endif %}
             </twig:block>
         </twig:Ui:DataTable>
     </div>
+    {{ include('components/Ui/_view_dialogs.html.twig') }}
 {% endblock %}

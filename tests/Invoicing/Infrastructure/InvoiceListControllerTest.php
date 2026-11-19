@@ -65,8 +65,8 @@ use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Domain\View\SavedView;
 use Foresi\Shared\Domain\View\Visibility;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
-use Foresi\Tests\Import\Support\RunMessages;
 use Foresi\Tests\Party\Support\FirmAccounts;
+use Foresi\Tests\Support\Messenger\RunMessages;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -290,6 +290,37 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame(['20260002', '20260003', '20260001'], $this->numbers($this->client->request('GET', '/invoices?sort=payable')));
         self::assertSame(['20260001', '20260002', '20260003'], $this->numbers($this->client->request('GET', '/invoices?sort=number')));
         self::assertSame(['20260003', '20260002', '20260001'], $this->numbers($this->client->request('GET', '/invoices?sort=nonsense')));
+        // Under the keys of the attributes, which the older ones name too.
+        self::assertSame(['20260002', '20260003', '20260001'], $this->numbers($this->client->request('GET', '/invoices?sort=due_date')));
+        self::assertSame(['20260001', '20260003', '20260002'], $this->numbers($this->client->request('GET', '/invoices?sort=-due_date')));
+        self::assertSelectorExists('th[aria-sort="descending"] a[href="/invoices?sort=due_date"]');
+    }
+
+    public function testAnyAttributeCanBeAddedAsAColumnAndSortedBy(): void
+    {
+        $this->signedIn();
+        $this->issue('2026-11-01', '2026-12-05', price: '100.00', variableSymbol: '111');
+        $this->issue('2026-11-02', '2026-12-01', price: '300.00', variableSymbol: '222');
+
+        $crawler = $this->client->request('GET', '/invoices?cols=number,tax_point_date,vat,variable_symbol&sort=-vat');
+
+        self::assertSame(['Number', 'Tax point', 'VAT', 'Variable symbol'], array_values(array_diff($crawler->filter('main thead th')->each(static fn (Crawler $th): string => trim($th->text())), ['', 'Actions'])));
+        self::assertSame(['20260002', '20260001'], $this->numbers($crawler));
+        $cells = $crawler->filter('main tbody tr')->first()->filter('td')->each(static fn (Crawler $td): string => trim($td->text()));
+        self::assertSame(['2026-11-02', "63.00\u{a0}Kč", '222'], \array_slice($cells, 1, 3));
+        self::assertSelectorExists('th[aria-sort="descending"] a[href*="sort=vat"]');
+        self::assertSame(['20260001', '20260002'], $this->numbers($this->client->request('GET', '/invoices?cols=number,vat&sort=vat')));
+    }
+
+    public function testAnOlderColumnKeyInTheAddressShowsItsColumnUnderItsKey(): void
+    {
+        $this->signedIn();
+        $this->issue('2026-11-01', '2026-12-05');
+
+        $crawler = $this->client->request('GET', '/invoices?cols=number,dueDate');
+
+        self::assertSame(['Number', 'Due'], array_values(array_diff($crawler->filter('main thead th')->each(static fn (Crawler $th): string => trim($th->text())), ['', 'Actions'])));
+        self::assertSelectorExists('th a[href="/invoices?sort=number&cols=number,due_date"]');
     }
 
     public function testCustomerSortIgnoresCase(): void

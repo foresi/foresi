@@ -8,72 +8,50 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Instance\Infrastructure;
 
-use Doctrine\DBAL\Connection;
-use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Foresi\Instance\Application\ConfiguredZone;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Instance\Application\ZoneFallback;
 use Foresi\Instance\Infrastructure\Clock\TimezoneEnvVarProcessor;
-use Foresi\Invoicing\Application\InvoicingCountries;
-use Foresi\Invoicing\Infrastructure\FirmCountryZones;
-use Foresi\Party\Application\InstanceFirm;
-use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\LegalEntity;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\DependencyInjection\Exception\RuntimeException;
 
 /**
- * The zone of the instance: APP_TIMEZONE when it is set, else the country of the
- * first active firm, else UTC.
+ * The zone of the instance: APP_TIMEZONE when it is set, else the zone an
+ * installed module lends, else UTC. The zone of the first firm's country, which
+ * Invoicing lends, is tested in Integration/Invoicing.
  */
 final class InstanceClockTest extends KernelTestCase
 {
     use ClockSensitiveTrait;
-
-    /** A user-assigned ISO code no real country takes, so it never gains invoicing rules. */
-    private const string NO_RULES = 'XX';
-
-    private EntityManagerInterface $em;
-    private int $firms = 0;
 
     protected function setUp(): void
     {
         self::bootKernel();
         // 23:30 UTC: already the next day in Prague, still the same one in New York.
         self::mockTime('2026-12-31 23:30:00');
-        $this->em = self::getContainer()->get('doctrine.orm.entity_manager');
+        $em = self::getContainer()->get('doctrine.orm.entity_manager');
 
-        $tool = new SchemaTool($this->em);
-        $metadata = $this->em->getMetadataFactory()->getAllMetadata();
+        $tool = new SchemaTool($em);
+        $metadata = $em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
     }
 
     public function testTheConfiguredZoneWins(): void
     {
-        $this->firm('CZ');
-        $clock = $this->clock('America/New_York');
+        $clock = new InstanceClock(new ConfiguredZone('America/New_York'), $this->fallback('Europe/Prague'), self::getContainer()->get(ClockInterface::class));
 
         self::assertSame('America/New_York', $clock->timezone()->getName());
         self::assertSame('2026-12-31 00:00:00 America/New_York', $clock->today()->format('Y-m-d H:i:s e'));
         self::assertSame('2026-12-31 18:30:00 America/New_York', $clock->clock()->now()->format('Y-m-d H:i:s e'));
     }
 
-    public function testFallsBackToTheFirstActiveFirmsCountry(): void
+    public function testWithoutAConfiguredZoneTheFallbackLendsItsOwn(): void
     {
-        $archived = $this->firm(self::NO_RULES)->id();
-        $this->em->find(LegalEntity::class, $archived)?->archive(new \DateTimeImmutable('2026-12-01'));
-        $this->em->flush();
-        self::assertNotFalse(self::getContainer()->get(Connection::class)->fetchOne('SELECT id FROM legal_entity WHERE id = :id AND archived_at IS NOT NULL', ['id' => $archived]), 'The first firm is archived.');
-        $this->firm('CZ');
-        $this->firm(self::NO_RULES);
-
-        $clock = $this->clock('');
+        $clock = new InstanceClock(new ConfiguredZone(''), $this->fallback('Europe/Prague'), self::getContainer()->get(ClockInterface::class));
 
         self::assertSame('Europe/Prague', $clock->timezone()->getName());
         self::assertSame('2027-01-01 00:00:00 Europe/Prague', $clock->today()->format('Y-m-d H:i:s e'));
@@ -86,23 +64,6 @@ final class InstanceClockTest extends KernelTestCase
 
         self::assertSame('UTC', $clock->timezone()->getName());
         self::assertSame('2026-12-31 00:00:00 UTC', $clock->today()->format('Y-m-d H:i:s e'));
-    }
-
-    public function testACountryWithoutRulesHasNoZoneToLend(): void
-    {
-        $this->firm(self::NO_RULES);
-
-        self::assertSame('UTC', $this->clock('')->timezone()->getName());
-    }
-
-    public function testTheContainersClockFollowsTheFirstFirm(): void
-    {
-        $this->firm('CZ');
-        $clock = self::getContainer()->get(InstanceClock::class);
-
-        self::assertSame('', self::getContainer()->getParameter('app.timezone'), 'The tests run with APP_TIMEZONE empty.');
-        self::assertSame('Europe/Prague', $clock->timezone()->getName());
-        self::assertSame('2027-01-01 00:00:00 Europe/Prague', $clock->today()->format('Y-m-d H:i:s e'));
     }
 
     public function testTheFallbackIsNotAskedWhenAZoneIsConfigured(): void
@@ -166,23 +127,26 @@ final class InstanceClockTest extends KernelTestCase
 
     /**
      * The clock of the instance with the given APP_TIMEZONE ('' for none) and the
-     * container's firm-country fallback.
+     * container's fallback, which is the zone of an installed module or none.
      */
     private function clock(string $configured): InstanceClock
     {
         $container = self::getContainer();
 
-        return new InstanceClock(new ConfiguredZone($configured), new FirmCountryZones($container->get(InstanceFirm::class), $container->get(InvoicingCountries::class)), $container->get(ClockInterface::class));
+        return new InstanceClock(new ConfiguredZone($configured), $container->get(ZoneFallback::class), $container->get(ClockInterface::class));
     }
 
-    private function firm(string $country): LegalEntity
+    private function fallback(string $zone): ZoneFallback
     {
-        // Valid Czech registration numbers in turn, so the firms stay unique.
-        $numbers = ['12345695', '12345679', '25596641'];
-        $firm = new LegalEntity('Example Firm '.$country, new RegistrationNumber('CZ', $numbers[$this->firms++ % 3]), null, new Address('Example Street 1', 'Example City', '100 00', $country), VatStatus::NotRegistered, '');
-        $this->em->persist($firm);
-        $this->em->flush();
+        return new readonly class($zone) implements ZoneFallback {
+            public function __construct(private string $zone)
+            {
+            }
 
-        return $firm;
+            public function zone(): \DateTimeZone
+            {
+                return new \DateTimeZone($this->zone);
+            }
+        };
     }
 }

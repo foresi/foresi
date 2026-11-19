@@ -10,6 +10,7 @@ namespace Foresi\Party\Infrastructure\Api;
 
 use Foresi\Party\Application\Query\ContactSliceFilter;
 use Foresi\Party\Domain\PartyRole;
+use Foresi\Shared\Application\View\ViewFilter;
 use Symfony\Component\Serializer\Attribute\SerializedName;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -30,10 +31,14 @@ final readonly class ContactListQuery
         #[Assert\Range(min: 1, max: 100)]
         public int $limit = 25,
         public ?string $cursor = null,
+        // A saved view's id or system key, such as "party.contacts.customers" (spec D13).
+        public ?string $view = null,
+        // D4 JSON, {"conditions": [...]}, joined with the view's by AND.
+        public ?string $filter = null,
     ) {
     }
 
-    public function filter(): ContactSliceFilter
+    public function filter(?ViewFilter $view = null): ContactSliceFilter
     {
         return new ContactSliceFilter(
             trim($this->q),
@@ -41,6 +46,7 @@ final readonly class ContactListQuery
             $this->archived,
             $this->registrationNumber,
             $this->vatId,
+            $view,
         );
     }
 }

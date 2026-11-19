@@ -427,13 +427,14 @@ work:
     views: Pohledy na oznámení
     read_all: Označit vše jako přečtené
     tab:
-      new: Nové
+      all: Vše
       done: Hotové
     filter:
-      label: Zobrazit
-      all: Vše
       mentions: Zmínky
       assigned: Přiřazené
+    field:
+      reason: Důvod
+      unread: Nepřečtené
     column:
       task: Úkol
       event: Co se stalo
@@ -453,7 +454,9 @@ work:
       new_text: Zmínky, přiřazené úkoly a novinky ve sledovaných úkolech uvidíte tady.
       done_title: Zatím nic hotového
       done_text: Oznámení, která označíte jako hotová, tu zůstanou 3 měsíce.
-      filtered: S tímto filtrem tu nic není.
+      filtered: Filtrům nic neodpovídá.
+      reset: Zrušit filtry
+      view: Tomuto pohledu nic neodpovídá
   notification_settings:
     title: Nastavení oznámení
     email_card: E-maily
@@ -516,8 +519,12 @@ work:
     views: Pohledy na projekty
     new: Nový projekt
     tab:
-      active: Aktivní
+      all: Vše
       archived: Archivované
+    field:
+      archived: Archivovaný
+      visibility: Kdo projekt vidí
+      billable: Fakturovat čas
     column:
       name: Název
       client: Klient
@@ -527,6 +534,9 @@ work:
       title: Zatím žádné projekty
       text: Založte projekt a přidejte do něj úkoly.
       archived_title: Žádné archivované projekty
+      view_title: Tomuto pohledu nic neodpovídá
+      filtered_title: Filtrům nic neodpovídá
+      reset: Zrušit filtry
   project:
     create: Založit projekt
     archived: Archivovaný
@@ -577,6 +587,11 @@ work:
     due_next_7_days: Příštích 7 dní
     due_none: Bez termínu
   list:
+    views: Pohledy na úkoly
+    tab:
+      all: Vše
+      mine: Moje
+      finished: Hotové
     no_section: Bez sekce
     loose_caption: 'Úkoly projektu {project}'
     empty: Zatím žádné úkoly.

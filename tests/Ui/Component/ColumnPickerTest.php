@@ -59,11 +59,28 @@ final class ColumnPickerTest extends KernelTestCase
     {
         $html = $this->render();
 
-        self::assertSame(2, substr_count($html, 'data-column-picker-up'));
-        self::assertSame(2, substr_count($html, 'data-column-picker-down'));
+        // Email; the locked number and Kind, which is to add, do not move.
+        self::assertSame(1, substr_count($html, 'data-column-picker-up'));
+        self::assertSame(1, substr_count($html, 'data-column-picker-down'));
         self::assertStringContainsString('aria-label="Posunout Email nahoru"', $html);
         self::assertStringContainsString('aria-live="polite"', $html);
         self::assertStringContainsString('data-column-picker-moved-value="{label} je teď na pozici {position} z {total}."', $html);
+    }
+
+    public function testTheHiddenColumnsAreToAddAfterTheShownOnes(): void
+    {
+        $html = $this->render();
+
+        self::assertStringContainsString('Přidat sloupec', $html);
+        self::assertMatchesRegularExpression('#data-key="email".*data-column-picker-add.*data-column-picker-target="option" data-key="kind"#s', $html);
+        self::assertMatchesRegularExpression('#<input type="checkbox" id="cols-kind" name="cols\[\]" value="kind" class#', $html);
+    }
+
+    public function testWithNothingToAddThereIsNoAddPart(): void
+    {
+        $html = $this->render(['columns' => [['key' => 'number', 'label' => 'Number', 'visible' => true, 'locked' => true]]]);
+
+        self::assertStringNotContainsString('data-column-picker-add', $html);
     }
 
     public function testTheDensityIsARadioGroupWithTheCurrentOneChecked(): void
@@ -78,7 +95,8 @@ final class ColumnPickerTest extends KernelTestCase
     {
         self::assertStringNotContainsString('data-column-picker-target="search"', $this->render());
 
-        $columns = array_map(static fn (int $i): array => ['key' => 'c'.$i, 'label' => 'C'.$i, 'visible' => true, 'locked' => false], range(1, 11));
+        // Shown or to add, the search goes over all of them.
+        $columns = array_map(static fn (int $i): array => ['key' => 'c'.$i, 'label' => 'C'.$i, 'visible' => 1 === $i % 2, 'locked' => false], range(1, 11));
         self::assertStringContainsString('data-column-picker-target="search"', $this->render(['columns' => $columns]));
     }
 
@@ -123,10 +141,18 @@ final class ColumnPickerTest extends KernelTestCase
             ['key' => 'name', 'label' => 'Name', 'visible' => false, 'locked' => true],
         ]]);
 
-        self::assertSame([
-            ['key' => 'name', 'label' => 'Name', 'visible' => true, 'locked' => true, 'id' => 'cols-name'],
-            ['key' => 'due.date', 'label' => 'Due', 'visible' => false, 'locked' => false, 'id' => 'cols-due-date'],
-        ], $picker->views());
+        self::assertSame([['key' => 'name', 'label' => 'Name', 'visible' => true, 'locked' => true, 'id' => 'cols-name']], $picker->shown());
+        self::assertSame([['key' => 'due.date', 'label' => 'Due', 'visible' => false, 'locked' => false, 'id' => 'cols-due-date']], $picker->addable());
+    }
+
+    public function testTheShownColumnsAreAListAfterAHiddenOne(): void
+    {
+        $picker = $this->mount(['columns' => [
+            ['key' => 'note', 'label' => 'Note'],
+            ['key' => 'name', 'label' => 'Name', 'visible' => true],
+        ]]);
+
+        self::assertSame([0], array_keys($picker->shown()));
     }
 
     public function testTenColumnsNeedNoSearch(): void

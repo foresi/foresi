@@ -28,7 +28,7 @@ async function expectNoSeriousViolations(page: Page): Promise<void> {
 // The supplier combobox: type a part of the name, take the option.
 async function pickSupplier(page: Page, name: string): Promise<void> {
   await page.locator('#supplier').fill(name.slice(0, 12));
-  // The list filter behind the dialog has a supplier select of its own; the combobox offers its names in a listbox.
+  // The combobox offers the names in a listbox.
   await page.getByRole('listbox').getByRole('option', { name }).click();
 }
 
@@ -155,6 +155,10 @@ test.describe('received documents', () => {
     await page.goto('/purchasing');
     await expect(page.getByRole('link', { name: /^K doplnění 0/ })).toBeVisible();
     await page.getByRole('link', { name: /^Zaevidované/ }).click();
+    // All, the view the list opens on, holds the same four rows: wait for the visit to land,
+    // as Turbo marks the whole page busy (aria-busy on html) until it does.
+    await expect(page.getByRole('link', { name: /^Zaevidované/ })).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator('html')).not.toHaveAttribute('aria-busy');
     // The two recorded here and the two of the seeded studio firm.
     await expect(page.locator('tbody tr')).toHaveCount(4);
     await expectNoSeriousViolations(page);
