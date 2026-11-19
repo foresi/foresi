@@ -4,11 +4,10 @@
 {% set shown = edit.shown %}
 {% set buttonId = id ~ '-button' %}
 {% set menuId = id ~ '-menu' %}
-{#- The value as it reads: a badge, a text or, for none, a dash (or the card's icon) a screen reader hears as the empty label. -#}
+{#- The value as it reads: a badge, a text or, for none, the empty badge with the empty label (or the card's icon, which a screen reader hears as the empty label). -#}
 {% macro value(shown, tone, emptyLabel, emptyIcon) %}
     {%- if shown is same as('') -%}
-        {%- if emptyIcon %}{{ ux_icon('lucide:' ~ emptyIcon, {class: 'size-4 shrink-0 text-muted', 'aria-hidden': 'true'}) }}{% else %}<span class="text-muted" aria-hidden="true">—</span>{% endif -%}
-        <span class="sr-only">{{ emptyLabel }}</span>
+        {%- if emptyIcon %}{{ ux_icon('lucide:' ~ emptyIcon, {class: 'size-4 shrink-0 text-muted', 'aria-hidden': 'true'}) }}<span class="sr-only">{{ emptyLabel }}</span>{% else %}<twig:Ui:EmptyValue :label="emptyLabel ?: null" />{% endif -%}
     {%- elseif tone -%}
         <twig:Ui:Badge :tone="tone">{{ shown }}</twig:Ui:Badge>
     {%- else -%}

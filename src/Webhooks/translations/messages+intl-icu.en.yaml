@@ -54,6 +54,11 @@ webhooks:
       owner_lost_access: Its owner may no longer read the events it subscribes to.
       manual: It was turned off by hand.
     enable: Enable it once the receiver works again, and redeliver what it missed.
+  # Shown instead of a value that is not there, with the reason.
+  none:
+    response: No response
+    error: No error
+    retry: No further attempt
   delivery:
     title: Deliveries
     ping: Ping

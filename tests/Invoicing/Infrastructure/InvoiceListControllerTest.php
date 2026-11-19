@@ -151,20 +151,22 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame(['All 1'], $crawler->filter('nav[aria-label="Invoice lists"] a[aria-current="page"]')->each(static fn (Crawler $tab): string => (string) preg_replace('/(\D)(\d)/', '$1 $2', $tab->text())));
     }
 
-    public function testTheFirmFilterNarrowsListAndCounts(): void
+    public function testAnOldFirmFilterNarrowsNothing(): void
     {
         $this->signedIn();
         $second = $this->secondFirm();
         $this->issue('2026-11-01', '2026-11-05');
-        $other = $this->issue('2026-11-02', '2026-11-05', firm: $second);
+        $this->issue('2026-11-02', '2026-11-05', firm: $second);
 
+        // An instance holds one firm (ADR 0039): the list has no firm select, and an old link shows the whole list.
         $crawler = $this->client->request('GET', '/invoices', ['firm' => $second->id()]);
 
-        self::assertSame([$other->number()], $this->numbers($crawler));
-        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 1', 'To refund 0', 'Trash 0'], $this->tabs($crawler));
-        self::assertSame($second->id(), $crawler->filter('[data-filter-sheet-form] select[name="firm"] option[selected]')->attr('value'));
-        // The tabs and the sort keep the firm.
-        self::assertStringContainsString('firm='.$second->id(), (string) $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(1)->attr('href'));
+        self::assertCount(2, $this->numbers($crawler));
+        self::assertSame(['All 2', 'Paid 0', 'Unpaid 2', 'Overdue 2', 'To refund 0', 'Trash 0'], $this->tabs($crawler));
+        self::assertCount(0, $crawler->filter('[data-filter-chip="firm"], select[name="firm"], input[name="firm"]'));
+        self::assertStringNotContainsString('firm=', (string) $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(1)->attr('href'));
+        // The menu of the views past the tabs says what every list's says.
+        self::assertStringContainsString('More views', $this->client->request('GET', '/advances')->filter('[data-more-views]')->text());
     }
 
     public function testOverdueUsesTheCountryToday(): void
@@ -349,7 +351,8 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices');
         self::assertContains('Firm', $this->headers($crawler));
         self::assertStringContainsString('Example Second s.r.o.', $crawler->filter('tbody tr')->first()->text());
-        self::assertCount(1, $crawler->filter('[data-filter-sheet-form] select[name="firm"]'));
+        // The column stays for data from before one firm per instance (ADR 0039); the select does not.
+        self::assertCount(0, $crawler->filter('[data-filter-sheet-form] select[name="firm"]'));
     }
 
     public function testAFirmStaysInTheColumnOnceItsOnlyInvoiceIsInTheTrash(): void
@@ -1155,7 +1158,7 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('tr[data-id="'.$read->id().'"] [data-icon-cell] svg'));
         self::assertStringContainsString('Read', $crawler->filter('tr[data-id="'.$read->id().'"] [data-row-secondary]')->text());
         // The status badge is separate and stays as it was.
-        self::assertSame('Delivered', $crawler->filter('tr[data-id="'.$sent->id().'"] td .rounded-sm')->last()->text());
+        self::assertSame('Delivered', $crawler->filter('tr[data-id="'.$sent->id().'"] td .rounded-sm:not([data-empty-value])')->last()->text());
     }
 
     public function testReadSurvivesALaterFailedResend(): void
@@ -1672,7 +1675,7 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 1', 'To refund 0', 'Trash 0'], $before);
     }
 
-    public function testTheMonthsOfferedAreThoseOfTheListKindAndFirm(): void
+    public function testTheMonthsOfferedAreThoseOfTheListKind(): void
     {
         $this->signedIn();
         // An invoice belongs to the month of its tax point, not of its issue.
@@ -1685,7 +1688,6 @@ final class InvoiceListControllerTest extends WebTestCase
 
         self::assertSame(['' => 'All months', 'this_month' => 'This month', 'last_month' => 'Last month', 'this_quarter' => 'This quarter', 'this_year' => 'This year', '2026-11' => 'November 2026', '2026-09' => 'September 2026'], $this->monthOptions($this->client->request('GET', '/invoices')));
         self::assertSame(['' => 'All months', 'this_month' => 'This month', 'last_month' => 'Last month', 'this_quarter' => 'This quarter', 'this_year' => 'This year', '2026-08' => 'August 2026'], $this->monthOptions($this->client->request('GET', '/advances')));
-        self::assertSame(['' => 'All months', 'this_month' => 'This month', 'last_month' => 'Last month', 'this_quarter' => 'This quarter', 'this_year' => 'This year', '2026-09' => 'September 2026'], $this->monthOptions($this->client->request('GET', '/invoices?firm='.$this->firm->id())));
         // An empty list that nothing narrows has no filter bar.
         self::assertSame([], $this->monthOptions($this->client->request('GET', '/corrections')));
     }

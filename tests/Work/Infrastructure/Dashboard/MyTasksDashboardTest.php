@@ -29,9 +29,9 @@ final class MyTasksDashboardTest extends TestCase
         self::assertCount(1, $sections);
         self::assertSame('@Work/dashboard.html.twig', $sections[0]->template);
         self::assertSame([
-            ['label' => 'work.my_tasks.group.overdue', 'value' => '2', 'href' => '/my-tasks'],
-            ['label' => 'work.my_tasks.group.today', 'value' => '0', 'href' => '/my-tasks'],
-            ['label' => 'work.my_tasks.group.upcoming', 'value' => '1', 'href' => '/my-tasks'],
+            ['label' => 'work.my_tasks.group.overdue', 'value' => '2', 'href' => '/my-tasks?view=assigned'],
+            ['label' => 'work.my_tasks.group.today', 'value' => '0', 'href' => '/my-tasks?view=assigned'],
+            ['label' => 'work.my_tasks.group.upcoming', 'value' => '1', 'href' => '/my-tasks?view=assigned'],
         ], $sections[0]->context['kpis']);
     }
 
@@ -48,7 +48,7 @@ final class MyTasksDashboardTest extends TestCase
         $queries = self::createStub(WorkQueries::class);
         $queries->method('myTasks')->willReturn($groups);
         $urls = self::createStub(UrlGeneratorInterface::class);
-        $urls->method('generate')->willReturn('/my-tasks');
+        $urls->method('generate')->willReturnCallback(static fn (string $route, array $parameters = []): string => '/my-tasks?'.http_build_query($parameters));
         $translator = self::createStub(TranslatorInterface::class);
         $translator->method('trans')->willReturnArgument(0);
 

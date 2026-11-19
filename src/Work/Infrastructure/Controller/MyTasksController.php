@@ -10,76 +10,187 @@ namespace Foresi\Work\Infrastructure\Controller;
 
 use Foresi\Identity\Application\OpenToGuest;
 use Foresi\Instance\Application\InstanceClock;
+use Foresi\Shared\Application\View\FilterRows;
+use Foresi\Shared\Application\View\ListDefinition;
+use Foresi\Shared\Application\View\ListView;
+use Foresi\Shared\Application\View\ListViews;
+use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Application\View\WorkingFilter;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
+use Foresi\Ui\Column\RememberedDisplay;
 use Foresi\Ui\Contract\Opens;
+use Foresi\Ui\Contract\WorkingDisplay;
+use Foresi\Ui\Contract\WorkingState;
+use Foresi\Ui\View\ViewBar;
 use Foresi\Work\Application\TaskGroup;
 use Foresi\Work\Application\TaskRow;
+use Foresi\Work\Application\View\MyTaskLists;
 use Foresi\Work\Application\WorkQueries;
-use Foresi\Work\Domain\Priority;
+use Foresi\Work\Infrastructure\Column\MyTaskColumns;
+use Foresi\Work\Infrastructure\Column\MyTaskLine;
+use Foresi\Work\Infrastructure\View\MyTaskViews;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * My unfinished tasks across the active projects I see, a guest's too: those I am
- * responsible for, or those I watch, by when they are due, as the My Tasks of
- * Asana. A group with nothing in it is left out; the client filter narrows
- * both tabs to the projects of one client. A project known only by its name,
- * for a task shared on its own, is not a link.
+ * My unfinished tasks across the active projects I see, a guest's too, by when they
+ * are due, as the My Tasks of Asana, on saved views (spec D3, D7): All, Assigned to
+ * me and Watching ship as views, with the person's own beside them. The client of the
+ * project is a condition of "+ Filter" (D11); an old ?tab= or ?client= link opens the
+ * same tasks. A group with nothing in it is left out. A project known only by its
+ * name, for a task shared on its own, is not a link.
  */
 #[OpenToGuest]
 final class MyTasksController extends AbstractController
 {
     public const string ROUTE = 'app_my_tasks';
-    private const string WATCHING = 'watching';
-    private const array STATUS_TONES = ['open' => 'gray', 'active' => 'amber', 'done' => 'green', 'closed' => 'gray'];
 
     public function __construct(
         private readonly WorkQueries $queries,
         private readonly InstanceClock $clock,
         private readonly TranslatorInterface $translator,
         private readonly InlineTaskEdits $edits,
+        private readonly MyTaskViews $myTaskViews,
+        private readonly RememberedDisplay $rememberedDisplay,
+        private readonly ViewBar $viewBar,
+        private readonly FilterSheet $filterSheet,
     ) {
     }
 
     #[Route('/my-tasks', name: self::ROUTE, methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $watching = self::WATCHING === $request->query->getString('tab');
-        $clients = $this->clients();
-        $client = $request->query->getString('client');
-        $client = isset($clients[$client]) ? $client : '';
-        $clientId = '' === $client ? null : $client;
-        $today = $this->clock->today();
-        $groups = $watching ? TaskGroup::split($this->queries->watchedTasks($clientId), $today) : $this->queries->myTasks($clientId);
+        $input = $request->query;
+        // The builder's rows (spec D11) become the list's working filter, in its address.
+        if ($input->has(FilterRows::MARKER)) {
+            return $this->redirectToRoute(self::ROUTE, $this->builtQuery($input), Response::HTTP_SEE_OTHER);
+        }
+        [$views, $view, $shown] = $this->myTaskViews->of($input);
+        $list = MyTaskLists::list();
+        $filterParam = WorkingFilter::param($shown, $view->filter);
+        $groups = TaskGroup::split($this->queries->myTaskList($shown), $this->clock->today());
         $edits = $this->edits->for(array_merge(...array_map(static fn (TaskGroup $group): array => $group->tasks, $groups)), $request->getRequestUri());
-        $url = $this->generateUrl(self::ROUTE);
-        $filter = '' === $client ? [] : ['client' => $client];
+        $query = array_filter(['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
+        // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $working = $this->rememberedDisplay->read(MyTaskColumns::LIST, [], $list->key, $view, $input->all());
+        $query += $working->query;
+        $bar = $this->viewBar->of($list, $views, $view, $shown, '', '', $working, self::ROUTE, []);
 
         return $this->render('@Work/my_tasks/index.html.twig', [
-            'watching' => $watching,
-            'tabs' => [
-                ['label' => $this->translator->trans('work.my_tasks.tab.assigned'), 'href' => $url.$this->query($filter), 'active' => !$watching],
-                ['label' => $this->translator->trans('work.my_tasks.tab.watching'), 'href' => $url.$this->query(['tab' => self::WATCHING] + $filter), 'active' => $watching],
-            ],
-            'client' => $client,
-            'clients' => ['' => $this->translator->trans('work.my_tasks.client_any')] + $clients,
-            'columns' => [
-                ['key' => 'title', 'label' => $this->translator->trans('work.task.field.title'), 'truncate' => true],
-                ['key' => 'project', 'label' => $this->translator->trans('work.task.field.project'), 'truncate' => true, 'phone' => false],
-                ['key' => 'status', 'label' => $this->translator->trans('work.task.field.status')],
-                ['key' => 'responsible', 'label' => $this->translator->trans('work.task.field.responsible'), 'truncate' => true, 'phone' => false],
-                ['key' => 'due', 'label' => $this->translator->trans('work.task.field.due_on'), 'phone' => false],
-                ['key' => 'priority', 'label' => $this->translator->trans('work.task.field.priority'), 'phone' => false],
-            ],
+            'view' => $view->isAll() ? '' : $view->key,
+            'working' => $filterParam ?? '',
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references()),
+            ...$bar,
+            ...$this->tabs($views, $view->key, $query, $bar['viewBar']['modified']),
+            'empty' => $this->emptyOf($view, $shown),
+            'columns' => $working->display->table(),
+            'density' => $working->tableDensity(),
+            'picker' => $this->picker($working, $query),
+            'workingQuery' => $working->query,
+            'resetHref' => $this->generateUrl(self::ROUTE, ['view' => $view->isAll() ? null : $view->key]),
             'groups' => array_values(array_map(fn (TaskGroup $group): array => [
                 'key' => $group->key,
                 'name' => $this->translator->trans('work.my_tasks.group.'.$group->key),
                 'count' => \count($group->tasks),
-                'rows' => array_map(fn (TaskRow $task): array => $this->row($task, $today, $edits), $group->tasks),
+                'rows' => array_map(fn (TaskRow $task): array => $this->row($task, $working, $edits), $group->tasks),
             ], array_filter($groups, static fn (TaskGroup $group): bool => [] !== $group->tasks))),
         ]);
+    }
+
+    /**
+     * The empty state a view says: a shipped view as it ships, one changed in the
+     * builder or a person's own that nothing matches.
+     */
+    private function emptyOf(ListView $view, ViewFilter $working): string
+    {
+        if ($working->toArray() !== $view->filter->toArray()) {
+            return 'filtered';
+        }
+
+        return match ($view->slug) {
+            ListDefinition::ALL => ListDefinition::ALL,
+            MyTaskLists::ASSIGNED => MyTaskLists::ASSIGNED,
+            MyTaskLists::WATCHING => MyTaskLists::WATCHING,
+            default => 'filtered',
+        };
+    }
+
+    /**
+     * The list's address after the builder's Apply: what the sheet sent, its rows read
+     * into the working filter, which is left out when it is the view's own. The old
+     * parameters of the sheet are in the rows by then.
+     *
+     * @param InputBag<string> $input
+     *
+     * @return array<string, mixed>
+     */
+    private function builtQuery(InputBag $input): array
+    {
+        [, $view] = $this->myTaskViews->of($input);
+        $query = array_diff_key($input->all(), [FilterRows::PARAM => true, FilterRows::MARKER => true, WorkingFilter::PARAM => true, 'view' => true, 'tab' => true] + MyTaskViews::OLD_PARAMS);
+
+        return array_filter($query + ['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), MyTaskLists::list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
+    }
+
+    /**
+     * The contacts a client condition picks from, those the client of a project picks
+     * from, and names: the clients of the active projects.
+     *
+     * @return array<string, array{url: string, name: \Closure(string): ?string}>
+     */
+    private function references(): array
+    {
+        return [MyTaskLists::CONTACT => [
+            'url' => $this->generateUrl('app_project_clients'),
+            'name' => fn (string $contact): ?string => $this->clients()[$contact] ?? null,
+        ]];
+    }
+
+    /**
+     * The tabs of the list and its "More views" menu (spec D7): All and the primary
+     * views as tabs, none with a count (D9); the other views in the menu.
+     *
+     * @param list<ListView>        $views
+     * @param array<string, string> $query
+     *
+     * @return array{tabs: list<array<string, mixed>>, moreViews: list<array<string, mixed>>}
+     */
+    private function tabs(array $views, string $active, array $query, bool $modified): array
+    {
+        [$primary, $overflow] = ListViews::placed($views);
+        $link = fn (ListView $view): array => [
+            'label' => $view->translated ? $this->translator->trans($view->name) : $view->name,
+            // A view opens with its own filter and columns: the changed ones belong to the view they were changed on (spec D10).
+            'href' => $this->generateUrl(self::ROUTE, ['view' => $view->isAll() ? null : $view->key] + array_diff_key($query, ['view' => true, WorkingFilter::PARAM => true] + array_flip(WorkingDisplay::KEYS))),
+            'active' => $view->key === $active,
+            'modified' => $modified && $view->key === $active,
+            'private' => $view->private,
+        ];
+
+        return ['tabs' => array_map($link, $primary), 'moreViews' => array_map($link, $overflow)];
+    }
+
+    /**
+     * @param array<string, string> $query
+     *
+     * @return array<string, mixed>
+     */
+    private function picker(WorkingState $working, array $query): array
+    {
+        $kept = array_diff_key($query, array_flip(WorkingDisplay::KEYS));
+
+        return [
+            'keep' => $kept,
+            'columns' => $working->picker(),
+            'density' => $working->density,
+            // An empty density names the view's own display, which forgets the one remembered (D-display-3).
+            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::DENSITY => '']),
+            'modified' => $working->modified,
+        ];
     }
 
     /**
@@ -101,40 +212,17 @@ final class MyTasksController extends AbstractController
     }
 
     /**
-     * @param array<string, string> $query
-     */
-    private function query(array $query): string
-    {
-        return [] === $query ? '' : '?'.http_build_query($query);
-    }
-
-    /**
      * @return array<string, mixed>
      */
-    private function row(TaskRow $task, \DateTimeImmutable $today, TaskEdits $edits): array
+    private function row(TaskRow $task, WorkingState $working, TaskEdits $edits): array
     {
-        $due = null;
-        if ($task->dueOn instanceof \DateTimeImmutable) {
-            $date = $task->dueOn->format($this->translator->trans('format.date'));
-            $due = $task->dueOn->format('Y-m-d') < $today->format('Y-m-d')
-                ? ['text' => $this->translator->trans('work.list.overdue', ['date' => $date]), 'tone' => 'red']
-                : $date;
-        }
-
         return [
             'id' => $task->id,
             'href' => $this->generateUrl(TaskController::ROUTE, ['id' => $task->id]),
             'opens' => Opens::SHEET,
             'label' => $task->title,
             'secondary' => $task->projectName,
-            'cells' => [
-                'title' => $task->title,
-                'project' => $task->projectSeen ? ['links' => [['text' => $task->projectName, 'href' => $this->generateUrl(ProjectController::PROJECT_ROUTE, ['id' => $task->projectId])]]] : $task->projectName,
-                'status' => TaskEdits::cell(['text' => $task->statusName, 'tone' => self::STATUS_TONES[$task->statusType->value]], $edits->status($task)),
-                'responsible' => TaskEdits::cell(null === $task->responsibleId || null === $task->responsibleName ? null : ['avatar' => $edits->seed($task->responsibleId), 'text' => $task->responsibleName], $edits->responsible($task)),
-                'due' => TaskEdits::cell($due, $edits->due($task)),
-                'priority' => TaskEdits::cell(Priority::None === $task->priority ? null : $this->translator->trans('work.priority.'.$task->priority->value), $edits->priority($task)),
-            ],
+            'cells' => $working->display->cells(new MyTaskLine($task, $edits)),
         ];
     }
 }

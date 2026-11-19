@@ -245,6 +245,8 @@ ui:
     review: Check this
   empty_state:
     title: Nothing here yet
+  # A value that is not filled in, in a list cell or on a detail page.
+  empty_value: Not set
   table:
     caption: Table
     select_all: Select all rows

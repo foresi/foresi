@@ -303,7 +303,7 @@ final readonly class IdokladScreens
         foreach ($years as $year => $sums) {
             $difference = $this->format->money(Money::ofMinor($sums['idokladSum'] - $sums['foresiSum'], $home), $language);
             $yearRows[] = ['id' => 'y'.$year, 'cells' => [
-                'year' => '' === (string) $year ? '—' : (string) $year,
+                'year' => '' === (string) $year ? null : (string) $year,
                 'idoklad' => $this->number($sums['idoklad']),
                 'idokladSum' => $this->format->money(Money::ofMinor($sums['idokladSum'], $home), $language),
                 'foresi' => $this->number($sums['foresi']),

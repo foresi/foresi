@@ -104,7 +104,8 @@ final class PersonPickerTest extends KernelTestCase
         self::assertStringContainsString('border-dashed', (string) $trigger->filter('[data-avatar]')->attr('class'));
         self::assertCount(0, $trigger->filter('.truncate'));
         self::assertSame('Responsible: Nobody', preg_replace('/\s+/', ' ', trim(implode(' ', $trigger->filter('.sr-only')->each(static fn (Crawler $span): string => trim($span->text()))))));
-        self::assertSame('Responsible: Nobody', trim($crawler->filter('[data-person-picker] > span .sr-only')->text()));
+        self::assertSame('Responsible: Nobody', preg_replace('/\s+/', ' ', trim($crawler->filter('[data-person-picker] > span')->text())));
+        self::assertSame('Nobody', $crawler->filter('[data-person-picker] > span [data-empty-value]')->text());
     }
 
     #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]

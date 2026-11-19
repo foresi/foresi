@@ -46,10 +46,7 @@
                                             <twig:Ui:MenuItem href="{{ taskUrl }}?edit_comment={{ comment.id }}#comment-{{ comment.id }}" data-comment-edit data-in-place>{{ 'work.task.edit'|trans }}</twig:Ui:MenuItem>
                                         {% endif %}
                                         {% if comment.canDelete %}
-                                            <form method="post" action="{{ path('app_task_comment_delete', {id: comment.id}) }}" role="none"
-                                                data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
-                                                data-confirm-title="{{ 'work.discussion.delete_confirm.title'|trans }}" data-confirm-text="{{ 'work.discussion.delete_confirm.text'|trans }}"
-                                                data-confirm-accept="{{ 'work.discussion.delete'|trans }}" data-confirm-cancel="{{ 'work.cancel'|trans }}" data-confirm-tone="danger" data-comment-delete>
+                                            <form method="post" action="{{ path('app_task_comment_delete', {id: comment.id}) }}" role="none" data-turbo="false" data-comment-delete>
                                                 <input type="hidden" name="_token" value="{{ token }}">
                                                 <twig:Ui:MenuItem type="submit" tone="danger">{{ 'work.discussion.delete'|trans }}</twig:Ui:MenuItem>
                                             </form>
@@ -57,7 +54,14 @@
                                     </twig:Ui:Menu>
                                 {% endif %}
                             </div>
-                            {% if comment.deleted %}
+                            {% if comment.deleted and comment.canRestore %}
+                                <form method="post" action="{{ path('app_task_comment_restore', {id: comment.id}) }}" class="m-0 flex flex-wrap items-center gap-x-2 text-muted" data-turbo="false" data-comment-deleted data-comment-restore>
+                                    <input type="hidden" name="_token" value="{{ token }}">
+                                    <span>{{ 'work.discussion.trash.mine'|trans }}</span>
+                                    <span aria-hidden="true">·</span>
+                                    <twig:Ui:Button type="submit" variant="ghost" size="sm">{{ 'work.trash.restore'|trans }}</twig:Ui:Button>
+                                </form>
+                            {% elseif comment.deleted %}
                                 <p class="m-0 text-muted" data-comment-deleted>{{ 'work.discussion.deleted'|trans }}</p>
                             {% elseif editing %}
                                 <form method="post" action="{{ path('app_task_comment_edit', {id: comment.id}) }}" class="grid gap-3" novalidate data-turbo="false" data-controller="comment-form" data-comment-edit-form>
