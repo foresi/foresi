@@ -37,14 +37,9 @@ final readonly class DoctrineAttachments implements Attachments
         return Id::isValid($id) ? $this->entityManager->getRepository(Attachment::class)->findOneBy(['id' => $id, 'deletedAt' => null]) : null;
     }
 
-    public function deleted(string $id): ?Attachment
+    public function withDeleted(string $id): ?Attachment
     {
-        if (!Id::isValid($id)) {
-            return null;
-        }
-        $attachment = $this->entityManager->getRepository(Attachment::class)->find($id);
-
-        return $attachment instanceof Attachment && $attachment->isDeleted() ? $attachment : null;
+        return Id::isValid($id) ? $this->entityManager->getRepository(Attachment::class)->find($id) : null;
     }
 
     public function deletedOf(string $ownerKind, string $ownerId): array

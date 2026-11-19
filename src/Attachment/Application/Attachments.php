@@ -12,7 +12,7 @@ use Foresi\Attachment\Domain\Attachment;
 
 /**
  * The attachments of the instance. Deleted ones are not found, except to be
- * restored or purged: by deleted(), deletedOf() and deletedBefore().
+ * restored or purged: by withDeleted(), deletedOf() and deletedBefore().
  */
 interface Attachments
 {
@@ -26,9 +26,9 @@ interface Attachments
     public function get(string $id): ?Attachment;
 
     /**
-     * A deleted attachment, for a restore; one that stands is not found.
+     * An attachment whether deleted or not, for a restore.
      */
-    public function deleted(string $id): ?Attachment;
+    public function withDeleted(string $id): ?Attachment;
 
     /**
      * The deleted attachments of a record, the most recently deleted first.

@@ -53,7 +53,7 @@ final readonly class DeleteAttachment
      */
     public function restore(string $id): Attachment
     {
-        $attachment = $this->attachments->deleted($id) ?? $this->attachments->get($id);
+        $attachment = $this->attachments->withDeleted($id);
         $this->allowed($attachment);
         if (!$attachment->isDeleted()) {
             return $attachment;

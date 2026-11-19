@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Attachment\Application;
 
 use Foresi\Attachment\Domain\Attachment;
-use Foresi\Audit\Application\AuditCorrelation;
 
 /**
  * Removes for good the attachments deleted more than 30 days ago, as tasks
@@ -23,7 +22,6 @@ final readonly class PurgeDeletedAttachments
     public function __construct(
         private Attachments $attachments,
         private PurgeAttachments $purge,
-        private AuditCorrelation $correlation,
     ) {
     }
 
@@ -33,16 +31,11 @@ final readonly class PurgeDeletedAttachments
     public function run(\DateTimeImmutable $now): int
     {
         $expired = $this->attachments->deletedBefore($now->modify(sprintf('-%d days', self::DAYS)));
-        if ([] === $expired) {
-            return 0;
-        }
         $keys = array_map(static fn (Attachment $attachment): string => $attachment->storageKey(), $expired);
-        $this->correlation->within($this->correlation->current() ?? 'attachment-trash-purge:'.$now->format('Y-m-d'), function () use ($expired): void {
-            foreach ($expired as $attachment) {
-                $this->attachments->remove($attachment);
-            }
-            $this->attachments->flush();
-        });
+        foreach ($expired as $attachment) {
+            $this->attachments->remove($attachment);
+        }
+        $this->attachments->flush();
         $this->purge->removeFiles($keys);
 
         return \count($expired);

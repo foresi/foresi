@@ -16,6 +16,7 @@ use Foresi\Attachment\Application\Attachments;
 use Foresi\Attachment\Application\AttachmentUpload;
 use Foresi\Attachment\Application\DeleteAttachment;
 use Foresi\Attachment\Application\UploadAttachment;
+use Foresi\Attachment\Application\VisibleAttachments;
 use Foresi\Attachment\Domain\Attachment;
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Audit\Application\AuditCorrelation;
@@ -150,6 +151,38 @@ final class UploadAttachmentTest extends TestCase
             $this->delete()->delete($other->id());
         });
         self::assertSame(['import:1', 'import:1'], $this->attachments->flushedUnder);
+
+        $this->attachments->flushedUnder = [];
+        $this->delete()->restore($attachment->id());
+        self::assertSame(['attachment:'.$attachment->id()], $this->attachments->flushedUnder);
+        // Restoring one that stands writes nothing.
+        $this->delete()->restore($attachment->id());
+        self::assertSame(['attachment:'.$attachment->id()], $this->attachments->flushedUnder);
+        $this->correlation->within('import:2', function () use ($attachment): void {
+            $this->delete()->delete($attachment->id());
+            $this->delete()->restore($attachment->id());
+        });
+        self::assertSame(['attachment:'.$attachment->id(), 'import:2', 'import:2'], $this->attachments->flushedUnder);
+    }
+
+    public function testOnlyWhoMayRestoreADeletedFileFindsItAmongTheDeletedOfItsRecord(): void
+    {
+        $me = $this->actor;
+        $this->actor = Id::generate();
+        $theirs = $this->upload()->upload('task', $this->owner, new AttachmentUpload($this->file('x'), 'a.txt', 1));
+        $this->delete()->delete($theirs->id());
+        $this->actor = $me;
+        $mine = $this->upload()->upload('task', $this->owner, new AttachmentUpload($this->file('y'), 'b.txt', 1));
+        $this->upload()->upload('task', $this->owner, new AttachmentUpload($this->file('z'), 'c.txt', 1));
+        $this->delete()->delete($mine->id());
+
+        $visible = new VisibleAttachments($this->attachments, new AttachmentPermissions([$this->access]), $this->actor());
+        self::assertSame([$mine], $visible->deletedOf('task', $this->owner));
+        self::assertSame([false, true], [$visible->canDelete($theirs), $visible->canDelete($mine)]);
+        $this->access->delete = true;
+        self::assertSame([$theirs, $mine], $visible->deletedOf('task', $this->owner));
+        $this->access->see = false;
+        self::assertSame([], $visible->deletedOf('task', $this->owner));
     }
 
     /**
@@ -435,9 +468,9 @@ final class InMemoryAttachments implements Attachments
         return array_find($this->items, static fn (Attachment $a): bool => !$a->isDeleted() && $a->id() === $id);
     }
 
-    public function deleted(string $id): ?Attachment
+    public function withDeleted(string $id): ?Attachment
     {
-        return array_find($this->items, static fn (Attachment $a): bool => $a->isDeleted() && $a->id() === $id);
+        return array_find($this->items, static fn (Attachment $a): bool => $a->id() === $id);
     }
 
     public function deletedOf(string $ownerKind, string $ownerId): array

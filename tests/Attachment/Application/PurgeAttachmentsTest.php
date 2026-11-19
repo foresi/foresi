@@ -89,7 +89,7 @@ final class PurgedAttachments implements Attachments
         return null;
     }
 
-    public function deleted(string $id): ?Attachment
+    public function withDeleted(string $id): ?Attachment
     {
         return null;
     }
