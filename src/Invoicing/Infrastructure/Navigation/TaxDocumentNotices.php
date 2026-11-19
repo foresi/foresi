@@ -12,8 +12,8 @@ use Foresi\Identity\Application\StaffCheck;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Invoicing\Application\MissingTaxDocuments;
 use Foresi\Invoicing\Application\UncorrectedTaxDocuments;
-use Foresi\Ui\Notice\ShellNotice;
-use Foresi\Ui\Notice\ShellNoticeProvider;
+use Foresi\Ui\Contract\Notice\ShellNotice;
+use Foresi\Ui\Contract\Notice\ShellNoticeProvider;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 

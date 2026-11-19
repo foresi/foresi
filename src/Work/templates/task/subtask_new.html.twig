@@ -3,7 +3,7 @@
     A new subtask of a task, by its title, in the section of its task. A dialog over the task it goes
     back to; the same URL is a page of its own.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set row = task.task %}
 {% set taskUrl = path('app_task', {id: row.id}) %}

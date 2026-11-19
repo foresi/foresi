@@ -4,7 +4,7 @@
     Variables: firm, stepper ({steps, current}), crumbs; screens fill the block "screen". A run opened from the history is
     a small record (layout/record.html.twig, record_overlay "dialog"): the modal shows the screen without the steps.
 #}
-{% extends 'layout/record.html.twig' %}
+{% extends '@Ui/layout/record.html.twig' %}
 
 {% set token = csrf_token(constant('Foresi\\Idoklad\\Infrastructure\\Controller\\IdokladImportController::TOKEN')) %}
 

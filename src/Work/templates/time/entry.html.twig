@@ -9,7 +9,7 @@
     Harvest do: choosing another project sends the form back for its tasks and its billable default
     (a button without JavaScript), and "Start timer" starts the timer there instead of logging time.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set picker = picker|default(null) %}
 {% set title = (entry ? 'work.time.edit' : 'work.time.log')|trans %}

@@ -3,7 +3,7 @@
     "Dismiss" for a message nobody will record: it stops asking for attention and is never processed
     again; the raw message stays stored and the audit log says who set it aside.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'bank.movement.title'|trans, href: cancel}, {label: 'bank.message.dismiss.crumb'|trans}] %}
 {% set dialog_size = 'sm' %}

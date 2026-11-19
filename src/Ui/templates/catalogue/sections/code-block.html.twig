@@ -1,0 +1,10 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<div class="w-full max-w-xl"><twig:Ui:CodeBlock id="cat-code-shell" label="Claude Code" language="bash" code='claude mcp add --transport http foresi https://app.example.com/mcp --header "Authorization: Bearer <token>"' /></div>
+<div class="w-full max-w-xl"><twig:Ui:CodeBlock id="cat-code-json" label="Cursor" language="json" :code="{mcpServers: {foresi: {url: 'https://app.example.com/mcp', headers: {Authorization: 'Bearer <token>'}}}}|json_encode(constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_SLASHES'))" /></div>
+{% endblock %}{% endembed %}
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<div class="w-72"><twig:Ui:CodeBlock id="cat-code-long" label="Prompt" :wrap="true" code="Příliš žluťoučký kůň úpěl ďábelské ódy. Příliš žluťoučký kůň úpěl ďábelské ódy. Příliš žluťoučký kůň úpěl ďábelské ódy." /></div>
+{% endblock %}{% endembed %}
+</div>

@@ -1,0 +1,16 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A record: the one layout a detail (and its edit form) extends, docs/design/overlays.md. A row of a
+    list opens it in place, in the layer it names as "record_overlay" (sheet, the default, for a
+    medium or large record; dialog for a small one); the same URL without the dialog header is the
+    page, for a reload, a new tab, a bookmark or no JavaScript. The page fills the blocks of
+    layout/app.html.twig once ("title", "actions", "content") and the overlay shows them as its
+    title, the row of actions under it and its body. Optional: record_fields (true for a form),
+    record_title_edit (a sheet: the title changed where it is read, Ui:Sheet "titleEdit"),
+    record_reload (a sheet: the list under it loads again once it closes, as sheet_reload),
+    record_size (a dialog: sm, md, lg), record_full (a sheet that fills the content panel
+    while it shows: a form with lines).
+#}
+{% extends overlay() is not null and overlay() == record_overlay|default('sheet') ? '@Ui/layout/_record_overlay.html.twig' : '@Ui/layout/app.html.twig' %}
+{# The size of the record's action buttons: small in the one-row overlay header, full on the page. #}
+{% set record_action_size = overlay() is not null and overlay() == record_overlay|default('sheet') ? 'sm' : 'md' %}

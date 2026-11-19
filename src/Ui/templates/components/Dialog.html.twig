@@ -1,0 +1,28 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Header with the title and an X, a body that alone scrolls, a footer with the buttons (both shared
+    with Ui:Sheet). The footer also holds the question a changed form asks before it is closed.
+#}
+{% set footerSlot %}{% block footer %}{% endblock %}{% endset %}
+{% set bodySlot %}{% block content %}{% endblock %}{% endset %}
+{% set actionsSlot %}{% block actions %}{% endblock %}{% endset %}
+<dialog {{ attributes.defaults({
+    id: id,
+    class: this.classes,
+    'data-controller': 'dialog',
+    'data-action': this.actions,
+    'data-dialog-fields-value': fields ? 'true' : 'false',
+    'data-dialog-dismissable-value': this.isDismissable() ? 'true' : 'false',
+    'data-dialog-remote-value': remote ? 'true' : 'false',
+    'data-dialog-confirm-value': variant == 'confirm' ? 'true' : 'false',
+}) }}{% if this.chrome %} aria-labelledby="{{ id }}-title"{% if description %} aria-describedby="{{ id }}-description"{% endif %}{% endif %}{% if variant == 'bare' %} aria-label="{{ label }}"{% endif %}{% if variant == 'confirm' %} role="alertdialog"{% if not description %} aria-describedby="{{ id }}-text"{% endif %}{% endif %}>
+    {%- if this.chrome -%}
+        {{ include('@Ui/components/_overlay_header.html.twig', {id: id, title: title, description: description, page: page, actions: actionsSlot}) }}
+        <div data-dialog-target="body" class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-6 max-sm:px-4">{{ bodySlot }}</div>
+        {% if footerSlot|trim is not empty %}
+            {{ include('@Ui/components/_overlay_footer.html.twig', {id: id, footer: footerSlot, asking: asking}) }}
+        {% endif %}
+    {%- elseif not remote -%}
+        {{ bodySlot }}
+    {%- endif -%}
+</dialog>

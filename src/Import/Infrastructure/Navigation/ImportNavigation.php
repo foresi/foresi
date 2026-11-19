@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Import\Infrastructure\Navigation;
 
 use Foresi\Identity\Application\StaffCheck;
-use Foresi\Ui\Navigation\NavigationArea;
-use Foresi\Ui\Navigation\NavigationItem;
-use Foresi\Ui\Navigation\NavigationItemProvider;
+use Foresi\Ui\Contract\Navigation\NavigationArea;
+use Foresi\Ui\Contract\Navigation\NavigationItem;
+use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
 
 /**
  * The history of imports, under Settings. A new import still starts from the page

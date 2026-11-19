@@ -1,0 +1,14 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'titled'} %}{% block sample %}
+<div role="menu" aria-label="Move" class="w-64 {{ constant('Foresi\\Ui\\Component\\Menu::PANEL') }}">
+    <twig:Ui:MenuSection label="Move to">
+        <twig:Ui:MenuItem>To do</twig:Ui:MenuItem>
+        <twig:Ui:MenuItem>Done</twig:Ui:MenuItem>
+    </twig:Ui:MenuSection>
+    <twig:Ui:MenuSection>
+        <twig:Ui:MenuItem>Move up</twig:Ui:MenuItem>
+    </twig:Ui:MenuSection>
+</div>
+{% endblock %}{% endembed %}
+</div>

@@ -10,9 +10,9 @@ namespace Foresi\Identity\Infrastructure\Navigation;
 
 use Foresi\Identity\Application\StaffCheck;
 use Foresi\Identity\Infrastructure\Controller\PeopleController;
-use Foresi\Ui\Navigation\NavigationArea;
-use Foresi\Ui\Navigation\NavigationItem;
-use Foresi\Ui\Navigation\NavigationItemProvider;
+use Foresi\Ui\Contract\Navigation\NavigationArea;
+use Foresi\Ui\Contract\Navigation\NavigationItem;
+use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
 
 /**
  * The people of the organisation in the settings, for the staff.

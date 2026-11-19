@@ -4,7 +4,7 @@
     sheet. Edit loads the form in the same sheet, full screen while the lines are edited, and
     Save or Cancel bring this detail back (docs/design/overlays.md).
 #}
-{% extends 'layout/record.html.twig' %}
+{% extends '@Ui/layout/record.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'recurring.list.title'|trans, href: path('app_recurring')}, {label: title}] %}
 {% set doc = {id: template.id} %}

@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Infrastructure\Navigation;
 
-use Foresi\Ui\Navigation\NavigationCountProvider;
+use Foresi\Ui\Contract\Navigation\NavigationCountProvider;
 use Foresi\Work\Application\WorkQueries;
 
 /**

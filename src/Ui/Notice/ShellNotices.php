@@ -8,14 +8,14 @@ declare(strict_types=1);
 
 namespace Foresi\Ui\Notice;
 
+use Foresi\Ui\Contract\Notice\ShellNotice;
+use Foresi\Ui\Contract\Notice\ShellNoticeProvider;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Twig\Attribute\AsTwigFunction;
 
 /** Collects the notices of all providers for the app shell. */
 final readonly class ShellNotices
 {
-    public const string TAG = 'app.shell_notice';
-
     /** More than this would push the page itself out of view. */
     private const int MAX = 3;
 
@@ -23,7 +23,7 @@ final readonly class ShellNotices
      * @param iterable<ShellNoticeProvider> $providers
      */
     public function __construct(
-        #[AutowireIterator(self::TAG)]
+        #[AutowireIterator(ShellNoticeProvider::TAG)]
         private iterable $providers,
     ) {
     }

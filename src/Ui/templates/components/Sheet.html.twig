@@ -1,0 +1,35 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A right-edge panel: the resize grip on its left edge (a detail only), the header with the title
+    and an X, a body that alone scrolls, a footer with the buttons. Header and footer are shared with
+    Ui:Dialog.
+#}
+{% set footerSlot %}{% block footer %}{% endblock %}{% endset %}
+{% set bodySlot %}{% block content %}{% endblock %}{% endset %}
+{% set actionsSlot %}{% block actions %}{% endblock %}{% endset %}
+<dialog {{ attributes.defaults({
+    id: id,
+    class: this.classes,
+    'data-sheet': '',
+    'data-controller': 'dialog sheet',
+    'data-action': this.actions,
+    'data-dialog-layer-value': 'sheet',
+    'data-dialog-link-value': 'a[data-sheet]',
+    'data-dialog-source-value': 'dialog#sheet-page',
+    'data-dialog-fields-value': fields ? 'true' : 'false',
+    'data-dialog-dismissable-value': 'true',
+    'data-dialog-remote-value': remote ? 'true' : 'false',
+    'data-sheet-resizable-value': this.isResizable() ? 'true' : 'false',
+}) }}{% if not remote %} aria-labelledby="{{ id }}-title"{% if description %} aria-describedby="{{ id }}-description"{% endif %}{% endif %}>
+    {%- if not remote -%}
+        {% if this.isResizable() %}
+            {# APG window splitter: a focusable separator with its value; the arrow keys move it. #}
+            <div role="separator" aria-orientation="vertical" tabindex="0" aria-label="{{ 'ui.sheet.resize'|trans }}" aria-controls="{{ id }}" aria-valuemin="420" aria-valuemax="640" aria-valuenow="640" data-sheet-target="grip" data-action="pointerdown->sheet#grab keydown->sheet#key" class="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize touch-none bg-transparent transition-colors hover:bg-container focus-visible:bg-green max-sm:hidden"></div>
+        {% endif %}
+        {{ include('@Ui/components/_overlay_header.html.twig', {id: id, title: title, description: description, page: page, titleEdit: this.titleEditView, actions: actionsSlot, fullscreen: page and this.isResizable()}) }}
+        <div data-dialog-target="body" class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-6 max-sm:px-4">{{ bodySlot }}</div>
+        {% if footerSlot|trim is not empty %}
+            {{ include('@Ui/components/_overlay_footer.html.twig', {id: id, footer: footerSlot, asking: asking}) }}
+        {% endif %}
+    {%- endif -%}
+</dialog>

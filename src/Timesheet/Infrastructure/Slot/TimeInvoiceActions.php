@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace Foresi\Timesheet\Infrastructure\Slot;
 
 use Foresi\Timesheet\Infrastructure\Controller\TimeInvoiceController;
-use Foresi\Ui\Slot\SlotItem;
-use Foresi\Ui\Slot\SlotProvider;
+use Foresi\Ui\Contract\Slot\SlotItem;
+use Foresi\Ui\Contract\Slot\SlotProvider;
 use Foresi\Work\Contract\TimeBillingActions;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 

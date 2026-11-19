@@ -10,7 +10,7 @@ namespace Foresi\Work\Infrastructure\Controller;
 
 use Foresi\Identity\Application\OpenToGuest;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Ui\Component\DataTable;
+use Foresi\Ui\Contract\Opens;
 use Foresi\Work\Application\TaskGroup;
 use Foresi\Work\Application\TaskRow;
 use Foresi\Work\Application\WorkQueries;
@@ -124,7 +124,7 @@ final class MyTasksController extends AbstractController
         return [
             'id' => $task->id,
             'href' => $this->generateUrl(TaskController::ROUTE, ['id' => $task->id]),
-            'opens' => DataTable::OPENS_SHEET,
+            'opens' => Opens::SHEET,
             'label' => $task->title,
             'secondary' => $task->projectName,
             'cells' => [
