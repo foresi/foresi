@@ -232,7 +232,7 @@ final class BalanceChartTest extends KernelTestCase
 
     public function testRefusesMoreThanTwentyFourPeriods(): void
     {
-        $this->expectExceptionMessage('A balance chart shows 1 to 24 periods.');
+        $this->expectExceptionMessageIsOrContains('A balance chart shows 1 to 24 periods.');
         $this->chart(array_fill(0, 25, [0, 0, 1]));
     }
 
@@ -243,7 +243,7 @@ final class BalanceChartTest extends KernelTestCase
         $chart->legend = ['out' => 'Out', 'closing' => 'Closing'];
         $chart->periods = $this->periods([[1, 2, 3]]);
 
-        $this->expectExceptionMessage('The legend of a balance chart');
+        $this->expectExceptionMessageIsOrContains('The legend of a balance chart');
         $chart->validate();
     }
 
@@ -257,7 +257,7 @@ final class BalanceChartTest extends KernelTestCase
         self::assertNull($chart->minimumY());
 
         $chart->minimum = 2;
-        $this->expectExceptionMessage('The legend of a balance chart with a minimum');
+        $this->expectExceptionMessageIsOrContains('The legend of a balance chart with a minimum');
         $chart->validate();
     }
 
@@ -268,7 +268,7 @@ final class BalanceChartTest extends KernelTestCase
         $chart->legend = self::LEGEND;
         $chart->periods = [['label' => 'P', 'in' => '1', 'out' => 2, 'closing' => 3, 'inText' => 'a', 'outText' => 'b', 'closingText' => 'c']];
 
-        $this->expectExceptionMessage('A period of a balance chart needs the whole number "in".');
+        $this->expectExceptionMessageIsOrContains('A period of a balance chart needs the whole number "in".');
         $chart->validate();
     }
 
