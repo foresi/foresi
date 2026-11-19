@@ -358,7 +358,7 @@ final class TaskTrashTest extends WorkTestCase
         $attachment = new Attachment($id, $kind, $ownerId, 'notes.txt', 'text/plain', (int) filesize($source), (string) hash_file('sha256', $source), $key, $this->owner->user()->id(), $this->clock->now());
         unlink($source);
         if ($deleted) {
-            $attachment->delete($this->clock->now());
+            $attachment->delete($this->owner->user()->id(), $this->clock->now());
         }
         $this->em->persist($attachment);
         $this->em->flush();

@@ -67,7 +67,7 @@ final class PurgeAttachmentsTest extends TestCase
         $id = Id::generate();
         $attachment = new Attachment($id, $kind, $ownerId, 'notes.txt', 'text/plain', 5, str_repeat('a', 64), $id, Id::generate(), new \DateTimeImmutable());
         if ($deleted) {
-            $attachment->delete(new \DateTimeImmutable());
+            $attachment->delete(Id::generate(), new \DateTimeImmutable());
         }
 
         return $attachment;
@@ -87,6 +87,21 @@ final class PurgedAttachments implements Attachments
     public function get(string $id): ?Attachment
     {
         return null;
+    }
+
+    public function deleted(string $id): ?Attachment
+    {
+        return null;
+    }
+
+    public function deletedOf(string $ownerKind, string $ownerId): array
+    {
+        return [];
+    }
+
+    public function deletedBefore(\DateTimeImmutable $moment): array
+    {
+        return [];
     }
 
     public function allOf(string $ownerKind, array $ownerIds): array

@@ -212,14 +212,27 @@ test.describe('attachments', () => {
     await expect(dialog).toBeHidden();
   });
 
-  test('an attachment is deleted after the confirmation', async ({ page }) => {
+  test('a deleted attachment comes back with Vrátit zpět and from Smazané soubory', async ({ page }) => {
     await openTask(page);
     await page.locator('#task-attachment-file').setInputFiles({ name: 'obsolete.txt', mimeType: 'text/plain', buffer: Buffer.from('Obsolete.\n') });
     const row = page.locator('[data-attachment]').filter({ hasText: 'obsolete.txt' });
     await expect(row).toBeVisible();
+    // Deleting asks nothing: the message says so with its undo.
     await row.getByRole('button', { name: 'Smazat obsolete.txt' }).click();
-    await page.getByRole('alertdialog').or(page.getByRole('dialog')).getByRole('button', { name: 'Smazat' }).click();
+    await expect(page.locator('[data-attachment-trashed]')).toContainText('Soubor obsolete.txt je smazaný.');
     await expect(page.locator('[data-attachment]').filter({ hasText: 'obsolete.txt' })).toHaveCount(0);
     await expect(page.locator('[data-attachment]').filter({ hasText: 'brief.pdf' })).toBeVisible();
+    await page.locator('[data-attachment-trashed]').getByRole('button', { name: 'Vrátit zpět' }).click();
+    await expect(page.getByText('Soubor obsolete.txt je obnovený.')).toBeVisible();
+    await expect(page.locator('[data-attachment]').filter({ hasText: 'obsolete.txt' })).toBeVisible();
+
+    // Deleted again, it waits under Smazané soubory until restored.
+    await page.locator('[data-attachment]').filter({ hasText: 'obsolete.txt' }).getByRole('button', { name: 'Smazat obsolete.txt' }).click();
+    const trash = page.locator('[data-attachment-trash]');
+    await trash.getByText('Smazané soubory (1)').click();
+    await trash.getByRole('button', { name: 'Obnovit obsolete.txt' }).click();
+    await expect(page.getByText('Soubor obsolete.txt je obnovený.')).toBeVisible();
+    await expect(page.locator('[data-attachment]').filter({ hasText: 'obsolete.txt' })).toBeVisible();
+    await expect(page.locator('[data-attachment-trash]')).toHaveCount(0);
   });
 });

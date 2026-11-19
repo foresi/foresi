@@ -235,6 +235,35 @@ final class UploadAttachmentTest extends TestCase
         $this->delete()->delete($own->id());
     }
 
+    public function testWhoMayDeleteAFileRestoresItAndKnowsWhoDeletedIt(): void
+    {
+        $attachment = $this->upload()->upload('task', $this->owner, new AttachmentUpload($this->file('x'), 'a.txt', 1));
+        $this->delete()->delete($attachment->id());
+        self::assertSame($this->user, $attachment->deletedBy());
+
+        $this->actor = Id::generate();
+        try {
+            $this->delete()->restore($attachment->id());
+            self::fail('Restored by someone else.');
+        } catch (AttachmentRefused $refused) {
+            self::assertSame(AttachmentRefused::NOT_ALLOWED, $refused->reason);
+        }
+        self::assertTrue($attachment->isDeleted());
+
+        $this->access->delete = true;
+        $restored = $this->delete()->restore($attachment->id());
+        self::assertSame([false, null], [$restored->isDeleted(), $restored->deletedBy()]);
+        // Restoring one that stands changes nothing.
+        $this->delete()->restore($attachment->id());
+        self::assertFalse($attachment->isDeleted());
+
+        // A file of a record the person no longer sees is unknown.
+        $this->delete()->delete($attachment->id());
+        $this->access->see = false;
+        $this->expectExceptionObject(new AttachmentRefused(AttachmentRefused::UNKNOWN));
+        $this->delete()->restore($attachment->id());
+    }
+
     public function testTwoModulesCannotAnswerForOneKind(): void
     {
         $this->expectException(\LogicException::class);
@@ -404,6 +433,21 @@ final class InMemoryAttachments implements Attachments
     public function get(string $id): ?Attachment
     {
         return array_find($this->items, static fn (Attachment $a): bool => !$a->isDeleted() && $a->id() === $id);
+    }
+
+    public function deleted(string $id): ?Attachment
+    {
+        return array_find($this->items, static fn (Attachment $a): bool => $a->isDeleted() && $a->id() === $id);
+    }
+
+    public function deletedOf(string $ownerKind, string $ownerId): array
+    {
+        return array_values(array_filter($this->items, static fn (Attachment $a): bool => $a->isDeleted() && $a->belongsTo($ownerKind, $ownerId)));
+    }
+
+    public function deletedBefore(\DateTimeImmutable $moment): array
+    {
+        return array_values(array_filter($this->items, static fn (Attachment $a): bool => $a->isDeleted() && $a->deletedAt() < $moment));
     }
 
     public function allOf(string $ownerKind, array $ownerIds): array

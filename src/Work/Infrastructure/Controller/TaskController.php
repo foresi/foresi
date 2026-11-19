@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Infrastructure\Controller;
 
-use Foresi\Attachment\Application\AttachmentPermissions;
 use Foresi\Attachment\Application\VisibleAttachments;
 use Foresi\Attachment\Domain\Attachment;
 use Foresi\Audit\Application\AuditActor;
@@ -113,7 +112,6 @@ final class TaskController extends AbstractController
         private readonly InstanceClock $clock,
         private readonly TranslatorInterface $translator,
         private readonly VisibleAttachments $attachments,
-        private readonly AttachmentPermissions $attachmentPermissions,
         private readonly ManageNotifications $notifications,
         private readonly TimeQueries $time,
         private readonly InvoiceNumbers $invoiceNumbers,
@@ -650,6 +648,7 @@ final class TaskController extends AbstractController
             'createdAt' => $task->createdAt->format($this->translator->trans('format.datetime')),
             'dueValue' => $row->dueOn?->format('Y-m-d') ?? '',
             'attachments' => array_map(fn (Attachment $file): array => $this->attachmentItem($file, $names), $this->attachments->of(TaskAttachmentAccess::KIND, $row->id)),
+            'deletedAttachments' => array_map(fn (Attachment $file): array => $this->deletedAttachmentItem($file, $names), $this->attachments->deletedOf(TaskAttachmentAccess::KIND, $row->id)),
             'attachmentKind' => TaskAttachmentAccess::KIND,
             'time' => $time instanceof TaskTime ? $this->timeView($time) : null,
             'timeLoggable' => $task->manageable && $this->time->taskTarget($row->id) instanceof TimeTarget,
@@ -740,7 +739,28 @@ final class TaskController extends AbstractController
             'uploader' => $names[$file->uploadedBy()] ?? null,
             'time' => $file->createdAt()->format($this->translator->trans('format.datetime')),
             'datetime' => $file->createdAt()->format(\DATE_ATOM),
-            'canDelete' => $file->uploadedBy() === $this->actor->userId() || $this->attachmentPermissions->canDelete($file),
+            'canDelete' => $this->attachments->canDelete($file),
+        ];
+    }
+
+    /**
+     * A deleted file of the task as its deleted files show it, for a restore.
+     *
+     * @param array<string, string> $names the names of the people by user id
+     *
+     * @return array<string, mixed>
+     */
+    private function deletedAttachmentItem(Attachment $file, array $names): array
+    {
+        $deletedAt = $file->deletedAt() ?? throw new \LogicException('A deleted file.');
+
+        return [
+            'id' => $file->id(),
+            'name' => $file->fileName(),
+            'size' => FileSize::format($file->size(), $this->translator->getLocale()),
+            'deletedBy' => $names[$file->deletedBy() ?? ''] ?? null,
+            'time' => $deletedAt->format($this->translator->trans('format.datetime')),
+            'datetime' => $deletedAt->format(\DATE_ATOM),
         ];
     }
 

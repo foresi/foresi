@@ -87,11 +87,22 @@ final class AttachmentTest extends TestCase
         self::assertFalse($attachment->belongsTo('task_comment', $attachment->ownerId()));
         self::assertFalse($attachment->isDeleted());
 
-        $attachment->delete(new \DateTimeImmutable('2026-11-08 10:00'));
-        $attachment->delete(new \DateTimeImmutable('2026-11-09 10:00'));
+        $attachment->delete('user-1', new \DateTimeImmutable('2026-11-08 10:00'));
+        $attachment->delete('user-2', new \DateTimeImmutable('2026-11-09 10:00'));
 
         self::assertTrue($attachment->isDeleted());
-        self::assertSame('2026-11-08 10:00', $attachment->deletedAt()?->format('Y-m-d H:i'));
+        self::assertSame(['2026-11-08 10:00', 'user-1'], [$attachment->deletedAt()?->format('Y-m-d H:i'), $attachment->deletedBy()]);
+    }
+
+    public function testARestoredAttachmentStandsAgainAndRestoringOneThatStandsChangesNothing(): void
+    {
+        $attachment = $this->attachment();
+        $attachment->restore();
+        self::assertSame([false, null, null], [$attachment->isDeleted(), $attachment->deletedAt(), $attachment->deletedBy()]);
+
+        $attachment->delete('user-1', new \DateTimeImmutable('2026-11-08 10:00'));
+        $attachment->restore();
+        self::assertSame([false, null, null], [$attachment->isDeleted(), $attachment->deletedAt(), $attachment->deletedBy()]);
     }
 
     public function testTheLongestKindAndMediaTypeAreAccepted(): void

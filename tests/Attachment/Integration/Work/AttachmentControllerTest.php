@@ -9,6 +9,10 @@ declare(strict_types=1);
 namespace Foresi\Tests\Attachment\Integration\Work;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Attachment\Application\AttachmentFiles;
+use Foresi\Attachment\Application\AttachmentFileUnreadable;
+use Foresi\Attachment\Application\PurgeAttachmentTrashDaily;
+use Foresi\Attachment\Application\PurgeDeletedAttachments;
 use Foresi\Attachment\Infrastructure\Controller\AttachmentController;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
@@ -19,6 +23,7 @@ use Foresi\Work\Domain\ProjectStatus;
 use Foresi\Work\Domain\Task;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Clock\MockClock;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
@@ -164,6 +169,111 @@ final class AttachmentControllerTest extends WebTestCase
             $this->client->request('POST', '/attachments/'.$this->uploaded('id').'/delete', ['_token' => $this->token(AttachmentController::DELETE_TOKEN), 'return' => $elsewhere]);
             self::assertResponseRedirects('/', 303, $elsewhere);
         }
+    }
+
+    public function testADeletedFileComesBackByTheUndoOfItsMessageOrFromTheDeletedFilesOfItsTask(): void
+    {
+        $this->seed();
+        $page = '/tasks/'.$this->task.'#task-attachments-title';
+        $this->upload($this->file('report', 'report.txt'));
+        $id = $this->uploaded('id');
+
+        // Deleting asks nothing: the form carries no confirmation.
+        $crawler = $this->client->request('GET', '/tasks/'.$this->task);
+        $delete = $crawler->filter('form[data-attachment-delete]');
+        self::assertNull($delete->attr('data-confirm-title'));
+        self::assertCount(0, $crawler->filter('[data-attachment-trash]'));
+
+        $this->client->submit($delete->form());
+        self::assertResponseRedirects($page, 303);
+        self::assertNotNull($this->em->getConnection()->fetchOne('SELECT deleted_by FROM attachment WHERE id = ?', [$id]));
+        $crawler = $this->client->followRedirect();
+        $flash = $crawler->filter('[data-attachment-trashed]');
+        self::assertStringContainsString('The file report.txt is deleted.', $flash->text());
+        $undo = $flash->filter('form[data-alert-action]');
+        self::assertSame('Undo', trim($undo->filter('button')->text()));
+
+        // The deleted file is listed under the files, never served.
+        self::assertCount(0, $crawler->filter('[data-attachment="'.$id.'"]'));
+        $trash = $crawler->filter('[data-attachment-trash]');
+        self::assertStringContainsString('Deleted files (1)', $trash->filter('summary')->text());
+        self::assertStringContainsString('report.txt', $trash->text());
+        self::assertCount(0, $trash->filter('a[href="/attachments/'.$id.'"]'));
+        $this->client->request('GET', '/attachments/'.$id);
+        self::assertResponseStatusCodeSame(404);
+
+        $this->client->submit($undo->form());
+        self::assertResponseRedirects($page, 303);
+        $crawler = $this->client->followRedirect();
+        self::assertStringContainsString('The file report.txt is restored.', $crawler->filter('main')->text());
+        self::assertCount(1, $crawler->filter('[data-attachment="'.$id.'"]'));
+        self::assertCount(0, $crawler->filter('[data-attachment-trash]'));
+        $this->client->request('GET', '/attachments/'.$id);
+        self::assertResponseIsSuccessful();
+
+        // Restore from the deleted files of the task.
+        $crawler = $this->client->request('GET', '/tasks/'.$this->task);
+        $this->client->submit($crawler->filter('form[data-attachment-delete]')->form());
+        $crawler = $this->client->followRedirect();
+        $restore = $crawler->filter('[data-attachment-deleted="'.$id.'"] form[data-attachment-restore]');
+        self::assertSame(['Restore', 'Restore report.txt'], [trim($restore->filter('button')->text()), $restore->filter('button')->attr('aria-label')]);
+        $this->client->submit($restore->form());
+        self::assertResponseRedirects($page, 303);
+        self::assertNull($this->em->getConnection()->fetchOne('SELECT deleted_at FROM attachment WHERE id = ?', [$id]));
+
+        $this->client->request('POST', '/attachments/'.$id.'/restore', ['_token' => 'forged', 'return' => $page]);
+        self::assertResponseStatusCodeSame(403);
+        $this->client->request('POST', '/attachments/'.Id::generate().'/restore', ['_token' => $this->token(AttachmentController::DELETE_TOKEN), 'return' => $page]);
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testAMemberNeitherSeesNorRestoresTheDeletedFileOfAnother(): void
+    {
+        $this->seed();
+        $page = '/tasks/'.$this->task;
+        $this->upload($this->file('report', 'report.txt'));
+        $id = $this->uploaded('id');
+        $connection = $this->em->getConnection();
+        $connection->update('attachment', ['uploaded_by' => Id::generate(), 'deleted_at' => '2026-11-18 10:00:00'], ['id' => $id]);
+        $connection->executeStatement('UPDATE membership SET role = ?', [Role::Member->value]);
+
+        $crawler = $this->client->request('GET', $page);
+        self::assertCount(0, $crawler->filter('[data-attachment-trash]'));
+        $this->client->request('POST', '/attachments/'.$id.'/restore', ['_token' => $this->token(AttachmentController::DELETE_TOKEN), 'return' => $page]);
+        self::assertResponseRedirects($page, 303);
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'You cannot restore this file');
+        self::assertNotNull($connection->fetchOne('SELECT deleted_at FROM attachment WHERE id = ?', [$id]));
+    }
+
+    public function testFilesDeletedMoreThan30DaysAgoArePurgedWithTheirFileOnDisk(): void
+    {
+        $this->seed();
+        $connection = $this->em->getConnection();
+        $files = self::getContainer()->get(AttachmentFiles::class);
+        $ids = [];
+        foreach (['old', 'recent', 'standing'] as $name) {
+            $this->upload($this->file($name, $name.'.txt'));
+            $ids[$name] = $this->uploaded('id');
+        }
+        $now = new \DateTimeImmutable('2026-11-19 03:00:00');
+        $connection->update('attachment', ['deleted_at' => '2026-10-19 02:59:59', 'deleted_by' => Id::generate()], ['id' => $ids['old']]);
+        $connection->update('attachment', ['deleted_at' => '2026-10-20 10:00:00', 'deleted_by' => Id::generate()], ['id' => $ids['recent']]);
+        $key = $connection->fetchOne('SELECT storage_key FROM attachment WHERE id = ?', [$ids['old']]);
+        self::assertIsString($key);
+        $files->locate($ids['old'], $key);
+
+        $job = new PurgeAttachmentTrashDaily(self::getContainer()->get(PurgeDeletedAttachments::class), new MockClock($now));
+        self::assertSame('attachment-trash-purge', $job->name());
+        $job->run(null);
+
+        self::assertEqualsCanonicalizing([$ids['recent'], $ids['standing']], $connection->fetchFirstColumn('SELECT id FROM attachment'));
+        try {
+            $files->locate($ids['old'], $key);
+            self::fail('The file of a purged attachment is still on disk.');
+        } catch (AttachmentFileUnreadable) {
+        }
+        self::assertSame(0, self::getContainer()->get(PurgeDeletedAttachments::class)->run($now));
     }
 
     public function testAMemberCannotDeleteTheFileOfAnother(): void

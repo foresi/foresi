@@ -9,12 +9,17 @@ attachment:
   preview: Náhled
   open: 'Otevřít {name}'
   download: Stáhnout
-  delete: Smazat
   delete_label: 'Smazat {name}'
-  delete_confirm:
-    title: 'Smazat {name}?'
-    text: Soubor zmizí z úkolu.
+  trash:
+    title: 'Smazané soubory ({count})'
+    deleted: 'Soubor {name} je smazaný.'
+    undo: Vrátit zpět
+    restore: Obnovit
+    restore_label: 'Obnovit {name}'
+    restored: 'Soubor {name} je obnovený.'
+    deleted_by: 'Smazal(a) {name}'
   error:
+    cannot_restore: Tento soubor obnovit nemůžete
     cannot_delete: Tento soubor smazat nemůžete
     too_big: Soubor musí být menší než 50 MB
     empty: Soubor je prázdný
