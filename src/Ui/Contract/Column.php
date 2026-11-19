@@ -9,71 +9,46 @@ declare(strict_types=1);
 namespace Foresi\Ui\Contract;
 
 /**
- * One column a module declares for a list (ListColumns). Its key is stable: a saved view keeps
- * the columns by key, never by position. The cell renderer turns one row of the list, as the
- * list's own module passes it, into the value of a Ui:DataTable cell: a text, or an array the
- * table reads (text with a tone, badges, links and so on).
- *
- * A column is shown by default when it is defaultVisible and available in the list's context;
- * the default order is by defaultPosition. A locked column, the one that names the row, cannot
- * be hidden. A column is sortable only by a sortKey the list's server query supports.
+ * The column of a list that shows one attribute of its data source (spec DS1): the attribute's
+ * key, label and defaults, aligned by its type, sortable by its key when the list's query can
+ * sort by it, and its cell, the attribute's own or its value formatted by type. The registry of
+ * the screens derives it; a module declares attributes, never columns.
  */
 final readonly class Column
 {
-    public const int MIN_WIDTH = 64;
     public const array ALIGNS = ['left', 'right', 'center'];
 
-    /** The cell renderer; each list types the row it passes, so the column cannot type it here. */
-    private \Closure $cell;
-
-    /** @var (\Closure(array<string, mixed>): bool)|null */
-    private ?\Closure $available;
+    public string $key;
+    public string $label;
+    public bool $defaultVisible;
+    public int $defaultPosition;
+    public ?int $defaultWidth;
+    public int $minWidth;
+    public string $align;
+    /** The attribute's key when the list's query sorts by it, as ?sort= names it. */
+    public ?string $sortKey;
+    public bool $locked;
+    public bool $phone;
+    public bool $wide;
+    public bool $truncate;
 
     /**
-     * @param string                                      $label        the translation key of the header
-     * @param callable                                    $cell         the cell of one row, given the row as the list passes it and the list's context
-     * @param int|null                                    $defaultWidth in px; null sizes the column to its content
-     * @param bool                                        $phone        false leaves the column out on a phone
-     * @param bool                                        $wide         true shows the column on a wide screen only
-     * @param bool                                        $truncate     true lets the column give way, cut with an ellipsis
-     * @param (callable(array<string, mixed>): bool)|null $available    whether the list's context offers the column at all
+     * @param \Closure(mixed, array<string, mixed>): mixed $cell the cell of one row, given the row as the list passes it and the list's context
      */
-    public function __construct(
-        public string $key,
-        public string $label,
-        callable $cell,
-        public bool $defaultVisible = true,
-        public int $defaultPosition = 0,
-        public ?int $defaultWidth = null,
-        public int $minWidth = self::MIN_WIDTH,
-        public string $align = 'left',
-        public ?string $sortKey = null,
-        public bool $locked = false,
-        public bool $phone = true,
-        public bool $wide = false,
-        public bool $truncate = false,
-        ?callable $available = null,
-    ) {
-        if (1 !== preg_match('/^[a-z][A-Za-z0-9_.]*$/', $key)) {
-            throw new \InvalidArgumentException(\sprintf('A column key is a stable identifier such as "dueDate", not "%s".', $key));
-        }
-        if ('' === $label) {
-            throw new \InvalidArgumentException('A column needs a label.');
-        }
-        if (!\in_array($align, self::ALIGNS, true)) {
-            throw new \InvalidArgumentException(\sprintf('Column align must be one of: %s.', implode(', ', self::ALIGNS)));
-        }
-        if ($minWidth < 1) {
-            throw new \InvalidArgumentException('A column is at least 1 px wide.');
-        }
-        if (null !== $defaultWidth && $defaultWidth < $minWidth) {
-            throw new \InvalidArgumentException(\sprintf('The default width of column "%s" is below its minimum width.', $key));
-        }
-        if ('' === $sortKey) {
-            throw new \InvalidArgumentException('A sort key cannot be empty; leave it null for a column the server does not sort by.');
-        }
-        $this->cell = \Closure::fromCallable($cell);
-        $this->available = null === $available ? null : $available(...);
+    public function __construct(public Attribute $attribute, private \Closure $cell)
+    {
+        $this->key = $attribute->key;
+        $this->label = $attribute->label;
+        $this->defaultVisible = $attribute->defaultVisible;
+        $this->defaultPosition = $attribute->defaultPosition;
+        $this->defaultWidth = $attribute->defaultWidth;
+        $this->minWidth = $attribute->minWidth;
+        $this->align = $attribute->type->numeric() ? 'right' : 'left';
+        $this->sortKey = $attribute->sortable() ? $attribute->key : null;
+        $this->locked = $attribute->locked;
+        $this->phone = $attribute->phone;
+        $this->wide = $attribute->wide;
+        $this->truncate = $attribute->truncate;
     }
 
     /**
@@ -81,7 +56,7 @@ final readonly class Column
      */
     public function cell(mixed $row, array $context = []): mixed
     {
-        return \call_user_func($this->cell, $row, $context);
+        return ($this->cell)($row, $context);
     }
 
     /**
@@ -89,6 +64,6 @@ final readonly class Column
      */
     public function available(array $context = []): bool
     {
-        return null === $this->available || ($this->available)($context);
+        return $this->attribute->available($context);
     }
 }

@@ -32,10 +32,11 @@ use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\RegistryCheck;
 use Foresi\Party\Domain\RegistryResult;
 use Foresi\Party\Domain\VatId;
-use Foresi\Party\Infrastructure\Column\ContactColumns;
+use Foresi\Party\Infrastructure\Column\ContactSource;
 use Foresi\Party\Infrastructure\Form\PartySubmissionReader;
 use Foresi\Party\Infrastructure\Http\WebsiteLink;
 use Foresi\Shared\Domain\Id;
+use Foresi\Ui\Column\ListColumnRegistry;
 use Foresi\Ui\Column\WorkingDisplay;
 use Foresi\Ui\Column\WorkingState;
 use Foresi\Ui\Component\DataTable;
@@ -82,8 +83,9 @@ final class PartyController extends AbstractController
         private readonly ContactImports $imports,
         #[Autowire(service: 'limiter.party_refresh_checks')]
         private readonly RateLimiterFactory $refreshLimiter,
-        private readonly ContactColumns $contactColumns,
+        private readonly ContactSource $contactSource,
         private readonly WorkingDisplay $workingDisplay,
+        private readonly ListColumnRegistry $listColumns,
     ) {
     }
 
@@ -94,7 +96,8 @@ final class PartyController extends AbstractController
         $view = \in_array($view, self::VIEWS, true) ? $view : 'all';
         $text = trim(mb_substr($request->query->getString('q'), 0, self::MAX_SEARCH));
         $sort = $request->query->getString('sort', 'name');
-        $sort = \in_array(ltrim($sort, '-'), PartyQuery::SORTS, true) ? $sort : 'name';
+        // By any attribute the list sorts by, under its key; an older key such as vat still sorts (spec DS2).
+        $sort = $this->listColumns->sort(ContactSource::LIST, $sort, 'name');
         $role = match ($view) {
             'customers' => PartyRole::Customer,
             'suppliers' => PartyRole::Supplier,
@@ -105,7 +108,7 @@ final class PartyController extends AbstractController
         $page = $this->contacts->search($text, $role, 'archived' === $view, $sort, max(1, $request->query->getInt('page', 1)), $importedBy);
         $counts = $this->contacts->counts();
         // The columns and density changed in the Columns sheet, kept in the address (spec D10); the contacts have no saved views yet.
-        $working = $this->workingDisplay->read(ContactColumns::LIST, [], null, $request->query->all());
+        $working = $this->workingDisplay->read(ContactSource::LIST, [], null, $request->query->all());
         $query = ['view' => 'all' === $view ? null : $view, 'q' => '' === $text ? null : $text, 'sort' => 'name' === $sort ? null : $sort]
             + ($importedBy instanceof ImportedBy ? ['import' => $importedBy->importId, 'outcome' => $importedBy->outcome] : [])
             + $working->query;
@@ -382,7 +385,7 @@ final class PartyController extends AbstractController
                 'href' => $this->generateUrl('app_contact_show', ['id' => $row->id]),
                 // The contact opens in the side sheet over the list (docs/design/overlays.md).
                 'opens' => DataTable::OPENS_SHEET,
-                'secondary' => implode(' · ', array_filter([$this->contactColumns->roles($row), $row->registrationNumber, $row->email], static fn (?string $part): bool => null !== $part && '' !== $part)),
+                'secondary' => implode(' · ', array_filter([$this->contactSource->roles($row), $row->registrationNumber, $row->email], static fn (?string $part): bool => null !== $part && '' !== $part)),
                 'cells' => $cells,
             ];
         }, $page->rows);
