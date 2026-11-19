@@ -362,7 +362,7 @@ work:
     deleted: 'The task “{title}” is in the trash.'
     undo: Undo
     restore: Restore
-    restored: 'The task “{title}” is back.'
+    restored: 'The task “{title}” is restored.'
     purge: '{days, plural, one {Tasks in the trash are deleted for good after # day.} other {Tasks in the trash are deleted for good after # days.}}'
     subtask_of: 'Subtask of {title}'
     column:

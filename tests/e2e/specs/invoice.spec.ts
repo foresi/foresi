@@ -1109,7 +1109,7 @@ test.describe.serial('an invoice', () => {
     await row.getByRole('button', { name: /Další akce/ }).click();
     await row.getByRole('menuitem', { name: 'Smazat' }).click();
     await page.getByRole('textbox', { name: /Důvod/ }).fill('Duplicita');
-    await page.getByRole('button', { name: 'Přesunout do koše' }).click();
+    await page.getByRole('button', { name: 'Smazat fakturu', exact: true }).click();
     await expect(page.getByText(/je v koši\./)).toBeVisible();
 
     await page.goto('/invoices?tab=trash');
