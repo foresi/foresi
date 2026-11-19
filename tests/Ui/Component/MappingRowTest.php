@@ -103,11 +103,11 @@ final class MappingRowTest extends KernelTestCase
         $this->mountTwigComponent('Ui:MappingRow', ['id' => 'column-0', 'name' => 'columns[0]', 'label' => 'Firma', 'options' => $this->options(), 'review' => ' ']);
     }
 
-    public function testAColumnWithoutSamplesShowsADash(): void
+    public function testAColumnWithoutSamplesShowsTheEmptyBadge(): void
     {
         $crawler = $this->renderTwigComponent('Ui:MappingRow', ['id' => 'c', 'name' => 'c', 'label' => 'Column 7', 'options' => ['' => 'Do not import']])->crawler();
 
-        self::assertSame('—', $crawler->filter('p span[aria-hidden="true"]')->text());
+        self::assertSame('Nezadáno', $crawler->filter('p [data-empty-value]')->text());
     }
 
     public function testRejectsMissingOptionsAndAnEmptyGroup(): void

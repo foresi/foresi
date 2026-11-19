@@ -380,7 +380,6 @@ invoice:
     title_payment_tax_document: Daňové doklady k platbě
     title_correction_document: Opravné doklady
     views: Seznamy faktur
-    more_views: Další pohledy
     all_firms: Všechny firmy
     search_label: Hledat ve fakturách
     search_placeholder: Číslo, zákazník nebo popis
@@ -495,10 +494,10 @@ invoice:
       unsettled_text: Nic uhrazeného nečeká na odečtení v konečné faktuře.
   trash:
     title: 'Smazat fakturu {number}'
-    keeps: Přesune se do koše a nechá si číslo, které se už nikdy nepoužije.
+    keeps: Přesune se do koše a nechá si číslo, které se už nikdy nepoužije. Z koše ji jde obnovit.
     reason: Důvod
     reason_help: Zůstane v historii faktury.
-    submit: Přesunout do koše
+    submit: Smazat fakturu
   history:
     title: 'Historie faktury {number}'
     card: Historie
@@ -592,7 +591,7 @@ invoice:
     number_changed: 'Faktura je uložená pod číslem {number}. Číslo se změnilo.'
     already_saved: Tento formulář už byl uložen.
     trashed: 'Faktura {number} je v koši.'
-    restored: 'Faktura {number} je zpět v seznamu.'
+    restored: 'Faktura {number} je obnovená.'
     delivered: 'Faktura {number} je označená jako doručená.'
     export_cleared: 'Doklad {number} už nemá příznak exportu, další export ho zahrne.'
   card:
@@ -1058,6 +1057,8 @@ recurring:
   list:
     title: Pravidelné faktury
     views: Seznamy pravidelných faktur
+    # The next issue date of a paused or ended recurring invoice.
+    no_next: Žádná další
     failed: 'Selhalo: {reason}'
     fix:
       mail: Nastavit poštovní server
@@ -1312,6 +1313,8 @@ tax_document:
     intro: Když se platba zálohy zruší nebo vrátí poté, co odběratel dostal daňový doklad, vystaví se opravný daňový doklad do 15 dnů ode dne zrušení nebo vrácení. Doklad odečtený na konečné faktuře se opraví až po uvolnění odečtu.
     empty: Žádný daňový doklad na opravu nečeká.
     deducted: odečtený na konečné faktuře
+    field:
+      deducted: Odečtený na konečné faktuře
     notice: '{late, select, yes {{count, plural, one {Daňový doklad je} few {# daňové doklady jsou} other {# daňových dokladů je}} po termínu opravy.} other {{count, plural, one {Daňový doklad čeká} few {# daňové doklady čekají} other {# daňových dokladů čeká}} na opravný doklad, první do {date}.}}'
     column:
       number: Daňový doklad

@@ -4,8 +4,10 @@
         {% for item in this.views %}
             <div class="min-w-0 bg-white p-4">
                 <dt class="mb-0.5 text-caption text-muted">{{ item.label }}</dt>
-                <dd class="m-0 truncate text-ink {{ item.big ? 'num text-heading font-semibold' : 'font-medium' }}" title="{{ item.value }}">
-                    {%- if item.href is not null -%}
+                <dd class="m-0 truncate text-ink {{ item.big ? 'num text-heading font-semibold' : 'font-medium' }}"{% if item.value is not null %} title="{{ item.value }}"{% endif %}>
+                    {%- if item.value is null -%}
+                        <twig:Ui:EmptyValue :label="item.empty" />
+                    {%- elseif item.href is not null -%}
                         <a href="{{ item.href }}" rel="noopener noreferrer" class="underline decoration-control-line underline-offset-2 hover:decoration-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green">{{ item.value }}</a>
                     {%- else -%}
                         {{ item.value }}

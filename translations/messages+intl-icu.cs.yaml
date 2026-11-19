@@ -237,6 +237,8 @@ ui:
     review: Ověřte
   empty_state:
     title: Zatím tu nic není
+  # A value that is not filled in, in a list cell or on a detail page.
+  empty_value: Nezadáno
   table:
     caption: Tabulka
     select_all: Vybrat všechny řádky

@@ -15,7 +15,7 @@
     <div class="grid gap-4">
         <dl class="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-small">
             <dt class="text-muted">{{ 'bank.message.view.subject'|trans }}</dt><dd class="m-0 font-medium text-ink [overflow-wrap:anywhere]" data-message-subject>{{ subject }}</dd>
-            <dt class="text-muted">{{ 'bank.message.view.from'|trans }}</dt><dd class="m-0 text-ink [overflow-wrap:anywhere]">{{ from ?: "—" }}</dd>
+            <dt class="text-muted">{{ 'bank.message.view.from'|trans }}</dt><dd class="m-0 text-ink [overflow-wrap:anywhere]">{% if from %}{{ from }}{% else %}<twig:Ui:EmptyValue />{% endif %}</dd>
             <dt class="text-muted">{{ 'bank.message.view.received'|trans }}</dt><dd class="num m-0 text-ink">{{ received }}</dd>
             <dt class="text-muted">{{ 'bank.message.view.account'|trans }}</dt><dd class="m-0 text-ink [overflow-wrap:anywhere]">{{ account }}</dd>
             <dt class="text-muted">{{ 'bank.message.view.status'|trans }}</dt><dd class="m-0"><twig:Ui:Badge :tone="status.tone">{{ status.text }}</twig:Ui:Badge>{% if reason %} <span class="text-muted">{{ reason }}</span>{% endif %}</dd>

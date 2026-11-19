@@ -112,6 +112,22 @@ final class Style
     }
 
     /**
+     * A value that may be missing: null or an empty string both mean "not set", which the
+     * component shows as a Ui:EmptyValue.
+     *
+     * @param array<string, mixed> $item
+     */
+    public static function optionalString(array $item, string $key, string $what): ?string
+    {
+        $value = $item[$key] ?? null;
+        if (null !== $value && !is_string($value)) {
+            throw new \InvalidArgumentException(sprintf('%s "%s" must be a string or null.', $what, $key));
+        }
+
+        return '' === $value ? null : $value;
+    }
+
+    /**
      * Validates a badge definition with a label and an optional tone.
      *
      * @return array{label: string, tone: string}

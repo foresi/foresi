@@ -172,7 +172,7 @@ test.describe.serial('dialogs', () => {
       await expectNoSeriousViolations(page);
       await expectNoSidewaysScroll(page);
       await page.screenshot({ path: `${SHOTS}/dialog-trash-${name}.png` });
-      await dialog.getByRole('button', { name: 'Přesunout do koše' }).click();
+      await dialog.getByRole('button', { name: 'Smazat fakturu', exact: true }).click();
       await expect(dialog.locator('#trash-reason')).toBeFocused();
       await expect(dialog).toContainText('Napište, proč fakturu mažete.');
       await settled(dialog);
@@ -184,7 +184,7 @@ test.describe.serial('dialogs', () => {
     }
     const dialog = page.getByRole('dialog', { name: 'Smazat fakturu 20260003' });
     await dialog.locator('#trash-reason').fill('Vystaveno omylem');
-    await dialog.getByRole('button', { name: 'Přesunout do koše' }).click();
+    await dialog.getByRole('button', { name: 'Smazat fakturu', exact: true }).click();
 
     await expect(page.getByText('Faktura 20260003 je v koši.')).toBeVisible();
     await page.setViewportSize(DESKTOP);
