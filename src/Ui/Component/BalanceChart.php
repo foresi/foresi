@@ -129,7 +129,8 @@ final class BalanceChart
         // The steps are whole numbers, so the gridlines fall on whole units exactly.
         $formatter = new \NumberFormatter($this->locales->getLocale(), \NumberFormatter::DECIMAL);
         $ticks = [];
-        for ($value = $this->low; $value <= $this->high; $value += $this->step) {
+        // range(), not a loop of our own: a mutant of a loop's step never ends and takes the CI runner's memory with it.
+        foreach (range($this->low, $this->high, $this->step) as $value) {
             $text = $formatter->format($value);
             $ticks[] = ['y' => $this->y($value), 'text' => false === $text ? '' : $text, 'zero' => 0.0 === $value];
         }
