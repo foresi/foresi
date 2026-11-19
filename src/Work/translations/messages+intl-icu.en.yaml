@@ -219,7 +219,7 @@ work:
     labels_removed: '{count, plural, one {Label removed} other {Labels removed}}: {names}'
     due: 'Due date {from} → {to}'
     priority: 'Priority {from} → {to}'
-    no_date: —
+    no_date: not set
     shared: 'Shared with: {names}'
     unshared: 'Stopped sharing with: {names}'
     private:

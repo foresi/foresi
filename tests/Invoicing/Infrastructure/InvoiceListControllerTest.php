@@ -1155,7 +1155,7 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('tr[data-id="'.$read->id().'"] [data-icon-cell] svg'));
         self::assertStringContainsString('Read', $crawler->filter('tr[data-id="'.$read->id().'"] [data-row-secondary]')->text());
         // The status badge is separate and stays as it was.
-        self::assertSame('Delivered', $crawler->filter('tr[data-id="'.$sent->id().'"] td .rounded-sm')->last()->text());
+        self::assertSame('Delivered', $crawler->filter('tr[data-id="'.$sent->id().'"] td .rounded-sm:not([data-empty-value])')->last()->text());
     }
 
     public function testReadSurvivesALaterFailedResend(): void

@@ -1,0 +1,9 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<twig:Ui:EmptyValue /><twig:Ui:Badge tone="gray">Gray badge, a real value</twig:Ui:Badge>
+{% endblock %}{% endembed %}
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'variants'} %}{% block sample %}
+<twig:Ui:EmptyValue label="No response" /><twig:Ui:EmptyValue label="None scheduled" />
+{% endblock %}{% endembed %}
+</div>

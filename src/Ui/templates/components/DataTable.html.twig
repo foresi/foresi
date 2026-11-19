@@ -106,14 +106,14 @@
                                             </span>
                                         {%- elseif cell.icon -%}
                                             <span class="inline-flex items-center gap-1.5"{% if cell.hint %} title="{{ cell.hint }}"{% endif %} data-icon-cell="{{ cell.icon }}">{{ ux_icon('lucide:' ~ cell.icon, {class: 'size-4 shrink-0 ' ~ cell.iconClass, 'aria-hidden': 'true'}) }}<span>{{ cell.text }}</span></span>
+                                        {%- elseif cell.text is same as('') -%}
+                                            <twig:Ui:EmptyValue :label="cell.empty" />
                                         {%- elseif cell.tone -%}
                                             <twig:Ui:Badge :tone="cell.tone" :title="cell.hint ?: false">{{ cell.text }}{% if cell.hint %}<span class="sr-only"> · {{ cell.hint }}</span>{% endif %}</twig:Ui:Badge>
                                         {%- elseif cell.link -%}
                                             <a href="{{ cell.link }}" data-row-link{% if cell.plain %} data-turbo="false"{% elseif cell.opens != 'page' %} data-{{ cell.opens }} aria-haspopup="dialog"{% endif %}{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate font-medium text-ink no-underline {{ focus }}">{{ cell.text }}</a>
                                         {%- elseif cell.numeric -%}
                                             <span class="num"{% if cell.title %} title="{{ cell.title }}"{% endif %}>{{ cell.text }}</span>
-                                        {%- elseif cell.text is same as('') -%}
-                                            <span class="text-muted" aria-hidden="true">—</span>
                                         {%- else -%}
                                             <span class="block {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate"{% if cell.title %} title="{{ cell.title }}"{% endif %}>{{ cell.text }}</span>
                                         {%- endif -%}

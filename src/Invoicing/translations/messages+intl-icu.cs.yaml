@@ -1058,6 +1058,8 @@ recurring:
   list:
     title: Pravidelné faktury
     views: Seznamy pravidelných faktur
+    # The next issue date of a paused or ended recurring invoice.
+    no_next: Žádná další
     failed: 'Selhalo: {reason}'
     fix:
       mail: Nastavit poštovní server

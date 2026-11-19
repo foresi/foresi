@@ -13,7 +13,7 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, opens: string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string, opens: string}>, avatar: ?array{name: string, seed: string}, badges: list<array{label: string, tone: string}>, flag: ?array{label: string, tone: string, icon: ?string}, edit: ?array<array-key, mixed>}
+ * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, opens: string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string, opens: string}>, avatar: ?array{name: string, seed: string}, badges: list<array{label: string, tone: string}>, flag: ?array{label: string, tone: string, icon: ?string}, edit: ?array<array-key, mixed>, empty: ?string}
  * @phpstan-type Confirm array{title: string, text: ?string, accept: ?string, cancel: ?string, tone: ?string}
  * @phpstan-type Action array{label: string, href: string, method: string, confirm: ?Confirm, icon: ?string, plain: bool, dialog: bool, fields: array<string, string>}
  * @phpstan-type RowAlert array{text: string, column: string, href: ?string, action: ?string}
@@ -400,6 +400,12 @@ final class DataTable
             unset($value['edit']);
             $value = [] === $value ? null : (array_keys($value) === ['text'] ? $value['text'] : $value);
         }
+        $empty = null;
+        if (is_array($value) && array_key_exists('empty', $value)) {
+            // No value, said in words of its own where the general "Not set" would mislead, such as "No response".
+            $empty = is_string($value['empty']) && '' !== $value['empty'] ? $value['empty'] : throw new \InvalidArgumentException('An empty cell label must be a non-empty string.');
+            $value = null;
+        }
         if (is_array($value) && isset($value['flag'])) {
             // A text with a badge after it that marks the row, such as a private task.
             $text = isset($value['text']) && is_string($value['text']) && '' !== $value['text'] ? $value['text'] : throw new \InvalidArgumentException('A flagged cell needs a text.');
@@ -463,6 +469,7 @@ final class DataTable
             'badges' => $badges,
             'flag' => $flag,
             'edit' => $edit,
+            'empty' => $empty,
         ];
     }
 
