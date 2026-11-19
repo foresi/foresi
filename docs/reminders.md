@@ -18,7 +18,7 @@ At most 10 reminders go out per invoice, counting those sent by hand.
 
 The reminder run starts at **08:00** in the organisation's time zone every day (see [recurring.md](recurring.md#the-organisations-time-zone) for the zone). An invoice is reminded on a day when all of these hold:
 
-- it is outside the trash and was delivered (sent, or marked delivered);
+- it is outside the trash and was sent (by e-mail, or marked sent by hand);
 - it fell due on or after the day reminders were switched on, so switching on never sends a wave about old invoices;
 - its contact is reminded for this firm (below);
 - it still owes something after its recorded payments, and at least the minimum; an invoice in another currency is reminded whatever its amount;

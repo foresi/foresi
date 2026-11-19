@@ -267,7 +267,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
         $items = [];
         foreach ($this->rowsOf($kept, $todays) as $index => $row) {
             $invoice = $kept[$index][0];
-            $items[] = new InvoiceListItem($row, $invoice->firm()->id(), $invoice->customerParty()->id(), $invoice->taxPointDate(), $invoice->createdAt());
+            $items[] = new InvoiceListItem($row, $invoice->firm()->id(), $invoice->customerParty()->id(), $invoice->taxPointDate(), $invoice->createdAt(), $invoice->deliveredAt());
         }
 
         return new InvoiceSlice($items, \count($results) > $limit);

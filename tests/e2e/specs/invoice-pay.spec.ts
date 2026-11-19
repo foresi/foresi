@@ -40,12 +40,12 @@ test.describe.serial('paying an invoice', () => {
       await page.setViewportSize(size);
       await page.goto('/invoices');
       if (name === 'desktop') {
-        await expect(status(page, '20260003')).toHaveText('Uhrazeno');
-        await expect(status(page, '20260002')).toHaveText('Částečně uhrazeno · zbývá 1 420,00 Kč');
+        await expect(status(page, '20260003')).toHaveText('Uhrazená');
+        await expect(status(page, '20260002')).toHaveText('Částečně uhrazená · zbývá 1 420,00 Kč');
         await expect(status(page, '20260002').locator('[title]')).toHaveAttribute('title', /^zbývá 1\s420,00\sKč$/);
-        await expect(status(page, '20260001')).toHaveText('Vystaveno');
+        await expect(status(page, '20260001')).toHaveText('Vystavená');
       } else {
-        await expect(row(page, '20260002').locator('[data-row-secondary]')).toContainText('Částečně uhrazeno · zbývá 1 420,00 Kč');
+        await expect(row(page, '20260002').locator('[data-row-secondary]')).toContainText('Částečně uhrazená · zbývá 1 420,00 Kč');
       }
       await expectNoSeriousViolations(page);
       await expectNoSidewaysScroll(page);
@@ -116,7 +116,7 @@ test.describe.serial('paying an invoice', () => {
 
     await expect(dialog).toBeHidden();
     await expect(page.getByRole('status').filter({ hasText: 'Úhrada 1 210,00 Kč k faktuře 20260001 je zaznamenaná.' })).toBeVisible();
-    await expect(status(page, '20260001')).toHaveText('Uhrazeno');
+    await expect(status(page, '20260001')).toHaveText('Uhrazená');
     await row(page, '20260001').getByRole('button', { name: /Další akce/ }).click();
     await expect(row(page, '20260001').getByRole('menuitem', { name: 'Uhradit' })).toHaveCount(0);
   });
@@ -163,6 +163,6 @@ test.describe.serial('paying an invoice', () => {
 
     await expect(page.getByRole('status').filter({ hasText: 'Úhrada 1 000,00 Kč je odebraná.' })).toBeVisible();
     await expect(panel).toContainText('Zatím žádné úhrady.');
-    await expect(page.locator('header h1 + span')).toHaveText('Vystaveno');
+    await expect(page.locator('header h1 + span')).toHaveText('Vystavená');
   });
 });

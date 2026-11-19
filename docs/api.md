@@ -159,7 +159,7 @@ Query parameters of `GET /api/v1/invoices`. All of them narrow the list.
 
 All parameters are joined by AND, `view` and `filter` included. The answer has `data`, `next_cursor` and `applied_view`, the saved view `view` named, or `null`. A filter that cannot be used is answered `400 invalid_parameter`, with `parameter` naming its path, such as `filter.conditions[0].op`, and `reason` `filter_invalid`; a view of another list than `kind` is refused the same way with `parameter` `view`. A view the person does not see is `404 not_found`, and one whose conditions its list no longer has is `409 view_outdated`.
 
-A list item has `id`, `number`, `kind`, `firm`, `customer`, `issue_date`, `due_date`, `tax_point_date`, `total`, `paid`, `remaining`, `payment_state` (`unpaid`, `partly_paid`, `paid`, `overpaid` or `to_refund`), `overdue`, `delivered`, `trashed` and `created_at`. The detail adds the customer's identification and address, the currency, the variable symbol, the lines with their VAT, the payments and corrections, and the balances.
+A list item has `id`, `number`, `kind`, `firm`, `customer`, `issue_date`, `due_date`, `tax_point_date`, `total`, `paid`, `remaining`, `payment_state` (`unpaid`, `partly_paid`, `paid`, `overpaid` or `to_refund`), `overdue`, `sent`, `sent_at`, `delivered`, `trashed` and `created_at`. `sent` says whether it was sent to the customer, by e-mail or marked by hand; `sent_at` is when it was first sent, or `null`; `delivered` stays as a deprecated alias with the same value as `sent`. The detail adds the customer's identification and address, the currency, the variable symbol, the lines with their VAT, the payments and corrections, and the balances.
 
 ### Invoice writes
 
@@ -171,6 +171,7 @@ Issuing and changing sales invoices and advance invoices needs `invoices:write`.
 | `PATCH /api/v1/invoices/{invoiceId}` | Changes the fields given; a field left out keeps its value. |
 | `POST /api/v1/invoices/{invoiceId}/trash` | Moves it to the trash with a `reason`. |
 | `POST /api/v1/invoices/{invoiceId}/restore` | Brings it back from the trash. |
+| `POST /api/v1/invoices/{invoiceId}/mark-sent` | Records that it went to the customer outside Foresi. It cannot be undone: it no longer goes to the trash and its number is fixed. One sent already is answered as it is; one in the trash is refused with 409 trashed. |
 
 The body of `POST /api/v1/invoices`:
 
@@ -190,9 +191,9 @@ The body of `POST /api/v1/invoices`:
 | `order_number`, `description` | The customer's order number, and what the invoice is for (the first line's text when left out). |
 | `language` | `cs` or `en`; the customer's when left out. |
 
-`PATCH` takes the same fields except `kind` and `currency`, which never change. `lines` replaces every line; left out, the lines stay as they are. `series_id` or `number` renumber the document, which is refused once it was delivered (`number_locked`), sent by e-mail (`number_locked_sent`) or queued to be sent (`number_locked_sending`); a variable symbol that followed the number follows the new one. A document in the trash (`trashed`) and a tax document on payment (`tax_document_fixed`) do not change.
+`PATCH` takes the same fields except `kind` and `currency`, which never change. `lines` replaces every line; left out, the lines stay as they are. `series_id` or `number` renumber the document, which is refused once it was sent, marked by hand (`number_locked`), sent by e-mail (`number_locked_sent`) or queued to be sent (`number_locked_sending`); a variable symbol that followed the number follows the new one. A document in the trash (`trashed`) and a tax document on payment (`tax_document_fixed`) do not change.
 
-What the rules refuse is answered with every problem at once: the first one gives the status, the `reason` and, for `400`, the `parameter`, and `problems` lists them all as `"parameter: reason"`, such as `["variable_symbol: variable_symbol_invalid", "customer_id: customer_unknown"]`. A line is named by its position, such as `lines[0].unit_price`. A state of the data that does not allow the change, such as `number_taken`, `number_locked` or `trashed`, is `409`. The trash refuses a delivered document and one already in the trash with `409 not_trashable`, and one with payments with `409 has_payments`; correct a delivered document with a correction document in Foresi.
+What the rules refuse is answered with every problem at once: the first one gives the status, the `reason` and, for `400`, the `parameter`, and `problems` lists them all as `"parameter: reason"`, such as `["variable_symbol: variable_symbol_invalid", "customer_id: customer_unknown"]`. A line is named by its position, such as `lines[0].unit_price`. A state of the data that does not allow the change, such as `number_taken`, `number_locked` or `trashed`, is `409`. The trash refuses a sent document and one already in the trash with `409 not_trashable`, and one with payments with `409 has_payments`; correct a sent document with a correction document in Foresi.
 
 ### Contacts
 
@@ -225,7 +226,7 @@ Query parameters of `GET /api/v1/payments`:
 
 ### Events
 
-`GET /api/v1/events` is the feed of what happened in the organisation: an invoice was issued, delivered, paid, trashed or restored, a payment was recorded, a contact was created, updated, archived or restored, a received document was recorded or paid in full, a task was created, updated, completed or trashed, a task was commented on. An event of a task is shown only to who sees the task, as its lists show it: a private task or a project not shared with a team member stays out of their feed and their webhooks. Query parameters:
+`GET /api/v1/events` is the feed of what happened in the organisation: an invoice was issued, sent (event type `invoicing.invoice.delivered`), paid, trashed or restored, a payment was recorded, a contact was created, updated, archived or restored, a received document was recorded or paid in full, a task was created, updated, completed or trashed, a task was commented on. An event of a task is shown only to who sees the task, as its lists show it: a private task or a project not shared with a team member stays out of their feed and their webhooks. Query parameters:
 
 | Parameter | Value |
 | --- | --- |

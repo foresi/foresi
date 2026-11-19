@@ -23,7 +23,7 @@ use Foresi\Shared\Application\Api\Operation;
     scope: 'invoices:write',
     title: 'Trash an invoice',
     description: 'Moves a sales document to the trash with a reason, such as one issued by mistake: it keeps its number and content, leaves the lists and the VAT reports, its queued sends stop and its links end. '
-        .'A delivered document cannot go to the trash (not_trashable): correct it with a correction document in Foresi instead; one with payments needs them removed first (has_payments). Ask the person before you call it. Bring it back with foresi_restore_invoice.',
+        .'A sent document cannot go to the trash (not_trashable): correct it with a correction document in Foresi instead; one with payments needs them removed first (has_payments). Ask the person before you call it. Bring it back with foresi_restore_invoice.',
     destructive: true,
     response: 'InvoiceDetail',
 )]

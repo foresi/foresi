@@ -73,7 +73,7 @@ test.describe.serial('reminders of overdue invoices', () => {
     await page.setViewportSize(DESKTOP);
     await page.goto('/invoices');
     const table = page.getByRole('table', { name: 'Faktury' });
-    for (const label of ['Číslo', 'Firma', 'Zákazník', 'Vystaveno', 'Splatnost', 'Celkem', 'Stav', 'E-mail']) {
+    for (const label of ['Číslo', 'Firma', 'Zákazník', 'Vystaveno', 'Splatnost', 'Celkem', 'Stav', 'Odesláno']) {
       await expect(table.getByRole('columnheader', { name: label, exact: true })).toBeVisible();
     }
     await expect(row(page, 'R0001').locator('[data-icon-cell="bell-ring"]')).toBeVisible();

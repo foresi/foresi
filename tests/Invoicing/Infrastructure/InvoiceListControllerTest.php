@@ -540,7 +540,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $pdf = $row->filter('[role="menu"] a[role="menuitem"][href="/invoices/'.$invoice->id().'/pdf"]');
         self::assertSame('PDF', $pdf->text());
         self::assertSame('false', $pdf->attr('data-turbo'));
-        self::assertSame(['Edit', 'PDF', 'Pay', 'Send', 'Copy', 'Recurring invoice', 'Issue a corrective document', 'Mark as delivered', 'History', 'Delete'], $this->menu($row));
+        self::assertSame(['Edit', 'PDF', 'Pay', 'Send', 'Copy', 'Recurring invoice', 'Issue a corrective document', 'Mark as sent', 'History', 'Delete'], $this->menu($row));
         self::assertSame('false', $row->filter('a[href="/invoices/'.$invoice->id().'/copy"]')->attr('data-turbo'));
         self::assertCount(1, $row->filter('form[action="/invoices/'.$invoice->id().'/delivered"][data-turbo-confirm]'));
     }
@@ -633,9 +633,9 @@ final class InvoiceListControllerTest extends WebTestCase
         }
         self::assertNull($row->filter('a[role="menuitem"][href="/invoices/'.$invoice->id().'/history"]')->attr('data-dialog'));
         $delivered = $row->filter('form[action="/invoices/'.$invoice->id().'/delivered"]')->first();
-        self::assertSame('Mark invoice 20260001 as delivered?', $delivered->attr('data-turbo-confirm'));
-        self::assertSame('A delivered invoice can no longer be deleted.', $delivered->attr('data-confirm-text'));
-        self::assertSame('Mark as delivered', $delivered->attr('data-confirm-accept'));
+        self::assertSame('Mark invoice 20260001 as sent?', $delivered->attr('data-turbo-confirm'));
+        self::assertSame('A sent invoice can no longer be deleted. This cannot be undone.', $delivered->attr('data-confirm-text'));
+        self::assertSame('Mark as sent', $delivered->attr('data-confirm-accept'));
     }
 
     public function testTrashInADialogAsksForTheReasonAndMovesItToTheTrash(): void
@@ -727,7 +727,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices');
 
         $row = $crawler->filter('tbody tr')->first();
-        self::assertStringContainsString('Delivered', $row->text());
+        self::assertStringContainsString('Sent', $row->text());
         self::assertSame(['Edit', 'PDF', 'Pay', 'Send', 'Copy', 'Recurring invoice', 'Issue a corrective document', 'History'], $this->menu($row));
         self::assertCount(1, $row->filter('[role="menu"] a[href$="/edit"]'));
     }
@@ -742,7 +742,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $this->client->request('POST', '/invoices/'.$invoice->id().'/trash', ['_token' => $token, 'reason' => 'Mine']);
         self::assertResponseRedirects('/invoices');
         $this->client->followRedirect();
-        self::assertSelectorTextContains('main', 'A delivered document cannot be deleted.');
+        self::assertSelectorTextContains('main', 'A sent document cannot be deleted.');
         self::assertFalse($this->stored($invoice)->isTrashed());
 
         $this->client->request('GET', '/invoices/'.$invoice->id().'/trash');
@@ -798,7 +798,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $this->client->request('POST', '/invoices/'.$invoice->id().'/delivered', ['_token' => $this->token()]);
         self::assertResponseRedirects('/invoices');
         $this->client->followRedirect();
-        self::assertSelectorTextContains('main', 'Invoice 20260001 is marked as delivered.');
+        self::assertSelectorTextContains('main', 'Invoice 20260001 is marked as sent.');
         self::assertTrue($this->stored($invoice)->isDelivered());
 
         $other = $this->issue('2026-11-02', '2026-12-01');
@@ -896,7 +896,30 @@ final class InvoiceListControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/invoices/'.$invoice->id().'/history');
 
-        self::assertStringContainsString('Example Company marked the invoice as delivered', $crawler->filter('main [data-invoice-history] li')->last()->text());
+        self::assertStringContainsString('Example Company marked the invoice as sent', $crawler->filter('main [data-invoice-history] li')->last()->text());
+    }
+
+    public function testTheDetailMarksItSentAndShowsWhen(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issue('2026-11-01', '2026-12-01');
+
+        $page = $this->client->request('GET', '/invoices/'.$invoice->id());
+        $form = $page->filter('form[data-invoice-mark-sent]');
+        self::assertCount(1, $form);
+        self::assertSame('Mark invoice 20260001 as sent?', $form->attr('data-confirm-title'));
+        self::assertStringNotContainsString('Sent on', $page->filter('[data-invoice-details]')->text());
+        self::assertSame('Issued', trim($page->filter('[data-invoice-status]')->text()));
+
+        $this->client->request('POST', '/invoices/'.$invoice->id().'/delivered', ['_token' => $this->token(), 'from' => 'detail']);
+        self::assertResponseRedirects('/invoices/'.$invoice->id());
+        $page = $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'Invoice 20260001 is marked as sent.');
+        self::assertSame('Sent', trim($page->filter('[data-invoice-status]')->text()));
+        self::assertStringContainsString('Sent on', $page->filter('[data-invoice-details]')->text());
+        // Sent cannot be taken back: no second mark and no delete.
+        self::assertCount(0, $page->filter('form[data-invoice-mark-sent]'));
+        self::assertCount(0, $page->filter('a[href$="/trash"]'));
     }
 
     public function testTheExportColumnSaysWhatTheAccountantHas(): void
@@ -982,7 +1005,7 @@ final class InvoiceListControllerTest extends WebTestCase
 
         self::assertNotContains('Clear export state', $this->menu($this->client->request('GET', '/invoices')->filter('tr[data-id="'.$none->id().'"]')));
         $row = $crawler->filter('tr[data-id="'.$invoice->id().'"]');
-        self::assertSame(['Edit', 'PDF', 'Pay', 'Send', 'Copy', 'Recurring invoice', 'Issue a corrective document', 'Mark as delivered', 'Clear export state', 'History', 'Delete'], $this->menu($row));
+        self::assertSame(['Edit', 'PDF', 'Pay', 'Send', 'Copy', 'Recurring invoice', 'Issue a corrective document', 'Mark as sent', 'Clear export state', 'History', 'Delete'], $this->menu($row));
         $form = $row->filter('form[action="/invoices/'.$invoice->id().'/clear-export"]');
         self::assertCount(0, $form->filter('[data-turbo-confirm]'));
         $return = $form->filter('input[name="return"]')->attr('value');
@@ -1133,6 +1156,8 @@ final class InvoiceListControllerTest extends WebTestCase
         $sent = $this->issue('2026-11-03', '2026-12-01', description: 'Sent');
         $read = $this->issue('2026-11-04', '2026-12-01', description: 'Read');
         $failed = $this->issue('2026-11-05', '2026-12-01', description: 'Failed');
+        $manual = $this->issue('2026-11-06', '2026-12-01', description: 'Manual');
+        $this->delivered($manual);
         $this->sendOf($sent, deliver: true);
         $this->opened($this->sendOf($read, deliver: true));
         $this->sendOf($failed, ['refuse@example.com'], deliver: true);
@@ -1141,24 +1166,29 @@ final class InvoiceListControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/invoices');
 
-        self::assertContains('E-mail', $this->headers($crawler));
+        // One column says when it went and how its e-mail went: once "E-mail" and "Delivered".
+        self::assertContains('Sent', $this->headers($crawler));
+        self::assertNotContains('E-mail', $this->headers($crawler));
         $marks = [];
-        foreach ([$none, $queued, $sent, $read, $failed] as $invoice) {
+        foreach ([$none, $queued, $sent, $read, $failed, $manual] as $invoice) {
             $cell = $crawler->filter('tr[data-id="'.$invoice->id().'"] [data-icon-cell]');
             $marks[$invoice->number()] = 0 === $cell->count() ? null : [$cell->text(), $cell->attr('title'), $cell->attr('data-icon-cell')];
         }
         self::assertSame([
             $none->number() => null,
             $queued->number() => ['Sending', 'Waiting in the queue to be sent', 'clock-3'],
-            $sent->number() => ['Sent', 'Sent to the customer', 'send'],
-            $read->number() => ['Read', 'The customer opened the document', 'circle-check'],
+            $sent->number() => ['2026-11-20', 'Sent to the customer', 'send'],
+            $read->number() => ['2026-11-20', 'The customer opened the document', 'circle-check'],
             $failed->number() => ['Failed', 'The e-mail could not be sent', 'triangle-alert'],
+            $manual->number() => ['2026-11-20', 'Marked as sent by hand', 'send'],
         ], $marks);
+        // Not sent at all is a dash, not the general "Not set".
+        self::assertSame('—', trim($crawler->filter('tr[data-id="'.$none->id().'"] [data-empty-value]')->first()->text()));
         // An icon, never colour alone, and on a phone the label in the line under the number.
         self::assertCount(1, $crawler->filter('tr[data-id="'.$read->id().'"] [data-icon-cell] svg'));
-        self::assertStringContainsString('Read', $crawler->filter('tr[data-id="'.$read->id().'"] [data-row-secondary]')->text());
-        // The status badge is separate and stays as it was.
-        self::assertSame('Delivered', $crawler->filter('tr[data-id="'.$sent->id().'"] td .rounded-sm:not([data-empty-value])')->last()->text());
+        self::assertStringContainsString('2026-11-20', $crawler->filter('tr[data-id="'.$read->id().'"] [data-row-secondary]')->text());
+        // The status badge is separate: the lifecycle of issued, sent and paid.
+        self::assertSame('Sent', $crawler->filter('tr[data-id="'.$sent->id().'"] td .rounded-sm:not([data-empty-value])')->last()->text());
     }
 
     public function testReadSurvivesALaterFailedResend(): void

@@ -11,8 +11,11 @@ namespace Foresi\Invoicing\Infrastructure\Controller;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Invoicing\Application\CorrectInvoice;
 use Foresi\Invoicing\Application\DocumentChain;
+use Foresi\Invoicing\Application\InvoicePaymentLine;
 use Foresi\Invoicing\Application\InvoiceStatus;
 use Foresi\Invoicing\Application\InvoicingNotAllowed;
+use Foresi\Invoicing\Application\PaymentState;
+use Foresi\Invoicing\Application\Query\InvoiceDetail;
 use Foresi\Invoicing\Application\Query\InvoiceDetails;
 use Foresi\Invoicing\Application\UnknownInvoice;
 use Foresi\Invoicing\Domain\Invoice;
@@ -64,9 +67,9 @@ final class InvoiceDetailController extends AbstractController
         return $this->render('@Invoicing/show.html.twig', [
             'invoice' => $invoice,
             'title' => $this->translator->trans(self::TITLES[$invoice->kind()->value], ['number' => $invoice->number()]),
-            'status' => ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()],
+            'status' => ['label' => $this->translator->trans($status->labelKey($invoice->kind())), 'tone' => $status->tone()],
             'summary' => $this->summary($invoice),
-            'details' => $this->details($invoice),
+            'details' => $this->details($detail),
             'lines' => array_map($this->line(...), $detail->lines),
             'totals' => [
                 'net' => $this->amounts->shown($invoice->net()),
@@ -111,12 +114,15 @@ final class InvoiceDetailController extends AbstractController
 
     /**
      * The dates and symbols, a label and a value each (Ui:DescriptionList), in the order of the
-     * form's "Dates and payment".
+     * form's "Dates and payment". When it was sent and when it was paid in full follow the due
+     * date once they happened, as Stripe's invoice detail lists its finalized and paid dates:
+     * the status says where it stands, the dates when it got there.
      *
      * @return list<array{label: string, value: string}>
      */
-    private function details(Invoice $invoice): array
+    private function details(InvoiceDetail $detail): array
     {
+        $invoice = $detail->invoice;
         $date = $this->translator->trans('format.date');
         $taxPoint = $invoice->taxPointDate();
         $details = [['label' => $this->translator->trans('invoice.field.issueDate'), 'value' => $invoice->issueDate()->format($date)]];
@@ -124,6 +130,14 @@ final class InvoiceDetailController extends AbstractController
             $details[] = ['label' => $this->translator->trans('invoice.field.taxPointDate'), 'value' => $taxPoint->format($date)];
         }
         $details[] = ['label' => $this->translator->trans('invoice.field.dueDate'), 'value' => $invoice->dueDate()->format($date)];
+        $sentAt = $invoice->deliveredAt();
+        if ($sentAt instanceof \DateTimeImmutable) {
+            $details[] = ['label' => $this->translator->trans('invoice.field.sentAt'), 'value' => $sentAt->setTimezone($this->clock->timezone())->format($date)];
+        }
+        $paidAt = $this->paidAt($detail);
+        if ($paidAt instanceof \DateTimeImmutable) {
+            $details[] = ['label' => $this->translator->trans('invoice.field.paidAt'), 'value' => $paidAt->format($date)];
+        }
         $details[] = ['label' => $this->translator->trans('invoice.field.paymentMethod'), 'value' => $this->translator->trans('invoice.payment.'.$invoice->paymentMethod()->value)];
         if ('' !== $invoice->variableSymbol()) {
             $details[] = ['label' => $this->translator->trans('invoice.field.variableSymbol'), 'value' => $invoice->variableSymbol()];
@@ -133,6 +147,20 @@ final class InvoiceDetailController extends AbstractController
         }
 
         return $details;
+    }
+
+    /**
+     * The day the payment that settled it came, the newest of its payments, while it is paid in
+     * full; null while something is left to pay, and for a document never paid.
+     */
+    private function paidAt(InvoiceDetail $detail): ?\DateTimeImmutable
+    {
+        $invoice = $detail->invoice;
+        if ([] === $detail->payments || !PaymentState::ofDocument($invoice->kind(), $invoice->payable(), $detail->paid, $detail->corrections)->isSettled()) {
+            return null;
+        }
+
+        return max(array_map(static fn (InvoicePaymentLine $payment): \DateTimeImmutable => $payment->receivedOn, $detail->payments));
     }
 
     /**

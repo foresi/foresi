@@ -66,7 +66,7 @@ nelmio_api_doc:
                                 expires_at: { type: string, format: date-time }
                 InvoiceListItem:
                     type: object
-                    required: [id, number, kind, firm, customer, issue_date, due_date, tax_point_date, total, paid, remaining, payment_state, overdue, delivered, trashed, created_at]
+                    required: [id, number, kind, firm, customer, issue_date, due_date, tax_point_date, total, paid, remaining, payment_state, overdue, sent, sent_at, delivered, trashed, created_at]
                     properties:
                         id: { type: string, format: uuid }
                         number: { type: string }
@@ -81,7 +81,9 @@ nelmio_api_doc:
                         remaining: { $ref: '#/components/schemas/Money' }
                         payment_state: { type: string, enum: [unpaid, partly_paid, paid, overpaid, to_refund] }
                         overdue: { type: boolean }
-                        delivered: { type: boolean }
+                        sent: { type: boolean, description: 'Whether it was sent to the customer: by e-mail, or marked sent by hand.' }
+                        sent_at: { type: string, format: date-time, nullable: true, description: 'When it was first sent; null while it was not.' }
+                        delivered: { type: boolean, deprecated: true, description: 'Deprecated: the older name of sent, with the same value.' }
                         trashed: { type: boolean }
                         created_at: { type: string, format: date-time }
                 InvoiceLine:
@@ -126,7 +128,9 @@ nelmio_api_doc:
                         vat: { $ref: '#/components/schemas/Money' }
                         total: { $ref: '#/components/schemas/Money' }
                         payment_state: { type: string, enum: [unpaid, partly_paid, paid, overpaid, to_refund] }
-                        delivered: { type: boolean }
+                        sent: { type: boolean, description: 'Whether it was sent to the customer: by e-mail, or marked sent by hand.' }
+                        sent_at: { type: string, format: date-time, nullable: true, description: 'When it was first sent; null while it was not.' }
+                        delivered: { type: boolean, deprecated: true, description: 'Deprecated: the older name of sent, with the same value.' }
                         trashed: { type: boolean }
                         created_at: { type: string, format: date-time }
                         corrected_invoice_id: { type: string, format: uuid, nullable: true }

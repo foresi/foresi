@@ -15,9 +15,10 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_search_invoices` | Searches sales documents, newest first, with filters such as state, customer and issue dates, through a saved view (`view_id`) or conditions (`filter`). |
 | `foresi_get_invoice` | One document with its lines, payments, corrections and balances. |
 | `foresi_create_invoice` | **Write.** Issues an invoice or advance invoice to a customer (`customer_id`) with its `lines`; it gets the next number of its series, or a `number` typed by hand. Foresi has no drafts. |
-| `foresi_update_invoice` | **Write.** Changes the fields given of an invoice (`invoice_id`); `lines` replaces every line. The number is locked once the document was delivered, sent or queued to be sent. |
-| `foresi_trash_invoice` | **Write, destructive.** Moves an invoice (`invoice_id`) that was not delivered to the trash with a `reason`. |
+| `foresi_update_invoice` | **Write.** Changes the fields given of an invoice (`invoice_id`); `lines` replaces every line. The number is locked once the document was sent, by e-mail or marked by hand, or queued to be sent. |
+| `foresi_trash_invoice` | **Write, destructive.** Moves an invoice (`invoice_id`) that was not sent to the trash with a `reason`. |
 | `foresi_restore_invoice` | **Write.** Brings an invoice (`invoice_id`) back from the trash. |
+| `foresi_mark_invoice_sent` | **Write, destructive.** Records that an invoice (`invoice_id`) went to the customer outside Foresi, such as handed over or e-mailed by hand. It cannot be undone: the invoice no longer goes to the trash and its number is fixed. One sent already is answered as it is; one in the trash is refused with `trashed`. |
 | `foresi_search_contacts` | Searches contacts by text, role, registration number or VAT id, through a saved view (`view_id`) or conditions (`filter`). |
 | `foresi_get_contact` | One contact with its addresses, e-mails, bank accounts and contact persons. |
 | `foresi_search_payments` | Searches payments, newest first, with filters such as firm, invoice, direction and dates. |

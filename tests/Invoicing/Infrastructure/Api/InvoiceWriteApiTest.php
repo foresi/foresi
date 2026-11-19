@@ -17,7 +17,7 @@ use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 
 /**
  * Sales invoices written over REST and MCP: issued with the defaults and the
- * counter of the form, changed with its rules and locks, trashed and restored,
+ * counter of the form, changed with its rules and locks, trashed and restored, marked sent,
  * behind invoices:write.
  */
 final class InvoiceWriteApiTest extends ApiTestCase
@@ -160,6 +160,53 @@ final class InvoiceWriteApiTest extends ApiTestCase
         self::assertFalse($call['isError'] ?? false);
         $this->get('/api/v1/invoices/'.$id, secret: $this->writer);
         self::assertFalse($this->at('data', 'trashed'));
+    }
+
+    public function testMarkSentOverMcpOnceAndForGood(): void
+    {
+        $id = $this->created();
+        $this->get('/api/v1/invoices/'.$id, secret: $this->writer);
+        self::assertFalse($this->at('data', 'sent'));
+        self::assertNull($this->at('data', 'sent_at'));
+
+        $call = $this->tool('foresi_mark_invoice_sent', ['invoice_id' => $id, 'idempotency_key' => 'sent-1']);
+        self::assertFalse($call['isError'] ?? false);
+        $data = \is_array($call['structuredContent'] ?? null) ? $call['structuredContent']['data'] ?? null : null;
+        self::assertIsArray($data);
+        self::assertTrue($data['sent']);
+        self::assertIsString($data['sent_at']);
+        // The older name answers the same, for the clients that read it.
+        self::assertTrue($data['delivered']);
+
+        // A second mark is answered as it is, with the first moment kept.
+        $again = $this->tool('foresi_mark_invoice_sent', ['invoice_id' => $id, 'idempotency_key' => 'sent-2']);
+        self::assertFalse($again['isError'] ?? false);
+        $replay = \is_array($again['structuredContent'] ?? null) ? $again['structuredContent']['data'] ?? null : null;
+        self::assertIsArray($replay);
+        self::assertSame($data['sent_at'], $replay['sent_at']);
+
+        // Sent cannot be taken back: it no longer goes to the trash.
+        $this->send('POST', '/api/v1/invoices/'.$id.'/trash', ['reason' => 'Issued by mistake.']);
+        $this->assertProblem(409, 'not_trashable');
+
+        $this->get('/api/v1/invoices', secret: $this->writer);
+        self::assertTrue($this->at('data', 0, 'sent'));
+        self::assertSame($data['sent_at'], $this->at('data', 0, 'sent_at'));
+    }
+
+    public function testMarkSentRefusesTheTrashAndAnUnknownInvoice(): void
+    {
+        $id = $this->created();
+        $this->tool('foresi_trash_invoice', ['invoice_id' => $id, 'reason' => 'Issued by mistake.']);
+
+        $this->send('POST', '/api/v1/invoices/'.$id.'/mark-sent');
+        $this->assertProblem(409, 'trashed');
+        $this->send('POST', '/api/v1/invoices/01940000-0000-7000-8000-000000000001/mark-sent');
+        $this->assertProblem(404, 'not_found');
+
+        $reader = $this->issued([ApiScope::from('invoices:read')]);
+        $this->send('POST', '/api/v1/invoices/'.$id.'/mark-sent', secret: $reader);
+        $this->assertProblem(403, 'insufficient_scope');
     }
 
     public function testAReadTokenCannotWrite(): void

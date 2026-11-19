@@ -120,7 +120,7 @@ test.describe.serial('advances and tax documents on payment', () => {
     await page.getByRole('button', { name: 'Uložit', exact: true }).click();
 
     await expect(page).toHaveURL(/\/invoices$/);
-    await expect(row(page, '20260001')).toContainText('Uhrazeno zálohami');
+    await expect(row(page, '20260001')).toContainText('Uhrazená zálohami');
 
     await page.goto('/tax-documents');
     await page.getByRole('link', { name: /^Vyúčtované/ }).click();

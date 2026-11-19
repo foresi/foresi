@@ -39,13 +39,13 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * Every attribute with an expression is a filter field of the lists' views too (D4); "amount" is
  * the older key of the total to pay, which views kept.
  *
- * The context holds "trash" (the trash tab swaps the dates and the e-mail and export marks for who
+ * The context holds "trash" (the trash tab swaps the dates, the sent date and the export mark for who
  * deleted the document, when and why), "severalFirms" (the firm column), "names" (user names by
  * id, for the trash) and "reminders" ({count, lastAt} by the id of an overdue row).
  *
  * The names and the reason give way to the numbers, dates, states and actions, cut short with
  * their full text in a title, so the table fits its frame with every column shown. A narrower
- * screen leaves out the issue date and the e-mail mark, the columns of least value to a list
+ * screen leaves out the issue date and the sent date, the columns of least value to a list
  * read for what to collect; the invoice still shows both.
  */
 final readonly class IssuedDocumentSource implements DataSource
@@ -59,8 +59,8 @@ final readonly class IssuedDocumentSource implements DataSource
     ];
 
     /** The icon of each send mark: its label says the same, so it is never colour alone. */
-    private const array MARK_ICONS = ['queued' => 'clock-3', 'sent' => 'send', 'read' => 'circle-check', 'failed' => 'triangle-alert'];
-    private const array MARK_TONES = ['queued' => 'gray', 'sent' => 'gray', 'read' => 'green', 'failed' => 'red'];
+    private const array MARK_ICONS = ['queued' => 'clock-3', 'sent' => 'send', 'read' => 'circle-check', 'failed' => 'triangle-alert', 'manual' => 'send'];
+    private const array MARK_TONES = ['queued' => 'gray', 'sent' => 'gray', 'read' => 'green', 'failed' => 'red', 'manual' => 'gray'];
 
     public function __construct(
         private TranslatorInterface $translator,
@@ -74,6 +74,7 @@ final readonly class IssuedDocumentSource implements DataSource
         if (!\in_array($list, self::LISTS, true)) {
             return [];
         }
+        $kind = DocumentKind::from((string) array_search($list, self::LISTS, true));
         $trash = static fn (array $context): bool => true === ($context['trash'] ?? false);
         $notTrash = static fn (array $context): bool => true !== ($context['trash'] ?? false);
         $label = static fn (string $key): string => 'invoice.list.column.'.$key;
@@ -92,8 +93,9 @@ final readonly class IssuedDocumentSource implements DataSource
             new Attribute('issue_date', $label('issue_date'), AttributeType::Date, static fn (InvoiceRow $row): \DateTimeImmutable => $row->issueDate, sort: 'i.issueDate', defaultVisible: true, defaultPosition: 40, aliases: ['issueDate'], phone: false, wide: true, available: $notTrash, filterable: true),
             new Attribute('due_date', $label('due_date'), AttributeType::Date, static fn (InvoiceRow $row): \DateTimeImmutable => $row->dueDate, sort: 'i.dueDate', defaultVisible: true, defaultPosition: 50, cell: $this->dueDate(...), aliases: ['dueDate'], phone: false, available: $notTrash, filterable: true),
             new Attribute('payable', $label('payable'), AttributeType::Money, static fn (InvoiceRow $row): Money => $row->payable, sort: 'i.payableMinor', defaultVisible: true, defaultPosition: 70, aliases: ['amount'], filterable: true),
-            new Attribute('status', $label('status'), AttributeType::Enum, static fn (InvoiceRow $row): InvoiceStatus => self::statusOf($row), defaultVisible: true, defaultPosition: 80, options: $this->options(InvoiceStatus::cases(), 'invoice.list.status.'), cell: $this->status(...), phone: false, tones: $this->statusTones()),
-            new Attribute('sent', $label('sent'), AttributeType::Enum, static fn (InvoiceRow $row): SendMark => $row->sendMark, defaultVisible: true, defaultPosition: 90, options: $this->options(SendMark::cases(), 'invoice.mark.'), cell: $this->sent(...), phone: false, wide: true, available: $notTrash),
+            new Attribute('status', $label('status'), AttributeType::Enum, static fn (InvoiceRow $row): InvoiceStatus => self::statusOf($row), defaultVisible: true, defaultPosition: 80, options: $this->options(InvoiceStatus::cases(), InvoiceStatus::labelPrefix($kind)), cell: $this->status(...), phone: false, tones: $this->statusTones()),
+            // When it went to the customer, by e-mail or marked by hand, with how the newest e-mail went; once two columns, "E-mail" and "Delivered".
+            new Attribute('sent', $label('sent'), AttributeType::DateTime, $zoned(static fn (Invoice $invoice): ?\DateTimeImmutable => $invoice->deliveredAt()), sort: 'i.deliveredAt', defaultVisible: true, defaultPosition: 90, cell: $this->sent(...), aliases: ['delivered_at'], phone: false, wide: true, available: $notTrash, filterable: true),
             new Attribute('export', $label('export'), AttributeType::Enum, static fn (InvoiceRow $row): ExportState => $row->exportState(), defaultVisible: true, defaultPosition: 100, options: $this->options(ExportState::cases(), 'invoice.export_state.'), cell: $this->export(...), phone: false, wide: true, available: $notTrash),
             // What a person can add (DS3), in the order of the document.
             new Attribute('customer_registration_number', $label('customer_registration_number'), AttributeType::Text, $customer(static fn (DocumentParty $party): ?string => $party->registrationNumber), sort: 'i.customer.registrationNumber', defaultPosition: 110, phone: false, filterable: true),
@@ -116,7 +118,6 @@ final readonly class IssuedDocumentSource implements DataSource
             new Attribute('language', $label('language'), AttributeType::Enum, $document(static fn (Invoice $invoice): DocumentLanguage => $invoice->language()), sort: 'i.language', defaultPosition: 280, options: $this->options(DocumentLanguage::cases(), 'invoice.language.'), phone: false, filterable: true),
             new Attribute('vat_regime', $label('vat_regime'), AttributeType::Enum, $document(static fn (Invoice $invoice): VatRegime => $invoice->vatRegime()), sort: 'i.vatRegime', defaultPosition: 290, options: $this->options(VatRegime::cases(), 'invoice.list.vat_regime.'), phone: false, filterable: true),
             new Attribute('description', $label('description'), AttributeType::Text, $document(static fn (Invoice $invoice): string => $invoice->description()), defaultPosition: 300, phone: false, truncate: true, filterable: true, filter: 'i.description'),
-            new Attribute('delivered_at', $label('delivered_at'), AttributeType::DateTime, $zoned(static fn (Invoice $invoice): ?\DateTimeImmutable => $invoice->deliveredAt()), sort: 'i.deliveredAt', defaultPosition: 310, phone: false, filterable: true),
             new Attribute('created_at', $label('created_at'), AttributeType::DateTime, $zoned(static fn (Invoice $invoice): \DateTimeImmutable => $invoice->createdAt()), sort: 'i.createdAt', defaultPosition: 320, phone: false, filterable: true),
             new Attribute('recurring', $label('recurring'), AttributeType::Boolean, $document(static fn (Invoice $invoice): bool => null !== $invoice->recurringInvoiceId()), defaultPosition: 330, phone: false),
             new Attribute('import_source', $label('import_source'), AttributeType::Text, $document(static fn (Invoice $invoice): ?string => $invoice->importSource()), sort: 'i.importSource', defaultPosition: 340, phone: false, filterable: true),
@@ -168,33 +169,52 @@ final readonly class IssuedDocumentSource implements DataSource
             default => null,
         };
 
-        return ['text' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $this->statusTones()[$status->value]] + (null === $left ? [] : ['hint' => $left]);
+        return ['text' => $this->translator->trans($status->labelKey($row->kind)), 'tone' => $this->statusTones()[$status->value]] + (null === $left ? [] : ['hint' => $left]);
     }
 
     /**
-     * The e-mail mark. A reminded row says how many reminders went, in the place of the mark: the
-     * newest e-mail was one of them. A failure keeps its mark, as that is what to act on.
+     * The day it was sent, with how its newest e-mail went as the icon and the hint: sent, read
+     * by the customer or failed since. One not sent says so while its e-mail waits or failed, as
+     * that is what to act on, and shows a dash otherwise, as Fakturoid's and QuickBooks' lists
+     * leave the sent date blank. A reminded row says how many reminders went, in the place of
+     * the day: the newest e-mail was one of them.
      *
      * @param array<string, mixed> $context
      *
-     * @return array{text: string, icon: string, tone: string, hint: string}|null
+     * @return array{text: string, icon: string, tone: string, hint: string}|array{empty: string}
      */
-    private function sent(InvoiceRow $row, array $context): ?array
+    private function sent(InvoiceRow $row, array $context): array
     {
-        $mark = SendMark::None === $row->sendMark ? null : $this->translator->trans('invoice.mark.'.$row->sendMark->value);
+        $date = $this->translator->trans('format.date');
+        $sentAt = $row->document?->deliveredAt()?->setTimezone($this->instanceClock->timezone());
+        $mark = SendMark::None === $row->sendMark ? null : $this->translator->trans('invoice.mark.hint.'.$row->sendMark->value);
         $reminders = \is_array($context['reminders'] ?? null) ? ($context['reminders'][$row->id] ?? null) : null;
         if (\is_array($reminders) && SendMark::Failed !== $row->sendMark && $reminders['lastAt'] instanceof \DateTimeImmutable && \is_int($reminders['count'])) {
-            $last = $this->translator->trans('reminder.list.last', ['date' => $reminders['lastAt']->setTimezone($this->instanceClock->timezone())->format($this->translator->trans('format.date'))]);
+            $last = $this->translator->trans('reminder.list.last', ['date' => $reminders['lastAt']->setTimezone($this->instanceClock->timezone())->format($date)]);
+            $first = $sentAt instanceof \DateTimeImmutable ? $this->translator->trans('invoice.mark.sent_on', ['date' => $sentAt->format($date)]) : null;
 
             return [
                 'text' => $this->translator->trans('reminder.list.count', ['count' => $reminders['count']]),
                 'icon' => 'bell-ring',
                 'tone' => SendMark::Read === $row->sendMark ? 'green' : 'gray',
-                'hint' => implode(' · ', array_filter([$last, $mark], static fn (?string $part): bool => null !== $part && '' !== $part)),
+                'hint' => implode(' · ', array_filter([$last, $first, SendMark::None === $row->sendMark ? null : $this->translator->trans('invoice.mark.'.$row->sendMark->value)], static fn (?string $part): bool => null !== $part && '' !== $part)),
             ];
         }
+        if (!$sentAt instanceof \DateTimeImmutable) {
+            // A send waiting or failed before the invoice ever went out.
+            return \in_array($row->sendMark, [SendMark::Queued, SendMark::Failed], true)
+                ? ['text' => $this->translator->trans('invoice.mark.'.$row->sendMark->value), 'icon' => self::MARK_ICONS[$row->sendMark->value], 'tone' => self::MARK_TONES[$row->sendMark->value], 'hint' => (string) $mark]
+                : ['empty' => '—'];
+        }
+        // Marked by hand: no e-mail says more than the day.
+        $shown = SendMark::None === $row->sendMark ? 'manual' : $row->sendMark->value;
 
-        return null === $mark ? null : ['text' => $mark, 'icon' => self::MARK_ICONS[$row->sendMark->value], 'tone' => self::MARK_TONES[$row->sendMark->value], 'hint' => $this->translator->trans('invoice.mark.hint.'.$row->sendMark->value)];
+        return [
+            'text' => $sentAt->format($date),
+            'icon' => self::MARK_ICONS[$shown],
+            'tone' => self::MARK_TONES[$shown],
+            'hint' => $mark ?? $this->translator->trans('invoice.mark.hint.manual'),
+        ];
     }
 
     /**

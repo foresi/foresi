@@ -125,6 +125,8 @@ invoice:
       sent: Odesláno odběrateli
       read: Odběratel otevřel doklad
       failed: E-mail se nepodařilo odeslat
+      manual: Označeno jako odeslané ručně
+    sent_on: 'Odesláno {date}'
   changed_after_send: 'Faktura se od odeslání {date} změnila. Odkaz u odběratele ukazuje odeslanou verzi, proto ji pošlete znovu.'
   imported_original: 'Doklad je importovaný. PDF je originál z {source}.'
   import_source:
@@ -388,14 +390,14 @@ invoice:
     search_placeholder: Číslo, zákazník nebo popis
     summary: '{kind, select, advance {{total, plural, one {# zálohová faktura} few {# zálohové faktury} other {# zálohových faktur}}} payment_tax_document {{total, plural, one {# daňový doklad} few {# daňové doklady} other {# daňových dokladů}}} correction_document {{total, plural, one {# opravný doklad} few {# opravné doklady} other {# opravných dokladů}}} other {{total, plural, one {# faktura} few {# faktury} other {# faktur}}}}'
     reason_missing: Napište, proč fakturu mažete.
-    delete_delivered: Doručený doklad nelze smazat.
+    delete_delivered: Odeslaný doklad nelze smazat.
     not_in_trash: Tato faktura v koši není.
     not_exported: Tento doklad nemá příznak exportu.
     already_trashed: Tato faktura už je v koši.
     delivered_trashed: Tato faktura je v koši. Nejdřív ji obnovte.
-    delivered_confirm: 'Označit fakturu {number} jako doručenou?'
-    delivered_confirm_text: Doručenou fakturu už nepůjde smazat.
-    delivered_confirm_accept: Označit jako doručenou
+    delivered_confirm: 'Označit fakturu {number} jako odeslanou?'
+    delivered_confirm_text: Odeslanou fakturu už nepůjde smazat. Označení nejde vrátit.
+    delivered_confirm_accept: Označit jako odeslanou
     tab:
       all: Vše
       paid: Uhrazené
@@ -406,7 +408,7 @@ invoice:
       to_refund: K vrácení
       trash: Koš
     column:
-      sent: E-mail
+      sent: Odesláno
       entries_count: '{count, plural, one {# záznam} few {# záznamy} other {# záznamů}}'
       export: Export
       number: Číslo
@@ -439,7 +441,6 @@ invoice:
       language: Jazyk
       vat_regime: Režim DPH
       description: Popis
-      delivered_at: Doručeno
       created_at: Vytvořeno
       recurring: Z pravidelné faktury
       import_source: Importováno z
@@ -453,13 +454,24 @@ invoice:
       payer: Plátce DPH
       non_payer: Neplátce DPH
     status:
-      settled_by_advances: Uhrazeno zálohami
-      issued: Vystaveno
-      delivered: Doručeno
-      partly_paid: Částečně uhrazeno
+      settled_by_advances: Uhrazená zálohami
+      issued: Vystavená
+      sent: Odeslaná
+      partly_paid: Částečně uhrazená
       overdue: Po splatnosti
-      paid: Uhrazeno
-      overpaid: Přeplaceno
+      paid: Uhrazená
+      overpaid: Přeplacená
+      to_refund: K vrácení
+      trashed: V koši
+    # The same statuses of a tax document on payment or a correction document ("doklad", masculine).
+    document_status:
+      settled_by_advances: Uhrazený zálohami
+      issued: Vystavený
+      sent: Odeslaný
+      partly_paid: Částečně uhrazený
+      overdue: Po splatnosti
+      paid: Uhrazený
+      overpaid: Přeplacený
       to_refund: K vrácení
       trashed: V koši
     action:
@@ -469,7 +481,7 @@ invoice:
       pdf: PDF
       copy: Kopírovat
       correct: Vystavit opravný doklad
-      delivered: Označit jako doručené
+      delivered: Označit jako odeslanou
       history: Historie
       delete: Smazat
       restore: Obnovit
@@ -510,7 +522,7 @@ invoice:
     changed: '{who}: faktura upravena'
     trashed: '{who}: faktura přesunuta do koše: {reason}'
     restored: '{who}: faktura obnovena'
-    delivered: '{who}: faktura označena jako doručená'
+    delivered: '{who}: faktura označena jako odeslaná'
     exported: '{who}: faktura exportována pro účetní'
     export_cleared: '{who}: příznak exportu zrušen'
     paid: '{who}: úhrada {amount} zaznamenána'
@@ -595,7 +607,7 @@ invoice:
     already_saved: Tento formulář už byl uložen.
     trashed: 'Faktura {number} je v koši.'
     restored: 'Faktura {number} je obnovená.'
-    delivered: 'Faktura {number} je označená jako doručená.'
+    delivered: 'Faktura {number} je označená jako odeslaná.'
     export_cleared: 'Doklad {number} už nemá příznak exportu, další export ho zahrne.'
   card:
     issuer: Vystavitel
@@ -644,6 +656,8 @@ invoice:
     taxPointDate: Datum zdanitelného plnění
     supplyDate: Datum uskutečnění
     dueDate: Datum splatnosti
+    sentAt: Datum odeslání
+    paidAt: Datum úhrady
     paymentMethod: Platba
     bankAccount: Bankovní účet
     bankAccount_none: Firma zatím nemá bankovní účet.
@@ -847,9 +861,9 @@ invoice:
     line_text_missing: Zadejte text položky.
     no_lines: Přidejte alespoň jeden řádek.
     number_invalid: Zadejte číslo s alespoň jedním písmenem nebo číslicí, nejvýše 80 znaků.
-    number_locked: Řadu a číslo nelze po doručení dokladu změnit.
+    number_locked: Řadu a číslo nelze po odeslání dokladu změnit.
     number_locked_sending: Řadu a číslo nelze měnit, dokud se doklad odesílá.
-    number_locked_sent: Řadu a číslo nelze změnit, odběratel už doklad dostal e-mailem.
+    number_locked_sent: Řadu a číslo nelze změnit, doklad už odešel e-mailem.
     number_out_of_range: Toto číslo je mimo rozsah řady.
     number_taken: Toto číslo už bylo v této firmě použito.
     import_number_missing: Importovaný doklad musí mít řadu i číslo.
@@ -861,7 +875,7 @@ invoice:
     correction_kind: Opravovaný doklad uvádí jen opravný daňový doklad.
     correction_link_missing: Vyberte fakturu, kterou tento doklad opravuje.
     correction_link_locked: Opravný doklad zůstává u faktury, kterou opravuje.
-    correction_original_invalid: Opravit lze jen vystavenou fakturu, která není v koši, nebo doručený daňový doklad k platbě.
+    correction_original_invalid: Opravit lze jen vystavenou fakturu, která není v koši, nebo odeslaný daňový doklad k platbě.
     correction_deducted: Daňový doklad je odečtený na konečné faktuře. Nejdřív odečet uvolněte, tedy konečnou fakturu přesuňte do koše nebo odečet z ní odeberte.
     correction_payment_change: Daňový doklad k platbě se opravuje jako změna po vystavení, ke dni zrušení nebo vrácení platby.
     correction_firm: Opravu musí vystavit firma faktury.
