@@ -223,7 +223,8 @@ final class InvoiceListExportControllerTest extends WebTestCase
             $fields[(string) $input->attr('name')] = (string) $input->attr('value');
         });
         unset($fields['_token']);
-        self::assertSame(['kind' => 'advance', 'view' => 'paid', 'firm' => $this->world['firm']->id(), 'q' => 'Work', 'sort' => 'number', 'month' => '2026-10', 'f' => WorkingFilter::encode(ViewFilter::all(new Condition(InvoiceLists::PAYMENT, 'is', 'paid'), new Condition(InvoiceLists::EXPORT, 'is', 'exported')))], $fields);
+        // An old ?firm= is no filter: an instance holds one firm (ADR 0039).
+        self::assertSame(['kind' => 'advance', 'view' => 'paid', 'q' => 'Work', 'sort' => 'number', 'month' => '2026-10', 'f' => WorkingFilter::encode(ViewFilter::all(new Condition(InvoiceLists::PAYMENT, 'is', 'paid'), new Condition(InvoiceLists::EXPORT, 'is', 'exported')))], $fields);
         self::assertSame(['csv', 'xlsx'], $form->filter('button[name="format"]')->each(static fn ($button): string => (string) $button->attr('value')));
         // The export sits in the header's "⋯" menu.
         self::assertCount(1, $crawler->filter('#invoices-actions form[data-list-export]'));
