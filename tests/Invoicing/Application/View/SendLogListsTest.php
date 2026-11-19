@@ -49,6 +49,11 @@ final class SendLogListsTest extends KernelTestCase
         self::assertSame(['invoice' => 'reminder.log.purpose.invoice', 'reminder' => 'reminder.log.purpose.reminder'], $fields['purpose']->optionLabels);
     }
 
+    public function testTheListIsBuiltOnce(): void
+    {
+        self::assertSame($this->lists()->list(), $this->lists()->list());
+    }
+
     private function lists(): SendLogLists
     {
         return self::getContainer()->get(SendLogLists::class);

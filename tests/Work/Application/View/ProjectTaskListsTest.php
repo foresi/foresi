@@ -54,6 +54,11 @@ final class ProjectTaskListsTest extends KernelTestCase
         self::assertSame('work.filter.due', $fields['due']->label);
     }
 
+    public function testTheListIsBuiltOnce(): void
+    {
+        self::assertSame($this->lists()->list(), $this->lists()->list());
+    }
+
     private function lists(): ProjectTaskLists
     {
         return self::getContainer()->get(ProjectTaskLists::class);

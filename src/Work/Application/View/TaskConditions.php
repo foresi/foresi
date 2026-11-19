@@ -74,7 +74,8 @@ final readonly class TaskConditions
      */
     private function text(Condition $condition, string $value): bool
     {
-        $value = mb_strtolower(trim($value));
+        // A title is trimmed when it is set (Name::of).
+        $value = mb_strtolower($value);
         $wanted = mb_strtolower(\is_string($condition->value) ? trim($condition->value) : '');
 
         return match ($condition->op) {
