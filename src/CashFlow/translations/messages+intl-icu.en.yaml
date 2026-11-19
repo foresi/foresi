@@ -26,6 +26,14 @@ cash_flow:
     stale: 'The balance is from {day}, more than 7 days ago.'
     source: '{source} could not be read; nothing of it is counted.'
     rate: 'There is no exchange rate for {currency} today; its amounts are left out.'
+  view:
+    label: Forecast view
+    weeks: 3 months
+    months: 12 months
+  chart:
+    title: Money in and out
+    label_weeks: Money in and out and the closing balance of each week; the table below has the figures.
+    label_months: Money in and out and the closing balance of each month; the table below has the figures.
   table:
     title: By period
     caption: Opening, money in and out by category and closing balance of each period

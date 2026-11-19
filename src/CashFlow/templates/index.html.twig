@@ -63,6 +63,16 @@
             {% else %}
                 <twig:Ui:KpiStrip :items="kpis" data-cash-flow-kpis />
 
+                {# One granularity per view, as Float's weekly or monthly toggle: 13 weeks or 12 months, for the chart and the table alike. #}
+                <twig:Ui:Tabs :items="views" :label="'cash_flow.view.label'|trans" data-cash-flow-views />
+
+                <section aria-labelledby="cash-flow-chart-title" class="grid grid-cols-1 gap-2">
+                    <h2 id="cash-flow-chart-title" class="m-0 text-body font-semibold text-ink">{{ 'cash_flow.chart.title'|trans }}</h2>
+                    <div class="rounded-panel border border-container bg-white p-4">
+                        <twig:Ui:BalanceChart :periods="chart.periods" :minimum="chart.minimum" :minimumText="chart.minimumText" :label="chart.label" :legend="chart.legend" data-cash-flow-chart />
+                    </div>
+                </section>
+
                 <section aria-labelledby="cash-flow-periods-title" class="grid grid-cols-1 gap-2">
                     <h2 id="cash-flow-periods-title" class="m-0 text-body font-semibold text-ink">{{ 'cash_flow.table.title'|trans }}</h2>
                     <div class="overflow-hidden rounded-panel border border-container bg-white">
