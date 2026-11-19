@@ -37,9 +37,9 @@ use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Column\RememberedDisplay;
-use Foresi\Ui\Column\WorkingDisplay;
-use Foresi\Ui\Column\WorkingState;
-use Foresi\Ui\Component\DataTable;
+use Foresi\Ui\Contract\Opens;
+use Foresi\Ui\Contract\WorkingDisplay;
+use Foresi\Ui\Contract\WorkingState;
 use Foresi\Ui\View\ViewBar;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -103,7 +103,8 @@ final class ReceivedDocumentListController extends AbstractController
         $filterParam = WorkingFilter::param($shown, $view->filter);
         $page = $this->list->page(new ReceivedDocumentFilter(
             $this->tabOf($view, $shown),
-            $this->optional($input->getString('firm')),
+            // An instance holds one firm (ADR 0039): an old ?firm= filters nothing.
+            null,
             ReceivedDocumentFilter::monthOf($input->getString('month')),
             $input->getString('q'),
             max(1, $input->getInt('page', 1)),
@@ -113,7 +114,6 @@ final class ReceivedDocumentListController extends AbstractController
         $filter = $page->filter;
         $query = array_filter([
             'view' => $view->isAll() ? null : $view->key,
-            'firm' => $filter->firmId,
             'month' => $filter->month,
             'q' => '' === $filter->text ? null : $filter->text,
             WorkingFilter::PARAM => $filterParam,
@@ -139,7 +139,6 @@ final class ReceivedDocumentListController extends AbstractController
             'density' => $working->tableDensity(),
             'picker' => $this->picker($working, $query),
             'workingQuery' => $working->query,
-            'firms' => $severalFirms ? ['' => $this->translator->trans('purchasing.list.all_firms')] + $page->firms : [],
             'months' => $this->monthOptions($page->months, $filter->month),
             'baseUrl' => $this->generateUrl(PurchasingNavigation::ROUTE, $query),
             'resetHref' => $this->generateUrl(PurchasingNavigation::ROUTE, ['view' => $view->isAll() ? null : $view->key]),
@@ -446,16 +445,11 @@ final class ReceivedDocumentListController extends AbstractController
         return [
             'id' => $row->id,
             'href' => $this->generateUrl('app_purchasing_document', ['id' => $row->id]),
-            'opens' => DataTable::OPENS_SHEET,
+            'opens' => Opens::SHEET,
             'label' => $label,
             'secondary' => implode(' · ', array_filter([$row->supplierName, $this->columns->total($row), $badge['label']], static fn (string $part): bool => '' !== $part)),
             'cells' => $working->display->cells($row),
         ];
-    }
-
-    private function optional(string $value): ?string
-    {
-        return '' === $value ? null : $value;
     }
 
     private function checkToken(Request $request): void

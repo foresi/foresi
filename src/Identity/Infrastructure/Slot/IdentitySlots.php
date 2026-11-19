@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Identity\Infrastructure\Slot;
 
-use Foresi\Ui\Slot\SlotItem;
-use Foresi\Ui\Slot\SlotProvider;
-use Foresi\Ui\Slot\Slots;
+use Foresi\Ui\Contract\Slot\SlotItem;
+use Foresi\Ui\Contract\Slot\SlotProvider;
+use Foresi\Ui\Contract\Slot\Slots;
 
 /**
  * What Identity adds to the account menu: API access, the language and signing out.

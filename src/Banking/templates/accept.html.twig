@@ -3,7 +3,7 @@
     "Record anyway" for a message rejected because its sender could not be trusted. It warns to check
     the payment in the bank first; the movement it records never pairs by itself.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'bank.movement.title'|trans, href: cancel}, {label: 'bank.message.accept.crumb'|trans}] %}
 {% set dialog_size = 'sm' %}

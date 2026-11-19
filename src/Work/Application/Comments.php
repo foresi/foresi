@@ -25,6 +25,13 @@ interface Comments
     public function of(Task $task): array;
 
     /**
+     * The deleted comments whose text is still kept, deleted before the moment.
+     *
+     * @return list<TaskComment>
+     */
+    public function deletedBefore(\DateTimeImmutable $moment): array;
+
+    /**
      * @return list<CommentMention>
      */
     public function mentions(TaskComment $comment): array;

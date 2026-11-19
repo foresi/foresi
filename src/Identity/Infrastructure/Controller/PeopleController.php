@@ -28,7 +28,7 @@ use Foresi\Party\Application\PartyRow;
 use Foresi\Party\Domain\Party;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Infrastructure\Http\TypedAmount;
-use Foresi\Ui\Component\DataTable;
+use Foresi\Ui\Contract\Opens;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -349,7 +349,7 @@ final class PeopleController extends AbstractController
             'id' => $person->membershipId,
             // The owner opens a person, a small record, in a modal over the list (docs/design/overlays.md).
             'href' => $owner ? $this->generateUrl('app_people_edit', ['id' => $person->membershipId]) : null,
-            'opens' => DataTable::OPENS_DIALOG,
+            'opens' => Opens::DIALOG,
             'label' => $person->name,
             'secondary' => $person->email,
             'cells' => [

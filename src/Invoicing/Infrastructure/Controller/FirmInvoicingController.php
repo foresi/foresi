@@ -23,12 +23,11 @@ use Foresi\Invoicing\Domain\InvalidSeriesFormat;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
 use Foresi\Invoicing\Infrastructure\Form\FirmInvoicingReader;
-use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\TransactionalWork;
-use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Infrastructure\Http\SubmissionTokens;
-use Foresi\Ui\Component\DataTable;
+use Foresi\Ui\Contract\Opens;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -50,7 +49,7 @@ final class FirmInvoicingController extends AbstractController
     public const string SERIES_TOKEN = 'series_form';
 
     public function __construct(
-        private readonly LegalEntities $firms,
+        private readonly InstanceFirm $instanceFirm,
         private readonly FirmInvoicingSettings $settings,
         private readonly SeriesCatalog $catalog,
         private readonly NumberCounter $counter,
@@ -64,11 +63,11 @@ final class FirmInvoicingController extends AbstractController
     ) {
     }
 
-    #[Route('/settings/firms/{id}/invoicing', name: 'app_firm_invoicing', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
-    public function settings(string $id, Request $request): Response
+    #[Route('/settings/firm/invoicing', name: 'app_firm_invoicing', methods: ['GET', 'POST'])]
+    public function settings(Request $request): Response
     {
         $this->denyUnlessOwner();
-        $firm = $this->firm($id);
+        $firm = $this->firm();
         $settings = $this->settings->for($firm);
         if (!$request->isMethod('POST')) {
             return $this->settingsForm($firm, $this->valuesOf($settings), [], Response::HTTP_OK);
@@ -93,14 +92,14 @@ final class FirmInvoicingController extends AbstractController
         }
         $this->addFlash('success', $this->translator->trans('firm.invoicing.flash.saved'));
 
-        return $this->redirectToRoute('app_firm_invoicing', ['id' => $id]);
+        return $this->redirectToRoute('app_firm_invoicing');
     }
 
-    #[Route('/settings/firms/{id}/invoicing/series/new', name: 'app_series_new', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
-    public function newSeries(string $id, Request $request): Response
+    #[Route('/settings/firm/invoicing/series/new', name: 'app_series_new', methods: ['GET', 'POST'])]
+    public function newSeries(Request $request): Response
     {
         $this->denyUnlessOwner();
-        $firm = $this->firm($id);
+        $firm = $this->firm();
         if (!$request->isMethod('POST')) {
             $kind = DocumentKind::tryFrom($request->query->getString('kind')) ?? DocumentKind::Invoice;
             $values = ['name' => '', 'format' => $kind->standardSeriesFormat(), 'startYear' => $this->today()->format('Y'), 'nextNumber' => '', 'default' => '', 'kind' => $kind->value];
@@ -112,17 +111,17 @@ final class FirmInvoicingController extends AbstractController
         $token = $request->request->getString('_submission');
         if ($this->tokens->isIssued($token) && null !== $this->tokens->createdId($token)) {
             // The same submission again: it is in the list already.
-            return $this->redirectToRoute('app_firm_invoicing', ['id' => $id]);
+            return $this->redirectToRoute('app_firm_invoicing');
         }
 
         return $this->saveSeries($request, $firm, null, $token);
     }
 
-    #[Route('/settings/firms/{id}/invoicing/series/{series}/edit', name: 'app_series_edit', requirements: ['id' => Requirement::UUID_V7, 'series' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
-    public function editSeries(string $id, string $series, Request $request): Response
+    #[Route('/settings/firm/invoicing/series/{series}/edit', name: 'app_series_edit', requirements: ['series' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
+    public function editSeries(string $series, Request $request): Response
     {
         $this->denyUnlessOwner();
-        $firm = $this->firm($id);
+        $firm = $this->firm();
         $stored = $this->seriesOf($firm, $series);
         if (!$request->isMethod('POST')) {
             return $this->seriesForm($firm, $stored, $this->seriesValues($stored), [], '', Response::HTTP_OK);
@@ -169,7 +168,7 @@ final class FirmInvoicingController extends AbstractController
         }
         $this->addFlash('success', $this->translator->trans('series.flash.saved'));
 
-        return $this->redirectToRoute('app_firm_invoicing', ['id' => $firm->id()]);
+        return $this->redirectToRoute('app_firm_invoicing');
     }
 
     /**
@@ -292,10 +291,10 @@ final class FirmInvoicingController extends AbstractController
             'errors' => $this->messages($errors),
             'roundings' => $this->roundings(),
             'columns' => array_map(fn (string $key): array => ['key' => $key, 'label' => $this->translator->trans('series.column.'.$key)], ['name', 'kind', 'format', 'next', 'default']),
-            'rows' => array_map(fn (Series $one): array => $this->row($firm, $one), $series),
+            'rows' => array_map($this->row(...), $series),
             'firstNumber' => $this->counter->peek($this->catalog->defaultFor($firm), $this->today()),
-            'action' => $this->generateUrl('app_firm_invoicing', ['id' => $firm->id()]),
-            'cancel' => $this->generateUrl('app_firm_edit', ['id' => $firm->id()]),
+            'action' => $this->generateUrl('app_firm_invoicing'),
+            'cancel' => $this->generateUrl('app_firm'),
         ], new Response(status: $status));
     }
 
@@ -315,10 +314,9 @@ final class FirmInvoicingController extends AbstractController
             'values' => $values,
             'errors' => $this->messages($errors),
             'token' => $token,
-            'action' => $series instanceof Series ? $this->generateUrl('app_series_edit', ['id' => $firm->id(), 'series' => $series->id()]) : $this->generateUrl('app_series_new', ['id' => $firm->id()]),
-            'settings' => $this->generateUrl('app_firm_invoicing', ['id' => $firm->id()]),
-            'firmUrl' => $this->generateUrl('app_firm_edit', ['id' => $firm->id()]),
-            'firmsUrl' => $this->generateUrl('app_firm_index'),
+            'action' => $series instanceof Series ? $this->generateUrl('app_series_edit', ['series' => $series->id()]) : $this->generateUrl('app_series_new'),
+            'settings' => $this->generateUrl('app_firm_invoicing'),
+            'firmUrl' => $this->generateUrl('app_firm'),
         ], new Response(status: $status));
     }
 
@@ -335,14 +333,14 @@ final class FirmInvoicingController extends AbstractController
     /**
      * @return array<string, mixed>
      */
-    private function row(LegalEntity $firm, Series $series): array
+    private function row(Series $series): array
     {
         return [
             'id' => $series->id(),
             'label' => $this->seriesName($series),
-            'href' => $this->generateUrl('app_series_edit', ['id' => $firm->id(), 'series' => $series->id()]),
+            'href' => $this->generateUrl('app_series_edit', ['series' => $series->id()]),
             // A series is a small record: it opens in a modal over the list (docs/design/overlays.md).
-            'opens' => DataTable::OPENS_DIALOG,
+            'opens' => Opens::DIALOG,
             'cells' => [
                 'name' => $this->seriesName($series),
                 'kind' => $this->translator->trans('series.kind.'.$series->kind()->value),
@@ -433,13 +431,12 @@ final class FirmInvoicingController extends AbstractController
         return \DateTimeImmutable::createFromInterface($this->clock->now());
     }
 
-    private function firm(string $id): LegalEntity
+    /**
+     * The firm of this instance; before the first-run setup there is none to set up.
+     */
+    private function firm(): LegalEntity
     {
-        try {
-            return $this->firms->get($id);
-        } catch (UnknownLegalEntity) {
-            throw new NotFoundHttpException();
-        }
+        return $this->instanceFirm->find() ?? throw new NotFoundHttpException();
     }
 
     private function seriesOf(LegalEntity $firm, string $id): Series

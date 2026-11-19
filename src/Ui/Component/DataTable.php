@@ -8,11 +8,12 @@ declare(strict_types=1);
 
 namespace Foresi\Ui\Component;
 
+use Foresi\Ui\Contract\Opens;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, opens: string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string, opens: string}>, avatar: ?array{name: string, seed: string}, badges: list<array{label: string, tone: string}>, flag: ?array{label: string, tone: string, icon: ?string}, edit: ?array<array-key, mixed>}
+ * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, opens: string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string, opens: string}>, avatar: ?array{name: string, seed: string}, badges: list<array{label: string, tone: string}>, flag: ?array{label: string, tone: string, icon: ?string}, edit: ?array<array-key, mixed>, empty: ?string}
  * @phpstan-type Confirm array{title: string, text: ?string, accept: ?string, cancel: ?string, tone: ?string}
  * @phpstan-type Action array{label: string, href: string, method: string, confirm: ?Confirm, icon: ?string, plain: bool, dialog: bool, fields: array<string, string>}
  * @phpstan-type RowAlert array{text: string, column: string, href: ?string, action: ?string}
@@ -24,10 +25,6 @@ final class DataTable
 {
     /** Values longer than this get their full text in a title attribute. */
     private const int TITLE_FROM_LENGTH = 24;
-    public const string OPENS_SHEET = 'sheet';
-    public const string OPENS_DIALOG = 'dialog';
-    public const string OPENS_PAGE = 'page';
-    private const array OPENS = [self::OPENS_SHEET, self::OPENS_DIALOG, self::OPENS_PAGE];
     private const array ALIGNS = ['left', 'right', 'center'];
     private const array ROW_HEIGHTS = ['list' => 'h-row-list', 'dense' => 'h-row'];
     /**
@@ -256,11 +253,11 @@ final class DataTable
         $plain = true === ($row['plain'] ?? false);
         // A row opens its record in the side sheet over the list unless it says otherwise; a plain
         // row leaves Turbo, so it is a page (docs/design/overlays.md).
-        $opens = $row['opens'] ?? ($plain ? self::OPENS_PAGE : self::OPENS_SHEET);
-        if (!in_array($opens, self::OPENS, true)) {
-            throw new \InvalidArgumentException(sprintf('A row opens as one of: %s.', implode(', ', self::OPENS)));
+        $opens = $row['opens'] ?? ($plain ? Opens::PAGE : Opens::SHEET);
+        if (!in_array($opens, Opens::ALL, true)) {
+            throw new \InvalidArgumentException(sprintf('A row opens as one of: %s.', implode(', ', Opens::ALL)));
         }
-        if ($plain && self::OPENS_PAGE !== $opens) {
+        if ($plain && Opens::PAGE !== $opens) {
             throw new \InvalidArgumentException('A plain row leaves Turbo, so it opens as a page.');
         }
 
@@ -386,7 +383,7 @@ final class DataTable
      *
      * @return Cell
      */
-    private function cell(array $column, mixed $value, ?string $link, bool $plain, string $opens = self::OPENS_PAGE): array
+    private function cell(array $column, mixed $value, ?string $link, bool $plain, string $opens = Opens::PAGE): array
     {
         $tone = null;
         $hint = null;
@@ -402,6 +399,12 @@ final class DataTable
             $edit = is_array($value['edit']) ? $value['edit'] : throw new \InvalidArgumentException('An edit of a cell must be the props of a Ui:InlineEdit.');
             unset($value['edit']);
             $value = [] === $value ? null : (array_keys($value) === ['text'] ? $value['text'] : $value);
+        }
+        $empty = null;
+        if (is_array($value) && array_key_exists('empty', $value)) {
+            // No value, said in words of its own where the general "Not set" would mislead, such as "No response".
+            $empty = is_string($value['empty']) && '' !== $value['empty'] ? $value['empty'] : throw new \InvalidArgumentException('An empty cell label must be a non-empty string.');
+            $value = null;
         }
         if (is_array($value) && isset($value['flag'])) {
             // A text with a badge after it that marks the row, such as a private task.
@@ -466,6 +469,7 @@ final class DataTable
             'badges' => $badges,
             'flag' => $flag,
             'edit' => $edit,
+            'empty' => $empty,
         ];
     }
 
@@ -497,9 +501,9 @@ final class DataTable
             $href = Style::requireString($link, 'href', 'A link of a cell');
             Style::href($href);
             // A chip opens its record where it says (sheet, dialog or page, the default), as a row does.
-            $opens = $link['opens'] ?? self::OPENS_PAGE;
-            if (!in_array($opens, self::OPENS, true)) {
-                throw new \InvalidArgumentException(sprintf('A link of a cell opens as one of: %s.', implode(', ', self::OPENS)));
+            $opens = $link['opens'] ?? Opens::PAGE;
+            if (!in_array($opens, Opens::ALL, true)) {
+                throw new \InvalidArgumentException(sprintf('A link of a cell opens as one of: %s.', implode(', ', Opens::ALL)));
             }
             $views[] = ['text' => Style::requireString($link, 'text', 'A link of a cell'), 'href' => $href, 'opens' => $opens];
         }

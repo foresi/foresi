@@ -165,7 +165,7 @@ final class SharedWorkTest extends WorkTestCase
         $permissions = self::getContainer()->get(AttachmentPermissions::class);
         self::assertFalse($permissions->canSee('task_comment', $internal->id()));
         self::assertTrue($permissions->canSee('task', $this->brief->id()));
-        $this->assertRefused('unknown', fn () => $this->comments->delete($internal->id()));
+        $this->assertRefused('unknown', fn (): \Foresi\Work\Domain\TaskComment => $this->comments->delete($internal->id()));
         self::assertNull($this->queries->projectSettings($this->website->id()));
         self::assertNull($this->queries->trash($this->website->id()));
         self::assertSame([], $this->queries->labels());

@@ -11,7 +11,9 @@ namespace Foresi\Tests\Work\Domain;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
+use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Party\Domain\PartyFactory;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\ProjectStatus;
@@ -139,5 +141,34 @@ final class TimeEntryTest extends TestCase
         $timer->change($this->task, $now, 45, null, null, '', false);
         $timer->leaveTask();
         self::assertNull($timer->task());
+    }
+
+    public function testTheTrashStopsATimerKeepsWhoAndWhenAndRefusesInvoicedTime(): void
+    {
+        $now = new \DateTimeImmutable('2026-11-10 09:00');
+        $userId = Id::generate();
+        $timer = TimeEntry::started($this->project, $this->task, $this->membership, $now, $now, '', true, Id::generate());
+
+        $timer->trash($userId, $now->modify('+30 minutes'));
+        self::assertSame([true, false, 30, '09:30', $userId], [$timer->isDeleted(), $timer->isRunning(), $timer->minutes(), $timer->deletedAt()?->format('H:i'), $timer->deletedBy()]);
+        // Trashing again keeps the first moment.
+        $timer->trash(Id::generate(), $now->modify('+1 hour'));
+        self::assertSame(['09:30', $userId], [$timer->deletedAt()?->format('H:i'), $timer->deletedBy()]);
+        foreach ([
+            static fn () => $timer->change(null, $now, 15, null, null, '', true),
+            static fn () => $timer->invoice(Id::generate(), Id::generate(), Money::ofMinor(100_000, Currency::CZK), 30),
+        ] as $refused) {
+            try {
+                $refused();
+                self::fail('Time in the trash is neither changed nor invoiced.');
+            } catch (\DomainException) {
+            }
+        }
+        $timer->restore();
+        self::assertSame([false, null, null], [$timer->isDeleted(), $timer->deletedAt(), $timer->deletedBy()]);
+
+        $timer->invoice(Id::generate(), Id::generate(), Money::ofMinor(100_000, Currency::CZK), 30);
+        $this->expectException(\DomainException::class);
+        $timer->trash($userId, $now);
     }
 }

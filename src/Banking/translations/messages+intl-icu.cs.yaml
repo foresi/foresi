@@ -140,6 +140,12 @@ bank:
     title: Banka
     views: Pohledy na banku
     cancel: Zrušit
+    view:
+      all: Vše
+    field:
+      direction: Směr
+      state: Stav
+      bank_mail: E-mail z banky
     tab:
       incoming: Příchozí
       outgoing: Odchozí
@@ -161,9 +167,6 @@ bank:
       status: Stav
       reason: Proč
     list:
-      all_firms: Všechny firmy
-      all_accounts: Všechny účty
-      firm: Firma
       account: Účet
       search_label: Hledat pohyby
       search_placeholder: Partner, VS nebo částka
@@ -173,8 +176,10 @@ bank:
       no_accounts_title: Zatím tu není žádný bankovní účet
       no_accounts_text: Přidejte bankovní účet firmy v jejím nastavení banky. Platby z e-mailů banky se pak ukážou tady.
       no_accounts_link: Otevřít firmy
+      all_title: Zatím žádné platby
+      all_text: Platby z e-mailů banky se ukážou tady.
       filtered_title: Filtru nic neodpovídá
-      filtered_text: Zkuste jiné hledání, firmu nebo účet.
+      filtered_text: Zkuste jiné hledání nebo filtr.
       reset: Zrušit filtr
       incoming_title: Zatím žádné příchozí platby
       incoming_text: Platby z e-mailů banky se ukážou tady.

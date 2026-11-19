@@ -8,6 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Ui\Navigation;
 
+use Foresi\Ui\Contract\Navigation\NavigationArea;
+use Foresi\Ui\Contract\Navigation\NavigationAreaProvider;
+use Foresi\Ui\Contract\Navigation\NavigationItem;
+use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**
@@ -20,14 +24,12 @@ use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
  */
 final readonly class NavigationRegistry
 {
-    public const string TAG = 'app.navigation_item';
-
     /**
      * @param iterable<NavigationItemProvider> $providers
      * @param iterable<NavigationAreaProvider> $areaProviders
      */
     public function __construct(
-        #[AutowireIterator(self::TAG)]
+        #[AutowireIterator(NavigationItemProvider::TAG)]
         private iterable $providers,
         #[AutowireIterator(NavigationArea::TAG)]
         private iterable $areaProviders = [],

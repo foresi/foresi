@@ -12,8 +12,8 @@ use Foresi\Banking\Application\BankMovements;
 use Foresi\Banking\Application\BankScreen;
 use Foresi\Banking\Application\InboundMessages;
 use Foresi\Identity\Application\StaffCheck;
-use Foresi\Ui\Notice\ShellNotice;
-use Foresi\Ui\Notice\ShellNoticeProvider;
+use Foresi\Ui\Contract\Notice\ShellNotice;
+use Foresi\Ui\Contract\Notice\ShellNoticeProvider;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
@@ -58,10 +58,10 @@ final readonly class BankNotices implements ShellNoticeProvider
         }
     }
 
-    private function href(string $tab): ?string
+    private function href(string $view): ?string
     {
         try {
-            return $this->urls->generate(self::ROUTE, ['tab' => $tab]);
+            return $this->urls->generate(self::ROUTE, ['view' => $view]);
         } catch (RouteNotFoundException) {
             return null;
         }

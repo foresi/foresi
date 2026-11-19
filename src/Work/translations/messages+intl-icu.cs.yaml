@@ -88,6 +88,7 @@ work:
     comment_too_long: Komentář může mít nejvýš 20 000 znaků.
     comment_not_yours: Tento komentář může měnit jen jeho autor.
     comment_deleted: Tento komentář byl smazán.
+    comment_purged: Text komentáře už je smazaný natrvalo.
     task_not_yours: Úkol smaže nebo obnoví jen jeho autor nebo vlastník organizace.
     parent_in_trash: Nejdřív je potřeba obnovit nadřazený úkol.
     share_person: Vyberte aktivního člověka z organizace, se kterým chcete sdílet.
@@ -97,6 +98,7 @@ work:
     time_not_yours: Čas může změnit nebo smazat jen ten, kdo ho zapsal, nebo vlastník organizace.
     time_invoiced: Tento čas je vyfakturovaný a už ho nelze měnit.
     timer_running: Nejdřív zastavte časovač.
+    time_task_in_trash: Nejdřív obnovte úkol, ke kterému čas patří.
     estimate: Zadejte odhad alespoň minutu a nejvýš 9 999 hodin.
   time:
     title: Čas
@@ -105,9 +107,6 @@ work:
     edit_label: 'Upravit čas ze dne {date}'
     delete: Smazat
     delete_label: 'Smazat čas ze dne {date}'
-    delete_confirm:
-      title: Smazat zapsaný čas?
-      text: Tohle nejde vrátit.
     none: Zatím žádný zapsaný čas.
     hours: '{hours} h'
     minutes: '{minutes} min'
@@ -121,8 +120,18 @@ work:
     estimate_help: Třeba 5 h nebo 2h 30m.
     logged: 'Zapsáno {duration}.'
     edited: Čas je upravený.
-    deleted: Čas je smazaný.
     stopped: 'Časovač je zastavený, zapsáno {duration} na „{title}“.'
+    trash:
+      deleted: Čas je v koši.
+      restored: Čas je obnovený.
+      tasks: Úkoly
+      section: Čas
+      purge: '{days, plural, one {Úkoly a čas v koši se po # dni smažou natrvalo.} other {Úkoly a čas v koši se po # dnech smažou natrvalo.}}'
+      column:
+        worked_on: Den
+        person: Kdo
+        duration: Délka
+        task: Úkol
     error:
       worked_on: Zadejte den jako datum.
       project: Vyberte projekt.
@@ -219,7 +228,7 @@ work:
     labels_removed: '{count, plural, one {Odebrán štítek} other {Odebrány štítky}}: {names}'
     due: 'Termín {from} → {to}'
     priority: 'Priorita {from} → {to}'
-    no_date: —
+    no_date: nezadáno
     shared: 'Sdíleno s: {names}'
     unshared: 'Sdílení odebráno: {names}'
     private:
@@ -290,11 +299,12 @@ work:
     edited: upraveno
     edited_at: 'Upraveno {date}'
     deleted: Komentář byl smazán
+    trash:
+      mine: Komentář je smazaný
+      deleted: Komentář je smazaný.
+      restored: Komentář je obnovený.
     actions: 'Akce komentáře od {name}'
     delete: Smazat
-    delete_confirm:
-      title: Smazat komentář?
-      text: Tuto akci nelze vrátit.
     edit_label: Upravit komentář
     composer: Komentář
     internal_switch: Interní
@@ -362,12 +372,12 @@ work:
     deleted: 'Úkol „{title}“ je v koši.'
     undo: Vrátit zpět
     restore: Obnovit
-    restored: 'Úkol „{title}“ je zpět.'
+    restored: 'Úkol „{title}“ je obnovený.'
     purge: '{days, plural, one {Úkoly v koši se po # dni smažou natrvalo.} other {Úkoly v koši se po # dnech smažou natrvalo.}}'
     subtask_of: 'Podúkol úkolu {title}'
     column:
       parent: Nadřazený úkol
-      deleted_by: Kdo smazal
+      deleted_by: Smazal(a)
       deleted_at: Smazáno
     empty:
       title: Koš je prázdný
@@ -405,10 +415,14 @@ work:
     title: Moje úkoly
     views: Pohledy na moje úkoly
     tab:
+      all: Vše
       assigned: Přiřazené mně
       watching: Sledované
     client: Klient
-    client_any: Všichni klienti
+    involvement: Můj vztah
+    involvement_option:
+      responsible: Odpovídám
+      watcher: Sleduji
     group:
       overdue: Po termínu
       today: Dnes
@@ -416,11 +430,15 @@ work:
       later: Později
       no_date: Bez termínu
     empty:
+      all_title: Nemáte žádné nehotové úkoly
+      all_text: Úkoly, za které odpovídáte nebo je sledujete, uvidíte tady.
       assigned_title: Nemáte žádné nehotové úkoly
       assigned_text: Úkoly, za které odpovídáte, uvidíte tady.
       watching_title: Nesledujete žádné nehotové úkoly
       watching_text: Úkol začnete sledovat na jeho stránce.
-      filtered: Pro tohoto klienta tu nic není.
+      filtered_title: Nic tomu neodpovídá
+      filtered: Těmto podmínkám neodpovídá žádný úkol.
+      reset: Obnovit pohled
   notifications:
     settings: Nastavení
     title: Oznámení

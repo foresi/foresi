@@ -14,6 +14,7 @@ use Foresi\Shared\Domain\View\AttributeType;
 use Foresi\Ui\Component\DataTable;
 use Foresi\Ui\Component\Style;
 use Foresi\Ui\Contract\Attribute;
+use Foresi\Ui\Contract\Opens;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -126,6 +127,6 @@ final readonly class AttributeCells
      */
     private function chip(string $text, string $href): array
     {
-        return ['links' => [['text' => $text, 'href' => $href, 'opens' => DataTable::OPENS_PAGE]], 'plain' => true];
+        return ['links' => [['text' => $text, 'href' => $href, 'opens' => Opens::PAGE]], 'plain' => true];
     }
 }

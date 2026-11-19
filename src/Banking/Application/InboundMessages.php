@@ -10,6 +10,7 @@ namespace Foresi\Banking\Application;
 
 use Foresi\Banking\Domain\InboundMessage;
 use Foresi\Banking\Domain\InboundStatus;
+use Foresi\Shared\Application\View\ViewFilter;
 
 /**
  * The inbound messages.
@@ -90,17 +91,18 @@ interface InboundMessages
 
     /**
      * How many messages wait for someone: failed or rejected ones, and ones still
-     * waiting for processing since before the moment given, which the queue gave up on.
+     * waiting for processing since before the moment given, which the queue gave up on;
+     * of those a view of the bank mail holds, or of all.
      */
-    public function needingAttention(\DateTimeImmutable $stuckBefore, ?string $firmId = null, ?string $accountId = null): int;
+    public function needingAttention(\DateTimeImmutable $stuckBefore, ?ViewFilter $view = null): int;
 
     /**
-     * How many messages came to the accounts the filter names.
+     * How many messages the filter's view of the bank mail holds.
      */
     public function count(MovementFilter $filter): int;
 
     /**
-     * The messages that came to the accounts the filter names, newest first.
+     * The messages the filter's view of the bank mail holds, newest first.
      *
      * @return list<MessageRow>
      */

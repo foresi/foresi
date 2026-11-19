@@ -20,13 +20,17 @@ use Foresi\Shared\Domain\Id;
  * default, so nothing reaches a client by accident once clients read tasks.
  *
  * Deleting keeps the row, so the discussion shows that something was said
- * and removed, but clears the text from it. The audit log still holds what it
- * said: the log is the record of the organisation.
+ * and removed. The text stays until the comment has been deleted for 30 days,
+ * so its author or an owner may restore it; then the purge clears the text and
+ * the row stays as the note that something was said. Nobody else reads the
+ * text of a deleted comment. The audit log still holds what it said: the log is
+ * the record of the organisation.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'task_comment')]
 #[ORM\Index(name: 'idx_task_comment_task', columns: ['task_id', 'created_at'])]
 #[ORM\Index(name: 'idx_task_comment_author', columns: ['author_id'])]
+#[ORM\Index(name: 'idx_task_comment_deleted', columns: ['deleted_at'])]
 class TaskComment implements Audited, AuditRooted
 {
     public const int MAX_BODY_LENGTH = 20_000;
@@ -43,6 +47,10 @@ class TaskComment implements Audited, AuditRooted
 
     #[ORM\Column(name: 'deleted_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $deletedAt = null;
+
+    /** The user who deleted the comment. */
+    #[ORM\Column(name: 'deleted_by', type: 'guid', nullable: true)]
+    private ?string $deletedBy = null;
 
     /**
      * @throws \DomainException when the body is empty or too long
@@ -100,19 +108,55 @@ class TaskComment implements Audited, AuditRooted
     }
 
     /**
-     * Deleting twice keeps the first date.
+     * Keeps the text, for a restore. Deleting twice keeps the first date and who.
      */
-    public function delete(\DateTimeImmutable $now): void
+    public function delete(string $userId, \DateTimeImmutable $now): void
     {
         if (!$this->isDeleted()) {
-            $this->body = '';
             $this->deletedAt = $now;
+            $this->deletedBy = $userId;
+        }
+    }
+
+    /**
+     * Brings the text back. Restoring a comment that stands changes nothing.
+     *
+     * @throws \DomainException when the text is gone already
+     */
+    public function restore(): void
+    {
+        if (!$this->isDeleted()) {
+            return;
+        }
+        if (!$this->isRestorable()) {
+            throw new \DomainException('A purged comment cannot be restored.');
+        }
+        $this->deletedAt = null;
+        $this->deletedBy = null;
+    }
+
+    /**
+     * Clears the text of a deleted comment for good; the row stays in the
+     * discussion. A comment that stands is left as it is.
+     */
+    public function purge(): void
+    {
+        if ($this->isDeleted()) {
+            $this->body = '';
         }
     }
 
     public function isDeleted(): bool
     {
         return $this->deletedAt instanceof \DateTimeImmutable;
+    }
+
+    /**
+     * A deleted comment whose text is still kept.
+     */
+    public function isRestorable(): bool
+    {
+        return $this->isDeleted() && '' !== $this->body;
     }
 
     public function id(): string
@@ -136,7 +180,8 @@ class TaskComment implements Audited, AuditRooted
     }
 
     /**
-     * The Markdown source; empty once deleted.
+     * The Markdown source, kept while deleted for a restore and empty once
+     * purged. Whoever shows it checks isDeleted first.
      */
     public function text(): string
     {
@@ -161,5 +206,10 @@ class TaskComment implements Audited, AuditRooted
     public function deletedAt(): ?\DateTimeImmutable
     {
         return $this->deletedAt;
+    }
+
+    public function deletedBy(): ?string
+    {
+        return $this->deletedBy;
     }
 }

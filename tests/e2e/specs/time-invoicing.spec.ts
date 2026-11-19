@@ -123,7 +123,7 @@ test.describe('invoicing time', () => {
     await row.getByRole('menuitem', { name: 'Smazat' }).click();
     const trash = page.getByRole('dialog', { name: `Smazat fakturu ${number}` });
     await trash.locator('#trash-reason').fill('Vystaveno omylem');
-    await trash.getByRole('button', { name: 'Přesunout do koše' }).click();
+    await trash.getByRole('button', { name: 'Smazat fakturu', exact: true }).click();
     await expect(page.getByText(`Faktura ${number} je v koši.`)).toBeVisible();
     await expectFree(page);
     const again = await openDialog(page);
@@ -137,7 +137,7 @@ test.describe('invoicing time', () => {
     const trashed = page.locator('tbody tr').filter({ hasText: number });
     await trashed.getByRole('button', { name: /Další akce/ }).click();
     await trashed.getByRole('menuitem', { name: 'Obnovit' }).click();
-    await expect(page.getByText(/je zpět v seznamu\./)).toBeVisible();
+    await expect(page.getByText(/je obnovená\./)).toBeVisible();
     await expectLockedBy(page, number);
   });
 });

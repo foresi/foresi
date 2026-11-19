@@ -51,8 +51,8 @@ use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Column\RememberedDisplay;
-use Foresi\Ui\Column\WorkingDisplay;
-use Foresi\Ui\Column\WorkingState;
+use Foresi\Ui\Contract\WorkingDisplay;
+use Foresi\Ui\Contract\WorkingState;
 use Foresi\Ui\View\ViewBar;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\InputBag;
@@ -79,7 +79,7 @@ final class RecurringListController extends AbstractController
     /** The parts of the list's query an action carries back to it. */
     /** The views the list ships, whose empty state has words of its own. */
     private const array SHIPPED = [ListDefinition::ALL, 'active', 'paused', 'ended', 'failing'];
-    private const array LIST_QUERY = ['view', 'tab', 'firm', 'sort', 'page', WorkingFilter::PARAM, WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY];
+    private const array LIST_QUERY = ['view', 'tab', 'sort', 'page', WorkingFilter::PARAM, WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY];
 
     public function __construct(
         private readonly RecurringInvoices $templates,
@@ -119,28 +119,25 @@ final class RecurringListController extends AbstractController
         $viewSort = ViewState::sortParam($view->sort, RecurringFilter::NEXT);
         $sort = $request->query->getString('sort', $viewSort);
         $sort = \in_array(ltrim($sort, '-'), RecurringFilter::SORTS, true) ? $sort : RecurringFilter::NEXT;
-        $firms = $this->firmNames();
-        $firm = $request->query->getString('firm');
-        $firm = isset($firms[$firm]) ? $firm : '';
-        $firmId = '' === $firm ? null : $firm;
-        $severalFirms = \count($firms) > 1;
+        // An instance holds one firm (ADR 0039): an old ?firm= filters nothing.
+        $severalFirms = \count($this->firmNames()) > 1;
 
-        $page = $this->templates->page(new RecurringFilter($firmId, null, false, max(1, $request->query->getInt('page', 1)), $shown, $this->counted($views), $sort));
+        $page = $this->templates->page(new RecurringFilter(null, null, false, max(1, $request->query->getInt('page', 1)), $shown, $this->counted($views), $sort));
         $lines = $this->overview->prepare($page->templates);
         $today = $this->clock->today();
         $amounts = $this->amounts->payable($page->templates, $lines, $today);
 
-        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'firm' => $firmId, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
+        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
         // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $working = $this->rememberedDisplay->read(RecurringColumns::LIST, ['severalFirms' => $severalFirms], $list->key, $view, $request->query->all());
         $query += $working->query;
         $here = http_build_query(1 === $page->page ? $query : $query + ['page' => (string) $page->page]);
-        $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, RecurringFilter::NEXT, $working, 'app_recurring', null === $firmId ? [] : ['firm' => $firmId]);
+        $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, RecurringFilter::NEXT, $working, 'app_recurring', []);
         // The failure sits under the description, or under the name when the description is hidden.
         $alertColumn = \in_array('description', $working->display->keys(), true) ? 'description' : 'name';
 
         return $this->render('@Invoicing/recurring/index.html.twig', [
-            'firstRun' => 0 === (null === $firmId && isset($page->counts[ListDefinition::ALL]) ? $page->counts[ListDefinition::ALL] : array_sum($this->overview->counts(null))),
+            'firstRun' => 0 === ($page->counts[ListDefinition::ALL] ?? array_sum($this->overview->counts(null))),
             'page' => $page,
             'view' => $view->isAll() ? '' : $view->key,
             'emptyTitle' => $this->emptyTitle($view),
@@ -149,8 +146,6 @@ final class RecurringListController extends AbstractController
             'sort' => $sort,
             'sortKept' => $viewSort === $sort ? null : $sort,
             ...$bar,
-            'firm' => $firm,
-            'firms' => $severalFirms ? ['' => $this->translator->trans('invoice.list.all_firms')] + $firms : [],
             ...$this->tabs($views, $view->key, $page, $query, $bar['viewBar']['modified']),
             'columns' => $working->display->table($sort, fn (string $next): string => $this->generateUrl('app_recurring', ['sort' => $next, 'page' => null] + $query)),
             'rows' => array_map(fn (RecurringInvoice $template): array => $this->row($template, $page->isFailing($template), $amounts[$template->id()] ?? null, $working, $alertColumn, $here, $today), $page->templates),
@@ -158,7 +153,7 @@ final class RecurringListController extends AbstractController
             'picker' => $this->picker($working, $query),
             'workingQuery' => $working->query,
             'baseUrl' => $this->generateUrl('app_recurring', $query),
-            'filtered' => null !== $firmId || null !== $filterParam,
+            'filtered' => null !== $filterParam,
         ]);
     }
 
@@ -184,9 +179,9 @@ final class RecurringListController extends AbstractController
 
         $facts = [
             ['label' => $this->translator->trans('recurring.list.column.customer'), 'value' => $template->customer()->displayName()],
-            ['label' => $this->translator->trans('invoice.total.payable'), 'value' => $totals instanceof DocumentTotals ? $this->amountText->shown($totals->payable) : '–', 'big' => true],
+            ['label' => $this->translator->trans('invoice.total.payable'), 'value' => $totals instanceof DocumentTotals ? $this->amountText->shown($totals->payable) : null, 'big' => true],
             ['label' => $this->translator->trans('recurring.list.column.interval'), 'value' => $this->schedule($template)],
-            ['label' => $this->translator->trans('recurring.list.column.next'), 'value' => RecurringState::Active === $state && $next instanceof \DateTimeImmutable ? $this->date($next) : '–'],
+            ['label' => $this->translator->trans('recurring.list.column.next'), 'value' => RecurringState::Active === $state && $next instanceof \DateTimeImmutable ? $this->date($next) : null, 'empty' => $this->translator->trans('recurring.list.no_next')],
             ['label' => $this->translator->trans('recurring.list.column.delivery'), 'value' => $this->translator->trans('recurring.list.delivery.'.$template->delivery()->value)],
         ];
         if (\count($this->firmNames()) > 1) {
@@ -332,7 +327,7 @@ final class RecurringListController extends AbstractController
     private function fix(RecurringInvoice $template, string $code): array
     {
         [$href, $action] = match (true) {
-            'send.no_server' === $code => $this->owner->isOwner() ? [$this->generateUrl('app_firm_mail', ['id' => $template->firm()->id()]), 'mail'] : [null, null],
+            'send.no_server' === $code => $this->owner->isOwner() ? [$this->generateUrl('app_firm_mail'), 'mail'] : [null, null],
             \in_array($code, ['send.no_recipient', 'send.bad_address', 'invoice.problem.customer_address_incomplete', 'invoice.problem.customer_archived'], true) => [$this->generateUrl('app_contact_show', ['id' => $template->customer()->id()]), 'contact'],
             str_starts_with($code, 'send.') => [$this->generateUrl('app_invoices', ['toSend' => 1]), 'to_send'],
             default => [$this->generateUrl('app_recurring_edit', ['id' => $template->id()]), 'edit'],

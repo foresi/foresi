@@ -7,7 +7,7 @@
     asking. A delivery's row opens its attempts in a modal; its menu redelivers a finished delivery.
     Variables: endpoint, title, disabledReason, details, deliveryColumns, deliveryRows, moreDeliveries.
 #}
-{% extends 'layout/record.html.twig' %}
+{% extends '@Ui/layout/record.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'webhooks.title'|trans, href: path('app_webhooks')}, {label: title}] %}
 {% set token = csrf_token(constant('Foresi\\Webhooks\\Infrastructure\\Controller\\WebhookEndpointController::TOKEN')) %}

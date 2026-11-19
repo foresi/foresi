@@ -1,0 +1,40 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The account menu behind the avatar at the bottom of the rail: the person, the firm being worked
+    in and the switch to another firm, language and sign-out, the last three added by
+    the modules through the slots of Foresi\Ui\Contract\Slot\Slots. In the phone app bar the avatar is the
+    last action, a 44 x 44 px target around the 36 px tile (Apple HIG, Buttons), and the menu opens
+    below it, kept inside the viewport by the dropdown controller (Android Developers, "Menus").
+    Variables: shell (ShellView).
+#}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{% set orgName = shell.organisation ? shell.organisation.name : 'shell.organisation.none'|trans %}
+<twig:Ui:Menu id="user-menu" buttonId="user-menu-button" :label="'shell.user_menu.label'|trans" :menuLabel="'shell.user_menu.label'|trans" placement="above" align="start" :float="true" menuClass="min-w-60 max-w-[min(340px,calc(100vw-24px))]" class="shell:mt-1.5">
+    <twig:block name="trigger">
+        <button type="button" id="user-menu-button" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu" title="{{ shell.userName }} · {{ orgName }}" class="group grid size-9 cursor-pointer place-items-center rounded-avatar border-0 bg-transparent p-0 max-shell:size-touch {{ focus }}">
+            <twig:Ui:Avatar :name="shell.userName" :seed="shell.userEmail" size="lg" class="group-hover:ring-2 group-hover:ring-badge-green" />
+            <span class="sr-only">{{ 'shell.user_menu.label'|trans }}: {{ shell.userName }}, {{ orgName }}</span>
+        </button>
+    </twig:block>
+    <div class="px-3 pb-2 pt-1.5">
+        {% if shell.userName != shell.userEmail %}<b class="block text-small leading-tight text-ink [overflow-wrap:anywhere]">{{ shell.userName }}</b>{% endif %}
+        <small class="mt-0.5 block text-caption text-muted [overflow-wrap:anywhere]">{{ shell.userEmail }}</small>
+        <div data-organisation class="mt-2 flex items-center gap-2">
+            <span class="grid size-6 shrink-0 place-items-center rounded-sm bg-green text-caption font-semibold text-white" aria-hidden="true">{{ orgName|first|upper }}</span>
+            <span class="min-w-0">
+                <b class="block text-small leading-tight text-ink [overflow-wrap:anywhere]">{{ orgName }}</b>
+                {% if shell.organisation %}<small class="block text-caption text-muted">{{ ('role.' ~ shell.organisation.role.value)|trans }}</small>{% endif %}
+            </span>
+        </div>
+    </div>
+    <twig:Ui:MenuSection>
+        <twig:Ui:MenuItem icon="user" :disabled="true">{{ 'shell.user_menu.profile'|trans }}<span class="ml-auto text-caption font-normal text-muted">{{ 'shell.user_menu.soon'|trans }}</span></twig:Ui:MenuItem>
+        {% for item in slot_items(constant('Foresi\\Ui\\Contract\\Slot\\Slots::USER_MENU'), {shell: shell}) %}{{ include(item.template, item.data|merge({shell: shell})) }}{% endfor %}
+    </twig:Ui:MenuSection>
+    {% set end = slot_items(constant('Foresi\\Ui\\Contract\\Slot\\Slots::USER_MENU_END'), {shell: shell}) %}
+    {% if end is not empty %}
+        <twig:Ui:MenuSection>
+            {% for item in end %}{{ include(item.template, item.data|merge({shell: shell})) }}{% endfor %}
+        </twig:Ui:MenuSection>
+    {% endif %}
+</twig:Ui:Menu>

@@ -48,10 +48,10 @@ final class MovementRowTest extends TestCase
         self::assertSame($pairable, $row->isPairable());
     }
 
-    public function testTheFilterStartsOnTheFirstPageOfIncomingMovements(): void
+    public function testTheFilterStartsOnTheFirstPageOfEveryMovement(): void
     {
         $filter = new MovementFilter();
 
-        self::assertSame([MovementFilter::INCOMING, null, null, '', 1, null], [$filter->tab, $filter->firmId, $filter->accountId, $filter->text, $filter->page, $filter->movementId]);
+        self::assertSame([[], '', 1, null, [], false], [$filter->view->conditions, $filter->text, $filter->page, $filter->movementId, $filter->counted, $filter->mail()]);
     }
 }

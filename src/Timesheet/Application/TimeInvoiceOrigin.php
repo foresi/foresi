@@ -76,7 +76,7 @@ final readonly class TimeInvoiceOrigin implements IssueOrigin
                     throw $this->refused('timesheet.problem.time_invoiced');
                 }
                 // The fingerprint holds whether the entry is billable and its minutes, which a running timer has none of.
-                if (EntryFingerprint::ofEntry($entry) !== $chosen->fingerprint || true === $entry->task()?->isDeleted()) {
+                if (EntryFingerprint::ofEntry($entry) !== $chosen->fingerprint || $entry->isDeleted() || true === $entry->task()?->isDeleted()) {
                     throw $this->refused('timesheet.problem.time_changed');
                 }
                 $this->bill($entry, $invoice, $row, $line, $chosen);

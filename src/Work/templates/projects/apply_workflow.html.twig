@@ -3,7 +3,7 @@
     A workflow template applied to a project: the choice of the template and what it does to the statuses and
     the tasks, confirmed in one step. A dialog over the settings; the same URL is a page of its own.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: project.name, href: path('app_project', {id: project.id})}, {label: 'work.settings.title'|trans, href: path('app_project_settings', {id: project.id})}, {label: 'work.settings.apply_workflow.title'|trans}] %}
 {% set form_invalid = error is not null %}

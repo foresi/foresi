@@ -27,10 +27,10 @@ final class ListViewsTest extends TestCase
     private const string OWNER = '0b9a3c6e-3f7c-4a43-9a51-6f6f1d0a0001';
     private const string SOMEONE = '0b9a3c6e-3f7c-4a43-9a51-6f6f1d0a0002';
 
-    public function testAllComesFirstThenTheSharedViewsThenThePrivateOnesEachByPosition(): void
+    public function testAllComesFirstThenTheViewsByPositionPrivateOnesAmongThem(): void
     {
         $views = $this->views([
-            $this->saved('mine', null, Visibility::Private, self::OWNER, 0),
+            $this->saved('mine', null, Visibility::Private, self::OWNER, 4),
             $this->saved('stored-paid', 'test.items.paid', Visibility::Shared, null, 2),
             $this->saved('team', null, Visibility::Shared, null, 1),
             $this->saved('stored-all', 'test.items.all', Visibility::Shared, null, 9),
@@ -59,6 +59,25 @@ final class ListViewsTest extends TestCase
         ])->of($this->list(), self::OWNER);
 
         self::assertSame(['all', 'open'], array_map(static fn (ListView $view): string => $view->key, $views));
+    }
+
+    public function testAMovedShippedViewKeepsItsTranslatedName(): void
+    {
+        $views = $this->views([$this->saved('moved', 'test.items.paid', Visibility::Shared, null, 1, updatedBy: self::OWNER, name: 'Paid')])->of($this->list(), self::OWNER);
+
+        self::assertTrue($views[1]->translated);
+    }
+
+    public function testTheHiddenShippedViewsInTheirOrder(): void
+    {
+        $views = $this->views([
+            $this->saved('later', 'test.items.open', Visibility::Shared, null, 3, hidden: true),
+            $this->saved('shown', null, Visibility::Shared, null, 1),
+            $this->saved('first', 'test.items.paid', Visibility::Shared, null, 2, hidden: true),
+            $this->saved('gone', null, Visibility::Shared, null, 0, hidden: true, filters: ['conditions' => [['field' => 'colour', 'op' => 'is', 'value' => 'red']]]),
+        ])->hidden($this->list());
+
+        self::assertSame(['paid', 'open'], array_map(static fn (ListView $view): string => $view->key, $views));
     }
 
     public function testARenamedShippedViewShowsItsNameAsWritten(): void
@@ -117,11 +136,11 @@ final class ListViewsTest extends TestCase
     /**
      * @param array<string, mixed> $filters
      */
-    private function saved(string $id, ?string $systemKey, Visibility $visibility, ?string $ownerId, int $position, bool $hidden = false, ?string $updatedBy = null, array $filters = []): SavedView
+    private function saved(string $id, ?string $systemKey, Visibility $visibility, ?string $ownerId, int $position, bool $hidden = false, ?string $updatedBy = null, array $filters = [], ?string $name = null): SavedView
     {
         $view = self::createStub(SavedView::class);
         $view->method('id')->willReturn($id);
-        $view->method('name')->willReturn($id);
+        $view->method('name')->willReturn($name ?? $id);
         $view->method('systemKey')->willReturn($systemKey);
         $view->method('visibility')->willReturn($visibility);
         $view->method('ownerId')->willReturn($ownerId);

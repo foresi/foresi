@@ -140,6 +140,12 @@ bank:
     title: Bank
     views: Bank views
     cancel: Cancel
+    view:
+      all: All
+    field:
+      direction: Direction
+      state: State
+      bank_mail: Bank e-mail
     tab:
       incoming: Incoming
       outgoing: Outgoing
@@ -161,9 +167,6 @@ bank:
       status: Status
       reason: Why
     list:
-      all_firms: All firms
-      all_accounts: All accounts
-      firm: Firm
       account: Account
       search_label: Search movements
       search_placeholder: Partner, VS or amount
@@ -173,8 +176,10 @@ bank:
       no_accounts_title: No bank account yet
       no_accounts_text: Add the firm's bank account in its bank settings. Payments from bank e-mails then show up here.
       no_accounts_link: Open the firms
+      all_title: No payments yet
+      all_text: Payments from the bank e-mails will show here.
       filtered_title: Nothing matches the filter
-      filtered_text: Try another search, firm or account.
+      filtered_text: Try another search or filter.
       reset: Clear the filter
       incoming_title: No incoming payments yet
       incoming_text: Payments from the bank's e-mails show up here.

@@ -30,6 +30,7 @@ use Foresi\Banking\Domain\InboundChannel;
 use Foresi\Banking\Domain\InboundMessage;
 use Foresi\Banking\Domain\InboundStatus;
 use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Shared\Application\View\ViewFilter;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -76,6 +77,7 @@ final readonly class DoctrineInboundMessages implements InboundMessages
         private AuditActor $actor,
         private AuditCorrelation $correlation,
         private ClockInterface $clock,
+        private MovementConditions $conditions,
     ) {
     }
 
@@ -211,13 +213,13 @@ final readonly class DoctrineInboundMessages implements InboundMessages
         return array_map($this->text(...), $query->executeQuery()->fetchFirstColumn());
     }
 
-    public function needingAttention(\DateTimeImmutable $stuckBefore, ?string $firmId = null, ?string $accountId = null): int
+    public function needingAttention(\DateTimeImmutable $stuckBefore, ?ViewFilter $view = null): int
     {
-        [$where, $parameters] = $this->narrowed($firmId, $accountId);
+        [$where, $parameters, $types] = $this->conditions->mail($view ?? new ViewFilter(), 'v');
         $count = $this->connection->fetchOne(
             'SELECT COUNT(*) FROM inbound_message m '.self::FEED.' WHERE '.$where.' AND (m.status IN (:waiting) OR (m.status = :received AND m.received_at < :before))',
             $parameters + ['waiting' => [InboundStatus::Failed->value, InboundStatus::Rejected->value], 'received' => InboundStatus::Received->value, 'before' => $stuckBefore],
-            ['waiting' => ArrayParameterType::STRING, 'before' => Types::DATETIME_IMMUTABLE],
+            $types + ['waiting' => ArrayParameterType::STRING, 'before' => Types::DATETIME_IMMUTABLE],
         );
 
         return is_numeric($count) ? (int) $count : 0;
@@ -225,8 +227,8 @@ final readonly class DoctrineInboundMessages implements InboundMessages
 
     public function count(MovementFilter $filter): int
     {
-        [$where, $parameters] = $this->narrowed($filter->firmId, $filter->accountId);
-        $count = $this->connection->fetchOne('SELECT COUNT(*) FROM inbound_message m '.self::FEED.' WHERE '.$where, $parameters);
+        [$where, $parameters, $types] = $this->conditions->mail($filter->view, 'v');
+        $count = $this->connection->fetchOne('SELECT COUNT(*) FROM inbound_message m '.self::FEED.' WHERE '.$where, $parameters, $types);
 
         return is_numeric($count) ? (int) $count : 0;
     }
@@ -238,17 +240,18 @@ final readonly class DoctrineInboundMessages implements InboundMessages
 
     public function rows(MovementFilter $filter, \DateTimeImmutable $stuckBefore, int $offset, int $limit): array
     {
-        [$where, $parameters] = $this->narrowed($filter->firmId, $filter->accountId);
+        [$where, $parameters, $types] = $this->conditions->mail($filter->view, 'v');
 
-        return $this->listed($where, $parameters, $stuckBefore, $offset, $limit);
+        return $this->listed($where, $parameters, $stuckBefore, $offset, $limit, $types);
     }
 
     /**
-     * @param array<string, string> $parameters
+     * @param array<string, mixed>              $parameters
+     * @param array<string, ArrayParameterType> $types
      *
      * @return list<MessageRow>
      */
-    private function listed(string $where, array $parameters, \DateTimeImmutable $stuckBefore, int $offset, int $limit): array
+    private function listed(string $where, array $parameters, \DateTimeImmutable $stuckBefore, int $offset, int $limit, array $types = []): array
     {
         $sql = 'SELECT m.id, m.received_at, m.from_address, m.subject, m.status, m.failure, m.failure_detail, m.trust, m.trust_basis, m.parser_id, m.parser_version, m.attempts, '
             .'a.label AS account_label, a.iban AS account_iban, e.name AS firm_name, e.address_country_code AS firm_country FROM inbound_message m '.self::FEED.' WHERE '.$where
@@ -282,7 +285,7 @@ final readonly class DoctrineInboundMessages implements InboundMessages
                 $this->text($row['account_iban']),
                 InboundStatus::Received === $status && $receivedAt < $stuckBefore,
             );
-        }, $this->connection->fetchAllAssociative($sql, $parameters));
+        }, $this->connection->fetchAllAssociative($sql, $parameters, $types));
     }
 
     public function dismiss(string $id, array $from, ?\DateTimeImmutable $receivedBefore): ?InboundStatus
@@ -319,27 +322,6 @@ final readonly class DoctrineInboundMessages implements InboundMessages
         ));
 
         return $was;
-    }
-
-    /**
-     * All messages, or those of one firm or account when named.
-     *
-     * @return array{string, array<string, string>}
-     */
-    private function narrowed(?string $firmId, ?string $accountId): array
-    {
-        $where = '1 = 1';
-        $parameters = [];
-        if (null !== $firmId) {
-            $where .= ' AND a.legal_entity_id = :firm';
-            $parameters['firm'] = $firmId;
-        }
-        if (null !== $accountId) {
-            $where .= ' AND a.id = :account';
-            $parameters['account'] = $accountId;
-        }
-
-        return [$where, $parameters];
     }
 
     private function optional(mixed $value): ?string
