@@ -53,6 +53,7 @@ use Foresi\Work\Application\TaskGroup;
 use Foresi\Work\Application\TaskHistory;
 use Foresi\Work\Application\TaskRow;
 use Foresi\Work\Application\Tasks;
+use Foresi\Work\Application\TrashedLabel;
 use Foresi\Work\Application\TrashedTask;
 use Foresi\Work\Application\TrashPermission;
 use Foresi\Work\Application\View\MyTaskLists;
@@ -550,6 +551,23 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         return array_map(intval(...), array_column($counts, 'tasks', 'label'));
     }
 
+    public function labelTrash(): array
+    {
+        if (!$this->visibility->canManage()) {
+            return [];
+        }
+        $labels = $this->labels->inTrash();
+        $names = $this->users->namesOf(array_values(array_unique(array_filter(array_map(static fn (Label $label): ?string => $label->deletedBy(), $labels), \is_string(...)))));
+
+        return array_map(static fn (Label $label): TrashedLabel => new TrashedLabel(
+            $label->id(),
+            $label->name(),
+            $label->colour(),
+            null === $label->deletedBy() ? null : ($names[$label->deletedBy()] ?? null),
+            $label->deletedAt() ?? throw new \LogicException('A label in the trash has its date.'),
+        ), $labels);
+    }
+
     private function commentView(TaskComment $comment, ?Membership $me, bool $owner): CommentView
     {
         $name = $comment->author()->user()->displayName();
@@ -768,7 +786,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         }
         /** @var list<TaskLabel> $taskLabels */
         $taskLabels = $this->entityManager
-            ->createQuery('SELECT tl, l FROM '.TaskLabel::class.' tl JOIN tl.label l WHERE tl.task IN (:tasks) ORDER BY l.name ASC, l.id ASC')
+            ->createQuery('SELECT tl, l FROM '.TaskLabel::class.' tl JOIN tl.label l WHERE tl.task IN (:tasks) AND l.deletedAt IS NULL ORDER BY l.name ASC, l.id ASC')
             ->setParameter('tasks', array_map(static fn (Task $task): string => $task->id(), $tasks))
             ->getResult();
         $labels = [];

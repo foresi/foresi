@@ -377,4 +377,34 @@ test.describe('projects', () => {
     await expect(trigger).toBeFocused();
     await expect(labels.locator('li')).toHaveText(['Design']);
   });
+  test('a deleted label goes to the trash, comes back with Undo and is restored from the trash', async ({ page }) => {
+    const name = 'Bin me';
+    await page.goto('/settings/labels');
+    await page.getByRole('link', { name: 'Nový štítek' }).first().click();
+    await page.getByRole('dialog').getByLabel('Název').fill(name);
+    await page.getByRole('dialog').getByRole('button', { name: 'Uložit' }).click();
+    const row = page.locator('tbody tr').filter({ hasText: name });
+    await expect(row).toHaveCount(1);
+
+    // Delete asks nothing: the message says where it went and undoes it.
+    await row.getByRole('button', { name: /Další akce/ }).click();
+    await row.getByRole('menuitem', { name: 'Smazat' }).click();
+    const flash = page.locator('[data-task-trashed]');
+    await expect(flash).toContainText(`Štítek ${name} je v koši.`);
+    await expect(row).toHaveCount(0);
+    await flash.getByRole('button', { name: 'Vrátit zpět' }).click();
+    await expect(page.locator('main')).toContainText(`Štítek ${name} je obnovený.`);
+    await expect(row).toHaveCount(1);
+
+    await row.getByRole('button', { name: /Další akce/ }).click();
+    await row.getByRole('menuitem', { name: 'Smazat' }).click();
+    await page.getByRole('link', { name: /^Koš \(\d+\)$/ }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Koš štítků');
+    await expect(page.locator('[data-trash-purge]')).toHaveText('Štítky v koši se po 30 dnech smažou natrvalo.');
+    const trashed = page.locator('tbody tr').filter({ hasText: name });
+    await trashed.getByRole('button', { name: /Další akce/ }).click();
+    await trashed.getByRole('menuitem', { name: 'Obnovit' }).click();
+    await expect(page.locator('main')).toContainText(`Štítek ${name} je obnovený.`);
+    await expect(trashed).toHaveCount(0);
+  });
 });

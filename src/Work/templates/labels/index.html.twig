@@ -1,7 +1,8 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     The labels of the organisation: each with how it looks and how many tasks carry it. A new label
-    and a change of one open in a dialog over the list; delete asks first.
+    and a change of one open in a dialog over the list; delete puts it in the trash, which its message
+    undoes and the header links to.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
@@ -10,15 +11,12 @@
 {% block title %}{{ 'work.labels.title'|trans }}{% endblock %}
 
 {% block actions %}
+    <twig:Ui:Button icon="trash-2" :href="path('app_label_trash')" data-label-trash>{{ 'work.trash.link'|trans({count: trashCount}) }}</twig:Ui:Button>
     <twig:Ui:Button variant="primary" icon="plus" :href="path('app_label_new')" id="label-new" data-dialog aria-haspopup="dialog">{{ 'work.labels.new'|trans }}</twig:Ui:Button>
 {% endblock %}
 
 {% block content %}
-    {% for tone in ['success', 'error'] %}
-        {% for message in app.flashes(tone) %}
-            <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
-        {% endfor %}
-    {% endfor %}
+    {{ include('@Work/_flashes.html.twig') }}
     <twig:Ui:DataTable :caption="'work.labels.title'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\LabelController::TOKEN'))">
         <twig:block name="empty">
             <twig:Ui:EmptyState icon="tag" :title="'work.labels.empty.title'|trans" :text="'work.labels.empty.text'|trans">
