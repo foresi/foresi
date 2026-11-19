@@ -113,7 +113,7 @@ final class ContactPartsControllerTest extends WebTestCase
         self::assertSelectorTextContains('main', 'The contact person is added.');
 
         // Linked already, so no longer offered; a hand-made request is refused at the field.
-        $crawler = $this->client->request('GET', '/contacts/'.$company->id().'/persons/new?mode=existing');
+        $this->client->request('GET', '/contacts/'.$company->id().'/persons/new?mode=existing');
         self::assertSelectorExists('[data-no-candidates]');
         $this->client->request('POST', '/contacts/'.$company->id().'/persons/new', ['_token' => $this->formToken($company), 'mode' => 'existing', 'person' => $person->id()]);
         self::assertResponseStatusCodeSame(422);

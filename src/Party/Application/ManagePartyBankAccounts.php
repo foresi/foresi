@@ -50,12 +50,12 @@ final readonly class ManagePartyBankAccounts
         $existing = $this->details->bankAccounts($party);
         if ('' === trim($number)) {
             $reasons['number'] = ContactPartRefused::REQUIRED;
-        } elseif (null === $iban) {
+        } elseif (!$iban instanceof \Foresi\Party\Domain\Iban) {
             $reasons['number'] = ContactPartRefused::ACCOUNT_NUMBER;
         } elseif (array_any($existing, static fn (PartyBankAccount $account): bool => $account->iban()->toString() === $iban->toString())) {
             $reasons['number'] = ContactPartRefused::DUPLICATE_ACCOUNT;
         }
-        if ([] !== $reasons || null === $iban) {
+        if ([] !== $reasons || !$iban instanceof \Foresi\Party\Domain\Iban) {
             throw new ContactPartRefused($reasons);
         }
         $account = new PartyBankAccount($party, $iban, $this->bic($bic), $label, $primary || [] === $existing);
