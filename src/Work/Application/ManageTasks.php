@@ -269,6 +269,10 @@ final readonly class ManageTasks
         }
         $this->unit->run(function () use ($task, $wanted): void {
             foreach ($this->tasks->labels($task) as $taskLabel) {
+                // A label in the trash is not offered, so the task keeps it for its restore.
+                if ($taskLabel->label()->isDeleted()) {
+                    continue;
+                }
                 if (isset($wanted[$taskLabel->label()->id()])) {
                     unset($wanted[$taskLabel->label()->id()]);
                 } else {

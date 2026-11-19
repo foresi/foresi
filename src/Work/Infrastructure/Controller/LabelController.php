@@ -12,6 +12,8 @@ use Foresi\Identity\Application\StaffCheck;
 use Foresi\Ui\Contract\Opens;
 use Foresi\Work\Application\LabelBadge;
 use Foresi\Work\Application\ManageLabels;
+use Foresi\Work\Application\PurgeTrashedLabels;
+use Foresi\Work\Application\TrashedLabel;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Domain\LabelColour;
@@ -29,12 +31,16 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * The labels of the organisation in the settings, for the staff: the list with
  * how each looks and how many tasks carry it, a new label and a change of one
  * in a dialog over it (the same URLs are pages of their own), and the delete,
- * which asks first and tells from how many tasks the label goes.
+ * which asks no question: the label goes to the trash and the message undoes
+ * it, as for tasks (Shopify's Toast API recommends Undo over a dialog for what
+ * can be undone). The trash of labels lists them with who deleted them and
+ * when; restoring one puts it back on its tasks.
  */
 final class LabelController extends AbstractController
 {
     public const string ROUTE = 'app_labels';
     public const string TOKEN = 'work_label';
+    public const string TRASH_ROUTE = 'app_label_trash';
 
     public function __construct(
         private readonly WorkQueries $queries,
@@ -51,6 +57,7 @@ final class LabelController extends AbstractController
         $usage = $this->queries->labelUsage();
 
         return $this->render('@Work/labels/index.html.twig', [
+            'trashCount' => \count($this->queries->labelTrash()),
             'columns' => [
                 ['key' => 'name', 'label' => $this->translator->trans('work.labels.column.name'), 'truncate' => true],
                 ['key' => 'preview', 'label' => $this->translator->trans('work.labels.column.preview')],
@@ -77,6 +84,10 @@ final class LabelController extends AbstractController
         return $this->form($request, $label, ['name' => $label->name, 'colour' => $label->colour->value]);
     }
 
+    /**
+     * Puts the label in the trash, with no question first: the message says so
+     * and undoes it.
+     */
     #[Route('/settings/labels/{id}/delete', name: 'app_label_delete', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function delete(string $id, Request $request): RedirectResponse
     {
@@ -85,13 +96,76 @@ final class LabelController extends AbstractController
         $label = $this->label($id);
         try {
             $this->labels->delete($id);
-            $this->addFlash('success', $this->translator->trans('work.labels.deleted', ['name' => $label->name]));
+            $this->addFlash(TaskController::UNDO_FLASH, [
+                'message' => $this->translator->trans('work.labels.trash.deleted', ['name' => $label->name]),
+                'label' => $this->translator->trans('work.trash.undo'),
+                'href' => $this->generateUrl('app_label_restore', ['id' => $id]),
+                'token' => self::TOKEN,
+            ]);
         } catch (WorkRefused $refused) {
             $this->notFoundIfUnknown($refused);
             $this->addFlash('error', $this->translator->trans('work.refused.'.$refused->reason));
         }
 
         return $this->redirectToRoute(self::ROUTE, status: Response::HTTP_SEE_OTHER);
+    }
+
+    /**
+     * The labels in the trash, the last deleted first, each with the tasks it
+     * comes back on.
+     */
+    #[Route('/settings/labels/trash', name: self::TRASH_ROUTE, methods: ['GET'])]
+    public function trash(): Response
+    {
+        $this->denyUnlessStaff();
+        $usage = $this->queries->labelUsage();
+
+        return $this->render('@Work/labels/trash.html.twig', [
+            'days' => PurgeTrashedLabels::DAYS,
+            'columns' => [
+                ['key' => 'name', 'label' => $this->translator->trans('work.labels.column.name'), 'truncate' => true],
+                ['key' => 'tasks', 'label' => $this->translator->trans('work.labels.column.tasks'), 'align' => 'right'],
+                ['key' => 'deletedBy', 'label' => $this->translator->trans('work.trash.column.deleted_by'), 'truncate' => true, 'phone' => false],
+                ['key' => 'deletedAt', 'label' => $this->translator->trans('work.trash.column.deleted_at')],
+            ],
+            'rows' => array_map(fn (TrashedLabel $label): array => [
+                'id' => $label->id,
+                'label' => $label->name,
+                'cells' => [
+                    'name' => ['badges' => [['label' => $label->name, 'tone' => $label->colour->value]]],
+                    'tasks' => ['text' => (string) ($usage[$label->id] ?? 0), 'numeric' => true],
+                    'deletedBy' => $label->deletedByName,
+                    'deletedAt' => $label->deletedAt->format($this->translator->trans('format.datetime')),
+                ],
+                'actions' => [[
+                    'label' => $this->translator->trans('work.trash.restore'),
+                    'href' => $this->generateUrl('app_label_restore', ['id' => $label->id]),
+                    'method' => 'POST',
+                    'icon' => 'archive-restore',
+                    'fields' => ['from' => 'trash'],
+                ]],
+            ], $this->queries->labelTrash()),
+        ]);
+    }
+
+    /**
+     * Takes the label out of the trash and goes back to where it was asked:
+     * the trash, or the list whose message undid a deletion.
+     */
+    #[Route('/settings/labels/{id}/restore', name: 'app_label_restore', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function restore(string $id, Request $request): RedirectResponse
+    {
+        $this->denyUnlessStaff();
+        $this->checkToken($request);
+        try {
+            $label = $this->labels->restore($id);
+            $this->addFlash('success', $this->translator->trans('work.labels.trash.restored', ['name' => $label->name()]));
+        } catch (WorkRefused $refused) {
+            $this->notFoundIfUnknown($refused);
+            $this->addFlash('error', $this->translator->trans('work.refused.'.$refused->reason));
+        }
+
+        return $this->redirectToRoute('trash' === $request->request->getString('from') ? self::TRASH_ROUTE : self::ROUTE, status: Response::HTTP_SEE_OTHER);
     }
 
     /**
@@ -164,13 +238,7 @@ final class LabelController extends AbstractController
             ],
             'actions' => [
                 ['label' => $this->translator->trans('work.labels.edit'), 'href' => $edit, 'icon' => 'pencil', 'dialog' => true],
-                ['label' => $this->translator->trans('work.labels.delete'), 'href' => $this->generateUrl('app_label_delete', ['id' => $label->id]), 'method' => 'POST', 'confirm' => [
-                    'title' => $this->translator->trans('work.labels.delete_confirm.title', ['name' => $label->name]),
-                    'text' => $this->translator->trans('work.labels.delete_confirm.text', ['count' => $tasks]),
-                    'accept' => $this->translator->trans('work.labels.delete'),
-                    'cancel' => $this->translator->trans('work.cancel'),
-                    'tone' => 'danger',
-                ]],
+                ['label' => $this->translator->trans('work.labels.delete'), 'href' => $this->generateUrl('app_label_delete', ['id' => $label->id]), 'method' => 'POST'],
             ],
         ];
     }

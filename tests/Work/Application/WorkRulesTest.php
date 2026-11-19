@@ -30,13 +30,13 @@ final class WorkRulesTest extends WorkTestCase
         $this->assertRefused('not_allowed', fn (): Label => $this->labels->create('Soon', LabelColour::Amber));
         $this->assertRefused('not_allowed', fn () => $this->labels->rename($urgent->id(), 'Soon'));
         $this->assertRefused('not_allowed', fn () => $this->labels->recolour($urgent->id(), LabelColour::Amber));
-        $this->assertRefused('not_allowed', fn () => $this->labels->delete($urgent->id()));
+        $this->assertRefused('not_allowed', fn (): Label => $this->labels->delete($urgent->id()));
     }
 
     public function testAnUnknownLabelIsRefused(): void
     {
         $this->assertRefused('unknown', fn () => $this->labels->rename(Id::generate(), 'Soon'));
-        $this->assertRefused('unknown', fn () => $this->labels->delete(Id::generate()));
+        $this->assertRefused('unknown', fn (): Label => $this->labels->delete(Id::generate()));
     }
 
     public function testARenamedLabelIsTrimmedCheckedAndSaved(): void

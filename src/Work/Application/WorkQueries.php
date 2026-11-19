@@ -124,7 +124,14 @@ interface WorkQueries
     public function labels(): array;
 
     /**
-     * @return array<string, int> the number of tasks of each label by label id; a label on no task is left out
+     * @return array<string, int> the number of tasks of each label by label id, those in the trash too; a label on no task is left out
      */
     public function labelUsage(): array;
+
+    /**
+     * The labels in the trash, the last deleted first; empty for whom does not manage labels.
+     *
+     * @return list<TrashedLabel>
+     */
+    public function labelTrash(): array;
 }

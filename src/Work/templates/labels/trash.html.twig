@@ -1,0 +1,22 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The trash of labels: those deleted, the last first, each with the tasks it comes back on when
+    restored by its button.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'work.labels.title'|trans, href: path('app_labels')}, {label: 'work.trash.title'|trans}] %}
+
+{% block title %}{{ 'work.labels.trash.title'|trans }}{% endblock %}
+
+{% block content %}
+    {{ include('@Work/_flashes.html.twig') }}
+    <div class="grid grid-cols-1 gap-4" data-label-trash-page>
+        <p class="m-0 text-small text-muted" data-trash-purge>{{ 'work.labels.trash.purge'|trans({days: days}) }}</p>
+        <twig:Ui:DataTable :caption="'work.labels.trash.title'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\LabelController::TOKEN'))">
+            <twig:block name="empty">
+                <twig:Ui:EmptyState icon="trash-2" :title="'work.trash.empty.title'|trans" :text="'work.labels.trash.empty'|trans" />
+            </twig:block>
+        </twig:Ui:DataTable>
+    </div>
+{% endblock %}

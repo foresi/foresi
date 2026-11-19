@@ -86,6 +86,7 @@ work:
     last_done: Projekt musí mít aspoň jeden stav typu hotový.
     target_status: Pro jeho úkoly vyberte jiný stav stejného projektu.
     label_taken: Štítek s tímto názvem už existuje.
+    label_restore_taken: Štítek s tímto názvem už existuje. Přejmenujte ho a pak tento obnovte.
     comment_empty: Nejdřív něco napište.
     comment_too_long: Komentář může mít nejvýš 20 000 znaků.
     comment_not_yours: Tento komentář může měnit jen jeho autor.
@@ -381,7 +382,6 @@ work:
     edit_title: 'Upravit štítek {name}'
     delete: Smazat
     saved: 'Štítek {name} je uložený.'
-    deleted: 'Štítek {name} je smazaný.'
     column:
       name: Název
       preview: Vzhled
@@ -394,12 +394,15 @@ work:
       green: Zelená
       amber: Oranžová
       red: Červená
-    delete_confirm:
-      title: 'Smazat štítek {name}?'
-      text: '{count, plural, =0 {Štítek není na žádném úkolu.} one {Odebere se z jednoho úkolu.} other {Odebere se z úkolů: #.}}'
     empty:
       title: Zatím žádné štítky
       text: Štítky třídí úkoly napříč projekty.
+    trash:
+      title: Koš štítků
+      deleted: 'Štítek {name} je v koši.'
+      restored: 'Štítek {name} je obnovený.'
+      purge: '{days, plural, one {Štítky v koši se po # dni smažou natrvalo.} other {Štítky v koši se po # dnech smažou natrvalo.}}'
+      empty: Smazané štítky tu čekají, než zmizí natrvalo. Obnovený štítek se vrátí na své úkoly.
     error:
       name_required: Zadejte název štítku.
       colour: Vyberte barvu.

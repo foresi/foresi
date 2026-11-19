@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Tests\Work\Application;
 
 use Foresi\Audit\Application\AuditCorrelation;
+use Foresi\Work\Application\PurgeTrashedLabels;
 use Foresi\Work\Application\TaskHistory;
 use Foresi\Work\Application\TaskHistoryEntry;
 use Foresi\Work\Domain\LabelColour;
@@ -36,7 +37,9 @@ final class TaskHistoryTest extends WorkTestCase
         $this->tasks->assign($task->id(), $this->member->id());
         $this->tasks->setLabels($task->id(), [$urgent->id()]);
         $this->tasks->unwatch($task->id(), $this->owner->id());
+        // A label in the trash stays on the task; it leaves when the trash is purged.
         $this->labels->delete($urgent->id());
+        self::getContainer()->get(PurgeTrashedLabels::class)->run($this->clock->now()->modify('+31 days'));
 
         $history = self::getContainer()->get(TaskHistory::class)->of($task->id());
 

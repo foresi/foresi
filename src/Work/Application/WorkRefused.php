@@ -16,7 +16,7 @@ namespace Foresi\Work\Application;
  */
 final class WorkRefused extends \DomainException
 {
-    public const array REASONS = ['unknown', 'not_allowed', 'name', 'client', 'archived', 'parent', 'responsible', 'watcher', 'last_open', 'last_done', 'target_status', 'label_taken', 'comment_empty', 'comment_too_long', 'comment_not_yours', 'comment_deleted', 'comment_purged', 'task_not_yours', 'parent_in_trash', 'share_person', 'duration', 'time_note', 'time_task', 'time_not_yours', 'time_invoiced', 'time_task_in_trash', 'timer_running', 'estimate'];
+    public const array REASONS = ['unknown', 'not_allowed', 'name', 'client', 'archived', 'parent', 'responsible', 'watcher', 'last_open', 'last_done', 'target_status', 'label_taken', 'label_restore_taken', 'comment_empty', 'comment_too_long', 'comment_not_yours', 'comment_deleted', 'comment_purged', 'task_not_yours', 'parent_in_trash', 'share_person', 'duration', 'time_note', 'time_task', 'time_not_yours', 'time_invoiced', 'time_task_in_trash', 'timer_running', 'estimate'];
 
     public function __construct(public readonly string $reason)
     {

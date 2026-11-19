@@ -25,7 +25,8 @@ use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * The labels of the organisation in the settings: the list, a new label and a
- * change of one in a dialog, and the delete that tells from how many tasks.
+ * change of one in a dialog, the delete that puts it in the trash with Undo,
+ * and the trash that restores it onto its tasks.
  */
 final class LabelControllerTest extends WebTestCase
 {
@@ -123,24 +124,79 @@ final class LabelControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
-    public function testDeletingALabelAsksAndTakesItOffItsTasks(): void
+    public function testDeletingALabelPutsItInTheTrashWhichRestoresItOntoItsTasks(): void
     {
         $this->signIn();
         $id = $this->label('Design', LabelColour::Green);
         $this->tagTasks($id, 2);
         $crawler = $this->client->request('GET', '/settings/labels');
         self::assertSame('2', trim($crawler->filter('tr[data-id="'.$id.'"] td')->eq(2)->text()));
+        self::assertSame('Trash', trim($crawler->filter('main [data-label-trash]')->text()));
         $form = $crawler->filter('tr[data-id="'.$id.'"] form[action$="/delete"]')->first();
-        self::assertSame('Delete the label Design?', $form->attr('data-turbo-confirm'));
-        self::assertSame('Removes the label from 2 tasks.', $form->attr('data-confirm-text'));
+        self::assertNull($form->attr('data-turbo-confirm'));
 
         $this->client->submit($form->form());
 
         self::assertResponseRedirects('/settings/labels', 303);
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('[data-task-trashed]', 'The label Design is in the trash.');
+        self::assertCount(0, $crawler->filter('tr[data-id="'.$id.'"]'));
+        self::assertSame('Trash (1)', trim($crawler->filter('main [data-label-trash]')->text()));
+        self::assertCount(2, $this->em->getConnection()->fetchFirstColumn('SELECT id FROM task_label'));
+
+        $crawler = $this->client->request('GET', '/settings/labels/trash');
+        self::assertResponseIsSuccessful();
+        self::assertSame(['Design', '2'], $crawler->filter('tr[data-id="'.$id.'"] td')->slice(0, 2)->each(static fn (Crawler $cell): string => trim($cell->text())));
+        self::assertSelectorTextContains('main [data-trash-purge]', '30 days');
+        $this->client->submit($crawler->filter('tr[data-id="'.$id.'"] form[action$="/restore"]')->first()->form());
+
+        self::assertResponseRedirects('/settings/labels/trash', 303);
         $this->client->followRedirect();
-        self::assertSelectorTextContains('main', 'The label Design is deleted.');
-        self::assertSame([], $this->em->getConnection()->fetchFirstColumn('SELECT id FROM label'));
-        self::assertSame([], $this->em->getConnection()->fetchFirstColumn('SELECT id FROM task_label'));
+        self::assertSelectorTextContains('main', 'The label Design is restored.');
+        self::assertSelectorTextContains('main', 'The trash is empty');
+        self::assertNull($this->em->getConnection()->fetchOne('SELECT deleted_at FROM label WHERE id = ?', [$id]));
+    }
+
+    public function testTheUndoOfTheMessageRestoresTheLabel(): void
+    {
+        $this->signIn();
+        $id = $this->label('Design', LabelColour::Green);
+        $crawler = $this->client->request('GET', '/settings/labels');
+        $this->client->submit($crawler->filter('tr[data-id="'.$id.'"] form[action$="/delete"]')->first()->form());
+        $crawler = $this->client->followRedirect();
+
+        $this->client->submit($crawler->filter('[data-task-trashed] form')->form());
+
+        self::assertResponseRedirects('/settings/labels', 303);
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'The label Design is restored.');
+        self::assertCount(1, $crawler->filter('tr[data-id="'.$id.'"]'));
+    }
+
+    public function testARestoreIsRefusedWhileAnotherLabelHasTheName(): void
+    {
+        $this->signIn();
+        $id = $this->label('Design', LabelColour::Green);
+        $crawler = $this->client->request('GET', '/settings/labels');
+        $this->client->submit($crawler->filter('tr[data-id="'.$id.'"] form[action$="/delete"]')->first()->form());
+        $this->label('design', LabelColour::Red);
+
+        $crawler = $this->client->request('GET', '/settings/labels/trash');
+        $this->client->submit($crawler->filter('tr[data-id="'.$id.'"] form[action$="/restore"]')->first()->form());
+
+        self::assertResponseRedirects('/settings/labels/trash', 303);
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'A label of this name exists already. Rename it, then restore this one.');
+        self::assertCount(1, $crawler->filter('tr[data-id="'.$id.'"]'));
+    }
+
+    public function testAGuestReachesNoTrash(): void
+    {
+        $this->signIn(Role::Guest);
+
+        $this->client->request('GET', '/settings/labels/trash');
+
+        self::assertResponseStatusCodeSame(403);
     }
 
     private function signIn(Role $role = Role::Owner): void

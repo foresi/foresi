@@ -8,21 +8,29 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Application;
 
+use Foresi\Audit\Application\AuditActor;
 use Foresi\Work\Domain\Label;
 use Foresi\Work\Domain\LabelColour;
+use Psr\Clock\ClockInterface;
 
 /**
  * The labels of the organisation. A name is taken whatever its case, so
- * "Urgent" and "urgent" never split one filter in two. A deleted label leaves
- * every task it was on.
+ * "Urgent" and "urgent" never split one filter in two, but only by a label out
+ * of the trash.
+ *
+ * Deleting a label puts it in the trash: its tasks keep it, hidden on each,
+ * so restoring puts it back on the same tasks. That is stricter than Linear
+ * and GitHub, which take a deleted label off every issue for good. A restore
+ * is refused while another label has taken the name.
  */
 final readonly class ManageLabels
 {
     public function __construct(
         private Labels $labels,
-        private Tasks $tasks,
         private VisibleWork $work,
         private WorkUnit $unit,
+        private AuditActor $actor,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -65,14 +73,35 @@ final readonly class ManageLabels
     /**
      * @throws WorkRefused
      */
-    public function delete(string $labelId): void
+    public function delete(string $labelId): Label
     {
         $label = $this->label($labelId);
-        $this->unit->run(function () use ($label): void {
-            foreach ($this->tasks->labelled($label) as $taskLabel) {
-                $this->tasks->remove($taskLabel);
-            }
-            $this->labels->remove($label);
+        $userId = $this->actor->userId() ?? throw new WorkRefused('not_allowed');
+
+        return $this->unit->run(function () use ($label, $userId): Label {
+            $label->trash($userId, \DateTimeImmutable::createFromInterface($this->clock->now()));
+
+            return $label;
+        });
+    }
+
+    /**
+     * Takes the label out of the trash, back on the tasks it was on.
+     *
+     * @throws WorkRefused
+     */
+    public function restore(string $labelId): Label
+    {
+        $this->work->assertManager();
+        $label = $this->labels->trashed($labelId) ?? throw new WorkRefused('unknown');
+        if ($this->labels->named($label->name()) instanceof Label) {
+            throw new WorkRefused('label_restore_taken');
+        }
+
+        return $this->unit->run(static function () use ($label): Label {
+            $label->restore();
+
+            return $label;
         });
     }
 
