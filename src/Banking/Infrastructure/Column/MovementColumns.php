@@ -12,9 +12,9 @@ use Foresi\Banking\Application\MovementRow;
 use Foresi\Banking\Infrastructure\Controller\BankText;
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Domain\View\AttributeType;
-use Foresi\Ui\Component\DataTable;
 use Foresi\Ui\Contract\Attribute;
 use Foresi\Ui\Contract\DataSource;
+use Foresi\Ui\Contract\Opens;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -86,6 +86,6 @@ final readonly class MovementColumns implements DataSource
             return $this->text->state($row->state, $row->reason);
         }
 
-        return ['links' => array_map(fn (string $invoiceId, string $number): array => ['text' => $number, 'href' => $this->urls->generate('app_invoice_show', ['id' => $invoiceId]), 'opens' => DataTable::OPENS_SHEET], array_keys($row->invoices), array_map(strval(...), array_values($row->invoices)))];
+        return ['links' => array_map(fn (string $invoiceId, string $number): array => ['text' => $number, 'href' => $this->urls->generate('app_invoice_show', ['id' => $invoiceId]), 'opens' => Opens::SHEET], array_keys($row->invoices), array_map(strval(...), array_values($row->invoices)))];
     }
 }
