@@ -67,8 +67,8 @@ test.describe('contact life cycle', () => {
     await dialog.getByRole('button', { name: 'Přidat osobu' }).click();
 
     await expect(page.getByRole('status').filter({ hasText: 'Kontaktní osoba je přidána.' })).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'Alex Example' })).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'Accountant' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Alex Example', exact: true })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Accountant', exact: true })).toBeVisible();
   });
 
   test('archives and restores the contact', async ({ page }) => {
