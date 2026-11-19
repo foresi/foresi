@@ -1,6 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    A project as a list: the filters, then the tasks in no section as the list's own, with no heading
+    A project as a list: List and Board, the views of the list with "+ Filter" and Columns as every list
+    has them (one list of views for every project), then the tasks in no section as the list's own, with no heading
     (loose to-dos sit above the groups in Basecamp, and Asana's list shows its default section without
     one), then one block per section in order, each with its top-level tasks and their subtasks.
     A new task opens in a dialog from the header, and from the empty state of a project with nothing
@@ -30,26 +31,37 @@
             <p class="m-0 text-small text-muted" data-project-client>{{ 'work.project.field.client'|trans }}: {% if project.manageable %}<a href="{{ path('app_contact_show', {id: project.clientId}) }}" class="font-medium text-ink no-underline hover:underline {{ focus }}">{{ project.clientName }}</a>{% else %}<span class="font-medium text-ink">{{ project.clientName }}</span>{% endif %}</p>
         {% endif %}
 
-        <div class="flex flex-wrap items-end justify-between gap-3">
-            <twig:Ui:Tabs :items="[{label: 'work.project.tab.list'|trans, href: path('app_project', {id: project.id}), active: true}, {label: 'work.project.tab.board'|trans, href: path('app_project_board', {id: project.id})}]" :label="'work.project.views'|trans" class="shrink-0" />
-            <twig:Ui:FilterBar id="task-filters" :action="path('app_project', {id: project.id})" :empty="sections is empty" class="w-full sm:w-auto" data-task-filters
-                :filters="[
-                    {name: 'responsible', label: 'work.filter.responsible'|trans, options: responsibles, value: query.responsible, pinned: true},
-                    {name: 'status', label: 'work.filter.status'|trans, options: statuses, value: query.status, default: 'open', pinned: true},
-                    {name: 'due', label: 'work.filter.due'|trans, options: dues, value: query.due},
-                ]" />
+        {# List and Board switch the layout; the views of the list sit under it, as on every list (saved views D7). #}
+        <twig:Ui:Tabs :items="[{label: 'work.project.tab.list'|trans, href: path('app_project', {id: project.id}), active: true}, {label: 'work.project.tab.board'|trans, href: path('app_project_board', {id: project.id})}]" :label="'work.project.views'|trans" class="shrink-0" />
+        {# The view's unsaved changes sit at the end of its tabs (saved views D10); only the staff keep views. #}
+        <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
+            {% if viewsEditable %}
+                <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'work.list.views'|trans" class="min-w-0 sm:flex-1">
+                    <twig:block name="actions">{{ include('components/Ui/_view_menu.html.twig') }}</twig:block>
+                </twig:Ui:Tabs>
+                {{ include('components/Ui/_view_actions.html.twig') }}
+            {% else %}
+                <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'work.list.views'|trans" class="min-w-0 sm:flex-1" />
+            {% endif %}
         </div>
+        {# Who is responsible, the status and the due date are conditions of "+ Filter" (saved views D11). #}
+        <twig:Ui:FilterBar id="task-filters" :action="path('app_project', {id: project.id})" :keep="{view: view != '' ? view : null, f: working != '' ? working : null}|merge(workingQuery)"
+            :conditions="chips" :builder="builder" :empty="sections is empty" data-task-filters>
+            <twig:block name="end">
+                <twig:Ui:ColumnPicker id="task-columns" :action="path('app_project', {id: project.id})" :keep="picker.keep" :columns="picker.columns" :density="picker.density" :resetHref="picker.resetHref" :modified="picker.modified" />
+            </twig:block>
+        </twig:Ui:FilterBar>
 
         {% for section in sections %}
             {% if section.id is null %}
             {# The table is named after the project: with no heading it still needs a name. #}
             <div class="grid gap-2" data-section="{{ section.key }}">
-                <twig:Ui:DataTable :caption="'work.list.loose_caption'|trans({project: project.name})" :columns="columns" :rows="section.rows" :actionToken="trashToken" />
+                <twig:Ui:DataTable :caption="'work.list.loose_caption'|trans({project: project.name})" :columns="columns" :rows="section.rows" :density="density" :actionToken="trashToken" />
             </div>
             {% else %}
             <section class="grid gap-2" aria-labelledby="section-{{ section.key }}-title" data-section="{{ section.key }}">
                 <h2 id="section-{{ section.key }}-title" class="m-0 text-heading font-semibold text-ink">{{ section.name }} <span class="num font-normal text-muted">({{ section.count }})</span>{% if section.private %} {{ include('@Work/_private_badge.html.twig') }}{% endif %}</h2>
-                <twig:Ui:DataTable :caption="section.name" :columns="columns" :rows="section.rows" :actionToken="trashToken">
+                <twig:Ui:DataTable :caption="section.name" :columns="columns" :rows="section.rows" :density="density" :actionToken="trashToken">
                     <twig:block name="empty">
                         <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted">{{ (filtered ? 'work.list.empty_filtered' : 'work.list.empty')|trans }}</p>
                     </twig:block>
@@ -70,4 +82,5 @@
             <div><twig:Ui:Button variant="ghost" size="sm" icon="trash-2" :href="path('app_project_trash', {id: project.id})" data-project-trash>{{ 'work.trash.link'|trans({count: trashCount}) }}</twig:Ui:Button></div>
         {% endif %}
     </div>
+    {% if viewsEditable %}{{ include('components/Ui/_view_dialogs.html.twig') }}{% endif %}
 {% endblock %}

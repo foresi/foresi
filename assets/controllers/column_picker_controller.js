@@ -7,12 +7,13 @@ import { Controller } from '@hotwired/stimulus';
  * Ui:ColumnPicker: the Columns button opens the sheet; a row moves by its handle (a pointer:
  * mouse, pen or touch) or by its Move up / Move down buttons (one tap or a key, WCAG 2.2 SC
  * 2.5.7), and each move is said in the live region, as Atlassian's drag and drop guidance
- * asks. The locked rows lead and never move. Apply sends the checked columns in their order as
- * one cols=a,b,c, and without this controller the boxes send cols[] in the same order.
+ * asks. The locked rows lead and never move. A column checked under "Add column" comes after
+ * the shown ones. Apply sends the checked columns in their order as one cols=a,b,c, and without
+ * this controller the boxes send cols[] in the same order.
  */
 export default class extends Controller {
     static outlets = ['dialog'];
-    static targets = ['form', 'list', 'row', 'box', 'lockedKey', 'keys', 'status', 'search', 'none'];
+    static targets = ['form', 'list', 'row', 'option', 'add', 'box', 'lockedKey', 'keys', 'status', 'search', 'none'];
     static values = { moved: String };
 
     connect() {
@@ -111,11 +112,16 @@ export default class extends Controller {
     search(event) {
         const text = event.currentTarget.value.trim().toLocaleLowerCase();
         let shown = 0;
-        this.rowTargets.forEach((row) => {
+        let options = 0;
+        [...this.rowTargets, ...this.optionTargets].forEach((row) => {
             const match = text === '' || row.dataset.label.toLocaleLowerCase().includes(text);
             row.hidden = !match;
             shown += match ? 1 : 0;
+            options += match && this.optionTargets.includes(row) ? 1 : 0;
         });
+        if (this.hasAddTarget) {
+            this.addTarget.hidden = options === 0;
+        }
         if (this.hasNoneTarget) {
             this.noneTarget.hidden = shown > 0;
         }
@@ -123,7 +129,8 @@ export default class extends Controller {
 
     submit() {
         // One readable cols=a,b,c instead of a cols[] per column.
-        const keys = [...this.listTarget.querySelectorAll('[data-column-picker-target="lockedKey"], [data-column-picker-target="box"]:checked')].map((input) => input.value);
+        // The shown columns in their order, then the ones checked under "Add column".
+        const keys = [...this.formTarget.querySelectorAll('[data-column-picker-target="lockedKey"], [data-column-picker-target="box"]:checked')].map((input) => input.value);
         this.keysTarget.value = keys.join(',');
         this.keysTarget.disabled = false;
         [...this.lockedKeyTargets, ...this.boxTargets].forEach((input) => input.removeAttribute('name'));

@@ -29,4 +29,10 @@ interface ListColumnCatalog
      * @return list<array{key: string, label: string, sortable: bool, default: bool, locked: bool}>
      */
     public function columns(string $listKey): array;
+
+    /**
+     * The key of the column a name refers to in a list: its key, or an older key the column
+     * still answers to (dueDate for due_date). Null when this catalogue has no such column.
+     */
+    public function key(string $listKey, string $name): ?string;
 }

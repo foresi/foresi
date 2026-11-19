@@ -21,18 +21,29 @@ use Foresi\Purchasing\Application\Query\SupplierOption;
 use Foresi\Purchasing\Application\RecordReceivedDocument;
 use Foresi\Purchasing\Application\UploadedDocument;
 use Foresi\Purchasing\Application\UploadReceivedDocuments;
-use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
+use Foresi\Purchasing\Application\View\ReceivedDocumentLists;
 use Foresi\Purchasing\Domain\ReceivedDocumentKind;
 use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
-use Foresi\Purchasing\Infrastructure\Form\PurchasingText;
+use Foresi\Purchasing\Infrastructure\Column\ReceivedDocumentColumns;
 use Foresi\Purchasing\Infrastructure\Form\ReceivedDocumentForm;
 use Foresi\Purchasing\Infrastructure\Form\ReceivedDocumentScreen;
 use Foresi\Purchasing\Infrastructure\Form\RefusalFields;
 use Foresi\Purchasing\Infrastructure\Navigation\PurchasingNavigation;
-use Foresi\Shared\Domain\Money;
+use Foresi\Purchasing\Infrastructure\View\ReceivedDocumentViews;
+use Foresi\Shared\Application\View\FilterRows;
+use Foresi\Shared\Application\View\ListView;
+use Foresi\Shared\Application\View\ListViews;
+use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Application\View\WorkingFilter;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
+use Foresi\Ui\Column\RememberedDisplay;
+use Foresi\Ui\Column\WorkingDisplay;
+use Foresi\Ui\Column\WorkingState;
 use Foresi\Ui\Component\DataTable;
+use Foresi\Ui\View\ViewBar;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -42,9 +53,11 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The list of received documents, as Fakturoid lists its costs and Xero its
- * bills: the drafts to complete first, then the recorded ones and the trash,
- * filtered by firm, month, supplier, kind and treatment, and found by the
- * supplier's name or either number. Every row opens the document.
+ * bills, on saved views (spec D3, D7): All, the drafts to complete, the recorded
+ * ones and the trash ship as views, with the person's own beside them. The firm
+ * and the month are chips on the bar; the supplier, the kind and the treatment are
+ * conditions of "+ Filter" (D11). Found by the supplier's name or either number.
+ * Every row opens the document.
  *
  * Uploading and a new document start in the page header and open a dialog,
  * each also a page of its own without JavaScript. Files are dropped or chosen
@@ -67,54 +80,70 @@ final class ReceivedDocumentListController extends AbstractController
         private readonly SupplierChoices $suppliers,
         private readonly ReceivedDocumentForm $form,
         private readonly ReceivedDocumentScreen $screen,
-        private readonly PurchasingText $text,
         private readonly InstanceClock $clock,
         private readonly TranslatorInterface $translator,
+        private readonly ReceivedDocumentColumns $columns,
+        private readonly ReceivedDocumentViews $receivedViews,
+        private readonly RememberedDisplay $rememberedDisplay,
+        private readonly ViewBar $viewBar,
+        private readonly FilterSheet $filterSheet,
     ) {
     }
 
     #[Route('/purchasing', name: PurchasingNavigation::ROUTE, methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $query = $request->query;
-        $tab = $query->getString('tab', ReceivedDocumentFilter::DRAFTS);
+        $input = $request->query;
+        // The builder's rows (spec D11) become the list's working filter, in its address.
+        if ($input->has(FilterRows::MARKER)) {
+            return $this->redirectToRoute(PurchasingNavigation::ROUTE, $this->builtQuery($input), Response::HTTP_SEE_OTHER);
+        }
+        [$views, $view, $shown] = $this->receivedViews->of($input);
+        $list = ReceivedDocumentLists::list();
+        $filterParam = WorkingFilter::param($shown, $view->filter);
         $page = $this->list->page(new ReceivedDocumentFilter(
-            \in_array($tab, ReceivedDocumentFilter::TABS, true) ? $tab : ReceivedDocumentFilter::DRAFTS,
-            $this->optional($query->getString('firm')),
-            ReceivedDocumentFilter::monthOf($query->getString('month')),
-            $this->optional($query->getString('supplier')),
-            ReceivedDocumentKind::tryFrom($query->getString('kind')),
-            PurchaseTaxTreatment::tryFrom($query->getString('treatment')),
-            $query->getString('q'),
-            max(1, $query->getInt('page', 1)),
+            $this->tabOf($view, $shown),
+            $this->optional($input->getString('firm')),
+            ReceivedDocumentFilter::monthOf($input->getString('month')),
+            $input->getString('q'),
+            max(1, $input->getInt('page', 1)),
+            $shown,
+            $this->counted($views),
         ));
         $filter = $page->filter;
-        $kept = array_filter([
-            'tab' => ReceivedDocumentFilter::DRAFTS === $filter->tab ? null : $filter->tab,
+        $query = array_filter([
+            'view' => $view->isAll() ? null : $view->key,
             'firm' => $filter->firmId,
             'month' => $filter->month,
-            'supplier' => $filter->supplierId,
-            'kind' => $filter->kind?->value,
-            'treatment' => $filter->treatment?->value,
             'q' => '' === $filter->text ? null : $filter->text,
+            WorkingFilter::PARAM => $filterParam,
         ], static fn (?string $value): bool => null !== $value);
         $severalFirms = \count($page->firms) > 1;
         $firms = $this->list->activeFirms();
+        // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $working = $this->rememberedDisplay->read(ReceivedDocumentColumns::LIST, ['severalFirms' => $severalFirms], $list->key, $view, $input->all());
+        $query += $working->query;
+        $bar = $this->viewBar->of($list, $views, $view, $shown, '', '', $working, PurchasingNavigation::ROUTE, '' === $filter->text ? [] : ['q' => $filter->text]);
 
         return $this->render('@Purchasing/index.html.twig', [
             'page' => $page,
             'filter' => $filter,
             'noFirm' => [] === $firms,
-            'tabs' => $this->tabs($page, $kept),
-            'columns' => $this->columns($filter->tab, $severalFirms),
-            'rows' => array_map(fn (ReceivedDocumentRow $row): array => $this->row($row, $severalFirms), $page->rows),
+            'view' => $view->isAll() ? '' : $view->key,
+            'working' => $filterParam ?? '',
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(PurchasingNavigation::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references()),
+            ...$bar,
+            ...$this->tabs($views, $view->key, $page, $query, $bar['viewBar']['modified']),
+            'columns' => $working->display->table(),
+            'rows' => array_map(fn (ReceivedDocumentRow $row): array => $this->row($row, $working), $page->rows),
+            'density' => $working->tableDensity(),
+            'picker' => $this->picker($working, $query),
+            'workingQuery' => $working->query,
             'firms' => $severalFirms ? ['' => $this->translator->trans('purchasing.list.all_firms')] + $page->firms : [],
-            'months' => ['' => $this->translator->trans('purchasing.list.all_months')] + $this->screen->months([...$page->months, ...(null === $filter->month ? [] : [$filter->month])]),
-            'suppliers' => ['' => $this->translator->trans('purchasing.list.all_suppliers')] + $page->suppliers,
-            'kinds' => ['' => $this->translator->trans('purchasing.list.all_kinds')] + $this->screen->kinds(),
-            'treatments' => ['' => $this->translator->trans('purchasing.list.all_treatments')] + $this->screen->treatments(),
-            'baseUrl' => $this->generateUrl(PurchasingNavigation::ROUTE, $kept),
-            'filtered' => [] !== array_diff_key($kept, ['tab' => true]),
+            'months' => $this->monthOptions($page->months, $filter->month),
+            'baseUrl' => $this->generateUrl(PurchasingNavigation::ROUTE, $query),
+            'resetHref' => $this->generateUrl(PurchasingNavigation::ROUTE, ['view' => $view->isAll() ? null : $view->key]),
+            'filtered' => [] !== array_diff_key($query, ['view' => true] + array_flip(WorkingDisplay::KEYS)),
         ]);
     }
 
@@ -275,75 +304,152 @@ final class ReceivedDocumentListController extends AbstractController
     }
 
     /**
-     * @param array<string, string> $kept
-     *
-     * @return list<array{label: string, href: string, count: int, active: bool}>
+     * The tab a view stands for where the list still asks for one, for its order and its
+     * empty state: the trash; a shipped view as it ships; anything else the whole list.
      */
-    private function tabs(ReceivedDocumentPage $page, array $kept): array
+    private function tabOf(ListView $view, ViewFilter $working): string
     {
-        $tabs = [];
-        foreach ($page->tabCounts as $tab => $count) {
-            $tabs[] = [
-                'label' => $this->translator->trans('purchasing.list.tab.'.$tab),
-                'href' => $this->generateUrl(PurchasingNavigation::ROUTE, ['tab' => ReceivedDocumentFilter::DRAFTS === $tab ? null : $tab] + $kept),
-                'count' => $count,
-                'active' => $tab === $page->filter->tab,
-            ];
+        foreach ($working->on(ReceivedDocumentLists::TRASHED) as $condition) {
+            if (true === $condition->value) {
+                return ReceivedDocumentFilter::TRASH;
+            }
+        }
+        // A view changed in the builder no longer says what its empty state says.
+        if ($working->toArray() !== $view->filter->toArray()) {
+            return ReceivedDocumentFilter::ALL;
         }
 
-        return $tabs;
+        return \in_array($view->slug, ReceivedDocumentFilter::TABS, true) ? $view->slug : ReceivedDocumentFilter::ALL;
     }
 
     /**
-     * The numbers, the supplier and its number, the day that places the document in its month,
-     * the total in its currency and the VAT in CZK; the treatment and the state where there is room.
+     * The views that show a count, by key: the primary tabs alone (spec D9).
      *
-     * @return list<array<string, mixed>>
+     * @param list<ListView> $views
+     *
+     * @return array<string, ViewFilter>
      */
-    private function columns(string $tab, bool $severalFirms): array
+    private function counted(array $views): array
     {
-        $keys = ['number', ...($severalFirms ? ['firm'] : []), 'supplier', 'supplierNumber', 'monthDay', 'total', 'vatCzk', 'treatment', 'state'];
+        $counted = [];
+        foreach (ListViews::placed($views)[0] as $tab) {
+            if ($tab->showCount) {
+                $counted[$tab->key] = $tab->filter;
+            }
+        }
 
-        return array_map(fn (string $key): array => [
-            'key' => $key,
-            'label' => $this->translator->trans('purchasing.list.column.'.(ReceivedDocumentFilter::DRAFTS === $tab && 'number' === $key ? 'draft' : $key)),
-            'align' => \in_array($key, ['total', 'vatCzk'], true) ? 'right' : 'left',
-            'phone' => \in_array($key, ['number', 'total'], true),
-            'truncate' => \in_array($key, ['firm', 'supplier'], true),
-            'wide' => \in_array($key, ['treatment', 'supplierNumber'], true),
-        ], $keys);
+        return $counted;
+    }
+
+    /**
+     * The list's address after the builder's Apply: what the sheet sent, its rows read
+     * into the working filter, which is left out when it is the view's own. The old
+     * parameters of the sheet are in the rows by then.
+     *
+     * @param InputBag<string> $input
+     *
+     * @return array<string, mixed>
+     */
+    private function builtQuery(InputBag $input): array
+    {
+        [, $view] = $this->receivedViews->of($input);
+        $query = array_diff_key($input->all(), [FilterRows::PARAM => true, FilterRows::MARKER => true, WorkingFilter::PARAM => true, 'page' => true, 'view' => true, 'tab' => true] + ReceivedDocumentViews::OLD_PARAMS);
+
+        return array_filter($query + ['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), ReceivedDocumentLists::list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
+    }
+
+    /**
+     * The contacts a supplier condition picks from and names: those the form of a document picks from.
+     *
+     * @return array<string, array{url: string, name: \Closure(string): ?string}>
+     */
+    private function references(): array
+    {
+        return [ReceivedDocumentLists::CONTACT => [
+            'url' => $this->generateUrl('app_purchasing_suppliers'),
+            'name' => fn (string $contact): ?string => $this->suppliers->find($contact)?->name,
+        ]];
+    }
+
+    /**
+     * The month chip (spec D5): the periods relative to today first, then the months
+     * with a document, and the one asked for, though it has none.
+     *
+     * @param list<string> $months
+     *
+     * @return array<int|string, string|array<int|string, string>>
+     */
+    private function monthOptions(array $months, ?string $month): array
+    {
+        $options = ['' => $this->translator->trans('purchasing.list.all_months')];
+        foreach (ReceivedDocumentFilter::RELATIVE_MONTHS as $period) {
+            $options[$period] = $this->translator->trans('purchasing.list.month_period.'.$period);
+        }
+        $absolute = null === $month || \in_array($month, ReceivedDocumentFilter::RELATIVE_MONTHS, true) ? [] : [$month];
+        $choices = $this->screen->months([...$months, ...$absolute]);
+
+        return [] === $choices ? $options : $options + [$this->translator->trans('purchasing.list.month_period.by_month') => $choices];
+    }
+
+    /**
+     * The tabs of the list and its "More views" menu (spec D7): All and the primary views
+     * as tabs, with the count of those that show one; the other views in the menu.
+     *
+     * @param list<ListView>        $views
+     * @param array<string, string> $query
+     *
+     * @return array{tabs: list<array<string, mixed>>, moreViews: list<array<string, mixed>>}
+     */
+    private function tabs(array $views, string $active, ReceivedDocumentPage $page, array $query, bool $modified): array
+    {
+        [$primary, $overflow] = ListViews::placed($views);
+        $link = fn (ListView $view, bool $count): array => [
+            'label' => $view->translated ? $this->translator->trans($view->name) : $view->name,
+            // A view opens with its own filter and columns: the changed ones belong to the view they were changed on (spec D10).
+            'href' => $this->generateUrl(PurchasingNavigation::ROUTE, ['view' => $view->isAll() ? null : $view->key] + array_diff_key($query, ['view' => true, 'page' => true, WorkingFilter::PARAM => true] + array_flip(WorkingDisplay::KEYS))),
+            'count' => $count && $view->showCount ? ($page->counts[$view->key] ?? null) : null,
+            'active' => $view->key === $active,
+            'modified' => $modified && $view->key === $active,
+            'private' => $view->private,
+        ];
+
+        return ['tabs' => array_map(static fn (ListView $view): array => $link($view, true), $primary), 'moreViews' => array_map(static fn (ListView $view): array => $link($view, false), $overflow)];
+    }
+
+    /**
+     * @param array<string, string> $query
+     *
+     * @return array<string, mixed>
+     */
+    private function picker(WorkingState $working, array $query): array
+    {
+        $kept = array_diff_key($query, array_flip(WorkingDisplay::KEYS));
+
+        return [
+            'keep' => $kept,
+            'columns' => $working->picker(),
+            'density' => $working->density,
+            // An empty density names the view's own display, which forgets the one remembered (D-display-3).
+            'resetHref' => $this->generateUrl(PurchasingNavigation::ROUTE, $kept + [WorkingDisplay::DENSITY => '']),
+            'modified' => $working->modified,
+        ];
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function row(ReceivedDocumentRow $row, bool $severalFirms): array
+    private function row(ReceivedDocumentRow $row, WorkingState $working): array
     {
-        $date = $this->translator->trans('format.date');
-        $label = $row->evidenceNumber ?? $this->translator->trans('purchasing.list.draft_label', ['date' => $row->createdAt->setTimezone($this->clock->timezone())->format($date)]);
-        $badge = $this->screen->badge($row->isTrashed(), null !== $row->evidenceNumber);
-        $total = $row->total instanceof Money ? $this->text->amount($row->total) : '';
-        $cells = [
-            'number' => $label,
-            'supplier' => null === $row->supplierId || '' === $row->supplierName ? $row->supplierName : ['links' => [['text' => $row->supplierName, 'href' => $this->generateUrl('app_contact_show', ['id' => $row->supplierId])]], 'title' => $row->supplierName],
-            'supplierNumber' => $row->supplierNumber,
-            'monthDay' => $row->monthDay()?->format($date) ?? '',
-            'total' => $total,
-            'vatCzk' => $row->total instanceof Money && $row->vatCzk instanceof Money ? $this->text->amount($row->vatCzk) : '',
-            'treatment' => $this->translator->trans('purchasing.treatment.'.$row->treatment->value),
-            'state' => ['text' => $badge['label'], 'tone' => $badge['tone']] + ($row->isTrashed() && null !== $row->deletedReason ? ['hint' => $row->deletedReason] : []),
-        ];
-        if ($severalFirms) {
-            $cells['firm'] = $row->firmName;
-        }
+        $label = $this->columns->number($row);
+        $badge = $this->columns->badge($row);
 
         return [
             'id' => $row->id,
             'href' => $this->generateUrl('app_purchasing_document', ['id' => $row->id]),
             'opens' => DataTable::OPENS_SHEET,
             'label' => $label,
-            'secondary' => implode(' · ', array_filter([$row->supplierName, $total, $badge['label']], static fn (string $part): bool => '' !== $part)),
-            'cells' => $cells,
+            'secondary' => implode(' · ', array_filter([$row->supplierName, $this->columns->total($row), $badge['label']], static fn (string $part): bool => '' !== $part)),
+            'cells' => $working->display->cells($row),
         ];
     }
 

@@ -187,7 +187,7 @@ test.describe('projects and tasks', () => {
   });
 
   test('the done notifications have no serious accessibility violations @a11y', async ({ page }) => {
-    await page.goto('/notifications?tab=done');
+    await page.goto('/notifications?view=done');
     await expect(page.locator('[data-notifications-kept]')).toBeVisible();
     await expectNoSeriousViolations(page);
   });

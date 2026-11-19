@@ -128,6 +128,53 @@ final class PartyControllerTest extends WebTestCase
         self::assertSelectorCount(0, 'main [data-kpi]');
     }
 
+    public function testTheTabsAreTheShippedViewsCountedWithinTheSearch(): void
+    {
+        // Saved views, D12: the tabs it had, with the same counts (D9), which count within the search.
+        $this->signIn();
+        $this->party('Customer Only', roles: [PartyRole::Customer]);
+        $this->party('Supplier Only', roles: [PartyRole::Supplier]);
+        $this->party('Both Roles', roles: [PartyRole::Customer, PartyRole::Supplier]);
+        $this->archive($this->party('Archived Supplier', roles: [PartyRole::Supplier]));
+
+        $crawler = $this->client->request('GET', '/contacts');
+        self::assertSame(['All3', 'Customers2', 'Suppliers2', 'Archived1'], $this->tabs($crawler));
+        self::assertSame('/contacts?view=suppliers', $crawler->filter('nav[aria-label="Contact views"] a')->eq(2)->attr('href'));
+        self::assertCount(1, $crawler->filter('[data-filter-sheet-form]'));
+
+        $crawler = $this->client->request('GET', '/contacts?view=suppliers&q=only');
+        self::assertSame(['All2', 'Customers1', 'Suppliers1', 'Archived0'], $this->tabs($crawler));
+        self::assertSelectorCount(1, 'main tbody tr');
+        self::assertSelectorTextContains('main table', 'Supplier Only');
+        // An unknown view is the whole list.
+        $this->client->request('GET', '/contacts?view=friends');
+        self::assertSelectorCount(3, 'main tbody tr');
+    }
+
+    public function testTheBuilderNarrowsTheViewAndItsChangesAreSavedAsANewView(): void
+    {
+        $this->signIn();
+        $this->party('Person Supplier', kind: PartyKind::Person, roles: [PartyRole::Supplier]);
+        $this->party('Company Supplier', roles: [PartyRole::Supplier]);
+
+        $this->client->request('GET', '/contacts?'.http_build_query(['view' => 'suppliers', 'conditions' => '1', 'c' => [
+            ['field' => 'role', 'op' => 'is', 'values' => ['supplier']],
+            ['field' => 'kind', 'op' => 'is', 'values' => ['person']],
+        ]]));
+        self::assertResponseStatusCodeSame(303);
+        $crawler = $this->client->followRedirect();
+
+        self::assertSelectorCount(1, 'main tbody tr');
+        self::assertSelectorTextContains('main table', 'Person Supplier');
+        self::assertSame('Suppliers, unsaved changes2', $this->tabs($crawler)[2]);
+        // The export holds what the list shows.
+        self::assertCount(1, $crawler->filter('form[action="/contacts/export"] input[name="f"]'));
+        $this->client->submit($crawler->filter('[data-view-save-as-form]')->form(['name' => 'Supplier persons']));
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorCount(1, 'main tbody tr');
+        self::assertContains('Supplier persons', $this->tabs($crawler));
+    }
+
     public function testSearchCoversNameRegistrationNumberVatIdAndEmail(): void
     {
         $this->signIn();
@@ -166,6 +213,38 @@ final class PartyControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/contacts?sort=-name');
         self::assertSame('Company 27', trim($crawler->filter('main tbody tr')->first()->filter('td [data-row-link]')->text()));
         self::assertSelectorExists('th[aria-sort="descending"]');
+    }
+
+    public function testAnyAttributeCanBeAddedAsAColumnAndSortedBy(): void
+    {
+        $this->signIn();
+        $this->party('Alfa', phone: '+420 111 222 333');
+        $this->party('Beta', phone: '+420 999 888 777');
+
+        $crawler = $this->client->request('GET', '/contacts?cols=name,phone,billing_city&sort=-phone');
+
+        self::assertSame(['Name', 'Phone', 'Billing city'], array_values(array_diff($crawler->filter('main thead th')->each(static fn (Crawler $th): string => trim($th->text())), ['', 'Actions'])));
+        self::assertSame(['Beta', 'Alfa'], $crawler->filter('main tbody td [data-row-link]')->each(static fn (Crawler $link): string => trim($link->text())));
+        self::assertSelectorExists('th[aria-sort="descending"] a[href*="sort=phone"]');
+        // A phone is a link to dial, the city of the billing address its text.
+        self::assertSame('tel:+420999888777', $crawler->filter('main tbody tr')->first()->filter('a[data-chip]')->attr('href'));
+        self::assertSame('Example City', trim($crawler->filter('main tbody tr')->first()->filter('td')->eq(3)->text()));
+        // The other attributes wait under "Add column"; the shown ones lead the sheet.
+        self::assertSelectorExists('[data-column-picker-add] [data-key="mobile"]');
+        self::assertSelectorNotExists('[data-column-picker-add] [data-key="phone"]');
+    }
+
+    public function testTheOlderColumnAndSortKeysStillWorkAndAreWrittenBackUnderTheirKeys(): void
+    {
+        $this->signIn();
+        $this->party('Alfa', number: '27074358', vat: 'CZ27074358');
+        $this->party('Beta', number: '25596641', vat: 'CZ25596641');
+
+        $crawler = $this->client->request('GET', '/contacts?cols=name,registration,vat&sort=-vat');
+
+        self::assertSame(['Name', 'Reg. no.', 'VAT ID'], array_values(array_diff($crawler->filter('main thead th')->each(static fn (Crawler $th): string => trim($th->text())), ['', 'Actions'])));
+        self::assertSame(['Alfa', 'Beta'], $crawler->filter('main tbody td [data-row-link]')->each(static fn (Crawler $link): string => trim($link->text())));
+        self::assertSelectorExists('th[aria-sort="descending"] a[href="/contacts?sort=vat_id&cols=name,registration_number,vat_id"]');
     }
 
     public function testAnEmptyAddressBookShowsTheEmptyStateWithTheAddAction(): void
@@ -815,6 +894,14 @@ final class PartyControllerTest extends WebTestCase
         self::assertResponseRedirects('http://localhost/login');
     }
 
+    /**
+     * @return list<string>
+     */
+    private function tabs(Crawler $crawler): array
+    {
+        return $crawler->filter('nav[aria-label="Contact views"] a')->each(static fn (Crawler $tab): string => trim((string) preg_replace('/\s+/', ' ', $tab->text())));
+    }
+
     private function signIn(string $locale = 'en', Role $role = Role::Owner): void
     {
         $this->browser->seed($locale, $role);
@@ -824,7 +911,7 @@ final class PartyControllerTest extends WebTestCase
     /**
      * @param list<PartyRole> $roles
      */
-    private function party(string $name, ?PartyKind $kind = null, array $roles = [PartyRole::Customer], ?string $number = null, ?string $vat = null, string $email = '', bool $refresh = false): Party
+    private function party(string $name, ?PartyKind $kind = null, array $roles = [PartyRole::Customer], ?string $number = null, ?string $vat = null, string $email = '', bool $refresh = false, string $phone = ''): Party
     {
         // The fixture is set up by the application, not by the signed-in person.
         $tokens = self::getContainer()->get(TokenStorageInterface::class);
@@ -836,7 +923,7 @@ final class PartyControllerTest extends WebTestCase
             null === $number ? null : new RegistrationNumber('CZ', $number),
             null === $vat ? null : VatId::fromString($vat),
             $email,
-            '',
+            $phone,
             $roles,
             new Address('Example Street 1', 'Example City', '100 00', 'CZ'),
         );

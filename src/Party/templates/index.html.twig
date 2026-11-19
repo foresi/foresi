@@ -25,9 +25,15 @@
         </twig:Ui:EmptyState>
     {% else %}
         <div class="grid grid-cols-1 gap-4">
-            <twig:Ui:Tabs :items="tabs" :label="'party.views'|trans" />
-            <twig:Ui:FilterBar id="contact-filters" :action="path('app_contacts')" :keep="{view: view != 'all' ? view : null, sort: sort != 'name' ? sort : null}|merge(workingQuery)"
-                :search="{name: 'q', value: text, label: 'party.search.label'|trans, placeholder: 'party.search.placeholder'|trans}" :empty="rows is empty">
+            {# The view's unsaved changes sit at the end of its tabs, as on every list (saved views D10). #}
+            <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
+                <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'party.views'|trans" class="min-w-0 sm:flex-1">
+                    <twig:block name="actions">{{ include('components/Ui/_view_menu.html.twig') }}</twig:block>
+                </twig:Ui:Tabs>
+                {{ include('components/Ui/_view_actions.html.twig') }}
+            </div>
+            <twig:Ui:FilterBar id="contact-filters" :action="path('app_contacts')" :keep="{view: view != '' ? view : null, sort: sortKept, f: working != '' ? working : null}|merge(workingQuery)"
+                :search="{name: 'q', value: text, label: 'party.search.label'|trans, placeholder: 'party.search.placeholder'|trans}" :conditions="chips" :builder="builder" :empty="rows is empty">
                 <twig:block name="end">
                     <twig:Ui:ColumnPicker id="contact-columns" :action="path('app_contacts')" :keep="picker.keep" :columns="picker.columns" :density="picker.density" :resetHref="picker.resetHref" :modified="picker.modified" />
                 </twig:block>
@@ -41,10 +47,10 @@
                 </twig:Ui:Alert>
             {% endif %}
 
-            {% set bulkActions = slot_items(constant('Foresi\\Party\\Contract\\ContactListActions::BULK'), {view: view}) %}
+            {% set bulkActions = slot_items(constant('Foresi\\Party\\Contract\\ContactListActions::BULK'), {view: archived ? 'archived' : view}) %}
             <form method="post" action="{{ path('app_contacts_archive') }}" data-turbo="false">
                 <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Party\\Infrastructure\\Controller\\PartyController::ACTION_TOKEN')) }}">
-                <twig:Ui:DataTable :caption="'party.title'|trans" :columns="columns" :rows="rows" :density="density" :selectable="view != 'archived' or bulkActions is not empty" selectionName="ids[]">
+                <twig:Ui:DataTable :caption="'party.title'|trans" :columns="columns" :rows="rows" :density="density" :selectable="not archived or bulkActions is not empty" selectionName="ids[]">
                     <twig:block name="empty">
                         <twig:Ui:EmptyState icon="search" :title="'party.empty_filtered.title'|trans" :text="'party.empty_filtered.text'|trans">
                             <twig:Ui:Button :href="path('app_contacts')">{{ 'party.empty_filtered.reset'|trans }}</twig:Ui:Button>
@@ -55,13 +61,14 @@
                         <twig:Ui:Pagination :page="page.page" :pages="page.pages" :baseUrl="baseUrl" />
                     </twig:block>
                     <twig:block name="bulk">
-                        {% if view != 'archived' %}
+                        {% if not archived %}
                             <twig:Ui:Button type="submit" size="sm" icon="archive" formaction="{{ path('app_contacts_archive') }}">{{ 'party.bulk.archive'|trans }}</twig:Ui:Button>
                         {% endif %}
-                        {% for action in bulkActions %}{{ include(action.template, action.data|merge({view: view})) }}{% endfor %}
+                        {% for action in bulkActions %}{{ include(action.template, action.data|merge({view: archived ? 'archived' : view})) }}{% endfor %}
                     </twig:block>
                 </twig:Ui:DataTable>
             </form>
         </div>
+        {{ include('components/Ui/_view_dialogs.html.twig') }}
     {% endif %}
 {% endblock %}

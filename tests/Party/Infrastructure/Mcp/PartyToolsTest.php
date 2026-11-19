@@ -47,7 +47,7 @@ final class PartyToolsTest extends ReadToolTestCase
         $schema = $tool->inputSchema();
         self::assertSame('object', $schema['type']);
         self::assertFalse($schema['additionalProperties']);
-        self::assertSame(['query', 'role', 'archived', 'registration_number', 'vat_id', 'limit', 'cursor'], self::argumentNames($tool));
+        self::assertSame(['query', 'role', 'archived', 'registration_number', 'vat_id', 'view_id', 'filter', 'limit', 'cursor'], self::argumentNames($tool));
         self::assertSame(['customer', 'supplier', 'partner', 'authority'], self::argument($tool, 'role')['enum']);
         self::assertSame('boolean', self::argument($tool, 'archived')['type']);
         self::assertSame('string', self::argument($tool, 'registration_number')['type']);
@@ -96,7 +96,7 @@ final class PartyToolsTest extends ReadToolTestCase
 
         $search = $this->call(SearchContactsTool::class, ['limit' => 1]);
         $rest = $this->rest('/api/v1/contacts', ['limit' => '1']);
-        self::assertSame(['items' => $rest, 'next_cursor' => $this->json()['next_cursor']], $search->data);
+        self::assertSame(['items' => $rest, 'next_cursor' => $this->json()['next_cursor'], 'applied_view' => null], $search->data);
         self::assertIsArray($rest);
         self::assertSame(['Petra Example'], array_column($rest, 'name'));
         self::assertSame('1 contact, newest first; more match: call again with the same arguments and next_cursor as cursor.', $search->summary);
@@ -159,7 +159,7 @@ final class PartyToolsTest extends ReadToolTestCase
     {
         self::assertSame([$this->customerId], self::itemIds($this->call(SearchContactsTool::class)));
         $none = $this->call(SearchContactsTool::class, ['query' => 'Foreign']);
-        self::assertSame(['items' => [], 'next_cursor' => null], $none->data);
+        self::assertSame(['items' => [], 'next_cursor' => null, 'applied_view' => null], $none->data);
         self::assertSame('No contacts match.', $none->summary);
         foreach ([Id::generate(), 'not-an-id'] as $id) {
             $this->assertRefused('not_found', 'The organisation has no contact with this id. Find the id with foresi_search_contacts.', GetContactTool::class, ['id' => $id]);
