@@ -116,7 +116,7 @@ test.describe.serial('the accountant pack', () => {
     await page.getByRole('button', { name: 'Filtr', exact: true }).click();
     await page.getByRole('button', { name: 'Přidat filtr' }).click();
     await page.getByRole('menuitem', { name: 'Export pro účetní' }).click();
-    await page.locator('[data-filter-sheet-form] [data-filter-row="export"]').getByLabel('Exportováno').check();
+    await page.locator('[data-filter-sheet-form] [data-filter-row="export"]').getByLabel('Exportováno', { exact: true }).check();
     await page.getByRole('button', { name: 'Použít' }).click();
     await expect(page).toHaveURL(/[?&]f=/);
     await expect(page.locator('tbody tr')).toHaveCount(2);
