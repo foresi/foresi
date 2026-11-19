@@ -107,8 +107,8 @@ final class OAuthAuthorizeController extends AbstractController
         $offered = $this->offered();
         if ($this->authorization->connectsAsGuest()) {
             // A guest's rows are what the asked scopes come to for a guest: "write" ticks writing tasks and reading projects.
-            $asked = self::granted($authorization->scopes, array_keys($offered));
-            $required = self::granted($authorization->requiredScopes(), array_keys($offered));
+            $asked = $this->granted($authorization->scopes, array_keys($offered));
+            $required = $this->granted($authorization->requiredScopes(), array_keys($offered));
         } else {
             $asked = array_map(static fn (ApiScope $scope): string => $scope->value, $authorization->scopes);
             $required = array_map(static fn (ApiScope $scope): string => $scope->value, $authorization->requiredScopes());
@@ -127,7 +127,7 @@ final class OAuthAuthorizeController extends AbstractController
      *
      * @return list<string> the values the scopes grant
      */
-    private static function granted(array $scopes, array $values): array
+    private function granted(array $scopes, array $values): array
     {
         return array_values(array_filter($values, static fn (string $value): bool => array_any($scopes, static fn (ApiScope $scope): bool => $scope->grants(ApiScope::from($value)))));
     }
