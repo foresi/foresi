@@ -10,6 +10,8 @@ shared_with_me:
     title: Nothing is shared with you yet
     text: Once the organisation shares work with you, you will find it here.
 work:
+  relation:
+    projects: Projects
   status:
     to_do: To do
     in_progress: In progress

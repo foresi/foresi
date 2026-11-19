@@ -148,6 +148,8 @@ ui:
     unknown: Unknown
     chip: '{field}: {condition}'
     range: '{from} – {to}'
+    related: '{relation}: {field}'
+    name: Name
     op_label:
       is: is
       is_not: is not
@@ -171,6 +173,9 @@ ui:
       has_any_of: has any of
       has_all_of: has all of
       has_none_of: has none of
+      relation:
+        is_not_empty: has at least one
+        is_empty: has none
     op:
       is: '{value}'
       is_not: 'not {value}'

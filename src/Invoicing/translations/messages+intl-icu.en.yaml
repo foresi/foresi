@@ -50,6 +50,9 @@ series:
     next_below_counter: 'This number is already used. The next free one is {next}.'
     kind: Choose the kind of documents.
 invoice:
+  relation:
+    customer: Customer
+    invoices: Invoices
   links:
     title: Links
     advance: Advance invoice

@@ -223,6 +223,35 @@ final class ContactApiTest extends ApiTestCase
         self::assertSame([$beta->id()], $ids(['field' => 'role', 'op' => 'is', 'value' => 'partner']));
     }
 
+    public function testTheRelationsOfAContactFilterTheList(): void
+    {
+        // Relations to many (spec DS6): has some, has none, or one so named; read in the related rows.
+        [$alpha, $beta] = $this->flushed(function (): array {
+            $alpha = $this->contact('Alpha Example s.r.o.');
+            $beta = $this->contact('Beta Example a.s.');
+            $person = new Party(PartyKind::Person, 'Petra Example', null, null, '');
+            $this->em()->persist($person);
+            $this->em()->persist(new ContactLink($alpha, $person, 'Accountant', true));
+
+            return [$alpha, $beta];
+        });
+        $ids = function (array ...$conditions) use ($alpha, $beta): array {
+            $this->get('/api/v1/contacts', ['filter' => json_encode(['conditions' => $conditions], \JSON_THROW_ON_ERROR)]);
+            self::assertResponseIsSuccessful();
+
+            return array_values(array_intersect($this->ids(), [$alpha->id(), $beta->id()]));
+        };
+
+        self::assertSame([$alpha->id()], $ids(['field' => 'contact_persons', 'op' => 'is_not_empty']));
+        self::assertSame([$beta->id()], $ids(['field' => 'contact_persons', 'op' => 'is_empty']));
+        self::assertSame([$alpha->id()], $ids(['field' => 'contact_persons.name', 'op' => 'contains', 'value' => 'petra']));
+        self::assertSame([$beta->id()], $ids(['field' => 'contact_persons.name', 'op' => 'does_not_contain', 'value' => 'petra']));
+        // Other modules relate their records to a contact: none here has an invoice or a project.
+        self::assertSame([], $ids(['field' => 'invoices', 'op' => 'is_not_empty']));
+        self::assertSame([$beta->id(), $alpha->id()], $ids(['field' => 'invoices', 'op' => 'is_empty'], ['field' => 'projects', 'op' => 'is_empty']));
+        self::assertSame([], $ids(['field' => 'projects.name', 'op' => 'contains', 'value' => 'web']));
+    }
+
     /**
      * @return iterable<string, array{array<string, string>, string}>
      */

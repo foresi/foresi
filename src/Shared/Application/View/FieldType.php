@@ -22,6 +22,8 @@ enum FieldType: string
     case Number = 'number';
     case Date = 'date';
     case Boolean = 'boolean';
+    /** Whether a row has related records, such as the invoices of a contact. */
+    case Relation = 'relation';
 
     /**
      * @return list<string>
@@ -37,6 +39,8 @@ enum FieldType: string
             self::Number => ['eq', 'ne', 'lt', 'le', 'gt', 'ge', 'between', 'is_empty', 'is_not_empty'],
             self::Date => ['is', 'before', 'after', 'on_or_before', 'on_or_after', 'between', 'is_empty', 'is_not_empty'],
             self::Boolean => ['is'],
+            // Airtable's and Notion's linked records: the row has some ("is not empty") or none.
+            self::Relation => ['is_not_empty', 'is_empty'],
         };
     }
 }

@@ -10,6 +10,7 @@ namespace Foresi\Party\Infrastructure\Column;
 
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Application\PartyRow;
+use Foresi\Party\Contract\Contacts;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\InvoicingDefaults;
@@ -24,6 +25,7 @@ use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Domain\View\AttributeType;
 use Foresi\Ui\Contract\Attribute;
 use Foresi\Ui\Contract\DataSource;
+use Foresi\Ui\Contract\RelationTarget;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -34,10 +36,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * Every attribute with an expression is a filter field of the list's views too (D4): the e-mail
  * and the billing address are read in a subquery of the contact's addresses.
  *
+ * Another list relates to a contact in its row "p" (RelationTarget), such as an invoice's customer.
+ *
  * The name and the e-mail give way, cut short with their full text in a title. A phone shows the
  * name and the state; the rest goes in the line under the name.
  */
-final readonly class ContactSource implements DataSource
+final readonly class ContactSource implements DataSource, RelationTarget
 {
     public const string LIST = 'party.contacts';
 
@@ -55,6 +59,11 @@ final readonly class ContactSource implements DataSource
 
     public function __construct(private TranslatorInterface $translator, private InstanceClock $instanceClock)
     {
+    }
+
+    public function root(string $list): ?string
+    {
+        return self::LIST === $list ? Party::class.' '.Contacts::ALIAS : null;
     }
 
     public function attributes(string $list): iterable

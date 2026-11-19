@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 party:
+  relation:
+    contact_persons: Kontaktní osoby
   quick:
     title: Nový zákazník
     intro: Stačí název a sídlo, ostatní doplníte později.

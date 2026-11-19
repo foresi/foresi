@@ -148,6 +148,8 @@ ui:
     unknown: Neznámý
     chip: '{field}: {condition}'
     range: '{from} – {to}'
+    related: '{relation}: {field}'
+    name: Název
     op_label:
       is: je
       is_not: není
@@ -171,6 +173,9 @@ ui:
       has_any_of: má některé z
       has_all_of: má všechny z
       has_none_of: nemá žádné z
+      relation:
+        is_not_empty: má alespoň jeden
+        is_empty: nemá žádný
     op:
       is: '{value}'
       is_not: 'není {value}'

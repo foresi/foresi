@@ -74,7 +74,7 @@ final readonly class ViewJson
             'fields' => array_map(fn (Field $field): array => [
                 'key' => $field->key,
                 'type' => $field->type->value,
-                'label' => $this->english($field->label),
+                'label' => null === $field->group ? $this->english($field->label) : $this->translator->trans('ui.view_filter.related', ['relation' => $this->english($field->group), 'field' => $this->english($field->label)], locale: 'en'),
                 'operators' => $field->operators,
                 'options' => $field->options,
             ], array_values($list->fields)),
