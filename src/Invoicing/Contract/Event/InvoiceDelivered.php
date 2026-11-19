@@ -13,7 +13,9 @@ use Foresi\Shared\Domain\Event\DomainEventPayload;
 use Foresi\Shared\Domain\Event\EventSubject;
 
 /**
- * A document reached the customer for the first time.
+ * A document was sent to the customer for the first time: by e-mail from Foresi, or marked
+ * sent by hand. The screens say "sent", as that it reached the customer is never certain; the
+ * type keeps its first name, "delivered", for the webhook consumers that subscribe to it.
  */
 #[DomainEvent('invoicing.invoice.delivered', version: 1)]
 final readonly class InvoiceDelivered implements DomainEventPayload

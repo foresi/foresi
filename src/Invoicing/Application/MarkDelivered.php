@@ -16,9 +16,10 @@ use Foresi\Shared\Application\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 
 /**
- * Records that a document reached the customer by hand. From then on it cannot be
- * deleted and its series and number are fixed. Only the first delivery is news:
- * marking a delivered document again records nothing.
+ * Records that a document was sent to the customer by hand ("Mark as sent"), such as one
+ * handed over or e-mailed outside Foresi. From then on it cannot be deleted and its series
+ * and number are fixed. Only the first time is news: marking a sent document again records
+ * nothing. The domain keeps its first name, "delivered", which its column and event carry.
  */
 final readonly class MarkDelivered
 {

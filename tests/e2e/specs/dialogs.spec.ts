@@ -155,7 +155,7 @@ test.describe.serial('dialogs', () => {
     await expect(page.getByText('Faktura 20260001 je zařazená k odeslání na buyer@example.com.')).toBeVisible();
     await expect(dialog).toBeHidden();
     // The e2e queue delivers at once: the stored send marks the row and the history holds exactly one.
-    await expect(row(page, '20260001').locator('[data-icon-cell]')).toHaveText('Odesláno');
+    await expect(row(page, '20260001').locator('[data-icon-cell]')).toHaveAttribute('title', 'Odesláno odběrateli');
     await fromMenu(page, '20260001', 'Historie');
     await expect(page.locator('[data-send-entry]')).toHaveCount(1);
     await expect(page.locator('[data-send-entry]')).toContainText('buyer@example.com');
@@ -196,10 +196,10 @@ test.describe.serial('dialogs', () => {
     for (const [name, size] of [['desktop', DESKTOP], ['phone', PHONE]] as const) {
       await page.setViewportSize(size);
       await page.goto('/invoices');
-      await fromMenu(page, '20260002', 'Označit jako doručené');
-      const dialog = page.getByRole('alertdialog', { name: 'Označit fakturu 20260002 jako doručenou?' });
+      await fromMenu(page, '20260002', 'Označit jako odeslanou');
+      const dialog = page.getByRole('alertdialog', { name: 'Označit fakturu 20260002 jako odeslanou?' });
       await settled(dialog);
-      await expect(dialog).toContainText('Doručenou fakturu už nepůjde smazat.');
+      await expect(dialog).toContainText('Odeslanou fakturu už nepůjde smazat. Označení nejde vrátit.');
       // The safe answer has the focus; a confirmation stays centred on a phone.
       await expect(dialog.getByRole('button', { name: 'Zrušit' })).toBeFocused();
       if (name === 'phone') {
@@ -209,13 +209,13 @@ test.describe.serial('dialogs', () => {
       await page.screenshot({ path: `${SHOTS}/dialog-confirm-${name}.png` });
       await dialog.getByRole('button', { name: 'Zrušit' }).click();
       await expect(dialog).toBeHidden();
-      await expect(row(page, '20260002')).not.toContainText('Doručeno');
+      await expect(row(page, '20260002')).not.toContainText('Odeslaná');
     }
     await page.setViewportSize(DESKTOP);
-    await fromMenu(page, '20260002', 'Označit jako doručené');
-    await page.getByRole('alertdialog').getByRole('button', { name: 'Označit jako doručenou' }).click();
-    await expect(page.getByText('Faktura 20260002 je označená jako doručená.')).toBeVisible();
-    await expect(row(page, '20260002')).toContainText('Doručeno');
+    await fromMenu(page, '20260002', 'Označit jako odeslanou');
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Označit jako odeslanou' }).click();
+    await expect(page.getByText('Faktura 20260002 je označená jako odeslaná.')).toBeVisible();
+    await expect(row(page, '20260002')).toContainText('Odeslaná');
   });
 
   test('a new customer is created in a dialog over the invoice form and picked with its defaults @a11y', async ({ page }) => {

@@ -471,6 +471,9 @@ final class InvoiceListController extends AbstractController
         return $this->toList($request->request->getString('return'));
     }
 
+    /**
+     * Marks a document sent by hand, such as one handed over or mailed outside Foresi.
+     */
     #[Route('/invoices/{id}/delivered', name: 'app_invoice_delivered', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function markDelivered(string $id, Request $request): RedirectResponse
     {
@@ -478,16 +481,20 @@ final class InvoiceListController extends AbstractController
         $this->invoice($id);
         $this->checkToken($request);
         $return = $request->request->getString('return');
+        // The detail page marks it too and comes back to itself.
+        $back = 'detail' === $request->request->getString('from')
+            ? fn (): RedirectResponse => $this->redirectToRoute('app_invoice_show', ['id' => $id])
+            : fn (): RedirectResponse => $this->toList($return);
         try {
             $saved = $this->delivered->mark($id);
         } catch (\DomainException) {
             $this->addFlash('error', $this->translator->trans('invoice.list.delivered_trashed'));
 
-            return $this->toList($return);
+            return $back();
         }
         $this->addFlash('success', $this->translator->trans('invoice.flash.delivered', ['number' => $saved->number()]));
 
-        return $this->toList($return);
+        return $back();
     }
 
     /**
@@ -521,7 +528,7 @@ final class InvoiceListController extends AbstractController
 
         return $this->render('@Invoicing/history.html.twig', [
             'invoice' => $invoice,
-            'badge' => ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()],
+            'badge' => ['label' => $this->translator->trans($status->labelKey($invoice->kind())), 'tone' => $status->tone()],
             'timeline' => $this->inTime($changes, $this->sendItems($invoice, $timezone, InvoiceStatus::Overdue === $status)),
         ]);
     }

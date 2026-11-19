@@ -17,7 +17,7 @@ The invoice then shows one of the payment states, which are derived from its pay
 | Paid | Exactly the total is paid |
 | Overpaid | More than the total is paid |
 
-The status of an invoice is the first that applies of: in the trash, overpaid, paid, overdue, partly paid, delivered, issued. An invoice is overdue only while it is unpaid or partly paid. The list has the tabs All, Paid (paid and overpaid), Unpaid (unpaid and partly paid), Overdue and Trash.
+The status of an invoice is the first that applies of: in the trash, to refund, overpaid, paid, overdue, partly paid, sent, issued. An invoice is overdue only while it is unpaid or partly paid. The list has the tabs All, Paid (paid and overpaid), Unpaid (unpaid and partly paid), Overdue and Trash.
 
 The invoice form lists its payments, each with Remove. Removing a bank payment returns its movement to the unmatched queue. The history of the invoice shows "Paid" and "Payment removed", with who and when. An invoice with a payment cannot go to the trash: remove the payments first. It can still be edited, and its state follows: a raised total turns paid into partly paid, a lowered one into overpaid.
 

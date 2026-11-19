@@ -39,12 +39,14 @@ final class InvoicingRefused extends \DomainException implements Refused
     public const string FORBIDDEN = 'forbidden';
     /** The document is of a kind the API does not write. */
     public const string KIND = 'kind_not_writable';
-    /** A delivered document, or one in the trash, cannot go to the trash. */
+    /** A sent document, or one in the trash, cannot go to the trash. */
     public const string NOT_TRASHABLE = 'not_trashable';
     /** A document with payments goes to the trash only once they are removed. */
     public const string HAS_PAYMENTS = 'has_payments';
     /** A tax document of a cancelled payment stays in the trash. */
     public const string CANCELLED = 'cancelled';
+    /** The document is in the trash, so it is not marked sent. */
+    public const string TRASHED = 'trashed';
     /** The reason of the trash is missing or too long. */
     public const string REASON = 'reason_invalid';
 

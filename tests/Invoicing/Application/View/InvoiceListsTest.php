@@ -37,10 +37,10 @@ final class InvoiceListsTest extends KernelTestCase
         $fields = $this->lists()->of(DocumentKind::Invoice)->fields;
 
         self::assertSame([
-            'trashed', 'payment', 'overdue', 'export', 'customer', 'number', 'issue_date', 'deleted_at', 'due_date', 'deleted_reason', 'payable',
+            'trashed', 'payment', 'overdue', 'export', 'customer', 'number', 'issue_date', 'deleted_at', 'due_date', 'deleted_reason', 'payable', 'sent',
             'customer_registration_number', 'customer_vat_id', 'customer_city', 'customer_country', 'customer_email', 'tax_point_date', 'currency',
             'net', 'vat', 'payment_method', 'bank_account', 'variable_symbol', 'order_number', 'language', 'vat_regime', 'description',
-            'delivered_at', 'created_at', 'import_source',
+            'created_at', 'import_source',
             // The live customer contact (DS6): every field of the contact list's data source, one hop.
             'customer.name', 'customer.kind', 'customer.roles', 'customer.registration_number', 'customer.vat_id', 'customer.email',
             'customer.phone', 'customer.mobile', 'customer.website', 'customer.registration_country', 'customer.billing_city',
