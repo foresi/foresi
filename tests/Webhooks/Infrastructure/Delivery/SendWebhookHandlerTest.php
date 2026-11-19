@@ -417,7 +417,7 @@ final class SendWebhookHandlerTest extends KernelTestCase
 
     private function endpoint(): string
     {
-        $endpoint = WebhookEndpoint::create(Id::generate(), new EndpointUrl('https://hooks.example.com/receive'), null, EventTypes::of(['invoicing.*']), 1, $this->sealed, $this->owner->id(), new \DateTimeImmutable('2026-11-01 10:00:00'));
+        $endpoint = WebhookEndpoint::create(Id::generate(), new EndpointUrl('https://hooks.example.com/receive'), null, EventTypes::of(['party.*']), 1, $this->sealed, $this->owner->id(), new \DateTimeImmutable('2026-11-01 10:00:00'));
         $this->em->persist($endpoint);
         $this->em->flush();
         $this->em->clear();

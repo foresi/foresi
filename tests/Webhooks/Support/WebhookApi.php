@@ -55,7 +55,7 @@ trait WebhookApi
      *
      * @param list<string> $eventTypes
      */
-    protected function created(array $eventTypes = ['invoicing.invoice.paid'], string $url = 'https://hooks.example.com/foresi'): string
+    protected function created(array $eventTypes = ['party.contact.archived'], string $url = 'https://hooks.example.com/foresi'): string
     {
         $this->send('POST', self::ENDPOINTS, ['url' => $url, 'event_types' => $eventTypes]);
         self::assertResponseStatusCodeSame(201);
@@ -73,7 +73,7 @@ trait WebhookApi
      *
      * @param list<string> $eventTypes
      */
-    protected function stored(array $eventTypes = ['invoicing.*'], bool $active = true): string
+    protected function stored(array $eventTypes = ['party.*'], bool $active = true): string
     {
         return $this->flushed(function () use ($eventTypes, $active): string {
             $secrets = new SodiumWebhookSecrets('stored:'.base64_encode(str_repeat("\x07", \SODIUM_CRYPTO_SECRETBOX_KEYBYTES)));

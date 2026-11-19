@@ -21,7 +21,7 @@ use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
-use Foresi\Tests\Import\Support\RunMessages;
+use Foresi\Tests\Support\Messenger\RunMessages;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;

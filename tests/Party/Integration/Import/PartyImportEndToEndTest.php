@@ -37,7 +37,7 @@ use Foresi\Party\Domain\PartyEmail;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Integration\Import\IdokladContactPreset;
 use Foresi\Party\Integration\Import\PartyImportTarget;
-use Foresi\Tests\Import\Support\RunMessages;
+use Foresi\Tests\Support\Messenger\RunMessages;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;

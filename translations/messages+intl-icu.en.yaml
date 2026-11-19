@@ -117,6 +117,10 @@ ui:
     density_dense_hint: 44 px
     reset: Reset to default
     apply: Apply
+    add: Add column
+  attribute:
+    yes: 'Yes'
+    no: 'No'
   tabs:
     modified: unsaved changes
   filter_bar:
@@ -346,7 +350,6 @@ firm:
   title: My firms
   new: New firm
   edit: Edit firm
-  views: Firm views
   sections: Firm sections
   tab:
     details: Details
@@ -356,12 +359,6 @@ firm:
   empty:
     title: No firms yet
     text: Your own companies that issue documents.
-  empty_view:
-    title: Nothing here
-    text: None of your own firms is in this view.
-  view:
-    active: Active
-    archived: Archived
   summary: '{total, plural, one {# firm} other {# firms}}'
   column:
     name: Name
@@ -390,21 +387,14 @@ firm:
     registered: VAT payer
     not_registered: Non-payer
     identified_person: Identified person
-  confirm:
-    archive: 'Archive firm {name}?'
-    archive_text: An archived firm cannot be restored.
-    archive_accept: Archive firm
-    archive_cancel: Keep firm
   flash:
     created: The firm is saved.
     updated: The changes are saved.
-    archived: The firm is archived.
   error:
     registration_taken: Another firm already has this registration number.
     vat_status: Choose the VAT status.
     vat_id_required: Enter the VAT ID of this firm.
     save_failed: The firm could not be saved. Check the details and try again.
-    last_active: The last active firm cannot be archived.
     one_per_instance: Foresi keeps one firm per instance. Another firm needs an instance of its own.
     image_type: Upload a PNG or JPEG image.
     image_size: The image must be 1 MB or smaller.
