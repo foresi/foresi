@@ -1,0 +1,43 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Planned income or Planned costs under Money: money the firm expects that no document carries yet,
+    kept outside the books, as QuickBooks keeps its planned items apart from the transactions. The list
+    pattern: a row opens the item in the side sheet; "+ New" in the header opens the dialog, which does
+    not ask in or out, as the page sets it. Variables: noFirm, direction, title, columns, rows.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: title}] %}
+{% set newRoute = direction == 'in' ? 'app_cash_flow_planned_income_new' : 'app_cash_flow_planned_costs_new' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block actions %}
+    {% if not noFirm %}
+        <twig:Ui:Button variant="primary" icon="plus" :href="path(newRoute)" data-dialog aria-haspopup="dialog" data-planned-new>{{ ('cash_flow.planned.' ~ direction ~ '.new')|trans }}</twig:Ui:Button>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% for tone in ['success', 'error'] %}
+        {% for message in app.flashes(tone) %}
+            <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
+        {% endfor %}
+    {% endfor %}
+    {% if noFirm %}
+        <twig:Ui:EmptyState icon="building-2" :title="'cash_flow.empty.no_firm_title'|trans" :text="'cash_flow.empty.no_firm_text'|trans">
+            <twig:Ui:Button :href="path('app_firm')" variant="primary" icon="plus">{{ 'cash_flow.empty.no_firm_action'|trans }}</twig:Ui:Button>
+        </twig:Ui:EmptyState>
+    {% else %}
+        <section class="grid gap-2" data-planned-items="{{ direction }}">
+            <twig:Ui:DataTable :caption="title" :columns="columns" :rows="rows">
+                <twig:block name="empty">
+                    <twig:Ui:EmptyState :icon="direction == 'in' ? 'arrow-down' : 'arrow-up'" :title="('cash_flow.planned.' ~ direction ~ '.empty_title')|trans" :text="('cash_flow.planned.' ~ direction ~ '.empty_text')|trans">
+                        <twig:Ui:Button variant="primary" icon="plus" :href="path(newRoute)" data-dialog aria-haspopup="dialog">{{ ('cash_flow.planned.' ~ direction ~ '.new')|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                </twig:block>
+            </twig:Ui:DataTable>
+            {% if rows is not empty %}<p class="m-0 text-caption text-muted">{{ 'cash_flow.planned.outside_books'|trans }} <a href="{{ path('app_cash_flow') }}" class="font-medium text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'cash_flow.planned.see_forecast'|trans }}</a></p>{% endif %}
+        </section>
+    {% endif %}
+{% endblock %}

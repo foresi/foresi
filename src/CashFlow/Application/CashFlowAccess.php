@@ -14,6 +14,7 @@ use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\NoFirmYet;
 use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Application\PartyRow;
 use Foresi\Party\Application\UnknownFirmBankAccount;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\LegalEntity;
@@ -86,5 +87,24 @@ final readonly class CashFlowAccess
     public function counterparty(string $id): Party
     {
         return $this->parties->find($id) ?? throw CashFlowRefused::invalid('counterparty_unknown', 'counterpartyId', 'The organisation has no contact with this id. Find it with foresi_search_contacts.');
+    }
+
+    /**
+     * The contacts whose name matches $text, for the counterparty field of a
+     * planned item: the first page in name order, archived ones left out.
+     *
+     * @return list<array{id: string, label: string, hint: ?string}>
+     *
+     * @throws CashFlowRefused forbidden
+     */
+    public function contacts(string $text): array
+    {
+        $this->denyUnlessStaff();
+
+        return array_map(static fn (PartyRow $row): array => [
+            'id' => $row->id,
+            'label' => $row->displayName,
+            'hint' => $row->email ?? $row->registrationNumber,
+        ], $this->parties->search($text, null, false, 'name', 1)->rows);
     }
 }

@@ -1,0 +1,45 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The fields of a planned item, in Pulse's order: name, category, amount, the day, how it repeats and
+    when it stops, the contact, whether the forecast counts it ("Active"), and the match rule folded
+    away. The direction is the page's, so it is not asked. The repeat fields show only for an item that
+    repeats (planned-schedule); without JavaScript they all show and a one-off item ignores them.
+#}
+{% set column = 'sm:col-span-2' %}
+<div class="grid gap-4 sm:grid-cols-2" data-controller="planned-schedule">
+    <div class="{{ column }}"><twig:Ui:TextInput name="name" id="name" :label="'cash_flow.planned.field.name'|trans" :placeholder="('cash_flow.planned.' ~ direction ~ '.name_placeholder')|trans" :value="values.name" :error="errors.name|default(null)" maxlength="120" autocomplete="off" required /></div>
+    <twig:Ui:Select name="category" id="category" :label="'cash_flow.planned.field.category'|trans" :options="categories" :value="values.category" :error="errors.category|default(null)" required />
+    <div class="grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
+        <twig:Ui:TextInput name="amount" id="amount" :label="'cash_flow.planned.field.amount'|trans" :value="values.amount" :error="errors.amount|default(null)" inputmode="decimal" autocomplete="off" required />
+        <twig:Ui:Select name="currency" id="currency" :label="'cash_flow.planned.field.currency'|trans" :options="currencies" :value="values.currency" :error="errors.currency|default(null)" />
+    </div>
+    <twig:Ui:TextInput type="date" name="on" id="on" :label="'cash_flow.planned.field.on_or_first'|trans" :value="values.on" :error="errors.on|default(null)" required />
+    <twig:Ui:Select name="repeat" id="repeat" :label="'cash_flow.planned.field.repeat'|trans" :options="repeats" :value="values.repeat" :error="errors.repeat|default(null)" data-planned-schedule-target="repeat" data-action="change->planned-schedule#changed" />
+    <div class="{{ column }} grid gap-4 sm:grid-cols-2" data-planned-schedule-target="recurring">
+        <twig:Ui:TextInput name="every" id="every" :label="'cash_flow.planned.field.every'|trans" :help="'cash_flow.planned.field.every_help'|trans" :value="values.every" :error="errors.every|default(null)" inputmode="numeric" autocomplete="off" maxlength="2" />
+        <div class="flex items-end pb-2.5" data-planned-schedule-target="lastDay">
+            <twig:Ui:Checkbox name="lastDayOfMonth" id="lastDayOfMonth" value="1" :checked="values.lastDayOfMonth == '1'" :label="'cash_flow.planned.field.last_day'|trans" />
+        </div>
+        <twig:Ui:Select name="end" id="end" :label="'cash_flow.planned.field.end'|trans" :options="ends" :value="values.end" data-planned-schedule-target="end" data-action="change->planned-schedule#changed" />
+        <div data-planned-schedule-target="endsOn">
+            <twig:Ui:TextInput type="date" name="endsOn" id="endsOn" :label="'cash_flow.planned.field.ends_on'|trans" :value="values.endsOn" :error="errors.endsOn|default(null)" />
+        </div>
+        <div data-planned-schedule-target="endsAfter">
+            <twig:Ui:TextInput name="endsAfter" id="endsAfter" :label="'cash_flow.planned.field.ends_after'|trans" :value="values.endsAfter" :error="errors.endsAfter|default(null)" inputmode="numeric" autocomplete="off" maxlength="3" />
+        </div>
+    </div>
+    <div class="{{ column }}">
+        <twig:Ui:Combobox name="counterpartyId" id="counterparty" textName="counterpartyQuery" :label="'cash_flow.planned.field.counterparty'|trans" :help="'cash_flow.planned.field.counterparty_help'|trans" :placeholder="'cash_flow.planned.field.counterparty_placeholder'|trans" :value="values.counterpartyId" :text="values.counterpartyQuery" :url="path('app_cash_flow_planned_contacts')" :emptyText="'cash_flow.planned.field.counterparty_empty'|trans" :error="errors.counterpartyQuery|default(null)" />
+    </div>
+    <div class="{{ column }}">
+        <twig:Ui:Checkbox name="included" id="included" value="1" :checked="values.included == '1'" :label="'cash_flow.planned.field.included'|trans" :help="'cash_flow.planned.field.included_help'|trans" />
+    </div>
+    <twig:Ui:Disclosure class="{{ column }}" summaryId="planned-match" :label="'cash_flow.planned.field.match'|trans" :open="matchOpen">
+        <p class="m-0 text-caption text-muted">{{ 'cash_flow.planned.field.match_intro'|trans }}</p>
+        <div class="grid gap-4 sm:grid-cols-3">
+            <twig:Ui:TextInput name="matchAccount" id="matchAccount" :label="'cash_flow.planned.field.match_account'|trans" :value="values.matchAccount" :error="errors.matchAccount|default(null)" maxlength="50" autocomplete="off" />
+            <twig:Ui:TextInput name="matchVariableSymbol" id="matchVariableSymbol" :label="'cash_flow.planned.field.match_variable_symbol'|trans" :value="values.matchVariableSymbol" :error="errors.matchVariableSymbol|default(null)" inputmode="numeric" maxlength="10" autocomplete="off" />
+            <twig:Ui:TextInput name="matchTolerance" id="matchTolerance" :label="'cash_flow.planned.field.match_tolerance'|trans" :value="values.matchTolerance" :error="errors.matchTolerance|default(null)" inputmode="decimal" autocomplete="off" />
+        </div>
+    </twig:Ui:Disclosure>
+</div>
