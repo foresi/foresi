@@ -91,8 +91,8 @@
                                         <th scope="col" class="sticky left-0 z-10 h-row whitespace-nowrap border-b border-divider bg-head px-4 text-left text-caption font-medium text-muted"><span class="sr-only">{{ 'cash_flow.table.row'|trans }}</span></th>
                                         {% for column in table.columns %}
                                             <th scope="col" class="h-row whitespace-nowrap border-b border-divider bg-head px-4 text-right text-caption font-medium text-muted" data-period="{{ column.key }}">
-                                                <span class="block">{{ column.label }}</span>
-                                                {% if column.range %}<span class="block font-normal">{{ column.range }}</span>{% endif %}
+                                                <span class="block leading-tight">{{ column.label }}</span>
+                                                <span class="block font-normal leading-tight">{{ column.detail }}</span>
                                             </th>
                                         {% endfor %}
                                     </tr>

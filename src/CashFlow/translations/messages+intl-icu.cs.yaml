@@ -45,6 +45,8 @@ cash_flow:
     out: Výdaje
     closing: Konečný zůstatek
     range: '{from} – {to}'
+    days: '{from}.–{to}. {month, date, ::M}.'
+    week: 'Týden {week}'
     below_minimum: pod minimálním zůstatkem
     none: nic
   category:

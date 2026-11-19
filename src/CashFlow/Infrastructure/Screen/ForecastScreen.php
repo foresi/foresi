@@ -207,13 +207,13 @@ final readonly class ForecastScreen
      * The periods as columns and opening, money in and out by category and the
      * closing as rows. A cell with money links to its items, which open in the sheet.
      *
-     * @return array{columns: list<array{key: string, label: string, range: ?string}>, rows: list<array{kind: string, label: string, cells: list<array{text: string, href: ?string, below: bool}>}>}
+     * @return array{columns: list<array{key: string, label: string, detail: string}>, rows: list<array{kind: string, label: string, cells: list<array{text: string, href: ?string, below: bool}>}>}
      */
     public function table(Forecast $forecast): array
     {
         $columns = [];
         foreach ($forecast->periods as $period) {
-            $columns[] = ['key' => $period->period->key(), 'label' => $this->periodLabel($period), 'range' => $this->partialRange($period)];
+            $columns[] = ['key' => $period->period->key(), 'label' => $this->columnLabel($period), 'detail' => $this->columnDetail($period)];
         }
         $rows = [['kind' => 'opening', 'label' => $this->trans('cash_flow.table.opening'), 'cells' => array_map(fn (PeriodForecast $period): array => $this->cell($period->opening), $forecast->periods)]];
         foreach ([FlowDirection::In, FlowDirection::Out] as $direction) {
@@ -395,21 +395,41 @@ final readonly class ForecastScreen
     }
 
     /**
-     * The days of a period that is shorter than its week or month, such as the
-     * first one, which starts today; null for a whole one.
+     * A column's first line: the week's number ("Week 47") or the month alone
+     * ("November", cs "listopad").
      */
-    private function partialRange(PeriodForecast $period): ?string
+    private function columnLabel(PeriodForecast $period): string
+    {
+        $start = $period->period->start;
+
+        return PeriodKind::Week === $period->period->kind
+            ? $this->trans('cash_flow.table.week', ['week' => (int) $start->format('W')])
+            : $this->pattern('LLLL', $start);
+    }
+
+    /**
+     * A column's second line: the days of a week, or of a month shorter than
+     * its month such as the first one, which starts today ("Nov 19–30",
+     * cs "19.–30. 11."); the year of a whole month.
+     */
+    private function columnDetail(PeriodForecast $period): string
     {
         $start = $period->period->start;
         $end = $period->period->end;
-        $whole = PeriodKind::Week === $period->period->kind
-            ? '1' === $start->format('N') && '7' === $end->format('N')
-            : '01' === $start->format('d') && $end->format('Y-m-d') === $start->modify('last day of this month')->format('Y-m-d');
-        if ($whole) {
-            return null;
+        if (PeriodKind::Month === $period->period->kind
+            && '01' === $start->format('d')
+            && $end->format('Y-m-d') === $start->modify('last day of this month')->format('Y-m-d')) {
+            return $this->pattern('y', $start);
+        }
+        if ($start->format('Y-m') !== $end->format('Y-m')) {
+            return $this->trans('cash_flow.table.range', ['from' => $this->day($start), 'to' => $this->day($end)]);
         }
 
-        return $this->trans('cash_flow.table.range', ['from' => $this->day($start), 'to' => $this->day($end)]);
+        return $this->trans('cash_flow.table.days', [
+            'from' => (int) $start->format('j'),
+            'to' => (int) $end->format('j'),
+            'month' => $start,
+        ]);
     }
 
     private function subjectName(string $type, string $certainty): string
@@ -533,7 +553,7 @@ final readonly class ForecastScreen
     }
 
     /**
-     * @param array<string, string|int> $parameters
+     * @param array<string, string|int|\DateTimeInterface> $parameters
      */
     private function trans(string $key, array $parameters = []): string
     {

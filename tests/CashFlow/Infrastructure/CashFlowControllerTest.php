@@ -104,7 +104,10 @@ final class CashFlowControllerTest extends WebTestCase
         $periods = $crawler->filter('[data-cash-flow-table] th[data-period]');
         self::assertCount(12, $periods);
         self::assertSame('2026-11', $periods->eq(0)->attr('data-period'));
-        self::assertStringContainsString('Nov 19 – Nov 30', $periods->eq(0)->text());
+        // Two lines in every column: the month alone, then the days of a partial month or the year.
+        self::assertSame(['November', 'Nov 19–30'], $periods->eq(0)->filter('span')->each(static fn ($line): string => $line->text()));
+        self::assertSame(['December', '2026'], $periods->eq(1)->filter('span')->each(static fn ($line): string => $line->text()));
+        self::assertSame(['January', '2027'], $periods->eq(2)->filter('span')->each(static fn ($line): string => $line->text()));
         self::assertSame('2027-10', $periods->eq(11)->attr('data-period'));
     }
 
@@ -123,7 +126,8 @@ final class CashFlowControllerTest extends WebTestCase
         $periods = $crawler->filter('[data-cash-flow-table] th[data-period]');
         self::assertCount(13, $periods);
         self::assertSame('2026-W47', $periods->eq(0)->attr('data-period'));
-        self::assertStringContainsString('Nov 19 – Nov 22', $periods->eq(0)->text());
+        self::assertSame(['Week 47', 'Nov 19–22'], $periods->eq(0)->filter('span')->each(static fn ($line): string => $line->text()));
+        self::assertSame(['Week 49', 'Nov 30 – Dec 6'], $periods->eq(2)->filter('span')->each(static fn ($line): string => $line->text()));
         self::assertSame('2027-W06', $periods->eq(12)->attr('data-period'));
         self::assertCount(13, $crawler->filter('[data-cash-flow-chart] [data-balance-chart-target="period"]'));
         self::assertSame('Money in and out and the closing balance of each week; the table below has the figures.', $crawler->filter('[data-cash-flow-chart] svg')->attr('aria-label'));

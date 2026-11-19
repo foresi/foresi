@@ -45,6 +45,8 @@ cash_flow:
     out: Money out
     closing: Closing balance
     range: '{from} – {to}'
+    days: '{month, date, ::MMM} {from}–{to}'
+    week: 'Week {week}'
     below_minimum: below the minimum balance
     none: none
   category:
