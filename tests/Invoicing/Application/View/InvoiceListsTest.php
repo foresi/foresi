@@ -13,24 +13,52 @@ use Foresi\Invoicing\Application\View\InvoiceLists;
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Shared\Application\View\Condition;
 use Foresi\Shared\Application\View\FieldType;
-use PHPUnit\Framework\TestCase;
+use Foresi\Shared\Application\View\ViewFilter;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-final class InvoiceListsTest extends TestCase
+/**
+ * The lists of documents (saved views D3, D12): their fields, derived from their data source
+ * (DS1) beside the module's own, and the tabs they had.
+ */
+final class InvoiceListsTest extends KernelTestCase
 {
-    public function testOnlyInvoicesAndAdvancesAreDueAndOverdue(): void
+    public function testOnlyInvoicesAndAdvancesAreOverdue(): void
     {
         foreach (DocumentKind::cases() as $kind) {
-            $fields = InvoiceLists::of($kind)->fields;
-            $due = \in_array($kind, [DocumentKind::Invoice, DocumentKind::Advance], true);
+            $fields = $this->lists()->of($kind)->fields;
 
-            self::assertSame($due, isset($fields[InvoiceLists::DUE_DATE]), $kind->value);
-            self::assertSame($due, isset($fields[InvoiceLists::OVERDUE]), $kind->value);
+            self::assertSame(\in_array($kind, [DocumentKind::Invoice, DocumentKind::Advance], true), isset($fields[InvoiceLists::OVERDUE]), $kind->value);
         }
+    }
+
+    public function testEveryAttributeWithAnExpressionIsAFieldBesideTheModulesOwn(): void
+    {
+        $fields = $this->lists()->of(DocumentKind::Invoice)->fields;
+
+        self::assertSame([
+            'trashed', 'payment', 'overdue', 'export', 'customer', 'number', 'issue_date', 'deleted_at', 'due_date', 'deleted_reason', 'payable',
+            'customer_registration_number', 'customer_vat_id', 'customer_city', 'customer_country', 'customer_email', 'tax_point_date', 'currency',
+            'net', 'vat', 'payment_method', 'bank_account', 'variable_symbol', 'order_number', 'language', 'vat_regime', 'description',
+            'delivered_at', 'created_at', 'import_source',
+        ], array_keys($fields));
+        self::assertSame(FieldType::Reference, $fields['customer']->type);
+        self::assertSame(FieldType::Date, $fields['due_date']->type);
+        self::assertSame('i.dueDate', $fields['due_date']->expression);
+        self::assertSame(FieldType::Number, $fields['payable']->type);
+        self::assertSame(100, $fields['payable']->scale);
+        self::assertSame('i.number', $fields['number']->expression);
+    }
+
+    public function testAViewKeptOnTheAmountReadsAsTheTotalToPay(): void
+    {
+        $list = $this->lists()->of(DocumentKind::Invoice);
+
+        self::assertEquals(ViewFilter::all(new Condition('payable', 'gt', 1000)), ViewFilter::parse(['conditions' => [['field' => InvoiceLists::AMOUNT, 'op' => 'gt', 'value' => 1000]]], $list));
     }
 
     public function testTheSettlementViewsFilterBySettlement(): void
     {
-        $list = InvoiceLists::of(DocumentKind::PaymentTaxDocument);
+        $list = $this->lists()->of(DocumentKind::PaymentTaxDocument);
 
         foreach ([InvoiceFilter::SETTLED, InvoiceFilter::UNSETTLED] as $tab) {
             self::assertEquals([new Condition(InvoiceLists::SETTLEMENT, 'is', $tab)], $list->default($tab)?->filter->conditions);
@@ -40,7 +68,7 @@ final class InvoiceListsTest extends TestCase
     public function testEveryListFiltersByTheExportForTheAccountant(): void
     {
         foreach (DocumentKind::cases() as $kind) {
-            $field = InvoiceLists::of($kind)->fields[InvoiceLists::EXPORT];
+            $field = $this->lists()->of($kind)->fields[InvoiceLists::EXPORT];
 
             self::assertSame(FieldType::Enum, $field->type, $kind->value);
             self::assertSame('invoice.export_state.label', $field->label);
@@ -48,5 +76,10 @@ final class InvoiceListsTest extends TestCase
             self::assertSame(['not_exported', 'exported', 'changed'], $field->options);
             self::assertSame(['not_exported' => 'invoice.export_state.not_exported', 'exported' => 'invoice.export_state.exported', 'changed' => 'invoice.export_state.changed'], $field->optionLabels);
         }
+    }
+
+    private function lists(): InvoiceLists
+    {
+        return self::getContainer()->get(InvoiceLists::class);
     }
 }

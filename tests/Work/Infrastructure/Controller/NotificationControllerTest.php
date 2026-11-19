@@ -180,10 +180,15 @@ final class NotificationControllerTest extends WebTestCase
     public function testATimeOrAReasonNarrowsTheInbox(): void
     {
         $this->seed();
-        $at = static fn (string $op, string $day): string => '/notifications?f='.WorkingFilter::encode(ViewFilter::all(new Condition(NotificationLists::AT, $op, $day)));
+        $at = static fn (string $op, string $day): string => '/notifications?f='.WorkingFilter::encode(ViewFilter::all(new Condition('at', $op, $day)));
 
         self::assertSame(['Fix the form', 'Call the client', 'Write the copy'], $this->titles($this->client->request('GET', $at('is', '2026-11-20'))));
         self::assertSame([], $this->titles($this->client->request('GET', $at('before', '2026-11-20'))));
+        // The task and the project are text fields of the catalogue (D4).
+        $text = static fn (string $field, string $value): string => '/notifications?f='.WorkingFilter::encode(ViewFilter::all(new Condition($field, 'contains', $value)));
+        self::assertSame(['Call the client'], $this->titles($this->client->request('GET', $text('task', 'client'))));
+        self::assertSame(['Fix the form', 'Call the client', 'Write the copy'], $this->titles($this->client->request('GET', $text('project', 'web'))));
+        self::assertSame([], $this->titles($this->client->request('GET', $text('project', 'nothing'))));
         $crawler = $this->client->request('GET', '/notifications?f='.WorkingFilter::encode(ViewFilter::all(new Condition(NotificationLists::DONE, 'is', false), new Condition(NotificationLists::REASON, 'is_none_of', [NotificationLists::MENTIONS, NotificationLists::ASSIGNED]))));
         self::assertSame(['Write the copy'], $this->titles($crawler));
         // A view of its own that holds nothing says so in words of its own.

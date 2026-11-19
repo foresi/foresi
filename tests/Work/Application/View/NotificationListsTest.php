@@ -13,19 +13,19 @@ use Foresi\Shared\Application\View\Field;
 use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Domain\View\Placement;
 use Foresi\Work\Application\View\NotificationLists;
-use PHPUnit\Framework\TestCase;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
  * The inbox's list definition (saved views D3, D12): its fields and the two tabs it had, All
  * (what is not done) and Done, neither counted (D9).
  */
-final class NotificationListsTest extends TestCase
+final class NotificationListsTest extends KernelTestCase
 {
     public function testItShipsTheTabsItHadWithoutCounts(): void
     {
-        $list = NotificationLists::list();
+        $list = $this->lists()->list();
 
-        self::assertEquals([$list], iterator_to_array(new NotificationLists()->lists()));
+        self::assertEquals([$list], iterator_to_array($this->lists()->lists()));
         self::assertSame('work.notifications', $list->key);
         self::assertSame(
             [
@@ -42,12 +42,17 @@ final class NotificationListsTest extends TestCase
 
     public function testItsFieldsNameTheirValues(): void
     {
-        $fields = NotificationLists::list()->fields;
+        $fields = $this->lists()->list()->fields;
 
-        self::assertSame(['reason', 'unread', 'done', 'at'], array_keys($fields));
-        self::assertSame([FieldType::Enum, FieldType::Boolean, FieldType::Boolean, FieldType::Date], array_values(array_map(static fn (Field $field): FieldType => $field->type, $fields)));
+        self::assertSame(['reason', 'unread', 'done', 'task', 'project', 'at'], array_keys($fields));
+        self::assertSame([FieldType::Enum, FieldType::Boolean, FieldType::Boolean, FieldType::Text, FieldType::Text, FieldType::Date], array_values(array_map(static fn (Field $field): FieldType => $field->type, $fields)));
         self::assertSame(['mentions' => 'work.notifications.filter.mentions', 'assigned' => 'work.notifications.filter.assigned'], $fields['reason']->optionLabels);
-        self::assertSame(['work.notifications.field.reason', 'work.notifications.field.unread', 'work.notifications.tab.done', 'work.notifications.column.at'], array_values(array_map(static fn (Field $field): string => $field->label, $fields)));
-        self::assertSame(['is', 'before', 'after', 'on_or_before', 'on_or_after', 'between'], $fields['at']->operators);
+        self::assertSame(['work.notifications.field.reason', 'work.notifications.field.unread', 'work.notifications.tab.done', 'work.notifications.column.task', 'work.task.field.project', 'work.notifications.column.at'], array_values(array_map(static fn (Field $field): string => $field->label, $fields)));
+        self::assertSame('n.createdAt', $fields['at']->expression);
+    }
+
+    private function lists(): NotificationLists
+    {
+        return self::getContainer()->get(NotificationLists::class);
     }
 }

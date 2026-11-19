@@ -81,7 +81,7 @@ final class RecurringListController extends AbstractController
     private const array SHIPPED = [ListDefinition::ALL, 'active', 'paused', 'ended', 'failing'];
     private const array LIST_QUERY = ['view', 'tab', 'firm', 'sort', 'page', WorkingFilter::PARAM, WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY];
 
-    public function __construct(
+    public function __construct(private readonly RecurringLists $recurringLists,
         private readonly RecurringInvoices $templates,
         private readonly RecurringLifecycle $lifecycle,
         private readonly RecurringOverview $overview,
@@ -113,7 +113,7 @@ final class RecurringListController extends AbstractController
             return $this->redirectToRoute('app_recurring', $this->builtQuery($request->query), Response::HTTP_SEE_OTHER);
         }
         [$views, $view, $shown] = $this->views($request->query);
-        $list = RecurringLists::list();
+        $list = $this->recurringLists->list();
         $filterParam = WorkingFilter::param($shown, $view->filter);
         // A view keeps its own order; the address names the sort only when it differs (spec D10).
         $viewSort = ViewState::sortParam($view->sort, RecurringFilter::NEXT);
@@ -431,10 +431,10 @@ final class RecurringListController extends AbstractController
      */
     private function views(InputBag $input): array
     {
-        $views = $this->listViews->of(RecurringLists::list(), $this->actor->userId());
+        $views = $this->listViews->of($this->recurringLists->list(), $this->actor->userId());
         $view = ListViews::chosen($views, $input->getString('view', $input->getString('tab')));
 
-        return [$views, $view, WorkingFilter::decode($input->getString(WorkingFilter::PARAM), RecurringLists::list()) ?? $view->filter];
+        return [$views, $view, WorkingFilter::decode($input->getString(WorkingFilter::PARAM), $this->recurringLists->list()) ?? $view->filter];
     }
 
     /**
@@ -469,7 +469,7 @@ final class RecurringListController extends AbstractController
         [, $view] = $this->views($input);
         $query = array_diff_key($input->all(), [FilterRows::PARAM => true, FilterRows::MARKER => true, WorkingFilter::PARAM => true, 'page' => true]);
 
-        return array_filter($query + [WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), RecurringLists::list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
+        return array_filter($query + [WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), $this->recurringLists->list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
     }
 
     /**

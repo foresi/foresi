@@ -50,6 +50,11 @@ final class TaskConditionsTest extends TestCase
         yield 'not overdue' => [[new Condition('due', 'is_not', 'overdue')], ['other today', 'nobody next week', 'nobody undated']];
         yield 'a finished task past its date is not overdue' => [[new Condition('status', 'is', 'finished'), new Condition('due', 'is_none_of', ['overdue'])], ['mine past and done', 'other later and done']];
         yield 'all conditions hold' => [[new Condition('responsible', 'is_empty'), new Condition('due', 'is_any_of', ['next_7_days', 'overdue'])], ['nobody next week']];
+        yield 'a title ignores case' => [[new Condition('title', 'contains', 'NOBODY')], ['nobody next week', 'nobody undated']];
+        yield 'a title is not' => [[new Condition('title', 'is_not', 'Other Today')], ['mine overdue', 'nobody next week', 'nobody undated']];
+        yield 'a title is never empty' => [[new Condition('title', 'is_empty')], []];
+        yield 'a priority' => [[new Condition('priority', 'is_any_of', ['none'])], ['mine overdue', 'other today', 'nobody next week', 'nobody undated']];
+        yield 'none of the priorities' => [[new Condition('priority', 'is_none_of', ['none'])], []];
         yield 'an unknown field narrows nothing' => [[new Condition('kind', 'is', 'x')], ['mine overdue', 'other today', 'nobody next week', 'nobody undated']];
     }
 

@@ -31,7 +31,7 @@ use Foresi\Work\Domain\Notification;
  */
 final readonly class DoctrineNotificationQueries implements NotificationQueries
 {
-    public function __construct(private EntityManagerInterface $entityManager, private WorkVisibility $visibility, private InstanceClock $clock)
+    public function __construct(private NotificationLists $notificationLists, private EntityManagerInterface $entityManager, private WorkVisibility $visibility, private InstanceClock $clock)
     {
     }
 
@@ -87,7 +87,7 @@ final readonly class DoctrineNotificationQueries implements NotificationQueries
             NotificationLists::DONE => DqlConditions::derivedBoolean($condition, 'n.doneAt IS NOT NULL'),
             default => throw new \LogicException(\sprintf('The field "%s" of the inbox has no SQL.', $condition->field)),
         }, []];
-        [$condition, $parameters] = new DqlConditions(NotificationLists::list(), [NotificationLists::AT => 'n.createdAt'], $derived(...))
+        [$condition, $parameters] = new DqlConditions($this->notificationLists->list(), [], $derived(...))
             ->compile($view, $this->clock->today(...), 'v');
 
         return [[] === $view->on(NotificationLists::DONE) ? 'n.doneAt IS NULL AND '.$condition : $condition, $parameters];

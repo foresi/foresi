@@ -32,7 +32,7 @@ final readonly class ReceivedDocumentViews
     /** The parameters of the old sheet, by the field they now name. */
     public const array OLD_PARAMS = ['supplier' => ReceivedDocumentLists::SUPPLIER, 'kind' => ReceivedDocumentLists::KIND, 'treatment' => ReceivedDocumentLists::TREATMENT];
 
-    public function __construct(private ListViews $views, private ActorRole $actor)
+    public function __construct(private ReceivedDocumentLists $receivedLists, private ListViews $views, private ActorRole $actor)
     {
     }
 
@@ -43,7 +43,7 @@ final readonly class ReceivedDocumentViews
      */
     public function of(InputBag $input): array
     {
-        $list = ReceivedDocumentLists::list();
+        $list = $this->receivedLists->list();
         $views = $this->views->of($list, $this->actor->userId());
         $view = ListViews::chosen($views, $input->getString('view', $input->getString('tab')));
         $working = WorkingFilter::decode($input->getString(WorkingFilter::PARAM), $list) ?? $view->filter;

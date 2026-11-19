@@ -57,7 +57,7 @@ final class SendLogController extends AbstractController
     /** The parameter of the old select, by the field it now names. */
     private const array OLD_PARAMS = ['purpose' => SendLogLists::PURPOSE];
 
-    public function __construct(
+    public function __construct(private readonly SendLogLists $sendLogLists,
         private readonly InvoiceSends $sends,
         private readonly StaffCheck $staff,
         private readonly TranslatorInterface $translator,
@@ -82,7 +82,7 @@ final class SendLogController extends AbstractController
             return $this->redirectToRoute(self::ROUTE, $this->builtQuery($input), Response::HTTP_SEE_OTHER);
         }
         [$views, $view, $shown] = $this->sendViews($input);
-        $list = SendLogLists::list();
+        $list = $this->sendLogLists->list();
         $filterParam = WorkingFilter::param($shown, $view->filter);
         $page = $this->sends->page(new SendLogFilter($shown, max(1, $input->getInt('page', 1))));
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
@@ -122,7 +122,7 @@ final class SendLogController extends AbstractController
      */
     private function sendViews(InputBag $input): array
     {
-        $list = SendLogLists::list();
+        $list = $this->sendLogLists->list();
         $views = $this->listViews->of($list, $this->actorRole->userId());
         $view = ListViews::chosen($views, $input->getString('view', $input->getString(self::OLD_TAB)));
         $working = WorkingFilter::decode($input->getString(WorkingFilter::PARAM), $list) ?? $view->filter;
@@ -157,7 +157,7 @@ final class SendLogController extends AbstractController
         [, $view] = $this->sendViews($input);
         $query = array_diff_key($input->all(), [FilterRows::PARAM => true, FilterRows::MARKER => true, WorkingFilter::PARAM => true, 'page' => true, 'view' => true, self::OLD_TAB => true] + self::OLD_PARAMS);
 
-        return array_filter($query + ['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), SendLogLists::list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
+        return array_filter($query + ['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), $this->sendLogLists->list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
     }
 
     /**

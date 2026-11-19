@@ -217,6 +217,7 @@ final class RecurringListControllerTest extends WebTestCase
         self::assertSame(['Broken'], $shown([['field' => 'failing', 'op' => 'is', 'value' => '1']]));
         self::assertSame(['Example later'], $shown([['field' => 'next_occurrence', 'op' => 'after', 'from' => ['rule' => FilterRows::DAY, 'day' => '2027-01-01']]]));
         self::assertSame(['Example monthly', 'Example later'], $shown([['field' => 'name', 'op' => 'contains', 'value' => 'example']]));
+        self::assertSame(['Broken'], $shown([['field' => 'description', 'op' => 'contains', 'value' => 'failing']]));
         self::assertSame(['Example monthly', 'Broken', 'Example later'], $shown([['field' => 'state', 'op' => 'is_not', 'values' => ['paused']]]));
     }
 

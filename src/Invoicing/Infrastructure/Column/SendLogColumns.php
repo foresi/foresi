@@ -12,6 +12,7 @@ use Foresi\Invoicing\Application\InvoicingCountries;
 use Foresi\Invoicing\Application\SendLogRow;
 use Foresi\Invoicing\Application\UnsupportedCountry;
 use Foresi\Invoicing\Application\View\SendLogLists;
+use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\SendPurpose;
 use Foresi\Invoicing\Infrastructure\Form\SendFailureText;
 use Foresi\Shared\Domain\View\AttributeType;
@@ -24,10 +25,15 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * one SendLogRow. The names, addresses and errors give way, cut short with their full
  * text in a title, so the table fits its frame. Times are in the time zone of the
  * country that issued the invoice.
+ *
+ * Every attribute with an expression is a filter field of the log's views too (D4): the number
+ * and the customer are the document's, read in a subquery of it.
  */
 final readonly class SendLogColumns implements DataSource
 {
     public const string LIST = SendLogLists::KEY;
+    /** The document of the send "s", which the filters of its number and its customer read in. */
+    private const string INVOICE = Invoice::class.' si WHERE si = s.invoice';
     private const array TONES = ['queued' => 'gray', 'sent' => 'green', 'failed' => 'red', 'cancelled' => 'gray'];
 
     public function __construct(
@@ -45,10 +51,10 @@ final readonly class SendLogColumns implements DataSource
         $label = static fn (string $key): string => 'invoice.sends.column.'.$key;
 
         return [
-            new Attribute('number', $label('number'), AttributeType::Text, static fn (SendLogRow $row): string => $row->documentNumber, defaultVisible: true, defaultPosition: 10, cell: static fn (SendLogRow $row): string => $row->documentNumber, locked: true),
-            new Attribute('when', $label('when'), AttributeType::DateTime, fn (SendLogRow $row): \DateTimeImmutable => $row->createdAt->setTimezone($this->timezone($row->issuerCountry)), defaultVisible: true, defaultPosition: 20, cell: $this->when(...), phone: false),
+            new Attribute('number', $label('number'), AttributeType::Text, static fn (SendLogRow $row): string => $row->documentNumber, defaultVisible: true, defaultPosition: 10, cell: static fn (SendLogRow $row): string => $row->documentNumber, locked: true, filterable: true, filter: 'si.number', within: self::INVOICE),
+            new Attribute('when', $label('when'), AttributeType::DateTime, fn (SendLogRow $row): \DateTimeImmutable => $row->createdAt->setTimezone($this->timezone($row->issuerCountry)), defaultVisible: true, defaultPosition: 20, cell: $this->when(...), phone: false, filterable: true, filter: 's.createdAt'),
             new Attribute('purpose', 'reminder.log.column', AttributeType::Text, $this->purpose(...), defaultVisible: true, defaultPosition: 30, cell: fn (SendLogRow $row): array => ['text' => $this->purpose($row), 'icon' => SendPurpose::Reminder === $row->purpose ? 'bell-ring' : 'receipt-text', 'tone' => 'gray'], phone: false),
-            new Attribute('customer', $label('customer'), AttributeType::Text, static fn (SendLogRow $row): string => $row->customerName, defaultVisible: true, defaultPosition: 40, cell: static fn (SendLogRow $row): string => $row->customerName, phone: false, truncate: true),
+            new Attribute('customer', $label('customer'), AttributeType::Text, static fn (SendLogRow $row): string => $row->customerName, defaultVisible: true, defaultPosition: 40, cell: static fn (SendLogRow $row): string => $row->customerName, phone: false, truncate: true, filterable: true, filter: 'si.customer.name', within: self::INVOICE),
             new Attribute('recipients', $label('recipients'), AttributeType::Text, $this->recipients(...), defaultVisible: true, defaultPosition: 50, cell: $this->recipients(...), phone: false, truncate: true),
             new Attribute('status', $label('status'), AttributeType::Text, static fn (SendLogRow $row): string => $row->status->value, defaultVisible: true, defaultPosition: 60, cell: $this->status(...)),
             new Attribute('error', $label('error'), AttributeType::Text, $this->error(...), defaultVisible: true, defaultPosition: 70, cell: fn (SendLogRow $row): string => $this->error($row) ?? '', phone: false, truncate: true),

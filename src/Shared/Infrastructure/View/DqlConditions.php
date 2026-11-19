@@ -114,10 +114,11 @@ final readonly class DqlConditions
         if (1 !== preg_match('/^\s*(\S+)\s+([A-Za-z_]\w*)\s+WHERE\s/i', $field->within, $match)) {
             throw new \LogicException(\sprintf('The field "%s" reads in "<entity> <alias> WHERE <correlation>".', $field->key));
         }
-        $alias = '/\b'.$match[2].'\./';
+        // The alias alone ("si = s.invoice") or with a path ("si.number"), never a path's part or a parameter.
+        $alias = '/(?<![\w.:])'.$match[2].'(?!\w)/';
         $own = $match[2].'_'.$name;
-        $within = $match[1].' '.$own.' '.preg_replace($alias, $own.'.', substr($field->within, \strlen($match[0]) - 6));
-        $column = (string) preg_replace($alias, $own.'.', $column);
+        $within = $match[1].' '.$own.' '.preg_replace($alias, $own, substr($field->within, \strlen($match[0]) - 6));
+        $column = (string) preg_replace($alias, $own, $column);
         $negated = self::NEGATIONS[$condition->op] ?? null;
         [$dql, $bound] = $this->stored(null === $negated ? $condition : new Condition($condition->field, $negated, $condition->value), $field, $column, $today, $name);
 

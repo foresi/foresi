@@ -14,6 +14,7 @@ use Foresi\Shared\Application\View\Field;
 use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ListDefinitionSource;
+use Foresi\Shared\Application\View\ListFields;
 use Foresi\Shared\Application\View\ViewFilter;
 
 /**
@@ -23,10 +24,11 @@ use Foresi\Shared\Application\View\ViewFilter;
  * so the inbox opens on what is new as before. Done keeps the rows marked done. No
  * tab counts (D9).
  *
- * Every field is derived from the row: why it came (a mention or an assignment, the
- * select the inbox had, D11), whether it is read or done, and when it last changed.
+ * The module derives why a row came (a mention or an assignment, the select the inbox
+ * had, D11) and whether it is read or done; the task, the project and when it came are
+ * the filterable attributes of the list's data source (DS1).
  */
-final readonly class NotificationLists implements ListDefinitionSource
+final class NotificationLists implements ListDefinitionSource
 {
     public const string KEY = 'work.notifications';
     public const string DONE_VIEW = 'done';
@@ -35,22 +37,27 @@ final readonly class NotificationLists implements ListDefinitionSource
     public const string ASSIGNED = 'assigned';
     public const string UNREAD = 'unread';
     public const string DONE = 'done';
-    public const string AT = 'at';
 
     public function lists(): iterable
     {
-        yield self::list();
+        yield $this->list();
     }
 
-    public static function list(): ListDefinition
+    private ?ListDefinition $list = null;
+
+    public function __construct(private readonly ListFields $fields)
     {
-        return new ListDefinition(self::KEY, self::fields(), self::defaults());
+    }
+
+    public function list(): ListDefinition
+    {
+        return $this->list ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, $this->ownFields()), $this->defaults());
     }
 
     /**
      * @return list<Field>
      */
-    private static function fields(): array
+    private function ownFields(): array
     {
         $reasons = [self::MENTIONS, self::ASSIGNED];
 
@@ -58,14 +65,13 @@ final readonly class NotificationLists implements ListDefinitionSource
             new Field(self::REASON, FieldType::Enum, 'work.notifications.field.reason', options: $reasons, optionLabels: array_combine($reasons, array_map(static fn (string $reason): string => 'work.notifications.filter.'.$reason, $reasons))),
             new Field(self::UNREAD, FieldType::Boolean, 'work.notifications.field.unread'),
             new Field(self::DONE, FieldType::Boolean, 'work.notifications.tab.done'),
-            new Field(self::AT, FieldType::Date, 'work.notifications.column.at', ['is', 'before', 'after', 'on_or_before', 'on_or_after', 'between']),
         ];
     }
 
     /**
      * @return list<DefaultView>
      */
-    private static function defaults(): array
+    private function defaults(): array
     {
         return [
             new DefaultView(ListDefinition::ALL, 'work.notifications.tab.all', showCount: false, position: 0),

@@ -29,10 +29,10 @@ final readonly class NotificationColumns implements DataSource
         }
 
         return [
-            new Attribute('task', 'work.notifications.column.task', AttributeType::Text, static fn (NotificationCells $row): string => $row->task, defaultVisible: true, defaultPosition: 10, cell: static fn (NotificationCells $row): string => $row->task, locked: true, truncate: true),
-            new Attribute('project', 'work.task.field.project', AttributeType::Text, static fn (NotificationCells $row): string => $row->project, defaultVisible: true, defaultPosition: 20, cell: static fn (NotificationCells $row): string => $row->project, phone: false, truncate: true),
+            new Attribute('task', 'work.notifications.column.task', AttributeType::Text, static fn (NotificationCells $row): string => $row->task, defaultVisible: true, defaultPosition: 10, cell: static fn (NotificationCells $row): string => $row->task, locked: true, truncate: true, filterable: true, filter: 't.title'),
+            new Attribute('project', 'work.task.field.project', AttributeType::Text, static fn (NotificationCells $row): string => $row->project, defaultVisible: true, defaultPosition: 20, cell: static fn (NotificationCells $row): string => $row->project, phone: false, truncate: true, filterable: true, filter: 'p.name'),
             new Attribute('event', 'work.notifications.column.event', AttributeType::Text, static fn (NotificationCells $row): string => $row->event, defaultVisible: true, defaultPosition: 30, cell: static fn (NotificationCells $row): string => $row->event, phone: false, truncate: true),
-            new Attribute('at', 'work.notifications.column.at', AttributeType::Text, static fn (NotificationCells $row): string => $row->at, defaultVisible: true, defaultPosition: 40, cell: static fn (NotificationCells $row): string => $row->at, phone: false),
+            new Attribute('at', 'work.notifications.column.at', AttributeType::DateTime, static fn (NotificationCells $row): string => $row->at, defaultVisible: true, defaultPosition: 40, cell: static fn (NotificationCells $row): string => $row->at, phone: false, filterable: true, filter: 'n.createdAt'),
         ];
     }
 }

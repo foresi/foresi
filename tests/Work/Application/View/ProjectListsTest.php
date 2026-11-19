@@ -11,17 +11,17 @@ namespace Foresi\Tests\Work\Application\View;
 use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Work\Application\View\ProjectLists;
-use PHPUnit\Framework\TestCase;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
  * The projects index ships All and Archived, the tabs it had (saved views D12), and
  * none of them counts (D9); the fields of "+ Filter" fit a project (D11).
  */
-final class ProjectListsTest extends TestCase
+final class ProjectListsTest extends KernelTestCase
 {
     public function testTheListShipsAllAndArchivedWithoutCounts(): void
     {
-        $lists = iterator_to_array(new ProjectLists()->lists(), false);
+        $lists = iterator_to_array($this->lists()->lists(), false);
         self::assertCount(1, $lists);
         $list = $lists[0];
         self::assertSame('work.projects', $list->key);
@@ -38,9 +38,9 @@ final class ProjectListsTest extends TestCase
 
     public function testTheFieldsFitAProject(): void
     {
-        $fields = ProjectLists::list()->fields;
+        $fields = $this->lists()->list()->fields;
 
-        self::assertSame(['archived', 'client', 'visibility', 'billable'], array_keys($fields));
+        self::assertSame(['archived', 'client', 'visibility', 'billable', 'name'], array_keys($fields));
         self::assertSame(FieldType::Boolean, $fields['archived']->type);
         self::assertSame('work.projects.field.archived', $fields['archived']->label);
         self::assertSame(FieldType::Reference, $fields['client']->type);
@@ -52,5 +52,10 @@ final class ProjectListsTest extends TestCase
         self::assertSame('work.projects.field.visibility', $fields['visibility']->label);
         self::assertSame(FieldType::Boolean, $fields['billable']->type);
         self::assertSame('work.projects.field.billable', $fields['billable']->label);
+    }
+
+    private function lists(): ProjectLists
+    {
+        return self::getContainer()->get(ProjectLists::class);
     }
 }

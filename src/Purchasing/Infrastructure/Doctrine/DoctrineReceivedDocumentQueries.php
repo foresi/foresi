@@ -52,7 +52,7 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
     /** A document from abroad belongs to the month of its issue date (ReceivedDocumentFilter::byIssueDate). */
     private const string FROM_ABROAD = '(d.kind = :abroadKind OR d.treatment IN (:abroadTreatments))';
 
-    public function __construct(private EntityManagerInterface $em, private InstanceClock $clock)
+    public function __construct(private ReceivedDocumentLists $receivedLists, private EntityManagerInterface $em, private InstanceClock $clock)
     {
     }
 
@@ -180,7 +180,7 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
             ReceivedDocumentLists::TRASHED => DqlConditions::derivedBoolean($condition, 'd.deletedAt IS NOT NULL'),
             default => throw new \LogicException(\sprintf('The field "%s" of the received documents has no SQL.', $condition->field)),
         }, []];
-        [$condition, $parameters] = new DqlConditions(ReceivedDocumentLists::list(), self::VIEW_COLUMNS, $derived(...))->compile($view, $this->clock->today(...), $prefix);
+        [$condition, $parameters] = new DqlConditions($this->receivedLists->list(), self::VIEW_COLUMNS, $derived(...))->compile($view, $this->clock->today(...), $prefix);
 
         return [([] === $view->on(ReceivedDocumentLists::TRASHED) ? $trash.' AND ' : '').$condition, $parameters];
     }

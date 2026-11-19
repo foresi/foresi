@@ -123,6 +123,7 @@ final class InvoiceListController extends AbstractController
         private readonly UncorrectedTaxDocuments $uncorrected,
         private readonly DocumentExports $exports,
         private readonly ExportDocumentList $listExport,
+        private readonly InvoiceLists $lists,
         private readonly DocumentMonths $months,
         private readonly InvoiceList $list,
         private readonly InvoiceDetails $details,
@@ -162,7 +163,7 @@ final class InvoiceListController extends AbstractController
         $toSendCount = $this->recurring->inReview('' === $firm ? null : $firm);
         $severalFirms = \count($page->firms) > 1;
         // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
-        $list = InvoiceLists::of($kind);
+        $list = $this->lists->of($kind);
         $working = $this->workingDisplay->read($this->listKey($kind), ['trash' => InvoiceFilter::TRASH === $tab, 'severalFirms' => $severalFirms], $list->key, $view, $request->query->all());
         $query += $working->query;
         $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, InvoiceFilter::DEFAULT_SORT, $working, $route, '' === $text ? [] : ['q' => $text]);
@@ -254,7 +255,7 @@ final class InvoiceListController extends AbstractController
     {
         $views = $this->viewsOf($kind);
         $view = ListViews::chosen($views, $input->getString('view', $input->getString('tab')));
-        $working = WorkingFilter::decode($input->getString(WorkingFilter::PARAM), InvoiceLists::of($kind)) ?? $view->filter;
+        $working = WorkingFilter::decode($input->getString(WorkingFilter::PARAM), $this->lists->of($kind)) ?? $view->filter;
         $export = ExportState::tryFrom($input->getString('export'));
         if ($export instanceof ExportState) {
             $working = $working->with(new Condition(InvoiceLists::EXPORT, 'is', $export->value));
@@ -283,7 +284,7 @@ final class InvoiceListController extends AbstractController
      */
     private function viewsOf(DocumentKind $kind): array
     {
-        return $this->views->of(InvoiceLists::of($kind), $this->actor->userId());
+        return $this->views->of($this->lists->of($kind), $this->actor->userId());
     }
 
     /**
@@ -334,7 +335,7 @@ final class InvoiceListController extends AbstractController
      */
     private function builtQuery(InputBag $input, DocumentKind $kind): array
     {
-        $list = InvoiceLists::of($kind);
+        $list = $this->lists->of($kind);
         $view = ListViews::chosen($this->viewsOf($kind), $input->getString('view', $input->getString('tab')));
         $rows = $input->all(FilterRows::PARAM);
         $query = array_diff_key($input->all(), [FilterRows::PARAM => true, FilterRows::MARKER => true, WorkingFilter::PARAM => true, 'page' => true]);

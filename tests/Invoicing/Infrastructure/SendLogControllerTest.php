@@ -43,6 +43,7 @@ use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Application\View\FilterRows;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
@@ -453,6 +454,29 @@ final class SendLogControllerTest extends WebTestCase
         self::assertSame('All', $this->viewTabs($crawler)[0]);
     }
 
+    public function testTheBuilderFiltersByTheDocumentAndTheTime(): void
+    {
+        $this->signedIn();
+        $first = $this->issued();
+        $this->sent($first);
+        self::mockTime('2026-11-10 09:00:00');
+        $other = $this->newCustomer('Other Buyer s.r.o.');
+        $second = $this->issued(customer: $other);
+        $this->sent($second);
+
+        $shown = function (array $conditions): array {
+            $this->client->request('GET', '/invoices/sent?'.http_build_query(['conditions' => '1', 'c' => $conditions]));
+
+            return $this->client->followRedirect()->filter('tbody tr td:first-child')->each(static fn (Crawler $cell): string => substr(trim($cell->text()), 0, 8));
+        };
+
+        // The number and the customer are the document's, read in a subquery of it (D4).
+        self::assertSame([$second->number()], $shown([['field' => 'number', 'op' => 'is', 'value' => $second->number()]]));
+        self::assertSame([$second->number()], $shown([['field' => 'customer', 'op' => 'contains', 'value' => 'other buyer']]));
+        self::assertSame([$first->number()], $shown([['field' => 'customer', 'op' => 'does_not_contain', 'value' => 'other buyer']]));
+        self::assertSame([$first->number()], $shown([['field' => 'when', 'op' => 'before', 'from' => ['rule' => FilterRows::DAY, 'day' => '2026-11-05']]]));
+    }
+
     public function testHistoryNamesTheReminderStep(): void
     {
         $this->signedIn();
@@ -542,13 +566,13 @@ final class SendLogControllerTest extends WebTestCase
     /**
      * @param array{LegalEntity, Series}|null $firm
      */
-    private function issued(?array $firm = null): Invoice
+    private function issued(?array $firm = null, ?Party $customer = null): Invoice
     {
         [$issuer, $series] = $firm ?? [$this->firm, $this->series];
         $day = new \DateTimeImmutable('2026-11-01');
         $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
-        return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($issuer->id(), $series->id(), null, $this->customer->id(), null, $day, $day, new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line]));
+        return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($issuer->id(), $series->id(), null, ($customer ?? $this->customer)->id(), null, $day, $day, new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line]));
     }
 
     private function signedIn(Role $role = Role::Owner, string $locale = 'en'): void
