@@ -777,6 +777,8 @@ deptrac:
       - WorkDomain
       - WorkApplication
       - VendorSymfony
+      # The REST endpoints describe themselves for the OpenAPI document.
+      - VendorOpenApi
       - VendorUid
       - VendorDoctrine
       - VendorDoctrineOrmMapping
