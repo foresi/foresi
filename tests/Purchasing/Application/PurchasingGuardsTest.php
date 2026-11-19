@@ -264,11 +264,6 @@ final class WatchedLegalEntities implements LegalEntities
         return $this->real->lock($id);
     }
 
-    public function lockActive(): array
-    {
-        return $this->real->lockActive();
-    }
-
     public function add(LegalEntity $firm): void
     {
         $this->real->add($firm);

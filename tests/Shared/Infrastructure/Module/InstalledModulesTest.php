@@ -24,10 +24,19 @@ final class InstalledModulesTest extends TestCase
 {
     public function testFindsEveryModuleDirectory(): void
     {
-        self::assertSame(
-            ['attachment', 'audit', 'banking', 'cash-flow', 'country', 'events', 'exchange-rate', 'identity', 'idoklad', 'import', 'instance', 'invoicing', 'party', 'purchasing', 'shared', 'timesheet', 'ui', 'webhooks', 'work'],
-            array_map(static fn (ModuleManifest $module): string => $module->id->value, $this->modules()->graph()->all()),
-        );
+        // The module packages under src/: all of them in the repository, the installed ones in an application.
+        $directories = [];
+        foreach ((array) glob($this->projectDir().'/src/*/composer.json') as $file) {
+            $composer = json_decode((string) file_get_contents((string) $file), true, flags: \JSON_THROW_ON_ERROR);
+            self::assertIsArray($composer);
+            if ('foresi-module' === ($composer['type'] ?? null) && \is_string($composer['name'] ?? null)) {
+                $directories[] = substr($composer['name'], \strlen('foresi/'));
+            }
+        }
+        sort($directories);
+
+        self::assertContains('shared', $directories);
+        self::assertSame($directories, $this->installed());
     }
 
     public function testKindsMatchTheSpec(): void
@@ -36,11 +45,12 @@ final class InstalledModulesTest extends TestCase
         foreach ($this->modules()->graph()->all() as $module) {
             $kinds[$module->kind->value][] = $module->id->value;
         }
+        $installed = $this->installed();
 
         self::assertSame(['attachment', 'audit', 'events', 'identity', 'instance', 'party', 'shared', 'webhooks'], $kinds[ModuleKind::Core->value] ?? []);
         self::assertSame(['ui'], $kinds[ModuleKind::Ui->value] ?? []);
         self::assertSame(
-            ['banking', 'cash-flow', 'country', 'exchange-rate', 'idoklad', 'import', 'invoicing', 'purchasing', 'timesheet', 'work'],
+            array_values(array_intersect(['banking', 'cash-flow', 'country', 'exchange-rate', 'idoklad', 'import', 'invoicing', 'purchasing', 'timesheet', 'work'], $installed)),
             $kinds[ModuleKind::Module->value] ?? [],
         );
     }
@@ -83,7 +93,11 @@ final class InstalledModulesTest extends TestCase
     {
         $graph = new InstalledModules(\dirname(__DIR__, 4))->graph();
 
-        self::assertSame(['cashflow', 'contacts', 'events', 'invoices', 'payments', 'received_documents', 'views', 'webhooks'], $graph->resources());
+        // The resources of each module that declares some, as many as are installed.
+        $resources = ['cash-flow' => ['cashflow'], 'events' => ['events'], 'invoicing' => ['invoices', 'payments'], 'party' => ['contacts'], 'purchasing' => ['received_documents'], 'shared' => ['views'], 'webhooks' => ['webhooks']];
+        $expected = array_merge(...array_values(array_intersect_key($resources, array_flip($this->installed()))));
+        sort($expected);
+        self::assertSame($expected, $graph->resources());
         self::assertSame(['contacts'], $graph->get(\Foresi\Shared\Domain\Module\ModuleId::of('party'))->scopes);
         self::assertSame([], InstalledModules::manifestFrom(self::composer(), [])->scopes);
     }
@@ -183,5 +197,13 @@ final class InstalledModulesTest extends TestCase
     private function projectDir(): string
     {
         return \dirname(__DIR__, 4);
+    }
+
+    /**
+     * @return list<string> the ids of the installed modules, sorted
+     */
+    private function installed(): array
+    {
+        return array_map(static fn (ModuleManifest $module): string => $module->id->value, $this->modules()->graph()->all());
     }
 }

@@ -10,13 +10,20 @@ namespace Foresi\Party\Infrastructure\Mcp;
 
 use Foresi\Party\Application\PartyNotAllowed;
 use Foresi\Party\Application\Query\ContactList;
+use Foresi\Party\Application\View\ContactLists;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Infrastructure\Api\ContactJson;
 use Foresi\Party\Infrastructure\Api\ContactListQuery;
+use Foresi\Shared\Application\Api\ScopeGuard;
+use Foresi\Shared\Application\View\AppliedView;
+use Foresi\Shared\Application\View\SavedViewRefused;
+use Foresi\Shared\Application\View\SavedViews;
+use Foresi\Shared\Domain\View\SavedView;
 use Foresi\Shared\Infrastructure\Mcp\ReadTool;
 use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
 use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
 use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Infrastructure\View\Api\ViewJson;
 
 /**
  * The address book of the organisation, narrowed and paged as GET
@@ -24,7 +31,7 @@ use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
  */
 final readonly class SearchContactsTool implements ReadTool
 {
-    public function __construct(private ContactList $list, private ToolArguments $arguments)
+    public function __construct(private ContactList $list, private ToolArguments $arguments, private SavedViews $views, private ScopeGuard $scope, private ViewJson $json)
     {
     }
 
@@ -47,7 +54,8 @@ final readonly class SearchContactsTool implements ReadTool
     {
         return 'Searches the address book of the organisation (customers, suppliers, partners and authorities, companies and persons), newest first. Archived contacts are left out unless archived is true. '
             .'Every argument narrows the search; with none, it returns the newest contacts. '
-            .'Returns {items, next_cursor}: each contact has its id, kind, name, roles, registration country and number, VAT id, general e-mail, billing address and whether it is archived. '
+            .'view_id lists what a saved view holds (find views with foresi_list_views; it needs the views:read scope) and filter adds conditions in the format of foresi_list_lists, such as {"conditions": [{"field": "role", "op": "is", "value": "supplier"}]}; a condition on archived decides it instead of the archived argument. '
+            .'Returns {items, next_cursor, applied_view}: each contact has its id, kind, name, roles, registration country and number, VAT id, general e-mail, billing address and whether it is archived. '
             .'When next_cursor is not null, more contacts match: call again with the same arguments and next_cursor as cursor. '
             .'Use foresi_get_contact for the addresses, e-mails, bank accounts and contact persons of one contact; its id is the customer_id of foresi_search_invoices.';
     }
@@ -62,6 +70,8 @@ final readonly class SearchContactsTool implements ReadTool
                 'archived' => ['type' => 'boolean', 'default' => false, 'description' => 'True returns only the archived contacts, false only those that are not.'],
                 'registration_number' => ['type' => 'string', 'description' => 'Only the contact with this company registration number; spaces and punctuation are ignored.'],
                 'vat_id' => ['type' => 'string', 'description' => 'Only the contact with this VAT id, such as CZ12345678; spaces and case are ignored.'],
+                'view_id' => ['type' => 'string', 'description' => 'Only the contacts a saved view of the list party.contacts holds: its id as foresi_list_views gives it, or the system key of a view a module ships, such as "party.contacts.customers".'],
+                'filter' => ['type' => 'object', 'description' => 'Conditions all contacts meet, {"conditions": [{"field", "op", "value"}]}, checked against the list party.contacts; its fields and operators are in foresi_list_lists.'],
             ] + ToolArguments::pagingSchema(),
             'additionalProperties' => false,
         ];
@@ -80,12 +90,24 @@ final readonly class SearchContactsTool implements ReadTool
         );
         $this->arguments->validate($query);
         $afterId = ToolArguments::afterId($query->cursor);
+        $viewId = ToolArguments::text($arguments, 'view_id');
+        if (null !== $viewId && !$this->scope->allows(AppliedView::VIEWS_SCOPE)) {
+            throw new ToolRefusal(ToolRefusal::INSUFFICIENT_SCOPE, \sprintf('The token does not have the "%s" scope a saved view needs.', AppliedView::VIEWS_SCOPE));
+        }
         try {
-            $slice = $this->list->slice($query->filter(), $afterId, $query->limit);
+            $applied = AppliedView::of($this->views, $this->scope, ContactLists::list(), $viewId, $arguments['filter'] ?? null);
+            $slice = $this->list->slice($query->filter($applied->filter), $afterId, $query->limit);
+        } catch (SavedViewRefused $refused) {
+            throw ToolRefusal::of($refused);
         } catch (PartyNotAllowed) {
             throw ToolRefusal::forbidden('Only the owners and members of the organisation read its contacts.');
         }
+        $page = ToolArguments::page(array_map(ContactJson::row(...), $slice->rows), $slice->hasMore ? $slice->lastId() : null, 'contact', 'contacts');
+        if (!$applied->view instanceof SavedView) {
+            return new ToolOutput($page->data + ['applied_view' => null], $page->summary);
+        }
+        $view = $this->json->view($applied->view);
 
-        return ToolArguments::page(array_map(ContactJson::row(...), $slice->rows), $slice->hasMore ? $slice->lastId() : null, 'contact', 'contacts');
+        return new ToolOutput($page->data + ['applied_view' => $view], \sprintf('Through the view %s: %s', \is_string($view['name']) ? $view['name'] : '', $page->summary));
     }
 }

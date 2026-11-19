@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Shared\Infrastructure\View;
+namespace Foresi\Tests\Shared\Integration\Invoicing;
 
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Tests\Invoicing\Support\IssuesInvoices;
@@ -92,7 +92,9 @@ final class ViewApiTest extends ApiTestCase
         self::assertSame(['key', 'label', 'sortable', 'default', 'locked'], array_keys($columns[0]));
         $byKey = array_column($columns, null, 'key');
         self::assertTrue($this->in($byKey, 'number', 'sortable'));
-        self::assertFalse($this->in($byKey, 'firm', 'sortable'));
+        self::assertTrue($this->in($byKey, 'due_date', 'sortable'));
+        self::assertArrayNotHasKey('dueDate', $byKey);
+        self::assertFalse($this->in($byKey, 'status', 'sortable'));
         self::assertSame('invoicing.invoices.overdue', $this->in($invoices, 'default_views', 3));
         $counted = $this->at('date_values', 'relative_counted');
         self::assertIsArray($counted);
@@ -189,6 +191,11 @@ final class ViewApiTest extends ApiTestCase
         $this->send('PATCH', '/api/v1/views/'.$id, ['name' => 'Due soon', 'visibility' => 'shared']);
         self::assertResponseIsSuccessful();
         self::assertSame(['Due soon', 'shared'], [$this->at('data', 'name'), $this->at('data', 'visibility')]);
+
+        // An older column key is stored under the key it names, a column named twice once, and an unknown one as it is.
+        $this->send('PATCH', '/api/v1/views/'.$id, ['columns' => ['number', ['key' => 'dueDate', 'width' => 120], 'due_date', 'gone']]);
+        self::assertResponseIsSuccessful();
+        self::assertSame(['columns' => [['key' => 'number'], ['key' => 'due_date', 'width' => 120], ['key' => 'gone']]], $this->at('data', 'display'));
 
         $this->send('DELETE', '/api/v1/views/'.$id);
         self::assertResponseIsSuccessful();

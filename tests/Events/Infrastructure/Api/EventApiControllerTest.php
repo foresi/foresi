@@ -41,11 +41,10 @@ final class EventApiControllerTest extends ApiTestCase
 
     public function testListsAscendingByPosition(): void
     {
-        $invoice = Id::generate();
-        $payment = Id::generate();
-        $this->events->record(RecordedEvents::issued($invoice));
-        $this->events->record(RecordedEvents::payment($payment, $invoice));
-        $this->events->record(RecordedEvents::paid($invoice));
+        $contact = Id::generate();
+        $this->events->record(RecordedEvents::created($contact));
+        $this->events->record(RecordedEvents::updated($contact));
+        $this->events->record(RecordedEvents::archived($contact));
         $this->events->number();
 
         $this->get('/api/v1/events');
@@ -54,7 +53,7 @@ final class EventApiControllerTest extends ApiTestCase
         self::assertSame([], $this->client->getResponse()->headers->getCookies());
         $data = $this->at('data');
         self::assertIsArray($data);
-        self::assertSame(['invoicing.invoice.issued', 'invoicing.payment.recorded', 'invoicing.invoice.paid'], array_column($data, 'type'));
+        self::assertSame(['party.contact.created', 'party.contact.updated', 'party.contact.archived'], array_column($data, 'type'));
         self::assertSame([1, 2, 3], array_column($data, 'position'));
         self::assertSame(PositionCursor::encode(3), $this->at('next_cursor'));
     }
@@ -63,7 +62,7 @@ final class EventApiControllerTest extends ApiTestCase
     {
         $ids = [Id::generate(), Id::generate(), Id::generate(), Id::generate(), Id::generate()];
         foreach ($ids as $id) {
-            $this->events->record(RecordedEvents::issued($id));
+            $this->events->record(RecordedEvents::created($id));
         }
         $this->events->number();
 
@@ -87,7 +86,7 @@ final class EventApiControllerTest extends ApiTestCase
         self::assertSame(PositionCursor::encode(5), $this->at('next_cursor'));
 
         // What happens afterwards is listed from that cursor.
-        $this->events->record(RecordedEvents::paid($ids[0]));
+        $this->events->record(RecordedEvents::archived($ids[0]));
         $this->events->number();
         $this->get('/api/v1/events', ['cursor' => PositionCursor::encode(5)]);
         self::assertSame([6], array_column($this->dataRows(), 'position'));
@@ -95,7 +94,7 @@ final class EventApiControllerTest extends ApiTestCase
 
     public function testUnpositionedEventsAreNotListed(): void
     {
-        $this->events->record(RecordedEvents::issued(Id::generate()));
+        $this->events->record(RecordedEvents::created(Id::generate()));
 
         $this->get('/api/v1/events');
 
@@ -105,26 +104,26 @@ final class EventApiControllerTest extends ApiTestCase
 
     public function testFiltersByTypeAndWildcard(): void
     {
-        $invoice = Id::generate();
-        $this->events->record(RecordedEvents::issued($invoice));
-        $this->events->record(RecordedEvents::payment(Id::generate(), $invoice));
-        $this->events->record(RecordedEvents::paid($invoice));
-        $this->events->record(RecordedEvents::trashed($invoice));
+        $contact = Id::generate();
+        $this->events->record(RecordedEvents::created($contact));
+        $this->events->record(RecordedEvents::updated($contact));
+        $this->events->record(RecordedEvents::archived($contact));
+        $this->events->record(RecordedEvents::restored($contact));
         $this->events->number();
 
-        $this->get('/api/v1/events', ['types' => 'invoicing.invoice.paid']);
-        self::assertSame(['invoicing.invoice.paid'], array_column($this->dataRows(), 'type'));
+        $this->get('/api/v1/events', ['types' => 'party.contact.archived']);
+        self::assertSame(['party.contact.archived'], array_column($this->dataRows(), 'type'));
 
-        $this->get('/api/v1/events', ['types' => 'invoicing.payment.recorded, invoicing.invoice.trashed']);
-        self::assertSame(['invoicing.payment.recorded', 'invoicing.invoice.trashed'], array_column($this->dataRows(), 'type'));
+        $this->get('/api/v1/events', ['types' => 'party.contact.updated, party.contact.restored']);
+        self::assertSame(['party.contact.updated', 'party.contact.restored'], array_column($this->dataRows(), 'type'));
 
-        $this->get('/api/v1/events', ['types' => 'invoicing.*']);
+        $this->get('/api/v1/events', ['types' => 'party.*']);
         self::assertCount(4, $this->dataRows());
     }
 
     public function testUnknownTypeIs400(): void
     {
-        foreach (['invoicing.invoice.nothing', 'nothing.*', 'invoicing.invoice.paid,wrong'] as $types) {
+        foreach (['party.contact.nothing', 'nothing.*', 'party.contact.archived,wrong'] as $types) {
             $this->get('/api/v1/events', ['types' => $types]);
 
             $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'types']);
@@ -162,8 +161,8 @@ final class EventApiControllerTest extends ApiTestCase
     {
         $old = Id::generate();
         $fresh = Id::generate();
-        $this->events->record(RecordedEvents::issued($old));
-        $this->events->record(RecordedEvents::issued($fresh));
+        $this->events->record(RecordedEvents::created($old));
+        $this->events->record(RecordedEvents::created($fresh));
         $this->events->number();
         self::getContainer()->get(Connection::class)->executeStatement('UPDATE event_log SET occurred_at = :at WHERE subject_id = :subject', ['at' => new \DateTimeImmutable('-31 days')->format('Y-m-d H:i:s'), 'subject' => $old]);
 
@@ -174,38 +173,22 @@ final class EventApiControllerTest extends ApiTestCase
 
     public function testEnvelopeShape(): void
     {
-        $invoice = Id::generate();
-        $this->events->record(RecordedEvents::issued($invoice));
-        $payment = Id::generate();
-        $this->events->record(RecordedEvents::payment($payment, $invoice));
+        $contact = Id::generate();
+        $this->events->record(RecordedEvents::created($contact));
         $this->events->number();
 
         $this->get('/api/v1/events');
 
         self::assertSame(['id', 'type', 'version', 'position', 'occurred_at', 'subject', 'data', 'correlation_id', 'actor'], array_keys($this->dataRows()[0]));
         self::assertTrue(Id::isValid($this->text('data', 0, 'id')));
-        self::assertSame('invoicing.invoice.issued', $this->at('data', 0, 'type'));
+        self::assertSame('party.contact.created', $this->at('data', 0, 'type'));
         self::assertSame(1, $this->at('data', 0, 'version'));
         self::assertSame(1, $this->at('data', 0, 'position'));
         self::assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/', $this->text('data', 0, 'occurred_at'));
-        self::assertSame(['type' => 'invoice', 'id' => $invoice, 'url' => '/api/v1/invoices/'.$invoice], $this->at('data', 0, 'subject'));
+        self::assertSame(['type' => 'contact', 'id' => $contact, 'url' => '/api/v1/contacts/'.$contact], $this->at('data', 0, 'subject'));
         self::assertSame(['kind' => 'system'], $this->at('data', 0, 'actor'));
         self::assertNull($this->at('data', 0, 'correlation_id'));
-        self::assertSame([
-            'invoice_id' => $invoice,
-            'kind' => 'invoice',
-            'number' => '2026-0001',
-            'series_id' => $this->at('data', 0, 'data', 'series_id'),
-            'firm_id' => $this->at('data', 0, 'data', 'firm_id'),
-            'customer_id' => $this->at('data', 0, 'data', 'customer_id'),
-            'currency' => 'CZK',
-            'total' => '1210.00',
-            'issued_on' => '2026-11-12',
-            'due_on' => '2026-11-26',
-            'corrects' => null,
-        ], $this->at('data', 0, 'data'));
-        self::assertSame(['type' => 'payment', 'id' => $payment, 'url' => '/api/v1/payments/'.$payment], $this->at('data', 1, 'subject'));
-        self::assertSame([$invoice], $this->at('data', 1, 'data', 'invoice_ids'));
+        self::assertSame(['contact_id' => $contact, 'kind' => 'company'], $this->at('data', 0, 'data'));
 
         $body = (string) $this->client->getResponse()->getContent();
         foreach (['user_id', 'api_token', $this->user->id()] as $secret) {

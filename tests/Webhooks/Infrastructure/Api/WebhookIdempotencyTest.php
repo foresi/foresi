@@ -21,7 +21,7 @@ use Symfony\Component\Clock\NativeClock;
  */
 final class WebhookIdempotencyTest extends WebhookApiTestCase
 {
-    private const array BODY = ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['invoicing.*']];
+    private const array BODY = ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['party.*']];
 
     public function testARetriedCreateRegistersOneEndpointAndAnswersTheSame(): void
     {
@@ -31,7 +31,7 @@ final class WebhookIdempotencyTest extends WebhookApiTestCase
         $first = (string) $this->client->getResponse()->getContent();
         $location = $this->client->getResponse()->headers->get('Location');
 
-        $this->send('POST', self::ENDPOINTS, ['event_types' => ['invoicing.*'], 'url' => 'https://hooks.example.com/foresi'], idempotencyKey: 'create-1');
+        $this->send('POST', self::ENDPOINTS, ['event_types' => ['party.*'], 'url' => 'https://hooks.example.com/foresi'], idempotencyKey: 'create-1');
 
         self::assertResponseStatusCodeSame(201);
         self::assertResponseHeaderSame('Idempotent-Replayed', 'true');
@@ -95,7 +95,7 @@ final class WebhookIdempotencyTest extends WebhookApiTestCase
 
     public function testARefusedInputLetsTheKeyGoSoTheFixedRequestCanUseIt(): void
     {
-        $this->send('POST', self::ENDPOINTS, ['url' => 'http://hooks.example.com/foresi', 'event_types' => ['invoicing.*']], idempotencyKey: 'create-1');
+        $this->send('POST', self::ENDPOINTS, ['url' => 'http://hooks.example.com/foresi', 'event_types' => ['party.*']], idempotencyKey: 'create-1');
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'url']);
 
         $this->send('POST', self::ENDPOINTS, self::BODY, idempotencyKey: 'create-1');

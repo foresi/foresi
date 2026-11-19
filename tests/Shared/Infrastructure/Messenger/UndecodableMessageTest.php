@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Infrastructure\Messenger;
 
-use Foresi\Import\Application\Message\RunImportChunk;
+use Foresi\Events\Application\DeliverEvent;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Infrastructure\Messenger\KeepUndecodableMessages;
 use Foresi\Shared\Infrastructure\Messenger\UndecodableMessage;
@@ -21,13 +21,14 @@ use Symfony\Component\Messenger\Stamp\SentToFailureTransportStamp;
 use Symfony\Component\Messenger\Worker;
 
 /**
- * A message queued before ids became UUIDs names its import with a whole
- * number. It must not be lost or stop the worker: it lands in the failed
- * transport, where it can be looked at.
+ * A message queued before ids became UUIDs names its subject with a whole
+ * number, such as the import of a chunk. It must not be lost or stop the
+ * worker: it lands in the failed transport, where it can be looked at. The
+ * messages here are the event relay's, which every application has.
  */
 final class UndecodableMessageTest extends KernelTestCase
 {
-    public function testAMessageWithAnIntegerImportIdLandsInTheFailedTransport(): void
+    public function testAMessageWithAnIntegerIdLandsInTheFailedTransport(): void
     {
         self::bootKernel();
         $container = self::getContainer();
@@ -56,7 +57,7 @@ final class UndecodableMessageTest extends KernelTestCase
         $message = $kept[0]->getMessage();
         self::assertInstanceOf(UndecodableMessage::class, $message);
         self::assertInstanceOf(SentToFailureTransportStamp::class, $kept[0]->last(SentToFailureTransportStamp::class));
-        self::assertStringContainsString('importId', $message->reason);
+        self::assertStringContainsString('eventId', $message->reason);
     }
 
     public function testTheTransportsUseIt(): void
@@ -71,7 +72,7 @@ final class UndecodableMessageTest extends KernelTestCase
     public function testAReadableMessagePassesUnchanged(): void
     {
         $serializer = new KeepUndecodableMessages();
-        $message = new RunImportChunk(Id::generate(), 3);
+        $message = new DeliverEvent(Id::generate(), 'test.listener');
 
         self::assertEquals($message, $serializer->decode($serializer->encode(new Envelope($message)))->getMessage());
     }
@@ -79,7 +80,7 @@ final class UndecodableMessageTest extends KernelTestCase
     private function legacyBody(): string
     {
         $id = Id::generate();
-        $serialized = serialize(new Envelope(new RunImportChunk($id, 0)));
+        $serialized = serialize(new Envelope(new DeliverEvent($id, 'test.listener')));
 
         return addslashes(str_replace('s:36:"'.$id.'"', 'i:12', $serialized));
     }

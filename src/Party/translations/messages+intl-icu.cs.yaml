@@ -58,10 +58,26 @@ party:
     name: Název
     kind: Druh
     roles: Role
-    registration: IČO
-    vat: DIČ
+    registration_number: IČO
+    vat_id: DIČ
     email: E-mail
     status: Stav
+    phone: Telefon
+    mobile: Mobil
+    website: Web
+    registration_country: Země registru
+    billing_city: Fakturační město
+    billing_country: Fakturační stát
+    default_due_days: Splatnost (dny)
+    currency: Měna
+    payment_method: Způsob úhrady
+    language: Jazyk dokladů
+    reverse_charge: Přenesená daňová povinnost
+    reminders: Upomínky
+    hourly_rate: Hodinová sazba
+    vies_result: VIES
+    unreliable_payer: Registr nespolehlivých plátců
+    archived_at: Archivace
     position: Pozice
     primary: Hlavní
     type: Typ
@@ -202,6 +218,9 @@ party:
     bank_transfer: Převodem
     cash: Hotově
     card: Kartou
+  language:
+    cs: Čeština
+    en: Angličtina
   history:
     empty: Zatím tu není žádná změna.
     entry: '{action}: {subject} ({fields})'

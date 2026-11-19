@@ -16,11 +16,17 @@ use Foresi\Purchasing\Domain\ReceivedDocument;
  */
 interface ReceivedDocumentQueries
 {
-    public function count(ReceivedDocumentFilter $filter): int;
+    /**
+     * The documents the filter lists, and the count of each view it counts, by key,
+     * all in one query within the firm, the month and the text (spec D9).
+     *
+     * @return array{int, array<string, int>}
+     */
+    public function counts(ReceivedDocumentFilter $filter): array;
 
     /**
-     * Drafts newest first, recorded documents by the received date, newest
-     * first, the trash by when it was moved there.
+     * Drafts newest first, the trash by when it was moved there, any other
+     * view by the received date, newest first.
      *
      * @return list<ReceivedDocumentRow>
      */
@@ -30,11 +36,6 @@ interface ReceivedDocumentQueries
      * The drafts outside the trash, of every firm.
      */
     public function drafts(): int;
-
-    /**
-     * @return array<string, string> the name the newest document gives, by contact id, in name order
-     */
-    public function suppliers(?string $firmId): array;
 
     /**
      * The months with a document, by the day that places it (ReceivedDocumentFilter::monthDay).

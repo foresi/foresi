@@ -6,6 +6,7 @@
         <input type="hidden" name="scope" value="view">
         <input type="hidden" name="view" value="{{ query.view }}">
         <input type="hidden" name="q" value="{{ query.q }}">
+        {% if query.f is defined and query.f %}<input type="hidden" name="f" value="{{ query.f }}">{% endif %}
         {% if query.import is defined %}
             <input type="hidden" name="import" value="{{ query.import }}">
             <input type="hidden" name="outcome" value="{{ query.outcome }}">
