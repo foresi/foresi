@@ -37,9 +37,9 @@ use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Column\RememberedDisplay;
-use Foresi\Ui\Column\WorkingDisplay;
-use Foresi\Ui\Column\WorkingState;
-use Foresi\Ui\Component\DataTable;
+use Foresi\Ui\Contract\Opens;
+use Foresi\Ui\Contract\WorkingDisplay;
+use Foresi\Ui\Contract\WorkingState;
 use Foresi\Ui\View\ViewBar;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -446,7 +446,7 @@ final class ReceivedDocumentListController extends AbstractController
         return [
             'id' => $row->id,
             'href' => $this->generateUrl('app_purchasing_document', ['id' => $row->id]),
-            'opens' => DataTable::OPENS_SHEET,
+            'opens' => Opens::SHEET,
             'label' => $label,
             'secondary' => implode(' · ', array_filter([$row->supplierName, $this->columns->total($row), $badge['label']], static fn (string $part): bool => '' !== $part)),
             'cells' => $working->display->cells($row),

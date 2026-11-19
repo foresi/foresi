@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Ui\Navigation;
 
+use Foresi\Ui\Contract\Navigation\NavigationItem;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Attribute\AsTwigFunction;

@@ -3,7 +3,7 @@
     A new webhook endpoint. A dialog over the list; the same URL is a page of its own. The form answers
     with the dialog that shows the signing secret once. Variables: values, errors, modules.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'webhooks.title'|trans, href: path('app_webhooks')}, {label: 'webhooks.new'|trans}] %}
 {% set form_invalid = errors is not empty %}

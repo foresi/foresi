@@ -11,8 +11,8 @@ namespace Foresi\Import\Infrastructure\Navigation;
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Import\Application\Imports;
 use Foresi\Import\Domain\ImportState;
-use Foresi\Ui\Notice\ShellNotice;
-use Foresi\Ui\Notice\ShellNoticeProvider;
+use Foresi\Ui\Contract\Notice\ShellNotice;
+use Foresi\Ui\Contract\Notice\ShellNoticeProvider;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 

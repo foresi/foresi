@@ -4,7 +4,7 @@
     the client may do. Read access the client asked for stays ticked (it is sent as a hidden field), the
     rest can be changed, as on Cloudflare's consent screen.
 #}
-{% extends 'layout/auth.html.twig' %}
+{% extends '@Ui/layout/auth.html.twig' %}
 
 {% set form_invalid = error is not null %}
 

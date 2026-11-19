@@ -4,7 +4,7 @@
     account), accept (signed in as the invited person), other_user, member, and the dead ends unknown,
     expired, revoked and accepted.
 #}
-{% extends 'layout/auth.html.twig' %}
+{% extends '@Ui/layout/auth.html.twig' %}
 
 {% set form_invalid = errors|default([]) is not empty %}
 

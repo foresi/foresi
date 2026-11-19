@@ -3,7 +3,7 @@
     Unpairing from a row asks first, as Fakturoid's "Zrušit zaplacení": the invoice is unpaid again
     and the movement never pairs by itself again. The safe answer has the focus.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'bank.movement.title'|trans, href: cancel}, {label: 'bank.movement.unpair.crumb'|trans}] %}
 {% set dialog_size = 'sm' %}

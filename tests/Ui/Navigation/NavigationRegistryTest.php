@@ -8,12 +8,12 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Ui\Navigation;
 
-use Foresi\Ui\Navigation\CoreNavigationAreas;
-use Foresi\Ui\Navigation\NavigationArea;
-use Foresi\Ui\Navigation\NavigationAreaProvider;
-use Foresi\Ui\Navigation\NavigationCountProvider;
-use Foresi\Ui\Navigation\NavigationItem;
-use Foresi\Ui\Navigation\NavigationItemProvider;
+use Foresi\Ui\Contract\Navigation\CoreNavigationAreas;
+use Foresi\Ui\Contract\Navigation\NavigationArea;
+use Foresi\Ui\Contract\Navigation\NavigationAreaProvider;
+use Foresi\Ui\Contract\Navigation\NavigationCountProvider;
+use Foresi\Ui\Contract\Navigation\NavigationItem;
+use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
 use Foresi\Ui\Navigation\NavigationRegistry;
 use PHPUnit\Framework\TestCase;
 

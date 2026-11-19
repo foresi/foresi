@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Identity\Infrastructure\Navigation;
 
 use Foresi\Identity\Application\GuestCheck;
-use Foresi\Ui\Navigation\CoreNavigationAreas;
-use Foresi\Ui\Navigation\NavigationItem;
-use Foresi\Ui\Navigation\NavigationItemProvider;
+use Foresi\Ui\Contract\Navigation\CoreNavigationAreas;
+use Foresi\Ui\Contract\Navigation\NavigationItem;
+use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
 
 /**
  * The start page in the sidebar: the dashboard, for members who are not guests.

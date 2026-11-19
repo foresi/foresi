@@ -11,7 +11,7 @@ namespace Foresi\Tests\Work\Infrastructure\Controller;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Identity\Domain\Role;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
-use Foresi\Ui\Dialog\DialogRequest;
+use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Foresi\Work\Domain\Label;
 use Foresi\Work\Domain\LabelColour;
 use Foresi\Work\Domain\Project;
