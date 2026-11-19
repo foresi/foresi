@@ -117,6 +117,10 @@ ui:
     density_dense_hint: 44 px
     reset: Reset to default
     apply: Apply
+    add: Add column
+  attribute:
+    yes: 'Yes'
+    no: 'No'
   tabs:
     modified: unsaved changes
   filter_bar:

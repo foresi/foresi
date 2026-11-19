@@ -20,6 +20,7 @@ use Foresi\Work\Domain\LabelColour;
 use Foresi\Work\Domain\Priority;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\ProjectStatus;
+use Foresi\Work\Domain\ProjectVisibility;
 use Foresi\Work\Domain\Section;
 use Foresi\Work\Domain\StatusType;
 use Foresi\Work\Domain\Task;
@@ -163,6 +164,119 @@ final class ProjectControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/projects?tab=archived');
         self::assertSame(['Old site'], $crawler->filter('tbody tr td:first-child')->each(static fn (Crawler $cell): string => trim($cell->text())));
         self::assertSame('true', $crawler->filter('[aria-current="page"]')->count() > 0 ? 'true' : 'false');
+    }
+
+    public function testTheTabsAreTheShippedViewsAndTheOldAddressesAlias(): void
+    {
+        // Saved views, D12: the tabs the index had, after All (D7), none with a count (D9).
+        $this->signIn();
+        $this->createProject('Website');
+        $this->createProject('Old site');
+        $this->archive('Old site');
+
+        $crawler = $this->client->request('GET', '/projects');
+        self::assertSame(['All', 'Archived'], $this->viewTabs($crawler));
+        self::assertSame('/projects?view=archived', $crawler->filter('nav[aria-label="Project views"] a')->eq(1)->attr('href'));
+        self::assertCount(1, $crawler->filter('[data-filter-sheet-form]'));
+        self::assertCount(1, $crawler->filter('[data-column-picker-form]'));
+
+        foreach (['' => 'Website', '?tab=active' => 'Website', '?view=archived' => 'Old site', '?tab=archived' => 'Old site', '?view=friends' => 'Website'] as $address => $shown) {
+            $crawler = $this->client->request('GET', '/projects'.$address);
+            self::assertSame([$shown], $this->projectNames($crawler), $address);
+        }
+        $crawler = $this->client->request('GET', '/projects?view=archived');
+        self::assertSame('Archived', trim($crawler->filter('nav[aria-label="Project views"] [aria-current="page"]')->text()));
+    }
+
+    public function testTheBuilderNarrowsTheViewAndItsChangesAreSavedAsANewView(): void
+    {
+        $this->signIn();
+        $client = $this->contact('Example Client');
+        $this->createProject('Internal');
+        $crawler = $this->client->request('GET', '/projects/new');
+        $this->client->submit($crawler->filter('#project-form')->form(['name' => 'Website', 'clientId' => $client]));
+
+        $this->client->request('GET', '/projects?'.http_build_query(['conditions' => '1', 'c' => [['field' => 'client', 'op' => 'is', 'value' => $client]]]));
+        self::assertResponseStatusCodeSame(303);
+        $crawler = $this->client->followRedirect();
+
+        self::assertSame(['Website'], $this->projectNames($crawler));
+        self::assertSame('All, unsaved changes', $this->viewTabs($crawler)[0]);
+        self::assertStringContainsString('Example Client', $crawler->filter('main')->text(), 'the chip names the client');
+        $this->client->submit($crawler->filter('[data-view-save-as-form]')->form(['name' => 'For Example']));
+        $crawler = $this->client->followRedirect();
+        self::assertSame(['Website'], $this->projectNames($crawler));
+        self::assertContains('For Example', $this->viewTabs($crawler));
+    }
+
+    public function testTheBuilderFieldsNarrowTheList(): void
+    {
+        $this->signIn();
+        $client = $this->contact('Example Client');
+        $crawler = $this->client->request('GET', '/projects/new');
+        $this->client->submit($crawler->filter('#project-form')->form(['name' => 'Website', 'clientId' => $client]));
+        $this->createProject('Internal');
+        $this->createProject('Old site');
+        $this->archive('Old site');
+        $this->scoped(function (): void {
+            $project = $this->em->getRepository(Project::class)->findOneBy(['name' => 'Internal']) ?? throw new \LogicException('Project.');
+            $project->changeVisibility(ProjectVisibility::Chosen);
+            $this->em->flush();
+        });
+
+        $shown = function (array $conditions, string $view = ''): array {
+            $this->client->request('GET', '/projects?'.http_build_query(['view' => $view, 'conditions' => '1', 'c' => $conditions]));
+            self::assertResponseStatusCodeSame(303);
+
+            return $this->projectNames($this->client->followRedirect());
+        };
+
+        self::assertSame(['Internal', 'Website'], $shown([['field' => 'archived', 'op' => 'is', 'value' => '0']]));
+        self::assertSame(['Old site'], $shown([['field' => 'archived', 'op' => 'is', 'value' => '1']]));
+        self::assertSame(['Internal'], $shown([['field' => 'client', 'op' => 'is_empty']]));
+        self::assertSame(['Internal'], $shown([['field' => 'client', 'op' => 'is_not', 'value' => $client]]));
+        self::assertSame(['Website'], $shown([['field' => 'billable', 'op' => 'is', 'value' => '1']]), 'a project for a client bills its time');
+        self::assertSame(['Internal'], $shown([['field' => 'visibility', 'op' => 'is', 'values' => ['chosen']]]));
+        self::assertSame(['Website'], $shown([['field' => 'visibility', 'op' => 'is', 'values' => ['organisation']]]));
+        self::assertSame([], $shown([['field' => 'archived', 'op' => 'is', 'value' => '1'], ['field' => 'client', 'op' => 'is', 'value' => $client]], 'archived'));
+    }
+
+    public function testTheIndexSortsByNameEitherWay(): void
+    {
+        $this->signIn();
+        $this->createProject('Beta');
+        $this->createProject('Alpha');
+
+        self::assertSame(['Alpha', 'Beta'], $this->projectNames($this->client->request('GET', '/projects')));
+        self::assertSame(['Beta', 'Alpha'], $this->projectNames($this->client->request('GET', '/projects?sort=-name')));
+        self::assertSame(['Alpha', 'Beta'], $this->projectNames($this->client->request('GET', '/projects?sort=due')), 'an unknown sort is the index\'s own');
+        $crawler = $this->client->request('GET', '/projects?sort=-name');
+        self::assertSame('All, unsaved changes', $this->viewTabs($crawler)[0], 'a changed sort is an unsaved change');
+    }
+
+    public function testTheColumnsSheetHidesAColumn(): void
+    {
+        $this->signIn();
+        $this->createProject('Website');
+
+        $crawler = $this->client->request('GET', '/projects?cols=name,open');
+
+        self::assertSame(['Name', 'Open tasks'], $crawler->filter('thead th')->each(static fn (Crawler $th): string => trim($th->text())));
+        self::assertSame(['Website'], $this->projectNames($crawler));
+    }
+
+    public function testAViewNothingMatchesSaysSoAndOffersToClearTheFilters(): void
+    {
+        $this->signIn();
+        $this->createProject('Website');
+
+        $crawler = $this->client->request('GET', '/projects?view=archived');
+        self::assertSelectorTextContains('main', 'No archived projects');
+
+        $this->client->request('GET', '/projects?'.http_build_query(['conditions' => '1', 'c' => [['field' => 'billable', 'op' => 'is', 'value' => '1']]]));
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'Nothing matches these filters');
+        self::assertSame('/projects', $crawler->selectLink('Clear the filters')->attr('href'));
     }
 
     public function testTheListShowsTheSectionsInOrderWithSubtasksUnderTheirTask(): void
@@ -773,6 +887,31 @@ final class ProjectControllerTest extends WebTestCase
     private function titles(Crawler $crawler): array
     {
         return $crawler->filter('[data-section] tbody tr td:first-child [data-row-link]')->each(static fn (Crawler $cell): string => trim($cell->text()));
+    }
+
+    private function archive(string $name): void
+    {
+        $this->scoped(function () use ($name): void {
+            $project = $this->em->getRepository(Project::class)->findOneBy(['name' => $name]) ?? throw new \LogicException('Project.');
+            $project->archive(new \DateTimeImmutable());
+            $this->em->flush();
+        });
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function projectNames(Crawler $crawler): array
+    {
+        return $crawler->filter('tbody tr td:first-child [data-row-link]')->each(static fn (Crawler $cell): string => trim($cell->text()));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function viewTabs(Crawler $crawler): array
+    {
+        return $crawler->filter('nav[aria-label="Project views"] a')->each(static fn (Crawler $tab): string => trim($tab->text()));
     }
 
     private function contact(string $name): string

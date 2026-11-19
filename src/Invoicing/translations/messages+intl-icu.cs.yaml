@@ -112,6 +112,7 @@ invoice:
 
         {link}
   mark:
+    none: Neodesláno
     queued: Odesílá se
     sent: Odesláno
     read: Přečteno
@@ -411,13 +412,46 @@ invoice:
       number: Číslo
       firm: Firma
       customer: Zákazník
-      issueDate: Vystaveno
-      dueDate: Splatnost
+      issue_date: Vystaveno
+      due_date: Splatnost
       payable: Celkem
       status: Stav
-      deletedBy: Smazal(a)
-      deletedAt: Smazáno
-      reason: Důvod
+      deleted_by: Smazal(a)
+      deleted_at: Smazáno
+      deleted_reason: Důvod
+      customer_registration_number: IČO zákazníka (na dokladu)
+      customer_vat_id: DIČ zákazníka (na dokladu)
+      customer_city: Město zákazníka (na dokladu)
+      customer_country: Stát zákazníka (na dokladu)
+      customer_email: E-mail zákazníka (na dokladu)
+      tax_point_date: DUZP
+      currency: Měna
+      net: Bez DPH
+      vat: DPH
+      paid: Uhrazeno
+      remaining: Zbývá uhradit
+      payment_state: Stav úhrady
+      overdue: Po splatnosti
+      payment_method: Způsob platby
+      bank_account: Bankovní účet
+      variable_symbol: Variabilní symbol
+      order_number: Číslo objednávky
+      language: Jazyk
+      vat_regime: Režim DPH
+      description: Popis
+      delivered_at: Doručeno
+      created_at: Vytvořeno
+      recurring: Z pravidelné faktury
+      import_source: Importováno z
+    payment_state:
+      unpaid: Neuhrazeno
+      partly_paid: Částečně uhrazeno
+      paid: Uhrazeno
+      overpaid: Přeplaceno
+      to_refund: K vrácení
+    vat_regime:
+      payer: Plátce DPH
+      non_payer: Neplátce DPH
     status:
       settled_by_advances: Uhrazeno zálohami
       issued: Vystaveno

@@ -9,16 +9,18 @@ declare(strict_types=1);
 namespace Foresi\Tests\Work\Application;
 
 use Foresi\Identity\Domain\Membership;
+use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Domain\Id;
 use Foresi\Work\Application\ManageComments;
 use Foresi\Work\Application\ManageNotifications;
 use Foresi\Work\Application\ManageSharing;
-use Foresi\Work\Application\NotificationFilter;
 use Foresi\Work\Application\NotificationQueries;
 use Foresi\Work\Application\NotificationRow;
 use Foresi\Work\Application\Notifier;
 use Foresi\Work\Application\PurgeDeletedTasks;
 use Foresi\Work\Application\PurgeDoneNotificationsDaily;
+use Foresi\Work\Application\View\NotificationLists;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Domain\Notification;
 use Foresi\Work\Domain\NotificationKind;
@@ -263,7 +265,7 @@ final class NotificationsTest extends WorkTestCase
         $this->inbox->markDone($row->id());
         self::assertSame([], $this->rows($this->owner));
         self::assertSame([['Write the brief', 'Website', 'commented', 'Marek Member', true, 1]], $this->rows($this->owner, done: true));
-        self::assertTrue($this->notifications->inbox($this->owner, done: true)->rows[0]->done);
+        self::assertTrue($this->notifications->inbox($this->owner, $this->done())->rows[0]->done);
 
         $this->signIn($this->member);
         $this->comments->add($this->task->id(), 'Four');
@@ -273,7 +275,7 @@ final class NotificationsTest extends WorkTestCase
         // The newer open row shows the task, so the done one stays done.
         $this->signIn($this->owner);
         $this->inbox->markUndone($row->id());
-        self::assertCount(1, $this->notifications->inbox($this->owner, done: true)->rows);
+        self::assertCount(1, $this->notifications->inbox($this->owner, $this->done())->rows);
     }
 
     public function testADoneRowComesBackWhenNothingNewerIsOpen(): void
@@ -340,11 +342,14 @@ final class NotificationsTest extends WorkTestCase
         // A later comment keeps the row among the mentions.
         $this->comments->add($mentioned->id(), 'More');
 
-        self::assertSame(['Mentioned', 'Write the brief', 'Assigned'], $this->titles($this->member, NotificationFilter::All));
-        self::assertSame(['Mentioned'], $this->titles($this->member, NotificationFilter::Mentions));
-        self::assertSame(['Assigned'], $this->titles($this->member, NotificationFilter::Assigned));
+        $reason = static fn (string $op, string|array $value): ViewFilter => ViewFilter::all(new Condition(NotificationLists::REASON, $op, $value));
+        self::assertSame(['Mentioned', 'Write the brief', 'Assigned'], $this->titles($this->member, new ViewFilter()));
+        self::assertSame(['Mentioned'], $this->titles($this->member, $reason('is', NotificationLists::MENTIONS)));
+        self::assertSame(['Assigned'], $this->titles($this->member, $reason('is', NotificationLists::ASSIGNED)));
+        self::assertSame(['Mentioned', 'Assigned'], $this->titles($this->member, $reason('is_any_of', [NotificationLists::MENTIONS, NotificationLists::ASSIGNED])));
+        self::assertSame(['Write the brief', 'Assigned'], $this->titles($this->member, $reason('is_not', NotificationLists::MENTIONS)));
         self::assertSame(NotificationKind::Commented, $this->notifications->inbox($this->member)->rows[0]->kind);
-        self::assertSame([], $this->notifications->inbox($this->member, NotificationFilter::Mentions, true)->rows);
+        self::assertSame([], $this->notifications->inbox($this->member, $this->done()->with(new Condition(NotificationLists::REASON, 'is', NotificationLists::MENTIONS)))->rows);
     }
 
     public function testTheInboxGoesPageByPage(): void
@@ -438,15 +443,23 @@ final class NotificationsTest extends WorkTestCase
      */
     private function rows(Membership $membership, bool $done = false): array
     {
-        return array_map(static fn (NotificationRow $row): array => [$row->taskTitle, $row->projectName, $row->kind->value, $row->actorName, $row->read, $row->events], $this->notifications->inbox($membership, done: $done)->rows);
+        return array_map(static fn (NotificationRow $row): array => [$row->taskTitle, $row->projectName, $row->kind->value, $row->actorName, $row->read, $row->events], $this->notifications->inbox($membership, $done ? $this->done() : new ViewFilter())->rows);
     }
 
     /**
      * @return list<string>
      */
-    private function titles(Membership $membership, NotificationFilter $filter): array
+    private function titles(Membership $membership, ViewFilter $view): array
     {
-        return array_map(static fn (NotificationRow $row): string => $row->taskTitle, $this->notifications->inbox($membership, $filter)->rows);
+        return array_map(static fn (NotificationRow $row): string => $row->taskTitle, $this->notifications->inbox($membership, $view)->rows);
+    }
+
+    /**
+     * The Done view of the inbox.
+     */
+    private function done(): ViewFilter
+    {
+        return ViewFilter::all(new Condition(NotificationLists::DONE, 'is', true));
     }
 
     private function only(Membership $membership, ?Task $task = null): Notification

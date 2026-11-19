@@ -17,10 +17,12 @@ use Foresi\Identity\Application\StaffCheck;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\PartyRow;
+use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Application\View\FilterRows;
 use Foresi\Shared\Application\View\ListView;
 use Foresi\Shared\Application\View\ListViews;
 use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Application\View\ViewState;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Column\RememberedDisplay;
@@ -44,12 +46,15 @@ use Foresi\Work\Application\TimeTarget;
 use Foresi\Work\Application\TrashedTask;
 use Foresi\Work\Application\View\ProjectTaskLists;
 use Foresi\Work\Application\View\TaskConditions;
+use Foresi\Work\Application\View\ProjectLists;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Domain\Priority;
 use Foresi\Work\Domain\WorkflowTemplate;
 use Foresi\Work\Infrastructure\Column\ProjectTaskColumns;
 use Foresi\Work\Infrastructure\View\ProjectTaskViews;
+use Foresi\Work\Infrastructure\Column\ProjectColumns;
+use Foresi\Work\Infrastructure\Column\ProjectIndexRow;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -85,7 +90,8 @@ final class ProjectController extends AbstractController
     /** The block of the tasks in no section. */
     public const string NO_SECTION = 'none';
     private const int MAX_QUERY = 100;
-    private const string ARCHIVED = 'archived';
+    /** The index's one sort, by name; "-name" backwards. */
+    private const string SORT_NAME = 'name';
     private const array STATUS_FILTERS = ['open', 'all', 'finished'];
     private const array STATUS_TONES = ['open' => 'gray', 'active' => 'amber', 'done' => 'green', 'closed' => 'gray'];
 
@@ -104,6 +110,8 @@ final class ProjectController extends AbstractController
         private readonly InlineTaskEdits $edits,
         private readonly ProjectTaskViews $taskViews,
         private readonly ProjectTaskColumns $taskColumns,
+        private readonly ListViews $listViews,
+        private readonly ActorRole $actorRole,
         private readonly RememberedDisplay $rememberedDisplay,
         private readonly ViewBar $viewBar,
         private readonly FilterSheet $filterSheet,
@@ -112,6 +120,10 @@ final class ProjectController extends AbstractController
 
     /**
      * A guest has no index of the projects of the organisation: what is shared with them is their start.
+     *
+     * The index runs on saved views as the other lists do: All (the projects not archived)
+     * and Archived, with "+ Filter", the person's own views and the Columns sheet. The old
+     * ?tab=archived opens the Archived view, and ?tab=active All, which shows the same.
      */
     #[OpenToGuest]
     #[Route('/projects', name: self::ROUTE, methods: ['GET'])]
@@ -120,22 +132,40 @@ final class ProjectController extends AbstractController
         if (!$this->staff->isStaff()) {
             return $this->redirectToRoute(SharedWorkController::ROUTE);
         }
-        $archived = self::ARCHIVED === $request->query->getString('tab');
-        $url = $this->generateUrl(self::ROUTE);
+        $input = $request->query;
+        // The builder's rows (spec D11) become the list's working filter, in its address.
+        if ($input->has(FilterRows::MARKER)) {
+            return $this->redirectToRoute(self::ROUTE, $this->builtQuery($input), Response::HTTP_SEE_OTHER);
+        }
+        [$views, $view, $shown] = $this->projectViews($input);
+        $list = ProjectLists::list();
+        $filterParam = WorkingFilter::param($shown, $view->filter);
+        // A view keeps its own order; the address names the sort only when it differs (spec D10).
+        $viewSort = ViewState::sortParam($view->sort, self::SORT_NAME);
+        $sort = $input->getString('sort', $viewSort);
+        $sort = self::SORT_NAME === ltrim($sort, '-') ? $sort : self::SORT_NAME;
+        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
+        // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $working = $this->rememberedDisplay->read(ProjectColumns::LIST, [], $list->key, $view, $input->all());
+        $query += $working->query;
+        $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, self::SORT_NAME, $working, self::ROUTE, []);
 
         return $this->render('@Work/projects/index.html.twig', [
-            'archived' => $archived,
-            'tabs' => [
-                ['label' => $this->translator->trans('work.projects.tab.active'), 'href' => $url, 'active' => !$archived],
-                ['label' => $this->translator->trans('work.projects.tab.archived'), 'href' => $url.'?tab='.self::ARCHIVED, 'active' => $archived],
-            ],
-            'columns' => [
-                ['key' => 'name', 'label' => $this->translator->trans('work.projects.column.name'), 'truncate' => true],
-                ['key' => 'client', 'label' => $this->translator->trans('work.projects.column.client'), 'truncate' => true, 'phone' => false],
-                ['key' => 'open', 'label' => $this->translator->trans('work.projects.column.open'), 'align' => 'right'],
-                ['key' => 'due', 'label' => $this->translator->trans('work.projects.column.due'), 'align' => 'right', 'phone' => false],
-            ],
-            'rows' => array_map($this->projectRow(...), $this->queries->projects($archived)),
+            'view' => $view->isAll() ? '' : $view->key,
+            // All keeps its first-run words in the template; the shipped Archived its own; any other view that nothing matches.
+            'emptyTitle' => $this->translator->trans(ProjectLists::ARCHIVED === $view->key ? 'work.projects.empty.archived_title' : 'work.projects.empty.view_title'),
+            'working' => $filterParam ?? '',
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->clientReferences()),
+            'sortKept' => $viewSort === $sort ? null : $sort,
+            ...$bar,
+            ...$this->viewTabs($views, $view->key, $query, $bar['viewBar']['modified']),
+            'columns' => $working->display->table($sort, fn (string $next): string => $this->generateUrl(self::ROUTE, ['sort' => $next] + $query)),
+            'rows' => array_map(fn (ProjectRow $project): array => $this->projectRow($project, $working), $this->queries->projectIndex($shown, str_starts_with($sort, '-'))),
+            'density' => $working->tableDensity(),
+            'picker' => $this->picker($working, $query),
+            'workingQuery' => $working->query,
+            'filtered' => null !== $filterParam,
+            'resetHref' => $this->generateUrl(self::ROUTE, ['view' => $view->isAll() ? null : $view->key]),
         ]);
     }
 
@@ -206,7 +236,7 @@ final class ProjectController extends AbstractController
         $input = $request->query;
         // The builder's rows (spec D11) become the list's working filter, in its address.
         if ($input->has(FilterRows::MARKER)) {
-            return $this->redirectToRoute(self::PROJECT_ROUTE, ['id' => $id] + $this->builtQuery($input), Response::HTTP_SEE_OTHER);
+            return $this->redirectToRoute(self::PROJECT_ROUTE, ['id' => $id] + $this->taskBuiltQuery($input), Response::HTTP_SEE_OTHER);
         }
         [$views, $view, $shown] = $this->taskViews->of($input);
         $list = $this->queries->projectList($id, new TaskFilter(conditions: new TaskConditions($shown, $this->myMembership(), $this->clock->today()))) ?? throw new NotFoundHttpException();
@@ -246,7 +276,7 @@ final class ProjectController extends AbstractController
             ...$this->tabs($id, $views, $view->key, $bar['viewBar']['modified']),
             'columns' => $working->display->table(),
             'density' => $working->tableDensity(),
-            'picker' => $this->picker($id, $working, $query),
+            'picker' => $this->taskPicker($id, $working, $query),
             'trashCount' => $this->queries->trashCount($id),
             'timeLoggable' => $this->time->projectTarget($id) instanceof TimeTarget,
             // Only an owner sees rates, so only an owner sees the actions that bill time.
@@ -743,7 +773,7 @@ final class ProjectController extends AbstractController
      *
      * @return array<string, mixed>
      */
-    private function picker(string $id, WorkingState $working, array $query): array
+    private function taskPicker(string $id, WorkingState $working, array $query): array
     {
         $kept = array_diff_key($query, array_flip(WorkingDisplay::KEYS));
 
@@ -766,7 +796,7 @@ final class ProjectController extends AbstractController
      *
      * @return array<string, mixed>
      */
-    private function builtQuery(InputBag $input): array
+    private function taskBuiltQuery(InputBag $input): array
     {
         [, $view] = $this->taskViews->of($input);
         $query = array_diff_key($input->all(), [FilterRows::PARAM => true, FilterRows::MARKER => true, WorkingFilter::PARAM => true, 'view' => true] + ProjectTaskViews::OLD_PARAMS);
@@ -812,7 +842,7 @@ final class ProjectController extends AbstractController
     /**
      * @return array<string, mixed>
      */
-    private function projectRow(ProjectRow $project): array
+    private function projectRow(ProjectRow $project, WorkingState $working): array
     {
         return [
             'id' => $project->id,
@@ -821,12 +851,106 @@ final class ProjectController extends AbstractController
             'opens' => DataTable::OPENS_PAGE,
             'label' => $project->name,
             'secondary' => $project->clientName,
-            'cells' => [
-                'name' => $project->name,
-                'client' => null === $project->clientId ? null : ['links' => [['text' => $project->clientName ?? '', 'href' => $this->generateUrl('app_contact_show', ['id' => $project->clientId])]]],
-                'open' => (string) $project->openTasks,
-                'due' => $project->nearestDue instanceof \DateTimeImmutable ? $this->date($project->nearestDue) : null,
-            ],
+            'cells' => $working->display->cells(new ProjectIndexRow(
+                $project->name,
+                $project->clientName,
+                null === $project->clientId ? null : $this->generateUrl('app_contact_show', ['id' => $project->clientId]),
+                $project->openTasks,
+                $project->nearestDue instanceof \DateTimeImmutable ? $this->date($project->nearestDue) : null,
+            )),
+        ];
+    }
+
+    /**
+     * The index's views as its address names them (spec D10): the person's views, the one
+     * ?view= names (or ?tab=, the address of the tabs the index had), All when none, and
+     * the filter the list shows, the view's own unless f= changed it.
+     *
+     * @param InputBag<string> $input
+     *
+     * @return array{list<ListView>, ListView, ViewFilter}
+     */
+    private function projectViews(InputBag $input): array
+    {
+        $list = ProjectLists::list();
+        $views = $this->listViews->of($list, $this->actorRole->userId());
+        $view = ListViews::chosen($views, $input->getString('view', $input->getString('tab')));
+
+        return [$views, $view, WorkingFilter::decode($input->getString(WorkingFilter::PARAM), $list) ?? $view->filter];
+    }
+
+    /**
+     * The index's address after the builder's Apply: what the sheet sent, its rows read
+     * into the working filter, which is left out when it is the view's own.
+     *
+     * @param InputBag<string> $input
+     *
+     * @return array<string, mixed>
+     */
+    private function builtQuery(InputBag $input): array
+    {
+        [, $view] = $this->projectViews($input);
+        $query = array_diff_key($input->all(), [FilterRows::PARAM => true, FilterRows::MARKER => true, WorkingFilter::PARAM => true, 'view' => true, 'tab' => true]);
+
+        return array_filter($query + ['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), ProjectLists::list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
+    }
+
+    /**
+     * The contacts a client condition picks from and names: any contact of the address
+     * book, as the client field of a project offers.
+     *
+     * @return array<string, array{url: string, name: \Closure(string): ?string}>
+     */
+    private function clientReferences(): array
+    {
+        return [ProjectLists::CONTACT => [
+            'url' => $this->generateUrl('app_project_clients'),
+            'name' => fn (string $contact): ?string => $this->parties->find($contact)?->displayName(),
+        ]];
+    }
+
+    /**
+     * The tabs of the index and its "More views" menu (spec D7): All and the primary views
+     * as tabs, the other views in the menu. The index counts none (D9).
+     *
+     * @param list<ListView>        $views
+     * @param array<string, string> $query
+     *
+     * @return array{tabs: list<array<string, mixed>>, moreViews: list<array<string, mixed>>}
+     */
+    private function viewTabs(array $views, string $active, array $query, bool $modified): array
+    {
+        [$primary, $overflow] = ListViews::placed($views);
+        $link = fn (ListView $view): array => [
+            'label' => $view->translated ? $this->translator->trans($view->name) : $view->name,
+            // A view opens with its own filter, sort and columns: the changed ones belong to the view they were changed on (spec D10).
+            'href' => $this->generateUrl(self::ROUTE, ['view' => $view->isAll() ? null : $view->key] + array_diff_key($query, ['view' => true, 'sort' => true, WorkingFilter::PARAM => true] + array_flip(WorkingDisplay::KEYS))),
+            'active' => $view->key === $active,
+            'modified' => $modified && $view->key === $active,
+            'private' => $view->private,
+        ];
+
+        return ['tabs' => array_map($link, $primary), 'moreViews' => array_map($link, $overflow)];
+    }
+
+    /**
+     * The Columns sheet: what it keeps of the index, and the index without the changed columns.
+     *
+     * @param array<string, string> $query
+     *
+     * @return array<string, mixed>
+     */
+    private function picker(WorkingState $working, array $query): array
+    {
+        $kept = array_diff_key($query, array_flip(WorkingDisplay::KEYS));
+
+        return [
+            'keep' => $kept,
+            'columns' => $working->picker(),
+            'density' => $working->density,
+            // An empty density names the view's own display, which forgets the one remembered (D-display-3).
+            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::DENSITY => '']),
+            'modified' => $working->modified,
         ];
     }
 

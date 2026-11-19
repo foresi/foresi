@@ -14,7 +14,8 @@ use Foresi\Shared\Application\View\ViewFilter;
 
 /**
  * Which documents a list shows: of one kind, of one firm or all, in which tab, matching what text,
- * in what order, on what page. A sort is a name of SORTS, with a minus for descending.
+ * in what order, on what page. A sort is the key of an attribute of the list that its query sorts
+ * by, such as "due_date", with a minus for descending.
  * To send narrows any tab to the invoices a recurring template issued that were
  * never sent: held for review, or refused for sending. An export state narrows any
  * tab to the documents in it; null takes them all. A month, as YYYY-MM, narrows it to the
@@ -40,8 +41,7 @@ final readonly class InvoiceFilter
     public const string TRASH = 'trash';
     /** The tabs of an invoice; tabsOf() gives those of each kind. */
     public const array TABS = [self::ALL, self::PAID, self::UNPAID, self::OVERDUE, self::TO_REFUND, self::TRASH];
-    public const array SORTS = ['number', 'customer', 'issueDate', 'dueDate', 'payable'];
-    public const string DEFAULT_SORT = '-issueDate';
+    public const string DEFAULT_SORT = '-issue_date';
 
     /** The periods the month chip offers before the months with documents (spec D5). */
     public const array RELATIVE_MONTHS = ['this_month', 'last_month', 'this_quarter', 'this_year'];

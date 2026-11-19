@@ -9,8 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Work\Infrastructure\Column;
 
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Ui\Contract\Column;
-use Foresi\Ui\Contract\ListColumns;
+use Foresi\Shared\Domain\View\AttributeType;
+use Foresi\Ui\Contract\Attribute;
+use Foresi\Ui\Contract\DataSource;
 use Foresi\Work\Application\LabelBadge;
 use Foresi\Work\Application\TaskRow;
 use Foresi\Work\Application\View\ProjectTaskLists;
@@ -25,7 +26,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * and the priority change in the row: the list's context holds the pickers of its
  * tasks (`edits`, none in an archived project) and the avatar colours (`seeds`).
  */
-final readonly class ProjectTaskColumns implements ListColumns
+final readonly class ProjectTaskColumns implements DataSource
 {
     public const string LIST = ProjectTaskLists::KEY;
     public const string EDITS = 'edits';
@@ -35,7 +36,7 @@ final readonly class ProjectTaskColumns implements ListColumns
     {
     }
 
-    public function columns(string $list): iterable
+    public function attributes(string $list): iterable
     {
         if (self::LIST !== $list) {
             return [];
@@ -43,12 +44,12 @@ final readonly class ProjectTaskColumns implements ListColumns
         $label = static fn (string $key): string => 'work.task.field.'.$key;
 
         return [
-            new Column('title', $label('title'), $this->title(...), defaultPosition: 10, locked: true, truncate: true),
-            new Column('status', $label('status'), $this->status(...), defaultPosition: 20),
-            new Column('responsible', $label('responsible'), $this->responsible(...), defaultPosition: 30, phone: false, truncate: true),
-            new Column('due', $label('due_on'), $this->dueCell(...), defaultPosition: 40, phone: false),
-            new Column('priority', $label('priority'), $this->priority(...), defaultPosition: 50, phone: false),
-            new Column('labels', $label('labels'), static fn (TaskRow $task): ?array => [] === $task->labels ? null : ['badges' => array_map(static fn (LabelBadge $badge): array => ['label' => $badge->name, 'tone' => $badge->colour->value], $task->labels)], defaultPosition: 60, phone: false, wide: true),
+            new Attribute('title', $label('title'), AttributeType::Text, static fn (TaskRow $task): string => $task->title, defaultVisible: true, defaultPosition: 10, cell: $this->title(...), locked: true, truncate: true),
+            new Attribute('status', $label('status'), AttributeType::Text, static fn (TaskRow $task): string => $task->statusName, defaultVisible: true, defaultPosition: 20, cell: $this->status(...)),
+            new Attribute('responsible', $label('responsible'), AttributeType::Reference, static fn (TaskRow $task): ?string => $task->responsibleName, defaultVisible: true, defaultPosition: 30, cell: $this->responsible(...), phone: false, truncate: true),
+            new Attribute('due', $label('due_on'), AttributeType::Date, static fn (TaskRow $task): ?\DateTimeImmutable => $task->dueOn, defaultVisible: true, defaultPosition: 40, cell: $this->dueCell(...), phone: false),
+            new Attribute('priority', $label('priority'), AttributeType::Enum, static fn (TaskRow $task): Priority => $task->priority, defaultVisible: true, defaultPosition: 50, options: array_combine(array_map(static fn (Priority $priority): string => $priority->value, Priority::cases()), array_map(static fn (Priority $priority): string => 'work.priority.'.$priority->value, Priority::cases())), cell: $this->priority(...), phone: false),
+            new Attribute('labels', $label('labels'), AttributeType::Text, static fn (TaskRow $task): string => implode(', ', array_map(static fn (LabelBadge $badge): string => $badge->name, $task->labels)), defaultVisible: true, defaultPosition: 60, cell: static fn (TaskRow $task): ?array => [] === $task->labels ? null : ['badges' => array_map(static fn (LabelBadge $badge): array => ['label' => $badge->name, 'tone' => $badge->colour->value], $task->labels)], phone: false, wide: true),
         ];
     }
 

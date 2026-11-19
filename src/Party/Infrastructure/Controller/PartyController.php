@@ -33,7 +33,7 @@ use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\RegistryCheck;
 use Foresi\Party\Domain\RegistryResult;
 use Foresi\Party\Domain\VatId;
-use Foresi\Party\Infrastructure\Column\ContactColumns;
+use Foresi\Party\Infrastructure\Column\ContactSource;
 use Foresi\Party\Infrastructure\Form\PartySubmissionReader;
 use Foresi\Party\Infrastructure\Http\WebsiteLink;
 use Foresi\Party\Infrastructure\View\ContactViews;
@@ -46,6 +46,7 @@ use Foresi\Shared\Application\View\ViewState;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
+use Foresi\Ui\Column\ListColumnRegistry;
 use Foresi\Ui\Column\RememberedDisplay;
 use Foresi\Ui\Column\WorkingDisplay;
 use Foresi\Ui\Column\WorkingState;
@@ -94,7 +95,8 @@ final class PartyController extends AbstractController
         private readonly ContactImports $imports,
         #[Autowire(service: 'limiter.party_refresh_checks')]
         private readonly RateLimiterFactory $refreshLimiter,
-        private readonly ContactColumns $contactColumns,
+        private readonly ContactSource $contactSource,
+        private readonly ListColumnRegistry $listColumns,
         private readonly RememberedDisplay $rememberedDisplay,
         private readonly ContactViews $contactViews,
         private readonly ViewBar $viewBar,
@@ -115,8 +117,8 @@ final class PartyController extends AbstractController
         $text = trim(mb_substr($request->query->getString('q'), 0, self::MAX_SEARCH));
         // A view keeps its own order; the address names the sort only when it differs (spec D10).
         $viewSort = ViewState::sortParam($view->sort, self::DEFAULT_SORT);
-        $sort = $request->query->getString('sort', $viewSort);
-        $sort = \in_array(ltrim($sort, '-'), PartyQuery::SORTS, true) ? $sort : self::DEFAULT_SORT;
+        // By any attribute the list sorts by, under its key; an older key such as vat still sorts (spec DS2).
+        $sort = $this->listColumns->sort(ContactSource::LIST, $request->query->getString('sort', $viewSort), self::DEFAULT_SORT);
 
         [$importedBy, $importName] = $this->importedBy($request->query);
         $page = $this->contacts->inView($text, $shown, $this->counted($views), $sort, max(1, $request->query->getInt('page', 1)), $importedBy);
@@ -124,7 +126,7 @@ final class PartyController extends AbstractController
         $import = $importedBy instanceof ImportedBy ? ['import' => $importedBy->importId, 'outcome' => $importedBy->outcome] : [];
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value) + $import;
         // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
-        $working = $this->rememberedDisplay->read(ContactColumns::LIST, [], $list->key, $view, $request->query->all());
+        $working = $this->rememberedDisplay->read(ContactSource::LIST, [], $list->key, $view, $request->query->all());
         $query += $working->query;
         $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, self::DEFAULT_SORT, $working, 'app_contacts', '' === $text ? [] : ['q' => $text]);
         $archived = [] !== array_filter($shown->on(ContactLists::ARCHIVED), static fn (Condition $condition): bool => true === $condition->value);
@@ -448,7 +450,7 @@ final class PartyController extends AbstractController
                 'href' => $this->generateUrl('app_contact_show', ['id' => $row->id]),
                 // The contact opens in the side sheet over the list (docs/design/overlays.md).
                 'opens' => DataTable::OPENS_SHEET,
-                'secondary' => implode(' · ', array_filter([$this->contactColumns->roles($row), $row->registrationNumber, $row->email], static fn (?string $part): bool => null !== $part && '' !== $part)),
+                'secondary' => implode(' · ', array_filter([$this->contactSource->roles($row), $row->registrationNumber, $row->email], static fn (?string $part): bool => null !== $part && '' !== $part)),
                 'cells' => $cells,
             ];
         }, $page->rows);

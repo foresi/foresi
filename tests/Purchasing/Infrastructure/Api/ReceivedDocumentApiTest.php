@@ -166,16 +166,11 @@ final class ReceivedDocumentApiTest extends ApiTestCase
         self::assertSame([$trashed], $this->ids());
 
         $search = $this->tool('foresi_search_received_documents', ['filter' => ['conditions' => [['field' => 'kind', 'op' => 'is', 'value' => 'credit_note']]]]);
-        $content = $search['structuredContent'] ?? null;
-        self::assertIsArray($content);
-        self::assertSame(['items' => [], 'next_cursor' => null, 'applied_view' => null], $content['data'] ?? null);
+        self::assertSame(['items' => [], 'next_cursor' => null, 'applied_view' => null], $this->pathOf($search, 'structuredContent', 'data'));
         // The writer's token cannot read views.
         $refused = $this->tool('foresi_search_received_documents', ['view_id' => 'purchasing.received.recorded']);
         self::assertTrue($refused['isError'] ?? false);
-        $content = $refused['structuredContent'] ?? null;
-        self::assertIsArray($content);
-        self::assertIsArray($content['error'] ?? null);
-        self::assertSame('insufficient_scope', $content['error']['code'] ?? null);
+        self::assertSame('insufficient_scope', $this->pathOf($refused, 'structuredContent', 'error', 'code'));
         $refused = $this->tool('foresi_search_received_documents', ['filter' => ['conditions' => [['field' => 'colour', 'op' => 'is', 'value' => 'red']]]]);
         self::assertTrue($refused['isError'] ?? false);
         self::assertStringContainsString('filter.conditions[0].field', (string) json_encode($refused));
@@ -189,16 +184,11 @@ final class ReceivedDocumentApiTest extends ApiTestCase
         $search = $this->tool('foresi_search_received_documents', ['view_id' => 'purchasing.received.recorded']);
 
         self::assertFalse($search['isError'] ?? false);
-        $content = $search['structuredContent'] ?? null;
-        self::assertIsArray($content);
-        $data = $content['data'] ?? null;
+        $data = $this->pathOf($search, 'structuredContent', 'data');
         self::assertIsArray($data);
         self::assertSame([$id], array_column(\is_array($data['items'] ?? null) ? $data['items'] : [], 'id'));
         self::assertSame('purchasing.received.recorded', \is_array($data['applied_view'] ?? null) ? $data['applied_view']['system_key'] ?? null : null);
-        $parts = $search['content'] ?? null;
-        self::assertIsArray($parts);
-        self::assertIsArray($parts[0] ?? null);
-        $text = $parts[0]['text'] ?? null;
+        $text = $this->pathOf($search, 'content', 0, 'text');
         self::assertIsString($text);
         self::assertStringContainsString('Through the view Recorded: 1 received document', $text);
     }
@@ -299,6 +289,21 @@ final class ReceivedDocumentApiTest extends ApiTestCase
             'CONTENT_TYPE' => 'application/json',
             'HTTP_ACCEPT' => 'application/json',
         ], content: null === $body ? null : json_encode((object) $body, \JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * The value at a path through nested arrays, null where the path ends early.
+     */
+    private function pathOf(mixed $value, string|int ...$path): mixed
+    {
+        foreach ($path as $key) {
+            if (!\is_array($value) || !\array_key_exists($key, $value)) {
+                return null;
+            }
+            $value = $value[$key];
+        }
+
+        return $value;
     }
 
     /**
