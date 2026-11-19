@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Infrastructure\Doctrine;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
 use Foresi\Attachment\Application\VisibleAttachments;
@@ -54,6 +55,7 @@ use Foresi\Work\Application\TaskRow;
 use Foresi\Work\Application\Tasks;
 use Foresi\Work\Application\TrashedTask;
 use Foresi\Work\Application\TrashPermission;
+use Foresi\Work\Application\View\MyTaskLists;
 use Foresi\Work\Application\View\ProjectLists;
 use Foresi\Work\Application\View\TaskConditions;
 use Foresi\Work\Application\WorkQueries;
@@ -88,6 +90,8 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         ProjectLists::VISIBILITY => 'p.visibility',
         ProjectLists::BILLABLE => 'p.billableByDefault',
     ];
+    /** The tasks I am responsible for, by the membership bound as :me. */
+    private const string RESPONSIBLE = 't.responsible = :me';
     private const string TASKS = 'SELECT t, s, r, u, p FROM '.Task::class.' t JOIN t.status s JOIN t.project p LEFT JOIN t.responsible r LEFT JOIN r.user u';
     private const string ORDER = ' ORDER BY t.position ASC, t.createdAt ASC, t.id ASC';
     /** What the trash shows: a task that went there itself, not a subtask that went with its task. */
@@ -267,11 +271,11 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         return is_numeric($count) ? (int) $count : 0;
     }
 
-    public function myTasks(?string $clientId = null): array
+    public function myTasks(): array
     {
         $membership = $this->me();
         $rows = $membership instanceof Membership
-            ? $this->sorted($this->flat($this->openTasks('t.responsible = :me', $membership, $clientId)))
+            ? $this->sorted($this->flat($this->openTasks(self::RESPONSIBLE, $membership)))
             : [];
 
         return TaskGroup::split($rows, $this->clock->today());
@@ -294,14 +298,35 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         return is_numeric($count) ? (int) $count : 0;
     }
 
-    public function watchedTasks(?string $clientId = null): array
+    public function watchedTasks(): array
     {
         $membership = $this->me();
         if (!$membership instanceof Membership) {
             return [];
         }
 
-        return $this->sorted($this->flat($this->openTasks('EXISTS (SELECT w.id FROM '.TaskWatcher::class.' w WHERE w.task = t AND w.membership = :me)', $membership, $clientId)));
+        return $this->sorted($this->flat($this->openTasks(self::watched('w'), $membership)));
+    }
+
+    public function myTaskList(ViewFilter $filter): array
+    {
+        $membership = $this->me();
+        if (!$membership instanceof Membership) {
+            return [];
+        }
+        // Each condition's subquery has an alias of its own.
+        $derived = static fn (Condition $condition, string $name): array => [DqlConditions::derivedEnum($condition, [MyTaskLists::RESPONSIBLE => self::RESPONSIBLE, MyTaskLists::WATCHER => self::watched('w'.$name)]), []];
+        [$where, $parameters] = new DqlConditions(MyTaskLists::list(), [MyTaskLists::CLIENT => 'IDENTITY(p.client)'], $derived)->compile($filter, $this->clock->today(...), 'view');
+
+        return $this->sorted($this->flat($this->openTasks('('.self::RESPONSIBLE.' OR '.self::watched('w').') AND '.$where, $membership, $parameters)));
+    }
+
+    /**
+     * The tasks I watch, by the membership bound as :me, with the subquery's alias.
+     */
+    private static function watched(string $alias): string
+    {
+        return \sprintf('EXISTS (SELECT %1$s.id FROM %2$s %1$s WHERE %1$s.task = t AND %1$s.membership = :me)', $alias, TaskWatcher::class);
     }
 
     public function task(string $taskId): ?TaskDetail
@@ -620,17 +645,19 @@ final readonly class DoctrineWorkQueries implements WorkQueries
     /**
      * Unfinished tasks, subtasks included, of the active projects.
      *
+     * @param array<string, array{mixed, string|ArrayParameterType|null}> $parameters those of the condition, beside :me
+     *
      * @return list<Task>
      */
-    private function openTasks(string $condition, Membership $me, ?string $clientId): array
+    private function openTasks(string $condition, Membership $me, array $parameters = []): array
     {
         $seen = ScopedDql::tasks($this->visibility->scope(), 't');
         $query = $seen->apply($this->entityManager
-            ->createQuery(self::TASKS.$seen->joins.' WHERE '.$condition.' AND s.type IN (:unfinished) AND p.archivedAt IS NULL AND t.deletedAt IS NULL'.$seen->where.(null === $clientId ? '' : ' AND IDENTITY(p.client) = :client').self::ORDER))
+            ->createQuery(self::TASKS.$seen->joins.' WHERE '.$condition.' AND s.type IN (:unfinished) AND p.archivedAt IS NULL AND t.deletedAt IS NULL'.$seen->where.self::ORDER))
             ->setParameter('me', $me->id())
             ->setParameter('unfinished', $this->unfinished());
-        if (null !== $clientId) {
-            $query->setParameter('client', $clientId);
+        foreach ($parameters as $name => [$value, $type]) {
+            $query->setParameter($name, $value, $type);
         }
 
         /** @var list<Task> $tasks */

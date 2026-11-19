@@ -407,10 +407,14 @@ work:
     title: My tasks
     views: Views of my tasks
     tab:
+      all: All
       assigned: Assigned to me
       watching: Watching
     client: Client
-    client_any: All clients
+    involvement: Mine as
+    involvement_option:
+      responsible: Responsible
+      watcher: Watching
     group:
       overdue: Overdue
       today: Today
@@ -418,11 +422,15 @@ work:
       later: Later
       no_date: No date
     empty:
+      all_title: You have no unfinished tasks
+      all_text: The tasks you are responsible for or watch show here.
       assigned_title: You have no unfinished tasks
       assigned_text: The tasks you are responsible for show here.
       watching_title: You watch no unfinished tasks
       watching_text: Watch a task from its page.
-      filtered: Nothing here for this client.
+      filtered_title: Nothing matches
+      filtered: No task matches these conditions.
+      reset: Reset the view
   notifications:
     settings: Settings
     title: Notifications

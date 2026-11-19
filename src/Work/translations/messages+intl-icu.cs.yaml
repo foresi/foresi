@@ -407,10 +407,14 @@ work:
     title: Moje úkoly
     views: Pohledy na moje úkoly
     tab:
+      all: Vše
       assigned: Přiřazené mně
       watching: Sledované
     client: Klient
-    client_any: Všichni klienti
+    involvement: Můj vztah
+    involvement_option:
+      responsible: Odpovídám
+      watcher: Sleduji
     group:
       overdue: Po termínu
       today: Dnes
@@ -418,11 +422,15 @@ work:
       later: Později
       no_date: Bez termínu
     empty:
+      all_title: Nemáte žádné nehotové úkoly
+      all_text: Úkoly, za které odpovídáte nebo je sledujete, uvidíte tady.
       assigned_title: Nemáte žádné nehotové úkoly
       assigned_text: Úkoly, za které odpovídáte, uvidíte tady.
       watching_title: Nesledujete žádné nehotové úkoly
       watching_text: Úkol začnete sledovat na jeho stránce.
-      filtered: Pro tohoto klienta tu nic není.
+      filtered_title: Nic tomu neodpovídá
+      filtered: Těmto podmínkám neodpovídá žádný úkol.
+      reset: Obnovit pohled
   notifications:
     settings: Nastavení
     title: Oznámení

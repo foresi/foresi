@@ -49,11 +49,9 @@ interface WorkQueries
     /**
      * Unfinished tasks of active projects the signed-in person is responsible for.
      *
-     * @param string|null $clientId only the projects for this client
-     *
      * @return list<TaskGroup> overdue, today, upcoming, later and no date, each even when empty
      */
-    public function myTasks(?string $clientId = null): array;
+    public function myTasks(): array;
 
     /**
      * How many of the tasks of myTasks are overdue or due today.
@@ -65,7 +63,15 @@ interface WorkQueries
      *
      * @return list<TaskRow> by due date, those without one last
      */
-    public function watchedTasks(?string $clientId = null): array;
+    public function watchedTasks(): array;
+
+    /**
+     * Unfinished tasks of active projects the signed-in person is responsible for or
+     * watches, narrowed by a checked filter of the My tasks list (MyTaskLists).
+     *
+     * @return list<TaskRow> by due date, those without one last
+     */
+    public function myTaskList(ViewFilter $filter): array;
 
     public function task(string $taskId): ?TaskDetail;
 
