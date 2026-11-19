@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Webhooks\Infrastructure\Navigation;
 
-use Foresi\Ui\Navigation\NavigationArea;
-use Foresi\Ui\Navigation\NavigationItem;
-use Foresi\Ui\Navigation\NavigationItemProvider;
+use Foresi\Ui\Contract\Navigation\NavigationArea;
+use Foresi\Ui\Contract\Navigation\NavigationItem;
+use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
 use Foresi\Webhooks\Application\WebhookAccess;
 use Foresi\Webhooks\Infrastructure\Controller\WebhookEndpointController;
 

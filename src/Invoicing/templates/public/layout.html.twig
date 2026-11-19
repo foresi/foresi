@@ -4,7 +4,7 @@
     and nothing that would start a session. Texts are in the language the page passes as "locale";
     the stylesheet's address comes as "stylesheet", as no script loads it here.
 #}
-{% extends 'base.html.twig' %}
+{% extends '@Ui/base.html.twig' %}
 
 {# A customer reads these pages: the title names the issuer the page gives, not the product. #}
 {% block document_title %}{{ block('title')|striptags|html_decode|trim }}{% endblock %}

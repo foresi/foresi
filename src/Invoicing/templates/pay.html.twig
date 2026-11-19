@@ -5,7 +5,7 @@
     still records. From the list and the invoice it opens over the page; the same URL is a page of
     its own without JavaScript.
 #}
-{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'invoice.list.title'|trans, href: cancel}, {label: invoice.number}] %}
 {% set form_invalid = errors is not empty %}

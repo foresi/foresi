@@ -34,7 +34,7 @@ use Foresi\Party\Contract\BankAccountUsage;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Currency;
-use Foresi\Ui\Component\DataTable;
+use Foresi\Ui\Contract\Opens;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -357,7 +357,7 @@ final class FirmBankController extends AbstractController
             'id' => $account->id(),
             // An account is a small record: it opens in a modal over the list (docs/design/overlays.md).
             'href' => $account->isArchived() ? null : $this->generateUrl('app_firm_bank_account_edit', $ids),
-            'opens' => DataTable::OPENS_DIALOG,
+            'opens' => Opens::DIALOG,
             'label' => $name,
             'cells' => [
                 'name' => $name,

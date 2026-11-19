@@ -1,0 +1,64 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Save as new view in a dialog (name, private or shared, show count; saved views D6, D9) and
+    Manage views in a sheet (rename, private or shared, a tab or in More views, delete; D7), as
+    Attio, level.io and GitHub Projects manage their views. Takes `viewBar` and `manageViews`.
+#}
+{% set token = csrf_token(constant('Foresi\\Ui\\Controller\\SavedViewController::TOKEN')) %}
+<twig:Ui:Dialog id="view-save-as" :title="'saved_view.save_as'|trans" :description="'saved_view.save_as_description'|trans" size="sm" :fields="true">
+    <form method="post" action="{{ path('app_view_new') }}" id="view-save-as-form" class="grid gap-4" data-view-save-as-form>
+        {{ include('@Ui/components/_view_fields.html.twig') }}
+        <input type="hidden" name="return" value="{{ viewBar.base }}">
+        <twig:Ui:TextInput name="name" id="view-name" :label="'saved_view.field.name'|trans" required maxlength="60" autocomplete="off" />
+        <twig:Ui:Select name="visibility" id="view-visibility" :label="'saved_view.field.visibility'|trans" :options="{private: 'saved_view.visibility.private'|trans, shared: 'saved_view.visibility.shared'|trans}" value="private" :help="'saved_view.field.visibility_help'|trans" />
+        <twig:Ui:Checkbox name="showCount" id="view-show-count" :label="'saved_view.field.show_count'|trans" />
+    </form>
+    <twig:block name="footer">
+        <twig:Ui:Button data-action="dialog#close">{{ 'saved_view.cancel'|trans }}</twig:Ui:Button>
+        <twig:Ui:Button type="submit" variant="primary" form="view-save-as-form" data-view-save-as-submit>{{ 'saved_view.save_as_submit'|trans }}</twig:Ui:Button>
+    </twig:block>
+</twig:Ui:Dialog>
+
+<twig:Ui:Sheet id="view-manage" :title="'saved_view.manage'|trans" :description="'saved_view.manage_description'|trans" size="sm">
+    <ul class="m-0 grid list-none gap-3 p-0" data-view-manage-list>
+        {% for row in manageViews.rows %}
+            {% set label = row.translated ? row.name|trans : row.name %}
+            <li class="grid gap-3 rounded-control border border-divider p-3" data-view-manage-row="{{ row.key }}">
+                {% if row.editable %}
+                    <form method="post" action="{{ path('app_view_edit') }}" class="grid gap-3" id="view-edit-{{ loop.index }}">
+                        <input type="hidden" name="_token" value="{{ token }}">
+                        <input type="hidden" name="ref" value="{{ row.ref }}">
+                        <input type="hidden" name="return" value="{{ manageViews.return }}">
+                        <twig:Ui:TextInput name="name" id="view-edit-{{ loop.index }}-name" :label="'saved_view.field.name'|trans" :value="label" required maxlength="60" autocomplete="off" />
+                        {% if not row.shipped %}
+                            <twig:Ui:Select name="visibility" id="view-edit-{{ loop.index }}-visibility" :label="'saved_view.field.visibility'|trans" :options="{private: 'saved_view.visibility.private'|trans, shared: 'saved_view.visibility.shared'|trans}" :value="row.private ? 'private' : 'shared'" />
+                        {% endif %}
+                        <twig:Ui:Select name="placement" id="view-edit-{{ loop.index }}-placement" :label="'saved_view.field.placement'|trans" :options="{primary: 'saved_view.placement.primary'|trans, overflow: 'saved_view.placement.overflow'|trans}" :value="row.primary ? 'primary' : 'overflow'" :help="manageViews.primaryFull and not row.primary ? 'saved_view.field.placement_full'|trans : null" />
+                    </form>
+                    <div class="flex flex-wrap items-center justify-end gap-2">
+                        {% if not row.shipped %}
+                            <form method="post" action="{{ path('app_view_delete') }}" class="mr-auto" data-turbo-confirm="{{ 'saved_view.delete_confirm'|trans({name: label}) }}" data-confirm-text="{{ 'saved_view.delete_confirm_text'|trans }}" data-confirm-accept="{{ 'saved_view.delete'|trans }}" data-confirm-cancel="{{ 'saved_view.cancel'|trans }}" data-confirm-tone="danger">
+                                <input type="hidden" name="_token" value="{{ token }}">
+                                <input type="hidden" name="ref" value="{{ row.ref }}">
+                                <input type="hidden" name="return" value="{{ manageViews.return }}">
+                                <twig:Ui:Button type="submit" variant="ghost" size="sm" icon="trash-2" data-view-delete>{{ 'saved_view.delete'|trans }}</twig:Ui:Button>
+                            </form>
+                        {% endif %}
+                        <twig:Ui:Button type="submit" size="sm" form="view-edit-{{ loop.index }}" data-view-edit-submit>{{ 'saved_view.save_changes'|trans }}</twig:Ui:Button>
+                    </div>
+                {% else %}
+                    <p class="m-0 flex items-center gap-1.5 font-medium text-ink">
+                        {%- if row.private %}{{ ux_icon('lucide:lock', {class: 'size-3.5 shrink-0', 'aria-hidden': 'true'}) }}{% endif -%}
+                        <a href="{{ row.href }}" class="text-ink">{{ label }}</a>
+                    </p>
+                    <p class="m-0 text-small text-muted">{{ 'saved_view.not_yours'|trans }}</p>
+                {% endif %}
+            </li>
+        {% else %}
+            <li class="text-muted">{{ 'saved_view.none'|trans }}</li>
+        {% endfor %}
+    </ul>
+    <twig:block name="footer">
+        <twig:Ui:Button data-action="dialog#close">{{ 'ui.dialog.close'|trans }}</twig:Ui:Button>
+    </twig:block>
+</twig:Ui:Sheet>

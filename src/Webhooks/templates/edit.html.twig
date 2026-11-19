@@ -5,7 +5,7 @@
     the list or the endpoint's page it is a dialog; the same URL is a page of its own. Variables:
     endpoint, title, values, errors, modules.
 #}
-{% extends overlay() == 'sheet' ? 'layout/record.html.twig' : (overlay() == 'dialog' ? 'layout/dialog.html.twig' : 'layout/app.html.twig') %}
+{% extends overlay() == 'sheet' ? '@Ui/layout/record.html.twig' : (overlay() == 'dialog' ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig') %}
 
 {% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'webhooks.title'|trans, href: path('app_webhooks')}, {label: title, href: path('app_webhook', {id: endpoint.id})}, {label: 'webhooks.edit'|trans}] %}
 {% set form_invalid = errors is not empty %}

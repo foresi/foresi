@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Work\Infrastructure\Controller;
 
 use Foresi\Identity\Application\StaffCheck;
-use Foresi\Ui\Dialog\DialogRequest;
+use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Foresi\Work\Application\Choice;
 use Foresi\Work\Application\ManageSharing;
 use Foresi\Work\Application\SharedPerson;

@@ -1,0 +1,18 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The view's unsaved changes (saved views D10): Reset, Save as new view and Save, the last only for
+    who may change the view (D6), as Attio and level.io offer them. Takes `viewBar` from ViewBar.
+#}
+{% if viewBar.modified %}
+    <div class="flex shrink-0 flex-wrap items-center gap-2" data-view-actions>
+        <twig:Ui:Button variant="ghost" size="sm" :href="viewBar.resetHref" data-view-reset>{{ 'saved_view.reset'|trans }}</twig:Ui:Button>
+        <twig:Ui:Button size="sm" data-controller="dialog-open" data-action="dialog-open#open" data-dialog-open-id-param="view-save-as" aria-haspopup="dialog" data-view-save-as-button>{{ 'saved_view.save_as'|trans }}</twig:Ui:Button>
+        {% if viewBar.canSave %}
+            <form method="post" action="{{ path('app_view_save') }}" class="contents">
+                {{ include('@Ui/components/_view_fields.html.twig') }}
+                <input type="hidden" name="return" value="{{ viewBar.return }}">
+                <twig:Ui:Button type="submit" variant="primary" size="sm" data-view-save>{{ 'saved_view.save'|trans }}</twig:Ui:Button>
+            </form>
+        {% endif %}
+    </div>
+{% endif %}

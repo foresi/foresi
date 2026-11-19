@@ -1,0 +1,18 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<div class="flex items-center gap-2">
+    <twig:Ui:MoreActions menuId="catalogue-more-actions">
+        <twig:block name="buttons"><twig:Ui:Button icon="share-2">Share</twig:Ui:Button></twig:block>
+        <twig:block name="phone"><twig:Ui:MenuItem icon="share-2">Share</twig:Ui:MenuItem></twig:block>
+        <twig:Ui:MenuItem icon="download">Export as CSV</twig:Ui:MenuItem>
+        <twig:Ui:MenuItem icon="settings">Settings</twig:Ui:MenuItem>
+        <twig:block name="last">
+            <twig:Ui:MenuItem icon="archive">Archive</twig:Ui:MenuItem>
+            <twig:Ui:MenuItem icon="trash-2" tone="danger">Delete</twig:Ui:MenuItem>
+        </twig:block>
+    </twig:Ui:MoreActions>
+    <twig:Ui:Button variant="primary" icon="pencil">Edit</twig:Ui:Button>
+</div>
+{% endblock %}{% endembed %}
+</div>

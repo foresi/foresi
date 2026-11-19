@@ -14,7 +14,7 @@ use Foresi\Identity\Domain\Role;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
-use Foresi\Ui\Dialog\DialogRequest;
+use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Foresi\Work\Domain\Label;
 use Foresi\Work\Domain\LabelColour;
 use Foresi\Work\Domain\Priority;
