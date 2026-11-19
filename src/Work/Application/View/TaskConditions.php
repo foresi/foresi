@@ -45,7 +45,7 @@ final readonly class TaskConditions
                 ProjectTaskLists::RESPONSIBLE => $this->responsible($condition, $task->responsibleId),
                 ProjectTaskLists::STATUS => $this->any($condition, [$task->done ? ProjectTaskLists::FINISHED : ProjectTaskLists::OPEN]),
                 ProjectTaskLists::DUE => $this->any($condition, $this->buckets($task)),
-                ProjectTaskLists::TITLE => self::text($condition, $task->title),
+                ProjectTaskLists::TITLE => $this->text($condition, $task->title),
                 ProjectTaskLists::PRIORITY => $this->any($condition, [$task->priority->value]),
                 default => true,
             };
@@ -72,7 +72,7 @@ final readonly class TaskConditions
     /**
      * Whether a text condition holds for a value, ignoring case.
      */
-    private static function text(Condition $condition, string $value): bool
+    private function text(Condition $condition, string $value): bool
     {
         $value = mb_strtolower(trim($value));
         $wanted = mb_strtolower(\is_string($condition->value) ? trim($condition->value) : '');
