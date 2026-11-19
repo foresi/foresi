@@ -10,9 +10,11 @@ namespace Foresi\Banking\Infrastructure\Column;
 
 use Foresi\Banking\Application\MovementRow;
 use Foresi\Banking\Infrastructure\Controller\BankText;
+use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Domain\View\AttributeType;
 use Foresi\Ui\Component\DataTable;
-use Foresi\Ui\Contract\Column;
-use Foresi\Ui\Contract\ListColumns;
+use Foresi\Ui\Contract\Attribute;
+use Foresi\Ui\Contract\DataSource;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -22,7 +24,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * one, as the firm names it otherwise. A paired movement links the invoices its
  * payment pays; one waiting says why. The bank mail has columns of its own.
  */
-final readonly class MovementColumns implements ListColumns
+final readonly class MovementColumns implements DataSource
 {
     public const string LIST = 'banking.movements';
     /** The context keys: whether several firms, and more accounts than firms, have an account. */
@@ -33,7 +35,7 @@ final readonly class MovementColumns implements ListColumns
     {
     }
 
-    public function columns(string $list): iterable
+    public function attributes(string $list): iterable
     {
         if (self::LIST !== $list) {
             return [];
@@ -41,20 +43,25 @@ final readonly class MovementColumns implements ListColumns
         $label = static fn (string $key): string => 'bank.movement.column.'.$key;
 
         return [
-            new Column('date', $label('date'), $this->date(...), defaultPosition: 10, locked: true),
-            new Column('firm', $label('firm'), static fn (MovementRow $row): string => $row->firmName, defaultPosition: 20, phone: false, truncate: true, available: static fn (array $context): bool => true === ($context[self::SEVERAL_FIRMS] ?? false)),
-            new Column('account', $label('account'), fn (MovementRow $row): string => $this->text->account($row->accountLabel, $row->accountIban), defaultPosition: 30, phone: false, wide: true, truncate: true, available: static fn (array $context): bool => true === ($context[self::ACCOUNT_COLUMN] ?? false)),
-            new Column('amount', $label('amount'), $this->amount(...), defaultPosition: 40, align: 'right'),
-            new Column('vs', $label('vs'), static fn (MovementRow $row): string => $row->variableSymbol ?? '', defaultPosition: 50, phone: false),
-            new Column('partner', $label('partner'), self::partner(...), defaultPosition: 60, phone: false, truncate: true),
-            new Column('message', $label('message'), static fn (MovementRow $row): string => $row->message ?? '', defaultPosition: 70, phone: false, wide: true, truncate: true),
-            new Column('matched', $label('matched'), $this->matched(...), defaultPosition: 80, phone: false),
+            new Attribute('date', $label('date'), AttributeType::Date, static fn (MovementRow $row): \DateTimeImmutable => $row->bookedOn, defaultVisible: true, defaultPosition: 10, cell: $this->date(...), locked: true),
+            new Attribute('firm', $label('firm'), AttributeType::Text, static fn (MovementRow $row): string => $row->firmName, defaultVisible: true, defaultPosition: 20, cell: static fn (MovementRow $row): string => $row->firmName, phone: false, truncate: true, available: static fn (array $context): bool => true === ($context[self::SEVERAL_FIRMS] ?? false)),
+            new Attribute('account', $label('account'), AttributeType::Text, $this->account(...), defaultVisible: true, defaultPosition: 30, cell: $this->account(...), phone: false, wide: true, truncate: true, available: static fn (array $context): bool => true === ($context[self::ACCOUNT_COLUMN] ?? false)),
+            new Attribute('amount', $label('amount'), AttributeType::Money, static fn (MovementRow $row): Money => $row->amount, defaultVisible: true, defaultPosition: 40, cell: $this->amount(...)),
+            new Attribute('vs', $label('vs'), AttributeType::Text, static fn (MovementRow $row): ?string => $row->variableSymbol, defaultVisible: true, defaultPosition: 50, cell: static fn (MovementRow $row): string => $row->variableSymbol ?? '', phone: false),
+            new Attribute('partner', $label('partner'), AttributeType::Text, self::partner(...), defaultVisible: true, defaultPosition: 60, cell: self::partner(...), phone: false, truncate: true),
+            new Attribute('message', $label('message'), AttributeType::Text, static fn (MovementRow $row): ?string => $row->message, defaultVisible: true, defaultPosition: 70, cell: static fn (MovementRow $row): string => $row->message ?? '', phone: false, wide: true, truncate: true),
+            new Attribute('matched', $label('matched'), AttributeType::Text, static fn (MovementRow $row): string => $row->state->value, defaultVisible: true, defaultPosition: 80, cell: $this->matched(...), phone: false),
         ];
     }
 
     public function date(MovementRow $row): string
     {
         return $row->bookedOn->format($this->translator->trans('format.date'));
+    }
+
+    public function account(MovementRow $row): string
+    {
+        return $this->text->account($row->accountLabel, $row->accountIban);
     }
 
     public function amount(MovementRow $row): string
