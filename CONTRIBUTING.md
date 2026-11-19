@@ -93,6 +93,14 @@ A module declares the third-party libraries its own code uses in its `composer.j
   gh pr merge <number> --auto --squash
   ```
 
+- Judge a pull request by its required checks only: `Quality gate (sqlite)`, the E2E checks and `Conventional Commits`. Jobs run side by side, so one job can be red while the others and the Quality gate still run. Take a red job as the hint to start fixing, not as the verdict, and let the run finish: it shows every failure of the round at once.
+
+  ```bash
+  gh pr checks <number> --required --watch
+  ```
+
+- Do not stack pull requests. Every pull request is based on `main`. Required checks and auto-merge protect only `main`, so a pull request based on another branch merges into it even when red. When a change depends on another one that is not merged yet, open it only after the first has merged, then `git rebase origin/main`. Parallel work goes to separate parts of the code instead.
+
 ## Reporting security issues
 
 Do not open a public issue. Follow [SECURITY.md](SECURITY.md).
