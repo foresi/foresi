@@ -558,7 +558,7 @@ final class RecurringListControllerTest extends WebTestCase
         $row = $crawler->filter('tbody tr');
         self::assertCount(1, $row);
         self::assertStringContainsString('Failed', $row->text());
-        self::assertStringContainsString('This contact is archived for the firm.', $row->text());
+        self::assertStringContainsString('This contact is archived.', $row->text());
         self::assertContains('Issue now', $this->menu($row));
 
         $this->post($template, 'issue_now', ['occurrence' => '2026-12-01']);

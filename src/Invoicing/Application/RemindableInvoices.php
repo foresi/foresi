@@ -18,7 +18,7 @@ use Foresi\Party\Domain\LegalEntity;
  * nothing or less than the minimum, so settled invoices do not crowd the limit;
  * what it lets through the caller still checks. An invoice qualifies when it is outside the
  * trash, delivered, due on or after the day reminders were switched on, its
- * contact is reminded for this firm, it has had fewer than MAX_STEPS reminders,
+ * contact is reminded, it has had fewer than MAX_STEPS reminders,
  * there is an address to send to, and the day has come: the due date plus the
  * first delay for the first reminder, the previous reminder's day plus the next
  * delay after that. At most one reminder per invoice, so a missed day never

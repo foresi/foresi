@@ -830,7 +830,7 @@ invoice:
     changed_meanwhile: Someone saved this invoice meanwhile, so yours was not saved.
     currency_not_home: The price must be in the currency of the firm.
     customer_address_incomplete: The customer needs a complete billing address.
-    customer_archived: This contact is archived for the firm.
+    customer_archived: This contact is archived.
     customer_unknown: Choose a customer.
     customer_vat_id_invalid: The VAT ID of the customer is not valid.
     date_invalid: This date does not exist.
@@ -1038,7 +1038,7 @@ recurring:
         refused: The rules refused to issue the invoice.
       invoice:
         problem:
-          customer_archived: The customer is archived for this firm.
+          customer_archived: The customer is archived.
           customer_unknown: The customer no longer exists.
           customer_address_incomplete: The customer has no complete invoicing address.
           line_rate_missing: The kind of VAT rate of a line does not exist on the tax point.
@@ -1209,9 +1209,6 @@ reminder:
     gate: Automatic reminders start once payments are recorded.
     days: 'Enter a whole number of days from {min} to {max}.'
     minimum: Enter an amount such as 500 or 500.50.
-  contact:
-    send: Send reminders
-    send_help: When the firm reminds overdue invoices automatically.
   log:
     column: Type
     purpose:

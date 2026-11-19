@@ -16,7 +16,6 @@ use Foresi\Invoicing\Domain\DocumentParties;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\NumberKey;
 use Foresi\Invoicing\Domain\Series;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Domain\Iban;
@@ -50,7 +49,6 @@ final readonly class IssueRules
     public function __construct(
         private InvoicingCountries $countries,
         private PartyQuery $parties,
-        private ContactSettingsForFirm $contacts,
         private SeriesCatalog $catalog,
         private InvoiceStore $store,
         private CustomerCopies $copies,
@@ -92,7 +90,7 @@ final readonly class IssueRules
             ...$this->firm($input, $firm, $existing, $import),
             ...$this->document($input, $firm, $existing, $import),
             ...$this->number($input, $firm, $existing, $import),
-            ...$this->customer($input, $firm, $existing, $import, $copy),
+            ...$this->customer($input, $existing, $import, $copy),
         ];
         $country = $this->country($firm, $existing, $import);
         if (!$country instanceof InvoicingCountry) {
@@ -302,17 +300,17 @@ final readonly class IssueRules
     /**
      * @return list<IssueProblem>
      */
-    private function customer(InvoiceInput $input, LegalEntity $firm, ?Invoice $existing, ?ImportedDocumentInput $import, ?DocumentParty &$copy): array
+    private function customer(InvoiceInput $input, ?Invoice $existing, ?ImportedDocumentInput $import, ?DocumentParty &$copy): array
     {
         $party = $this->parties->find($input->customerId);
         if (!$party instanceof Party) {
             return [new IssueProblem('customer', 'invoice.problem.customer_unknown')];
         }
         $problems = [];
-        if (!$import instanceof ImportedDocumentInput && $party->id() !== $existing?->customerParty()->id() && $this->contacts->isArchivedFor($party, $firm)) {
+        if (!$import instanceof ImportedDocumentInput && $party->id() !== $existing?->customerParty()->id() && $party->isArchived()) {
             $problems[] = new IssueProblem('customer', 'invoice.problem.customer_archived');
         }
-        $copy = $this->copies->for($input, $party, $firm, $existing);
+        $copy = $this->copies->for($input, $party, $existing);
         if (!$copy instanceof DocumentParty || !($import instanceof ImportedDocumentInput ? $this->isNamed($copy) : $this->isComplete($copy))) {
             $problems[] = new IssueProblem('customer', 'invoice.problem.customer_address_incomplete');
         } elseif (!$this->fits($copy)) {

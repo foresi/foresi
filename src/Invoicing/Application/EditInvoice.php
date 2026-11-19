@@ -13,9 +13,9 @@ use Foresi\Invoicing\Domain\InvoiceChange;
 use Foresi\Invoicing\Domain\InvoiceLine;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\VariableSymbol;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\PartyRole;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -41,7 +41,6 @@ final readonly class EditInvoice
         private NumberAllocator $numbers,
         private TransactionalWork $work,
         private ConflictRetry $retry,
-        private ContactSettingsForFirm $contacts,
         private AdvanceDeductions $deductions,
         private CorrectionRules $corrections,
         private ClockInterface $clock,
@@ -71,11 +70,11 @@ final readonly class EditInvoice
                 throw new IssueRefused($problems);
             }
             $party = $this->parties->find($input->customerId) ?? throw new \LogicException('IssueRules refuses an unknown customer.');
-            $customer = $this->copies->for($input, $party, $firm, $invoice) ?? throw new \LogicException('IssueRules refuses a customer without an address.');
+            $customer = $this->copies->for($input, $party, $invoice) ?? throw new \LogicException('IssueRules refuses a customer without an address.');
             $series = null === $input->seriesId ? $invoice->series() : $this->catalog->get($input->seriesId);
             // An archived firm has no settings to change; its old documents can still be edited.
             if ($party->id() !== $invoice->customerParty()->id() && !$firm->isArchived()) {
-                $this->contacts->makeCustomer($party, $firm);
+                $party->addRole(PartyRole::Customer);
             }
             $this->renumber($invoice, $input, $series);
             $this->save($invoice, $input, $input->change($party, $customer, $invoice->kind()));

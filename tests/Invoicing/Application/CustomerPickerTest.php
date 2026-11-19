@@ -10,7 +10,6 @@ namespace Foresi\Tests\Invoicing\Application;
 
 use Foresi\Invoicing\Application\CustomerOption;
 use Foresi\Invoicing\Application\CustomerPicker;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
 use Foresi\Party\Domain\DocumentLanguage;
@@ -19,7 +18,6 @@ use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyEmail;
-use Foresi\Party\Domain\PartyFirmSettings;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\PaymentMethod;
@@ -35,30 +33,19 @@ final class CustomerPickerTest extends InvoiceTestCase
         $this->picker = self::getContainer()->get(CustomerPicker::class);
     }
 
-    public function testASupplierOfThisFirmIsOffered(): void
+    public function testASupplierIsOffered(): void
     {
-        $this->rolesForTheFirm($this->customer, [PartyRole::Supplier]);
-
-        self::assertSame(['Example Customer a.s.'], $this->names('Example Customer', $this->firm));
-    }
-
-    public function testACustomerOfThisFirmIsACustomerThereOnly(): void
-    {
-        $other = $this->firm(registrationNumber: '12345687');
         $this->customer->assignRoles([PartyRole::Supplier]);
-        $this->rolesForTheFirm($this->customer, [PartyRole::Customer]);
-        $contacts = self::getContainer()->get(ContactSettingsForFirm::class);
+        $this->em->flush();
 
-        self::assertTrue($contacts->isCustomer($this->customer, $this->firm));
-        self::assertFalse($contacts->isCustomer($this->customer, $other));
-        self::assertSame(['Example Customer a.s.'], $this->names('Example Customer', $other));
+        self::assertSame(['Example Customer a.s.'], $this->names('Example Customer'));
     }
 
     public function testAContactWithoutRolesIsOffered(): void
     {
         self::assertSame([], $this->customer->roles());
 
-        self::assertSame(['Example Customer a.s.'], $this->names('Example Customer', $this->firm));
+        self::assertSame(['Example Customer a.s.'], $this->names('Example Customer'));
     }
 
     public function testAPartnerWithoutTheCustomerRoleIsOffered(): void
@@ -66,7 +53,7 @@ final class CustomerPickerTest extends InvoiceTestCase
         $this->customer->assignRoles([PartyRole::Partner]);
         $this->em->flush();
 
-        self::assertSame(['Example Customer a.s.'], $this->names('Example Customer', $this->firm));
+        self::assertSame(['Example Customer a.s.'], $this->names('Example Customer'));
     }
 
     public function testCustomersComeFirst(): void
@@ -77,37 +64,23 @@ final class CustomerPickerTest extends InvoiceTestCase
         $this->em->persist($supplier);
         $this->em->flush();
 
-        self::assertSame(['Example Customer a.s.', 'Example A Supplier'], $this->names('Example', $this->firm));
+        self::assertSame(['Example Customer a.s.', 'Example A Supplier'], $this->names('Example'));
     }
 
-    public function testAContactArchivedForThisFirmIsNotOffered(): void
-    {
-        $other = $this->firm(registrationNumber: '12345687');
-        $settings = new PartyFirmSettings($this->customer, $this->firm);
-        $settings->archive(new \DateTimeImmutable('2026-10-01'));
-        $this->em->persist($settings);
-        $this->em->flush();
-
-        self::assertSame([], $this->picker->search('Example Customer', $this->firm));
-        self::assertSame(['Example Customer a.s.'], $this->names('Example Customer', $other));
-    }
-
-    public function testAContactArchivedForAllIsNotOffered(): void
+    public function testAnArchivedContactIsNotOffered(): void
     {
         $this->customer->archive(new \DateTimeImmutable('2026-10-01'));
         $this->em->flush();
 
-        self::assertSame([], $this->picker->search('Example Customer', $this->firm));
+        self::assertSame([], $this->picker->search('Example Customer'));
     }
 
-    public function testPicksFirmEmails(): void
+    public function testPicksTheInvoicingEmail(): void
     {
-        $this->em->persist(new PartyEmail($this->customer, 'firm@example.com', EmailPurpose::Invoices, $this->firm));
-        $other = $this->firm(registrationNumber: '12345687');
+        $this->em->persist(new PartyEmail($this->customer, 'general@example.com', EmailPurpose::General));
         $this->em->flush();
 
-        self::assertSame('firm@example.com', $this->only('Example Customer')->email);
-        self::assertSame('billing@example.com', $this->picker->search('Example Customer', $other)[0]->email);
+        self::assertSame('billing@example.com', $this->only('Example Customer')->email);
     }
 
     public function testTheGeneralEmailIsTheFallback(): void
@@ -125,17 +98,13 @@ final class CustomerPickerTest extends InvoiceTestCase
         self::assertSame('general@example.com', $this->only('Example General')->email);
     }
 
-    public function testPicksFirmDefaults(): void
+    public function testPicksTheInvoicingDefaultsOfTheContact(): void
     {
-        $own = new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::English, PaymentMethod::Cash, true);
-        $settings = new PartyFirmSettings($this->customer, $this->firm);
-        $settings->changeInvoicingDefaults($own);
-        $this->em->persist($settings);
-        $other = $this->firm(registrationNumber: '12345687');
+        $defaults = new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::English, PaymentMethod::Cash, true);
+        $this->customer->changeInvoicingDefaults($defaults);
         $this->em->flush();
 
-        self::assertTrue($own->equals($this->only('Example Customer')->defaults));
-        self::assertTrue(InvoicingDefaults::standard()->equals($this->picker->search('Example Customer', $other)[0]->defaults));
+        self::assertTrue($defaults->equals($this->only('Example Customer')->defaults));
     }
 
     public function testAnOptionCarriesWhatTheFormShows(): void
@@ -163,11 +132,11 @@ final class CustomerPickerTest extends InvoiceTestCase
 
     public function testThreeCharactersOrAnIdNumberSearch(): void
     {
-        self::assertSame([], $this->picker->search('Ex', $this->firm));
-        self::assertSame([], $this->picker->search('  E  ', $this->firm));
-        self::assertSame(['Example Customer a.s.'], $this->names('Exa', $this->firm));
-        self::assertSame(['Example Customer a.s.'], $this->names('87', $this->firm));
-        self::assertSame(['Example Customer a.s.'], $this->names('8765 4320', $this->firm));
+        self::assertSame([], $this->picker->search('Ex'));
+        self::assertSame([], $this->picker->search('  E  '));
+        self::assertSame(['Example Customer a.s.'], $this->names('Exa'));
+        self::assertSame(['Example Customer a.s.'], $this->names('87'));
+        self::assertSame(['Example Customer a.s.'], $this->names('8765 4320'));
     }
 
     public function testAtMostTenAreOffered(): void
@@ -177,7 +146,7 @@ final class CustomerPickerTest extends InvoiceTestCase
         }
         $this->em->flush();
 
-        self::assertCount(CustomerPicker::LIMIT, $this->picker->search('Example Many', $this->firm));
+        self::assertCount(CustomerPicker::LIMIT, $this->picker->search('Example Many'));
     }
 
     public function testCustomersBehindAFullPageOfSuppliersComeFirst(): void
@@ -192,7 +161,7 @@ final class CustomerPickerTest extends InvoiceTestCase
         $this->em->persist($customer);
         $this->em->flush();
 
-        self::assertSame('Example Z Customer', $this->names('Example ', $this->firm, ['Example Customer a.s.'])[0]);
+        self::assertSame('Example Z Customer', $this->names('Example ', ['Example Customer a.s.'])[0]);
     }
 
     public function testOffersAreInNameOrder(): void
@@ -201,10 +170,10 @@ final class CustomerPickerTest extends InvoiceTestCase
         $this->em->persist(new Party(PartyKind::Person, 'Example A', null, null, ''));
         $this->em->flush();
 
-        self::assertSame(['Example A', 'Example B', 'Example Customer a.s.'], $this->names('Example', $this->firm));
+        self::assertSame(['Example A', 'Example B', 'Example Customer a.s.'], $this->names('Example'));
     }
 
-    public function testTheOnlyFirmMakesAContactACustomerInTheSharedRoles(): void
+    public function testIssuingAddsTheCustomerRole(): void
     {
         $this->customer->assignRoles([PartyRole::Supplier]);
         $this->em->flush();
@@ -212,7 +181,6 @@ final class CustomerPickerTest extends InvoiceTestCase
         $this->issue->issue($this->input());
 
         self::assertSame([PartyRole::Supplier, PartyRole::Customer], $this->customer->roles());
-        self::assertFalse(self::getContainer()->get(ContactSettingsForFirm::class)->hasOwnRoles($this->customer, $this->firm));
     }
 
     public function testAPlainContactBecomesACustomer(): void
@@ -220,31 +188,6 @@ final class CustomerPickerTest extends InvoiceTestCase
         $this->issue->issue($this->input());
 
         self::assertSame([PartyRole::Customer], $this->customer->roles());
-    }
-
-    public function testAFirmAmongSeveralTakesTheRoleForItselfOnly(): void
-    {
-        $other = $this->firm(registrationNumber: '12345687');
-        $this->customer->assignRoles([PartyRole::Supplier]);
-        $this->em->flush();
-        $contacts = self::getContainer()->get(ContactSettingsForFirm::class);
-
-        $this->issue->issue($this->input());
-
-        self::assertSame([PartyRole::Supplier], $this->customer->roles());
-        self::assertSame([PartyRole::Supplier, PartyRole::Customer], $contacts->rolesFor($this->customer, $this->firm));
-        self::assertSame([PartyRole::Supplier], $contacts->rolesFor($this->customer, $other));
-    }
-
-    public function testOwnRolesOfTheFirmGrowAndTheSharedOnesStay(): void
-    {
-        $this->customer->assignRoles([PartyRole::Partner]);
-        $this->rolesForTheFirm($this->customer, [PartyRole::Supplier]);
-
-        $this->issue->issue($this->input());
-
-        self::assertSame([PartyRole::Partner], $this->customer->roles());
-        self::assertSame([PartyRole::Supplier, PartyRole::Customer], self::getContainer()->get(ContactSettingsForFirm::class)->rolesFor($this->customer, $this->firm));
     }
 
     public function testARefusedDocumentGivesNoRole(): void
@@ -265,33 +208,22 @@ final class CustomerPickerTest extends InvoiceTestCase
         $this->issue->issue($this->input());
 
         self::assertSame([PartyRole::Customer, PartyRole::Supplier], $this->customer->roles());
-        self::assertFalse(self::getContainer()->get(ContactSettingsForFirm::class)->hasOverride($this->customer, $this->firm));
     }
 
     public function testAnExistingDocumentKeepsItsCustomerWhenTheRoleChanges(): void
     {
         $invoice = $this->issue->issue($this->input());
-        $this->rolesForTheFirm($this->customer, [PartyRole::Supplier]);
+        $this->customer->assignRoles([PartyRole::Supplier]);
+        $this->em->flush();
 
         $this->edited($invoice, $this->input());
 
         self::assertSame($this->customer->id(), $this->reloaded($invoice)->customerParty()->id());
     }
 
-    /**
-     * @param list<PartyRole> $roles
-     */
-    private function rolesForTheFirm(Party $party, array $roles): void
-    {
-        $settings = new PartyFirmSettings($party, $this->firm);
-        $settings->changeRoles($roles);
-        $this->em->persist($settings);
-        $this->em->flush();
-    }
-
     private function only(string $text): CustomerOption
     {
-        $options = $this->picker->search($text, $this->firm);
+        $options = $this->picker->search($text);
         self::assertCount(1, $options);
 
         return $options[0];
@@ -302,9 +234,9 @@ final class CustomerPickerTest extends InvoiceTestCase
      *
      * @return list<string>
      */
-    private function names(string $text, \Foresi\Party\Domain\LegalEntity $firm, array $without = []): array
+    private function names(string $text, array $without = []): array
     {
-        $names = array_map(static fn (CustomerOption $option): string => $option->name, $this->picker->search($text, $firm));
+        $names = array_map(static fn (CustomerOption $option): string => $option->name, $this->picker->search($text));
 
         return array_values(array_diff($names, $without));
     }

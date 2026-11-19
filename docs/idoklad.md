@@ -8,7 +8,7 @@ The move is a wizard per firm, opened with **Move from iDoklad** on the list of 
 
 | iDoklad | In Foresi |
 |---|---|
-| Contacts | Contacts with addresses, e-mail, phone, website, bank account, the contact person and the due days. An existing contact is found by its registration number, else by its exact name, and only gets what it lacks; nothing the user typed is overwritten. The reminder setting becomes the firm's own setting of a created contact |
+| Contacts | Contacts with addresses, e-mail, phone, website, bank account, the contact person and the due days. An existing contact is found by its registration number, else by its exact name, and only gets what it lacks; nothing the user typed is overwritten. The reminder setting becomes the setting of a created contact |
 | Number series | Series of the same kind. iDoklad keeps a series per year; the years of one format become one series that counts per year. A matching series is reused. The counter of each year continues after iDoklad's last number |
 | Issued invoices and proforma (advance) invoices | Imported invoices and advance invoices, in the order of their numbers, with the purchaser and the firm as printed on them, the VAT regime, the rounding, the sent and exported marks, and the original PDF |
 | Payments of issued and proforma invoices | Manual payments on their days, allocated to the document they paid. No bank movement is made and nothing is sent |

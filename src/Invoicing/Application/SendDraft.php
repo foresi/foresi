@@ -14,12 +14,12 @@ use Foresi\Invoicing\Contract\IssuedDocument;
 use Foresi\Invoicing\Domain\FirmMailServer;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\MailTemplateKind;
-use Foresi\Party\Application\ContactSettingsForFirm;
+use Foresi\Party\Application\PartyDetails;
 use Foresi\Party\Domain\EmailPurpose;
 
 /**
  * What the send dialog of an invoice opens with. The recipients are the contact's
- * invoicing addresses for the invoice's firm, its own or the shared ones: those for
+ * invoicing addresses: those for
  * invoices go to To, those for a copy to Cc, both ticked. A contact without one
  * for invoices offers the address the document copied, in To. The text is the firm's template in the
  * document's language, filled in as SendInvoice would fill it, so what the dialog
@@ -30,7 +30,7 @@ final readonly class SendDraft
 {
     public function __construct(
         private MailServers $servers,
-        private ContactSettingsForFirm $contacts,
+        private PartyDetails $contacts,
         private MailTemplates $templates,
         private MailVariables $variables,
         private IssuedDocumentFactory $documents,
@@ -113,7 +113,7 @@ final readonly class SendDraft
     private function recipients(Invoice $invoice): array
     {
         $recipients = [];
-        foreach ($this->contacts->emailsFor($invoice->customerParty(), $invoice->firm()) as $email) {
+        foreach ($this->contacts->invoicingEmails($invoice->customerParty()) as $email) {
             $key = mb_strtolower($email->address());
             if (isset($recipients[$key])) {
                 continue;

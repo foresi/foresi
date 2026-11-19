@@ -15,14 +15,12 @@ use Foresi\Audit\Domain\AuditRooted;
 use Foresi\Shared\Domain\Id;
 
 /**
- * An e-mail address of a party and what it is used for. One that names a firm
- * is that firm's own invoicing address; without a firm it is shared.
+ * An e-mail address of a party and what it is used for.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'party_email')]
 #[ORM\Index(name: 'idx_party_email_party', columns: ['party_id'])]
 #[ORM\Index(name: 'idx_party_email_key', columns: ['address_key'])]
-#[ORM\Index(name: 'idx_party_email_firm', columns: ['legal_entity_id'])]
 class PartyEmail implements Audited, AuditRooted
 {
     private const int MAX_LENGTH = 254;
@@ -48,11 +46,7 @@ class PartyEmail implements Audited, AuditRooted
         string $address,
         #[ORM\Column(type: 'string', length: 16, enumType: EmailPurpose::class)]
         private EmailPurpose $purpose,
-        #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
-        #[ORM\JoinColumn(name: 'legal_entity_id', nullable: true, onDelete: 'RESTRICT')]
-        private readonly ?LegalEntity $legalEntity = null,
     ) {
-        $this->refuseGeneralForAFirm($purpose);
         $this->id = Id::generate();
         $this->address = $this->validate($address);
         $this->addressKey = self::key($this->address);
@@ -91,14 +85,6 @@ class PartyEmail implements Audited, AuditRooted
         return $this->address;
     }
 
-    /**
-     * The firm this address is the own invoicing address of; null when it is shared.
-     */
-    public function legalEntity(): ?LegalEntity
-    {
-        return $this->legalEntity;
-    }
-
     public function purpose(): EmailPurpose
     {
         return $this->purpose;
@@ -106,7 +92,6 @@ class PartyEmail implements Audited, AuditRooted
 
     public function change(string $address, EmailPurpose $purpose): void
     {
-        $this->refuseGeneralForAFirm($purpose);
         $this->address = $this->validate($address);
         $this->addressKey = self::key($this->address);
         $this->purpose = $purpose;
@@ -119,12 +104,5 @@ class PartyEmail implements Audited, AuditRooted
         }
 
         return trim($address);
-    }
-
-    private function refuseGeneralForAFirm(EmailPurpose $purpose): void
-    {
-        if ($this->legalEntity instanceof LegalEntity && EmailPurpose::General === $purpose) {
-            throw new \DomainException('A firm has invoicing e-mails only; the general e-mail is shared.');
-        }
     }
 }

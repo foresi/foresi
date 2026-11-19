@@ -28,7 +28,6 @@ use Foresi\Invoicing\Application\SeriesCatalog;
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Application\CreateParty;
 use Foresi\Party\Application\PartyDetails;
 use Foresi\Party\Application\PartyInput;
@@ -125,10 +124,7 @@ final class IdokladImportTest extends KernelTestCase
         self::assertCount(1, $links);
         self::assertSame('Ing. Jana Example', $links[0]->person()->displayName());
 
-        $settings = self::getContainer()->get(ContactSettingsForFirm::class);
-        self::assertTrue($settings->hasOwnDefaults($party, $this->storedFirm()), 'The reminder setting is the firm\'s own.');
-        self::assertFalse($settings->defaultsFor($party, $this->storedFirm())->sendReminders);
-        self::assertTrue($party->invoicingDefaults()->sendReminders, 'The shared setting stays.');
+        self::assertFalse($party->invoicingDefaults()->sendReminders);
 
         $link = $this->links()[0];
         self::assertSame(IdokladResource::Contacts, $link->resource());
@@ -139,7 +135,7 @@ final class IdokladImportTest extends KernelTestCase
         self::assertEquals($run->startedAt(), $link->createdAt());
     }
 
-    public function testAPersonIsCreatedFromTheNameAndKeepsTheSharedReminders(): void
+    public function testAPersonIsCreatedFromTheNameAndKeepsTheReminders(): void
     {
         $this->contact(502, ['Firstname' => 'Petr', 'Surname' => 'Example', 'SendReminders' => true]);
 
@@ -148,7 +144,7 @@ final class IdokladImportTest extends KernelTestCase
         $party = $this->party($this->entry($run, ContactsStage::KEY, 502)['target_id']);
         self::assertSame('Petr Example', $party->displayName());
         self::assertSame(PartyKind::Person, $party->kind());
-        self::assertFalse(self::getContainer()->get(ContactSettingsForFirm::class)->hasOwnDefaults($party, $this->storedFirm()));
+        self::assertTrue($party->invoicingDefaults()->sendReminders);
     }
 
     public function testAContactIsMatchedByRegistrationNumberAndGetsOnlyWhatItLacks(): void

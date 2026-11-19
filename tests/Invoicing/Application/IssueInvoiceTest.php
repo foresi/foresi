@@ -35,11 +35,9 @@ use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceLine;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
 use Foresi\Party\Domain\EmailPurpose;
-use Foresi\Party\Domain\InvoicingEmail;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
@@ -214,9 +212,9 @@ final class IssueInvoiceTest extends InvoiceTestCase
         $this->assertRefusedFor('invoice.problem.firm_country_unsupported', fn (): Invoice => $this->issue->issue($this->input(overrides: ['firmId' => $firm->id(), 'seriesId' => null])));
     }
 
-    public function testAContactArchivedForTheFirmIsRefused(): void
+    public function testAnArchivedContactIsRefused(): void
     {
-        self::getContainer()->get(ContactSettingsForFirm::class)->changeArchived($this->customer, $this->firm, true);
+        $this->customer->archive(new \DateTimeImmutable('2026-11-01'));
         $this->em->flush();
 
         $this->assertRefusedFor('invoice.problem.customer_archived', fn (): Invoice => $this->issue->issue($this->input()));
@@ -804,7 +802,6 @@ final class IssueInvoiceTest extends InvoiceTestCase
             $container->get(\Foresi\Invoicing\Application\ConflictRetry::class),
             $container->get(\Foresi\Audit\Application\AuditActor::class),
             $container->get(\Psr\Clock\ClockInterface::class),
-            $container->get(ContactSettingsForFirm::class),
             $this->deductions(),
             $container->get(\Foresi\Invoicing\Application\CorrectionRules::class),
             $container->get(\Foresi\Invoicing\Application\BilledWork::class),
@@ -875,14 +872,6 @@ final class IssueInvoiceTest extends InvoiceTestCase
     public function testAnIssuerWithoutAnEmailHasNone(): void
     {
         self::assertNull($this->reloaded($this->issue->issue($this->input()))->issuer()->email);
-    }
-
-    public function testTheCustomerCopyTakesTheFirmsOwnEmail(): void
-    {
-        self::getContainer()->get(ContactSettingsForFirm::class)->changeEmails($this->customer, $this->firm, [new InvoicingEmail('firm-only@example.com', EmailPurpose::Invoices)]);
-        $this->em->flush();
-
-        self::assertSame('firm-only@example.com', $this->issue->issue($this->input())->customer()->email);
     }
 
     public function testACustomerWithOnlyAGeneralEmailGetsThatCopied(): void

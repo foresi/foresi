@@ -93,7 +93,7 @@ final readonly class InvoiceWrites
         } catch (UnsupportedCountry $unsupported) {
             throw InvoicingRefused::conflict('firm_country_unsupported', 'The country of the firm has no invoicing rules in Foresi.', $unsupported);
         }
-        $customer = $this->customerOf($input->customerId, $firm);
+        $customer = $this->customerOf($input->customerId);
         if ($customer instanceof CustomerOption) {
             $draft = $this->defaults->withCustomer($draft, $customer);
         }
@@ -135,7 +135,7 @@ final readonly class InvoiceWrites
         $invoice = $this->invoice($input->invoiceId);
         $firm = $invoice->firm();
         $customerId = null === $input->customerId ? $invoice->customerParty()->id() : ($this->id($input->customerId, 'customerId') ?? '');
-        $reverseCharge = $this->customerOf($customerId, $firm)?->defaults->reverseCharge ?? false;
+        $reverseCharge = $this->customerOf($customerId)?->defaults->reverseCharge ?? false;
         $lines = null === $input->lines
             ? array_map($this->storedLine(...), $this->store->lines($invoice))
             : $this->lines($input->lines, $invoice->currency(), $invoice->vatRegime(), $reverseCharge);
@@ -242,12 +242,12 @@ final readonly class InvoiceWrites
      * The contact as the form offers it to the firm; null for an unknown or
      * archived one, which IssueRules then refuses by name.
      */
-    private function customerOf(string $id, LegalEntity $firm): ?CustomerOption
+    private function customerOf(string $id): ?CustomerOption
     {
         $id = $this->id($id, 'customerId');
         $party = null === $id ? null : $this->parties->find($id);
 
-        return $party instanceof Party ? $this->customers->find($party->id(), $firm) : null;
+        return $party instanceof Party ? $this->customers->find($party->id()) : null;
     }
 
     /**

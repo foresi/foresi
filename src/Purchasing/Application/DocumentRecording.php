@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Application;
 
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyRole;
@@ -34,7 +33,6 @@ final readonly class DocumentRecording
     public function __construct(
         private EvidenceSeriesCatalog $series,
         private EvidenceNumbers $numbers,
-        private ContactSettingsForFirm $contacts,
         private ClockInterface $clock,
         private EventRecorder $events,
     ) {
@@ -53,7 +51,7 @@ final readonly class DocumentRecording
         $first = !$document->isRecorded();
         $document->record($content, $userId, \DateTimeImmutable::createFromInterface($this->clock->now()));
         if ($content->supplierParty instanceof Party) {
-            $this->contacts->addRole($content->supplierParty, $firm, PartyRole::Supplier);
+            $content->supplierParty->addRole(PartyRole::Supplier);
         }
         if ($first) {
             // A recorded document always has its total and its supplier.

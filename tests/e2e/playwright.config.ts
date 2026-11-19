@@ -10,7 +10,7 @@ const READ_ONLY = /@visual|@a11y|@layout/;
 // Screenshot tests are off while the layout redesign keeps changing the UI (decided 2026-11-16).
 // They come back after the redesign, on a few key screens.
 const SCREENSHOTS = /@visual/;
-const WRITES_DATA = /(api-tokens|contact-(lifecycle|duplicate)|dialogs|import|firms|firm-scope|firm-mail|firm-bank|bank-movements|first-run|advances|corrections|accountant-pack|invoice(-list|-send|-pay|-reminder)?|recurring-(form|list)|people|projects|discussion|sharing|notifications|purchasing|time(-invoicing)?)\.spec\.ts/;
+const WRITES_DATA = /(api-tokens|contact-(lifecycle|duplicate)|dialogs|import|firms|firm-mail|firm-bank|bank-movements|first-run|advances|corrections|accountant-pack|invoice(-list|-send|-pay|-reminder)?|recurring-(form|list)|people|projects|discussion|sharing|notifications|purchasing|time(-invoicing)?)\.spec\.ts/;
 
 export default defineConfig({
   testDir: './specs',

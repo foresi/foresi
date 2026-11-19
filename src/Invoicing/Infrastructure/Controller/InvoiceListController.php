@@ -50,8 +50,6 @@ use Foresi\Invoicing\Infrastructure\Form\AmountText;
 use Foresi\Invoicing\Infrastructure\Form\MailTokenLabels;
 use Foresi\Invoicing\Infrastructure\Form\SendFailureText;
 use Foresi\Invoicing\Infrastructure\View\TaxDocumentQueueTabs;
-use Foresi\Party\Application\LegalEntities;
-use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Shared\Application\View\Condition;
 use Foresi\Shared\Application\View\DateRange;
 use Foresi\Shared\Application\View\FilterRows;
@@ -129,7 +127,6 @@ final class InvoiceListController extends AbstractController
         private readonly ViewBar $viewBar,
         private readonly FilterSheet $filterSheet,
         private readonly CustomerPicker $customers,
-        private readonly LegalEntities $firms,
         private readonly TaxDocumentQueueTabs $queueTabs,
     ) {
     }
@@ -351,13 +348,7 @@ final class InvoiceListController extends AbstractController
 
         return [InvoiceLists::CONTACT => [
             'url' => $this->generateUrl('app_invoice_customers', ['firm' => $id]),
-            'name' => function (string $contact) use ($id): ?string {
-                try {
-                    return $this->customers->find($contact, $this->firms->get($id))?->name;
-                } catch (UnknownLegalEntity) {
-                    return null;
-                }
-            },
+            'name' => fn (string $contact): ?string => $this->customers->find($contact)?->name,
         ]];
     }
 

@@ -71,24 +71,12 @@
             </div>
         </twig:Ui:Card>
 
-        {% if firmPanels is empty %}
-            <twig:Ui:Card :title="'party.card.roles'|trans" icon="tag">
-                <div class="grid gap-3">
-                    <twig:Ui:ChoiceChips name="roles[]" id="roles" :legend="'party.field.roles'|trans" list="party.contacts" attribute="roles" :options="roleOptions" :values="roleValues" :error="errors.roles|default(null)" />
-                    <twig:Ui:Textarea name="privateNote" id="privateNote" :label="'party.field.privateNote'|trans" :help="'party.field.privateNote_help'|trans" :value="values.privateNote" :rows="3" />
-                </div>
-            </twig:Ui:Card>
-        {% else %}
-            {{ include('@Party/_firm_panel.html.twig', {panel: firmPanels.roles, title: 'party.field.roles'|trans, icon: 'tag'}) }}
-            <twig:Ui:Card :title="'party.card.note'|trans" icon="pencil">
+        <twig:Ui:Card :title="'party.card.roles'|trans" icon="tag">
+            <div class="grid gap-3">
+                <twig:Ui:ChoiceChips name="roles[]" id="roles" :legend="'party.field.roles'|trans" list="party.contacts" attribute="roles" :options="roleOptions" :values="roleValues" :error="errors.roles|default(null)" />
                 <twig:Ui:Textarea name="privateNote" id="privateNote" :label="'party.field.privateNote'|trans" :help="'party.field.privateNote_help'|trans" :value="values.privateNote" :rows="3" />
-            </twig:Ui:Card>
-            {{ include('@Party/_firm_panel.html.twig', {panel: firmPanels.invoicing, title: 'party.card.defaults'|trans, icon: 'receipt-text'}) }}
-            {{ include('@Party/_firm_panel.html.twig', {panel: firmPanels.emails, title: 'party.scope.emails'|trans, icon: 'send'}) }}
-            {% if firmPanels.archive is defined %}
-                {{ include('@Party/_firm_panel.html.twig', {panel: firmPanels.archive, title: 'party.scope.archive'|trans, icon: 'archive'}) }}
-            {% endif %}
-        {% endif %}
+            </div>
+        </twig:Ui:Card>
 
         <twig:Ui:ActionBar>
             <twig:Ui:Button :href="cancel" data-in-place>{{ 'party.cancel'|trans }}</twig:Ui:Button>

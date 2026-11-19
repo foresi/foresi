@@ -830,7 +830,7 @@ invoice:
     changed_meanwhile: Někdo tuto fakturu mezitím uložil, takže vaše změny se neuložily.
     currency_not_home: Cena musí být v měně firmy.
     customer_address_incomplete: Odběratel potřebuje úplnou fakturační adresu.
-    customer_archived: Tento kontakt je pro firmu archivovaný.
+    customer_archived: Tento kontakt je archivovaný.
     customer_unknown: Vyberte odběratele.
     customer_vat_id_invalid: DIČ odběratele není platné.
     date_invalid: Toto datum neexistuje.
@@ -1038,7 +1038,7 @@ recurring:
         refused: Pravidla vystavení fakturu odmítla.
       invoice:
         problem:
-          customer_archived: Odběratel je pro tuto firmu archivovaný.
+          customer_archived: Odběratel je archivovaný.
           customer_unknown: Odběratel už neexistuje.
           customer_address_incomplete: Odběratel nemá úplnou fakturační adresu.
           line_rate_missing: Druh sazby DPH některé položky k datu zdanitelného plnění neexistuje.
@@ -1209,9 +1209,6 @@ reminder:
     gate: Automatické upomínky půjdou zapnout, až se budou evidovat platby.
     days: 'Zadejte celý počet dní od {min} do {max}.'
     minimum: Zadejte částku, třeba 500 nebo 500,50.
-  contact:
-    send: Posílat upomínky
-    send_help: Když firma posílá upomínky po splatnosti automaticky.
   log:
     column: Druh
     purpose:

@@ -33,7 +33,6 @@ use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceLine;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
-use Foresi\Party\Application\ContactSettingsForFirm;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PaymentMethod;
@@ -128,7 +127,7 @@ final class EditInvoiceTest extends InvoiceTestCase
     public function testAnOldDocumentOfAnArchivedFirmAndContactStaysEditable(): void
     {
         $invoice = $this->issue->issue($this->input());
-        self::getContainer()->get(ContactSettingsForFirm::class)->changeArchived($this->customer, $this->firm, true);
+        $this->customer->archive(new \DateTimeImmutable('2026-11-01'));
         $this->firm->archive(new \DateTimeImmutable('2026-11-02'));
         $this->firm->update($this->firm->name(), $this->firm->registrationNumber(), null, $this->firm->address(), VatStatus::Registered, '');
         FirmAccounts::archiveAll($this->em, $this->firm);
