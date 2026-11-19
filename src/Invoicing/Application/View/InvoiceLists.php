@@ -10,6 +10,7 @@ namespace Foresi\Invoicing\Application\View;
 
 use Foresi\Invoicing\Application\InvoiceFilter;
 use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Domain\ExportState;
 use Foresi\Shared\Application\View\Condition;
 use Foresi\Shared\Application\View\DefaultView;
 use Foresi\Shared\Application\View\Field;
@@ -20,9 +21,9 @@ use Foresi\Shared\Application\View\ViewFilter;
 
 /**
  * The four lists of documents and the views they ship: the tabs they had, each
- * the same documents as before (spec D12). The payment, overdue and settlement
- * fields are derived, never stored, so DoctrineInvoiceStore compiles them with the
- * SQL the tabs counted with. Overdue keeps the day of the issuer's country
+ * the same documents as before (spec D12). The payment, overdue, settlement and
+ * export fields are derived, never stored, so DoctrineInvoiceStore compiles them with
+ * the SQL the tabs and the old export select narrowed with. Overdue keeps the day of the issuer's country
  * (ADR 0017), as the reminders and the rows do, rather than the instance's day.
  *
  * A list leaves out the trash unless a condition asks for it: All holds no
@@ -34,6 +35,7 @@ final readonly class InvoiceLists implements ListDefinitionSource
     public const string PAYMENT = 'payment';
     public const string OVERDUE = 'overdue';
     public const string SETTLEMENT = 'settlement';
+    public const string EXPORT = 'export';
     public const string ISSUE_DATE = 'issue_date';
     public const string TAX_POINT_DATE = 'tax_point_date';
     public const string DUE_DATE = 'due_date';
@@ -93,6 +95,9 @@ final readonly class InvoiceLists implements ListDefinitionSource
             $settlement = DocumentKind::Advance === $kind ? [InvoiceFilter::UNSETTLED] : [InvoiceFilter::SETTLED, InvoiceFilter::UNSETTLED];
             $fields[] = new Field(self::SETTLEMENT, FieldType::Enum, 'invoice.field.settlement', options: $settlement, optionLabels: self::labels($settlement));
         }
+        // Where a document stands with the accountant, once a fixed select of the filter sheet (spec D11).
+        $states = array_map(static fn (ExportState $state): string => $state->value, ExportState::cases());
+        $fields[] = new Field(self::EXPORT, FieldType::Enum, 'invoice.export_state.label', ['is', 'is_any_of'], $states, array_combine($states, array_map(static fn (string $state): string => 'invoice.export_state.'.$state, $states)));
         $fields[] = new Field(self::CUSTOMER, FieldType::Reference, 'invoice.field.customer', ['is', 'is_not', 'is_any_of'], source: self::CONTACT);
         // In the document's currency, as the list shows it: the total to pay.
         $fields[] = new Field(self::AMOUNT, FieldType::Number, 'invoice.field.total');
