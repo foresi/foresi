@@ -95,13 +95,15 @@ final class FilterRowsTest extends TestCase
         self::assertSame([], FilterRows::parse([[FilterRows::RAW => '{"field":"gone","op":"is"}'], [FilterRows::RAW => '{']], $this->list())->conditions);
     }
 
-    public function testTheBuilderOffersIsAndIsNotForAnEnumAndOneReferenceAtATime(): void
+    public function testTheBuilderOffersEveryOperatorOfAnEnumAndOneReferenceAtATime(): void
     {
         $fields = $this->list()->fields;
 
-        self::assertSame(['is', 'is_not'], FilterRows::operators($fields['state']));
+        self::assertSame(['is', 'is_not', 'is_any_of', 'is_none_of'], FilterRows::operators($fields['state']));
         self::assertSame(['is', 'is_not', 'is_empty', 'is_not_empty'], FilterRows::operators($fields['customer']));
-        self::assertSame(['is'], FilterRows::operators(new Field('only', FieldType::Enum, 'Only', ['is_any_of'], ['a'])));
+        self::assertSame(['is_any_of'], FilterRows::operators(new Field('only', FieldType::Enum, 'Only', ['is_any_of'], ['a'])));
+        self::assertSame(['contains', 'does_not_contain', 'is', 'is_not', 'is_empty', 'is_not_empty'], FilterRows::operators($fields['note']));
+        self::assertSame(['has_any_of', 'has_all_of', 'has_none_of', 'is_empty', 'is_not_empty'], FilterRows::operators($fields['tags']));
     }
 
     public function testAWorkingFilterRoundTripsThroughTheAddressAndIsLeftOutWhenItIsTheViews(): void
@@ -147,7 +149,8 @@ final class FilterRowsTest extends TestCase
         self::assertIsArray($next);
         self::assertSame('7', $next['n']);
         self::assertTrue(FilterRows::editable($filter->conditions[1], $list->fields['customer']));
-        self::assertFalse(FilterRows::editable($filter->conditions[0], $list->fields['note']));
+        self::assertTrue(FilterRows::editable($filter->conditions[0], $list->fields['note']));
+        self::assertFalse(FilterRows::editable(new Condition('customer', 'is_any_of', ['c-1', 'c-2']), $list->fields['customer']));
         // The address keeps the text as it is written.
         $json = base64_decode(strtr(WorkingFilter::encode($filter), '-_', '+/'), true);
         self::assertIsString($json);
@@ -172,13 +175,41 @@ final class FilterRowsTest extends TestCase
         self::assertCount(1, FilterRows::parse([[FilterRows::RAW => '{"field":"customer","op":"is_empty"}']], $list)->conditions);
     }
 
-    public function testAnEnumOffersTheOperatorsItsFieldAllows(): void
+    public function testAnEnumIsAnyOfKeepsItsListAndIsWithSeveralTickedIsAnyOf(): void
     {
-        $operators = static fn (string $allowed): array => FilterRows::operators(new Field('only', FieldType::Enum, 'Only', [$allowed], ['a']));
+        $filter = FilterRows::parse([
+            ['field' => 'state', 'op' => 'is_any_of', 'values' => ['late']],
+            ['field' => 'state', 'op' => 'is', 'values' => ['late', 'open']],
+            ['field' => 'state', 'op' => 'is_none_of', 'values' => ['open']],
+        ], $this->list());
 
-        self::assertSame(['is'], $operators('is'));
-        self::assertSame(['is_not'], $operators('is_not'));
-        self::assertSame(['is_not'], $operators('is_none_of'));
+        self::assertSame([
+            ['field' => 'state', 'op' => 'is_any_of', 'value' => ['late']],
+            ['field' => 'state', 'op' => 'is_any_of', 'value' => ['open', 'late']],
+            ['field' => 'state', 'op' => 'is_none_of', 'value' => ['open']],
+        ], $filter->toArray()['conditions']);
+        self::assertSame('is_none_of', FilterRows::row($filter->conditions[2], $this->list()->fields['state'])['op']);
+    }
+
+    public function testASetIsTickedWithItsOperatorAndATextTakesNoValueWhenItChecksEmptiness(): void
+    {
+        $list = $this->list();
+        $filter = FilterRows::parse([
+            ['field' => 'tags', 'op' => 'has_all_of', 'values' => ['b', 'a', 'x']],
+            ['field' => 'tags', 'op' => 'has_none_of', 'values' => []],
+            ['field' => 'tags', 'op' => 'is_empty'],
+            ['field' => 'note', 'op' => 'is_not_empty', 'value' => 'ignored'],
+            ['field' => 'note', 'op' => 'is_not', 'value' => ' x '],
+        ], $list);
+
+        self::assertSame([
+            ['field' => 'tags', 'op' => 'has_all_of', 'value' => ['a', 'b']],
+            ['field' => 'tags', 'op' => 'is_empty'],
+            ['field' => 'note', 'op' => 'is_not_empty'],
+            ['field' => 'note', 'op' => 'is_not', 'value' => 'x'],
+        ], $filter->toArray()['conditions']);
+        $row = FilterRows::row($filter->conditions[0], $list->fields['tags']);
+        self::assertSame(['has_all_of', ['a', 'b']], [$row['op'], $row['values']]);
     }
 
     private function list(): ListDefinition
@@ -190,6 +221,7 @@ final class FilterRowsTest extends TestCase
             new Field('amount', FieldType::Number, 'Amount'),
             new Field('due', FieldType::Date, 'Due'),
             new Field('note', FieldType::Text, 'Note'),
+            new Field('tags', FieldType::MultiEnum, 'Tags', options: ['a', 'b']),
         ], [new DefaultView('all', 'All', new ViewFilter())]);
     }
 }

@@ -72,7 +72,7 @@ final readonly class FilterSheet
         }
 
         return ['chips' => $chips, 'builder' => [
-            'fields' => array_values(array_map(fn (Field $field): array => $this->fieldView($field, $references), array_filter($list->fields, static fn (Field $field): bool => FieldType::Text !== $field->type))),
+            'fields' => array_values(array_map(fn (Field $field): array => $this->fieldView($field, $references), $list->fields)),
             'rows' => $rows,
             'kept' => $kept,
             'rules' => $this->rules(),
@@ -133,7 +133,7 @@ final readonly class FilterSheet
     {
         $value = $condition->value;
         $text = match ($field->type) {
-            FieldType::Enum => implode(', ', array_map(fn (mixed $option): string => \is_string($option) ? $this->trans($field->optionLabels[$option] ?? $option) : '', \is_array($value) ? $value : [$value])),
+            FieldType::Enum, FieldType::MultiEnum => implode(', ', array_map(fn (mixed $option): string => \is_string($option) ? $this->trans($field->optionLabels[$option] ?? $option) : '', \is_array($value) ? $value : [$value])),
             FieldType::Boolean => $this->translator->trans(true === $value ? 'ui.view_filter.yes' : 'ui.view_filter.no'),
             FieldType::Reference => \is_array($value)
                 ? implode(', ', array_map(fn (mixed $id): string => $this->name($field, \is_string($id) ? $id : '', $references), $value))

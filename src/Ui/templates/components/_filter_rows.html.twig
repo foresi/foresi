@@ -19,13 +19,17 @@
         </div>
         <input type="hidden" name="{{ name }}[field]" value="{{ field.key }}">
         <twig:Ui:Select :name="name ~ '[op]'" :id="id ~ '-op'" :label="'ui.view_filter.condition'|trans" :options="blank ? {'': 'ui.view_filter.none'|trans}|merge(field.ops) : field.ops" :value="row.op" data-filter-op />
-        {% if field.type == 'enum' %}
+        {% if field.type in ['enum', 'multi_enum'] %}
             <fieldset class="m-0 grid gap-2 border-0 p-0" data-hide-op="{{ empty }}">
                 <legend class="mb-1 text-small text-muted">{{ 'ui.view_filter.value'|trans }}</legend>
                 {% for value, label in field.options %}
                     <twig:Ui:Checkbox :name="name ~ '[values][]'" :id="id ~ '-v-' ~ loop.index" :label="label" :value="value" :checked="value in row.values" />
                 {% endfor %}
             </fieldset>
+        {% elseif field.type == 'text' %}
+            <div data-hide-op="{{ empty }}">
+                <twig:Ui:TextInput :name="name ~ '[value]'" :id="id ~ '-value'" :label="'ui.view_filter.value'|trans" :value="row.value" autocomplete="off" />
+            </div>
         {% elseif field.type == 'boolean' %}
             <twig:Ui:Select :name="name ~ '[value]'" :id="id ~ '-value'" :label="'ui.view_filter.value'|trans" :options="field.options" :value="row.value" />
         {% elseif field.type == 'reference' %}

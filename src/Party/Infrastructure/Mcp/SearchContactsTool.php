@@ -31,7 +31,7 @@ use Foresi\Shared\Infrastructure\View\Api\ViewJson;
  */
 final readonly class SearchContactsTool implements ReadTool
 {
-    public function __construct(private ContactList $list, private ToolArguments $arguments, private SavedViews $views, private ScopeGuard $scope, private ViewJson $json)
+    public function __construct(private ContactList $list, private ToolArguments $arguments, private SavedViews $views, private ScopeGuard $scope, private ViewJson $json, private ContactLists $lists)
     {
     }
 
@@ -95,7 +95,7 @@ final readonly class SearchContactsTool implements ReadTool
             throw new ToolRefusal(ToolRefusal::INSUFFICIENT_SCOPE, \sprintf('The token does not have the "%s" scope a saved view needs.', AppliedView::VIEWS_SCOPE));
         }
         try {
-            $applied = AppliedView::of($this->views, $this->scope, ContactLists::list(), $viewId, $arguments['filter'] ?? null);
+            $applied = AppliedView::of($this->views, $this->scope, $this->lists->list(), $viewId, $arguments['filter'] ?? null);
             $slice = $this->list->slice($query->filter($applied->filter), $afterId, $query->limit);
         } catch (SavedViewRefused $refused) {
             throw ToolRefusal::of($refused);

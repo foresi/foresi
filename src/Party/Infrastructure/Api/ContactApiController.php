@@ -35,7 +35,7 @@ final readonly class ContactApiController
     public const string LIST = 'api_v1_contacts';
     public const string SHOW = 'api_v1_contact';
 
-    public function __construct(private ScopeGuard $scope, private ContactList $list, private ContactDetails $details, private SavedViews $views, private ViewJson $json)
+    public function __construct(private ScopeGuard $scope, private ContactList $list, private ContactDetails $details, private SavedViews $views, private ViewJson $json, private ContactLists $lists)
     {
     }
 
@@ -51,7 +51,7 @@ final readonly class ContactApiController
     public function list(#[MapQueryString(validationFailedStatusCode: 400)] ContactListQuery $query): JsonResponse
     {
         $this->scope->require(self::READ_SCOPE);
-        $applied = AppliedView::of($this->views, $this->scope, ContactLists::list(), $query->view, $query->filter);
+        $applied = AppliedView::of($this->views, $this->scope, $this->lists->list(), $query->view, $query->filter);
         $slice = $this->list->slice($query->filter($applied->filter), Cursor::decode($query->cursor), $query->limit);
 
         return new JsonResponse([

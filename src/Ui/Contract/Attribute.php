@@ -22,13 +22,20 @@ use Foresi\Shared\Domain\View\AttributeType;
  * written back under the key.
  *
  * Sort is the DQL expression the list's query orders by; an attribute without one is not
- * sortable (DS10). An attribute is shown by default only when defaultVisible; the rest is what
+ * sortable (DS10). A filterable attribute is a field of the list's saved views too (D4), its
+ * operators those of its type: its conditions compare its filter expression, its sort unless
+ * it names another, read within a correlated related row when "within" names one, such as an
+ * e-mail of a contact. An enum may give a value a badge tone, neutral unless it does. An attribute is shown by default only when defaultVisible; the rest is what
  * a person can add (DS5). A locked attribute, the one that names the row, cannot be hidden.
  */
 final readonly class Attribute
 {
     public const int MIN_WIDTH = 64;
     public const string KEY = '/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*$/';
+    /** The tone of an enum's value that names none: Ui:Badge's neutral gray. */
+    public const string NEUTRAL = 'gray';
+    /** The tones an enum's value may take besides the neutral one, as Ui:Badge shows them. */
+    public const array TONES = ['gray', 'green', 'amber', 'red'];
     /** The column keys before the catalogue, kept as aliases (camelCase). */
     private const string ALIAS = '/^[a-z][A-Za-z0-9_.]*$/';
 
@@ -53,6 +60,10 @@ final readonly class Attribute
      * @param bool                                        $wide         true shows the column on a wide screen only
      * @param bool                                        $truncate     true lets the column give way, cut with an ellipsis
      * @param (callable(array<string, mixed>): bool)|null $available    whether the list's context offers the attribute at all
+     * @param bool                                        $filterable   true makes the attribute a field of the list's filters
+     * @param string|null                                 $filter       the DQL expression a condition compares; null compares the sort
+     * @param string|null                                 $within       a correlated "<entity> <alias> WHERE <correlation>" the filter reads in, for a value of a related row
+     * @param array<string, string>                       $tones        of an enum: the badge tone of a value (one of TONES), by value; the rest is neutral
      */
     public function __construct(
         public string $key,
@@ -72,6 +83,10 @@ final readonly class Attribute
         public bool $wide = false,
         public bool $truncate = false,
         ?callable $available = null,
+        public bool $filterable = false,
+        public ?string $filter = null,
+        public ?string $within = null,
+        public array $tones = [],
     ) {
         if (1 !== preg_match(self::KEY, $key)) {
             throw new \InvalidArgumentException(\sprintf('An attribute key is a stable snake_case identifier such as "due_date", not "%s".', $key));
@@ -93,8 +108,18 @@ final readonly class Attribute
         if ('' === $sort) {
             throw new \InvalidArgumentException('A sort expression cannot be empty; leave it null for an attribute the server does not sort by.');
         }
-        if ((AttributeType::Enum === $type) !== ([] !== $options)) {
+        $enum = \in_array($type, [AttributeType::Enum, AttributeType::MultiEnum], true);
+        if ($enum !== ([] !== $options)) {
             throw new \InvalidArgumentException(\sprintf('Attribute "%s": an enum lists its values with their labels, and only an enum does.', $key));
+        }
+        if ([] !== array_diff_key($tones, $options) || [] !== array_diff($tones, self::TONES)) {
+            throw new \InvalidArgumentException(\sprintf('Attribute "%s": a tone is one of %s, of a value of the enum.', $key, implode(', ', self::TONES)));
+        }
+        if ('' === $filter || '' === $within) {
+            throw new \InvalidArgumentException(\sprintf('Attribute "%s": a filter expression cannot be empty.', $key));
+        }
+        if ($filterable && null === ($filter ?? $sort)) {
+            throw new \InvalidArgumentException(\sprintf('Attribute "%s" is filterable by an expression, its filter or its sort.', $key));
         }
         $this->value = \Closure::fromCallable($value);
         $this->cell = null === $cell ? null : \Closure::fromCallable($cell);
@@ -135,5 +160,21 @@ final readonly class Attribute
     public function sortable(): bool
     {
         return null !== $this->sort;
+    }
+
+    /**
+     * The DQL expression a filter condition compares; null when the attribute is not filterable.
+     */
+    public function filterExpression(): ?string
+    {
+        return $this->filterable ? $this->filter ?? $this->sort : null;
+    }
+
+    /**
+     * The badge tone of an enum's value: its own, or neutral.
+     */
+    public function tone(string $value): string
+    {
+        return $this->tones[$value] ?? self::NEUTRAL;
     }
 }

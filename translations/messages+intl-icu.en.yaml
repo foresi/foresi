@@ -166,6 +166,11 @@ ui:
       on_or_after: on or after
       contains: contains
       does_not_contain: does not contain
+      is_any_of: is any of
+      is_none_of: is none of
+      has_any_of: has any of
+      has_all_of: has all of
+      has_none_of: has none of
     op:
       is: '{value}'
       is_not: 'not {value}'
@@ -186,6 +191,9 @@ ui:
       on_or_after: 'on or after {value}'
       contains: 'contains {value}'
       does_not_contain: 'does not contain {value}'
+      has_any_of: 'has any of {value}'
+      has_all_of: 'has all of {value}'
+      has_none_of: 'has none of {value}'
     rule:
       day: Exact date
       month: Month

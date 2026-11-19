@@ -166,6 +166,11 @@ ui:
       on_or_after: nejdříve
       contains: obsahuje
       does_not_contain: neobsahuje
+      is_any_of: je některé z
+      is_none_of: není žádné z
+      has_any_of: má některé z
+      has_all_of: má všechny z
+      has_none_of: nemá žádné z
     op:
       is: '{value}'
       is_not: 'není {value}'
@@ -186,6 +191,9 @@ ui:
       on_or_after: 'nejdříve {value}'
       contains: 'obsahuje {value}'
       does_not_contain: 'neobsahuje {value}'
+      has_any_of: 'má některé z: {value}'
+      has_all_of: 'má všechny z: {value}'
+      has_none_of: 'nemá žádné z: {value}'
     rule:
       day: Přesné datum
       month: Měsíc

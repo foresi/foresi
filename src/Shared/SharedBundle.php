@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Shared;
 
 use Foresi\Shared\Application\SystemMail;
+use Foresi\Shared\Infrastructure\Doctrine\CastTextFunction;
 use Foresi\Shared\Infrastructure\Module\ModuleBundle;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -28,6 +29,8 @@ final class SharedBundle extends ModuleBundle
 
     protected function prepend(ContainerConfigurator $container, ContainerBuilder $builder): void
     {
+        // A JSON list column, such as a contact's roles, is matched as text (DqlConditions).
+        $builder->prependExtensionConfig('doctrine', ['orm' => ['dql' => ['string_functions' => ['CAST_TEXT' => CastTextFunction::class]]]]);
         if ('test' === $container->env()) {
             // The entities only the tests of this module map.
             $builder->prependExtensionConfig('doctrine', ['orm' => ['mappings' => ['SharedFixtures' => [

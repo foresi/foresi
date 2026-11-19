@@ -43,6 +43,20 @@ final class DqlConditionsTest extends TestCase
         yield 'number between, inclusive' => ['total', 'between', ['from' => 1, 'to' => 9], 'x.total >= :v_0_from AND x.total <= :v_0_to', ['v_0_from' => [1, null], 'v_0_to' => [9, null]]];
         yield 'boolean' => ['archived', 'is', true, 'x.archived = :v_0', ['v_0' => [true, Types::BOOLEAN]]];
         yield 'date is empty' => ['due', 'is_empty', null, 'x.due IS NULL', []];
+        yield 'date is not empty' => ['due', 'is_not_empty', null, 'x.due IS NOT NULL', []];
+        yield 'number is not empty' => ['total', 'is_not_empty', null, 'x.total IS NOT NULL', []];
+        yield 'text is not keeps the empty' => ['name', 'is_not', 'Acme', '(x.name IS NULL OR x.name <> :v_0)', ['v_0' => ['Acme', null]]];
+        yield 'text is not empty' => ['name', 'is_not_empty', null, '(x.name IS NOT NULL AND x.name <> \'\')', []];
+        yield 'an expression of the field' => ['city', 'is', 'Brno', 'x.city = :v_0', ['v_0' => ['Brno', null]]];
+        yield 'a set has any of' => ['tags', 'has_any_of', ['a', 'b'], '(CAST_TEXT(x.tags) LIKE :v_0_0 ESCAPE \'!\' OR CAST_TEXT(x.tags) LIKE :v_0_1 ESCAPE \'!\')', ['v_0_0' => ['%"a"%', null], 'v_0_1' => ['%"b"%', null]]];
+        yield 'a set has all of' => ['tags', 'has_all_of', ['a', 'b'], '(CAST_TEXT(x.tags) LIKE :v_0_0 ESCAPE \'!\' AND CAST_TEXT(x.tags) LIKE :v_0_1 ESCAPE \'!\')', ['v_0_0' => ['%"a"%', null], 'v_0_1' => ['%"b"%', null]]];
+        yield 'a set has none of keeps the blank' => ['tags', 'has_none_of', ['a'], '(x.tags IS NULL OR NOT (CAST_TEXT(x.tags) LIKE :v_0_0 ESCAPE \'!\'))', ['v_0_0' => ['%"a"%', null]]];
+        yield 'a set is empty' => ['tags', 'is_empty', null, '(x.tags IS NULL OR CAST_TEXT(x.tags) = \'[]\')', []];
+        yield 'a set is not empty' => ['tags', 'is_not_empty', null, 'NOT (x.tags IS NULL OR CAST_TEXT(x.tags) = \'[]\')', []];
+        yield 'a related row matches' => ['email', 'contains', 'acme', 'EXISTS (SELECT 1 FROM App\\Email e_v_0 WHERE e_v_0.owner = x AND LOWER(e_v_0.address) LIKE :v_0 ESCAPE \'!\')', ['v_0' => ['%acme%', null]]];
+        yield 'no related row matches' => ['email', 'does_not_contain', 'acme', 'NOT EXISTS (SELECT 1 FROM App\\Email e_v_0 WHERE e_v_0.owner = x AND LOWER(e_v_0.address) LIKE :v_0 ESCAPE \'!\')', ['v_0' => ['%acme%', null]]];
+        yield 'no related row has a value' => ['email', 'is_empty', null, 'NOT EXISTS (SELECT 1 FROM App\\Email e_v_0 WHERE e_v_0.owner = x AND (e_v_0.address IS NOT NULL AND e_v_0.address <> \'\'))', []];
+        yield 'an amount in whole units against minor ones' => ['price', 'ge', 12.5, 'x.priceMinor >= :v_0', ['v_0' => [1250, null]]];
     }
 
     /**
@@ -119,6 +133,10 @@ final class DqlConditionsTest extends TestCase
             new Field('total', FieldType::Number, 'Total'),
             new Field('archived', FieldType::Boolean, 'Archived'),
             new Field('due', FieldType::Date, 'Due'),
+            new Field('city', FieldType::Text, 'City', expression: 'x.city'),
+            new Field('tags', FieldType::MultiEnum, 'Tags', options: ['a', 'b'], expression: 'x.tags'),
+            new Field('email', FieldType::Text, 'E-mail', expression: 'e.address', within: 'App\\Email e WHERE e.owner = x'),
+            new Field('price', FieldType::Number, 'Price', expression: 'x.priceMinor', scale: 100),
         ], [new DefaultView('all', 'All')]);
     }
 }
