@@ -27,13 +27,13 @@ final class BalanceChartTest extends KernelTestCase
     /**
      * @param list<array{0: int, 1: int, 2: int}> $amounts in, out and closing of each period
      */
-    private static function chart(array $amounts, ?int $minimum = null): BalanceChart
+    private function chart(array $amounts, ?int $minimum = null): BalanceChart
     {
         $chart = new BalanceChart(new LocaleSwitcher('en', []));
         $chart->label = 'Money in and out';
         $chart->legend = self::LEGEND;
         $chart->minimum = $minimum;
-        $chart->periods = self::periods($amounts);
+        $chart->periods = $this->periods($amounts);
         $chart->validate();
 
         return $chart;
@@ -44,7 +44,7 @@ final class BalanceChartTest extends KernelTestCase
      *
      * @return list<array<string, mixed>>
      */
-    private static function periods(array $amounts): array
+    private function periods(array $amounts): array
     {
         return array_map(static fn (array $a, int $i): array => [
             'label' => 'P'.$i, 'in' => $a[0], 'out' => $a[1], 'closing' => $a[2],
@@ -54,7 +54,7 @@ final class BalanceChartTest extends KernelTestCase
 
     public function testTheAxisRunsFromZeroToARoundStepAboveTheHighest(): void
     {
-        $chart = self::chart([[48176, 12000, 161176], [30000, 95000, 96176]]);
+        $chart = $this->chart([[48176, 12000, 161176], [30000, 95000, 96176]]);
 
         $ticks = $chart->ticks();
 
@@ -66,7 +66,7 @@ final class BalanceChartTest extends KernelTestCase
 
     public function testANegativeClosingAndTheMinimumWidenTheAxis(): void
     {
-        $chart = self::chart([[10000, 60000, -35000]], minimum: 250000);
+        $chart = $this->chart([[10000, 60000, -35000]], minimum: 250000);
 
         $texts = array_column($chart->ticks(), 'text');
 
@@ -81,7 +81,7 @@ final class BalanceChartTest extends KernelTestCase
 
     public function testEachPeriodHasTwoColumnsFromTheBaselineAndAPointOfItsClosing(): void
     {
-        $chart = self::chart([[100, 50, 200], [0, 100, 100]]);
+        $chart = $this->chart([[100, 50, 200], [0, 100, 100]]);
         $columns = $chart->columns();
         $base = $chart->y(0);
 
@@ -101,14 +101,14 @@ final class BalanceChartTest extends KernelTestCase
 
     public function testTheLineJoinsTheClosingsFromLeftToRight(): void
     {
-        $chart = self::chart([[0, 0, 100], [0, 0, 300]]);
+        $chart = $this->chart([[0, 0, 100], [0, 0, 300]]);
 
         self::assertMatchesRegularExpression('/^M116,[\d.]+ L188,[\d.]+$/', $chart->line());
     }
 
     public function testAFlatForecastStillHasAnAxis(): void
     {
-        $chart = self::chart([[0, 0, 0]]);
+        $chart = $this->chart([[0, 0, 0]]);
 
         self::assertSame(['0', '1'], array_column($chart->ticks(), 'text'));
     }
@@ -120,7 +120,7 @@ final class BalanceChartTest extends KernelTestCase
             'legend' => self::LEGEND,
             'minimum' => 50000,
             'minimumText' => '50 000 Kč',
-            'periods' => [...self::periods([[48176, 12000, 161176]]), ['label' => 'Dec', 'in' => 0, 'out' => 90000, 'closing' => 40000, 'inText' => '0 Kč', 'outText' => '90 000 Kč', 'closingText' => '40 000 Kč', 'below' => true]],
+            'periods' => [...$this->periods([[48176, 12000, 161176]]), ['label' => 'Dec', 'in' => 0, 'out' => 90000, 'closing' => 40000, 'inText' => '0 Kč', 'outText' => '90 000 Kč', 'closingText' => '40 000 Kč', 'below' => true]],
         ]);
 
         self::assertStringContainsString('role="img" aria-label="Money in and out by month"', $html);
@@ -136,7 +136,7 @@ final class BalanceChartTest extends KernelTestCase
 
     public function testWithoutAMinimumThereIsNoDashedLine(): void
     {
-        $html = (string) $this->renderTwigComponent('Ui:BalanceChart', ['label' => 'Chart', 'legend' => self::LEGEND, 'periods' => self::periods([[1, 2, 3]])]);
+        $html = (string) $this->renderTwigComponent('Ui:BalanceChart', ['label' => 'Chart', 'legend' => self::LEGEND, 'periods' => $this->periods([[1, 2, 3]])]);
 
         self::assertStringNotContainsString('data-series="minimum"', $html);
     }
@@ -144,7 +144,7 @@ final class BalanceChartTest extends KernelTestCase
     public function testRefusesAChartWithoutPeriodsOrWithNegativeFlows(): void
     {
         $this->expectException(\Throwable::class);
-        $this->renderTwigComponent('Ui:BalanceChart', ['label' => 'Chart', 'legend' => self::LEGEND, 'periods' => self::periods([[-1, 2, 3]])]);
+        $this->renderTwigComponent('Ui:BalanceChart', ['label' => 'Chart', 'legend' => self::LEGEND, 'periods' => $this->periods([[-1, 2, 3]])]);
     }
 
     public function testRefusesAChartWithoutPeriods(): void

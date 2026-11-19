@@ -70,7 +70,7 @@ final readonly class ForecastScreen
         $lastDay = $lastWeek->modify('+6 days');
         $months = ((int) $lastDay->format('Y') - (int) $today->format('Y')) * 12 + (int) $lastDay->format('n') - (int) $today->format('n') + 1;
 
-        return self::weeksOnly($this->forecasts->of(null, $months, $lastWeek->format('Y-m-d')));
+        return $this->weeksOnly($this->forecasts->of(null, $months, $lastWeek->format('Y-m-d')));
     }
 
     /**
@@ -104,13 +104,13 @@ final readonly class ForecastScreen
     {
         $periods = [];
         foreach ($forecast->periods as $index => $period) {
-            $in = self::total($period->inflows, $period->opening);
-            $out = self::total($period->outflows, $period->opening);
+            $in = $this->total($period->inflows, $period->opening);
+            $out = $this->total($period->outflows, $period->opening);
             $periods[] = [
                 'label' => $this->shortLabel($period, 0 === $index),
-                'in' => self::units($in),
-                'out' => self::units($out),
-                'closing' => self::units($period->closing),
+                'in' => $this->units($in),
+                'out' => $this->units($out),
+                'closing' => $this->units($period->closing),
                 'inText' => $this->whole($in),
                 'outText' => $this->whole($out),
                 'closingText' => $this->whole($period->closing),
@@ -121,7 +121,7 @@ final readonly class ForecastScreen
 
         return [
             'periods' => $periods,
-            'minimum' => $forecast->minimum instanceof Money ? self::units($forecast->minimum) : null,
+            'minimum' => $forecast->minimum instanceof Money ? $this->units($forecast->minimum) : null,
             'minimumText' => $forecast->minimum instanceof Money ? $this->whole($forecast->minimum) : null,
             'label' => $this->trans($weeks ? 'cash_flow.chart.label_weeks' : 'cash_flow.chart.label_months'),
             'legend' => [
@@ -434,7 +434,7 @@ final readonly class ForecastScreen
      * lowest point; a lowest point after them is found again within the weeks,
      * by the balance at the end of each day as Forecasts::of() finds it.
      */
-    private static function weeksOnly(Forecast $forecast): Forecast
+    private function weeksOnly(Forecast $forecast): Forecast
     {
         $periods = array_values(array_filter($forecast->periods, static fn (PeriodForecast $period): bool => PeriodKind::Week === $period->period->kind));
         if ([] === $periods) {
@@ -444,7 +444,7 @@ final readonly class ForecastScreen
         $shortfallOn = $forecast->shortfallOn instanceof \DateTimeImmutable && $forecast->shortfallOn <= $end ? $forecast->shortfallOn : null;
         // The lowest of the whole horizon is the lowest of the weeks when it falls in them.
         if ($forecast->lowestOn <= $end) {
-            return self::withPeriods($forecast, $periods, $forecast->lowest, $forecast->lowestOn, $shortfallOn);
+            return $this->withPeriods($forecast, $periods, $forecast->lowest, $forecast->lowestOn, $shortfallOn);
         }
         $running = $periods[0]->opening;
         $lowest = $running;
@@ -465,13 +465,13 @@ final readonly class ForecastScreen
             $running = $period->closing;
         }
 
-        return self::withPeriods($forecast, $periods, $lowest, $lowestOn, $shortfallOn);
+        return $this->withPeriods($forecast, $periods, $lowest, $lowestOn, $shortfallOn);
     }
 
     /**
      * @param list<PeriodForecast> $periods
      */
-    private static function withPeriods(Forecast $forecast, array $periods, Money $lowest, \DateTimeImmutable $lowestOn, ?\DateTimeImmutable $shortfallOn): Forecast
+    private function withPeriods(Forecast $forecast, array $periods, Money $lowest, \DateTimeImmutable $lowestOn, ?\DateTimeImmutable $shortfallOn): Forecast
     {
         return new Forecast(
             $forecast->firm,
@@ -495,7 +495,7 @@ final readonly class ForecastScreen
     /**
      * @param array<string, Money> $flows by category
      */
-    private static function total(array $flows, Money $zeroOf): Money
+    private function total(array $flows, Money $zeroOf): Money
     {
         return array_reduce($flows, static fn (Money $sum, Money $flow): Money => $sum->plus($flow), Money::ofMinor(0, $zeroOf->currency()));
     }
@@ -503,7 +503,7 @@ final readonly class ForecastScreen
     /**
      * Whole units, rounded half away from zero, as whole() writes them.
      */
-    private static function units(Money $money): int
+    private function units(Money $money): int
     {
         $minor = $money->minor();
 
@@ -515,7 +515,7 @@ final readonly class ForecastScreen
      */
     private function whole(Money $money): string
     {
-        $units = self::units($money);
+        $units = $this->units($money);
         $formatter = new \NumberFormatter($this->locales->getLocale(), \NumberFormatter::DECIMAL);
         $formatter->setAttribute(\NumberFormatter::FRACTION_DIGITS, 0);
 

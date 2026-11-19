@@ -158,8 +158,8 @@ final class BalanceChart
                 'below' => $period['below'],
                 'x' => $x,
                 'centre' => $centre,
-                'inPath' => self::bar($centre - self::GAP / 2 - self::BAR, $this->y($period['in']), $base),
-                'outPath' => self::bar($centre + self::GAP / 2, $this->y($period['out']), $base),
+                'inPath' => $this->bar($centre - self::GAP / 2 - self::BAR, $this->y($period['in']), $base),
+                'outPath' => $this->bar($centre + self::GAP / 2, $this->y($period['out']), $base),
                 'closingY' => $this->y($period['closing']),
             ];
         }
@@ -185,7 +185,7 @@ final class BalanceChart
     /**
      * A column from the baseline up to its top, rounded at the top only; null for nothing.
      */
-    private static function bar(float $x, float $top, float $base): ?string
+    private function bar(float $x, float $top, float $base): ?string
     {
         $height = $base - $top;
         if ($height < 0.5) {
@@ -212,7 +212,9 @@ final class BalanceChart
     {
         $values = [0];
         foreach ($this->views as $period) {
-            array_push($values, $period['in'], $period['out'], $period['closing']);
+            $values[] = $period['in'];
+            $values[] = $period['out'];
+            $values[] = $period['closing'];
         }
         if (null !== $this->minimum) {
             $values[] = $this->minimum;
@@ -223,7 +225,7 @@ final class BalanceChart
             $high = $low + 1;
         }
         // Whole units: no gridline falls between two crowns.
-        $this->step = max(1.0, self::niceStep(($high - $low) / 4));
+        $this->step = max(1.0, $this->niceStep(($high - $low) / 4));
         $this->low = floor($low / $this->step) * $this->step;
         $this->high = ceil($high / $this->step) * $this->step;
     }
@@ -231,7 +233,7 @@ final class BalanceChart
     /**
      * 1, 2, 2.5 or 5 times a power of ten, the steps people read at a glance.
      */
-    private static function niceStep(float $raw): float
+    private function niceStep(float $raw): float
     {
         $magnitude = 10 ** floor(log10($raw));
         $normal = $raw / $magnitude;

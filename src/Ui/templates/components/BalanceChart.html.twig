@@ -20,7 +20,8 @@
         <li class="inline-flex items-center gap-1.5"><span class="h-0.5 w-4 rounded-sm bg-ink" aria-hidden="true"></span>{{ legend.closing }}</li>
         {% if minimumY is not null %}<li class="inline-flex items-center gap-1.5"><span class="w-4 border-t-2 border-dashed border-badge-red-text" aria-hidden="true"></span>{{ legend.minimum }}{% if minimumText %} {{ minimumText }}{% endif %}</li>{% endif %}
     </ul>
-    <div class="relative overflow-x-auto" data-balance-chart-target="frame">
+    {# Scrolled sideways on a phone, so the frame takes the keyboard focus (axe scrollable-region-focusable). #}
+    <div class="relative overflow-x-auto rounded-sm {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" role="region" aria-label="{{ label }}" tabindex="0" data-balance-chart-target="frame">
         <svg viewBox="0 0 {{ chart.width }} {{ chart.height }}" width="{{ chart.width }}" height="{{ chart.height }}" role="img" aria-label="{{ label }}" class="block h-auto w-full min-w-190 select-none" data-balance-chart>
             <g aria-hidden="true">
                 {% for tick in chart.ticks %}
