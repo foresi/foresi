@@ -43,7 +43,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final readonly class ContactSource implements DataSource, RelationTarget
 {
-    public const string LIST = Contacts::LIST;
+    public const string LIST = 'party.contacts';
 
     /** Every contact has a status: active unless archived or an unreliable VAT payer. */
     private const array STATUSES = ['active' => 'party.active', 'unreliable' => 'registry.result.unreliable', 'archived' => 'party.archived'];
