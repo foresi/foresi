@@ -46,7 +46,7 @@ final readonly class RowConditions
 
     private static function matches(Field $field, Condition $condition, mixed $actual, \DateTimeImmutable $today): bool
     {
-        $empty = null === $actual || (FieldType::Text === $field->type && '' === $actual) || (FieldType::MultiEnum === $field->type && [] === $actual);
+        $empty = null === $actual || (FieldType::Text === $field->type && '' === $actual) || (\in_array($field->type, [FieldType::MultiEnum, FieldType::Relation], true) && [] === $actual);
 
         return match ($condition->op) {
             'is_empty' => $empty,
@@ -58,6 +58,8 @@ final readonly class RowConditions
                 FieldType::Text => self::text($condition, \is_string($actual) ? $actual : null),
                 FieldType::Number => !$empty && self::number($condition, $actual),
                 FieldType::Date => $actual instanceof \DateTimeImmutable && self::date($condition, $actual, $today),
+                // A relation takes the emptiness checks alone: a row holds its related records as a list.
+                FieldType::Relation => false,
             },
         };
     }

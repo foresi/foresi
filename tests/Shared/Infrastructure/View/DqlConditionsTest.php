@@ -57,6 +57,9 @@ final class DqlConditionsTest extends TestCase
         yield 'no related row matches' => ['email', 'does_not_contain', 'acme', 'NOT EXISTS (SELECT 1 FROM App\\Email e_v_0 WHERE e_v_0.owner = x AND LOWER(e_v_0.address) LIKE :v_0 ESCAPE \'!\')', ['v_0' => ['%acme%', null]]];
         yield 'the related row is the alias itself' => ['invoice', 'is', 'A1', 'EXISTS (SELECT 1 FROM App\\Invoice si_v_0 WHERE si_v_0 = x.invoice AND si_v_0.number = :v_0)', ['v_0' => ['A1', null]]];
         yield 'no related row has a value' => ['email', 'is_empty', null, 'NOT EXISTS (SELECT 1 FROM App\\Email e_v_0 WHERE e_v_0.owner = x AND (e_v_0.address IS NOT NULL AND e_v_0.address <> \'\'))', []];
+        yield 'a related record\'s related row matches' => ['customer.city', 'contains', 'brno', 'EXISTS (SELECT 1 FROM App\\Party p_v_0, App\\Address a_v_0 WHERE (p_v_0 = x.customer) AND (a_v_0.party = p_v_0) AND LOWER(a_v_0.city) LIKE :v_0 ESCAPE \'!\')', ['v_0' => ['%brno%', null]]];
+        yield 'a relation has some' => ['projects', 'is_not_empty', null, 'EXISTS (SELECT 1 FROM App\\Project wp_v_0 WHERE wp_v_0.client = x)', []];
+        yield 'a relation has none' => ['projects', 'is_empty', null, 'NOT EXISTS (SELECT 1 FROM App\\Project wp_v_0 WHERE wp_v_0.client = x)', []];
         yield 'an amount in whole units against minor ones' => ['price', 'ge', 12.5, 'x.priceMinor >= :v_0', ['v_0' => [1250, null]]];
     }
 
@@ -139,6 +142,8 @@ final class DqlConditionsTest extends TestCase
             new Field('email', FieldType::Text, 'E-mail', expression: 'e.address', within: 'App\\Email e WHERE e.owner = x'),
             new Field('invoice', FieldType::Text, 'Invoice', expression: 'si.number', within: 'App\\Invoice si WHERE si = x.invoice'),
             new Field('price', FieldType::Number, 'Price', expression: 'x.priceMinor', scale: 100),
+            new Field('customer.city', FieldType::Text, 'City', expression: 'a.city', within: 'App\\Party p, App\\Address a WHERE (p = x.customer) AND (a.party = p)', group: 'Customer'),
+            new Field('projects', FieldType::Relation, 'Projects', within: 'App\\Project wp WHERE wp.client = x'),
         ], [new DefaultView('all', 'All')]);
     }
 }

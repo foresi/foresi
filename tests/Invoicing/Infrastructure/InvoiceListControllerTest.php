@@ -1726,6 +1726,29 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame([$hosting->number()], $shown(['field' => 'issue_date', 'op' => 'before', 'from' => ['rule' => 'day', 'day' => '2026-11-03']]));
     }
 
+    public function testTheAttributesOfTheCustomerContactAreFieldsOfTheBuilder(): void
+    {
+        // The live contact through the relation (spec DS6), beside the invoice's own copy of it.
+        $this->signedIn();
+        $example = $this->issue('2026-11-02', '2026-12-01');
+        $other = $this->issue('2026-11-05', '2026-12-05', customer: $this->customerNamed('Other Example s.r.o.'));
+
+        $shown = function (array $condition): array {
+            $this->client->request('GET', '/invoices?'.http_build_query(['conditions' => '1', 'c' => [$condition]]));
+
+            return $this->numbers($this->client->followRedirect());
+        };
+
+        self::assertSame([$other->number()], $shown(['field' => 'customer.name', 'op' => 'contains', 'value' => 'OTHER']));
+        self::assertSame([$other->number()], $shown(['field' => 'customer.vat_id', 'op' => 'is_empty']));
+        self::assertSame([$example->number()], $shown(['field' => 'customer.vat_id', 'op' => 'is', 'value' => 'CZ87654320']));
+        // A target attribute in a row of its own, the contact's billing address.
+        self::assertSame([$other->number(), $example->number()], $shown(['field' => 'customer.billing_city', 'op' => 'is', 'value' => 'Customer City']));
+        self::assertSame([], $shown(['field' => 'customer.billing_city', 'op' => 'does_not_contain', 'value' => 'customer']));
+        $crawler = $this->client->getCrawler();
+        self::assertSame(['Customer: Billing city: does not contain customer'], $crawler->filter('[data-filter-chips] [data-filter-condition] span')->each(static fn (Crawler $chip): string => $chip->text()));
+    }
+
     public function testAnAddressWithABrokenFilterShowsTheView(): void
     {
         $this->signedIn();

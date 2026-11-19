@@ -55,7 +55,7 @@ final readonly class FilterSheet
             }
             $others = $filter->conditions;
             unset($others[$index]);
-            $label = $this->trans($field->label);
+            $label = $this->label($field);
             $text = $this->conditionText($condition, $field, $references);
             $chips[] = [
                 'label' => $this->translator->trans('ui.view_filter.chip', ['field' => $label, 'condition' => $text]),
@@ -90,7 +90,8 @@ final readonly class FilterSheet
     {
         $ops = [];
         foreach (FilterRows::operators($field) as $op) {
-            $ops[$op] = $this->translator->trans('ui.view_filter.op_label.'.$op);
+            // A relation reads "has at least one" and "has none" (Airtable, HubSpot).
+            $ops[$op] = $this->translator->trans('ui.view_filter.op_label.'.(FieldType::Relation === $field->type ? 'relation.' : '').$op);
         }
         $options = [];
         foreach ($field->options as $option) {
@@ -99,12 +100,12 @@ final readonly class FilterSheet
 
         return [
             'key' => $field->key,
-            'label' => $this->trans($field->label),
+            'label' => $this->label($field),
             'type' => $field->type->value,
             'ops' => $ops,
             'options' => FieldType::Boolean === $field->type ? ['1' => $this->translator->trans('ui.view_filter.yes'), '0' => $this->translator->trans('ui.view_filter.no')] : $options,
             'url' => null === $field->source ? null : ($references[$field->source]['url'] ?? null),
-            'blank' => FilterRows::blank($field) + ['label' => $this->trans($field->label), 'text' => ''],
+            'blank' => FilterRows::blank($field) + ['label' => $this->label($field), 'text' => ''],
         ];
     }
 
@@ -141,7 +142,11 @@ final readonly class FilterSheet
             FieldType::Text => \is_string($value) ? $value : '',
             FieldType::Number => $this->range($value, $this->number(...)),
             FieldType::Date => $this->range($value, $this->date(...)),
+            FieldType::Relation => '',
         };
+        if (FieldType::Relation === $field->type) {
+            return $this->translator->trans('ui.view_filter.op_label.relation.'.$condition->op);
+        }
         // "Is" reads as the value alone: "Payment state: Unpaid", "Issue date: this month".
         if (\in_array($condition->op, ['is', 'is_any_of'], true)) {
             return $text;
@@ -197,6 +202,16 @@ final readonly class FilterSheet
         $lookup = null === $field->source ? null : ($references[$field->source]['name'] ?? null);
 
         return (null === $lookup ? null : $lookup($id)) ?? $this->translator->trans('ui.view_filter.unknown');
+    }
+
+    /**
+     * The name of a field, after its relation's when it reads through one: "Customer: City".
+     */
+    private function label(Field $field): string
+    {
+        $label = $this->trans($field->label);
+
+        return null === $field->group ? $label : $this->translator->trans('ui.view_filter.related', ['relation' => $this->trans($field->group), 'field' => $label]);
     }
 
     private function trans(string $key): string

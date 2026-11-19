@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 party:
+  relation:
+    contact_persons: Contact persons
   quick:
     title: New customer
     intro: A name and a seat are enough; the rest can follow later.

@@ -50,6 +50,9 @@ series:
     next_below_counter: 'Toto číslo je už použité. Další volné je {next}.'
     kind: Vyberte druh dokladů.
 invoice:
+  relation:
+    customer: Zákazník
+    invoices: Faktury
   links:
     title: Vazby
     advance: Zálohová faktura

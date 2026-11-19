@@ -10,6 +10,8 @@ shared_with_me:
     title: Zatím s vámi nikdo nic nesdílí
     text: Až s vámi organizace začne sdílet práci, najdete ji tady.
 work:
+  relation:
+    projects: Projekty
   status:
     to_do: K udělání
     in_progress: Probíhá

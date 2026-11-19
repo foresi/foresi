@@ -28,7 +28,8 @@ use Foresi\Shared\Application\View\ViewFilter;
  * the module maps only what it stores outside its catalogue. A value of a related row,
  * such as an e-mail of a contact, is read in a correlated subquery: the condition holds
  * when one related row matches, and its negation when none does. A set of an enum's
- * values (multi_enum) is a JSON list column, matched as text.
+ * values (multi_enum) is a JSON list column, matched as text. A relation to many holds
+ * when the row has related rows at all, or none (spec DS6).
  *
  * Each compile names its parameters from its prefix, so one count query can hold
  * the predicates of many views side by side (D9).
@@ -68,7 +69,11 @@ final readonly class DqlConditions
             $name = $prefix.'_'.$index;
             $field = $this->list->fields[$condition->field] ?? null;
             $column = $this->columns[$condition->field] ?? $field?->expression;
-            [$dql, $bound] = null === $column || !$field instanceof Field ? ($this->derived)($condition, $name) : $this->read($condition, $field, $column, $today, $name);
+            [$dql, $bound] = match (true) {
+                $field instanceof Field && FieldType::Relation === $field->type && !isset($this->columns[$condition->field]) => [$this->exists($condition, $field, $name), []],
+                null === $column || !$field instanceof Field => ($this->derived)($condition, $name),
+                default => $this->read($condition, $field, $column, $today, $name),
+            };
             $parts[] = '('.$dql.')';
             $parameters += $bound;
         }
@@ -110,19 +115,50 @@ final readonly class DqlConditions
         if (null === $field->within) {
             return $this->stored($condition, $field, $column, $today, $name);
         }
-        // DQL names every alias once in a query, so each subquery renames its own.
-        if (1 !== preg_match('/^\s*(\S+)\s+([A-Za-z_]\w*)\s+WHERE\s/i', $field->within, $match)) {
-            throw new \LogicException(\sprintf('The field "%s" reads in "<entity> <alias> WHERE <correlation>".', $field->key));
-        }
-        // The alias alone ("si = s.invoice") or with a path ("si.number"), never a path's part or a parameter.
-        $alias = '/(?<![\w.:])'.$match[2].'(?!\w)/';
-        $own = $match[2].'_'.$name;
-        $within = $match[1].' '.$own.' '.preg_replace($alias, $own, substr($field->within, \strlen($match[0]) - 6));
-        $column = (string) preg_replace($alias, $own, $column);
+        [$within, $column] = $this->correlated($field, $column, $name);
         $negated = self::NEGATIONS[$condition->op] ?? null;
         [$dql, $bound] = $this->stored(null === $negated ? $condition : new Condition($condition->field, $negated, $condition->value), $field, $column, $today, $name);
 
         return [(null === $negated ? '' : 'NOT ').'EXISTS (SELECT 1 FROM '.$within.' AND '.$dql.')', $bound];
+    }
+
+    /**
+     * A relation to many: the row has some related rows, or none.
+     */
+    private function exists(Condition $condition, Field $field, string $name): string
+    {
+        [$within] = $this->correlated($field, '', $name);
+
+        return ('is_empty' === $condition->op ? 'NOT ' : '').'EXISTS (SELECT 1 FROM '.$within.')';
+    }
+
+    /**
+     * The related rows a field reads in, and its expression, with each alias they declare
+     * renamed for the condition: DQL names every alias once in a query. A relation to one
+     * record may declare two, its target and a row of the target's ("Party p, PartyAddress a").
+     *
+     * @return array{string, string}
+     */
+    private function correlated(Field $field, string $column, string $name): array
+    {
+        if (1 !== preg_match('/^\s*(.+?)\s+WHERE\s+(.+)$/is', (string) $field->within, $match)) {
+            throw new \LogicException(\sprintf('The field "%s" reads in "<entity> <alias> WHERE <correlation>".', $field->key));
+        }
+        $where = $match[2];
+        $from = [];
+        foreach (explode(',', $match[1]) as $declaration) {
+            if (1 !== preg_match('/^\s*(\S+)\s+([A-Za-z_]\w*)\s*$/', $declaration, $part)) {
+                throw new \LogicException(\sprintf('The field "%s" declares each related row as "<entity> <alias>".', $field->key));
+            }
+            // The alias alone ("si = s.invoice") or with a path ("si.number"), never a path's part or a parameter.
+            $alias = '/(?<![\w.:])'.$part[2].'(?!\w)/';
+            $own = $part[2].'_'.$name;
+            $where = (string) preg_replace($alias, $own, $where);
+            $column = (string) preg_replace($alias, $own, $column);
+            $from[] = $part[1].' '.$own;
+        }
+
+        return [implode(', ', $from).' WHERE '.$where, $column];
     }
 
     /**
@@ -158,6 +194,7 @@ final readonly class DqlConditions
             FieldType::Text => $this->text($op, $column, \is_string($value) ? $value : '', $name),
             FieldType::Number => $this->number($op, $column, $this->scaled($value, $this->scales[$field->key] ?? $field->scale), $name),
             FieldType::Date => $this->date($op, $column, $value, $today(), $name),
+            FieldType::Relation => throw new \LogicException('A relation is read in its related rows.'),
         };
     }
 
