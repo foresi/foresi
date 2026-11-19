@@ -166,7 +166,7 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[data-filter-chip="firm"], select[name="firm"], input[name="firm"]'));
         self::assertStringNotContainsString('firm=', (string) $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(1)->attr('href'));
         // The menu of the views past the tabs says what every list's says.
-        self::assertStringContainsString('More views', $this->client->request('GET', '/advances')->filter('[data-more-views]')->text());
+        self::assertSame('More views', $this->client->request('GET', '/advances')->filter('[data-more-views] button')->first()->attr('aria-label'));
     }
 
     public function testOverdueUsesTheCountryToday(): void

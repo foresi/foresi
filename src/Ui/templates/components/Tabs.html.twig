@@ -19,10 +19,11 @@
 {% if more is empty and actionsSlot|trim is empty %}
 <nav {{ attributes.defaults({class: navClass ~ ' ' ~ rail}) }}{% if label %} aria-label="{{ label }}"{% endif %}>{{ nav }}</nav>
 {% else %}
-{# The views past the tabs, after them in a menu, as Shopify's and HubSpot's view tabs (saved views, D7). It sits outside the scrolling row, so the row never clips it. #}
+{# The views past the tabs, after them in a menu, as Shopify's and HubSpot's view tabs (saved views, D7). It sits outside the scrolling row, so the row never clips it.
+   Its trigger is a small icon button, the label its accessible name and tooltip, so it never competes with the tabs. #}
 <div {{ attributes.defaults({class: 'flex min-w-0 items-center gap-x-3 ' ~ rail}) }}>
     <nav class="{{ navClass }} min-w-0"{% if label %} aria-label="{{ label }}"{% endif %}>{{ nav }}</nav>
-    <twig:Ui:Menu :id="moreId" :label="moreLabel" variant="ghost" size="sm" chevron="down" :float="true" data-dropdown-below-value="true" data-more-views class="shrink-0 {{ this.moreActive ? 'border-b-2 border-green' : '' }}">
+    <twig:Ui:Menu :id="moreId" :label="moreLabel" icon="settings" :iconOnly="true" variant="ghost" size="sm" :float="true" data-dropdown-below-value="true" data-more-views class="shrink-0 {{ this.moreActive ? 'border-b-2 border-green' : '' }}">
         {%- for item in more %}
             <twig:Ui:MenuItem :href="item.href" :checked="item.active ?? false">
                 {%- if item.private ?? false %}{{ ux_icon('lucide:lock', {class: 'size-3.5 shrink-0', 'aria-hidden': 'true'}) }}{% endif -%}
