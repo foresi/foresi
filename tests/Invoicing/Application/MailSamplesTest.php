@@ -93,6 +93,6 @@ final class MailSamplesTest extends TestCase
 
     private function firm(?VatId $vatId): LegalEntity
     {
-        return new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), $vatId, new Address('Example Street 1', 'Example City', '10000', 'CZ'), $vatId instanceof \Foresi\Party\Domain\VatId ? VatStatus::Registered : VatStatus::NotRegistered, '');
+        return new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), $vatId, new Address('Example Street 1', 'Example City', '10000', 'CZ'), $vatId instanceof VatId ? VatStatus::Registered : VatStatus::NotRegistered, '');
     }
 }
