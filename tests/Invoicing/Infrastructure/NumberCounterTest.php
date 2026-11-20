@@ -37,7 +37,6 @@ final class NumberCounterTest extends KernelTestCase
     private EntityManagerInterface $em;
     private NumberCounter $counter;
     private SeriesCatalog $catalog;
-    private LegalEntity $firm;
     private ?string $sqliteFile = null;
 
     protected function setUp(): void
@@ -50,8 +49,8 @@ final class NumberCounterTest extends KernelTestCase
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
-        $this->em->persist($this->firm);
+        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
+        $this->em->persist($firm);
         $this->em->flush();
     }
 

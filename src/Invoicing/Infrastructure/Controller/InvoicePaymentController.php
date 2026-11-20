@@ -125,7 +125,7 @@ final class InvoicePaymentController extends AbstractController
         }
 
         $errors = [];
-        $receivedOn = $this->date($values['receivedOn'], $invoice, $errors);
+        $receivedOn = $this->date($values['receivedOn'], $errors);
         $amount = $this->amount($values['amount'], $invoice->currency(), $this->locales->getLocale(), $errors);
         $method = PaymentMethod::tryFrom($values['method']);
         if (!$method instanceof PaymentMethod) {
@@ -194,7 +194,7 @@ final class InvoicePaymentController extends AbstractController
             return $edit;
         }
         if (!$post) {
-            $values = ['receivedOn' => $this->todayOf($invoice)->format('Y-m-d'), 'amount' => $this->amounts->plain($toRefund), 'method' => $invoice->paymentMethod()->value, 'note' => '', 'settle' => false];
+            $values = ['receivedOn' => $this->todayOf()->format('Y-m-d'), 'amount' => $this->amounts->plain($toRefund), 'method' => $invoice->paymentMethod()->value, 'note' => '', 'settle' => false];
 
             return $this->refundPage($invoice, $values, [], $this->tokens->issue(), Response::HTTP_OK);
         }
@@ -210,7 +210,7 @@ final class InvoicePaymentController extends AbstractController
             return $this->refundPage($invoice, $values, [self::FORM => $this->translator->trans('party.error.expired')], $this->tokens->issue(), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         $errors = [];
-        $receivedOn = $this->date($values['receivedOn'], $invoice, $errors);
+        $receivedOn = $this->date($values['receivedOn'], $errors);
         $amount = $this->amount($values['amount'], $invoice->currency(), $this->locales->getLocale(), $errors);
         $method = PaymentMethod::tryFrom($values['method']);
         if (!$method instanceof PaymentMethod) {
@@ -255,7 +255,7 @@ final class InvoicePaymentController extends AbstractController
             'token' => $token,
             'cancel' => $this->generateUrl('app_invoice_edit', ['id' => $invoice->id()]),
             'methods' => $methods,
-            'today' => $this->todayOf($invoice)->format('Y-m-d'),
+            'today' => $this->todayOf()->format('Y-m-d'),
             'toRefund' => $this->amounts->shown($this->payments->toRefundOf($invoice)),
             'unit' => $this->amounts->unit($invoice->currency()),
             'maxNote' => Payment::MAX_NOTE,
@@ -308,7 +308,7 @@ final class InvoicePaymentController extends AbstractController
         $remaining = $this->payments->remainingOf($invoice);
 
         return [
-            'receivedOn' => $this->todayOf($invoice)->format('Y-m-d'),
+            'receivedOn' => $this->todayOf()->format('Y-m-d'),
             // Overpaid leaves less than nothing to pay: nothing is filled in.
             'amount' => $this->positive($remaining) ? $this->amounts->plain($remaining) : '',
             'method' => $invoice->paymentMethod()->value,
@@ -360,7 +360,7 @@ final class InvoicePaymentController extends AbstractController
     /**
      * @param array<string, string> $errors
      */
-    private function date(string $typed, Invoice $invoice, array &$errors): ?\DateTimeImmutable
+    private function date(string $typed, array &$errors): ?\DateTimeImmutable
     {
         $date = 1 === preg_match(self::DATE, $typed) ? \DateTimeImmutable::createFromFormat('!Y-m-d', $typed) : false;
         if (false === $date || $date->format('Y-m-d') !== $typed) {
@@ -368,7 +368,7 @@ final class InvoicePaymentController extends AbstractController
 
             return null;
         }
-        if ($typed > $this->todayOf($invoice)->format('Y-m-d')) {
+        if ($typed > $this->todayOf()->format('Y-m-d')) {
             $errors['receivedOn'] = $this->translator->trans('invoice.payment.refused.future_date');
 
             return null;
@@ -434,7 +434,7 @@ final class InvoicePaymentController extends AbstractController
             'return' => $return,
             'cancel' => $this->listUrl($return),
             'methods' => $methods,
-            'today' => $this->todayOf($invoice)->format('Y-m-d'),
+            'today' => $this->todayOf()->format('Y-m-d'),
             'payable' => $this->amounts->shown($payable),
             'remaining' => $this->amounts->shown($due),
             'remainingMinor' => $due->minor(),
@@ -476,7 +476,7 @@ final class InvoicePaymentController extends AbstractController
         return !$amount->isZero() && !$amount->isNegative();
     }
 
-    private function todayOf(Invoice $invoice): \DateTimeImmutable
+    private function todayOf(): \DateTimeImmutable
     {
         $now = \DateTimeImmutable::createFromInterface($this->clock->now());
         try {

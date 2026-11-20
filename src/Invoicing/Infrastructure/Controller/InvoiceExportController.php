@@ -60,7 +60,7 @@ final class InvoiceExportController extends AbstractController
         // A link may name the month, as the reminder on the start page does; else the last month.
         $month = $this->month($request->query->getString('month')) ?? $this->lastMonth();
 
-        return $this->form($month->format('Y-m'), self::PENDING, null !== $this->firm->find() ? $this->bundle->counts($month, true) : null, null, null, Response::HTTP_OK);
+        return $this->form($month->format('Y-m'), self::PENDING, $this->firm->find() instanceof \Foresi\Party\Domain\LegalEntity ? $this->bundle->counts($month, true) : null, null, null, Response::HTTP_OK);
     }
 
     private function download(Request $request): Response
@@ -68,7 +68,7 @@ final class InvoiceExportController extends AbstractController
         if (!$this->isCsrfTokenValid(self::TOKEN, $request->request->getString('_token'))) {
             throw new AccessDeniedHttpException('Invalid CSRF token.');
         }
-        if (null === $this->firm->find()) {
+        if (!$this->firm->find() instanceof \Foresi\Party\Domain\LegalEntity) {
             throw new NotFoundHttpException();
         }
         $monthText = $request->request->getString('month');

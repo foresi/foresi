@@ -57,7 +57,7 @@ final readonly class InvoiceApiController
         $firm = $this->instanceFirm->find();
 
         return new JsonResponse([
-            'data' => null === $firm ? [] : array_map(static fn (InvoiceListItem $item): array => InvoiceJson::item($item, $firm), $slice->items),
+            'data' => $firm instanceof \Foresi\Party\Domain\LegalEntity ? array_map(static fn (InvoiceListItem $item): array => InvoiceJson::item($item, $firm), $slice->items) : [],
             'next_cursor' => Cursor::next($slice->nextAfterId()),
             'applied_view' => $applied->view instanceof \Foresi\Shared\Domain\View\SavedView ? $this->json->view($applied->view) : null,
         ]);

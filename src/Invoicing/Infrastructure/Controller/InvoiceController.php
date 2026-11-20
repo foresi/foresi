@@ -653,14 +653,14 @@ final class InvoiceController extends AbstractController
             'firm' => $firm,
             'series' => $this->seriesOptions($context),
             'values' => $values,
-            'errors' => array_map(static fn (array $error): array => $error + ['link' => $targets->of($error['id'], $error['key'])], $errors),
+            'errors' => array_map(static fn (array $error): array => $error + ['link' => $targets->of($error['id'])], $errors),
             'errorFields' => $errorFields,
             'firmUrl' => $firmUrl,
             'bankUrl' => $bankUrl,
             'statusBadge' => $this->statusBadge($context),
             'payments' => $invoice instanceof Invoice ? $this->panel->of($invoice) : null,
             'chains' => $invoice instanceof Invoice ? array_map(fn (array $chain): array => ['payments' => array_map(fn (array $payment): array => ['amount' => $this->amounts->shown($payment['amount'])] + $payment, $chain['payments'])] + $chain, $this->chain->of($invoice)) : [],
-            'moreOpen' => $this->moreOpen($values, $context, $errorFields),
+            'moreOpen' => $this->moreOpen($values, $errorFields),
             'noContacts' => 0 === $this->parties->counts()->all,
             'candidates' => $candidates,
             'token' => $token,
@@ -763,7 +763,7 @@ final class InvoiceController extends AbstractController
      * @param array<string, mixed>  $values
      * @param array<string, string> $errorFields
      */
-    private function moreOpen(array $values, InvoiceFormContext $context, array $errorFields): bool
+    private function moreOpen(array $values, array $errorFields): bool
     {
         if ([] !== array_intersect_key($errorFields, array_flip(self::MORE_FIELDS))) {
             return true;

@@ -111,7 +111,7 @@ final readonly class SearchInvoicesTool implements ReadTool
             throw ToolRefusal::forbidden('Only the owners and members of the organisation read its invoices.');
         }
         $firm = $this->instanceFirm->find();
-        $page = ToolArguments::page(null === $firm ? [] : array_map(static fn (InvoiceListItem $item): array => InvoiceJson::item($item, $firm), $slice->items), $slice->nextAfterId(), 'document', 'documents');
+        $page = ToolArguments::page($firm instanceof \Foresi\Party\Domain\LegalEntity ? array_map(static fn (InvoiceListItem $item): array => InvoiceJson::item($item, $firm), $slice->items) : [], $slice->nextAfterId(), 'document', 'documents');
         if (!$applied->view instanceof \Foresi\Shared\Domain\View\SavedView) {
             return new ToolOutput($page->data + ['applied_view' => null], $page->summary);
         }

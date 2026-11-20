@@ -18,7 +18,6 @@ use Foresi\Purchasing\Application\ReceivedDocumentWarning;
 use Foresi\Purchasing\Application\TrashReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentState;
-use Foresi\Shared\Domain\Id;
 
 final class UploadReceivedDocumentsTest extends PurchasingTestCase
 {

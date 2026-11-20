@@ -105,6 +105,7 @@ final class RateResolverTest extends TestCase
         $projects->method('project')->willReturnCallback(static fn (string $id): ?Project => $id === $project->id() ? $project : null);
         $people = self::createStub(People::class);
         $people->method('membership')->willReturnCallback(static fn (string $id): ?Membership => $id === $membership->id() ? $membership : null);
+
         return new RateResolver($projects, $people);
     }
 

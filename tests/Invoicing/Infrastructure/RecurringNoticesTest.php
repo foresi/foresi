@@ -63,7 +63,6 @@ final class RecurringNoticesTest extends WebTestCase
     private const string IBAN = 'CZ6508000000192000145399';
 
     private KernelBrowser $client;
-    private LegalEntity $firm;
     private Series $series;
     private Party $customer;
 
@@ -75,8 +74,8 @@ final class RecurringNoticesTest extends WebTestCase
         $browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
         $browser->seed('en', Role::Owner);
         $em = $browser->em();
-        $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
-        $em->persist($this->firm);
+        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
+        $em->persist($firm);
         FirmAccounts::add($em, self::IBAN);
         $this->series = new Series(Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $this->series->markDefault();

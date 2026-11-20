@@ -91,6 +91,6 @@ final readonly class SearchPaymentsTool implements ReadTool
 
         $firm = $this->instanceFirm->find();
 
-        return ToolArguments::page(null === $firm ? [] : array_map(static fn (PaymentRow $row): array => PaymentJson::row($row, $firm), $slice->rows), $slice->hasMore ? $slice->lastId() : null, 'payment', 'payments');
+        return ToolArguments::page($firm instanceof \Foresi\Party\Domain\LegalEntity ? array_map(static fn (PaymentRow $row): array => PaymentJson::row($row, $firm), $slice->rows) : [], $slice->hasMore ? $slice->lastId() : null, 'payment', 'payments');
     }
 }

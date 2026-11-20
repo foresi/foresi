@@ -244,7 +244,7 @@ final class LegalEntityControllerTest extends WebTestCase
     public function testTheOwnerEditsTheFirm(): void
     {
         $this->signIn();
-        $firm = $this->firm('Example Firm', '12345695');
+        $this->firm('Example Firm', '12345695');
         FirmAccounts::add($this->em(), self::IBAN);
         $this->em()->flush();
 

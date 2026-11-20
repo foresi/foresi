@@ -38,7 +38,7 @@ final readonly class RateResolver
     }
 
     /**
-     * @throws UnknownRateTarget  for a project or a membership the organisation does not have
+     * @throws UnknownRateTarget for a project or a membership the organisation does not have
      */
     public function resolve(string $projectId, string $membershipId): ?ResolvedRate
     {

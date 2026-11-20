@@ -840,7 +840,7 @@ final class InvoiceControllerTest extends WebTestCase
         $problems = $this->problemsInTheCode();
         self::assertGreaterThan(50, \count($problems));
         foreach ($problems as [$field, $key]) {
-            $link = $targets->of(InvoiceErrorTargets::inputId($field), $key);
+            $link = $targets->of(InvoiceErrorTargets::inputId($field));
             if (null === $link) {
                 self::assertContains(InvoiceErrorTargets::inputId($field), ['form', 'document', 'version', 'firm'], $key);
                 continue;

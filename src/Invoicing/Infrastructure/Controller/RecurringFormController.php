@@ -452,7 +452,7 @@ final class RecurringFormController extends AbstractController
         $bankUrl = $this->owner->isOwner() ? $this->generateUrl('app_firm_bank') : null;
         $bankAccounts = $this->options->bankAccounts($template?->bankAccount());
         $targets = new InvoiceErrorTargets($context->isPayer(), false, [] !== $bankAccounts, '' !== $values['customerId'], $firmUrl, $bankUrl);
-        $links = array_map(fn (array $error): array => $error + ['link' => \in_array($error['id'], self::WITHOUT_LINK, true) ? null : $targets->of($error['id'], $error['key'])], $errors);
+        $links = array_map(fn (array $error): array => $error + ['link' => \in_array($error['id'], self::WITHOUT_LINK, true) ? null : $targets->of($error['id'])], $errors);
         $previewRequest = new Request(request: $values);
         $recipients = $this->recipients($previewRequest->request->getString('customerId'), $template);
         $this->withRecipients($previewRequest, $recipients);

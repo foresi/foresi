@@ -49,7 +49,7 @@ final readonly class PaymentApiController
         $slice = $this->list->slice($query->filter(), Cursor::decode($query->cursor), $query->limit);
         $firm = $this->instanceFirm->find();
 
-        return new JsonResponse(['data' => null === $firm ? [] : array_map(static fn (PaymentRow $row): array => PaymentJson::row($row, $firm), $slice->rows), 'next_cursor' => Cursor::next($slice->hasMore ? $slice->lastId() : null)]);
+        return new JsonResponse(['data' => $firm instanceof \Foresi\Party\Domain\LegalEntity ? array_map(static fn (PaymentRow $row): array => PaymentJson::row($row, $firm), $slice->rows) : [], 'next_cursor' => Cursor::next($slice->hasMore ? $slice->lastId() : null)]);
     }
 
     #[Route('/api/v1/payments/{id}', name: self::SHOW, methods: ['GET'])]

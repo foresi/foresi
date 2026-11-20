@@ -374,7 +374,7 @@ final readonly class DocumentsStage implements ImportStage
         }
         $reasons = array_values(array_unique($reasons));
         if ([] === $reasons && $older instanceof SeriesFormat) {
-            $seriesId = $this->olderSeries($context, $kind, $older);
+            $seriesId = $this->olderSeries($kind, $older);
             $notes[] = self::OLDER_NUMBERS;
         }
         if ([] !== $reasons || null === $seriesId || null === $customerId || !$customer instanceof DocumentParty || !$issuer instanceof DocumentParty || !$method instanceof PaymentMethod || !$language instanceof DocumentLanguage || !$expected instanceof ImportedTotals || !$issueDate instanceof \DateTimeImmutable) {
@@ -594,7 +594,7 @@ final readonly class DocumentsStage implements ImportStage
     /**
      * The series of older numbers of the kind and format, created on the first of them.
      */
-    private function olderSeries(ImportContext $context, DocumentKind $kind, SeriesFormat $format): string
+    private function olderSeries(DocumentKind $kind, SeriesFormat $format): string
     {
         foreach ($this->catalog->all($kind) as $series) {
             if ($series->format()->collidesWith($format)) {
