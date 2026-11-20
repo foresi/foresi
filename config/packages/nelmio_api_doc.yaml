@@ -644,6 +644,81 @@ nelmio_api_doc:
                         incomplete: { type: boolean }
                         unavailable_sources: { type: array, items: { type: string } }
                         unavailable_rates: { type: array, items: { type: string } }
+                TaxStatus:
+                    type: object
+                    description: A status of the owner from valid_from until the next status of its kind.
+                    properties:
+                        id: { type: string, format: uuid }
+                        kind: { type: string, enum: [legal_form, activity, vat_payer, flat_rate_band, sickness_insurance, health_minimum_exempt] }
+                        value: { type: string, example: 'yes' }
+                        valid_from: { type: string, format: date }
+                        base: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
+                TaxStatusRemoved:
+                    type: object
+                    properties:
+                        id: { type: string, format: uuid }
+                        removed: { type: boolean }
+                TaxYear:
+                    type: object
+                    description: The inputs of one year of the owner profile; all amounts in CZK.
+                    properties:
+                        year: { type: integer, example: 2026 }
+                        expense_methods: { type: array, items: { type: string, enum: [actual, lump_80, lump_60, lump_40, lump_30] } }
+                        chosen_method: { type: string, nullable: true }
+                        children:
+                            type: array
+                            items:
+                                type: object
+                                properties:
+                                    label: { type: string }
+                                    birth_date: { type: string, format: date }
+                                    order: { type: integer, enum: [1, 2, 3] }
+                                    ztp_p: { type: boolean }
+                                    months: { type: integer, minimum: 0, maximum: 12 }
+                        spouse:
+                            type: object
+                            nullable: true
+                            properties:
+                                months: { type: integer, minimum: 0, maximum: 12 }
+                                ztp_p: { type: boolean }
+                                low_income: { type: boolean }
+                        deductions:
+                            type: array
+                            items:
+                                type: object
+                                properties:
+                                    type: { type: string }
+                                    amount: { $ref: '#/components/schemas/Money' }
+                        other_bases:
+                            type: object
+                            properties:
+                                employment: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
+                                employment_tax_withheld: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
+                                rental: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
+                                other: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
+                        last_known_tax: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
+                        previous_year:
+                            type: object
+                            properties:
+                                social_base: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
+                                health_base: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
+                                overview_filed_on: { type: string, format: date, nullable: true }
+                        return_route: { type: string, enum: [paper, electronic, advisor] }
+                        activity_start: { type: string, format: date, nullable: true }
+                        average_wage_override: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
+                TaxAuthorityAccount:
+                    type: object
+                    properties:
+                        authority: { type: string, enum: [social, health, sickness, income_tax] }
+                        account: { type: string }
+                        variable_symbol: { type: string }
+                TaxProfile:
+                    type: object
+                    description: The owner profile; only the owner reads it.
+                    properties:
+                        statuses: { type: array, items: { $ref: '#/components/schemas/TaxStatus' } }
+                        years: { type: array, items: { $ref: '#/components/schemas/TaxYear' } }
+                        authorities: { type: array, items: { $ref: '#/components/schemas/TaxAuthorityAccount' } }
                 ReceivedDocument:
                     type: object
                     description: 'A document a firm received from a supplier. Paid and remaining are positive, also for a credit note, whose total is negative.'

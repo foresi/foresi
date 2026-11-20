@@ -20,7 +20,7 @@ final readonly class Operation
 {
     /**
      * @param string      $name              unique, such as "contacts.create"
-     * @param string      $method            the HTTP method: POST, PATCH or DELETE
+     * @param string      $method            the HTTP method: POST, PUT (a whole replacement), PATCH or DELETE
      * @param string      $path              below /api/v1, such as "/api/v1/contacts/{contactId}"
      * @param string      $tool              the MCP tool, such as "foresi_create_contact"
      * @param string      $scope             the scope a token needs, such as "contacts:write"

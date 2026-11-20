@@ -175,6 +175,7 @@ api_tokens:
     webhooks: Webhooks
     events: Events
     cashflow: Cash flow
+    taxes: Taxes and contributions
     received_documents: Received documents
     views: Saved views
     projects: Projects

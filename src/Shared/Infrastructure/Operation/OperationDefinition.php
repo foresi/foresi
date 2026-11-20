@@ -21,7 +21,7 @@ use Symfony\Component\DependencyInjection\Attribute\Exclude;
 final readonly class OperationDefinition
 {
     public const string ROUTE_PREFIX = 'api_v1_operation_';
-    public const array METHODS = ['POST', 'PATCH', 'DELETE'];
+    public const array METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
 
     /**
      * @param class-string         $input
@@ -48,7 +48,7 @@ final readonly class OperationDefinition
         }
         $operation = $attributes[0]->newInstance();
         if (!\in_array($operation->method, self::METHODS, true) || !str_starts_with($operation->path, '/api/v1/')) {
-            throw new \LogicException(\sprintf('The operation %s must be a POST, PATCH or DELETE below /api/v1/.', $operation->name));
+            throw new \LogicException(\sprintf('The operation %s must be a POST, PUT, PATCH or DELETE below /api/v1/.', $operation->name));
         }
         preg_match_all('/\{([a-zA-Z]+)\}/', $operation->path, $matches);
         $inPath = $matches[1];

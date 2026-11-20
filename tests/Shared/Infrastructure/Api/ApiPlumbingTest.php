@@ -142,6 +142,13 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/received-documents/{documentId}/payments/{paymentId}' => ['delete' => '200'],
                 '/api/v1/received-documents/{documentId}/trash' => ['post' => '200'],
             ],
+            'taxes-and-contributions' => [
+                '/api/v1/taxes-and-contributions/profile' => ['get' => '200'],
+                '/api/v1/taxes-and-contributions/profile/statuses' => ['post' => '201'],
+                '/api/v1/taxes-and-contributions/profile/statuses/{statusId}' => ['delete' => '200'],
+                '/api/v1/taxes-and-contributions/profile/years/{year}' => ['put' => '200'],
+                '/api/v1/taxes-and-contributions/profile/authorities/{authority}' => ['put' => '200'],
+            ],
             'shared' => [
                 '/api/v1/lists' => ['get' => '200'],
                 '/api/v1/views' => ['get' => '200', 'post' => '201'],

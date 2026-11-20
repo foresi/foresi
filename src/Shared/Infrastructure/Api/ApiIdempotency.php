@@ -19,7 +19,7 @@ use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
- * The Idempotency-Key of a REST write (POST, PATCH or DELETE under /api/v1),
+ * The Idempotency-Key of a REST write (POST, PUT, PATCH or DELETE under /api/v1),
  * for every write, the hand-written ones too (ADR 0032). The key is claimed
  * after the token signed in and the rate limit let the request through, and
  * before the controller runs. A repeat with the same input gets the saved
@@ -31,7 +31,7 @@ use Symfony\Component\HttpKernel\KernelEvents;
 final readonly class ApiIdempotency
 {
     private const string ATTRIBUTE = '_api_idempotency';
-    private const array WRITES = ['POST', 'PATCH', 'DELETE'];
+    private const array WRITES = ['POST', 'PUT', 'PATCH', 'DELETE'];
     private const string PREFIX = '/api/v1/';
 
     public function __construct(private Idempotency $idempotency)
