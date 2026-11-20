@@ -92,7 +92,7 @@ final class RecurringPreviewTest extends TestCase
     {
         $line = new LineInput('Hosting', Quantity::fromString('1'), 'ks', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
-        return new RecurringInput('firm', null, 'customer', PaymentMethod::BankTransfer, null, '', '', $description, '', '', DocumentLanguage::Czech, [$line], $recurrence, $taxPoint, $dueDays, RecurringDelivery::Send);
+        return new RecurringInput(null, 'customer', PaymentMethod::BankTransfer, null, '', '', $description, '', '', DocumentLanguage::Czech, [$line], $recurrence, $taxPoint, $dueDays, RecurringDelivery::Send);
     }
 
     private function day(string $date): \DateTimeImmutable

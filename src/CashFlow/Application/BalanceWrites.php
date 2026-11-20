@@ -108,8 +108,7 @@ final readonly class BalanceWrites
         $amount = null === $input->amount ? null : PlannedItemRules::money($input->amount, Currency::CZK, 'amount');
 
         return $this->transaction->run(function () use ($amount): ?MinimumBalance {
-            $firm = $this->access->firm();
-            $minimum = $this->store->minimumBalance($firm->id());
+            $minimum = $this->store->minimumBalance();
             if (!$amount instanceof \Foresi\Shared\Domain\Money) {
                 if ($minimum instanceof MinimumBalance) {
                     $this->store->remove($minimum);
@@ -120,7 +119,7 @@ final readonly class BalanceWrites
             if ($minimum instanceof MinimumBalance) {
                 $minimum->change($amount);
             } else {
-                $minimum = new MinimumBalance($firm, $amount);
+                $minimum = new MinimumBalance($amount);
                 $this->store->add($minimum);
             }
 

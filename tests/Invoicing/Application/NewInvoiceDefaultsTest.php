@@ -23,9 +23,7 @@ use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\InvoicingDefaults;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\PaymentMethod;
-use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Tests\Party\Support\FirmAccounts;
@@ -54,7 +52,7 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
 
     public function testDefaultsAre14DaysAndToday(): void
     {
-        $draft = $this->defaults->for($this->firm);
+        $draft = $this->defaults->for();
 
         self::assertSame('2026-11-01', $draft->issueDate->format('Y-m-d'));
         self::assertSame('2026-11-01', $draft->taxPointDate->format('Y-m-d'));
@@ -63,7 +61,6 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
         self::assertSame(self::IBAN, $draft->bankAccount);
         self::assertSame(DocumentLanguage::Czech, $draft->language);
         self::assertSame(Currency::CZK, $draft->currency);
-        self::assertSame($this->firm->id(), $draft->firmId);
         self::assertSame(VatRegime::Payer, $draft->regime);
         self::assertNull($draft->customerId);
         self::assertNull($draft->currencyNotice);
@@ -71,7 +68,7 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
 
     public function testAGivenDateIsTheDayOfTheDraft(): void
     {
-        $draft = $this->defaults->for($this->firm, new \DateTimeImmutable('2027-02-10'));
+        $draft = $this->defaults->for(new \DateTimeImmutable('2027-02-10'));
 
         self::assertSame('2027-02-10', $draft->issueDate->format('Y-m-d'));
         self::assertSame('2027-02-24', $draft->dueDate->format('Y-m-d'));
@@ -82,7 +79,7 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
     {
         Clock::set(new MockClock('2026-12-31 23:30:00', 'UTC'));
 
-        $draft = $this->defaults->for($this->firm);
+        $draft = $this->defaults->for();
 
         self::assertSame('2027-01-01', $draft->issueDate->format('Y-m-d'));
         self::assertSame('2027-01-15', $draft->dueDate->format('Y-m-d'));
@@ -95,7 +92,7 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
         $this->em->flush();
         $this->issue->issue($this->input());
 
-        $draft = $this->defaults->for($this->firm);
+        $draft = $this->defaults->for();
 
         self::assertSame($this->series->id(), $draft->seriesId);
         self::assertSame('20260002', $draft->number);
@@ -104,10 +101,7 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
 
     public function testASeriesNotStoredYetIsNoSeriesOfTheDraft(): void
     {
-        $firm = $this->firm(registrationNumber: '12345687');
-        $this->em->flush();
-
-        $draft = $this->defaults->for($firm);
+        $draft = $this->defaults->for();
 
         self::assertNull($draft->seriesId);
         self::assertSame('20260001', $draft->number);
@@ -115,7 +109,7 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
 
     public function testOneEmptyLineAtTheBaseRate(): void
     {
-        $lines = $this->defaults->for($this->firm)->lines;
+        $lines = $this->defaults->for()->lines;
 
         self::assertCount(1, $lines);
         self::assertSame('', $lines[0]->text);
@@ -132,12 +126,12 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
     public function testTextsAndConstantSymbolComeFromTheFirm(): void
     {
         $settings = self::getContainer()->get(FirmInvoicingSettings::class);
-        $own = FirmInvoicing::standard($this->firm);
+        $own = FirmInvoicing::standard();
         $own->change(TotalRounding::WholeUnit, '0308', 'Before text', 'After text', '', '', '');
         $settings->save($own);
         $this->em->flush();
 
-        $draft = $this->defaults->for($this->firm);
+        $draft = $this->defaults->for();
 
         self::assertSame('0308', $draft->constantSymbol);
         self::assertSame('Before text', $draft->textBefore);
@@ -146,49 +140,44 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
 
     public function testArchivedAccountsAreNotOfferedToInvoices(): void
     {
-        $second = FirmAccounts::add($this->em, $this->firm, self::SECOND_IBAN);
+        $second = FirmAccounts::add($this->em, self::SECOND_IBAN);
         $this->em->flush();
-        self::assertSame(self::IBAN, $this->defaults->for($this->firm)->bankAccount, 'the first account is the primary one');
+        self::assertSame(self::IBAN, $this->defaults->for()->bankAccount, 'the first account is the primary one');
 
         $this->em->wrapInTransaction(function () use ($second): void {
             $accounts = self::getContainer()->get(FirmBankAccounts::class);
             $accounts->makePrimary($second);
         });
         $this->em->clear();
-        $firm = $this->reloadedFirm();
-        self::assertSame(self::SECOND_IBAN, $this->defaults->for($firm)->bankAccount, 'a new invoice gets the primary account');
+        self::assertSame(self::SECOND_IBAN, $this->defaults->for()->bankAccount, 'a new invoice gets the primary account');
 
-        FirmAccounts::archiveAll($this->em, $firm);
+        FirmAccounts::archiveAll($this->em);
         $this->em->flush();
         $this->em->clear();
-        self::assertNull($this->defaults->for($this->reloadedFirm())->bankAccount, 'an archived account is offered to no invoice');
+        self::assertNull($this->defaults->for()->bankAccount, 'an archived account is offered to no invoice');
     }
 
     public function testAFirmWithoutAccountsHasNoBankAccount(): void
     {
-        $firm = new LegalEntity('Example Bankless s.r.o.', new RegistrationNumber('CZ', '12345687'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register');
-        $this->em->persist($firm);
+        FirmAccounts::archiveAll($this->em);
         $this->em->flush();
 
-        self::assertNull($this->defaults->for($firm)->bankAccount);
+        self::assertNull($this->defaults->for()->bankAccount);
     }
 
     public function testAFirmOfAnUnsupportedCountryHasNoDefaults(): void
     {
-        $firm = new LegalEntity('Example Foreign', new RegistrationNumber('CZ', '12345687'), null, new Address('Example Street 1', 'Example City', '100 00', 'SK'), VatStatus::NotRegistered, 'Register');
-        $this->em->persist($firm);
-        $this->em->flush();
+        $this->reconfigureFirm(VatStatus::NotRegistered, null, 'Register', new Address('Example Street 1', 'Example City', '100 00', 'SK'));
 
         $this->expectException(UnsupportedCountry::class);
-        $this->defaults->for($firm);
+        $this->defaults->for();
     }
 
     public function testANonPayerFirmGetsNoRates(): void
     {
-        $firm = $this->firm(VatStatus::NotRegistered, null, registrationNumber: '12345687');
-        $this->em->flush();
+        $this->reconfigureFirm(VatStatus::NotRegistered, null);
 
-        $draft = $this->defaults->for($firm);
+        $draft = $this->defaults->for();
 
         self::assertSame(VatRegime::NonPayer, $draft->regime);
         self::assertSame(TaxTreatment::NotApplicable, $draft->lines[0]->treatment);
@@ -197,16 +186,15 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
 
     public function testAnIdentifiedPersonIssuesWithoutVat(): void
     {
-        $firm = $this->firm(VatStatus::IdentifiedPerson, registrationNumber: '12345687');
-        $this->em->flush();
+        $this->reconfigureFirm(VatStatus::IdentifiedPerson, 'CZ12345695');
 
-        self::assertSame(TaxTreatment::NotApplicable, $this->defaults->for($firm)->lines[0]->treatment);
+        self::assertSame(TaxTreatment::NotApplicable, $this->defaults->for()->lines[0]->treatment);
     }
 
     public function testACustomerSetsDueDatePaymentAndLanguage(): void
     {
         $draft = $this->defaults->withCustomer(
-            $this->defaults->for($this->firm),
+            $this->defaults->for(),
             $this->option(new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::English, PaymentMethod::Cash, false)),
         );
 
@@ -221,7 +209,7 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
 
     public function testTheDueDateCountsFromTheDateOnTheForm(): void
     {
-        $draft = $this->defaults->for($this->firm)->onIssueDate(new \DateTimeImmutable('2026-10-10'));
+        $draft = $this->defaults->for()->onIssueDate(new \DateTimeImmutable('2026-10-10'));
 
         self::assertSame('2026-10-24', $this->defaults->withCustomer($draft, $this->option(InvoicingDefaults::standard()))->dueDate->format('Y-m-d'));
     }
@@ -248,7 +236,7 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
 
     public function testACustomerLeavesOtherLinesAlone(): void
     {
-        $draft = $this->defaults->for($this->firm);
+        $draft = $this->defaults->for();
         $exempt = $this->line(treatment: TaxTreatment::Exempt, kind: null);
 
         $picked = $this->defaults->withCustomer($draft->withLines([$exempt]), $this->option(InvoicingDefaults::standard()));
@@ -259,10 +247,9 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
 
     public function testANonPayerIgnoresReverseChargeOfTheContact(): void
     {
-        $firm = $this->firm(VatStatus::NotRegistered, null, registrationNumber: '12345687');
-        $this->em->flush();
+        $this->reconfigureFirm(VatStatus::NotRegistered, null);
 
-        $draft = $this->defaults->withCustomer($this->defaults->for($firm), $this->option(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true)));
+        $draft = $this->defaults->withCustomer($this->defaults->for(), $this->option(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true)));
 
         self::assertSame(TaxTreatment::NotApplicable, $draft->lines[0]->treatment);
     }
@@ -270,7 +257,7 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
     public function testAForeignCurrencyContactKeepsHomeCurrencyWithANotice(): void
     {
         $draft = $this->defaults->withCustomer(
-            $this->defaults->for($this->firm),
+            $this->defaults->for(),
             $this->option(new InvoicingDefaults(14, Currency::EUR, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false)),
         );
 
@@ -281,7 +268,7 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
     public function testAHomeCurrencyContactClearsTheNotice(): void
     {
         $foreign = $this->defaults->withCustomer(
-            $this->defaults->for($this->firm),
+            $this->defaults->for(),
             $this->option(new InvoicingDefaults(14, Currency::EUR, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false)),
         );
 
@@ -290,16 +277,11 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
 
     private function twoLines(): InvoiceDraftValues
     {
-        return $this->defaults->for($this->firm)->withLines([$this->line(), $this->line(kind: VatRateKind::Reduced)]);
+        return $this->defaults->for()->withLines([$this->line(), $this->line(kind: VatRateKind::Reduced)]);
     }
 
     private function option(InvoicingDefaults $defaults): CustomerOption
     {
         return new CustomerOption($this->customer->id(), 'Example Customer a.s.', '87654320', 'CZ87654320', new Address('Customer Street 2', 'Customer City', '200 00', 'CZ'), $defaults, 'billing@example.com');
-    }
-
-    private function reloadedFirm(): LegalEntity
-    {
-        return self::getContainer()->get(\Foresi\Party\Application\LegalEntities::class)->get($this->firm->id());
     }
 }

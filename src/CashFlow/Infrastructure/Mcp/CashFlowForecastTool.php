@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\CashFlow\Infrastructure\Mcp;
 
+use Foresi\CashFlow\Application\CashFlowAccess;
 use Foresi\CashFlow\Application\CashFlowRefused;
 use Foresi\CashFlow\Application\Forecasts;
 use Foresi\CashFlow\Contract\FlowCertainty;
@@ -22,7 +23,7 @@ use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
  */
 final readonly class CashFlowForecastTool implements ReadTool
 {
-    public function __construct(private Forecasts $forecasts)
+    public function __construct(private Forecasts $forecasts, private CashFlowAccess $access)
     {
     }
 
@@ -82,6 +83,6 @@ final readonly class CashFlowForecastTool implements ReadTool
         }
         $count = \count($forecast->periods);
 
-        return new ToolOutput(CashFlowJson::forecast($forecast), \sprintf('The forecast in %d periods, %s.', $count, $forecast->isIncomplete() ? 'incomplete' : 'complete'));
+        return new ToolOutput(CashFlowJson::forecast($forecast, $this->access->firm()), \sprintf('The forecast in %d periods, %s.', $count, $forecast->isIncomplete() ? 'incomplete' : 'complete'));
     }
 }

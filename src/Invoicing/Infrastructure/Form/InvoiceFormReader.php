@@ -115,7 +115,6 @@ final readonly class InvoiceFormReader
         $number = $values['number'];
         $peek = $values['numberPeek'];
         $input = new InvoiceInput(
-            $values['firmId'],
             $this->seriesId($values['seriesId']),
             '' === $number || $number === $peek ? null : $number,
             $this->id($values['customerId']),
@@ -201,14 +200,14 @@ final readonly class InvoiceFormReader
      * @param list<array<string, string>> $rows
      * @param array<string, string>       $customer
      *
-     * @return array{firmId: string, kind: string, taxOnReceipt: string, seriesId: string, number: string, numberPeek: string, customerId: string, customerQuery: string, customerEdit: string, dueDateSet: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, constantSymbol: string, orderNumber: string, description: string, textBefore: string, textAfter: string, language: string, correctedInvoiceId: string, correctionReason: string, correctionType: string, decisiveDate: string, billedWork: string, customer: array<string, string>, lines: list<array<string, string>>}
+     * @return array{kind: string, taxOnReceipt: string, seriesId: string, number: string, numberPeek: string, customerId: string, customerQuery: string, customerEdit: string, dueDateSet: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, constantSymbol: string, orderNumber: string, description: string, textBefore: string, textAfter: string, language: string, correctedInvoiceId: string, correctionReason: string, correctionType: string, decisiveDate: string, billedWork: string, customer: array<string, string>, lines: list<array<string, string>>}
      */
     private function values(array $post, array $rows, array $customer): array
     {
         $field = fn (string $name): string => trim($this->text($post, $name));
 
         return [
-            'firmId' => $field('firmId'), 'kind' => $field('kind'), 'taxOnReceipt' => $field('taxOnReceipt'), 'seriesId' => $field('seriesId'), 'number' => $field('number'), 'numberPeek' => $field('numberPeek'),
+            'kind' => $field('kind'), 'taxOnReceipt' => $field('taxOnReceipt'), 'seriesId' => $field('seriesId'), 'number' => $field('number'), 'numberPeek' => $field('numberPeek'),
             'customerId' => $field('customerId'), 'customerQuery' => $field('customerQuery'), 'customerEdit' => $field('customerEdit'), 'dueDateSet' => $field('dueDateSet'),
             'issueDate' => $field('issueDate'), 'taxPointDate' => $field('taxPointDate'), 'dueDate' => $field('dueDate'), 'paymentMethod' => $field('paymentMethod'), 'bankAccount' => $field('bankAccount'),
             'variableSymbol' => $field('variableSymbol'), 'constantSymbol' => $field('constantSymbol'), 'orderNumber' => $field('orderNumber'), 'description' => $field('description'),

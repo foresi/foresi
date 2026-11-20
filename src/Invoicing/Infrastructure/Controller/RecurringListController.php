@@ -120,10 +120,9 @@ final class RecurringListController extends AbstractController
         $viewSort = ViewState::sortParam($view->sort, RecurringFilter::NEXT);
         $sort = $request->query->getString('sort', $viewSort);
         $sort = \in_array(ltrim($sort, '-'), RecurringFilter::SORTS, true) ? $sort : RecurringFilter::NEXT;
-        // An instance holds one firm (ADR 0039): an old ?firm= filters nothing.
         $trash = [] !== $shown->on(RecurringLists::TRASHED);
 
-        $page = $this->templates->page(new RecurringFilter(null, null, false, max(1, $request->query->getInt('page', 1)), $shown, $this->counted($views), $sort));
+        $page = $this->templates->page(new RecurringFilter(null, false, max(1, $request->query->getInt('page', 1)), $shown, $this->counted($views), $sort));
         $lines = $this->overview->prepare($page->templates);
         $today = $this->clock->today();
         $amounts = $this->amounts->payable($page->templates, $lines, $today);
@@ -140,7 +139,7 @@ final class RecurringListController extends AbstractController
 
         return $this->render('@Invoicing/recurring/index.html.twig', [
             // Only the trash left still shows the list, so it can be restored.
-            'firstRun' => 0 === ($page->counts[ListDefinition::ALL] ?? array_sum($this->overview->counts(null))) && 0 === ($page->counts[RecurringLists::TRASH] ?? 0) && !$trash,
+            'firstRun' => 0 === ($page->counts[ListDefinition::ALL] ?? array_sum($this->overview->counts())) && 0 === ($page->counts[RecurringLists::TRASH] ?? 0) && !$trash,
             'page' => $page,
             'view' => $view->isAll() ? '' : $view->key,
             'emptyTitle' => $this->emptyTitle($view),
@@ -575,7 +574,6 @@ final class RecurringListController extends AbstractController
             $customer,
             $this->generateUrl('app_contact_show', ['id' => $template->customer()->id()]),
             $description,
-            $template->firm()->name(),
             $this->schedule($template),
             $nextText,
             $this->translator->trans('recurring.list.delivery.'.$template->delivery()->value),

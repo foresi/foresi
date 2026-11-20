@@ -80,7 +80,7 @@ final class IssueRecurringOccurrenceTest extends RecurringTestCase
 
     public function testATemplateInAnAdvanceSeriesIssuesAdvances(): void
     {
-        $advances = new Series($this->firm, 'Advances', SeriesFormat::fromString('ZF{YYYY}{NNNN}'), DocumentKind::Advance);
+        $advances = new Series('Advances', SeriesFormat::fromString('ZF{YYYY}{NNNN}'), DocumentKind::Advance);
         $this->em->persist($advances);
         $this->em->flush();
         $template = $this->save->create($this->recurringInput(overrides: ['seriesId' => $advances->id()]));
@@ -150,7 +150,7 @@ final class IssueRecurringOccurrenceTest extends RecurringTestCase
 
     public function testAnOrderNumberTooLongWithItsNumberIsRefused(): void
     {
-        $long = new Series($this->firm, 'Long', SeriesFormat::fromString('SERVICE-CONTRACT-{YYYY}-{NNNNNN}'), DocumentKind::Invoice);
+        $long = new Series('Long', SeriesFormat::fromString('SERVICE-CONTRACT-{YYYY}-{NNNNNN}'), DocumentKind::Invoice);
         $this->em->persist($long);
         $this->em->flush();
         $template = $this->save->create($this->recurringInput(overrides: ['seriesId' => $long->id(), 'orderNumber' => str_repeat('x', 47).'{document_number}']));
@@ -269,7 +269,7 @@ final class IssueRecurringOccurrenceTest extends RecurringTestCase
         $invoice = $this->occurrences->issue($template->id(), new \DateTimeImmutable('2026-12-01'), new \DateTimeImmutable('2026-12-01'));
 
         self::assertInstanceOf(Invoice::class, $invoice);
-        self::assertSame($this->catalog->defaultFor($this->firm)->id(), $this->invoiceRow($invoice->id())['series_id']);
+        self::assertSame($this->catalog->defaultFor()->id(), $this->invoiceRow($invoice->id())['series_id']);
     }
 
     public function testARefusalPassesThroughAndKeepsTheTemplate(): void
@@ -454,9 +454,9 @@ final class IssueRecurringOccurrenceTest extends RecurringTestCase
                 return $this->inner->failing();
             }
 
-            public function inReview(?string $firmId = null): int
+            public function inReview(): int
             {
-                return $this->inner->inReview($firmId);
+                return $this->inner->inReview();
             }
         };
 

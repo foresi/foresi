@@ -19,9 +19,6 @@ use Foresi\Invoicing\Domain\InvalidDeletionReason;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\LineValues;
 use Foresi\Party\Application\TransactionalWork;
-use Foresi\Party\Domain\LegalEntity;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 
@@ -229,17 +226,6 @@ final class TrashInvoiceTest extends InvoiceTestCase
             self::assertSame('A delivered document cannot be deleted.', $refused->getMessage());
         }
         $this->expectExceptionMessageIsOrContains('Series and number are fixed once the document is delivered.');
-        $invoice->changeNumber($series, 'X-1');
-    }
-
-    public function testASeriesOfAnotherFirmIsRefusedOnTheAggregate(): void
-    {
-        $invoice = $this->issue->issue($this->input());
-        $other = new LegalEntity('Second Firm s.r.o.', new RegistrationNumber('CZ', '27074358'), null, $this->firm->address(), VatStatus::NotRegistered, 'Register');
-        $this->em->persist($other);
-        $series = $this->seriesOf($other);
-
-        $this->expectExceptionMessageIsOrContains('A document takes a series of its own firm.');
         $invoice->changeNumber($series, 'X-1');
     }
 

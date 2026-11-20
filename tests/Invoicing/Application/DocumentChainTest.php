@@ -25,7 +25,7 @@ final class DocumentChainTest extends AdvanceTestCase
         $this->pay($advance, '605.00', '2026-11-10');
         [$one, $two] = $this->taxDocumentsOf($advance);
         $lines = [];
-        foreach (self::getContainer()->get(DeductibleAdvances::class)->for($this->firm, $this->customer->id(), null, DocumentLanguage::Czech) as $deductible) {
+        foreach (self::getContainer()->get(DeductibleAdvances::class)->for($this->customer->id(), null, DocumentLanguage::Czech) as $deductible) {
             $lines = [...$lines, ...$deductible->lines];
         }
         $final = $this->issue->issue($this->input([$this->line('3000.00'), ...$lines]));

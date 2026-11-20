@@ -18,7 +18,6 @@ final class PaymentRefused extends \DomainException
     public const string NO_ALLOCATION = 'no_allocation';
     public const string AMOUNT_MISMATCH = 'amount_mismatch';
     public const string NOT_POSITIVE = 'not_positive';
-    public const string WRONG_FIRM = 'wrong_firm';
     public const string CURRENCY_MISMATCH = 'currency_mismatch';
     public const string TRASHED = 'trashed';
     /** A tax document on payment is paid by the payment it taxes. */

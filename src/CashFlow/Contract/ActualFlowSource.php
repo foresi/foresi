@@ -12,7 +12,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
  * A module that tells the forecast what already happened (ADR 0033): the
- * documents of a firm, paid or not, and the bank movements booked. A planned
+ * documents of the firm, paid or not, and the bank movements booked. A planned
  * occurrence is left out when a document of its counterparty in its direction
  * sits in its period, or when a movement meets its match rule (C13, C16).
  * Whatever it throws is caught: the forecast lists the source as unavailable
@@ -30,11 +30,11 @@ interface ActualFlowSource
     public function key(): string;
 
     /**
-     * What happened for the firm between the two days, both included, dated by
+     * What happened between the two days, both included, dated by
      * the issue of a document or the booking of a movement. Drafts and the trash
      * stay out.
      *
      * @return iterable<ActualFlow>
      */
-    public function actuals(string $firmId, \DateTimeImmutable $from, \DateTimeImmutable $to): iterable;
+    public function actuals(\DateTimeImmutable $from, \DateTimeImmutable $to): iterable;
 }

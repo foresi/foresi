@@ -22,9 +22,9 @@ interface CashFlowStore
     public function plannedItem(string $id): ?PlannedItem;
 
     /**
-     * @return list<PlannedItem> the firm's items, oldest first
+     * @return list<PlannedItem> the items, oldest first
      */
-    public function plannedItemsOf(string $firmId): array;
+    public function plannedItems(): array;
 
     public function add(PlannedItem|Checkpoint|ExpectedDate|MinimumBalance $record): void;
 
@@ -44,5 +44,5 @@ interface CashFlowStore
      */
     public function expectedDates(): array;
 
-    public function minimumBalance(string $firmId): ?MinimumBalance;
+    public function minimumBalance(): ?MinimumBalance;
 }

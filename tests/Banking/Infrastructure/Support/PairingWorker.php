@@ -76,10 +76,9 @@ abstract class PairingWorker extends KernelTestCase
         $metadata = $em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register');
-        $em->persist($firm);
-        $account = FirmAccounts::add($em, $firm, self::IBAN);
-        $series = new Series($firm, 'Standard', SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+        $em->persist(new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register'));
+        $account = FirmAccounts::add($em, self::IBAN);
+        $series = new Series('Standard', SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $em->persist($series);
         $customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');
         $em->persist($customer);
@@ -95,7 +94,7 @@ abstract class PairingWorker extends KernelTestCase
             $symbol = (string) (2026100 + $i);
             // 1,000.00 with 21 % VAT: 1,210.00 to pay.
             $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
-            $invoice = $issue->issue(new InvoiceInput($firm->id(), $series->id(), null, $customer->id(), null, $day, $day, $day->modify('+14 days'), PaymentMethod::BankTransfer, self::IBAN, $symbol, '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line]));
+            $invoice = $issue->issue(new InvoiceInput($series->id(), null, $customer->id(), null, $day, $day, $day->modify('+14 days'), PaymentMethod::BankTransfer, self::IBAN, $symbol, '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line]));
             $ids['invoices'][] = $invoice->id();
             foreach (['first', 'second'] as $notice) {
                 $input = new MovementInput($account->id(), null, MovementDirection::Incoming, Money::of(self::AMOUNT, Currency::CZK), $day, '123456789/0800', null, 'Example Customer a.s.', $symbol, null, null, null, $notice.'-'.$i);

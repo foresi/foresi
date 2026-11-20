@@ -41,7 +41,6 @@ final readonly class PaymentListQuery
     public function filter(): PaymentSliceFilter
     {
         return new PaymentSliceFilter(
-            null,
             null === $this->invoiceId ? null : strtolower($this->invoiceId),
             null === $this->direction ? null : PaymentDirection::from($this->direction),
             null === $this->receivedFrom ? null : new \DateTimeImmutable($this->receivedFrom),

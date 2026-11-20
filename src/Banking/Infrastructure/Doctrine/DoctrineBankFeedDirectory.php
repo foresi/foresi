@@ -19,7 +19,7 @@ use Foresi\Banking\Application\FeedRoute;
 final readonly class DoctrineBankFeedDirectory implements BankFeedDirectory
 {
     private const string ROUTE = <<<'SQL'
-        SELECT f.id, f.firm_bank_account_id, a.legal_entity_id
+        SELECT f.id, f.firm_bank_account_id
         FROM bank_feed f
         JOIN firm_bank_account a ON a.id = f.firm_bank_account_id AND a.archived_at IS NULL
         WHERE f.token_hash = :hash
@@ -39,7 +39,7 @@ final readonly class DoctrineBankFeedDirectory implements BankFeedDirectory
             return null;
         }
 
-        return new FeedRoute($this->text($row, 'id'), $this->text($row, 'firm_bank_account_id'), $this->text($row, 'legal_entity_id'));
+        return new FeedRoute($this->text($row, 'id'), $this->text($row, 'firm_bank_account_id'));
     }
 
     /**

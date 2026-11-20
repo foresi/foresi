@@ -29,7 +29,6 @@ final readonly class InvoiceDraftValues
      * @param string|null     $billedWork         the work of another module the invoice bills (BilledWork)
      */
     public function __construct(
-        public string $firmId,
         public VatRegime $regime,
         public Currency $currency,
         public ?string $seriesId,

@@ -23,7 +23,6 @@ final readonly class ImportedPaymentInput
      * @param string $runId  the id of the import that brings it
      */
     public function __construct(
-        public string $firmId,
         public string $invoiceId,
         public \DateTimeImmutable $receivedOn,
         public Money $amount,

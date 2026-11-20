@@ -16,7 +16,7 @@ use Foresi\CashFlow\Contract\ActualFlowSource;
  */
 final class FakeActualSource implements ActualFlowSource
 {
-    /** @var list<array{string, string, string}> what it was asked: firm, from, to */
+    /** @var list<array{string, string}> what it was asked: from, to */
     public array $asked = [];
 
     /**
@@ -31,9 +31,9 @@ final class FakeActualSource implements ActualFlowSource
         return $this->key;
     }
 
-    public function actuals(string $firmId, \DateTimeImmutable $from, \DateTimeImmutable $to): iterable
+    public function actuals(\DateTimeImmutable $from, \DateTimeImmutable $to): iterable
     {
-        $this->asked[] = [$firmId, $from->format('Y-m-d'), $to->format('Y-m-d')];
+        $this->asked[] = [$from->format('Y-m-d'), $to->format('Y-m-d')];
         foreach ($this->actuals as $actual) {
             yield $actual;
             if ($this->fails) {

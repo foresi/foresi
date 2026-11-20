@@ -49,7 +49,7 @@ final class RecordReceivedDocumentTest extends PurchasingTestCase
 
     public function testTheNumberCountsInTheYearOfTheReceivedDate(): void
     {
-        $saved = $this->recording()->create($this->firm->id(), $this->input(issue: '2025-12-20', taxPoint: '2025-12-20', received: '2025-12-30'));
+        $saved = $this->recording()->create($this->input(issue: '2025-12-20', taxPoint: '2025-12-20', received: '2025-12-30'));
 
         self::assertSame('R20250001', $saved->document->evidenceNumber());
     }
@@ -134,29 +134,29 @@ final class RecordReceivedDocumentTest extends PurchasingTestCase
 
     public function testADeductionDeadlinePassedOrCloseWarns(): void
     {
-        $passed = $this->recording()->create($this->firm->id(), $this->input(issue: '2023-06-01', taxPoint: '2023-06-01', received: '2026-11-02'));
+        $passed = $this->recording()->create($this->input(issue: '2023-06-01', taxPoint: '2023-06-01', received: '2026-11-02'));
         self::assertSame([ReceivedDocumentWarning::DEDUCTION_DEADLINE_PASSED], $passed->warnings->codes());
         self::assertSame('2025-12-31', $passed->warnings->get(ReceivedDocumentWarning::DEDUCTION_DEADLINE_PASSED)?->date?->format('Y-m-d'));
 
-        $close = $this->recording()->create($this->firm->id(), $this->input(supplierNumber: 'FV-2024-9', issue: '2024-12-15', taxPoint: '2024-12-15', received: '2026-11-02'));
+        $close = $this->recording()->create($this->input(supplierNumber: 'FV-2024-9', issue: '2024-12-15', taxPoint: '2024-12-15', received: '2026-11-02'));
         self::assertSame([ReceivedDocumentWarning::DEDUCTION_DEADLINE_NEAR], $close->warnings->codes(), '31 December 2026 is 51 days away.');
 
-        $later = $this->recording()->create($this->firm->id(), $this->input(supplierNumber: 'FV-2025-9', issue: '2025-01-15', taxPoint: '2025-01-15', received: '2026-11-02'));
+        $later = $this->recording()->create($this->input(supplierNumber: 'FV-2025-9', issue: '2025-01-15', taxPoint: '2025-01-15', received: '2026-11-02'));
         self::assertTrue($later->warnings->isEmpty());
     }
 
     public function testASimplifiedReceiptOverTheLimitWarns(): void
     {
-        $over = $this->recording()->create($this->firm->id(), $this->input(kind: ReceivedDocumentKind::SimplifiedReceipt, base: 900_000));
+        $over = $this->recording()->create($this->input(kind: ReceivedDocumentKind::SimplifiedReceipt, base: 900_000));
         self::assertSame([ReceivedDocumentWarning::SIMPLIFIED_OVER_LIMIT], $over->warnings->codes(), '10,890 CZK with VAT.');
 
-        $within = $this->recording()->create($this->firm->id(), $this->input(kind: ReceivedDocumentKind::SimplifiedReceipt, supplierNumber: 'P-2', base: 826_446));
+        $within = $this->recording()->create($this->input(kind: ReceivedDocumentKind::SimplifiedReceipt, supplierNumber: 'P-2', base: 826_446));
         self::assertTrue($within->warnings->isEmpty(), '9,999.99 CZK with VAT.');
     }
 
     public function testADocumentIsCreatedAndRecordedAtOnce(): void
     {
-        $saved = $this->recording()->create($this->firm->id(), $this->input());
+        $saved = $this->recording()->create($this->input());
 
         $document = $this->document($saved->document->id());
         self::assertTrue($document->isRecorded());
@@ -164,18 +164,15 @@ final class RecordReceivedDocumentTest extends PurchasingTestCase
         self::assertNull($document->originalAttachmentId());
     }
 
-    public function testACreditNoteNamesARecordedDocumentOfTheFirm(): void
+    public function testACreditNoteNamesARecordedDocument(): void
     {
-        $original = $this->recording()->create($this->firm->id(), $this->input())->document->id();
+        $original = $this->recording()->create($this->input())->document->id();
         $draft = $this->draft();
 
         $note = $this->recording()->record($draft, $this->input(kind: ReceivedDocumentKind::CreditNote, supplierNumber: 'D-1', base: -10_000, originalDocumentId: $original))->document;
         self::assertSame($original, $note->originalDocumentId());
 
-        $other = $this->firm('Other Firm s.r.o.', '25596641');
-        $foreign = $this->recording()->create($other->id(), $this->input())->document->id();
-        $this->assertRefused(ReceivedDocumentRefused::ORIGINAL_INVALID, fn (): SavedReceivedDocument => $this->recording()->create($this->firm->id(), $this->input(kind: ReceivedDocumentKind::CreditNote, supplierNumber: 'D-2', base: -10_000, originalDocumentId: $foreign)));
-        $this->assertRefused(ReceivedDocumentRefused::ORIGINAL_INVALID, fn (): SavedReceivedDocument => $this->recording()->create($this->firm->id(), $this->input(kind: ReceivedDocumentKind::CreditNote, supplierNumber: 'D-3', base: -10_000, originalDocumentId: $this->draft('%PDF-1.4 draft'))));
+        $this->assertRefused(ReceivedDocumentRefused::ORIGINAL_INVALID, fn (): SavedReceivedDocument => $this->recording()->create($this->input(kind: ReceivedDocumentKind::CreditNote, supplierNumber: 'D-3', base: -10_000, originalDocumentId: $this->draft('%PDF-1.4 draft'))));
     }
 
     public function testRefusalsOfTheUseCase(): void
@@ -205,6 +202,6 @@ final class RecordReceivedDocumentTest extends PurchasingTestCase
         } catch (PurchasingNotAllowed) {
         }
         $this->expectException(PurchasingNotAllowed::class);
-        $this->recording()->create($this->firm->id(), $this->input());
+        $this->recording()->create($this->input());
     }
 }

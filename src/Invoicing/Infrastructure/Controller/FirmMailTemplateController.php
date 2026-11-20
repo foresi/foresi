@@ -87,16 +87,16 @@ final class FirmMailTemplateController extends AbstractController
     public function edit(MailTemplateKind $kind, Request $request): Response
     {
         $this->denyUnlessOwner();
-        $firm = $this->firm();
+        $this->firm();
         if (!$request->isMethod('POST')) {
-            return $this->sheet($firm, $kind, $this->stored($firm, $kind), [], Response::HTTP_OK);
+            return $this->sheet($kind, $this->stored($kind), [], Response::HTTP_OK);
         }
         $this->checkToken($request, FirmMailController::TEMPLATES_TOKEN);
 
         $reset = $request->request->getString('reset');
         if ('' !== $reset) {
             $language = DocumentLanguage::tryFrom($reset) ?? throw new BadRequestHttpException('Unknown language.');
-            $this->transaction->run(fn () => $this->templates->reset($firm, $kind, $language));
+            $this->transaction->run(fn () => $this->templates->reset($kind, $language));
             $this->addFlash('success', $this->translator->trans('firm.mail.flash.reset'));
 
             return $this->redirectToRoute('app_firm_mail');
@@ -104,21 +104,21 @@ final class FirmMailTemplateController extends AbstractController
 
         $submission = FirmMailSubmission::templates($request, $this->labels, $kind);
         if ([] !== $submission->errors) {
-            return $this->sheet($firm, $kind, $submission->typed, $submission->errors, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->sheet($kind, $submission->typed, $submission->errors, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         try {
-            $this->transaction->run(function () use ($firm, $kind, $submission): void {
+            $this->transaction->run(function () use ($kind, $submission): void {
                 foreach (DocumentLanguage::cases() as $language) {
                     $text = $submission->texts[$language->value];
-                    $this->store($firm, $kind, $language, $text['subject'], $text['body']);
+                    $this->store($kind, $language, $text['subject'], $text['body']);
                 }
             });
         } catch (UnknownMailVariables) {
             // The form checks the tokens first; this is the store's own check agreeing.
-            return $this->sheet($firm, $kind, $submission->typed, ['form' => ['firm.mail.error.unknown_token']], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->sheet($kind, $submission->typed, ['form' => ['firm.mail.error.unknown_token']], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (InvalidMailTemplate|UniqueConstraintViolationException) {
             // A control character the form let through, or another request storing the same text meanwhile.
-            return $this->sheet($firm, $kind, $submission->typed, ['form' => ['firm.mail.error.save_failed']], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->sheet($kind, $submission->typed, ['form' => ['firm.mail.error.save_failed']], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         $this->addFlash('success', $this->translator->trans('firm.mail.flash.template_saved', ['name' => $this->translator->trans(self::KINDS[$kind->value]['title'])]));
 
@@ -134,15 +134,14 @@ final class FirmMailTemplateController extends AbstractController
     public function preview(MailTemplateKind $kind, DocumentLanguage $language, Request $request): Response
     {
         $this->denyUnlessOwner();
-        $firm = $this->firm();
+        $this->firm();
         if (!$this->isCsrfTokenValid(MarkdownEditor::TOKEN, $request->request->getString('_token'))) {
             throw new AccessDeniedHttpException('Invalid CSRF token.');
         }
         $values = $this->samples->valuesFor(
-            $firm,
             $kind,
             $language,
-            $this->currency($firm),
+            $this->currency(),
             $this->translator->trans('firm.mail.sample.customer', locale: $language->value),
             $this->translator->trans(self::DOCUMENT_TYPES[$kind->value], locale: $language->value),
         );
@@ -159,21 +158,21 @@ final class FirmMailTemplateController extends AbstractController
     /**
      * The built-in text is not stored as a copy, so it follows the translations.
      */
-    private function store(LegalEntity $firm, MailTemplateKind $kind, DocumentLanguage $language, string $subject, string $body): void
+    private function store(MailTemplateKind $kind, DocumentLanguage $language, string $subject, string $body): void
     {
         if (FirmMailSubmission::sameText($this->templates->builtIn($kind, $language), $subject, $body)) {
-            $this->templates->reset($firm, $kind, $language);
+            $this->templates->reset($kind, $language);
 
             return;
         }
-        $this->templates->save($firm, $kind, $language, $subject, $body);
+        $this->templates->save($kind, $language, $subject, $body);
     }
 
     /**
      * @param array<string, array{subject: string, body: string}>        $texts  language => text, with readable labels
      * @param array<string, array{0: string, 1?: array<string, string>}> $errors
      */
-    private function sheet(LegalEntity $firm, MailTemplateKind $kind, array $texts, array $errors, int $status): Response
+    private function sheet(MailTemplateKind $kind, array $texts, array $errors, int $status): Response
     {
         $names = MailTemplateKind::Invoice === $kind ? '' : $kind->value.'_';
         $ids = str_replace('_', '-', $names);
@@ -183,7 +182,7 @@ final class FirmMailTemplateController extends AbstractController
             $languages[] = [
                 'code' => $code,
                 'label' => $this->translator->trans('firm.mail.language.'.$code),
-                'custom' => $this->templates->isCustom($firm, $kind, $language),
+                'custom' => $this->templates->isCustom($kind, $language),
                 'subject' => ['name' => $names.'subject['.$code.']', 'id' => $ids.'subject-'.$code],
                 'body' => ['name' => $names.'body['.$code.']', 'id' => $ids.'body-'.$code],
                 'text' => $texts[$code],
@@ -197,7 +196,7 @@ final class FirmMailTemplateController extends AbstractController
         $invalid = array_values(array_filter($languages, static fn (array $language): bool => $language['invalid']));
 
         return $this->render('@Invoicing/firm/mail_template.html.twig', [
-            'firm' => $firm,
+            'firm' => $this->firm(),
             'kind' => $kind->value,
             'title' => $this->translator->trans(self::KINDS[$kind->value]['title']),
             'help' => $this->translator->trans(self::KINDS[$kind->value]['help']),
@@ -214,11 +213,11 @@ final class FirmMailTemplateController extends AbstractController
      *
      * @return array<string, array{subject: string, body: string}> language => text
      */
-    private function stored(LegalEntity $firm, MailTemplateKind $kind): array
+    private function stored(MailTemplateKind $kind): array
     {
         $texts = [];
         foreach (DocumentLanguage::cases() as $language) {
-            $text = $this->templates->textFor($firm, $kind, $language);
+            $text = $this->templates->textFor($kind, $language);
             $texts[$language->value] = ['subject' => $this->labels->toEditor($text->subject, $language, $kind), 'body' => $this->labels->toEditor($text->body, $language, $kind)];
         }
 
@@ -228,10 +227,10 @@ final class FirmMailTemplateController extends AbstractController
     /**
      * The firm's home currency; a firm in a country without invoicing rules previews in euros.
      */
-    private function currency(LegalEntity $firm): Currency
+    private function currency(): Currency
     {
         try {
-            return $this->countries->for($firm->address()->countryCode)->homeCurrency();
+            return $this->countries->for($this->firm()->address()->countryCode)->homeCurrency();
         } catch (UnsupportedCountry) {
             return Currency::EUR;
         }

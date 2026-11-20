@@ -18,16 +18,16 @@ use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\VariableSymbol;
 use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\InvoicingDefaults;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Psr\Clock\ClockInterface;
 
 /**
- * What a new invoice starts with, for a firm and then for the customer picked. It
+ * What a new invoice starts with, for the firm and then for the customer picked. It
  * writes nothing: the number is only a preview.
  */
 final readonly class NewInvoiceDefaults
@@ -39,6 +39,7 @@ final readonly class NewInvoiceDefaults
         private InvoicingCountries $countries,
         private ClockInterface $clock,
         private FirmBankAccounts $accounts,
+        private InstanceFirm $instanceFirm,
     ) {
     }
 
@@ -47,26 +48,26 @@ final readonly class NewInvoiceDefaults
      *
      * @throws UnsupportedCountry for a firm whose country has no invoicing rules
      */
-    public function for(LegalEntity $firm, ?\DateTimeImmutable $on = null, DocumentKind $kind = DocumentKind::Invoice): InvoiceDraftValues
+    public function for(?\DateTimeImmutable $on = null, DocumentKind $kind = DocumentKind::Invoice): InvoiceDraftValues
     {
+        $firm = $this->instanceFirm->get();
         $country = $this->countries->for($firm->address()->countryCode);
         $today = $on ?? \DateTimeImmutable::createFromInterface($this->clock->now())->setTimezone($country->timezone())->setTime(0, 0);
-        $series = $this->catalog->defaultFor($firm, $kind);
+        $series = $this->catalog->defaultFor($kind);
         $number = $this->counter->peek($series, $today);
-        $settings = $this->settings->for($firm);
+        $settings = $this->settings->get();
         $regime = VatRegime::of($firm->vatStatus());
 
         return new InvoiceDraftValues(
-            $firm->id(),
             $regime,
             $country->homeCurrency(),
-            $this->storedId($series, $firm),
+            $this->storedId($series),
             $number,
             $today,
             $today,
             $this->dueDate($today, InvoicingDefaults::DEFAULT_DUE_DAYS),
             PaymentMethod::BankTransfer,
-            $this->accounts->primaryOf($firm)?->iban(),
+            $this->accounts->primary()?->iban(),
             VariableSymbol::fromNumber($number),
             $settings->constantSymbol(),
             $settings->textBefore(),
@@ -84,9 +85,9 @@ final readonly class NewInvoiceDefaults
      *
      * @throws UnsupportedCountry for a firm whose country has no invoicing rules
      */
-    public function forBilledWork(LegalEntity $firm, BilledWorkDraft $work, ?CustomerOption $customer): InvoiceDraftValues
+    public function forBilledWork(BilledWorkDraft $work, ?CustomerOption $customer): InvoiceDraftValues
     {
-        $draft = $this->for($firm);
+        $draft = $this->for();
         $new = $draft->lines[0];
         $lines = array_map(static fn (BilledLine $line): LineInput => new LineInput($line->text, $line->quantity, $line->unit, $line->price, $new->priceType, $new->treatment, $new->rateKind, $new->supplyCode, $new->discount, source: $line->source), $work->lines);
         $draft = $draft->with(['lines' => $lines, 'currency' => $work->currency, 'billedWork' => $work->reference]);
@@ -148,8 +149,8 @@ final readonly class NewInvoiceDefaults
         return $from->modify(\sprintf('+%d days', $days));
     }
 
-    private function storedId(Series $series, LegalEntity $firm): ?string
+    private function storedId(Series $series): ?string
     {
-        return \in_array($series, $this->catalog->everyForFirm($firm), true) ? $series->id() : null;
+        return \in_array($series, $this->catalog->every(), true) ? $series->id() : null;
     }
 }

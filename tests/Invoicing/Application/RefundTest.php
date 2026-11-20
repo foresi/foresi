@@ -87,7 +87,7 @@ final class RefundTest extends InvoiceTestCase
         $invoice = $this->toRefund();
         $czk = Money::of('484.00', Currency::CZK);
 
-        $this->expectRefused(PaymentRefused::SETTLEMENT_NOT_ALLOWED, fn (): Payment => self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-01'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $czk, Money::of('0.50', Currency::CZK))], PaymentDirection::Refund)));
+        $this->expectRefused(PaymentRefused::SETTLEMENT_NOT_ALLOWED, fn (): Payment => self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-01'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $czk, Money::of('0.50', Currency::CZK))], PaymentDirection::Refund)));
     }
 
     public function testCancellingARefundBringsBackWhatIsToRefund(): void
@@ -117,7 +117,7 @@ final class RefundTest extends InvoiceTestCase
     private function record(Invoice $invoice, string $amount, PaymentDirection $direction = PaymentDirection::Incoming): Payment
     {
         $czk = Money::of($amount, Currency::CZK);
-        $payment = self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-01'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $czk)], $direction));
+        $payment = self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-01'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $czk)], $direction));
         $this->em->clear();
 
         return $payment;

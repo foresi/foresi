@@ -95,9 +95,9 @@ final class FirmBankController extends AbstractController
         $this->denyUnlessOwner();
         $firm = $this->firm();
         $tab = self::PAIRING === $request->query->getString('tab') ? self::PAIRING : self::ACCOUNTS;
-        $all = $this->accounts->of($firm, withArchived: true);
+        $all = $this->accounts->all(withArchived: true);
         $feeds = $this->feeds->ofAccounts(array_map(static fn (FirmBankAccount $account): string => $account->id(), $all));
-        $rules = $this->pairing->for($firm);
+        $rules = $this->pairing->get();
         $url = $this->generateUrl('app_firm_bank');
 
         return $this->render('@Banking/firm/bank.html.twig', parameters: [
@@ -124,7 +124,7 @@ final class FirmBankController extends AbstractController
     {
         $this->denyUnlessOwner();
         $firm = $this->firm();
-        $first = [] === $this->accounts->of($firm);
+        $first = [] === $this->accounts->all();
         $values = ['number' => '', 'currency' => Currency::CZK->value, 'label' => '', 'primary' => $first ? '1' : ''];
         if (!$request->isMethod('POST')) {
             return $this->accountForm($firm, null, $values, [], Response::HTTP_OK);
@@ -145,7 +145,7 @@ final class FirmBankController extends AbstractController
             return $this->accountForm($firm, null, $values, $errors, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         try {
-            $account = $this->manage->open($firm->id(), $values['number'], $values['currency'], $values['label'], '1' === $values['primary']);
+            $account = $this->manage->open($values['number'], $values['currency'], $values['label'], '1' === $values['primary']);
         } catch (BankAccountRefused $refused) {
             return $this->accountForm($firm, null, $values, $this->refusal($refused), Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (UniqueConstraintViolationException) {
@@ -162,7 +162,7 @@ final class FirmBankController extends AbstractController
     {
         $this->denyUnlessOwner();
         $firm = $this->firm();
-        $stored = $this->account($firm, $account);
+        $stored = $this->account($account);
         $values = ['number' => $stored->iban(), 'currency' => $stored->currency()->value, 'label' => $stored->label(), 'primary' => $stored->isPrimary() ? '1' : ''];
         if (!$request->isMethod('POST')) {
             return $this->accountForm($firm, $stored, $values, [], Response::HTTP_OK);
@@ -193,7 +193,7 @@ final class FirmBankController extends AbstractController
     {
         $this->denyUnlessOwner();
         $firm = $this->firm();
-        $stored = $this->account($firm, $account);
+        $stored = $this->account($account);
         $this->checkToken($request, self::ACTION_TOKEN);
         try {
             $this->manage->change($stored->id(), $stored->label(), $stored->currency()->value, true);
@@ -210,7 +210,7 @@ final class FirmBankController extends AbstractController
     {
         $this->denyUnlessOwner();
         $firm = $this->firm();
-        $stored = $this->account($firm, $account);
+        $stored = $this->account($account);
         $this->checkToken($request, self::ACTION_TOKEN);
         $this->manage->archive($stored->id());
         $this->addFlash('success', $this->translator->trans('bank.account.flash.archived', ['name' => $this->name($firm, $stored)]));
@@ -223,7 +223,7 @@ final class FirmBankController extends AbstractController
     {
         $this->denyUnlessOwner();
         $firm = $this->firm();
-        $stored = $this->account($firm, $account);
+        $stored = $this->account($account);
         $this->checkToken($request, self::ACTION_TOKEN);
         $this->manage->restore($stored->id());
         $this->addFlash('success', $this->translator->trans('bank.account.flash.restored', ['name' => $this->name($firm, $stored)]));
@@ -240,7 +240,7 @@ final class FirmBankController extends AbstractController
     {
         $this->denyUnlessOwner();
         $firm = $this->firm();
-        $stored = $this->account($firm, $account);
+        $stored = $this->account($account);
         if (!$request->isMethod('POST')) {
             return $this->render('@Banking/firm/address.html.twig', [
                 'firm' => $firm,
@@ -274,12 +274,13 @@ final class FirmBankController extends AbstractController
     public function pairing(Request $request): RedirectResponse
     {
         $this->denyUnlessOwner();
-        $firm = $this->firm();
+        // Before the first-run setup there is no firm to set the switches of.
+        $this->firm();
         $this->checkToken($request, self::PAIRING_TOKEN);
         try {
-            $this->changePairing->change($firm->id(), '1' === $request->request->getString('autoPairing'), '1' === $request->request->getString('smallDifference'));
+            $this->changePairing->change('1' === $request->request->getString('autoPairing'), '1' === $request->request->getString('smallDifference'));
         } catch (UniqueConstraintViolationException) {
-            // Another request stored the firm's first switches meanwhile.
+            // Another request stored the first switches meanwhile.
             $this->addFlash('error', $this->translator->trans('bank.account.pairing.save_failed'));
 
             return $this->redirectToRoute('app_firm_bank', ['tab' => self::PAIRING]);
@@ -490,16 +491,13 @@ final class FirmBankController extends AbstractController
     }
 
     /**
-     * An account of this firm; one of another firm is not found.
+     * An account of the firm; an unknown one is not found.
      */
-    private function account(LegalEntity $firm, string $id): FirmBankAccount
+    private function account(string $id): FirmBankAccount
     {
         try {
             $account = $this->accounts->get($id);
         } catch (UnknownFirmBankAccount) {
-            throw new NotFoundHttpException();
-        }
-        if ($account->firm()->id() !== $firm->id()) {
             throw new NotFoundHttpException();
         }
 

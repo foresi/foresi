@@ -12,7 +12,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Idoklad\Application\Import\IdokladLinks;
 use Foresi\Idoklad\Domain\IdokladLink;
 use Foresi\Idoklad\Domain\IdokladResource;
-use Foresi\Party\Domain\LegalEntity;
 
 final readonly class DoctrineIdokladLinks implements IdokladLinks
 {
@@ -20,14 +19,14 @@ final readonly class DoctrineIdokladLinks implements IdokladLinks
     {
     }
 
-    public function find(LegalEntity $firm, IdokladResource $resource, int $externalId): ?IdokladLink
+    public function find(IdokladResource $resource, int $externalId): ?IdokladLink
     {
-        return $this->em->getRepository(IdokladLink::class)->findOneBy(['firm' => $firm, 'resource' => $resource, 'externalId' => $externalId]);
+        return $this->em->getRepository(IdokladLink::class)->findOneBy(['resource' => $resource, 'externalId' => $externalId]);
     }
 
-    public function ofRun(LegalEntity $firm, string $runId): array
+    public function ofRun(string $runId): array
     {
-        return $this->em->getRepository(IdokladLink::class)->findBy(['firm' => $firm, 'runId' => $runId], ['resource' => 'ASC', 'externalId' => 'ASC']);
+        return $this->em->getRepository(IdokladLink::class)->findBy(['runId' => $runId], ['resource' => 'ASC', 'externalId' => 'ASC']);
     }
 
     public function remove(IdokladLink $link): void

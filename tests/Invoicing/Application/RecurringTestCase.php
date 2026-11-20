@@ -58,7 +58,6 @@ abstract class RecurringTestCase extends InvoiceTestCase
     protected function recurringInput(?array $lines = null, array $overrides = []): RecurringInput
     {
         return new \ReflectionClass(RecurringInput::class)->newInstanceArgs(array_merge([
-            'firmId' => $this->firm->id(),
             'seriesId' => $this->series->id(),
             'customerId' => $this->customer->id(),
             'paymentMethod' => PaymentMethod::BankTransfer,

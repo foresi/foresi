@@ -19,14 +19,12 @@ use Foresi\Party\Domain\PaymentMethod;
 final readonly class PaymentSliceFilter
 {
     /**
-     * @param string|null             $firmId           only the payments of this firm
      * @param string|null             $invoiceId        only the payments that pay, or refund, this invoice
      * @param \DateTimeImmutable|null $receivedFrom     the first day, inclusive
      * @param \DateTimeImmutable|null $receivedTo       the last day, inclusive
      * @param bool                    $includeCancelled whether the cancelled payments are listed too
      */
     public function __construct(
-        public ?string $firmId = null,
         public ?string $invoiceId = null,
         public ?PaymentDirection $direction = null,
         public ?\DateTimeImmutable $receivedFrom = null,

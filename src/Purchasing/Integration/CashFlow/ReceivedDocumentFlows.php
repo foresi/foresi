@@ -30,7 +30,7 @@ use Foresi\Purchasing\Infrastructure\Api\ReceivedDocumentApiController;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
- * The recorded received documents of a firm in the forecast (C2): what is
+ * The recorded received documents in the forecast (C2): what is
  * still to pay, on the due date. A document without a due date is expected on
  * the day it was received, flagged so. A credit note brings its money back in.
  * Drafts and the trash stay out. As actuals, every recorded document counts,
@@ -60,11 +60,11 @@ final readonly class ReceivedDocumentFlows implements CashFlowSource, ActualFlow
         return !$grant instanceof ApiTokenGrant || $grant->allows(ApiScope::of('received_documents', false));
     }
 
-    public function flows(string $firmId, \DateTimeImmutable $from, \DateTimeImmutable $to, \DateTimeImmutable $today): iterable
+    public function flows(\DateTimeImmutable $from, \DateTimeImmutable $to, \DateTimeImmutable $today): iterable
     {
         $zone = $today->getTimezone();
         $last = $to->format('Y-m-d');
-        foreach ($this->payable(new ReceivedDocumentSliceFilter(firmId: $firmId, state: ReceivedDocumentState::Recorded, unpaid: true)) as $payable) {
+        foreach ($this->payable(new ReceivedDocumentSliceFilter(state: ReceivedDocumentState::Recorded, unpaid: true)) as $payable) {
             $document = $payable->document;
             $remaining = $payable->balance->remaining;
             $due = $document->dueDate();
@@ -87,10 +87,10 @@ final readonly class ReceivedDocumentFlows implements CashFlowSource, ActualFlow
         }
     }
 
-    public function actuals(string $firmId, \DateTimeImmutable $from, \DateTimeImmutable $to): iterable
+    public function actuals(\DateTimeImmutable $from, \DateTimeImmutable $to): iterable
     {
         [$first, $last] = [$from->format('Y-m-d'), $to->format('Y-m-d')];
-        foreach ($this->payable(new ReceivedDocumentSliceFilter(firmId: $firmId, state: ReceivedDocumentState::Recorded)) as $payable) {
+        foreach ($this->payable(new ReceivedDocumentSliceFilter(state: ReceivedDocumentState::Recorded)) as $payable) {
             $document = $payable->document;
             $day = $document->issueDate() ?? $document->receivedDate();
             if (!$day instanceof \DateTimeImmutable || $day->format('Y-m-d') < $first || $day->format('Y-m-d') > $last || $payable->balance->due->isZero()) {

@@ -66,7 +66,6 @@ final class TimeInvoiceTrashTest extends WorkTestCase
     private IssueInvoice $issue;
     private TrashInvoice $trash;
     private ManageTime $time;
-    private LegalEntity $firm;
     private Party $customer;
     private Project $website;
     private Task $homepage;
@@ -85,9 +84,9 @@ final class TimeInvoiceTrashTest extends WorkTestCase
         $this->trash = $container->get(TrashInvoice::class);
         $this->time = $container->get(ManageTime::class);
 
-        $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
-        $this->em->persist($this->firm);
-        FirmAccounts::add($this->em, $this->firm, self::IBAN);
+        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
+        $this->em->persist($firm);
+        FirmAccounts::add($this->em, self::IBAN);
         $this->customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');
         $this->em->persist($this->customer);
         $this->em->persist(new PartyAddress($this->customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
@@ -236,7 +235,7 @@ final class TimeInvoiceTrashTest extends WorkTestCase
 
     private function scope(): TimeScope
     {
-        return new TimeScope($this->firm->id(), $this->customer->id(), [$this->website->id()], new \DateTimeImmutable('2026-10-01'), new \DateTimeImmutable('2026-10-31'));
+        return new TimeScope($this->customer->id(), [$this->website->id()], new \DateTimeImmutable('2026-10-01'), new \DateTimeImmutable('2026-10-31'));
     }
 
     /**
@@ -248,7 +247,7 @@ final class TimeInvoiceTrashTest extends WorkTestCase
     {
         $lines ??= array_map(static fn (BilledLine $line): LineInput => new LineInput($line->text, $line->quantity, $line->unit, $line->price, PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'), source: $line->source), $draft->lines);
 
-        return new InvoiceInput($draft->firmId, null, null, $draft->customerId, null, new \DateTimeImmutable('2026-11-10'), new \DateTimeImmutable('2026-11-10'), new \DateTimeImmutable('2026-11-24'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Time', '', '', DocumentLanguage::Czech, $lines, true, billedWork: $draft->reference);
+        return new InvoiceInput(null, null, $draft->customerId, null, new \DateTimeImmutable('2026-11-10'), new \DateTimeImmutable('2026-11-10'), new \DateTimeImmutable('2026-11-24'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Time', '', '', DocumentLanguage::Czech, $lines, true, billedWork: $draft->reference);
     }
 
     private function entry(string $id): TimeEntry

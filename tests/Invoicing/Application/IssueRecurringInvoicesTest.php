@@ -371,8 +371,8 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         $this->em->clear();
 
         self::assertSame(0, $this->templates->failing(), 'the notice is gone');
-        self::assertSame([], $this->templates->page(new RecurringFilter(null, null, true, 1))->templates, 'and so is the row under failing');
-        self::assertSame(0, self::getContainer()->get(RecurringOverview::class)->counts(null)['failing']);
+        self::assertSame([], $this->templates->page(new RecurringFilter(null, true, 1))->templates, 'and so is the row under failing');
+        self::assertSame(0, self::getContainer()->get(RecurringOverview::class)->counts()['failing']);
     }
 
     public function testMarkingTheHeldInvoiceDeliveredEndsTheSendFailure(): void
@@ -393,7 +393,7 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         $this->connection->executeStatement("UPDATE recurring_invoice SET last_failure_code = 'invoice.problem.customer_archived', last_failure_at = '2026-12-01 05:00:00' WHERE id = ?", [$template->id()]);
 
         self::assertSame(1, $this->templates->failing(), 'nothing waits to be sent, yet the issue failed');
-        self::assertSame([$template->id()], array_map(static fn (RecurringInvoice $found): string => $found->id(), $this->templates->page(new RecurringFilter(null, null, true, 1))->templates));
+        self::assertSame([$template->id()], array_map(static fn (RecurringInvoice $found): string => $found->id(), $this->templates->page(new RecurringFilter(null, true, 1))->templates));
     }
 
     public function testARefusedIssueIsRecordedAndOthersStillRun(): void
@@ -538,7 +538,7 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         self::assertCount(2, $this->gateway->messages(), 'the next day tells again');
     }
 
-    public function testASpentBudgetHoldsTheFirmsOtherTemplatesWithOneAlert(): void
+    public function testASpentBudgetHoldsTheOtherTemplatesWithOneAlert(): void
     {
         $this->contactEmail('office@example.com');
         $templates = [];
@@ -547,12 +547,12 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         }
         // The system's share of the day is spent; what is left belongs to people.
         $limiter = self::getContainer()->get('test.invoice_send_firm_limiter');
-        $limiter->create($this->firm->id())->consume(400);
+        $limiter->create('instance')->consume(400);
 
         $this->runOn('2026-12-01 05:30:00');
 
         self::assertSame(0, $this->sendCount(), 'nothing was sent');
-        self::assertSame(100, $limiter->create($this->firm->id())->consume(0)->getRemainingTokens(), 'the run took none of the rest');
+        self::assertSame(100, $limiter->create('instance')->consume(0)->getRemainingTokens(), 'the run took none of the rest');
         foreach ($templates as $template) {
             self::assertCount(1, $this->invoicesOf($template), 'each still issued');
             self::assertSame('send.rate_limited', $this->templateRow($template->id())['last_failure_code']);
@@ -564,7 +564,7 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         self::assertSame(['office@example.com'], $messages[0]->to);
         self::assertSame('5 pravidelných faktur se vystavilo, ale neodeslalo', $messages[0]->subject);
         self::assertSame(5, substr_count($messages[0]->text, 'Example Customer a.s.'), 'each held template is named');
-        self::assertTrue(self::getContainer()->get(SendLimits::class)->take('019a0000-0000-7000-8000-00000000002a', $this->firm->id()), 'a person can still send');
+        self::assertTrue(self::getContainer()->get(SendLimits::class)->take('019a0000-0000-7000-8000-00000000002a'), 'a person can still send');
 
         // The same day again tells nothing new.
         $this->runOn('2026-12-01 09:00:00');
@@ -698,7 +698,7 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         $review = $this->template(delivery: RecurringDelivery::Review);
         $lateSend = $this->template('2026-11-25');
         $limiter = self::getContainer()->get('test.invoice_send_firm_limiter');
-        $limiter->create($this->firm->id())->consume(400);
+        $limiter->create('instance')->consume(400);
 
         $this->runOn('2026-12-03 05:30:00');
 
@@ -791,7 +791,7 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         $this->contactEmail('office@example.com');
         $template = $this->template();
         $this->connection->executeStatement('UPDATE recurring_invoice SET owner_id = ? WHERE id = ?', [$this->owner()->id(), $template->id()]);
-        $this->connection->executeStatement("UPDATE firm_invoicing SET contact_email = 'office at example' WHERE legal_entity_id = ?", [$this->firm->id()]);
+        $this->connection->executeStatement("UPDATE firm_invoicing SET contact_email = 'office at example'");
         $this->connection->executeStatement('DELETE FROM party_address');
 
         $this->runOn('2026-12-01 05:30:00');
@@ -803,7 +803,7 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
     {
         $this->contactEmail('office@example.com');
         $this->template();
-        $this->connection->executeStatement("UPDATE firm_invoicing SET contact_email = ' office@example.com ' WHERE legal_entity_id = ?", [$this->firm->id()]);
+        $this->connection->executeStatement("UPDATE firm_invoicing SET contact_email = ' office@example.com '");
         $this->connection->executeStatement('DELETE FROM party_address');
 
         $this->runOn('2026-12-01 05:30:00');
@@ -877,7 +877,6 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         $this->em->clear();
 
         return $this->save->create(new RecurringInput(
-            $this->firm->id(),
             $this->series->id(),
             ($customer ?? $this->customer)->id(),
             PaymentMethod::BankTransfer,
@@ -950,7 +949,7 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
     private function toSend(): array
     {
         $this->em->clear();
-        $page = $this->store->page(new InvoiceFilter(null, InvoiceFilter::ALL, '', '-issueDate', 1, toSend: true));
+        $page = $this->store->page(new InvoiceFilter(InvoiceFilter::ALL, '', '-issueDate', 1, toSend: true));
 
         return array_map(static fn (InvoiceRow $row): string => $row->id, $page->rows);
     }

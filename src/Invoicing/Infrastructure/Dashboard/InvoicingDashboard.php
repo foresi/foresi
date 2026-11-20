@@ -41,10 +41,10 @@ final readonly class InvoicingDashboard implements DashboardSectionProvider
         if (!$this->staff->isStaff()) {
             return [];
         }
-        if ([] === $this->overview->firms()) {
+        if (!$this->overview->hasDocuments()) {
             return [];
         }
-        $summary = $this->overview->of(null);
+        $summary = $this->overview->summary();
 
         return [new DashboardSection('@Invoicing/dashboard.html.twig', [
             'kpis' => $this->kpis($summary),

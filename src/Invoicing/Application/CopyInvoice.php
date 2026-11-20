@@ -23,7 +23,7 @@ use Foresi\Party\Domain\Party;
 /**
  * What the form opens with for a copy. It writes nothing: only Save issues, as a new
  * document with a new number and new snapshots. Number, dates and order number start
- * over; firm, series, customer, description, lines, texts, language and payment stay.
+ * over; series, customer, description, lines, texts, language and payment stay.
  * Rates come from the kind on the new tax point. What can no longer be used does not
  * stop the form: it says so, and a save needs another choice. Lines follow the VAT
  * status the firm has now, as the document will.
@@ -43,9 +43,8 @@ final readonly class CopyInvoice
      */
     public function valuesFrom(Invoice $source): InvoiceDraftValues
     {
-        $firm = $source->firm();
         // A copy is of the same kind: an advance invoice copies to an advance invoice.
-        $draft = $this->defaults->for($firm, kind: $source->kind());
+        $draft = $this->defaults->for(kind: $source->kind());
         $notices = [];
 
         $series = $source->series();
@@ -65,7 +64,7 @@ final readonly class CopyInvoice
             'customerId' => $customer ? $party->id() : null,
             'dueDate' => $this->dueDate($draft, $customer, $party),
             'paymentMethod' => $source->paymentMethod(),
-            'bankAccount' => \in_array($source->bankAccount(), $this->accounts->ibansOf($firm), true) ? $source->bankAccount() : $draft->bankAccount,
+            'bankAccount' => \in_array($source->bankAccount(), $this->accounts->ibans(), true) ? $source->bankAccount() : $draft->bankAccount,
             'constantSymbol' => $source->constantSymbol(),
             'description' => $source->description(),
             'textBefore' => $source->textBefore(),

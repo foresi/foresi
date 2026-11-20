@@ -54,7 +54,6 @@ final class IdokladPaymentsImportTest extends KernelTestCase
     private const int INVOICE = 101;
 
     private EntityManagerInterface $em;
-    private LegalEntity $firm;
 
     protected function setUp(): void
     {
@@ -66,8 +65,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
 
-        $this->firm = new LegalEntity('Example s.r.o.', new RegistrationNumber('CZ', '12345679'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
-        $this->em->persist($this->firm);
+        $this->em->persist(new LegalEntity('Example s.r.o.', new RegistrationNumber('CZ', '12345679'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, ''));
         $this->record(IdokladResource::Countries, self::CZECHIA, ['Id' => self::CZECHIA, 'Code' => 'CZE', 'Name' => 'Česká republika', 'NameEnglish' => 'Czech Republic', 'CurrencyId' => self::CZK]);
         $this->record(IdokladResource::Currencies, self::CZK, ['Id' => self::CZK, 'Code' => 'CZK', 'Symbol' => 'Kč']);
         $this->record(IdokladResource::Currencies, self::EUR, ['Id' => self::EUR, 'Code' => 'EUR', 'Symbol' => '€']);
@@ -80,7 +78,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         $this->record(IdokladResource::NumericSequences, 2, ['Id' => 2, 'DocumentType' => 0, 'Name' => 'Faktury', 'NumberFormat' => 'RRRRNNNN', 'Year' => 2019, 'LastNumber' => 3, 'IsDefault' => true]);
         $this->record(IdokladResource::NumericSequences, 3, ['Id' => 3, 'DocumentType' => 1, 'Name' => 'Zálohy', 'NumberFormat' => 'ZRRRRNNNN', 'Year' => 2026, 'LastNumber' => 2, 'IsDefault' => true]);
         $this->record(IdokladResource::NumericSequences, 4, ['Id' => 4, 'DocumentType' => 10, 'Name' => 'Daňové doklady', 'NumberFormat' => 'DRRRRNNNN', 'Year' => 2026, 'LastNumber' => 0, 'IsDefault' => true]);
-        $pull = new IdokladPull($this->firm, new \DateTimeImmutable('2026-11-06 09:00:00'));
+        $pull = new IdokladPull(new \DateTimeImmutable('2026-11-06 09:00:00'));
         $pull->finish(new \DateTimeImmutable('2026-11-06 09:05:00'), 3);
         $this->em->persist($pull);
         $this->em->flush();
@@ -91,7 +89,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         $this->proforma();
         $this->payment(self::PAYMENT, []);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run, $this->payer());
+        $run = $this->import()->run(ImportMode::Run, $this->payer());
 
         self::assertNull($run->error());
         $entry = $this->entry($run, self::PAYMENT, PaymentsStage::KEY);
@@ -113,7 +111,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         $this->payment(self::PAYMENT, []);
         $this->taxDocument(self::TAX_DOCUMENT, []);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run, $this->payer());
+        $run = $this->import()->run(ImportMode::Run, $this->payer());
 
         $entry = $this->entry($run, self::TAX_DOCUMENT);
         self::assertSame('created', $entry['outcome'], implode(', ', $entry['reasons']));
@@ -125,7 +123,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         self::assertSame('2026-10-05', $tax->taxPointDate()?->format('Y-m-d'));
         self::assertSame([100000, 21000, 121000], [$tax->net()->minor(), $tax->vat()->minor(), $tax->gross()->minor()]);
         self::assertSame('IssuedTaxDocuments/601', $tax->importExternalId());
-        $deductible = self::getContainer()->get(DeductibleAdvances::class)->for($this->storedFirm(), $tax->customerParty()->id(), null, DocumentLanguage::Czech);
+        $deductible = self::getContainer()->get(DeductibleAdvances::class)->for($tax->customerParty()->id(), null, DocumentLanguage::Czech);
         self::assertSame([$tax->id()], array_map(static fn (Deductible $offered): string => $offered->id, $deductible), 'The advance is open: its tax document waits for the final invoice.');
     }
 
@@ -136,7 +134,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         $this->taxDocument(self::TAX_DOCUMENT, []);
         $this->finalInvoice([]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run, $this->payer());
+        $run = $this->import()->run(ImportMode::Run, $this->payer());
 
         $entry = $this->entry($run, self::INVOICE);
         self::assertSame('created', $entry['outcome'], implode(', ', $entry['reasons']));
@@ -145,7 +143,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         self::assertTrue($invoice->deductsAdvances());
         $this->em->clear();
         self::assertSame($invoice->id(), $this->invoiceOf($this->entry($run, self::TAX_DOCUMENT)['target_id'])->deductedByInvoiceId());
-        self::assertSame([], self::getContainer()->get(DeductibleAdvances::class)->for($this->storedFirm(), $invoice->customerParty()->id(), null, DocumentLanguage::Czech));
+        self::assertSame([], self::getContainer()->get(DeductibleAdvances::class)->for($invoice->customerParty()->id(), null, DocumentLanguage::Czech));
         $documents = array_values(array_filter($run->report(), static fn (array $entry): bool => DocumentsStage::KEY === $entry['stage']));
         self::assertSame([self::PROFORMA, self::TAX_DOCUMENT, self::INVOICE], array_column($documents, 'external_id'), 'The final invoice follows what it deducts.');
     }
@@ -164,7 +162,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
             'Prices' => ['TotalWithoutVat' => 1000.0, 'TotalVat' => 0.0, 'TotalWithVat' => 1000.0],
         ]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         $entry = $this->entry($run, self::INVOICE);
         self::assertSame('created', $entry['outcome'], implode(', ', $entry['reasons']).json_encode($entry['values']));
@@ -184,7 +182,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         $this->finalInvoice(['ProformaInvoices' => [999]]);
         $this->finalInvoice(['Id' => 102, 'DocumentNumber' => '20260009', 'VariableSymbol' => '20260009'], 102);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run, $this->payer());
+        $run = $this->import()->run(ImportMode::Run, $this->payer());
 
         self::assertSame([PaymentsStage::DOCUMENT_NOT_LINKED], $this->entry($run, 402, PaymentsStage::KEY)['reasons']);
         self::assertSame([PaymentsStage::DOCUMENT_TYPE_UNSUPPORTED], $this->entry($run, 403, PaymentsStage::KEY)['reasons']);
@@ -216,7 +214,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         $this->payment(419, ['PaymentOptionId' => null]);
         $this->payment(420, ['PaymentOptionId' => 999]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run, $this->payer());
+        $run = $this->import()->run(ImportMode::Run, $this->payer());
 
         $reasons = fn (int $id): array => $this->entry($run, $id, PaymentsStage::KEY)['reasons'];
         self::assertSame([PaymentsStage::CURRENCY_NOT_HOME], $reasons(411));
@@ -242,7 +240,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         $this->payment(421, ['Prices' => ['PaymentAmount' => 0.0]]);
         $this->payment(422, ['Prices' => ['PaymentAmount' => -1210.0]]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run, $this->payer());
+        $run = $this->import()->run(ImportMode::Run, $this->payer());
 
         self::assertSame('created', $this->entry($run, self::PAYMENT, PaymentsStage::KEY)['outcome']);
         $zero = $this->entry($run, 421, PaymentsStage::KEY);
@@ -262,7 +260,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         $this->proforma();
         $this->payment(self::PAYMENT, ['PaymentOptionId' => 4, 'Prices' => ['PaymentAmount' => 1210]]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run, $this->payer());
+        $run = $this->import()->run(ImportMode::Run, $this->payer());
 
         $entry = $this->entry($run, self::PAYMENT, PaymentsStage::KEY);
         self::assertSame('created', $entry['outcome'], implode(', ', $entry['reasons']));
@@ -279,7 +277,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         $this->payment(432, ['DocumentType' => 3, 'DateOfPayment' => '2026-10-05']);
         $this->payment(433, ['DocumentType' => 3, 'DateOfPayment' => '2026-10-04T23:59:59']);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run, $this->payer());
+        $run = $this->import()->run(ImportMode::Run, $this->payer());
 
         $payments = array_values(array_filter($run->report(), static fn (array $entry): bool => PaymentsStage::KEY === $entry['stage']));
         self::assertSame([430, 433, 431, 432], array_column($payments, 'external_id'), 'The time of a day does not count.');
@@ -292,20 +290,20 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         $this->taxDocument(self::TAX_DOCUMENT, []);
         $this->finalInvoice([]);
 
-        $check = $this->import()->run($this->firm, ImportMode::Check, $this->payer());
+        $check = $this->import()->run(ImportMode::Check, $this->payer());
 
         self::assertSame('created', $this->entry($check, self::PAYMENT, PaymentsStage::KEY)['outcome']);
         self::assertSame('created', $this->entry($check, self::INVOICE)['outcome']);
         self::assertSame(0, $this->rows('SELECT COUNT(*) FROM payment'));
         self::assertSame(0, $this->rows('SELECT COUNT(*) FROM invoice'));
 
-        $first = $this->import()->run($this->storedFirm(), ImportMode::Run, $this->payer());
-        $second = $this->import()->run($this->storedFirm(), ImportMode::Run, $this->payer());
+        $first = $this->import()->run(ImportMode::Run, $this->payer());
+        $second = $this->import()->run(ImportMode::Run, $this->payer());
 
         self::assertSame(['already_linked'], array_values(array_unique(array_column(array_filter($second->report(), static fn (array $entry): bool => \in_array($entry['stage'], [DocumentsStage::KEY, PaymentsStage::KEY], true)), 'outcome'))));
         self::assertSame(['already_linked' => 1], $second->counts()['payments'], 'A linked payment is reported once and imported no more.');
         $this->em->getConnection()->executeStatement("DELETE FROM idoklad_link WHERE resource = 'IssuedDocumentPayments'");
-        $third = $this->import()->run($this->storedFirm(), ImportMode::Run, $this->payer());
+        $third = $this->import()->run(ImportMode::Run, $this->payer());
         self::assertSame('matched', $this->entry($third, self::PAYMENT, PaymentsStage::KEY)['outcome'], 'An imported payment is linked again.');
         self::assertSame($this->entry($first, self::PAYMENT, PaymentsStage::KEY)['target_id'], $this->entry($third, self::PAYMENT, PaymentsStage::KEY)['target_id']);
         self::assertSame(1, $this->rows('SELECT COUNT(*) FROM payment'));
@@ -318,7 +316,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         $this->payment(self::PAYMENT, []);
         $this->taxDocument(self::TAX_DOCUMENT, []);
         $this->finalInvoice([]);
-        $run = $this->import()->run($this->firm, ImportMode::Run, $this->payer());
+        $run = $this->import()->run(ImportMode::Run, $this->payer());
 
         self::assertSame([], self::getContainer()->get(UndoImportedDocuments::class)->undo($run->id()));
 
@@ -485,7 +483,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
      */
     private function record(IdokladResource $resource, int $id, array $payload): void
     {
-        $this->em->persist(new IdokladRecord($this->firm, $resource, $id, $payload, new \DateTimeImmutable('2026-11-06 09:01:00')));
+        $this->em->persist(new IdokladRecord($resource, $id, $payload, new \DateTimeImmutable('2026-11-06 09:01:00')));
         $this->em->flush();
     }
 
@@ -506,11 +504,6 @@ final class IdokladPaymentsImportTest extends KernelTestCase
     private function invoiceOf(?string $id): Invoice
     {
         return $this->em->find(Invoice::class, (string) $id) ?? self::fail('The document is stored.');
-    }
-
-    private function storedFirm(): LegalEntity
-    {
-        return $this->em->find(LegalEntity::class, $this->firm->id()) ?? self::fail('The firm is stored.');
     }
 
     private function rows(string $sql): int

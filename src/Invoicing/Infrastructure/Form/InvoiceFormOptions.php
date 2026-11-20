@@ -16,7 +16,6 @@ use Foresi\Invoicing\Contract\VatRateKind;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\PaymentMethod;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -35,17 +34,17 @@ final readonly class InvoiceFormOptions
     }
 
     /**
-     * The active series of the firm of one kind, and $own, which may be archived and
-     * decides the kind. A firm that has none of the kind yet offers its default,
+     * The active series of one kind, and $own, which may be archived and
+     * decides the kind. Without one of the kind yet it offers the default,
      * which the first save stores.
      *
      * @return array<string, string>
      */
-    public function series(LegalEntity $firm, ?Series $own = null, DocumentKind $kind = DocumentKind::Invoice): array
+    public function series(?Series $own = null, DocumentKind $kind = DocumentKind::Invoice): array
     {
         $kind = $own?->kind() ?? $kind;
         $options = [];
-        foreach ($this->catalog->forFirm($firm, $kind) as $series) {
+        foreach ($this->catalog->all($kind) as $series) {
             $options[$series->id()] = $this->seriesName($series);
         }
         if ($own instanceof Series) {
@@ -61,10 +60,10 @@ final readonly class InvoiceFormOptions
      *
      * @return array<string, string>
      */
-    public function recurringSeries(LegalEntity $firm, ?Series $own = null): array
+    public function recurringSeries(?Series $own = null): array
     {
-        $options = $this->series($firm, DocumentKind::Invoice === $own?->kind() ? $own : null);
-        foreach ($this->catalog->forFirm($firm, DocumentKind::Advance) as $series) {
+        $options = $this->series(DocumentKind::Invoice === $own?->kind() ? $own : null);
+        foreach ($this->catalog->all(DocumentKind::Advance) as $series) {
             $options[$series->id()] = $this->seriesName($series);
         }
         if ($own instanceof Series && DocumentKind::Advance === $own->kind()) {
@@ -149,9 +148,9 @@ final readonly class InvoiceFormOptions
      *
      * @return array<string, string>
      */
-    public function bankAccounts(LegalEntity $firm, ?string $own = null): array
+    public function bankAccounts(?string $own = null): array
     {
-        $accounts = $this->accounts->ibansOf($firm);
+        $accounts = $this->accounts->ibans();
         if (null !== $own && !\in_array($own, $accounts, true)) {
             $accounts[] = $own;
         }
@@ -168,11 +167,11 @@ final readonly class InvoiceFormOptions
      *
      * @return array<string, array{label: string, number: ?string, iban: string, name: string}>
      */
-    public function bankDetails(LegalEntity $firm, InvoicingCountry $country, array $ibans): array
+    public function bankDetails(InvoicingCountry $country, array $ibans): array
     {
         $details = [];
         foreach ($ibans as $iban) {
-            $label = $this->accounts->ofIban($firm, $iban)?->label() ?? '';
+            $label = $this->accounts->ofIban($iban)?->label() ?? '';
             $number = $country->domesticAccount($iban);
             $grouped = trim(chunk_split($iban, 4, ' '));
             $details[$iban] = ['label' => $label, 'number' => $number, 'iban' => $grouped, 'name' => '' !== $label ? $label : ($number ?? $grouped)];

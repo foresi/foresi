@@ -13,10 +13,9 @@ use Foresi\Banking\Application\FirmPairingRules;
 use Foresi\Banking\Application\FirmPairings;
 use Foresi\Banking\Application\PairingRules;
 use Foresi\Banking\Domain\FirmPairing;
-use Foresi\Party\Domain\LegalEntity;
 
 /**
- * Through the ORM. A firm without a stored row has the defaults.
+ * Through the ORM. Without a stored row the defaults apply.
  */
 final readonly class DoctrineFirmPairings implements FirmPairings, FirmPairingRules
 {
@@ -24,10 +23,10 @@ final readonly class DoctrineFirmPairings implements FirmPairings, FirmPairingRu
     {
     }
 
-    public function of(LegalEntity $firm): ?FirmPairing
+    public function stored(): ?FirmPairing
     {
-        $pairing = $this->em->createQuery('SELECT p FROM '.FirmPairing::class.' p WHERE p.firm = :firm')
-            ->setParameter('firm', $firm)
+        $pairing = $this->em->createQuery('SELECT p FROM '.FirmPairing::class.' p')
+            ->setMaxResults(1)
             ->getOneOrNullResult();
 
         return $pairing instanceof FirmPairing ? $pairing : null;
@@ -38,9 +37,9 @@ final readonly class DoctrineFirmPairings implements FirmPairings, FirmPairingRu
         $this->em->persist($pairing);
     }
 
-    public function for(LegalEntity $firm): PairingRules
+    public function get(): PairingRules
     {
-        $pairing = $this->of($firm);
+        $pairing = $this->stored();
 
         return $pairing instanceof FirmPairing
             ? new PairingRules($pairing->autoPairing(), $pairing->smallDifference())

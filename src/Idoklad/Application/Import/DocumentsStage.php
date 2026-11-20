@@ -39,6 +39,7 @@ use Foresi\Invoicing\Domain\InvalidSeriesFormat;
 use Foresi\Invoicing\Domain\NumberKey;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\PaymentMethod;
@@ -62,7 +63,7 @@ use Foresi\Shared\Domain\Money;
  * deduct of each advance it accounts: the advance's tax documents, or the paid
  * advance itself when no VAT arose on it.
  *
- * Numbers are unique per firm across the kinds, so a number another kind has is
+ * Numbers are unique across the kinds, so a number another kind has is
  * refused with both kinds. A number no sequence of its type reads, in its year or
  * the next or the last one (a sequence of a year may run into the next), is of an
  * older shape: it goes to a series of that shape and kind, created once. The
@@ -120,6 +121,7 @@ final readonly class DocumentsStage implements ImportStage
         private DeductibleAdvances $deductible,
         private InvoiceStore $store,
         private SeriesNames $names,
+        private InstanceFirm $firm,
     ) {
     }
 
@@ -135,7 +137,7 @@ final readonly class DocumentsStage implements ImportStage
 
     public function run(ImportContext $context): void
     {
-        $country = $this->countries->for($context->firm->address()->countryCode);
+        $country = $this->countries->for($this->firm->get()->address()->countryCode);
         foreach ([[IdokladResource::IssuedInvoices, DocumentKind::Invoice], [IdokladResource::ProformaInvoices, DocumentKind::Advance]] as [$resource, $kind]) {
             foreach ($this->inNumberOrder($context, $resource) as $record) {
                 if ([] === $this->proformasOf($record->payload())) {
@@ -153,7 +155,7 @@ final readonly class DocumentsStage implements ImportStage
      */
     public function taxDocuments(ImportContext $context): void
     {
-        $country = $this->countries->for($context->firm->address()->countryCode);
+        $country = $this->countries->for($this->firm->get()->address()->countryCode);
         foreach ($this->inNumberOrder($context, IdokladResource::IssuedTaxDocuments) as $record) {
             $this->document($context, $record, DocumentKind::PaymentTaxDocument, $country);
         }
@@ -164,7 +166,7 @@ final readonly class DocumentsStage implements ImportStage
      */
     public function finalInvoices(ImportContext $context): void
     {
-        $country = $this->countries->for($context->firm->address()->countryCode);
+        $country = $this->countries->for($this->firm->get()->address()->countryCode);
         $taxDocuments = [];
         foreach ($context->records(IdokladResource::IssuedTaxDocuments) as $record) {
             $taxDocuments[$this->id($record->payload()['ProformaInvoiceId'] ?? null)][] = $context->linkedTo(IdokladResource::IssuedTaxDocuments, $record->externalId());
@@ -325,7 +327,7 @@ final readonly class DocumentsStage implements ImportStage
             ...$method instanceof PaymentMethod ? [] : [self::PAYMENT_OPTION_UNSUPPORTED],
             ...$language instanceof DocumentLanguage ? [] : [self::LANGUAGE_UNSUPPORTED],
         ];
-        $other = '' === NumberKey::of($number) ? null : $this->store->kindOfNumber($context->firm, NumberKey::of($number));
+        $other = '' === NumberKey::of($number) ? null : $this->store->kindOfNumber(NumberKey::of($number));
         if ($other instanceof DocumentKind && $other !== $kind) {
             $reasons[] = self::NUMBER_USED_BY_OTHER_KIND;
             $values += ['kind' => $kind->value, 'other_kind' => $other->value];
@@ -372,7 +374,7 @@ final readonly class DocumentsStage implements ImportStage
         }
         $reasons = array_values(array_unique($reasons));
         if ([] === $reasons && $older instanceof SeriesFormat) {
-            $seriesId = $this->olderSeries($context, $kind, $older);
+            $seriesId = $this->olderSeries($kind, $older);
             $notes[] = self::OLDER_NUMBERS;
         }
         if ([] !== $reasons || null === $seriesId || null === $customerId || !$customer instanceof DocumentParty || !$issuer instanceof DocumentParty || !$method instanceof PaymentMethod || !$language instanceof DocumentLanguage || !$expected instanceof ImportedTotals || !$issueDate instanceof \DateTimeImmutable) {
@@ -389,7 +391,6 @@ final readonly class DocumentsStage implements ImportStage
         $iban = $this->text(\is_array($payload['MyAddress'] ?? null) ? $payload['MyAddress']['Iban'] ?? null : null);
         $metadata = \is_array($payload['Metadata'] ?? null) ? $payload['Metadata'] : [];
         $document = new InvoiceInput(
-            $context->firm->id(),
             $seriesId,
             $number,
             $customerId,
@@ -442,7 +443,7 @@ final readonly class DocumentsStage implements ImportStage
     private function deductions(ImportContext $context, array $payload, string $customerId, DocumentLanguage $language, array $taxDocuments, array &$reasons): array
     {
         $proformas = $this->proformasOf($payload);
-        $offered = [] === $proformas ? [] : $this->deductible->for($context->firm, $customerId, null, $language);
+        $offered = [] === $proformas ? [] : $this->deductible->for($customerId, null, $language);
         $lines = [];
         foreach ($proformas as $proforma) {
             $advanceId = $context->linkedTo(IdokladResource::ProformaInvoices, $proforma);
@@ -593,14 +594,14 @@ final readonly class DocumentsStage implements ImportStage
     /**
      * The series of older numbers of the kind and format, created on the first of them.
      */
-    private function olderSeries(ImportContext $context, DocumentKind $kind, SeriesFormat $format): string
+    private function olderSeries(DocumentKind $kind, SeriesFormat $format): string
     {
-        foreach ($this->catalog->forFirm($context->firm, $kind) as $series) {
+        foreach ($this->catalog->all($kind) as $series) {
             if ($series->format()->collidesWith($format)) {
                 return $series->id();
             }
         }
-        $series = new Series($context->firm, $this->names->free($context->firm, 'iDoklad '.$format->toString()), $format, $kind);
+        $series = new Series($this->names->free('iDoklad '.$format->toString()), $format, $kind);
         $this->catalog->store($series);
 
         return $series->id();

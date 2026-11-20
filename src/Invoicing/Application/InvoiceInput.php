@@ -41,7 +41,6 @@ final readonly class InvoiceInput
      *                                                          refers to it; its lines name their part of it by their source
      */
     public function __construct(
-        public string $firmId,
         public ?string $seriesId,
         public ?string $typedNumber,
         public string $customerId,

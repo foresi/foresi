@@ -65,10 +65,12 @@ run_segment() {
     reset_database
     migrate "$(qualified "$segment_end")"
     # What the mapping still lacks at this version; a round trip must not change it.
-    before=$(php bin/console --no-interaction doctrine:schema:update --dump-sql)
+    # Sorted: PostgreSQL lists indexes in no fixed order, so the same statements can
+    # come out in another order after the round trip.
+    before=$(php bin/console --no-interaction doctrine:schema:update --dump-sql | sort)
     if [[ "$floor" == first ]]; then migrate first; else migrate "$(qualified "$floor")"; fi
     migrate "$(qualified "$segment_end")"
-    after=$(php bin/console --no-interaction doctrine:schema:update --dump-sql)
+    after=$(php bin/console --no-interaction doctrine:schema:update --dump-sql | sort)
     if [[ "$before" != "$after" ]]; then
         echo "The schema differs after the round trip up to $segment_end." >&2
         diff <(echo "$before") <(echo "$after") >&2 || true

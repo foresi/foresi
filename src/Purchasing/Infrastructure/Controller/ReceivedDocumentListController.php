@@ -116,7 +116,7 @@ final class ReceivedDocumentListController extends AbstractController
             'q' => '' === $filter->text ? null : $filter->text,
             WorkingFilter::PARAM => $filterParam,
         ], static fn (?string $value): bool => null !== $value);
-        $firm = $this->list->firmId();
+        $hasFirm = $this->list->hasFirm();
         // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $working = $this->rememberedDisplay->read(ReceivedDocumentColumns::LIST, [], $list->key, $view, $input->all());
         $query += $working->query;
@@ -125,7 +125,7 @@ final class ReceivedDocumentListController extends AbstractController
         return $this->render('@Purchasing/index.html.twig', [
             'page' => $page,
             'filter' => $filter,
-            'noFirm' => null === $firm,
+            'noFirm' => !$hasFirm,
             'view' => $view->isAll() ? '' : $view->key,
             'working' => $filterParam ?? '',
             ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(PurchasingNavigation::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references()),
@@ -150,7 +150,6 @@ final class ReceivedDocumentListController extends AbstractController
     public function upload(Request $request): Response
     {
         // The documents go to the instance's firm (ADR 0039); none before the first-run setup.
-        $firm = $this->list->firmId() ?? '';
         if (!$request->isMethod('POST')) {
             return $this->render('@Purchasing/upload.html.twig');
         }
@@ -164,7 +163,7 @@ final class ReceivedDocumentListController extends AbstractController
         if ([] === $files) {
             return $this->uploadRefused(AttachmentRefused::EMPTY, $json);
         }
-        $uploaded = $this->uploads->upload($firm, $files);
+        $uploaded = $this->uploads->upload($files);
         if ($json) {
             $first = $uploaded[0];
 
@@ -195,21 +194,20 @@ final class ReceivedDocumentListController extends AbstractController
     public function create(Request $request): Response
     {
         // The document goes to the instance's firm (ADR 0039); none before the first-run setup.
-        $firm = $this->list->firmId() ?? '';
         if (!$request->isMethod('POST')) {
-            return $this->newForm($firm, $this->form->blank($this->clock->today()), [], Response::HTTP_OK);
+            return $this->newForm($this->form->blank($this->clock->today()), [], Response::HTTP_OK);
         }
         $this->checkToken($request);
         $values = $this->form->posted($request);
         $action = $request->request->getString('_action');
         if ('record' !== $action) {
-            return $this->newForm($firm, $this->form->changed($values, $action), [], Response::HTTP_OK);
+            return $this->newForm($this->form->changed($values, $action), [], Response::HTTP_OK);
         }
         [$input, $errors] = $this->form->input($values);
         $errors = array_map($this->translator->trans(...), $errors);
         if (null !== $input) {
             try {
-                $saved = $this->recording->create($firm, $input);
+                $saved = $this->recording->create($input);
                 $this->addFlash('success', $this->translator->trans('purchasing.flash.recorded', ['number' => $saved->document->evidenceNumber() ?? '']));
                 foreach ($this->screen->warnings($saved->warnings) as $warning) {
                     $this->addFlash('warning', $warning);
@@ -221,7 +219,7 @@ final class ReceivedDocumentListController extends AbstractController
             }
         }
 
-        return $this->newForm($firm, $values, $errors, Response::HTTP_UNPROCESSABLE_ENTITY);
+        return $this->newForm($values, $errors, Response::HTTP_UNPROCESSABLE_ENTITY);
     }
 
     /**
@@ -250,7 +248,7 @@ final class ReceivedDocumentListController extends AbstractController
      * @param array<string, mixed>  $values
      * @param array<string, string> $errors
      */
-    private function newForm(string $firm, array $values, array $errors, int $status): Response
+    private function newForm(array $values, array $errors, int $status): Response
     {
         return $this->render('@Purchasing/new.html.twig', [
             'values' => $values,
@@ -259,7 +257,7 @@ final class ReceivedDocumentListController extends AbstractController
             'kinds' => $this->screen->kinds(),
             'treatments' => $this->screen->treatments(),
             'currencies' => $this->screen->currencies(),
-            'correctable' => '' !== $firm && ReceivedDocumentKind::CreditNote->value === $values['kind'] ? $this->screen->correctable($this->details->correctable($firm)) : [],
+            'correctable' => ReceivedDocumentKind::CreditNote->value === $values['kind'] ? $this->screen->correctable($this->details->correctable()) : [],
         ], new Response(status: $status));
     }
 

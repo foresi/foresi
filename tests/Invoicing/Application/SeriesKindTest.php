@@ -37,7 +37,7 @@ final class SeriesKindTest extends InvoiceTestCase
         self::assertSame('Z920260001', $stored->number());
         self::assertSame('standard_advance', $stored->series()->name());
         self::assertTrue($stored->series()->isDefault());
-        self::assertSame($stored->series()->id(), $this->catalog->defaultFor($stored->firm(), DocumentKind::Advance)->id());
+        self::assertSame($stored->series()->id(), $this->catalog->defaultFor(DocumentKind::Advance)->id());
     }
 
     public function testTheDefaultOfAKindIsNotTheDefaultOfAnother(): void
@@ -48,10 +48,10 @@ final class SeriesKindTest extends InvoiceTestCase
         $this->em->flush();
         $this->em->clear();
 
-        self::assertSame($this->series->id(), $this->catalog->defaultFor($this->firm, DocumentKind::Invoice)->id());
-        self::assertSame($advances->id(), $this->catalog->defaultFor($this->firm, DocumentKind::Advance)->id());
-        self::assertSame($this->series->id(), $this->catalog->defaultFor($this->firm)->id());
-        self::assertNull($this->storedIdOf($this->catalog->defaultFor($this->firm, DocumentKind::PaymentTaxDocument)));
+        self::assertSame($this->series->id(), $this->catalog->defaultFor(DocumentKind::Invoice)->id());
+        self::assertSame($advances->id(), $this->catalog->defaultFor(DocumentKind::Advance)->id());
+        self::assertSame($this->series->id(), $this->catalog->defaultFor()->id());
+        self::assertNull($this->storedIdOf($this->catalog->defaultFor(DocumentKind::PaymentTaxDocument)));
     }
 
     public function testMakingADefaultMovesOnlyTheDefaultOfItsKind(): void
@@ -66,8 +66,8 @@ final class SeriesKindTest extends InvoiceTestCase
         $this->em->flush();
         $this->em->clear();
 
-        self::assertSame($this->series->id(), $this->catalog->defaultFor($this->firm)->id());
-        self::assertSame($more->id(), $this->catalog->defaultFor($this->firm, DocumentKind::Advance)->id());
+        self::assertSame($this->series->id(), $this->catalog->defaultFor()->id());
+        self::assertSame($more->id(), $this->catalog->defaultFor(DocumentKind::Advance)->id());
     }
 
     public function testTheCatalogListsTheSeriesOfOneKind(): void
@@ -75,9 +75,9 @@ final class SeriesKindTest extends InvoiceTestCase
         $advances = $this->seriesOfKind(DocumentKind::Advance, 'Advances', 'ZF{YYYY}{NNNN}');
         $this->em->flush();
 
-        self::assertSame([$advances->id()], array_map(static fn (Series $series): string => $series->id(), $this->catalog->forFirm($this->firm, DocumentKind::Advance)));
-        self::assertSame([$this->series->id()], array_map(static fn (Series $series): string => $series->id(), $this->catalog->forFirm($this->firm, DocumentKind::Invoice)));
-        self::assertCount(2, $this->catalog->forFirm($this->firm));
+        self::assertSame([$advances->id()], array_map(static fn (Series $series): string => $series->id(), $this->catalog->all(DocumentKind::Advance)));
+        self::assertSame([$this->series->id()], array_map(static fn (Series $series): string => $series->id(), $this->catalog->all(DocumentKind::Invoice)));
+        self::assertCount(2, $this->catalog->all());
     }
 
     public function testASeriesOfAnotherKindIsRefusedOnIssue(): void
@@ -122,7 +122,7 @@ final class SeriesKindTest extends InvoiceTestCase
 
     private function seriesOfKind(DocumentKind $kind, string $name, string $format): Series
     {
-        $series = new Series($this->firm, $name, SeriesFormat::fromString($format), $kind);
+        $series = new Series($name, SeriesFormat::fromString($format), $kind);
         $this->em->persist($series);
         $this->em->flush();
 
@@ -131,6 +131,6 @@ final class SeriesKindTest extends InvoiceTestCase
 
     private function storedIdOf(Series $series): ?string
     {
-        return \in_array($series, $this->catalog->everyForFirm($this->firm), true) ? $series->id() : null;
+        return \in_array($series, $this->catalog->every(), true) ? $series->id() : null;
     }
 }

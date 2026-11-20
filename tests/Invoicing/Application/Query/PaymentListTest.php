@@ -56,8 +56,6 @@ final class PaymentListTest extends PaymentReadTestCase
         $row = $this->list()->slice(new PaymentSliceFilter())->rows[0];
 
         self::assertSame($payment->id(), $row->id);
-        self::assertSame($this->firm->id(), $row->firmId);
-        self::assertSame('Example Firm s.r.o.', $row->firmName);
         self::assertSame('2026-11-12', $row->receivedOn->format('Y-m-d'));
         self::assertTrue(Money::of('1000', Currency::CZK)->equals($row->amount));
         self::assertSame(PaymentDirection::Incoming, $row->direction);
@@ -106,18 +104,6 @@ final class PaymentListTest extends PaymentReadTestCase
         self::assertSame(['Cancelled', 'Live'], $this->notes($all));
         self::assertSame('2026-11-11 08:00:00', $all->rows[0]->cancelledAt?->format('Y-m-d H:i:s'));
         self::assertNull($all->rows[1]->cancelledAt);
-    }
-
-    public function testTheFirmNarrowsTheList(): void
-    {
-        $other = $this->otherFirm();
-        $this->payment(note: 'Of the first', amount: '100');
-        $this->payment(firm: $other, note: 'Of the other', amount: '100');
-
-        self::assertSame(['Of the other'], $this->notes($this->list()->slice(new PaymentSliceFilter(firmId: $other->id()))));
-        self::assertSame(['Of the first'], $this->notes($this->list()->slice(new PaymentSliceFilter(firmId: $this->firm->id()))));
-        self::assertSame([], $this->notes($this->list()->slice(new PaymentSliceFilter(firmId: Id::generate()))));
-        self::assertSame('Other Firm s.r.o.', $this->list()->slice(new PaymentSliceFilter(firmId: $other->id()))->rows[0]->firmName);
     }
 
     public function testTheInvoiceNarrowsTheListToItsPayments(): void

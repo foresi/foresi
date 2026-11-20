@@ -10,19 +10,18 @@ namespace Foresi\Idoklad\Application\Import;
 
 use Foresi\Idoklad\Domain\IdokladLink;
 use Foresi\Idoklad\Domain\IdokladResource;
-use Foresi\Party\Domain\LegalEntity;
 
-/** Port: what the iDoklad records of a firm became in Foresi. */
+/** Port: what the iDoklad records became in Foresi. */
 interface IdokladLinks
 {
-    public function find(LegalEntity $firm, IdokladResource $resource, int $externalId): ?IdokladLink;
+    public function find(IdokladResource $resource, int $externalId): ?IdokladLink;
 
     /**
      * The links one run made.
      *
      * @return list<IdokladLink>
      */
-    public function ofRun(LegalEntity $firm, string $runId): array;
+    public function ofRun(string $runId): array;
 
     /** Deletes the link; call it inside TransactionalWork. */
     public function remove(IdokladLink $link): void;

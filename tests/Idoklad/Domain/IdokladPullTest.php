@@ -10,10 +10,6 @@ namespace Foresi\Tests\Idoklad\Domain;
 
 use Foresi\Idoklad\Domain\IdokladPull;
 use Foresi\Idoklad\Domain\IdokladResource;
-use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\LegalEntity;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use PHPUnit\Framework\TestCase;
 
 final class IdokladPullTest extends TestCase
@@ -61,8 +57,6 @@ final class IdokladPullTest extends TestCase
 
     private function pull(?string $changedSince = null): IdokladPull
     {
-        $firm = new LegalEntity('Example s.r.o.', new RegistrationNumber('CZ', '12345678'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
-
-        return new IdokladPull($firm, new \DateTimeImmutable('2026-11-06 10:00:00'), $changedSince);
+        return new IdokladPull(new \DateTimeImmutable('2026-11-06 10:00:00'), $changedSince);
     }
 }

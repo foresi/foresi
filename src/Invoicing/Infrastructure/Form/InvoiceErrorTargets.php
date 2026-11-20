@@ -44,15 +44,14 @@ final readonly class InvoiceErrorTargets
     }
 
     /**
-     * @param string $id  the id the error carries, as in "lines-0-price"
-     * @param string $key the translation key of the problem
+     * @param string $id the id the error carries, as in "lines-0-price"
      *
      * @return array{href: string, external: bool}|null
      */
-    public function of(string $id, string $key): ?array
+    public function of(string $id): ?array
     {
         if ('firm' === $id) {
-            return 'invoice.problem.firm_locked' === $key ? null : $this->settings();
+            return $this->settings();
         }
         if ('bankAccount' === $id && !$this->hasBankAccount) {
             return null === $this->bankUrl ? null : ['href' => $this->bankUrl, 'external' => true];

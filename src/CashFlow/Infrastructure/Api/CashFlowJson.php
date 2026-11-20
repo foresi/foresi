@@ -18,6 +18,7 @@ use Foresi\CashFlow\Contract\FlowFlag;
 use Foresi\CashFlow\Domain\Checkpoint;
 use Foresi\CashFlow\Domain\ExpectedDate;
 use Foresi\CashFlow\Domain\PlannedItem;
+use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Infrastructure\Api\JsonValues;
@@ -31,7 +32,7 @@ final class CashFlowJson
     /**
      * @return array<string, mixed>
      */
-    public static function plannedItem(PlannedItem $item, \DateTimeZone $zone): array
+    public static function plannedItem(PlannedItem $item, \DateTimeZone $zone, LegalEntity $firm): array
     {
         $recurrence = $item->recurrence($zone);
         $match = $item->matchRule();
@@ -40,7 +41,7 @@ final class CashFlowJson
 
         return [
             'id' => $item->id(),
-            'firm' => ['id' => $item->firm()->id(), 'name' => $item->firm()->name()],
+            'firm' => ['id' => $firm->id(), 'name' => $firm->name()],
             'direction' => $item->direction()->value,
             'name' => $item->name(),
             'category' => $item->category()->value,
@@ -66,14 +67,14 @@ final class CashFlowJson
     /**
      * @return array<string, mixed>
      */
-    public static function checkpoint(Checkpoint $checkpoint): array
+    public static function checkpoint(Checkpoint $checkpoint, LegalEntity $firm): array
     {
         $account = $checkpoint->account();
 
         return [
             'id' => $checkpoint->id(),
             'bank_account' => ['id' => $account->id(), 'iban' => $account->iban(), 'label' => $account->label()],
-            'firm_id' => $account->firm()->id(),
+            'firm_id' => $firm->id(),
             'on' => JsonValues::date($checkpoint->on()),
             'amount' => JsonValues::money($checkpoint->amount()),
             'recorded_at' => JsonValues::timestamp($checkpoint->recordedAt()),
@@ -99,12 +100,12 @@ final class CashFlowJson
     /**
      * @return array<string, mixed>
      */
-    public static function forecast(Forecast $forecast): array
+    public static function forecast(Forecast $forecast, LegalEntity $firm): array
     {
         $periods = $forecast->periods;
 
         return [
-            'firm' => ['id' => $forecast->firm->id(), 'name' => $forecast->firm->name()],
+            'firm' => ['id' => $firm->id(), 'name' => $firm->name()],
             'currency' => Currency::CZK->value,
             'today' => JsonValues::date($forecast->today),
             'from' => JsonValues::date($forecast->from),

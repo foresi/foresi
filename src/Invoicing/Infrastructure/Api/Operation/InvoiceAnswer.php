@@ -14,6 +14,7 @@ use Foresi\Invoicing\Application\IssueRefused;
 use Foresi\Invoicing\Application\Query\InvoiceDetails;
 use Foresi\Invoicing\Infrastructure\Api\InvoiceApiController;
 use Foresi\Invoicing\Infrastructure\Api\InvoiceJson;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Shared\Infrastructure\Operation\OperationOutput;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -26,7 +27,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final readonly class InvoiceAnswer
 {
-    public function __construct(private InvoiceDetails $details, private UrlGeneratorInterface $urls, private TranslatorInterface $translator)
+    public function __construct(private InvoiceDetails $details, private UrlGeneratorInterface $urls, private TranslatorInterface $translator, private InstanceFirm $instanceFirm)
     {
     }
 
@@ -43,7 +44,7 @@ final readonly class InvoiceAnswer
         } catch (IssueRefused $refused) {
             throw InvoicingRefused::of($refused, fn (IssueProblem $problem): string => $this->translator->trans($problem->key, $problem->parameters, null, 'en'));
         }
-        $detail = InvoiceJson::detail($this->details->of($id));
+        $detail = InvoiceJson::detail($this->details->of($id), $this->instanceFirm->get());
         $number = $detail['number'] ?? null;
 
         return new OperationOutput(

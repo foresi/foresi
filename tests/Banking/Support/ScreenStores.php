@@ -36,7 +36,7 @@ final class ScreenStores
     public readonly InboundMessages $messages;
 
     /**
-     * @param array<string, array{firmId: string, firmName: string, label: string, iban: string}> $accounts by account id
+     * @param array<string, array{label: string, iban: string}> $accounts by account id
      */
     public function __construct(array $accounts, int $movementCount, int $messageCount, int $attention = 0)
     {
@@ -45,8 +45,8 @@ final class ScreenStores
         };
         $this->movements = new readonly class($accounts, $movementCount, $log) implements BankMovements {
             /**
-             * @param array<string, array{firmId: string, firmName: string, label: string, iban: string}> $accounts
-             * @param \Closure(string): void                                                              $log
+             * @param array<string, array{label: string, iban: string}> $accounts
+             * @param \Closure(string): void                            $log
              */
             public function __construct(private array $accounts, private int $count, private \Closure $log)
             {

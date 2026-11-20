@@ -186,7 +186,6 @@ final readonly class CorrectPaymentTaxDocument
         $lines = $this->negated($document, $due->amount);
 
         return new InvoiceInput(
-            $document->firm()->id(),
             null,
             null,
             $document->customerParty()->id(),

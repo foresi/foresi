@@ -99,7 +99,7 @@ class BankFeed implements Audited, AuditRooted
 
     public function auditRoot(): object
     {
-        return $this->account->firm();
+        return $this->account;
     }
 
     public function account(): FirmBankAccount

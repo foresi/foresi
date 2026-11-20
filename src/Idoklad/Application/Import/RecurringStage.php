@@ -30,6 +30,7 @@ use Foresi\Invoicing\Domain\RecurringDelivery;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\TaxPointRule;
 use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
@@ -111,6 +112,7 @@ final readonly class RecurringStage implements ImportStage
         private RecurringPreview $preview,
         private InvoicingCountries $countries,
         private FirmBankAccounts $accounts,
+        private InstanceFirm $firm,
     ) {
     }
 
@@ -212,7 +214,7 @@ final readonly class RecurringStage implements ImportStage
      */
     private function input(ImportContext $context, array $template, array $setting, array &$refusals, array &$notes, array &$values): ?RecurringInput
     {
-        $firm = $context->firm;
+        $firm = $this->firm->get();
         try {
             $currency = $this->countries->for($firm->address()->countryCode)->homeCurrency();
         } catch (UnsupportedCountry) {
@@ -290,7 +292,6 @@ final readonly class RecurringStage implements ImportStage
         \assert($taxPoint instanceof TaxPointRule);
 
         return new RecurringInput(
-            $firm->id(),
             $series,
             $customer,
             $method,
@@ -334,7 +335,7 @@ final readonly class RecurringStage implements ImportStage
         }
 
         return [
-            new RecurringInput($input->firmId, $input->seriesId, $input->customerId, $input->paymentMethod, $input->bankAccount, $input->constantSymbol, $input->orderNumber, $input->description, $input->textBefore, $input->textAfter, $input->language, $input->lines, $recurrence, $input->taxPoint, $input->dueDays, $input->delivery, $input->name, $input->copyToMe, $input->copyToOthers),
+            new RecurringInput($input->seriesId, $input->customerId, $input->paymentMethod, $input->bankAccount, $input->constantSymbol, $input->orderNumber, $input->description, $input->textBefore, $input->textAfter, $input->language, $input->lines, $recurrence, $input->taxPoint, $input->dueDays, $input->delivery, $input->name, $input->copyToMe, $input->copyToOthers),
             new RecurringHistory($history->importedFrom, $history->issuedCount, $history->lastOccurrence, $restartedOn),
             $next,
         ];
@@ -475,7 +476,7 @@ final readonly class RecurringStage implements ImportStage
         if ('' !== $iban) {
             return $iban;
         }
-        $primary = $this->accounts->primaryOf($context->firm);
+        $primary = $this->accounts->primary();
 
         return $primary?->iban();
     }

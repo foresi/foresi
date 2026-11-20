@@ -16,7 +16,7 @@ use Foresi\CashFlow\Contract\ExpectedFlow;
  */
 final class FakeSource implements CashFlowSource
 {
-    /** @var list<array{string, string, string, string}> what it was asked: firm, from, to, today */
+    /** @var list<array{string, string, string}> what it was asked: from, to, today */
     public array $asked = [];
 
     /**
@@ -36,9 +36,9 @@ final class FakeSource implements CashFlowSource
         return $this->details;
     }
 
-    public function flows(string $firmId, \DateTimeImmutable $from, \DateTimeImmutable $to, \DateTimeImmutable $today): iterable
+    public function flows(\DateTimeImmutable $from, \DateTimeImmutable $to, \DateTimeImmutable $today): iterable
     {
-        $this->asked[] = [$firmId, $from->format('Y-m-d'), $to->format('Y-m-d'), $today->format('Y-m-d e')];
+        $this->asked[] = [$from->format('Y-m-d'), $to->format('Y-m-d'), $today->format('Y-m-d e')];
         foreach ($this->flows as $flow) {
             yield $flow;
             if ($this->fails) {

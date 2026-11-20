@@ -14,10 +14,6 @@ use Foresi\Banking\Contract\MovementDirection;
 use Foresi\Banking\Contract\ParsedMovement;
 use Foresi\Banking\Contract\ParseResult;
 use Foresi\Banking\Domain\MessageTrust;
-use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\LegalEntity;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -102,11 +98,9 @@ final class ParserContractsTest extends TestCase
         new TrustVerdict(MessageTrust::Verified, 'looks-fine');
     }
 
-    public function testEveryFirmPairsAutomaticallyAndSettlesNoDifferenceByDefault(): void
+    public function testTheDefaultIsToPairAutomaticallyAndSettleNoDifference(): void
     {
-        $firm = new LegalEntity('Example s.r.o.', new RegistrationNumber('CZ', '27074358'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
-
-        $rules = new DefaultPairingRules()->for($firm);
+        $rules = new DefaultPairingRules()->get();
 
         self::assertTrue($rules->autoPairing);
         self::assertFalse($rules->smallDifference);

@@ -51,7 +51,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  * template per slot. Each template is monthly from today, so today is its next
  * occurrence; every edit comes from a form opened at the first version.
  *
- * @phpstan-type Ids array{firm: string, series: string, customer: string, today: string, templates: list<string>}
+ * @phpstan-type Ids array{series: string, customer: string, today: string, templates: list<string>}
  * @phpstan-type Stored array{state: string, next: string|null, issued: int, invoices: list<list<string>>}
  */
 abstract class RecurringWorker extends KernelTestCase
@@ -80,15 +80,15 @@ abstract class RecurringWorker extends KernelTestCase
         $tool->createSchema($metadata);
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register');
         $em->persist($firm);
-        FirmAccounts::add($em, $firm, self::IBAN);
-        $series = new Series($firm, 'Standard', SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+        FirmAccounts::add($em, self::IBAN);
+        $series = new Series('Standard', SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $em->persist($series);
         $customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');
         $em->persist($customer);
         $em->persist(new PartyAddress($customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
         $em->flush();
 
-        $ids = ['firm' => $firm->id(), 'series' => $series->id(), 'customer' => $customer->id(), 'today' => $container->get(InstanceClock::class)->today()->format('Y-m-d'), 'templates' => []];
+        $ids = ['series' => $series->id(), 'customer' => $customer->id(), 'today' => $container->get(InstanceClock::class)->today()->format('Y-m-d'), 'templates' => []];
         $save = $container->get(SaveRecurringInvoice::class);
         for ($i = 0; $i < $templates; ++$i) {
             $ids['templates'][] = $save->create(self::input($ids, self::OLD_LINES))->id();
@@ -181,7 +181,7 @@ abstract class RecurringWorker extends KernelTestCase
         $lines = array_map(static fn (string $text): LineInput => new LineInput($text, Quantity::fromString('1'), 'h', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')), $texts);
         $recurrence = new Recurrence(new \DateTimeImmutable($ids['today']), RecurrenceUnit::Month, 1, false, RecurrenceEnd::Never, null, null);
 
-        return new RecurringInput($ids['firm'], $ids['series'], $ids['customer'], PaymentMethod::BankTransfer, self::IBAN, '', '', 'Hosting {month/year}', '', '', DocumentLanguage::Czech, $lines, $recurrence, TaxPointRule::IssueDate, 14, RecurringDelivery::Send);
+        return new RecurringInput($ids['series'], $ids['customer'], PaymentMethod::BankTransfer, self::IBAN, '', '', 'Hosting {month/year}', '', '', DocumentLanguage::Czech, $lines, $recurrence, TaxPointRule::IssueDate, 14, RecurringDelivery::Send);
     }
 
     private static function enter(): void

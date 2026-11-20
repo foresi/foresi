@@ -20,7 +20,6 @@ final readonly class TimeSelection
      * @param list<SelectedLine> $lines
      */
     public function __construct(
-        public string $firmId,
         public string $clientId,
         public Currency $currency,
         public array $lines,

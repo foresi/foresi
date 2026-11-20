@@ -9,11 +9,10 @@ declare(strict_types=1);
 namespace Foresi\CashFlow\Application;
 
 use Foresi\CashFlow\Contract\FlowCertainty;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Money;
 
 /**
- * The cash-flow forecast of a firm, in CZK at today's rates, computed on read.
+ * The cash-flow forecast, in CZK at today's rates, computed on read.
  * It is incomplete when a source, a balance source or a rate failed, or an
  * account has no balance; the lists say which.
  */
@@ -28,7 +27,6 @@ final readonly class Forecast
      * @param list<FlowCertainty>|null $certainties        the certainties counted; null when every flow counts
      */
     public function __construct(
-        public LegalEntity $firm,
         public \DateTimeImmutable $today,
         public \DateTimeImmutable $from,
         public Money $opening,

@@ -16,7 +16,6 @@ use Foresi\Invoicing\Domain\InvoiceLine;
 use Foresi\Invoicing\Domain\InvoiceSend;
 use Foresi\Invoicing\Domain\Payment;
 use Foresi\Invoicing\Domain\PaymentAllocation;
-use Foresi\Party\Domain\LegalEntity;
 
 /**
  * Queries of the ORM. Every table that names an invoice
@@ -29,11 +28,10 @@ final readonly class DoctrineImportedDocuments implements ImportedDocuments
     {
     }
 
-    public function find(LegalEntity $firm, string $source, string $externalId): ?Invoice
+    public function find(string $source, string $externalId): ?Invoice
     {
         /** @var Invoice|null $invoice */
-        $invoice = $this->em->createQuery('SELECT i FROM '.Invoice::class.' i WHERE i.firm = :firm AND i.importSource = :source AND i.importExternalId = :external')
-            ->setParameter('firm', $firm->id())
+        $invoice = $this->em->createQuery('SELECT i FROM '.Invoice::class.' i WHERE i.importSource = :source AND i.importExternalId = :external')
             ->setParameter('source', $source)
             ->setParameter('external', $externalId)
             ->getOneOrNullResult();
@@ -51,11 +49,10 @@ final readonly class DoctrineImportedDocuments implements ImportedDocuments
         return $invoices;
     }
 
-    public function findPayment(LegalEntity $firm, string $source, string $externalId): ?Payment
+    public function findPayment(string $source, string $externalId): ?Payment
     {
         /** @var Payment|null $payment */
-        $payment = $this->em->createQuery('SELECT p FROM '.Payment::class.' p WHERE p.firm = :firm AND p.importSource = :source AND p.importExternalId = :external')
-            ->setParameter('firm', $firm->id())
+        $payment = $this->em->createQuery('SELECT p FROM '.Payment::class.' p WHERE p.importSource = :source AND p.importExternalId = :external')
             ->setParameter('source', $source)
             ->setParameter('external', $externalId)
             ->getOneOrNullResult();

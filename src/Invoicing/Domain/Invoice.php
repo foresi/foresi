@@ -16,7 +16,6 @@ use Foresi\Invoicing\Contract\DocumentParty;
 use Foresi\Invoicing\Contract\TotalRounding;
 use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
@@ -26,13 +25,13 @@ use Foresi\Shared\Domain\Money;
 /**
  * An issued invoice: there is no draft, saving issues it. The content stays
  * editable, every change audited, with the customer and the issuer as frozen
- * copies. The firm, the VAT regime and the rounding are fixed at issue. Series and
+ * copies. The VAT regime and the rounding are fixed at issue. Series and
  * number stay open until the document is delivered, and a number it gives up stays
  * taken as an AbandonedNumber. In the trash an invoice keeps its number and content
  * and takes no change until it is restored; a delivered invoice cannot go there.
  *
  * Payments, corrections and sending hang on the id of the invoice in their own
- * tables; deliveredAt is what sending sets. A number is unique in a firm, trash
+ * tables; deliveredAt is what sending sets. A number is unique, trash
  * included. Create invoices through IssueInvoice.
  *
  * The export marks say what the accountant has: when the document was last
@@ -46,23 +45,23 @@ use Foresi\Shared\Domain\Money;
  * invoices hold null in both, which repeats freely.
  *
  * An invoice brought over from another system names that source, its id there and
- * the run that brought it, unique in a firm, so no document arrives twice. It may
+ * the run that brought it, unique, so no document arrives twice. It may
  * keep the PDF the source drew as its original. Create these through
  * ImportIssuedDocument.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'invoice')]
-#[ORM\Index(name: 'idx_invoice_firm_date', columns: ['legal_entity_id', 'issue_date'])]
-#[ORM\Index(name: 'idx_invoice_firm_tax_point', columns: ['legal_entity_id', 'tax_point_date'])]
+#[ORM\Index(name: 'idx_invoice_issue_date', columns: ['issue_date'])]
+#[ORM\Index(name: 'idx_invoice_tax_point', columns: ['tax_point_date'])]
 #[ORM\Index(name: 'idx_invoice_series', columns: ['series_id'])]
 #[ORM\Index(name: 'idx_invoice_customer', columns: ['customer_id'])]
-#[ORM\UniqueConstraint(name: 'uniq_invoice_number', columns: ['legal_entity_id', 'number_key'])]
+#[ORM\UniqueConstraint(name: 'uniq_invoice_number', columns: ['number_key'])]
 #[ORM\UniqueConstraint(name: 'uniq_invoice_occurrence', columns: ['recurring_invoice_id', 'recurring_occurrence'])]
 #[ORM\UniqueConstraint(name: 'uniq_invoice_taxed_payment', columns: ['advance_invoice_id', 'payment_id'])]
 #[ORM\Index(name: 'idx_invoice_payment', columns: ['payment_id'])]
 #[ORM\Index(name: 'idx_invoice_deducted_by', columns: ['deducted_by_invoice_id'])]
 #[ORM\Index(name: 'idx_invoice_corrected', columns: ['corrected_invoice_id'])]
-#[ORM\UniqueConstraint(name: 'uniq_invoice_import', columns: ['legal_entity_id', 'import_source', 'import_external_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_invoice_import', columns: ['import_source', 'import_external_id'])]
 #[ORM\Index(name: 'idx_invoice_import_run', columns: ['import_run_id'])]
 class Invoice implements Audited
 {
@@ -228,9 +227,6 @@ class Invoice implements Audited
     private ?string $originalPdfSha256 = null;
 
     public function __construct(
-        #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
-        #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
-        private readonly LegalEntity $firm,
         #[ORM\ManyToOne(targetEntity: Series::class)]
         #[ORM\JoinColumn(name: 'series_id', nullable: false, onDelete: 'RESTRICT')]
         private Series $series,
@@ -250,7 +246,6 @@ class Invoice implements Audited
         #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
         private readonly \DateTimeImmutable $createdAt,
     ) {
-        $this->refuseForeignSeries($series);
         $this->id = Id::generate();
         $this->kind = $series->kind();
         $this->numberKey = NumberKey::of($this->number);
@@ -307,7 +302,7 @@ class Invoice implements Audited
      * @return AbandonedNumber|null the number given up, to be stored; null when only
      *                              its punctuation or case changed, as the number is the same
      *
-     * @throws \DomainException once delivered, for an invoice in the trash, or for a series of another firm or kind
+     * @throws \DomainException once delivered, for an invoice in the trash, or for a series of another kind
      */
     public function changeNumber(Series $series, string $number): ?AbandonedNumber
     {
@@ -315,7 +310,6 @@ class Invoice implements Audited
         if ($this->isDelivered()) {
             throw new \DomainException('Series and number are fixed once the document is delivered.');
         }
-        $this->refuseForeignSeries($series);
         if ($series->kind() !== $this->kind) {
             throw new \DomainException('A document keeps its kind, so it takes a series of that kind.');
         }
@@ -622,11 +616,6 @@ class Invoice implements Audited
         return $this->version;
     }
 
-    public function firm(): LegalEntity
-    {
-        return $this->firm;
-    }
-
     public function series(): Series
     {
         return $this->series;
@@ -870,13 +859,6 @@ class Invoice implements Audited
     {
         if ($this->kind->isTaxDocument() !== $content->taxPointDate instanceof \DateTimeImmutable) {
             throw new \DomainException('A tax document has a tax point, and an advance invoice has none.');
-        }
-    }
-
-    private function refuseForeignSeries(Series $series): void
-    {
-        if ($series->firm()->id() !== $this->firm->id()) {
-            throw new \DomainException('A document takes a series of its own firm.');
         }
     }
 }

@@ -576,7 +576,6 @@ final readonly class ForecastScreen
     private function withPeriods(Forecast $forecast, array $periods, Money $lowest, \DateTimeImmutable $lowestOn, ?\DateTimeImmutable $shortfallOn): Forecast
     {
         return new Forecast(
-            $forecast->firm,
             $forecast->today,
             $forecast->from,
             $forecast->opening,

@@ -12,7 +12,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Invoicing\Application\InvoiceBalances;
 use Foresi\Invoicing\Application\ReminderSettings;
 use Foresi\Invoicing\Domain\FirmReminders;
-use Foresi\Party\Domain\LegalEntity;
 
 final readonly class DoctrineReminderSettings implements ReminderSettings
 {
@@ -22,13 +21,11 @@ final readonly class DoctrineReminderSettings implements ReminderSettings
     ) {
     }
 
-    public function for(LegalEntity $firm): FirmReminders
+    public function get(): FirmReminders
     {
-        $stored = $this->em->createQuery('SELECT r FROM '.FirmReminders::class.' r WHERE r.firm = :firm')
-            ->setParameter('firm', $firm->id())
-            ->getOneOrNullResult();
+        $stored = $this->em->getRepository(FirmReminders::class)->findOneBy([]);
 
-        return $stored instanceof FirmReminders ? $stored : FirmReminders::standard($firm);
+        return $stored instanceof FirmReminders ? $stored : FirmReminders::standard();
     }
 
     public function save(FirmReminders $settings): void

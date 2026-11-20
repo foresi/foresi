@@ -5,7 +5,7 @@ series:
   edit: Upravit číselnou řadu
   card: Číselná řada
   default: Výchozí
-  first: 'Zatím tu není žádná řada. První faktura této firmy dostane číslo {number} ve standardní řadě.'
+  first: 'Zatím tu není žádná řada. První faktura dostane číslo {number} ve standardní řadě.'
   name:
     standard: Standardní
     standard_advance: Zálohové faktury
@@ -44,7 +44,7 @@ series:
     format_locked: Řada už má čísla, formát proto nejde změnit.
     format_too_long: 'Čísla této řady by byla delší, než doklad unese: nejvýše 40 znaků.'
     format_taken: 'Čísla by se střetla s řadou {name}.'
-    name_taken: Tento název už má jiná řada této firmy.
+    name_taken: Tento název už má jiná řada.
     next_number: Zadejte celé číslo od 1 do 2147483647.
     start_year: Zadejte rok od 2000 do 2099.
     next_below_counter: 'Toto číslo je už použité. Další volné je {next}.'
@@ -266,7 +266,7 @@ invoice:
     count_total: Celkem
     refresh: Spočítat znovu
     submit: Stáhnout ZIP
-    empty: Tato firma nemá v tomto měsíci žádné doklady k exportu.
+    empty: V tomto měsíci nejsou žádné doklady k exportu.
     month_invalid: Zadejte platný měsíc.
     folder:
       invoice: faktury
@@ -501,7 +501,7 @@ invoice:
       all_title_payment_tax_document: Tady žádné daňové doklady nejsou
       all_title_correction_document: Tady žádné opravné doklady nejsou
       filtered_title: Žádná faktura neodpovídá
-      filtered_text: Zkuste jiná slova nebo jinou firmu.
+      filtered_text: Zkuste jiná slova.
       reset: Zobrazit všechny faktury
       overdue_title: Nic není po splatnosti
       trash_title: Koš je prázdný
@@ -599,7 +599,7 @@ invoice:
   opens_new_tab: otevře se v nové kartě
   blocked:
     no_firm_title: Nejdřív přidejte svou firmu
-    no_firm_text: Každou fakturu vystavuje jedna z vašich firem.
+    no_firm_text: Každou fakturu vystavuje vaše firma.
     add_firm: Přidat firmu
     no_series_title: Firma nemá aktivní řadu
     no_series_text: Přidejte číselnou řadu v nastavení fakturace firmy.
@@ -730,7 +730,6 @@ invoice:
       no_allocation: Úhrada nehradí žádnou fakturu.
       amount_mismatch: Části úhrady nedávají dohromady její částku.
       not_positive: Zadejte částku větší než nula.
-      wrong_firm: Faktura patří jiné firmě.
       currency_mismatch: Úhrada je v jiné měně než faktura.
       trashed: Faktura je v koši.
       not_payable: Daňový doklad k platbě je uhrazený svou platbou.
@@ -855,7 +854,6 @@ invoice:
     discount_invalid: Zadejte slevu od 0 do 100, nejvýše na dvě desetinná místa.
     due_date_missing: Zadejte datum splatnosti.
     firm_country_unsupported: Pro zemi této firmy zatím faktury nejsou k dispozici.
-    firm_locked: Firmu vystaveného dokladu nelze změnit.
     firm_register_entry_missing: 'Doplňte v nastavení firmy, kde je zapsaná. Společnost uvádí spisovou značku, živnostníkovi stačí „Zapsán v živnostenském rejstříku“.'
     firm_vat_id_missing: Doplňte DIČ v nastavení firmy.
     issue_date_missing: Zadejte datum vystavení.
@@ -868,7 +866,7 @@ invoice:
     number_locked_sending: Řadu a číslo nelze měnit, dokud se doklad odesílá.
     number_locked_sent: Řadu a číslo nelze změnit, doklad už odešel e-mailem.
     number_out_of_range: Toto číslo je mimo rozsah řady.
-    number_taken: Toto číslo už bylo v této firmě použito.
+    number_taken: Toto číslo už bylo použito.
     import_number_missing: Importovaný doklad musí mít řadu i číslo.
     import_issuer_incomplete: Dodavatel na importovaném dokladu nemá úplný název a adresu.
     import_kind_unsupported: Tento druh dokladu se zatím neimportuje.
@@ -881,7 +879,6 @@ invoice:
     correction_original_invalid: Opravit lze jen vystavenou fakturu, která není v koši, nebo odeslaný daňový doklad k platbě.
     correction_deducted: Daňový doklad je odečtený na konečné faktuře. Nejdřív odečet uvolněte, tedy konečnou fakturu přesuňte do koše nebo odečet z ní odeberte.
     correction_payment_change: Daňový doklad k platbě se opravuje jako změna po vystavení, ke dni zrušení nebo vrácení platby.
-    correction_firm: Opravu musí vystavit firma faktury.
     correction_customer: Oprava musí být pro odběratele faktury.
     correction_reason_missing: Uveďte důvod opravy.
     correction_type_missing: Vyberte, zda jde o změnu po vystavení, nebo o chybu na dokladu.
@@ -904,7 +901,6 @@ invoice:
     tax_document_with_vat: Řádky daňového dokladu k platbě mají cenu s DPH.
     no_tax_on_receipt: Z této platby DPH nevznikla, daňový doklad proto nedostane.
     payment_unknown: Tato platba nepatří k zálohové faktuře, nebo byla zrušena.
-    series_of_another_firm: Tato řada patří jiné firmě.
     series_unknown: Vyberte číselnou řadu.
     supply_code_invalid: Vyberte kód plnění ze seznamu, nebo pole nechte prázdné.
     supply_code_not_allowed: Odběratel z jiné země kód plnění nemá.

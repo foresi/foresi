@@ -38,18 +38,18 @@ use Foresi\Shared\Domain\Money;
 $today = new DateTimeImmutable('today');
 $manualFirm = $firmAccount(new LegalEntity('Example Manual s.r.o.', new RegistrationNumber('CZ', '12345687'), VatId::fromString('CZ12345687'), $address(4), VatStatus::Registered, 'Example register, entry C 7890'));
 $entityManager->persist($manualFirm);
-$manualSeries = new Series($manualFirm, Series::STANDARD, SeriesFormat::fromString('S{NNNN}'), DocumentKind::Invoice);
+$manualSeries = new Series(Series::STANDARD, SeriesFormat::fromString('S{NNNN}'), DocumentKind::Invoice);
 $manualSeries->markDefault();
 $entityManager->persist($manualSeries);
-$entityManager->persist(FirmMailServer::define($manualFirm, 'smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', $mailSecrets->seal('throwaway-smtp-password'), 'invoices@example.com', 'Example Manual s.r.o.'));
+$entityManager->persist(FirmMailServer::define('smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', $mailSecrets->seal('throwaway-smtp-password'), 'invoices@example.com', 'Example Manual s.r.o.'));
 $entityManager->flush();
 $debtor = $createParty->createFrom($party(PartyKind::Company, 'Example Debtor a.s.', [PartyRole::Customer], '', 10, '12345679', 'CZ12345679'));
 $entityManager->persist(new PartyEmail($debtor, 'billing@example.com', EmailPurpose::Invoices));
 $entityManager->flush();
 // Each one sent, which the synchronous e2e queue delivers at once.
-$reminded = static function (string $description, string $price, int $issuedDaysAgo, int $dueDaysAgo) use ($issueInvoice, $sendInvoice, $debtor, $today, $manualFirm, $manualSeries): Invoice {
+$reminded = static function (string $description, string $price, int $issuedDaysAgo, int $dueDaysAgo) use ($issueInvoice, $sendInvoice, $debtor, $today, $manualSeries): Invoice {
     $issued = $today->modify(sprintf('-%d days', $issuedDaysAgo));
-    $invoice = $issueInvoice->issue(new InvoiceInput($manualFirm->id(), $manualSeries->id(), null, $debtor->id(), null, $issued, $issued, $today->modify(sprintf('%+d days', -$dueDaysAgo)), PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
+    $invoice = $issueInvoice->issue(new InvoiceInput($manualSeries->id(), null, $debtor->id(), null, $issued, $issued, $today->modify(sprintf('%+d days', -$dueDaysAgo)), PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
         new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
     ]));
     $sendInvoice->send(new SendRequest($invoice->id(), ['billing@example.com'], [], false, 'Faktura '.$invoice->number(), "Dobrý den,\nposíláme fakturu ".$invoice->number().".\n\n{link}"));

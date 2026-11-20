@@ -10,11 +10,7 @@ namespace Foresi\Tests\Invoicing\Domain;
 
 use Foresi\Invoicing\Domain\Payment;
 use Foresi\Invoicing\Domain\PaymentSource;
-use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\PaymentMethod;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -49,8 +45,6 @@ final class PaymentTest extends TestCase
 
     private function payment(string $amount): Payment
     {
-        $firm = new LegalEntity('Example Firm', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
-
-        return new Payment($firm, new \DateTimeImmutable('2026-11-20'), Money::of($amount, Currency::CZK), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', null, new \DateTimeImmutable('2026-11-20 10:00'));
+        return new Payment(new \DateTimeImmutable('2026-11-20'), Money::of($amount, Currency::CZK), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', null, new \DateTimeImmutable('2026-11-20 10:00'));
     }
 }

@@ -16,7 +16,7 @@ use Foresi\Invoicing\Contract\InvoicingCountry;
 use Foresi\Invoicing\Contract\TotalRounding;
 use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\Invoice;
-use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Shared\Domain\Currency;
 
 /**
@@ -26,7 +26,6 @@ use Foresi\Shared\Domain\Currency;
 final readonly class InvoiceFormContext
 {
     private function __construct(
-        public LegalEntity $firm,
         public ?Invoice $invoice,
         public InvoicingCountry $country,
         public VatRegime $regime,
@@ -39,11 +38,12 @@ final readonly class InvoiceFormContext
     /**
      * @throws UnsupportedCountry
      */
-    public static function new(LegalEntity $firm, InvoicingCountries $countries, FirmInvoicingSettings $settings, DocumentKind $kind = DocumentKind::Invoice): self
+    public static function new(InstanceFirm $instanceFirm, InvoicingCountries $countries, FirmInvoicingSettings $settings, DocumentKind $kind = DocumentKind::Invoice): self
     {
+        $firm = $instanceFirm->get();
         $country = $countries->for($firm->address()->countryCode);
 
-        return new self($firm, null, $country, VatRegime::of($firm->vatStatus()), $settings->for($firm)->rounding(), $country->homeCurrency(), $kind);
+        return new self(null, $country, VatRegime::of($firm->vatStatus()), $settings->get()->rounding(), $country->homeCurrency(), $kind);
     }
 
     /**
@@ -51,7 +51,7 @@ final readonly class InvoiceFormContext
      */
     public static function stored(Invoice $invoice, InvoicingCountries $countries): self
     {
-        return new self($invoice->firm(), $invoice, $countries->for($invoice->issuer()->address->countryCode), $invoice->vatRegime(), $invoice->rounding(), $invoice->currency(), $invoice->kind());
+        return new self($invoice, $countries->for($invoice->issuer()->address->countryCode), $invoice->vatRegime(), $invoice->rounding(), $invoice->currency(), $invoice->kind());
     }
 
     /**

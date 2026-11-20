@@ -12,10 +12,9 @@ use Foresi\Idoklad\Domain\IdokladConnection;
 use Foresi\Idoklad\Domain\InvalidIdokladConnection;
 use Foresi\Invoicing\Application\MailSecrets;
 use Foresi\Party\Application\TransactionalWork;
-use Foresi\Party\Domain\LegalEntity;
 
 /**
- * Stores, replaces and deletes the iDoklad API credentials of a firm. The
+ * Stores, replaces and deletes the iDoklad API credentials of the iDoklad account. The
  * secret is sealed with the keys that seal mail server passwords, held
  * outside the database.
  */
@@ -32,7 +31,7 @@ final readonly class ConnectIdoklad
      * @throws InvalidIdokladConnection
      * @throws \Foresi\Invoicing\Application\MailSecretsUnavailable when no key is configured
      */
-    public function connect(LegalEntity $firm, string $clientId, #[\SensitiveParameter] string $clientSecret): IdokladConnection
+    public function connect(string $clientId, #[\SensitiveParameter] string $clientSecret): IdokladConnection
     {
         $clientSecret = trim($clientSecret);
         if ('' === $clientSecret) {
@@ -40,10 +39,10 @@ final readonly class ConnectIdoklad
         }
         $sealed = $this->secrets->seal($clientSecret);
 
-        return $this->work->run(function () use ($firm, $clientId, $sealed): IdokladConnection {
-            $connection = $this->connections->for($firm);
+        return $this->work->run(function () use ($clientId, $sealed): IdokladConnection {
+            $connection = $this->connections->get();
             if (!$connection instanceof IdokladConnection) {
-                $connection = new IdokladConnection($firm, $clientId, $sealed);
+                $connection = new IdokladConnection($clientId, $sealed);
                 $this->connections->save($connection);
             } else {
                 $connection->change($clientId, $sealed);
@@ -54,12 +53,12 @@ final readonly class ConnectIdoklad
     }
 
     /**
-     * Deletes the firm's credentials; false when it had none. The snapshot stays.
+     * Deletes the credentials; false when there were none. The snapshot stays.
      */
-    public function disconnect(LegalEntity $firm): bool
+    public function disconnect(): bool
     {
-        return $this->work->run(function () use ($firm): bool {
-            $connection = $this->connections->for($firm);
+        return $this->work->run(function (): bool {
+            $connection = $this->connections->get();
             if (!$connection instanceof IdokladConnection) {
                 return false;
             }

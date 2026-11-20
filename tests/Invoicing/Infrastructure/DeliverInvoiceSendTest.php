@@ -26,7 +26,6 @@ use Foresi\Invoicing\Infrastructure\Messenger\MarkSendFailed;
 use Foresi\Invoicing\Infrastructure\Messenger\SendLeaseHeld;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\InvoicingDefaults;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\PartyEmail;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
@@ -785,8 +784,7 @@ final class DeliverInvoiceSendTest extends SendingTestCase
 
     private function remindersOfTheFirm(bool $enabled): void
     {
-        $firm = $this->em->find(LegalEntity::class, $this->firm->id()) ?? self::fail('No firm.');
-        $settings = $this->em->getRepository(FirmReminders::class)->findOneBy(['firm' => $firm]) ?? FirmReminders::standard($firm);
+        $settings = $this->em->getRepository(FirmReminders::class)->findOneBy([]) ?? FirmReminders::standard();
         $settings->change($enabled, 7, 7, null, new \DateTimeImmutable('2026-11-01'));
         $this->em->persist($settings);
         $this->em->flush();

@@ -22,7 +22,7 @@ use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Invoicing\Application\InvoicingCountries;
-use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Banking\Support\BankingTestCase;
@@ -36,13 +36,13 @@ final class PairingChoicesTest extends BankingTestCase
 {
     /** @var list<Candidate> what the symbol finds */
     private array $bySymbol = [];
-    /** @var list<Candidate> the open invoices of the firm, oldest due first */
+    /** @var list<Candidate> the open invoices, oldest due first */
     private array $open = [];
     /** @var list<Candidate> what a search finds */
     private array $found = [];
     /** @var list<array{string, list<string>, int}> every read of open invoices: the text, the ids and the limit */
     private array $reads = [];
-    /** @var list<Candidate> the invoices of the firm with something to refund */
+    /** @var list<Candidate> the invoices with something to refund */
     private array $refunds = [];
     /** @var list<string> the invoices an earlier payment from the counter account paid */
     private array $paidFrom = [];
@@ -250,22 +250,22 @@ final class PairingChoicesTest extends BankingTestCase
             {
             }
 
-            public function withSymbol(string $firmId, string $variableSymbol): array
+            public function withSymbol(string $variableSymbol): array
             {
                 return $this->test->symbolRead();
             }
 
-            public function open(string $firmId, Currency $currency, string $text, array $ids, int $limit): array
+            public function open(Currency $currency, string $text, array $ids, int $limit): array
             {
                 return $this->test->openRead($text, $ids, $limit);
             }
 
-            public function refunds(string $firmId, ?string $variableSymbol): array
+            public function refunds(?string $variableSymbol): array
             {
                 return null === $variableSymbol ? $this->test->refundsRead() : $this->test->symbolRead();
             }
 
-            public function paidFrom(string $firmId, ?string $counterIban, ?string $counterAccount): array
+            public function paidFrom(?string $counterIban, ?string $counterAccount): array
             {
                 return $this->test->paidFromRead();
             }
@@ -275,13 +275,13 @@ final class PairingChoicesTest extends BankingTestCase
             {
             }
 
-            public function for(LegalEntity $firm): PairingRules
+            public function get(): PairingRules
             {
                 return new PairingRules(true, $this->smallDifference);
             }
         };
 
-        return new PairingChoices(new Matcher($candidates, self::getContainer()->get(InvoicingCountries::class)), $candidates, $rules)->of($movement, $text, $kept);
+        return new PairingChoices(new Matcher($candidates, self::getContainer()->get(InvoicingCountries::class), self::getContainer()->get(InstanceFirm::class)), $candidates, $rules)->of($movement, $text, $kept);
     }
 
     /**

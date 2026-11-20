@@ -40,16 +40,16 @@ use Foresi\Tests\Support\Mail\RecordingMailGateway;
 $sendingFirm = new LegalEntity('Example Sending s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(1), VatStatus::Registered, 'Example register, entry C 9012');
 $entityManager->persist($sendingFirm);
 $firmAccount($sendingFirm);
-$sendingSeries = new Series($sendingFirm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+$sendingSeries = new Series(Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
 $sendingSeries->markDefault();
 $entityManager->persist($sendingSeries);
-$entityManager->persist(FirmMailServer::define($sendingFirm, 'smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', $mailSecrets->seal('throwaway-smtp-password'), 'invoices@example.com', 'Example Sending s.r.o.'));
+$entityManager->persist(FirmMailServer::define('smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', $mailSecrets->seal('throwaway-smtp-password'), 'invoices@example.com', 'Example Sending s.r.o.'));
 $entityManager->flush();
 $recipient = $createParty->createFrom($party(PartyKind::Company, 'Example Recipient a.s.', [PartyRole::Customer], '', 8, '12345679', 'CZ12345679'));
 $entityManager->persist(new PartyEmail($recipient, 'billing@example.com', EmailPurpose::Invoices));
 $entityManager->persist(new PartyEmail($recipient, 'accounts@example.com', EmailPurpose::Copy));
 $entityManager->flush();
-$sendingInvoice = static fn (string $description, string $price): Invoice => $issueInvoice->issue(new InvoiceInput($sendingFirm->id(), $sendingSeries->id(), null, $recipient->id(), null, $day, $day, $due, PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
+$sendingInvoice = static fn (string $description, string $price): Invoice => $issueInvoice->issue(new InvoiceInput($sendingSeries->id(), null, $recipient->id(), null, $day, $day, $due, PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
     new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
 ]));
 $sendingInvoice('Annual support', '24000.00');

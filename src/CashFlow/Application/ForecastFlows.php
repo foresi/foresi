@@ -15,7 +15,6 @@ use Foresi\CashFlow\Contract\FlowCategory;
 use Foresi\CashFlow\Contract\FlowCertainty;
 use Foresi\CashFlow\Contract\FlowFlag;
 use Foresi\CashFlow\Domain\PlannedItem;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Shared\Domain\Money;
 use Psr\Log\LoggerInterface;
@@ -53,7 +52,6 @@ final readonly class ForecastFlows
      * @param list<FlowCertainty>|null $certainties       the certainties kept; null keeps them all
      */
     public function collect(
-        LegalEntity $firm,
         \DateTimeImmutable $today,
         \DateTimeImmutable $start,
         \DateTimeImmutable $end,
@@ -74,7 +72,7 @@ final readonly class ForecastFlows
             try {
                 $flows = [];
                 $details = $source->mayReadDetails();
-                foreach ($source->flows($firm->id(), $today, $end, $today) as $flow) {
+                foreach ($source->flows($today, $end, $today) as $flow) {
                     $flows[] = $flow;
                 }
             } catch (\Throwable $failure) {
@@ -97,7 +95,7 @@ final readonly class ForecastFlows
         }
         // By the day they are counted on, overdue ones first, money in before money out.
         usort($lines, static fn (ForecastLine $a, ForecastLine $b): int => self::order($a) <=> self::order($b));
-        $lines = $this->unfulfilled($firm, $lines, $unavailable);
+        $lines = $this->unfulfilled($lines, $unavailable);
 
         return new CollectedFlows($lines, array_values(array_unique($unavailable)), array_values(array_unique($restricted)));
     }
@@ -134,10 +132,10 @@ final readonly class ForecastFlows
      *
      * @return list<ForecastLine>
      */
-    private function unfulfilled(LegalEntity $firm, array $lines, array &$unavailable): array
+    private function unfulfilled(array $lines, array &$unavailable): array
     {
         $items = [];
-        foreach ($this->store->plannedItemsOf($firm->id()) as $item) {
+        foreach ($this->store->plannedItems() as $item) {
             $items[$item->id()] = $item;
         }
         $planned = [];
@@ -160,7 +158,7 @@ final readonly class ForecastFlows
         foreach ($this->actualSources as $source) {
             try {
                 $given = [];
-                foreach ($source->actuals($firm->id(), $first, $last) as $actual) {
+                foreach ($source->actuals($first, $last) as $actual) {
                     $given[] = $actual;
                 }
             } catch (\Throwable $failure) {

@@ -11,10 +11,6 @@ namespace Foresi\Tests\Invoicing\Domain;
 use Foresi\Invoicing\Domain\FirmMailServer;
 use Foresi\Invoicing\Domain\InvalidMailServer;
 use Foresi\Invoicing\Domain\MailEncryption;
-use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\LegalEntity;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -22,11 +18,8 @@ final class FirmMailServerTest extends TestCase
 {
     public function testDefinesAServer(): void
     {
-        $firm = $this->firm();
-        $server = FirmMailServer::define($firm, ' smtp.example.com ', 587, MailEncryption::Starttls, ' invoices@example.com ', 'k1:sealed', ' invoices@example.com ', ' Example Firm ');
+        $server = FirmMailServer::define(' smtp.example.com ', 587, MailEncryption::Starttls, ' invoices@example.com ', 'k1:sealed', ' invoices@example.com ', ' Example Firm ');
 
-        self::assertSame($firm, $server->firm());
-        self::assertSame($firm, $server->auditRoot());
         self::assertSame('smtp.example.com', $server->host());
         self::assertSame(587, $server->port());
         self::assertSame(MailEncryption::Starttls, $server->encryption());
@@ -41,10 +34,10 @@ final class FirmMailServerTest extends TestCase
     public function testAnIpv6LiteralIsStoredInBrackets(): void
     {
         foreach (['2606:2800:21F:CB07::1', '[2606:2800:21f:cb07::1]'] as $typed) {
-            $server = FirmMailServer::define($this->firm(), $typed, 587, MailEncryption::Starttls, 'user', 'k1:sealed', 'invoices@example.com', 'Example Firm');
+            $server = FirmMailServer::define($typed, 587, MailEncryption::Starttls, 'user', 'k1:sealed', 'invoices@example.com', 'Example Firm');
             self::assertSame('[2606:2800:21f:cb07::1]', $server->host());
         }
-        self::assertSame('93.184.215.14', FirmMailServer::define($this->firm(), '93.184.215.14', 587, MailEncryption::Starttls, 'user', 'k1:sealed', 'invoices@example.com', 'Example Firm')->host());
+        self::assertSame('93.184.215.14', FirmMailServer::define('93.184.215.14', 587, MailEncryption::Starttls, 'user', 'k1:sealed', 'invoices@example.com', 'Example Firm')->host());
     }
 
     public function testAChangeWithoutASecretKeepsTheOldOneAndNeedsAFreshCheck(): void
@@ -104,7 +97,7 @@ final class FirmMailServerTest extends TestCase
     {
         $this->expectException(InvalidMailServer::class);
 
-        FirmMailServer::define($this->firm(), 'smtp.example.com', $port, MailEncryption::Starttls, 'user', 'k1:sealed', 'invoices@example.com', 'Example Firm');
+        FirmMailServer::define('smtp.example.com', $port, MailEncryption::Starttls, 'user', 'k1:sealed', 'invoices@example.com', 'Example Firm');
     }
 
     /**
@@ -133,7 +126,6 @@ final class FirmMailServerTest extends TestCase
         $this->expectException(InvalidMailServer::class);
 
         FirmMailServer::define(
-            $this->firm(),
             $values['host'] ?? 'smtp.example.com',
             587,
             MailEncryption::Starttls,
@@ -165,12 +157,7 @@ final class FirmMailServerTest extends TestCase
 
     private function server(): FirmMailServer
     {
-        return FirmMailServer::define($this->firm(), 'smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', 'k1:sealed', 'invoices@example.com', 'Example Firm');
-    }
-
-    private function firm(): LegalEntity
-    {
-        return new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
+        return FirmMailServer::define('smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', 'k1:sealed', 'invoices@example.com', 'Example Firm');
     }
 
     public function testOnlyASettingsProblemTakesTheVerificationAway(): void

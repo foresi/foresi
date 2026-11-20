@@ -16,8 +16,8 @@ use Foresi\Invoicing\Contract\VatRateKind;
 use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Domain\InvalidVatId;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Money;
@@ -30,17 +30,18 @@ use Foresi\Shared\Domain\Money;
  */
 final readonly class LineRules
 {
-    public function __construct(private LinePricing $pricing, private PrintableText $printable)
+    public function __construct(private LinePricing $pricing, private PrintableText $printable, private InstanceFirm $instanceFirm)
     {
     }
 
     /**
-     * What keeps a firm from issuing a new document.
+     * What keeps the firm from issuing a new document.
      *
      * @return list<IssueProblem>
      */
-    public function firm(LegalEntity $firm): array
+    public function firm(): array
     {
+        $firm = $this->instanceFirm->get();
         $problems = [];
         if (VatStatus::IdentifiedPerson === $firm->vatStatus()) {
             $problems[] = new IssueProblem('firm', 'invoice.problem.firm_identified_person');

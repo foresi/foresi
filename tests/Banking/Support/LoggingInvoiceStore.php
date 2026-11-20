@@ -16,7 +16,6 @@ use Foresi\Invoicing\Application\StoredInvoice;
 use Foresi\Invoicing\Domain\AbandonedNumber;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceLine;
-use Foresi\Party\Domain\LegalEntity;
 
 /**
  * The invoice store, writing every lock to a LockLog.
@@ -69,14 +68,14 @@ final readonly class LoggingInvoiceStore implements InvoiceStore
         $this->store->addAbandoned($number);
     }
 
-    public function numberTaken(LegalEntity $firm, string $key, ?Invoice $except): bool
+    public function numberTaken(string $key, ?Invoice $except): bool
     {
-        return $this->store->numberTaken($firm, $key, $except);
+        return $this->store->numberTaken($key, $except);
     }
 
-    public function kindOfNumber(LegalEntity $firm, string $key): ?\Foresi\Invoicing\Contract\DocumentKind
+    public function kindOfNumber(string $key): ?\Foresi\Invoicing\Contract\DocumentKind
     {
-        return $this->store->kindOfNumber($firm, $key);
+        return $this->store->kindOfNumber($key);
     }
 
     public function page(InvoiceFilter $filter): InvoicePage
@@ -89,14 +88,14 @@ final readonly class LoggingInvoiceStore implements InvoiceStore
         return $this->store->sums($filter);
     }
 
-    public function idsForPeriod(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to): array
+    public function idsForPeriod(\DateTimeImmutable $from, \DateTimeImmutable $to): array
     {
-        return $this->store->idsForPeriod($firm, $from, $to);
+        return $this->store->idsForPeriod($from, $to);
     }
 
-    public function forAccountant(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to, bool $pending): array
+    public function forAccountant(\DateTimeImmutable $from, \DateTimeImmutable $to, bool $pending): array
     {
-        return $this->store->forAccountant($firm, $from, $to, $pending);
+        return $this->store->forAccountant($from, $to, $pending);
     }
 
     public function lockRow(string $id): void

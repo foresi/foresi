@@ -16,7 +16,7 @@ namespace Foresi\Purchasing\Application;
  */
 final readonly class ReceivedDocumentWarning
 {
-    /** Another document of the firm has the same original file. */
+    /** Another document has the same original file. */
     public const string DUPLICATE_FILE = 'duplicate_file';
     /** The supplier's number is on another recorded document of the same supplier. */
     public const string DUPLICATE_SUPPLIER_NUMBER = 'duplicate_supplier_number';

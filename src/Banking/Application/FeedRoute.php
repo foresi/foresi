@@ -16,7 +16,6 @@ final readonly class FeedRoute
     public function __construct(
         public string $feedId,
         public string $accountId,
-        public string $firmId,
     ) {
     }
 }

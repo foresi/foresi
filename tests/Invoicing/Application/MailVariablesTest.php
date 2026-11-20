@@ -34,7 +34,7 @@ final class MailVariablesTest extends InvoiceTestCase
         parent::setUp();
         $this->variables = self::getContainer()->get(MailVariables::class);
         $settings = self::getContainer()->get(FirmInvoicingSettings::class);
-        $row = $settings->for($this->firm);
+        $row = $settings->get();
         $row->change(TotalRounding::WholeUnit, '', '', '', 'office@example.com', '+420 111 111 111', 'example.com');
         $settings->save($row);
         $this->em->flush();

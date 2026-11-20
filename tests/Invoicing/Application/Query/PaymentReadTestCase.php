@@ -22,13 +22,9 @@ use Foresi\Invoicing\Domain\PaymentAllocation;
 use Foresi\Invoicing\Domain\PaymentDirection;
 use Foresi\Invoicing\Domain\PaymentSource;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrinePaymentQueries;
-use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PaymentMethod;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Invoicing\Application\InvoiceTestCase;
@@ -128,7 +124,6 @@ abstract class PaymentReadTestCase extends InvoiceTestCase
     protected function payment(
         string $on = '2026-11-10',
         array $parts = [],
-        ?LegalEntity $firm = null,
         PaymentDirection $direction = PaymentDirection::Incoming,
         PaymentMethod $method = PaymentMethod::BankTransfer,
         PaymentSource $source = PaymentSource::Manual,
@@ -138,7 +133,7 @@ abstract class PaymentReadTestCase extends InvoiceTestCase
     ): Payment {
         $total = $amount ?? (string) array_sum(array_map(intval(...), $parts));
         $movement = PaymentSource::BankMovement === $source ? \sprintf('01963c5e-0000-7000-8000-%012d', random_int(1, 999_999)) : null;
-        $payment = new Payment($firm ?? $this->firm, new \DateTimeImmutable($on), Money::of($total, Currency::CZK), $method, $source, $movement, $note, null, new \DateTimeImmutable('2026-11-10 12:00:00'), $direction);
+        $payment = new Payment(new \DateTimeImmutable($on), Money::of($total, Currency::CZK), $method, $source, $movement, $note, null, new \DateTimeImmutable('2026-11-10 12:00:00'), $direction);
         $this->em->persist($payment);
         foreach ($parts as $invoiceId => $part) {
             $this->em->persist(new PaymentAllocation($payment, $this->em->getReference(Invoice::class, $invoiceId) ?? throw new \LogicException('No invoice.'), Money::of($part, Currency::CZK)));
@@ -149,18 +144,6 @@ abstract class PaymentReadTestCase extends InvoiceTestCase
         $this->em->flush();
 
         return $payment;
-    }
-
-    /**
-     * Another firm of the organisation.
-     */
-    protected function otherFirm(): LegalEntity
-    {
-        $firm = new LegalEntity('Other Firm s.r.o.', new RegistrationNumber('CZ', '25596641'), null, new Address('Other Street 1', 'Other City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
-        $this->em->persist($firm);
-        $this->em->flush();
-
-        return $firm;
     }
 
     private function person(string $email, string $name, Role $role, ?Party $party = null): Membership

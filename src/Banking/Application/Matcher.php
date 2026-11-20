@@ -14,6 +14,7 @@ use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Invoicing\Application\AllocationRequest;
 use Foresi\Invoicing\Application\InvoicingCountries;
 use Foresi\Invoicing\Application\UnsupportedCountry;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Shared\Domain\Money;
 
 /**
@@ -46,25 +47,25 @@ use Foresi\Shared\Domain\Money;
  */
 final readonly class Matcher
 {
-    public function __construct(private Candidates $candidates, private InvoicingCountries $countries)
+    public function __construct(private Candidates $candidates, private InvoicingCountries $countries, private InstanceFirm $firm)
     {
     }
 
     /**
-     * The most minor units the movement's firm may settle in its currency, as the
+     * The most minor units the firm may settle in its currency, as the
      * firm's country says, or null when the country gives no limit.
      */
     public function settlementLimit(BankMovement $movement): ?int
     {
         try {
-            return $this->countries->for($movement->firm()->address()->countryCode)->settlementLimit($movement->amount()->currency());
+            return $this->countries->for($this->firm->get()->address()->countryCode)->settlementLimit($movement->amount()->currency());
         } catch (UnsupportedCountry) {
             return null;
         }
     }
 
     /**
-     * The open invoices of the movement's firm with its variable symbol, in every
+     * The open invoices with its variable symbol, in every
      * currency, oldest due first. A movement without a symbol has none. For an
      * outgoing movement, the invoices with something to refund that carry the
      * symbol, or whose corrective document does, each with what is to refund.
@@ -78,7 +79,7 @@ final readonly class Matcher
             return [];
         }
 
-        return $movement->isIncoming() ? $this->candidates->withSymbol($movement->firm()->id(), $symbol) : $this->candidates->refunds($movement->firm()->id(), $symbol);
+        return $movement->isIncoming() ? $this->candidates->withSymbol($symbol) : $this->candidates->refunds($symbol);
     }
 
     /**

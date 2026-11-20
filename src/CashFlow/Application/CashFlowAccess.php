@@ -76,9 +76,9 @@ final readonly class CashFlowAccess
     /**
      * @return list<FirmBankAccount> the active accounts of the firm
      */
-    public function accountsOf(LegalEntity $firm): array
+    public function accounts(): array
     {
-        return $this->accounts->of($firm);
+        return $this->accounts->all();
     }
 
     /**

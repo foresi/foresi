@@ -85,7 +85,7 @@ final class AdvanceEdgeCasesTest extends AdvanceTestCase
         $document = $this->onlyTaxDocumentOf($advance);
         self::assertSame([[TaxTreatment::ReverseCharge, 60000], [TaxTreatment::Exempt, 40000]], array_map(static fn (\Foresi\Invoicing\Domain\InvoiceLine $line): array => [$line->treatment(), $line->gross()->minor()], $this->store->lines($document)));
 
-        $deduction = self::getContainer()->get(DeductibleAdvances::class)->for($this->firm, $advance->customerParty()->id(), null, DocumentLanguage::English)[0]->lines;
+        $deduction = self::getContainer()->get(DeductibleAdvances::class)->for($advance->customerParty()->id(), null, DocumentLanguage::English)[0]->lines;
         $final = $this->issue->issue($this->input([$this->line('3000.00', treatment: TaxTreatment::ReverseCharge, kind: null), $this->line('500.00', treatment: TaxTreatment::Exempt, kind: null), ...$deduction], ['customerId' => $advance->customerParty()->id()]));
         $file = $this->czech()->electronicFile(self::getContainer()->get(IssuedDocumentFactory::class)->of($final->id()));
         self::assertNotNull($file);
@@ -101,7 +101,7 @@ final class AdvanceEdgeCasesTest extends AdvanceTestCase
     {
         $advance = $this->advance([$this->gross('1210.00'), $this->gross('1120.00', VatRateKind::Reduced)]);
         $this->pay($advance, '2330.00');
-        $deduction = self::getContainer()->get(DeductibleAdvances::class)->for($this->firm, $this->customer->id(), null, DocumentLanguage::Czech)[0]->lines;
+        $deduction = self::getContainer()->get(DeductibleAdvances::class)->for($this->customer->id(), null, DocumentLanguage::Czech)[0]->lines;
         $final = $this->issue->issue($this->input([$this->line('5000.00'), $this->line('5000.00', kind: VatRateKind::Reduced), ...$deduction]));
 
         $file = $this->czech()->electronicFile(self::getContainer()->get(IssuedDocumentFactory::class)->of($final->id()));
@@ -114,7 +114,7 @@ final class AdvanceEdgeCasesTest extends AdvanceTestCase
 
     public function testTheTaxDocumentKeepsTheAdvancesAccountOrTakesThePrimary(): void
     {
-        FirmAccounts::add($this->em, $this->firm, self::SECOND_IBAN);
+        FirmAccounts::add($this->em, self::SECOND_IBAN);
         $this->em->flush();
         $onSecond = $this->advance([$this->line('1000.00')], ['bankAccount' => self::SECOND_IBAN]);
         $byCash = $this->advance([$this->line('1000.00')], ['paymentMethod' => PaymentMethod::Cash, 'bankAccount' => null]);
@@ -128,7 +128,7 @@ final class AdvanceEdgeCasesTest extends AdvanceTestCase
 
     public function testAnArchivedAccountOfTheAdvanceGivesWayToThePrimary(): void
     {
-        FirmAccounts::add($this->em, $this->firm, self::SECOND_IBAN);
+        FirmAccounts::add($this->em, self::SECOND_IBAN);
         $this->em->flush();
         $advance = $this->advance([$this->line('1000.00')], ['bankAccount' => self::SECOND_IBAN]);
         $this->em->getConnection()->executeStatement('UPDATE firm_bank_account SET archived_at = CURRENT_TIMESTAMP WHERE iban = ?', [self::SECOND_IBAN]);
@@ -170,7 +170,7 @@ final class AdvanceEdgeCasesTest extends AdvanceTestCase
         $second = $this->advance([$this->line('1000.00')]);
         $this->pay($first, '1210.00');
         $this->pay($second, '1210.00');
-        $deductible = array_values(array_filter(self::getContainer()->get(DeductibleAdvances::class)->for($this->firm, $this->customer->id(), null, DocumentLanguage::Czech), static fn ($one): bool => str_starts_with($one->number, 'D8')));
+        $deductible = array_values(array_filter(self::getContainer()->get(DeductibleAdvances::class)->for($this->customer->id(), null, DocumentLanguage::Czech), static fn ($one): bool => str_starts_with($one->number, 'D8')));
         self::assertCount(2, $deductible);
         $final = $this->issue->issue($this->input([$this->line('5000.00'), ...$deductible[0]->lines, ...$deductible[1]->lines]));
 
@@ -187,7 +187,7 @@ final class AdvanceEdgeCasesTest extends AdvanceTestCase
         $this->pay($taxed, '1210.00', '2026-11-02');
         $this->pay($consumer, '1210.00', '2026-11-03');
 
-        $offered = self::getContainer()->get(DeductibleAdvances::class)->for($this->firm, $person->id(), null, DocumentLanguage::Czech);
+        $offered = self::getContainer()->get(DeductibleAdvances::class)->for($person->id(), null, DocumentLanguage::Czech);
 
         self::assertSame(['D820260001', 'Z920260001'], array_map(static fn ($deductible): string => $deductible->number, $offered));
     }
@@ -237,7 +237,7 @@ final class AdvanceEdgeCasesTest extends AdvanceTestCase
         self::assertSame(InvoiceStatus::Issued, InvoiceStatus::ofInvoice($this->reloaded($plain), new \DateTimeImmutable('2026-11-01'), $this->czk('0.00')));
 
         $this->pay($this->advance([$this->line('1000.00')]), '1210.00');
-        $deduction = self::getContainer()->get(DeductibleAdvances::class)->for($this->firm, $this->customer->id(), null, DocumentLanguage::Czech)[0]->lines;
+        $deduction = self::getContainer()->get(DeductibleAdvances::class)->for($this->customer->id(), null, DocumentLanguage::Czech)[0]->lines;
         $final = $this->issue->issue($this->input([$this->line('1000.00'), ...$deduction]));
         $this->trash->trash($final->id(), 'Wrong customer');
 
@@ -247,7 +247,7 @@ final class AdvanceEdgeCasesTest extends AdvanceTestCase
     public function testAnAdvanceEditedWithDeductionsIsRefused(): void
     {
         $this->pay($this->advance([$this->line('1000.00')]), '1210.00');
-        $deduction = self::getContainer()->get(DeductibleAdvances::class)->for($this->firm, $this->customer->id(), null, DocumentLanguage::Czech)[0]->lines;
+        $deduction = self::getContainer()->get(DeductibleAdvances::class)->for($this->customer->id(), null, DocumentLanguage::Czech)[0]->lines;
         $other = $this->advance([$this->line('3000.00')]);
 
         $this->assertRefusedFor('invoice.problem.deduction_invalid', fn () => $this->edited($other, $this->input([$this->line('3000.00'), ...$deduction], ['seriesId' => null])));

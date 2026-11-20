@@ -9,18 +9,17 @@ declare(strict_types=1);
 namespace Foresi\Idoklad\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Id;
 
 /**
- * One copy of a firm's iDoklad account into the snapshot: when it ran, how
+ * One copy of the iDoklad account into the snapshot: when it ran, how
  * many records each list gave, how many API requests it used and why it
  * stopped, if it did. A delta pull asks only for what changed after a moment
  * in iDoklad's own time, which an earlier pull recorded as its latest change.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'idoklad_pull')]
-#[ORM\Index(name: 'idx_idoklad_pull_firm', columns: ['legal_entity_id', 'started_at'])]
+#[ORM\Index(name: 'idx_idoklad_pull_started', columns: ['started_at'])]
 class IdokladPull
 {
     /** A moment as iDoklad writes it, without a zone: 2026-10-26T10:39:22.873. */
@@ -48,9 +47,6 @@ class IdokladPull
     private ?string $error = null;
 
     public function __construct(
-        #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
-        #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
-        private readonly LegalEntity $firm,
         #[ORM\Column(name: 'started_at', type: 'datetime_immutable')]
         private readonly \DateTimeImmutable $startedAt,
         #[ORM\Column(name: 'changed_since', type: 'string', length: 32, nullable: true)]
@@ -99,11 +95,6 @@ class IdokladPull
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function firm(): LegalEntity
-    {
-        return $this->firm;
     }
 
     public function startedAt(): \DateTimeImmutable

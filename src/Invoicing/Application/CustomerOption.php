@@ -12,7 +12,7 @@ use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\InvoicingDefaults;
 
 /**
- * A contact as the invoice form offers it to one firm: the values of that firm where
+ * A contact as the invoice form offers it: the values of the firm where
  * it has its own. A contact without a billing address comes with an empty one, so
  * the save can say what is missing.
  */

@@ -16,7 +16,6 @@ use Foresi\Invoicing\Application\UnknownMailVariables;
 use Foresi\Invoicing\Domain\MailTemplate;
 use Foresi\Invoicing\Domain\MailTemplateKind;
 use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\LegalEntity;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -32,9 +31,9 @@ final readonly class DoctrineMailTemplates implements MailTemplates
     ) {
     }
 
-    public function textFor(LegalEntity $firm, MailTemplateKind $kind, DocumentLanguage $language): RenderedMail
+    public function textFor(MailTemplateKind $kind, DocumentLanguage $language): RenderedMail
     {
-        $stored = $this->stored($firm, $kind, $language);
+        $stored = $this->stored($kind, $language);
         if ($stored instanceof MailTemplate) {
             return new RenderedMail($stored->subject(), $stored->body());
         }
@@ -50,12 +49,12 @@ final readonly class DoctrineMailTemplates implements MailTemplates
         );
     }
 
-    public function isCustom(LegalEntity $firm, MailTemplateKind $kind, DocumentLanguage $language): bool
+    public function isCustom(MailTemplateKind $kind, DocumentLanguage $language): bool
     {
-        return $this->stored($firm, $kind, $language) instanceof MailTemplate;
+        return $this->stored($kind, $language) instanceof MailTemplate;
     }
 
-    public function save(LegalEntity $firm, MailTemplateKind $kind, DocumentLanguage $language, string $subject, string $body): void
+    public function save(MailTemplateKind $kind, DocumentLanguage $language, string $subject, string $body): void
     {
         $inSubject = $this->variables->unknownIn($subject, $kind);
         if (str_contains($subject, '{'.MailVariables::LINK.'}')) {
@@ -66,27 +65,26 @@ final readonly class DoctrineMailTemplates implements MailTemplates
             throw new UnknownMailVariables($inSubject, $inBody);
         }
 
-        $stored = $this->stored($firm, $kind, $language);
+        $stored = $this->stored($kind, $language);
         if ($stored instanceof MailTemplate) {
             $stored->change($subject, $body);
 
             return;
         }
-        $this->em->persist(MailTemplate::define($firm, $kind, $language, $subject, $body));
+        $this->em->persist(MailTemplate::define($kind, $language, $subject, $body));
     }
 
-    public function reset(LegalEntity $firm, MailTemplateKind $kind, DocumentLanguage $language): void
+    public function reset(MailTemplateKind $kind, DocumentLanguage $language): void
     {
-        $stored = $this->stored($firm, $kind, $language);
+        $stored = $this->stored($kind, $language);
         if ($stored instanceof MailTemplate) {
             $this->em->remove($stored);
         }
     }
 
-    private function stored(LegalEntity $firm, MailTemplateKind $kind, DocumentLanguage $language): ?MailTemplate
+    private function stored(MailTemplateKind $kind, DocumentLanguage $language): ?MailTemplate
     {
-        $stored = $this->em->createQuery('SELECT t FROM '.MailTemplate::class.' t WHERE t.firm = :firm AND t.kind = :kind AND t.language = :language')
-            ->setParameter('firm', $firm->id())
+        $stored = $this->em->createQuery('SELECT t FROM '.MailTemplate::class.' t WHERE t.kind = :kind AND t.language = :language')
             ->setParameter('kind', $kind->value)
             ->setParameter('language', $language->value)
             ->getOneOrNullResult();

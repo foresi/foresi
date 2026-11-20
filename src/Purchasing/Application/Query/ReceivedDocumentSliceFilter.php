@@ -13,7 +13,7 @@ use Foresi\Shared\Application\View\ViewFilter;
 
 /**
  * What a slice of received documents for the API and MCP holds: the documents
- * outside the trash, or only those in it, narrowed by firm, state, whether
+ * outside the trash, or only those in it, narrowed by state, whether
  * something remains to be paid and the day they are due before. An unpaid
  * document is a recorded one whose payments do not reach its total.
  *
@@ -23,7 +23,6 @@ use Foresi\Shared\Application\View\ViewFilter;
 final readonly class ReceivedDocumentSliceFilter
 {
     public function __construct(
-        public ?string $firmId = null,
         public ?ReceivedDocumentState $state = null,
         public bool $unpaid = false,
         public ?\DateTimeImmutable $dueBefore = null,

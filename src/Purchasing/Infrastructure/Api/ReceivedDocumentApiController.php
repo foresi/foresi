@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Infrastructure\Api;
 
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentBalances;
 use Foresi\Purchasing\Application\View\ReceivedDocumentLists;
 use Foresi\Shared\Application\Api\ScopeGuard;
@@ -36,7 +37,7 @@ final readonly class ReceivedDocumentApiController
     public const string SHOW = 'api_v1_received_document';
     public const string PAYMENTS = 'api_v1_received_document_payments';
 
-    public function __construct(private ReceivedDocumentLists $receivedLists, private ScopeGuard $scope, private ReceivedDocumentBalances $balances, private SavedViews $views, private ViewJson $json)
+    public function __construct(private ReceivedDocumentLists $receivedLists, private ScopeGuard $scope, private ReceivedDocumentBalances $balances, private SavedViews $views, private ViewJson $json, private InstanceFirm $firm)
     {
     }
 
@@ -56,7 +57,7 @@ final readonly class ReceivedDocumentApiController
         $slice = $this->balances->slice($query->filter($applied->filter), Cursor::decode($query->cursor), $query->limit);
 
         return new JsonResponse([
-            'data' => array_map(ReceivedDocumentJson::row(...), $slice->items),
+            'data' => ReceivedDocumentJson::rows($slice->items, $this->firm),
             'next_cursor' => Cursor::next($slice->hasMore ? $slice->lastId() : null),
             'applied_view' => $applied->view instanceof SavedView ? $this->json->view($applied->view) : null,
         ]);
@@ -73,7 +74,7 @@ final readonly class ReceivedDocumentApiController
     {
         $this->scope->require(self::READ_SCOPE);
 
-        return new JsonResponse(['data' => ReceivedDocumentJson::detail($this->balances->of($documentId))]);
+        return new JsonResponse(['data' => ReceivedDocumentJson::detail($this->balances->of($documentId), $this->firm->get())]);
     }
 
     #[Route('/api/v1/received-documents/{documentId}/payments', name: self::PAYMENTS, methods: ['GET'])]

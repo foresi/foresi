@@ -12,10 +12,10 @@ use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Domain\Iban;
 use Foresi\Party\Domain\InvalidIban;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PaymentMethod;
 
@@ -34,6 +34,7 @@ final readonly class RecurringRules
         private SeriesCatalog $catalog,
         private FirmInvoicingSettings $settings,
         private FirmBankAccounts $accounts,
+        private InstanceFirm $instanceFirm,
     ) {
     }
 
@@ -45,12 +46,14 @@ final readonly class RecurringRules
      *
      * @return list<IssueProblem> empty when the template may be saved
      */
-    public function check(RecurringInput $input, LegalEntity $firm, ?RecurringInvoice $existing, \DateTimeImmutable $today, ?RecurringHistory $history = null): array
+    public function check(RecurringInput $input, ?RecurringInvoice $existing, \DateTimeImmutable $today, ?RecurringHistory $history = null): array
     {
+        $firm = $this->instanceFirm->get();
         $problems = [
-            ...$this->firm($input, $firm, $existing),
-            ...$this->document($input, $firm),
-            ...$this->series($input, $firm),
+            // Every occurrence is a new document, so the firm must be able to issue one.
+            ...$this->shared->firm(),
+            ...$this->document($input),
+            ...$this->series($input),
             ...$this->customer($input, $customer),
             ...$this->shared->unprintable([
                 'orderNumber' => $input->orderNumber,
@@ -75,26 +78,13 @@ final readonly class RecurringRules
             return $problems;
         }
 
-        return $this->shared->amounts($input->lines, $regime, $this->settings->for($firm)->rounding(), $country, $taxPoint);
+        return $this->shared->amounts($input->lines, $regime, $this->settings->get()->rounding(), $country, $taxPoint);
     }
 
     /**
      * @return list<IssueProblem>
      */
-    private function firm(RecurringInput $input, LegalEntity $firm, ?RecurringInvoice $existing): array
-    {
-        if ($existing instanceof RecurringInvoice && $input->firmId !== $existing->firm()->id()) {
-            return [new IssueProblem('firm', 'invoice.problem.firm_locked')];
-        }
-
-        // Every occurrence is a new document, so the firm must be able to issue one.
-        return $this->shared->firm($firm);
-    }
-
-    /**
-     * @return list<IssueProblem>
-     */
-    private function document(RecurringInput $input, LegalEntity $firm): array
+    private function document(RecurringInput $input): array
     {
         $problems = [];
         // Variables resolve to fewer characters than they take, so the typed length is the most it gets.
@@ -106,20 +96,20 @@ final readonly class RecurringRules
         } elseif ('' !== $input->constantSymbol && !ctype_digit($input->constantSymbol)) {
             $problems[] = new IssueProblem('constantSymbol', 'invoice.problem.constant_symbol_invalid');
         }
-        if (PaymentMethod::BankTransfer === $input->paymentMethod && !$this->isAccountOf($input->bankAccount, $firm)) {
+        if (PaymentMethod::BankTransfer === $input->paymentMethod && !$this->isAccountOf($input->bankAccount)) {
             $problems[] = new IssueProblem('bankAccount', 'invoice.problem.bank_account_foreign');
         }
 
         return $problems;
     }
 
-    private function isAccountOf(?string $account, LegalEntity $firm): bool
+    private function isAccountOf(?string $account): bool
     {
         if (null === $account) {
             return false;
         }
         try {
-            return \in_array(Iban::fromString($account)->toString(), $this->accounts->ibansOf($firm), true);
+            return \in_array(Iban::fromString($account)->toString(), $this->accounts->ibans(), true);
         } catch (InvalidIban) {
             return false;
         }
@@ -128,7 +118,7 @@ final readonly class RecurringRules
     /**
      * @return list<IssueProblem>
      */
-    private function series(RecurringInput $input, LegalEntity $firm): array
+    private function series(RecurringInput $input): array
     {
         if (null === $input->seriesId) {
             return [];
@@ -137,9 +127,6 @@ final readonly class RecurringRules
             $series = $this->catalog->get($input->seriesId);
         } catch (UnknownSeries) {
             return [new IssueProblem('series', 'invoice.problem.series_unknown')];
-        }
-        if ($series->firm()->id() !== $firm->id()) {
-            return [new IssueProblem('series', 'invoice.problem.series_of_another_firm')];
         }
         // A template issues invoices or advance invoices, as iDoklad's does; never a document that follows another.
         if (!$series->kind()->standsAlone()) {

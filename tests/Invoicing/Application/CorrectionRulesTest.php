@@ -209,9 +209,9 @@ final class CorrectionRulesTest extends InvoiceTestCase
 
     public function testATaxDocumentOnPaymentThatTaxesNothingYetIsNotReplaced(): void
     {
-        $series = new Series($this->firm, 'Tax documents', SeriesFormat::fromString('D{NNN}'), DocumentKind::PaymentTaxDocument);
+        $series = new Series('Tax documents', SeriesFormat::fromString('D{NNN}'), DocumentKind::PaymentTaxDocument);
         $copy = DocumentParties::ofCustomer($this->customer, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ'), null);
-        $document = new Invoice($this->firm, $series, 'D1', VatRegime::Payer, TotalRounding::None, Currency::CZK, $copy, $this->input()->change($this->customer, $copy, DocumentKind::PaymentTaxDocument), null, new \DateTimeImmutable('2026-11-01'));
+        $document = new Invoice($series, 'D1', VatRegime::Payer, TotalRounding::None, Currency::CZK, $copy, $this->input()->change($this->customer, $copy, DocumentKind::PaymentTaxDocument), null, new \DateTimeImmutable('2026-11-01'));
 
         self::assertFalse($document->isReplaced());
     }
@@ -243,7 +243,7 @@ final class CorrectionRulesTest extends InvoiceTestCase
      */
     private function check(InvoiceInput $input, ?Invoice $existing = null): array
     {
-        return $this->rules()->check($input, $this->firm, $existing, VatRegime::Payer, $this->country());
+        return $this->rules()->check($input, $existing, VatRegime::Payer, $this->country());
     }
 
     private function rules(): CorrectionRules

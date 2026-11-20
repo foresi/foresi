@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Infrastructure\Api\Operation;
 
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentBalances;
 use Foresi\Purchasing\Infrastructure\Api\ReceivedDocumentApiController;
 use Foresi\Purchasing\Infrastructure\Api\ReceivedDocumentJson;
@@ -20,7 +21,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  */
 final readonly class ReceivedDocumentAnswer
 {
-    public function __construct(private ReceivedDocumentBalances $balances, private UrlGeneratorInterface $urls)
+    public function __construct(private ReceivedDocumentBalances $balances, private UrlGeneratorInterface $urls, private InstanceFirm $firm)
     {
     }
 
@@ -32,7 +33,7 @@ final readonly class ReceivedDocumentAnswer
         $paid = $this->balances->of($id);
 
         return new OperationOutput(
-            ReceivedDocumentJson::detail($paid),
+            ReceivedDocumentJson::detail($paid, $this->firm->get()),
             \sprintf($summary, $paid->document->evidenceNumber() ?? $id),
             $created ? $this->urls->generate(ReceivedDocumentApiController::SHOW, ['documentId' => $id]) : null,
         );

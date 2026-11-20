@@ -104,7 +104,7 @@ final class AdvanceInvoiceTest extends InvoiceTestCase
 
         $this->expectException(\DomainException::class);
         $this->expectExceptionMessageIsOrContains('A tax document has a tax point, and an advance invoice has none.');
-        new Invoice($this->firm, $this->series, '20269999', VatRegime::Payer, TotalRounding::None, Currency::CZK, $copy, $this->input()->change($this->customer, $copy, DocumentKind::Advance), null, new \DateTimeImmutable('2026-11-01'));
+        new Invoice($this->series, '20269999', VatRegime::Payer, TotalRounding::None, Currency::CZK, $copy, $this->input()->change($this->customer, $copy, DocumentKind::Advance), null, new \DateTimeImmutable('2026-11-01'));
     }
 
     public function testTheAdvancePdfIsTitledAndSaysItIsNoTaxDocument(): void
@@ -135,10 +135,9 @@ final class AdvanceInvoiceTest extends InvoiceTestCase
 
     public function testANonPayerAdvanceHasNoRecapToExplain(): void
     {
-        $firm = $this->firm(VatStatus::NotRegistered, null, registrationNumber: '12345687');
-        $this->em->flush();
+        $this->reconfigureFirm(VatStatus::NotRegistered, null);
         $document = self::getContainer()->get(IssuedDocumentFactory::class)->of($this->issue->issue($this->advanceInput(
-            ['firmId' => $firm->id()],
+            [],
             [$this->line(treatment: TaxTreatment::NotApplicable, kind: null)],
         ))->id());
 

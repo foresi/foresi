@@ -40,7 +40,6 @@ use Foresi\Invoicing\Domain\RecurringDelivery;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\RecurringInvoiceLine;
 use Foresi\Invoicing\Domain\TaxPointRule;
-use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\LegalEntity;
@@ -344,7 +343,7 @@ final class IdokladImportControllerTest extends WebTestCase
         $this->connectedFirm();
         $pull = $this->pull();
         $this->fresh(function () use ($pull): void {
-            $run = new IdokladImportRun($this->storedFirm(), ImportMode::Check, new \DateTimeImmutable('2026-11-06 10:00:00'));
+            $run = new IdokladImportRun(ImportMode::Check, new \DateTimeImmutable('2026-11-06 10:00:00'));
             $run->readFrom($pull);
             $run->ranWith(new ImportOptions(new \DateTimeImmutable('2021-04-01')));
             $run->finish(new \DateTimeImmutable('2026-11-06 10:01:00'), new ImportReport());
@@ -546,12 +545,12 @@ final class IdokladImportControllerTest extends WebTestCase
                 return $this->real->failing();
             }
 
-            public function inReview(?string $firmId = null): int
+            public function inReview(): int
             {
-                return $this->real->inReview($firmId);
+                return $this->real->inReview();
             }
         };
-        $undo = new UndoIdokladImport($container->get(UndoImportedDocuments::class), $container->get(IdokladLinks::class), $container->get(IdokladImportRuns::class), $failing, $container->get(LegalEntities::class), $container->get(ClockInterface::class));
+        $undo = new UndoIdokladImport($container->get(UndoImportedDocuments::class), $container->get(IdokladLinks::class), $container->get(IdokladImportRuns::class), $failing, $container->get(ClockInterface::class));
 
         try {
             $this->fresh(fn (): array => $undo->undo($this->em()->find(IdokladImportRun::class, $run) ?? self::fail('The run is stored.')));
@@ -621,9 +620,8 @@ final class IdokladImportControllerTest extends WebTestCase
         self::assertSelectorTextContains('main', 'No firm yet');
 
         $this->firm = $this->firm();
-        $this->firm('25596641');
         $this->client->request('GET', '/import/idoklad');
-        self::assertResponseRedirects($this->url(), message: 'The oldest active firm, as InstanceFirm reads it.');
+        self::assertResponseRedirects($this->url());
     }
 
     public function testOnlyTheOwnerMovesFromIDoklad(): void
@@ -702,7 +700,7 @@ final class IdokladImportControllerTest extends WebTestCase
             $customer = new Party(PartyKind::Person, 'Example Customer', null, null, '');
             $this->em()->persist($customer);
             $content = new RecurringContent(null, $customer, PaymentMethod::Cash, null, '', '', 'Hosting', '', '', DocumentLanguage::English, new Recurrence(new \DateTimeImmutable('2026-12-01'), RecurrenceUnit::Month, 1, false, RecurrenceEnd::Never, null, null), TaxPointRule::IssueDate, 14, RecurringDelivery::Review, 'Hosting '.$externalId);
-            $template = new RecurringInvoice($this->storedFirm(), Currency::CZK, $content, null, new \DateTimeImmutable('2026-11-06 10:00:00'), true, 'idoklad:'.$externalId);
+            $template = new RecurringInvoice(Currency::CZK, $content, null, new \DateTimeImmutable('2026-11-06 10:00:00'), true, 'idoklad:'.$externalId);
             if ($touched) {
                 $template->resume(new \DateTimeImmutable('2026-11-06'));
             }
@@ -719,7 +717,7 @@ final class IdokladImportControllerTest extends WebTestCase
     private function link(string $runId, int $externalId, string $targetId): void
     {
         $this->fresh(function () use ($runId, $externalId, $targetId): void {
-            $this->em()->persist(new IdokladLink($this->storedFirm(), IdokladResource::RecurringInvoices, $externalId, $targetId, $runId, new \DateTimeImmutable('2026-11-06 10:00:00')));
+            $this->em()->persist(new IdokladLink(IdokladResource::RecurringInvoices, $externalId, $targetId, $runId, new \DateTimeImmutable('2026-11-06 10:00:00')));
             $this->em()->flush();
         });
     }
@@ -764,12 +762,12 @@ final class IdokladImportControllerTest extends WebTestCase
     private function connectedFirm(): void
     {
         $this->signedInFirm();
-        $this->fresh(fn () => self::getContainer()->get(ConnectIdoklad::class)->connect($this->storedFirm(), 'example-client', self::SECRET));
+        $this->fresh(fn () => self::getContainer()->get(ConnectIdoklad::class)->connect('example-client', self::SECRET));
     }
 
-    private function firm(string $number = '12345695'): LegalEntity
+    private function firm(): LegalEntity
     {
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', $number), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
+        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $this->em()->persist($firm);
         $this->em()->flush();
 
@@ -779,7 +777,7 @@ final class IdokladImportControllerTest extends WebTestCase
     private function pull(): IdokladPull
     {
         return $this->fresh(function (): IdokladPull {
-            $pull = new IdokladPull($this->storedFirm(), new \DateTimeImmutable('2026-11-06 09:00:00'));
+            $pull = new IdokladPull(new \DateTimeImmutable('2026-11-06 09:00:00'));
             $pull->counted(IdokladResource::Contacts, 1);
             $pull->finish(new \DateTimeImmutable('2026-11-06 09:05:00'), 3);
             $this->em()->persist($pull);
@@ -795,7 +793,7 @@ final class IdokladImportControllerTest extends WebTestCase
     private function record(IdokladResource $resource, int $id, array $payload): void
     {
         $this->fresh(function () use ($resource, $id, $payload): void {
-            $this->em()->persist(new IdokladRecord($this->storedFirm(), $resource, $id, $payload, new \DateTimeImmutable('2026-11-06 09:01:00')));
+            $this->em()->persist(new IdokladRecord($resource, $id, $payload, new \DateTimeImmutable('2026-11-06 09:01:00')));
             $this->em()->flush();
         });
     }
@@ -803,7 +801,7 @@ final class IdokladImportControllerTest extends WebTestCase
     private function storeRun(ImportMode $mode, ImportReport $report, IdokladPull $pull): void
     {
         $this->fresh(function () use ($mode, $report, $pull): void {
-            $run = new IdokladImportRun($this->storedFirm(), $mode, new \DateTimeImmutable('2026-11-06 10:00:00'));
+            $run = new IdokladImportRun($mode, new \DateTimeImmutable('2026-11-06 10:00:00'));
             $run->readFrom($pull);
             $run->finish(new \DateTimeImmutable('2026-11-06 10:01:00'), $report);
             $this->em()->persist($run);
@@ -813,7 +811,7 @@ final class IdokladImportControllerTest extends WebTestCase
 
     private function connection(): ?IdokladConnection
     {
-        return $this->fresh(fn (): ?IdokladConnection => $this->em()->getRepository(IdokladConnection::class)->findOneBy(['firm' => $this->firm->id()]));
+        return $this->fresh(fn (): ?IdokladConnection => $this->em()->getRepository(IdokladConnection::class)->findOneBy([]));
     }
 
     private function latestJob(): IdokladJob
@@ -823,12 +821,7 @@ final class IdokladImportControllerTest extends WebTestCase
 
     private function reminders(): ?FirmReminders
     {
-        return $this->fresh(fn (): ?FirmReminders => $this->em()->getRepository(FirmReminders::class)->findOneBy(['firm' => $this->firm->id()]));
-    }
-
-    private function storedFirm(): LegalEntity
-    {
-        return $this->em()->find(LegalEntity::class, $this->firm->id()) ?? self::fail('The firm is stored.');
+        return $this->fresh(fn (): ?FirmReminders => $this->em()->getRepository(FirmReminders::class)->findOneBy([]));
     }
 
     /**

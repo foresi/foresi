@@ -33,9 +33,9 @@ final class LockLog implements Candidates
     {
     }
 
-    public function withSymbol(string $firmId, string $variableSymbol): array
+    public function withSymbol(string $variableSymbol): array
     {
-        $found = $this->candidates->withSymbol($firmId, $variableSymbol);
+        $found = $this->candidates->withSymbol($variableSymbol);
         if ($this->afterRead instanceof \Closure) {
             $found = ($this->afterRead)(++$this->reads, $found);
         }
@@ -44,19 +44,19 @@ final class LockLog implements Candidates
         return $found;
     }
 
-    public function open(string $firmId, Currency $currency, string $text, array $ids, int $limit): array
+    public function open(Currency $currency, string $text, array $ids, int $limit): array
     {
-        return $this->candidates->open($firmId, $currency, $text, $ids, $limit);
+        return $this->candidates->open($currency, $text, $ids, $limit);
     }
 
-    public function refunds(string $firmId, ?string $variableSymbol): array
+    public function refunds(?string $variableSymbol): array
     {
-        return $this->candidates->refunds($firmId, $variableSymbol);
+        return $this->candidates->refunds($variableSymbol);
     }
 
-    public function paidFrom(string $firmId, ?string $counterIban, ?string $counterAccount): array
+    public function paidFrom(?string $counterIban, ?string $counterAccount): array
     {
-        return $this->candidates->paidFrom($firmId, $counterIban, $counterAccount);
+        return $this->candidates->paidFrom($counterIban, $counterAccount);
     }
 
     public function locked(string $invoiceId): void

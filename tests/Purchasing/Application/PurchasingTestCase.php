@@ -82,7 +82,8 @@ abstract class PurchasingTestCase extends KernelTestCase
         Clock::set($this->clock);
 
         // A Czech firm gives the instance the zone Europe/Prague.
-        $this->firm = $this->firm('Example Firm s.r.o.', '12345695');
+        $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, '');
+        $this->em->persist($this->firm);
         $this->supplier = new Party(PartyKind::Company, 'Supplier Example s.r.o.', new RegistrationNumber('CZ', '87654321'), VatId::fromString('CZ87654321'), '');
         $this->em->persist($this->supplier);
         $this->em->persist(new PartyAddress($this->supplier, AddressType::Billing, new Address('Supplier Street 2', 'Example City', '110 00', 'CZ')));
@@ -108,15 +109,6 @@ abstract class PurchasingTestCase extends KernelTestCase
     {
         $user = $membership->user();
         self::getContainer()->get(TokenStorageInterface::class)->setToken(new UsernamePasswordToken(new SecurityUser($user->id(), $user->email(), 'hash'), 'main', ['ROLE_USER']));
-    }
-
-    protected function firm(string $name, string $number): LegalEntity
-    {
-        $firm = new LegalEntity($name, new RegistrationNumber('CZ', $number), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, '');
-        $this->em->persist($firm);
-        $this->em->flush();
-
-        return $firm;
     }
 
     protected function uploads(): UploadReceivedDocuments
@@ -152,7 +144,7 @@ abstract class PurchasingTestCase extends KernelTestCase
      */
     protected function draft(string $content = "%PDF-1.4\nAn example invoice\n%%EOF"): string
     {
-        $uploaded = $this->uploads()->upload($this->firm->id(), [$this->file($content)])[0];
+        $uploaded = $this->uploads()->upload([$this->file($content)])[0];
 
         return $uploaded->documentId ?? throw new \LogicException('The file was refused: '.$uploaded->refusal);
     }

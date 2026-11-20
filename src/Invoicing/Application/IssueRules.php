@@ -17,10 +17,10 @@ use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\NumberKey;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Domain\Iban;
 use Foresi\Party\Domain\InvalidIban;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\VatId;
@@ -34,7 +34,7 @@ use Foresi\Party\Domain\VatId;
  * An imported document was issued long ago, elsewhere, so it answers for what it
  * was then: its own regime, rounding and issuer copy instead of the firm's today.
  * Every legal invariant holds for it as for any other document, but nothing that
- * keeps a firm from issuing something new today does: the firm's register entry
+ * keeps the firm from issuing something new today does: the firm's register entry
  * and VAT id now, an archived series or customer, an account the firm no longer
  * has, which it only needs to be an IBAN. It names its series and number, and it
  * deducts only what its customer may deduct now, as any invoice does. Its history
@@ -59,6 +59,7 @@ final readonly class IssueRules
         private LineRules $shared,
         private DeductibleAdvances $deductible,
         private CorrectionRules $corrections,
+        private InstanceFirm $instanceFirm,
     ) {
     }
 
@@ -67,56 +68,56 @@ final readonly class IssueRules
      *
      * @return list<IssueProblem> empty when the document may be saved
      */
-    public function check(InvoiceInput $input, LegalEntity $firm, ?Invoice $existing = null): array
+    public function check(InvoiceInput $input, ?Invoice $existing = null): array
     {
-        return $this->rules($input, $firm, $existing, null);
+        return $this->rules($input, $existing, null);
     }
 
     /**
      * @return list<IssueProblem> empty when the imported document may be stored
      */
-    public function checkImported(ImportedDocumentInput $import, LegalEntity $firm): array
+    public function checkImported(ImportedDocumentInput $import): array
     {
-        return $this->rules($import->document, $firm, null, $import);
+        return $this->rules($import->document, null, $import);
     }
 
     /**
      * @return list<IssueProblem>
      */
-    private function rules(InvoiceInput $input, LegalEntity $firm, ?Invoice $existing, ?ImportedDocumentInput $import): array
+    private function rules(InvoiceInput $input, ?Invoice $existing, ?ImportedDocumentInput $import): array
     {
         $copy = null;
         $problems = [
-            ...$this->firm($input, $firm, $existing, $import),
-            ...$this->document($input, $firm, $existing, $import),
-            ...$this->number($input, $firm, $existing, $import),
+            ...$this->firm($existing, $import),
+            ...$this->document($input, $existing, $import),
+            ...$this->number($input, $existing, $import),
             ...$this->customer($input, $existing, $import, $copy),
         ];
-        $country = $this->country($firm, $existing, $import);
+        $country = $this->country($existing, $import);
         if (!$country instanceof InvoicingCountry) {
             return [...$problems, new IssueProblem('firm', 'invoice.problem.firm_country_unsupported')];
         }
-        $problems = [...$problems, ...$this->printing($input, $firm, $existing, $import, $copy), ...$this->deductions($input, $firm, $existing)];
-        $regime = $existing?->vatRegime() ?? $import->regime ?? VatRegime::of($firm->vatStatus());
+        $problems = [...$problems, ...$this->printing($input, $existing, $import, $copy), ...$this->deductions($input, $existing)];
+        $regime = $existing?->vatRegime() ?? $import->regime ?? VatRegime::of($this->instanceFirm->get()->vatStatus());
         $kind = $existing?->kind() ?? $input->kind;
         // A correction takes the rates of the invoice it corrects, never those of today.
         $rateDate = DocumentKind::CorrectionDocument === $kind ? $this->corrections->rateDate($input, $existing) : $input->rateDate($kind);
-        $problems = [...$problems, ...$this->corrections->check($input, $firm, $existing, $regime, $country)];
-        $problems = [...$problems, ...$this->shared->lines($input->lines, $regime, $country, $copy?->vatId, $this->issuerCountry($firm, $existing, $import), $rateDate)];
+        $problems = [...$problems, ...$this->corrections->check($input, $existing, $regime, $country)];
+        $problems = [...$problems, ...$this->shared->lines($input->lines, $regime, $country, $copy?->vatId, $this->issuerCountry($existing, $import), $rateDate)];
         if ([] !== $problems || !$rateDate instanceof \DateTimeImmutable) {
             return $problems;
         }
 
-        return $this->shared->amounts($input->lines, $regime, $existing?->rounding() ?? $import->rounding ?? $this->settings->for($firm)->rounding(), $country, $rateDate, $kind);
+        return $this->shared->amounts($input->lines, $regime, $existing?->rounding() ?? $import->rounding ?? $this->settings->get()->rounding(), $country, $rateDate, $kind);
     }
 
     /**
      * @return list<IssueProblem>
      */
-    private function firm(InvoiceInput $input, LegalEntity $firm, ?Invoice $existing, ?ImportedDocumentInput $import): array
+    private function firm(?Invoice $existing, ?ImportedDocumentInput $import): array
     {
         if ($existing instanceof Invoice) {
-            return $input->firmId === $firm->id() ? [] : [new IssueProblem('firm', 'invoice.problem.firm_locked')];
+            return [];
         }
         if ($import instanceof ImportedDocumentInput) {
             $problems = [];
@@ -128,13 +129,13 @@ final readonly class IssueRules
             return $problems;
         }
 
-        return $this->shared->firm($firm);
+        return $this->shared->firm();
     }
 
     /**
      * @return list<IssueProblem>
      */
-    private function document(InvoiceInput $input, LegalEntity $firm, ?Invoice $existing, ?ImportedDocumentInput $import): array
+    private function document(InvoiceInput $input, ?Invoice $existing, ?ImportedDocumentInput $import): array
     {
         $problems = [];
         if ($existing?->isTrashed() ?? false) {
@@ -163,7 +164,7 @@ final readonly class IssueRules
         }
         // A tax document on payment asks for nothing, so it needs no account of the firm.
         $paid = !($existing?->kind() ?? $input->kind)->isPayable() && null === $input->bankAccount;
-        if (PaymentMethod::BankTransfer === $input->paymentMethod && !$paid && !$this->accountAllowed($input->bankAccount, $firm, $existing, $import)) {
+        if (PaymentMethod::BankTransfer === $input->paymentMethod && !$paid && !$this->accountAllowed($input->bankAccount, $existing, $import)) {
             $problems[] = new IssueProblem('bankAccount', 'invoice.problem.bank_account_foreign');
         }
 
@@ -174,7 +175,7 @@ final readonly class IssueRules
      * One of the firm's active accounts, or the one the document already has: the
      * firm may have archived it since. An imported document had it when it was issued.
      */
-    private function accountAllowed(?string $account, LegalEntity $firm, ?Invoice $existing, ?ImportedDocumentInput $import): bool
+    private function accountAllowed(?string $account, ?Invoice $existing, ?ImportedDocumentInput $import): bool
     {
         if (null === $account) {
             return false;
@@ -185,13 +186,13 @@ final readonly class IssueRules
             return false;
         }
 
-        return $import instanceof ImportedDocumentInput || $iban === $existing?->bankAccount() || \in_array($iban, $this->accounts->ibansOf($firm), true);
+        return $import instanceof ImportedDocumentInput || $iban === $existing?->bankAccount() || \in_array($iban, $this->accounts->ibans(), true);
     }
 
     /**
      * @return list<IssueProblem>
      */
-    private function number(InvoiceInput $input, LegalEntity $firm, ?Invoice $existing, ?ImportedDocumentInput $import): array
+    private function number(InvoiceInput $input, ?Invoice $existing, ?ImportedDocumentInput $import): array
     {
         if ($import instanceof ImportedDocumentInput && (null === $input->seriesId || null === $input->typedNumber)) {
             return [new IssueProblem('number', 'invoice.problem.import_number_missing')];
@@ -211,14 +212,11 @@ final readonly class IssueRules
         if ($existing instanceof Invoice && $this->sends->hasQueued($existing)) {
             return [new IssueProblem('number', 'invoice.problem.number_locked_sending')];
         }
-        $series = $this->series($input, $firm, $existing);
+        $series = $this->series($input, $existing);
         if (!$series instanceof Series) {
             return [new IssueProblem('series', 'invoice.problem.series_unknown')];
         }
-        if ($series->firm()->id() !== $firm->id()) {
-            return [new IssueProblem('series', 'invoice.problem.series_of_another_firm')];
-        }
-        if (!$existing instanceof Invoice && null === $input->seriesId && $this->standardNameTaken($series, $firm)) {
+        if (!$existing instanceof Invoice && null === $input->seriesId && $this->standardNameTaken($series)) {
             return [new IssueProblem('series', 'invoice.problem.series_archived')];
         }
         if ($series->kind() !== ($existing?->kind() ?? $input->kind)) {
@@ -228,7 +226,7 @@ final readonly class IssueRules
             return [new IssueProblem('series', 'invoice.problem.series_archived')];
         }
 
-        return null === $input->typedNumber ? [] : $this->typedNumber(trim($input->typedNumber), $series, $input->issueDate, $firm, $existing, $import);
+        return null === $input->typedNumber ? [] : $this->typedNumber(trim($input->typedNumber), $series, $input->issueDate, $existing, $import);
     }
 
     /**
@@ -237,7 +235,7 @@ final readonly class IssueRules
      *
      * @return list<IssueProblem>
      */
-    private function deductions(InvoiceInput $input, LegalEntity $firm, ?Invoice $existing): array
+    private function deductions(InvoiceInput $input, ?Invoice $existing): array
     {
         $ids = AdvanceDeductions::deducted($input->lines);
         if ([] === $ids) {
@@ -246,26 +244,26 @@ final readonly class IssueRules
         if (DocumentKind::Invoice !== ($existing?->kind() ?? $input->kind)) {
             return [new IssueProblem('lines', 'invoice.problem.deduction_invalid')];
         }
-        $offered = array_map(static fn (Deductible $deductible): string => $deductible->id, $this->deductible->for($firm, $input->customerId, $existing, $input->language));
+        $offered = array_map(static fn (Deductible $deductible): string => $deductible->id, $this->deductible->for($input->customerId, $existing, $input->language));
 
         return [] === array_diff($ids, $offered) ? [] : [new IssueProblem('lines', 'invoice.problem.deduction_invalid')];
     }
 
     /**
-     * Whether the standard series a firm would get by itself cannot be stored, as an
-     * archived series of the firm has its name.
+     * Whether the standard series the firm would get by itself cannot be stored, as an
+     * archived series has its name.
      */
-    private function standardNameTaken(Series $series, LegalEntity $firm): bool
+    private function standardNameTaken(Series $series): bool
     {
-        $every = $this->catalog->everyForFirm($firm);
+        $every = $this->catalog->every();
 
         return !\in_array($series, $every, true) && array_any($every, static fn (Series $other): bool => $other->name() === $series->name());
     }
 
-    private function series(InvoiceInput $input, LegalEntity $firm, ?Invoice $existing): ?Series
+    private function series(InvoiceInput $input, ?Invoice $existing): ?Series
     {
         if (null === $input->seriesId) {
-            return $existing?->series() ?? $this->catalog->defaultFor($firm, $input->kind);
+            return $existing?->series() ?? $this->catalog->defaultFor($input->kind);
         }
         try {
             return $this->catalog->get($input->seriesId);
@@ -277,20 +275,20 @@ final readonly class IssueRules
     /**
      * @return list<IssueProblem>
      */
-    private function typedNumber(string $number, Series $series, \DateTimeImmutable $issueDate, LegalEntity $firm, ?Invoice $existing, ?ImportedDocumentInput $import): array
+    private function typedNumber(string $number, Series $series, \DateTimeImmutable $issueDate, ?Invoice $existing, ?ImportedDocumentInput $import): array
     {
         $key = NumberKey::of($number);
         if ('' === $key || mb_strlen($number) > Invoice::MAX_NUMBER_LENGTH || \strlen($key) > Invoice::MAX_NUMBER_LENGTH) {
             return [new IssueProblem('number', 'invoice.problem.number_invalid')];
         }
-        $country = $this->country($firm, $existing, $import);
+        $country = $this->country($existing, $import);
         if ($country instanceof InvoicingCountry && !$country->acceptsNumber($number)) {
             return [new IssueProblem('number', 'invoice.problem.number_not_accepted')];
         }
         if ($series->format()->exceedsCounter($number, $issueDate)) {
             return [new IssueProblem('number', 'invoice.problem.number_out_of_range')];
         }
-        if ($this->store->numberTaken($firm, $key, $existing)) {
+        if ($this->store->numberTaken($key, $existing)) {
             return [new IssueProblem('number', 'invoice.problem.number_taken')];
         }
 
@@ -328,7 +326,7 @@ final readonly class IssueRules
      *
      * @return list<IssueProblem>
      */
-    private function printing(InvoiceInput $input, LegalEntity $firm, ?Invoice $existing, ?ImportedDocumentInput $import, ?DocumentParty $customer): array
+    private function printing(InvoiceInput $input, ?Invoice $existing, ?ImportedDocumentInput $import, ?DocumentParty $customer): array
     {
         $texts = [
             'number' => $input->typedNumber ?? '',
@@ -350,7 +348,7 @@ final readonly class IssueRules
             }
             $problems = [...$problems, ...$this->printingOf('firm', $import->issuer)];
         } elseif (!$existing instanceof Invoice) {
-            $problems = [...$problems, ...$this->printingOf('firm', DocumentParties::ofIssuer($firm, $this->settings->for($firm)))];
+            $problems = [...$problems, ...$this->printingOf('firm', DocumentParties::ofIssuer($this->instanceFirm->get(), $this->settings->get()))];
         }
 
         return $problems;
@@ -423,17 +421,17 @@ final readonly class IssueRules
         return true;
     }
 
-    private function country(LegalEntity $firm, ?Invoice $existing, ?ImportedDocumentInput $import): ?InvoicingCountry
+    private function country(?Invoice $existing, ?ImportedDocumentInput $import): ?InvoicingCountry
     {
         try {
-            return $this->countries->for($this->issuerCountry($firm, $existing, $import));
+            return $this->countries->for($this->issuerCountry($existing, $import));
         } catch (UnsupportedCountry) {
             return null;
         }
     }
 
-    private function issuerCountry(LegalEntity $firm, ?Invoice $existing, ?ImportedDocumentInput $import): string
+    private function issuerCountry(?Invoice $existing, ?ImportedDocumentInput $import): string
     {
-        return ($existing?->issuer() ?? $import?->issuer)?->address->countryCode ?? $firm->address()->countryCode;
+        return ($existing?->issuer() ?? $import?->issuer)?->address->countryCode ?? $this->instanceFirm->get()->address()->countryCode;
     }
 }

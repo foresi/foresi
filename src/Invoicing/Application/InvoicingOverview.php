@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Application;
 
 use Foresi\Invoicing\Contract\DocumentKind;
-use Foresi\Party\Application\LegalEntities;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Psr\Clock\ClockInterface;
@@ -30,26 +29,20 @@ final readonly class InvoicingOverview
     public function __construct(
         private InvoiceStore $store,
         private Receivables $receivables,
-        private LegalEntities $firms,
         private ClockInterface $clock,
     ) {
     }
 
     /**
-     * @return array<string, string> name by id of every firm with a document
+     * Whether any document exists, the trash included: without one the start page shows nothing.
      */
-    public function firms(): array
+    public function hasDocuments(): bool
     {
-        return $this->receivables->firms();
+        return $this->receivables->hasDocuments();
     }
 
-    /**
-     * @param string|null $firmId a firm without a document covers all, as the list does
-     */
-    public function of(?string $firmId): InvoicingSummary
+    public function summary(): InvoicingSummary
     {
-        $firms = $this->receivables->firms();
-        $firmId = null !== $firmId && isset($firms[$firmId]) ? $firmId : null;
         $now = \DateTimeImmutable::createFromInterface($this->clock->now());
         $last = $now->modify('first day of last month');
 
@@ -59,7 +52,7 @@ final readonly class InvoicingOverview
         // Keyed by name, which PHP turns into an int when it is one: "42" stays a name.
         /** @var array<array-key, array{Money, int}> $owed */
         $owed = [];
-        foreach ($this->receivables->open($firmId) as $receivable) {
+        foreach ($this->receivables->open() as $receivable) {
             $unpaid = $unpaid->plus($receivable->remaining);
             ++$unpaidCount;
             [$amount, $count] = $owed[$receivable->customerName] ?? [$zero, 0];
@@ -75,25 +68,24 @@ final readonly class InvoicingOverview
         usort($debtors, static fn (Debtor $a, Debtor $b): int => [$b->amount->minor(), $a->name] <=> [$a->amount->minor(), $b->name]);
 
         return new InvoicingSummary(
-            $firmId,
-            $this->month($firmId, $now->format('Y-m')),
-            $this->month($firmId, $last->format('Y-m')),
+            $this->month($now->format('Y-m')),
+            $this->month($last->format('Y-m')),
             $unpaid,
             $unpaidCount,
             $overdue,
             $overdueCount,
             $ages,
             \array_slice($debtors, 0, self::DEBTORS),
-            $this->pending(null === $firmId ? $firms : [$firmId => $firms[$firmId]], $last),
+            $this->pending($last),
         );
     }
 
-    private function month(?string $firmId, string $month): MonthInvoiced
+    private function month(string $month): MonthInvoiced
     {
         $zero = Money::ofMinor(0, Currency::CZK);
         [$count, $base, $vat, $total] = [0, $zero, $zero, $zero];
         foreach (self::TAX_KINDS as $kind) {
-            $sums = $this->store->sums(new InvoiceFilter($firmId, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1, kind: $kind, month: $month));
+            $sums = $this->store->sums(new InvoiceFilter(InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1, kind: $kind, month: $month));
             $count += $sums->count;
             $base = $base->plus($sums->base);
             $vat = $vat->plus($sums->vat);
@@ -104,22 +96,14 @@ final readonly class InvoicingOverview
     }
 
     /**
-     * @param array<string, string> $firms name by id
-     * @param \DateTimeImmutable    $month its first day, at any time: the store compares days only
+     * @param \DateTimeImmutable $month its first day, at any time: the store compares days only
      *
      * @return list<PendingExport>
      */
-    private function pending(array $firms, \DateTimeImmutable $month): array
+    private function pending(\DateTimeImmutable $month): array
     {
-        $to = $month->modify('last day of this month');
-        $pending = [];
-        foreach ($firms as $id => $name) {
-            $count = \count($this->store->forAccountant($this->firms->get($id), $month, $to, true));
-            if ($count > 0) {
-                $pending[] = new PendingExport($id, $name, $month->format('Y-m'), $count);
-            }
-        }
+        $count = \count($this->store->forAccountant($month, $month->modify('last day of this month'), true));
 
-        return $pending;
+        return $count > 0 ? [new PendingExport($month->format('Y-m'), $count)] : [];
     }
 }

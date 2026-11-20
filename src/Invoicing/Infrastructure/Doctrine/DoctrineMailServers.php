@@ -11,7 +11,6 @@ namespace Foresi\Invoicing\Infrastructure\Doctrine;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Invoicing\Application\MailServers;
 use Foresi\Invoicing\Domain\FirmMailServer;
-use Foresi\Party\Domain\LegalEntity;
 
 final readonly class DoctrineMailServers implements MailServers
 {
@@ -19,11 +18,9 @@ final readonly class DoctrineMailServers implements MailServers
     {
     }
 
-    public function for(LegalEntity $firm): ?FirmMailServer
+    public function get(): ?FirmMailServer
     {
-        $stored = $this->em->createQuery('SELECT s FROM '.FirmMailServer::class.' s WHERE s.firm = :firm')
-            ->setParameter('firm', $firm->id())
-            ->getOneOrNullResult();
+        $stored = $this->em->getRepository(FirmMailServer::class)->findOneBy([]);
 
         return $stored instanceof FirmMailServer ? $stored : null;
     }

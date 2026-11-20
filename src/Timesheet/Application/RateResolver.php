@@ -10,8 +10,6 @@ namespace Foresi\Timesheet\Application;
 
 use Foresi\Identity\Application\People;
 use Foresi\Identity\Domain\Membership;
-use Foresi\Party\Application\LegalEntities;
-use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Money;
@@ -36,15 +34,13 @@ final readonly class RateResolver
     public function __construct(
         private Projects $projects,
         private People $people,
-        private LegalEntities $firms,
     ) {
     }
 
     /**
-     * @throws UnknownRateTarget  for a project or a membership the organisation does not have
-     * @throws UnknownLegalEntity for a firm it does not have
+     * @throws UnknownRateTarget for a project or a membership the organisation does not have
      */
-    public function resolve(string $projectId, string $membershipId, string $firmId): ?ResolvedRate
+    public function resolve(string $projectId, string $membershipId): ?ResolvedRate
     {
         $project = $this->projects->project($projectId);
         if (!$project instanceof Project) {
@@ -54,9 +50,6 @@ final readonly class RateResolver
         if (!$membership instanceof Membership) {
             throw new UnknownRateTarget('Unknown membership.');
         }
-        // Still refuses a firm the instance does not have.
-        $this->firms->get($firmId);
-
         $rate = $project->hourlyRate();
         if ($rate instanceof Money) {
             return new ResolvedRate($rate, RateSource::Project);

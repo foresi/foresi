@@ -178,7 +178,6 @@ final class InvoicingDashboardTest extends WebTestCase
         $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
         return $this->scoped(fn (): Invoice => self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput(
-            $this->firm->id(),
             $this->series->id(),
             null,
             $this->customer->id(),
@@ -205,8 +204,8 @@ final class InvoicingDashboardTest extends WebTestCase
         $this->browser->seed($locale, $role);
         $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
         $this->em()->persist($this->firm);
-        FirmAccounts::add($this->em(), $this->firm, self::IBAN);
-        $this->series = new Series($this->firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+        FirmAccounts::add($this->em(), self::IBAN);
+        $this->series = new Series(Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $this->series->markDefault();
         $this->em()->persist($this->series);
         $this->customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');

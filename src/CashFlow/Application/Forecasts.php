@@ -20,14 +20,13 @@ use Foresi\CashFlow\Domain\MinimumBalance;
 use Foresi\ExchangeRate\Application\ExchangeRates;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Domain\FirmBankAccount;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Psr\Log\LoggerInterface;
 
 /**
- * The forecast of a firm, computed on read from every source and the latest
- * balance of each of its bank accounts (C2, C6–C10, C14). "Today" is the
+ * The forecast, computed on read from every source and the latest
+ * balance of each bank account (C2, C6–C10, C14). "Today" is the
  * instance's today only. A flow still open before today is counted on the first
  * day and flagged overdue; a document with an expected day is counted then.
  * Every amount is converted to CZK at today's rate and keeps its own amount.
@@ -80,7 +79,7 @@ final class Forecasts
     public function of(?string $from = null, ?int $months = null, ?string $weeksUntil = null, ?array $certainties = null): Forecast
     {
         $this->access->denyUnlessStaff();
-        $firm = $this->access->firm();
+        $this->access->firm();
         $today = $this->clock->today();
         $zone = $today->getTimezone();
         $start = null === $from ? $today : PlannedItemRules::day($from, $zone, 'from');
@@ -98,12 +97,12 @@ final class Forecasts
         $unavailable = [];
 
         $accounts = [];
-        foreach ($this->access->accountsOf($firm) as $account) {
-            $accounts[] = $this->opening($firm, $account, $today, $czk, $unavailable);
+        foreach ($this->access->accounts() as $account) {
+            $accounts[] = $this->opening($account, $today, $czk, $unavailable);
         }
         // In the order of FlowCertainty, each once.
         $certainties = null === $certainties ? null : array_values(array_filter(FlowCertainty::cases(), static fn (FlowCertainty $certainty): bool => \in_array($certainty, $certainties, true)));
-        $collected = $this->flows->collect($firm, $today, $start, $end, $czk, certainties: $certainties);
+        $collected = $this->flows->collect($today, $start, $end, $czk, certainties: $certainties);
         $lines = $collected->lines;
         $this->restricted = $collected->restricted;
         array_push($unavailable, ...$collected->unavailable);
@@ -115,7 +114,7 @@ final class Forecasts
                 $running = $running->plus($line->signed());
             }
         }
-        $minimum = $this->store->minimumBalance($firm->id());
+        $minimum = $this->store->minimumBalance();
         $minimumAmount = $minimum instanceof MinimumBalance ? $minimum->amount() : null;
         $lowest = $running;
         $lowestOn = $start;
@@ -152,7 +151,6 @@ final class Forecasts
         $asOf = $this->oldest($accounts);
 
         return new Forecast(
-            $firm,
             $today,
             $start,
             $opening,
@@ -197,7 +195,7 @@ final class Forecasts
     /**
      * @param list<string> $unavailable
      */
-    private function opening(LegalEntity $firm, FirmBankAccount $account, \DateTimeImmutable $today, CzkAmounts $czk, array &$unavailable): AccountOpening
+    private function opening(FirmBankAccount $account, \DateTimeImmutable $today, CzkAmounts $czk, array &$unavailable): AccountOpening
     {
         $checkpoint = $this->store->latestCheckpoint($account, $today);
         if (!$checkpoint instanceof Checkpoint) {
@@ -208,7 +206,7 @@ final class Forecasts
         $source = null;
         foreach ($this->balanceSources as $balanceSource) {
             try {
-                $known = $balanceSource->balance(new BalanceCheckpoint($account->id(), $firm->id(), $balance, $asOf), $today);
+                $known = $balanceSource->balance(new BalanceCheckpoint($account->id(), $balance, $asOf), $today);
             } catch (\Throwable $failure) {
                 $this->logger->error('The balance source {source} failed.', ['source' => $balanceSource->key(), 'exception' => $failure]);
                 $unavailable[] = $balanceSource->key();

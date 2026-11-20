@@ -66,10 +66,9 @@ final readonly class DoctrineInboundMessages implements InboundMessages
 
     private const string FAILED_ATTEMPT = 'UPDATE inbound_message SET attempts = attempts + 1 WHERE id = :id';
 
-    /** The account and firm a message came to, through its feed. */
+    /** The account a message came to, through its feed. */
     private const string FEED = 'JOIN bank_feed f ON f.id = m.bank_feed_id '
-        .'JOIN firm_bank_account a ON a.id = f.firm_bank_account_id '
-        .'JOIN legal_entity e ON e.id = a.legal_entity_id';
+        .'JOIN firm_bank_account a ON a.id = f.firm_bank_account_id';
 
     public function __construct(
         private Connection $connection,
@@ -254,7 +253,7 @@ final readonly class DoctrineInboundMessages implements InboundMessages
     private function listed(string $where, array $parameters, \DateTimeImmutable $stuckBefore, int $offset, int $limit, array $types = []): array
     {
         $sql = 'SELECT m.id, m.received_at, m.from_address, m.subject, m.status, m.failure, m.failure_detail, m.trust, m.trust_basis, m.parser_id, m.parser_version, m.attempts, '
-            .'a.label AS account_label, a.iban AS account_iban, e.name AS firm_name, e.address_country_code AS firm_country FROM inbound_message m '.self::FEED.' WHERE '.$where
+            .'a.label AS account_label, a.iban AS account_iban FROM inbound_message m '.self::FEED.' WHERE '.$where
             .' ORDER BY m.received_at DESC, m.id DESC LIMIT '.max(1, $limit).' OFFSET '.max(0, $offset);
         $type = Type::getType(Types::DATETIME_IMMUTABLE);
         $platform = $this->connection->getDatabasePlatform();
@@ -279,8 +278,6 @@ final readonly class DoctrineInboundMessages implements InboundMessages
                 null !== $parserId && str_starts_with($parserId, BankMessageParsers::SIGNATURE_PREFIX) ? null : $parserId,
                 is_numeric($row['parser_version']) ? (int) $row['parser_version'] : null,
                 is_numeric($row['attempts']) ? (int) $row['attempts'] : 0,
-                $this->text($row['firm_name']),
-                $this->text($row['firm_country']),
                 $this->text($row['account_label']),
                 $this->text($row['account_iban']),
                 InboundStatus::Received === $status && $receivedAt < $stuckBefore,

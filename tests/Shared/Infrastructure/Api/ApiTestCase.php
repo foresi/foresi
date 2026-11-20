@@ -96,7 +96,7 @@ abstract class ApiTestCase extends WebTestCase
         $em = $this->em();
         $firm = new LegalEntity($firmName, new RegistrationNumber('CZ', $registrationNumber), VatId::fromString('CZ'.$registrationNumber), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
         $em->persist($firm);
-        FirmAccounts::add($em, $firm, self::IBAN);
+        FirmAccounts::add($em, self::IBAN);
         $customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '+420 000 000 000');
         $em->persist($customer);
         $em->persist(new PartyAddress($customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));

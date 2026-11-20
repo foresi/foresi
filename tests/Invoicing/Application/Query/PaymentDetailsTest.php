@@ -29,7 +29,6 @@ final class PaymentDetailsTest extends PaymentReadTestCase
         $row = $this->details()->of($payment->id());
 
         self::assertSame($payment->id(), $row->id);
-        self::assertSame('Example Firm s.r.o.', $row->firmName);
         self::assertSame('2026-11-12', $row->receivedOn->format('Y-m-d'));
         self::assertSame(121000, $row->amount->minor());
         self::assertSame('Paid at the counter', $row->note);

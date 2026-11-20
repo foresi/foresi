@@ -10,10 +10,9 @@ namespace Foresi\Invoicing\Application;
 
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Invoicing\Domain\FirmReminders;
-use Foresi\Party\Domain\LegalEntity;
 
 /**
- * Which invoices of a firm would be reminded tomorrow, so the owner sees it before
+ * Which invoices would be reminded tomorrow, so the owner sees it before
  * the first reminder leaves. The day is the instance's, as the reminder run counts it.
  * While reminders are off, it shows instead which first reminders the coming
  * days would bring if they were switched on today: switching on only reminds
@@ -37,12 +36,12 @@ final readonly class ReminderPreview
     /**
      * @return list<InvoiceRow> at most SHOWN, oldest due date first
      */
-    public function tomorrow(LegalEntity $firm): array
+    public function tomorrow(): array
     {
-        $settings = $this->settings->for($firm);
+        $settings = $this->settings->get();
         $tomorrow = $this->today()->modify('+1 day');
         $rows = [];
-        foreach ($this->candidates->worthReminding($firm, $settings, $tomorrow) as $candidate) {
+        foreach ($this->candidates->worthReminding($settings, $tomorrow) as $candidate) {
             $rows[] = $this->row($candidate->invoiceId, $tomorrow);
             if (self::SHOWN === \count($rows)) {
                 break;
@@ -58,16 +57,16 @@ final readonly class ReminderPreview
      *
      * @return list<PlannedReminder> at most SHOWN, soonest first
      */
-    public function ifSwitchedOnToday(LegalEntity $firm): array
+    public function ifSwitchedOnToday(): array
     {
-        $stored = $this->settings->for($firm);
+        $stored = $this->settings->get();
         $today = $this->today();
         // A copy that is never persisted, so the stored settings stay as they are.
-        $settings = FirmReminders::standard($firm);
+        $settings = FirmReminders::standard();
         $settings->change(true, $stored->firstAfterDays(), $stored->everyDays(), $stored->minimum(), $today);
         $until = $today->modify(\sprintf('+%d days', self::AHEAD_DAYS));
         $planned = [];
-        foreach ($this->candidates->worthReminding($firm, $settings, $until) as $candidate) {
+        foreach ($this->candidates->worthReminding($settings, $until) as $candidate) {
             $row = $this->row($candidate->invoiceId, $today);
             $on = new \DateTimeImmutable($row->dueDate->format('Y-m-d'), $today->getTimezone())->modify(\sprintf('+%d days', $settings->firstAfterDays()));
             $planned[] = new PlannedReminder($row, $on);
@@ -97,7 +96,7 @@ final readonly class ReminderPreview
         return new InvoiceRow(
             $invoice->id(),
             $invoice->number(),
-            $invoice->firm()->name(),
+            $invoice->issuer()->name,
             $invoice->customer()->name,
             $invoice->issueDate(),
             $invoice->dueDate(),

@@ -14,8 +14,8 @@ use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Domain\Id;
 
 /**
- * Which documents a slice holds, for the API and MCP: of one kind or of every kind, of one firm
- * or all, of one customer or all, in one state or any, issued within a period, both days
+ * Which documents a slice holds, for the API and MCP: of one kind or of every kind,
+ * of one customer or all, in one state or any, issued within a period, both days
  * included. The trash stays out unless asked for, and then holds only what is in it. The text
  * is looked for as the list of the screens looks for it: in the number, the customer name, the
  * variable symbol and the description. A view, a saved one or a filter sent with the request
@@ -34,7 +34,6 @@ final readonly class InvoiceSliceFilter
      */
     public function __construct(
         public ?DocumentKind $kind = null,
-        public ?string $firmId = null,
         public ?string $customerId = null,
         public ?string $state = null,
         public bool $trashed = false,
@@ -46,10 +45,8 @@ final readonly class InvoiceSliceFilter
         if (null !== $state && !\in_array($state, self::STATES, true)) {
             throw new \InvalidArgumentException(\sprintf('Unknown state "%s".', $state));
         }
-        foreach ([$firmId, $customerId] as $id) {
-            if (null !== $id && !Id::isValid($id)) {
-                throw new \InvalidArgumentException('An id is not valid.');
-            }
+        if (null !== $customerId && !Id::isValid($customerId)) {
+            throw new \InvalidArgumentException('An id is not valid.');
         }
     }
 

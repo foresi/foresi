@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Application;
 
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Purchasing\Domain\EvidenceSeries;
 
 /**
@@ -16,7 +15,7 @@ use Foresi\Purchasing\Domain\EvidenceSeries;
  */
 interface EvidenceSeriesCatalog
 {
-    public function ofFirm(LegalEntity $firm): ?EvidenceSeries;
+    public function get(): ?EvidenceSeries;
 
     /**
      * Stores the series at once, with whatever else the unit of work holds,

@@ -58,8 +58,8 @@ final class BankMovementListsTest extends TestCase
     public function testTheListNamesEachAccountByItsLabelOrItsIban(): void
     {
         $stores = new ScreenStores([
-            'account-a' => ['firmId' => 'firm-a', 'firmName' => 'Example Firm s.r.o.', 'label' => 'Main', 'iban' => 'CZ6508000000192000145399'],
-            'account-b' => ['firmId' => 'firm-a', 'firmName' => 'Example Firm s.r.o.', 'label' => '', 'iban' => 'CZ5508000000001234567899'],
+            'account-a' => ['label' => 'Main', 'iban' => 'CZ6508000000192000145399'],
+            'account-b' => ['label' => '', 'iban' => 'CZ5508000000001234567899'],
         ], 0, 0);
         $lists = new BankMovementLists($stores->movements);
 

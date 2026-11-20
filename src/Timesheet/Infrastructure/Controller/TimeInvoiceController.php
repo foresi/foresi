@@ -65,8 +65,7 @@ final class TimeInvoiceController extends AbstractController
         if (!$this->owner->isOwner()) {
             throw new AccessDeniedHttpException('Only an owner invoices time.');
         }
-        $firm = $this->firm->find();
-        if (!$firm instanceof LegalEntity) {
+        if (!$this->firm->find() instanceof LegalEntity) {
             return $this->render('@Timesheet/invoice.html.twig', ['blocked' => 'no_firm']);
         }
         $posted = $request->isMethod('POST');
@@ -96,7 +95,7 @@ final class TimeInvoiceController extends AbstractController
         $grouping = LineGrouping::tryFrom($input->getString('grouping')) ?? LineGrouping::Task;
         $rounding = TimeRounding::tryFrom($input->getString('rounding')) ?? TimeRounding::None;
 
-        $scope = new TimeScope($firm->id(), $clientId, $ticked, $from, $until);
+        $scope = new TimeScope($clientId, $ticked, $from, $until);
         $candidates = '' === $clientId ? [] : $this->invoicing->candidates($scope);
         // An entry listed before keeps its tick; one new to the list comes ticked.
         $listed = array_flip($this->strings($request->request, 'listed'));

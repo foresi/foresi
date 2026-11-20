@@ -9,15 +9,14 @@ declare(strict_types=1);
 namespace Foresi\Banking\Application;
 
 use Foresi\Banking\Domain\FirmPairing;
-use Foresi\Party\Domain\LegalEntity;
 
 /**
- * The stored pairing switches of the firms. Call add() inside
+ * The stored pairing switches of the instance. Call add() inside
  * TransactionalWork, which flushes.
  */
 interface FirmPairings
 {
-    public function of(LegalEntity $firm): ?FirmPairing;
+    public function stored(): ?FirmPairing;
 
     public function add(FirmPairing $pairing): void;
 }

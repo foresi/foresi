@@ -26,8 +26,6 @@ final readonly class PaymentRow
      */
     public function __construct(
         public string $id,
-        public string $firmId,
-        public string $firmName,
         public \DateTimeImmutable $receivedOn,
         public Money $amount,
         public PaymentDirection $direction,

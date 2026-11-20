@@ -109,7 +109,7 @@ final class AdvanceDeductionTest extends AdvanceTestCase
         $final = $this->reloaded($this->issue->issue($this->finalInput([$this->line('1000.00'), ...$this->deductionOf($document)])));
         self::assertSame(121000, $this->payments->toRefundOf($final)->minor());
 
-        $this->record->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-20'), $this->czk('1210.00'), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($final->id(), $this->czk('1210.00'))], PaymentDirection::Refund));
+        $this->record->record(new PaymentRequest(new \DateTimeImmutable('2026-11-20'), $this->czk('1210.00'), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($final->id(), $this->czk('1210.00'))], PaymentDirection::Refund));
 
         $final = $this->reloaded($final);
         self::assertSame(-121000, $this->payments->paidOf($final)->minor());
@@ -213,29 +213,27 @@ final class AdvanceDeductionTest extends AdvanceTestCase
 
     public function testAPaidAdvanceOfANonPayerIsDeductedForWhatWasPaid(): void
     {
-        $firm = $this->firm(VatStatus::NotRegistered, null, registrationNumber: '12345687');
-        $this->em->flush();
-        $advance = $this->advance([$this->line('5000.00', treatment: TaxTreatment::NotApplicable, kind: null)], ['firmId' => $firm->id()]);
+        $this->reconfigureFirm(VatStatus::NotRegistered, null);
+        $advance = $this->advance([$this->line('5000.00', treatment: TaxTreatment::NotApplicable, kind: null)]);
         $this->pay($advance, '3000.00');
 
-        $offered = self::getContainer()->get(DeductibleAdvances::class)->for($firm, $this->customer->id(), null, DocumentLanguage::Czech);
+        $offered = self::getContainer()->get(DeductibleAdvances::class)->for($this->customer->id(), null, DocumentLanguage::Czech);
 
         self::assertCount(1, $offered);
         self::assertSame([$advance->id(), 'Z920260001'], [$offered[0]->id, $offered[0]->number]);
         self::assertSame([[-300000, TaxTreatment::NotApplicable, $advance->id()]], array_map(static fn (LineInput $line): array => [$line->price->minor(), $line->treatment, $line->deducts], $offered[0]->lines));
         self::assertSame('Odpočet zálohové faktury Z920260001, VS 920260001', $offered[0]->lines[0]->text);
-        $final = $this->issue->issue($this->input([$this->line('5000.00', treatment: TaxTreatment::NotApplicable, kind: null), ...$offered[0]->lines], ['firmId' => $firm->id(), 'seriesId' => null]));
+        $final = $this->issue->issue($this->input([$this->line('5000.00', treatment: TaxTreatment::NotApplicable, kind: null), ...$offered[0]->lines], ['seriesId' => null]));
         self::assertSame(200000, $this->reloaded($final)->payable()->minor());
         self::assertSame($final->id(), $this->reloaded($advance)->deductedByInvoiceId());
     }
 
     public function testAnUnpaidAdvanceWithoutVatIsNotOffered(): void
     {
-        $firm = $this->firm(VatStatus::NotRegistered, null, registrationNumber: '12345687');
-        $this->em->flush();
-        $this->advance([$this->line('5000.00', treatment: TaxTreatment::NotApplicable, kind: null)], ['firmId' => $firm->id()]);
+        $this->reconfigureFirm(VatStatus::NotRegistered, null);
+        $this->advance([$this->line('5000.00', treatment: TaxTreatment::NotApplicable, kind: null)]);
 
-        self::assertSame([], self::getContainer()->get(DeductibleAdvances::class)->for($firm, $this->customer->id(), null, DocumentLanguage::Czech));
+        self::assertSame([], self::getContainer()->get(DeductibleAdvances::class)->for($this->customer->id(), null, DocumentLanguage::Czech));
     }
 
     public function testTheIsdocOfTheFinalInvoiceCarriesTheTaxedDeposits(): void
@@ -277,12 +275,11 @@ final class AdvanceDeductionTest extends AdvanceTestCase
 
     public function testTheIsdocOfANonPayerCarriesTheAdvanceAsANonTaxedDeposit(): void
     {
-        $firm = $this->firm(VatStatus::NotRegistered, null, registrationNumber: '12345687');
-        $this->em->flush();
-        $advance = $this->advance([$this->line('5000.00', treatment: TaxTreatment::NotApplicable, kind: null)], ['firmId' => $firm->id()]);
+        $this->reconfigureFirm(VatStatus::NotRegistered, null);
+        $advance = $this->advance([$this->line('5000.00', treatment: TaxTreatment::NotApplicable, kind: null)]);
         $this->pay($advance, '3000.00');
-        $offered = self::getContainer()->get(DeductibleAdvances::class)->for($firm, $this->customer->id(), null, DocumentLanguage::Czech);
-        $final = $this->issue->issue($this->input([$this->line('5000.00', treatment: TaxTreatment::NotApplicable, kind: null), ...$offered[0]->lines], ['firmId' => $firm->id(), 'seriesId' => null]));
+        $offered = self::getContainer()->get(DeductibleAdvances::class)->for($this->customer->id(), null, DocumentLanguage::Czech);
+        $final = $this->issue->issue($this->input([$this->line('5000.00', treatment: TaxTreatment::NotApplicable, kind: null), ...$offered[0]->lines], ['seriesId' => null]));
 
         $xml = $this->isdocOf($final);
 
@@ -317,14 +314,13 @@ final class AdvanceDeductionTest extends AdvanceTestCase
 
     public function testAnAdvanceDeductedItselfIsSettled(): void
     {
-        $firm = $this->firm(VatStatus::NotRegistered, null, registrationNumber: '12345687');
-        $this->em->flush();
-        $advance = $this->advance([$this->line('5000.00', treatment: TaxTreatment::NotApplicable, kind: null)], ['firmId' => $firm->id()]);
+        $this->reconfigureFirm(VatStatus::NotRegistered, null);
+        $advance = $this->advance([$this->line('5000.00', treatment: TaxTreatment::NotApplicable, kind: null)]);
         $this->pay($advance, '3000.00');
         self::assertSame(1, $this->listed(DocumentKind::Advance, InvoiceFilter::UNSETTLED)->tabCounts[InvoiceFilter::UNSETTLED]);
-        $offered = self::getContainer()->get(DeductibleAdvances::class)->for($firm, $this->customer->id(), null, DocumentLanguage::Czech);
+        $offered = self::getContainer()->get(DeductibleAdvances::class)->for($this->customer->id(), null, DocumentLanguage::Czech);
 
-        $this->issue->issue($this->input([$this->line('5000.00', treatment: TaxTreatment::NotApplicable, kind: null), ...$offered[0]->lines], ['firmId' => $firm->id(), 'seriesId' => null]));
+        $this->issue->issue($this->input([$this->line('5000.00', treatment: TaxTreatment::NotApplicable, kind: null), ...$offered[0]->lines], ['seriesId' => null]));
 
         self::assertSame(0, $this->listed(DocumentKind::Advance, InvoiceFilter::UNSETTLED)->tabCounts[InvoiceFilter::UNSETTLED]);
     }
@@ -372,7 +368,7 @@ final class AdvanceDeductionTest extends AdvanceTestCase
     {
         $this->em->clear();
 
-        return $this->store->page(new InvoiceFilter(null, $tab, '', InvoiceFilter::DEFAULT_SORT, 1, kind: $kind));
+        return $this->store->page(new InvoiceFilter($tab, '', InvoiceFilter::DEFAULT_SORT, 1, kind: $kind));
     }
 
     private function isdocOf(Invoice $invoice): string
@@ -416,7 +412,7 @@ final class AdvanceDeductionTest extends AdvanceTestCase
      */
     private function deductionOf(Invoice $document, ?Invoice $except = null): array
     {
-        foreach (self::getContainer()->get(DeductibleAdvances::class)->for($this->firm, $this->customer->id(), $except, DocumentLanguage::Czech) as $deductible) {
+        foreach (self::getContainer()->get(DeductibleAdvances::class)->for($this->customer->id(), $except, DocumentLanguage::Czech) as $deductible) {
             if ($deductible->id === $document->id()) {
                 return $deductible->lines;
             }
@@ -431,7 +427,7 @@ final class AdvanceDeductionTest extends AdvanceTestCase
     {
         $this->em->clear();
 
-        return array_map(static fn (Deductible $deductible): string => $deductible->id, self::getContainer()->get(DeductibleAdvances::class)->for($this->firm, $this->customer->id(), $except, DocumentLanguage::Czech));
+        return array_map(static fn (Deductible $deductible): string => $deductible->id, self::getContainer()->get(DeductibleAdvances::class)->for($this->customer->id(), $except, DocumentLanguage::Czech));
     }
 
     /**

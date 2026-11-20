@@ -10,6 +10,7 @@ namespace Foresi\Invoicing\Infrastructure\Api;
 
 use Foresi\Invoicing\Application\Query\PaymentAllocationRow;
 use Foresi\Invoicing\Application\Query\PaymentRow;
+use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Infrastructure\Api\JsonValues;
 
 /**
@@ -22,11 +23,11 @@ final class PaymentJson
     /**
      * @return array<string, mixed>
      */
-    public static function row(PaymentRow $payment): array
+    public static function row(PaymentRow $payment, LegalEntity $firm): array
     {
         return [
             'id' => $payment->id,
-            'firm' => ['id' => $payment->firmId, 'name' => $payment->firmName],
+            'firm' => ['id' => $firm->id(), 'name' => $firm->name()],
             'received_on' => JsonValues::date($payment->receivedOn),
             'amount' => JsonValues::money($payment->amount),
             'direction' => $payment->direction->value,

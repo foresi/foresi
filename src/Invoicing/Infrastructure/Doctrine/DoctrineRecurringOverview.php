@@ -24,7 +24,7 @@ final readonly class DoctrineRecurringOverview implements RecurringOverview
     {
     }
 
-    public function counts(?string $firmId): array
+    public function counts(): array
     {
         $query = $this->em->createQuery(
             'SELECT'
@@ -32,16 +32,12 @@ final readonly class DoctrineRecurringOverview implements RecurringOverview
             .' SUM(CASE WHEN r.state = :paused THEN 1 ELSE 0 END) AS paused,'
             .' SUM(CASE WHEN r.state = :ended THEN 1 ELSE 0 END) AS ended,'
             .' SUM(CASE WHEN '.RecurringFailing::dql('r').' THEN 1 ELSE 0 END) AS failing'
-            .' FROM '.RecurringInvoice::class.' r WHERE r.deletedAt IS NULL'
-            .(null === $firmId ? '' : ' AND r.firm = :firm'),
+            .' FROM '.RecurringInvoice::class.' r WHERE r.deletedAt IS NULL',
         )
             ->setParameter('active', RecurringState::Active->value)
             ->setParameter('paused', RecurringState::Paused->value)
             ->setParameter('ended', RecurringState::Ended->value);
         RecurringFailing::bind($query);
-        if (null !== $firmId) {
-            $query->setParameter('firm', $firmId);
-        }
         /** @var array<string, int|string|null> $row */
         $row = $query->getSingleResult();
         $counts = [];

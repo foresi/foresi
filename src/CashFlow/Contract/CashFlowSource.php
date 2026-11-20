@@ -46,5 +46,5 @@ interface CashFlowSource
      *
      * @return iterable<ExpectedFlow>
      */
-    public function flows(string $firmId, \DateTimeImmutable $from, \DateTimeImmutable $to, \DateTimeImmutable $today): iterable;
+    public function flows(\DateTimeImmutable $from, \DateTimeImmutable $to, \DateTimeImmutable $today): iterable;
 }

@@ -11,23 +11,28 @@ namespace Foresi\Idoklad\Domain;
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
 use Foresi\Audit\Domain\AuditExcluded;
-use Foresi\Audit\Domain\AuditRooted;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Id;
 
 /**
- * The API credentials of a firm's iDoklad account, one per firm: a client id
+ * The API credentials of the iDoklad account, one per instance: a client id
  * and a client secret of the client credentials flow. The secret is held only
  * sealed, and never written to the audit log.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'idoklad_connection')]
-#[ORM\UniqueConstraint(name: 'uniq_idoklad_connection_firm', columns: ['legal_entity_id'])]
-class IdokladConnection implements Audited, AuditRooted
+#[ORM\UniqueConstraint(name: 'uniq_idoklad_connection_one_row', columns: ['one_row'])]
+class IdokladConnection implements Audited
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
+
+    /**
+     * Always true: with its unique index (and a check on PostgreSQL) the table holds
+     * at most one row, the settings of the instance's one firm (ADR 0039).
+     */
+    #[ORM\Column(name: 'one_row', type: 'boolean', options: ['default' => true])]
+    private bool $oneRow = true;
 
     #[ORM\Column(name: 'client_id', type: 'string', length: 255)]
     private string $clientId;
@@ -37,9 +42,6 @@ class IdokladConnection implements Audited, AuditRooted
     private string $sealedSecret;
 
     public function __construct(
-        #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
-        #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
-        private readonly LegalEntity $firm,
         string $clientId,
         string $sealedSecret,
     ) {
@@ -63,16 +65,6 @@ class IdokladConnection implements Audited, AuditRooted
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function auditRoot(): object
-    {
-        return $this->firm;
-    }
-
-    public function firm(): LegalEntity
-    {
-        return $this->firm;
     }
 
     public function clientId(): string

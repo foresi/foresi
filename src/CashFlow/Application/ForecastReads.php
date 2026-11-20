@@ -53,7 +53,7 @@ final readonly class ForecastReads implements ForecastReader
     public function read(ForecastQuery $query): ForecastRead
     {
         $this->access->denyUnlessStaff();
-        $firm = $this->access->firm();
+        $this->access->firm();
         $today = $this->clock->today();
         $zone = $today->getTimezone();
         $from = new \DateTimeImmutable($query->from->format('Y-m-d'), $zone);
@@ -68,7 +68,7 @@ final readonly class ForecastReads implements ForecastReader
             throw CashFlowRefused::invalid('to_too_far', 'to', \sprintf('A forecast reaches at most %d months from today.', Forecasts::MAX_MONTHS));
         }
         $czk = new CzkAmounts($this->exchangeRates, $this->logger, $today);
-        $collected = $this->flows->collect($firm, $today, $from, $to, $czk, $query->excludeSources, $query->excludeCategories, $query->certainties);
+        $collected = $this->flows->collect($today, $from, $to, $czk, $query->excludeSources, $query->excludeCategories, $query->certainties);
         $flows = [];
         foreach ($collected->lines as $line) {
             // What falls between today and the first day happened before the read, as the opening of a forecast holds it.

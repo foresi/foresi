@@ -25,7 +25,6 @@ use Foresi\Invoicing\Domain\ExportState;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
-use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
 use Foresi\Party\Domain\DocumentLanguage;
@@ -94,7 +93,7 @@ final class InvoiceExportControllerTest extends WebTestCase
         $this->issue('2026-11-03');
         // A tax document goes by its tax point.
         $this->issue('2026-08-31', taxPoint: '2026-07-31');
-        $this->issue('2024-02-10', $this->otherFirm());
+        $this->issue('2024-02-10');
 
         $crawler = $this->client->request('GET', '/invoices/export');
 
@@ -182,13 +181,12 @@ final class InvoiceExportControllerTest extends WebTestCase
         self::assertCount(3, $this->download('2026-10', 'all'));
     }
 
-    public function testOnlyThatFirmAndMonthByTaxPoint(): void
+    public function testOnlyTheMonthByTaxPoint(): void
     {
         $this->signedIn();
         $inside = $this->issue('2026-11-02', taxPoint: '2026-10-31');
         $this->issue('2026-10-02', taxPoint: '2026-11-01');
         $this->issue('2026-09-30');
-        $this->issue('2026-10-05', $this->otherFirm());
 
         $files = array_keys($this->download('2026-10'));
 
@@ -278,9 +276,8 @@ final class InvoiceExportControllerTest extends WebTestCase
 
         try {
             $this->scoped(function () use ($path): void {
-                $firm = self::getContainer()->get(LegalEntities::class)->get($this->firm->id());
                 $this->expectException(\RuntimeException::class);
-                self::getContainer()->get(InvoiceBundle::class)->writeTo($path, $firm, new \DateTimeImmutable('2026-10-01'), true, 'en');
+                self::getContainer()->get(InvoiceBundle::class)->writeTo($path, new \DateTimeImmutable('2026-10-01'), true, 'en');
             });
         } finally {
             unlink($path);
@@ -325,10 +322,9 @@ final class InvoiceExportControllerTest extends WebTestCase
 
         $path = (string) tempnam(sys_get_temp_dir(), 'foresi-test-');
         [$count, $peak] = $this->scoped(function () use ($path): array {
-            $firm = self::getContainer()->get(LegalEntities::class)->get($this->firm->id());
             $base = memory_get_usage();
             memory_reset_peak_usage();
-            $count = self::getContainer()->get(InvoiceBundle::class)->writeTo($path, $firm, new \DateTimeImmutable('2026-10-01'), true, 'en');
+            $count = self::getContainer()->get(InvoiceBundle::class)->writeTo($path, new \DateTimeImmutable('2026-10-01'), true, 'en');
 
             return [$count, memory_get_peak_usage() - $base];
         });
@@ -399,24 +395,12 @@ final class InvoiceExportControllerTest extends WebTestCase
         return false === $files ? [] : $files;
     }
 
-    private function issue(string $issueDate, ?LegalEntity $firm = null, ?string $taxPoint = null): Invoice
+    private function issue(string $issueDate, ?string $taxPoint = null): Invoice
     {
         $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
-        $input = new InvoiceInput(($firm ?? $this->firm)->id(), $firm instanceof LegalEntity ? null : $this->series->id(), null, $this->customer->id(), null, new \DateTimeImmutable($issueDate), new \DateTimeImmutable($taxPoint ?? $issueDate), new \DateTimeImmutable('2026-12-31'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Work', '', '', DocumentLanguage::Czech, [$line], true);
+        $input = new InvoiceInput($this->series->id(), null, $this->customer->id(), null, new \DateTimeImmutable($issueDate), new \DateTimeImmutable($taxPoint ?? $issueDate), new \DateTimeImmutable('2026-12-31'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Work', '', '', DocumentLanguage::Czech, [$line], true);
 
         return $this->scoped(static fn (): Invoice => self::getContainer()->get(IssueInvoice::class)->issue($input));
-    }
-
-    private function otherFirm(): LegalEntity
-    {
-        return $this->scoped(function (): LegalEntity {
-            $firm = new LegalEntity('Example Other s.r.o.', new RegistrationNumber('CZ', '12345679'), VatId::fromString('CZ12345679'), new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 2');
-            $this->em()->persist($firm);
-            FirmAccounts::add($this->em(), $firm, self::IBAN);
-            $this->em()->flush();
-
-            return $firm;
-        });
     }
 
     private function signedIn(Role $role = Role::Owner): void
@@ -424,8 +408,8 @@ final class InvoiceExportControllerTest extends WebTestCase
         $this->browser->seed(role: $role);
         $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
         $this->em()->persist($this->firm);
-        FirmAccounts::add($this->em(), $this->firm, self::IBAN);
-        $this->series = new Series($this->firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+        FirmAccounts::add($this->em(), self::IBAN);
+        $this->series = new Series(Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $this->series->markDefault();
         $this->em()->persist($this->series);
         $this->customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');

@@ -50,7 +50,6 @@ use Foresi\Invoicing\Domain\PaymentAllocation;
 use Foresi\Invoicing\Domain\SendPurpose;
 use Foresi\Invoicing\Domain\SendStatus;
 use Foresi\Invoicing\Infrastructure\Column\IssuedDocumentSource;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Application\View\Condition;
 use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ViewFilter;
@@ -122,7 +121,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
         if (1 !== $locked) {
             throw new UnknownInvoice();
         }
-        // What this process remembers may be older than the lock, the firm and the contact too.
+        // What this process remembers may be older than the lock, the contact too.
         $this->em->clear();
 
         return $this->get($id);
@@ -175,10 +174,9 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
         $this->em->persist($number);
     }
 
-    public function numberTaken(LegalEntity $firm, string $key, ?Invoice $except): bool
+    public function numberTaken(string $key, ?Invoice $except): bool
     {
-        $invoices = $this->em->createQuery('SELECT COUNT(i.id) FROM '.Invoice::class.' i WHERE i.firm = :firm AND i.numberKey = :key'.($except instanceof Invoice ? ' AND i.id <> :except' : ''))
-            ->setParameter('firm', $firm->id())
+        $invoices = $this->em->createQuery('SELECT COUNT(i.id) FROM '.Invoice::class.' i WHERE i.numberKey = :key'.($except instanceof Invoice ? ' AND i.id <> :except' : ''))
             ->setParameter('key', $key);
         if ($except instanceof Invoice) {
             $invoices->setParameter('except', $except->id());
@@ -187,18 +185,16 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
             return true;
         }
 
-        $abandoned = $this->em->createQuery('SELECT COUNT(a.id) FROM '.AbandonedNumber::class.' a WHERE a.firm = :firm AND a.numberKey = :key')
-            ->setParameter('firm', $firm->id())
+        $abandoned = $this->em->createQuery('SELECT COUNT(a.id) FROM '.AbandonedNumber::class.' a WHERE a.numberKey = :key')
             ->setParameter('key', $key)
             ->getSingleScalarResult();
 
         return 0 < (int) $abandoned;
     }
 
-    public function kindOfNumber(LegalEntity $firm, string $key): ?DocumentKind
+    public function kindOfNumber(string $key): ?DocumentKind
     {
-        $invoice = $this->em->createQuery('SELECT i FROM '.Invoice::class.' i WHERE i.firm = :firm AND i.numberKey = :key')
-            ->setParameter('firm', $firm->id())
+        $invoice = $this->em->createQuery('SELECT i FROM '.Invoice::class.' i WHERE i.numberKey = :key')
             ->setParameter('key', $key)
             ->getOneOrNullResult();
 
@@ -207,9 +203,9 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
 
     public function page(InvoiceFilter $filter): InvoicePage
     {
-        [$firms, $todays] = $this->issuers();
+        $todays = $this->todays();
         [$overdue, $overdueParameters] = $this->overdue($todays);
-        [$where, $parameters] = $this->narrowed($filter, $firms);
+        [$where, $parameters] = $this->narrowed($filter);
 
         // One query counts the views the list shows a count for, and the one it lists (spec D9).
         $counted = [...$this->counted($filter), '' => $this->viewOf($filter)];
@@ -240,7 +236,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
         /** @var list<array{0: Invoice, corrections: int|numeric-string}> $results */
         $results = $list->setFirstResult(($page - 1) * self::PER_PAGE)->setMaxResults(self::PER_PAGE)->getResult();
 
-        return new InvoicePage($this->rowsOf($results, $todays), $total, $tabCounts, $page, $pages, $firms);
+        return new InvoicePage($this->rowsOf($results, $todays), $total, $tabCounts, $page, $pages, [] !== $todays);
     }
 
     public function slice(InvoiceSliceFilter $filter, ?string $afterId, int $limit): InvoiceSlice
@@ -267,7 +263,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
         $items = [];
         foreach ($this->rowsOf($kept, $todays) as $index => $row) {
             $invoice = $kept[$index][0];
-            $items[] = new InvoiceListItem($row, $invoice->firm()->id(), $invoice->customerParty()->id(), $invoice->taxPointDate(), $invoice->createdAt(), $invoice->deliveredAt());
+            $items[] = new InvoiceListItem($row, $invoice->customerParty()->id(), $invoice->taxPointDate(), $invoice->createdAt(), $invoice->deliveredAt());
         }
 
         return new InvoiceSlice($items, \count($results) > $limit);
@@ -291,7 +287,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
      */
     private function sliced(InvoiceSliceFilter $filter): array
     {
-        [, $todays] = $this->issuers();
+        $todays = $this->todays();
         [$overdue, $overdueParameters] = $this->overdue($todays);
         $view = $filter->trashed
             ? ViewFilter::all(new Condition(InvoiceLists::TRASHED, 'is', true))
@@ -305,10 +301,6 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
         if ($filter->kind instanceof DocumentKind) {
             $conditions[] = 'i.kind = :kind';
             $parameters['kind'] = [$filter->kind->value, null];
-        }
-        if (null !== $filter->firmId) {
-            $conditions[] = 'i.firm = :firm';
-            $parameters['firm'] = [$filter->firmId, null];
         }
         if (null !== $filter->customerId) {
             $conditions[] = 'i.customerParty = :customer';
@@ -349,7 +341,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
         return array_map(fn (array $result): InvoiceRow => $this->row($result[0], $todays, $marks[$result[0]->id()] ?? SendMark::None, $paid[$result[0]->id()] ?? 0, (int) $result['corrections']), $results);
     }
 
-    public function months(?DocumentKind $kind, ?string $firmId): array
+    public function months(?DocumentKind $kind): array
     {
         $months = [];
         // The days, not the months, are distinct in the query: a few thousand at most, and portable.
@@ -358,11 +350,8 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
             if ([] === $kinds) {
                 continue;
             }
-            $query = $this->em->createQuery('SELECT DISTINCT '.$column.' AS day FROM '.Invoice::class.' i WHERE i.kind IN (:kinds) AND '.$column.' IS NOT NULL'.(null === $firmId ? '' : ' AND i.firm = :firm'))
+            $query = $this->em->createQuery('SELECT DISTINCT '.$column.' AS day FROM '.Invoice::class.' i WHERE i.kind IN (:kinds) AND '.$column.' IS NOT NULL')
                 ->setParameter('kinds', array_map(static fn (DocumentKind $each): string => $each->value, $kinds));
-            if (null !== $firmId) {
-                $query->setParameter('firm', $firmId);
-            }
             /** @var list<array{day: \DateTimeImmutable}> $days */
             $days = $query->getArrayResult();
             foreach ($days as $day) {
@@ -377,9 +366,9 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
 
     public function sums(InvoiceFilter $filter): InvoiceSums
     {
-        [$firms, $todays] = $this->issuers();
+        $todays = $this->todays();
         [$overdue, $overdueParameters] = $this->overdue($todays);
-        [$where, $parameters] = $this->narrowed($filter, $firms);
+        [$where, $parameters] = $this->narrowed($filter);
         [$condition, $listed] = $this->listed($filter, $where, $parameters, $overdue, $overdueParameters);
 
         $count = $this->em->createQuery('SELECT COUNT(i.id) FROM '.Invoice::class.' i WHERE '.$condition);
@@ -416,9 +405,9 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
 
     public function listedIds(InvoiceFilter $filter): array
     {
-        [$firms, $todays] = $this->issuers();
+        $todays = $this->todays();
         [$overdue, $overdueParameters] = $this->overdue($todays);
-        [$where, $parameters] = $this->narrowed($filter, $firms);
+        [$where, $parameters] = $this->narrowed($filter);
         [$condition, $listed] = $this->listed($filter, $where, $parameters, $overdue, $overdueParameters);
 
         $query = $this->em->createQuery('SELECT i.id FROM '.Invoice::class.' i WHERE '.$condition.' ORDER BY '.$this->order($filter->sort));
@@ -444,7 +433,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
         if ([] === $ids) {
             return [];
         }
-        [, $todays] = $this->issuers();
+        $todays = $this->todays();
         /** @var list<array{0: Invoice, corrections: int|numeric-string}> $results */
         $results = $this->em->createQuery('SELECT i, (SELECT COALESCE(SUM(lc.payableMinor), 0) FROM '.Invoice::class.' lc WHERE lc.correctedInvoiceId = i.id AND lc.deletedAt IS NULL) AS corrections'
             .' FROM '.Invoice::class.' i WHERE i.id IN (:ids)')
@@ -510,11 +499,10 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
         ), $groups);
     }
 
-    public function idsForPeriod(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to): array
+    public function idsForPeriod(\DateTimeImmutable $from, \DateTimeImmutable $to): array
     {
         /** @var list<string> $ids */
-        $ids = $this->em->createQuery('SELECT i.id FROM '.Invoice::class.' i WHERE i.firm = :firm AND i.deletedAt IS NULL AND i.taxPointDate >= :from AND i.taxPointDate <= :to ORDER BY i.numberKey, i.id')
-            ->setParameter('firm', $firm->id())
+        $ids = $this->em->createQuery('SELECT i.id FROM '.Invoice::class.' i WHERE i.deletedAt IS NULL AND i.taxPointDate >= :from AND i.taxPointDate <= :to ORDER BY i.numberKey, i.id')
             ->setParameter('from', $from, Types::DATE_IMMUTABLE)
             ->setParameter('to', $to, Types::DATE_IMMUTABLE)
             ->getSingleColumnResult();
@@ -522,15 +510,14 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
         return $ids;
     }
 
-    public function forAccountant(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to, bool $pending): array
+    public function forAccountant(\DateTimeImmutable $from, \DateTimeImmutable $to, bool $pending): array
     {
-        $dql = 'SELECT i.id, i.kind FROM '.Invoice::class.' i WHERE i.firm = :firm AND i.deletedAt IS NULL'
+        $dql = 'SELECT i.id, i.kind FROM '.Invoice::class.' i WHERE i.deletedAt IS NULL'
             .' AND ((i.kind = :advance AND i.issueDate >= :from AND i.issueDate <= :to) OR (i.kind <> :advance AND i.taxPointDate >= :from AND i.taxPointDate <= :to))'
             .($pending ? ' AND (i.exportedAt IS NULL OR i.changedAfterExportAt IS NOT NULL)' : '')
             .' ORDER BY i.numberKey, i.id';
         /** @var list<array{id: string, kind: DocumentKind}> $rows */
         $rows = $this->em->createQuery($dql)
-            ->setParameter('firm', $firm->id())
             ->setParameter('advance', DocumentKind::Advance)
             ->setParameter('from', $from, Types::DATE_IMMUTABLE)
             ->setParameter('to', $to, Types::DATE_IMMUTABLE)
@@ -562,22 +549,20 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
     }
 
     /**
-     * The firms with an invoice, and the moment it is now in each country they issued from.
+     * The moment it is now in each country the invoices were issued from; empty without an invoice.
      *
-     * @return array{array<string, string>, array<string, \DateTimeImmutable>}
+     * @return array<string, \DateTimeImmutable> by country
      */
-    private function issuers(): array
+    private function todays(): array
     {
-        /** @var list<array{id: string, name: string, country: string}> $rows */
-        $rows = $this->em->createQuery('SELECT DISTINCT f.id AS id, f.name AS name, '.self::COUNTRY.' AS country FROM '.Invoice::class.' i JOIN i.firm f ORDER BY f.name, f.id')->getArrayResult();
-        $firms = [];
+        /** @var list<array{country: string}> $rows */
+        $rows = $this->em->createQuery('SELECT DISTINCT '.self::COUNTRY.' AS country FROM '.Invoice::class.' i ORDER BY country')->getArrayResult();
         $todays = [];
         foreach ($rows as $row) {
-            $firms[$row['id']] = $row['name'];
             $todays[$row['country']] ??= $this->todayIn($row['country']);
         }
 
-        return [$firms, $todays];
+        return $todays;
     }
 
     private function todayIn(string $countryCode): \DateTimeImmutable
@@ -782,20 +767,14 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
     }
 
     /**
-     * What firm, text and the to-send filter leave: the tabs count within this.
-     *
-     * @param array<string, string> $firms
+     * What text and the to-send filter leave: the tabs count within this.
      *
      * @return array{string, array<string, array{mixed, string|ArrayParameterType|null}>}
      */
-    private function narrowed(InvoiceFilter $filter, array $firms): array
+    private function narrowed(InvoiceFilter $filter): array
     {
         $where = 'i.kind = :kind';
         $parameters = ['kind' => [$filter->kind->value, null]];
-        if (null !== $filter->firmId && isset($firms[$filter->firmId])) {
-            $where .= ' AND i.firm = :firm';
-            $parameters['firm'] = [$filter->firmId, null];
-        }
         if ($filter->toSend) {
             // Issued from a template and not delivered: neither marked so nor sent or on its way; a failed send does not count.
             $where .= ' AND i.recurringInvoiceId IS NOT NULL AND i.deletedAt IS NULL AND i.deliveredAt IS NULL'

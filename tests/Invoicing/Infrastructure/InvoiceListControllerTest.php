@@ -154,12 +154,11 @@ final class InvoiceListControllerTest extends WebTestCase
     public function testAnOldFirmFilterNarrowsNothing(): void
     {
         $this->signedIn();
-        $second = $this->secondFirm();
         $this->issue('2026-11-01', '2026-11-05');
-        $this->issue('2026-11-02', '2026-11-05', firm: $second);
+        $this->issue('2026-11-02', '2026-11-05');
 
         // An instance holds one firm (ADR 0039): the list has no firm select, and an old link shows the whole list.
-        $crawler = $this->client->request('GET', '/invoices', ['firm' => $second->id()]);
+        $crawler = $this->client->request('GET', '/invoices', ['firm' => $this->firm->id()]);
 
         self::assertCount(2, $this->numbers($crawler));
         self::assertSame(['All 2', 'Paid 0', 'Unpaid 2', 'Overdue 2', 'To refund 0', 'Trash 0'], $this->tabs($crawler));
@@ -190,7 +189,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $this->issue('2026-11-01', '2026-11-20');
         $this->issue('2026-11-02', '2026-11-19');
 
-        $store = $this->rows(new InvoiceFilter(null, 'all', '', '-issueDate', 1));
+        $store = $this->rows(new InvoiceFilter('all', '', '-issueDate', 1));
 
         self::assertSame([['20260002', true], ['20260001', false]], array_map(static fn (InvoiceRow $row): array => [$row->number, $row->overdue], $store));
         $crawler = $this->client->request('GET', '/invoices');
@@ -203,7 +202,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $trashed = $this->issue('2026-11-01', '2026-11-02');
         $this->trashed($trashed, 'Wrong customer');
 
-        $rows = $this->rows(new InvoiceFilter(null, 'trash', '', '-issueDate', 1));
+        $rows = $this->rows(new InvoiceFilter('trash', '', '-issueDate', 1));
 
         self::assertCount(1, $rows);
         self::assertFalse($rows[0]->overdue);
@@ -336,11 +335,11 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame(['20260002', '20260001', '20260003'], $this->numbers($this->client->request('GET', '/invoices?sort=customer')));
     }
 
-    public function testThereIsNoFirmColumnEvenWithAnInvoiceOfAnOldFirm(): void
+    public function testThereIsNoFirmColumn(): void
     {
         $this->signedIn();
         $this->issue('2026-11-01', '2026-12-01');
-        $this->issue('2026-11-02', '2026-12-01', firm: $this->secondFirm());
+        $this->issue('2026-11-02', '2026-12-01');
 
         $crawler = $this->client->request('GET', '/invoices');
 
@@ -957,8 +956,8 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame([$none->number()], $this->numbers($this->client->request('GET', '/invoices?export=not_exported')));
         self::assertSame([$changed->number(), $exported->number(), $none->number()], $this->numbers($this->client->request('GET', '/invoices?export=other')));
         $either = ViewFilter::all(new Condition(InvoiceLists::EXPORT, 'is_any_of', [ExportState::NotExported->value, ExportState::Changed->value]));
-        self::assertSame([$changed->number(), $none->number()], array_map(static fn (InvoiceRow $row): string => $row->number, $this->rows(new InvoiceFilter(null, 'all', '', '-issueDate', 1, view: $either))));
-        self::assertSame([], $this->rows(new InvoiceFilter(null, 'trash', '', '-issueDate', 1, view: ViewFilter::all(new Condition(InvoiceLists::TRASHED, 'is', true), new Condition(InvoiceLists::EXPORT, 'is', ExportState::Exported->value)))));
+        self::assertSame([$changed->number(), $none->number()], array_map(static fn (InvoiceRow $row): string => $row->number, $this->rows(new InvoiceFilter('all', '', '-issueDate', 1, view: $either))));
+        self::assertSame([], $this->rows(new InvoiceFilter('trash', '', '-issueDate', 1, view: ViewFilter::all(new Condition(InvoiceLists::TRASHED, 'is', true), new Condition(InvoiceLists::EXPORT, 'is', ExportState::Exported->value)))));
     }
 
     public function testAnExportFilterFindingNothingOffersToReset(): void
@@ -1061,7 +1060,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $this->em()->clear();
 
         $before = $this->queryCount();
-        $page = $this->scoped(fn () => self::getContainer()->get(InvoiceStore::class)->page(new InvoiceFilter(null, 'all', '', '-issueDate', 1)));
+        $page = $this->scoped(fn () => self::getContainer()->get(InvoiceStore::class)->page(new InvoiceFilter('all', '', '-issueDate', 1)));
         $used = $this->queryCount() - $before;
 
         self::assertCount(25, $page->rows);
@@ -1080,7 +1079,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $this->em()->clear();
 
         $before = $this->queryCount();
-        $page = $this->scoped(fn () => self::getContainer()->get(InvoiceStore::class)->page(new InvoiceFilter(null, 'all', '', '-issueDate', 1)));
+        $page = $this->scoped(fn () => self::getContainer()->get(InvoiceStore::class)->page(new InvoiceFilter('all', '', '-issueDate', 1)));
         $queries = \array_slice(self::getContainer()->get('doctrine.debug_data_holder')->getData()['default'] ?? [], $before);
 
         self::assertCount(25, $page->rows);
@@ -1180,7 +1179,7 @@ final class InvoiceListControllerTest extends WebTestCase
         Clock::set(new MockClock('2026-11-20 13:00:00', 'UTC'));
         $this->sendOf($invoice, ['refuse@example.com'], deliver: true);
 
-        $rows = $this->rows(new InvoiceFilter(null, 'all', '', '-issueDate', 1));
+        $rows = $this->rows(new InvoiceFilter('all', '', '-issueDate', 1));
 
         self::assertSame(SendMark::Read, $rows[0]->sendMark);
     }
@@ -1239,12 +1238,12 @@ final class InvoiceListControllerTest extends WebTestCase
         $this->em()->clear();
 
         $numbers = fn (InvoiceFilter $filter): array => array_map(static fn (InvoiceRow $row): string => $row->number, $this->rows($filter));
-        self::assertSame([$october->number()], $numbers(new InvoiceFilter(null, 'all', '', '-issueDate', 1, month: '2026-10')));
-        self::assertSame([$november->number()], $numbers(new InvoiceFilter(null, 'all', '', '-issueDate', 1, month: '2026-11')));
-        self::assertSame([], $numbers(new InvoiceFilter(null, 'all', '', '-issueDate', 1, month: '2026-12')));
-        self::assertSame([$november->number(), $october->number()], $numbers(new InvoiceFilter(null, 'all', '', '-issueDate', 1)));
-        self::assertSame([$earlyAdvance->number()], $numbers(new InvoiceFilter(null, 'all', '', '-issueDate', 1, kind: DocumentKind::Advance, month: '2026-10')));
-        self::assertSame([$advance->number()], $numbers(new InvoiceFilter(null, 'all', '', '-issueDate', 1, kind: DocumentKind::Advance, month: '2026-11')));
+        self::assertSame([$october->number()], $numbers(new InvoiceFilter('all', '', '-issueDate', 1, month: '2026-10')));
+        self::assertSame([$november->number()], $numbers(new InvoiceFilter('all', '', '-issueDate', 1, month: '2026-11')));
+        self::assertSame([], $numbers(new InvoiceFilter('all', '', '-issueDate', 1, month: '2026-12')));
+        self::assertSame([$november->number(), $october->number()], $numbers(new InvoiceFilter('all', '', '-issueDate', 1)));
+        self::assertSame([$earlyAdvance->number()], $numbers(new InvoiceFilter('all', '', '-issueDate', 1, kind: DocumentKind::Advance, month: '2026-10')));
+        self::assertSame([$advance->number()], $numbers(new InvoiceFilter('all', '', '-issueDate', 1, kind: DocumentKind::Advance, month: '2026-11')));
     }
 
     public function testOnlyAWholeMonthIsAMonth(): void
@@ -1266,7 +1265,7 @@ final class InvoiceListControllerTest extends WebTestCase
         // A document in euros counts at its own rate; 527.625 and 3 040.125 crowns round only in the sum.
         self::getContainer()->get(Connection::class)->executeStatement("UPDATE invoice SET currency = 'EUR', exchange_rate = '25.125' WHERE id = ?", [$euro->id()]);
 
-        $sums = $this->sumsOf(new InvoiceFilter(null, 'all', '', '-issueDate', 1));
+        $sums = $this->sumsOf(new InvoiceFilter('all', '', '-issueDate', 1));
         self::assertSame([2, 421250, 79763, 501013], [$sums->count, $sums->base->minor(), $sums->vat->minor(), $sums->total->minor()]);
         self::assertSame(Currency::CZK, $sums->total->currency());
         self::assertSame([
@@ -1275,13 +1274,13 @@ final class InvoiceListControllerTest extends WebTestCase
             ['exempt', null, 20000, 0, 20000],
         ], $this->sumLines($sums));
 
-        $trash = $this->sumsOf(new InvoiceFilter(null, 'trash', '', '-issueDate', 1));
+        $trash = $this->sumsOf(new InvoiceFilter('trash', '', '-issueDate', 1));
         self::assertSame([1, 30000, 6300, 36300], [$trash->count, $trash->base->minor(), $trash->vat->minor(), $trash->total->minor()]);
         self::assertSame([['standard', '21.00', 30000, 6300, 36300]], $this->sumLines($trash));
 
         // The filters of the page narrow the sums too, the page itself does not.
-        self::assertSame(2, $this->sumsOf(new InvoiceFilter(null, 'all', 'Consulting', '-issueDate', 3, month: '2026-11', view: ViewFilter::all(new Condition(InvoiceLists::EXPORT, 'is', ExportState::NotExported->value))))->count);
-        $none = $this->sumsOf(new InvoiceFilter(null, 'all', '', '-issueDate', 1, month: '2026-10'));
+        self::assertSame(2, $this->sumsOf(new InvoiceFilter('all', 'Consulting', '-issueDate', 3, month: '2026-11', view: ViewFilter::all(new Condition(InvoiceLists::EXPORT, 'is', ExportState::NotExported->value))))->count);
+        $none = $this->sumsOf(new InvoiceFilter('all', '', '-issueDate', 1, month: '2026-10'));
         self::assertSame([0, 0, 0, 0, []], [$none->count, $none->base->minor(), $none->vat->minor(), $none->total->minor(), $none->lines]);
     }
 
@@ -1294,7 +1293,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $sql->executeStatement("UPDATE invoice SET kind = 'correction_document' WHERE id IN (?, ?)", [$credit->id(), $debit->id()]);
         $sql->executeStatement('UPDATE invoice_line SET net_minor = -net_minor, vat_minor = -vat_minor, gross_minor = -gross_minor WHERE invoice_id = ?', [$credit->id()]);
 
-        $sums = $this->sumsOf(new InvoiceFilter(null, 'all', '', '-issueDate', 1, kind: DocumentKind::CorrectionDocument));
+        $sums = $this->sumsOf(new InvoiceFilter('all', '', '-issueDate', 1, kind: DocumentKind::CorrectionDocument));
 
         self::assertSame([2, -60000, -12600, -72600], [$sums->count, $sums->base->minor(), $sums->vat->minor(), $sums->total->minor()]);
         self::assertSame([['standard', '21.00', -60000, -12600, -72600]], $this->sumLines($sums));
@@ -1790,7 +1789,7 @@ final class InvoiceListControllerTest extends WebTestCase
         // An invoice belongs to the month of its tax point, not of its issue.
         $invoice = $this->issue('2026-10-02', '2026-11-15');
         self::getContainer()->get(Connection::class)->executeStatement("UPDATE invoice SET tax_point_date = '2026-09-30' WHERE id = ?", [$invoice->id()]);
-        $this->issue('2026-11-02', '2026-12-01', firm: $this->secondFirm());
+        $this->issue('2026-11-02', '2026-12-01');
         // An advance belongs to the month of its issue, whatever its tax point.
         $advance = $this->issue('2026-08-20', '2026-09-01');
         self::getContainer()->get(Connection::class)->executeStatement("UPDATE invoice SET kind = 'advance', tax_point_date = '2026-07-31' WHERE id = ?", [$advance->id()]);
@@ -1852,7 +1851,7 @@ final class InvoiceListControllerTest extends WebTestCase
         return $this->scoped(function () use ($date, $lines): Invoice {
             $input = $this->input($date, '2026-12-01');
 
-            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($input->firmId, $input->seriesId, null, $input->customerId, null, $input->issueDate, $input->taxPointDate, $input->dueDate, $input->paymentMethod, $input->bankAccount, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, $lines, true));
+            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($input->seriesId, null, $input->customerId, null, $input->issueDate, $input->taxPointDate, $input->dueDate, $input->paymentMethod, $input->bankAccount, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, $lines, true));
         });
     }
 
@@ -1948,18 +1947,17 @@ final class InvoiceListControllerTest extends WebTestCase
         return $this->scoped(fn (): array => self::getContainer()->get(InvoiceStore::class)->page($filter)->rows);
     }
 
-    private function issue(string $date, string $due, ?Party $customer = null, string $description = 'Consulting', string $price = '1000.00', string $variableSymbol = '', ?LegalEntity $firm = null): Invoice
+    private function issue(string $date, string $due, ?Party $customer = null, string $description = 'Consulting', string $price = '1000.00', string $variableSymbol = ''): Invoice
     {
-        return $this->scoped(fn (): Invoice => self::getContainer()->get(IssueInvoice::class)->issue($this->input($date, $due, $customer, $description, $price, $variableSymbol, $firm)));
+        return $this->scoped(fn (): Invoice => self::getContainer()->get(IssueInvoice::class)->issue($this->input($date, $due, $customer, $description, $price, $variableSymbol)));
     }
 
-    private function input(string $date, string $due, ?Party $customer = null, string $description = 'Consulting', string $price = '1000.00', string $variableSymbol = '', ?LegalEntity $firm = null): InvoiceInput
+    private function input(string $date, string $due, ?Party $customer = null, string $description = 'Consulting', string $price = '1000.00', string $variableSymbol = ''): InvoiceInput
     {
         $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
         return new InvoiceInput(
-            ($firm ?? $this->firm)->id(),
-            $firm instanceof LegalEntity ? null : $this->series->id(),
+            $this->series->id(),
             null,
             ($customer ?? $this->customer)->id(),
             null,
@@ -1967,7 +1965,7 @@ final class InvoiceListControllerTest extends WebTestCase
             new \DateTimeImmutable($date),
             new \DateTimeImmutable($due),
             PaymentMethod::BankTransfer,
-            self::getContainer()->get(FirmBankAccounts::class)->primaryOf($firm ?? $this->firm)?->iban(),
+            self::getContainer()->get(FirmBankAccounts::class)->primary()?->iban(),
             $variableSymbol,
             '',
             '',
@@ -1984,7 +1982,7 @@ final class InvoiceListControllerTest extends WebTestCase
     {
         $this->scoped(function () use ($invoice, $amount): void {
             $money = Money::of($amount, Currency::CZK);
-            self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-20'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $money)]));
+            self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-20'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $money)]));
         });
     }
 
@@ -2041,18 +2039,6 @@ final class InvoiceListControllerTest extends WebTestCase
         });
     }
 
-    private function secondFirm(): LegalEntity
-    {
-        return $this->scoped(function (): LegalEntity {
-            $firm = new LegalEntity('Example Second s.r.o.', new RegistrationNumber('CZ', '12345687'), VatId::fromString('CZ12345687'), new Address('Example Street 2', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 2');
-            $this->em()->persist($firm);
-            FirmAccounts::add($this->em(), $firm, 'CZ5508000000001234567899');
-            $this->em()->flush();
-
-            return $firm;
-        });
-    }
-
     /**
      * Sends the invoice from the dialog's service; delivered at once when asked.
      *
@@ -2091,15 +2077,15 @@ final class InvoiceListControllerTest extends WebTestCase
         $this->browser->seed(role: $role);
         $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
         $this->em()->persist($this->firm);
-        FirmAccounts::add($this->em(), $this->firm, self::IBAN);
-        $this->series = new Series($this->firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+        FirmAccounts::add($this->em(), self::IBAN);
+        $this->series = new Series(Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $this->series->markDefault();
         $this->em()->persist($this->series);
         $this->customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');
         $this->em()->persist($this->customer);
         $this->em()->persist(new PartyAddress($this->customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
         if ($server) {
-            $this->em()->persist(FirmMailServer::define($this->firm, 'smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', self::getContainer()->get(MailSecrets::class)->seal('correct-horse-battery'), 'invoices@example.com', 'Example Firm'));
+            $this->em()->persist(FirmMailServer::define('smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', self::getContainer()->get(MailSecrets::class)->seal('correct-horse-battery'), 'invoices@example.com', 'Example Firm'));
         }
         $this->em()->flush();
         $this->browser->signIn();

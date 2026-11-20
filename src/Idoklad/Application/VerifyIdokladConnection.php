@@ -9,10 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Idoklad\Application;
 
 use Foresi\Invoicing\Application\MailSecrets;
-use Foresi\Party\Domain\LegalEntity;
 
 /**
- * Tries the stored credentials of a firm with one small read: a token alone
+ * Tries the stored credentials with one small read: a token alone
  * does not tell whether the tariff has API access, an answer does.
  */
 final readonly class VerifyIdokladConnection
@@ -27,9 +26,9 @@ final readonly class VerifyIdokladConnection
     /**
      * @throws IdokladFailure IdokladAccessDenied for wrong credentials, IdokladTariffWithoutApi for a tariff without the API
      */
-    public function verify(LegalEntity $firm): void
+    public function verify(): void
     {
-        $connection = $this->connections->for($firm) ?? throw new IdokladNotConnected('The firm has no iDoklad connection.');
+        $connection = $this->connections->get() ?? throw new IdokladNotConnected('The firm has no iDoklad connection.');
         $this->client->session($connection->clientId(), $this->secrets->open($connection->sealedSecret()))->get('/Contacts', ['page' => 1, 'pagesize' => 1]);
     }
 }

@@ -33,8 +33,8 @@ use Foresi\Invoicing\Application\RecordPayment;
 use Foresi\Invoicing\Application\UnknownInvoice;
 use Foresi\Invoicing\Contract\PriceType;
 use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\TransactionalWork;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
@@ -135,7 +135,7 @@ final class PairMovementTest extends BankingTestCase
     {
         $invoice = $this->issue->issue($this->input(overrides: ['lines' => [$this->line(price: '5000.00')]]));
         $movement = $this->recordMovement->record($this->incoming('1210.00'), self::verified());
-        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-20'), $this->czk('1210.00'), PaymentMethod::BankTransfer, PaymentSource::BankMovement, $movement->id(), '', [new AllocationRequest($invoice->id(), $this->czk('1210.00'))]));
+        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-20'), $this->czk('1210.00'), PaymentMethod::BankTransfer, PaymentSource::BankMovement, $movement->id(), '', [new AllocationRequest($invoice->id(), $this->czk('1210.00'))]));
 
         self::assertNull($this->pairing->auto($movement->id()));
         $this->expectPairingRefused(PairingRefused::ALREADY_PAIRED, fn (): \Foresi\Invoicing\Domain\Payment => $this->pairing->pair($movement->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))]));
@@ -210,7 +210,7 @@ final class PairMovementTest extends BankingTestCase
         $invoice = $this->issue->issue($this->input(overrides: ['lines' => [$this->line(price: '1000.00', type: PriceType::WithVat)]]));
         $movement = $this->recordMovement->record($this->incoming('999.01'), self::verified());
         $rules = new class implements FirmPairingRules {
-            public function for(LegalEntity $firm): PairingRules
+            public function get(): PairingRules
             {
                 return new PairingRules(true, true);
             }
@@ -218,7 +218,7 @@ final class PairMovementTest extends BankingTestCase
         // Just after the first read, 0.50 is paid on the invoice, as by a person on another screen.
         $log = new LockLog(self::getContainer()->get(Candidates::class), function (int $read, array $found) use ($invoice): array {
             if (1 === $read) {
-                self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-20'), $this->czk('0.50'), PaymentMethod::Cash, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $this->czk('0.50'))]));
+                self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-20'), $this->czk('0.50'), PaymentMethod::Cash, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $this->czk('0.50'))]));
                 $this->em->flush();
             }
 
@@ -527,7 +527,7 @@ final class PairMovementTest extends BankingTestCase
 
     private function payFromAnotherPath(string $movementId, string $invoiceId, string $amount = '1210.00'): void
     {
-        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-20'), $this->czk($amount), PaymentMethod::BankTransfer, PaymentSource::BankMovement, $movementId, '', [new AllocationRequest($invoiceId, $this->czk($amount))]));
+        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-20'), $this->czk($amount), PaymentMethod::BankTransfer, PaymentSource::BankMovement, $movementId, '', [new AllocationRequest($invoiceId, $this->czk($amount))]));
         $this->em->flush();
     }
 
@@ -537,7 +537,7 @@ final class PairMovementTest extends BankingTestCase
 
         return new PairMovement(
             $this->movements,
-            new Matcher($log, $container->get(InvoicingCountries::class)),
+            new Matcher($log, $container->get(InvoicingCountries::class), $container->get(InstanceFirm::class)),
             $rules ?? $container->get(FirmPairingRules::class),
             $container->get(RecordPayment::class),
             new LoggingInvoiceStore($this->store, $log),

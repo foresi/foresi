@@ -73,7 +73,7 @@ abstract class CashFlowTestCase extends KernelTestCase
         // A Czech firm gives the instance the zone Europe/Prague.
         $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, '');
         $this->em->persist($this->firm);
-        $this->account = FirmAccounts::add($this->em, $this->firm, self::IBAN);
+        $this->account = FirmAccounts::add($this->em, self::IBAN);
         $this->customer = new Party(PartyKind::Company, 'Customer Example s.r.o.', new RegistrationNumber('CZ', '87654321'), null, '');
         $this->em->persist($this->customer);
         $this->owner = $this->person('owner@example.com', Role::Owner);
@@ -96,9 +96,7 @@ abstract class CashFlowTestCase extends KernelTestCase
 
     protected function euroAccount(): FirmBankAccount
     {
-        // The firm as this entity manager knows it now, after a clear too.
-        $firm = $this->em->find(LegalEntity::class, $this->firm->id()) ?? throw new \LogicException('No firm.');
-        $account = FirmAccounts::add($this->em, $firm, self::EURO_IBAN, Currency::EUR);
+        $account = FirmAccounts::add($this->em, self::EURO_IBAN, Currency::EUR);
         $this->em->flush();
 
         return $account;

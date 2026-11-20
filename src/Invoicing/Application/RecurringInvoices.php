@@ -107,8 +107,6 @@ interface RecurringInvoices
     /**
      * How many invoices issued from a template were never sent and are not in the
      * trash: those held for review, and those whose send was refused.
-     *
-     * @param string|null $firmId only the invoices of this firm, as the list filtered by it shows them
      */
-    public function inReview(?string $firmId = null): int;
+    public function inReview(): int;
 }

@@ -24,11 +24,7 @@ use Foresi\Banking\Infrastructure\Doctrine\DoctrineBankFeedDirectory;
 use Foresi\Invoicing\Application\MailSecrets;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\TransactionalWork;
-use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\FirmBankAccount;
-use Foresi\Party\Domain\LegalEntity;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use Foresi\Tests\Banking\Support\Scalars;
 use Foresi\Tests\Party\Support\FirmAccounts;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -83,14 +79,14 @@ final class GenerateAddressTest extends KernelTestCase
         self::assertStringNotContainsString(Scalars::text($row['token_sealed']), $audit);
     }
 
-    public function testTheFeedIsAuditedUnderItsFirm(): void
+    public function testTheFeedIsAuditedUnderItsAccount(): void
     {
         $account = $this->account();
 
         $this->generate()->generate($account->id());
 
         $roots = $this->connection()->fetchAllAssociative('SELECT root_class, root_id FROM audit_entry WHERE entity_class = ?', [BankFeed::class]);
-        self::assertSame([['root_class' => LegalEntity::class, 'root_id' => $account->firm()->id()]], $roots);
+        self::assertSame([['root_class' => FirmBankAccount::class, 'root_id' => $account->id()]], $roots);
     }
 
     public function testTheShownAddressMatchesTheTemplateAndResolves(): void
@@ -105,8 +101,7 @@ final class GenerateAddressTest extends KernelTestCase
         $token = $this->addresses()->tokenIn(strtoupper($address));
         self::assertIsString($token);
         $feedId = $this->connection()->fetchOne('SELECT id FROM bank_feed');
-        $firmId = $account->firm()->id();
-        self::assertEquals(new FeedRoute(Scalars::text($feedId), $account->id(), $firmId), $this->directory()->route(InboundToken::hash($token)));
+        self::assertEquals(new FeedRoute(Scalars::text($feedId), $account->id()), $this->directory()->route(InboundToken::hash($token)));
 
         $feed = $this->feeds()->ofAccount($account->id());
         self::assertInstanceOf(BankFeed::class, $feed);
@@ -219,9 +214,7 @@ final class GenerateAddressTest extends KernelTestCase
 
     private function account(): FirmBankAccount
     {
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
-        $this->em->persist($firm);
-        $account = FirmAccounts::add($this->em, $firm, self::IBAN);
+        $account = FirmAccounts::add($this->em, self::IBAN);
         $this->em->flush();
 
         return $account;

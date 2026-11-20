@@ -103,7 +103,6 @@ final readonly class IssueRecurringOccurrence
         );
 
         return new InvoiceInput(
-            $template->firm()->id(),
             $template->series()?->id(),
             null,
             $template->customer()->id(),

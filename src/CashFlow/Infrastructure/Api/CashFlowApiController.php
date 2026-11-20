@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\CashFlow\Infrastructure\Api;
 
+use Foresi\CashFlow\Application\CashFlowAccess;
 use Foresi\CashFlow\Application\CashFlowRefused;
 use Foresi\CashFlow\Application\Forecasts;
 use Foresi\CashFlow\Application\PlannedItemReads;
@@ -33,7 +34,7 @@ final readonly class CashFlowApiController
     public const string PLANNED_ITEMS = 'api_v1_cash_flow_planned_items';
     public const string PLANNED_ITEM = 'api_v1_cash_flow_planned_item';
 
-    public function __construct(private ScopeGuard $scope, private Forecasts $forecasts, private PlannedItemReads $items, private InstanceClock $clock)
+    public function __construct(private ScopeGuard $scope, private Forecasts $forecasts, private PlannedItemReads $items, private InstanceClock $clock, private CashFlowAccess $access)
     {
     }
 
@@ -60,7 +61,7 @@ final readonly class CashFlowApiController
         $certainties = null === $certainty ? null : Forecasts::certainties(explode(',', $certainty));
         $forecast = $this->forecasts->of($this->optional($request, 'from'), '' === $months ? null : (int) $months, $this->optional($request, 'weeks_until'), $certainties);
 
-        return new JsonResponse(['data' => CashFlowJson::forecast($forecast)]);
+        return new JsonResponse(['data' => CashFlowJson::forecast($forecast, $this->access->firm())]);
     }
 
     #[Route('/api/v1/cash-flow/planned-items', name: self::PLANNED_ITEMS, methods: ['GET'])]
@@ -74,8 +75,10 @@ final readonly class CashFlowApiController
     {
         $this->scope->require(self::READ_SCOPE);
         $zone = $this->clock->timezone();
+        $items = $this->items->all();
+        $firm = $this->access->firm();
 
-        return new JsonResponse(['data' => array_map(static fn (PlannedItem $item): array => CashFlowJson::plannedItem($item, $zone), $this->items->all())]);
+        return new JsonResponse(['data' => array_map(static fn (PlannedItem $item): array => CashFlowJson::plannedItem($item, $zone, $firm), $items)]);
     }
 
     #[Route('/api/v1/cash-flow/planned-items/{plannedItemId}', name: self::PLANNED_ITEM, methods: ['GET'])]
@@ -88,7 +91,7 @@ final readonly class CashFlowApiController
     {
         $this->scope->require(self::READ_SCOPE);
 
-        return new JsonResponse(['data' => CashFlowJson::plannedItem($this->items->one($plannedItemId), $this->clock->timezone())]);
+        return new JsonResponse(['data' => CashFlowJson::plannedItem($this->items->one($plannedItemId), $this->clock->timezone(), $this->access->firm())]);
     }
 
     private function optional(Request $request, string $name): ?string

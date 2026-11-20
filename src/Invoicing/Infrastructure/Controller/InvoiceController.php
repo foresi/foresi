@@ -66,9 +66,7 @@ use Foresi\Invoicing\Infrastructure\Form\InvoiceSubmission;
 use Foresi\Invoicing\Infrastructure\Form\PaymentPanel;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\InstanceFirm;
-use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\PartyQuery;
-use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
@@ -111,7 +109,6 @@ final class InvoiceController extends AbstractController
     private const array MORE_FIELDS = ['variableSymbol', 'constantSymbol', 'language', 'textBefore', 'textAfter'];
 
     public function __construct(
-        private readonly LegalEntities $firms,
         private readonly InstanceFirm $instanceFirm,
         private readonly SeriesCatalog $catalog,
         private readonly NumberCounter $counter,
@@ -173,17 +170,17 @@ final class InvoiceController extends AbstractController
 
         $kind = InvoiceFormReader::kind($request->query->getString('kind'));
         // No series at all is fine: the first save stores the default. Only archived ones leave nothing to number from.
-        if ([] === $this->catalog->forFirm($firm, $kind) && array_any($this->catalog->everyForFirm($firm), static fn (Series $series): bool => $kind === $series->kind())) {
+        if ([] === $this->catalog->all($kind) && array_any($this->catalog->every(), static fn (Series $series): bool => $kind === $series->kind())) {
             return $this->render('@Invoicing/form.html.twig', ['blocked' => 'no_series', 'firm' => $firm]);
         }
 
         try {
-            $context = $this->newContext($firm, $kind);
+            $context = $this->newContext($kind);
         } catch (UnsupportedCountry) {
             return $this->render('@Invoicing/form.html.twig', ['blocked' => 'country']);
         }
 
-        return $this->form($context, $this->values->ofDraft($this->defaults->for($firm, kind: $kind)), [], [], $this->tokens->issue(), 0, Response::HTTP_OK);
+        return $this->form($context, $this->values->ofDraft($this->defaults->for(kind: $kind)), [], [], $this->tokens->issue(), 0, Response::HTTP_OK);
     }
 
     /**
@@ -199,16 +196,15 @@ final class InvoiceController extends AbstractController
 
             return $this->redirectToRoute('app_invoice_new');
         }
-        $firm = $this->firmById($work->firmId);
         try {
-            $context = $this->newContext($firm);
+            $context = $this->newContext();
             $party = $this->parties->find($work->customerId);
-            $draft = $this->defaults->forBilledWork($firm, $work, $party instanceof Party ? $this->picker->option($party) : null);
+            $draft = $this->defaults->forBilledWork($work, $party instanceof Party ? $this->picker->option($party) : null);
         } catch (UnsupportedCountry) {
             return $this->render('@Invoicing/form.html.twig', ['blocked' => 'country']);
         }
 
-        return $this->form($context, $this->values->ofBilledWork($draft, $firm), [], [], $this->tokens->issue(), 0, Response::HTTP_OK);
+        return $this->form($context, $this->values->ofBilledWork($draft), [], [], $this->tokens->issue(), 0, Response::HTTP_OK);
     }
 
     #[Route('/invoices/{id}/edit', name: 'app_invoice_edit', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
@@ -235,13 +231,13 @@ final class InvoiceController extends AbstractController
             throw new NotFoundHttpException('A document that follows another one is not copied.');
         }
         try {
-            $context = $this->newContext($source->firm(), $source->kind());
+            $context = $this->newContext($source->kind());
             $draft = $this->copies->valuesFrom($source);
         } catch (UnsupportedCountry) {
             return $this->render('@Invoicing/form.html.twig', ['blocked' => 'country']);
         }
 
-        return $this->form($context, $this->values->ofCopy($draft, $source->firm(), $source), [], [], $this->tokens->issue(), 0, Response::HTTP_OK);
+        return $this->form($context, $this->values->ofCopy($draft, $source), [], [], $this->tokens->issue(), 0, Response::HTTP_OK);
     }
 
     /**
@@ -263,12 +259,12 @@ final class InvoiceController extends AbstractController
             return $this->redirectToRoute('app_invoice_edit', ['id' => $source->id()]);
         }
         try {
-            $context = $this->newContext($source->firm(), DocumentKind::CorrectionDocument);
+            $context = $this->newContext(DocumentKind::CorrectionDocument);
             $draft = $this->corrections->valuesFrom($source);
         } catch (UnsupportedCountry) {
             return $this->render('@Invoicing/form.html.twig', ['blocked' => 'country']);
         }
-        $values = $this->values->ofCopy($draft, $source->firm(), $source, false);
+        $values = $this->values->ofCopy($draft, $source, false);
         if (DocumentKind::PaymentTaxDocument === $source->kind()) {
             $values['correctionReason'] = $this->taxCorrections->reasonFor($source);
         }
@@ -317,7 +313,7 @@ final class InvoiceController extends AbstractController
         }
         $invoiceId = $request->request->getString('invoiceId');
         try {
-            $context = '' === $invoiceId ? $this->newContext($this->firm(), InvoiceFormReader::kind($request->request->getString('kind'))) : $this->storedContext($this->invoice($invoiceId));
+            $context = '' === $invoiceId ? $this->newContext(InvoiceFormReader::kind($request->request->getString('kind'))) : $this->storedContext($this->invoice($invoiceId));
         } catch (UnsupportedCountry) {
             return $this->json(['errors' => ['firm']], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
@@ -367,10 +363,9 @@ final class InvoiceController extends AbstractController
             return $this->alreadySaved();
         }
 
-        $firm = $this->firm();
-        $request->request->set('firmId', $firm->id());
+        $this->firm();
         try {
-            $context = $this->newContext($firm, InvoiceFormReader::kind($request->request->getString('kind')));
+            $context = $this->newContext(InvoiceFormReader::kind($request->request->getString('kind')));
         } catch (UnsupportedCountry) {
             return $this->render('@Invoicing/form.html.twig', ['blocked' => 'country']);
         }
@@ -388,7 +383,6 @@ final class InvoiceController extends AbstractController
         if ($this->tokens->isIssued($token) && null !== $this->tokens->createdId($token)) {
             return $this->alreadySaved();
         }
-        $request->request->set('firmId', $invoice->firm()->id());
 
         return $this->submit($request, $this->storedContext($invoice), $token);
     }
@@ -407,7 +401,7 @@ final class InvoiceController extends AbstractController
         $action = $request->request->getString('_action', 'refresh');
         // The firm got its first account in another tab while this form was open.
         if (!$context->invoice instanceof Invoice && '' === $request->request->getString('bankAccount')) {
-            $request->request->set('bankAccount', $this->accounts->primaryOf($context->firm)?->iban() ?? '');
+            $request->request->set('bankAccount', $this->accounts->primary()?->iban() ?? '');
         }
         $matches = $this->typedCustomers($request, $action);
         $this->correctionTaxPoint($request, $context);
@@ -434,7 +428,7 @@ final class InvoiceController extends AbstractController
         }
 
         if ([] !== $submission->errors) {
-            $errors = $this->messages($submission->errors, $this->rules->check($submission->input, $context->firm, $context->invoice));
+            $errors = $this->messages($submission->errors, $this->rules->check($submission->input, $context->invoice));
 
             return $this->form($context, $values, $errors, $candidates, $token, $submission->version, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
@@ -472,7 +466,7 @@ final class InvoiceController extends AbstractController
      */
     private function refused(IssueRefused $refused, ?string $invoiceId, array $values, array $candidates, string $token, int $version): Response
     {
-        $context = null === $invoiceId ? $this->newContext($this->firm(), InvoiceFormReader::kind(\is_string($values['kind'] ?? null) ? $values['kind'] : '')) : $this->storedContext($this->invoice($invoiceId));
+        $context = null === $invoiceId ? $this->newContext(InvoiceFormReader::kind(\is_string($values['kind'] ?? null) ? $values['kind'] : '')) : $this->storedContext($this->invoice($invoiceId));
         $stale = array_any($refused->problems, static fn (IssueProblem $problem): bool => 'version' === $problem->field);
 
         return $this->form($context, $values, $stale ? [] : $this->messages([], $refused->problems), $candidates, $token, $version, $stale ? Response::HTTP_CONFLICT : Response::HTTP_UNPROCESSABLE_ENTITY, $stale);
@@ -489,7 +483,7 @@ final class InvoiceController extends AbstractController
             if ($party instanceof Party && $party->isArchived()) {
                 $errors = [$this->message('customer', 'invoice.problem.customer_archived')];
             } elseif ($party instanceof Party) {
-                $values = $this->values->withCustomer($values, $party, $context->firm, $submission->input->issueDate, $context->regime, $this->issuerCountry($context));
+                $values = $this->values->withCustomer($values, $party, $submission->input->issueDate, $context->regime, $this->issuerCountry($context));
             }
         } elseif ('deduct' === $action) {
             $chosen = $this->request->getCurrentRequest()?->request->getString('deduction') ?? '';
@@ -539,7 +533,7 @@ final class InvoiceController extends AbstractController
 
     private function issuerCountry(InvoiceFormContext $context): string
     {
-        return $context->invoice?->issuer()->address->countryCode ?? $context->firm->address()->countryCode;
+        return $context->invoice?->issuer()->address->countryCode ?? $this->firm()->address()->countryCode;
     }
 
     /**
@@ -566,7 +560,7 @@ final class InvoiceController extends AbstractController
         if (null === $submission->input->typedNumber && $saved->number() !== $preview) {
             // A preview another document took is a race. Otherwise it was of something else: the number the document
             // gave up, or a series changed without JavaScript.
-            $raced = $preview !== $ownNumber && $this->store->numberTaken($saved->firm(), NumberKey::of($preview), $saved);
+            $raced = $preview !== $ownNumber && $this->store->numberTaken(NumberKey::of($preview), $saved);
             $this->addFlash('warning', $raced
                 ? $this->translator->trans('invoice.flash.renumbered', ['number' => $saved->number(), 'preview' => $preview])
                 : $this->translator->trans('invoice.flash.number_changed', ['number' => $saved->number()]));
@@ -641,7 +635,7 @@ final class InvoiceController extends AbstractController
      */
     private function form(InvoiceFormContext $context, array $values, array $errors, array $candidates, string $token, int $version, int $status, bool $stale = false): Response
     {
-        $firm = $context->firm;
+        $firm = $this->firm();
         $invoice = $context->invoice;
         $taxPoint = $this->taxPoint($values, $context);
         $errorFields = [];
@@ -659,20 +653,20 @@ final class InvoiceController extends AbstractController
             'firm' => $firm,
             'series' => $this->seriesOptions($context),
             'values' => $values,
-            'errors' => array_map(static fn (array $error): array => $error + ['link' => $targets->of($error['id'], $error['key'])], $errors),
+            'errors' => array_map(static fn (array $error): array => $error + ['link' => $targets->of($error['id'])], $errors),
             'errorFields' => $errorFields,
             'firmUrl' => $firmUrl,
             'bankUrl' => $bankUrl,
             'statusBadge' => $this->statusBadge($context),
             'payments' => $invoice instanceof Invoice ? $this->panel->of($invoice) : null,
             'chains' => $invoice instanceof Invoice ? array_map(fn (array $chain): array => ['payments' => array_map(fn (array $payment): array => ['amount' => $this->amounts->shown($payment['amount'])] + $payment, $chain['payments'])] + $chain, $this->chain->of($invoice)) : [],
-            'moreOpen' => $this->moreOpen($values, $context, $errorFields),
+            'moreOpen' => $this->moreOpen($values, $errorFields),
             'noContacts' => 0 === $this->parties->counts()->all,
             'candidates' => $candidates,
             'token' => $token,
             'version' => $version,
             'stale' => $stale,
-            'copyNotices' => $this->copyNotices($values, $context),
+            'copyNotices' => $this->copyNotices($values),
             'copyOf' => $values['copyOf'] ?? '',
             'corrects' => $this->correctedNumber($values, $context),
             'correctionTypes' => array_map(fn (CorrectionType $type): array => ['value' => $type->value, 'label' => $this->translator->trans('correction.type.'.$type->value), 'text' => $this->translator->trans('correction.type.'.$type->value.'_text')], CorrectionType::cases()),
@@ -703,13 +697,13 @@ final class InvoiceController extends AbstractController
             'paymentMethods' => $this->options->paymentMethods(),
             'languages' => $this->options->languages(),
             'bankAccounts' => $bankAccounts = $this->bankAccounts($context),
-            'bankDetails' => $this->options->bankDetails($context->firm, $context->country, array_keys($bankAccounts)),
+            'bankDetails' => $this->options->bankDetails($context->country, array_keys($bankAccounts)),
             'countries' => $this->countryOptions(),
             'figures' => $this->shownFigures($context, $values, $taxPoint),
             'currencyNotice' => $this->currencyNotice($context, $values),
             'deductible' => $this->deductibleOptions($context, $values),
             // Without a customer yet: a refresh with the customer picked lists what it may deduct.
-            'mayDeduct' => DocumentKind::Invoice === $context->kind && $this->advanceDocuments->firmHasUndeducted($firm->id()),
+            'mayDeduct' => DocumentKind::Invoice === $context->kind && $this->advanceDocuments->hasUndeducted(),
             'emptyLine' => $this->values->emptyLine($context->regime, $this->newLinesAreReverseCharge($context, $values)),
             'maxLines' => InvoiceFormReader::MAX_LINES,
         ], new Response(status: $status));
@@ -769,12 +763,12 @@ final class InvoiceController extends AbstractController
      * @param array<string, mixed>  $values
      * @param array<string, string> $errorFields
      */
-    private function moreOpen(array $values, InvoiceFormContext $context, array $errorFields): bool
+    private function moreOpen(array $values, array $errorFields): bool
     {
         if ([] !== array_intersect_key($errorFields, array_flip(self::MORE_FIELDS))) {
             return true;
         }
-        $settings = $this->settings->for($context->firm);
+        $settings = $this->settings->get();
         $number = '' !== $values['number'] ? $values['number'] : $values['numberPeek'];
         \assert(\is_string($number));
 
@@ -822,13 +816,13 @@ final class InvoiceController extends AbstractController
 
     /**
      * What the copy of a document must say, for as long as it holds: through a refused
-     * save, until the form has another firm or customer.
+     * save, until the form has another customer.
      *
      * @param array<string, mixed> $values
      *
      * @return list<string> translation keys
      */
-    private function copyNotices(array $values, InvoiceFormContext $context): array
+    private function copyNotices(array $values): array
     {
         $id = $values['copyOf'] ?? '';
         if (!\is_string($id) || !Uuid::isValid($id)) {
@@ -840,12 +834,8 @@ final class InvoiceController extends AbstractController
         } catch (UnknownInvoice|UnsupportedCountry) {
             return [];
         }
-        $sameFirm = $source->firm()->id() === $context->firm->id();
 
-        return array_values(array_filter($notices, static fn (string $notice): bool => match ($notice) {
-            'invoice.copy.customer_archived' => $sameFirm && '' === $values['customerId'],
-            default => $sameFirm,
-        }));
+        return array_values(array_filter($notices, static fn (string $notice): bool => 'invoice.copy.customer_archived' !== $notice || '' === $values['customerId']));
     }
 
     /**
@@ -942,7 +932,7 @@ final class InvoiceController extends AbstractController
         $rows = \is_array($values['lines'] ?? null) ? $values['lines'] : [];
         $taken = array_map(static fn (array $row): string => $row['deducts'] ?? '', $rows);
 
-        return array_values(array_filter($this->deductible->for($context->firm, $customer, $context->invoice, $language), static fn (Deductible $deductible): bool => !\in_array($deductible->id, $taken, true)));
+        return array_values(array_filter($this->deductible->for($customer, $context->invoice, $language), static fn (Deductible $deductible): bool => !\in_array($deductible->id, $taken, true)));
     }
 
     /**
@@ -988,14 +978,14 @@ final class InvoiceController extends AbstractController
     }
 
     /**
-     * The active series of the firm; a document keeps showing an archived one of its
-     * own. A firm that has none yet offers its default, which the first save stores.
+     * The active series; a document keeps showing an archived one of its
+     * own. With none yet it offers the default, which the first save stores.
      *
      * @return array<string, string>
      */
     private function seriesOptions(InvoiceFormContext $context): array
     {
-        return $this->options->series($context->firm, $context->invoice?->series(), $context->kind);
+        return $this->options->series($context->invoice?->series(), $context->kind);
     }
 
     /**
@@ -1005,7 +995,7 @@ final class InvoiceController extends AbstractController
      */
     private function bankAccounts(InvoiceFormContext $context): array
     {
-        return $this->options->bankAccounts($context->firm, $context->invoice?->bankAccount());
+        return $this->options->bankAccounts($context->invoice?->bankAccount());
     }
 
     /**
@@ -1025,7 +1015,7 @@ final class InvoiceController extends AbstractController
     {
         $id = $request->query->getString('series');
         if ('' === $id) {
-            return $this->catalog->defaultFor($this->firm(), InvoiceFormReader::kind($request->query->getString('kind')));
+            return $this->catalog->defaultFor(InvoiceFormReader::kind($request->query->getString('kind')));
         }
 
         try {
@@ -1035,9 +1025,9 @@ final class InvoiceController extends AbstractController
         }
     }
 
-    private function newContext(LegalEntity $firm, DocumentKind $kind = DocumentKind::Invoice): InvoiceFormContext
+    private function newContext(DocumentKind $kind = DocumentKind::Invoice): InvoiceFormContext
     {
-        return InvoiceFormContext::new($firm, $this->countries, $this->settings, $kind);
+        return InvoiceFormContext::new($this->instanceFirm, $this->countries, $this->settings, $kind);
     }
 
     private function storedContext(Invoice $invoice): InvoiceFormContext
@@ -1056,15 +1046,6 @@ final class InvoiceController extends AbstractController
     private function firm(): LegalEntity
     {
         return $this->instanceFirm->find() ?? throw new NotFoundHttpException();
-    }
-
-    private function firmById(string $id): LegalEntity
-    {
-        try {
-            return Uuid::isValid($id) ? $this->firms->get($id) : throw new NotFoundHttpException();
-        } catch (UnknownLegalEntity) {
-            throw new NotFoundHttpException();
-        }
     }
 
     private function invoice(string $id): Invoice

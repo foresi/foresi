@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Infrastructure\Mcp;
 
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Purchasing\Application\PurchasingNotAllowed;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentBalances;
 use Foresi\Purchasing\Application\View\ReceivedDocumentLists;
@@ -30,7 +31,7 @@ use Foresi\Shared\Infrastructure\View\Api\ViewJson;
  */
 final readonly class SearchReceivedDocumentsTool implements ReadTool
 {
-    public function __construct(private ReceivedDocumentLists $receivedLists, private ReceivedDocumentBalances $balances, private ToolArguments $arguments, private SavedViews $views, private ScopeGuard $scope, private ViewJson $json)
+    public function __construct(private ReceivedDocumentLists $receivedLists, private ReceivedDocumentBalances $balances, private ToolArguments $arguments, private SavedViews $views, private ScopeGuard $scope, private ViewJson $json, private InstanceFirm $firm)
     {
     }
 
@@ -102,7 +103,7 @@ final readonly class SearchReceivedDocumentsTool implements ReadTool
         } catch (PurchasingNotAllowed) {
             throw ToolRefusal::forbidden('Only the owners and members of the organisation read its received documents.');
         }
-        $page = ToolArguments::page(array_map(ReceivedDocumentJson::row(...), $slice->items), $slice->hasMore ? $slice->lastId() : null, 'received document', 'received documents');
+        $page = ToolArguments::page(ReceivedDocumentJson::rows($slice->items, $this->firm), $slice->hasMore ? $slice->lastId() : null, 'received document', 'received documents');
         if (!$applied->view instanceof SavedView) {
             return new ToolOutput($page->data + ['applied_view' => null], $page->summary);
         }

@@ -141,6 +141,6 @@ final class PaymentTransitionsTest extends AdvanceTestCase
     {
         $money = $this->czk($amount);
 
-        return $this->record->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-20'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $money)], PaymentDirection::Refund));
+        return $this->record->record(new PaymentRequest(new \DateTimeImmutable('2026-11-20'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $money)], PaymentDirection::Refund));
     }
 }

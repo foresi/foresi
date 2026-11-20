@@ -13,11 +13,10 @@ use Foresi\Idoklad\Domain\IdokladRecord;
 use Foresi\Idoklad\Domain\IdokladResource;
 use Foresi\Invoicing\Application\MailSecrets;
 use Foresi\Party\Application\TransactionalWork;
-use Foresi\Party\Domain\LegalEntity;
 use Psr\Clock\ClockInterface;
 
 /**
- * Copies a firm's iDoklad account into the snapshot, list by list and page by
+ * Copies the iDoklad account into the snapshot, list by list and page by
  * page, each page stored as it arrives: a pull that stops keeps what it got
  * and records why it stopped. PDFs are a separate step, one request each.
  */
@@ -41,10 +40,10 @@ final readonly class PullIdokladSnapshot
      *
      * @throws IdokladFailure after the pull recorded it
      */
-    public function pull(LegalEntity $firm, ?string $changedSince = null): IdokladPull
+    public function pull(?string $changedSince = null): IdokladPull
     {
-        $pull = new IdokladPull($firm, $this->clock->now(), $changedSince);
-        $session = $this->open($firm);
+        $pull = new IdokladPull($this->clock->now(), $changedSince);
+        $session = $this->open();
         $this->work->run(fn () => $this->snapshot->add($pull));
 
         try {
@@ -66,11 +65,11 @@ final readonly class PullIdokladSnapshot
      *
      * @throws IdokladFailure
      */
-    public function downloadPdfs(LegalEntity $firm, int $limit): PdfDownload
+    public function downloadPdfs(int $limit): PdfDownload
     {
-        $session = $this->open($firm);
+        $session = $this->open();
         $downloaded = 0;
-        foreach ($this->snapshot->withoutPdf($firm, $limit) as $record) {
+        foreach ($this->snapshot->withoutPdf($limit) as $record) {
             $data = $session->get(\sprintf('/Reports/%s/%d/Pdf', $record->resource()->pdfReport(), $record->externalId()));
             $bytes = \is_string($data) ? base64_decode($data, true) : false;
             if (false === $bytes || !str_starts_with($bytes, '%PDF-')) {
@@ -84,9 +83,9 @@ final readonly class PullIdokladSnapshot
         return new PdfDownload($downloaded, $session->requests());
     }
 
-    private function open(LegalEntity $firm): IdokladSession
+    private function open(): IdokladSession
     {
-        $connection = $this->connections->for($firm) ?? throw new IdokladNotConnected('The firm has no iDoklad connection.');
+        $connection = $this->connections->get() ?? throw new IdokladNotConnected('The firm has no iDoklad connection.');
 
         return $this->client->session($connection->clientId(), $this->secrets->open($connection->sealedSecret()));
     }
@@ -112,7 +111,7 @@ final readonly class PullIdokladSnapshot
             }
             $this->work->run(function () use ($pull, $resource, $byId): void {
                 foreach ($byId as $id => $item) {
-                    $pull->noteChange($this->keep($pull->firm(), $resource, $id, $item));
+                    $pull->noteChange($this->keep($resource, $id, $item));
                 }
             });
             $records += \count($byId);
@@ -125,12 +124,12 @@ final readonly class PullIdokladSnapshot
      *
      * @return string|null the moment iDoklad last changed the record
      */
-    private function keep(LegalEntity $firm, IdokladResource $resource, int $id, array $item): ?string
+    private function keep(IdokladResource $resource, int $id, array $item): ?string
     {
         $now = $this->clock->now();
-        $record = $this->snapshot->record($firm, $resource, $id);
+        $record = $this->snapshot->record($resource, $id);
         if (!$record instanceof IdokladRecord) {
-            $record = new IdokladRecord($firm, $resource, $id, $item, $now);
+            $record = new IdokladRecord($resource, $id, $item, $now);
             $this->snapshot->add($record);
         } else {
             $record->replace($item, $now);

@@ -13,7 +13,6 @@ use Doctrine\ORM\Query;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\UnknownFirmBankAccount;
 use Foresi\Party\Domain\FirmBankAccount;
-use Foresi\Party\Domain\LegalEntity;
 
 final readonly class DoctrineFirmBankAccounts implements FirmBankAccounts
 {
@@ -24,11 +23,10 @@ final readonly class DoctrineFirmBankAccounts implements FirmBankAccounts
     {
     }
 
-    public function of(LegalEntity $firm, bool $withArchived = false): array
+    public function all(bool $withArchived = false): array
     {
         /** @var list<FirmBankAccount> $accounts */
-        $accounts = $this->em->createQuery('SELECT a FROM '.FirmBankAccount::class.' a WHERE a.firm = :firm'.($withArchived ? '' : ' AND a.archivedAt IS NULL').' ORDER BY a.position, a.id')
-            ->setParameter('firm', $firm)
+        $accounts = $this->em->createQuery('SELECT a FROM '.FirmBankAccount::class.' a'.($withArchived ? '' : ' WHERE a.archivedAt IS NULL').' ORDER BY a.position, a.id')
             ->getResult();
         // In PHP: databases disagree on where an ORDER BY puts the NULL of the other accounts. The sort is stable.
         usort($accounts, static fn (FirmBankAccount $a, FirmBankAccount $b): int => (int) $b->isPrimary() <=> (int) $a->isPrimary());
@@ -36,16 +34,16 @@ final readonly class DoctrineFirmBankAccounts implements FirmBankAccounts
         return $accounts;
     }
 
-    public function primaryOf(LegalEntity $firm): ?FirmBankAccount
+    public function primary(): ?FirmBankAccount
     {
-        $first = $this->of($firm)[0] ?? null;
+        $first = $this->all()[0] ?? null;
 
         return true === $first?->isPrimary() ? $first : null;
     }
 
-    public function ibansOf(LegalEntity $firm): array
+    public function ibans(): array
     {
-        return array_map(static fn (FirmBankAccount $account): string => $account->iban(), $this->of($firm));
+        return array_map(static fn (FirmBankAccount $account): string => $account->iban(), $this->all());
     }
 
     public function get(string $id): FirmBankAccount
@@ -70,20 +68,18 @@ final readonly class DoctrineFirmBankAccounts implements FirmBankAccounts
         return $account instanceof FirmBankAccount ? $account : throw new UnknownFirmBankAccount();
     }
 
-    public function ofIban(LegalEntity $firm, string $iban): ?FirmBankAccount
+    public function ofIban(string $iban): ?FirmBankAccount
     {
-        $account = $this->em->createQuery('SELECT a FROM '.FirmBankAccount::class.' a WHERE a.firm = :firm AND a.iban = :iban')
-            ->setParameter('firm', $firm)
+        $account = $this->em->createQuery('SELECT a FROM '.FirmBankAccount::class.' a WHERE a.iban = :iban')
             ->setParameter('iban', $iban)
             ->getOneOrNullResult();
 
         return $account instanceof FirmBankAccount ? $account : null;
     }
 
-    public function nextPosition(LegalEntity $firm): int
+    public function nextPosition(): int
     {
-        $last = $this->em->createQuery('SELECT MAX(a.position) FROM '.FirmBankAccount::class.' a WHERE a.firm = :firm')
-            ->setParameter('firm', $firm)
+        $last = $this->em->createQuery('SELECT MAX(a.position) FROM '.FirmBankAccount::class.' a')
             ->getSingleScalarResult();
 
         return null === $last ? 0 : (int) $last + 1;
@@ -96,15 +92,14 @@ final readonly class DoctrineFirmBankAccounts implements FirmBankAccounts
 
     public function makePrimary(FirmBankAccount $account): void
     {
-        foreach ($this->of($account->firm()) as $other) {
+        foreach ($this->all() as $other) {
             if ($other !== $account && $other->isPrimary()) {
                 $other->markPrimary(false);
             }
         }
         // What the database holds: a primary demoted in memory, by archiving for one, is still primary there.
         /** @var list<string> $stored */
-        $stored = $this->em->createQuery('SELECT a.id FROM '.FirmBankAccount::class.' a WHERE a.firm = :firm AND a.primaryFlag = true')
-            ->setParameter('firm', $account->firm())
+        $stored = $this->em->createQuery('SELECT a.id FROM '.FirmBankAccount::class.' a WHERE a.primaryFlag = true')
             ->getSingleColumnResult();
         if ([] !== array_diff($stored, [$account->id()])) {
             $this->em->flush();

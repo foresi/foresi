@@ -207,7 +207,7 @@ final class AuditLogTest extends KernelTestCase
             'Register entry 1',
         );
         $this->em->persist($firm);
-        $this->em->persist(FirmBankAccount::open($firm, Iban::fromString('DE89 3704 0044 0532 0130 00'), Currency::EUR, '', 0));
+        $this->em->persist(FirmBankAccount::open(Iban::fromString('DE89 3704 0044 0532 0130 00'), Currency::EUR, '', 0));
         $this->em->persist(new Membership($user, Role::Owner, $party));
         $this->em->flush();
 
@@ -217,7 +217,7 @@ final class AuditLogTest extends KernelTestCase
         }
         self::assertSame([null, 'DE89370400440532013000'], $byClass[FirmBankAccount::class]['iban']);
         self::assertSame([null, 'EUR'], $byClass[FirmBankAccount::class]['currency']);
-        self::assertSame([null, $firm->id()], $byClass[FirmBankAccount::class]['firm']);
+        self::assertArrayNotHasKey('firm', $byClass[FirmBankAccount::class]);
         self::assertSame([null, 'identified_person'], $byClass[LegalEntity::class]['vatStatus']);
         self::assertSame([null, '12345695'], $byClass[LegalEntity::class]['registrationNumber.value']);
         self::assertSame([null, $this->partyId($party)], $byClass[Membership::class]['party']);

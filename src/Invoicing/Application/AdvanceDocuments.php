@@ -54,19 +54,19 @@ interface AdvanceDocuments
     public function releaseDeductions(string $invoiceId, array $keep): void;
 
     /**
-     * What a firm's customer has to deduct: tax documents on payments not cancelled,
+     * What a customer has to deduct: tax documents on payments not cancelled,
      * and advance invoices out of the trash, that no other invoice deducts. Whether an
      * advance created no VAT is for the caller to tell.
      *
      * @return array{taxDocuments: list<string>, advances: list<string>} ids, oldest first
      */
-    public function deductibleFor(string $firmId, string $customerId, ?string $except): array;
+    public function deductibleFor(string $customerId, ?string $except): array;
 
     /**
-     * Whether a firm has a tax document or an advance invoice out of the trash that
+     * Whether there is a tax document or an advance invoice out of the trash that
      * no invoice deducts, whoever its customer.
      */
-    public function firmHasUndeducted(string $firmId): bool;
+    public function hasUndeducted(): bool;
 
     /**
      * The delivered tax documents on payments out of the trash whose payment was

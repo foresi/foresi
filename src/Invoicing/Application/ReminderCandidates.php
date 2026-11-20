@@ -9,10 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Application;
 
 use Foresi\Invoicing\Domain\FirmReminders;
-use Foresi\Party\Domain\LegalEntity;
 
 /**
- * The invoices of a firm worth a reminder on a day, oldest due first: those
+ * The invoices worth a reminder on a day, oldest due first: those
  * RemindableInvoices finds, page after page, whose open amount reaches the
  * minimum. Paging on past what the open amounts leave out means invoices that
  * owe nothing never hold back one that is due, however many sit ahead of it.
@@ -31,11 +30,11 @@ final readonly class ReminderCandidates
     /**
      * @return \Generator<int, RemindableInvoice>
      */
-    public function worthReminding(LegalEntity $firm, FirmReminders $settings, \DateTimeImmutable $today): \Generator
+    public function worthReminding(FirmReminders $settings, \DateTimeImmutable $today): \Generator
     {
         $after = null;
         do {
-            $page = $this->remindable->due($firm, $settings, $today, self::PAGE, $after);
+            $page = $this->remindable->due($settings, $today, self::PAGE, $after);
             foreach (array_chunk($page, self::BATCH) as $batch) {
                 $outstanding = $this->balances->outstanding(array_map(static fn (RemindableInvoice $invoice): string => $invoice->invoiceId, $batch));
                 foreach ($batch as $candidate) {

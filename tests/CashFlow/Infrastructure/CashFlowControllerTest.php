@@ -255,7 +255,7 @@ final class CashFlowControllerTest extends WebTestCase
         $em = $this->browser->em();
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $em->persist($firm);
-        $this->account = FirmAccounts::add($em, $firm, self::IBAN)->id();
+        $this->account = FirmAccounts::add($em, self::IBAN)->id();
         $em->flush();
     }
 

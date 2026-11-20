@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Infrastructure\Http;
 
-use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Party\Application\NoFirmYet;
 use Foresi\Purchasing\Application\PurchasingNotAllowed;
 use Foresi\Purchasing\Application\UnknownReceivedDocument;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
@@ -38,8 +38,8 @@ final readonly class PurchasingErrors
         $error = $event->getThrowable();
         if ($error instanceof PurchasingNotAllowed) {
             $event->setThrowable(new AccessDeniedHttpException($error->getMessage(), $error));
-        } elseif ($error instanceof UnknownReceivedDocument || $error instanceof UnknownLegalEntity) {
-            $event->setThrowable(new NotFoundHttpException('No such received document or firm.', $error));
+        } elseif ($error instanceof UnknownReceivedDocument || $error instanceof NoFirmYet) {
+            $event->setThrowable(new NotFoundHttpException('No such received document, or the instance has no firm yet.', $error));
         }
     }
 }

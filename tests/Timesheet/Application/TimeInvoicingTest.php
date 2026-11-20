@@ -48,7 +48,6 @@ final class TimeInvoicingTest extends WorkTestCase
 {
     private TimeInvoicing $invoicing;
     private ManageTime $time;
-    private LegalEntity $firm;
     private Party $customer;
     private Project $website;
 
@@ -63,9 +62,9 @@ final class TimeInvoicingTest extends WorkTestCase
         $this->invoicing = $container->get(TimeInvoicing::class);
         $this->time = $container->get(ManageTime::class);
 
-        $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
-        $this->em->persist($this->firm);
-        FirmAccounts::add($this->em, $this->firm, 'CZ6508000000192000145399');
+        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
+        $this->em->persist($firm);
+        FirmAccounts::add($this->em, 'CZ6508000000192000145399');
         $this->customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');
         $this->em->persist($this->customer);
         $this->em->persist(new PartyAddress($this->customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
@@ -171,6 +170,6 @@ final class TimeInvoicingTest extends WorkTestCase
 
     private function scope(): TimeScope
     {
-        return new TimeScope($this->firm->id(), $this->customer->id(), [$this->website->id()], new \DateTimeImmutable('2026-10-01'), new \DateTimeImmutable('2026-10-31'));
+        return new TimeScope($this->customer->id(), [$this->website->id()], new \DateTimeImmutable('2026-10-01'), new \DateTimeImmutable('2026-10-31'));
     }
 }

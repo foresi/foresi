@@ -12,7 +12,7 @@ use Foresi\Identity\Application\OwnerCheck;
 use Foresi\Invoicing\Application\InvoicingCountries;
 use Foresi\Invoicing\Application\UnsupportedCountry;
 use Foresi\Invoicing\Domain\Invoice;
-use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Timesheet\Domain\BillableTime;
@@ -28,7 +28,7 @@ use Foresi\Work\Application\TimeReportFilter;
 use Foresi\Work\Application\WorkQueries;
 
 /**
- * Taking time to an invoice (Harvest, Clockify): an owner picks the firm, the
+ * Taking time to an invoice (Harvest, Clockify): an owner picks the
  * client, some of its projects and a period, and gets the time there that is
  * billable, finished and not invoiced yet, each entry with the rate the firm
  * bills it at. The entries ticked, grouped and rounded as chosen, become the
@@ -43,7 +43,7 @@ final readonly class TimeInvoicing
         private TimeQueries $time,
         private WorkQueries $work,
         private RateResolver $rates,
-        private LegalEntities $firms,
+        private InstanceFirm $firm,
         private InvoicingCountries $countries,
         private OwnerCheck $owner,
         private TimeSelections $selections,
@@ -79,7 +79,6 @@ final readonly class TimeInvoicing
         if ([] === $scope->projectIds) {
             return [];
         }
-        $firm = $this->firms->get($scope->firmId);
         $projects = array_flip($scope->projectIds);
         $rates = [];
         $candidates = [];
@@ -90,7 +89,7 @@ final readonly class TimeInvoicing
             }
             $pair = "{$entry->projectId}/{$entry->membershipId}";
             if (!\array_key_exists($pair, $rates)) {
-                $rates[$pair] = $this->rates->resolve($entry->projectId, $entry->membershipId, $firm->id())?->rate;
+                $rates[$pair] = $this->rates->resolve($entry->projectId, $entry->membershipId)?->rate;
             }
             $candidates[] = new TimeCandidate($entry, $rates[$pair]);
         }
@@ -127,7 +126,7 @@ final readonly class TimeInvoicing
         if (\count(array_unique(array_map(static fn (BillableTime $time): string => $time->rate->currency()->value, $times))) > 1) {
             throw new TimeInvoicingRefused('currencies');
         }
-        if ($times[0]->rate->currency() !== $this->currencyOf($scope->firmId)) {
+        if ($times[0]->rate->currency() !== $this->currencyOf()) {
             throw new TimeInvoicingRefused('firm_currency');
         }
         $lines = TimeLines::of($times, $grouping, $rounding);
@@ -164,7 +163,7 @@ final readonly class TimeInvoicing
             array_map(static fn (BilledTime $billed): SelectedEntry => new SelectedEntry($billed->time->entryId, $billed->time->fingerprint, $billed->minutes), $line->entries),
         ), $lines);
 
-        return $this->selections->save(new TimeSelection($scope->firmId, $scope->clientId, $lines[0]->rate->currency(), $selected));
+        return $this->selections->save(new TimeSelection($scope->clientId, $lines[0]->rate->currency(), $selected));
     }
 
     /**
@@ -172,10 +171,10 @@ final readonly class TimeInvoicing
      *
      * @throws TimeInvoicingRefused for a firm whose country has no invoicing rules
      */
-    private function currencyOf(string $firmId): Currency
+    private function currencyOf(): Currency
     {
         try {
-            return $this->countries->for($this->firms->get($firmId)->address()->countryCode)->homeCurrency();
+            return $this->countries->for($this->firm->get()->address()->countryCode)->homeCurrency();
         } catch (UnsupportedCountry) {
             throw new TimeInvoicingRefused('country');
         }

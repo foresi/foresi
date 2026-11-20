@@ -14,6 +14,7 @@ use Foresi\Invoicing\Contract\IssuedDocument;
 use Foresi\Invoicing\Domain\FirmMailServer;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\MailTemplateKind;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\PartyDetails;
 use Foresi\Party\Domain\EmailPurpose;
 
@@ -39,6 +40,7 @@ final readonly class SendDraft
         private UserRepository $users,
         private AuditActor $actor,
         private InvoiceBalances $balances,
+        private InstanceFirm $instanceFirm,
     ) {
     }
 
@@ -67,8 +69,7 @@ final readonly class SendDraft
      */
     private function draft(Invoice $invoice, MailTemplateKind $kind, callable $values): SendDraftValues
     {
-        $firm = $invoice->firm();
-        $server = $this->servers->for($firm);
+        $server = $this->servers->get();
         $recipients = $this->recipients($invoice);
         $fromDocument = false;
         $copied = trim($invoice->customer()->email ?? '');
@@ -82,12 +83,12 @@ final readonly class SendDraft
 
         $userId = $this->actor->userId();
         $user = null === $userId ? null : $this->users->findById($userId);
-        $contact = trim($this->settings->for($firm)->contactEmail());
+        $contact = trim($this->settings->get()->contactEmail());
         $copyAddress = '' !== $contact ? $contact : $user?->email();
 
-        $template = $this->templates->textFor($firm, $kind, $invoice->language());
+        $template = $this->templates->textFor($kind, $invoice->language());
         // Read before the document, whose reading may start the entity manager afresh.
-        $sender = $user?->displayName() ?? $firm->name();
+        $sender = $user?->displayName() ?? $this->instanceFirm->get()->name();
         $values = $values($this->documents->of($invoice->id()), $sender);
         $text = new MailText();
 

@@ -17,6 +17,8 @@ use Foresi\Invoicing\Application\MailSamples;
 use Foresi\Invoicing\Contract\TotalRounding;
 use Foresi\Invoicing\Domain\FirmInvoicing;
 use Foresi\Invoicing\Domain\MailTemplateKind;
+use Foresi\Party\Application\InstanceFirm;
+use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\LegalEntity;
@@ -33,7 +35,7 @@ final class MailSamplesTest extends TestCase
     {
         $firm = $this->firm(VatId::fromString('CZ12345695'));
         $values = $this->samples($firm, new User('jana@example.com', 'hash', 'Jana Example'))
-            ->valuesFor($firm, MailTemplateKind::Invoice, DocumentLanguage::Czech, Currency::CZK, 'Sample Customer', 'Faktura');
+            ->valuesFor(MailTemplateKind::Invoice, DocumentLanguage::Czech, Currency::CZK, 'Sample Customer', 'Faktura');
 
         self::assertSame('20260042', $values['number']);
         self::assertSame('19. 11. 2026', $values['issue_date']);
@@ -55,7 +57,7 @@ final class MailSamplesTest extends TestCase
     public function testWithoutASignedInUserTheFirmSends(): void
     {
         $firm = $this->firm(null);
-        $values = $this->samples($firm, null)->valuesFor($firm, MailTemplateKind::Invoice, DocumentLanguage::English, Currency::EUR, 'Sample Customer Ltd', 'Invoice');
+        $values = $this->samples($firm, null)->valuesFor(MailTemplateKind::Invoice, DocumentLanguage::English, Currency::EUR, 'Sample Customer Ltd', 'Invoice');
 
         self::assertSame('Example Firm s.r.o.', $values['sender_name']);
         self::assertSame('', $values['vat_id']);
@@ -68,27 +70,30 @@ final class MailSamplesTest extends TestCase
         $firm = $this->firm(null);
         $samples = $this->samples($firm, null);
 
-        $reminder = $samples->valuesFor($firm, MailTemplateKind::Reminder, DocumentLanguage::English, Currency::EUR, 'C', 'Invoice');
+        $reminder = $samples->valuesFor(MailTemplateKind::Reminder, DocumentLanguage::English, Currency::EUR, 'C', 'Invoice');
         self::assertSame(['9', '1', '7,260.00 EUR'], [$reminder['days_overdue'], $reminder['reminder_step'], str_replace("\u{a0}", ' ', $reminder['amount_due'])]);
         self::assertArrayNotHasKey('original_number', $reminder);
 
-        $correction = $samples->valuesFor($firm, MailTemplateKind::CorrectionDocument, DocumentLanguage::English, Currency::EUR, 'C', 'Corrective tax document');
+        $correction = $samples->valuesFor(MailTemplateKind::CorrectionDocument, DocumentLanguage::English, Currency::EUR, 'C', 'Corrective tax document');
         self::assertSame('20260017', $correction['original_number']);
         self::assertArrayNotHasKey('amount_due', $correction);
     }
 
     private function samples(LegalEntity $firm, ?User $user): MailSamples
     {
-        $invoicing = FirmInvoicing::standard($firm);
+        $invoicing = FirmInvoicing::standard();
         $invoicing->change(TotalRounding::None, '', '', '', ' invoices@example.com ', '', '');
         $settings = self::createStub(FirmInvoicingSettings::class);
-        $settings->method('for')->willReturn($invoicing);
+        $settings->method('get')->willReturn($invoicing);
         $users = self::createStub(UserRepository::class);
         $users->method('findById')->willReturn($user);
         $actor = self::createStub(AuditActor::class);
         $actor->method('userId')->willReturn($user?->id());
 
-        return new MailSamples(new DocumentFormat(), $settings, $users, $actor, new MockClock('2026-11-19 23:30:00'));
+        $firms = self::createStub(LegalEntities::class);
+        $firms->method('all')->willReturn([$firm]);
+
+        return new MailSamples(new DocumentFormat(), $settings, $users, $actor, new MockClock('2026-11-19 23:30:00'), new InstanceFirm($firms));
     }
 
     private function firm(?VatId $vatId): LegalEntity

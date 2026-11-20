@@ -43,7 +43,7 @@ use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
 /**
- * The forecast of a firm (C2, C6–C10, C14): from the latest balance of each
+ * The forecast (C2, C6–C10, C14): from the latest balance of each
  * account, every source's flows in CZK by week then month, overdue documents
  * in the first period, expected days, the lowest point and the shortfall,
  * and a failing source, balance source or rate left out and listed.
@@ -152,7 +152,7 @@ final class ForecastsTest extends CashFlowTestCase
 
         $this->forecast(sources: [$source], months: 3);
 
-        self::assertSame([[$this->firm->id(), '2026-11-17', '2027-01-31', '2026-11-17 Europe/Prague']], $source->asked);
+        self::assertSame([['2026-11-17', '2027-01-31', '2026-11-17 Europe/Prague']], $source->asked);
     }
 
     public function testABalanceOlderThanSevenDaysIsStale(): void
@@ -269,7 +269,7 @@ final class ForecastsTest extends CashFlowTestCase
         self::assertSame(['test.broken'], $forecast->unavailableSources);
         self::assertSame([], $second->asked, 'The first source that knows the account wins.');
         $asked = $bank->asked[0];
-        self::assertSame([$this->account->id(), $this->firm->id(), 100000, '2026-11-10'], [$asked->accountId, $asked->firmId, $asked->amount->minor(), $asked->on->format('Y-m-d')]);
+        self::assertSame([$this->account->id(), 100000, '2026-11-10'], [$asked->accountId, $asked->amount->minor(), $asked->on->format('Y-m-d')]);
     }
 
     public function testWithoutAKnowingBalanceSourceTheCheckpointIsTheBalance(): void

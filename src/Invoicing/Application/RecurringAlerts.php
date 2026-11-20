@@ -12,6 +12,7 @@ use Foresi\Identity\Application\StaffCheck;
 use Foresi\Identity\Application\UserRepository;
 use Foresi\Invoicing\Domain\FirmMailServer;
 use Foresi\Invoicing\Domain\RecurringInvoice;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\PartyEmail;
@@ -21,7 +22,7 @@ use Psr\Log\LoggerInterface;
  * Tells the firm by e-mail which recurring templates could not issue or send
  * their invoice in a run: to the firm's contact address, else to the template's
  * owner while they are still staff of the organisation, through the firm's own server, in the language of the template's
- * documents, with a built-in text. One mail per firm, address and language for
+ * documents, with a built-in text. One mail per address and language for
  * the whole run, naming each template, so a day of refusals is one mail and not
  * one per template. Each template is told at most once a day, however often the
  * day runs: the day is checked and marked under the template's lock.
@@ -43,6 +44,7 @@ final readonly class RecurringAlerts
         private RecurringAlertTexts $texts,
         private TransactionalWork $work,
         private LoggerInterface $logger,
+        private InstanceFirm $instanceFirm,
     ) {
     }
 
@@ -56,13 +58,13 @@ final readonly class RecurringAlerts
         $groups = [];
         foreach ($failures as $id => $code) {
             $template = $this->templates->current($id);
-            $server = $this->servers->for($template->firm());
+            $server = $this->servers->get();
             $to = $this->recipient($template);
             if (!$server instanceof FirmMailServer || null === $to) {
                 continue;
             }
-            $key = $template->firm()->id().' '.$to.' '.$template->language()->value;
-            $groups[$key] ??= ['server' => $server, 'to' => $to, 'language' => $template->language(), 'firm' => $template->firm()->name(), 'firmId' => $template->firm()->id(), 'codes' => []];
+            $key = $to.' '.$template->language()->value;
+            $groups[$key] ??= ['server' => $server, 'to' => $to, 'language' => $template->language(), 'codes' => []];
             $groups[$key]['codes'][$id] = $code;
         }
         foreach ($groups as $group) {
@@ -76,7 +78,7 @@ final readonly class RecurringAlerts
             if ([] === $told) {
                 continue;
             }
-            $message = $this->message($group['firm'], $group['firmId'], $group['language'], $told, $today, $group['server'], $group['to']);
+            $message = $this->message($group['language'], $told, $today, $group['server'], $group['to']);
             try {
                 $this->gateway->send($message, $group['server']);
             } catch (MailRefused $refused) {
@@ -105,7 +107,7 @@ final readonly class RecurringAlerts
 
     private function recipient(RecurringInvoice $template): ?string
     {
-        $contact = trim($this->settings->for($template->firm())->contactEmail());
+        $contact = trim($this->settings->get()->contactEmail());
         if ('' !== $contact && PartyEmail::isValid($contact)) {
             return $contact;
         }
@@ -119,11 +121,12 @@ final readonly class RecurringAlerts
     /**
      * @param non-empty-list<array{id: string, customer: string, code: string}> $told
      */
-    private function message(string $firm, string $firmId, DocumentLanguage $language, array $told, \DateTimeImmutable $today, FirmMailServer $server, string $to): MailMessage
+    private function message(DocumentLanguage $language, array $told, \DateTimeImmutable $today, FirmMailServer $server, string $to): MailMessage
     {
-        ['subject' => $subject, 'text' => $text] = $this->texts->compose($firm, $language, array_map(static fn (array $one): array => ['customer' => $one['customer'], 'code' => $one['code']], $told), $today);
+        $firm = $this->instanceFirm->get();
+        ['subject' => $subject, 'text' => $text] = $this->texts->compose($firm->name(), $language, array_map(static fn (array $one): array => ['customer' => $one['customer'], 'code' => $one['code']], $told), $today);
         // The same for every try of the day, so a repeat is recognisable.
-        $reference = 1 === \count($told) ? $told[0]['id'] : $firmId;
+        $reference = 1 === \count($told) ? $told[0]['id'] : $firm->id();
         $from = $server->fromAddress();
         $domain = substr($from, (int) strrpos($from, '@') + 1);
 

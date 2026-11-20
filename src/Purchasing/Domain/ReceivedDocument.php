@@ -11,7 +11,6 @@ namespace Foresi\Purchasing\Domain;
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
 use Foresi\Audit\Domain\AuditExcluded;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Id;
@@ -36,11 +35,11 @@ use Foresi\Shared\Domain\Money;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'received_document')]
-#[ORM\Index(name: 'idx_received_document_firm_received', columns: ['legal_entity_id', 'received_date'])]
-#[ORM\Index(name: 'idx_received_document_firm_deduction', columns: ['legal_entity_id', 'deduction_period'])]
+#[ORM\Index(name: 'idx_received_document_received', columns: ['received_date'])]
+#[ORM\Index(name: 'idx_received_document_deduction', columns: ['deduction_period'])]
 #[ORM\Index(name: 'idx_received_document_supplier', columns: ['supplier_id'])]
 #[ORM\Index(name: 'idx_received_document_original', columns: ['original_document_id'])]
-#[ORM\UniqueConstraint(name: 'uniq_received_document_evidence', columns: ['legal_entity_id', 'evidence_number'])]
+#[ORM\UniqueConstraint(name: 'uniq_received_document_evidence', columns: ['evidence_number'])]
 class ReceivedDocument implements Audited
 {
     /** The owner kind of the original file in the attachment store. */
@@ -173,9 +172,6 @@ class ReceivedDocument implements Audited
      * @throws ReceivedDocumentRefused when the values do not fit together
      */
     public function __construct(
-        #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
-        #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
-        private readonly LegalEntity $firm,
         ReceivedDocumentContent $content,
         #[ORM\Column(name: 'created_by', type: 'guid', nullable: true)]
         private readonly ?string $createdBy,
@@ -315,11 +311,6 @@ class ReceivedDocument implements Audited
     public function version(): int
     {
         return $this->version;
-    }
-
-    public function firm(): LegalEntity
-    {
-        return $this->firm;
     }
 
     public function state(): ReceivedDocumentState

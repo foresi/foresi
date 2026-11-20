@@ -9,37 +9,38 @@ declare(strict_types=1);
 namespace Foresi\Banking\Application;
 
 use Foresi\Banking\Domain\FirmPairing;
-use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\InstanceFirm;
+use Foresi\Party\Application\NoFirmYet;
 use Foresi\Party\Application\TransactionalWork;
-use Foresi\Party\Application\UnknownLegalEntity;
 
 /**
- * The one path that writes a firm's pairing switches. The first change stores
- * the firm's row; until then it has the defaults.
+ * The one path that writes the pairing switches. The first change stores
+ * the row; until then the defaults apply.
  */
 final readonly class ChangePairing
 {
     public function __construct(
-        private LegalEntities $firms,
+        private InstanceFirm $firm,
         private FirmPairings $pairings,
         private TransactionalWork $transaction,
     ) {
     }
 
     /**
-     * @throws UnknownLegalEntity for an unknown firm
+     * @throws NoFirmYet before the first-run setup
      */
-    public function change(string $firmId, bool $autoPairing, bool $smallDifference): void
+    public function change(bool $autoPairing, bool $smallDifference): void
     {
-        $this->transaction->run(function () use ($firmId, $autoPairing, $smallDifference): void {
-            $firm = $this->firms->get($firmId);
-            $pairing = $this->pairings->of($firm);
+        $this->transaction->run(function () use ($autoPairing, $smallDifference): void {
+            // Two first changes at once would both find no row and both store one.
+            $this->firm->lock();
+            $pairing = $this->pairings->stored();
             if ($pairing instanceof FirmPairing) {
                 $pairing->change($autoPairing, $smallDifference);
 
                 return;
             }
-            $this->pairings->add(FirmPairing::of($firm, $autoPairing, $smallDifference));
+            $this->pairings->add(FirmPairing::of($autoPairing, $smallDifference));
         });
     }
 }

@@ -39,9 +39,8 @@ final readonly class InboundMailKit
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
 
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
-        $em->persist($firm);
-        $account = FirmAccounts::add($em, $firm, self::IBAN);
+        $em->persist(new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, ''));
+        $account = FirmAccounts::add($em, self::IBAN);
         $em->flush();
 
         $address = $generate->generate($account->id());

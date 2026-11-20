@@ -396,7 +396,7 @@ final class InvoicePaymentControllerTest extends WebTestCase
         $paymentId = $this->scoped(function () use ($first, $second): string {
             $part = Money::of('1210.00', Currency::CZK);
 
-            return self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-03'), Money::of('2420.00', Currency::CZK), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($first->id(), $part), new AllocationRequest($second->id(), $part)]))->id();
+            return self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-03'), Money::of('2420.00', Currency::CZK), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($first->id(), $part), new AllocationRequest($second->id(), $part)]))->id();
         });
 
         $crawler = $this->client->request('GET', '/invoices/'.$first->id().'/edit');
@@ -518,7 +518,7 @@ final class InvoicePaymentControllerTest extends WebTestCase
     {
         $this->scoped(function () use ($invoice, $difference): void {
             $line = new LineInput('Work', Quantity::fromString('-1'), 'h', Money::of(ltrim($difference, '-'), Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
-            self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($this->firm->id(), null, null, $this->customer->id(), null, new \DateTimeImmutable('2026-11-02'), new \DateTimeImmutable('2026-11-02'), new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Credit', '', '', DocumentLanguage::Czech, [$line], true, DocumentKind::CorrectionDocument, correction: new CorrectionInput($invoice->id(), 'Returned goods', CorrectionType::Change, new \DateTimeImmutable('2026-11-02'))));
+            self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput(null, null, $this->customer->id(), null, new \DateTimeImmutable('2026-11-02'), new \DateTimeImmutable('2026-11-02'), new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Credit', '', '', DocumentLanguage::Czech, [$line], true, DocumentKind::CorrectionDocument, correction: new CorrectionInput($invoice->id(), 'Returned goods', CorrectionType::Change, new \DateTimeImmutable('2026-11-02'))));
         });
     }
 
@@ -600,7 +600,7 @@ final class InvoicePaymentControllerTest extends WebTestCase
         return $this->scoped(function () use ($invoice, $amount): string {
             $money = Money::of($amount, Currency::CZK);
 
-            return self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-03'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $money)]))->id();
+            return self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-03'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $money)]))->id();
         });
     }
 
@@ -609,7 +609,7 @@ final class InvoicePaymentControllerTest extends WebTestCase
         return $this->scoped(function (): Invoice {
             $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
-            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($this->firm->id(), $this->series->id(), null, $this->customer->id(), null, new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line], true));
+            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($this->series->id(), null, $this->customer->id(), null, new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line], true));
         });
     }
 
@@ -620,8 +620,8 @@ final class InvoicePaymentControllerTest extends WebTestCase
     {
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
         $this->em()->persist($firm);
-        FirmAccounts::add($this->em(), $firm, self::IBAN);
-        $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+        FirmAccounts::add($this->em(), self::IBAN);
+        $series = new Series(Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $series->markDefault();
         $this->em()->persist($series);
         $customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');

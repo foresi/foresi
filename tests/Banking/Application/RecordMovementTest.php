@@ -26,11 +26,10 @@ use Foresi\Invoicing\Application\PaymentState;
 use Foresi\Party\Application\BankAccountRefusal;
 use Foresi\Party\Application\BankAccountRefused;
 use Foresi\Party\Application\FirmBankAccounts;
-use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\ManageFirmBankAccounts;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Contract\BankAccountUsage;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Application\Event\EventRecorder;
 use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Domain\Currency;
@@ -57,11 +56,11 @@ final class RecordMovementTest extends BankingTestCase
         self::assertNotNull($payment);
         $this->em->clear();
         $connection = $this->em->getConnection();
-        $row = $connection->fetchAssociative('SELECT legal_entity_id, firm_bank_account_id, inbound_message_id, direction, amount_minor, currency, booked_on, counter_iban, variable_symbol, constant_symbol, trust, trust_basis, state, unmatched_reason, payment_id, auto_pair_blocked FROM bank_movement WHERE id = ?', [$movement->id()]);
+        $row = $connection->fetchAssociative('SELECT firm_bank_account_id, inbound_message_id, direction, amount_minor, currency, booked_on, counter_iban, variable_symbol, constant_symbol, trust, trust_basis, state, unmatched_reason, payment_id, auto_pair_blocked FROM bank_movement WHERE id = ?', [$movement->id()]);
         self::assertIsArray($row);
         self::assertSame(
-            [$this->firm->id(), $this->account->id(), '01963c5e-0000-7000-8000-000000000001', 'incoming', 121000, 'CZK', '2026-11-20', self::COUNTER_IBAN, '20260001', '0308', 'verified', 'dmarc', 'paired', null, $payment->id(), false],
-            [$row['legal_entity_id'], $row['firm_bank_account_id'], $row['inbound_message_id'], $row['direction'], self::int($row['amount_minor']), $row['currency'], $row['booked_on'], $row['counter_iban'], $row['variable_symbol'], $row['constant_symbol'], $row['trust'], $row['trust_basis'], $row['state'], $row['unmatched_reason'], $row['payment_id'], (bool) $row['auto_pair_blocked']],
+            [$this->account->id(), '01963c5e-0000-7000-8000-000000000001', 'incoming', 121000, 'CZK', '2026-11-20', self::COUNTER_IBAN, '20260001', '0308', 'verified', 'dmarc', 'paired', null, $payment->id(), false],
+            [$row['firm_bank_account_id'], $row['inbound_message_id'], $row['direction'], self::int($row['amount_minor']), $row['currency'], $row['booked_on'], $row['counter_iban'], $row['variable_symbol'], $row['constant_symbol'], $row['trust'], $row['trust_basis'], $row['state'], $row['unmatched_reason'], $row['payment_id'], (bool) $row['auto_pair_blocked']],
         );
         $stored = $connection->fetchAssociative('SELECT source, bank_movement_id, method, received_on, amount_minor FROM payment WHERE id = ?', [$payment->id()]);
         self::assertSame(['bank_movement', $movement->id(), 'bank_transfer', '2026-11-20', 121000], [$stored['source'] ?? null, $stored['bank_movement_id'] ?? null, $stored['method'] ?? null, $stored['received_on'] ?? null, self::int($stored['amount_minor'] ?? 0)]);
@@ -105,13 +104,13 @@ final class RecordMovementTest extends BankingTestCase
     {
         $invoice = $this->issue->issue($this->input());
         $rules = new class implements FirmPairingRules {
-            public function for(LegalEntity $firm): PairingRules
+            public function get(): PairingRules
             {
                 return new PairingRules(false, false);
             }
         };
         $container = self::getContainer();
-        $record = new RecordMovement($this->movements, $container->get(FirmBankAccounts::class), $this->matcher, $rules, $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $container->get(PairingChoices::class), $container->get(EventRecorder::class));
+        $record = new RecordMovement($this->movements, $container->get(FirmBankAccounts::class), $this->matcher, $rules, $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $container->get(PairingChoices::class), $container->get(EventRecorder::class), $container->get(InstanceFirm::class));
 
         $movement = $record->record($this->incoming('1210.00'), self::verified());
 
@@ -124,7 +123,7 @@ final class RecordMovementTest extends BankingTestCase
     {
         $movements = new LoggingBankMovements($this->movements);
         $container = self::getContainer();
-        $record = new RecordMovement($movements, $container->get(FirmBankAccounts::class), $this->matcher, $container->get(FirmPairingRules::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $container->get(PairingChoices::class), $container->get(EventRecorder::class));
+        $record = new RecordMovement($movements, $container->get(FirmBankAccounts::class), $this->matcher, $container->get(FirmPairingRules::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $container->get(PairingChoices::class), $container->get(EventRecorder::class), $container->get(InstanceFirm::class));
 
         $movement = $record->record($this->incoming('10.00'), self::verified());
 
@@ -135,7 +134,7 @@ final class RecordMovementTest extends BankingTestCase
     public function testAnOwnTransferIsNeverPaired(): void
     {
         $this->issue->issue($this->input());
-        FirmAccounts::add($this->em, $this->firm, self::OTHER_OWN_IBAN, Currency::EUR);
+        FirmAccounts::add($this->em, self::OTHER_OWN_IBAN, Currency::EUR);
         $this->em->flush();
 
         $movement = $this->recordMovement->record($this->incoming('1210.00', counterIban: 'de89 3704 0044 0532 0130 00'), self::verified());
@@ -144,20 +143,6 @@ final class RecordMovementTest extends BankingTestCase
         $stored = $this->storedMovement($movement->id());
         self::assertSame([MovementState::OwnTransfer, null, null], [$stored->state(), $stored->unmatchedReason(), $stored->paymentId()]);
         self::assertSame(0, $this->paymentCount());
-    }
-
-    public function testATransferFromAnotherOwnFirmPairsNormally(): void
-    {
-        $invoice = $this->issue->issue($this->input());
-        $other = $this->firm(vatId: 'CZ12345687', registrationNumber: '12345687');
-        FirmAccounts::add($this->em, $other, self::OTHER_OWN_IBAN);
-        $this->em->flush();
-
-        $movement = $this->recordMovement->record($this->incoming('1210.00', counterIban: self::OTHER_OWN_IBAN), self::verified());
-        $this->pairing->auto($movement->id());
-
-        self::assertSame(MovementState::Paired, $this->storedMovement($movement->id())->state());
-        self::assertSame(PaymentState::Paid, $this->stateOf($invoice));
     }
 
     public function testAnOutgoingMovementNoRefundFitsIsRecordedOnlyAndQueuedForNoOne(): void
@@ -207,7 +192,7 @@ final class RecordMovementTest extends BankingTestCase
     {
         $container = self::getContainer();
         $usage = $container->get(BankAccountUsage::class);
-        $manage = new ManageFirmBankAccounts($container->get(LegalEntities::class), $container->get(FirmBankAccounts::class), $container->get(TransactionalWork::class), $usage, $container->get(ClockInterface::class), [new CzechBankAccount()]);
+        $manage = new ManageFirmBankAccounts($container->get(InstanceFirm::class), $container->get(FirmBankAccounts::class), $container->get(TransactionalWork::class), $usage, $container->get(ClockInterface::class), [new CzechBankAccount()]);
         $manage->change($this->account->id(), 'Main', 'EUR', true);
         $manage->change($this->account->id(), 'Main', 'CZK', true);
 

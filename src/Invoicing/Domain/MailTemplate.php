@@ -10,21 +10,19 @@ namespace Foresi\Invoicing\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
-use Foresi\Audit\Domain\AuditRooted;
 use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Id;
 
 /**
- * A firm's own subject and body for one kind of mail in one document language.
+ * The firm's own subject and body for one kind of mail in one document language.
  * The text holds variables as tokens such as {number}; which ones exist is known
- * to the application, which refuses an unknown one before it gets here. A firm
- * without a row sends the built-in text.
+ * to the application, which refuses an unknown one before it gets here. Without a row
+ * the firm sends the built-in text.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'mail_template')]
-#[ORM\UniqueConstraint(name: 'uniq_mail_template_firm_kind_language', columns: ['legal_entity_id', 'kind', 'language'])]
-class MailTemplate implements Audited, AuditRooted
+#[ORM\UniqueConstraint(name: 'uniq_mail_template_kind_language', columns: ['kind', 'language'])]
+class MailTemplate implements Audited
 {
     public const int MAX_SUBJECT = 255;
     public const int MAX_BODY = 10000;
@@ -40,9 +38,6 @@ class MailTemplate implements Audited, AuditRooted
     private string $body;
 
     private function __construct(
-        #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
-        #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
-        private readonly LegalEntity $firm,
         #[ORM\Column(type: 'string', length: 16, enumType: MailTemplateKind::class)]
         private readonly MailTemplateKind $kind,
         #[ORM\Column(type: 'string', length: 8, enumType: DocumentLanguage::class)]
@@ -54,9 +49,9 @@ class MailTemplate implements Audited, AuditRooted
         $this->change($subject, $body);
     }
 
-    public static function define(LegalEntity $firm, MailTemplateKind $kind, DocumentLanguage $language, string $subject, string $body): self
+    public static function define(MailTemplateKind $kind, DocumentLanguage $language, string $subject, string $body): self
     {
-        return new self($firm, $kind, $language, $subject, $body);
+        return new self($kind, $language, $subject, $body);
     }
 
     /**
@@ -86,16 +81,6 @@ class MailTemplate implements Audited, AuditRooted
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function auditRoot(): object
-    {
-        return $this->firm;
-    }
-
-    public function firm(): LegalEntity
-    {
-        return $this->firm;
     }
 
     public function kind(): MailTemplateKind

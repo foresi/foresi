@@ -45,7 +45,6 @@ final class PlannedItemWritesTest extends CashFlowTestCase
         self::assertNull($stored->recurrence(new \DateTimeZone('Europe/Prague')));
         self::assertTrue($stored->isIncluded());
         self::assertSame($this->customer->id(), $stored->counterparty()?->id());
-        self::assertSame($this->firm->id(), $stored->firm()->id());
         self::assertTrue($stored->matchRule()->isEmpty());
         self::assertSame('2026-11-17T10:00:00+00:00', $stored->createdAt()->format(\DATE_ATOM));
         self::assertSame([['planned_item_id' => $item->id(), 'firm_id' => $this->firm->id(), 'direction' => 'out', 'amount' => '10000.00', 'currency' => 'CZK', 'recurring' => false]], $this->events('cash-flow.planned_item.created'));
@@ -292,7 +291,7 @@ final class PlannedItemWritesTest extends CashFlowTestCase
         $this->assertRefused('not_found', null, fn (): string => $this->writes()->delete(new DeletePlannedItemInput($id)));
     }
 
-    public function testReadsTheItemsOfAFirmOldestFirst(): void
+    public function testReadsTheItemsOldestFirst(): void
     {
         $first = $this->planned(name: 'First');
         $this->clock->modify('+1 minute');

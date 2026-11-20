@@ -11,41 +11,40 @@ namespace Foresi\Idoklad\Application;
 use Foresi\Idoklad\Domain\IdokladPull;
 use Foresi\Idoklad\Domain\IdokladRecord;
 use Foresi\Idoklad\Domain\IdokladResource;
-use Foresi\Party\Domain\LegalEntity;
 
 /**
- * Port: the records copied from a firm's iDoklad account, and the pulls that
+ * Port: the records copied from the iDoklad account, and the pulls that
  * copied them. What a later import step reads.
  */
 interface IdokladSnapshot
 {
-    public function record(LegalEntity $firm, IdokladResource $resource, int $externalId): ?IdokladRecord;
+    public function record(IdokladResource $resource, int $externalId): ?IdokladRecord;
 
     /**
      * The records of one list, by their iDoklad id.
      *
      * @return iterable<IdokladRecord>
      */
-    public function records(LegalEntity $firm, IdokladResource $resource): iterable;
+    public function records(IdokladResource $resource): iterable;
 
     /**
      * Records of documents that have a PDF report and no stored PDF yet.
      *
      * @return list<IdokladRecord>
      */
-    public function withoutPdf(LegalEntity $firm, int $limit): array;
+    public function withoutPdf(int $limit): array;
 
     /**
      * The latest pull that finished without an error; a delta pull starts from its latest change.
      */
-    public function lastSucceededPull(LegalEntity $firm): ?IdokladPull;
+    public function lastSucceededPull(): ?IdokladPull;
 
     /**
-     * The firm's pulls, the latest first.
+     * The pulls, the latest first.
      *
      * @return list<IdokladPull>
      */
-    public function pulls(LegalEntity $firm): array;
+    public function pulls(): array;
 
     public function add(IdokladRecord|IdokladPull $entity): void;
 }

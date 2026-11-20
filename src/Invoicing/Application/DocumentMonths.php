@@ -16,11 +16,11 @@ use Foresi\Invoicing\Contract\DocumentKind;
 interface DocumentMonths
 {
     /**
-     * The months, as YYYY-MM, with a document of the kind (of any kind when null) and of the
-     * firm (of any firm when null), the trash included. A tax document belongs to the month
-     * of its tax point, an advance to that of its issue, as InvoiceFilter narrows by month.
+     * The months, as YYYY-MM, with a document of the kind (of any kind when null), the trash
+     * included. A tax document belongs to the month of its tax point, an advance to
+     * that of its issue, as InvoiceFilter narrows by month.
      *
      * @return list<string> newest first
      */
-    public function months(?DocumentKind $kind, ?string $firmId): array;
+    public function months(?DocumentKind $kind): array;
 }

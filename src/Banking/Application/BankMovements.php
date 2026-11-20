@@ -66,10 +66,9 @@ interface BankMovements
     public function unmatchedIncoming(): int;
 
     /**
-     * Every bank account of the firms, archived ones too, by firm name and then
-     * as the firm orders them.
+     * Every bank account of the firm, archived ones too, as the firm orders them.
      *
-     * @return array<string, array{firmId: string, firmName: string, label: string, iban: string}> by account id
+     * @return array<string, array{label: string, iban: string}> by account id
      */
     public function accounts(): array;
 

@@ -52,14 +52,13 @@ final readonly class DoctrineMovementLedger implements MovementLedger
         ];
     }
 
-    public function bookedBetween(string $firmId, \DateTimeImmutable $from, \DateTimeImmutable $to): array
+    public function bookedBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): array
     {
         /* @var list<BankMovement> */
         return $this->em->createQuery(
             'SELECT m FROM '.BankMovement::class.' m JOIN m.account a'
-            .' WHERE m.firm = :firm AND m.currency = a.currency AND m.state <> :duplicate AND m.bookedOn >= :from AND m.bookedOn <= :to ORDER BY m.bookedOn, m.id',
+            .' WHERE m.currency = a.currency AND m.state <> :duplicate AND m.bookedOn >= :from AND m.bookedOn <= :to ORDER BY m.bookedOn, m.id',
         )
-            ->setParameter('firm', $firmId)
             ->setParameter('duplicate', MovementState::PossibleDuplicate)
             ->setParameter('from', $from, Types::DATE_IMMUTABLE)
             ->setParameter('to', $to, Types::DATE_IMMUTABLE)

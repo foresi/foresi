@@ -11,7 +11,6 @@ namespace Foresi\Tests\Invoicing\Infrastructure\Api;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Invoicing\Domain\Payment;
 use Foresi\Invoicing\Domain\PaymentDirection;
-use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Infrastructure\Api\Cursor;
 use Foresi\Tests\Invoicing\Support\IssuesInvoices;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;

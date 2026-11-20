@@ -11,7 +11,6 @@ namespace Foresi\Idoklad\Infrastructure\Doctrine;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Idoklad\Application\IdokladConnections;
 use Foresi\Idoklad\Domain\IdokladConnection;
-use Foresi\Party\Domain\LegalEntity;
 
 final readonly class DoctrineIdokladConnections implements IdokladConnections
 {
@@ -19,9 +18,9 @@ final readonly class DoctrineIdokladConnections implements IdokladConnections
     {
     }
 
-    public function for(LegalEntity $firm): ?IdokladConnection
+    public function get(): ?IdokladConnection
     {
-        return $this->em->getRepository(IdokladConnection::class)->findOneBy(['firm' => $firm]);
+        return $this->em->getRepository(IdokladConnection::class)->findOneBy([]);
     }
 
     public function save(IdokladConnection $connection): void

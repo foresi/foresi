@@ -13,6 +13,7 @@ use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\DocumentTotals;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\RecurringInvoiceLine;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Money;
 
@@ -27,6 +28,7 @@ final readonly class RecurringAmounts
         private LinePricing $pricing,
         private FirmInvoicingSettings $settings,
         private InvoicingCountries $countries,
+        private InstanceFirm $instanceFirm,
     ) {
     }
 
@@ -39,12 +41,15 @@ final readonly class RecurringAmounts
      */
     public function payable(array $templates, array $lines, \DateTimeImmutable $today): array
     {
-        $rounding = [];
+        if ([] === $templates) {
+            return [];
+        }
+        // Read once for the whole page: a query per template would grow the list's queries with its rows.
+        $firm = $this->instanceFirm->get();
+        $rounding = $this->settings->get()->rounding();
         $amounts = [];
         foreach ($templates as $template) {
-            $firm = $template->firm();
-            $rounding[$firm->id()] ??= $this->settings->for($firm)->rounding();
-            $amounts[$template->id()] = $this->priced($template, $firm, $lines[$template->id()] ?? [], $rounding[$firm->id()], $today);
+            $amounts[$template->id()] = $this->priced($template, $firm, $lines[$template->id()] ?? [], $rounding, $today);
         }
 
         return $amounts;
@@ -59,9 +64,7 @@ final readonly class RecurringAmounts
      */
     public function breakdown(RecurringInvoice $template, array $lines, \DateTimeImmutable $today): ?array
     {
-        $firm = $template->firm();
-
-        return $this->price($template, $firm, $lines, $this->settings->for($firm)->rounding(), $today);
+        return $this->price($template, $this->instanceFirm->get(), $lines, $this->settings->get()->rounding(), $today);
     }
 
     /**

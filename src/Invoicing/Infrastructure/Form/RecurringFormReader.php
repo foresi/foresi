@@ -71,7 +71,6 @@ final readonly class RecurringFormReader
 
         $typed = $shared->input;
         $input = new RecurringInput(
-            $typed->firmId,
             $typed->seriesId,
             $typed->customerId,
             $typed->paymentMethod,

@@ -30,18 +30,18 @@ final readonly class DoctrineCandidates implements Candidates
     {
     }
 
-    public function withSymbol(string $firmId, string $variableSymbol): array
+    public function withSymbol(string $variableSymbol): array
     {
         return $this->candidates(
-            'i.firm = :firm AND i.deletedAt IS NULL AND TRIM(LEADING \'0\' FROM i.variableSymbol) = :symbol',
-            ['firm' => $firmId, 'symbol' => $variableSymbol],
+            'i.deletedAt IS NULL AND TRIM(LEADING \'0\' FROM i.variableSymbol) = :symbol',
+            ['symbol' => $variableSymbol],
         );
     }
 
-    public function open(string $firmId, Currency $currency, string $text, array $ids, int $limit): array
+    public function open(Currency $currency, string $text, array $ids, int $limit): array
     {
-        $where = 'i.firm = :firm AND i.deletedAt IS NULL AND i.currency = :currency';
-        $parameters = ['firm' => $firmId, 'currency' => $currency->value];
+        $where = 'i.deletedAt IS NULL AND i.currency = :currency';
+        $parameters = ['currency' => $currency->value];
         $found = [];
         $text = trim($text);
         if ('' !== $text) {
@@ -62,10 +62,10 @@ final readonly class DoctrineCandidates implements Candidates
         return \array_slice($this->candidates($where, $parameters), 0, max(0, $limit));
     }
 
-    public function refunds(string $firmId, ?string $variableSymbol): array
+    public function refunds(?string $variableSymbol): array
     {
-        $where = 'i.firm = :firm AND i.deletedAt IS NULL';
-        $parameters = ['firm' => $firmId];
+        $where = 'i.deletedAt IS NULL';
+        $parameters = [];
         if (null !== $variableSymbol) {
             $where .= ' AND (TRIM(LEADING \'0\' FROM i.variableSymbol) = :symbol OR EXISTS (SELECT 1 FROM '.Invoice::class.' cs'
                 .' WHERE cs.correctedInvoiceId = i.id AND cs.deletedAt IS NULL AND TRIM(LEADING \'0\' FROM cs.variableSymbol) = :symbol))';
@@ -84,7 +84,7 @@ final readonly class DoctrineCandidates implements Candidates
         return $candidates;
     }
 
-    public function paidFrom(string $firmId, ?string $counterIban, ?string $counterAccount): array
+    public function paidFrom(?string $counterIban, ?string $counterAccount): array
     {
         [$field, $value] = null !== $counterIban && '' !== $counterIban ? ['counterIban', $counterIban] : ['counterAccount', $counterAccount];
         if (null === $value || '' === $value) {
@@ -93,10 +93,9 @@ final readonly class DoctrineCandidates implements Candidates
         /** @var list<array{id: string}> $rows */
         $rows = $this->em->createQuery(
             'SELECT DISTINCT IDENTITY(a.invoice) AS id FROM '.PaymentAllocation::class.' a JOIN a.payment p, '.BankMovement::class.' m '
-            .'WHERE m.id = p.bankMovementId AND p.cancelledAt IS NULL AND p.direction = :incoming AND m.firm = :firm AND m.'.$field.' = :value',
+            .'WHERE m.id = p.bankMovementId AND p.cancelledAt IS NULL AND p.direction = :incoming AND m.'.$field.' = :value',
         )
             ->setParameter('incoming', PaymentDirection::Incoming)
-            ->setParameter('firm', $firmId)
             ->setParameter('value', $value)
             ->getArrayResult();
 

@@ -52,7 +52,7 @@ final readonly class BankScreen
             $total,
             $page,
             $pages,
-            array_map(static fn (array $account): array => ['firmId' => $account['firmId'], 'label' => $account['label'], 'iban' => $account['iban']], $accounts),
+            $accounts,
             $counts,
             $mail,
         );

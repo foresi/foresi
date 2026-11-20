@@ -260,20 +260,9 @@ final class MatcherTest extends BankingTestCase
         self::assertSame(UnmatchedReason::CurrencyMismatch, $decision->reason);
     }
 
-    public function testAnotherFirmsInvoiceIsNoCandidate(): void
-    {
-        $other = $this->firm(vatId: 'CZ12345687', registrationNumber: '12345687');
-        $otherSeries = $this->seriesOf($other);
-        $this->em->flush();
-        $this->issue->issue($this->input(overrides: ['firmId' => $other->id(), 'seriesId' => $otherSeries->id()]));
-
-        self::assertSame([], $this->matcher->candidates($this->movement('1210.00')));
-    }
-
     private function pay(string $invoiceId, string $amount): void
     {
         self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(
-            $this->firm->id(),
             new \DateTimeImmutable('2026-11-20'),
             $this->czk($amount),
             PaymentMethod::BankTransfer,
@@ -298,7 +287,7 @@ final class MatcherTest extends BankingTestCase
     private function movement(string $amount, Currency $currency = Currency::CZK, ?string $vs = '20260001', MessageTrust $trust = MessageTrust::Verified, ?FirmBankAccount $account = null, MovementDirection $direction = MovementDirection::Incoming): BankMovement
     {
         if (!$account instanceof FirmBankAccount) {
-            $account = $currency === $this->account->currency() ? $this->account : ($this->foreign ??= FirmAccounts::add($this->em, $this->firm, 'DE89370400440532013000', $currency));
+            $account = $currency === $this->account->currency() ? $this->account : ($this->foreign ??= FirmAccounts::add($this->em, 'DE89370400440532013000', $currency));
         }
 
         return new BankMovement($account, null, $direction, Money::of($amount, $currency), new \DateTimeImmutable('2026-11-20'), null, null, null, $vs, null, null, null, null, str_repeat('a', 64), $trust, 'dmarc', MovementState::Unmatched, UnmatchedReason::NoInvoice);

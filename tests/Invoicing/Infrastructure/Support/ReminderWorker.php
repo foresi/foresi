@@ -84,15 +84,15 @@ abstract class ReminderWorker extends KernelTestCase
             $em->clear();
             $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register');
             $em->persist($firm);
-            FirmAccounts::add($em, $firm, self::IBAN);
-            $series = new Series($firm, 'Standard', SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+            FirmAccounts::add($em, self::IBAN);
+            $series = new Series('Standard', SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
             $em->persist($series);
             $customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');
             $em->persist($customer);
             $em->persist(new PartyAddress($customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
             $em->persist(new PartyEmail($customer, 'billing@example.com', EmailPurpose::Invoices));
-            $em->persist(FirmMailServer::define($firm, 'smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', $secrets->seal('correct-horse-battery'), 'invoices@example.com', 'Example Firm'));
-            $reminders = FirmReminders::standard($firm);
+            $em->persist(FirmMailServer::define('smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', $secrets->seal('correct-horse-battery'), 'invoices@example.com', 'Example Firm'));
+            $reminders = FirmReminders::standard();
             $reminders->change(true, 7, 7, null, new \DateTimeImmutable('2027-01-01'));
             $em->persist($reminders);
             $em->flush();
@@ -101,7 +101,7 @@ abstract class ReminderWorker extends KernelTestCase
             $day = new \DateTimeImmutable('2026-11-01');
             for ($i = 0; $i < self::INVOICES; ++$i) {
                 $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
-                $invoice = $issue->issue(new InvoiceInput($firm->id(), $series->id(), null, $customer->id(), null, $day, $day, new \DateTimeImmutable('2027-01-10'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line]));
+                $invoice = $issue->issue(new InvoiceInput($series->id(), null, $customer->id(), null, $day, $day, new \DateTimeImmutable('2027-01-10'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line]));
                 $invoices[] = $delivered->mark($invoice->id())->id();
             }
             $ids[] = ['invoices' => $invoices];

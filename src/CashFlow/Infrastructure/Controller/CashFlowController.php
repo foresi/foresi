@@ -254,7 +254,9 @@ final class CashFlowController extends AbstractController
         try {
             $this->access->denyUnlessStaff();
 
-            return $this->access->accountsOf($this->access->firm());
+            $this->access->firm();
+
+            return $this->access->accounts();
         } catch (CashFlowRefused $refused) {
             $this->denyIfForbidden($refused);
 

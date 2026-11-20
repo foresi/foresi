@@ -39,7 +39,6 @@ final readonly class TimeBilledWork implements BilledWork
 
         return new BilledWorkDraft(
             $reference,
-            $selection->firmId,
             $selection->clientId,
             $selection->currency,
             array_map(static fn (SelectedLine $line): BilledLine => new BilledLine($line->text, $line->hours, $line->unit, $line->rate, $line->key), $selection->lines),

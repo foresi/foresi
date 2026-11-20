@@ -26,6 +26,7 @@ use Foresi\Banking\Domain\InboundMessage;
 use Foresi\Banking\Domain\InboundStatus;
 use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Identity\Application\StaffCheck;
+use Foresi\Party\Application\InstanceFirm;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -63,6 +64,7 @@ final class InboundMessageController extends AbstractController
         private readonly ClockInterface $clock,
         private readonly InboundAddresses $addresses,
         private readonly Ownership $ownership,
+        private readonly InstanceFirm $firm,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -80,8 +82,8 @@ final class InboundMessageController extends AbstractController
             'message' => $message,
             'subject' => $this->addresses->masked($message->subject()),
             'from' => null === $message->fromAddress() ? null : $this->addresses->masked($message->fromAddress()),
-            'received' => $this->text->time($row->receivedAt, $row->firmCountry),
-            'account' => $row->firmName.' · '.$this->text->account($row->accountLabel, $row->accountIban, $row->firmCountry),
+            'received' => $this->text->time($row->receivedAt),
+            'account' => $this->firm->get()->name().' · '.$this->text->account($row->accountLabel, $row->accountIban),
             'status' => $this->text->status($row->status, $row->stuck),
             'reason' => $this->text->reason($row->status, $row->failure, $row->stuck),
             'trust' => $row->trust instanceof MessageTrust ? $this->translator->trans('bank.message.trust.'.$row->trust->value) : null,

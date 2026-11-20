@@ -70,7 +70,6 @@ final class SendLogControllerTest extends WebTestCase
 
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private LegalEntity $firm;
     private Series $series;
     private Party $customer;
 
@@ -563,42 +562,34 @@ final class SendLogControllerTest extends WebTestCase
         return $crawler->filter('nav[aria-label="Send states"] a')->each(static fn (Crawler $tab): string => trim($tab->text()));
     }
 
-    /**
-     * @param array{LegalEntity, Series}|null $firm
-     */
-    private function issued(?array $firm = null, ?Party $customer = null): Invoice
+    private function issued(?Party $customer = null): Invoice
     {
-        [$issuer, $series] = $firm ?? [$this->firm, $this->series];
         $day = new \DateTimeImmutable('2026-11-01');
         $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
-        return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($issuer->id(), $series->id(), null, ($customer ?? $this->customer)->id(), null, $day, $day, new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line]));
+        return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($this->series->id(), null, ($customer ?? $this->customer)->id(), null, $day, $day, new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line]));
     }
 
     private function signedIn(Role $role = Role::Owner, string $locale = 'en'): void
     {
         $this->browser->seed($locale, $role);
-        [$this->firm, $this->series] = $this->firmWithServer('Example Firm s.r.o.', '12345695');
+        $this->series = $this->firmWithServer('Example Firm s.r.o.', '12345695');
         $this->customer = $this->newCustomer('Example Customer a.s.');
         $this->browser->signIn();
     }
 
-    /**
-     * @return array{LegalEntity, Series}
-     */
-    private function firmWithServer(string $name, string $registrationNumber): array
+    private function firmWithServer(string $name, string $registrationNumber): Series
     {
         $em = $this->em();
-        $firm = new LegalEntity($name, new RegistrationNumber('CZ', $registrationNumber), VatId::fromString('CZ'.$registrationNumber), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
-        $em->persist($firm);
-        FirmAccounts::add($em, $firm, self::IBAN);
-        $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+        $em->persist(new LegalEntity($name, new RegistrationNumber('CZ', $registrationNumber), VatId::fromString('CZ'.$registrationNumber), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1'));
+        FirmAccounts::add($em, self::IBAN);
+        $series = new Series(Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $series->markDefault();
         $em->persist($series);
-        $em->persist(FirmMailServer::define($firm, 'smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', self::getContainer()->get(MailSecrets::class)->seal('correct-horse-battery'), 'invoices@example.com', $name));
+        $em->persist(FirmMailServer::define('smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', self::getContainer()->get(MailSecrets::class)->seal('correct-horse-battery'), 'invoices@example.com', $name));
         $em->flush();
 
-        return [$firm, $series];
+        return $series;
     }
 
     private function newCustomer(string $name): Party

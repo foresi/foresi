@@ -9,17 +9,16 @@ declare(strict_types=1);
 namespace Foresi\Idoklad\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Id;
 
 /**
- * One record of a firm's iDoklad account exactly as the API returned it, kept
+ * One record of the iDoklad account exactly as the API returned it, kept
  * so the import maps it later without asking iDoklad again. A later pull
  * replaces the payload; a changed payload asks for its PDF again.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'idoklad_record')]
-#[ORM\UniqueConstraint(name: 'uniq_idoklad_record', columns: ['legal_entity_id', 'resource', 'external_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_idoklad_record', columns: ['resource', 'external_id'])]
 class IdokladRecord
 {
     #[ORM\Id]
@@ -44,9 +43,6 @@ class IdokladRecord
      * @param array<mixed> $payload
      */
     public function __construct(
-        #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
-        #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
-        private readonly LegalEntity $firm,
         #[ORM\Column(type: 'string', length: 32, enumType: IdokladResource::class)]
         private readonly IdokladResource $resource,
         #[ORM\Column(name: 'external_id', type: 'integer')]
@@ -98,11 +94,6 @@ class IdokladRecord
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function firm(): LegalEntity
-    {
-        return $this->firm;
     }
 
     public function resource(): IdokladResource

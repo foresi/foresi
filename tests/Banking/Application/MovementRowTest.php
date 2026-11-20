@@ -43,7 +43,7 @@ final class MovementRowTest extends TestCase
     #[DataProvider('rows')]
     public function testOnlyAMovementWaitingWhoseMessageDidNotFailIsPairable(MovementDirection $direction, MovementState $state, ?UnmatchedReason $reason, MessageTrust $trust, bool $pairable): void
     {
-        $row = new MovementRow('m', 'f', 'Example Firm s.r.o.', 'a', 'Main', 'CZ6508000000192000145399', $direction, Money::of('10.00', Currency::CZK), new \DateTimeImmutable('2026-11-20'), null, null, null, null, $state, $reason, $trust, null, []);
+        $row = new MovementRow('m', 'a', 'Main', 'CZ6508000000192000145399', $direction, Money::of('10.00', Currency::CZK), new \DateTimeImmutable('2026-11-20'), null, null, null, null, $state, $reason, $trust, null, []);
 
         self::assertSame($pairable, $row->isPairable());
     }

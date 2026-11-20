@@ -79,7 +79,7 @@ final class PlannedFulfilmentTest extends CashFlowTestCase
 
         self::assertSame(['2026-12-25', '2027-01-25'], array_slice($this->days($forecast, $rent), 0, 2), 'November has the landlord\'s document; December has one in the other direction and January one of another contact.');
         self::assertSame(['2026-11-26'], $this->days($forecast, $once), 'A one-off item is never replaced by the counterparty alone.');
-        self::assertSame('2026-11-01', $documents->asked[0][1], 'Asked once from the first period that matters.');
+        self::assertSame('2026-11-01', $documents->asked[0][0], 'Asked once from the first period that matters.');
         self::assertCount(1, $documents->asked);
     }
 
@@ -247,7 +247,7 @@ final class PlannedFulfilmentTest extends CashFlowTestCase
         $documents = new FakeActualSource('test.documents');
         $this->forecast([$documents]);
 
-        self::assertSame([[$this->firm->id(), '2026-11-16', '2027-12-31']], $documents->asked, 'From the start of the earliest period to the end of the latest, whichever line comes last.');
+        self::assertSame([['2026-11-16', '2027-12-31']], $documents->asked, 'From the start of the earliest period to the end of the latest, whichever line comes last.');
         self::assertNotSame($plain->id(), $once->id());
     }
 

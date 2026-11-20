@@ -29,11 +29,7 @@ use Foresi\Identity\Application\Organisation;
 use Foresi\Identity\Application\StaffCheck;
 use Foresi\Identity\Domain\Role;
 use Foresi\Invoicing\Application\PaymentState;
-use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\FirmBankAccount;
-use Foresi\Party\Domain\LegalEntity;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use Foresi\Tests\Banking\Support\InboundMailKit;
 use Foresi\Tests\Banking\Support\InboundTestCase;
 use Foresi\Tests\Banking\Support\Scalars;
@@ -54,40 +50,11 @@ final class ProcessMessageTest extends InboundTestCase
 {
     private const string OTHER_IBAN = 'CZ5508000000001234567899';
 
-    public function testAnAccountOfAnotherFirmIsRejectedAndCannotBeAccepted(): void
-    {
-        $invoice = $this->kbInvoice();
-        $other = new LegalEntity('Other Firm s.r.o.', new RegistrationNumber('CZ', '87654320'), null, new Address('Other Street 3', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
-        $this->em->persist($other);
-        $account = FirmAccounts::add($this->em, $other, self::OTHER_IBAN);
-        $this->em->flush();
-        $address = self::getContainer()->get(GenerateAddress::class)->generate($account->id());
-        // Sent to the other firm's address, about this firm's account: someone else's money for that firm.
-        $id = $this->received($this->notice('incoming-booked', to: $address));
-
-        self::assertSame(InboundStatus::Rejected, $this->process->process($id));
-
-        $row = $this->messageRow($id);
-        self::assertSame(['rejected', 'verified', 'account_mismatch', 'cz.kb'], [$row['status'], $row['trust'], $row['failure'], $row['parser_id']]);
-        self::assertSame([], $this->movementsOf($id));
-        try {
-            $this->accept()->accept($id);
-            self::fail('An account of another firm is never recorded.');
-        } catch (AcceptRefused $refused) {
-            self::assertSame(AcceptRefused::ACCOUNT_MISMATCH, $refused->reason);
-        }
-        self::assertSame('rejected', $this->messageRow($id)['status']);
-        self::assertSame([], $this->movementsOf($id));
-        self::assertSame(PaymentState::Unpaid, $this->stateOf($invoice));
-    }
-
-    public function testAnotherAccountOfTheSameFirmIsAccepted(): void
+    public function testAnotherAccountOfTheFirmIsAccepted(): void
     {
         // KB+ sends every notice to one address: the one of the firm's other account here.
         $invoice = $this->kbInvoice();
-        $firm = $this->em->find(LegalEntity::class, $this->firm->id());
-        self::assertInstanceOf(LegalEntity::class, $firm);
-        $second = FirmAccounts::add($this->em, $firm, self::OTHER_IBAN);
+        $second = FirmAccounts::add($this->em, self::OTHER_IBAN);
         $this->em->flush();
         $address = self::getContainer()->get(GenerateAddress::class)->generate($second->id());
         $id = $this->received($this->notice('incoming-booked', to: $address));
@@ -101,7 +68,7 @@ final class ProcessMessageTest extends InboundTestCase
         self::assertSame(PaymentState::Paid, $this->stateOf($invoice));
     }
 
-    public function testAnArchivedAccountIsRejected(): void
+    public function testAnArchivedAccountIsRejectedAndCannotBeAccepted(): void
     {
         $id = $this->received($this->notice('incoming-booked'));
         $account = $this->em->find(FirmBankAccount::class, $this->account->id());
@@ -112,6 +79,14 @@ final class ProcessMessageTest extends InboundTestCase
         self::assertSame(InboundStatus::Rejected, $this->process->process($id));
 
         self::assertSame('account_mismatch', $this->messageRow($id)['failure']);
+        self::assertSame([], $this->movementsOf($id));
+        try {
+            $this->accept()->accept($id);
+            self::fail('A movement on an account that is not an active account of the firm is never recorded.');
+        } catch (AcceptRefused $refused) {
+            self::assertSame(AcceptRefused::ACCOUNT_MISMATCH, $refused->reason);
+        }
+        self::assertSame('rejected', $this->messageRow($id)['status']);
         self::assertSame([], $this->movementsOf($id));
     }
 

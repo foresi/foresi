@@ -44,7 +44,7 @@ final class MessageRowTest extends TestCase
     #[DataProvider('actions')]
     public function testOffersTheActionsOfItsStatus(InboundStatus $status, ?string $failure, bool $stuck, array $expected): void
     {
-        $row = new MessageRow('00000000-0000-4000-8000-000000000001', new \DateTimeImmutable('2026-11-20 10:00:00'), 'bank@example.com', 'Payment', $status, $failure, null, null, null, null, null, 1, 'Example Firm s.r.o.', 'CZ', 'Main', 'CZ6508000000192000145399', $stuck);
+        $row = new MessageRow('00000000-0000-4000-8000-000000000001', new \DateTimeImmutable('2026-11-20 10:00:00'), 'bank@example.com', 'Payment', $status, $failure, null, null, null, null, null, 1, 'Main', 'CZ6508000000192000145399', $stuck);
 
         self::assertSame($expected, [$row->canRetry(), $row->canAccept(), $row->canDismiss()]);
     }

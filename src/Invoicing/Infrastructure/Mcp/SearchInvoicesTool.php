@@ -10,12 +10,14 @@ namespace Foresi\Invoicing\Infrastructure\Mcp;
 
 use Foresi\Invoicing\Application\InvoicingNotAllowed;
 use Foresi\Invoicing\Application\Query\InvoiceList;
+use Foresi\Invoicing\Application\Query\InvoiceListItem;
 use Foresi\Invoicing\Application\Query\InvoiceSliceFilter;
 use Foresi\Invoicing\Application\View\InvoiceLists;
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Infrastructure\Api\InvoiceJson;
 use Foresi\Invoicing\Infrastructure\Api\InvoiceListQuery;
 use Foresi\Invoicing\Infrastructure\Api\InvoiceViewFilter;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Shared\Application\Api\ScopeGuard;
 use Foresi\Shared\Application\View\SavedViewRefused;
 use Foresi\Shared\Application\View\SavedViews;
@@ -32,7 +34,7 @@ use Foresi\Shared\Infrastructure\View\Api\ViewJson;
  */
 final readonly class SearchInvoicesTool implements ReadTool
 {
-    public function __construct(private InvoiceList $list, private ToolArguments $arguments, private SavedViews $views, private ScopeGuard $scope, private ViewJson $json, private InvoiceLists $lists)
+    public function __construct(private InvoiceList $list, private ToolArguments $arguments, private SavedViews $views, private ScopeGuard $scope, private ViewJson $json, private InvoiceLists $lists, private InstanceFirm $instanceFirm)
     {
     }
 
@@ -108,7 +110,8 @@ final readonly class SearchInvoicesTool implements ReadTool
         } catch (InvoicingNotAllowed) {
             throw ToolRefusal::forbidden('Only the owners and members of the organisation read its invoices.');
         }
-        $page = ToolArguments::page(array_map(InvoiceJson::item(...), $slice->items), $slice->nextAfterId(), 'document', 'documents');
+        $firm = $this->instanceFirm->find();
+        $page = ToolArguments::page($firm instanceof \Foresi\Party\Domain\LegalEntity ? array_map(static fn (InvoiceListItem $item): array => InvoiceJson::item($item, $firm), $slice->items) : [], $slice->nextAfterId(), 'document', 'documents');
         if (!$applied->view instanceof \Foresi\Shared\Domain\View\SavedView) {
             return new ToolOutput($page->data + ['applied_view' => null], $page->summary);
         }

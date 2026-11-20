@@ -16,7 +16,7 @@ use Foresi\Shared\Domain\Currency;
 interface Candidates
 {
     /**
-     * The invoices of the firm that are not in the trash, have something left to
+     * The invoices that are not in the trash, have something left to
      * pay and carry the variable symbol, leading zeros aside on both sides. Every currency: the matcher tells a currency mismatch from no
      * invoice at all.
      *
@@ -24,10 +24,10 @@ interface Candidates
      *
      * @return list<Candidate> oldest due first
      */
-    public function withSymbol(string $firmId, string $variableSymbol): array;
+    public function withSymbol(string $variableSymbol): array;
 
     /**
-     * The invoices of the firm in the currency that are not in
+     * The invoices in the currency that are not in
      * the trash and have something left to pay, oldest due first: those the text
      * finds in the number, the customer's name or the variable symbol, or all of
      * them for no text, and the ones named by id whatever the text.
@@ -36,10 +36,10 @@ interface Candidates
      *
      * @return list<Candidate>
      */
-    public function open(string $firmId, Currency $currency, string $text, array $ids, int $limit): array;
+    public function open(Currency $currency, string $text, array $ids, int $limit): array;
 
     /**
-     * The invoices of the firm that are not in the trash and
+     * The invoices that are not in the trash and
      * have something to refund, as InvoicePayments::toRefundOf() counts it, in every
      * currency, oldest due first: a credited or overpaid invoice, a final invoice its
      * advances exceed, an advance no final invoice deducts. The remaining amount of
@@ -53,14 +53,14 @@ interface Candidates
      *
      * @return list<Candidate>
      */
-    public function refunds(string $firmId, ?string $variableSymbol): array;
+    public function refunds(?string $variableSymbol): array;
 
     /**
-     * The invoices of the firm that a payment not cancelled paid
+     * The invoices that a payment not cancelled paid
      * from a bank movement of that counter account: by its IBAN when given, otherwise
      * by its account number. The money of a refund goes back where it came from.
      *
      * @return list<string> invoice ids
      */
-    public function paidFrom(string $firmId, ?string $counterIban, ?string $counterAccount): array;
+    public function paidFrom(?string $counterIban, ?string $counterAccount): array;
 }

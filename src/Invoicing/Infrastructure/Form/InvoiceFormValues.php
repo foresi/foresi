@@ -22,8 +22,8 @@ use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\CorrectionType;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceLine;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\PartyQuery;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Shared\Domain\Money;
 
@@ -39,6 +39,7 @@ final readonly class InvoiceFormValues
         private PartyQuery $parties,
         private InvoiceStore $store,
         private AmountText $amounts,
+        private InstanceFirm $instanceFirm,
     ) {
     }
 
@@ -48,7 +49,6 @@ final readonly class InvoiceFormValues
     public function ofDraft(InvoiceDraftValues $draft): array
     {
         return [
-            'firmId' => $draft->firmId,
             'kind' => $draft->kind->value,
             'taxOnReceipt' => '',
             'seriesId' => $draft->seriesId ?? '',
@@ -86,7 +86,7 @@ final readonly class InvoiceFormValues
      *
      * @return array<string, mixed>
      */
-    public function ofBilledWork(InvoiceDraftValues $draft, LegalEntity $firm): array
+    public function ofBilledWork(InvoiceDraftValues $draft): array
     {
         $values = $this->ofDraft($draft);
         $party = null === $draft->customerId ? null : $this->parties->find($draft->customerId);
@@ -94,7 +94,7 @@ final readonly class InvoiceFormValues
             $values = $this->withCustomerShown($values, $this->picker->option($party));
         }
 
-        return $this->withoutHiddenCodes($values, $firm->address()->countryCode);
+        return $this->withoutHiddenCodes($values, $this->instanceFirm->get()->address()->countryCode);
     }
 
     /**
@@ -102,7 +102,7 @@ final readonly class InvoiceFormValues
      *
      * @return array<string, mixed>
      */
-    public function ofCopy(InvoiceDraftValues $draft, LegalEntity $firm, Invoice $source, bool $copy = true): array
+    public function ofCopy(InvoiceDraftValues $draft, Invoice $source, bool $copy = true): array
     {
         $values = $this->ofDraft($draft);
         $party = null === $draft->customerId ? null : $this->parties->find($draft->customerId);
@@ -112,7 +112,7 @@ final readonly class InvoiceFormValues
         // A corrective tax document is no copy: it says so with its link instead.
         $values['copyOf'] = $copy ? $source->id() : '';
 
-        return $this->withoutHiddenCodes($values, $firm->address()->countryCode);
+        return $this->withoutHiddenCodes($values, $this->instanceFirm->get()->address()->countryCode);
     }
 
     /**
@@ -121,7 +121,6 @@ final readonly class InvoiceFormValues
     public function ofInvoice(Invoice $invoice): array
     {
         return [
-            'firmId' => $invoice->firm()->id(),
             'kind' => $invoice->kind()->value,
             'taxOnReceipt' => $invoice->taxOnReceipt()->value ?? '',
             'seriesId' => $invoice->series()->id(),
@@ -241,7 +240,7 @@ final readonly class InvoiceFormValues
      *
      * @return array<string, mixed>
      */
-    public function withCustomer(array $values, Party $party, LegalEntity $firm, \DateTimeImmutable $issueDate, VatRegime $regime, string $issuerCountry): array
+    public function withCustomer(array $values, Party $party, \DateTimeImmutable $issueDate, VatRegime $regime, string $issuerCountry): array
     {
         $option = $this->picker->option($party);
         $defaults = $option->defaults;

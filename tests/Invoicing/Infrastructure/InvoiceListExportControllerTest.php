@@ -369,7 +369,7 @@ final class InvoiceListExportControllerTest extends WebTestCase
             $kind = '21' === (string) $rate ? VatRateKind::Base : VatRateKind::Reduced;
             $lines[] = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, $exempt ? TaxTreatment::Exempt : TaxTreatment::Standard, $exempt ? null : $kind, null, Percent::fromString('0'));
         }
-        $input = new InvoiceInput($world['firm']->id(), $world['series']->id(), null, $world['customer']->id(), null, new \DateTimeImmutable($issueDate), new \DateTimeImmutable($issueDate), new \DateTimeImmutable('2026-12-31'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Work', '', '', DocumentLanguage::Czech, $lines, true);
+        $input = new InvoiceInput($world['series']->id(), null, $world['customer']->id(), null, new \DateTimeImmutable($issueDate), new \DateTimeImmutable($issueDate), new \DateTimeImmutable('2026-12-31'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Work', '', '', DocumentLanguage::Czech, $lines, true);
 
         return self::getContainer()->get(IssueInvoice::class)->issue($input);
     }
@@ -381,8 +381,8 @@ final class InvoiceListExportControllerTest extends WebTestCase
     {
         $firm = new LegalEntity($firmName, new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
         $this->em()->persist($firm);
-        FirmAccounts::add($this->em(), $firm, self::IBAN);
-        $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+        FirmAccounts::add($this->em(), self::IBAN);
+        $series = new Series(Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $series->markDefault();
         $this->em()->persist($series);
         $customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');

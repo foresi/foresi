@@ -9,10 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Party\Application;
 
 use Foresi\Party\Domain\FirmBankAccount;
-use Foresi\Party\Domain\LegalEntity;
 
 /**
- * The bank accounts of the firms. Lists put the primary
+ * The bank accounts of the instance's firm. Lists put the primary
  * account first and then follow the position. Call add() and makePrimary()
  * inside TransactionalWork, which flushes.
  */
@@ -21,16 +20,16 @@ interface FirmBankAccounts
     /**
      * @return list<FirmBankAccount>
      */
-    public function of(LegalEntity $firm, bool $withArchived = false): array;
+    public function all(bool $withArchived = false): array;
 
-    public function primaryOf(LegalEntity $firm): ?FirmBankAccount;
+    public function primary(): ?FirmBankAccount;
 
     /**
      * The IBANs of the active accounts, in list order.
      *
      * @return list<string>
      */
-    public function ibansOf(LegalEntity $firm): array;
+    public function ibans(): array;
 
     /**
      * @throws UnknownFirmBankAccount also for an unknown account
@@ -47,21 +46,21 @@ interface FirmBankAccounts
     public function lock(string $id): FirmBankAccount;
 
     /**
-     * Archived accounts included: an IBAN is there once per firm.
+     * Archived accounts included: an IBAN is there once.
      *
      * @param string $iban normalised, see Iban
      */
-    public function ofIban(LegalEntity $firm, string $iban): ?FirmBankAccount;
+    public function ofIban(string $iban): ?FirmBankAccount;
 
     /**
-     * The position after every account the firm has, archived ones included.
+     * The position after every account, archived ones included.
      */
-    public function nextPosition(LegalEntity $firm): int;
+    public function nextPosition(): int;
 
     public function add(FirmBankAccount $account): void;
 
     /**
-     * Makes the account the firm's primary one and demotes the previous one. The
+     * Makes the account the primary one and demotes the previous one. The
      * demotion is written first: the unique index would refuse two primaries
      * within one flush whatever the order of the statements.
      */

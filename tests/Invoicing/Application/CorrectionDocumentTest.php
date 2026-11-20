@@ -32,7 +32,6 @@ use Foresi\Invoicing\Domain\AbandonedNumber;
 use Foresi\Invoicing\Domain\CorrectionType;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceLine;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
@@ -186,13 +185,11 @@ final class CorrectionDocumentTest extends InvoiceTestCase
 
     public function testANonPayerCorrectsWithoutVat(): void
     {
-        $this->firm = $this->firm(VatStatus::NotRegistered, null, registrationNumber: '27082440');
-        $this->series = $this->seriesOf($this->firm);
-        $this->em->flush();
+        $this->reconfigureFirm(VatStatus::NotRegistered, null);
         $plain = fn (string $price, string $quantity = '1'): LineInput => new LineInput('Work', Quantity::fromString($quantity), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::NotApplicable, null, null, Percent::fromString('0'));
-        $original = $this->issue->issue($this->input([$plain('1000.00')], ['firmId' => $this->firm->id(), 'seriesId' => $this->series->id()]));
+        $original = $this->issue->issue($this->input([$plain('1000.00')], ['seriesId' => $this->series->id()]));
 
-        $credit = $this->issue->issue($this->correction($original, [$plain('250.00', '-1')], overrides: ['firmId' => $this->firm->id()]));
+        $credit = $this->issue->issue($this->correction($original, [$plain('250.00', '-1')]));
 
         self::assertSame(0, $credit->vat()->minor());
         self::assertSame(-25000, $credit->payable()->minor());
@@ -231,7 +228,7 @@ final class CorrectionDocumentTest extends InvoiceTestCase
 
     public function testTheFormKeepsTheAccountOfTheInvoice(): void
     {
-        FirmAccounts::add($this->em, $this->firm, self::SECOND_IBAN);
+        FirmAccounts::add($this->em, self::SECOND_IBAN);
         $this->em->flush();
         $original = $this->issue->issue($this->input([$this->line('1000.00')], ['variableSymbol' => '', 'bankAccount' => self::SECOND_IBAN]));
 
@@ -349,14 +346,14 @@ final class CorrectionDocumentTest extends InvoiceTestCase
                 $this->store->addAbandoned($number);
             }
 
-            public function numberTaken(LegalEntity $firm, string $key, ?Invoice $except): bool
+            public function numberTaken(string $key, ?Invoice $except): bool
             {
-                return $this->store->numberTaken($firm, $key, $except);
+                return $this->store->numberTaken($key, $except);
             }
 
-            public function kindOfNumber(LegalEntity $firm, string $key): ?DocumentKind
+            public function kindOfNumber(string $key): ?DocumentKind
             {
-                return $this->store->kindOfNumber($firm, $key);
+                return $this->store->kindOfNumber($key);
             }
 
             public function page(InvoiceFilter $filter): InvoicePage
@@ -369,14 +366,14 @@ final class CorrectionDocumentTest extends InvoiceTestCase
                 return $this->store->sums($filter);
             }
 
-            public function idsForPeriod(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to): array
+            public function idsForPeriod(\DateTimeImmutable $from, \DateTimeImmutable $to): array
             {
-                return $this->store->idsForPeriod($firm, $from, $to);
+                return $this->store->idsForPeriod($from, $to);
             }
 
-            public function forAccountant(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to, bool $pending): array
+            public function forAccountant(\DateTimeImmutable $from, \DateTimeImmutable $to, bool $pending): array
             {
-                return $this->store->forAccountant($firm, $from, $to, $pending);
+                return $this->store->forAccountant($from, $to, $pending);
             }
         };
 

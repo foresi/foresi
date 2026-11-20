@@ -116,7 +116,7 @@ final readonly class PayReceivedDocument
             }
             $this->payments->add($paid);
             if ($amount->minor() === $balance->remaining->minor()) {
-                $this->events->record(new ReceivedDocumentPaid($document->id(), $document->firm()->id(), $paid->id(), $paid->paidOn()->format('Y-m-d')));
+                $this->events->record(new ReceivedDocumentPaid($document->id(), $this->access->firm()->id(), $paid->id(), $paid->paidOn()->format('Y-m-d')));
             }
 
             return $paid;

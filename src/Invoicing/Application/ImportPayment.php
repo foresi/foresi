@@ -12,9 +12,9 @@ use Foresi\Audit\Application\AuditActor;
 use Foresi\Invoicing\Domain\Payment;
 use Foresi\Invoicing\Domain\PaymentAllocation;
 use Foresi\Invoicing\Domain\PaymentSource;
-use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\InstanceFirm;
+use Foresi\Party\Application\NoFirmYet;
 use Foresi\Party\Application\TransactionalWork;
-use Foresi\Party\Application\UnknownLegalEntity;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -32,7 +32,7 @@ use Psr\Clock\ClockInterface;
 final readonly class ImportPayment
 {
     public function __construct(
-        private LegalEntities $firms,
+        private InstanceFirm $instanceFirm,
         private InvoiceStore $store,
         private InvoicePayments $payments,
         private ImportedDocuments $imported,
@@ -45,7 +45,7 @@ final readonly class ImportPayment
     }
 
     /**
-     * @throws UnknownLegalEntity
+     * @throws NoFirmYet          before the first-run setup
      * @throws UnknownInvoice
      * @throws UnsupportedCountry for a firm whose country Foresi does not invoice in
      */
@@ -53,17 +53,15 @@ final readonly class ImportPayment
     {
         return $this->retry->run(fn (): ImportedPaymentResult => $this->work->run(function () use ($import): ImportedPaymentResult {
             $invoice = $this->store->get($import->invoiceId);
-            $firm = $this->firms->get($import->firmId);
-            $known = $this->imported->findPayment($firm, $import->source, $import->externalId);
+            $known = $this->imported->findPayment($import->source, $import->externalId);
             if ($known instanceof Payment) {
                 return ImportedPaymentResult::alreadyImported($known->id());
             }
             $now = \DateTimeImmutable::createFromInterface($this->clock->now());
-            $today = $now->setTimezone($this->countries->for($firm->address()->countryCode)->timezone())->format('Y-m-d');
+            $today = $now->setTimezone($this->countries->for($this->instanceFirm->get()->address()->countryCode)->timezone())->format('Y-m-d');
             $refusal = match (true) {
                 $import->amount->isZero() || $import->amount->isNegative() => PaymentRefused::NOT_POSITIVE,
                 mb_strlen($import->note) > Payment::MAX_NOTE => PaymentRefused::NOTE_TOO_LONG,
-                $invoice->firm()->id() !== $firm->id() => PaymentRefused::WRONG_FIRM,
                 $invoice->isTrashed() => PaymentRefused::TRASHED,
                 !$invoice->kind()->isPayable() => PaymentRefused::NOT_PAYABLE,
                 $invoice->currency() !== $import->amount->currency() => PaymentRefused::CURRENCY_MISMATCH,
@@ -73,7 +71,7 @@ final readonly class ImportPayment
             if (null !== $refusal) {
                 return ImportedPaymentResult::refused($refusal);
             }
-            $payment = new Payment($firm, $import->receivedOn, $import->amount, $import->method, PaymentSource::Manual, null, $import->note, $this->actor->userId(), $now);
+            $payment = new Payment($import->receivedOn, $import->amount, $import->method, PaymentSource::Manual, null, $import->note, $this->actor->userId(), $now);
             $payment->importedFrom($import->source, $import->externalId, $import->runId, $now);
             $this->payments->add($payment);
             $this->payments->addAllocation(new PaymentAllocation($payment, $invoice, $import->amount));

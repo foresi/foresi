@@ -43,10 +43,10 @@ final readonly class PlannedItemFlows implements CashFlowSource
         return true;
     }
 
-    public function flows(string $firmId, \DateTimeImmutable $from, \DateTimeImmutable $to, \DateTimeImmutable $today): iterable
+    public function flows(\DateTimeImmutable $from, \DateTimeImmutable $to, \DateTimeImmutable $today): iterable
     {
         $zone = $today->getTimezone();
-        foreach ($this->store->plannedItemsOf($firmId) as $item) {
+        foreach ($this->store->plannedItems() as $item) {
             if (!$item->isIncluded()) {
                 continue;
             }

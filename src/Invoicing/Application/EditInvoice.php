@@ -19,7 +19,7 @@ use Foresi\Party\Domain\PartyRole;
 use Psr\Clock\ClockInterface;
 
 /**
- * Saving an issued invoice. Firm, regime, rounding and the copy of the issuer stay
+ * Saving an issued invoice. Regime, rounding and the copy of the issuer stay
  * as they were at issue; the rest is recalculated from the input. Series and number
  * change only when the input asks for it, and only until delivery. Lines change in
  * place by position, so a line saved unchanged writes no audit entry. The form keeps
@@ -64,8 +64,7 @@ final readonly class EditInvoice
             if ($invoice->version() !== $version) {
                 throw new IssueRefused([new IssueProblem('version', 'invoice.problem.changed_meanwhile')]);
             }
-            $firm = $invoice->firm();
-            $problems = $this->rules->check($input, $firm, $invoice);
+            $problems = $this->rules->check($input, $invoice);
             if ([] !== $problems) {
                 throw new IssueRefused($problems);
             }
@@ -87,7 +86,7 @@ final readonly class EditInvoice
         if (!$invoice->isRenumberedBy($input->seriesId, $input->typedNumber)) {
             return;
         }
-        $number = $this->numbers->allocate($series, $invoice->firm(), $input->issueDate, $input->typedNumber, $invoice);
+        $number = $this->numbers->allocate($series, $input->issueDate, $input->typedNumber, $invoice);
         $abandoned = $invoice->changeNumber($series, $number);
         if ($abandoned instanceof \Foresi\Invoicing\Domain\AbandonedNumber) {
             $this->store->addAbandoned($abandoned);

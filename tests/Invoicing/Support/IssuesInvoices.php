@@ -25,16 +25,21 @@ use Foresi\Invoicing\Domain\PaymentDirection;
 use Foresi\Invoicing\Domain\PaymentSource;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
 use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 
 /**
  * Invoices and payments for a test of Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase:
- * issued as the form would issue them, in a series of the test's firm that is made on
- * first use.
+ * issued as the form would issue them, in a series that is made on first use.
  */
 trait IssuesInvoices
 {
@@ -43,15 +48,14 @@ trait IssuesInvoices
     abstract protected function em(): EntityManagerInterface;
 
     /**
-     * A standard series of invoices of a firm, stored.
+     * A standard series of invoices, stored.
      *
      * @return string the id of the series
      */
-    protected function series(?string $firmId = null): string
+    protected function series(): string
     {
         $em = $this->em();
-        $firm = $em->find(LegalEntity::class, $firmId ?? $this->firmId) ?? throw new \LogicException('No firm.');
-        $series = new Series($firm, 'Standard', SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+        $series = new Series('Standard', SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $em->persist($series);
         $em->flush();
 
@@ -59,7 +63,23 @@ trait IssuesInvoices
     }
 
     /**
-     * The series of the test's firm that invoices go to unless told otherwise.
+     * Another customer of the organisation, stored.
+     *
+     * @return string the id of the customer
+     */
+    protected function otherCustomer(): string
+    {
+        $em = $this->em();
+        $customer = new Party(PartyKind::Company, 'Other Customer a.s.', new RegistrationNumber('CZ', '25596641'), VatId::fromString('CZ25596641'), '');
+        $em->persist($customer);
+        $em->persist(new PartyAddress($customer, AddressType::Billing, new Address('Customer Street 3', 'Customer City', '200 00', 'CZ')));
+        $em->flush();
+
+        return $customer->id();
+    }
+
+    /**
+     * The series that invoices go to unless told otherwise.
      */
     protected function seriesId(): string
     {
@@ -71,10 +91,9 @@ trait IssuesInvoices
      *
      * @param array<string, mixed> $overrides named arguments of InvoiceInput
      */
-    protected function invoice(string $issueDate = '2026-11-01', string $due = '2026-11-15', string $price = '1000.00', array $overrides = [], ?string $firmId = null, ?string $seriesId = null, ?string $customerId = null): Invoice
+    protected function invoice(string $issueDate = '2026-11-01', string $due = '2026-11-15', string $price = '1000.00', array $overrides = [], ?string $seriesId = null, ?string $customerId = null): Invoice
     {
         $input = new \ReflectionClass(InvoiceInput::class)->newInstanceArgs(array_merge([
-            'firmId' => $firmId ?? $this->firmId,
             'seriesId' => $seriesId ?? $this->seriesId(),
             'typedNumber' => null,
             'customerId' => $customerId ?? $this->customerId,
@@ -100,14 +119,13 @@ trait IssuesInvoices
     }
 
     /**
-     * A payment of a firm of the active organisation with its allocations, as a recorded one would be.
+     * A payment of the active organisation with its allocations, as a recorded one would be.
      *
      * @param array<string, string> $parts the amount in whole currency units by invoice id; the payment is their sum
      */
     protected function payment(
         string $on = '2026-11-10',
         array $parts = [],
-        ?string $firmId = null,
         PaymentDirection $direction = PaymentDirection::Incoming,
         string $note = '',
         ?string $amount = null,
@@ -115,8 +133,7 @@ trait IssuesInvoices
     ): Payment {
         $em = $this->em();
         $total = $amount ?? (string) array_sum(array_map(intval(...), $parts));
-        $firm = $em->find(LegalEntity::class, $firmId ?? $this->firmId) ?? throw new \LogicException('No firm.');
-        $payment = new Payment($firm, new \DateTimeImmutable($on), Money::of($total, Currency::CZK), PaymentMethod::BankTransfer, PaymentSource::Manual, null, $note, null, new \DateTimeImmutable('2026-11-10 12:00:00'), $direction);
+        $payment = new Payment(new \DateTimeImmutable($on), Money::of($total, Currency::CZK), PaymentMethod::BankTransfer, PaymentSource::Manual, null, $note, null, new \DateTimeImmutable('2026-11-10 12:00:00'), $direction);
         $em->persist($payment);
         foreach ($parts as $invoiceId => $part) {
             $em->persist(new PaymentAllocation($payment, $em->getReference(Invoice::class, $invoiceId) ?? throw new \LogicException('No invoice.'), Money::of($part, Currency::CZK)));

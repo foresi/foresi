@@ -17,11 +17,10 @@ use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\FirmReminders;
 use Foresi\Invoicing\Domain\SendPurpose;
 use Foresi\Party\Domain\EmailPurpose;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Money;
 
 /**
- * One query per firm, reading the reminder flag of the contact. An address to
+ * One query, reading the reminder flag of the contact. An address to
  * send to is the one the document holds, or an invoicing address of the
  * contact, as SendDraft picks them. Times of earlier reminders are stored in the server's zone and compared
  * against the start of the firm's day, so the previous reminder counts on the
@@ -45,8 +44,7 @@ final readonly class DoctrineRemindableInvoices implements RemindableInvoices
             WHERE purpose = :reminder
             GROUP BY invoice_id
         ) r ON r.invoice_id = i.id
-        WHERE i.legal_entity_id = :firm
-            AND i.deleted_at IS NULL
+        WHERE i.deleted_at IS NULL
             AND i.delivered_at IS NOT NULL
             AND i.due_date >= :enabledOn
             AND p.invoicing_send_reminders = :yes
@@ -74,7 +72,7 @@ final readonly class DoctrineRemindableInvoices implements RemindableInvoices
     {
     }
 
-    public function due(LegalEntity $firm, FirmReminders $settings, \DateTimeImmutable $today, int $limit, ?string $afterId = null): array
+    public function due(FirmReminders $settings, \DateTimeImmutable $today, int $limit, ?string $afterId = null): array
     {
         $enabledOn = $settings->enabledOn();
         if (!$settings->enabled() || !$enabledOn instanceof \DateTimeImmutable || $limit < 1) {
@@ -101,7 +99,6 @@ final readonly class DoctrineRemindableInvoices implements RemindableInvoices
         $rows = $this->connection->fetchAllAssociative(
             $sql.' ORDER BY i.due_date, i.id LIMIT '.$limit,
             $parameters + [
-                'firm' => $firm->id(),
                 'reminder' => SendPurpose::Reminder->value,
                 'invoices' => EmailPurpose::Invoices->value,
                 'enabledOn' => $enabledOn,

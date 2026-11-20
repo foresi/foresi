@@ -58,7 +58,7 @@ use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
- * A signed-in owner with a payer firm, its account on the test IBAN, a series
+ * A signed-in owner with the payer firm, its account on the test IBAN, a series
  * and a customer, on 20 November 2026 at noon UTC; movements and bank mail are
  * recorded through the application, as the bank screens would find them.
  */
@@ -98,7 +98,7 @@ abstract class BankScreenTestCase extends WebTestCase
     {
         $this->browser->seed(role: $role);
         $this->scoped(function (): void {
-            [$this->firm, $this->account, $this->series, $this->customer] = $this->firmWithSeries('Example Firm s.r.o.', self::IBAN);
+            [$this->firm, $this->account, $this->series, $this->customer] = $this->firmWithSeries(self::IBAN);
         });
         $this->browser->signIn();
     }
@@ -106,19 +106,34 @@ abstract class BankScreenTestCase extends WebTestCase
     /**
      * @return array{LegalEntity, FirmBankAccount, Series, Party}
      */
-    protected function firmWithSeries(string $name, string $iban, string $customer = 'Example Customer a.s.'): array
+    private function firmWithSeries(string $iban, string $customer = 'Example Customer a.s.'): array
     {
-        // A second firm needs a number of its own.
-        $number = 'Example Firm s.r.o.' === $name ? '12345695' : '12345687';
-        $firm = new LegalEntity($name, new RegistrationNumber('CZ', $number), VatId::fromString('CZ'.$number), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
+        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
         $this->em()->persist($firm);
-        $account = FirmAccounts::add($this->em(), $firm, $iban);
-        $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+        $account = FirmAccounts::add($this->em(), $iban);
+        $series = new Series(Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $series->markDefault();
         $this->em()->persist($series);
         $party = $this->party($customer);
 
         return [$firm, $account, $series, $party];
+    }
+
+    /**
+     * Archives the main account, which the notices name, and gives the firm a second
+     * one: a notice to the second names an account that is no longer active.
+     */
+    protected function accountOfAnArchivedMain(): FirmBankAccount
+    {
+        return $this->scoped(function (): FirmBankAccount {
+            $second = FirmAccounts::add($this->em(), self::OTHER_IBAN);
+            $main = $this->em()->find(FirmBankAccount::class, $this->account->id());
+            self::assertInstanceOf(FirmBankAccount::class, $main);
+            $main->archive(new \DateTimeImmutable('2026-11-10'));
+            $this->em()->flush();
+
+            return $second;
+        });
     }
 
     /**
@@ -135,14 +150,14 @@ abstract class BankScreenTestCase extends WebTestCase
     }
 
     /**
-     * An invoice of the firm, price without VAT; 1 000.00 is 1 210.00 to pay.
+     * An invoice, price without VAT; 1 000.00 is 1 210.00 to pay.
      */
-    protected function invoice(string $price = '1000.00', string $vs = '', string $due = '2026-11-15', ?LegalEntity $firm = null, ?Series $series = null, Currency $currency = Currency::CZK, ?Party $customer = null, string $iban = self::IBAN): Invoice
+    protected function invoice(string $price = '1000.00', string $vs = '', string $due = '2026-11-15', ?Series $series = null, Currency $currency = Currency::CZK, ?Party $customer = null, string $iban = self::IBAN): Invoice
     {
-        return $this->scoped(function () use ($price, $vs, $due, $firm, $series, $currency, $customer, $iban): Invoice {
+        return $this->scoped(function () use ($price, $vs, $due, $series, $currency, $customer, $iban): Invoice {
             $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of($price, $currency), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
-            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput(($firm ?? $this->firm)->id(), ($series ?? $this->series)->id(), null, ($customer ?? $this->customer)->id(), null, new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable($due), PaymentMethod::BankTransfer, $iban, $vs, '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line], '' === $vs));
+            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput(($series ?? $this->series)->id(), null, ($customer ?? $this->customer)->id(), null, new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable($due), PaymentMethod::BankTransfer, $iban, $vs, '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line], '' === $vs));
         });
     }
 

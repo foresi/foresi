@@ -33,27 +33,20 @@ final readonly class DoctrineReceivables implements Receivables
     ) {
     }
 
-    public function firms(): array
+    public function hasDocuments(): bool
     {
-        /** @var list<array{id: string, name: string}> $rows */
-        $rows = $this->em->createQuery('SELECT DISTINCT f.id AS id, f.name AS name FROM '.Invoice::class.' i JOIN i.firm f ORDER BY f.name, f.id')->getArrayResult();
-
-        return array_column($rows, 'name', 'id');
+        return (int) $this->em->createQuery('SELECT COUNT(i.id) FROM '.Invoice::class.' i')->getSingleScalarResult() > 0;
     }
 
-    public function open(?string $firmId): array
+    public function open(): array
     {
         $due = DoctrineInvoicePayments::dueOfInvoiceDql('d');
         $paid = DoctrineInvoicePayments::paidOfInvoiceDql('p');
         $query = $this->em->createQuery('SELECT i.customer.name AS customer, i.dueDate AS dueDate, i.issuer.address.countryCode AS country, i.exchangeRate AS rate,'
             .' '.$due.' AS due, '.$paid.' AS paid FROM '.Invoice::class.' i'
             .' WHERE i.deletedAt IS NULL AND i.kind IN (:kinds) AND '.DoctrineInvoicePayments::dueOfInvoiceDql('dw').' > '.DoctrineInvoicePayments::paidOfInvoiceDql('pw')
-            .(null === $firmId ? '' : ' AND i.firm = :firm')
             .' ORDER BY i.numberKey, i.id')
             ->setParameter('kinds', [DocumentKind::Invoice->value, DocumentKind::Advance->value]);
-        if (null !== $firmId) {
-            $query->setParameter('firm', $firmId);
-        }
 
         /** @var list<array{customer: string, dueDate: \DateTimeImmutable, country: string, rate: string, due: int|numeric-string, paid: int|numeric-string}> $rows */
         $rows = $query->getArrayResult();

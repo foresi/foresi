@@ -89,6 +89,6 @@ final class PaymentAllocationTest extends InvoiceTestCase
 
     private function payment(Currency $currency, PaymentDirection $direction = PaymentDirection::Incoming): Payment
     {
-        return new Payment($this->firm, new \DateTimeImmutable('2026-11-20'), Money::of('100.00', $currency), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', null, new \DateTimeImmutable('2026-11-20 10:00'), $direction);
+        return new Payment(new \DateTimeImmutable('2026-11-20'), Money::of('100.00', $currency), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', null, new \DateTimeImmutable('2026-11-20 10:00'), $direction);
     }
 }

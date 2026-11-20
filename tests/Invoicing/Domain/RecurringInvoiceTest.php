@@ -13,14 +13,10 @@ use Foresi\Invoicing\Domain\RecurringDelivery;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\RecurringState;
 use Foresi\Invoicing\Domain\TaxPointRule;
-use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PaymentMethod;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Schedule\Recurrence;
 use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
@@ -34,8 +30,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class RecurringInvoiceTest extends TestCase
 {
-    private ?LegalEntity $firm = null;
-
     public function testANewTemplateIsActiveAndCopiesByDefault(): void
     {
         $template = $this->template();
@@ -303,7 +297,6 @@ final class RecurringInvoiceTest extends TestCase
     private function template(string $name = '', string $description = 'Hosting', int $dueDays = 14, RecurrenceUnit $unit = RecurrenceUnit::Month, ?string $importedFrom = null): RecurringInvoice
     {
         return new RecurringInvoice(
-            $this->firm(),
             Currency::CZK,
             $this->content($name, $description, $dueDays, $unit),
             null,
@@ -331,10 +324,5 @@ final class RecurringInvoiceTest extends TestCase
             RecurringDelivery::Review,
             $name,
         );
-    }
-
-    private function firm(): LegalEntity
-    {
-        return $this->firm ??= new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
     }
 }

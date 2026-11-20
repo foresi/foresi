@@ -11,14 +11,13 @@ namespace Foresi\CashFlow\Contract;
 use Foresi\Shared\Domain\Money;
 
 /**
- * The balance of a firm's bank account at the end of a day, as someone or a
+ * The balance of a bank account of the firm at the end of a day, as someone or a
  * statement import entered it.
  */
 final readonly class BalanceCheckpoint
 {
     public function __construct(
         public string $accountId,
-        public string $firmId,
         public Money $amount,
         public \DateTimeImmutable $on,
     ) {

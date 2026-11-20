@@ -18,6 +18,7 @@ use Foresi\Invoicing\Application\IssuedDocumentFactory;
 use Foresi\Invoicing\Contract\TaxTreatment;
 use Foresi\Invoicing\Contract\VatRateKind;
 use Foresi\Invoicing\Domain\ExportState;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\TransactionalWork;
 use OpenSpout\Reader\XLSX\Reader;
 use Psr\Clock\ClockInterface;
@@ -77,8 +78,8 @@ final class InvoiceBundleTest extends AdvanceTestCase
         $this->pack('2026-11-01', true, 'en');
         $new = $this->issue->issue($this->input());
 
-        self::assertSame(['invoice' => 1, 'advance' => 0, 'payment_tax_document' => 0, 'correction_document' => 0], $this->bundle->counts($this->firm, new \DateTimeImmutable('2026-11-30'), true));
-        self::assertSame(['invoice' => 2, 'advance' => 0, 'payment_tax_document' => 0, 'correction_document' => 0], $this->bundle->counts($this->firm, new \DateTimeImmutable('2026-11-30'), false));
+        self::assertSame(['invoice' => 1, 'advance' => 0, 'payment_tax_document' => 0, 'correction_document' => 0], $this->bundle->counts(new \DateTimeImmutable('2026-11-30'), true));
+        self::assertSame(['invoice' => 2, 'advance' => 0, 'payment_tax_document' => 0, 'correction_document' => 0], $this->bundle->counts(new \DateTimeImmutable('2026-11-30'), false));
 
         [$count, $files] = $this->pack('2026-11-01', true, 'en');
         self::assertSame(1, $count);
@@ -99,7 +100,7 @@ final class InvoiceBundleTest extends AdvanceTestCase
         $path = (string) tempnam(sys_get_temp_dir(), 'foresi-test-');
 
         try {
-            self::assertSame(0, $this->bundle->writeTo($path, $this->firm, new \DateTimeImmutable('2026-11-01'), false, 'en'));
+            self::assertSame(0, $this->bundle->writeTo($path, new \DateTimeImmutable('2026-11-01'), false, 'en'));
             self::assertSame(0, (int) filesize($path));
         } finally {
             unlink($path);
@@ -157,11 +158,11 @@ final class InvoiceBundleTest extends AdvanceTestCase
         };
         $container = self::getContainer();
         $exports = new DocumentExports($this->store, $broken, $container->get(ConflictRetry::class), $container->get(ClockInterface::class));
-        $bundle = new InvoiceBundle($this->store, $container->get(IssuedDocumentFactory::class), $container->get(InvoicePdf::class), $container->get(InvoicingCountries::class), $container->get(AccountantPackFormat::class), $exports, new NullLogger());
+        $bundle = new InvoiceBundle($this->store, $container->get(IssuedDocumentFactory::class), $container->get(InvoicePdf::class), $container->get(InvoicingCountries::class), $container->get(AccountantPackFormat::class), $exports, new NullLogger(), $container->get(InstanceFirm::class));
         $path = (string) tempnam(sys_get_temp_dir(), 'foresi-test-');
 
         try {
-            $bundle->writeTo($path, $this->firm, new \DateTimeImmutable('2026-11-01'), true, 'en');
+            $bundle->writeTo($path, new \DateTimeImmutable('2026-11-01'), true, 'en');
             self::fail('Expected the marking to fail.');
         } catch (\RuntimeException $failure) {
             self::assertSame('The database is gone.', $failure->getMessage());
@@ -175,7 +176,7 @@ final class InvoiceBundleTest extends AdvanceTestCase
 
     public function testThePackIsNamedByFirmAndMonth(): void
     {
-        self::assertSame('example-firm-s-r-o_2026-09.zip', $this->bundle->fileName($this->firm, new \DateTimeImmutable('2026-09-30')));
+        self::assertSame('example-firm-s-r-o_2026-09.zip', $this->bundle->fileName(new \DateTimeImmutable('2026-09-30')));
     }
 
     /**
@@ -185,7 +186,7 @@ final class InvoiceBundleTest extends AdvanceTestCase
     {
         $path = (string) tempnam(sys_get_temp_dir(), 'foresi-test-');
         try {
-            $count = $this->bundle->writeTo($path, $this->firm, new \DateTimeImmutable($month), $pending, $locale);
+            $count = $this->bundle->writeTo($path, new \DateTimeImmutable($month), $pending, $locale);
             $zip = new \ZipArchive();
             self::assertTrue($zip->open($path));
             $files = [];

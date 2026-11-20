@@ -251,7 +251,7 @@ final class SendInvoiceTest extends SendingTestCase
     public function testSendsAreLimitedPerUser(): void
     {
         $invoice = $this->issue->issue($this->input());
-        // A person's budget: the system's sends spend only the firm's (RateLimitedSendsTest).
+        // A person's budget: the system's sends spend only the instance's day (RateLimitedSendsTest).
         self::getContainer()->get(TokenStorageInterface::class)->setToken(new UsernamePasswordToken(new SecurityUser('019a0000-0000-7000-8000-00000000002a', 'staff@example.com', 'hash'), 'main', ['ROLE_USER']));
         for ($i = 0; $i < 30; ++$i) {
             $this->sent($invoice);
@@ -260,11 +260,11 @@ final class SendInvoiceTest extends SendingTestCase
         self::assertSame(30, $this->sendCount());
     }
 
-    public function testSendsAreLimitedPerFirm(): void
+    public function testSendsAreLimitedPerDay(): void
     {
         $invoice = $this->issue->issue($this->input());
         $this->sent($invoice);
-        self::getContainer()->get('test.invoice_send_firm_limiter')->create($this->firm->id())->consume(499);
+        self::getContainer()->get('test.invoice_send_firm_limiter')->create('instance')->consume(499);
 
         self::assertSame(SendRefused::RATE_LIMITED, $this->refusalOfSend(fn (): InvoiceSend => $this->sent($invoice)));
         self::assertSame(1, $this->sendCount());
@@ -455,9 +455,9 @@ final class SendInvoiceTest extends SendingTestCase
     public function testAnInvoiceThatKeepsChangingIsDrawnThreeTimesOnOneLimit(): void
     {
         $invoice = $this->issue->issue($this->input());
-        // One send left for the firm, here a system's send without a user, which stops at its share
+        // One send left for the day, here a system's send without a user, which stops at its share
         // of the day: a round drawn again must not take another.
-        self::getContainer()->get('test.invoice_send_firm_limiter')->create($this->firm->id())->consume(intdiv(500 * RateLimitedSends::SYSTEM_SHARE, 100) - 1);
+        self::getContainer()->get('test.invoice_send_firm_limiter')->create('instance')->consume(intdiv(500 * RateLimitedSends::SYSTEM_SHARE, 100) - 1);
         $pdf = new class($this->connection, $invoice->id()) implements InvoicePdf {
             public int $drawn = 0;
 
@@ -490,11 +490,11 @@ final class SendInvoiceTest extends SendingTestCase
     {
         $invoice = $this->issue->issue($this->input());
         $record = self::getContainer()->get(RecordPayment::class);
-        $pdf = new class($record, $this->firm->id(), $invoice->id()) implements InvoicePdf {
+        $pdf = new class($record, $invoice->id()) implements InvoicePdf {
             /** @var list<int> */
             public array $asked = [];
 
-            public function __construct(private readonly RecordPayment $record, private readonly string $firmId, private readonly string $invoiceId)
+            public function __construct(private readonly RecordPayment $record, private readonly string $invoiceId)
             {
             }
 
@@ -504,7 +504,7 @@ final class SendInvoiceTest extends SendingTestCase
                 if (1 === \count($this->asked)) {
                     // The customer's part payment is recorded while the reminder is drawn.
                     $czk = Money::of('210.00', Currency::CZK);
-                    $this->record->record(new PaymentRequest($this->firmId, new \DateTimeImmutable('2026-11-02'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($this->invoiceId, $czk)]));
+                    $this->record->record(new PaymentRequest(new \DateTimeImmutable('2026-11-02'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($this->invoiceId, $czk)]));
                 }
 
                 return new RenderedPdf('%PDF-1.7', $document->number.'.pdf');

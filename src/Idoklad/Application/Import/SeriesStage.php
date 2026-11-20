@@ -115,10 +115,10 @@ final readonly class SeriesStage implements ImportStage
                 }
                 $outcome = ImportOutcome::AlreadyLinked;
             } else {
-                $series = $this->same($context, $kind, $format);
+                $series = $this->same($kind, $format);
                 $outcome = ImportOutcome::Matched;
                 if (!$series instanceof Series) {
-                    $series = $this->create($context, $kind, $format, \is_string($payload['Name'] ?? null) ? $payload['Name'] : '', true === ($payload['IsDefault'] ?? null));
+                    $series = $this->create($kind, $format, \is_string($payload['Name'] ?? null) ? $payload['Name'] : '', true === ($payload['IsDefault'] ?? null));
                     $outcome = ImportOutcome::Created;
                 }
                 $context->link(IdokladResource::NumericSequences, $id, $series->id());
@@ -147,9 +147,9 @@ final readonly class SeriesStage implements ImportStage
     /**
      * An active series of the kind whose numbers are the numbers of the format.
      */
-    private function same(ImportContext $context, DocumentKind $kind, SeriesFormat $format): ?Series
+    private function same(DocumentKind $kind, SeriesFormat $format): ?Series
     {
-        foreach ($this->catalog->forFirm($context->firm, $kind) as $series) {
+        foreach ($this->catalog->all($kind) as $series) {
             if ($series->format()->collidesWith($format)) {
                 return $series;
             }
@@ -161,12 +161,12 @@ final readonly class SeriesStage implements ImportStage
     /**
      * A new series under iDoklad's name, or the first free one after it.
      */
-    private function create(ImportContext $context, DocumentKind $kind, SeriesFormat $format, string $name, bool $default): Series
+    private function create(DocumentKind $kind, SeriesFormat $format, string $name, bool $default): Series
     {
         $name = '' === trim($name) ? $kind->standardSeriesName() : trim($name);
-        $series = new Series($context->firm, $this->names->free($context->firm, $name), $format, $kind);
+        $series = new Series($this->names->free($name), $format, $kind);
         $this->catalog->store($series);
-        if ($default && !array_any($this->catalog->forFirm($context->firm, $kind), static fn (Series $other): bool => $other->isDefault())) {
+        if ($default && !array_any($this->catalog->all($kind), static fn (Series $other): bool => $other->isDefault())) {
             $this->catalog->makeDefault($series);
         }
 

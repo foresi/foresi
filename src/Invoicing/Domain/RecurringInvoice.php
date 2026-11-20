@@ -12,7 +12,6 @@ use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
 use Foresi\Audit\Domain\AuditExcluded;
 use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
@@ -31,7 +30,7 @@ use Foresi\Shared\Domain\Schedule\RecurringSchedule;
  * nextOccurrence is the date the next invoice is due on; the daily run issues every
  * one up to its today. issuedCount counts the invoices really issued, so an end
  * after a count ignores dates skipped while paused. An ended template stays ended
- * and has no next date. The firm and the currency are fixed at creation. Create
+ * and has no next date. The currency is fixed at creation. Create
  * and change templates through SaveRecurringInvoice and RecurringLifecycle.
  *
  * Only a template that never issued goes to the trash; one that did is ended, so its
@@ -41,7 +40,6 @@ use Foresi\Shared\Domain\Schedule\RecurringSchedule;
 #[ORM\Entity]
 #[ORM\Table(name: 'recurring_invoice')]
 #[ORM\Index(name: 'idx_recurring_invoice_due', columns: ['state', 'next_occurrence'])]
-#[ORM\Index(name: 'idx_recurring_invoice_firm', columns: ['legal_entity_id'])]
 #[ORM\Index(name: 'idx_recurring_invoice_series', columns: ['series_id'])]
 #[ORM\Index(name: 'idx_recurring_invoice_customer', columns: ['customer_id'])]
 #[ORM\Index(name: 'idx_recurring_invoice_deleted', columns: ['deleted_at'])]
@@ -177,12 +175,9 @@ class RecurringInvoice implements Audited
      * @param string|null $owner        the user the template sends on behalf of: whoever created it
      * @param string|null $importedFrom the identifier of the template in the system it was imported from
      *
-     * @throws \DomainException for a series of another firm, or an imported identifier too long
+     * @throws \DomainException for an imported identifier too long
      */
     public function __construct(
-        #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
-        #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
-        private readonly LegalEntity $firm,
         #[ORM\Column(type: 'string', length: 3, enumType: Currency::class, options: ['fixed' => true])]
         private readonly Currency $currency,
         RecurringContent $content,
@@ -282,8 +277,8 @@ class RecurringInvoice implements Audited
     /**
      * Issued invoices stay as they are; the next date follows the new schedule.
      *
-     * @throws \DomainException once ended or in the trash, for a series of another firm, or when the new
-     *                          schedule leaves no date
+     * @throws \DomainException once ended or in the trash, or when the new schedule
+     *                          leaves no date
      */
     public function change(RecurringContent $content, \DateTimeImmutable $today): void
     {
@@ -502,11 +497,6 @@ class RecurringInvoice implements Audited
         return $this->version;
     }
 
-    public function firm(): LegalEntity
-    {
-        return $this->firm;
-    }
-
     public function currency(): Currency
     {
         return $this->currency;
@@ -657,9 +647,6 @@ class RecurringInvoice implements Audited
 
     private function applyContent(RecurringContent $content): void
     {
-        if ($content->series instanceof Series && $content->series->firm()->id() !== $this->firm->id()) {
-            throw new \DomainException('A template takes a series of its own firm.');
-        }
         if ($content->dueDays < 0 || $content->dueDays > self::MAX_DUE_DAYS) {
             throw new \DomainException(\sprintf('An invoice is due 0 to %d days after it is issued.', self::MAX_DUE_DAYS));
         }

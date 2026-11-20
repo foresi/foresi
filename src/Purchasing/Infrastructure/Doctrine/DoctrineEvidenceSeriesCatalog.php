@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Purchasing\Infrastructure\Doctrine;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Purchasing\Application\EvidenceSeriesCatalog;
 use Foresi\Purchasing\Domain\EvidenceSeries;
 
@@ -19,9 +18,9 @@ final readonly class DoctrineEvidenceSeriesCatalog implements EvidenceSeriesCata
     {
     }
 
-    public function ofFirm(LegalEntity $firm): ?EvidenceSeries
+    public function get(): ?EvidenceSeries
     {
-        return $this->entityManager->getRepository(EvidenceSeries::class)->findOneBy(['firm' => $firm]);
+        return $this->entityManager->getRepository(EvidenceSeries::class)->findOneBy([]);
     }
 
     public function add(EvidenceSeries $series): void

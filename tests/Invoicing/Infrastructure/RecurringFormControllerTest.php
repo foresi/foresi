@@ -58,7 +58,7 @@ use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 /**
- * @phpstan-type Form array{lines: list<array<string, string>>, firmId: string, seriesId: string, customerId: string, customerQuery: string, description: string, orderNumber: string, textBefore: string, textAfter: string, paymentMethod: string, bankAccount: string, firstIssueOn: string, unit: string, every: string, taxPoint: string, dueDays: string, end: string, endOn: string, endAfter: string, name: string, sendToCustomer?: string, copyToMe?: string, copyToOthers?: string, version: string, copyOf: string, ...}
+ * @phpstan-type Form array{lines: list<array<string, string>>, seriesId: string, customerId: string, customerQuery: string, description: string, orderNumber: string, textBefore: string, textAfter: string, paymentMethod: string, bankAccount: string, firstIssueOn: string, unit: string, every: string, taxPoint: string, dueDays: string, end: string, endOn: string, endAfter: string, name: string, sendToCustomer?: string, copyToMe?: string, copyToOthers?: string, version: string, copyOf: string, ...}
  */
 final class RecurringFormControllerTest extends WebTestCase
 {
@@ -99,9 +99,8 @@ final class RecurringFormControllerTest extends WebTestCase
     {
         $this->signedIn();
         $this->scoped(function (): void {
-            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('The firm is missing.');
-            $this->em()->persist(new Series($firm, 'Advances', SeriesFormat::fromString('ZF{YYYY}{NNNN}'), DocumentKind::Advance));
-            $this->em()->persist(new Series($firm, 'Tax documents', SeriesFormat::fromString('DD{YYYY}{NNNN}'), DocumentKind::PaymentTaxDocument));
+            $this->em()->persist(new Series('Advances', SeriesFormat::fromString('ZF{YYYY}{NNNN}'), DocumentKind::Advance));
+            $this->em()->persist(new Series('Tax documents', SeriesFormat::fromString('DD{YYYY}{NNNN}'), DocumentKind::PaymentTaxDocument));
             $this->em()->flush();
         });
 
@@ -342,7 +341,6 @@ final class RecurringFormControllerTest extends WebTestCase
         self::assertSame('Hosting {month/year}', $row['description']);
         self::assertSame('PO-{year}', $row['order_number']);
         self::assertSame($this->customer->id(), $row['customer_id']);
-        self::assertSame($this->firm->id(), $row['legal_entity_id']);
         self::assertNotNull($row['owner_id'], 'whoever creates a template owns it');
         $lines = $this->lineRows($template->id());
         self::assertCount(1, $lines);
@@ -709,7 +707,7 @@ final class RecurringFormControllerTest extends WebTestCase
             $line = static fn (string $text, string $price, string $discount): LineInput => new LineInput($text, Quantity::fromString('1'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString($discount));
             $day = new \DateTimeImmutable('2026-10-15');
 
-            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($this->firm->id(), $this->series->id(), null, $this->customer->id(), null, $day, $day, $day->modify('+21 days'), PaymentMethod::BankTransfer, self::IBAN, '', '', 'PO-7', 'Consulting', 'Before the lines', 'After the lines', DocumentLanguage::Czech, [$line('Work', '1000.00', '0'), $line('Travel', '200.00', '10')], true));
+            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($this->series->id(), null, $this->customer->id(), null, $day, $day, $day->modify('+21 days'), PaymentMethod::BankTransfer, self::IBAN, '', '', 'PO-7', 'Consulting', 'Before the lines', 'After the lines', DocumentLanguage::Czech, [$line('Work', '1000.00', '0'), $line('Travel', '200.00', '10')], true));
         });
     }
 
@@ -719,7 +717,7 @@ final class RecurringFormControllerTest extends WebTestCase
             $line = new LineInput('Hosting {month/year}', Quantity::fromString('1'), 'ks', Money::of('1200.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
             $recurrence = new Recurrence(new \DateTimeImmutable('2026-12-01', new \DateTimeZone('Europe/Prague')), RecurrenceUnit::Month, 1, false, RecurrenceEnd::Never, null, null);
 
-            return self::getContainer()->get(SaveRecurringInvoice::class)->create(new RecurringInput($this->firm->id(), $this->series->id(), $this->customer->id(), PaymentMethod::BankTransfer, self::IBAN, '', '', 'Hosting {month/year}', '', '', DocumentLanguage::Czech, [$line], $recurrence, TaxPointRule::IssueDate, 14, RecurringDelivery::Send));
+            return self::getContainer()->get(SaveRecurringInvoice::class)->create(new RecurringInput($this->series->id(), $this->customer->id(), PaymentMethod::BankTransfer, self::IBAN, '', '', 'Hosting {month/year}', '', '', DocumentLanguage::Czech, [$line], $recurrence, TaxPointRule::IssueDate, 14, RecurringDelivery::Send));
         });
     }
 
@@ -776,8 +774,8 @@ final class RecurringFormControllerTest extends WebTestCase
         $this->browser->seed(role: $role);
         $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
         $this->em()->persist($this->firm);
-        FirmAccounts::add($this->em(), $this->firm, self::IBAN);
-        $this->series = new Series($this->firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+        FirmAccounts::add($this->em(), self::IBAN);
+        $this->series = new Series(Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $this->series->markDefault();
         $this->em()->persist($this->series);
         $this->customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '+420 000 000 000');

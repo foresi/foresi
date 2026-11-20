@@ -42,7 +42,6 @@ final class SaveRecurringInvoiceTest extends RecurringTestCase
         self::assertSame('send', $row['delivery']);
         self::assertSame('active', $row['state']);
         self::assertSame(0, $row['issued_count']);
-        self::assertSame($this->firm->id(), $row['legal_entity_id']);
         self::assertSame($this->series->id(), $row['series_id']);
         self::assertSame($this->customer->id(), $row['customer_id']);
         self::assertSame('PO-{month}', $row['order_number']);
@@ -214,7 +213,7 @@ final class SaveRecurringInvoiceTest extends RecurringTestCase
 
     public function testASeriesOfAnotherKindIsRefused(): void
     {
-        $taxDocuments = new Series($this->firm, 'Tax documents', SeriesFormat::fromString('DD{YYYY}{NNNN}'), DocumentKind::PaymentTaxDocument);
+        $taxDocuments = new Series('Tax documents', SeriesFormat::fromString('DD{YYYY}{NNNN}'), DocumentKind::PaymentTaxDocument);
         $this->em->persist($taxDocuments);
         $this->em->flush();
 
@@ -223,7 +222,7 @@ final class SaveRecurringInvoiceTest extends RecurringTestCase
 
     public function testASeriesOfCorrectionsIsRefused(): void
     {
-        $corrections = new Series($this->firm, 'Corrections', SeriesFormat::fromString('OD{YYYY}{NNNN}'), DocumentKind::CorrectionDocument);
+        $corrections = new Series('Corrections', SeriesFormat::fromString('OD{YYYY}{NNNN}'), DocumentKind::CorrectionDocument);
         $this->em->persist($corrections);
         $this->em->flush();
 
@@ -232,7 +231,7 @@ final class SaveRecurringInvoiceTest extends RecurringTestCase
 
     public function testAnAdvanceSeriesIsAccepted(): void
     {
-        $advances = new Series($this->firm, 'Advances', SeriesFormat::fromString('ZF{YYYY}{NNNN}'), DocumentKind::Advance);
+        $advances = new Series('Advances', SeriesFormat::fromString('ZF{YYYY}{NNNN}'), DocumentKind::Advance);
         $this->em->persist($advances);
         $this->em->flush();
 

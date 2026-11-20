@@ -57,6 +57,6 @@ final class AdvancePairingTest extends BankingTestCase
         $document = $this->em->getConnection()->fetchOne('SELECT id FROM invoice WHERE advance_invoice_id = ?', [$advanceId]);
         self::assertIsString($document);
         $this->expectException(PaymentRefused::class);
-        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-20'), $this->czk('10.00'), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($document, $this->czk('10.00'))]));
+        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-20'), $this->czk('10.00'), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($document, $this->czk('10.00'))]));
     }
 }

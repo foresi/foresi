@@ -111,7 +111,7 @@ final class ForecastReadsTest extends CashFlowTestCase
         $read = $this->read(new ForecastQuery($this->day('2026-11-17'), $this->day('2028-11-17')), [$source]);
 
         self::assertSame(['2028-06-30', '2028-11-17'], array_map(static fn (ReadFlow $flow): string => $flow->on->format('Y-m-d'), $read->flows));
-        self::assertSame([[$this->firm->id(), '2026-11-17', '2028-11-17', '2026-11-17 Europe/Prague']], $source->asked);
+        self::assertSame([['2026-11-17', '2028-11-17', '2026-11-17 Europe/Prague']], $source->asked);
         $this->assertRefused('to_too_far', fn (): ForecastRead => $this->read(new ForecastQuery($this->day('2026-11-17'), $this->day('2028-11-18')), [$source]));
         $this->assertRefused('to_before_from', fn (): ForecastRead => $this->read(new ForecastQuery($this->day('2026-11-20'), $this->day('2026-11-19')), [$source]));
     }
