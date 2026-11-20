@@ -73,19 +73,18 @@ final readonly class Amounts
     public function year(int $year): AmountsView
     {
         $today = $this->clock->today();
-        if ($year < self::FIRST_YEAR || $year > (int) $today->format('Y')) {
+        $from = $today->setDate($year, 1, 1);
+        if ($year < self::FIRST_YEAR || $from > $today) {
             throw TaxesRefused::invalid('invalid_year', 'year', \sprintf('The year is one from %d to this year.', self::FIRST_YEAR));
         }
-        $from = $today->setDate($year, 1, 1);
-        $end = $today->setDate($year, 12, 31);
 
-        return $this->between($from, $end < $today ? $end : $today);
+        return $this->between($from, min($today->setDate($year, 12, 31), $today));
     }
 
     /**
      * @throws TaxesRefused owner_only
      */
-    public function between(\DateTimeImmutable $from, \DateTimeImmutable $to): AmountsView
+    private function between(\DateTimeImmutable $from, \DateTimeImmutable $to): AmountsView
     {
         $profile = $this->profiles->profile();
         $zone = $this->clock->timezone();
@@ -115,7 +114,11 @@ final readonly class Amounts
                 $amounts[] = [$amount, $details];
             }
         }
-        array_push($unavailable, ...array_values(array_diff(self::EXPECTED_SOURCES, $found)));
+        foreach (self::EXPECTED_SOURCES as $expected) {
+            if (!\in_array($expected, $found, true)) {
+                $unavailable[] = $expected;
+            }
+        }
 
         return $this->view($from, $to, $profile, $amounts, $unavailable, $restricted);
     }
@@ -152,27 +155,35 @@ final readonly class Amounts
                 $unverified[] = AmountsView::UNVERIFIED_VAT_CASH_BASIS;
             }
             $counted = $payer ? $net : $gross;
-            $key = $amount->paidOn->format('Y-m').'|'.$amount->kind->value.'|'.$amount->source;
-            $sum = $sums[$key] ?? new AmountSum($amount->paidOn->format('Y-m'), $amount->kind, $amount->source, $zero, $zero, $zero, $zero);
-            $sums[$key] = new AmountSum($sum->month, $sum->kind, $sum->source, $sum->gross->plus($gross), $sum->net->plus($net), $sum->vat->plus($vat), $sum->counted->plus($counted));
+            $month = $amount->paidOn->format('Y-m');
+            $sum = $sums[$month][$amount->kind->value][$amount->source] ?? new AmountSum($month, $amount->kind, $amount->source, $zero, $zero, $zero, $zero);
+            $sums[$month][$amount->kind->value][$amount->source] = new AmountSum($sum->month, $sum->kind, $sum->source, $sum->gross->plus($gross), $sum->net->plus($net), $sum->vat->plus($vat), $sum->counted->plus($counted));
             $total = $totals[$amount->kind->value];
             $totals[$amount->kind->value] = new AmountTotals($total->gross->plus($gross), $total->net->plus($net), $total->vat->plus($vat), $total->counted->plus($counted));
             if ($details) {
                 $lines[] = new AmountLine($amount, $gross, $net, $vat, $counted);
             }
         }
+        $rows = [];
         ksort($sums);
+        foreach ($sums as $kinds) {
+            ksort($kinds);
+            foreach ($kinds as $bySource) {
+                ksort($bySource);
+                array_push($rows, ...array_values($bySource));
+            }
+        }
 
         return new AmountsView(
             $from,
             $to,
-            array_values($sums),
+            $rows,
             $totals,
             $lines,
-            array_values(array_unique($unavailable)),
-            array_values(array_unique($restricted)),
-            array_values(array_unique($missing)),
-            array_values(array_unique($unverified)),
+            self::distinct($unavailable),
+            self::distinct($restricted),
+            self::distinct($missing),
+            self::distinct($unverified),
             [AmountsView::GAP_NON_DEDUCTIBLE_COSTS, AmountsView::GAP_ASSETS],
         );
     }
@@ -181,32 +192,40 @@ final readonly class Amounts
      * The amount in CZK at the rate of the day it was paid; null when the
      * currency has no rate then, which is remembered and listed.
      *
-     * @param array<string, array{int, string}|null> $rates   by currency and day
+     * @param array<string, array<string, array{int, string}|null>> $rates by currency and day
      * @param list<string>                           $missing
      */
     private function czk(Money $money, \DateTimeImmutable $day, array &$rates, array &$missing): ?Money
     {
-        $currency = $money->currency();
-        if (Currency::CZK === $currency) {
-            return $money;
-        }
-        $key = $currency->value.'|'.$day->format('Y-m-d');
-        if (!\array_key_exists($key, $rates)) {
+        $currency = $money->currency()->value;
+        $date = $day->format('Y-m-d');
+        if (!\array_key_exists($date, $rates[$currency] ?? [])) {
             try {
-                $rate = $this->rates->rateOn($currency->value, $day);
-                $rates[$key] = [$rate->amount, $rate->rate];
+                $rate = $this->rates->rateOn($currency, $day);
+                $rates[$currency][$date] = [$rate->amount, $rate->rate];
             } catch (RateNotAvailable $failure) {
-                $this->logger->warning('No rate of {currency} on {day} for the actual amounts.', ['currency' => $currency->value, 'day' => $day->format('Y-m-d'), 'exception' => $failure]);
-                $rates[$key] = null;
+                $this->logger->warning('No rate of {currency} on {day} for the actual amounts.', ['currency' => $currency, 'day' => $date, 'exception' => $failure]);
+                $rates[$currency][$date] = null;
             }
         }
-        if (null === $rates[$key]) {
-            $missing[] = $currency->value;
+        $known = $rates[$currency][$date];
+        if (null === $known) {
+            $missing[] = $currency;
 
             return null;
         }
-        [$units, $rate] = $rates[$key];
+        [$units, $rate] = $known;
 
         return Money::ofMinor($money->minor(), Currency::CZK)->multipliedBy($rate)->dividedBy((string) $units);
+    }
+
+    /**
+     * @param list<string> $values
+     *
+     * @return list<string> each value once, in the order first seen
+     */
+    private static function distinct(array $values): array
+    {
+        return array_values(array_unique($values));
     }
 }

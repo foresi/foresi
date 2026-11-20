@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\TaxesAndContributions\Contract;
 
-use Brick\Math\BigInteger;
-use Brick\Math\RoundingMode;
 use Foresi\Shared\Domain\Money;
 
 /**
@@ -27,19 +25,22 @@ final readonly class VatShare
     }
 
     /**
-     * The net and the VAT of a paid amount: the net is rounded half up to the
-     * minor unit and the VAT takes the rest, so net + VAT is the amount paid.
-     * A document with a gross of zero has no ratio, and all of it is net.
+     * The net and the VAT of a paid amount, in the ratio of the document and
+     * without losing a minor unit: net + VAT is the amount paid, and a minor
+     * unit left over goes to the net. A document with a gross of zero, or
+     * whose net and VAT go opposite ways, has no ratio, and all of it is net.
      *
      * @return array{Money, Money} the net and the VAT, in the currency of the amount
      */
     public function split(Money $paid): array
     {
-        if (0 === $this->grossMinor) {
+        $sign = $this->grossMinor < 0 ? -1 : 1;
+        $net = $sign * $this->netMinor;
+        $vat = $sign * ($this->grossMinor - $this->netMinor);
+        if (0 === $this->grossMinor || $net < 0 || $vat < 0) {
             return [$paid, Money::ofMinor(0, $paid->currency())];
         }
-        $net = BigInteger::of($paid->minor())->multipliedBy($this->netMinor)->dividedBy($this->grossMinor, RoundingMode::HalfUp)->toInt();
 
-        return [Money::ofMinor($net, $paid->currency()), Money::ofMinor($paid->minor() - $net, $paid->currency())];
+        return $paid->allocate($net, $vat);
     }
 }

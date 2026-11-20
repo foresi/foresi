@@ -52,9 +52,9 @@ final class ReceivedPaymentAmountsTest extends PurchasingTestCase
     public function testOnlyThePaymentsOfTheDaysAskedCount(): void
     {
         $document = $this->recording()->create($this->input())->document->id();
+        $this->pay($document, '3.00', '2026-11-10');
         $this->pay($document, '1.00', '2026-10-31');
         $this->pay($document, '2.00', '2026-11-01');
-        $this->pay($document, '3.00', '2026-11-10');
 
         self::assertSame([200, 300], array_map(static fn (ActualAmount $amount): int => $amount->gross->minor(), $this->paid(to: '2026-11-10')));
         self::assertSame([200], array_map(static fn (ActualAmount $amount): int => $amount->gross->minor(), $this->paid(to: '2026-11-09')));

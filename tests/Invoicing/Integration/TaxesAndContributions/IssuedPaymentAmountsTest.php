@@ -58,9 +58,9 @@ final class IssuedPaymentAmountsTest extends AdvanceTestCase
     {
         Clock::set(new MockClock('2026-12-05 10:00:00', 'UTC'));
         $invoice = $this->issue->issue($this->input([$this->line('10000.00')]));
+        $this->pay($invoice, '300.00', '2026-11-30');
         $this->pay($invoice, '100.00', '2026-10-31');
         $this->pay($invoice, '200.00', '2026-11-01');
-        $this->pay($invoice, '300.00', '2026-11-30');
         $this->pay($invoice, '400.00', '2026-12-01');
 
         self::assertSame([20_000, 30_000], array_map(static fn (ActualAmount $amount): int => $amount->gross->minor(), $this->paid()));

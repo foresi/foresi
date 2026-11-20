@@ -2246,10 +2246,9 @@
             "dist": {
                 "type": "path",
                 "url": "src/TaxesAndContributions",
-                "reference": "5f14446f2208635aff098c2c14d39a393e0105ea"
+                "reference": "48189519b67f0b9f028b7e62b0670a4af2431519"
             },
             "require": {
-                "brick/math": "^1.0",
                 "foresi/audit": "*",
                 "foresi/exchange-rate": "*",
                 "foresi/identity": "*",

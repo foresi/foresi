@@ -17,7 +17,6 @@ use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\PaymentAllocation;
 use Foresi\Invoicing\Infrastructure\Api\InvoiceApiController;
 use Foresi\Shared\Domain\Currency;
-use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Money;
 use Foresi\TaxesAndContributions\Contract\ActualAmount;
 use Foresi\TaxesAndContributions\Contract\ActualAmountSource;
@@ -60,7 +59,7 @@ final readonly class IssuedPaymentAmounts implements ActualAmountSource
 
     public function paidBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): iterable
     {
-        /** @var list<array{amount: int|numeric-string, paidOn: \DateTimeImmutable, invoice: string, kind: DocumentKind, currency: Currency, taxPointOn: ?\DateTimeImmutable}> $rows */
+        /** @var list<array{amount: int, paidOn: \DateTimeImmutable, invoice: string, kind: DocumentKind, currency: Currency, taxPointOn: ?\DateTimeImmutable}> $rows */
         $rows = $this->entityManager->createQuery(
             'SELECT a.amountMinor AS amount, p.receivedOn AS paidOn, i.id AS invoice, i.kind AS kind, i.currency AS currency, i.taxPointDate AS taxPointOn'
             .' FROM '.PaymentAllocation::class.' a JOIN a.payment p JOIN a.invoice i'
@@ -71,10 +70,10 @@ final readonly class IssuedPaymentAmounts implements ActualAmountSource
             ->setParameter('to', $to->format('Y-m-d'))
             ->setParameter('kinds', [DocumentKind::Invoice->value, DocumentKind::Advance->value])
             ->getArrayResult();
-        $shares = $this->sharesOf(array_values(array_unique(array_column($rows, 'invoice'))));
+        $shares = $this->sharesOf(array_column($rows, 'invoice'));
         foreach ($rows as $row) {
-            $gross = Money::ofMinor((int) $row['amount'], $row['currency']);
-            [$net, $vat] = ($shares[$row['invoice']] ?? new VatShare(0, 0))->split($gross);
+            $gross = Money::ofMinor($row['amount'], $row['currency']);
+            [$net, $vat] = ($shares[$row['invoice']] ?? throw new \LogicException('A paid invoice has no ratio.'))->split($gross);
             yield new ActualAmount(
                 self::KEY,
                 new Subject('invoice', $row['invoice'], $this->urls->generate(InvoiceApiController::SHOW, ['invoiceId' => $row['invoice']], UrlGeneratorInterface::ABSOLUTE_PATH)),
@@ -95,11 +94,8 @@ final readonly class IssuedPaymentAmounts implements ActualAmountSource
      */
     public function sharesOf(array $subjectIds): array
     {
-        $ids = array_values(array_filter($subjectIds, Id::isValid(...)));
-        if ([] === $ids) {
-            return [];
-        }
-        /** @var list<array{id: string, net: int|numeric-string, vat: int|numeric-string}> $documents */
+        $ids = array_values($subjectIds);
+        /** @var list<array{id: string, net: int, vat: int}> $documents */
         $documents = $this->entityManager->createQuery('SELECT i.id AS id, i.netMinor AS net, i.vatMinor AS vat FROM '.Invoice::class.' i WHERE i.id IN (:ids)')
             ->setParameter('ids', $ids)
             ->getArrayResult();
@@ -113,13 +109,13 @@ final readonly class IssuedPaymentAmounts implements ActualAmountSource
             ->getArrayResult();
         $changes = [];
         foreach ($corrections as $correction) {
-            $changes[$correction['id']] = [(int) $correction['net'], (int) $correction['vat']];
+            $changes[$correction['id']] = [$correction['net'], $correction['vat']];
         }
         $shares = [];
         foreach ($documents as $document) {
             [$net, $vat] = $changes[$document['id']] ?? [0, 0];
-            $net += (int) $document['net'];
-            $vat += (int) $document['vat'];
+            $net += $document['net'];
+            $vat += $document['vat'];
             $shares[$document['id']] = new VatShare($net, $net + $vat);
         }
 

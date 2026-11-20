@@ -19,7 +19,6 @@ use Foresi\Purchasing\Domain\ReceivedDocumentPayment;
 use Foresi\Purchasing\Domain\ReceivedDocumentState;
 use Foresi\Purchasing\Infrastructure\Api\ReceivedDocumentApiController;
 use Foresi\Shared\Domain\Currency;
-use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Money;
 use Foresi\TaxesAndContributions\Contract\ActualAmount;
 use Foresi\TaxesAndContributions\Contract\ActualAmountSource;
@@ -62,9 +61,9 @@ final readonly class ReceivedPaymentAmounts implements ActualAmountSource
 
     public function paidBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): iterable
     {
-        /** @var list<array{amount: int|numeric-string, paidOn: \DateTimeImmutable, currency: Currency, document: string, kind: ReceivedDocumentKind, treatment: PurchaseTaxTreatment, base: int|numeric-string, vat: int|numeric-string, total: int|numeric-string|null, taxPointOn: ?\DateTimeImmutable}> $rows */
+        /** @var list<array{amount: int, paidOn: \DateTimeImmutable, currency: Currency, document: string, kind: ReceivedDocumentKind, treatment: PurchaseTaxTreatment, vat: int, total: int|null, taxPointOn: ?\DateTimeImmutable}> $rows */
         $rows = $this->entityManager->createQuery(
-            'SELECT p.amountMinor AS amount, p.paidOn AS paidOn, p.currency AS currency, d.id AS document, d.kind AS kind, d.treatment AS treatment, d.baseMinor AS base, d.vatMinor AS vat, d.totalMinor AS total, d.taxPointDate AS taxPointOn'
+            'SELECT p.amountMinor AS amount, p.paidOn AS paidOn, p.currency AS currency, d.id AS document, d.kind AS kind, d.treatment AS treatment, d.vatMinor AS vat, d.totalMinor AS total, d.taxPointDate AS taxPointOn'
             .' FROM '.ReceivedDocumentPayment::class.' p JOIN p.document d'
             .' WHERE p.paidOn >= :from AND p.paidOn <= :to AND d.state = :state AND d.deletedAt IS NULL'
             .' ORDER BY p.paidOn ASC, p.createdAt ASC, p.id ASC',
@@ -75,9 +74,9 @@ final readonly class ReceivedPaymentAmounts implements ActualAmountSource
             ->getArrayResult();
         $zone = $from->getTimezone();
         foreach ($rows as $row) {
-            $paid = (int) $row['amount'];
+            $paid = $row['amount'];
             $gross = Money::ofMinor(ReceivedDocumentKind::CreditNote === $row['kind'] ? -$paid : $paid, $row['currency']);
-            [$net, $vat] = $this->share($row['treatment'], (int) $row['base'], (int) $row['vat'], null === $row['total'] ? null : (int) $row['total'])->split($gross);
+            [$net, $vat] = $this->share($row['treatment'], $row['vat'], $row['total'])->split($gross);
             yield new ActualAmount(
                 self::KEY,
                 new Subject('received_document', $row['document'], $this->urls->generate(ReceivedDocumentApiController::SHOW, ['documentId' => $row['document']], UrlGeneratorInterface::ABSOLUTE_PATH)),
@@ -94,29 +93,27 @@ final readonly class ReceivedPaymentAmounts implements ActualAmountSource
 
     public function sharesOf(array $subjectIds): array
     {
-        $ids = array_values(array_filter($subjectIds, Id::isValid(...)));
-        if ([] === $ids) {
-            return [];
-        }
-        /** @var list<array{id: string, treatment: PurchaseTaxTreatment, base: int|numeric-string, vat: int|numeric-string, total: int|numeric-string|null}> $documents */
-        $documents = $this->entityManager->createQuery('SELECT d.id AS id, d.treatment AS treatment, d.baseMinor AS base, d.vatMinor AS vat, d.totalMinor AS total FROM '.ReceivedDocument::class.' d WHERE d.id IN (:ids)')
+        $ids = array_values($subjectIds);
+        /** @var list<array{id: string, treatment: PurchaseTaxTreatment, vat: int, total: int|null}> $documents */
+        $documents = $this->entityManager->createQuery('SELECT d.id AS id, d.treatment AS treatment, d.vatMinor AS vat, d.totalMinor AS total FROM '.ReceivedDocument::class.' d WHERE d.id IN (:ids) AND d.state = :state')
             ->setParameter('ids', $ids)
+            ->setParameter('state', ReceivedDocumentState::Recorded->value)
             ->getArrayResult();
         $shares = [];
         foreach ($documents as $document) {
-            $shares[$document['id']] = $this->share($document['treatment'], (int) $document['base'], (int) $document['vat'], null === $document['total'] ? null : (int) $document['total']);
+            $shares[$document['id']] = $this->share($document['treatment'], $document['vat'], $document['total']);
         }
 
         return $shares;
     }
 
     /**
-     * The gross is what the document asks to be paid. Only domestic VAT the
-     * supplier charged is deducted from it.
+     * The gross is what a recorded document asks to be paid. Only domestic VAT
+     * the supplier charged is deducted from it.
      */
-    private function share(PurchaseTaxTreatment $treatment, int $base, int $vat, ?int $total): VatShare
+    private function share(PurchaseTaxTreatment $treatment, int $vat, ?int $total): VatShare
     {
-        $gross = $total ?? $base + $vat;
+        $gross = $total ?? throw new \LogicException('A recorded document has a total.');
 
         return new VatShare(PurchaseTaxTreatment::Domestic === $treatment ? $gross - $vat : $gross, $gross);
     }

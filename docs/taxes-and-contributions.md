@@ -50,7 +50,7 @@ For each authority (`social`, `health`, `sickness`, `income_tax`), the account a
 The income received and the costs paid, on a cash basis, as the estimate of "to date" reads them. Invoicing gives the payments of issued invoices and advances, Purchasing those of recorded received documents; each implements `Foresi\TaxesAndContributions\Contract\ActualAmountSource` in its own `Integration/TaxesAndContributions` directory.
 
 - A payment counts on the day it was paid, in the instance's time zone.
-- A part payment splits into net and VAT in the ratio of its document, with the corrections of an issued invoice, such as a credit note, taken in. The net is rounded half up and the VAT takes the rest, so net and VAT always add up to what was paid.
+- A part payment splits into net and VAT in the ratio of its document, with the corrections of an issued invoice, such as a credit note, taken in. Net and VAT always add up to what was paid; a minor unit left over goes to the net.
 - Of a received document only domestic VAT the supplier charged leaves the net. Self-assessed VAT was never paid to the supplier, and non-deductible VAT stays a cost.
 - A refund to a customer, and the money a supplier's credit note brings back, count negative on their own day.
 - A paid advance counts when it is paid. Its final invoice deducts it and asks only for the rest, so the money counts once.
