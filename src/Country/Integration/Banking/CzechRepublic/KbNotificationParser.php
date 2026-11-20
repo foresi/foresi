@@ -23,14 +23,16 @@ use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 
 /**
- * Reads the payment notices Komerční banka mails, "Oznámení o platbách".
+ * Reads the payment notices Komerční banka mails: "Oznámení o platbách" of
+ * MojeBanka Business and the incoming payment notice of KB+ (see KbLabels).
  *
  * A notice states every payment once in Czech and once in English, and a mail
  * may carry an HTML and a text body. Each statement is read on its own and all
  * of them must agree, or the mail fails as inconsistent: a payment is recorded
  * from what the bank said in every place, never from a guess at one of them.
  * A payment whose status is on the closed not-booked list is ignored; a status
- * on neither list fails as an unknown layout.
+ * on neither list fails as an unknown layout. A KB+ notice states no status: the
+ * bank says it has received the payment, so it is booked.
  *
  * @phpstan-type Reading array{direction: MovementDirection, status: string, booked: bool, values: array<string, string|null>}
  */
@@ -38,12 +40,15 @@ final readonly class KbNotificationParser implements BankMessageParser
 {
     private const array SENDER_DOMAINS = ['kb.cz', 'kbinfo.cz'];
 
-    private const string AMOUNT = '/^(-)?\s*([0-9]{1,3}(?:[ .\x{00A0}\x{202F}][0-9]{3})*|[0-9]+)(?:,([0-9]{1,2}))?\s*([A-Z]{3})$/u';
+    private const string AMOUNT = '/^(-)?\s*([0-9]{1,3}(?:[ .\x{00A0}\x{202F}][0-9]{3})*|[0-9]+)(?:,([0-9]{1,2}))?\s*([A-Z]{3}|Kč)$/u';
+    /** An amount written the English way, with comma thousands and a decimal dot. */
+    private const string ENGLISH_AMOUNT = '/^(-)?\s*([0-9]{1,3}(?:,[0-9]{3})*|[0-9]+)(?:\.([0-9]{1,2}))?\s*([A-Z]{3}|Kč)$/u';
     private const string DOMESTIC_ACCOUNT = '/^((?:[0-9]{1,6}-)?[0-9]{2,10})\/([0-9]{4})$/';
     private const string IBAN_SHAPE = '/^[A-Z]{2}[0-9]{2}[A-Z0-9 ]{11,}$/';
     private const string SYMBOL = '/^[0-9]{1,10}$/';
     private const string CZECH_DATE = '/^([0-9]{1,2})\.\s*([0-9]{1,2})\.\s*([0-9]{4})$/';
     private const string ISO_DATE = '/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/';
+    private const string US_DATE = '/^([0-9]{1,2})-([0-9]{1,2})-([0-9]{4})$/';
 
     /** The IBAN a counter-account was derived to, kept beside it in a reading. */
     private const string COUNTER_IBAN = 'counter IBAN';
@@ -59,7 +64,7 @@ final readonly class KbNotificationParser implements BankMessageParser
 
     public function version(): int
     {
-        return 1;
+        return 2;
     }
 
     public function senderDomains(): array
@@ -165,23 +170,34 @@ final readonly class KbNotificationParser implements BankMessageParser
                 if (null !== $current) {
                     $blocks[] = $current;
                 }
-                $current = ['direction' => $heading[0], 'language' => $heading[1], 'lines' => []];
+                $current = ['heading' => $heading, 'lines' => []];
+            } elseif (KbLabels::footer($line)) {
+                // The footer ends the fields of a payment; a field after it stands under no heading.
+                if (null !== $current) {
+                    $blocks[] = $current;
+                }
+                $current = null;
             } elseif (null !== $current) {
                 $current['lines'][] = $line;
             } elseif (null !== $this->label($line)) {
                 throw new ParseFailed(ParseFailure::UnknownLayout, 'A field of the notice stands under no heading the parser knows.');
             }
         }
-        if (null === $current) {
+        if (null !== $current) {
+            $blocks[] = $current;
+        }
+        if ([] === $blocks) {
             throw new ParseFailed(ParseFailure::UnknownLayout, 'The notice has fields but no heading the parser knows.');
         }
-        $blocks[] = $current;
+        if (\count(array_unique(array_map(static fn (array $block): string => $block['heading']['layout'], $blocks))) > 1) {
+            throw new ParseFailed(ParseFailure::UnknownLayout, 'The notice mixes the headings of two kinds of notice.');
+        }
 
         $czech = [];
         $english = [];
         foreach ($blocks as $block) {
-            $reading = $this->readBlock($block['direction'], $block['lines']);
-            if (KbLabels::CZECH === $block['language']) {
+            $reading = $this->readBlock($block['heading'], $block['lines']);
+            if (KbLabels::CZECH === $block['heading']['language']) {
                 $czech[] = $reading;
             } else {
                 $english[] = $reading;
@@ -204,16 +220,22 @@ final readonly class KbNotificationParser implements BankMessageParser
     }
 
     /**
-     * @param list<string> $lines
+     * @param array{direction: MovementDirection, language: string, layout: string, amount: string|null} $heading
+     * @param list<string>                                                                               $lines
      *
      * @return Reading
      */
-    private function readBlock(MovementDirection $direction, array $lines): array
+    private function readBlock(array $heading, array $lines): array
     {
+        $direction = $heading['direction'];
+        $layout = $heading['layout'];
         $raw = [];
+        if (null !== $heading['amount']) {
+            $raw[KbLabels::AMOUNT] = $heading['amount'];
+        }
         $count = \count($lines);
         for ($i = 0; $i < $count; ++$i) {
-            $label = $this->label($lines[$i]);
+            $label = $this->label($lines[$i], $layout);
             if (null === $label) {
                 continue;
             }
@@ -221,7 +243,7 @@ final readonly class KbNotificationParser implements BankMessageParser
             if (null === $value) {
                 $next = $lines[$i + 1] ?? null;
                 $value = '';
-                if (null !== $next && null === $this->label($next)) {
+                if (null !== $next && null === $this->label($next, $layout)) {
                     $value = $next;
                     ++$i;
                 }
@@ -232,15 +254,16 @@ final readonly class KbNotificationParser implements BankMessageParser
             $raw[$field] = $value;
         }
 
-        foreach (KbLabels::REQUIRED as $field) {
+        foreach (KbLabels::REQUIRED[$layout] as $field) {
             if ('' === ($raw[$field] ?? '')) {
                 throw new ParseFailed(ParseFailure::MissingField, \sprintf('A payment has no %s.', $field));
             }
         }
 
-        $status = $raw[KbLabels::STATUS];
+        $kbPlus = KbLabels::KB_PLUS === $layout;
+        $status = $kbPlus ? KbLabels::RECEIVED : $raw[KbLabels::STATUS];
         $values = [
-            KbLabels::AMOUNT => $this->amount($raw[KbLabels::AMOUNT], $direction),
+            KbLabels::AMOUNT => $this->amount($raw[KbLabels::AMOUNT], $direction, $kbPlus && KbLabels::ENGLISH === $heading['language']),
             KbLabels::OWN_ACCOUNT => $this->ownAccount($raw[KbLabels::OWN_ACCOUNT]),
         ];
         if (\array_key_exists(KbLabels::COUNTER_ACCOUNT, $raw)) {
@@ -260,7 +283,7 @@ final readonly class KbNotificationParser implements BankMessageParser
             $values[KbLabels::DATE] = $this->date($raw[KbLabels::DATE]);
         }
 
-        $booked = KbLabels::booked($status);
+        $booked = $kbPlus ? true : KbLabels::booked($status);
         if (null === $booked) {
             throw new ParseFailed(ParseFailure::UnknownLayout, \sprintf('The payment status "%s" is not known.', $status));
         }
@@ -269,14 +292,15 @@ final readonly class KbNotificationParser implements BankMessageParser
     }
 
     /**
-     * The field a line labels, with the value written after a colon on the same
-     * line, or a null value when the value is on the next line.
+     * The field a line labels in the layout, or in any layout when none is given,
+     * with the value written after a colon on the same line, or a null value when
+     * the value is on the next line.
      *
      * @return array{string, string|null}|null
      */
-    private function label(string $line): ?array
+    private function label(string $line, ?string $layout = null): ?array
     {
-        $field = KbLabels::field($line);
+        $field = KbLabels::field($line, $layout);
         if (null !== $field) {
             return [$field, null];
         }
@@ -284,7 +308,7 @@ final readonly class KbNotificationParser implements BankMessageParser
         if (false === $colon) {
             return null;
         }
-        $field = KbLabels::field(substr($line, 0, $colon));
+        $field = KbLabels::field(substr($line, 0, $colon), $layout);
         if (null === $field) {
             return null;
         }
@@ -352,16 +376,18 @@ final readonly class KbNotificationParser implements BankMessageParser
 
     /**
      * A comma is the decimal point; spaces, no-break spaces and dots group the
-     * thousands, in threes. Anything else is not read rather than read wrong.
+     * thousands, in threes. Written the English way, a dot is the decimal point
+     * and commas group the thousands. Anything else is not read rather than read
+     * wrong. "Kč" is the Czech crown.
      *
      * @return string the minor units and the currency code, "15000 CZK"
      */
-    private function amount(string $written, MovementDirection $direction): string
+    private function amount(string $written, MovementDirection $direction, bool $english): string
     {
-        if (1 !== preg_match(self::AMOUNT, $written, $parts)) {
+        if (1 !== preg_match($english ? self::ENGLISH_AMOUNT : self::AMOUNT, $written, $parts)) {
             throw new ParseFailed(ParseFailure::InvalidValue, 'The amount is not written as an amount and a currency.');
         }
-        $currency = Currency::tryFrom($parts[4]);
+        $currency = 'Kč' === $parts[4] ? Currency::CZK : Currency::tryFrom($parts[4]);
         if (null === $currency) {
             throw new ParseFailed(ParseFailure::InvalidValue, 'The amount is in a currency Foresi does not support.');
         }
@@ -450,8 +476,10 @@ final readonly class KbNotificationParser implements BankMessageParser
             [, $day, $month, $year] = $parts;
         } elseif (1 === preg_match(self::ISO_DATE, $written, $parts)) {
             [, $year, $month, $day] = $parts;
+        } elseif (1 === preg_match(self::US_DATE, $written, $parts)) {
+            [, $month, $day, $year] = $parts;
         } else {
-            throw new ParseFailed(ParseFailure::InvalidValue, 'The date is not written as d.m.yyyy or yyyy-mm-dd.');
+            throw new ParseFailed(ParseFailure::InvalidValue, 'The date is not written as d.m.yyyy, yyyy-mm-dd or m-d-yyyy.');
         }
         if (!checkdate((int) $month, (int) $day, (int) $year)) {
             throw new ParseFailed(ParseFailure::InvalidValue, 'The date does not exist.');

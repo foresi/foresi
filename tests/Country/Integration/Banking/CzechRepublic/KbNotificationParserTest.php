@@ -31,7 +31,7 @@ final class KbNotificationParserTest extends TestCase
         $parser = new KbNotificationParser();
 
         self::assertSame('cz.kb', $parser->id());
-        self::assertSame(1, $parser->version());
+        self::assertSame(2, $parser->version());
         self::assertSame(['kb.cz', 'kbinfo.cz'], $parser->senderDomains());
     }
 
@@ -259,6 +259,7 @@ final class KbNotificationParserTest extends TestCase
         yield 'dot thousands' => ['1.234.567,00 CZK', 123456700, Currency::CZK];
         yield 'no space before the currency' => ['150,00CZK', 15000, Currency::CZK];
         yield 'a cent' => ['0,01 USD', 1, Currency::USD];
+        yield 'crowns written Kč' => ['150,00 Kč', 15000, Currency::CZK];
     }
 
     #[DataProvider('badAmounts')]
@@ -311,6 +312,129 @@ final class KbNotificationParserTest extends TestCase
         $html = str_replace('02.11.2026', '31.11.2026', $this->htmlOf('incoming-booked.eml'));
 
         $this->assertFailure(ParseFailure::InvalidValue, 'date', $this->inline(html: $html));
+    }
+
+    public function testADateMayBeWrittenMonthFirstWithDashes(): void
+    {
+        $html = str_replace('02.11.2026', '11-02-2026', $this->htmlOf('incoming-booked.eml'));
+
+        $this->assertMovements([$this->expected()], $this->parse($this->inline(html: $html)));
+    }
+
+    public function testAKbPlusIncomingNoticeGivesOneBookedMovement(): void
+    {
+        // KB+ states no status: the bank says it has received the payment.
+        $mail = $this->mail('kb-plus-incoming.eml');
+
+        self::assertTrue(new KbNotificationParser()->supports($mail));
+        $this->assertMovements([$this->kbPlusExpected()], $this->parse($mail));
+    }
+
+    public function testAKbPlusTextNoticeIsRead(): void
+    {
+        $this->assertMovements([$this->kbPlusExpected()], $this->parse($this->inline(text: $this->kbPlus(), from: 'servis@kbinfo.cz')));
+    }
+
+    public function testAKbPlusNoticeInOneLanguageIsRead(): void
+    {
+        $english = $this->kbPlus(czech: false);
+
+        $this->assertMovements([$this->kbPlusExpected()], $this->parse($this->inline(text: $english)));
+        $this->assertMovements([$this->kbPlusExpected()], $this->parse($this->inline(text: $this->kbPlus(english: false))));
+    }
+
+    #[DataProvider('englishAmounts')]
+    public function testAKbPlusEnglishAmountIsWrittenTheEnglishWay(string $czech, string $english, int $minor, Currency $currency): void
+    {
+        $movements = $this->parse($this->inline(text: $this->kbPlus(czechAmount: $czech, englishAmount: $english)))->movements();
+
+        self::assertCount(1, $movements);
+        self::assertSame($minor, $movements[0]->amount->minor());
+        self::assertSame($currency, $movements[0]->amount->currency());
+    }
+
+    /**
+     * @return iterable<string, array{string, string, int, Currency}>
+     */
+    public static function englishAmounts(): iterable
+    {
+        yield 'thousands' => ['48 176,00 Kč', '48,176.00 CZK', 4817600, Currency::CZK];
+        yield 'millions' => ['1 234 567,89 Kč', '1,234,567.89 CZK', 123456789, Currency::CZK];
+        yield 'whole' => ['150 Kč', '150 CZK', 15000, Currency::CZK];
+        yield 'one decimal' => ['150,5 Kč', '150.5 CZK', 15050, Currency::CZK];
+        yield 'no grouping' => ['1234,00 Kč', '1234.00 CZK', 123400, Currency::CZK];
+        yield 'euro' => ['1 250,00 EUR', '1,250.00 EUR', 125000, Currency::EUR];
+    }
+
+    #[DataProvider('badEnglishAmounts')]
+    public function testAKbPlusEnglishAmountWrittenTheCzechWayIsAnInvalidValue(string $english): void
+    {
+        $this->assertFailure(ParseFailure::InvalidValue, 'amount', $this->inline(text: $this->kbPlus(czech: false, englishAmount: $english)));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function badEnglishAmounts(): iterable
+    {
+        yield 'a decimal comma' => ['48 176,00 CZK'];
+        yield 'dot thousands' => ['48.176,00 CZK'];
+        yield 'groups not of three' => ['4,81,76.00 CZK'];
+        yield 'three decimals' => ['48,176.000 CZK'];
+        yield 'no currency' => ['48,176.00'];
+    }
+
+    public function testKbPlusLanguagesDisagreeingOnTheAmountAreInconsistent(): void
+    {
+        $this->assertFailure(ParseFailure::Inconsistent, 'amount', $this->inline(text: $this->kbPlus(englishAmount: '48,167.00 CZK')));
+    }
+
+    public function testKbPlusLanguagesDisagreeingOnTheDateAreInconsistent(): void
+    {
+        $this->assertFailure(ParseFailure::Inconsistent, 'date', $this->inline(text: $this->kbPlus(englishDate: '11-21-2026')));
+    }
+
+    public function testAKbPlusEnglishDateIsMonthFirst(): void
+    {
+        // Day first, "20-11-2026" names a 20th month.
+        $this->assertFailure(ParseFailure::InvalidValue, 'date', $this->inline(text: $this->kbPlus(czech: false, englishDate: '20-11-2026')));
+    }
+
+    public function testAKbPlusNoticeWithoutTheOwnAccountIsAMissingField(): void
+    {
+        $text = str_replace(["Na účet\n", "To account\n"], ['', ''], $this->kbPlus());
+
+        $this->assertFailure(ParseFailure::MissingField, 'own account', $this->inline(text: $text));
+    }
+
+    public function testTheLabelsOfOneLayoutAreNotReadUnderTheHeadingOfTheOther(): void
+    {
+        // Under a KB+ heading the amount of the heading counts, not a field of the other notice.
+        $text = str_replace("Z účtu\n", "Částka a měna: 1 500,00 CZK\nStav platby: Zamítnuto\nZ účtu\n", $this->kbPlus(english: false));
+        $this->assertMovements([$this->kbPlusExpected()], $this->parse($this->inline(text: $text)));
+
+        $text = "Incoming payment\nAmount and currency: 150,00 CZK\nTo account: 19-2000145399/0800\nStatus of the payment: Booked\n";
+        $this->assertFailure(ParseFailure::MissingField, 'own account', $this->inline(text: $text));
+    }
+
+    public function testAFieldAfterTheKbPlusFooterIsAnUnknownLayout(): void
+    {
+        $text = str_replace("Volat do KB\n", "Volat do KB\nVariabilní symbol: 2026009\n", $this->kbPlus(english: false));
+
+        $this->assertFailure(ParseFailure::UnknownLayout, 'stands under no heading', $this->inline(text: $text));
+    }
+
+    public function testAFooterLineBeforeAnyHeadingIsPassedOver(): void
+    {
+        $this->assertMovements([$this->kbPlusExpected()], $this->parse($this->inline(text: "We are here to help\n".$this->kbPlus())));
+    }
+
+    public function testANoticeMixingTheHeadingsOfBothLayoutsIsAnUnknownLayout(): void
+    {
+        $text = $this->kbPlus(english: false)."Incoming payment\nAmount and currency: 48 176,00 CZK\n"
+            ."Your account number: 19-2000145399/0800\nStatus of the payment: Booked\nDue date: 20.11.2026\n";
+
+        $this->assertFailure(ParseFailure::UnknownLayout, 'mixes', $this->inline(text: $text));
     }
 
     public function testWithoutADueDateTheMailDateCountsInPrague(): void
@@ -468,6 +592,42 @@ final class KbNotificationParserTest extends TestCase
             ."Status of the payment: Booked\n";
 
         $this->assertFailure(ParseFailure::MissingField, 'no date', $this->inline(text: $text, date: null));
+    }
+
+    private function kbPlus(
+        bool $czech = true,
+        bool $english = true,
+        string $czechAmount = '48 176,00 Kč',
+        string $englishAmount = '48,176.00 CZK',
+        string $englishDate = '11-20-2026',
+    ): string {
+        $text = "Podívejte se na podrobnosti o přijaté platbě.\nFor English scroll down\n";
+        if ($czech) {
+            $text .= "Přijali jsme platbu {$czechAmount} na Váš účet\nSplatnost: 20. 11. 2026\nZ účtu\n\n".self::COUNTER."\n"
+                ."Na účet\n19-2000145399/0800\nZpráva pro příjemce\nInvoice 2026001\nVariabilní symbol\n2026001\n"
+                ."Konstantní symbol\n308\nSpecifický symbol\nChcete s něčím poradit?\nVolat do KB\n+420 000 000 000\n";
+        }
+        if ($english) {
+            $text .= "We have received the payment {$englishAmount} to your account\nDue date: {$englishDate}\nFrom account\n\n".self::COUNTER."\n"
+                ."To account\n19-2000145399/0800\nMessage for beneficiary\nInvoice 2026001\nVariable symbol\n2026001\n"
+                ."Constant symbol\n308\nSpecific symbol\nWe are here to help\nCall KB\n+420 000 000 000\n";
+        }
+
+        return $text;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function kbPlusExpected(): array
+    {
+        return $this->expected([
+            'amount' => [4817600, Currency::CZK],
+            'counterName' => null,
+            'bookedOn' => '2026-11-20',
+            'constantSymbol' => '308',
+            'message' => 'Invoice 2026001',
+        ]);
     }
 
     private function bothLanguages(string $czechCounter, string $englishCounter, string $englishSymbol = '2026001'): string
