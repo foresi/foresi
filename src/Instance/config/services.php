@@ -28,7 +28,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services = $container->services()->defaults()->autowire()->autoconfigure();
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\Instance\\', '../')
-        ->exclude(['../config/', '../Integration/', '../InstanceBundle.php']);
+        ->exclude(['../config/', '../Integration/', '../migrations/', '../InstanceBundle.php']);
 
     // The health check is degraded when less of the data directory's disk is free, in percent.
     $container->parameters()->set('env(HEALTH_DISK_MIN_FREE_PERCENT)', '5');

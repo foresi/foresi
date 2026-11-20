@@ -44,7 +44,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services = $container->services()->defaults()->autowire()->autoconfigure();
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\Idoklad\\', '../')
-        ->exclude(['../config/', '../Integration/', '../IdokladBundle.php']);
+        ->exclude(['../config/', '../Integration/', '../migrations/', '../IdokladBundle.php']);
 
     // The PDFs pulled from iDoklad accounts; never below public/. Back it up with the database.
     $container->parameters()->set('app.idoklad_files_dir', '%kernel.share_dir%/idoklad-documents');

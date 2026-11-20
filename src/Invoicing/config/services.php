@@ -107,7 +107,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services = $container->services()->defaults()->autowire()->autoconfigure();
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\Invoicing\\', '../')
-        ->exclude(['../config/', '../Integration/', '../InvoicingBundle.php']);
+        ->exclude(['../config/', '../Integration/', '../migrations/', '../InvoicingBundle.php']);
 
     $parameters = $container->parameters();
     // A firm's mail server may not be in a private, loopback or link-local network,

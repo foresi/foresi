@@ -15,7 +15,10 @@
     "autoload": {
         "psr-4": {
             "Foresi\\Idoklad\\": ""
-        }
+        },
+        "exclude-from-classmap": [
+            "migrations/"
+        ]
     },
     "extra": {
         "foresi": {

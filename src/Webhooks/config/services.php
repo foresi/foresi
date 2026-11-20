@@ -36,7 +36,7 @@ return static function (ContainerConfigurator $container): void {
     $services = $container->services()->defaults()->autowire()->autoconfigure();
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\Webhooks\\', '../')
-        ->exclude(['../config/', '../Integration/', '../WebhooksBundle.php']);
+        ->exclude(['../config/', '../Integration/', '../migrations/', '../WebhooksBundle.php']);
 
     // A webhook endpoint may not be in a private, loopback or link-local network, as
     // people type the URL. Local development against a receiver on this machine sets this.

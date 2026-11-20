@@ -1,0 +1,62 @@
+#!/usr/bin/env php
+<?php
+// SPDX-License-Identifier: AGPL-3.0-only
+
+declare(strict_types=1);
+
+/*
+ * Compares the schemas of two databases with Doctrine's schema comparator, both
+ * ways, and prints the statements that would turn one into the other. Exits 1
+ * when there is any. The table of the executed migration versions is left out.
+ *
+ *   bin/schema-diff URL_A URL_B
+ *
+ * Used by bin/migration-rebase-proof, where a text dump cannot be compared: SQLite
+ * keeps the order in which tables, columns and indexes were added, and the letter
+ * case of an index name as it was first written.
+ */
+
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Schema\AbstractAsset;
+use Doctrine\DBAL\Schema\AbstractNamedObject;
+use Doctrine\DBAL\Tools\DsnParser;
+
+require dirname(__DIR__).'/vendor/autoload.php';
+
+if (3 !== $argc) {
+    fwrite(\STDERR, "Usage: bin/schema-diff URL_A URL_B\n");
+    exit(2);
+}
+
+function connect(string $url): Connection
+{
+    $parser = new DsnParser(['postgresql' => 'pdo_pgsql', 'pgsql' => 'pdo_pgsql', 'sqlite' => 'pdo_sqlite']);
+    $connection = DriverManager::getConnection($parser->parse($url));
+    $connection->getConfiguration()->setSchemaAssetsFilter(static function (mixed $asset): bool {
+        $name = match (true) {
+            $asset instanceof AbstractNamedObject => $asset->getObjectName()->toString(),
+            $asset instanceof AbstractAsset => $asset->getName(),
+            default => (string) $asset,
+        };
+
+        return 'doctrine_migration_versions' !== $name;
+    });
+
+    return $connection;
+}
+
+$a = connect($argv[1]);
+$b = connect($argv[2]);
+$schemaA = $a->createSchemaManager()->introspectSchema();
+$schemaB = $b->createSchemaManager()->introspectSchema();
+$comparator = $a->createSchemaManager()->createComparator();
+$platform = $a->getDatabasePlatform();
+$statements = [
+    ...$platform->getAlterSchemaSQL($comparator->compareSchemas($schemaA, $schemaB)),
+    ...$platform->getAlterSchemaSQL($comparator->compareSchemas($schemaB, $schemaA)),
+];
+foreach ($statements as $statement) {
+    echo $statement, ";\n";
+}
+exit([] === $statements ? 0 : 1);

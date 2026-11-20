@@ -79,6 +79,7 @@ A module declares the third-party libraries its own code uses in its `composer.j
 - Money is never a `float`.
 - Architecture rules are recorded in [docs/adr](docs/adr). A change that conflicts with an ADR needs a new ADR.
 - A module declares the modules it uses in its own `src/<Module>/composer.json` (ADR 0029). When you add a dependency between modules, add it to `require` (or to `extra.foresi.optional`), run `composer update "foresi/*"` and `bin/console app:modules:deptrac`, and commit the manifest, the lock and `deptrac.modules.yaml`. Code a module needs only when an optional module is installed goes in `src/<Module>/Integration/<Other>/` and may use only `Foresi\<Other>\Contract\` (ADR 0033).
+- A migration belongs to the module whose tables it changes: `src/<Module>/migrations/`, namespace `Foresi\<Module>\Migrations`, written with the schema API so it runs on PostgreSQL and SQLite (ADR 0034). Generate it with `bin/console doctrine:migrations:generate --namespace='Foresi\<Module>\Migrations'`. It may reference only its own tables and those of the modules it requires. The migrations of all modules run in the order of the timestamp in the class name, then of the module graph; the baselines of every module share `Version20261120000000`. `bin/console app:migrations:owners` fails on a table no installed module creates.
 - Add or update tests with every behaviour change. Write the test first when you can.
 
 ## Commits and pull requests
@@ -111,5 +112,5 @@ Every merge to `main` that users notice is a release; there is no release branch
 
 The version follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Before 1.0.0, a breaking change raises the minor version (0.5.3 to 0.6.0) and anything else the patch (0.5.3 to 0.5.4). From 1.0.0, a breaking change raises the major version, a feature the minor one and a fix the patch.
 
-Operators may skip versions: the migrations run in order whatever the gap, and the Upgrading notes of every release in between say what else to do. [CHANGELOG.md](CHANGELOG.md) holds the history up to 0.5.0.
+Operators may skip versions: the migrations run in order whatever the gap, and the Upgrading notes of every release in between say what else to do. The one exception is the move onto the module baselines in 0.9.0: a database must reach 0.8.0, the last release with the global migration history, before it is rebased ([operations](docs/operations.md#the-module-baselines)). [CHANGELOG.md](CHANGELOG.md) holds the history up to 0.5.0.
 

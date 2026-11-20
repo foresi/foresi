@@ -98,7 +98,10 @@
     "autoload": {
         "psr-4": {
             "Foresi\\": "src/"
-        }
+        },
+        "exclude-from-classmap": [
+            "src/*/migrations/"
+        ]
     },
     "autoload-dev": {
         "psr-4": {

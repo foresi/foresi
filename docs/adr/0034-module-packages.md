@@ -100,12 +100,12 @@ This amends ADR 0033, which allowed only services in `Integration/<Other>/`. An 
 
 ### Migrations
 
-* Each module's current schema becomes one baseline migration in its package, generated from the live schema split by table ownership. Every table belongs to exactly one module, including tables with no entity (`messenger_messages` to the core, the event log to Events, the API idempotency keys to Identity), and a check fails on a table with no owner. The 85 global migrations and their tests are deleted.
+* Each module's current schema becomes one baseline migration in its package, generated from the live schema split by table ownership. Every table belongs to exactly one module, including tables with no entity (`messenger_messages` to the core, the event log to Events, the API idempotency keys to Identity), and a check fails on a table with no owner (`app:migrations:owners`). The global migrations (85 when this was decided, 108 when the baselines were cut from 0.8.0) and their tests are deleted.
 * The baselines are generated after tenants are removed (ADR 0035), so they contain no `tenant_id`.
 * A core comparator replaces Doctrine's `Comparator` service. It orders migrations by the timestamp in the class name, then by the module's rank in the dependency graph. All baselines share one timestamp, so a new database creates them in graph order and every cross-module foreign key finds its table. A later migration that references another module's table is newer than that table, and is in a module that requires it. This needs an acyclic graph, which the Identity and Party port above provides.
 * The baselines use the schema API, as today, so they run on PostgreSQL and on SQLite.
 * An existing database moves with `app:migrations:rebase`. It checks that every old version is executed and that the schema is in sync with the mapping, then replaces the old version rows with the baselines' in one transaction, without DDL. On any other state it refuses to run. A backup is taken before it runs.
-* CI proves the move: a database built from the old migrations and rebased has the same schema dump as one built from the baselines alone, and baselines of a subset of modules build on an empty database.
+* CI proves the move: a database built from the old migrations and rebased has the same schema dump as one built from the baselines alone, and baselines of a subset of modules build on an empty database. On SQLite, which keeps the order in which columns were added, the two schemas are compared with Doctrine's schema comparator instead of a dump. On PostgreSQL the dumps differ in one way only: three columns added with an explicit `DEFAULT NULL` keep it in the catalogue, which means the same as no default.
 
 ### Distribution
 

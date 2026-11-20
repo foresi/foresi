@@ -55,7 +55,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services = $container->services()->defaults()->autowire()->autoconfigure();
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\Banking\\', '../')
-        ->exclude(['../config/', '../Integration/', '../BankingBundle.php']);
+        ->exclude(['../config/', '../Integration/', '../migrations/', '../BankingBundle.php']);
 
     // Raw bank mail as it arrived; never below public/. Back it up with the database.
     $container->parameters()->set('app.inbound_mail_dir', '%kernel.share_dir%/inbound-mail');

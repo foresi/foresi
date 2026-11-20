@@ -38,7 +38,7 @@ return static function (ContainerConfigurator $container): void {
     $services = $container->services()->defaults()->autowire()->autoconfigure();
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\Work\\', '../')
-        ->exclude(['../config/', '../Integration/', '../WorkBundle.php']);
+        ->exclude(['../config/', '../Integration/', '../migrations/', '../WorkBundle.php']);
 
     // Seconds between a mention or an assignment and its e-mail, skipped if read in the inbox meanwhile.
     $container->parameters()->set('app.notification_mail_delay', 120);

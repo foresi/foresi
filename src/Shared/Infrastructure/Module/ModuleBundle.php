@@ -101,6 +101,13 @@ abstract class ModuleBundle extends AbstractBundle
                 'alias' => $module.'Contract',
             ]]]]);
         }
+        // The module's migrations, ordered across modules by ModuleVersionComparator (ADR 0034).
+        $migrations = $this->getPath().'/migrations';
+        if (is_dir($migrations) && $builder->hasExtension('doctrine_migrations')) {
+            $builder->prependExtensionConfig('doctrine_migrations', ['migrations_paths' => [
+                'Foresi\\'.$module.'\\Migrations' => $migrations,
+            ]]);
+        }
         $this->prependControllers($builder, $this->getPath().'/assets/controllers', '');
         $this->prependIntegrations($builder);
         $routing = $this->messageRouting();

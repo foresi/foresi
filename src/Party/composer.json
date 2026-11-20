@@ -12,7 +12,10 @@
     "autoload": {
         "psr-4": {
             "Foresi\\Party\\": ""
-        }
+        },
+        "exclude-from-classmap": [
+            "migrations/"
+        ]
     },
     "extra": {
         "foresi": {

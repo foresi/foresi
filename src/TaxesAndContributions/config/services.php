@@ -16,5 +16,5 @@ return static function (ContainerConfigurator $container): void {
     $services = $container->services()->defaults()->autowire()->autoconfigure();
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\TaxesAndContributions\\', '../')
-        ->exclude(['../config/', '../Integration/', '../TaxesAndContributionsBundle.php']);
+        ->exclude(['../config/', '../Integration/', '../migrations/', '../TaxesAndContributionsBundle.php']);
 };

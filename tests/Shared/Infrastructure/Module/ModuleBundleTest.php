@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Infrastructure\Module;
 
+use Doctrine\Bundle\MigrationsBundle\DependencyInjection\DoctrineMigrationsExtension;
 use Foresi\Attachment\AttachmentBundle;
 use Foresi\Audit\AuditBundle;
 use Foresi\Banking\Application\ProcessInboundMessage;
@@ -196,6 +197,26 @@ final class ModuleBundleTest extends KernelTestCase
             'dbal' => ['types' => ['vat_id' => VatIdType::class]],
         ], $builder->getExtensionConfig('doctrine')[0]);
         self::assertSame([['messenger' => ['routing' => [RecheckRegistry::class => 'registry']]]], $builder->getExtensionConfig('framework'));
+    }
+
+    public function testAModulePrependsItsMigrations(): void
+    {
+        $builder = $this->builder('prod');
+        $builder->registerExtension(new DoctrineMigrationsExtension());
+        new WebhooksBundle()->prependExtension($this->configurator($builder, 'prod'), $builder);
+
+        self::assertSame([['migrations_paths' => [
+            'Foresi\\Webhooks\\Migrations' => $this->projectDir().'/src/Webhooks/migrations',
+        ]]], $builder->getExtensionConfig('doctrine_migrations'));
+    }
+
+    public function testAModuleWithoutMigrationsPrependsNone(): void
+    {
+        $builder = $this->builder('prod');
+        $builder->registerExtension(new DoctrineMigrationsExtension());
+        new UiBundle()->prependExtension($this->configurator($builder, 'prod'), $builder);
+
+        self::assertSame([], $builder->getExtensionConfig('doctrine_migrations'));
     }
 
     public function testAModuleWithoutEntitiesGetsNoMapping(): void

@@ -54,8 +54,17 @@ $PHP bin/console asset-map:compile
 $PHP bin/console cache:clear
 $PHP bin/console cache:warmup
 
+# A database still on the global migration history (before the module baselines,
+# ADR 0034) is left alone: back it up and run app:migrations:rebase (see the CHANGELOG).
+history=0
+$PHP bin/console app:migrations:rebase --check >/dev/null 2>&1 || history=$?
+if [ "$history" = 2 ]; then
+    echo "The database is on the global migration history: run app:migrations:rebase after a backup."
+elif [ "$history" != 0 ]; then
+    echo "app:migrations:rebase --check failed." >&2
+    exit 1
 # Dump the database before pending migrations (ops/backup.sh, set up as in the guide).
-if ! $PHP bin/console doctrine:migrations:up-to-date >/dev/null 2>&1; then
+elif ! $PHP bin/console doctrine:migrations:up-to-date >/dev/null 2>&1; then
     "$RELEASE/ops/backup.sh" --tag pre-migrate
     $PHP bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
 fi
