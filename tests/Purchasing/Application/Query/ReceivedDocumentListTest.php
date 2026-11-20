@@ -61,6 +61,11 @@ final class ReceivedDocumentListTest extends PurchasingTestCase
         $this->em->flush();
 
         self::assertSame($second->id(), $this->list(new ListedQueries())->firmId(), 'An archived firm takes no documents.');
+
+        $second->archive($this->clock->now());
+        $this->em->flush();
+
+        self::assertNull($this->list(new ListedQueries())->firmId(), 'Without an active firm, nothing takes documents.');
     }
 
     public function testThePageKeepsWhatItWasAskedFor(): void
