@@ -77,7 +77,7 @@ final readonly class ReceivedPaymentAmounts implements ActualAmountSource
         foreach ($rows as $row) {
             $paid = (int) $row['amount'];
             $gross = Money::ofMinor(ReceivedDocumentKind::CreditNote === $row['kind'] ? -$paid : $paid, $row['currency']);
-            [$net, $vat] = self::share($row['treatment'], (int) $row['base'], (int) $row['vat'], null === $row['total'] ? null : (int) $row['total'])->split($gross);
+            [$net, $vat] = $this->share($row['treatment'], (int) $row['base'], (int) $row['vat'], null === $row['total'] ? null : (int) $row['total'])->split($gross);
             yield new ActualAmount(
                 self::KEY,
                 new Subject('received_document', $row['document'], $this->urls->generate(ReceivedDocumentApiController::SHOW, ['documentId' => $row['document']], UrlGeneratorInterface::ABSOLUTE_PATH)),
@@ -104,7 +104,7 @@ final readonly class ReceivedPaymentAmounts implements ActualAmountSource
             ->getArrayResult();
         $shares = [];
         foreach ($documents as $document) {
-            $shares[$document['id']] = self::share($document['treatment'], (int) $document['base'], (int) $document['vat'], null === $document['total'] ? null : (int) $document['total']);
+            $shares[$document['id']] = $this->share($document['treatment'], (int) $document['base'], (int) $document['vat'], null === $document['total'] ? null : (int) $document['total']);
         }
 
         return $shares;
@@ -114,7 +114,7 @@ final readonly class ReceivedPaymentAmounts implements ActualAmountSource
      * The gross is what the document asks to be paid. Only domestic VAT the
      * supplier charged is deducted from it.
      */
-    private static function share(PurchaseTaxTreatment $treatment, int $base, int $vat, ?int $total): VatShare
+    private function share(PurchaseTaxTreatment $treatment, int $base, int $vat, ?int $total): VatShare
     {
         $gross = $total ?? $base + $vat;
 

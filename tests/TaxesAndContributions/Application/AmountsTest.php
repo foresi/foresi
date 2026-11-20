@@ -22,8 +22,8 @@ use Foresi\TaxesAndContributions\Contract\ActualAmount;
 use Foresi\TaxesAndContributions\Contract\ActualAmountSource;
 use Foresi\TaxesAndContributions\Contract\AmountKind;
 use Foresi\TaxesAndContributions\Contract\AmountLine;
-use Foresi\TaxesAndContributions\Contract\AmountsView;
 use Foresi\TaxesAndContributions\Contract\AmountSum;
+use Foresi\TaxesAndContributions\Contract\AmountsView;
 use Foresi\TaxesAndContributions\Contract\AmountTotals;
 use Foresi\TaxesAndContributions\Contract\Subject;
 use Foresi\TaxesAndContributions\Contract\VatShare;
@@ -42,15 +42,13 @@ use Symfony\Component\Clock\MockClock;
  */
 final class AmountsTest extends TaxesTestCase
 {
-    private FakeRateSource $rates;
-
     protected function setUp(): void
     {
         parent::setUp();
-        $this->rates = new FakeRateSource();
-        $this->rates->publish('2026-11-13', '25.000', '15.000');
-        $this->rates->publish('2026-11-16', '26.000', '15.000');
-        self::getContainer()->set(RateSource::class, $this->rates);
+        $rates = new FakeRateSource();
+        $rates->publish('2026-11-13', '25.000', '15.000');
+        $rates->publish('2026-11-16', '26.000', '15.000');
+        self::getContainer()->set(RateSource::class, $rates);
     }
 
     public function testAPartialPaymentSplitsNetAndVatInTheDocumentRatio(): void
@@ -288,4 +286,3 @@ final class AmountsTest extends TaxesTestCase
         return [$totals->gross->minor(), $totals->net->minor(), $totals->vat->minor(), $totals->counted->minor()];
     }
 }
-

@@ -17,8 +17,8 @@ use Foresi\TaxesAndContributions\Contract\ActualAmount;
 use Foresi\TaxesAndContributions\Contract\ActualAmountSource;
 use Foresi\TaxesAndContributions\Contract\AmountKind;
 use Foresi\TaxesAndContributions\Contract\AmountLine;
-use Foresi\TaxesAndContributions\Contract\AmountsView;
 use Foresi\TaxesAndContributions\Contract\AmountSum;
+use Foresi\TaxesAndContributions\Contract\AmountsView;
 use Foresi\TaxesAndContributions\Contract\AmountTotals;
 use Foresi\TaxesAndContributions\Contract\ProfileView;
 use Foresi\TaxesAndContributions\Contract\StatusKind;
@@ -121,7 +121,7 @@ final readonly class Amounts
     }
 
     /**
-     * @param list<array{ActualAmount, bool}> $amounts with whether the caller may see the amount itself
+     * @param list<array{ActualAmount, bool}> $amounts     with whether the caller may see the amount itself
      * @param list<string>                    $unavailable
      * @param list<string>                    $restricted
      */
@@ -181,7 +181,7 @@ final readonly class Amounts
      * The amount in CZK at the rate of the day it was paid; null when the
      * currency has no rate then, which is remembered and listed.
      *
-     * @param array<string, array{int, string}|null> $rates by currency and day
+     * @param array<string, array{int, string}|null> $rates   by currency and day
      * @param list<string>                           $missing
      */
     private function czk(Money $money, \DateTimeImmutable $day, array &$rates, array &$missing): ?Money

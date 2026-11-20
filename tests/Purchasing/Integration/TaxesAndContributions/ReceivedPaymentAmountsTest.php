@@ -139,7 +139,7 @@ final class ReceivedPaymentAmountsTest extends PurchasingTestCase
     {
         $container = self::getContainer();
 
-        return null === $tokens ? $container->get(ReceivedPaymentAmounts::class) : new ReceivedPaymentAmounts($container->get('doctrine.orm.entity_manager'), $tokens, $container->get(UrlGeneratorInterface::class));
+        return $tokens instanceof \Foresi\Identity\Application\ApiTokenContext ? new ReceivedPaymentAmounts($container->get('doctrine.orm.entity_manager'), $tokens, $container->get(UrlGeneratorInterface::class)) : $container->get(ReceivedPaymentAmounts::class);
     }
 
     private function grant(string $scope): ApiTokenContext

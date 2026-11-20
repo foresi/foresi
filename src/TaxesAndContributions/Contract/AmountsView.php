@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\TaxesAndContributions\Contract;
 
-use Foresi\Shared\Domain\Money;
-
 /**
  * The actual income and costs paid from $from to $to, in CZK, as the
  * estimate reads them (B2, B3): the sums by month, kind and source, the
@@ -27,14 +25,14 @@ final readonly class AmountsView
     public const string GAP_ASSETS = 'assets';
 
     /**
-     * @param list<AmountSum>        $sums
-     * @param array<string, AmountTotals> $totals by the value of the kind
-     * @param list<AmountLine>       $lines
-     * @param list<string>           $unavailableSources
-     * @param list<string>           $restrictedSources
-     * @param list<string>           $missingRates
-     * @param list<string>           $unverified
-     * @param list<string>           $knownGaps
+     * @param list<AmountSum>             $sums
+     * @param array<string, AmountTotals> $totals             by the value of the kind
+     * @param list<AmountLine>            $lines
+     * @param list<string>                $unavailableSources
+     * @param list<string>                $restrictedSources
+     * @param list<string>                $missingRates
+     * @param list<string>                $unverified
+     * @param list<string>                $knownGaps
      */
     public function __construct(
         public \DateTimeImmutable $from,
