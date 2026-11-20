@@ -104,6 +104,32 @@ final class TaxesApiTest extends ApiTestCase
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'children', 'reason' => 'months_invalid']);
     }
 
+    public function testTheOwnerReadsTheAmountsOfAYearAndABadYearNamesItsParameter(): void
+    {
+        $this->get('/api/v1/taxes-and-contributions/amounts?year=2025', secret: $this->owner);
+        self::assertResponseIsSuccessful();
+        self::assertSame(['2025-01-01', '2025-12-31'], [$this->at('data', 'from'), $this->at('data', 'to')]);
+        self::assertSame(['gross' => ['amount_minor' => 0, 'currency' => 'CZK'], 'net' => ['amount_minor' => 0, 'currency' => 'CZK'], 'vat' => ['amount_minor' => 0, 'currency' => 'CZK'], 'counted' => ['amount_minor' => 0, 'currency' => 'CZK']], $this->at('data', 'totals', 'income'));
+        self::assertSame(['non_deductible_costs', 'assets'], $this->at('data', 'known_gaps'));
+        $amounts = $this->json()['data'];
+
+        $this->get('/api/v1/taxes-and-contributions/amounts', secret: $this->owner);
+        self::assertSame('2026-01-01', $this->at('data', 'from'), 'Without a year, this one.');
+
+        $call = $this->tool($this->owner, 'foresi_tax_amounts', ['year' => 2025]);
+        self::assertFalse($call['isError'] ?? false);
+        self::assertEquals($amounts, $this->in($call, 'structuredContent', 'data'));
+
+        foreach (['2027', '1999', 'last'] as $year) {
+            $this->get('/api/v1/taxes-and-contributions/amounts?year='.$year, secret: $this->owner);
+            $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'year', 'reason' => 'invalid_year']);
+        }
+        $this->get('/api/v1/taxes-and-contributions/amounts?year=2026', secret: $this->memberWriter);
+        $this->assertProblem(403, 'owner_only');
+        $read = $this->tool($this->memberWriter, 'foresi_tax_amounts', []);
+        self::assertSame('owner_only', $this->in($read, 'structuredContent', 'error', 'code'));
+    }
+
     public function testAMemberIsRefusedWithOwnerOnly(): void
     {
         $this->get('/api/v1/taxes-and-contributions/profile', secret: $this->memberWriter);

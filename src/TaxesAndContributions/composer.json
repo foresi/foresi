@@ -4,6 +4,7 @@
     "type": "foresi-module",
     "license": "AGPL-3.0-only",
     "require": {
+        "brick/math": "^1.0",
         "foresi/audit": "*",
         "foresi/exchange-rate": "*",
         "foresi/identity": "*",

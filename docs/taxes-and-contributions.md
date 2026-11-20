@@ -1,8 +1,8 @@
 # Taxes and contributions
 
-The Taxes and contributions module (`src/TaxesAndContributions`, id `taxes-and-contributions`, scope `taxes`) will show the owner of a firm what they earn, what of it goes to taxes and contributions, and what they keep, both to date and to the year end. The first case is a Czech sole trader. This first step holds the **owner profile** the estimate is built from; the estimate itself comes in the next steps.
+The Taxes and contributions module (`src/TaxesAndContributions`, id `taxes-and-contributions`, scope `taxes`) will show the owner of a firm what they earn, what of it goes to taxes and contributions, and what they keep, both to date and to the year end. The first case is a Czech sole trader. It holds the **owner profile** the estimate is built from and reads the **actual amounts** paid; the estimate itself comes in the next steps.
 
-The module is optional. It requires Party, Identity, the exchange rates, Ui and the core modules. Cash flow, Invoicing and Purchasing are optional: they will feed it when they are installed (ADR 0033).
+The module is optional. It requires Party, Identity, the exchange rates, Ui and the core modules. Cash flow, Invoicing and Purchasing are optional: they feed it when they are installed (ADR 0033).
 
 ## Owner only
 
@@ -44,6 +44,21 @@ Setting a year replaces it as a whole: a field left out is cleared.
 ### Authority accounts
 
 For each authority (`social`, `health`, `sickness`, `income_tax`), the account and the variable symbol the owner pays to. They will match the payments of the advances to the estimate.
+
+## Actual amounts
+
+The income received and the costs paid, on a cash basis, as the estimate of "to date" reads them. Invoicing gives the payments of issued invoices and advances, Purchasing those of recorded received documents; each implements `Foresi\TaxesAndContributions\Contract\ActualAmountSource` in its own `Integration/TaxesAndContributions` directory.
+
+- A payment counts on the day it was paid, in the instance's time zone.
+- A part payment splits into net and VAT in the ratio of its document, with the corrections of an issued invoice, such as a credit note, taken in. The net is rounded half up and the VAT takes the rest, so net and VAT always add up to what was paid.
+- Of a received document only domestic VAT the supplier charged leaves the net. Self-assessed VAT was never paid to the supplier, and non-deductible VAT stays a cost.
+- A refund to a customer, and the money a supplier's credit note brings back, count negative on their own day.
+- A paid advance counts when it is paid. Its final invoice deducts it and asks only for the rest, so the money counts once.
+- A cancelled payment does not count, and neither does a settlement written off, which was never received.
+- A payment in another currency is converted to CZK at the ČNB rate of its day. This is flagged `fx_payment_day` in `unverified`, an open point for an accountant. A currency without a rate on that day is listed in `missing_rates`, and its payments are left out.
+- `counted` is what the records count: the gross before the day the owner became a VAT payer (the status `vat_payer`), and the net from that day on. This is flagged `vat_cash_basis` in `unverified`.
+- Purchasing cannot mark a cost as not tax deductible, or an asset over 80,000 CZK, yet: `known_gaps` lists `non_deductible_costs` and `assets`.
+- A source that is not installed or failed is listed in `unavailable_sources`, so a missing module is never read as a year without income. A source whose documents the caller may not read (a token without `invoices:read` or `received_documents:read`) is listed in `restricted_sources` and counts in the sums only.
 
 ## The profile page
 

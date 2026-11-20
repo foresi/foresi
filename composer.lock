@@ -2064,7 +2064,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Invoicing",
-                "reference": "db8efad2d9100724c1b22f1b4332254d479a1e49"
+                "reference": "3964afe1f65547b49fe3ba3dea2c8c7cb99fa665"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2085,7 +2085,8 @@
                     "namespace": "Foresi\\Invoicing\\",
                     "bundle": "Foresi\\Invoicing\\InvoicingBundle",
                     "optional": [
-                        "cash-flow"
+                        "cash-flow",
+                        "taxes-and-contributions"
                     ],
                     "scopes": [
                         "invoices",
@@ -2156,7 +2157,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Purchasing",
-                "reference": "0e6d57b7da8346a889e2d97b6c2ed324b5041849"
+                "reference": "98de50c9a6a255136a1501838066e953120ee986"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -2177,7 +2178,8 @@
                     "namespace": "Foresi\\Purchasing\\",
                     "bundle": "Foresi\\Purchasing\\PurchasingBundle",
                     "optional": [
-                        "cash-flow"
+                        "cash-flow",
+                        "taxes-and-contributions"
                     ],
                     "scopes": [
                         "received_documents"
@@ -2244,9 +2246,10 @@
             "dist": {
                 "type": "path",
                 "url": "src/TaxesAndContributions",
-                "reference": "48189519b67f0b9f028b7e62b0670a4af2431519"
+                "reference": "5f14446f2208635aff098c2c14d39a393e0105ea"
             },
             "require": {
+                "brick/math": "^1.0",
                 "foresi/audit": "*",
                 "foresi/exchange-rate": "*",
                 "foresi/identity": "*",
