@@ -34,7 +34,7 @@ class OAuthClient
     private string $name;
 
     /** @var list<string> */
-    #[ORM\Column(name: 'redirect_uris', type: 'json')]
+    #[ORM\Column(name: 'redirect_uris', type: 'json', options: ['jsonb' => true])]
     private array $redirectUris;
 
     #[ORM\Column(name: 'described_at', type: 'datetime_immutable')]

@@ -150,7 +150,7 @@ $manageTime->log($website->id(), $homepage->id(), $thisMonday, 90, note: 'Second
 // spec counts: the owner's on "Set up the domain" and on the project, Jana's on the palette.
 $agency = $firmAccount(new LegalEntity('Example Agency s.r.o.', new RegistrationNumber('CZ', '12345687'), VatId::fromString('CZ12345687'), $address(2), VatStatus::Registered, 'Example register, entry C 4321'));
 $entityManager->persist($agency);
-$agencySeries = new Series($agency, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+$agencySeries = new Series(Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
 $agencySeries->markDefault();
 $entityManager->persist($agencySeries);
 $entityManager->flush();

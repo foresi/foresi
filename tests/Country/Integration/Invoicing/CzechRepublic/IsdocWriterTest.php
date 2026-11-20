@@ -24,6 +24,7 @@ use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
@@ -407,12 +408,13 @@ final class IsdocWriterTest extends InvoiceTestCase
 
     private function issuedByNonPayer(): IssuedDocument
     {
-        $firm = $this->firm(VatStatus::NotRegistered, null, registrationNumber: '12345687');
+        $firm = $this->reconfigureFirm(VatStatus::NotRegistered, null);
+        $firm->update($firm->name(), new RegistrationNumber('CZ', '12345687'), null, $firm->address(), VatStatus::NotRegistered, $firm->registerEntry());
         $this->em->flush();
 
         return $this->issued(
             [$this->line(treatment: TaxTreatment::NotApplicable, kind: null)],
-            ['firmId' => $firm->id(), 'seriesId' => null, 'variableSymbol' => ''],
+            ['seriesId' => null, 'variableSymbol' => ''],
         );
     }
 

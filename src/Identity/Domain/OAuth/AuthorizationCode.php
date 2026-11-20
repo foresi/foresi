@@ -31,7 +31,7 @@ class AuthorizationCode
     private string $id;
 
     /** @var list<string> */
-    #[ORM\Column(type: 'json')]
+    #[ORM\Column(type: 'json', options: ['jsonb' => true])]
     private array $scopes;
 
     #[ORM\Column(name: 'expires_at', type: 'datetime_immutable')]

@@ -54,19 +54,19 @@ $receiveMail = $container->get('e2e.receive_inbound_mail');
 $movementsFirm = new LegalEntity('Example Movements s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(5), VatStatus::Registered, 'Example register, entry C 2468');
 $entityManager->persist($movementsFirm);
 $firmAccount($movementsFirm);
-$secondAccount = FirmBankAccount::open($movementsFirm, Iban::fromString('CZ5508000000001234567899'), Currency::CZK, 'Provozní', 1);
+$secondAccount = FirmBankAccount::open(Iban::fromString('CZ5508000000001234567899'), Currency::CZK, 'Provozní', 1);
 $entityManager->persist($secondAccount);
-$movementsSeries = new Series($movementsFirm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+$movementsSeries = new Series(Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
 $movementsSeries->markDefault();
 $entityManager->persist($movementsSeries);
 $entityManager->flush();
 $movementsCustomer = $createParty->createFrom($party(PartyKind::Company, 'Example Payer a.s.', [PartyRole::Customer], 'payer@example.com', 11, '12345679', 'CZ12345679'));
 foreach (['Consulting' => '1000.00', 'Workshop' => '2000.00', 'Audit' => '500.00'] as $description => $price) {
-    $issueInvoice->issue(new InvoiceInput($movementsFirm->id(), $movementsSeries->id(), null, $movementsCustomer->id(), null, $day, $day, $due, PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
+    $issueInvoice->issue(new InvoiceInput($movementsSeries->id(), null, $movementsCustomer->id(), null, $day, $day, $due, PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
         new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
     ], true));
 }
-$movementsAccount = $entityManager->getRepository(FirmBankAccount::class)->findOneBy(['firm' => $movementsFirm, 'iban' => 'CZ6508000000192000145399']) ?? throw new LogicException('The account of the movements firm is missing.');
+$movementsAccount = $entityManager->getRepository(FirmBankAccount::class)->findOneBy(['iban' => 'CZ6508000000192000145399']) ?? throw new LogicException('The account of the movements firm is missing.');
 $verified = new TrustVerdict(MessageTrust::Verified, TrustVerdict::DMARC);
 $unverified = new TrustVerdict(MessageTrust::Unverified, TrustVerdict::NO_RESULTS);
 $movement = static fn (FirmBankAccount $account, MovementDirection $direction, string $amount, ?string $vs, ?string $name, ?string $counter, ?string $message, TrustVerdict $trust): string => $recordMovement->record(new MovementInput($account->id(), null, $direction, Money::of($amount, Currency::CZK), $day, $counter, null, $name, $vs, null, null, $message, null), $trust)->id();

@@ -46,10 +46,10 @@ use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
 // from the real today: a template cannot start in the past.
 $recurringFirm = $firmAccount(new LegalEntity('Example Recurring s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(4), VatStatus::Registered, 'Example register, entry C 7890'));
 $entityManager->persist($recurringFirm);
-$recurringSeries = new Series($recurringFirm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+$recurringSeries = new Series(Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
 $recurringSeries->markDefault();
 $entityManager->persist($recurringSeries);
-$entityManager->persist(FirmMailServer::define($recurringFirm, 'smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', $mailSecrets->seal('throwaway-smtp-password'), 'invoices@example.com', 'Example Recurring s.r.o.'));
+$entityManager->persist(FirmMailServer::define('smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', $mailSecrets->seal('throwaway-smtp-password'), 'invoices@example.com', 'Example Recurring s.r.o.'));
 $entityManager->flush();
 $client = $createParty->createFrom($party(PartyKind::Company, 'Example Client a.s.', [PartyRole::Customer], '', 10, '12345679', 'CZ12345679'));
 $entityManager->persist(new PartyEmail($client, 'client@example.com', EmailPurpose::Invoices));
@@ -64,7 +64,6 @@ $issueRecurring = $container->get('e2e.issue_recurring');
 $today = $instanceClock->today();
 $firstOfNextMonth = $today->modify('first day of next month');
 $recurring = static fn (string $description, string $price, Recurrence $recurrence, RecurringDelivery $delivery = RecurringDelivery::Send): RecurringInvoice => $saveRecurring->create(new RecurringInput(
-    $recurringFirm->id(),
     $recurringSeries->id(),
     $client->id(),
     PaymentMethod::BankTransfer,

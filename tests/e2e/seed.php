@@ -129,7 +129,7 @@ $hash = $hashers->getPasswordHasher(SecurityUser::class)->hash(false === $passwo
 $address = static fn (int $n): Address => new Address(sprintf('Example Street %d', $n), 'Example City', '100 00', 'CZ');
 // The firm's one bank account, the primary one; the firm itself is persisted by the caller.
 $firmAccount = static function (LegalEntity $firm) use ($entityManager): LegalEntity {
-    $account = FirmBankAccount::open($firm, Iban::fromString('CZ6508000000192000145399'), Currency::CZK, '', 0);
+    $account = FirmBankAccount::open(Iban::fromString('CZ6508000000192000145399'), Currency::CZK, '', 0);
     $account->markPrimary(true);
     $entityManager->persist($account);
 

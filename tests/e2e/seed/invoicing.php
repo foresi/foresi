@@ -26,12 +26,12 @@ use Foresi\Shared\Domain\Currency;
 $payerFirm = $firmAccount(new LegalEntity('Example Payer s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(1), VatStatus::Registered, 'Example register, entry C 1234'));
 $entityManager->persist($payerFirm);
 $entityManager->flush();
-$standard = new Series($payerFirm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+$standard = new Series(Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
 $standard->markDefault();
 $entityManager->persist($standard);
-$entityManager->persist(new Series($payerFirm, 'Second', SeriesFormat::fromString('B{YY}{NNN}'), DocumentKind::Invoice));
+$entityManager->persist(new Series('Second', SeriesFormat::fromString('B{YY}{NNN}'), DocumentKind::Invoice));
 // A throwaway password: the e2e mail gateway records and never connects.
-$entityManager->persist(FirmMailServer::define($payerFirm, 'smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', $mailSecrets->seal('throwaway-smtp-password'), 'invoices@example.com', 'Example Payer s.r.o.'));
+$entityManager->persist(FirmMailServer::define('smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', $mailSecrets->seal('throwaway-smtp-password'), 'invoices@example.com', 'Example Payer s.r.o.'));
 $entityManager->flush();
 $createParty->createFrom($party(PartyKind::Company, 'Example German GmbH', [PartyRole::Customer], 'german@example.com', 7, null, 'DE123456789'));
 $createParty->createFrom($party(PartyKind::Company, 'Example Domestic a.s.', [PartyRole::Customer], 'domestic@example.com', 3, '12345679', 'CZ12345679'));

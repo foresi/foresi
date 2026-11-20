@@ -24,11 +24,11 @@ use Foresi\Party\Domain\VatStatus;
 $idokladFirm = new LegalEntity('Example Move s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(12), VatStatus::Registered, 'Example register, entry C 4321');
 $entityManager->persist($idokladFirm);
 $firmAccount($idokladFirm);
-$entityManager->persist(new IdokladConnection($idokladFirm, 'example-client-id', $mailSecrets->seal('throwaway-idoklad-secret')));
+$entityManager->persist(new IdokladConnection('example-client-id', $mailSecrets->seal('throwaway-idoklad-secret')));
 $pulledAt = new DateTimeImmutable('-1 hour');
 /** @param array<string, mixed> $payload */
-$idokladRecord = static function (IdokladResource $resource, int $id, array $payload) use ($entityManager, $idokladFirm, $pulledAt): void {
-    $entityManager->persist(new IdokladRecord($idokladFirm, $resource, $id, ['Id' => $id] + $payload, $pulledAt));
+$idokladRecord = static function (IdokladResource $resource, int $id, array $payload) use ($entityManager, $pulledAt): void {
+    $entityManager->persist(new IdokladRecord($resource, $id, ['Id' => $id] + $payload, $pulledAt));
 };
 $myAddress = ['NickName' => 'Example Move s.r.o.', 'IdentificationNumber' => '12345695', 'VatIdentificationNumber' => 'CZ12345695', 'Email' => 'office@example.com', 'Street' => 'Example Street 12', 'City' => 'Example City', 'PostalCode' => '100 00', 'CountryId' => 2, 'Iban' => 'CZ65 0800 0000 1920 0014 5399', 'AccountNumber' => '19-2000145399', 'BankCode' => '0800'];
 $buyerAddress = ['NickName' => 'Example Trading s.r.o.', 'IdentificationNumber' => '23456787', 'VatIdentificationNumber' => 'CZ23456787', 'Email' => 'trading@example.com', 'Street' => 'Example Street 13', 'City' => 'Example City', 'PostalCode' => '100 00', 'CountryId' => 2];
@@ -146,7 +146,7 @@ $idokladRecord(IdokladResource::RecurringInvoices, 901, [
         'SendToAccountant' => false,
     ],
 ]);
-$idokladPull = new IdokladPull($idokladFirm, $pulledAt->modify('-5 minutes'));
+$idokladPull = new IdokladPull($pulledAt->modify('-5 minutes'));
 foreach ([[IdokladResource::Contacts, 3], [IdokladResource::NumericSequences, 3], [IdokladResource::IssuedInvoices, 2], [IdokladResource::ProformaInvoices, 1], [IdokladResource::IssuedTaxDocuments, 1], [IdokladResource::CreditNotes, 1], [IdokladResource::RecurringInvoices, 1], [IdokladResource::IssuedDocumentPayments, 1]] as [$resource, $records]) {
     $idokladPull->counted($resource, $records);
 }
