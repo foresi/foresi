@@ -44,7 +44,7 @@ final class KbEndToEndTest extends InboundTestCase
         $this->work();
 
         $row = $this->messageRow($id);
-        self::assertSame(['processed', 'verified', 'dmarc', 'cz.kb', 1, null, 1], [$row['status'], $row['trust'], $row['trust_basis'], $row['parser_id'], self::int($row['parser_version']), $row['failure'], self::int($row['attempts'])]);
+        self::assertSame(['processed', 'verified', 'dmarc', 'cz.kb', 2, null, 1], [$row['status'], $row['trust'], $row['trust_basis'], $row['parser_id'], self::int($row['parser_version']), $row['failure'], self::int($row['attempts'])]);
         self::assertStringStartsWith('2026-11-20 12:00:00', Scalars::text($row['processed_at']));
         $movements = $this->movementsOf($id);
         self::assertCount(1, $movements);

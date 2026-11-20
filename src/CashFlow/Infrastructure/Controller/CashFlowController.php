@@ -25,8 +25,12 @@ use Foresi\CashFlow\Infrastructure\Screen\ForecastScreen;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Application\View\FilterRows;
+use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Infrastructure\Http\TypedNumber;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -56,27 +60,47 @@ final class CashFlowController extends AbstractController
         private readonly CashFlowAccess $access,
         private readonly InstanceClock $clock,
         private readonly TranslatorInterface $translator,
+        private readonly FilterSheet $filterSheet,
     ) {
     }
 
     #[Route('/cash-flow', name: self::ROUTE, methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $view = ForecastScreen::WEEKS === $request->query->getString('view') ? ForecastScreen::WEEKS : ForecastScreen::MONTHS;
-        $forecast = $this->forecastOrNull($view);
+        $input = $request->query;
+        $view = ForecastScreen::WEEKS === $input->getString('view') ? ForecastScreen::WEEKS : ForecastScreen::MONTHS;
+        $list = ForecastScreen::filterList();
+        // The builder's rows (saved views D11) become the page's filter, in its address.
+        if ($input->has(FilterRows::MARKER)) {
+            $built = FilterRows::parse($input->all(FilterRows::PARAM), $list);
+
+            return $this->redirectToRoute(self::ROUTE, array_filter([
+                'view' => ForecastScreen::WEEKS === $view ? $view : null,
+                WorkingFilter::PARAM => [] === $built->conditions ? null : WorkingFilter::encode($built),
+            ], static fn (?string $value): bool => null !== $value), Response::HTTP_SEE_OTHER);
+        }
+        $filter = ForecastScreen::filterOf($input->getString(WorkingFilter::PARAM));
+        $keep = [] === $filter->conditions ? [] : [WorkingFilter::PARAM => WorkingFilter::encode($filter)];
+        $forecast = $this->forecastOrNull($view, ForecastScreen::certaintiesOf($filter));
         if (!$forecast instanceof Forecast) {
             return $this->render('@CashFlow/index.html.twig', ['noFirm' => true]);
         }
+        $here = ForecastScreen::WEEKS === $view ? ['view' => $view] : [];
 
         return $this->render('@CashFlow/index.html.twig', [
             'noFirm' => false,
             'noAccount' => [] === $forecast->accounts,
-            'empty' => $this->screen->isEmpty($forecast),
+            'empty' => !$forecast->isFiltered() && $this->screen->isEmpty($forecast),
+            'filtered' => $forecast->isFiltered() || [] !== $filter->conditions,
+            'noFlows' => !$this->screen->hasFlows($forecast),
+            'filterKeep' => $here,
+            'resetHref' => $this->generateUrl(self::ROUTE, $here),
+            ...$this->filterSheet->of($list, $filter, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, $here + ([] === $next->conditions ? [] : [WorkingFilter::PARAM => WorkingFilter::encode($next)]))),
             'kpis' => $this->screen->kpis($forecast),
             'alert' => $this->screen->alert($forecast),
-            'table' => $this->screen->table($forecast),
+            'table' => $this->screen->table($forecast, $keep),
             'chart' => $this->screen->chart($forecast),
-            'views' => $this->screen->views($view),
+            'views' => $this->screen->views($view, $keep),
             'minimumSet' => $forecast->minimum instanceof Money,
             'documentColumns' => $this->documents->columns(),
             'documentRows' => $this->documents->rows($forecast, ForecastScreen::WEEKS === $view ? $view : null),
@@ -87,7 +111,8 @@ final class CashFlowController extends AbstractController
     public function items(Request $request): Response
     {
         $key = $request->query->getString('period');
-        $forecast = $this->forecastOrNull(ForecastScreen::viewOf($key)) ?? throw new NotFoundHttpException();
+        $certainties = ForecastScreen::certaintiesOf(ForecastScreen::filterOf($request->query->getString(WorkingFilter::PARAM)));
+        $forecast = $this->forecastOrNull(ForecastScreen::viewOf($key), $certainties) ?? throw new NotFoundHttpException();
         $direction = FlowDirection::tryFrom($request->query->getString('direction')) ?? throw new NotFoundHttpException();
         $category = $request->query->has('category') ? (FlowCategory::tryFrom($request->query->getString('category')) ?? throw new NotFoundHttpException()) : null;
         $period = $this->screen->period($forecast, $key) ?? throw new NotFoundHttpException();
@@ -207,10 +232,13 @@ final class CashFlowController extends AbstractController
     /**
      * The forecast of a view, or null before the first-run setup gave the instance its firm.
      */
-    private function forecastOrNull(string $view = ForecastScreen::MONTHS): ?Forecast
+    /**
+     * @param list<\Foresi\CashFlow\Contract\FlowCertainty>|null $certainties
+     */
+    private function forecastOrNull(string $view = ForecastScreen::MONTHS, ?array $certainties = null): ?Forecast
     {
         try {
-            return $this->screen->forecast($view);
+            return $this->screen->forecast($view, $certainties);
         } catch (CashFlowRefused $refused) {
             $this->denyIfForbidden($refused);
 

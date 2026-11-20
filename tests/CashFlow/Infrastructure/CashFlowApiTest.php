@@ -116,7 +116,9 @@ final class CashFlowApiTest extends ApiTestCase
         self::assertEquals([], $this->at('data', 'periods', 0, 'inflows', 'by_category'));
         $week = $this->at('data', 'periods', 1);
         self::assertIsArray($week);
-        self::assertSame(['total' => ['amount_minor' => 1000000, 'currency' => 'CZK'], 'by_category' => ['rent' => ['amount_minor' => 1000000, 'currency' => 'CZK']]], $week['outflows']);
+        self::assertSame(['total' => ['amount_minor' => 1000000, 'currency' => 'CZK'], 'by_category' => ['rent' => ['amount_minor' => 1000000, 'currency' => 'CZK']], 'by_certainty' => ['plan' => ['amount_minor' => 1000000, 'currency' => 'CZK']]], $week['outflows']);
+        self::assertEquals([], $this->at('data', 'periods', 1, 'inflows', 'by_certainty'));
+        self::assertSame(['document', 'schedule', 'plan', 'estimate'], $this->at('data', 'certainty'));
         self::assertSame([
             'source' => 'cash-flow.planned_items',
             'subject' => ['type' => 'planned_item', 'id' => $this->at('data', 'periods', 1, 'items', 0, 'subject', 'id'), 'url' => null],
@@ -136,6 +138,42 @@ final class CashFlowApiTest extends ApiTestCase
         $call = $this->tool('foresi_cash_flow_forecast', ['months' => 3]);
         self::assertFalse($call['isError'] ?? false);
         self::assertEquals($forecast, $this->in($call, 'structuredContent', 'data'));
+    }
+
+    public function testACertaintyFilterCountsOnlyItsFlowsOnBothSurfaces(): void
+    {
+        $this->createdRent();
+        $account = $this->flushed(fn (): string => $this->em()->getRepository(FirmBankAccount::class)->findOneBy(['iban' => self::IBAN])?->id() ?? throw new \LogicException('No account.'));
+        $this->send('POST', '/api/v1/cash-flow/checkpoints', ['bank_account_id' => $account, 'on' => '2026-11-16', 'amount' => '50000.00']);
+
+        $this->get('/api/v1/cash-flow/forecast', ['months' => '3', 'certainty' => 'estimate,document'], $this->writer);
+
+        self::assertResponseIsSuccessful();
+        $forecast = $this->json()['data'];
+        self::assertSame(['document', 'estimate'], $this->at('data', 'certainty'));
+        // The balance today stays; the plan is not counted, so nothing moves it.
+        self::assertSame([5000000, 5000000, 5000000], [$this->at('data', 'balance', 'amount', 'amount_minor'), $this->at('data', 'periods', 1, 'closing', 'amount_minor'), $this->at('data', 'lowest', 'amount', 'amount_minor')]);
+        self::assertSame([], $this->at('data', 'periods', 1, 'items'));
+        self::assertEquals([], $this->at('data', 'periods', 1, 'outflows', 'by_certainty'));
+
+        $call = $this->tool('foresi_cash_flow_forecast', ['months' => 3, 'certainty' => ['document', 'estimate']]);
+        self::assertFalse($call['isError'] ?? false);
+        self::assertEquals($forecast, $this->in($call, 'structuredContent', 'data'));
+
+        $this->get('/api/v1/cash-flow/forecast', ['months' => '3', 'certainty' => 'plan'], $this->writer);
+        self::assertSame(4000000, $this->at('data', 'periods', 1, 'closing', 'amount_minor'));
+    }
+
+    public function testTheForecastRejectsAnUnknownCertaintyOnBothSurfaces(): void
+    {
+        $this->get('/api/v1/cash-flow/forecast', ['certainty' => 'document,guess'], $this->writer);
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'certainty', 'reason' => 'invalid_certainty']);
+
+        // The tool's input schema lists the four certainties, so the server refuses another before the tool runs.
+        $this->tool('foresi_cash_flow_forecast', []);
+        $answer = $this->mcp('tools/call', ['name' => 'foresi_cash_flow_forecast', 'arguments' => ['certainty' => ['guess']]]);
+        $result = $answer['result'] ?? null;
+        self::assertTrue(isset($answer['error']) || (\is_array($result) && true === ($result['isError'] ?? false)));
     }
 
     public function testTheForecastRefusesABadParameterOnBothSurfaces(): void

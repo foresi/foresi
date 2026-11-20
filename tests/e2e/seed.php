@@ -84,6 +84,8 @@ const WORLDS = [
     // Also the team member member@example.com and the guest guest@example.com of its client.
     'projects' => ['Example Projects', 'projects@example.com', 'Projects Example'],
     'purchasing' => ['Example Purchasing', 'purchasing@example.com', 'Purchasing Example'],
+    // One firm with a bank account and one open invoice, for the certainty filter of Cash flow.
+    'cash-flow' => ['Example Cash Flow', 'cash-flow@example.com', 'Cash Flow Example'],
 ];
 
 if (\in_array('--worlds', $argv, true)) {

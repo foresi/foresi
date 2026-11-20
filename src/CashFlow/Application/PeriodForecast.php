@@ -17,10 +17,12 @@ use Foresi\Shared\Domain\Money;
 final readonly class PeriodForecast
 {
     /**
-     * @param array<string, Money> $inflows  by category
-     * @param array<string, Money> $outflows by category
-     * @param list<ForecastLine>   $lines    in the order they are counted, those the caller may read
-     * @param list<HiddenTotal>    $hidden   the lines of the sources the caller may not read, summed
+     * @param array<string, Money> $inflows             by category
+     * @param array<string, Money> $outflows            by category
+     * @param list<ForecastLine>   $lines               in the order they are counted, those the caller may read
+     * @param list<HiddenTotal>    $hidden              the lines of the sources the caller may not read, summed
+     * @param array<string, Money> $inflowsByCertainty  money in by how sure it is, the hidden lines among them
+     * @param array<string, Money> $outflowsByCertainty money out by how sure it is, the hidden lines among them
      */
     public function __construct(
         public ForecastPeriod $period,
@@ -30,6 +32,8 @@ final readonly class PeriodForecast
         public Money $closing,
         public array $lines,
         public array $hidden = [],
+        public array $inflowsByCertainty = [],
+        public array $outflowsByCertainty = [],
     ) {
     }
 }

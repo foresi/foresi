@@ -43,7 +43,7 @@ use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
 /**
- * The forecast of a firm (C2, C6–C10, C14): from the latest balance of each
+ * The forecast (C2, C6–C10, C14): from the latest balance of each
  * account, every source's flows in CZK by week then month, overdue documents
  * in the first period, expected days, the lowest point and the shortfall,
  * and a failing source, balance source or rate left out and listed.
@@ -94,6 +94,56 @@ final class ForecastsTest extends CashFlowTestCase
         self::assertNull($forecast->shortfallOn);
         self::assertSame([], $forecast->unavailableSources);
         self::assertSame([], $forecast->unavailableRates);
+    }
+
+    public function testACertaintyFilterRecomputesClosingAndLowest(): void
+    {
+        $this->checkpoint('2026-11-16', '50000.00');
+        $this->minimum('48000.00');
+        $source = new FakeSource('test.invoices', [
+            $this->flow('1', '2026-11-20', '10000.00'),
+            $this->flow('2', '2026-11-19', '4000.00', FlowCertainty::Plan, FlowDirection::Out),
+        ]);
+
+        $all = $this->forecast(sources: [$source], months: 1);
+        $documents = $this->forecast(sources: [$source], months: 1, certainties: [FlowCertainty::Document]);
+        $plans = $this->forecast(sources: [$source], months: 1, certainties: [FlowCertainty::Plan, FlowCertainty::Plan]);
+
+        self::assertSame(5000000 + 1000000 - 400000, $all->periods[0]->closing->minor());
+        self::assertSame(['document' => 1000000], $this->minors($all->periods[0]->inflowsByCertainty));
+        self::assertSame(['plan' => 400000], $this->minors($all->periods[0]->outflowsByCertainty));
+        self::assertNull($all->certainties);
+        self::assertFalse($all->isFiltered());
+        self::assertSame('2026-11-19', $all->shortfallOn?->format('Y-m-d'));
+
+        // Only the document: the opening stays, the plan moves nothing.
+        self::assertSame(5000000, $documents->opening->minor());
+        self::assertSame(5000000 + 1000000, $documents->periods[0]->closing->minor());
+        self::assertSame(5000000, $documents->lowest->minor());
+        self::assertNull($documents->shortfallOn);
+        self::assertSame([], $documents->periods[0]->outflows);
+        self::assertSame([FlowCertainty::Document], $documents->certainties);
+        self::assertTrue($documents->isFiltered());
+
+        self::assertSame(5000000 - 400000, $plans->periods[0]->closing->minor());
+        self::assertSame(4600000, $plans->lowest->minor());
+        self::assertSame('2026-11-19', $plans->lowestOn->format('Y-m-d'));
+        self::assertSame([FlowCertainty::Plan], $plans->certainties, 'Each certainty once.');
+        self::assertFalse($this->forecast(sources: [$source], months: 1, certainties: FlowCertainty::cases())->isFiltered());
+    }
+
+    public function testNamedCertaintiesAreReadAndAnUnknownOneIsRefused(): void
+    {
+        self::assertSame([FlowCertainty::Estimate, FlowCertainty::Document], Forecasts::certainties(['estimate', ' document']));
+        self::assertNull(Forecasts::certainties([]));
+        foreach ([['guess'], [''], [1]] as $names) {
+            try {
+                Forecasts::certainties($names);
+                self::fail('Expected invalid_certainty.');
+            } catch (CashFlowRefused $refused) {
+                self::assertSame(['invalid_certainty', 'certainty', RefusalKind::Invalid], [$refused->reason(), $refused->field(), $refused->kind()]);
+            }
+        }
     }
 
     public function testAsksEverySourceFromTodayToTheEndOfTheHorizonInTheInstancesZone(): void
@@ -513,10 +563,11 @@ final class ForecastsTest extends CashFlowTestCase
     /**
      * @param list<CashFlowSource>|null $sources        the planned items when null
      * @param list<BalanceSource>       $balanceSources
+     * @param list<FlowCertainty>|null  $certainties
      */
-    private function forecast(?array $sources = null, array $balanceSources = [], ?string $from = null, ?int $months = null, ?string $weeksUntil = null, ?ExchangeRates $rates = null): Forecast
+    private function forecast(?array $sources = null, array $balanceSources = [], ?string $from = null, ?int $months = null, ?string $weeksUntil = null, ?ExchangeRates $rates = null, ?array $certainties = null): Forecast
     {
-        return $this->forecasts($sources ?? [$this->plannedSource()], $balanceSources, $rates)->of($from, $months, $weeksUntil);
+        return $this->forecasts($sources ?? [$this->plannedSource()], $balanceSources, $rates)->of($from, $months, $weeksUntil, $certainties);
     }
 
     /**

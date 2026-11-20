@@ -8,21 +8,23 @@ declare(strict_types=1);
 
 namespace Foresi\CashFlow\Application;
 
+use Foresi\CashFlow\Contract\FlowCertainty;
 use Foresi\Shared\Domain\Money;
 
 /**
- * The cash-flow forecast of a firm, in CZK at today's rates, computed on read.
+ * The cash-flow forecast, in CZK at today's rates, computed on read.
  * It is incomplete when a source, a balance source or a rate failed, or an
  * account has no balance; the lists say which.
  */
 final readonly class Forecast
 {
     /**
-     * @param list<AccountOpening> $accounts
-     * @param list<PeriodForecast> $periods
-     * @param list<string>         $unavailableSources the keys of the sources that failed
-     * @param list<string>         $unavailableRates   the currencies without a rate today
-     * @param list<string>         $restrictedSources  the keys of the sources whose documents the caller may not read: in the totals, not as items
+     * @param list<AccountOpening>     $accounts
+     * @param list<PeriodForecast>     $periods
+     * @param list<string>             $unavailableSources the keys of the sources that failed
+     * @param list<string>             $unavailableRates   the currencies without a rate today
+     * @param list<string>             $restrictedSources  the keys of the sources whose documents the caller may not read: in the totals, not as items
+     * @param list<FlowCertainty>|null $certainties        the certainties counted; null when every flow counts
      */
     public function __construct(
         public \DateTimeImmutable $today,
@@ -39,7 +41,16 @@ final readonly class Forecast
         public array $unavailableSources,
         public array $unavailableRates,
         public array $restrictedSources = [],
+        public ?array $certainties = null,
     ) {
+    }
+
+    /**
+     * Whether a certainty filter leaves flows out.
+     */
+    public function isFiltered(): bool
+    {
+        return null !== $this->certainties && \count($this->certainties) < \count(FlowCertainty::cases());
     }
 
     public function isIncomplete(): bool

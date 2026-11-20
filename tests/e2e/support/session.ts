@@ -65,6 +65,7 @@ const WORLD_OF: Record<string, string> = {
   'accountant@example.com': 'accountant',
   'idoklad@example.com': 'idoklad',
   'idoklad-screens@example.com': 'idoklad-screens',
+  'cash-flow@example.com': 'cash-flow',
 };
 
 const BASE_URL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${process.env.E2E_PORT ?? '8099'}`;

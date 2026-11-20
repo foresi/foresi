@@ -6,7 +6,9 @@
 
 declare(strict_types=1);
 
+use Foresi\CashFlow\Application\ForecastReads;
 use Foresi\CashFlow\Application\Forecasts;
+use Foresi\CashFlow\Contract\ForecastReader;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
@@ -25,4 +27,9 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$sources', tagged_iterator('app.cash_flow_source'))
         ->arg('$balanceSources', tagged_iterator('app.cash_flow_balance_source'))
         ->arg('$actualSources', tagged_iterator('app.cash_flow_actual_source'));
+    // Other modules read the forecast's flows through Foresi\CashFlow\Contract\ForecastReader, asked the same way.
+    $services->set(ForecastReads::class)
+        ->arg('$sources', tagged_iterator('app.cash_flow_source'))
+        ->arg('$actualSources', tagged_iterator('app.cash_flow_actual_source'));
+    $services->alias(ForecastReader::class, ForecastReads::class)->public();
 };
