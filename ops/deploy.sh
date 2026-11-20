@@ -125,7 +125,17 @@ log "warming the cache"
 console cache:clear
 console cache:warmup
 
-if ! console doctrine:migrations:up-to-date >/dev/null 2>&1; then
+# A database still on the global migration history, before the module baselines
+# (ADR 0034), already has the schema this release expects. It is left alone here; the
+# operator backs it up and runs app:migrations:rebase (see the CHANGELOG).
+history=0
+console app:migrations:rebase --check >/dev/null 2>&1 || history=$?
+if [[ "$history" == 2 ]]; then
+    log "the database is on the global migration history: no migrations run."
+    log "back it up (ops/backup.sh --tag pre-rebase), then run app:migrations:rebase from current"
+elif [[ "$history" != 0 ]]; then
+    fail "the migration history of the database is neither the global one nor the module baselines (app:migrations:rebase --check)"
+elif ! console doctrine:migrations:up-to-date >/dev/null 2>&1; then
     if [[ "$PRE_MIGRATE_BACKUP" == 1 ]]; then
         log "pending migrations: dumping the database first"
         if [[ -n "$BACKUP_COMMAND" ]]; then

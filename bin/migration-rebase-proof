@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# Proves that app:migrations:rebase moves a database from the global migration history
+# onto the module baselines without changing its schema (ADR 0034):
+#
+#   1. HISTORY_URL is emptied and migrated by HISTORY_DIR, a checkout of the last release
+#      with the global history, with its own vendor/.
+#   2. This checkout rebases it, migrates what came after the baselines, and checks that
+#      nothing is pending, that the schema matches the mapping and that every table has
+#      one owner.
+#   3. BASELINE_URL is emptied and migrated from the baselines alone.
+#   4. Both hold the same executed versions and the same schema: no difference by
+#      Doctrine's schema comparator, and on PostgreSQL the same pg_dump --schema-only.
+#
+#   HISTORY_DIR=../v0.8.0 HISTORY_URL=... BASELINE_URL=... bin/migration-rebase-proof
+#
+# PG_DUMP is the pg_dump command (default pg_dump); it must match the server's major
+# version. The dumps are compared as they are, except for an explicit DEFAULT NULL:
+# columns added by ALTER TABLE ... ADD ... DEFAULT NULL keep it in the catalogue, the
+# baselines create them without it, and PostgreSQL treats the two alike.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+: "${HISTORY_DIR:?the checkout of the last release with the global history}"
+: "${HISTORY_URL:?the database to build from the global history}"
+: "${BASELINE_URL:?the database to build from the baselines}"
+PG_DUMP=${PG_DUMP:-pg_dump}
+
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+
+console() { php bin/console --no-interaction "$@"; }
+step() { echo "== $*"; }
+
+step "global history ($HISTORY_DIR)"
+(
+    cd "$HISTORY_DIR"
+    DATABASE_URL=$HISTORY_URL php bin/console --no-interaction --quiet doctrine:schema:drop --full-database --force
+    DATABASE_URL=$HISTORY_URL php bin/console --no-interaction --quiet doctrine:migrations:migrate
+)
+
+step "rebase"
+DATABASE_URL=$HISTORY_URL console app:migrations:rebase
+DATABASE_URL=$HISTORY_URL console --quiet doctrine:migrations:migrate --allow-no-migration
+DATABASE_URL=$HISTORY_URL console doctrine:migrations:up-to-date
+DATABASE_URL=$HISTORY_URL console doctrine:schema:validate
+DATABASE_URL=$HISTORY_URL console app:migrations:owners
+
+step "baselines alone"
+DATABASE_URL=$BASELINE_URL console --quiet doctrine:schema:drop --full-database --force
+DATABASE_URL=$BASELINE_URL console --quiet doctrine:migrations:migrate
+
+step "same executed versions"
+versions() { DATABASE_URL=$1 console doctrine:migrations:list | sed -n 's/^| \([A-Za-z0-9_\\]*\\Version[0-9]*\) *| \([a-z ]*[a-z]\) .*/\1 \2/p'; }
+versions "$HISTORY_URL" > "$work/history.versions"
+versions "$BASELINE_URL" > "$work/baseline.versions"
+diff "$work/history.versions" "$work/baseline.versions"
+grep -vq ' migrated$' "$work/history.versions" && { echo "A migration is not executed after the rebase." >&2; exit 1; }
+echo "$(wc -l < "$work/history.versions" | tr -d ' ') versions, all executed"
+
+step "same schema (Doctrine's comparator)"
+php bin/schema-diff "$HISTORY_URL" "$BASELINE_URL"
+echo "no difference"
+
+if [[ "$HISTORY_URL" == postgres* ]]; then
+    step "same pg_dump --schema-only"
+    dump() {
+        # The connection parts of the URL, without the query string, for pg_dump.
+        $PG_DUMP --schema-only --no-owner --no-privileges --exclude-table=doctrine_migration_versions "${1%%\?*}" \
+            | grep -v '^--' | grep -v '^\\\(un\)\{0,1\}restrict ' | sed -E 's/ DEFAULT NULL::[a-z ]+( NOT NULL)/\1/'
+    }
+    dump "$HISTORY_URL" > "$work/history.sql"
+    dump "$BASELINE_URL" > "$work/baseline.sql"
+    diff "$work/history.sql" "$work/baseline.sql"
+    echo "identical: $(grep -c '^CREATE TABLE' "$work/history.sql") tables, $(grep -c '^CREATE \(UNIQUE \)\{0,1\}INDEX' "$work/history.sql") indexes, $(grep -c 'FOREIGN KEY' "$work/history.sql") foreign keys"
+fi
+
+echo "Rebase proof done."

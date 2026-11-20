@@ -14,7 +14,10 @@
     "autoload": {
         "psr-4": {
             "Foresi\\Import\\": ""
-        }
+        },
+        "exclude-from-classmap": [
+            "migrations/"
+        ]
     },
     "extra": {
         "foresi": {

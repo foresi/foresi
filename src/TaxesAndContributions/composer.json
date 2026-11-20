@@ -15,7 +15,10 @@
     "autoload": {
         "psr-4": {
             "Foresi\\TaxesAndContributions\\": ""
-        }
+        },
+        "exclude-from-classmap": [
+            "migrations/"
+        ]
     },
     "extra": {
         "foresi": {

@@ -70,6 +70,7 @@ jobs:
         run: |
           bin/console doctrine:migrations:migrate --no-interaction
           bin/console doctrine:schema:validate
+          bin/console app:migrations:owners
 
       # Every reversible migration goes down and up again; see the script for
       # the migrations that are irreversible by design.
@@ -457,9 +458,93 @@ jobs:
   # static checks, the tests and mutation testing pass. After a full run it also needs the
   # mutation score of all shards together to reach the minimums (80 MSI, 90 covered MSI)
   # with no mutant skipped. It runs even when a job before it failed, and then fails on that.
+  # The move from the global migration history onto the module baselines (ADR 0034): a
+  # database built by the last release with the history and then rebased must equal one
+  # built from the baselines alone, on PostgreSQL (the schema dump too) and on SQLite.
+  rebase:
+    name: Migration rebase proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # The last release with the global migration history.
+      HISTORY_REF: v0.8.0
+      PGPASSWORD: app
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.HISTORY_REF }}
+          path: var/history
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.4'
+          extensions: ctype, dom, gd, iconv, intl, pdo_sqlite, pdo_pgsql, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      # No scripts: the auto-scripts would download the importmap packages, which
+      # migrations do not need.
+      - name: Install dependencies
+        run: |
+          composer install --no-interaction --prefer-dist --no-progress --no-scripts
+          composer install --no-interaction --prefer-dist --no-progress --no-scripts --working-dir=var/history
+
+      - name: A database for each side
+        run: |
+          createdb -h 127.0.0.1 -U app history
+          createdb -h 127.0.0.1 -U app baselines
+
+      # pg_dump of the service container, so its version is the server's.
+      - name: PostgreSQL
+        env:
+          HISTORY_DIR: var/history
+          HISTORY_URL: postgresql://app:app@127.0.0.1:5432/history?serverVersion=17&charset=utf8
+          BASELINE_URL: postgresql://app:app@127.0.0.1:5432/baselines?serverVersion=17&charset=utf8
+          PG_DUMP: docker exec ${{ job.services.postgres.id }} pg_dump
+        run: bin/migration-rebase-proof
+
+      - name: SQLite
+        env:
+          HISTORY_DIR: var/history
+          HISTORY_URL: sqlite:///${{ github.workspace }}/var/history.db
+          BASELINE_URL: sqlite:///${{ github.workspace }}/var/baselines.db
+        run: bin/migration-rebase-proof
+
   quality:
     name: Quality gate (sqlite)
-    needs: [static, tests, coverage, mutation]
+    needs: [static, tests, coverage, mutation, rebase]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -471,12 +556,13 @@ jobs:
       - name: The jobs before it passed
         env:
           STATIC: ${{ needs.static.result }}
+          REBASE: ${{ needs.rebase.result }}
           COVERAGE: ${{ needs.tests.result == 'success' && needs.coverage.result || needs.tests.result }}
           MUTATION: ${{ needs.mutation.result }}
           EVENT: ${{ github.event_name }}
         run: |
-          echo "Static: ${STATIC}, tests: ${COVERAGE}, mutation: ${MUTATION}"
-          [ "${STATIC}" = success ] && [ "${COVERAGE}" = success ] || { echo "A job before the gate did not pass."; exit 1; }
+          echo "Static: ${STATIC}, rebase proof: ${REBASE}, tests: ${COVERAGE}, mutation: ${MUTATION}"
+          [ "${STATIC}" = success ] && [ "${REBASE}" = success ] && [ "${COVERAGE}" = success ] || { echo "A job before the gate did not pass."; exit 1; }
           if [ "${EVENT}" = merge_group ] || [ "${EVENT}" = push ]; then
             [ "${MUTATION}" = skipped ] || { echo "Mutation testing is not expected on ${EVENT}; main gets it every night."; exit 1; }
           else
@@ -624,6 +710,7 @@ jobs:
         run: |
           bin/console doctrine:migrations:migrate --no-interaction
           bin/console doctrine:schema:validate
+          bin/console app:migrations:owners
 
       # Every reversible migration goes down and up again; see the script for
       # the migrations that are irreversible by design.

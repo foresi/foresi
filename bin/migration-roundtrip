@@ -11,18 +11,17 @@
 # IrreversibleMigration, so the list cannot go stale.
 #
 # The tables are empty, so this proves the schema steps in both directions,
-# not the data conversions; those have their own tests in tests/Migration.
+# not the data conversions; those are tested with the migration that holds them.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# Fully qualified, such as 'Foresi\Work\Migrations\Version20261201000001'.
 IRREVERSIBLE=(
-    # Moves every key to a UUIDv7 and cannot give the old integer keys back.
-    Version20261101000001
 )
 
 console() { php bin/console --no-interaction --quiet "$@"; }
-qualified() { printf 'DoctrineMigrations\\%s' "$1"; }
+qualified() { printf '%s' "$1"; }
 
 is_irreversible() {
     local candidate
@@ -32,20 +31,28 @@ is_irreversible() {
     return 1
 }
 
+file_of() {
+    local module="${1#Foresi\\}"
+    module="${module%%\\*}"
+    printf 'src/%s/migrations/%s.php' "$module" "${1##*\\}"
+}
+
+# The migrations of every installed module, in the order they run (timestamp, then the
+# module graph; see ModuleVersionComparator), as doctrine:migrations:list prints them.
 versions=()
-for file in migrations/Version*.php; do
-    versions+=("$(basename "$file" .php)")
-done
-# Version names sort by date, and the glob already expands in that order.
+while IFS= read -r version; do
+    versions+=("$version")
+done < <(php bin/console --no-interaction doctrine:migrations:list | sed -n 's/^| \([A-Za-z0-9_\\]*\\Version[0-9]*\) .*/\1/p')
+[[ ${#versions[@]} -gt 0 ]] || { echo "No migrations found." >&2; exit 1; }
 
 for listed in "${IRREVERSIBLE[@]}"; do
-    grep -q 'IrreversibleMigration' "migrations/$listed.php" || {
+    grep -q 'IrreversibleMigration' "$(file_of "$listed")" || {
         echo "$listed is listed as irreversible but does not throw IrreversibleMigration." >&2
         exit 1
     }
 done
 for name in "${versions[@]}"; do
-    if ! is_irreversible "$name" && grep -q 'IrreversibleMigration' "migrations/$name.php"; then
+    if ! is_irreversible "$name" && grep -q 'IrreversibleMigration' "$(file_of "$name")"; then
         echo "$name is irreversible: add it to IRREVERSIBLE in $0." >&2
         exit 1
     fi

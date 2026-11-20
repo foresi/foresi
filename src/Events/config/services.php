@@ -20,7 +20,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services = $container->services()->defaults()->autowire()->autoconfigure();
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\Events\\', '../')
-        ->exclude(['../config/', '../Integration/', '../EventsBundle.php']);
+        ->exclude(['../config/', '../Integration/', '../migrations/', '../EventsBundle.php']);
 
     // Takes each event the relay numbers, in its transaction, such as the webhooks.
     $builder->registerForAutoconfiguration(EventSink::class)->addTag('app.event_sink');

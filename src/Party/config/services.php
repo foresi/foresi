@@ -43,7 +43,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services = $container->services()->defaults()->autowire()->autoconfigure();
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\Party\\', '../')
-        ->exclude(['../config/', '../Integration/', '../PartyBundle.php']);
+        ->exclude(['../config/', '../Integration/', '../migrations/', '../PartyBundle.php']);
 
     // Logos and stamps; never below public/. From the kernel, not from the environment
     // variable: that one is relative, and the web server would resolve it inside public/.

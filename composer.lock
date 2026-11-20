@@ -1602,7 +1602,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Attachment",
-                "reference": "9d8adc45ea51b56090f15e43e3d9e1d558a03fbd"
+                "reference": "1eedd59da6e4f55d7cc74cdf7ea00ab904b9854b"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1623,7 +1623,10 @@
             "autoload": {
                 "psr-4": {
                     "Foresi\\Attachment\\": ""
-                }
+                },
+                "exclude-from-classmap": [
+                    "migrations/"
+                ]
             },
             "license": [
                 "AGPL-3.0-only"
@@ -1640,7 +1643,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Audit",
-                "reference": "54fad1b484d3a634aba26750239c6aa396c44b8e"
+                "reference": "04b13047a2c89d2d416e6a685947b8e747fd5985"
             },
             "require": {
                 "foresi/instance": "*",
@@ -1659,7 +1662,10 @@
             "autoload": {
                 "psr-4": {
                     "Foresi\\Audit\\": ""
-                }
+                },
+                "exclude-from-classmap": [
+                    "migrations/"
+                ]
             },
             "license": [
                 "AGPL-3.0-only"
@@ -1676,7 +1682,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Banking",
-                "reference": "a37ea207a36b4666e4268d4ed2223a387373295a"
+                "reference": "d8ed4191384f2b3d209bffee091e5690411c6e0b"
             },
             "require": {
                 "directorytree/imapengine": "~1.25.7",
@@ -1704,7 +1710,10 @@
             "autoload": {
                 "psr-4": {
                     "Foresi\\Banking\\": ""
-                }
+                },
+                "exclude-from-classmap": [
+                    "migrations/"
+                ]
             },
             "license": [
                 "AGPL-3.0-only"
@@ -1721,7 +1730,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/CashFlow",
-                "reference": "497242f552a8ad054a7fa8de0ea9aaec40e35985"
+                "reference": "31ea57b4632de52128eb972e04d603599034cd29"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1748,7 +1757,10 @@
             "autoload": {
                 "psr-4": {
                     "Foresi\\CashFlow\\": ""
-                }
+                },
+                "exclude-from-classmap": [
+                    "migrations/"
+                ]
             },
             "license": [
                 "AGPL-3.0-only"
@@ -1832,7 +1844,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Events",
-                "reference": "59edab29126acfd5d6d1d3842f27924d2eeb7798"
+                "reference": "1e0ee3499852b871ee59aacb46a3fcccf0997299"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1855,7 +1867,10 @@
             "autoload": {
                 "psr-4": {
                     "Foresi\\Events\\": ""
-                }
+                },
+                "exclude-from-classmap": [
+                    "migrations/"
+                ]
             },
             "license": [
                 "AGPL-3.0-only"
@@ -1872,7 +1887,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/ExchangeRate",
-                "reference": "466e3d4235f5d7faf4980a0b7a96cdd5ec2fcfdd"
+                "reference": "3fbc6a8809a0c9fc3f0034ac2fa1d881357db0bf"
             },
             "require": {
                 "foresi/instance": "*",
@@ -1891,7 +1906,10 @@
             "autoload": {
                 "psr-4": {
                     "Foresi\\ExchangeRate\\": ""
-                }
+                },
+                "exclude-from-classmap": [
+                    "migrations/"
+                ]
             },
             "license": [
                 "AGPL-3.0-only"
@@ -1908,7 +1926,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Identity",
-                "reference": "ab0bdb214d941c2dfc9d3bf5e0887dbd9544875f"
+                "reference": "889a197fd31ad1fa0c9ba45f760cfd262ef00618"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1931,7 +1949,10 @@
             "autoload": {
                 "psr-4": {
                     "Foresi\\Identity\\": ""
-                }
+                },
+                "exclude-from-classmap": [
+                    "migrations/"
+                ]
             },
             "license": [
                 "AGPL-3.0-only"
@@ -1948,7 +1969,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Idoklad",
-                "reference": "7a84e115d15fb38d74d0913e16fe8f58d773e5c4"
+                "reference": "9aa96783ff462d2a09397a2bfcf161aed540f0a4"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1972,7 +1993,10 @@
             "autoload": {
                 "psr-4": {
                     "Foresi\\Idoklad\\": ""
-                }
+                },
+                "exclude-from-classmap": [
+                    "migrations/"
+                ]
             },
             "license": [
                 "AGPL-3.0-only"
@@ -1989,7 +2013,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Import",
-                "reference": "287bcaf8ba8353be6121a76e3720658f9aad6df7"
+                "reference": "3403ce0c2532f7d80fdf17a99526661acfaec156"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2012,7 +2036,10 @@
             "autoload": {
                 "psr-4": {
                     "Foresi\\Import\\": ""
-                }
+                },
+                "exclude-from-classmap": [
+                    "migrations/"
+                ]
             },
             "license": [
                 "AGPL-3.0-only"
@@ -2029,7 +2056,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Instance",
-                "reference": "12b32d2d5888e90c69c701cd6fa95fea0ab99cf3"
+                "reference": "8afe1f1cfcbf471af1055cae7a3ba6600f6e126f"
             },
             "require": {
                 "foresi/shared": "*"
@@ -2047,7 +2074,10 @@
             "autoload": {
                 "psr-4": {
                     "Foresi\\Instance\\": ""
-                }
+                },
+                "exclude-from-classmap": [
+                    "migrations/"
+                ]
             },
             "license": [
                 "AGPL-3.0-only"
@@ -2064,7 +2094,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Invoicing",
-                "reference": "3964afe1f65547b49fe3ba3dea2c8c7cb99fa665"
+                "reference": "8c0aabed28f81160cebc797095dd43a1cb1b6057"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2097,7 +2127,10 @@
             "autoload": {
                 "psr-4": {
                     "Foresi\\Invoicing\\": ""
-                }
+                },
+                "exclude-from-classmap": [
+                    "migrations/"
+                ]
             },
             "license": [
                 "AGPL-3.0-only"
@@ -2114,7 +2147,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "2f6668b38081dcc68b405518cdcdb43463146092"
+                "reference": "443e83d90433dc49869754fa00fd887c02cf2b44"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2140,7 +2173,10 @@
             "autoload": {
                 "psr-4": {
                     "Foresi\\Party\\": ""
-                }
+                },
+                "exclude-from-classmap": [
+                    "migrations/"
+                ]
             },
             "license": [
                 "AGPL-3.0-only"
@@ -2157,7 +2193,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Purchasing",
-                "reference": "98de50c9a6a255136a1501838066e953120ee986"
+                "reference": "04db333593d5db25f7b5ddef79c3d18cd0e2f07d"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -2189,7 +2225,10 @@
             "autoload": {
                 "psr-4": {
                     "Foresi\\Purchasing\\": ""
-                }
+                },
+                "exclude-from-classmap": [
+                    "migrations/"
+                ]
             },
             "license": [
                 "AGPL-3.0-only"
@@ -2206,7 +2245,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "e74faf4cc787a5354eaf9ae5462c27ea23ae1b5e"
+                "reference": "f2c7b410fe9a50001996863d5eee222f8b55923f"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -2229,7 +2268,10 @@
             "autoload": {
                 "psr-4": {
                     "Foresi\\Shared\\": ""
-                }
+                },
+                "exclude-from-classmap": [
+                    "migrations/"
+                ]
             },
             "license": [
                 "AGPL-3.0-only"
@@ -2246,7 +2288,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/TaxesAndContributions",
-                "reference": "48189519b67f0b9f028b7e62b0670a4af2431519"
+                "reference": "62dda487c7089ef8af6f052cd713beac0f937f99"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2277,7 +2319,10 @@
             "autoload": {
                 "psr-4": {
                     "Foresi\\TaxesAndContributions\\": ""
-                }
+                },
+                "exclude-from-classmap": [
+                    "migrations/"
+                ]
             },
             "license": [
                 "AGPL-3.0-only"
@@ -2294,7 +2339,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Timesheet",
-                "reference": "a475c95b096dfbfa7383df7a10f8b40a39d76fdc"
+                "reference": "aab7bec3b9c0ca9d91c72d6ce605f7ab0332a020"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2319,7 +2364,10 @@
             "autoload": {
                 "psr-4": {
                     "Foresi\\Timesheet\\": ""
-                }
+                },
+                "exclude-from-classmap": [
+                    "migrations/"
+                ]
             },
             "license": [
                 "AGPL-3.0-only"
@@ -2372,7 +2420,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Webhooks",
-                "reference": "4bb115692b296e4d7928b8e8a7bad602dbcc1a2e"
+                "reference": "1222502cc2ec4d5d44a507189d55d70ac7504ce0"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2398,7 +2446,10 @@
             "autoload": {
                 "psr-4": {
                     "Foresi\\Webhooks\\": ""
-                }
+                },
+                "exclude-from-classmap": [
+                    "migrations/"
+                ]
             },
             "license": [
                 "AGPL-3.0-only"
@@ -2415,7 +2466,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Work",
-                "reference": "e845efc1b05bea14bcacef793b971bc308e26a31"
+                "reference": "1d31fb5f3be2d8856836c7b966d3aa9a6d6cbe90"
             },
             "require": {
                 "foresi/attachment": "*",
@@ -2451,7 +2502,10 @@
             "autoload": {
                 "psr-4": {
                     "Foresi\\Work\\": ""
-                }
+                },
+                "exclude-from-classmap": [
+                    "migrations/"
+                ]
             },
             "license": [
                 "AGPL-3.0-only"

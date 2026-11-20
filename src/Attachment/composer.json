@@ -12,7 +12,10 @@
     "autoload": {
         "psr-4": {
             "Foresi\\Attachment\\": ""
-        }
+        },
+        "exclude-from-classmap": [
+            "migrations/"
+        ]
     },
     "extra": {
         "foresi": {

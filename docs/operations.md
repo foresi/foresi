@@ -318,7 +318,9 @@ It fetches the ref into a mirror, exports it into `releases/<timestamp>`, links
 the shared files, runs `composer install --no-dev --optimize-autoloader`,
 `importmap:install`, `tailwind:build --minify`, `asset-map:compile`, clears and
 warms the prod cache, dumps the database with `ops/backup.sh --tag pre-migrate`
-when migrations are pending, migrates, switches `current` atomically, reloads
+when migrations are pending, migrates (unless the database is still on the
+global migration history, see [the module baselines](#the-module-baselines)),
+switches `current` atomically, reloads
 PHP-FPM, tells the workers to restart and keeps the last five releases. A
 failed build is removed and the live release keeps running. Deploying the
 commit that is already live does nothing (`FORCE=1` deploys it again), and only
@@ -386,6 +388,31 @@ whatever was written since is lost.
    supervisor starts the workers on the new code.
 5. Check `/health`, sign in, and watch the log and the `failed` queue for an
    hour.
+
+### The module baselines
+
+Up to 0.8.0 every migration was global, in `migrations/`. From 0.9.0 each
+module has its own, starting with one baseline that creates its tables as the
+global history left them ([ADR 0034](adr/0034-module-packages.md)). A database
+migrated before moves onto the baselines once, by its version rows alone:
+
+1. If the instance runs a release older than 0.8.0, deploy 0.8.0 first and
+   let it migrate.
+2. Take a backup: `ops/backup.sh --tag pre-rebase`.
+3. Deploy 0.9.0 or newer. The deploy sees the global history, runs no
+   migration and switches to the new release; the schema is already the one it
+   expects.
+4. From the live release, run `bin/console app:migrations:rebase`. It checks
+   that every global migration has been executed and that the schema matches
+   the mapping, then replaces the 108 version rows with the baselines of the
+   installed modules in one transaction. No table changes. On any other state
+   it refuses and changes nothing.
+5. `bin/console doctrine:migrations:up-to-date` must report no pending
+   migration. The next deploys migrate as before.
+
+`app:migrations:rebase --check` changes nothing and tells the state by its
+exit code: 0 for a new database or one on the baselines, 2 for one on the
+global history, 1 otherwise.
 
 ## Monitoring
 
