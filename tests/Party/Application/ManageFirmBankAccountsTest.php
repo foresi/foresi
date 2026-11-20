@@ -149,11 +149,6 @@ final class ManageFirmBankAccountsTest extends KernelTestCase
                 return $this->inner->all();
             }
 
-            public function active(): array
-            {
-                return $this->inner->active();
-            }
-
             public function get(string $id): LegalEntity
             {
                 $this->calls->append('get firm');

@@ -55,7 +55,7 @@ final class InvoicingRefused extends \DomainException implements Refused
     /** What the data does not allow now, whatever is sent: 409. */
     private const array CONFLICTS = [
         'number_locked', 'number_locked_sent', 'number_locked_sending', 'number_taken', 'trashed', 'tax_document_fixed',
-        'changed_meanwhile', 'firm_locked', 'firm_archived', 'already_deducted',
+        'changed_meanwhile', 'firm_locked', 'already_deducted',
     ];
 
     /** The fields of IssueRules, as the inputs of the API name them. */

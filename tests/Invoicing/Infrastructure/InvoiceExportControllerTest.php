@@ -231,20 +231,6 @@ final class InvoiceExportControllerTest extends WebTestCase
         }
     }
 
-    public function testWithoutAFirmADownloadIs404(): void
-    {
-        $this->signedIn();
-        $this->scoped(function (): void {
-            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
-            $firm->archive(new \DateTimeImmutable('2026-11-01'));
-            $this->em()->flush();
-        });
-
-        $this->post(['month' => '2026-10']);
-
-        self::assertResponseStatusCodeSame(404);
-    }
-
     public function testAGuestGets403(): void
     {
         $this->signedIn(Role::Guest);

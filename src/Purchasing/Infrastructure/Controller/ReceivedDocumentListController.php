@@ -164,11 +164,7 @@ final class ReceivedDocumentListController extends AbstractController
         if ([] === $files) {
             return $this->uploadRefused(AttachmentRefused::EMPTY, $json);
         }
-        try {
-            $uploaded = $this->uploads->upload($firm, $files);
-        } catch (ReceivedDocumentRefused $refused) {
-            return $this->uploadRefused(null, $json, $this->screen->refusal($refused));
-        }
+        $uploaded = $this->uploads->upload($firm, $files);
         if ($json) {
             $first = $uploaded[0];
 
@@ -284,9 +280,9 @@ final class ReceivedDocumentListController extends AbstractController
         ), $files);
     }
 
-    private function uploadRefused(?string $reason, bool $json, ?string $message = null): Response
+    private function uploadRefused(string $reason, bool $json): Response
     {
-        $message ??= $this->translator->trans('attachment.error.'.$reason);
+        $message = $this->translator->trans('attachment.error.'.$reason);
         if ($json) {
             return new JsonResponse(['error' => $message], Response::HTTP_UNPROCESSABLE_ENTITY);
         }

@@ -202,18 +202,6 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
         self::assertSame(0, $this->invoiceCount());
     }
 
-    public function testAnArchivedFirmTakesNoImport(): void
-    {
-        $this->firm->archive(new \DateTimeImmutable('2026-11-01'));
-        $this->em->flush();
-
-        self::assertContains('invoice.problem.firm_archived', $this->keys($this->import->import($this->imported())));
-        $noVatId = new DocumentParty('Old Name s.r.o.', '12345695', 'VAT-1', new Address('Old Street 5', 'Old City', '110 00', 'CZ'), '', null, '', '', null, null);
-        $keys = $this->keys($this->import->import($this->imported(overrides: ['issuer' => $noVatId])));
-        self::assertContains('invoice.problem.firm_archived', $keys);
-        self::assertContains('invoice.problem.firm_vat_id_missing', $keys, 'Every problem of the firm is named at once.');
-    }
-
     public function testHalfATaxedPaymentTaxesNothing(): void
     {
         foreach (['taxedAdvanceId' => '0192f0a0-0000-7000-8000-0000000000ab', 'taxedPaymentId' => '0192f0a0-0000-7000-8000-0000000000ac'] as $field => $id) {

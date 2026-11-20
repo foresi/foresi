@@ -71,7 +71,7 @@ final readonly class SendReminders implements ScheduledJob
         $zone = $this->instanceClock->timezone();
         // The day of the period, so a run given back and retried after midnight still works for its own day.
         $today = new \DateTimeImmutable($this->period(\DateTimeImmutable::createFromInterface($this->clock->now()), $zone), $zone);
-        foreach ($this->firms->active() as $firm) {
+        foreach ($this->firms->all() as $firm) {
             $settings = $this->settings->for($firm);
             if ($settings->enabled()) {
                 $this->remind($firm, $settings, $today);

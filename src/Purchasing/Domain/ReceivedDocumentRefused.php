@@ -49,7 +49,6 @@ final class ReceivedDocumentRefused extends \DomainException
     public const string SUPPLY_CODE_NOT_ALLOWED = 'supply_code_not_allowed';
     public const string SUPPLY_CODE_INVALID = 'supply_code_invalid';
     // Refused by the use cases, which know more than the document.
-    public const string FIRM_ARCHIVED = 'firm_archived';
     public const string SUPPLIER_UNKNOWN = 'supplier_unknown';
     public const string EXCHANGE_RATE_UNAVAILABLE = 'exchange_rate_unavailable';
     public const string EVIDENCE_NUMBERS_EXHAUSTED = 'evidence_numbers_exhausted';
@@ -71,7 +70,7 @@ final class ReceivedDocumentRefused extends \DomainException
         self::TREATMENT_FOR_KIND, self::SUPPLIER_NUMBER_TOO_LONG, self::VARIABLE_SYMBOL, self::EVIDENCE_NUMBER_MISSING,
         self::EVIDENCE_NUMBER_FIXED, self::EVIDENCE_NUMBER_INVALID, self::ORIGINAL_FILE_FIXED, self::ORIGINAL_FILE_INVALID,
         self::REASON_MISSING, self::REASON_TOO_LONG, self::SUPPLY_CODE_NOT_ALLOWED, self::SUPPLY_CODE_INVALID,
-        self::FIRM_ARCHIVED, self::SUPPLIER_UNKNOWN, self::EXCHANGE_RATE_UNAVAILABLE, self::EVIDENCE_NUMBERS_EXHAUSTED,
+        self::SUPPLIER_UNKNOWN, self::EXCHANGE_RATE_UNAVAILABLE, self::EVIDENCE_NUMBERS_EXHAUSTED,
         self::STALE, self::LOCKED, self::NOT_RECORDED, self::PAYMENT_AMOUNT, self::OVERPAID, self::PAID,
         self::BANK_MOVEMENT_INVALID,
     ];

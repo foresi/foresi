@@ -38,11 +38,11 @@ use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 
-// The world of the bank movements spec: two firms with an account each and an inbound
-// address. The first has three invoices: 20260001 paired by a verified notice, 20260002
+// The world of the bank movements spec: one firm with two accounts and an inbound
+// address for each. The first has three invoices: 20260001 paired by a verified notice, 20260002
 // waiting for the unverified payment the spec pairs by hand, and 20260003 open. The bank
-// mail holds one of each kind: processed, failed, rejected for its sender, about another
-// firm's account, not from a bank, and one the queue left waiting for two hours.
+// mail holds one of each kind: processed, failed, rejected for its sender, about an account
+// of nobody here, not from a bank, and one the queue left waiting for two hours.
 $recordMovement = $container->get('e2e.record_movement');
 $pairMovement = $container->get('e2e.pair_movement');
 $generateAddress = $container->get('e2e.generate_address');
@@ -54,10 +54,7 @@ $receiveMail = $container->get('e2e.receive_inbound_mail');
 $movementsFirm = new LegalEntity('Example Movements s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(5), VatStatus::Registered, 'Example register, entry C 2468');
 $entityManager->persist($movementsFirm);
 $firmAccount($movementsFirm);
-$secondFirm = new LegalEntity('Example Second Firm s.r.o.', new RegistrationNumber('CZ', '12345687'), null, $address(6), VatStatus::NotRegistered, 'Example trade register');
-$entityManager->persist($secondFirm);
-$secondAccount = FirmBankAccount::open($secondFirm, Iban::fromString('CZ5508000000001234567899'), Currency::CZK, 'Provozní', 0);
-$secondAccount->markPrimary(true);
+$secondAccount = FirmBankAccount::open($movementsFirm, Iban::fromString('CZ5508000000001234567899'), Currency::CZK, 'Provozní', 1);
 $entityManager->persist($secondAccount);
 $movementsSeries = new Series($movementsFirm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
 $movementsSeries->markDefault();
@@ -69,7 +66,7 @@ foreach (['Consulting' => '1000.00', 'Workshop' => '2000.00', 'Audit' => '500.00
         new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
     ], true));
 }
-$movementsAccount = $entityManager->getRepository(FirmBankAccount::class)->findOneBy(['firm' => $movementsFirm]) ?? throw new LogicException('The account of the movements firm is missing.');
+$movementsAccount = $entityManager->getRepository(FirmBankAccount::class)->findOneBy(['firm' => $movementsFirm, 'iban' => 'CZ6508000000192000145399']) ?? throw new LogicException('The account of the movements firm is missing.');
 $verified = new TrustVerdict(MessageTrust::Verified, TrustVerdict::DMARC);
 $unverified = new TrustVerdict(MessageTrust::Unverified, TrustVerdict::NO_RESULTS);
 $movement = static fn (FirmBankAccount $account, MovementDirection $direction, string $amount, ?string $vs, ?string $name, ?string $counter, ?string $message, TrustVerdict $trust): string => $recordMovement->record(new MovementInput($account->id(), null, $direction, Money::of($amount, Currency::CZK), $day, $counter, null, $name, $vs, null, null, $message, null), $trust)->id();
@@ -87,12 +84,12 @@ $notice = static function (string $name, string $to, ?string $auth, string $mess
     return null === $auth ? $raw : strtok($fixture('auth/'.$auth.'.eml'), "\n")."\n".$raw;
 };
 $firstAddress = $generateAddress->generate($movementsAccount->id());
-$secondAddress = $generateAddress->generate($secondAccount->id());
 $mails = [
     'processed' => $notice('incoming-booked', $firstAddress, 'dmarc-pass', 'processed@kb.example.com'),
     'failed' => $notice('incoming-unknown-status', $firstAddress, 'dmarc-pass', 'failed@kb.example.com'),
     'untrusted' => $notice('incoming-booked', $firstAddress, 'aligned-dkim-fail', 'untrusted@kb.example.com'),
-    'mismatch' => $notice('incoming-booked', $secondAddress, 'dmarc-pass', 'mismatch@kb.example.com'),
+    // The notice names an account that is none of the firm's.
+    'mismatch' => str_replace('19-2000145399/0800', '2000000999/0800', $notice('incoming-booked', $firstAddress, 'dmarc-pass', 'mismatch@kb.example.com')),
     'notbank' => "From: Gmail Team <forwarding-noreply@example.org>\nTo: ".$firstAddress."\nSubject: Gmail Forwarding Confirmation\nMessage-ID: <forwarding@example.org>\nMIME-Version: 1.0\nContent-Type: text/plain; charset=utf-8\n\nConfirm forwarding to ".$firstAddress.".\n<script>alert('example')</script>\n",
     'stuck' => $notice('incoming-unknown-status', $firstAddress, 'dmarc-pass', 'stuck@kb.example.com'),
 ];

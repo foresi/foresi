@@ -16,18 +16,11 @@ use Foresi\Party\Domain\LegalEntity;
 interface LegalEntities
 {
     /**
-     * Active and archived, by name.
+     * By name, without a lock.
      *
      * @return list<LegalEntity>
      */
     public function all(): array;
-
-    /**
-     * The active firms, by name, without a lock.
-     *
-     * @return list<LegalEntity>
-     */
-    public function active(): array;
 
     /**
      * @throws UnknownLegalEntity also for an unknown firm

@@ -124,11 +124,10 @@ final class EditInvoiceTest extends InvoiceTestCase
         self::assertNull($invoice->customer()->vatId);
     }
 
-    public function testAnOldDocumentOfAnArchivedFirmAndContactStaysEditable(): void
+    public function testAnOldDocumentOfAnArchivedContactStaysEditable(): void
     {
         $invoice = $this->issue->issue($this->input());
         $this->customer->archive(new \DateTimeImmutable('2026-11-01'));
-        $this->firm->archive(new \DateTimeImmutable('2026-11-02'));
         $this->firm->update($this->firm->name(), $this->firm->registrationNumber(), null, $this->firm->address(), VatStatus::Registered, '');
         FirmAccounts::archiveAll($this->em, $this->firm);
         $this->em->flush();

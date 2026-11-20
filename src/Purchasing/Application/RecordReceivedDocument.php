@@ -51,7 +51,7 @@ final readonly class RecordReceivedDocument
         $document = $this->unit->run(function () use ($documentId, $input, $version, $userId): ReceivedDocument {
             // The document first, then its firm: both are writes, so the reads after them never wait for a write.
             $document = $this->documents->lock($documentId);
-            $firm = $this->access->activeFirm($document->firm(), true);
+            $firm = $this->access->firm($document->firm(), true);
             if (null !== $version && $version !== $document->version()) {
                 throw new ReceivedDocumentRefused(ReceivedDocumentRefused::STALE);
             }
@@ -77,14 +77,14 @@ final readonly class RecordReceivedDocument
      *
      * @throws PurchasingNotAllowed    for anyone but the owners and members of the organisation
      * @throws UnknownLegalEntity
-     * @throws ReceivedDocumentRefused with FIRM_ARCHIVED for an archived firm, and for anything the document refuses
+     * @throws ReceivedDocumentRefused for anything the document refuses
      */
     public function create(string $firmId, ReceivedDocumentInput $input): SavedReceivedDocument
     {
         $userId = $this->access->denyUnlessStaff();
         $document = $this->unit->run(function () use ($firmId, $input, $userId): ReceivedDocument {
             // The lock of the firm is the first write, as EvidenceNumbers asks.
-            $firm = $this->access->activeFirm($firmId, true);
+            $firm = $this->access->firm($firmId, true);
             $content = $this->contents->of($firm, $input, null, true);
             $document = new ReceivedDocument($firm, ReceivedDocumentContent::blank(), $userId, \DateTimeImmutable::createFromInterface($this->clock->now()));
             $this->recording->record($document, $firm, $content, $userId);

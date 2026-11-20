@@ -197,14 +197,6 @@ final class IssueInvoiceTest extends InvoiceTestCase
         $this->assertRefusedFor('invoice.problem.firm_register_entry_missing', fn (): Invoice => $this->issue->issue($this->input(overrides: ['firmId' => $firm->id(), 'seriesId' => null])));
     }
 
-    public function testAnArchivedFirmIssuesNothing(): void
-    {
-        $this->firm->archive(new \DateTimeImmutable('2026-10-01'));
-        $this->em->flush();
-
-        $this->assertRefusedFor('invoice.problem.firm_archived', fn (): Invoice => $this->issue->issue($this->input()));
-    }
-
     public function testAFirmInAnUnsupportedCountryIssuesNothing(): void
     {
         $firm = $this->secondFirm(VatStatus::Registered, 'DE123456789', 'Register', new Address('Beispielstrasse 1', 'Berlin', '10115', 'DE'));
@@ -1055,10 +1047,8 @@ final class IssueInvoiceTest extends InvoiceTestCase
     public function testEveryProblemOfTheFirmIsReported(): void
     {
         $firm = $this->secondFirm(VatStatus::Registered, null, ' ');
-        $firm->archive(new \DateTimeImmutable('2026-10-01'));
-        $this->em->flush();
 
-        self::assertSame(['invoice.problem.firm_archived', 'invoice.problem.firm_vat_id_missing', 'invoice.problem.firm_register_entry_missing'], $this->refusalOf(fn (): Invoice => $this->issue->issue($this->input(overrides: ['firmId' => $firm->id(), 'seriesId' => null]))));
+        self::assertSame(['invoice.problem.firm_vat_id_missing', 'invoice.problem.firm_register_entry_missing'], $this->refusalOf(fn (): Invoice => $this->issue->issue($this->input(overrides: ['firmId' => $firm->id(), 'seriesId' => null]))));
     }
 
     public function testEveryProblemOfTheCustomerIsReported(): void

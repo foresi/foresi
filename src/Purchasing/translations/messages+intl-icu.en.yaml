@@ -206,7 +206,6 @@ purchasing:
     reason_too_long: "The reason may have at most {max} characters."
     supply_code_not_allowed: "Only a domestic reverse charge takes a supply code."
     supply_code_invalid: "A supply code has at most 8 letters and digits."
-    firm_archived: "The firm is archived and takes no new documents."
     supplier_unknown: "The supplier is not in the address book."
     exchange_rate_unavailable: "The ČNB has no rate for that day yet; type it in."
     evidence_numbers_exhausted: "The firm's series has no number left this year."

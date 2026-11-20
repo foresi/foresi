@@ -383,7 +383,6 @@ invoice:
   billed_work:
     gone: Vybraný čas už na tuto fakturu nečeká. Otevřete znovu fakturaci času.
   copy:
-    firm_archived: Tato firma je archivovaná, takže nové doklady nevystavuje. Vyberte jinou firmu.
     series_archived: Řada původní faktury je archivovaná, kopie proto používá výchozí řadu.
     customer_archived: Firma už zákazníkovi z původní faktury nefakturuje. Vyberte jiného zákazníka.
     line_dates: Položky obsahují datum nebo měsíc z původní faktury. Zkontrolujte, zda stále platí.
@@ -855,7 +854,6 @@ invoice:
     date_invalid: Toto datum neexistuje.
     discount_invalid: Zadejte slevu od 0 do 100, nejvýše na dvě desetinná místa.
     due_date_missing: Zadejte datum splatnosti.
-    firm_archived: Tato firma je archivovaná, nové doklady nevystavuje.
     firm_country_unsupported: Pro zemi této firmy zatím faktury nejsou k dispozici.
     firm_locked: Firmu vystaveného dokladu nelze změnit.
     firm_register_entry_missing: 'Doplňte v nastavení firmy, kde je zapsaná. Společnost uvádí spisovou značku, živnostníkovi stačí „Zapsán v živnostenském rejstříku“.'
@@ -1061,7 +1059,6 @@ recurring:
           customer_unknown: Odběratel už neexistuje.
           customer_address_incomplete: Odběratel nemá úplnou fakturační adresu.
           line_rate_missing: Druh sazby DPH některé položky k datu zdanitelného plnění neexistuje.
-          firm_archived: Firma je archivovaná.
           firm_country_unsupported: Pravidla země firmy nejsou k dispozici.
       send:
         no_server: Firma nemá nastavený poštovní server.

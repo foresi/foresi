@@ -17,7 +17,7 @@ use Foresi\Party\Domain\LegalEntity;
  *
  * Until the multi-firm screens and data are removed, a database may still hold
  * several firms (tests, old development data); the firm is then the oldest
- * active one by its time-ordered id, which is what the fallbacks used before.
+ * one by its time-ordered id, which is what the fallbacks used before.
  */
 final readonly class InstanceFirm
 {
@@ -30,10 +30,10 @@ final readonly class InstanceFirm
      */
     public function find(): ?LegalEntity
     {
-        $active = $this->firms->active();
-        usort($active, static fn (LegalEntity $a, LegalEntity $b): int => strcmp($a->id(), $b->id()));
+        $firms = $this->firms->all();
+        usort($firms, static fn (LegalEntity $a, LegalEntity $b): int => strcmp($a->id(), $b->id()));
 
-        return $active[0] ?? null;
+        return $firms[0] ?? null;
     }
 
     /**
@@ -47,7 +47,7 @@ final readonly class InstanceFirm
     /**
      * The first-run setup. Call it inside TransactionalWork, which flushes.
      *
-     * @throws FirmAlreadyExists when the instance has a firm, archived or not
+     * @throws FirmAlreadyExists when the instance has a firm
      */
     public function create(LegalEntity $firm): void
     {

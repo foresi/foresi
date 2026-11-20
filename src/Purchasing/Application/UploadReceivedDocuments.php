@@ -15,7 +15,6 @@ use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentContent;
-use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -42,14 +41,13 @@ final readonly class UploadReceivedDocuments
      *
      * @return list<UploadedDocument> one per file, in their order
      *
-     * @throws PurchasingNotAllowed    for anyone but the owners and members of the organisation
+     * @throws PurchasingNotAllowed for anyone but the owners and members of the organisation
      * @throws UnknownLegalEntity
-     * @throws ReceivedDocumentRefused with FIRM_ARCHIVED for an archived firm
      */
     public function upload(string $firmId, array $files): array
     {
         $userId = $this->access->denyUnlessStaff();
-        $this->access->activeFirm($firmId);
+        $this->access->firm($firmId);
 
         return array_map(fn (AttachmentUpload $file): UploadedDocument => $this->one($firmId, $file, $userId), $files);
     }
@@ -58,7 +56,7 @@ final readonly class UploadReceivedDocuments
     {
         try {
             $document = $this->unit->run(function () use ($firmId, $file, $userId): ReceivedDocument {
-                $document = new ReceivedDocument($this->access->activeFirm($firmId), ReceivedDocumentContent::blank($this->instanceClock->today()), $userId, \DateTimeImmutable::createFromInterface($this->clock->now()));
+                $document = new ReceivedDocument($this->access->firm($firmId), ReceivedDocumentContent::blank($this->instanceClock->today()), $userId, \DateTimeImmutable::createFromInterface($this->clock->now()));
                 $this->documents->add($document);
                 // The store asks the module whether the document may take the file, and saves both.
                 $document->attachOriginal($this->upload->upload(ReceivedDocument::ATTACHMENT_KIND, $document->id(), $file)->id());

@@ -46,7 +46,7 @@ final readonly class CopyInvoice
         $firm = $source->firm();
         // A copy is of the same kind: an advance invoice copies to an advance invoice.
         $draft = $this->defaults->for($firm, kind: $source->kind());
-        $notices = $firm->isArchived() ? ['invoice.copy.firm_archived'] : [];
+        $notices = [];
 
         $series = $source->series();
         if ($series->isArchived()) {

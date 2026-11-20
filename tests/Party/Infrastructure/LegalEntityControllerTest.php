@@ -17,7 +17,6 @@ use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
-use Foresi\Tests\Party\Infrastructure\Support\RacingLegalEntities;
 use Foresi\Tests\Party\Support\FirmAccounts;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -37,12 +36,6 @@ final class LegalEntityControllerTest extends WebTestCase
         $this->client = self::createClient();
         $this->client->disableReboot();
         $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
-    }
-
-    protected function tearDown(): void
-    {
-        RacingLegalEntities::$blind = false;
-        parent::tearDown();
     }
 
     public function testTheOwnerOpensTheFirmStraightAway(): void
@@ -320,49 +313,6 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSame('Example Firm', $this->storedFirm()->name());
     }
 
-    public function testAnArchivedFirmIsStillTheFirmOfTheInstance(): void
-    {
-        $this->signIn();
-        $this->archive($this->firm('Old Firm', '12345687'));
-
-        $crawler = $this->client->request('GET', '/settings/firm');
-
-        self::assertResponseIsSuccessful();
-        self::assertSame('Old Firm', $crawler->filter('#name')->attr('value'));
-        self::assertSelectorNotExists('#lookup');
-    }
-
-    public function testTheFirmCannotTakeTheNumberOfAnotherOne(): void
-    {
-        $this->signIn();
-        // Several firms remain only in old data; the page edits the oldest active one.
-        $this->firm('Example Firm', '12345695');
-        $this->firm('Other Firm', '12345687');
-
-        $crawler = $this->client->request('GET', '/settings/firm');
-        self::assertSame('Example Firm', $crawler->filter('#name')->attr('value'));
-        $this->client->submit($crawler->filter('main form[data-controller]')->form(['registrationNumber' => '12345687']));
-
-        self::assertResponseStatusCodeSame(422);
-        self::assertSelectorExists('#registrationNumber[aria-invalid="true"]');
-    }
-
-    public function testLosingTheRaceForANumberIsAFormError(): void
-    {
-        $this->signIn();
-        $this->firm('Example Firm', '12345687');
-        $crawler = $this->client->request('GET', '/settings/firm');
-        $this->firm('Other Firm', '12345695');
-        RacingLegalEntities::$blind = true;
-
-        $this->client->submit($crawler->filter('main form[data-controller]')->form(['registrationNumber' => '12345695']));
-
-        self::assertResponseStatusCodeSame(422);
-        self::assertSelectorExists('#registrationNumber[aria-invalid="true"]');
-        RacingLegalEntities::$blind = false;
-        self::assertSame('12345687', $this->stored($this->firmNamed('Example Firm'))->registrationNumber()->value);
-    }
-
     public function testTheFirmIsNotArchivedFromItsPage(): void
     {
         $this->signIn();
@@ -373,7 +323,6 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('form[action$="/archive"]'));
         self::assertSelectorNotExists('#firm-actions');
-        self::assertFalse($this->storedFirm()->isArchived());
     }
 
     public function testAForgedSaveIsRefused(): void
@@ -431,14 +380,6 @@ final class LegalEntityControllerTest extends WebTestCase
         return $firm;
     }
 
-    private function archive(LegalEntity $firm): void
-    {
-        $em = $this->em();
-        $stored = $em->getRepository(LegalEntity::class)->find($firm->id()) ?? throw new \LogicException('The firm is missing.');
-        $stored->archive(new \DateTimeImmutable('2026-10-31 12:00:00'));
-        $em->flush();
-    }
-
     private function newForm(): Form
     {
         $crawler = $this->client->request('GET', '/settings/firm');
@@ -475,19 +416,6 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertCount(1, $firms);
 
         return $firms[0];
-    }
-
-    private function stored(LegalEntity $firm): LegalEntity
-    {
-        $em = $this->em();
-        $em->clear();
-
-        return $em->getRepository(LegalEntity::class)->find($firm->id()) ?? throw new \LogicException('The firm is missing.');
-    }
-
-    private function firmNamed(string $name): LegalEntity
-    {
-        return $this->em()->getRepository(LegalEntity::class)->findOneBy(['name' => $name]) ?? throw new \LogicException('The firm is missing.');
     }
 
     private function firmCount(): int

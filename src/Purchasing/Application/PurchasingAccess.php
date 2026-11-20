@@ -13,7 +13,6 @@ use Foresi\Identity\Application\StaffCheck;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Party\Domain\LegalEntity;
-use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
 
 /**
  * Who works with received documents: the owners and the members of the
@@ -42,20 +41,15 @@ final readonly class PurchasingAccess
     }
 
     /**
-     * A firm that still takes documents. Call it inside
-     * the unit of work, as a failed one detaches what was loaded before it.
+     * The firm, loaded again. Call it inside the unit of work, as a failed one
+     * detaches what was loaded before it.
      *
      * @throws UnknownLegalEntity
-     * @throws ReceivedDocumentRefused with FIRM_ARCHIVED for an archived firm
      */
-    public function activeFirm(LegalEntity|string $firm, bool $lock = false): LegalEntity
+    public function firm(LegalEntity|string $firm, bool $lock = false): LegalEntity
     {
         $id = $firm instanceof LegalEntity ? $firm->id() : $firm;
-        $firm = $lock ? $this->firms->lock($id) : $this->firms->get($id);
-        if ($firm->isArchived()) {
-            throw new ReceivedDocumentRefused(ReceivedDocumentRefused::FIRM_ARCHIVED);
-        }
 
-        return $firm;
+        return $lock ? $this->firms->lock($id) : $this->firms->get($id);
     }
 }

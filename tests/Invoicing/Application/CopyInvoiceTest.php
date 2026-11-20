@@ -145,19 +145,6 @@ final class CopyInvoiceTest extends InvoiceTestCase
         self::assertSame(self::IBAN, $this->copy->valuesFrom($source)->bankAccount);
     }
 
-    public function testACopyOfAnArchivedFirmOpensAndAsksForAnotherFirm(): void
-    {
-        $source = $this->source();
-        $this->firm->archive(new \DateTimeImmutable('2027-01-01'));
-        $this->em->flush();
-
-        $draft = $this->copy->valuesFrom($source);
-
-        self::assertSame(['invoice.copy.firm_archived'], $draft->notices);
-        self::assertSame($this->firm->id(), $draft->firmId);
-        self::assertSame($this->customer->id(), $draft->customerId);
-    }
-
     public function testACopyForAnArchivedCustomerWarnsAndNeedsAnotherCustomer(): void
     {
         $source = $this->source();

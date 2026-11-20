@@ -261,46 +261,6 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSelectorNotExists('[data-line-dates]');
     }
 
-    public function testACopyOfAnArchivedFirmSaysSo(): void
-    {
-        $this->signedIn();
-        $source = $this->issued();
-        $this->secondFirm(VatStatus::Registered);
-        $this->archiveFirm();
-
-        $this->client->request('GET', '/invoices/'.$source->id().'/copy');
-
-        self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('[data-copy-notice]', 'This firm is archived');
-    }
-
-    public function testASaveOnceTheOnlyFirmIsArchivedIs404AndIssuesNothing(): void
-    {
-        $this->signedIn();
-        $source = $this->issued();
-        $values = $this->openCopy($source);
-        $this->archiveFirm();
-
-        $this->save($values);
-
-        self::assertResponseStatusCodeSame(404);
-        self::assertCount(1, $this->invoices());
-    }
-
-    public function testAnInvoiceOfAnArchivedFirmStaysEditable(): void
-    {
-        $this->signedIn();
-        $source = $this->issued();
-        $this->archiveFirm();
-        $values = $this->openEdit($source);
-        $values['description'] = 'Still editable';
-
-        $this->saveEdit($source, $values);
-
-        self::assertResponseRedirects('/invoices');
-        self::assertSame('Still editable', $this->stored($source)->description());
-    }
-
     public function testACopyForAnArchivedCustomerWarnsAndNeedsAnotherCustomer(): void
     {
         $this->signedIn();
@@ -2669,15 +2629,6 @@ final class InvoiceControllerTest extends WebTestCase
             fn (string $class): int => (int) $this->em()->createQuery('SELECT COUNT(e) FROM '.$class.' e')->getSingleScalarResult(),
             [Invoice::class, SeriesCounter::class, AuditEntry::class],
         ));
-    }
-
-    private function archiveFirm(): void
-    {
-        $this->scoped(function (): void {
-            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
-            $firm->archive(new \DateTimeImmutable('2026-11-01'));
-            $this->em()->flush();
-        });
     }
 
     /**
