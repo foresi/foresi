@@ -107,9 +107,9 @@ taxes:
       child_name_help: Nepovinné. Bez jména se dítě ukazuje podle pořadí.
       birth_date: Datum narození
       order: Pořadí pro slevu
-      order_help: Jinak než podle data narození jen tehdy, když se tak dohodnete s druhým rodičem.
+      order_help: Jen když se s druhým rodičem dohodnete jinak.
       months: Počet měsíců
-      months_help: Měsíce, za které slevu uplatňujete, 0 až 12. Dítě narozené v roce se počítá od měsíce narození.
+      months_help: Měsíce se slevou, 0–12. Narozené dítě od měsíce narození.
       ztp_p: Držitel průkazu ZTP/P
       spouse_months: Počet měsíců
       spouse_months_help: Prázdné, když slevu na manžela neuplatňujete.

@@ -107,9 +107,9 @@ taxes:
       child_name_help: Optional. Without one, the child shows by its order.
       birth_date: Birth date
       order: Order for the credit
-      order_help: Other than by birth date only when you agreed on it with the other parent.
+      order_help: Only when the parents agreed on another order.
       months: Months
-      months_help: The months you claim the credit for, 0 to 12. A child born in the year counts from the month of birth.
+      months_help: Months claimed, 0–12; a newborn from its birth month.
       ztp_p: Holds a severe disability card (ZTP/P)
       spouse_months: Months
       spouse_months_help: Empty when you claim no spouse.
@@ -171,7 +171,7 @@ taxes:
       previous: Previous year
       other: Other
       section_title: '{section} – year {year}'
-      methods_help: The estimate works out the tax and contributions for each method ticked.
+      methods_help: The estimate is worked out for each method ticked.
       children_none: You claim no child.
       child_add: Add a child
       child_remove: Remove
