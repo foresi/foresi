@@ -119,14 +119,6 @@ final class PurchasingGuardsTest extends PurchasingTestCase
         self::assertContains($this->firm->id(), $this->firms->read);
     }
 
-    public function testNothingIsUploadedToAnArchivedFirmWhateverTheFiles(): void
-    {
-        $this->firm->archive(new \DateTimeImmutable('2026-11-01'));
-        $this->em->flush();
-
-        $this->assertRefused(ReceivedDocumentRefused::FIRM_ARCHIVED, fn (): array => $this->uploads()->upload($this->firm->id(), []));
-    }
-
     public function testNothingIsUploadedToAnUnknownFirmWhateverTheFiles(): void
     {
         $this->expectException(UnknownLegalEntity::class);
@@ -243,11 +235,6 @@ final class WatchedLegalEntities implements LegalEntities
     public function all(): array
     {
         return $this->real->all();
-    }
-
-    public function active(): array
-    {
-        return $this->real->active();
     }
 
     public function get(string $id): LegalEntity

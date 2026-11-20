@@ -37,23 +37,15 @@ use Foresi\Shared\Domain\Money;
 
 // The world of the reminder specs, dated from the day the seed runs so its invoices stay
 // overdue. "Example Reminding" reminds automatically since two months ago: R0001 has had two
-// reminders today, R0002 gets its first tomorrow, R0003 is not due yet. "Example Manual" has
-// reminders off: S0001 is overdue, for a reminder by hand, and S0002 is due in five days,
-// so the settings page shows when its first reminder would go out.
+// reminders today, R0002 gets its first tomorrow, R0003 is not due yet.
 $today = new DateTimeImmutable('today');
-$reminderFirm = static function (string $name, string $number, string $prefix) use ($entityManager, $address, $mailSecrets, $firmAccount): array {
-    $firm = $firmAccount(new LegalEntity($name, new RegistrationNumber('CZ', $number), VatId::fromString('CZ'.$number), $address(4), VatStatus::Registered, 'Example register, entry C 7890'));
-    $entityManager->persist($firm);
-    $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString($prefix.'{NNNN}'), DocumentKind::Invoice);
-    $series->markDefault();
-    $entityManager->persist($series);
-    $entityManager->persist(FirmMailServer::define($firm, 'smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', $mailSecrets->seal('throwaway-smtp-password'), 'invoices@example.com', $name));
-    $entityManager->flush();
-
-    return [$firm, $series];
-};
-[$remindingFirm, $remindingSeries] = $reminderFirm('Example Reminding s.r.o.', '12345695', 'R');
-[$manualFirm, $manualSeries] = $reminderFirm('Example Manual s.r.o.', '12345687', 'S');
+$remindingFirm = $firmAccount(new LegalEntity('Example Reminding s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(4), VatStatus::Registered, 'Example register, entry C 7890'));
+$entityManager->persist($remindingFirm);
+$remindingSeries = new Series($remindingFirm, Series::STANDARD, SeriesFormat::fromString('R{NNNN}'), DocumentKind::Invoice);
+$remindingSeries->markDefault();
+$entityManager->persist($remindingSeries);
+$entityManager->persist(FirmMailServer::define($remindingFirm, 'smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', $mailSecrets->seal('throwaway-smtp-password'), 'invoices@example.com', 'Example Reminding s.r.o.'));
+$entityManager->flush();
 $automatic = FirmReminders::standard($remindingFirm);
 $automatic->change(true, 7, 7, null, $today->modify('-60 days'));
 $entityManager->persist($automatic);
@@ -78,5 +70,3 @@ foreach ([1, 2] as $step) {
 }
 $reminded($remindingFirm, $remindingSeries, 'Backups', '2400.00', 20, 6);
 $reminded($remindingFirm, $remindingSeries, 'Monitoring', '900.00', 4, -10);
-$reminded($manualFirm, $manualSeries, 'Training', '5000.00', 30, 16);
-$reminded($manualFirm, $manualSeries, 'Consulting', '7500.00', 9, -5);

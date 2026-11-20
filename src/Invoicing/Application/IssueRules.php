@@ -119,7 +119,7 @@ final readonly class IssueRules
             return $input->firmId === $firm->id() ? [] : [new IssueProblem('firm', 'invoice.problem.firm_locked')];
         }
         if ($import instanceof ImportedDocumentInput) {
-            $problems = $firm->isArchived() ? [new IssueProblem('firm', 'invoice.problem.firm_archived')] : [];
+            $problems = [];
             // A payer's tax document names the payer's VAT id (§29(1)(c)); one issued without it is kept as issued.
             if (VatRegime::Payer === $import->regime && null !== $import->issuer->vatId && !LineRules::vatIdOf($import->issuer->vatId) instanceof VatId) {
                 $problems[] = new IssueProblem('firm', 'invoice.problem.firm_vat_id_missing');

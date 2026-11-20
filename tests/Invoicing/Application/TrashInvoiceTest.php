@@ -174,20 +174,6 @@ final class TrashInvoiceTest extends InvoiceTestCase
         }
     }
 
-    public function testAnInvoiceRestoresInAnArchivedFirm(): void
-    {
-        $invoice = $this->issue->issue($this->input());
-        $this->trash->trash($invoice->id(), 'Wrong customer');
-        $firm = $this->em->getRepository(LegalEntity::class)->find($this->firm->id());
-        self::assertInstanceOf(LegalEntity::class, $firm);
-        $firm->archive(new \DateTimeImmutable('2026-11-04'));
-        $this->em->flush();
-
-        $this->trash->restore($invoice->id());
-
-        self::assertFalse($this->reloaded($invoice)->isTrashed());
-    }
-
     public function testRestoringWhatIsNotInTheTrashChangesNothing(): void
     {
         $invoice = $this->issue->issue($this->input());

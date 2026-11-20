@@ -53,19 +53,9 @@ final class ReceivedDocumentListTest extends PurchasingTestCase
 
     public function testTheDocumentsGoToTheInstanceFirm(): void
     {
-        $second = $this->firm('Second Firm s.r.o.', '27082440');
+        $this->firm('Second Firm s.r.o.', '27082440');
 
-        self::assertSame($this->firm->id(), $this->list(new ListedQueries())->firmId(), 'The oldest active firm, as InstanceFirm reads it.');
-
-        $this->firm->archive($this->clock->now());
-        $this->em->flush();
-
-        self::assertSame($second->id(), $this->list(new ListedQueries())->firmId(), 'An archived firm takes no documents.');
-
-        $second->archive($this->clock->now());
-        $this->em->flush();
-
-        self::assertNull($this->list(new ListedQueries())->firmId(), 'Without an active firm, nothing takes documents.');
+        self::assertSame($this->firm->id(), $this->list(new ListedQueries())->firmId(), 'The oldest firm, as InstanceFirm reads it.');
     }
 
     public function testThePageKeepsWhatItWasAskedFor(): void

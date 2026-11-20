@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Instance\Integration\Invoicing;
 
-use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Foresi\Instance\Application\ConfiguredZone;
@@ -51,12 +50,8 @@ final class FirmCountryZoneTest extends KernelTestCase
         $tool->createSchema($metadata);
     }
 
-    public function testFallsBackToTheFirstActiveFirmsCountry(): void
+    public function testFallsBackToTheFirstFirmsCountry(): void
     {
-        $archived = $this->firm(self::NO_RULES)->id();
-        $this->em->find(LegalEntity::class, $archived)?->archive(new \DateTimeImmutable('2026-12-01'));
-        $this->em->flush();
-        self::assertNotFalse(self::getContainer()->get(Connection::class)->fetchOne('SELECT id FROM legal_entity WHERE id = :id AND archived_at IS NOT NULL', ['id' => $archived]), 'The first firm is archived.');
         $this->firm('CZ');
         $this->firm(self::NO_RULES);
 
@@ -86,7 +81,7 @@ final class FirmCountryZoneTest extends KernelTestCase
 
     /**
      * The clock of the instance with the given APP_TIMEZONE ('' for none) and the
-     * zone of the first active firm's country, as Invoicing lends it.
+     * zone of the first firm's country, as Invoicing lends it.
      */
     private function clock(string $configured): InstanceClock
     {

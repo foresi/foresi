@@ -16,7 +16,6 @@ use Foresi\Purchasing\Application\PurchasingNotAllowed;
 use Foresi\Purchasing\Application\ReceivedDocumentWarning;
 use Foresi\Purchasing\Application\TrashReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocument;
-use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
 use Foresi\Purchasing\Domain\ReceivedDocumentState;
 use Foresi\Shared\Domain\Id;
 
@@ -95,14 +94,6 @@ final class UploadReceivedDocumentsTest extends PurchasingTestCase
     {
         $this->expectException(UnknownLegalEntity::class);
         $this->uploads()->upload(Id::generate(), [$this->file()]);
-    }
-
-    public function testAnArchivedFirmTakesNoDocuments(): void
-    {
-        $this->firm->archive(new \DateTimeImmutable('2026-11-01'));
-        $this->em->flush();
-
-        $this->assertRefused(ReceivedDocumentRefused::FIRM_ARCHIVED, fn (): array => $this->uploads()->upload($this->firm->id(), [$this->file()]));
     }
 
     public function testOnlyTheStaffSeeTheOriginalAndNobodyAttachesInTheTrash(): void

@@ -11,7 +11,6 @@ use Foresi\Party\Application\CompanyRegistry;
 use Foresi\Party\Application\ContactImports;
 use Foresi\Party\Application\CreateParty;
 use Foresi\Party\Application\ImportPartyValues;
-use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\ManageFirmBankAccounts;
 use Foresi\Party\Application\Parties;
 use Foresi\Party\Application\RegistrationNumberFactory;
@@ -27,7 +26,6 @@ use Foresi\Party\Infrastructure\Doctrine\DoctrineTransactionalWork;
 use Foresi\Party\Infrastructure\Http\FilesystemFirmImages;
 use Foresi\Party\Infrastructure\Registry\CollectedCompanyRegistry;
 use Foresi\Party\Infrastructure\Registry\CollectedVatPayerReliability;
-use Foresi\Tests\Party\Infrastructure\Support\RacingLegalEntities;
 use Foresi\Tests\Party\Infrastructure\Support\RejectingParties;
 use Foresi\Tests\Support\Registry\FakeCompanyRegistry;
 use Foresi\Tests\Support\Registry\FakeVatPayerReliability;
@@ -94,8 +92,6 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
 
         // Lets a test make storing a party fail with a domain error after it was written.
         $services->set(RejectingParties::class)->decorate(Parties::class);
-        // Lets a test lose the race for a registration number: the form check sees no other firm.
-        $services->set(RacingLegalEntities::class)->decorate(LegalEntities::class);
 
         // Public alias in the test env only, so the wiring of the factory can be tested.
         $services->alias('test.registration_number_factory', RegistrationNumberFactory::class)->public();

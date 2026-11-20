@@ -396,7 +396,6 @@ firm:
     created: Firma je uložená.
     updated: Změny jsou uložené.
   error:
-    registration_taken: Toto IČO už má jiná firma.
     vat_status: Vyberte vztah k DPH.
     vat_id_required: Zadejte DIČ této firmy.
     save_failed: Firmu se nepodařilo uložit. Zkontrolujte údaje a zkuste to znovu.

@@ -8,11 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Party\Infrastructure\Controller;
 
-use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Foresi\Party\Application\FirmAlreadyExists;
 use Foresi\Party\Application\FirmImages;
 use Foresi\Party\Application\InstanceFirm;
-use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\LegalEntityInput;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\LegalEntity;
@@ -42,7 +40,6 @@ final class LegalEntityController extends AbstractController
     private const array IMAGE_TOO_LARGE = ['logo' => ['firm.error.image_size']];
 
     public function __construct(
-        private readonly LegalEntities $firms,
         private readonly LegalEntitySubmissionReader $reader,
         private readonly SubmissionTokens $tokens,
         private readonly TransactionalWork $transaction,
@@ -61,8 +58,7 @@ final class LegalEntityController extends AbstractController
     public function settings(Request $request): Response
     {
         $this->denyUnlessOwner();
-        // An instance whose one firm was archived while archiving existed still edits that firm.
-        $firm = $this->instanceFirm->find() ?? $this->firms->all()[0] ?? null;
+        $firm = $this->instanceFirm->find();
 
         return $firm instanceof LegalEntity ? $this->edit($firm, $request) : $this->setUp($request);
     }
@@ -136,9 +132,6 @@ final class LegalEntityController extends AbstractController
         if (!$submission->valid() || !$input instanceof LegalEntityInput) {
             return $this->form($request, $firm, $submission->values, $submission->errors, $token, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
-        if ($this->numberIsTaken($input, $firm)) {
-            return $this->form($request, $firm, $submission->values, ['registrationNumber' => ['firm.error.registration_taken']], $token, Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
 
         // Stored before the transaction: a file nothing points to does no harm, and files are never deleted.
         $logo = $this->imageName($submission->logo, '1' === $submission->values['removeLogo'], $firm?->logo());
@@ -161,9 +154,6 @@ final class LegalEntityController extends AbstractController
         } catch (FirmAlreadyExists) {
             // Another request set up the firm after the check in new().
             return $this->refuseAnotherFirm();
-        } catch (UniqueConstraintViolationException) {
-            // Another request took the number after the check above.
-            return $this->form($request, $firm, $submission->values, ['registrationNumber' => ['firm.error.registration_taken']], $token, Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (\DomainException) {
             return $this->form($request, $firm, $submission->values, ['form' => ['firm.error.save_failed']], $token, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
@@ -199,18 +189,6 @@ final class LegalEntityController extends AbstractController
         }
 
         return $remove ? null : $current;
-    }
-
-    /**
-     * An archived firm holds no number, whatever is entered for it.
-     */
-    private function numberIsTaken(LegalEntityInput $input, ?LegalEntity $firm): bool
-    {
-        if ($firm instanceof LegalEntity && $firm->isArchived()) {
-            return false;
-        }
-
-        return array_any($this->firms->all(), static fn (LegalEntity $other): bool => $other !== $firm && $other->holdsRegistrationNumber($input->registrationNumber));
     }
 
     /**

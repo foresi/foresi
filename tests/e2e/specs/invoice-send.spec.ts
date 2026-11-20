@@ -2,7 +2,9 @@
 
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { SENDING_OWNER_STATE } from '../support/session';
+import { SENDING_OWNER_STATE, signIn, worldState } from '../support/session';
+
+const SENDING_QUIET_OWNER = 'sending-quiet@example.com';
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 const DESKTOP = { width: 1440, height: 960 };
@@ -60,23 +62,6 @@ test.describe.serial('sending an invoice', () => {
       await expectNoSidewaysScroll(page);
       await page.screenshot({ path: `${SHOTS}/send-dialog-${name}.png`, fullPage: true });
     }
-  });
-
-  test('a firm without a mail server explains and links to its settings @a11y @layout', async ({ page }) => {
-    for (const [name, size] of [['desktop', DESKTOP], ['phone', PHONE]] as const) {
-      await page.setViewportSize(DESKTOP);
-      await openFromList(page, 'Q20260001');
-      await page.setViewportSize(size);
-
-      await expect(page.getByRole('heading', { name: 'Firma nemá poštovní server' })).toBeVisible();
-      await expect(page.locator('#subject')).toHaveCount(0);
-      await expectNoSeriousViolations(page);
-      await expectNoSidewaysScroll(page);
-      await page.screenshot({ path: `${SHOTS}/send-no-server-${name}.png`, fullPage: true });
-    }
-    await page.getByRole('link', { name: 'Nastavit poštovní server' }).click();
-    await expect(page.getByRole('heading', { level: 1, name: 'E-maily' })).toBeVisible();
-    await expect(page.locator('#host')).toBeVisible();
   });
 
   test('a refusal keeps what was typed and puts the focus on what to fix @a11y', async ({ page }) => {
@@ -212,5 +197,31 @@ test.describe.serial('sending an invoice', () => {
     // Sent once: a second look at the dialog says so.
     await openFromList(page, '20260004');
     await expect(page.locator('[data-sent-before]')).toContainText('Faktura už odešla');
+  });
+});
+
+// The firm of this world has no mail server, so its send dialog explains what is missing.
+test.describe('sending from a firm without a mail server', () => {
+  test.use({ storageState: worldState('sending-quiet') });
+
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, SENDING_QUIET_OWNER);
+  });
+
+  test('a firm without a mail server explains and links to its settings @a11y @layout', async ({ page }) => {
+    for (const [name, size] of [['desktop', DESKTOP], ['phone', PHONE]] as const) {
+      await page.setViewportSize(DESKTOP);
+      await openFromList(page, '20260001');
+      await page.setViewportSize(size);
+
+      await expect(page.getByRole('heading', { name: 'Firma nemá poštovní server' })).toBeVisible();
+      await expect(page.locator('#subject')).toHaveCount(0);
+      await expectNoSeriousViolations(page);
+      await expectNoSidewaysScroll(page);
+      await page.screenshot({ path: `${SHOTS}/send-no-server-${name}.png`, fullPage: true });
+    }
+    await page.getByRole('link', { name: 'Nastavit poštovní server' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'E-maily' })).toBeVisible();
+    await expect(page.locator('#host')).toBeVisible();
   });
 });

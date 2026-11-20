@@ -33,7 +33,7 @@ final class PurchasingRefused extends \DomainException implements Refused
 
     private const array CONFLICTS = [
         ReceivedDocumentRefused::TRASHED, ReceivedDocumentRefused::RECORDED, ReceivedDocumentRefused::STALE,
-        ReceivedDocumentRefused::LOCKED, ReceivedDocumentRefused::FIRM_ARCHIVED, ReceivedDocumentRefused::PAID,
+        ReceivedDocumentRefused::LOCKED, ReceivedDocumentRefused::PAID,
         ReceivedDocumentRefused::OVERPAID, ReceivedDocumentRefused::NOT_RECORDED,
         ReceivedDocumentRefused::EVIDENCE_NUMBERS_EXHAUSTED, ReceivedDocumentRefused::EVIDENCE_NUMBER_FIXED,
         ReceivedDocumentRefused::ORIGINAL_FILE_FIXED,
@@ -78,7 +78,6 @@ final class PurchasingRefused extends \DomainException implements Refused
         ReceivedDocumentRefused::OVERPAID => 'The payment is more than what remains to be paid; read the document and pay at most its remaining amount.',
         ReceivedDocumentRefused::PAYMENT_AMOUNT => 'A payment needs an amount above zero, in the currency of the document.',
         ReceivedDocumentRefused::SUPPLIER_UNKNOWN => 'The organisation has no contact with this id. Find the supplier with foresi_search_contacts, or create it with foresi_create_contact.',
-        ReceivedDocumentRefused::FIRM_ARCHIVED => 'The firm is archived and takes no documents.',
         ReceivedDocumentRefused::LOCKED => 'The document belongs to a closed month and cannot change.',
     ];
 

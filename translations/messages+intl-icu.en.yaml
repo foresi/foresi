@@ -396,7 +396,6 @@ firm:
     created: The firm is saved.
     updated: The changes are saved.
   error:
-    registration_taken: Another firm already has this registration number.
     vat_status: Choose the VAT status.
     vat_id_required: Enter the VAT ID of this firm.
     save_failed: The firm could not be saved. Check the details and try again.

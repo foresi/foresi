@@ -72,8 +72,7 @@ final readonly class EditInvoice
             $party = $this->parties->find($input->customerId) ?? throw new \LogicException('IssueRules refuses an unknown customer.');
             $customer = $this->copies->for($input, $party, $invoice) ?? throw new \LogicException('IssueRules refuses a customer without an address.');
             $series = null === $input->seriesId ? $invoice->series() : $this->catalog->get($input->seriesId);
-            // An archived firm has no settings to change; its old documents can still be edited.
-            if ($party->id() !== $invoice->customerParty()->id() && !$firm->isArchived()) {
+            if ($party->id() !== $invoice->customerParty()->id()) {
                 $party->addRole(PartyRole::Customer);
             }
             $this->renumber($invoice, $input, $series);

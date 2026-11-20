@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Tests\Purchasing\Infrastructure\Api;
 
 use Foresi\Identity\Domain\ApiScope;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Infrastructure\Operation\InputSchema;
 use Foresi\Shared\Infrastructure\Operation\Operations;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
@@ -82,19 +81,6 @@ final class ReceivedDocumentApiTest extends ApiTestCase
 
         $this->send('POST', '/api/v1/received-documents/01940000-0000-7000-8000-000000000001/payments', ['paid_on' => '2026-11-12', 'amount' => '1.00']);
         $this->assertProblem(404, 'not_found');
-    }
-
-    public function testWithoutAnActiveFirmNothingIsRecorded(): void
-    {
-        $this->flushed(function (): void {
-            $firm = $this->em()->find(LegalEntity::class, $this->firmId);
-            self::assertNotNull($firm);
-            $firm->archive(new \DateTimeImmutable('2026-11-01'));
-        });
-
-        $this->send('POST', '/api/v1/received-documents', $this->fields());
-
-        $this->assertProblem(404, 'firm_unknown');
     }
 
     public function testADocumentInAnotherCurrencyKeepsTheVatInCzkItPrints(): void

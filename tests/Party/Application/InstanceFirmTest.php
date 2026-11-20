@@ -50,18 +50,7 @@ final class InstanceFirmTest extends TestCase
         new InstanceFirm($firms)->create($this->legalEntity('Second Firm', '12345687'));
     }
 
-    public function testAnArchivedFirmStillTakesItsPlace(): void
-    {
-        $archived = $this->legalEntity('Old Firm', '12345695');
-        $archived->archive(new \DateTimeImmutable('2026-11-01 12:00:00'));
-        $instance = new InstanceFirm($this->firms($archived));
-
-        self::assertNull($instance->find(), 'an archived firm issues nothing');
-        $this->expectException(FirmAlreadyExists::class);
-        $instance->create($this->legalEntity('New Firm', '12345687'));
-    }
-
-    public function testWithSeveralFirmsLeftItIsTheOldestActiveOne(): void
+    public function testWithSeveralFirmsLeftItIsTheOldestOne(): void
     {
         // Ids are time-ordered: the first one built is the oldest, whatever its name.
         $oldest = $this->legalEntity('Zeta Firm', '12345695');
@@ -88,14 +77,6 @@ final class InstanceFirmTest extends TestCase
             public function all(): array
             {
                 return $this->stored;
-            }
-
-            public function active(): array
-            {
-                $active = array_values(array_filter($this->stored, static fn (LegalEntity $firm): bool => !$firm->isArchived()));
-                usort($active, static fn (LegalEntity $a, LegalEntity $b): int => strcmp($a->name(), $b->name()));
-
-                return $active;
             }
 
             public function get(string $id): LegalEntity

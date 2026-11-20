@@ -6,7 +6,6 @@ import { expect, type BrowserContext, type Page } from '@playwright/test';
 export const PASSWORD = process.env.E2E_PASSWORD ?? 'throwaway-password-1';
 export const OWNER = 'testing@example.com';
 export const EMPTY_OWNER = 'empty@example.com';
-export const GROUP_OWNER = 'group@example.com';
 export const INVOICING_OWNER = 'invoicing@example.com';
 export const FIRST_RUN_OWNER = 'first-run@example.com';
 export const SENDING_OWNER = 'sending@example.com';
@@ -25,7 +24,6 @@ export const PROJECTS_GUEST = 'guest@example.com';
 // per-address login throttle (25 attempts a minute), so most specs reuse a session.
 export const OWNER_STATE = '.auth/owner.json';
 export const EMPTY_OWNER_STATE = '.auth/empty-owner.json';
-export const GROUP_OWNER_STATE = '.auth/group-owner.json';
 export const INVOICING_OWNER_STATE = '.auth/invoicing-owner.json';
 export const FIRST_RUN_OWNER_STATE = '.auth/first-run-owner.json';
 export const SENDING_OWNER_STATE = '.auth/sending-owner.json';
@@ -44,7 +42,6 @@ export const PURCHASING_OWNER_STATE = '.auth/purchasing-owner.json';
 const WORLD_OF: Record<string, string> = {
   [OWNER]: 'main',
   [EMPTY_OWNER]: 'empty',
-  [GROUP_OWNER]: 'group',
   [INVOICING_OWNER]: 'invoicing',
   [FIRST_RUN_OWNER]: 'first-run',
   [SENDING_OWNER]: 'sending',
@@ -59,6 +56,8 @@ const WORLD_OF: Record<string, string> = {
   [PURCHASING_OWNER]: 'purchasing',
   'people@example.com': 'people',
   'api@example.com': 'api',
+  'sending-quiet@example.com': 'sending-quiet',
+  'reminders-manual@example.com': 'reminders-manual',
   'paying@example.com': 'paying',
   'movements@example.com': 'movements',
   'advances@example.com': 'advances',

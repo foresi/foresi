@@ -89,13 +89,10 @@ final class SaveRecurringInvoiceTest extends RecurringTestCase
         self::assertSame(['invoice.problem.no_lines'], $this->recurringRefusalOf(fn (): RecurringInvoice => $this->save->create($this->recurringInput([]))));
     }
 
-    public function testTheLineAndFirmChecksOfAnInvoiceApply(): void
+    public function testTheLineChecksOfAnInvoiceApply(): void
     {
-        $this->firm->archive(new \DateTimeImmutable('2026-10-01'));
-        $this->em->flush();
-
         self::assertSame(
-            ['invoice.problem.firm_archived', 'invoice.problem.line_text_missing', 'invoice.problem.vat_invalid'],
+            ['invoice.problem.line_text_missing', 'invoice.problem.vat_invalid'],
             $this->recurringRefusalOf(fn (): RecurringInvoice => $this->save->create($this->recurringInput([$this->line(text: ' '), $this->line(treatment: TaxTreatment::NotApplicable, kind: null)]))),
         );
     }

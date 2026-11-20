@@ -45,38 +45,6 @@ final class LegalEntityTest extends TestCase
         $this->firm()->update(' ', new RegistrationNumber('CZ', '12345695'), null, $this->address(), VatStatus::NotRegistered, '');
     }
 
-    public function testArchivingKeepsTheFirstDate(): void
-    {
-        $firm = $this->firm();
-        self::assertFalse($firm->isArchived());
-
-        $firm->archive(new \DateTimeImmutable('2026-10-31 12:00:00'));
-        $firm->archive(new \DateTimeImmutable('2026-11-30 12:00:00'));
-
-        self::assertTrue($firm->isArchived());
-        self::assertEquals(new \DateTimeImmutable('2026-10-31 12:00:00'), $firm->archivedAt());
-    }
-
-    public function testAnActiveFirmHoldsItsNumberHoweverItIsWritten(): void
-    {
-        $firm = new LegalEntity('Example Firm', new RegistrationNumber('DE', 'HRB 123'), null, $this->address(), VatStatus::NotRegistered, '');
-
-        self::assertTrue($firm->holdsRegistrationNumber(new RegistrationNumber('DE', 'hrb-123')));
-        self::assertFalse($firm->holdsRegistrationNumber(new RegistrationNumber('AT', 'HRB 123')));
-        self::assertFalse($firm->holdsRegistrationNumber(new RegistrationNumber('DE', 'HRB 124')));
-    }
-
-    public function testAnArchivedFirmHoldsNoNumberEvenAfterAnUpdate(): void
-    {
-        $firm = $this->firm();
-        $firm->archive(new \DateTimeImmutable('2026-10-31 12:00:00'));
-        self::assertFalse($firm->holdsRegistrationNumber(new RegistrationNumber('CZ', '12345695')));
-
-        $firm->update('Example Firm', new RegistrationNumber('CZ', '12345687'), null, $this->address(), VatStatus::NotRegistered, '');
-
-        self::assertFalse($firm->holdsRegistrationNumber(new RegistrationNumber('CZ', '12345687')));
-    }
-
     private function firm(): LegalEntity
     {
         return new LegalEntity('Example Firm', new RegistrationNumber('CZ', '12345695'), null, $this->address(), VatStatus::NotRegistered, '');

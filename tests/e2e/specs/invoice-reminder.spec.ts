@@ -3,7 +3,9 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { expectTableInFrame } from '../support/layout';
-import { REMINDERS_OWNER_STATE } from '../support/session';
+import { REMINDERS_OWNER_STATE, signIn, worldState } from '../support/session';
+
+const REMINDERS_MANUAL_OWNER = 'reminders-manual@example.com';
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 const DESKTOP = { width: 1440, height: 960 };
@@ -84,6 +86,52 @@ test.describe.serial('reminders of overdue invoices', () => {
     await expect(row(page, 'R0001').getByRole('button', { name: /Další akce/ })).toBeInViewport({ ratio: 1 });
   });
 
+  test('the send log tells reminders from invoices and filters them @a11y @layout', async ({ page }) => {
+    for (const [name, size] of SIZES) {
+      await page.setViewportSize(size);
+      // The type is a condition of "+ Filtr" (saved views D11); the old address of the select still narrows.
+      await page.goto('/invoices/sent?purpose=reminder');
+      await expect(page.locator('[data-filter-condition]:visible').first()).toContainText('Upomínka');
+      await expect(page.locator('tbody tr')).toHaveCount(2);
+      if (name === 'desktop') {
+        await expect(page.locator('tbody tr').first().locator('[data-icon-cell="bell-ring"]')).toHaveText(/^Upomínka \d$/);
+      } else {
+        await expect(page.locator('tbody tr').first().locator('[data-row-secondary]')).toContainText(/Upomínka \d/);
+      }
+      await expectNoSeriousViolations(page);
+      await expectNoSidewaysScroll(page);
+      await page.screenshot({ path: `${SHOTS}/reminder-log-${name}.png`, fullPage: true });
+    }
+  });
+
+  // The preview while reminders are off is covered by FirmMailControllerTest::testThePreviewSaysWhatSwitchingOnTodayWouldSendWhileOff.
+  test('the mail settings preview names each invoice with its dates @a11y @layout', async ({ page }) => {
+    for (const [name, size] of SIZES) {
+      await page.setViewportSize(size);
+      await page.goto('/settings/firm');
+      await page.getByRole('navigation', { name: 'Části firmy' }).getByRole('link', { name: 'E-maily' }).click();
+      const preview = page.locator('#reminders-preview');
+      await expect(preview).toBeVisible();
+      await expect(preview.getByRole('heading', { name: 'Zítra dostanou upomínku' })).toBeVisible();
+      await expect(preview.locator('li')).toHaveCount(1);
+      await expect(preview.locator('li')).toContainText('R0002');
+      await expect(preview.locator('li')).toContainText(/splatnost \d{1,2}\. \d{1,2}\. \d{4}/);
+      await preview.scrollIntoViewIfNeeded();
+      await expectNoSeriousViolations(page);
+      await expectNoSidewaysScroll(page);
+      await preview.screenshot({ path: `${SHOTS}/reminder-preview-on-${name}.png` });
+    }
+  });
+});
+
+// A firm with reminders off: only its owner sends a reminder, by hand, from the list.
+test.describe.serial('a reminder by hand', () => {
+  test.use({ storageState: worldState('reminders-manual') });
+
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, REMINDERS_MANUAL_OWNER);
+  });
+
   test('a reminder by hand opens over the list with the reminder text and Send focused @a11y @layout', async ({ page }) => {
     for (const [name, size] of SIZES) {
       await page.setViewportSize(size);
@@ -134,43 +182,6 @@ test.describe.serial('reminders of overdue invoices', () => {
       await expectNoSeriousViolations(page);
       await expectNoSidewaysScroll(page);
       await page.screenshot({ path: `${SHOTS}/reminder-history-${name}.png`, fullPage: true });
-    }
-  });
-
-  test('the send log tells reminders from invoices and filters them @a11y @layout', async ({ page }) => {
-    for (const [name, size] of SIZES) {
-      await page.setViewportSize(size);
-      // The type is a condition of "+ Filtr" (saved views D11); the old address of the select still narrows.
-      await page.goto('/invoices/sent?purpose=reminder');
-      await expect(page.locator('[data-filter-condition]:visible').first()).toContainText('Upomínka');
-      await expect(page.locator('tbody tr')).toHaveCount(3);
-      if (name === 'desktop') {
-        await expect(page.locator('tbody tr').first().locator('[data-icon-cell="bell-ring"]')).toHaveText(/^Upomínka \d$/);
-      } else {
-        await expect(page.locator('tbody tr').first().locator('[data-row-secondary]')).toContainText(/Upomínka \d/);
-      }
-      await expectNoSeriousViolations(page);
-      await expectNoSidewaysScroll(page);
-      await page.screenshot({ path: `${SHOTS}/reminder-log-${name}.png`, fullPage: true });
-    }
-  });
-
-  // The preview while reminders are off is covered by FirmMailControllerTest::testThePreviewSaysWhatSwitchingOnTodayWouldSendWhileOff.
-  test('the mail settings preview names each invoice with its dates @a11y @layout', async ({ page }) => {
-    for (const [name, size] of SIZES) {
-      await page.setViewportSize(size);
-      await page.goto('/settings/firm');
-      await page.getByRole('navigation', { name: 'Části firmy' }).getByRole('link', { name: 'E-maily' }).click();
-      const preview = page.locator('#reminders-preview');
-      await expect(preview).toBeVisible();
-      await expect(preview.getByRole('heading', { name: 'Zítra dostanou upomínku' })).toBeVisible();
-      await expect(preview.locator('li')).toHaveCount(1);
-      await expect(preview.locator('li')).toContainText('R0002');
-      await expect(preview.locator('li')).toContainText(/splatnost \d{1,2}\. \d{1,2}\. \d{4}/);
-      await preview.scrollIntoViewIfNeeded();
-      await expectNoSeriousViolations(page);
-      await expectNoSidewaysScroll(page);
-      await preview.screenshot({ path: `${SHOTS}/reminder-preview-on-${name}.png` });
     }
   });
 });

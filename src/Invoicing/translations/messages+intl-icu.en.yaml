@@ -383,7 +383,6 @@ invoice:
   billed_work:
     gone: The time chosen no longer waits for this invoice. Open the invoicing of time again.
   copy:
-    firm_archived: This firm is archived, so it issues no new documents. Choose another firm.
     series_archived: The series of the original is archived, so this copy uses the default series.
     customer_archived: The firm no longer invoices the customer of the original. Choose another customer.
     line_dates: The lines hold a date or a month from the original. Check that it still applies.
@@ -855,7 +854,6 @@ invoice:
     date_invalid: This date does not exist.
     discount_invalid: Enter a discount from 0 to 100, with up to two decimals.
     due_date_missing: Enter the due date.
-    firm_archived: This firm is archived, so it issues no new documents.
     firm_country_unsupported: Invoices are not available for the country of this firm yet.
     firm_locked: The firm of an issued document cannot change.
     firm_register_entry_missing: 'Add in the settings of the firm where it is registered. A company gives its register and file number, a sole trader the register or record it is entered in.'
@@ -1061,7 +1059,6 @@ recurring:
           customer_unknown: The customer no longer exists.
           customer_address_incomplete: The customer has no complete invoicing address.
           line_rate_missing: The kind of VAT rate of a line does not exist on the tax point.
-          firm_archived: The firm is archived.
           firm_country_unsupported: The rules of the firm's country are not available.
       send:
         no_server: The firm has no mail server set up.

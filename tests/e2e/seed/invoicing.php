@@ -23,11 +23,9 @@ use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
 
-$entityManager->persist($firmAccount(new LegalEntity('Example Payer s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(1), VatStatus::Registered, 'Example register, entry C 1234')));
-$entityManager->persist($firmAccount(new LegalEntity('Example Small Trader', new RegistrationNumber('CZ', '12345687'), null, $address(2), VatStatus::NotRegistered, 'Example trade register')));
+$payerFirm = $firmAccount(new LegalEntity('Example Payer s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(1), VatStatus::Registered, 'Example register, entry C 1234'));
+$entityManager->persist($payerFirm);
 $entityManager->flush();
-$entityManager->persist(new LegalEntity('Example No Account s.r.o.', new RegistrationNumber('CZ', '12345679'), null, $address(3), VatStatus::NotRegistered, ''));
-$payerFirm = $entityManager->getRepository(LegalEntity::class)->findOneBy(['name' => 'Example Payer s.r.o.']) ?? throw new LogicException('The payer firm is missing.');
 $standard = new Series($payerFirm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
 $standard->markDefault();
 $entityManager->persist($standard);

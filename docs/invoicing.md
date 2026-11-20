@@ -14,7 +14,7 @@ This page says what the invoices of this release do and do not do. It is a state
 
 ## The form
 
-- **Customer.** Any active contact can be picked, whatever its role; a contact archived for the firm cannot. Customers come first. A saved invoice makes the contact a customer of the firm: of the firm alone when it has roles of its own or the organisation has several active firms, otherwise in the shared roles.
+- **Customer.** Any active contact can be picked, whatever its role; a contact archived for the firm cannot. Customers come first. A saved invoice makes the contact a customer.
 - **New customer.** The plus opens the contact form in a new tab, with the register lookup and its validation. The first contact saved there is picked on the invoice with its defaults.
 - **Firm.** The firm of the instance, which issues documents (one per instance). The form names it in its header and has nothing to choose. Customers belong in the address book. `/invoices/new` explains what is missing when there is no firm, or only archived series. A firm with no series at all gets the standard one on its first save.
 - **Register entry.** Required on every firm, as Civil Code section 435 requires it on business documents. A business outside the Commercial Register states its record in another register, such as the trade register.

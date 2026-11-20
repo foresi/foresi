@@ -42,9 +42,6 @@ final readonly class LineRules
     public function firm(LegalEntity $firm): array
     {
         $problems = [];
-        if ($firm->isArchived()) {
-            $problems[] = new IssueProblem('firm', 'invoice.problem.firm_archived');
-        }
         if (VatStatus::IdentifiedPerson === $firm->vatStatus()) {
             $problems[] = new IssueProblem('firm', 'invoice.problem.firm_identified_person');
         }

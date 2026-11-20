@@ -10,7 +10,7 @@ import { openMoreActions } from '../support/header';
 // Supplies s.r.o."), and the ČNB rate of 14 October 2026 (23,50 Kč for a dollar) already stored, so no
 // test waits for the bank. The tests run in order and share the data they make: the uploaded draft
 // is completed and recorded by the third, trashed and restored by the fourth. Dates are fixed, so
-// the evidence numbers (R20260001, R20260002) and the amounts read the same on every run.
+// the evidence numbers (the two seeded documents hold R20260001 and R20260002, the two made here R20260003 and R20260004) and the amounts read the same on every run.
 test.use({ storageState: PURCHASING_OWNER_STATE });
 test.describe.configure({ mode: 'serial' });
 
@@ -101,8 +101,8 @@ test.describe('received documents', () => {
     await page.locator('#exchangeRate').fill('23,10');
     await fillRecapRow(page, 0, '21', '100,00', '0,00');
     await dialog.getByRole('button', { name: 'Zaevidovat' }).click();
-    await expect(page.locator('main h1')).toHaveText('R20260001');
-    await expect(page.locator('[role=status]').filter({ hasText: 'Doklad R20260001 je zaevidovaný.' })).toBeVisible();
+    await expect(page.locator('main h1')).toHaveText('R20260003');
+    await expect(page.locator('[role=status]').filter({ hasText: 'Doklad R20260003 je zaevidovaný.' })).toBeVisible();
 
     await expect(page.locator('#exchangeRate')).toHaveValue('23,1');
     await expect(page.getByText(/Kurz ČNB vyhlášený/)).toHaveCount(0);
@@ -134,8 +134,8 @@ test.describe('received documents', () => {
     await expect(page.locator('[data-recap-row]')).toHaveCount(2);
     await fillRecapRow(page, 1, '12', '500,00', '60,00');
     await sheet.getByRole('button', { name: 'Zaevidovat' }).click();
-    await expect(sheet.getByRole('heading', { level: 2 }).first()).toHaveText('R20260002');
-    await expect(sheet.locator('[role=status]').filter({ hasText: 'Doklad R20260002 je zaevidovaný.' })).toBeVisible();
+    await expect(sheet.getByRole('heading', { level: 2 }).first()).toHaveText('R20260004');
+    await expect(sheet.locator('[role=status]').filter({ hasText: 'Doklad R20260004 je zaevidovaný.' })).toBeVisible();
 
     // The original stays beside the values; the CZK figures hold one row per rate.
     await expect(page.locator('[data-purchasing-preview="pdf"]')).toBeVisible();
@@ -159,26 +159,26 @@ test.describe('received documents', () => {
     // as Turbo marks the whole page busy (aria-busy on html) until it does.
     await expect(page.getByRole('link', { name: /^Zaevidované/ })).toHaveAttribute('aria-current', 'page');
     await expect(page.locator('html')).not.toHaveAttribute('aria-busy');
-    // The two recorded here and the two of the seeded studio firm.
+    // The two recorded here and the two seeded ones.
     await expect(page.locator('tbody tr')).toHaveCount(4);
     await expectNoSeriousViolations(page);
   });
 
   test('a document in the trash keeps its number and comes back', async ({ page }) => {
     await page.goto('/purchasing?tab=recorded');
-    await page.locator('tbody tr').filter({ hasText: 'FV-7741' }).getByRole('link', { name: 'R20260002' }).click();
+    await page.locator('tbody tr').filter({ hasText: 'FV-7741' }).getByRole('link', { name: 'R20260004' }).click();
     await page.locator('dialog#sheet').getByRole('link', { name: 'Otevřít jako stránku' }).click();
-    await expect(page.locator('main h1')).toHaveText('R20260002');
+    await expect(page.locator('main h1')).toHaveText('R20260004');
 
     await (await openMoreActions(page)).getByRole('menuitem', { name: 'Smazat', exact: true }).click();
-    const dialog = page.getByRole('dialog', { name: 'Smazat doklad R20260002' });
+    const dialog = page.getByRole('dialog', { name: 'Smazat doklad R20260004' });
     await dialog.locator('#trash-reason').fill('Nahráno omylem');
     await dialog.getByRole('button', { name: 'Smazat doklad', exact: true }).click();
-    await expect(page.locator('[role=status]').filter({ hasText: 'Doklad R20260002 je v koši.' })).toBeVisible();
+    await expect(page.locator('[role=status]').filter({ hasText: 'Doklad R20260004 je v koši.' })).toBeVisible();
 
     await page.goto('/purchasing?tab=trash');
     await expect(page.locator('tbody tr')).toHaveCount(1);
-    await page.getByRole('link', { name: 'R20260002' }).click();
+    await page.getByRole('link', { name: 'R20260004' }).click();
     await page.locator('dialog#sheet').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     await expect(page.locator('[data-purchasing-trashed]')).toContainText('Nahráno omylem');
     // Nothing can be changed in the trash: the form is disabled, only the restore is offered.
@@ -186,8 +186,8 @@ test.describe('received documents', () => {
     await expect(page.locator('main header').getByRole('button', { name: 'Uložit' })).toHaveCount(0);
 
     await page.locator('main header').getByRole('button', { name: 'Obnovit', exact: true }).click();
-    await expect(page.locator('[role=status]').filter({ hasText: 'Doklad R20260002 je obnovený.' })).toBeVisible();
-    await expect(page.locator('main h1')).toHaveText('R20260002');
+    await expect(page.locator('[role=status]').filter({ hasText: 'Doklad R20260004 je obnovený.' })).toBeVisible();
+    await expect(page.locator('main h1')).toHaveText('R20260004');
     await expect(page.locator('[data-purchasing-trashed]')).toHaveCount(0);
     await expect(page.locator('#supplierNumber')).toHaveValue('FV-7741');
 
@@ -198,13 +198,13 @@ test.describe('received documents', () => {
 
 test.describe('screens', () => {
   test('the list and the detail look as approved @visual', async ({ page }) => {
-    // An instance holds one firm (ADR 0039), so the list has no firm filter: the seeded studio documents are among the recorded ones.
+    // An instance holds one firm (ADR 0039), so the list holds the seeded documents too.
     await page.goto('/purchasing?tab=recorded');
-    await expect(page.getByRole('link', { name: 'R20260001' }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'R20260001' })).toBeVisible();
     await page.mouse.move(0, 0);
     await expect(page.locator('main')).toHaveScreenshot('list-content.png');
 
-    await page.getByRole('link', { name: 'R20260001' }).first().click();
+    await page.getByRole('link', { name: 'R20260001' }).click();
     await page.locator('dialog#sheet').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     await expect(page.locator('main h1')).toHaveText('R20260001');
     await page.mouse.move(0, 0);

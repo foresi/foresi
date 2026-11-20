@@ -54,15 +54,17 @@ const WORLDS = [
     'main' => ['Example Company', 'testing@example.com', 'Testing Example'],
     // Nothing at all: the empty states and the import into an empty address book.
     'empty' => ['Example Empty Company', 'empty@example.com', 'Empty Example'],
-    // Two firms and one contact for the firm scope.
-    'group' => ['Example Group', 'group@example.com', 'Group Example'],
-    // A VAT payer, a non-payer and customers for the invoice form.
+    // A VAT payer and customers for the invoice form.
     'invoicing' => ['Example Invoicing', 'invoicing@example.com', 'Invoicing Example'],
     'first-run' => ['Example First Run', 'first-run@example.com', 'First Run Example'],
     'sending' => ['Example Sending', 'sending@example.com', 'Sending Example'],
+    // One firm without a mail server and one invoice, for the send dialog that explains it.
+    'sending-quiet' => ['Example Sending Quiet', 'sending-quiet@example.com', 'Sending Quiet Example'],
     'dialogs' => ['Example Dialogs', 'dialogs@example.com', 'Dialogs Example'],
     'bank' => ['Example Bank', 'bank@example.com', 'Bank Example'],
     'reminders' => ['Example Reminders', 'reminders@example.com', 'Reminders Example'],
+    // One firm with reminders off, for the reminder by hand.
+    'reminders-manual' => ['Example Reminders Manual', 'reminders-manual@example.com', 'Reminders Manual Example'],
     // One firm, a non-payer without a mail server, for the e-mail settings spec.
     'firm-mail' => ['Example Firm Mail', 'firm-mail@example.com', 'Firm Mail Example'],
     // The people spec invites into its own organisation, which has no system mail.

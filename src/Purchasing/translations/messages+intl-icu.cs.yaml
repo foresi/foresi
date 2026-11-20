@@ -206,7 +206,6 @@ purchasing:
     reason_too_long: "Důvod může mít nejvýš {max} znaků."
     supply_code_not_allowed: "Kód předmětu plnění má jen přenesená daňová povinnost."
     supply_code_invalid: "Kód předmětu plnění tvoří nejvýš 8 písmen a číslic."
-    firm_archived: "Firma je archivovaná a nové doklady nepřijímá."
     supplier_unknown: "Dodavatel není v adresáři."
     exchange_rate_unavailable: "Kurz ČNB k tomuto dni zatím není; zadejte ho ručně."
     evidence_numbers_exhausted: "Číselná řada firmy pro tento rok došla."

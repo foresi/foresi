@@ -515,7 +515,7 @@ What a received document write refuses:
 | 409 | `overpaid` | The payment is more than what remains. |
 | 409 | `paid` | The document is paid in full already. |
 | 409 | `not_recorded` | The document is a draft; only a recorded one takes payments. |
-| 409 | `trashed`, `locked`, `firm_archived` | The document is in the trash or in a closed month, or the firm is archived. |
+| 409 | `trashed`, `locked` | The document is in the trash or in a closed month. |
 | 503 | `exchange_rate_unavailable` | No rate is published for the tax point yet; send `exchange_rate`. |
 
 ## Idempotency

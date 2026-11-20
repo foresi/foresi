@@ -13,16 +13,12 @@ use Foresi\Audit\Domain\Audited;
 use Foresi\Shared\Domain\Id;
 
 /**
- * The issuing firm of the instance. There can be several, for example the one
- * doing the work and the one that invoices. Among the active firms a
- * registration number is unique; an archived firm stays for what it issued and
- * releases its number. Production code goes through the firm screens, which turn
- * a taken number into a form error before the unique index would refuse it. Its
- * bank accounts are records of their own, see FirmBankAccount.
+ * The issuing firm of the instance. An instance holds one (ADR 0039), created
+ * by the first-run setup, see InstanceFirm. Its bank accounts are records of
+ * their own, see FirmBankAccount.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'legal_entity')]
-#[ORM\UniqueConstraint(name: 'uniq_legal_entity_active_registration', columns: ['registration_country', 'active_registration_key'])]
 class LegalEntity implements Audited
 {
     #[ORM\Id]
@@ -31,15 +27,6 @@ class LegalEntity implements Audited
 
     #[ORM\Column(type: 'string', length: 255)]
     private string $name;
-
-    #[ORM\Column(name: 'archived_at', type: 'datetime_immutable', nullable: true)]
-    private ?\DateTimeImmutable $archivedAt = null;
-
-    // The comparison form of the registration number while the firm is active, null once it is
-    // archived. Unique indexes ignore nulls on every database, which a partial index cannot
-    // promise: Doctrine cannot read one back from SQLite, so schema validation would fail there.
-    #[ORM\Column(name: 'active_registration_key', type: 'string', length: 192, nullable: true)]
-    private ?string $activeRegistrationKey;
 
     // The name of the stored image, see FirmImages. The stamp is one image holding stamp and signature.
     #[ORM\Column(type: 'string', length: 72, nullable: true)]
@@ -63,7 +50,6 @@ class LegalEntity implements Audited
     ) {
         $this->id = Id::generate();
         $this->name = $this->cleanName($name);
-        $this->activeRegistrationKey = $registrationNumber->normalised();
     }
 
     public function update(string $name, RegistrationNumber $registrationNumber, ?VatId $vatId, Address $address, VatStatus $vatStatus, string $registerEntry): void
@@ -74,36 +60,6 @@ class LegalEntity implements Audited
         $this->address = $address;
         $this->vatStatus = $vatStatus;
         $this->registerEntry = $registerEntry;
-        if (!$this->isArchived()) {
-            $this->activeRegistrationKey = $registrationNumber->normalised();
-        }
-    }
-
-    /**
-     * Repeatable: the first date stays.
-     */
-    public function archive(\DateTimeImmutable $at): void
-    {
-        $this->archivedAt ??= $at;
-        $this->activeRegistrationKey = null;
-    }
-
-    public function isArchived(): bool
-    {
-        return $this->archivedAt instanceof \DateTimeImmutable;
-    }
-
-    public function archivedAt(): ?\DateTimeImmutable
-    {
-        return $this->archivedAt;
-    }
-
-    /**
-     * Whether this firm, being active, has that number, however it is written.
-     */
-    public function holdsRegistrationNumber(RegistrationNumber $number): bool
-    {
-        return $number->countryCode === $this->registrationNumber->countryCode && $number->normalised() === $this->activeRegistrationKey;
     }
 
     public function id(): string
