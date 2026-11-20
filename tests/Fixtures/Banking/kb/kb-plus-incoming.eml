@@ -1,0 +1,117 @@
+From: =?utf-8?Q?Komer=C4=8Dn=C3=AD_banka?= <servis@kbinfo.cz>
+To: bank+token@example.com
+Subject: =?utf-8?Q?Servisn=C3=AD_zpr=C3=A1va=3A_P=C5=99ijali_jsme_platbu_na_V=C3=A1=C5=A1_=C3=BA=C4=8Det?=
+Date: Fri, 20 Nov 2026 05:20:00 +0100
+Message-ID: <kb-plus-incoming@kbinfo.example.com>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="kb-alt"
+
+--kb-alt
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+Podívejte se na podrobnosti o přijaté platbě.
+For English scroll down
+Přijali jsme platbu 48 176,00 Kč na Váš účet
+Splatnost: 20. 11. 2026
+Z účtu
+
+123-4567890123/0100
+Na účet
+19-2000145399/0800
+Zpráva pro příjemce
+Invoice 2026001
+Variabilní symbol
+2026001
+Konstantní symbol
+308
+Specifický symbol
+Chcete s něčím poradit?
+Volat do KB
++420 000 000 000
+Napsat e-mail
+help@example.com
+
+We have received the payment 48,176.00 CZK to your account
+Due date: 11-20-2026
+From account
+
+123-4567890123/0100
+To account
+19-2000145399/0800
+Message for beneficiary
+Invoice 2026001
+Variable symbol
+2026001
+Constant symbol
+308
+Specific symbol
+We are here to help
+Call KB
++420 000 000 000
+Send us an email
+help@example.com
+
+Komerční banka, a. s.
+
+--kb-alt
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Servisní zpráva</title><style>td{font-family:sans-serif}</style></head>
+<body>
+<div style="display:none">Podívejte se na podrobnosti o přijaté platbě. &#8199;&#847; &#8199;&#847;</div>
+<p>For&nbsp;English&nbsp;scroll&nbsp;down</p>
+<table width="100%">
+<tr><td><h1>Přijali jsme platbu 48&nbsp;176,00 Kč na&nbsp;Váš účet</h1></td></tr>
+<tr><td>Splatnost: 20. 11. 2026</td></tr>
+<tr><td style="color:#555">Z účtu</td></tr>
+<tr><td style="color:#555">&nbsp;</td></tr>
+<tr><td style="color:#555">123-4567890123/0100</td></tr>
+<tr><td style="color:#555">Na účet</td></tr>
+<tr><td><b>19-2000145399/0800</b></td></tr>
+<tr><td style="color:#555">Zpráva pro příjemce</td></tr>
+<tr><td><b>Invoice 2026001</b></td></tr>
+<tr><td style="color:#555">Variabilní symbol</td></tr>
+<tr><td><b>2026001</b></td></tr>
+<tr><td style="color:#555">Konstantní symbol</td></tr>
+<tr><td><b>308</b></td></tr>
+<tr><td style="color:#555">Specifický symbol</td></tr>
+<tr><td><b></b></td></tr>
+</table>
+<table>
+<tr><td><h2>Chcete s&nbsp;něčím poradit?</h2></td></tr>
+<tr><td>Volat do KB</td></tr>
+<tr><td>+420 000 000 000</td></tr>
+<tr><td>Napsat e-mail</td></tr>
+<tr><td>help@example.com</td></tr>
+</table>
+<table width="100%">
+<tr><td><h1>We have received the payment 48,176.00 CZK to your account</h1></td></tr>
+<tr><td>Due date: 11-20-2026</td></tr>
+<tr><td style="color:#555">From account</td></tr>
+<tr><td style="color:#555">&nbsp;</td></tr>
+<tr><td style="color:#555">123-4567890123/0100</td></tr>
+<tr><td style="color:#555">To account</td></tr>
+<tr><td><b>19-2000145399/0800</b></td></tr>
+<tr><td style="color:#555">Message for beneficiary</td></tr>
+<tr><td><b>Invoice 2026001</b></td></tr>
+<tr><td style="color:#555">Variable symbol</td></tr>
+<tr><td><b>2026001</b></td></tr>
+<tr><td style="color:#555">Constant symbol</td></tr>
+<tr><td><b>308</b></td></tr>
+<tr><td style="color:#555">Specific symbol</td></tr>
+<tr><td><b></b></td></tr>
+</table>
+<table>
+<tr><td><h2>We are here to help</h2></td></tr>
+<tr><td>Call KB</td></tr>
+<tr><td>+420 000 000 000</td></tr>
+<tr><td>Send us an email</td></tr>
+<tr><td>help@example.com</td></tr>
+</table>
+<p>Komerční banka, a. s.</p>
+</body></html>
+
+--kb-alt--

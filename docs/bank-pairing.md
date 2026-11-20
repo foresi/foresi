@@ -228,7 +228,7 @@ When notifications arrive but stay unverified, open one under **Bank › Message
 
 ## Setting up Komerční banka
 
-KB mails payment notifications, "Oznámení o platbách", once in Czech and once in English, from `kb.cz` or `kbinfo.cz`. KB publishes a DMARC policy for both domains, so an honest receiving server always gives its mail a DMARC result.
+KB mails payment notifications once in Czech and once in English, from `kb.cz` or `kbinfo.cz`: MojeBanka Business sends "Oznámení o platbách", KB+ sends "Servisní zpráva: Přijali jsme platbu na Váš účet". KB publishes a DMARC policy for both domains, so an honest receiving server always gives its mail a DMARC result.
 
 **MojeBanka Business** can send notifications to any address:
 
@@ -250,9 +250,15 @@ KB+ allows one notification address for all accounts, so a notice about another 
 
 ### The layout of the notices
 
-The parser reads the fields amount and currency, your account number, counter-account number and name, due date, status of the payment, variable, constant and specific symbol, and the message for the beneficiary, in Czech and in English. Every place the notice states a payment, both languages and both the HTML and the text body, must agree, or nothing is recorded. Only a payment with the status booked (Zaúčtováno) is recorded; a rejected one is ignored.
+Foresi reads two layouts. Every place a notice states a payment, both languages and both the HTML and the text body, must agree, or nothing is recorded.
 
-The layout of incoming payment notices is **assumed** to mirror the outgoing ones, under the heading "Příchozí platba / Incoming payment". If KB's real wording differs, the parser fails visibly: the message shows under **Bank › Messages** as "The bank changed the layout of its e-mail" (unknown layout), keeps its raw form, and pairs nothing. A wrong amount is never recorded. Once a later version of the parser reads that wording, the hourly job `bank-reparse` reads those messages again by itself, and so does "Try again".
+**MojeBanka Business**, "Oznámení o platbách", puts each payment under a heading, "Příchozí platba / Incoming payment" or "Odchozí platba / Outgoing payment". The parser reads the fields amount and currency, your account number, counter-account number and name, due date, status of the payment, variable, constant and specific symbol, and the message for the beneficiary. Only a payment with the status booked (Zaúčtováno) is recorded; a rejected one is ignored. The outgoing layout comes from a real notice; the incoming heading is **assumed** to mirror it.
+
+**KB+** mails incoming payments only, under a heading that carries the amount: "Přijali jsme platbu 48 176,00 Kč na Váš účet / We have received the payment 48,176.00 CZK to your account". The parser reads the due date ("Splatnost", in English month first, 11-20-2026), the counter-account ("Z účtu / From account"), your account ("Na účet / To account"), the message for the beneficiary and the variable, constant and specific symbol. The footer, "Chcete s něčím poradit? / We are here to help", ends the fields. A KB+ notice states no status and no counter-account name: the bank says it has received the payment, so it is recorded as booked. This layout comes from a real notice.
+
+KB+ needs the forward of a mailbox rule (see above): a forward you send by hand comes from you, not from the bank, and shows as "Not bank mail".
+
+If KB's wording differs from both, the parser fails visibly: the message shows under **Bank › Messages** as "The bank changed the layout of its e-mail" (unknown layout), keeps its raw form, and pairs nothing. A wrong amount is never recorded. Once a later version of the parser reads that wording, the hourly job `bank-reparse` reads those messages again by itself, and so does "Try again".
 
 ## The account check
 

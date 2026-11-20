@@ -134,7 +134,7 @@ final class ProcessMessageTest extends InboundTestCase
         self::assertSame(InboundStatus::Failed, $this->process->process($id));
 
         $row = $this->messageRow($id);
-        self::assertSame(['failed', 'unknown_layout', 'cz.kb', 1, 1], [$row['status'], $row['failure'], $row['parser_id'], self::int($row['parser_version']), self::int($row['attempts'])]);
+        self::assertSame(['failed', 'unknown_layout', 'cz.kb', 2, 1], [$row['status'], $row['failure'], $row['parser_id'], self::int($row['parser_version']), self::int($row['attempts'])]);
         self::assertStringContainsString('Odloženo', Scalars::text($row['failure_detail']));
         self::assertSame([], $this->movementsOf($id));
         $stored = $this->em->getConnection()->fetchAssociative('SELECT raw_key, raw_sha256 FROM inbound_message WHERE id = ?', [$id]);
