@@ -570,6 +570,7 @@ nelmio_api_doc:
                     properties:
                         total: { $ref: '#/components/schemas/Money' }
                         by_category: { type: object, additionalProperties: { $ref: '#/components/schemas/Money' } }
+                        by_certainty: { type: object, description: 'The same money by how sure it is (document, schedule, plan, estimate).', additionalProperties: { $ref: '#/components/schemas/Money' } }
                 CashFlowItem:
                     type: object
                     description: One expected flow, counted in the period that holds counted_on.
@@ -600,6 +601,7 @@ nelmio_api_doc:
                         today: { type: string, format: date }
                         from: { type: string, format: date }
                         to: { type: string, format: date }
+                        certainty: { type: array, description: 'The certainties counted; all four unless the certainty parameter chose some.', items: { type: string, enum: [document, schedule, plan, estimate] } }
                         balance:
                             type: object
                             properties:

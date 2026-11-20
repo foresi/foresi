@@ -58,6 +58,8 @@ final class Style
         'green' => 'bg-badge-green text-badge-green-text',
         'amber' => 'bg-badge-amber text-badge-amber-text',
         'red' => 'bg-badge-red text-badge-red-text',
+        // What is estimated, not recorded: no fill, a dashed edge (Fluent 2 Badge, outline appearance).
+        'outline' => 'border border-dashed border-control-line bg-white text-muted',
     ];
 
     public static function button(string $variant, string $size, bool $iconOnly = false, bool $pressed = false): string

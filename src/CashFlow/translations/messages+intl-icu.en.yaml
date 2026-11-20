@@ -70,6 +70,12 @@ cash_flow:
     received_document: Received document
     planned_item: Plan
     bank_movement: Bank movement
+  filter:
+    certainty: Certainty
+    all: All
+    empty_title: Nothing matches the filter
+    empty_text: No money of the chosen certainty is expected in this period. The balance today does not change with the filter.
+    reset: Clear the filter
   certainty:
     document: Document
     schedule: Schedule

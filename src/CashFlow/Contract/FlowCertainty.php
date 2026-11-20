@@ -19,4 +19,12 @@ enum FlowCertainty: string
     case Schedule = 'schedule';
     case Plan = 'plan';
     case Estimate = 'estimate';
+
+    /**
+     * @return list<string>
+     */
+    public static function values(): array
+    {
+        return array_map(static fn (self $certainty): string => $certainty->value, self::cases());
+    }
 }

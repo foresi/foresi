@@ -14,11 +14,18 @@ use Foresi\CashFlow\Application\ForecastLine;
 use Foresi\CashFlow\Application\Forecasts;
 use Foresi\CashFlow\Application\PeriodForecast;
 use Foresi\CashFlow\Contract\FlowCategory;
+use Foresi\CashFlow\Contract\FlowCertainty;
 use Foresi\CashFlow\Contract\FlowDirection;
 use Foresi\CashFlow\Contract\FlowFlag;
 use Foresi\CashFlow\Contract\PeriodKind;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Shared\Application\View\DefaultView;
+use Foresi\Shared\Application\View\Field;
+use Foresi\Shared\Application\View\FieldType;
+use Foresi\Shared\Application\View\ListDefinition;
+use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Domain\Money;
 use Foresi\Ui\Format\MoneyText;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -39,6 +46,9 @@ final readonly class ForecastScreen
     /** The view of thirteen weeks, about three months, as Float's weekly view and Agicap's display frequency. */
     public const string WEEKS = 'weeks';
     public const int WEEK_COUNT = 13;
+    /** The filter builder's list of the page: one condition, the certainty of a flow. */
+    public const string FILTER_LIST = 'cash_flow.forecast';
+    public const string CERTAINTY = 'certainty';
 
     public function __construct(
         private Forecasts $forecasts,
@@ -58,19 +68,67 @@ final readonly class ForecastScreen
      * the lowest point and the first day below the minimum are those of the
      * weeks kept.
      *
+     * @param list<FlowCertainty>|null $certainties the flows counted; all when null
+     *
      * @throws \Foresi\CashFlow\Application\CashFlowRefused
      */
-    public function forecast(string $view = self::MONTHS): Forecast
+    public function forecast(string $view = self::MONTHS, ?array $certainties = null): Forecast
     {
         $today = $this->clock->today();
         if (self::WEEKS !== $view) {
-            return $this->forecasts->of(null, 12, $today->modify('-1 day')->format('Y-m-d'));
+            return $this->forecasts->of(null, 12, $today->modify('-1 day')->format('Y-m-d'), $certainties);
         }
         $lastWeek = $today->modify('monday this week')->modify(\sprintf('+%d weeks', self::WEEK_COUNT - 1));
         $lastDay = $lastWeek->modify('+6 days');
         $months = ((int) $lastDay->format('Y') - (int) $today->format('Y')) * 12 + (int) $lastDay->format('n') - (int) $today->format('n') + 1;
 
-        return $this->weeksOnly($this->forecasts->of(null, $months, $lastWeek->format('Y-m-d')));
+        return $this->weeksOnly($this->forecasts->of(null, $months, $lastWeek->format('Y-m-d'), $certainties));
+    }
+
+    /**
+     * The list the filter builder of the page reads (saved views D11), with one
+     * field, Certainty, and its four values: the chips and the "+ Filter" sheet
+     * as on the other pages, its conditions in the address under "f". The page
+     * stores no view of it.
+     */
+    public static function filterList(): ListDefinition
+    {
+        $labels = [];
+        foreach (FlowCertainty::values() as $certainty) {
+            $labels[$certainty] = 'cash_flow.certainty.'.$certainty;
+        }
+
+        return new ListDefinition(self::FILTER_LIST, [
+            new Field(self::CERTAINTY, FieldType::Enum, 'cash_flow.filter.certainty', options: FlowCertainty::values(), optionLabels: $labels),
+        ], [new DefaultView(ListDefinition::ALL, 'cash_flow.filter.all')]);
+    }
+
+    /**
+     * The filter of an address's "f", or none when it carries none the page reads.
+     */
+    public static function filterOf(string $param): ViewFilter
+    {
+        return '' === $param ? new ViewFilter() : (WorkingFilter::decode($param, self::filterList()) ?? new ViewFilter());
+    }
+
+    /**
+     * The certainties a filter keeps: each condition narrows them, "is" and
+     * "is any of" to its values, "is not" and "is none of" to the others; null
+     * without a condition, when every flow counts.
+     *
+     * @return list<FlowCertainty>|null
+     */
+    public static function certaintiesOf(ViewFilter $filter): ?array
+    {
+        $kept = FlowCertainty::values();
+        $narrowed = false;
+        foreach ($filter->on(self::CERTAINTY) as $condition) {
+            $values = array_values(array_filter(\is_array($condition->value) ? $condition->value : [$condition->value], \is_string(...)));
+            $kept = \in_array($condition->op, ['is_not', 'is_none_of'], true) ? array_diff($kept, $values) : array_intersect($kept, $values);
+            $narrowed = true;
+        }
+
+        return $narrowed ? array_values(array_filter(array_map(FlowCertainty::tryFrom(...), $kept))) : null;
     }
 
     /**
@@ -84,13 +142,15 @@ final readonly class ForecastScreen
     /**
      * The two views as the tabs over the chart, the one shown marked.
      *
+     * @param array<string, string> $keep what the address keeps from one view to the other: the filter
+     *
      * @return list<array{label: string, href: string, active: bool}>
      */
-    public function views(string $view): array
+    public function views(string $view, array $keep = []): array
     {
         return [
-            ['label' => $this->trans('cash_flow.view.weeks'), 'href' => $this->urls->generate('app_cash_flow', ['view' => self::WEEKS]), 'active' => self::WEEKS === $view],
-            ['label' => $this->trans('cash_flow.view.months'), 'href' => $this->urls->generate('app_cash_flow'), 'active' => self::WEEKS !== $view],
+            ['label' => $this->trans('cash_flow.view.weeks'), 'href' => $this->urls->generate('app_cash_flow', ['view' => self::WEEKS] + $keep), 'active' => self::WEEKS === $view],
+            ['label' => $this->trans('cash_flow.view.months'), 'href' => $this->urls->generate('app_cash_flow', $keep), 'active' => self::WEEKS !== $view],
         ];
     }
 
@@ -143,6 +203,14 @@ final readonly class ForecastScreen
         }
 
         return !array_any($forecast->periods, static fn (PeriodForecast $period): bool => [] !== $period->lines || [] !== $period->hidden);
+    }
+
+    /**
+     * Whether any period expects money in or out, what the caller may read or not.
+     */
+    public function hasFlows(Forecast $forecast): bool
+    {
+        return array_any($forecast->periods, static fn (PeriodForecast $period): bool => [] !== $period->lines || [] !== $period->hidden);
     }
 
     /**
@@ -207,9 +275,11 @@ final readonly class ForecastScreen
      * The periods as columns and opening, money in and out by category and the
      * closing as rows. A cell with money links to its items, which open in the sheet.
      *
+     * @param array<string, string> $keep what the links to the items keep of the address: the filter
+     *
      * @return array{columns: list<array{key: string, label: string, detail: string}>, rows: list<array{kind: string, label: string, cells: list<array{text: string, href: ?string, below: bool}>}>}
      */
-    public function table(Forecast $forecast): array
+    public function table(Forecast $forecast, array $keep = []): array
     {
         $columns = [];
         foreach ($forecast->periods as $period) {
@@ -220,7 +290,7 @@ final readonly class ForecastScreen
             $rows[] = [
                 'kind' => 'total',
                 'label' => $this->trans(FlowDirection::In === $direction ? 'cash_flow.table.in' : 'cash_flow.table.out'),
-                'cells' => array_map(fn (PeriodForecast $period): array => $this->flowCell($period, $direction, null), $forecast->periods),
+                'cells' => array_map(fn (PeriodForecast $period): array => $this->flowCell($period, $direction, null, $keep), $forecast->periods),
             ];
             foreach (FlowCategory::cases() as $category) {
                 if (!array_any($forecast->periods, static fn (PeriodForecast $period): bool => isset(self::flows($period, $direction)[$category->value]))) {
@@ -229,7 +299,7 @@ final readonly class ForecastScreen
                 $rows[] = [
                     'kind' => 'category',
                     'label' => $this->trans('cash_flow.category.'.$category->value),
-                    'cells' => array_map(fn (PeriodForecast $period): array => $this->flowCell($period, $direction, $category), $forecast->periods),
+                    'cells' => array_map(fn (PeriodForecast $period): array => $this->flowCell($period, $direction, $category, $keep), $forecast->periods),
                 ];
             }
         }
@@ -252,7 +322,7 @@ final readonly class ForecastScreen
     /**
      * The items of one cell: what a period expects in one direction, of one category or all.
      *
-     * @return array{title: string, total: string, items: list<array{label: string, source: string, day: string, flags: list<string>, amount: string, czk: ?string}>}
+     * @return array{title: string, total: string, items: list<array{label: string, certainty: string, certaintyTone: string, source: ?string, day: string, flags: list<string>, amount: string, czk: ?string}>}
      */
     public function items(PeriodForecast $period, FlowDirection $direction, ?FlowCategory $category): array
     {
@@ -294,20 +364,30 @@ final readonly class ForecastScreen
     }
 
     /**
-     * @return array{label: string, source: string, day: string, flags: list<string>, amount: string, czk: ?string}
+     * An item with the badge of how sure it is: a document, a schedule, a plan,
+     * or an estimate in its own outlined badge, so an estimate never reads as a
+     * document or a bank movement; what it comes from follows when it says more.
+     *
+     * @return array{label: string, certainty: string, certaintyTone: string, source: ?string, day: string, flags: list<string>, amount: string, czk: ?string}
      */
     private function item(ForecastLine $line): array
     {
+        $estimate = FlowCertainty::Estimate === $line->flow->certainty;
         $flags = [];
         foreach ([FlowFlag::Overdue, FlowFlag::ExpectedDate, FlowFlag::NoDueDate, FlowFlag::Estimated] as $flag) {
-            if ($line->flow->hasFlag($flag)) {
+            // An estimate says so in its badge already.
+            if ($line->flow->hasFlag($flag) && (!$estimate || FlowFlag::Estimated !== $flag)) {
                 $flags[] = $this->trans('cash_flow.flag.'.$flag->value);
             }
         }
+        $certainty = $this->trans('cash_flow.certainty.'.$line->flow->certainty->value);
+        $source = $this->subjectName($line->flow->subject->type, $line->flow->certainty->value);
 
         return [
             'label' => $line->flow->label,
-            'source' => $this->subjectName($line->flow->subject->type, $line->flow->certainty->value),
+            'certainty' => $certainty,
+            'certaintyTone' => $estimate ? 'outline' : 'gray',
+            'source' => $source === $certainty ? null : $source,
             'day' => $this->day($line->countedOn),
             'flags' => $flags,
             'amount' => $this->money->shown($line->flow->amount),
@@ -316,9 +396,11 @@ final readonly class ForecastScreen
     }
 
     /**
+     * @param array<string, string> $keep
+     *
      * @return array{text: string, href: ?string, below: bool}
      */
-    private function flowCell(PeriodForecast $period, FlowDirection $direction, ?FlowCategory $category): array
+    private function flowCell(PeriodForecast $period, FlowDirection $direction, ?FlowCategory $category, array $keep): array
     {
         $flows = self::flows($period, $direction);
         $amount = null;
@@ -335,7 +417,7 @@ final readonly class ForecastScreen
             'period' => $period->period->key(),
             'direction' => $direction->value,
             'category' => $category?->value,
-        ], static fn (?string $value): bool => null !== $value)) : null;
+        ], static fn (?string $value): bool => null !== $value) + $keep) : null;
 
         return ['text' => $this->whole($amount), 'href' => $href, 'below' => false];
     }
@@ -509,6 +591,7 @@ final readonly class ForecastScreen
             $forecast->unavailableSources,
             $forecast->unavailableRates,
             $forecast->restrictedSources,
+            $forecast->certainties,
         );
     }
 

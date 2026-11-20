@@ -13,6 +13,7 @@ use Foresi\CashFlow\Application\Forecast;
 use Foresi\CashFlow\Application\ForecastLine;
 use Foresi\CashFlow\Application\HiddenTotal;
 use Foresi\CashFlow\Application\PeriodForecast;
+use Foresi\CashFlow\Contract\FlowCertainty;
 use Foresi\CashFlow\Contract\FlowFlag;
 use Foresi\CashFlow\Domain\Checkpoint;
 use Foresi\CashFlow\Domain\ExpectedDate;
@@ -107,6 +108,8 @@ final class CashFlowJson
             'currency' => Currency::CZK->value,
             'today' => JsonValues::date($forecast->today),
             'from' => JsonValues::date($forecast->from),
+            // The certainties counted: every one unless a filter chose some.
+            'certainty' => null === $forecast->certainties ? FlowCertainty::values() : array_map(static fn (FlowCertainty $certainty): string => $certainty->value, $forecast->certainties),
             'to' => JsonValues::date([] === $periods ? null : $periods[array_key_last($periods)]->period->end),
             'balance' => [
                 'amount' => JsonValues::money($forecast->opening),
@@ -152,8 +155,8 @@ final class CashFlowJson
             'start' => JsonValues::date($period->period->start),
             'end' => JsonValues::date($period->period->end),
             'opening' => JsonValues::money($period->opening),
-            'inflows' => self::totals($period->inflows),
-            'outflows' => self::totals($period->outflows),
+            'inflows' => self::totals($period->inflows, $period->inflowsByCertainty),
+            'outflows' => self::totals($period->outflows, $period->outflowsByCertainty),
             'closing' => JsonValues::money($period->closing),
             'items' => array_map(self::line(...), $period->lines),
             'hidden_items' => array_map(static fn (HiddenTotal $hidden): array => [
@@ -168,19 +171,31 @@ final class CashFlowJson
 
     /**
      * @param array<string, Money> $byCategory
+     * @param array<string, Money> $byCertainty
      *
      * @return array<string, mixed>
      */
-    private static function totals(array $byCategory): array
+    private static function totals(array $byCategory, array $byCertainty): array
     {
         $total = Money::ofMinor(0, Currency::CZK);
         foreach ($byCategory as $amount) {
             $total = $total->plus($amount);
         }
         ksort($byCategory);
+        // In the order of FlowCertainty, from a document to an estimate.
+        $certainties = [];
+        foreach (FlowCertainty::values() as $certainty) {
+            if (isset($byCertainty[$certainty])) {
+                $certainties[$certainty] = JsonValues::money($byCertainty[$certainty]);
+            }
+        }
 
         // An empty object, not an empty list, when nothing flows.
-        return ['total' => JsonValues::money($total), 'by_category' => [] === $byCategory ? new \stdClass() : array_map(JsonValues::money(...), $byCategory)];
+        return [
+            'total' => JsonValues::money($total),
+            'by_category' => [] === $byCategory ? new \stdClass() : array_map(JsonValues::money(...), $byCategory),
+            'by_certainty' => [] === $certainties ? new \stdClass() : $certainties,
+        ];
     }
 
     /**

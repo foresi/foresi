@@ -14,8 +14,9 @@ Everything is available through the [REST API](api.md#cash-flow) and the [MCP se
 - **Alert**: when the forecast is stale or incomplete, a warning names each account without a balance, a balance older than 7 days, a source that failed and a currency without a rate, with its own Enter balance button.
 - **Figures**: the balance today with where it comes from (the entered balance and its day, and whether bank movements were added), the lowest point and its day, the minimum balance with "Below on" the first day under it or "Never below", and the balance at the end of the forecast.
 - **3 months or 12 months**: tabs pick one granularity for the chart and the table alike: thirteen ISO weeks from this one (the first starts today), or twelve calendar months from today (no week in front of them; the first month starts today). In the weeks view the lowest point, the first day under the minimum and the end are those of the thirteen weeks. A link to a week's cell carries its key (`2026-W48`), so the sheet reads the same view.
+- **+ Filter**: the filter builder of the list pages, with one condition, **Certainty** (document, schedule, plan, estimate; is, is not, is any of, is none of). The chart, the table, the figures and the sheet count only the flows it keeps; the balance today and the bank movements in it are never filtered. The filter travels in the address (`f`), through the 3 months or 12 months tabs and the links to a cell's items. A filter that keeps no flow shows the empty state of the table with Clear the filter. The page stores no view of it.
 - **Chart** (`Ui:BalanceChart`): money in (green) and out (sand) of each period as two columns, the closing balance as a line over them, and the minimum balance dashed. It is a server-rendered SVG with the table under it as its accessible equivalent; on a phone it scrolls sideways. Hovering a period shows its money in, out and closing balance in a tooltip.
-- **By period**: the periods of the view, with the opening balance, money in and money out by category, and the closing balance, red when it is below the minimum balance. A cell with money opens its items in the side sheet: the label, a badge for where each comes from (invoice, recurring invoice, received document, plan), the day it is counted on, its flags and the amount in its own currency.
+- **By period**: the periods of the view, with the opening balance, money in and money out by category, and the closing balance, red when it is below the minimum balance. A cell with money opens its items in the side sheet: the label, a badge for how sure each is (Document, Schedule, Plan, or Estimate in its own outlined badge, so an estimate never reads as a document or a bank movement), where it comes from when that says more (invoice, recurring invoice, received document), the day it is counted on, its flags and the amount in its own currency.
 - **Empty states**: before the first-run setup; a firm without a bank account; and a firm with no balance and nothing expected, which asks for the balance first.
 
 ## Planned items
@@ -52,7 +53,8 @@ A `BalanceSource` of another module may add what was booked after the checkpoint
 - **Periods**: ISO weeks (Monday to Sunday) from `from` (today by default) while a week starts on or before `weeks_until` (the end of next month by default), then calendar months up to the end of the month `months - 1` after the month of `from` (`months` is 12 by default, 1 to 24). The first week starts on `from` and the first month on the day after the last week, so either may be shorter.
 - **Lines**: every source is asked for the flows from today to the end of the horizon. A flow still open before today is counted on the first day and flagged `overdue`. A document (certainty `document`) with an expected day is counted on that day instead of its due date and flagged `expected_date`. A flow after the horizon is left out. Flows between today and a later `from` are counted in the opening of the first period.
 - **Currency**: every amount is converted to CZK at today's ČNB rate (the exchange-rate module returns today's rate for a future day). Each line keeps its own amount and currency. A currency without a rate today is listed in `unavailable_rates` and its lines are left out.
-- **Each period** has `opening`, `inflows` and `outflows` with a `total` and the amounts `by_category`, `closing`, and its `items`.
+- **Each period** has `opening`, `inflows` and `outflows` with a `total`, the amounts `by_category` and `by_certainty`, `closing`, and its `items`.
+- **Certainty**: `certainty` (REST: `document,plan`; MCP: a list) keeps only the flows of the certainties named, and the answer echoes them in `certainty`. The balances of the periods, `lowest` and `shortfall_on` are those of the flows kept; the balance today is never filtered. An unknown certainty is refused with `invalid_certainty`.
 - **Lowest point**: the lowest balance at the end of a day within the horizon (`lowest`), or the opening when nothing falls below it.
 - **Shortfall**: with a minimum balance set for the firm, `shortfall_on` is the first day the projected balance falls below it. It is a field of the answer, not a notification.
 - **Actuals**: a planned occurrence that a document or a bank movement already stands for is left out; see [What replaces a plan](#what-replaces-a-plan).
@@ -108,3 +110,20 @@ A module whose documents or movements stand for planned money also implements `F
 A balance source implements `Foresi\CashFlow\Contract\BalanceSource` (tag `app.cash_flow_balance_source`): given the latest `BalanceCheckpoint` of an account and today, it answers an `AccountBalance` with the amount and the last day its knowledge reaches, or null when it does not know the account. The first source that answers for an account wins.
 
 The planned items of Cash flow are a source of their own, `cash-flow.planned_items`.
+
+## Reading the forecast from a module
+
+A module that needs the flows of the forecast, such as Taxes and contributions reading the revenue expected by the end of the year, asks `Foresi\CashFlow\Contract\ForecastReader` (ADR 0033: Cash flow owns the contract, so the module declares `cash-flow` optional):
+
+```php
+interface ForecastReader
+{
+    public function read(ForecastQuery $query): ForecastRead;
+}
+```
+
+- `ForecastQuery` has `from` (today or later), `to` (within 24 months of today; there is no twelve-month cap), the keys of the sources to leave out (`excludeSources`), the categories to leave out (`excludeCategories`) and the certainties to keep (`certainties`, all when null).
+- A source left out is **never called**. A module that is itself a cash-flow source leaves its own key out, so reading the forecast never asks it again.
+- The sources are asked by `ForecastFlows`, the collector `Forecasts` uses too: the same expected days, the same overdue rule and the same planned-item fulfilment, so no flow is counted twice.
+- `ForecastRead` holds the `flows`, the `unavailableSources`, the `restrictedSources` and `incomplete` (a source failed or a currency had no rate). A `ReadFlow` has the source key, the subject (null for a restricted source, whose amounts still come back), the direction, the amount in its own currency and in CZK, the day it is counted on (`on`: the expected day, or the first day of the read for an overdue flow), the category, the certainty and the flags. Flows between today and a later `from` are left out. It computes no balance.
+- Only the owners and members of the organisation read it; a guest is refused with `forbidden`.

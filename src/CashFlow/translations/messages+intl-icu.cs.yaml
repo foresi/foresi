@@ -70,9 +70,15 @@ cash_flow:
     received_document: Přijatý doklad
     planned_item: Plán
     bank_movement: Pohyb na účtu
+  filter:
+    certainty: Jistota
+    all: Vše
+    empty_title: Filtru nic neodpovídá
+    empty_text: V tomto období nečekáte žádné peníze s vybranou jistotou. Zůstatek dnes se filtrem nemění.
+    reset: Zrušit filtr
   certainty:
     document: Doklad
-    schedule: Plán vystavení
+    schedule: Plán opakování
     plan: Plán
     estimate: Odhad
   flag:
