@@ -10,7 +10,10 @@
     "autoload": {
         "psr-4": {
             "Foresi\\Audit\\": ""
-        }
+        },
+        "exclude-from-classmap": [
+            "migrations/"
+        ]
     },
     "extra": {
         "foresi": {

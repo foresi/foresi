@@ -16,7 +16,7 @@ return static function (ContainerConfigurator $container): void {
     $services = $container->services()->defaults()->autowire()->autoconfigure();
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\Purchasing\\', '../')
-        ->exclude(['../config/', '../Integration/', '../PurchasingBundle.php']);
+        ->exclude(['../config/', '../Integration/', '../migrations/', '../PurchasingBundle.php']);
 
     if ('e2e' === $container->env()) {
         // Public handles for tests/e2e/seed.php.

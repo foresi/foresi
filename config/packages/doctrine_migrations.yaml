@@ -1,7 +1,10 @@
 doctrine_migrations:
     enable_service_migrations: true
-    migrations_paths:
-        'DoctrineMigrations': '%kernel.project_dir%/migrations'
+    # Each module's bundle adds its own migrations/ (ADR 0034); the application has none.
+    migrations_paths: {}
+    services:
+        # Orders the migrations of all modules by timestamp, then by the module graph.
+        'Doctrine\Migrations\Version\Comparator': 'Foresi\Shared\Infrastructure\Migration\ModuleVersionComparator'
     # Through the entity manager, migration events reach the listeners tagged for it.
     em: default
     enable_profiler: false

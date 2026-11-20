@@ -20,7 +20,7 @@ return static function (ContainerConfigurator $container): void {
     $services = $container->services()->defaults()->autowire()->autoconfigure();
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\CashFlow\\', '../')
-        ->exclude(['../config/', '../Integration/', '../CashFlowBundle.php']);
+        ->exclude(['../config/', '../Integration/', '../migrations/', '../CashFlowBundle.php']);
 
     // Modules that expect, hold or record money plug in through the contracts of Foresi\CashFlow\Contract.
     $services->set(Forecasts::class)

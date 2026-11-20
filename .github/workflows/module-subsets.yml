@@ -136,8 +136,13 @@ jobs:
           # shellcheck disable=SC2046
           bin/console lint:twig $(php bin/module-subset paths)
 
+      # Only the installed modules' baselines run, so the database holds their tables and
+      # no table of a module that is not installed.
       - name: Migrations
-        run: bin/console doctrine:migrations:migrate --no-interaction
+        run: |
+          bin/console doctrine:migrations:migrate --no-interaction
+          bin/console doctrine:schema:validate
+          bin/console app:migrations:owners
 
       # The tests build their own schema with the schema tool, which cannot drop the
       # foreign keys the migrations named, so they start from an empty database. ParaTest

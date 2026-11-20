@@ -40,7 +40,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services = $container->services()->defaults()->autowire()->autoconfigure();
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\Import\\', '../')
-        ->exclude(['../config/', '../Integration/', '../ImportBundle.php']);
+        ->exclude(['../config/', '../Integration/', '../migrations/', '../ImportBundle.php']);
 
     // Uploaded import sources; never below public/.
     $container->parameters()->set('app.import_files_dir', '%kernel.project_dir%/var/imports');

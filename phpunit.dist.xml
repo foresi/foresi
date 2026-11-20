@@ -40,6 +40,10 @@
         <include>
             <directory>src</directory>
         </include>
+        <!-- The baselines use the schema API Doctrine Migrations passes them, which DBAL 4.5 deprecates. -->
+        <exclude>
+            <directory>src/*/migrations</directory>
+        </exclude>
 
         <deprecationTrigger>
             <method>Doctrine\Deprecations\Deprecation::trigger</method>

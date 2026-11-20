@@ -18,7 +18,7 @@ return static function (ContainerConfigurator $container): void {
     $services = $container->services()->defaults()->autowire()->autoconfigure();
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\Audit\\', '../')
-        ->exclude(['../config/', '../Integration/', '../AuditBundle.php']);
+        ->exclude(['../config/', '../Integration/', '../migrations/', '../AuditBundle.php']);
 
     // Application classes stay framework-free, so the reset tag is declared here:
     // long-running workers and Messenger never carry state into the next job.

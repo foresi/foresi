@@ -31,7 +31,7 @@ return static function (ContainerConfigurator $container): void {
     $services = $container->services()->defaults()->autowire()->autoconfigure();
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\Identity\\', '../')
-        ->exclude(['../config/', '../Integration/', '../IdentityBundle.php']);
+        ->exclude(['../config/', '../Integration/', '../migrations/', '../IdentityBundle.php']);
 
     // Identity serves the ports of the shared kernel and of Audit: who acts, in which role, through which token.
     $services->alias(AuditActor::class, SecurityAuditActor::class);

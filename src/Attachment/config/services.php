@@ -23,7 +23,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services = $container->services()->defaults()->autowire()->autoconfigure();
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\Attachment\\', '../')
-        ->exclude(['../config/', '../Integration/', '../AttachmentBundle.php']);
+        ->exclude(['../config/', '../Integration/', '../migrations/', '../AttachmentBundle.php']);
 
     // Files attached to records; never below public/. Back it up with the database.
     $container->parameters()->set('app.attachments_dir', 'e2e' === $container->env()
