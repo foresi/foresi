@@ -279,22 +279,20 @@ final class RecurringListControllerTest extends WebTestCase
         self::assertLessThanOrEqual(6, $one, 'count, page, customers, lines, firm settings and firm');
     }
 
-    public function testFiltersByTabAndIgnoresAnOldFirm(): void
+    public function testFiltersByTabAndIgnoresAnOldFirmFilter(): void
     {
         $this->signedIn();
         $this->template(description: 'Main');
         $paused = $this->template(description: 'Paused one');
         $this->scoped(fn () => self::getContainer()->get(RecurringLifecycle::class)->pause($paused->id()));
-        $second = $this->secondFirm();
-        $this->template(description: 'Other firm', firm: $second, series: false);
 
         $crawler = $this->client->request('GET', '/invoices/recurring');
-        self::assertSame(['All 3', 'Active 2', 'Paused 1', 'Ended 0', 'Failing 0', 'Trash 0'], $this->tabs($crawler));
+        self::assertSame(['All 2', 'Active 1', 'Paused 1', 'Ended 0', 'Failing 0', 'Trash 0'], $this->tabs($crawler));
         self::assertNotContains('Firm', $this->headers($crawler), 'one firm per instance (ADR 0039)');
 
         // An instance holds one firm (ADR 0039): no firm select, and an old ?firm= narrows nothing.
-        $crawler = $this->client->request('GET', '/invoices/recurring?firm='.$second->id());
-        self::assertSame(['All 3', 'Active 2', 'Paused 1', 'Ended 0', 'Failing 0', 'Trash 0'], $this->tabs($crawler));
+        $crawler = $this->client->request('GET', '/invoices/recurring?firm='.$this->firm->id());
+        self::assertSame(['All 2', 'Active 1', 'Paused 1', 'Ended 0', 'Failing 0', 'Trash 0'], $this->tabs($crawler));
         self::assertCount(0, $crawler->filter('[data-filter-chip="firm"], select[name="firm"]'));
 
         $crawler = $this->client->request('GET', '/invoices/recurring?tab=paused');
@@ -614,11 +612,10 @@ final class RecurringListControllerTest extends WebTestCase
         $this->signedIn();
         $this->post($this->template(delivery: RecurringDelivery::Review), 'issue_now', ['occurrence' => '2026-12-01']);
         $this->post($this->template(delivery: RecurringDelivery::Review), 'issue_now', ['occurrence' => '2026-12-01']);
-        $second = $this->secondFirm();
-        $this->post($this->template(delivery: RecurringDelivery::Review, firm: $second, series: false), 'issue_now', ['occurrence' => '2026-12-01']);
+        $this->post($this->template(delivery: RecurringDelivery::Review), 'issue_now', ['occurrence' => '2026-12-01']);
 
         self::assertStringContainsString('3', $this->client->request('GET', '/invoices')->filter('[data-to-send] a')->text());
-        $crawler = $this->client->request('GET', '/invoices?firm='.$second->id().'&toSend=1');
+        $crawler = $this->client->request('GET', '/invoices?firm='.$this->firm->id().'&toSend=1');
         self::assertStringContainsString('3', $crawler->filter('[data-to-send] a')->text(), 'an old ?firm= narrows nothing');
         self::assertCount(3, $crawler->filter('tbody tr'), 'the count says what the list shows');
     }
@@ -745,12 +742,11 @@ final class RecurringListControllerTest extends WebTestCase
         $before = $this->queryCount();
         $this->scoped(function (): void {
             $container = self::getContainer();
-            $page = $container->get(RecurringInvoices::class)->page(new RecurringFilter(null, RecurringState::Active, false, 1));
+            $page = $container->get(RecurringInvoices::class)->page(new RecurringFilter(RecurringState::Active, false, 1));
             $lines = $container->get(RecurringOverview::class)->prepare($page->templates);
             $container->get(RecurringAmounts::class)->payable($page->templates, $lines, new \DateTimeImmutable('2026-11-20'));
             foreach ($page->templates as $template) {
                 $template->customer()->displayName();
-                $template->firm()->name();
             }
         });
 
@@ -830,10 +826,9 @@ final class RecurringListControllerTest extends WebTestCase
         return new Recurrence(new \DateTimeImmutable($first), $unit, $every, false, $end, null, $endAfter);
     }
 
-    private function template(?Recurrence $recurrence = null, string $description = 'Hosting', RecurringDelivery $delivery = RecurringDelivery::Send, ?Party $customer = null, ?LegalEntity $firm = null, bool $series = true, string $name = ''): RecurringInvoice
+    private function template(?Recurrence $recurrence = null, string $description = 'Hosting', RecurringDelivery $delivery = RecurringDelivery::Send, ?Party $customer = null, bool $series = true, string $name = ''): RecurringInvoice
     {
         return $this->scoped(fn (): RecurringInvoice => self::getContainer()->get(SaveRecurringInvoice::class)->create($this->input(
-            $firm ?? $this->firm,
             $series ? $this->series : null,
             $customer ?? $this->customer,
             $recurrence ?? $this->recurrence(),
@@ -843,11 +838,11 @@ final class RecurringListControllerTest extends WebTestCase
         )));
     }
 
-    private function input(LegalEntity $firm, ?Series $series, Party $customer, Recurrence $recurrence, string $description, RecurringDelivery $delivery, string $name = ''): RecurringInput
+    private function input(?Series $series, Party $customer, Recurrence $recurrence, string $description, RecurringDelivery $delivery, string $name = ''): RecurringInput
     {
         $line = new LineInput($description, Quantity::fromString('1'), 'ks', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
-        return new RecurringInput($firm->id(), $series?->id(), $customer->id(), PaymentMethod::BankTransfer, self::IBAN, '', '', $description, '', '', DocumentLanguage::Czech, [$line], $recurrence, TaxPointRule::IssueDate, 14, $delivery, $name);
+        return new RecurringInput($series?->id(), $customer->id(), PaymentMethod::BankTransfer, self::IBAN, '', '', $description, '', '', DocumentLanguage::Czech, [$line], $recurrence, TaxPointRule::IssueDate, 14, $delivery, $name);
     }
 
     private function signedIn(Role $role = Role::Owner): void
@@ -855,8 +850,8 @@ final class RecurringListControllerTest extends WebTestCase
         $this->browser->seed(role: $role);
         $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
         $this->em()->persist($this->firm);
-        FirmAccounts::add($this->em(), $this->firm, self::IBAN);
-        $this->series = new Series($this->firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+        FirmAccounts::add($this->em(), self::IBAN);
+        $this->series = new Series(Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $this->series->markDefault();
         $this->em()->persist($this->series);
         $this->em()->flush();
@@ -873,21 +868,6 @@ final class RecurringListControllerTest extends WebTestCase
             $this->em()->flush();
 
             return $customer;
-        });
-    }
-
-    private function secondFirm(): LegalEntity
-    {
-        return $this->scoped(function (): LegalEntity {
-            $firm = new LegalEntity('Example Second s.r.o.', new RegistrationNumber('CZ', '12345687'), VatId::fromString('CZ12345687'), new Address('Example Street 2', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 2');
-            $this->em()->persist($firm);
-            FirmAccounts::add($this->em(), $firm, self::IBAN);
-            $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString('S{YYYY}{NNNN}'), DocumentKind::Invoice);
-            $series->markDefault();
-            $this->em()->persist($series);
-            $this->em()->flush();
-
-            return $firm;
         });
     }
 

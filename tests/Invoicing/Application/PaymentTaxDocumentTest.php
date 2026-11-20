@@ -189,7 +189,7 @@ final class PaymentTaxDocumentTest extends AdvanceTestCase
     public function testARefusedDocumentLeavesThePaymentStanding(): void
     {
         // The standard series is archived: the firm has no series to number the document in.
-        $series = Series::standard($this->firm, DocumentKind::PaymentTaxDocument);
+        $series = Series::standard(DocumentKind::PaymentTaxDocument);
         $series->archive();
         $this->em->persist($series);
         $this->em->flush();
@@ -288,7 +288,7 @@ final class PaymentTaxDocumentTest extends AdvanceTestCase
         $this->pay($advance, '1210.00', '2026-11-10');
         $document = $this->onlyTaxDocumentOf($advance);
 
-        $ids = $this->store->idsForPeriod($this->firm, new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-11-30'));
+        $ids = $this->store->idsForPeriod(new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-11-30'));
 
         self::assertEqualsCanonicalizing([$invoice->id(), $document->id()], $ids);
     }
@@ -297,7 +297,7 @@ final class PaymentTaxDocumentTest extends AdvanceTestCase
     {
         $this->pay($this->advance([$this->line('1000.00')]), '1210.00', '2026-11-01');
 
-        $page = $this->store->page(new InvoiceFilter(null, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1, kind: DocumentKind::PaymentTaxDocument));
+        $page = $this->store->page(new InvoiceFilter(InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1, kind: DocumentKind::PaymentTaxDocument));
 
         self::assertSame([InvoiceFilter::ALL => 1, InvoiceFilter::SETTLED => 0, InvoiceFilter::UNSETTLED => 1, InvoiceFilter::TRASH => 0], $page->tabCounts);
         self::assertSame(PaymentState::Paid, $page->rows[0]->payment);

@@ -93,7 +93,7 @@ abstract class AdvanceTestCase extends InvoiceTestCase
             $total = $total->plus($this->czk($part));
         }
 
-        return $this->record->record(new PaymentRequest($invoice->firm()->id(), new \DateTimeImmutable($on), $total, $method, PaymentSource::Manual, null, '', $allocations));
+        return $this->record->record(new PaymentRequest(new \DateTimeImmutable($on), $total, $method, PaymentSource::Manual, null, '', $allocations));
     }
 
     /**

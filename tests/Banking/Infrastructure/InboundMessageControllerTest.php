@@ -11,7 +11,6 @@ namespace Foresi\Tests\Banking\Infrastructure;
 use Foresi\Banking\Application\ProcessMessage;
 use Foresi\Banking\Domain\InboundMessage;
 use Foresi\Identity\Domain\Role;
-use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Tests\Banking\Support\BankScreenTestCase;
 use Foresi\Tests\Banking\Support\FailingInboundFiles;
 use Foresi\Tests\Banking\Support\Scalars;
@@ -89,18 +88,9 @@ final class InboundMessageControllerTest extends BankScreenTestCase
     public function testRecordAnywayExistsOnlyForTrustRejections(): void
     {
         $this->signedIn();
-        [$otherFirm, $otherAccount] = $this->scoped(fn (): array => $this->firmWithSeries('Example Other s.r.o.', self::OTHER_IBAN));
         $untrusted = $this->received($this->notice('incoming-booked', auth: 'aligned-dkim-fail', messageId: 'forged@kb.example.com'));
-        $mismatch = $this->received($this->notice('incoming-booked', account: $otherAccount, messageId: 'other@kb.example.com'));
-        self::assertSame(['rejected', 'account_mismatch'], [$this->messageRow($mismatch)['status'], $this->messageRow($mismatch)['failure']]);
-        self::assertNotSame('', $otherFirm->id());
 
-        $crawler = $this->page('/bank?tab=messages');
-        self::assertCount(1, $this->row($crawler, $untrusted)->filter('a[href^="/bank/messages/'.$untrusted.'/accept"][data-dialog]'));
-        self::assertCount(0, $this->row($crawler, $mismatch)->filter('a[href$="/accept"]'));
-        $this->client->request('GET', '/bank/messages/'.$mismatch.'/accept');
-        self::assertResponseRedirects('/bank?view=messages');
-
+        self::assertCount(1, $this->row($this->page('/bank?tab=messages'), $untrusted)->filter('a[href^="/bank/messages/'.$untrusted.'/accept"][data-dialog]'));
         $dialog = $this->dialog('/bank/messages/'.$untrusted.'/accept');
         self::assertStringContainsString('The e-mail failed the check of its sender and may be forged', $dialog->filter('dialog')->text());
         self::assertStringContainsString('checked in your internet banking that the payment really came', $dialog->filter('dialog')->text());
@@ -117,7 +107,15 @@ final class InboundMessageControllerTest extends BankScreenTestCase
         $movement = $this->connection()->fetchAssociative('SELECT state, unmatched_reason, trust_basis FROM bank_movement WHERE inbound_message_id = ?', [$untrusted]);
         self::assertSame(['state' => 'unmatched', 'unmatched_reason' => 'unverified', 'trust_basis' => 'accepted-by-user'], $movement);
 
-        $this->client->request('POST', '/bank/messages/'.$mismatch.'/accept', ['_token' => $this->messageToken()]);
+        // A notice about an account that is no longer active is rejected for it, and nobody can record it anyway.
+        $token = $this->messageToken();
+        $mismatch = $this->received($this->notice('incoming-booked', account: $this->accountOfAnArchivedMain(), messageId: 'other@kb.example.com'));
+        self::assertSame(['rejected', 'account_mismatch'], [$this->messageRow($mismatch)['status'], $this->messageRow($mismatch)['failure']]);
+        $crawler = $this->page('/bank?tab=messages');
+        self::assertCount(0, $this->row($crawler, $mismatch)->filter('a[href$="/accept"]'));
+        $this->client->request('GET', '/bank/messages/'.$mismatch.'/accept');
+        self::assertResponseRedirects('/bank?view=messages');
+        $this->client->request('POST', '/bank/messages/'.$mismatch.'/accept', ['_token' => $token]);
         self::assertResponseRedirects('/bank?view=messages');
         self::assertSame('rejected', $this->messageRow($mismatch)['status']);
         self::assertSame(0, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM bank_movement WHERE inbound_message_id = ?', [$mismatch])));
@@ -142,8 +140,8 @@ final class InboundMessageControllerTest extends BankScreenTestCase
     public function testDismissingAnAccountMismatchClearsTheNoticeAndKeepsTheRawAndAuditsIt(): void
     {
         $this->signedIn();
-        $otherAccount = $this->scoped(fn (): FirmBankAccount => $this->firmWithSeries('Example Other s.r.o.', self::OTHER_IBAN)[1]);
-        $id = $this->received($this->notice('incoming-booked', account: $otherAccount));
+        $token = $this->messageToken();
+        $id = $this->received($this->notice('incoming-booked', account: $this->accountOfAnArchivedMain()));
         self::assertStringContainsString('A bank e-mail could not be processed.', $this->page('/invoices')->filter('body')->text());
 
         $dialog = $this->dialog('/bank/messages/'.$id.'/dismiss');
@@ -167,7 +165,7 @@ final class InboundMessageControllerTest extends BankScreenTestCase
         self::assertCount(0, $row->filter('a[href$="/dismiss"], form[action$="/retry"]'));
 
         // Dismissed already: a second time changes nothing.
-        $this->client->request('POST', '/bank/messages/'.$id.'/dismiss', ['_token' => $this->messageToken()]);
+        $this->client->request('POST', '/bank/messages/'.$id.'/dismiss', ['_token' => $token]);
         self::assertResponseRedirects('/bank?view=messages');
         self::assertSame(1, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM audit_entry WHERE entity_id = ?', [$id])));
     }

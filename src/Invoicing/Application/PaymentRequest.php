@@ -24,7 +24,6 @@ final readonly class PaymentRequest
      * @param list<AllocationRequest> $allocations    positive parts for a refund too: the direction carries the sign
      */
     public function __construct(
-        public string $firmId,
         public \DateTimeImmutable $receivedOn,
         public Money $amount,
         public PaymentMethod $method,

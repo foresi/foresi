@@ -24,17 +24,17 @@ use Symfony\Component\Clock\MockClock;
 final class BankScreenTest extends TestCase
 {
     private const array ACCOUNTS = [
-        'account-a' => ['firmId' => 'firm-a', 'firmName' => 'Example Firm s.r.o.', 'label' => 'Main', 'iban' => 'CZ6508000000192000145399'],
-        'account-b' => ['firmId' => 'firm-b', 'firmName' => 'Other Firm s.r.o.', 'label' => '', 'iban' => 'CZ5508000000001234567899'],
+        'account-a' => ['label' => 'Main', 'iban' => 'CZ6508000000192000145399'],
+        'account-b' => ['label' => '', 'iban' => 'CZ5508000000001234567899'],
     ];
 
-    public function testListsTheAccountsWithoutTheirFirmNames(): void
+    public function testListsTheAccounts(): void
     {
         $page = $this->page(new ScreenStores(self::ACCOUNTS, 3, 0, attention: 2), new MovementFilter());
 
         self::assertSame([
-            'account-a' => ['firmId' => 'firm-a', 'label' => 'Main', 'iban' => 'CZ6508000000192000145399'],
-            'account-b' => ['firmId' => 'firm-b', 'label' => '', 'iban' => 'CZ5508000000001234567899'],
+            'account-a' => ['label' => 'Main', 'iban' => 'CZ6508000000192000145399'],
+            'account-b' => ['label' => '', 'iban' => 'CZ5508000000001234567899'],
         ], $page->accounts);
         self::assertSame([3, [], false], [$page->total, $page->counts, $page->mail]);
     }

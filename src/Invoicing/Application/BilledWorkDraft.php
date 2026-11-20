@@ -11,7 +11,7 @@ namespace Foresi\Invoicing\Application;
 use Foresi\Shared\Domain\Currency;
 
 /**
- * The firm, the customer, the currency and the lines of work to bill, as the
+ * The customer, the currency and the lines of work to bill, as the
  * module that bills it proposes them. The tax of the lines is the firm's, as
  * on any new invoice.
  */
@@ -22,7 +22,6 @@ final readonly class BilledWorkDraft
      */
     public function __construct(
         public string $reference,
-        public string $firmId,
         public string $customerId,
         public Currency $currency,
         public array $lines,

@@ -16,8 +16,8 @@ use Foresi\Invoicing\Domain\Payment;
 use Foresi\Invoicing\Domain\PaymentAllocation;
 use Foresi\Invoicing\Domain\PaymentDirection;
 use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\TransactionalWork;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Application\Event\EventRecorder;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
@@ -25,7 +25,7 @@ use Psr\Clock\ClockInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
- * Records a payment and splits it over invoices of one firm. What the request alone
+ * Records a payment and splits it over invoices. What the request alone
  * decides is checked first; the rest under the locks of the invoices, taken in
  * ascending order of their ids so two payments over the same invoices never wait
  * for each other in a circle. The payment and its allocations are stored together
@@ -63,6 +63,7 @@ final readonly class RecordPayment
         private EventDispatcherInterface $events,
         private EventRecorder $recorder,
         private PaymentTransitions $transitions,
+        private InstanceFirm $instanceFirm,
     ) {
     }
 
@@ -87,25 +88,25 @@ final readonly class RecordPayment
             foreach ($ids as $id) {
                 $invoices[$id] = $this->store->get($id);
             }
-            $firm = $this->firmOf($request, $invoices);
+            $this->checkInvoices($request, $invoices);
             $before = $this->transitions->before(array_values($invoices));
-            if ($request->receivedOn->format('Y-m-d') > $this->todayOf($firm)->format('Y-m-d')) {
+            if ($request->receivedOn->format('Y-m-d') > $this->today()->format('Y-m-d')) {
                 throw new PaymentRefused(PaymentRefused::FUTURE_DATE);
             }
             foreach ($request->allocations as $allocation) {
-                $this->checkSettlement($firm, $invoices[$allocation->invoiceId], $allocation);
+                $this->checkSettlement($invoices[$allocation->invoiceId], $allocation);
                 $this->checkRefund($request, $invoices[$allocation->invoiceId], $allocation);
             }
 
             $now = \DateTimeImmutable::createFromInterface($this->clock->now());
-            $payment = new Payment($firm, $request->receivedOn, $request->amount, $request->method, $request->source, $request->bankMovementId, $request->note, $this->actor->userId(), $now, $request->direction);
+            $payment = new Payment($request->receivedOn, $request->amount, $request->method, $request->source, $request->bankMovementId, $request->note, $this->actor->userId(), $now, $request->direction);
             $this->payments->add($payment);
             foreach ($request->allocations as $allocation) {
                 $this->payments->addAllocation(new PaymentAllocation($payment, $invoices[$allocation->invoiceId], $allocation->amount, $allocation->settlement));
             }
             $this->recorder->record(new PaymentRecorded(
                 $payment->id(),
-                $firm->id(),
+                $this->instanceFirm->get()->id(),
                 EventFacts::amount($payment->amount()),
                 $payment->amount()->currency()->value,
                 EventFacts::day($payment->receivedOn()),
@@ -170,13 +171,13 @@ final readonly class RecordPayment
         return !$amount->isZero() && !$amount->isNegative();
     }
 
-    private function checkSettlement(LegalEntity $firm, Invoice $invoice, AllocationRequest $allocation): void
+    private function checkSettlement(Invoice $invoice, AllocationRequest $allocation): void
     {
         if (!$allocation->settlement instanceof Money || !$this->settles($allocation)) {
             return;
         }
         $settlement = $allocation->settlement->minor();
-        $limit = $this->settlementLimit($firm, $allocation->settlement->currency());
+        $limit = $this->settlementLimit($allocation->settlement->currency());
         $closing = $invoice->payable()->minor() - $this->payments->paidOf($invoice)->minor() - $allocation->amount->minor();
         if (null === $limit || abs($settlement) > $limit || $settlement !== $closing) {
             throw new PaymentRefused(PaymentRefused::SETTLEMENT_NOT_ALLOWED);
@@ -190,10 +191,10 @@ final readonly class RecordPayment
         }
     }
 
-    private function settlementLimit(LegalEntity $firm, Currency $currency): ?int
+    private function settlementLimit(Currency $currency): ?int
     {
         try {
-            return $this->countries->for($firm->address()->countryCode)->settlementLimit($currency);
+            return $this->countries->for($this->instanceFirm->get()->address()->countryCode)->settlementLimit($currency);
         } catch (UnsupportedCountry) {
             return null;
         }
@@ -202,13 +203,12 @@ final readonly class RecordPayment
     /**
      * @param array<string, Invoice> $invoices
      */
-    private function firmOf(PaymentRequest $request, array $invoices): LegalEntity
+    private function checkInvoices(PaymentRequest $request, array $invoices): void
     {
-        $firm = null;
+        if ([] === $invoices) {
+            throw new PaymentRefused(PaymentRefused::NO_ALLOCATION);
+        }
         foreach ($invoices as $invoice) {
-            if ($invoice->firm()->id() !== $request->firmId) {
-                throw new PaymentRefused(PaymentRefused::WRONG_FIRM);
-            }
             if ($invoice->isTrashed()) {
                 throw new PaymentRefused(PaymentRefused::TRASHED);
             }
@@ -218,17 +218,14 @@ final readonly class RecordPayment
             if ($invoice->currency() !== $request->amount->currency()) {
                 throw new PaymentRefused(PaymentRefused::CURRENCY_MISMATCH);
             }
-            $firm = $invoice->firm();
         }
-
-        return $firm ?? throw new PaymentRefused(PaymentRefused::NO_ALLOCATION);
     }
 
-    private function todayOf(LegalEntity $firm): \DateTimeImmutable
+    private function today(): \DateTimeImmutable
     {
         $now = \DateTimeImmutable::createFromInterface($this->clock->now());
         try {
-            return $now->setTimezone($this->countries->for($firm->address()->countryCode)->timezone());
+            return $now->setTimezone($this->countries->for($this->instanceFirm->get()->address()->countryCode)->timezone());
         } catch (UnsupportedCountry) {
             return $now;
         }

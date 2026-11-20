@@ -107,12 +107,12 @@ final readonly class DoctrineBankMovements implements BankMovements
 
     public function accounts(): array
     {
-        /** @var list<array{id: string, label: string, iban: string, firmId: string, firmName: string}> $rows */
-        $rows = $this->em->createQuery('SELECT a.id AS id, a.label AS label, a.iban AS iban, f.id AS firmId, f.name AS firmName FROM '.FirmBankAccount::class.' a JOIN a.firm f ORDER BY f.name, f.id, a.position, a.id')
+        /** @var list<array{id: string, label: string, iban: string}> $rows */
+        $rows = $this->em->createQuery('SELECT a.id AS id, a.label AS label, a.iban AS iban FROM '.FirmBankAccount::class.' a ORDER BY a.position, a.id')
             ->getArrayResult();
         $accounts = [];
         foreach ($rows as $row) {
-            $accounts[$row['id']] = ['firmId' => $row['firmId'], 'firmName' => $row['firmName'], 'label' => $row['label'], 'iban' => $row['iban']];
+            $accounts[$row['id']] = ['label' => $row['label'], 'iban' => $row['iban']];
         }
 
         return $accounts;
@@ -152,15 +152,13 @@ final readonly class DoctrineBankMovements implements BankMovements
             return [];
         }
         [$where, $parameters] = $this->narrowed($filter);
-        $query = MovementConditions::bind($this->em->createQuery('SELECT m, a, f FROM '.BankMovement::class.' m JOIN m.account a JOIN m.firm f WHERE '.$where.' ORDER BY m.bookedOn DESC, m.id DESC'), $parameters);
+        $query = MovementConditions::bind($this->em->createQuery('SELECT m, a FROM '.BankMovement::class.' m JOIN m.account a WHERE '.$where.' ORDER BY m.bookedOn DESC, m.id DESC'), $parameters);
         /** @var list<BankMovement> $movements */
         $movements = $query->setFirstResult(max(0, $offset))->setMaxResults(max(1, $limit))->getResult();
         $invoices = $this->invoicesOf(array_values(array_filter(array_map(static fn (BankMovement $movement): ?string => $movement->paymentId(), $movements), \is_string(...))));
 
         return array_map(static fn (BankMovement $movement): MovementRow => new MovementRow(
             $movement->id(),
-            $movement->firm()->id(),
-            $movement->firm()->name(),
             $movement->account()->id(),
             $movement->account()->label(),
             $movement->account()->iban(),

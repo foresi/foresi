@@ -10,7 +10,9 @@ namespace Foresi\Invoicing\Infrastructure\Api;
 
 use Foresi\Invoicing\Application\Query\InvoiceDetails;
 use Foresi\Invoicing\Application\Query\InvoiceList;
+use Foresi\Invoicing\Application\Query\InvoiceListItem;
 use Foresi\Invoicing\Application\View\InvoiceLists;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Shared\Application\Api\ScopeGuard;
 use Foresi\Shared\Application\View\SavedViews;
 use Foresi\Shared\Infrastructure\Api\Cursor;
@@ -34,7 +36,7 @@ final readonly class InvoiceApiController
     public const string LIST = 'api_v1_invoices';
     public const string SHOW = 'api_v1_invoice';
 
-    public function __construct(private ScopeGuard $scope, private InvoiceList $list, private InvoiceDetails $details, private SavedViews $views, private ViewJson $json, private InvoiceLists $lists)
+    public function __construct(private ScopeGuard $scope, private InvoiceList $list, private InvoiceDetails $details, private SavedViews $views, private ViewJson $json, private InvoiceLists $lists, private InstanceFirm $instanceFirm)
     {
     }
 
@@ -52,9 +54,10 @@ final readonly class InvoiceApiController
         $this->scope->require(self::READ_SCOPE);
         $applied = InvoiceViewFilter::of($this->views, $this->lists, $this->scope, $query->kind, $query->view, $query->filter);
         $slice = $this->list->slice($query->filter($applied->filter, $applied->kind), Cursor::decode($query->cursor), $query->limit);
+        $firm = $this->instanceFirm->find();
 
         return new JsonResponse([
-            'data' => array_map(InvoiceJson::item(...), $slice->items),
+            'data' => null === $firm ? [] : array_map(static fn (InvoiceListItem $item): array => InvoiceJson::item($item, $firm), $slice->items),
             'next_cursor' => Cursor::next($slice->nextAfterId()),
             'applied_view' => $applied->view instanceof \Foresi\Shared\Domain\View\SavedView ? $this->json->view($applied->view) : null,
         ]);
@@ -71,6 +74,6 @@ final readonly class InvoiceApiController
     {
         $this->scope->require(self::READ_SCOPE);
 
-        return new JsonResponse(['data' => InvoiceJson::detail($this->details->of($invoiceId))]);
+        return new JsonResponse(['data' => InvoiceJson::detail($this->details->of($invoiceId), $this->instanceFirm->get())]);
     }
 }

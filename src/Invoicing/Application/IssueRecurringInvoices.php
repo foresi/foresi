@@ -30,14 +30,14 @@ use Psr\Log\LoggerInterface;
  * expects it any more without a look.
  *
  * A template whose world moved, an archived customer, a contact
- * without an invoicing address, a kind of rate gone on the tax point, a firm
- * without a mail server, is never skipped in silence: the refusal is recorded on
+ * without an invoicing address, a kind of rate gone on the tax point, no
+ * mail server, is never skipped in silence: the refusal is recorded on
  * the template, the firm is told by e-mail and the shell shows it, and the next
  * template runs. A refused issue keeps the next date, so the next run tries again;
  * a template that runs clean again clears its failure. A send that breaks on
  * anything else is logged and recorded the same way (UNEXPECTED): its invoice is
  * issued and waits to be sent, and the other templates still run. Once the
- * firm's sending budget refuses a send, the firm's later templates of the run are
+ * sending budget refuses a send, the later templates of the run are
  * issued and held for review without trying again, and the firm hears of all of
  * them in one mail at the end of the run (RecurringAlerts). Anything else
  * while issuing is thrown, so the scheduler gives the day back and the next tick
@@ -57,7 +57,7 @@ final readonly class IssueRecurringInvoices implements ScheduledJob
     public const string REFUSED = 'issue.refused';
     /** The failure of a send that broke on something no rule foresaw. */
     public const string UNEXPECTED = 'send.unexpected';
-    /** The failure of a send the firm's budget refused; the firm's later templates of the run are held with it. */
+    /** The failure of a send the sending budget refused; the later templates of the run are held with it. */
     public const string RATE_LIMITED = 'send.'.SendRefused::RATE_LIMITED;
 
     public function __construct(
@@ -90,8 +90,8 @@ final readonly class IssueRecurringInvoices implements ScheduledJob
     {
         // The day of the period, so a run given back and retried after midnight still works for its own day.
         $today = $this->today();
-        /** @var array<string, true> $spent firms whose sending budget ran out in this run */
-        $spent = [];
+        // Whether the sending budget ran out in this run.
+        $spent = false;
         /** @var array<string, string> $failures the code of each template refused in this run */
         $failures = [];
         try {
@@ -102,7 +102,7 @@ final readonly class IssueRecurringInvoices implements ScheduledJob
                 }
             }
         } finally {
-            // One mail per firm for the whole run, also when it is given back halfway.
+            // One mail for the whole run, also when it is given back halfway.
             $this->alerts->alertAll($failures, $today);
         }
     }
@@ -122,7 +122,7 @@ final readonly class IssueRecurringInvoices implements ScheduledJob
         } catch (UnknownRecurringInvoice) {
             return;
         }
-        $spent = [];
+        $spent = false;
         $failure = null;
         try {
             $failure = $this->runTemplate($id, $today, $spent);
@@ -140,16 +140,15 @@ final readonly class IssueRecurringInvoices implements ScheduledJob
     }
 
     /**
-     * @param array<string, true> $spent firms out of their budget; a refusal for the budget adds the template's
+     * @param bool $spent whether the sending budget ran out; a refusal for the budget sets it
      *
      * @return string|null the failure recorded on the template, if any
      */
-    private function runTemplate(string $id, \DateTimeImmutable $today, array &$spent): ?string
+    private function runTemplate(string $id, \DateTimeImmutable $today, bool &$spent): ?string
     {
         $failure = null;
         for ($issued = 0; $issued < self::MAX_PER_RUN; ++$issued) {
             $current = $this->templates->current($id);
-            $firmId = $current->firm()->id();
             $occurrence = $this->dueOccurrence($current, $today);
             if (!$occurrence instanceof \DateTimeImmutable) {
                 break;
@@ -169,8 +168,8 @@ final readonly class IssueRecurringInvoices implements ScheduledJob
             }
             $template = $this->templates->get($id);
             $late = $this->isLate($occurrence, $today);
-            if (isset($spent[$firmId]) && !$late && RecurringDelivery::Send === $template->delivery()) {
-                // The firm's budget ran out earlier in this run: held without asking again, until someone sends it.
+            if ($spent && !$late && RecurringDelivery::Send === $template->delivery()) {
+                // The budget ran out earlier in this run: held without asking again, until someone sends it.
                 $failure = self::RATE_LIMITED;
                 continue;
             }
@@ -186,7 +185,7 @@ final readonly class IssueRecurringInvoices implements ScheduledJob
             if ($outcome->isRefused()) {
                 $failure = $outcome->code;
                 if (self::RATE_LIMITED === $failure) {
-                    $spent[$firmId] = true;
+                    $spent = true;
                 }
             }
         }

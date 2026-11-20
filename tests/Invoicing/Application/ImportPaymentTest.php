@@ -54,8 +54,8 @@ final class ImportPaymentTest extends AdvanceTestCase
         parent::setUp();
         $this->documents = self::getContainer()->get(ImportIssuedDocument::class);
         $this->import = self::getContainer()->get(ImportPayment::class);
-        $this->advances = new Series($this->firm, 'Advances', SeriesFormat::fromString('Z{YYYY}{NNNN}'), DocumentKind::Advance);
-        $this->taxDocuments = new Series($this->firm, 'Tax documents', SeriesFormat::fromString('D{YYYY}{NNNN}'), DocumentKind::PaymentTaxDocument);
+        $this->advances = new Series('Advances', SeriesFormat::fromString('Z{YYYY}{NNNN}'), DocumentKind::Advance);
+        $this->taxDocuments = new Series('Tax documents', SeriesFormat::fromString('D{YYYY}{NNNN}'), DocumentKind::PaymentTaxDocument);
         $this->em->persist($this->advances);
         $this->em->persist($this->taxDocuments);
         $this->em->flush();
@@ -99,12 +99,9 @@ final class ImportPaymentTest extends AdvanceTestCase
         $trashed = $this->issue->issue($this->input(overrides: ['variableSymbol' => '20260002']));
         $this->trash->trash($trashed->id(), 'Wrong customer');
         $tax = $this->taxDocumentOf($advance, $this->paymentOf($this->import->import($this->payment($advance))->paymentId));
-        $other = $this->firm(registrationNumber: '27074358');
-        $this->em->flush();
         $cases = [
             PaymentRefused::NOT_POSITIVE => $this->payment($advance, ['amount' => $this->czk('0.00')]),
             PaymentRefused::NOTE_TOO_LONG => $this->payment($advance, ['note' => str_repeat('n', Payment::MAX_NOTE + 1)]),
-            PaymentRefused::WRONG_FIRM => $this->payment($advance, ['firmId' => $other->id()]),
             PaymentRefused::TRASHED => $this->payment($trashed),
             PaymentRefused::NOT_PAYABLE => $this->payment($tax),
             PaymentRefused::CURRENCY_MISMATCH => $this->payment($advance, ['amount' => Money::of('10.00', Currency::EUR)]),
@@ -160,7 +157,7 @@ final class ImportPaymentTest extends AdvanceTestCase
     {
         $advance = $this->importedAdvance();
         $tax = $this->taxDocumentOf($advance, $this->paymentOf($this->import->import($this->payment($advance))->paymentId));
-        $deductible = self::getContainer()->get(DeductibleAdvances::class)->for($this->firm, $this->customer->id(), null, DocumentLanguage::Czech);
+        $deductible = self::getContainer()->get(DeductibleAdvances::class)->for($this->customer->id(), null, DocumentLanguage::Czech);
         self::assertSame([$tax->id()], array_map(static fn ($offered): string => $offered->id, $deductible), 'The tax document of an open advance is deductible.');
 
         $result = $this->documents->import($this->finalInvoice($deductible[0]->lines));
@@ -170,7 +167,7 @@ final class ImportPaymentTest extends AdvanceTestCase
         self::assertTrue($invoice->deductsAdvances());
         $this->em->clear();
         self::assertSame($invoice->id(), $this->store->get($tax->id())->deductedByInvoiceId());
-        self::assertSame([], self::getContainer()->get(DeductibleAdvances::class)->for($this->firm, $this->customer->id(), null, DocumentLanguage::Czech));
+        self::assertSame([], self::getContainer()->get(DeductibleAdvances::class)->for($this->customer->id(), null, DocumentLanguage::Czech));
 
         $twice = $this->documents->import($this->finalInvoice($deductible[0]->lines, '20260002'));
         self::assertSame(['invoice.problem.deduction_invalid'], $this->keys($twice), 'The rules of issuing hold: what is deducted is offered no more.');
@@ -184,7 +181,7 @@ final class ImportPaymentTest extends AdvanceTestCase
         $kept = $this->importedAdvance('Z20260002', 'ProformaInvoices/2', $other);
         $keptPayment = $this->paymentOf($this->import->import($this->payment($kept, ['externalId' => 'IssuedDocumentPayments/2', ...$other]))->paymentId);
         $keptTax = $this->stored($this->documents->import($this->taxDocument($kept, $keptPayment, ['externalId' => 'IssuedTaxDocuments/2', ...$other], '20260002')));
-        $deductible = self::getContainer()->get(DeductibleAdvances::class)->for($this->firm, $this->customer->id(), null, DocumentLanguage::Czech);
+        $deductible = self::getContainer()->get(DeductibleAdvances::class)->for($this->customer->id(), null, DocumentLanguage::Czech);
         $lines = array_merge(...array_map(static fn ($offered): array => $offered->lines, $deductible));
         $this->stored($this->documents->import($this->document(DocumentKind::Invoice, $this->series, '20260001', [$this->line('300.00'), ...$lines], ['taxPointDate' => new \DateTimeImmutable('2026-10-20'), 'issueDate' => new \DateTimeImmutable('2026-10-20')], new ImportedTotals(10000, 2100, 12100, 12100), 'IssuedInvoices/1')));
 
@@ -303,7 +300,6 @@ final class ImportPaymentTest extends AdvanceTestCase
     private function payment(Invoice $invoice, array $overrides = []): ImportedPaymentInput
     {
         return new \ReflectionClass(ImportedPaymentInput::class)->newInstanceArgs([
-            'firmId' => $this->firm->id(),
             'invoiceId' => $invoice->id(),
             'receivedOn' => new \DateTimeImmutable('2026-10-05'),
             'amount' => $this->czk('121.00'),

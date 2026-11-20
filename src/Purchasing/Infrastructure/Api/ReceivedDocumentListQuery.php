@@ -43,7 +43,6 @@ final readonly class ReceivedDocumentListQuery
     public function filter(?ViewFilter $view = null): ReceivedDocumentSliceFilter
     {
         return new ReceivedDocumentSliceFilter(
-            null,
             null === $this->state ? null : ReceivedDocumentState::from($this->state),
             $this->unpaid,
             null === $this->dueBefore ? null : new \DateTimeImmutable($this->dueBefore),

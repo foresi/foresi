@@ -63,13 +63,11 @@ use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 final class TimeInvoiceIssueTest extends WorkTestCase
 {
     private const string IBAN = 'CZ6508000000192000145399';
-    private const string OTHER_IBAN = 'CZ5508000000001234567899';
 
     private TimeInvoicing $invoicing;
     private BilledWork $billed;
     private IssueInvoice $issue;
     private ManageTime $time;
-    private LegalEntity $firm;
     private Party $customer;
     private Project $website;
     private Task $homepage;
@@ -87,9 +85,9 @@ final class TimeInvoiceIssueTest extends WorkTestCase
         $this->issue = $container->get(IssueInvoice::class);
         $this->time = $container->get(ManageTime::class);
 
-        $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
-        $this->em->persist($this->firm);
-        FirmAccounts::add($this->em, $this->firm, self::IBAN);
+        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
+        $this->em->persist($firm);
+        FirmAccounts::add($this->em, self::IBAN);
         $this->customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');
         $this->em->persist($this->customer);
         $this->em->persist(new PartyAddress($this->customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
@@ -150,24 +148,6 @@ final class TimeInvoiceIssueTest extends WorkTestCase
         $invoice = $this->issue->issue($this->input($draft, [$row('First'), $row('Copy')]));
 
         self::assertSame($this->lineAt($invoice, 0)->id(), $this->entry($design)->invoiceLineId());
-    }
-
-    public function testTimePricedForOneFirmIsNotInvoicedByAnother(): void
-    {
-        $this->logged($this->homepage, 50, '2026-10-05');
-        $draft = $this->chosen(TimeRounding::None);
-        $other = new LegalEntity('Other Firm s.r.o.', new RegistrationNumber('CZ', '12345687'), VatId::fromString('CZ12345687'), new Address('Other Street 3', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 2');
-        $this->em->persist($other);
-        FirmAccounts::add($this->em, $other, self::OTHER_IBAN);
-        $this->em->flush();
-
-        try {
-            $this->issue->issue($this->input($draft, firm: $other, iban: self::OTHER_IBAN));
-            self::fail('The invoice is refused.');
-        } catch (IssueRefused $refused) {
-            self::assertSame(['timesheet.problem.other_document'], array_map(static fn (IssueProblem $found): string => $found->key, $refused->problems));
-        }
-        self::assertSame(0, $this->invoiceCount());
     }
 
     /**
@@ -242,7 +222,7 @@ final class TimeInvoiceIssueTest extends WorkTestCase
         $other = $this->projects->create('Shop', $this->customer->id(), \Foresi\Work\Domain\WorkflowTemplate::Simple);
         $this->time->setProjectHourlyRate($other->id(), Money::of('40', Currency::EUR));
         $this->time->log($other->id(), null, new \DateTimeImmutable('2026-10-08'), 30, billable: true);
-        $mixed = new TimeScope($this->firm->id(), $this->customer->id(), [$this->website->id(), $other->id()], new \DateTimeImmutable('2026-10-01'), new \DateTimeImmutable('2026-10-31'));
+        $mixed = new TimeScope($this->customer->id(), [$this->website->id(), $other->id()], new \DateTimeImmutable('2026-10-01'), new \DateTimeImmutable('2026-10-31'));
         try {
             $this->invoicing->lines($mixed, array_map(static fn (\Foresi\Timesheet\Application\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($mixed)), LineGrouping::Task, TimeRounding::None);
             self::fail('A mix of currencies is refused.');
@@ -271,19 +251,19 @@ final class TimeInvoiceIssueTest extends WorkTestCase
 
     private function scope(): TimeScope
     {
-        return new TimeScope($this->firm->id(), $this->customer->id(), [$this->website->id()], new \DateTimeImmutable('2026-10-01'), new \DateTimeImmutable('2026-10-31'));
+        return new TimeScope($this->customer->id(), [$this->website->id()], new \DateTimeImmutable('2026-10-01'), new \DateTimeImmutable('2026-10-31'));
     }
 
     /**
-     * The input of the invoice form opened from the draft, its lines as given or as drafted, for its firm or the one given.
+     * The input of the invoice form opened from the draft, its lines as given or as drafted.
      *
      * @param list<LineInput>|null $lines
      */
-    private function input(BilledWorkDraft $draft, ?array $lines = null, ?LegalEntity $firm = null, string $iban = self::IBAN): InvoiceInput
+    private function input(BilledWorkDraft $draft, ?array $lines = null, string $iban = self::IBAN): InvoiceInput
     {
         $lines ??= array_map(static fn (BilledLine $line): LineInput => new LineInput($line->text, $line->quantity, $line->unit, $line->price, PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'), source: $line->source), $draft->lines);
 
-        return new InvoiceInput($firm?->id() ?? $draft->firmId, null, null, $draft->customerId, null, new \DateTimeImmutable('2026-11-10'), new \DateTimeImmutable('2026-11-10'), new \DateTimeImmutable('2026-11-24'), PaymentMethod::BankTransfer, $iban, '', '', '', 'Time', '', '', DocumentLanguage::Czech, $lines, true, billedWork: $draft->reference);
+        return new InvoiceInput(null, null, $draft->customerId, null, new \DateTimeImmutable('2026-11-10'), new \DateTimeImmutable('2026-11-10'), new \DateTimeImmutable('2026-11-24'), PaymentMethod::BankTransfer, $iban, '', '', '', 'Time', '', '', DocumentLanguage::Czech, $lines, true, billedWork: $draft->reference);
     }
 
     private function lineAt(Invoice $invoice, int $position): InvoiceLine

@@ -10,7 +10,6 @@ namespace Foresi\Invoicing\Application;
 
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Series;
-use Foresi\Party\Domain\LegalEntity;
 
 /**
  * The number series. Call add() and makeDefault() inside
@@ -19,19 +18,19 @@ use Foresi\Party\Domain\LegalEntity;
 interface SeriesCatalog
 {
     /**
-     * The active series of a firm, by name; of one kind when it is given.
+     * The active series, by name; of one kind when it is given.
      *
      * @return list<Series>
      */
-    public function forFirm(LegalEntity $firm, ?DocumentKind $kind = null): array;
+    public function all(?DocumentKind $kind = null): array;
 
     /**
-     * All series of a firm, archived ones too, by name. An archived series keeps its
+     * All series, archived ones too, by name. An archived series keeps its
      * name and its numbers, so a new series must not clash with it.
      *
      * @return list<Series>
      */
-    public function everyForFirm(LegalEntity $firm): array;
+    public function every(): array;
 
     /**
      * @throws UnknownSeries
@@ -39,10 +38,10 @@ interface SeriesCatalog
     public function get(string $id): Series;
 
     /**
-     * The default series of a firm for a kind, or a new standard one that is not
+     * The default series for a kind, or a new standard one that is not
      * stored yet.
      */
-    public function defaultFor(LegalEntity $firm, DocumentKind $kind = DocumentKind::Invoice): Series;
+    public function defaultFor(DocumentKind $kind = DocumentKind::Invoice): Series;
 
     public function add(Series $series): void;
 
@@ -53,7 +52,7 @@ interface SeriesCatalog
     public function store(Series $series): void;
 
     /**
-     * Moves the default of the firm for the kind of the series to it; stores what is pending first,
+     * Moves the default for the kind of the series to it; stores what is pending first,
      * because the unique index must never see two defaults.
      */
     public function makeDefault(Series $series): void;

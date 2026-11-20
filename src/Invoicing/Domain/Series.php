@@ -10,25 +10,22 @@ namespace Foresi\Invoicing\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
-use Foresi\Audit\Domain\AuditRooted;
 use Foresi\Invoicing\Contract\DocumentKind;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Id;
 
 /**
- * A number series of a firm. The flag of the default series is true, on all
+ * A number series of the firm. The flag of the default series is true, on all
  * others NULL: NULLs never collide in a unique index, as on PartyAddress. A start
  * set here is a deliberate gap in the numbers, and the audit log of the series
  * records it. The numbers themselves come from NumberCounter.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'series')]
-#[ORM\Index(name: 'idx_series_firm', columns: ['legal_entity_id'])]
-#[ORM\UniqueConstraint(name: 'uniq_series_name', columns: ['legal_entity_id', 'name'])]
-#[ORM\UniqueConstraint(name: 'uniq_series_default', columns: ['legal_entity_id', 'kind', 'default_flag'])]
-class Series implements Audited, AuditRooted
+#[ORM\UniqueConstraint(name: 'uniq_series_name', columns: ['name'])]
+#[ORM\UniqueConstraint(name: 'uniq_series_default', columns: ['kind', 'default_flag'])]
+class Series implements Audited
 {
-    /** The name of the invoice series a firm gets without setting one up; the screens translate it. */
+    /** The name of the invoice series the firm gets without setting one up; the screens translate it. */
     public const string STANDARD = 'standard';
     public const string STANDARD_FORMAT = '{YYYY}{NNNN}';
     public const int MAX_NAME_LENGTH = 100;
@@ -56,9 +53,6 @@ class Series implements Audited, AuditRooted
     private bool $archived = false;
 
     public function __construct(
-        #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
-        #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
-        private readonly LegalEntity $firm,
         string $name,
         SeriesFormat $format,
         #[ORM\Column(type: 'string', length: 32, enumType: DocumentKind::class)]
@@ -70,11 +64,11 @@ class Series implements Audited, AuditRooted
     }
 
     /**
-     * The series a firm gets for a kind without setting one up, as its default.
+     * The series the firm gets for a kind without setting one up, as its default.
      */
-    public static function standard(LegalEntity $firm, DocumentKind $kind): self
+    public static function standard(DocumentKind $kind): self
     {
-        $series = new self($firm, $kind->standardSeriesName(), SeriesFormat::fromString($kind->standardSeriesFormat()), $kind);
+        $series = new self($kind->standardSeriesName(), SeriesFormat::fromString($kind->standardSeriesFormat()), $kind);
         $series->markDefault();
 
         return $series;
@@ -83,16 +77,6 @@ class Series implements Audited, AuditRooted
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function auditRoot(): object
-    {
-        return $this->firm;
-    }
-
-    public function firm(): LegalEntity
-    {
-        return $this->firm;
     }
 
     public function name(): string
@@ -134,7 +118,7 @@ class Series implements Audited, AuditRooted
     }
 
     /**
-     * At most one series of a firm and kind is the default; SeriesCatalog::makeDefault()
+     * At most one series of a kind is the default; SeriesCatalog::makeDefault()
      * moves the flag in the order the unique index allows.
      */
     public function markDefault(): void

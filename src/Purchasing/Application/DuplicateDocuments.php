@@ -8,11 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Application;
 
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 
 /**
- * Other documents of a firm that look like the same one, outside the trash,
+ * Other documents that look like the same one, outside the trash,
  * oldest first. They only warn: a supplier may send the same file twice for a
  * reason, and a number may repeat across years.
  */
@@ -23,12 +22,12 @@ interface DuplicateDocuments
      *
      * @return list<string> their ids
      */
-    public function withFile(LegalEntity $firm, string $sha256, string $exceptId): array;
+    public function withFile(string $sha256, string $exceptId): array;
 
     /**
      * The recorded documents of the supplier with this number of theirs, in any case.
      *
      * @return list<string> their ids
      */
-    public function withSupplierNumber(LegalEntity $firm, Party $supplier, string $supplierNumber, string $exceptId): array;
+    public function withSupplierNumber(Party $supplier, string $supplierNumber, string $exceptId): array;
 }

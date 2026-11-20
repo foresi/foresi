@@ -49,7 +49,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  * goes through the invoices in time slots shared with the others, so one boot
  * gives many collisions. Every job starts from a form opened at version 1.
  *
- * @phpstan-type Ids array{firm: string, series: string, customer: string, invoices: list<string>}
+ * @phpstan-type Ids array{series: string, customer: string, invoices: list<string>}
  */
 abstract class InvoiceWorker extends KernelTestCase
 {
@@ -75,15 +75,15 @@ abstract class InvoiceWorker extends KernelTestCase
 
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register');
         $em->persist($firm);
-        FirmAccounts::add($em, $firm, self::IBAN);
-        $series = new Series($firm, 'Standard', SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+        FirmAccounts::add($em, self::IBAN);
+        $series = new Series('Standard', SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $em->persist($series);
         $customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');
         $em->persist($customer);
         $em->persist(new PartyAddress($customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
         $em->flush();
 
-        $ids = ['firm' => $firm->id(), 'series' => $series->id(), 'customer' => $customer->id(), 'invoices' => []];
+        $ids = ['series' => $series->id(), 'customer' => $customer->id(), 'invoices' => []];
         $issue = $container->get(IssueInvoice::class);
         for ($i = 0; $i < $invoices; ++$i) {
             $ids['invoices'][] = $issue->issue(self::input($ids, self::lines($lines, 'seed', '100.00')))->id();
@@ -257,13 +257,13 @@ abstract class InvoiceWorker extends KernelTestCase
     }
 
     /**
-     * @param array{firm: string, series: string, customer: string} $ids
-     * @param list<LineInput>                                       $lines
+     * @param array{series: string, customer: string} $ids
+     * @param list<LineInput>                         $lines
      */
     private static function input(array $ids, array $lines, ?string $typedNumber = null): InvoiceInput
     {
         $day = new \DateTimeImmutable('2026-11-01');
 
-        return new InvoiceInput($ids['firm'], $ids['series'], $typedNumber, $ids['customer'], null, $day, $day, $day->modify('+14 days'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, $lines);
+        return new InvoiceInput($ids['series'], $typedNumber, $ids['customer'], null, $day, $day, $day->modify('+14 days'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, $lines);
     }
 }

@@ -28,7 +28,7 @@ final class PurchasingRefused extends \DomainException implements Refused
     public const string CURRENCY = 'currency_unsupported';
     /** A line of the VAT recap is not rate:base:vat or rate:base:vat:stated_vat_czk. */
     public const string VAT_RECAP_LINE = 'vat_recap_line_invalid';
-    /** The firm is not one of the organisation. */
+    /** The instance has no firm yet. */
     public const string FIRM_UNKNOWN = 'firm_unknown';
 
     private const array CONFLICTS = [

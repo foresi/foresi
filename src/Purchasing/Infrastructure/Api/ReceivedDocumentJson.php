@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Infrastructure\Api;
 
+use Foresi\Party\Application\InstanceFirm;
+use Foresi\Party\Domain\LegalEntity;
 use Foresi\Purchasing\Application\PaymentBalance;
 use Foresi\Purchasing\Application\Query\PaidDocument;
 use Foresi\Purchasing\Application\Query\PayableDocument;
@@ -24,21 +26,34 @@ use Foresi\Shared\Infrastructure\Api\JsonValues;
 final class ReceivedDocumentJson
 {
     /**
-     * @return array<string, mixed>
+     * @param list<PayableDocument> $items
+     *
+     * @return list<array<string, mixed>>
      */
-    public static function row(PayableDocument $item): array
+    public static function rows(array $items, InstanceFirm $firm): array
     {
-        return self::summary($item->document, $item->balance);
+        // The firm is read once for the slice; before the first-run setup there are no documents.
+        $issuer = [] === $items ? null : $firm->get();
+
+        return $issuer instanceof LegalEntity ? array_map(static fn (PayableDocument $item): array => self::row($item, $issuer), $items) : [];
     }
 
     /**
      * @return array<string, mixed>
      */
-    public static function detail(PaidDocument $paid): array
+    public static function row(PayableDocument $item, LegalEntity $firm): array
+    {
+        return self::summary($item->document, $item->balance, $firm);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function detail(PaidDocument $paid, LegalEntity $firm): array
     {
         $document = $paid->document;
 
-        return self::summary($document, $paid->balance) + [
+        return self::summary($document, $paid->balance, $firm) + [
             'supplier_snapshot' => [
                 'name' => $document->supplier()->name,
                 'registration_number' => $document->supplier()->registrationNumber,
@@ -74,13 +89,13 @@ final class ReceivedDocumentJson
     /**
      * @return array<string, mixed>
      */
-    private static function summary(ReceivedDocument $document, PaymentBalance $balance): array
+    private static function summary(ReceivedDocument $document, PaymentBalance $balance, LegalEntity $firm): array
     {
         $total = $document->total();
 
         return [
             'id' => $document->id(),
-            'firm' => ['id' => $document->firm()->id(), 'name' => $document->firm()->name()],
+            'firm' => ['id' => $firm->id(), 'name' => $firm->name()],
             'state' => $document->state()->value,
             'kind' => $document->kind()->value,
             'treatment' => $document->treatment()->value,

@@ -51,7 +51,7 @@ final class AdvanceChainTest extends AdvanceTestCase
         self::assertSame(['D820240009', '2024-12-27', '920240009'], [$document->number(), $document->taxPointDate()?->format('Y-m-d'), $document->variableSymbol()]);
         self::assertSame([['21.00', 3100000, 651000, 3751000]], $this->figuresOf($document));
 
-        $deduction = self::getContainer()->get(DeductibleAdvances::class)->for($this->firm, $this->customer->id(), null, DocumentLanguage::Czech)[0]->lines;
+        $deduction = self::getContainer()->get(DeductibleAdvances::class)->for($this->customer->id(), null, DocumentLanguage::Czech)[0]->lines;
         $work = new LineInput('Development', Quantity::fromString('65'), 'h', Money::of('1200.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
         $final = $this->issue->issue($this->input([$work, ...$deduction], [
             'issueDate' => new \DateTimeImmutable('2025-02-06'),
@@ -74,7 +74,7 @@ final class AdvanceChainTest extends AdvanceTestCase
         $advance = $this->advance([$this->line('10000.00')], ['issueDate' => new \DateTimeImmutable('2026-12-01'), 'dueDate' => new \DateTimeImmutable('2026-12-15')]);
         $this->pay($advance, '12100.00', '2026-12-30');
         $document = $this->onlyTaxDocumentOf($advance);
-        $deduction = self::getContainer()->get(DeductibleAdvances::class)->for($this->firm, $this->customer->id(), null, DocumentLanguage::Czech)[0]->lines;
+        $deduction = self::getContainer()->get(DeductibleAdvances::class)->for($this->customer->id(), null, DocumentLanguage::Czech)[0]->lines;
 
         $final = $this->issue->issue($this->input([$this->line('15000.00'), ...$deduction], ['issueDate' => new \DateTimeImmutable('2027-01-10'), 'taxPointDate' => new \DateTimeImmutable('2027-01-10'), 'dueDate' => new \DateTimeImmutable('2027-01-24')]));
 
@@ -83,13 +83,13 @@ final class AdvanceChainTest extends AdvanceTestCase
         $stored = $this->reloaded($final);
         self::assertSame(['20270001', 500000, 105000, 605000], [$stored->number(), $stored->net()->minor(), $stored->vat()->minor(), $stored->payable()->minor()]);
         self::assertSame([$document->id()], array_values(array_filter(array_map(static fn (\Foresi\Invoicing\Domain\InvoiceLine $line): ?string => $line->deducts(), $this->store->lines($stored)), \is_string(...))));
-        $ids = $this->store->idsForPeriod($this->firm, new \DateTimeImmutable('2026-12-01'), new \DateTimeImmutable('2026-12-31'));
+        $ids = $this->store->idsForPeriod(new \DateTimeImmutable('2026-12-01'), new \DateTimeImmutable('2026-12-31'));
         self::assertSame([$document->id()], $ids, 'December holds the tax document only');
     }
 
     private function startSeries(DocumentKind $kind, string $year, int $number): Series
     {
-        $series = Series::standard($this->firm, $kind);
+        $series = Series::standard($kind);
         $series->startAt($number, $year);
         $this->em->persist($series);
 

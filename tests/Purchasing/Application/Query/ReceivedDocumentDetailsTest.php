@@ -19,8 +19,8 @@ final class ReceivedDocumentDetailsTest extends PurchasingTestCase
 {
     public function testACreditNoteShowsTheDocumentItCorrectsAmongTheOthersOffered(): void
     {
-        $other = $this->recording()->create($this->firm->id(), $this->input(supplierNumber: 'FV-1'))->document->id();
-        $original = $this->recording()->create($this->firm->id(), $this->input(supplierNumber: 'FV-2'))->document->id();
+        $other = $this->recording()->create($this->input(supplierNumber: 'FV-1'))->document->id();
+        $original = $this->recording()->create($this->input(supplierNumber: 'FV-2'))->document->id();
         $note = $this->recording()->record($this->draft(), $this->input(kind: ReceivedDocumentKind::CreditNote, supplierNumber: 'D-1', base: -10_000, originalDocumentId: $original))->document->id();
 
         $detail = $this->details()->of($note);
@@ -37,8 +37,8 @@ final class ReceivedDocumentDetailsTest extends PurchasingTestCase
 
     public function testADocumentThatCorrectsNothingShowsNoOriginal(): void
     {
-        $this->recording()->create($this->firm->id(), $this->input(supplierNumber: 'FV-1'));
-        $id = $this->recording()->create($this->firm->id(), $this->input(supplierNumber: 'FV-2'))->document->id();
+        $this->recording()->create($this->input(supplierNumber: 'FV-1'));
+        $id = $this->recording()->create($this->input(supplierNumber: 'FV-2'))->document->id();
 
         $detail = $this->details()->of($id);
 
@@ -48,7 +48,7 @@ final class ReceivedDocumentDetailsTest extends PurchasingTestCase
 
     public function testACreditNoteStillShowsAnOriginalThatWentToTheTrash(): void
     {
-        $original = $this->recording()->create($this->firm->id(), $this->input(supplierNumber: 'FV-1'))->document->id();
+        $original = $this->recording()->create($this->input(supplierNumber: 'FV-1'))->document->id();
         $note = $this->recording()->record($this->draft(), $this->input(kind: ReceivedDocumentKind::CreditNote, supplierNumber: 'D-1', base: -10_000, originalDocumentId: $original))->document->id();
         self::getContainer()->get(TrashReceivedDocument::class)->trash($original, 'Not ours');
 
@@ -80,17 +80,16 @@ final class ReceivedDocumentDetailsTest extends PurchasingTestCase
         $this->signIn($this->guest);
         $this->expectException(PurchasingNotAllowed::class);
 
-        $this->details()->correctable($this->firm->id());
+        $this->details()->correctable();
     }
 
-    public function testTheCorrectableDocumentsAreTheRecordedOnesOfTheFirm(): void
+    public function testTheCorrectableDocumentsAreTheRecordedOnes(): void
     {
-        $first = $this->recording()->create($this->firm->id(), $this->input(supplierNumber: 'FV-1', received: '2026-11-01'))->document->id();
-        $second = $this->recording()->create($this->firm->id(), $this->input(supplierNumber: 'FV-2', received: '2026-11-03'))->document->id();
+        $first = $this->recording()->create($this->input(supplierNumber: 'FV-1', received: '2026-11-01'))->document->id();
+        $second = $this->recording()->create($this->input(supplierNumber: 'FV-2', received: '2026-11-03'))->document->id();
         $this->draft('%PDF-1.4 draft');
-        $this->recording()->create($this->firm('Other Firm s.r.o.', '25596641')->id(), $this->input(supplierNumber: 'FV-3'));
 
-        $rows = $this->details()->correctable($this->firm->id());
+        $rows = $this->details()->correctable();
 
         self::assertSame([$second, $first], array_map(static fn (\Foresi\Purchasing\Application\Query\ReceivedDocumentRow $row): string => $row->id, $rows));
     }

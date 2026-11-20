@@ -15,6 +15,7 @@ use Foresi\Invoicing\Application\Query\InvoiceListItem;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceLine;
 use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Infrastructure\Api\JsonValues;
 
 /**
@@ -27,7 +28,7 @@ final class InvoiceJson
     /**
      * @return array<string, mixed>
      */
-    public static function item(InvoiceListItem $item): array
+    public static function item(InvoiceListItem $item, LegalEntity $firm): array
     {
         $row = $item->row;
 
@@ -35,7 +36,7 @@ final class InvoiceJson
             'id' => $row->id,
             'number' => $row->number,
             'kind' => $row->kind->value,
-            'firm' => ['id' => $item->firmId, 'name' => $row->firmName],
+            'firm' => ['id' => $firm->id(), 'name' => $row->firmName],
             'customer' => ['id' => $item->customerId, 'name' => $row->customerName],
             'issue_date' => JsonValues::date($row->issueDate),
             'due_date' => JsonValues::date($row->dueDate),
@@ -57,7 +58,7 @@ final class InvoiceJson
     /**
      * @return array<string, mixed>
      */
-    public static function detail(InvoiceDetail $detail): array
+    public static function detail(InvoiceDetail $detail, LegalEntity $firm): array
     {
         $invoice = $detail->invoice;
         $customer = $invoice->customer();
@@ -66,7 +67,7 @@ final class InvoiceJson
             'id' => $invoice->id(),
             'number' => $invoice->number(),
             'kind' => $invoice->kind()->value,
-            'firm' => ['id' => $invoice->firm()->id(), 'name' => $invoice->issuer()->name],
+            'firm' => ['id' => $firm->id(), 'name' => $invoice->issuer()->name],
             'customer' => [
                 'id' => $invoice->customerParty()->id(),
                 'name' => $customer->name,

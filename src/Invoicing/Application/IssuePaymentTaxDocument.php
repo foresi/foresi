@@ -101,15 +101,13 @@ final readonly class IssuePaymentTaxDocument
             return null;
         }
         $day = new \DateTimeImmutable($payment->receivedOn()->format('Y-m-d'));
-        $firm = $advance->firm();
         $account = $advance->bankAccount();
         // The advance's account, while the firm still has it; else the primary one, if any: the document asks for no payment.
-        if (null === $account || !\in_array($account, $this->accounts->ibansOf($firm), true)) {
-            $account = $this->accounts->primaryOf($firm)?->iban();
+        if (null === $account || !\in_array($account, $this->accounts->ibans(), true)) {
+            $account = $this->accounts->primary()?->iban();
         }
 
         return new InvoiceInput(
-            $firm->id(),
             null,
             null,
             $advance->customerParty()->id(),

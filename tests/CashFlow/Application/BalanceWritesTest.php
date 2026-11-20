@@ -107,12 +107,10 @@ final class BalanceWritesTest extends CashFlowTestCase
         $changed = $this->writer()->minimum(new SetMinimumBalanceInput('60000.00'));
 
         self::assertSame($set?->id(), $changed?->id());
-        self::assertSame(6000000, self::getContainer()->get(CashFlowStore::class)->minimumBalance($this->firm->id())?->amount()->minor());
-        self::assertSame($this->firm->id(), $changed?->firm()->id());
+        self::assertSame(6000000, self::getContainer()->get(CashFlowStore::class)->minimumBalance()?->amount()->minor());
         self::assertNull($this->writer()->minimum(new SetMinimumBalanceInput(null)));
         self::assertNull($this->writer()->minimum(new SetMinimumBalanceInput(null)));
         self::assertSame([], $this->em->getRepository(MinimumBalance::class)->findAll());
-        self::assertNull(self::getContainer()->get(CashFlowStore::class)->minimumBalance('not-an-id'));
         $this->assertRefused('amount_invalid', 'amount', fn (): ?MinimumBalance => $this->writer()->minimum(new SetMinimumBalanceInput('lots')));
     }
 

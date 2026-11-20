@@ -28,11 +28,9 @@ interface RecurringOverview
      * In one query. Failing counts the templates that have not ended and failed on
      * their last run, as RecurringInvoices::failing() does.
      *
-     * @param string|null $firmId only the templates of this firm; all when null
-     *
      * @return array<string, int> by tab
      */
-    public function counts(?string $firmId): array;
+    public function counts(): array;
 
     /**
      * Loads the customers of the templates, so reading them asks nothing more, and

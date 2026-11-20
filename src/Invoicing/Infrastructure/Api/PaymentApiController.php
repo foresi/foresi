@@ -10,6 +10,8 @@ namespace Foresi\Invoicing\Infrastructure\Api;
 
 use Foresi\Invoicing\Application\Query\PaymentDetails;
 use Foresi\Invoicing\Application\Query\PaymentList;
+use Foresi\Invoicing\Application\Query\PaymentRow;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Shared\Application\Api\ScopeGuard;
 use Foresi\Shared\Infrastructure\Api\Cursor;
 use OpenApi\Attributes as OA;
@@ -30,7 +32,7 @@ final readonly class PaymentApiController
     public const string LIST = 'api_v1_payments';
     public const string SHOW = 'api_v1_payment';
 
-    public function __construct(private ScopeGuard $scope, private PaymentList $list, private PaymentDetails $details)
+    public function __construct(private ScopeGuard $scope, private PaymentList $list, private PaymentDetails $details, private InstanceFirm $instanceFirm)
     {
     }
 
@@ -45,8 +47,9 @@ final readonly class PaymentApiController
     {
         $this->scope->require(self::READ_SCOPE);
         $slice = $this->list->slice($query->filter(), Cursor::decode($query->cursor), $query->limit);
+        $firm = $this->instanceFirm->find();
 
-        return new JsonResponse(['data' => array_map(PaymentJson::row(...), $slice->rows), 'next_cursor' => Cursor::next($slice->hasMore ? $slice->lastId() : null)]);
+        return new JsonResponse(['data' => null === $firm ? [] : array_map(static fn (PaymentRow $row): array => PaymentJson::row($row, $firm), $slice->rows), 'next_cursor' => Cursor::next($slice->hasMore ? $slice->lastId() : null)]);
     }
 
     #[Route('/api/v1/payments/{id}', name: self::SHOW, methods: ['GET'])]
@@ -60,6 +63,6 @@ final readonly class PaymentApiController
     {
         $this->scope->require(self::READ_SCOPE);
 
-        return new JsonResponse(['data' => PaymentJson::row($this->details->of($id))]);
+        return new JsonResponse(['data' => PaymentJson::row($this->details->of($id), $this->instanceFirm->get())]);
     }
 }

@@ -10,26 +10,24 @@ namespace Foresi\Invoicing\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
-use Foresi\Audit\Domain\AuditRooted;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Money;
 
 /**
- * Whether and when a firm reminds its customers of overdue invoices, and of
+ * Whether and when the firm reminds its customers of overdue invoices, and of
  * overdue advance invoices when it says so; a tax document on payment never. The first
  * reminder goes a number of days after the due date, each next one a number of
  * days after the previous, up to MAX_STEPS. Only invoices due on or after the day
  * reminders were switched on are reminded, so switching on never sends a wave
  * about old invoices. The minimum is in the firm's home currency; an invoice in
- * another currency is reminded whatever its amount. One row per firm; a firm
- * without one has standard(), switched off, until it is changed.
+ * another currency is reminded whatever its amount. One row for the instance;
+ * without one standard() applies, switched off, until it is changed.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'firm_reminders')]
-#[ORM\UniqueConstraint(name: 'uniq_firm_reminders_firm', columns: ['legal_entity_id'])]
-class FirmReminders implements Audited, AuditRooted
+#[ORM\UniqueConstraint(name: 'uniq_firm_reminders_one_row', columns: ['one_row'])]
+class FirmReminders implements Audited
 {
     public const int MAX_STEPS = 10;
     public const int MIN_DAYS = 1;
@@ -39,6 +37,13 @@ class FirmReminders implements Audited, AuditRooted
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
+
+    /**
+     * Always true: with its unique index (and a check on PostgreSQL) the table holds
+     * at most one row, the settings of the instance's one firm (ADR 0039).
+     */
+    #[ORM\Column(name: 'one_row', type: 'boolean', options: ['default' => true])]
+    private bool $oneRow = true;
 
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $enabled = false;
@@ -63,17 +68,14 @@ class FirmReminders implements Audited, AuditRooted
     #[ORM\Column(name: 'minimum_currency', type: 'string', length: 3, nullable: true, enumType: Currency::class, options: ['fixed' => true])]
     private ?Currency $minimumCurrency = null;
 
-    private function __construct(
-        #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
-        #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
-        private readonly LegalEntity $firm,
-    ) {
+    private function __construct()
+    {
         $this->id = Id::generate();
     }
 
-    public static function standard(LegalEntity $firm): self
+    public static function standard(): self
     {
-        return new self($firm);
+        return new self();
     }
 
     /**
@@ -139,16 +141,6 @@ class FirmReminders implements Audited, AuditRooted
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function auditRoot(): object
-    {
-        return $this->firm;
-    }
-
-    public function firm(): LegalEntity
-    {
-        return $this->firm;
     }
 
     public function enabled(): bool

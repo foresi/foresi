@@ -55,10 +55,10 @@ final readonly class RecurringInvoiceFlows implements CashFlowSource
         return $this->readAccess->mayRead();
     }
 
-    public function flows(string $firmId, \DateTimeImmutable $from, \DateTimeImmutable $to, \DateTimeImmutable $today): iterable
+    public function flows(\DateTimeImmutable $from, \DateTimeImmutable $to, \DateTimeImmutable $today): iterable
     {
         $this->access->denyUnlessStaff();
-        $templates = $this->active($firmId);
+        $templates = $this->active();
         if ([] === $templates) {
             return;
         }
@@ -92,12 +92,12 @@ final readonly class RecurringInvoiceFlows implements CashFlowSource
     /**
      * @return list<RecurringInvoice>
      */
-    private function active(string $firmId): array
+    private function active(): array
     {
         $templates = [];
         $page = 1;
         do {
-            $found = $this->templates->page(new RecurringFilter($firmId, RecurringState::Active, false, $page));
+            $found = $this->templates->page(new RecurringFilter(RecurringState::Active, false, $page));
             array_push($templates, ...$found->templates);
             ++$page;
         } while ($found->page < $found->pages);

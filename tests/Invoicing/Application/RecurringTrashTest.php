@@ -134,7 +134,7 @@ final class RecurringTrashTest extends RecurringTestCase
     private function listed(?ViewFilter $view, bool $active = false): array
     {
         $this->em->clear();
-        $page = $this->templates->page(new RecurringFilter(null, $active ? RecurringState::Active : null, false, 1, $view));
+        $page = $this->templates->page(new RecurringFilter($active ? RecurringState::Active : null, false, 1, $view));
 
         return array_map(static fn (RecurringInvoice $template): string => $template->id(), $page->templates);
     }

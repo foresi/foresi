@@ -11,7 +11,7 @@ namespace Foresi\Invoicing\Application;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\NumberKey;
 use Foresi\Invoicing\Domain\Series;
-use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Application\InstanceFirm;
 
 /**
  * Gives a document its number inside the transaction that stores it. The period
@@ -25,7 +25,7 @@ final readonly class NumberAllocator
     /** How many numbers a hand-typed or imported number may stand in the way of. */
     private const int ATTEMPTS = 50;
 
-    public function __construct(private NumberCounter $counter, private InvoiceStore $store, private InvoicingCountries $countries)
+    public function __construct(private NumberCounter $counter, private InvoiceStore $store, private InvoicingCountries $countries, private InstanceFirm $instanceFirm)
     {
     }
 
@@ -34,26 +34,26 @@ final readonly class NumberAllocator
      *
      * @throws IssueRefused
      */
-    public function allocate(Series $series, LegalEntity $firm, \DateTimeImmutable $issueDate, ?string $typedNumber, ?Invoice $except): string
+    public function allocate(Series $series, \DateTimeImmutable $issueDate, ?string $typedNumber, ?Invoice $except): string
     {
         try {
             return null === $typedNumber
-                ? $this->next($series, $firm, $issueDate)
-                : $this->typed($series, $firm, $issueDate, trim($typedNumber), $except);
+                ? $this->next($series, $issueDate)
+                : $this->typed($series, $issueDate, trim($typedNumber), $except);
         } catch (SequenceOutOfRange) {
             throw new IssueRefused([new IssueProblem('number', 'invoice.problem.number_out_of_range')]);
         }
     }
 
-    private function next(Series $series, LegalEntity $firm, \DateTimeImmutable $issueDate): string
+    private function next(Series $series, \DateTimeImmutable $issueDate): string
     {
         for ($attempt = 0; $attempt < self::ATTEMPTS; ++$attempt) {
             $number = $this->counter->next($series, $issueDate);
             // A series may be older than the rule, or stored by something else than the form.
-            if (!$this->accepted($number, $firm)) {
+            if (!$this->accepted($number)) {
                 throw new IssueRefused([new IssueProblem('number', 'invoice.problem.number_not_accepted')]);
             }
-            if (!$this->store->numberTaken($firm, NumberKey::of($number), null)) {
+            if (!$this->store->numberTaken(NumberKey::of($number), null)) {
                 return $number;
             }
         }
@@ -61,23 +61,23 @@ final readonly class NumberAllocator
         throw new IssueRefused([new IssueProblem('number', 'invoice.problem.numbers_exhausted')]);
     }
 
-    private function accepted(string $number, LegalEntity $firm): bool
+    private function accepted(string $number): bool
     {
         try {
-            return $this->countries->for($firm->address()->countryCode)->acceptsNumber($number);
+            return $this->countries->for($this->instanceFirm->get()->address()->countryCode)->acceptsNumber($number);
         } catch (UnsupportedCountry) {
             return true;
         }
     }
 
-    private function typed(Series $series, LegalEntity $firm, \DateTimeImmutable $issueDate, string $number, ?Invoice $except): string
+    private function typed(Series $series, \DateTimeImmutable $issueDate, string $number, ?Invoice $except): string
     {
         $sequence = $series->format()->sequenceIn($number, $issueDate);
         if (null !== $sequence) {
             $this->counter->advanceTo($series, $issueDate, $sequence);
         }
         // Again here: IssueRules looked before the transaction, and someone may have been faster.
-        if ($this->store->numberTaken($firm, NumberKey::of($number), $except)) {
+        if ($this->store->numberTaken(NumberKey::of($number), $except)) {
             throw new IssueRefused([new IssueProblem('number', 'invoice.problem.number_taken')]);
         }
 

@@ -105,7 +105,7 @@ final class RefundPairingTest extends BankingTestCase
     {
         $invoice = $this->issue->issue($this->input());
         $czk = $this->czk('1210.00');
-        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-01'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $czk)]));
+        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-01'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $czk)]));
         $line = new LineInput('Work', Quantity::fromString('-1'), 'h', $this->czk('400.00'), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
         $credit = $this->issue->issue($this->input([$line], [
             'seriesId' => null,

@@ -48,7 +48,6 @@ final class ReceivedDocumentControllerTest extends WebTestCase
 
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private LegalEntity $firm;
     private Party $supplier;
     /** @var list<string> */
     private array $paths = [];
@@ -516,8 +515,8 @@ final class ReceivedDocumentControllerTest extends WebTestCase
     {
         $this->browser->seed(role: $role);
         $this->scoped(function (): void {
-            $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, '');
-            $this->em()->persist($this->firm);
+            $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, '');
+            $this->em()->persist($firm);
             $this->supplier = new Party(PartyKind::Company, 'Supplier Example s.r.o.', new RegistrationNumber('CZ', '87654321'), VatId::fromString('CZ87654321'), '');
             $this->em()->persist($this->supplier);
             $this->em()->persist(new PartyAddress($this->supplier, AddressType::Billing, new Address('Supplier Street 2', 'Example City', '110 00', 'CZ')));

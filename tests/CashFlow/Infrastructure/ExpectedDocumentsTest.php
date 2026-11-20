@@ -54,7 +54,6 @@ final class ExpectedDocumentsTest extends WebTestCase
 
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private LegalEntity $firm;
 
     protected function setUp(): void
     {
@@ -68,9 +67,9 @@ final class ExpectedDocumentsTest extends WebTestCase
         $user = $this->browser->seed();
         $this->browser->signIn();
         $em = $this->browser->em();
-        $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
-        $em->persist($this->firm);
-        $account = FirmAccounts::add($em, $this->firm, self::IBAN)->id();
+        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
+        $em->persist($firm);
+        $account = FirmAccounts::add($em, self::IBAN)->id();
         $em->flush();
         self::getContainer()->get(TokenStorageInterface::class)->setToken(new UsernamePasswordToken(new SecurityUser($user->id(), $user->email(), 'hash'), 'main', ['ROLE_USER']));
         self::getContainer()->get(BalanceWrites::class)->checkpoint(new RecordCheckpointInput($account, '2026-11-19', '100000.00'));
@@ -174,7 +173,7 @@ final class ExpectedDocumentsTest extends WebTestCase
         $em->persist($supplier);
         $em->persist(new PartyAddress($supplier, AddressType::Billing, new Address('Supplier Street 2', 'Example City', '110 00', 'CZ')));
         $em->flush();
-        $saved = self::getContainer()->get(RecordReceivedDocument::class)->create($this->firm->id(), new ReceivedDocumentInput(
+        $saved = self::getContainer()->get(RecordReceivedDocument::class)->create(new ReceivedDocumentInput(
             ReceivedDocumentKind::TaxInvoice,
             PurchaseTaxTreatment::Domestic,
             $supplier->id(),

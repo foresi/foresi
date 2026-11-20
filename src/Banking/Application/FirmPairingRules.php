@@ -8,12 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Application;
 
-use Foresi\Party\Domain\LegalEntity;
-
 /**
- * The pairing switches of a firm.
+ * The pairing switches of the instance.
  */
 interface FirmPairingRules
 {
-    public function for(LegalEntity $firm): PairingRules;
+    public function get(): PairingRules;
 }

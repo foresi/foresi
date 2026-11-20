@@ -224,7 +224,7 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testSavingStoresServerAndTemplate(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
 
         $this->saveServer(self::SERVER);
         self::assertResponseRedirects($this->url('server'));
@@ -233,8 +233,8 @@ final class FirmMailControllerTest extends WebTestCase
         $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'The “Invoice” template is saved.');
 
-        $server = $this->connection()->fetchAssociative('SELECT legal_entity_id, host, port, encryption, username, from_address, from_name, verified_at FROM firm_mail_server');
-        self::assertSame(['legal_entity_id' => $firm->id(), 'host' => 'smtp.example.com', 'port' => 587, 'encryption' => 'starttls', 'username' => 'invoices@example.com', 'from_address' => 'invoices@example.com', 'from_name' => 'Example Firm', 'verified_at' => null], $server);
+        $server = $this->connection()->fetchAssociative('SELECT host, port, encryption, username, from_address, from_name, verified_at FROM firm_mail_server');
+        self::assertSame(['host' => 'smtp.example.com', 'port' => 587, 'encryption' => 'starttls', 'username' => 'invoices@example.com', 'from_address' => 'invoices@example.com', 'from_name' => 'Example Firm', 'verified_at' => null], $server);
         self::assertSame(self::PASSWORD, $this->storedPassword());
         // The English text was left as built in, so only the Czech one is stored.
         self::assertSame([['language' => 'cs', 'subject' => 'Faktura {number} od nás', 'body' => "Dobrý den,\n{link}"]], $this->connection()->fetchAllAssociative('SELECT language, subject, body FROM mail_template'));
@@ -304,7 +304,7 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testReminderSettingsAreStored(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
         $crawler = $this->client->request('GET', $this->url());
         self::assertCount(0, $crawler->filter('#reminders-enabled[checked]'), 'off until the owner switches it on');
         self::assertSame(['7', '7', ''], [$crawler->filter('#reminders-first')->attr('value'), $crawler->filter('#reminders-every')->attr('value'), $crawler->filter('#reminders-minimum')->attr('value')]);
@@ -314,8 +314,8 @@ final class FirmMailControllerTest extends WebTestCase
 
         self::assertResponseRedirects($this->url());
         self::assertEquals(
-            ['legal_entity_id' => $firm->id(), 'enabled' => 1, 'enabled_on' => '2026-11-02', 'first_after_days' => 10, 'every_days' => 5, 'minimum_minor' => 50050, 'minimum_currency' => 'CZK'],
-            $this->connection()->fetchAssociative('SELECT legal_entity_id, enabled, enabled_on, first_after_days, every_days, minimum_minor, minimum_currency FROM firm_reminders'),
+            ['enabled' => 1, 'enabled_on' => '2026-11-02', 'first_after_days' => 10, 'every_days' => 5, 'minimum_minor' => 50050, 'minimum_currency' => 'CZK'],
+            $this->connection()->fetchAssociative('SELECT enabled, enabled_on, first_after_days, every_days, minimum_minor, minimum_currency FROM firm_reminders'),
         );
         $crawler = $this->client->request('GET', $this->url());
         self::assertCount(1, $crawler->filter('#reminders-enabled[checked]'));
@@ -361,7 +361,7 @@ final class FirmMailControllerTest extends WebTestCase
 
         self::assertResponseRedirects($this->url());
         self::assertSame(['Faktura {number} od nás'], $this->connection()->fetchFirstColumn('SELECT subject FROM mail_template'));
-        self::assertSame([], $this->connection()->fetchFirstColumn('SELECT legal_entity_id FROM firm_reminders'));
+        self::assertSame([], $this->connection()->fetchFirstColumn('SELECT enabled FROM firm_reminders'));
     }
 
     public function testThePreviewSaysWhatSwitchingOnTodayWouldSendWhileOff(): void
@@ -385,7 +385,7 @@ final class FirmMailControllerTest extends WebTestCase
     {
         $this->browser->seed();
         $this->browser->signIn();
-        [$firm, $invoices] = $this->firmWithDeliveredInvoices(['2026-11-10', '2026-10-20']);
+        $invoices = $this->firmWithDeliveredInvoices(['2026-11-10', '2026-10-20']);
 
         // Off: what switching on today would send, with the day of each first reminder.
         $crawler = $this->client->request('GET', $this->url());
@@ -415,12 +415,12 @@ final class FirmMailControllerTest extends WebTestCase
     {
         $this->browser->seed();
         $this->browser->signIn();
-        [$firm, $invoices] = $this->firmWithDeliveredInvoices(['2026-11-10', '2026-11-11', '2026-10-20', '2026-10-21']);
+        $invoices = $this->firmWithDeliveredInvoices(['2026-11-10', '2026-11-11', '2026-10-20', '2026-10-21']);
         [$partly, $paid, $partlyOverdue, $paidOverdue] = $invoices;
-        $this->pay($firm, $partly, '210.00');
-        $this->pay($firm, $paid, '1210.00');
-        $this->pay($firm, $partlyOverdue, '1000.00');
-        $this->pay($firm, $paidOverdue, '1210.00');
+        $this->pay($partly, '210.00');
+        $this->pay($paid, '1210.00');
+        $this->pay($partlyOverdue, '1000.00');
+        $this->pay($paidOverdue, '1210.00');
 
         // Off: the plan of switching on today.
         $rows = $this->client->request('GET', $this->url())->filter('#reminders-preview li');
@@ -833,16 +833,15 @@ final class FirmMailControllerTest extends WebTestCase
      *
      * @param list<string> $dueDates
      *
-     * @return array{LegalEntity, list<Invoice>}
+     * @return list<Invoice>
      */
     private function firmWithDeliveredInvoices(array $dueDates): array
     {
         $em = $this->browser->em();
         $iban = 'CZ6508000000192000145399';
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
-        $em->persist($firm);
-        FirmAccounts::add($em, $firm, $iban);
-        $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+        $em->persist(new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1'));
+        FirmAccounts::add($em, $iban);
+        $series = new Series(Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $series->markDefault();
         $em->persist($series);
         $customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');
@@ -854,18 +853,18 @@ final class FirmMailControllerTest extends WebTestCase
         $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
         $invoices = [];
         foreach ($dueDates as $due) {
-            $invoice = self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($firm->id(), $series->id(), null, $customer->id(), null, $day, $day, new \DateTimeImmutable($due), PaymentMethod::BankTransfer, $iban, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line]));
+            $invoice = self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($series->id(), null, $customer->id(), null, $day, $day, new \DateTimeImmutable($due), PaymentMethod::BankTransfer, $iban, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line]));
             self::getContainer()->get(MarkDelivered::class)->mark($invoice->id());
             $invoices[] = $invoice;
         }
 
-        return [$firm, $invoices];
+        return $invoices;
     }
 
-    private function pay(LegalEntity $firm, Invoice $invoice, string $amount): void
+    private function pay(Invoice $invoice, string $amount): void
     {
         $czk = Money::of($amount, Currency::CZK);
-        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($firm->id(), new \DateTimeImmutable('2026-11-01'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $czk)]));
+        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-01'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $czk)]));
     }
 
     private function url(?string $tab = null): string

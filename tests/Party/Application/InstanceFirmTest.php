@@ -59,6 +59,19 @@ final class InstanceFirmTest extends TestCase
         self::assertSame($oldest, new InstanceFirm($this->firms($younger, $oldest))->get());
     }
 
+    public function testLockGivesTheFirm(): void
+    {
+        $firm = $this->legalEntity('Example Firm', '12345695');
+
+        self::assertSame($firm, new InstanceFirm($this->firms($firm))->lock());
+    }
+
+    public function testLockBeforeTheFirstRunThrows(): void
+    {
+        $this->expectException(NoFirmYet::class);
+        new InstanceFirm($this->firms())->lock();
+    }
+
     private function legalEntity(string $name, string $number): LegalEntity
     {
         return new LegalEntity($name, new RegistrationNumber('CZ', $number), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\CashFlow\Infrastructure\Mcp;
 
+use Foresi\CashFlow\Application\CashFlowAccess;
 use Foresi\CashFlow\Application\CashFlowRefused;
 use Foresi\CashFlow\Application\PlannedItemReads;
 use Foresi\CashFlow\Domain\PlannedItem;
@@ -21,7 +22,7 @@ use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
  */
 final readonly class ListPlannedItemsTool implements ReadTool
 {
-    public function __construct(private PlannedItemReads $items, private InstanceClock $clock)
+    public function __construct(private PlannedItemReads $items, private InstanceClock $clock, private CashFlowAccess $access)
     {
     }
 
@@ -59,6 +60,7 @@ final readonly class ListPlannedItemsTool implements ReadTool
     {
         try {
             $items = $this->items->all();
+            $firm = $this->access->firm();
         } catch (CashFlowRefused $refused) {
             throw CashFlowToolRefusal::of($refused);
         }
@@ -66,7 +68,7 @@ final readonly class ListPlannedItemsTool implements ReadTool
         $count = \count($items);
 
         return new ToolOutput(
-            ['items' => array_map(static fn (PlannedItem $item): array => CashFlowJson::plannedItem($item, $zone), $items)],
+            ['items' => array_map(static fn (PlannedItem $item): array => CashFlowJson::plannedItem($item, $zone, $firm), $items)],
             1 === $count ? '1 planned item.' : \sprintf('%d planned items, oldest first.', $count),
         );
     }

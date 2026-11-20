@@ -673,7 +673,7 @@ final class BankMovementController extends AbstractController
      */
     private function messageRow(MessageRow $row, bool $severalAccounts, string $return): array
     {
-        $received = $this->text->time($row->receivedAt, $row->firmCountry);
+        $received = $this->text->time($row->receivedAt);
         $status = $this->text->status($row->status, $row->stuck);
         $reason = $this->text->reason($row->status, $row->failure, $row->stuck);
         // Only the owner sees the inbound address, which a forwarding confirmation quotes.

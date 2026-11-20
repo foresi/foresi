@@ -112,7 +112,7 @@ final class PayReceivedDocumentTest extends PurchasingTestCase
     public function testACreditNoteIsPaidBackWithAPositiveAmount(): void
     {
         $original = $this->recorded();
-        $note = $this->recording()->create($this->firm->id(), $this->input(kind: ReceivedDocumentKind::CreditNote, supplierNumber: 'DB-1', base: -10_000, originalDocumentId: $original))->document->id();
+        $note = $this->recording()->create($this->input(kind: ReceivedDocumentKind::CreditNote, supplierNumber: 'DB-1', base: -10_000, originalDocumentId: $original))->document->id();
 
         $paid = $this->balances()->of($note);
         self::assertSame(12_100, $paid->balance->remaining->minor());
@@ -253,7 +253,7 @@ final class PayReceivedDocumentTest extends PurchasingTestCase
 
     private function recorded(string $number = 'FV-2026-123'): string
     {
-        return $this->recording()->create($this->firm->id(), $this->input(supplierNumber: $number))->document->id();
+        return $this->recording()->create($this->input(supplierNumber: $number))->document->id();
     }
 
     private function payments(): PayReceivedDocument

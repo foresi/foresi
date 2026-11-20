@@ -35,10 +35,6 @@ final readonly class DoctrinePaymentQueries implements PaymentQueries
         if (!$filter->includeCancelled) {
             $where[] = 'p.cancelledAt IS NULL';
         }
-        if (null !== $filter->firmId) {
-            $where[] = 'IDENTITY(p.firm) = :firm';
-            $parameters['firm'] = [$filter->firmId, null];
-        }
         if (null !== $filter->invoiceId) {
             $where[] = 'p.id IN (SELECT IDENTITY(pa.payment) FROM '.PaymentAllocation::class.' pa WHERE IDENTITY(pa.invoice) = :invoice)';
             $parameters['invoice'] = [$filter->invoiceId, null];
@@ -114,8 +110,6 @@ final readonly class DoctrinePaymentQueries implements PaymentQueries
 
         return array_map(static fn (Payment $payment): PaymentRow => new PaymentRow(
             $payment->id(),
-            $payment->firm()->id(),
-            $payment->firm()->name(),
             $payment->receivedOn(),
             $payment->amount(),
             $payment->direction(),

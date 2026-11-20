@@ -57,7 +57,7 @@ abstract class BankingTestCase extends InvoiceTestCase
         $this->matcher = $container->get(Matcher::class);
         $this->movements = $container->get(BankMovements::class);
         $this->payments = $container->get(InvoicePayments::class);
-        $account = $container->get(FirmBankAccounts::class)->primaryOf($this->firm);
+        $account = $container->get(FirmBankAccounts::class)->primary();
         self::assertInstanceOf(FirmBankAccount::class, $account);
         $this->account = $account;
     }

@@ -16,23 +16,17 @@ use Foresi\Invoicing\Application\PendingExport;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatId;
-use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Money;
-use Foresi\Tests\Party\Support\FirmAccounts;
 
 /**
  * Today is 20 November 2026, so the last month is October.
  */
 final class InvoicingOverviewTest extends AdvanceTestCase
 {
-    private const string SECOND_IBAN = 'CZ5508000000001234567899';
-
     private InvoicingOverview $overview;
 
     protected function setUp(): void
@@ -52,7 +46,7 @@ final class InvoicingOverviewTest extends AdvanceTestCase
         $this->advance([$this->line('3000.00')], ['issueDate' => new \DateTimeImmutable('2026-11-05'), 'taxPointDate' => new \DateTimeImmutable('2026-11-05')]);
         $this->em->flush();
 
-        $summary = $this->overview->of(null);
+        $summary = $this->overview->summary();
 
         self::assertSame('2026-11', $summary->thisMonth->month);
         self::assertSame([2, 50000, 10500, 60500], $this->figures($summary->thisMonth));
@@ -76,7 +70,7 @@ final class InvoicingOverviewTest extends AdvanceTestCase
         $this->advance([$this->line('50.00')], ['dueDate' => new \DateTimeImmutable('2026-08-01')]);
         $this->em->flush();
 
-        $summary = $this->overview->of(null);
+        $summary = $this->overview->summary();
 
         // The 50 advance asks for 61 rounded. Not yet due: 500 on its due day, and what the partly paid one leaves.
         self::assertSame([8, 254100 + 100000 + 6100], [$summary->unpaidCount, $summary->unpaid->minor()]);
@@ -95,7 +89,7 @@ final class InvoicingOverviewTest extends AdvanceTestCase
         }
         $this->em->flush();
 
-        $debtors = $this->overview->of(null)->debtors;
+        $debtors = $this->overview->summary()->debtors;
 
         self::assertSame([
             ['Epsilon Example a.s.', 48400, 1],
@@ -113,39 +107,28 @@ final class InvoicingOverviewTest extends AdvanceTestCase
         $this->invoice('1000.00', '2026-11-30', taxPoint: '2026-11-10');
         $this->em->flush();
 
-        self::assertEquals([new PendingExport($this->firm->id(), 'Example Firm s.r.o.', '2026-10', 2)], $this->overview->of(null)->pending);
+        self::assertEquals([new PendingExport('2026-10', 2)], $this->overview->summary()->pending);
 
         self::getContainer()->get(DocumentExports::class)->markExported([$october->id(), $advance->id()]);
 
-        self::assertSame([], $this->overview->of(null)->pending);
+        self::assertSame([], $this->overview->summary()->pending);
     }
 
-    public function testAFirmNarrowsEverythingAndAnUnknownOneCoversAll(): void
+    public function testAnyDocumentMakesTheOverviewWorthShowing(): void
     {
+        self::assertFalse($this->overview->hasDocuments());
+
         $this->invoice('1000.00', '2026-11-30', taxPoint: '2026-10-10');
-        $second = $this->secondFirm();
-        $this->invoice('100.00', '2026-11-30', taxPoint: '2026-10-10', firm: $second);
         $this->em->flush();
 
-        self::assertSame([$this->firm->id() => 'Example Firm s.r.o.', $second->id() => 'Example Second s.r.o.'], $this->overview->firms());
-
-        $narrowed = $this->overview->of($second->id());
-        self::assertSame($second->id(), $narrowed->firmId);
-        self::assertSame([1, 10000, 2100, 12100], $this->figures($narrowed->lastMonth));
-        self::assertSame(12100, $narrowed->unpaid->minor());
-        self::assertEquals([new PendingExport($second->id(), 'Example Second s.r.o.', '2026-10', 1)], $narrowed->pending);
-
-        $all = $this->overview->of('0190a1b2-0000-7000-8000-000000000000');
-        self::assertNull($all->firmId);
-        self::assertSame(133100, $all->unpaid->minor());
-        self::assertCount(2, $all->pending);
+        self::assertTrue($this->overview->hasDocuments());
     }
 
     public function testNothingIssuedGivesZeros(): void
     {
-        $summary = $this->overview->of(null);
+        $summary = $this->overview->summary();
 
-        self::assertSame([], $this->overview->firms());
+        self::assertFalse($this->overview->hasDocuments());
         self::assertSame([0, 0, 0, 0], $this->figures($summary->thisMonth));
         self::assertSame([0, 0, 0, 0], [$summary->unpaidCount, $summary->unpaid->minor(), $summary->overdueCount, $summary->overdue->minor()]);
         self::assertSame([], $summary->debtors);
@@ -160,20 +143,19 @@ final class InvoicingOverviewTest extends AdvanceTestCase
         return [$month->count, $month->base->minor(), $month->vat->minor(), $month->total->minor()];
     }
 
-    private function invoice(string $price, string $due, ?Party $customer = null, string $taxPoint = '2026-09-01', ?LegalEntity $firm = null): Invoice
+    private function invoice(string $price, string $due, ?Party $customer = null, string $taxPoint = '2026-09-01'): Invoice
     {
         $date = new \DateTimeImmutable($taxPoint);
 
         return $this->issue->issue($this->input([$this->line($price)], [
-            'firmId' => ($firm ?? $this->firm)->id(),
-            'seriesId' => $firm instanceof LegalEntity ? null : $this->series->id(),
+            'seriesId' => $this->series->id(),
             'customerId' => ($customer ?? $this->customer)->id(),
             'issueDate' => $date,
             'taxPointDate' => $date,
             'dueDate' => new \DateTimeImmutable($due),
             'variableSymbol' => '',
             'variableSymbolFollowsNumber' => true,
-            'bankAccount' => $firm instanceof LegalEntity ? self::SECOND_IBAN : self::IBAN,
+            'bankAccount' => self::IBAN,
         ]));
     }
 
@@ -185,15 +167,5 @@ final class InvoicingOverviewTest extends AdvanceTestCase
         $this->em->flush();
 
         return $party;
-    }
-
-    private function secondFirm(): LegalEntity
-    {
-        $firm = new LegalEntity('Example Second s.r.o.', new RegistrationNumber('CZ', '12345687'), VatId::fromString('CZ12345687'), new Address('Example Street 2', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 2');
-        $this->em->persist($firm);
-        FirmAccounts::add($this->em, $firm, self::SECOND_IBAN);
-        $this->em->flush();
-
-        return $firm;
     }
 }

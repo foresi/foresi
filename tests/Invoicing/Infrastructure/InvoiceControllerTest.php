@@ -89,7 +89,6 @@ final class InvoiceControllerTest extends WebTestCase
     private const array REFUSED_FOR_CORRECTIONS = ['invoice.problem.correction_kind', 'invoice.problem.correction_link_missing', 'invoice.problem.correction_link_locked', 'invoice.problem.correction_original_invalid', 'invoice.problem.correction_firm', 'invoice.problem.correction_customer', 'invoice.problem.correction_reason_missing', 'invoice.problem.correction_type_missing', 'invoice.problem.correction_decisive_date_missing', 'invoice.problem.correction_tax_point', 'invoice.problem.correction_rate_unknown', 'invoice.problem.correction_over_original', 'invoice.problem.correction_deducted', 'invoice.problem.correction_payment_change'];
     private const array REFUSED_ELSEWHERE = ['invoice.problem.changed_meanwhile', 'invoice.problem.numbers_exhausted', 'invoice.problem.tax_document_exists', 'invoice.problem.no_tax_on_receipt', 'invoice.problem.payment_unknown', 'invoice.problem.already_deducted', 'invoice.problem.import_kind_unsupported', 'invoice.problem.tax_document_with_vat', 'invoice.problem.billed_work_gone'];
     private const string IBAN = 'CZ6508000000192000145399';
-    private const string OTHER_IBAN = 'CZ5508000000001234567899';
     private const array CUSTOMER = ['name' => 'Example Customer a.s.', 'registrationNumber' => '87654320', 'vatId' => 'CZ87654320', 'street' => 'Customer Street 2', 'city' => 'Customer City', 'postalCode' => '200 00', 'countryCode' => 'CZ', 'email' => '', 'phone' => '', 'web' => '', 'registerEntry' => ''];
 
     private KernelBrowser $client;
@@ -885,7 +884,7 @@ final class InvoiceControllerTest extends WebTestCase
         $this->scoped(function (): void {
             $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
             $firm->update($firm->name(), $firm->registrationNumber(), $firm->vatId(), $firm->address(), $firm->vatStatus(), '');
-            FirmAccounts::archiveAll($this->em(), $firm);
+            FirmAccounts::archiveAll($this->em());
             $this->em()->flush();
         });
 
@@ -1506,8 +1505,8 @@ final class InvoiceControllerTest extends WebTestCase
     {
         return $this->scoped(function (): Invoice {
             $line = new LineInput('Milestone', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
-            $advance = self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($this->firm->id(), null, null, $this->customer->id(), null, new \DateTimeImmutable('2026-11-01'), null, new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Milestone', '', '', DocumentLanguage::Czech, [$line], true, DocumentKind::Advance, TaxOnReceiptChoice::Skip));
-            self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-10-31'), Money::of('1210.00', Currency::CZK), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($advance->id(), Money::of('1210.00', Currency::CZK))]));
+            $advance = self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput(null, null, $this->customer->id(), null, new \DateTimeImmutable('2026-11-01'), null, new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Milestone', '', '', DocumentLanguage::Czech, [$line], true, DocumentKind::Advance, TaxOnReceiptChoice::Skip));
+            self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-10-31'), Money::of('1210.00', Currency::CZK), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($advance->id(), Money::of('1210.00', Currency::CZK))]));
             // The supply is known now: by the rules VAT arose on the payment.
             $this->em()->getConnection()->executeStatement('UPDATE invoice SET tax_on_receipt = NULL WHERE id = ?', [$advance->id()]);
 
@@ -1607,11 +1606,10 @@ final class InvoiceControllerTest extends WebTestCase
     {
         $this->signedIn(series: false);
         $this->scoped(function (): void {
-            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('The firm is missing.');
-            $advances = new Series($firm, 'Advances', SeriesFormat::fromString('ZF{YYYY}{NNNN}'), DocumentKind::Advance);
+            $advances = new Series('Advances', SeriesFormat::fromString('ZF{YYYY}{NNNN}'), DocumentKind::Advance);
             $advances->archive();
             $this->em()->persist($advances);
-            $this->em()->persist(new Series($firm, 'More advances', SeriesFormat::fromString('ZG{YYYY}{NNNN}'), DocumentKind::Advance));
+            $this->em()->persist(new Series('More advances', SeriesFormat::fromString('ZG{YYYY}{NNNN}'), DocumentKind::Advance));
             $this->em()->flush();
         });
 
@@ -1840,8 +1838,7 @@ final class InvoiceControllerTest extends WebTestCase
         $this->signedIn();
         $invoice = $this->issued();
         $other = $this->scoped(function (): Series {
-            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
-            $series = new Series($firm, 'Second', SeriesFormat::fromString('S{YYYY}{NNN}'), DocumentKind::Invoice);
+            $series = new Series('Second', SeriesFormat::fromString('S{YYYY}{NNN}'), DocumentKind::Invoice);
             $this->em()->persist($series);
             $this->em()->flush();
 
@@ -2056,7 +2053,7 @@ final class InvoiceControllerTest extends WebTestCase
         $pdf = "%PDF-1.4\n% the original from the source\n%%EOF\n";
         $id = $this->scoped(function () use ($pdf): string {
             $series = $this->em()->find(Series::class, $this->series->id()) ?? throw new \LogicException('Series.');
-            $input = new InvoiceInput($this->firm->id(), $series->id(), '20240007', $this->customer->id(), null, new \DateTimeImmutable('2024-03-01'), new \DateTimeImmutable('2024-03-01'), new \DateTimeImmutable('2024-03-15'), PaymentMethod::BankTransfer, self::IBAN, '20240007', '', '', '', '', '', DocumentLanguage::Czech, [new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))]);
+            $input = new InvoiceInput($series->id(), '20240007', $this->customer->id(), null, new \DateTimeImmutable('2024-03-01'), new \DateTimeImmutable('2024-03-01'), new \DateTimeImmutable('2024-03-15'), PaymentMethod::BankTransfer, self::IBAN, '20240007', '', '', '', '', '', DocumentLanguage::Czech, [new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))]);
             $issuer = new DocumentParty('Old Name s.r.o.', '12345695', 'CZ12345695', new Address('Old Street 5', 'Old City', '110 00', 'CZ'), '', null, '', '', null, null);
             $result = self::getContainer()->get(ImportIssuedDocument::class)->import(new ImportedDocumentInput($input, $issuer, VatRegime::Payer, TotalRounding::WholeUnit, new \DateTimeImmutable('2024-03-01 09:30'), new \DateTimeImmutable('2024-03-02'), null, new ImportedTotals(100000, 21000, 121000, 121000), 'idoklad', '4711', '0192f0a0-0000-7000-8000-000000000001', $pdf));
 
@@ -2501,22 +2498,6 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSame('reverse_charge', $values['lines'][0]['vat']);
     }
 
-    public function testAnotherFirmInTheQueryOrTheFormIsIgnoredAndTheInstanceFirmIssues(): void
-    {
-        $this->signedIn();
-        $second = $this->secondFirm(VatStatus::NotRegistered);
-
-        $this->client->request('GET', '/invoices/new', ['firm' => $second->id()]);
-        self::assertSelectorTextContains('[data-firm-text]', 'Example Firm s.r.o.');
-        $this->client->request('GET', '/invoices/new', ['firm' => '00000000-0000-7000-8000-000000000000']);
-        self::assertResponseIsSuccessful();
-
-        $this->save(array_merge($this->filled(), ['firmId' => $second->id()]));
-
-        self::assertResponseRedirects('/invoices');
-        self::assertSame($this->firm->id(), $this->onlyInvoice()->firm()->id());
-    }
-
     public function testOneFirmIsPlainText(): void
     {
         $this->signedIn();
@@ -2545,8 +2526,7 @@ final class InvoiceControllerTest extends WebTestCase
     {
         $this->signedIn();
         $this->scoped(function (): void {
-            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
-            $settings = FirmInvoicing::standard($firm);
+            $settings = FirmInvoicing::standard();
             $settings->change(TotalRounding::WholeUnit, '', '', '', '', '', '');
             self::getContainer()->get(FirmInvoicingSettings::class)->save($settings);
             $this->em()->flush();
@@ -2757,9 +2737,9 @@ final class InvoiceControllerTest extends WebTestCase
         $vatId = VatStatus::Registered === $status ? VatId::fromString('CZ12345695') : null;
         $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), $vatId, $address ?? new Address('Example Street 1', 'Example City', '100 00', 'CZ'), $status, 'Example register, entry C 1');
         $this->em()->persist($this->firm);
-        FirmAccounts::add($this->em(), $this->firm, self::IBAN);
+        FirmAccounts::add($this->em(), self::IBAN);
         if ($series) {
-            $this->series = new Series($this->firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+            $this->series = new Series(Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
             $this->series->markDefault();
             $this->em()->persist($this->series);
         }
@@ -2774,8 +2754,7 @@ final class InvoiceControllerTest extends WebTestCase
     private function withoutBankAccounts(): void
     {
         $this->scoped(function (): void {
-            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
-            FirmAccounts::archiveAll($this->em(), $firm);
+            FirmAccounts::archiveAll($this->em());
             $this->em()->flush();
         });
     }
@@ -2810,25 +2789,11 @@ final class InvoiceControllerTest extends WebTestCase
     private function secondSeries(): Series
     {
         return $this->scoped(function (): Series {
-            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
-            $series = new Series($firm, 'Second', SeriesFormat::fromString('S{YYYY}{NNN}'), DocumentKind::Invoice);
+            $series = new Series('Second', SeriesFormat::fromString('S{YYYY}{NNN}'), DocumentKind::Invoice);
             $this->em()->persist($series);
             $this->em()->flush();
 
             return $series;
-        });
-    }
-
-    private function secondFirm(VatStatus $status): LegalEntity
-    {
-        return $this->scoped(function () use ($status): LegalEntity {
-            $vatId = VatStatus::Registered === $status ? VatId::fromString('CZ12345687') : null;
-            $firm = new LegalEntity('Example Second s.r.o.', new RegistrationNumber('CZ', '12345687'), $vatId, new Address('Example Street 2', 'Example City', '100 00', 'CZ'), $status, 'Example register, entry C 2');
-            $this->em()->persist($firm);
-            FirmAccounts::add($this->em(), $firm, self::OTHER_IBAN);
-            $this->em()->flush();
-
-            return $firm;
         });
     }
 

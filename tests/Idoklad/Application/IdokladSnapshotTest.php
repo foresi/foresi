@@ -29,10 +29,6 @@ use Foresi\Idoklad\Infrastructure\Http\HttpIdokladClient;
 use Foresi\Idoklad\Infrastructure\Http\HttpIdokladSession;
 use Foresi\Invoicing\Application\MailSecrets;
 use Foresi\Party\Application\TransactionalWork;
-use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\LegalEntity;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
@@ -49,7 +45,6 @@ final class IdokladSnapshotTest extends KernelTestCase
     private EntityManagerInterface $em;
     private ConnectIdoklad $connect;
     private MockClock $clock;
-    private LegalEntity $firm;
 
     /** @var array<string, list<ResponseInterface>> answers by path, the first one next */
     private array $answers = [];
@@ -68,14 +63,11 @@ final class IdokladSnapshotTest extends KernelTestCase
         $tool->createSchema($metadata);
         $this->connect = $container->get(ConnectIdoklad::class);
         $this->clock = new MockClock('2026-11-06 10:00:00');
-
-        $this->firm = $this->newFirm('12345678');
-        $this->em->flush();
     }
 
     public function testTheSecretIsStoredSealedAndOutOfTheAuditLog(): void
     {
-        $this->connect->connect($this->firm, ' example-client ', ' '.self::SECRET.' ');
+        $this->connect->connect(' example-client ', ' '.self::SECRET.' ');
         $this->em->clear();
 
         $connection = $this->connection();
@@ -91,27 +83,27 @@ final class IdokladSnapshotTest extends KernelTestCase
         self::assertStringNotContainsString($rows[0]['secret_sealed'], $auditText);
         self::assertStringContainsString('example-client', $auditText, 'The rest of the connection is audited.');
 
-        $stored = $this->stored()->for($this->storedFirm());
+        $stored = $this->stored()->get();
         self::assertInstanceOf(IdokladConnection::class, $stored);
         self::assertSame(self::SECRET, self::getContainer()->get(MailSecrets::class)->open($stored->sealedSecret()));
     }
 
     public function testConnectingAgainReplacesTheCredentialsAndDisconnectingDeletesThem(): void
     {
-        $first = $this->connect->connect($this->firm, 'example-client', self::SECRET);
-        $second = $this->connect->connect($this->firm, 'other-client', 'other-secret');
+        $first = $this->connect->connect('example-client', self::SECRET);
+        $second = $this->connect->connect('other-client', 'other-secret');
         self::assertSame($first->id(), $second->id());
         $this->em->clear();
 
-        $stored = $this->stored()->for($this->storedFirm());
+        $stored = $this->stored()->get();
         self::assertInstanceOf(IdokladConnection::class, $stored);
         self::assertSame('other-client', $stored->clientId());
         self::assertSame('other-secret', self::getContainer()->get(MailSecrets::class)->open($stored->sealedSecret()));
 
-        self::assertTrue($this->connect->disconnect($this->storedFirm()));
+        self::assertTrue($this->connect->disconnect());
         self::assertSame(0, $this->connection()->fetchOne('SELECT COUNT(*) FROM idoklad_connection'));
-        self::assertFalse($this->connect->disconnect($this->storedFirm()));
-        self::assertNull($this->stored()->for($this->storedFirm()));
+        self::assertFalse($this->connect->disconnect());
+        self::assertNull($this->stored()->get());
     }
 
     /**
@@ -129,28 +121,28 @@ final class IdokladSnapshotTest extends KernelTestCase
     public function testInvalidCredentialsAreRefused(string $clientId, string $secret, string $message): void
     {
         try {
-            $this->connect->connect($this->firm, $clientId, $secret);
+            $this->connect->connect($clientId, $secret);
             self::fail('The credentials are refused.');
         } catch (InvalidIdokladConnection $invalid) {
             self::assertSame($message, $invalid->getMessage());
         }
         self::assertSame(0, $this->connection()->fetchOne('SELECT COUNT(*) FROM idoklad_connection'));
-        new IdokladConnection($this->firm, str_repeat('c', 255), 'sealed');
+        new IdokladConnection(str_repeat('c', 255), 'sealed');
     }
 
     public function testASealedSecretIsRequired(): void
     {
         $this->expectException(InvalidIdokladConnection::class);
         $this->expectExceptionMessageIsOrContains('The iDoklad connection needs a client secret.');
-        new IdokladConnection($this->firm, 'example-client', '');
+        new IdokladConnection('example-client', '');
     }
 
     public function testAPullStoresEveryRecordOfEveryListAndCountsThem(): void
     {
-        $this->connect->connect($this->firm, 'example-client', self::SECRET);
+        $this->connect->connect('example-client', self::SECRET);
         $this->answerAll();
 
-        $pull = $this->pull()->pull($this->firm);
+        $pull = $this->pull()->pull();
 
         self::assertTrue($pull->succeeded());
         self::assertSame([
@@ -168,9 +160,8 @@ final class IdokladSnapshotTest extends KernelTestCase
         self::assertStringNotContainsString('filter', implode(' ', $this->sent));
 
         $this->em->clear();
-        $firm = $this->storedFirm();
         $snapshot = $this->snapshot();
-        $invoices = [...$snapshot->records($firm, IdokladResource::IssuedInvoices)];
+        $invoices = [...$snapshot->records(IdokladResource::IssuedInvoices)];
         self::assertSame([101, 102], array_map(static fn (IdokladRecord $record): int => $record->externalId(), $invoices));
         $fixture = json_decode((string) file_get_contents(__DIR__.'/../Fixtures/issued-invoices.json'), true, 32, \JSON_THROW_ON_ERROR);
         \assert(\is_array($fixture) && \is_array($fixture['Data']) && \is_array($fixture['Data']['Items']));
@@ -178,26 +169,25 @@ final class IdokladSnapshotTest extends KernelTestCase
         self::assertSame('2026-10-02T10:39:22.873', $invoices[0]->changedAt());
         self::assertSame(IdokladResource::IssuedInvoices, $invoices[0]->resource());
         self::assertEquals(new \DateTimeImmutable('2026-11-06 10:00:00'), $invoices[0]->pulledAt());
-        self::assertSame('2026-10-04T08:00:00', $snapshot->record($firm, IdokladResource::Logs, 77)?->changedAt());
-        self::assertNull($snapshot->record($firm, IdokladResource::Contacts, 102));
-        self::assertSame($pull->id(), $snapshot->lastSucceededPull($firm)?->id());
+        self::assertSame('2026-10-04T08:00:00', $snapshot->record(IdokladResource::Logs, 77)?->changedAt());
+        self::assertNull($snapshot->record(IdokladResource::Contacts, 102));
+        self::assertSame($pull->id(), $snapshot->lastSucceededPull()?->id());
         $stored = $this->em->find(IdokladPull::class, $pull->id());
         self::assertSame($pull->counts(), $stored?->counts());
-        self::assertSame($firm->id(), $stored->firm()->id());
     }
 
     public function testADeltaPullFiltersTheListsThatCanAndReplacesChangedRecords(): void
     {
-        $this->connect->connect($this->firm, 'example-client', self::SECRET);
+        $this->connect->connect('example-client', self::SECRET);
         $this->answerAll();
-        $first = $this->pull()->pull($this->firm);
+        $first = $this->pull()->pull();
         $since = $first->latestChange();
         self::assertNotNull($since);
 
         $this->sent = [];
         $this->answerAll(invoices: [['Id' => 101, 'DocumentNumber' => '20260001', 'Metadata' => ['DateLastChange' => '2026-10-07T09:00:00.5']]]);
         $this->clock->sleep(60);
-        $delta = $this->pull()->pull($this->firm, $since);
+        $delta = $this->pull()->pull($since);
 
         self::assertSame('2026-10-05T12:00:00', $delta->changedSince());
         self::assertSame('2026-10-07T09:00:00.5', $delta->latestChange());
@@ -213,28 +203,27 @@ final class IdokladSnapshotTest extends KernelTestCase
         self::assertContains('/v3/BankAccounts?page=1&pagesize=200', $this->sent);
 
         $this->em->clear();
-        $firm = $this->storedFirm();
         self::assertSame(2, $this->connection()->fetchOne("SELECT COUNT(*) FROM idoklad_record WHERE resource = 'IssuedInvoices'"));
-        $changed = $this->snapshot()->record($firm, IdokladResource::IssuedInvoices, 101);
+        $changed = $this->snapshot()->record(IdokladResource::IssuedInvoices, 101);
         self::assertSame(['Id' => 101, 'DocumentNumber' => '20260001', 'Metadata' => ['DateLastChange' => '2026-10-07T09:00:00.5']], $changed?->payload());
         self::assertEquals(new \DateTimeImmutable('2026-11-06 10:01:00'), $changed->pulledAt());
-        self::assertSame($delta->id(), $this->snapshot()->lastSucceededPull($firm)?->id());
+        self::assertSame($delta->id(), $this->snapshot()->lastSucceededPull()?->id());
     }
 
     public function testADeltaPullNeedsAMomentAsIdokladWritesIt(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        new IdokladPull($this->firm, new \DateTimeImmutable(), '2026-10-05 12:00');
+        new IdokladPull(new \DateTimeImmutable(), '2026-10-05 12:00');
     }
 
     public function testAPullThatStopsRecordsWhyAndKeepsWhatItGot(): void
     {
-        $this->connect->connect($this->firm, 'example-client', self::SECRET);
+        $this->connect->connect('example-client', self::SECRET);
         $this->answerAll();
         $this->answers['/v3/IssuedInvoices'] = [new JsonMockResponse(['IsSuccess' => false], ['http_code' => 402])];
 
         try {
-            $this->pull()->pull($this->firm);
+            $this->pull()->pull();
             self::fail('A tariff without the API stops the pull.');
         } catch (IdokladTariffWithoutApi) {
         }
@@ -248,16 +237,16 @@ final class IdokladSnapshotTest extends KernelTestCase
         self::assertIsString($pulls[0]['counts']);
         self::assertSame(['Contacts' => 1, 'NumericSequences' => 1], json_decode($pulls[0]['counts'], true));
         self::assertSame(2, $this->connection()->fetchOne('SELECT COUNT(*) FROM idoklad_record'));
-        self::assertNull($this->snapshot()->lastSucceededPull($this->storedFirm()));
+        self::assertNull($this->snapshot()->lastSucceededPull());
     }
 
     public function testARecordWithoutAnIdStopsThePullBeforeThePageIsStored(): void
     {
-        $this->connect->connect($this->firm, 'example-client', self::SECRET);
+        $this->connect->connect('example-client', self::SECRET);
         $this->answerAll(invoices: [['Id' => 103], ['DocumentNumber' => 'no id']]);
 
         try {
-            $this->pull()->pull($this->firm);
+            $this->pull()->pull();
             self::fail('A record without an id cannot be kept.');
         } catch (IdokladFailure $failure) {
             self::assertSame('iDoklad returned a record of IssuedInvoices without an id.', $failure->getMessage());
@@ -266,10 +255,10 @@ final class IdokladSnapshotTest extends KernelTestCase
         self::assertSame('iDoklad returned a record of IssuedInvoices without an id.', $this->connection()->fetchOne('SELECT error FROM idoklad_pull'));
     }
 
-    public function testAFirmWithoutCredentialsCannotPull(): void
+    public function testWithoutCredentialsCannotPull(): void
     {
         try {
-            $this->pull()->pull($this->firm);
+            $this->pull()->pull();
             self::fail('There is nothing to pull with.');
         } catch (IdokladNotConnected $missing) {
             self::assertSame('The firm has no iDoklad connection.', $missing->getMessage());
@@ -280,75 +269,74 @@ final class IdokladSnapshotTest extends KernelTestCase
 
     public function testThePdfsOfPulledDocumentsAreDownloadedOnceUntilTheyChange(): void
     {
-        $this->connect->connect($this->firm, 'example-client', self::SECRET);
+        $this->connect->connect('example-client', self::SECRET);
         $this->answerAll();
-        $this->pull()->pull($this->firm);
+        $this->pull()->pull();
         $this->sent = [];
         foreach (['/v3/Reports/IssuedInvoice/101/Pdf', '/v3/Reports/IssuedInvoice/102/Pdf', '/v3/Reports/ProformaInvoice/201/Pdf'] as $path) {
             $this->answers[$path] = [$this->answer(base64_encode(self::PDF))];
         }
 
-        $download = $this->pull()->downloadPdfs($this->firm, 3);
+        $download = $this->pull()->downloadPdfs(3);
 
         self::assertSame(3, $download->downloaded);
         self::assertSame(3, $download->requestsUsed);
         self::assertSame(['/v3/Reports/IssuedInvoice/101/Pdf', '/v3/Reports/IssuedInvoice/102/Pdf', '/v3/Reports/ProformaInvoice/201/Pdf'], $this->sent);
         $this->em->clear();
-        $firm = $this->storedFirm();
-        $record = $this->snapshot()->record($firm, IdokladResource::IssuedInvoices, 101);
+        $record = $this->snapshot()->record(IdokladResource::IssuedInvoices, 101);
         self::assertNotNull($record?->pdfKey());
         self::assertSame(hash('sha256', self::PDF), $record->pdfSha256());
         self::assertSame(self::PDF, self::getContainer()->get(IdokladFiles::class)->read($record->id(), $record->pdfKey(), $record->pdfSha256()));
-        self::assertSame([202], array_map(static fn (IdokladRecord $record): int => $record->externalId(), $this->snapshot()->withoutPdf($firm, 10)));
+        self::assertSame([202], array_map(static fn (IdokladRecord $record): int => $record->externalId(), $this->snapshot()->withoutPdf(10)));
 
         // A pull that brings the same record keeps its PDF; a changed one asks for it again.
         $this->answerAll(invoices: [$record->payload(), ['Id' => 102, 'DocumentNumber' => 'changed']]);
-        $this->pull()->pull($firm);
+        $this->pull()->pull();
         $this->em->clear();
-        self::assertSame([102, 202], array_map(static fn (IdokladRecord $record): int => $record->externalId(), $this->snapshot()->withoutPdf($this->storedFirm(), 10)));
+        self::assertSame([102, 202], array_map(static fn (IdokladRecord $record): int => $record->externalId(), $this->snapshot()->withoutPdf(10)));
     }
 
     public function testADocumentThatIsNotAPdfStopsTheDownload(): void
     {
-        $this->connect->connect($this->firm, 'example-client', self::SECRET);
+        $this->connect->connect('example-client', self::SECRET);
         $this->answerAll();
-        $this->pull()->pull($this->firm);
+        $this->pull()->pull();
         $this->answers['/v3/Reports/IssuedInvoice/101/Pdf'] = [$this->answer(base64_encode('<html>'))];
 
         $this->expectException(IdokladFailure::class);
         $this->expectExceptionMessageIsOrContains('iDoklad returned a document that is not a PDF.');
-        $this->pull()->downloadPdfs($this->firm, 10);
+        $this->pull()->downloadPdfs(10);
     }
 
     public function testADocumentThatIsNotBase64StopsTheDownload(): void
     {
-        $this->connect->connect($this->firm, 'example-client', self::SECRET);
+        $this->connect->connect('example-client', self::SECRET);
         $this->answerAll();
-        $this->pull()->pull($this->firm);
+        $this->pull()->pull();
         $this->answers['/v3/Reports/IssuedInvoice/101/Pdf'] = [$this->answer('%PDF-not base64!')];
 
         $this->expectException(IdokladFailure::class);
         $this->expectExceptionMessageIsOrContains('iDoklad returned a document that is not a PDF.');
-        $this->pull()->downloadPdfs($this->firm, 10);
+        $this->pull()->downloadPdfs(10);
     }
 
     public function testAnAnswerThatIsNoTextStopsTheDownload(): void
     {
-        $this->connect->connect($this->firm, 'example-client', self::SECRET);
+        $this->connect->connect('example-client', self::SECRET);
         $this->answerAll();
-        $this->pull()->pull($this->firm);
+        $this->pull()->pull();
         $this->answers['/v3/Reports/IssuedInvoice/101/Pdf'] = [$this->answer(['Pdf' => base64_encode(self::PDF)])];
 
         $this->expectException(IdokladFailure::class);
         $this->expectExceptionMessageIsOrContains('iDoklad returned a document that is not a PDF.');
-        $this->pull()->downloadPdfs($this->firm, 10);
+        $this->pull()->downloadPdfs(10);
     }
 
-    public function testAFirmWithoutCredentialsCannotBeVerified(): void
+    public function testWithoutCredentialsCannotBeVerified(): void
     {
         $this->expectException(IdokladNotConnected::class);
         $this->expectExceptionMessageIsOrContains('The firm has no iDoklad connection.');
-        self::getContainer()->get(VerifyIdokladConnection::class)->verify($this->firm);
+        self::getContainer()->get(VerifyIdokladConnection::class)->verify();
     }
 
     /**
@@ -414,19 +402,6 @@ final class IdokladSnapshotTest extends KernelTestCase
     private function answer(mixed $data): JsonMockResponse
     {
         return new JsonMockResponse(['Data' => $data, 'ErrorCode' => 0, 'IsSuccess' => true, 'Message' => '', 'StatusCode' => 200]);
-    }
-
-    private function newFirm(string $registrationNumber): LegalEntity
-    {
-        $firm = new LegalEntity('Example s.r.o.', new RegistrationNumber('CZ', $registrationNumber), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
-        $this->em->persist($firm);
-
-        return $firm;
-    }
-
-    private function storedFirm(): LegalEntity
-    {
-        return $this->em->find(LegalEntity::class, $this->firm->id()) ?? self::fail('The firm is stored.');
     }
 
     private function stored(): IdokladConnections

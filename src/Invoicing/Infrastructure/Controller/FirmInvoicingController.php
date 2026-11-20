@@ -40,8 +40,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The invoicing settings and number series of a firm, for the owner, worked like
- * the firm form. An unknown firm or series answers 404; a series of another firm
- * does too.
+ * the firm form. Without a firm, or for an unknown series, it answers 404.
  */
 final class FirmInvoicingController extends AbstractController
 {
@@ -67,17 +66,17 @@ final class FirmInvoicingController extends AbstractController
     public function settings(Request $request): Response
     {
         $this->denyUnlessOwner();
-        $firm = $this->firm();
-        $settings = $this->settings->for($firm);
+        $this->firm();
+        $settings = $this->settings->get();
         if (!$request->isMethod('POST')) {
-            return $this->settingsForm($firm, $this->valuesOf($settings), [], Response::HTTP_OK);
+            return $this->settingsForm($this->valuesOf($settings), [], Response::HTTP_OK);
         }
 
         $this->checkToken($request, self::SETTINGS_TOKEN);
         $submission = $this->reader->settings($request);
         $rounding = TotalRounding::tryFrom($submission->values['rounding']);
         if ([] !== $submission->errors || !$rounding instanceof TotalRounding) {
-            return $this->settingsForm($firm, $submission->values, $submission->errors, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->settingsForm($submission->values, $submission->errors, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $values = $submission->values;
@@ -87,8 +86,8 @@ final class FirmInvoicingController extends AbstractController
                 $this->settings->save($settings);
             });
         } catch (UniqueConstraintViolationException) {
-            // Another request stored the first settings of this firm meanwhile.
-            return $this->settingsForm($firm, $values, ['form' => ['firm.invoicing.error.save_failed']], Response::HTTP_UNPROCESSABLE_ENTITY);
+            // Another request stored the first settings meanwhile.
+            return $this->settingsForm($values, ['form' => ['firm.invoicing.error.save_failed']], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         $this->addFlash('success', $this->translator->trans('firm.invoicing.flash.saved'));
 
@@ -99,12 +98,12 @@ final class FirmInvoicingController extends AbstractController
     public function newSeries(Request $request): Response
     {
         $this->denyUnlessOwner();
-        $firm = $this->firm();
+        $this->firm();
         if (!$request->isMethod('POST')) {
             $kind = DocumentKind::tryFrom($request->query->getString('kind')) ?? DocumentKind::Invoice;
             $values = ['name' => '', 'format' => $kind->standardSeriesFormat(), 'startYear' => $this->today()->format('Y'), 'nextNumber' => '', 'default' => '', 'kind' => $kind->value];
 
-            return $this->seriesForm($firm, null, $values, [], $this->tokens->issue(), Response::HTTP_OK);
+            return $this->seriesForm(null, $values, [], $this->tokens->issue(), Response::HTTP_OK);
         }
 
         $this->checkToken($request, self::SERIES_TOKEN);
@@ -114,25 +113,25 @@ final class FirmInvoicingController extends AbstractController
             return $this->redirectToRoute('app_firm_invoicing');
         }
 
-        return $this->saveSeries($request, $firm, null, $token);
+        return $this->saveSeries($request, null, $token);
     }
 
     #[Route('/settings/firm/invoicing/series/{series}/edit', name: 'app_series_edit', requirements: ['series' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
     public function editSeries(string $series, Request $request): Response
     {
         $this->denyUnlessOwner();
-        $firm = $this->firm();
-        $stored = $this->seriesOf($firm, $series);
+        $this->firm();
+        $stored = $this->seriesOf($series);
         if (!$request->isMethod('POST')) {
-            return $this->seriesForm($firm, $stored, $this->seriesValues($stored), [], '', Response::HTTP_OK);
+            return $this->seriesForm($stored, $this->seriesValues($stored), [], '', Response::HTTP_OK);
         }
 
         $this->checkToken($request, self::SERIES_TOKEN);
 
-        return $this->saveSeries($request, $firm, $stored, '');
+        return $this->saveSeries($request, $stored, '');
     }
 
-    private function saveSeries(Request $request, LegalEntity $firm, ?Series $series, string $token): Response
+    private function saveSeries(Request $request, ?Series $series, string $token): Response
     {
         $submission = $this->reader->series($request);
         $values = $submission->values;
@@ -142,26 +141,26 @@ final class FirmInvoicingController extends AbstractController
             $values['kind'] = $series->kind()->value;
             unset($errors['kind']);
         }
-        $format = $this->format($firm, $series, $values, $errors);
+        $format = $this->format($series, $values, $errors);
         if (!$series instanceof Series && !$this->tokens->isIssued($token)) {
             $token = $this->tokens->issue();
             $errors = ['form' => ['party.error.expired']] + $errors;
         }
-        if ($this->nameIsTaken($firm, $series, $values['name'])) {
+        if ($this->nameIsTaken($series, $values['name'])) {
             $errors['name'] = ['series.error.name_taken'];
         }
         if ($format instanceof SeriesFormat) {
             $this->checkNextNumber($series, $format, $values, $errors);
         }
         if ([] !== $errors || !$format instanceof SeriesFormat) {
-            return $this->seriesForm($firm, $series, $values, $errors, $token, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->seriesForm($series, $values, $errors, $token, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         try {
-            $saved = $this->transaction->run(fn (): Series => $this->store($firm, $series, $format, $values));
+            $saved = $this->transaction->run(fn (): Series => $this->store($series, $format, $values));
         } catch (UniqueConstraintViolationException) {
             // Another request took the name or the default after the checks above.
-            return $this->seriesForm($firm, $series, $values, ['name' => ['series.error.name_taken']], $token, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->seriesForm($series, $values, ['name' => ['series.error.name_taken']], $token, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         if (!$series instanceof Series) {
             $this->tokens->complete($token, $saved->id());
@@ -174,14 +173,14 @@ final class FirmInvoicingController extends AbstractController
     /**
      * @param array<string, string> $values
      */
-    private function store(LegalEntity $firm, ?Series $series, SeriesFormat $format, array $values): Series
+    private function store(?Series $series, SeriesFormat $format, array $values): Series
     {
         $target = $series;
         if ($target instanceof Series) {
             $target->rename($values['name']);
             $target->changeFormat($format);
         } else {
-            $target = new Series($firm, $values['name'], $format, DocumentKind::from($values['kind']));
+            $target = new Series($values['name'], $format, DocumentKind::from($values['kind']));
             $this->catalog->add($target);
         }
 
@@ -189,7 +188,7 @@ final class FirmInvoicingController extends AbstractController
         if ('' !== $values['nextNumber'] && (int) $values['nextNumber'] !== $this->nextNumber($target, $period)) {
             $target->startAt((int) $values['nextNumber'], $period);
         }
-        $hasDefault = array_any($this->catalog->forFirm($firm, $target->kind()), static fn (Series $other): bool => $other->isDefault());
+        $hasDefault = array_any($this->catalog->all($target->kind()), static fn (Series $other): bool => $other->isDefault());
         if ('1' === $values['default'] || !$hasDefault) {
             $this->catalog->makeDefault($target);
         }
@@ -200,10 +199,10 @@ final class FirmInvoicingController extends AbstractController
     /**
      * Whether the country of the firm takes the longest number the format can give.
      */
-    private function carries(LegalEntity $firm, SeriesFormat $format): bool
+    private function carries(SeriesFormat $format): bool
     {
         try {
-            return $this->countries->for($firm->address()->countryCode)->acceptsNumber($format->longestNumber());
+            return $this->countries->for($this->firm()->address()->countryCode)->acceptsNumber($format->longestNumber());
         } catch (UnsupportedCountry) {
             return true;
         }
@@ -216,7 +215,7 @@ final class FirmInvoicingController extends AbstractController
      * @param array<string, string>                                      $values
      * @param array<string, array{0: string, 1?: array<string, string>}> $errors
      */
-    private function format(LegalEntity $firm, ?Series $series, array &$values, array &$errors): ?SeriesFormat
+    private function format(?Series $series, array &$values, array &$errors): ?SeriesFormat
     {
         if ($series instanceof Series && $this->catalog->hasDocuments($series)) {
             $stored = $series->format();
@@ -236,13 +235,13 @@ final class FirmInvoicingController extends AbstractController
             return null;
         }
 
-        if (!$this->carries($firm, $format)) {
+        if (!$this->carries($format)) {
             $errors['format'] = ['series.error.format_too_long'];
 
             return null;
         }
 
-        foreach ($this->catalog->everyForFirm($firm) as $other) {
+        foreach ($this->catalog->every() as $other) {
             if ($other !== $series && $other->format()->collidesWith($format)) {
                 $errors['format'] = ['series.error.format_taken', ['name' => $this->seriesName($other)]];
 
@@ -272,27 +271,27 @@ final class FirmInvoicingController extends AbstractController
         }
     }
 
-    private function nameIsTaken(LegalEntity $firm, ?Series $series, string $name): bool
+    private function nameIsTaken(?Series $series, string $name): bool
     {
-        return array_any($this->catalog->everyForFirm($firm), static fn (Series $other): bool => $other !== $series && $other->name() === $name);
+        return array_any($this->catalog->every(), static fn (Series $other): bool => $other !== $series && $other->name() === $name);
     }
 
     /**
      * @param array<string, string>                                      $values
      * @param array<string, array{0: string, 1?: array<string, string>}> $errors
      */
-    private function settingsForm(LegalEntity $firm, array $values, array $errors, int $status): Response
+    private function settingsForm(array $values, array $errors, int $status): Response
     {
-        $series = $this->catalog->forFirm($firm);
+        $series = $this->catalog->all();
 
         return $this->render('@Invoicing/firm/settings.html.twig', [
-            'firm' => $firm,
+            'firm' => $this->firm(),
             'values' => $values,
             'errors' => $this->messages($errors),
             'roundings' => $this->roundings(),
             'columns' => array_map(fn (string $key): array => ['key' => $key, 'label' => $this->translator->trans('series.column.'.$key)], ['name', 'kind', 'format', 'next', 'default']),
             'rows' => array_map($this->row(...), $series),
-            'firstNumber' => $this->counter->peek($this->catalog->defaultFor($firm), $this->today()),
+            'firstNumber' => $this->counter->peek($this->catalog->defaultFor(), $this->today()),
             'action' => $this->generateUrl('app_firm_invoicing'),
             'cancel' => $this->generateUrl('app_firm'),
         ], new Response(status: $status));
@@ -302,10 +301,10 @@ final class FirmInvoicingController extends AbstractController
      * @param array<string, string>                                      $values
      * @param array<string, array{0: string, 1?: array<string, string>}> $errors
      */
-    private function seriesForm(LegalEntity $firm, ?Series $series, array $values, array $errors, string $token, int $status): Response
+    private function seriesForm(?Series $series, array $values, array $errors, string $token, int $status): Response
     {
         return $this->render('@Invoicing/firm/series_form.html.twig', [
-            'firm' => $firm,
+            'firm' => $this->firm(),
             'series' => $series,
             'seriesName' => $series instanceof Series ? $this->seriesName($series) : '',
             'locked' => $series instanceof Series && $this->catalog->hasDocuments($series),
@@ -439,15 +438,13 @@ final class FirmInvoicingController extends AbstractController
         return $this->instanceFirm->find() ?? throw new NotFoundHttpException();
     }
 
-    private function seriesOf(LegalEntity $firm, string $id): Series
+    private function seriesOf(string $id): Series
     {
         try {
-            $series = $this->catalog->get($id);
+            return $this->catalog->get($id);
         } catch (UnknownSeries) {
             throw new NotFoundHttpException();
         }
-
-        return $series->firm()->id() === $firm->id() ? $series : throw new NotFoundHttpException();
     }
 
     private function denyUnlessOwner(): void

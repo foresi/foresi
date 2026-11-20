@@ -18,10 +18,6 @@ use Foresi\Invoicing\Domain\MailEncryption;
 use Foresi\Invoicing\Infrastructure\Mail\DnsMailHostPolicy;
 use Foresi\Invoicing\Infrastructure\Mail\SodiumMailSecrets;
 use Foresi\Kernel;
-use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\LegalEntity;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use Foresi\Tests\Support\Mail\RecordingMailGateway;
 use Psr\Container\ContainerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -113,8 +109,6 @@ final class MailWiringTest extends KernelTestCase
 
     private function server(): FirmMailServer
     {
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
-
-        return FirmMailServer::define($firm, 'smtp.example.com', 587, MailEncryption::Starttls, 'user', 'k1:sealed', 'invoices@example.com', 'Example Firm');
+        return FirmMailServer::define('smtp.example.com', 587, MailEncryption::Starttls, 'user', 'k1:sealed', 'invoices@example.com', 'Example Firm');
     }
 }

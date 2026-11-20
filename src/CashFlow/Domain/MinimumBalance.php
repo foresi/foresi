@@ -10,18 +10,17 @@ namespace Foresi\CashFlow\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Money;
 
 /**
- * The balance a firm wants to keep, in CZK. The forecast answers the first day
+ * The balance the firm of the instance wants to keep, in CZK. The forecast answers the first day
  * its projected balance falls below it.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'cash_flow_minimum_balance')]
-#[ORM\UniqueConstraint(name: 'uniq_cash_flow_minimum_balance_firm', columns: ['legal_entity_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_cash_flow_minimum_balance_one_row', columns: ['one_row'])]
 class MinimumBalance implements Audited
 {
     #[ORM\Id]
@@ -31,10 +30,14 @@ class MinimumBalance implements Audited
     #[ORM\Column(name: 'amount_minor', type: 'bigint')]
     private int $amountMinor;
 
+    /**
+     * Always true: with its unique index (and a check on PostgreSQL) the table holds
+     * at most one row, the settings of the instance's one firm (ADR 0039).
+     */
+    #[ORM\Column(name: 'one_row', type: 'boolean', options: ['default' => true])]
+    private bool $oneRow = true;
+
     public function __construct(
-        #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
-        #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
-        private readonly LegalEntity $firm,
         Money $amount,
     ) {
         $this->id = Id::generate();
@@ -52,11 +55,6 @@ class MinimumBalance implements Audited
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function firm(): LegalEntity
-    {
-        return $this->firm;
     }
 
     public function amount(): Money

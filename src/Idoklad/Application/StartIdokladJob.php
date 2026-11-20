@@ -13,11 +13,10 @@ use Foresi\Idoklad\Domain\IdokladJob;
 use Foresi\Idoklad\Domain\IdokladJobKind;
 use Foresi\Idoklad\Domain\ImportOptions;
 use Foresi\Party\Application\TransactionalWork;
-use Foresi\Party\Domain\LegalEntity;
 use Psr\Clock\ClockInterface;
 
 /**
- * Asks a worker for a pull, check or run of a firm. One job of a firm at a time:
+ * Asks a worker for a pull, check or run. One job at a time:
  * while one waits or runs, asking again gives that one.
  */
 final readonly class StartIdokladJob
@@ -30,14 +29,14 @@ final readonly class StartIdokladJob
     ) {
     }
 
-    public function start(LegalEntity $firm, IdokladJobKind $kind, ?\DateTimeImmutable $remindFrom = null, ?ImportOptions $options = null): IdokladJob
+    public function start(IdokladJobKind $kind, ?\DateTimeImmutable $remindFrom = null, ?ImportOptions $options = null): IdokladJob
     {
-        $busy = $this->jobs->busy($firm);
+        $busy = $this->jobs->busy();
         if ($busy instanceof IdokladJob) {
             return $busy;
         }
-        $job = $this->work->run(function () use ($firm, $kind, $remindFrom, $options): IdokladJob {
-            $job = new IdokladJob($firm, $kind, \DateTimeImmutable::createFromInterface($this->clock->now()), $remindFrom, $options);
+        $job = $this->work->run(function () use ($kind, $remindFrom, $options): IdokladJob {
+            $job = new IdokladJob($kind, \DateTimeImmutable::createFromInterface($this->clock->now()), $remindFrom, $options);
             $this->jobs->add($job);
 
             return $job;

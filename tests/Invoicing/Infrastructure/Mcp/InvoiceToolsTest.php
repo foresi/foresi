@@ -12,7 +12,6 @@ use Foresi\Invoicing\Application\TrashInvoice;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Infrastructure\Mcp\GetInvoiceTool;
 use Foresi\Invoicing\Infrastructure\Mcp\SearchInvoicesTool;
-use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Infrastructure\Api\Cursor;
 use Foresi\Tests\Invoicing\Support\IssuesInvoices;
 use Foresi\Tests\Shared\Infrastructure\Mcp\ReadToolTestCase;
@@ -96,10 +95,9 @@ final class InvoiceToolsTest extends ReadToolTestCase
     {
         [$first, $other, $otherCustomer] = $this->flushed(function (): array {
             $first = $this->invoice();
-            [$firm, $customer] = $this->firmWithCustomer('Other Firm s.r.o.', '25596641');
-            $series = $this->series($firm);
+            $customer = $this->otherCustomer();
 
-            return [$first, $this->invoice(firmId: $firm, seriesId: $series, customerId: $customer), $customer];
+            return [$first, $this->invoice(customerId: $customer), $customer];
         });
 
         self::assertSame([$other->id(), $first->id()], self::itemIds($this->call(SearchInvoicesTool::class, ['kind' => 'invoice'])));

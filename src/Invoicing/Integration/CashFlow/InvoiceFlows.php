@@ -26,7 +26,7 @@ use Foresi\Shared\Domain\Money;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
- * The issued invoices and advances of a firm in the forecast (C2): what is
+ * The issued invoices and advances in the forecast (C2): what is
  * still to pay after corrections and payments, on the due date. A final
  * invoice asks only what its deducted advances left, so nothing is counted
  * twice. What is to refund to a customer goes out. Corrective and payment tax
@@ -57,10 +57,10 @@ final readonly class InvoiceFlows implements CashFlowSource, ActualFlowSource
         return $this->access->mayRead();
     }
 
-    public function flows(string $firmId, \DateTimeImmutable $from, \DateTimeImmutable $to, \DateTimeImmutable $today): iterable
+    public function flows(\DateTimeImmutable $from, \DateTimeImmutable $to, \DateTimeImmutable $today): iterable
     {
         $last = $to->format('Y-m-d');
-        foreach ($this->items(new InvoiceSliceFilter(firmId: $firmId, state: InvoiceFilter::UNPAID)) as $item) {
+        foreach ($this->items(new InvoiceSliceFilter(state: InvoiceFilter::UNPAID)) as $item) {
             $row = $item->row;
             $remaining = $row->remaining();
             if (!\in_array($row->kind, self::KINDS, true) || $remaining->isZero() || $row->dueDate->format('Y-m-d') > $last) {
@@ -80,9 +80,9 @@ final readonly class InvoiceFlows implements CashFlowSource, ActualFlowSource
         }
     }
 
-    public function actuals(string $firmId, \DateTimeImmutable $from, \DateTimeImmutable $to): iterable
+    public function actuals(\DateTimeImmutable $from, \DateTimeImmutable $to): iterable
     {
-        foreach ($this->items(new InvoiceSliceFilter(firmId: $firmId, issuedFrom: $from, issuedTo: $to)) as $item) {
+        foreach ($this->items(new InvoiceSliceFilter(issuedFrom: $from, issuedTo: $to)) as $item) {
             $row = $item->row;
             if (!\in_array($row->kind, self::KINDS, true) || $row->payable->isZero()) {
                 continue;

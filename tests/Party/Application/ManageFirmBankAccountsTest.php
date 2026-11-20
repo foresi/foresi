@@ -12,11 +12,11 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Foresi\Audit\Application\AuditTrail;
 use Foresi\Audit\Domain\AuditAction;
-use Foresi\Audit\Domain\AuditEntry;
 use Foresi\Country\CzechRepublic\Party\CzechBankAccount;
 use Foresi\Party\Application\BankAccountRefusal;
 use Foresi\Party\Application\BankAccountRefused;
 use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\ManageFirmBankAccounts;
 use Foresi\Party\Application\TransactionalWork;
@@ -30,8 +30,8 @@ use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
- * A firm's bank accounts are records: one of the active ones is primary, an
- * IBAN is there once per firm, and an account is archived rather than deleted.
+ * The firm's bank accounts are records: one of the active ones is primary, an
+ * IBAN is there once, and an account is archived rather than deleted.
  * Every test stores, clears the entity manager and reads the rows back.
  */
 final class ManageFirmBankAccountsTest extends KernelTestCase
@@ -65,7 +65,7 @@ final class ManageFirmBankAccountsTest extends KernelTestCase
             }
         };
         $this->manage = new ManageFirmBankAccounts(
-            $container->get(LegalEntities::class),
+            $container->get(InstanceFirm::class),
             $container->get(FirmBankAccounts::class),
             $container->get(TransactionalWork::class),
             $usage,
@@ -81,45 +81,46 @@ final class ManageFirmBankAccountsTest extends KernelTestCase
 
     public function testTheFirstAccountBecomesPrimaryAndOnlyOneStaysPrimary(): void
     {
-        $firm = $this->firm();
+        $this->firm();
 
-        $first = $this->manage->open($firm->id(), self::IBAN, 'CZK', 'Main', false);
-        $second = $this->manage->open($firm->id(), self::SECOND_IBAN, 'EUR', 'Euro', true);
-        $third = $this->manage->open($firm->id(), self::THIRD_IBAN, 'CZK', '', false);
+        $first = $this->manage->open(self::IBAN, 'CZK', 'Main', false);
+        $second = $this->manage->open(self::SECOND_IBAN, 'EUR', 'Euro', true);
+        $third = $this->manage->open(self::THIRD_IBAN, 'CZK', '', false);
         $this->em->clear();
 
-        self::assertSame([[self::SECOND_IBAN, true, 'EUR', 'Euro', 1], [self::IBAN, false, 'CZK', 'Main', 0], [self::THIRD_IBAN, false, 'CZK', '', 2]], $this->stored($firm));
+        self::assertSame([[self::SECOND_IBAN, true, 'EUR', 'Euro', 1], [self::IBAN, false, 'CZK', 'Main', 0], [self::THIRD_IBAN, false, 'CZK', '', 2]], $this->stored());
 
         $this->manage->change($third->id(), 'Third', 'CZK', true);
         $this->em->clear();
 
-        self::assertSame([[self::THIRD_IBAN, true, 'CZK', 'Third', 2], [self::IBAN, false, 'CZK', 'Main', 0], [self::SECOND_IBAN, false, 'EUR', 'Euro', 1]], $this->stored($firm));
-        self::assertSame($third->id(), $this->accounts()->primaryOf($this->reloaded($firm))?->id());
+        self::assertSame([[self::THIRD_IBAN, true, 'CZK', 'Third', 2], [self::IBAN, false, 'CZK', 'Main', 0], [self::SECOND_IBAN, false, 'EUR', 'Euro', 1]], $this->stored());
+        self::assertSame($third->id(), $this->accounts()->primary()?->id());
         self::assertNotSame($first->id(), $second->id());
     }
 
     public function testOpeningLocksTheFirmBeforeReadingItsAccounts(): void
     {
-        // Two requests opening a firm's first account at once would both find no
+        // Two requests opening the first account at once would both find no
         // primary and both mark theirs: the firm's row lock makes the second wait.
-        $firm = $this->firm();
+        $this->firm();
         /** @var \ArrayObject<int, string> $calls */
         $calls = new \ArrayObject();
 
-        $this->recording($calls)->open($firm->id(), self::IBAN, 'CZK', 'Main', false);
+        $this->recording($calls)->open(self::IBAN, 'CZK', 'Main', false);
 
         $order = $calls->getArrayCopy();
         self::assertSame('lock firm', $order[0] ?? null, implode(', ', $order));
         self::assertNotContains('get firm', $order);
         $this->em->clear();
-        self::assertSame([[self::IBAN, true, 'CZK', 'Main', 0]], $this->stored($firm));
+        self::assertSame([[self::IBAN, true, 'CZK', 'Main', 0]], $this->stored());
     }
 
     public function testChangingTheCurrencyLocksTheAccountBeforeLookingForMovements(): void
     {
         // A movement recorded meanwhile takes the account's lock too: it either
         // waits for the change or is seen by it, and the currency stays.
-        $account = $this->manage->open($this->firm()->id(), self::IBAN, 'CZK', 'Main', false);
+        $this->firm();
+        $account = $this->manage->open(self::IBAN, 'CZK', 'Main', false);
         /** @var \ArrayObject<int, string> $calls */
         $calls = new \ArrayObject();
 
@@ -174,25 +175,25 @@ final class ManageFirmBankAccountsTest extends KernelTestCase
             {
             }
 
-            public function of(LegalEntity $firm, bool $withArchived = false): array
+            public function all(bool $withArchived = false): array
             {
                 $this->calls->append('read accounts');
 
-                return $this->inner->of($firm, $withArchived);
+                return $this->inner->all($withArchived);
             }
 
-            public function primaryOf(LegalEntity $firm): ?FirmBankAccount
+            public function primary(): ?FirmBankAccount
             {
                 $this->calls->append('read accounts');
 
-                return $this->inner->primaryOf($firm);
+                return $this->inner->primary();
             }
 
-            public function ibansOf(LegalEntity $firm): array
+            public function ibans(): array
             {
                 $this->calls->append('read accounts');
 
-                return $this->inner->ibansOf($firm);
+                return $this->inner->ibans();
             }
 
             public function get(string $id): FirmBankAccount
@@ -200,18 +201,18 @@ final class ManageFirmBankAccountsTest extends KernelTestCase
                 return $this->inner->get($id);
             }
 
-            public function ofIban(LegalEntity $firm, string $iban): ?FirmBankAccount
+            public function ofIban(string $iban): ?FirmBankAccount
             {
                 $this->calls->append('read accounts');
 
-                return $this->inner->ofIban($firm, $iban);
+                return $this->inner->ofIban($iban);
             }
 
-            public function nextPosition(LegalEntity $firm): int
+            public function nextPosition(): int
             {
                 $this->calls->append('read accounts');
 
-                return $this->inner->nextPosition($firm);
+                return $this->inner->nextPosition();
             }
 
             public function add(FirmBankAccount $account): void
@@ -232,7 +233,7 @@ final class ManageFirmBankAccountsTest extends KernelTestCase
             }
         };
 
-        return new ManageFirmBankAccounts($firms, $accounts, $container->get(TransactionalWork::class), new readonly class($calls) implements BankAccountUsage {
+        return new ManageFirmBankAccounts(new InstanceFirm($firms), $accounts, $container->get(TransactionalWork::class), new readonly class($calls) implements BankAccountUsage {
             /** @param \ArrayObject<int, string> $calls */
             public function __construct(private \ArrayObject $calls)
             {
@@ -249,77 +250,74 @@ final class ManageFirmBankAccountsTest extends KernelTestCase
 
     public function testUnmarkingThePrimaryKeepsIt(): void
     {
-        $firm = $this->firm();
-        $account = $this->manage->open($firm->id(), self::IBAN, 'CZK', '', false);
+        $this->firm();
+        $account = $this->manage->open(self::IBAN, 'CZK', '', false);
 
         $this->manage->change($account->id(), 'Still main', 'CZK', false);
         $this->em->clear();
 
-        self::assertSame([[self::IBAN, true, 'CZK', 'Still main', 0]], $this->stored($firm));
+        self::assertSame([[self::IBAN, true, 'CZK', 'Still main', 0]], $this->stored());
     }
 
     public function testADomesticNumberIsStoredAsIban(): void
     {
-        $firm = $this->firm();
+        $this->firm();
 
-        $this->manage->open($firm->id(), ' 19-2000145399/0800 ', 'CZK', '', false);
+        $this->manage->open(' 19-2000145399/0800 ', 'CZK', '', false);
         $this->em->clear();
 
-        self::assertSame([[self::IBAN, true, 'CZK', '', 0]], $this->stored($firm));
+        self::assertSame([[self::IBAN, true, 'CZK', '', 0]], $this->stored());
     }
 
     public function testAnIbanIsNormalised(): void
     {
-        $firm = $this->firm();
+        $this->firm();
 
-        $this->manage->open($firm->id(), 'cz65 0800 0000 1920 0014 5399', 'CZK', '', false);
+        $this->manage->open('cz65 0800 0000 1920 0014 5399', 'CZK', '', false);
         $this->em->clear();
 
-        self::assertSame(self::IBAN, $this->stored($firm)[0][0]);
+        self::assertSame(self::IBAN, $this->stored()[0][0]);
     }
 
     public function testAnInvalidNumberIsRefused(): void
     {
-        $firm = $this->firm();
+        $this->firm();
 
         foreach (['CZ00 nonsense', '19-2000145399/08000', '', 'CZ6508000000192000145398'] as $number) {
-            $this->assertRefused(BankAccountRefusal::InvalidIban, fn (): FirmBankAccount => $this->manage->open($firm->id(), $number, 'CZK', '', false));
+            $this->assertRefused(BankAccountRefusal::InvalidIban, fn (): FirmBankAccount => $this->manage->open($number, 'CZK', '', false));
         }
         $this->em->clear();
-        self::assertSame([], $this->stored($firm));
+        self::assertSame([], $this->stored());
     }
 
     public function testAnUnknownCurrencyIsRefused(): void
     {
-        $firm = $this->firm();
-        $this->assertRefused(BankAccountRefusal::UnknownCurrency, fn (): FirmBankAccount => $this->manage->open($firm->id(), self::IBAN, 'GBP', '', false));
-        $account = $this->manage->open($firm->id(), self::IBAN, 'CZK', '', false);
+        $this->firm();
+        $this->assertRefused(BankAccountRefusal::UnknownCurrency, fn (): FirmBankAccount => $this->manage->open(self::IBAN, 'GBP', '', false));
+        $account = $this->manage->open(self::IBAN, 'CZK', '', false);
 
         $this->assertRefused(BankAccountRefusal::UnknownCurrency, fn (): FirmBankAccount => $this->manage->change($account->id(), '', 'czk', true));
         $this->em->clear();
-        self::assertSame([[self::IBAN, true, 'CZK', '', 0]], $this->stored($firm));
+        self::assertSame([[self::IBAN, true, 'CZK', '', 0]], $this->stored());
     }
 
-    public function testTheSameIbanTwiceInOneFirmIsRefused(): void
+    public function testTheSameIbanTwiceIsRefused(): void
     {
-        $firm = $this->firm();
-        $other = $this->firm('Example Other s.r.o.', '12345687');
-        $account = $this->manage->open($firm->id(), self::IBAN, 'CZK', '', false);
+        $this->firm();
+        $account = $this->manage->open(self::IBAN, 'CZK', '', false);
 
-        $this->assertRefused(BankAccountRefusal::Duplicate, fn (): FirmBankAccount => $this->manage->open($firm->id(), '19-2000145399/0800', 'EUR', '', false));
+        $this->assertRefused(BankAccountRefusal::Duplicate, fn (): FirmBankAccount => $this->manage->open('19-2000145399/0800', 'EUR', '', false));
         $this->manage->archive($account->id());
-        $this->assertRefused(BankAccountRefusal::Duplicate, fn (): FirmBankAccount => $this->manage->open($firm->id(), self::IBAN, 'CZK', '', false));
-        $this->manage->open($other->id(), self::IBAN, 'CZK', '', false);
+        $this->assertRefused(BankAccountRefusal::Duplicate, fn (): FirmBankAccount => $this->manage->open(self::IBAN, 'CZK', '', false));
         $this->em->clear();
 
-        self::assertCount(1, $this->stored($firm, true));
-        self::assertSame([[self::IBAN, true, 'CZK', '', 0]], $this->stored($other));
+        self::assertCount(1, $this->stored(true));
     }
 
     public function testCurrencyIsLockedOnceMovementsExist(): void
     {
-        $firm = $this->firm();
-        $account = $this->manage->open($firm->id(), self::IBAN, 'CZK', '', false);
+        $this->firm();
+        $account = $this->manage->open(self::IBAN, 'CZK', '', false);
         $this->manage->change($account->id(), '', 'EUR', true);
 
         $this->movements = true;
@@ -327,61 +325,61 @@ final class ManageFirmBankAccountsTest extends KernelTestCase
         $this->manage->change($account->id(), 'Renamed', 'EUR', true);
         $this->em->clear();
 
-        self::assertSame([[self::IBAN, true, 'EUR', 'Renamed', 0]], $this->stored($firm));
+        self::assertSame([[self::IBAN, true, 'EUR', 'Renamed', 0]], $this->stored());
     }
 
     public function testArchivingThePrimaryMovesPrimaryToTheNext(): void
     {
-        $firm = $this->firm();
-        $first = $this->manage->open($firm->id(), self::IBAN, 'CZK', '', false);
-        $this->manage->open($firm->id(), self::SECOND_IBAN, 'CZK', '', false);
-        $this->manage->open($firm->id(), self::THIRD_IBAN, 'CZK', '', false);
+        $this->firm();
+        $first = $this->manage->open(self::IBAN, 'CZK', '', false);
+        $this->manage->open(self::SECOND_IBAN, 'CZK', '', false);
+        $this->manage->open(self::THIRD_IBAN, 'CZK', '', false);
 
         $this->manage->archive($first->id());
         $this->em->clear();
 
-        self::assertSame([[self::SECOND_IBAN, true, 'CZK', '', 1], [self::THIRD_IBAN, false, 'CZK', '', 2]], $this->stored($firm));
-        self::assertSame([self::SECOND_IBAN, self::THIRD_IBAN], $this->accounts()->ibansOf($this->reloaded($firm)));
+        self::assertSame([[self::SECOND_IBAN, true, 'CZK', '', 1], [self::THIRD_IBAN, false, 'CZK', '', 2]], $this->stored());
+        self::assertSame([self::SECOND_IBAN, self::THIRD_IBAN], $this->accounts()->ibans());
         $archived = $this->accounts()->get($first->id());
         self::assertTrue($archived->isArchived());
         self::assertFalse($archived->isPrimary());
-        self::assertNotNull($this->accounts()->ofIban($this->reloaded($firm), self::IBAN), 'an archived account is still found by its IBAN');
+        self::assertNotNull($this->accounts()->ofIban(self::IBAN), 'an archived account is still found by its IBAN');
     }
 
     public function testArchivingTheLastAccountLeavesNoPrimary(): void
     {
-        $firm = $this->firm();
-        $account = $this->manage->open($firm->id(), self::IBAN, 'CZK', '', false);
+        $this->firm();
+        $account = $this->manage->open(self::IBAN, 'CZK', '', false);
 
         $this->manage->archive($account->id());
         $this->manage->archive($account->id());
         $this->em->clear();
 
-        self::assertSame([], $this->stored($firm));
-        self::assertNull($this->accounts()->primaryOf($this->reloaded($firm)));
-        self::assertSame([], $this->accounts()->ibansOf($this->reloaded($firm)));
+        self::assertSame([], $this->stored());
+        self::assertNull($this->accounts()->primary());
+        self::assertSame([], $this->accounts()->ibans());
     }
 
     public function testAnArchivedAccountCannotBecomePrimary(): void
     {
-        $firm = $this->firm();
-        $this->manage->open($firm->id(), self::IBAN, 'CZK', '', false);
-        $second = $this->manage->open($firm->id(), self::SECOND_IBAN, 'CZK', '', false);
+        $this->firm();
+        $this->manage->open(self::IBAN, 'CZK', '', false);
+        $second = $this->manage->open(self::SECOND_IBAN, 'CZK', '', false);
         $this->manage->archive($second->id());
 
         $this->assertRefused(BankAccountRefusal::ArchivedPrimary, fn (): FirmBankAccount => $this->manage->change($second->id(), '', 'CZK', true));
         $this->manage->change($second->id(), 'Old', 'CZK', false);
         $this->em->clear();
 
-        self::assertSame([[self::IBAN, true, 'CZK', '', 0]], $this->stored($firm));
+        self::assertSame([[self::IBAN, true, 'CZK', '', 0]], $this->stored());
         self::assertSame('Old', $this->accounts()->get($second->id())->label());
     }
 
     public function testRestoringBringsTheAccountBackAndMakesItPrimaryWhenNoneIs(): void
     {
-        $firm = $this->firm();
-        $first = $this->manage->open($firm->id(), self::IBAN, 'CZK', '', false);
-        $second = $this->manage->open($firm->id(), self::SECOND_IBAN, 'CZK', '', false);
+        $this->firm();
+        $first = $this->manage->open(self::IBAN, 'CZK', '', false);
+        $second = $this->manage->open(self::SECOND_IBAN, 'CZK', '', false);
         $this->manage->archive($first->id());
         $this->manage->archive($second->id());
 
@@ -390,35 +388,31 @@ final class ManageFirmBankAccountsTest extends KernelTestCase
         $this->manage->restore($first->id());
         $this->em->clear();
 
-        self::assertSame([[self::SECOND_IBAN, true, 'CZK', '', 1], [self::IBAN, false, 'CZK', '', 0]], $this->stored($firm));
+        self::assertSame([[self::SECOND_IBAN, true, 'CZK', '', 1], [self::IBAN, false, 'CZK', '', 0]], $this->stored());
     }
 
     public function testTheListPutsThePrimaryFirstAndThenFollowsThePosition(): void
     {
-        $firm = $this->firm();
-        $first = $this->manage->open($firm->id(), self::IBAN, 'CZK', '', false);
-        $this->manage->open($firm->id(), self::SECOND_IBAN, 'CZK', '', false);
-        $third = $this->manage->open($firm->id(), self::THIRD_IBAN, 'CZK', '', true);
+        $this->firm();
+        $first = $this->manage->open(self::IBAN, 'CZK', '', false);
+        $this->manage->open(self::SECOND_IBAN, 'CZK', '', false);
+        $third = $this->manage->open(self::THIRD_IBAN, 'CZK', '', true);
         $this->manage->archive($first->id());
         $this->em->clear();
 
-        $firm = $this->reloaded($firm);
-        self::assertSame([self::THIRD_IBAN, self::SECOND_IBAN], array_map(static fn (FirmBankAccount $a): string => $a->iban(), $this->accounts()->of($firm)));
-        self::assertSame([self::THIRD_IBAN, self::IBAN, self::SECOND_IBAN], array_map(static fn (FirmBankAccount $a): string => $a->iban(), $this->accounts()->of($firm, withArchived: true)));
-        self::assertSame($third->id(), $this->accounts()->primaryOf($firm)?->id());
+        self::assertSame([self::THIRD_IBAN, self::SECOND_IBAN], array_map(static fn (FirmBankAccount $a): string => $a->iban(), $this->accounts()->all()));
+        self::assertSame([self::THIRD_IBAN, self::IBAN, self::SECOND_IBAN], array_map(static fn (FirmBankAccount $a): string => $a->iban(), $this->accounts()->all(withArchived: true)));
+        self::assertSame($third->id(), $this->accounts()->primary()?->id());
     }
 
-    public function testAuditHistoryOfTheFirmShowsTheAccount(): void
+    public function testTheAccountIsItsOwnAuditRoot(): void
     {
-        $firm = $this->firm();
-        $account = $this->manage->open($firm->id(), self::IBAN, 'CZK', 'Main', false);
+        $this->firm();
+        $account = $this->manage->open(self::IBAN, 'CZK', 'Main', false);
         $this->manage->change($account->id(), 'Renamed', 'CZK', true);
         $this->em->clear();
 
-        $entries = array_values(array_filter(
-            self::getContainer()->get(AuditTrail::class)->rootHistory(LegalEntity::class, $firm->id()),
-            static fn (AuditEntry $entry): bool => FirmBankAccount::class === $entry->entityClass(),
-        ));
+        $entries = self::getContainer()->get(AuditTrail::class)->rootHistory(FirmBankAccount::class, $account->id());
 
         self::assertCount(2, $entries);
         self::assertSame($account->id(), $entries[0]->entityId());
@@ -441,21 +435,16 @@ final class ManageFirmBankAccountsTest extends KernelTestCase
     }
 
     /**
-     * The stored accounts of the firm as read back, in list order.
+     * The stored accounts as read back, in list order.
      *
      * @return list<array{string, bool, string, string, int}>
      */
-    private function stored(LegalEntity $firm, bool $withArchived = false): array
+    private function stored(bool $withArchived = false): array
     {
         return array_map(
             static fn (FirmBankAccount $account): array => [$account->iban(), $account->isPrimary(), $account->currency()->value, $account->label(), $account->position()],
-            $this->accounts()->of($this->reloaded($firm), $withArchived),
+            $this->accounts()->all($withArchived),
         );
-    }
-
-    private function reloaded(LegalEntity $firm): LegalEntity
-    {
-        return self::getContainer()->get(LegalEntities::class)->get($firm->id());
     }
 
     private function accounts(): FirmBankAccounts
@@ -463,12 +452,10 @@ final class ManageFirmBankAccountsTest extends KernelTestCase
         return self::getContainer()->get(FirmBankAccounts::class);
     }
 
-    private function firm(string $name = 'Example Firm s.r.o.', string $number = '12345695'): LegalEntity
+    private function firm(): void
     {
-        $firm = new LegalEntity($name, new RegistrationNumber('CZ', $number), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
+        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $this->em->persist($firm);
         $this->em->flush();
-
-        return $firm;
     }
 }

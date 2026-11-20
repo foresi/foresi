@@ -53,9 +53,9 @@ final readonly class MovementFlows implements BalanceSource, ActualFlowSource
         return new AccountBalance($checkpoint->accountId, $amount, $asOf);
     }
 
-    public function actuals(string $firmId, \DateTimeImmutable $from, \DateTimeImmutable $to): iterable
+    public function actuals(\DateTimeImmutable $from, \DateTimeImmutable $to): iterable
     {
-        foreach ($this->ledger->bookedBetween($firmId, $from, $to) as $movement) {
+        foreach ($this->ledger->bookedBetween($from, $to) as $movement) {
             yield new ActualFlow(
                 self::KEY,
                 new FlowSubject('bank_movement', $movement->id()),

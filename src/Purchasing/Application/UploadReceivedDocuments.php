@@ -12,7 +12,7 @@ use Foresi\Attachment\Application\AttachmentRefused;
 use Foresi\Attachment\Application\AttachmentUpload;
 use Foresi\Attachment\Application\UploadAttachment;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Party\Application\NoFirmYet;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentContent;
 use Psr\Clock\ClockInterface;
@@ -42,21 +42,21 @@ final readonly class UploadReceivedDocuments
      * @return list<UploadedDocument> one per file, in their order
      *
      * @throws PurchasingNotAllowed for anyone but the owners and members of the organisation
-     * @throws UnknownLegalEntity
+     * @throws NoFirmYet
      */
-    public function upload(string $firmId, array $files): array
+    public function upload(array $files): array
     {
         $userId = $this->access->denyUnlessStaff();
-        $this->access->firm($firmId);
+        $this->access->firm();
 
-        return array_map(fn (AttachmentUpload $file): UploadedDocument => $this->one($firmId, $file, $userId), $files);
+        return array_map(fn (AttachmentUpload $file): UploadedDocument => $this->one($file, $userId), $files);
     }
 
-    private function one(string $firmId, AttachmentUpload $file, string $userId): UploadedDocument
+    private function one(AttachmentUpload $file, string $userId): UploadedDocument
     {
         try {
-            $document = $this->unit->run(function () use ($firmId, $file, $userId): ReceivedDocument {
-                $document = new ReceivedDocument($this->access->firm($firmId), ReceivedDocumentContent::blank($this->instanceClock->today()), $userId, \DateTimeImmutable::createFromInterface($this->clock->now()));
+            $document = $this->unit->run(function () use ($file, $userId): ReceivedDocument {
+                $document = new ReceivedDocument(ReceivedDocumentContent::blank($this->instanceClock->today()), $userId, \DateTimeImmutable::createFromInterface($this->clock->now()));
                 $this->documents->add($document);
                 // The store asks the module whether the document may take the file, and saves both.
                 $document->attachOriginal($this->upload->upload(ReceivedDocument::ATTACHMENT_KIND, $document->id(), $file)->id());

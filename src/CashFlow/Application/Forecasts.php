@@ -25,7 +25,6 @@ use Foresi\ExchangeRate\Domain\ExchangeRate;
 use Foresi\ExchangeRate\Domain\RateNotAvailable;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Domain\FirmBankAccount;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Psr\Log\LoggerInterface;
@@ -82,7 +81,7 @@ final class Forecasts
     public function of(?string $from = null, ?int $months = null, ?string $weeksUntil = null): Forecast
     {
         $this->access->denyUnlessStaff();
-        $firm = $this->access->firm();
+        $this->access->firm();
         $today = $this->clock->today();
         $zone = $today->getTimezone();
         $start = null === $from ? $today : PlannedItemRules::day($from, $zone, 'from');
@@ -102,10 +101,10 @@ final class Forecasts
         $unavailable = [];
 
         $accounts = [];
-        foreach ($this->access->accountsOf($firm) as $account) {
-            $accounts[] = $this->opening($firm, $account, $today, $unavailable);
+        foreach ($this->access->accounts() as $account) {
+            $accounts[] = $this->opening($account, $today, $unavailable);
         }
-        $lines = $this->unfulfilled($firm, $this->lines($firm, $today, $start, $end, $unavailable), $unavailable);
+        $lines = $this->unfulfilled($this->lines($today, $start, $end, $unavailable), $unavailable);
 
         $running = $this->sum(array_map(static fn (AccountOpening $account): ?Money => $account->amount, $accounts));
         $opening = $running;
@@ -114,7 +113,7 @@ final class Forecasts
                 $running = $running->plus($line->signed());
             }
         }
-        $minimum = $this->store->minimumBalance($firm->id());
+        $minimum = $this->store->minimumBalance();
         $minimumAmount = $minimum instanceof MinimumBalance ? $minimum->amount() : null;
         $lowest = $running;
         $lowestOn = $start;
@@ -151,7 +150,6 @@ final class Forecasts
         $asOf = $this->oldest($accounts);
 
         return new Forecast(
-            $firm,
             $today,
             $start,
             $opening,
@@ -172,7 +170,7 @@ final class Forecasts
     /**
      * @param list<string> $unavailable
      */
-    private function opening(LegalEntity $firm, FirmBankAccount $account, \DateTimeImmutable $today, array &$unavailable): AccountOpening
+    private function opening(FirmBankAccount $account, \DateTimeImmutable $today, array &$unavailable): AccountOpening
     {
         $checkpoint = $this->store->latestCheckpoint($account, $today);
         if (!$checkpoint instanceof Checkpoint) {
@@ -183,7 +181,7 @@ final class Forecasts
         $source = null;
         foreach ($this->balanceSources as $balanceSource) {
             try {
-                $known = $balanceSource->balance(new BalanceCheckpoint($account->id(), $firm->id(), $balance, $asOf), $today);
+                $known = $balanceSource->balance(new BalanceCheckpoint($account->id(), $balance, $asOf), $today);
             } catch (\Throwable $failure) {
                 $this->logger->error('The balance source {source} failed.', ['source' => $balanceSource->key(), 'exception' => $failure]);
                 $unavailable[] = $balanceSource->key();
@@ -203,7 +201,7 @@ final class Forecasts
      *
      * @return list<ForecastLine> in the order they are counted
      */
-    private function lines(LegalEntity $firm, \DateTimeImmutable $today, \DateTimeImmutable $start, \DateTimeImmutable $end, array &$unavailable): array
+    private function lines(\DateTimeImmutable $today, \DateTimeImmutable $start, \DateTimeImmutable $end, array &$unavailable): array
     {
         $expected = $this->store->expectedDates();
         $lines = [];
@@ -211,7 +209,7 @@ final class Forecasts
             try {
                 $flows = [];
                 $details = $source->mayReadDetails();
-                foreach ($source->flows($firm->id(), $today, $end, $today) as $flow) {
+                foreach ($source->flows($today, $end, $today) as $flow) {
                     $flows[] = $flow;
                 }
             } catch (\Throwable $failure) {
@@ -267,10 +265,10 @@ final class Forecasts
      *
      * @return list<ForecastLine>
      */
-    private function unfulfilled(LegalEntity $firm, array $lines, array &$unavailable): array
+    private function unfulfilled(array $lines, array &$unavailable): array
     {
         $items = [];
-        foreach ($this->store->plannedItemsOf($firm->id()) as $item) {
+        foreach ($this->store->plannedItems() as $item) {
             $items[$item->id()] = $item;
         }
         $planned = [];
@@ -293,7 +291,7 @@ final class Forecasts
         foreach ($this->actualSources as $source) {
             try {
                 $given = [];
-                foreach ($source->actuals($firm->id(), $first, $last) as $actual) {
+                foreach ($source->actuals($first, $last) as $actual) {
                     $given[] = $actual;
                 }
             } catch (\Throwable $failure) {

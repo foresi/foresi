@@ -12,6 +12,7 @@ use Foresi\Invoicing\Application\InvoicingNotAllowed;
 use Foresi\Invoicing\Application\Query\InvoiceDetails;
 use Foresi\Invoicing\Application\UnknownInvoice;
 use Foresi\Invoicing\Infrastructure\Api\InvoiceJson;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Shared\Infrastructure\Mcp\ReadTool;
 use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
 use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
@@ -22,7 +23,7 @@ use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
  */
 final readonly class GetInvoiceTool implements ReadTool
 {
-    public function __construct(private InvoiceDetails $details)
+    public function __construct(private InvoiceDetails $details, private InstanceFirm $instanceFirm)
     {
     }
 
@@ -70,6 +71,6 @@ final readonly class GetInvoiceTool implements ReadTool
             throw ToolRefusal::notFound('The organisation has no document with this id. Find the id with foresi_search_invoices.');
         }
 
-        return new ToolOutput(InvoiceJson::detail($detail), 'The document with its lines, payments, corrections and balances.');
+        return new ToolOutput(InvoiceJson::detail($detail, $this->instanceFirm->get()), 'The document with its lines, payments, corrections and balances.');
     }
 }

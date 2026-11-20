@@ -30,7 +30,7 @@ final class ReceivedDocumentListTest extends PurchasingTestCase
         foreach ([
             fn (): mixed => $list->page(new ReceivedDocumentFilter()),
             $list->drafts(...),
-            $list->firmId(...),
+            $list->hasFirm(...),
         ] as $read) {
             try {
                 $read();
@@ -51,11 +51,9 @@ final class ReceivedDocumentListTest extends PurchasingTestCase
         self::assertSame(7, $this->list($queries)->drafts());
     }
 
-    public function testTheDocumentsGoToTheInstanceFirm(): void
+    public function testTheListKnowsThatTheInstanceHasItsFirm(): void
     {
-        $this->firm('Second Firm s.r.o.', '27082440');
-
-        self::assertSame($this->firm->id(), $this->list(new ListedQueries())->firmId(), 'The oldest firm, as InstanceFirm reads it.');
+        self::assertTrue($this->list(new ListedQueries())->hasFirm());
     }
 
     public function testThePageKeepsWhatItWasAskedFor(): void
@@ -225,7 +223,7 @@ final class ListedQueries implements ReceivedDocumentQueries
         return $this->months;
     }
 
-    public function correctable(string $firmId, ?string $exceptId, int $limit): array
+    public function correctable(?string $exceptId, int $limit): array
     {
         return [];
     }

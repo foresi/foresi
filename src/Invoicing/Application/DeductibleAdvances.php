@@ -15,7 +15,6 @@ use Foresi\Invoicing\Contract\TaxTreatment;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceLine;
 use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Money;
 
 /**
@@ -44,9 +43,9 @@ final readonly class DeductibleAdvances
      *
      * @return list<Deductible>
      */
-    public function for(LegalEntity $firm, string $customerId, ?Invoice $except, DocumentLanguage $language): array
+    public function for(string $customerId, ?Invoice $except, DocumentLanguage $language): array
     {
-        $ids = $this->documents->deductibleFor($firm->id(), $customerId, $except?->id());
+        $ids = $this->documents->deductibleFor($customerId, $except?->id());
         $deductible = [];
         foreach ($ids['taxDocuments'] as $id) {
             $document = $this->store->get($id);

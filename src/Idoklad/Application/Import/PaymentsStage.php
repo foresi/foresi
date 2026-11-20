@@ -15,6 +15,7 @@ use Foresi\Invoicing\Application\ImportedPaymentInput;
 use Foresi\Invoicing\Application\ImportOutcome as PaymentOutcome;
 use Foresi\Invoicing\Application\ImportPayment;
 use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Money;
 
@@ -46,6 +47,7 @@ final readonly class PaymentsStage implements ImportStage
         private ImportPayment $import,
         private DocumentsStage $documents,
         private InvoicingCountries $countries,
+        private InstanceFirm $firm,
     ) {
     }
 
@@ -87,7 +89,7 @@ final readonly class PaymentsStage implements ImportStage
         }
         $amount = \is_array($payload['Prices'] ?? null) ? $payload['Prices']['PaymentAmount'] ?? null : null;
         if ((\is_int($amount) || \is_float($amount)) && $amount <= 0) {
-            $values['amount'] = Money::of(\sprintf('%.4F', $amount), $this->countries->for($context->firm->address()->countryCode)->homeCurrency())->minor();
+            $values['amount'] = Money::of(\sprintf('%.4F', $amount), $this->countries->for($this->firm->get()->address()->countryCode)->homeCurrency())->minor();
             $context->report(self::KEY, $id, 0 === $values['amount'] ? ImportOutcome::Skipped : ImportOutcome::Refused, reasons: [0 === $values['amount'] ? self::ZERO_AMOUNT : self::REFUND_UNSUPPORTED], values: $values);
 
             return;
@@ -124,7 +126,7 @@ final readonly class PaymentsStage implements ImportStage
             return null;
         }
         $invoiceId = \is_int($values['document_id']) ? $context->linkedTo($resource, $values['document_id']) : null;
-        $home = $this->countries->for($context->firm->address()->countryCode)->homeCurrency();
+        $home = $this->countries->for($this->firm->get()->address()->countryCode)->homeCurrency();
         $currency = \is_int($payload['CurrencyId'] ?? null) ? $context->record(IdokladResource::Currencies, $payload['CurrencyId'])?->payload()['Code'] ?? null : null;
         $method = $this->method($context, $payload['PaymentOptionId'] ?? null, $values);
         $amount = \is_array($payload['Prices'] ?? null) ? $payload['Prices']['PaymentAmount'] ?? null : null;
@@ -143,7 +145,6 @@ final readonly class PaymentsStage implements ImportStage
         }
 
         return new ImportedPaymentInput(
-            $context->firm->id(),
             $invoiceId,
             $date,
             Money::of(\sprintf('%.4F', $amount), $home),

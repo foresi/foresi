@@ -61,17 +61,16 @@ final class RecurringPersistenceTest extends RecurringTestCase
             $this->templates->lock($active->id())->recordFailure(new \DateTimeImmutable('2026-12-15 05:00:00'), 'no_mail_server');
         });
 
-        $all = $this->templates->page(new RecurringFilter(null, null, false, 1));
+        $all = $this->templates->page(new RecurringFilter(null, false, 1));
         self::assertSame(4, $all->total);
         self::assertSame(1, $all->pages);
         self::assertSame($ended->id(), $all->templates[3]->id(), 'ended templates come last');
         self::assertSame($active->id(), $all->templates[2]->id(), 'then by the next date');
 
-        self::assertSame([$paused->id()], array_map(static fn (RecurringInvoice $template): string => $template->id(), $this->templates->page(new RecurringFilter(null, RecurringState::Paused, false, 1))->templates));
-        self::assertSame([$active->id()], array_map(static fn (RecurringInvoice $template): string => $template->id(), $this->templates->page(new RecurringFilter(null, null, true, 1))->templates));
-        self::assertSame(0, $this->templates->page(new RecurringFilter('00000000-0000-7000-8000-000000000000', null, false, 1))->total);
-        self::assertSame(4, $this->templates->page(new RecurringFilter($this->firm->id(), null, false, 9))->total);
-        self::assertSame(1, $this->templates->page(new RecurringFilter($this->firm->id(), null, false, 9))->page, 'a page out of range gives the nearest one');
+        self::assertSame([$paused->id()], array_map(static fn (RecurringInvoice $template): string => $template->id(), $this->templates->page(new RecurringFilter(RecurringState::Paused, false, 1))->templates));
+        self::assertSame([$active->id()], array_map(static fn (RecurringInvoice $template): string => $template->id(), $this->templates->page(new RecurringFilter(null, true, 1))->templates));
+        self::assertSame(4, $this->templates->page(new RecurringFilter(null, false, 9))->total);
+        self::assertSame(1, $this->templates->page(new RecurringFilter(null, false, 9))->page, 'a page out of range gives the nearest one');
         self::assertContains($soon->id(), array_map(static fn (RecurringInvoice $template): string => $template->id(), $all->templates));
     }
 }

@@ -29,7 +29,6 @@ final readonly class RecurringInput
      * @param array<LineInput> $lines keys are discarded
      */
     public function __construct(
-        public string $firmId,
         public ?string $seriesId,
         public string $customerId,
         public PaymentMethod $paymentMethod,

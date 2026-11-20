@@ -129,7 +129,7 @@ final class EditInvoiceTest extends InvoiceTestCase
         $invoice = $this->issue->issue($this->input());
         $this->customer->archive(new \DateTimeImmutable('2026-11-01'));
         $this->firm->update($this->firm->name(), $this->firm->registrationNumber(), null, $this->firm->address(), VatStatus::Registered, '');
-        FirmAccounts::archiveAll($this->em, $this->firm);
+        FirmAccounts::archiveAll($this->em);
         $this->em->flush();
 
         $this->edited($invoice, $this->input(overrides: ['description' => 'Still editable']));
@@ -140,16 +140,13 @@ final class EditInvoiceTest extends InvoiceTestCase
 
     public function testEditingAfterTheFirmBecamePayerKeepsTheRegime(): void
     {
-        $firm = new \Foresi\Party\Domain\LegalEntity('Second Firm s.r.o.', new \Foresi\Party\Domain\RegistrationNumber('CZ', '27074358'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register');
-        $this->em->persist($firm);
-        FirmAccounts::add($this->em, $firm, self::IBAN);
-        $this->em->flush();
-        $invoice = $this->issue->issue($this->input([$this->line('121.00', PriceType::WithVat)], ['firmId' => $firm->id(), 'seriesId' => null]));
+        $this->reconfigureFirm(VatStatus::NotRegistered, null, 'Register');
+        $invoice = $this->issue->issue($this->input([$this->line('121.00', PriceType::WithVat)], ['seriesId' => null]));
 
-        $firm->update($firm->name(), $firm->registrationNumber(), \Foresi\Party\Domain\VatId::fromString('CZ27074358'), $firm->address(), VatStatus::Registered, 'Register');
+        $this->firm->update($this->firm->name(), $this->firm->registrationNumber(), \Foresi\Party\Domain\VatId::fromString('CZ27074358'), $this->firm->address(), VatStatus::Registered, 'Register');
         $this->em->flush();
 
-        $this->edited($invoice, $this->input([$this->line('242.00', PriceType::WithVat)], ['firmId' => $firm->id(), 'seriesId' => null]));
+        $this->edited($invoice, $this->input([$this->line('242.00', PriceType::WithVat)], ['seriesId' => null]));
         $invoice = $this->reloaded($invoice);
 
         self::assertSame(VatRegime::NonPayer, $invoice->vatRegime());
@@ -199,21 +196,6 @@ final class EditInvoiceTest extends InvoiceTestCase
         self::assertSame([AuditAction::Created], $byClass[AbandonedNumber::class]);
     }
 
-    public function testTheFirmCannotChange(): void
-    {
-        $invoice = $this->issue->issue($this->input());
-        $other = new \Foresi\Party\Domain\LegalEntity('Second Firm s.r.o.', new \Foresi\Party\Domain\RegistrationNumber('CZ', '27074358'), null, $this->firm->address(), VatStatus::NotRegistered, 'Register');
-        $this->em->persist($other);
-        FirmAccounts::add($this->em, $other, self::IBAN);
-        $this->em->flush();
-
-        $this->assertRefusedFor('invoice.problem.firm_locked', fn () => $this->edited($invoice, $this->input(overrides: ['firmId' => $other->id()])));
-        self::assertSame($this->firm->id(), $this->reloaded($invoice)->firm()->id());
-        foreach (new \ReflectionClass(Invoice::class)->getMethods() as $method) {
-            self::assertStringNotContainsString('firm', strtolower(preg_replace('/^firm$/', '', $method->getName()) ?? ''), 'nothing changes the firm');
-        }
-    }
-
     public function testChangingTheNumberBeforeDelivery(): void
     {
         $invoice = $this->issue->issue($this->input());
@@ -229,7 +211,7 @@ final class EditInvoiceTest extends InvoiceTestCase
     public function testChangingTheSeriesAllocatesFromIt(): void
     {
         $invoice = $this->issue->issue($this->input());
-        $other = new Series($this->firm, 'Second', SeriesFormat::fromString('B{NNN}'), DocumentKind::Invoice);
+        $other = new Series('Second', SeriesFormat::fromString('B{NNN}'), DocumentKind::Invoice);
         $this->catalog->add($other);
         $this->em->flush();
 
@@ -252,7 +234,7 @@ final class EditInvoiceTest extends InvoiceTestCase
 
     public function testAnAbandonedNumberIsSkippedByTheCounter(): void
     {
-        $other = new Series($this->firm, 'Second', SeriesFormat::fromString('{YYYY}/{NNNN}'), DocumentKind::Invoice);
+        $other = new Series('Second', SeriesFormat::fromString('{YYYY}/{NNNN}'), DocumentKind::Invoice);
         $this->catalog->add($other);
         $this->em->flush();
         $invoice = $this->issue->issue($this->input(overrides: ['seriesId' => $other->id(), 'typedNumber' => '2026/0001']));
@@ -504,7 +486,7 @@ final class EditInvoiceTest extends InvoiceTestCase
         self::assertSame('20260007', $this->reloaded($invoice)->number());
     }
 
-    public function testASeriesOfAnotherFirmOrNoneIsRefusedOnEdit(): void
+    public function testAnUnknownSeriesIsRefusedOnEdit(): void
     {
         $invoice = $this->issue->issue($this->input());
 
@@ -515,7 +497,7 @@ final class EditInvoiceTest extends InvoiceTestCase
     {
         $invoice = $this->issue->issue($this->input([$this->line('10.40')]));
         $settings = self::getContainer()->get(FirmInvoicingSettings::class);
-        $row = $settings->for($this->firm);
+        $row = $settings->get();
         $row->change(TotalRounding::None, '', '', '', '', '', '');
         $settings->save($row);
         $this->em->flush();
@@ -532,7 +514,7 @@ final class EditInvoiceTest extends InvoiceTestCase
     {
         $invoice = $this->issue->issue($this->input());
         $settings = self::getContainer()->get(FirmInvoicingSettings::class);
-        $row = $settings->for($this->firm);
+        $row = $settings->get();
         $row->change(TotalRounding::None, '', '', '', '', '', '');
         $settings->save($row);
         $this->em->flush();
@@ -625,7 +607,7 @@ final class EditInvoiceTest extends InvoiceTestCase
 
     private function secondSeries(string $format): Series
     {
-        $series = new Series($this->firm, 'Second', SeriesFormat::fromString($format), DocumentKind::Invoice);
+        $series = new Series('Second', SeriesFormat::fromString($format), DocumentKind::Invoice);
         $this->catalog->add($series);
         $this->em->flush();
 

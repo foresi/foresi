@@ -11,11 +11,7 @@ namespace Foresi\Tests\Invoicing\Domain;
 use Foresi\Invoicing\Domain\InvalidMailTemplate;
 use Foresi\Invoicing\Domain\MailTemplate;
 use Foresi\Invoicing\Domain\MailTemplateKind;
-use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\LegalEntity;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -56,8 +52,6 @@ final class MailTemplateTest extends TestCase
 
     private function template(string $subject, string $body): MailTemplate
     {
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
-
-        return MailTemplate::define($firm, MailTemplateKind::Invoice, DocumentLanguage::English, $subject, $body);
+        return MailTemplate::define(MailTemplateKind::Invoice, DocumentLanguage::English, $subject, $body);
     }
 }

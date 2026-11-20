@@ -33,7 +33,7 @@ interface ReceivedDocumentQueries
     public function rows(ReceivedDocumentFilter $filter, int $offset, int $limit): array;
 
     /**
-     * The drafts outside the trash, of every firm.
+     * The drafts outside the trash.
      */
     public function drafts(): int;
 
@@ -50,7 +50,7 @@ interface ReceivedDocumentQueries
      *
      * @return list<ReceivedDocumentRow>
      */
-    public function correctable(string $firmId, ?string $exceptId, int $limit): array;
+    public function correctable(?string $exceptId, int $limit): array;
 
     /**
      * The documents of a slice for the API, newest first by id, after the

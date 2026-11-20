@@ -151,7 +151,7 @@ final readonly class PairMovement
             return null;
         }
         $candidates = $this->matcher->candidates($movement);
-        $decision = $this->matcher->decide($movement, $candidates, $this->rules->for($movement->firm()), $this->matcher->settlementLimit($movement));
+        $decision = $this->matcher->decide($movement, $candidates, $this->rules->get(), $this->matcher->settlementLimit($movement));
         $locked = [];
         for ($round = 0; $decision->pairs(); ++$round) {
             $read = array_map(static fn (Candidate $candidate): string => $candidate->invoiceId, $candidates);
@@ -166,7 +166,7 @@ final readonly class PairMovement
             $locked = $this->lockInvoices([...$locked, ...$read]);
             $movement = $this->movements->get($movementId);
             $candidates = $this->matcher->candidates($movement);
-            $decision = $this->matcher->decide($movement, $candidates, $this->rules->for($movement->firm()), $this->matcher->settlementLimit($movement));
+            $decision = $this->matcher->decide($movement, $candidates, $this->rules->get(), $this->matcher->settlementLimit($movement));
         }
         if (!$decision->pairs()) {
             $movement->stayUnmatched($decision->reason ?? UnmatchedReason::NoInvoice);
@@ -206,7 +206,6 @@ final readonly class PairMovement
     {
         $movement = $this->movements->get($movementId);
         $payment = $this->record->record(new PaymentRequest(
-            $movement->firm()->id(),
             $movement->bookedOn(),
             $movement->amount(),
             PaymentMethod::BankTransfer,

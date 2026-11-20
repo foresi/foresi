@@ -783,12 +783,11 @@ final class InvoicePdfTest extends InvoiceTestCase
      */
     private function issuedByNonPayer(array $overrides = [], string $price = '1000.00'): IssuedDocument
     {
-        $firm = $this->firm(VatStatus::NotRegistered, null, registrationNumber: '12345687');
-        $this->em->flush();
+        $this->reconfigureFirm(VatStatus::NotRegistered, null);
 
         return $this->issued(
             [$this->line($price, treatment: TaxTreatment::NotApplicable, kind: null)],
-            [...['firmId' => $firm->id(), 'seriesId' => null], ...$overrides],
+            [...['seriesId' => null], ...$overrides],
         );
     }
 

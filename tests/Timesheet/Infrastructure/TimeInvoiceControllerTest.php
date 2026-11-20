@@ -61,7 +61,6 @@ final class TimeInvoiceControllerTest extends WebTestCase
     private string $shop;
     private string $homepage;
     private string $customer;
-    private string $firm;
 
     protected function setUp(): void
     {
@@ -151,9 +150,8 @@ final class TimeInvoiceControllerTest extends WebTestCase
         $this->client->request('POST', '/invoices/new', array_merge($values, ['_action' => 'save']));
         self::assertResponseRedirects('/invoices');
 
-        $invoice = $this->row('SELECT id, number, legal_entity_id FROM invoice');
+        $invoice = $this->row('SELECT id, number FROM invoice');
         [$invoiceId, $number] = [(string) $invoice['id'], (string) $invoice['number']];
-        self::assertSame($this->firm, $invoice['legal_entity_id'], 'The instance firm invoices the time.');
         $line = $this->row('SELECT id FROM invoice_line WHERE invoice_id = ?', [$invoiceId]);
         foreach ([$design => 60, $more => 30] as $entry => $minutes) {
             self::assertSame(['invoice_id' => $invoiceId, 'invoice_line_id' => $line['id'], 'invoiced_rate_minor' => '100000', 'invoiced_rate_currency' => 'CZK', 'invoiced_minutes' => (string) $minutes], $this->row('SELECT invoice_id, invoice_line_id, invoiced_rate_minor, invoiced_rate_currency, invoiced_minutes FROM time_entry WHERE id = ?', [$entry]));
@@ -213,8 +211,8 @@ final class TimeInvoiceControllerTest extends WebTestCase
         $this->scoped(function (): void {
             $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
             $this->em->persist($firm);
-            FirmAccounts::add($this->em, $firm, self::IBAN);
-            $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+            FirmAccounts::add($this->em, self::IBAN);
+            $series = new Series(Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
             $series->markDefault();
             $this->em->persist($series);
             $customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');
@@ -232,7 +230,7 @@ final class TimeInvoiceControllerTest extends WebTestCase
             $homepage = new Task($website, 'Design the homepage', $open, 0, $owner->user()->id(), $now);
             $this->em->persist($homepage);
             $this->em->flush();
-            [$this->firm, $this->customer, $this->website, $this->shop, $this->homepage] = [$firm->id(), $customer->id(), $website->id(), $shop->id(), $homepage->id()];
+            [$this->customer, $this->website, $this->shop, $this->homepage] = [$customer->id(), $website->id(), $shop->id(), $homepage->id()];
         });
         $this->browser->signIn();
     }

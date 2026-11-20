@@ -16,7 +16,6 @@ use Foresi\Banking\Contract\MovementDirection;
 use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Identity\Domain\Role;
 use Foresi\Party\Domain\FirmBankAccount;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Shared\Application\View\Condition;
 use Foresi\Shared\Application\View\ViewFilter;
@@ -37,30 +36,28 @@ use Symfony\Component\DomCrawler\Crawler;
  */
 final class BankMovementControllerTest extends BankScreenTestCase
 {
-    public function testTabsListTheRightMovementsAndFilterByFirmAndAccount(): void
+    public function testTabsListTheRightMovementsAndFilterByAccount(): void
     {
         $this->signedIn();
         $paid = $this->invoice(vs: '20260001');
         $second = $this->scoped(function (): FirmBankAccount {
-            $account = FirmAccounts::add($this->em(), $this->em()->find(LegalEntity::class, $this->firm->id()) ?? throw new \LogicException('The firm is gone.'), self::OTHER_IBAN);
+            $account = FirmAccounts::add($this->em(), self::OTHER_IBAN);
             $this->em()->flush();
 
             return $account;
         });
-        [$otherFirm, $otherAccount] = $this->scoped(fn (): array => $this->firmWithSeries('Example Other s.r.o.', 'CZ3808000000000000000123'));
         $pairedId = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified);
         $unmatchedId = $this->movement('500.00', '99999999', trust: MessageTrust::Verified);
         $outgoingId = $this->movement('80.00', null, MovementDirection::Outgoing, account: $second);
-        $otherId = $this->movement('70.00', null, account: $otherAccount);
 
         $all = $this->page('/bank');
         self::assertSame('page', $all->filter('main nav[aria-label="Bank views"] a[href="/bank"]')->attr('aria-current'));
-        self::assertSame([$otherId, $outgoingId, $unmatchedId, $pairedId], $this->rowIds($all), 'All of them, newest first.');
+        self::assertSame([$outgoingId, $unmatchedId, $pairedId], $this->rowIds($all), 'All of them, newest first.');
 
         $incoming = $this->page('/bank?view=incoming');
         self::assertSame('page', $incoming->filter('main nav[aria-label="Bank views"] a[href="/bank?view=incoming"]')->attr('aria-current'));
-        self::assertSame([$otherId, $unmatchedId, $pairedId], $this->rowIds($incoming), 'Newest first, incoming only.');
-        self::assertSame([$otherId, $unmatchedId, $pairedId], $this->rowIds($this->page('/bank?tab=incoming')), 'The tab it was still opens it.');
+        self::assertSame([$unmatchedId, $pairedId], $this->rowIds($incoming), 'Newest first, incoming only.');
+        self::assertSame([$unmatchedId, $pairedId], $this->rowIds($this->page('/bank?tab=incoming')), 'The tab it was still opens it.');
         self::assertSame('20260001', $this->row($incoming, $pairedId)->filter('a[href="/invoices/'.$paid->id().'"][data-sheet]')->text());
         self::assertStringContainsString($this->nb('+1,210.00 Kč'), $this->row($incoming, $pairedId)->text());
         self::assertStringContainsString('Example Remitter Ltd', $this->row($incoming, $unmatchedId)->text());
@@ -73,10 +70,10 @@ final class BankMovementControllerTest extends BankScreenTestCase
         // The account the select named is a condition now; the firm select is gone with the one firm of an instance.
         self::assertSame([$unmatchedId, $pairedId], $this->rowIds($this->page('/bank?tab=incoming&account='.$this->account->id())));
         self::assertSame([], $this->rowIds($this->page('/bank?tab=outgoing&account='.$this->account->id())));
-        self::assertSame([$otherId, $unmatchedId, $pairedId], $this->rowIds($this->page('/bank?view=incoming&firm='.$otherFirm->id())));
+        self::assertSame([$unmatchedId, $pairedId], $this->rowIds($this->page('/bank?view=incoming&firm=01963c5e-0000-7000-8000-000000000001')), 'The firm select is gone: its parameter filters nothing.');
         self::assertSame([$unmatchedId], $this->rowIds($this->page('/bank?q=99999999')));
         // An account of no one is no filter at all.
-        self::assertSame([$otherId, $unmatchedId, $pairedId], $this->rowIds($this->page('/bank?view=incoming&account=nobody')));
+        self::assertSame([$unmatchedId, $pairedId], $this->rowIds($this->page('/bank?view=incoming&account=nobody')));
     }
 
     public function testTheTabsAreTheShippedViewsCountedWithinTheSearch(): void
@@ -130,7 +127,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
     {
         $this->signedIn();
         $second = $this->scoped(function (): FirmBankAccount {
-            $account = FirmAccounts::add($this->em(), $this->em()->find(LegalEntity::class, $this->firm->id()) ?? throw new \LogicException('The firm is gone.'), self::OTHER_IBAN);
+            $account = FirmAccounts::add($this->em(), self::OTHER_IBAN);
             $this->em()->flush();
 
             return $account;
@@ -252,29 +249,25 @@ final class BankMovementControllerTest extends BankScreenTestCase
     }
 
     /**
-     * The dialog pays only the invoices it offered: a forged post naming an
-     * invoice of another firm, or one paid already, pays nothing.
+     * The dialog pays only the invoices it offered: a forged post naming one paid
+     * already pays nothing.
      */
     public function testAnInvoiceTheDialogDidNotOfferIsRefused(): void
     {
         $this->signedIn();
-        [$otherFirm, , $otherSeries] = $this->scoped(fn (): array => $this->firmWithSeries('Example Other s.r.o.', self::OTHER_IBAN));
-        $foreign = $this->invoice(vs: '20260001', firm: $otherFirm, series: $otherSeries, iban: self::OTHER_IBAN);
         $paid = $this->invoice(vs: '20260009');
         $this->movement('1210.00', '20260009', trust: MessageTrust::Verified);
         self::assertSame([$paid->id() => 121000], $this->liveAllocations(), 'Paid by its notice.');
         $movement = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified, bookedOn: '2026-11-18', auto: false);
         $form = $this->pairForm($movement);
 
-        foreach ([$foreign, $paid] as $invoice) {
-            $posted = $form;
-            $posted['invoices'] = [$invoice->id()];
-            $posted['amounts'] = [$invoice->id() => '1210.00'];
-            $dialog = $this->dialogPost($this->pairUrl($movement), $posted);
+        $posted = $form;
+        $posted['invoices'] = [$paid->id()];
+        $posted['amounts'] = [$paid->id() => '1210.00'];
+        $dialog = $this->dialogPost($this->pairUrl($movement), $posted);
 
-            self::assertResponseStatusCodeSame(422);
-            self::assertStringContainsString('The invoice is gone. Pick another one.', $dialog->filter('[data-error-summary]')->text());
-        }
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('The invoice is gone. Pick another one.', $dialog->filter('[data-error-summary]')->text());
         self::assertSame([$paid->id() => 121000], $this->liveAllocations());
         self::assertSame('unmatched', $this->movementRow($movement)['state']);
     }
@@ -368,7 +361,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
         self::assertSelectorNotExists('#pair-settle', 'The switch is off by default.');
 
         $this->scoped(function (): void {
-            $this->connection()->insert('firm_bank_pairing', ['id' => '01963c5e-0000-7000-8000-00000000f1f1', 'legal_entity_id' => $this->firm->id(), 'auto_pairing' => 1, 'small_difference' => 1]);
+            $this->connection()->insert('firm_bank_pairing', ['id' => '01963c5e-0000-7000-8000-00000000f1f1', 'auto_pairing' => 1, 'small_difference' => 1]);
         });
         $dialog = $this->dialog($this->pairUrl($movement));
         self::assertCount(1, $dialog->filter('#pair-settle'));

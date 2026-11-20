@@ -13,7 +13,7 @@ use Foresi\Attachment\Domain\Attachment;
 use Foresi\Audit\Application\AuditCorrelation;
 use Foresi\Audit\Domain\AuditEntry;
 use Foresi\Party\Application\LegalEntities;
-use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Party\Application\NoFirmYet;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Infrastructure\Doctrine\DoctrineLegalEntities;
 use Foresi\Purchasing\Application\DeleteReceivedDocumentDraft;
@@ -84,13 +84,11 @@ final class PurchasingGuardsTest extends PurchasingTestCase
 
         $this->editing()->edit($id, $this->input());
         self::assertSame([$this->firm->id()], $this->firms->locked, 'A draft is edited under the lock of its firm.');
-        self::assertSame([], $this->firms->read);
 
         $this->recording()->record($id, $this->input());
         $this->firms->forget();
         $this->editing()->edit($id, $this->input(supplierNumber: 'FV-2'));
         self::assertSame([$this->firm->id()], $this->firms->locked, 'So is a recorded document.');
-        self::assertSame([], $this->firms->read);
     }
 
     public function testRecordingLocksTheFirm(): void
@@ -101,29 +99,28 @@ final class PurchasingGuardsTest extends PurchasingTestCase
 
         $this->recording()->record($draft, $this->input());
         self::assertSame([$this->firm->id()], $this->firms->locked);
-        self::assertSame([], $this->firms->read);
 
         $this->firms->forget();
-        $this->recording()->create($this->firm->id(), $this->input(supplierNumber: 'FV-2'));
+        $this->recording()->create($this->input(supplierNumber: 'FV-2'));
         self::assertSame([$this->firm->id()], $this->firms->locked);
-        self::assertSame([], $this->firms->read);
     }
 
-    public function testUploadingReadsTheFirmWithoutALock(): void
+    public function testUploadingDoesNotLockTheFirm(): void
     {
         $this->watchFirms();
 
-        $this->uploads()->upload($this->firm->id(), [$this->file()]);
+        $this->uploads()->upload([$this->file()]);
 
         self::assertSame([], $this->firms->locked);
-        self::assertContains($this->firm->id(), $this->firms->read);
     }
 
-    public function testNothingIsUploadedToAnUnknownFirmWhateverTheFiles(): void
+    public function testNothingIsUploadedBeforeTheFirmExistsWhateverTheFiles(): void
     {
-        $this->expectException(UnknownLegalEntity::class);
+        $this->em->createQuery('DELETE FROM '.LegalEntity::class)->execute();
 
-        $this->uploads()->upload(Id::generate(), []);
+        $this->expectException(NoFirmYet::class);
+
+        $this->uploads()->upload([]);
     }
 
     public function testADocumentInTheTrashIsRefusedBeforeItsInputIsRead(): void
@@ -144,7 +141,7 @@ final class PurchasingGuardsTest extends PurchasingTestCase
 
     public function testADocumentCreatedAtOnceTakesNoRateItCannotGet(): void
     {
-        $this->assertRefused(ReceivedDocumentRefused::EXCHANGE_RATE_UNAVAILABLE, fn (): SavedReceivedDocument => $this->recording()->create($this->firm->id(), $this->input(kind: ReceivedDocumentKind::ForeignInvoice, treatment: PurchaseTaxTreatment::NonEuService, currency: Currency::USD, base: 10_000)));
+        $this->assertRefused(ReceivedDocumentRefused::EXCHANGE_RATE_UNAVAILABLE, fn (): SavedReceivedDocument => $this->recording()->create($this->input(kind: ReceivedDocumentKind::ForeignInvoice, treatment: PurchaseTaxTreatment::NonEuService, currency: Currency::USD, base: 10_000)));
     }
 
     public function testAnOriginalThatDoesNotExistIsRefusedWhenEditing(): void
@@ -203,7 +200,7 @@ final class PurchasingGuardsTest extends PurchasingTestCase
     }
 
     /**
-     * The firms as they run, told apart by how they are asked for.
+     * The firms as they run, with their locks remembered.
      */
     private function watchFirms(): void
     {
@@ -213,14 +210,12 @@ final class PurchasingGuardsTest extends PurchasingTestCase
 }
 
 /**
- * The firms as they run, remembering how each was asked for.
+ * The firms as they run, remembering which was locked.
  */
 final class WatchedLegalEntities implements LegalEntities
 {
     /** @var list<string> */
     public array $locked = [];
-    /** @var list<string> */
-    public array $read = [];
 
     public function __construct(private readonly LegalEntities $real)
     {
@@ -229,7 +224,6 @@ final class WatchedLegalEntities implements LegalEntities
     public function forget(): void
     {
         $this->locked = [];
-        $this->read = [];
     }
 
     public function all(): array
@@ -239,8 +233,6 @@ final class WatchedLegalEntities implements LegalEntities
 
     public function get(string $id): LegalEntity
     {
-        $this->read[] = $id;
-
         return $this->real->get($id);
     }
 

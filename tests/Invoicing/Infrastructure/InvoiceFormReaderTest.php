@@ -24,7 +24,6 @@ use Symfony\Component\Translation\LocaleSwitcher;
 
 final class InvoiceFormReaderTest extends TestCase
 {
-    private const string FIRM = '019a0000-0000-7000-8000-000000000001';
     private const string SERIES = '019a0000-0000-7000-8000-000000000002';
     private const string PARTY = '019a0000-0000-7000-8000-000000000003';
 
@@ -34,7 +33,6 @@ final class InvoiceFormReaderTest extends TestCase
 
         self::assertSame([], $submission->errors);
         $input = $submission->input;
-        self::assertSame(self::FIRM, $input->firmId);
         self::assertSame(self::SERIES, $input->seriesId);
         self::assertNull($input->typedNumber);
         self::assertSame(self::PARTY, $input->customerId);
@@ -336,9 +334,9 @@ final class InvoiceFormReaderTest extends TestCase
 
     public function testBadShapesCountAsEmpty(): void
     {
-        $submission = $this->post(['firmId' => ['x'], 'lines' => 'text', 'customer' => 'text']);
+        $submission = $this->post(['seriesId' => ['x'], 'lines' => 'text', 'customer' => 'text']);
 
-        self::assertSame('', $submission->values['firmId']);
+        self::assertSame('', $submission->values['seriesId']);
         self::assertSame([], $submission->input->lines);
     }
 
@@ -409,7 +407,7 @@ final class InvoiceFormReaderTest extends TestCase
     private function post(array $changes): InvoiceSubmission
     {
         $post = array_merge([
-            'firmId' => self::FIRM, 'seriesId' => self::SERIES, 'number' => '20260001', 'numberPeek' => '20260001', 'customerId' => self::PARTY, 'customer' => self::CUSTOMER,
+            'seriesId' => self::SERIES, 'number' => '20260001', 'numberPeek' => '20260001', 'customerId' => self::PARTY, 'customer' => self::CUSTOMER,
             'issueDate' => '2026-11-01', 'taxPointDate' => '2026-11-02', 'dueDate' => '2026-11-15', 'paymentMethod' => 'bank_transfer', 'bankAccount' => 'CZ6508000000192000145399',
             'variableSymbol' => '20260001', 'constantSymbol' => '0308', 'orderNumber' => 'PO-1', 'description' => 'Consulting', 'textBefore' => 'Before', 'textAfter' => 'After',
             'language' => 'en', 'version' => '3',

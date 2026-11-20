@@ -149,7 +149,7 @@ final class SendDraftTest extends SendingTestCase
     public function testTheFirmsOwnTemplateIsUsed(): void
     {
         $templates = self::getContainer()->get(\Foresi\Invoicing\Application\MailTemplates::class);
-        $templates->save($this->firm, \Foresi\Invoicing\Domain\MailTemplateKind::Invoice, DocumentLanguage::Czech, 'Doklad {number}', "Dobrý den,\n{customer_name}\n{link}");
+        $templates->save(\Foresi\Invoicing\Domain\MailTemplateKind::Invoice, DocumentLanguage::Czech, 'Doklad {number}', "Dobrý den,\n{customer_name}\n{link}");
         $this->em->flush();
         $invoice = $this->issue->issue($this->input());
 
@@ -162,7 +162,7 @@ final class SendDraftTest extends SendingTestCase
     public function testTheSubjectIsOneLineWithoutSpacesAround(): void
     {
         $templates = self::getContainer()->get(\Foresi\Invoicing\Application\MailTemplates::class);
-        $templates->save($this->firm, \Foresi\Invoicing\Domain\MailTemplateKind::Invoice, DocumentLanguage::Czech, 'Doklad {number} {order_number}', '{link}');
+        $templates->save(\Foresi\Invoicing\Domain\MailTemplateKind::Invoice, DocumentLanguage::Czech, 'Doklad {number} {order_number}', '{link}');
         $this->em->flush();
         $invoice = $this->issue->issue($this->input(overrides: ['orderNumber' => '']));
 

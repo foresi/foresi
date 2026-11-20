@@ -11,7 +11,6 @@ namespace Foresi\Tests\Invoicing\Infrastructure\Api;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Invoicing\Application\TrashInvoice;
 use Foresi\Invoicing\Domain\Invoice;
-use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Infrastructure\Api\Cursor;
 use Foresi\Tests\Invoicing\Support\IssuesInvoices;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
@@ -145,10 +144,9 @@ final class InvoiceApiTest extends ApiTestCase
     {
         [$first, $other, $otherCustomer] = $this->flushed(function (): array {
             $first = $this->invoice();
-            [$firm, $customer] = $this->firmWithCustomer('Other Firm s.r.o.', '25596641');
-            $series = $this->series($firm);
+            $customer = $this->otherCustomer();
 
-            return [$first, $this->invoice(firmId: $firm, seriesId: $series, customerId: $customer), $customer];
+            return [$first, $this->invoice(customerId: $customer), $customer];
         });
 
         $this->get('/api/v1/invoices', ['customer_id' => $otherCustomer]);

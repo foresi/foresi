@@ -13,7 +13,6 @@ use Foresi\Invoicing\Application\BundleIncomplete;
 use Foresi\Invoicing\Application\DocumentMonths;
 use Foresi\Invoicing\Application\InvoiceBundle;
 use Foresi\Party\Application\InstanceFirm;
-use Foresi\Party\Domain\LegalEntity;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -26,7 +25,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The documents of one firm and month as a ZIP, for staff to pass to the accountant,
+ * The documents of one month as a ZIP, for staff to pass to the accountant,
  * with how many of each kind it holds shown before the download. Nothing is sent
  * anywhere: the browser downloads the file, which lives in a temporary file until
  * it is sent. The documents it holds are marked exported.
@@ -60,9 +59,8 @@ final class InvoiceExportController extends AbstractController
 
         // A link may name the month, as the reminder on the start page does; else the last month.
         $month = $this->month($request->query->getString('month')) ?? $this->lastMonth();
-        $firm = $this->firm->find();
 
-        return $this->form($month->format('Y-m'), self::PENDING, $firm instanceof LegalEntity ? $this->bundle->counts($firm, $month, true) : null, null, null, Response::HTTP_OK);
+        return $this->form($month->format('Y-m'), self::PENDING, null !== $this->firm->find() ? $this->bundle->counts($month, true) : null, null, null, Response::HTTP_OK);
     }
 
     private function download(Request $request): Response
@@ -70,7 +68,9 @@ final class InvoiceExportController extends AbstractController
         if (!$this->isCsrfTokenValid(self::TOKEN, $request->request->getString('_token'))) {
             throw new AccessDeniedHttpException('Invalid CSRF token.');
         }
-        $firm = $this->firm->find() ?? throw new NotFoundHttpException();
+        if (null === $this->firm->find()) {
+            throw new NotFoundHttpException();
+        }
         $monthText = $request->request->getString('month');
         $scope = self::ALL === $request->request->getString('scope') ? self::ALL : self::PENDING;
         $pending = self::PENDING === $scope;
@@ -79,7 +79,7 @@ final class InvoiceExportController extends AbstractController
             return $this->form($monthText, $scope, null, $this->translator->trans('invoice.export.month_invalid'), null, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         if ('count' === $request->request->getString('action')) {
-            return $this->form($monthText, $scope, $this->bundle->counts($firm, $month, $pending), null, null, Response::HTTP_OK);
+            return $this->form($monthText, $scope, $this->bundle->counts($month, $pending), null, null, Response::HTTP_OK);
         }
 
         $path = tempnam(sys_get_temp_dir(), 'foresi-bundle-');
@@ -87,11 +87,11 @@ final class InvoiceExportController extends AbstractController
             throw new \RuntimeException('The temporary file cannot be created.');
         }
         try {
-            $count = $this->bundle->writeTo($path, $firm, $month, $pending, $request->getLocale());
+            $count = $this->bundle->writeTo($path, $month, $pending, $request->getLocale());
         } catch (BundleIncomplete $incomplete) {
             unlink($path);
 
-            return $this->form($monthText, $scope, $this->bundle->counts($firm, $month, $pending), null, $this->translator->trans('invoice.export.incomplete', ['numbers' => implode(', ', $incomplete->numbers)]), Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->form($monthText, $scope, $this->bundle->counts($month, $pending), null, $this->translator->trans('invoice.export.incomplete', ['numbers' => implode(', ', $incomplete->numbers)]), Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (\Throwable $failure) {
             @unlink($path);
 
@@ -100,11 +100,11 @@ final class InvoiceExportController extends AbstractController
         if (0 === $count) {
             unlink($path);
 
-            return $this->form($monthText, $scope, $this->bundle->counts($firm, $month, $pending), null, $this->translator->trans('invoice.export.empty'), Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->form($monthText, $scope, $this->bundle->counts($month, $pending), null, $this->translator->trans('invoice.export.empty'), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $response = new BinaryFileResponse($path, Response::HTTP_OK, ['Content-Type' => 'application/zip'], false);
-        $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_ATTACHMENT, $this->bundle->fileName($firm, $month));
+        $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_ATTACHMENT, $this->bundle->fileName($month));
         $response->deleteFileAfterSend();
 
         return $response;
@@ -118,7 +118,7 @@ final class InvoiceExportController extends AbstractController
         return $this->render('@Invoicing/export.html.twig', [
             'month' => $month,
             // A pack is of one month: those with a document, the last one and the one chosen.
-            'months' => MonthChoices::of([...$this->months->months(null, null), $this->lastMonth()->format('Y-m'), ...($this->month($month) instanceof \DateTimeImmutable ? [$month] : [])], $this->translator->getLocale()),
+            'months' => MonthChoices::of([...$this->months->months(null), $this->lastMonth()->format('Y-m'), ...($this->month($month) instanceof \DateTimeImmutable ? [$month] : [])], $this->translator->getLocale()),
             'scope' => $scope,
             'counts' => $counts,
             'error' => $error,

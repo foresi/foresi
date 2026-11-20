@@ -9,10 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Tests\Invoicing\Domain;
 
 use Foresi\Invoicing\Domain\FirmReminders;
-use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\LegalEntity;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -79,8 +75,7 @@ final class FirmRemindersTest extends TestCase
 
     private function reminders(?Money $minimum): FirmReminders
     {
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '10000', 'CZ'), VatStatus::NotRegistered, '');
-        $reminders = FirmReminders::standard($firm);
+        $reminders = FirmReminders::standard();
         $reminders->change(true, 7, 7, $minimum, new \DateTimeImmutable('2026-11-02'));
 
         return $reminders;

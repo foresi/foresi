@@ -14,24 +14,24 @@ use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Invoicing\Application\ConflictRetry;
 use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Application\UnknownFirmBankAccount;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\Iban;
 use Foresi\Party\Domain\InvalidIban;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Application\Event\EventRecorder;
 use Foresi\Shared\Domain\Money;
 
 /**
- * Records a movement on an account of a firm and decides where it stands. It pays
+ * Records a movement on an account of the firm and decides where it stands. It pays
  * nothing: PairMovement::auto() does that, in the same transaction when the caller
  * wants both, so the reason an incoming movement is recorded with is what the
  * matcher says now, and auto() settles it under the locks.
  *
  * Outgoing money goes the same way, to a refund: the same movement from another
  * message is a possible duplicate, and money to or from another account of the
- * same firm is an own transfer; neither ever pays or refunds an invoice. Outgoing
+ * firm is an own transfer; neither ever pays or refunds an invoice. Outgoing
  * money that no invoice with something to refund fits, by its symbol, amount,
  * account or customer, pays a supplier or a salary: it is recorded only, and waits
  * for no one. A person can still pair it with a refund that came later. Movements of one account are recorded
@@ -48,6 +48,7 @@ final readonly class RecordMovement
         private ConflictRetry $retry,
         private PairingChoices $choices,
         private EventRecorder $events,
+        private InstanceFirm $firm,
     ) {
     }
 
@@ -59,10 +60,10 @@ final readonly class RecordMovement
         return $this->retry->run(fn (): BankMovement => $this->work->run(function () use ($input, $verdict): BankMovement {
             $this->movements->lockAccount($input->accountId);
             $account = $this->accounts->get($input->accountId);
-            $state = $this->stateOf($input, $account->firm());
+            $state = $this->stateOf($input);
             $movement = $this->movement($account, $input, $verdict, $state, MovementState::Unmatched === $state ? UnmatchedReason::NoInvoice : null);
             if (MovementState::Unmatched === $state) {
-                $decision = $this->matcher->decide($movement, $this->matcher->candidates($movement), $this->rules->for($account->firm()), $this->matcher->settlementLimit($movement));
+                $decision = $this->matcher->decide($movement, $this->matcher->candidates($movement), $this->rules->get(), $this->matcher->settlementLimit($movement));
                 if ($decision->reason instanceof UnmatchedReason) {
                     $movement->stayUnmatched($decision->reason);
                 }
@@ -73,7 +74,7 @@ final readonly class RecordMovement
             $this->movements->add($movement);
             $this->events->record(new BankMovementRecorded(
                 $movement->id(),
-                $account->firm()->id(),
+                $this->firm->get()->id(),
                 $account->id(),
                 $movement->direction()->value,
                 $this->decimal($movement->amount()),
@@ -87,19 +88,19 @@ final readonly class RecordMovement
         }));
     }
 
-    private function stateOf(MovementInput $input, LegalEntity $firm): MovementState
+    private function stateOf(MovementInput $input): MovementState
     {
         if ($this->movements->fingerprintTakenByOther($input->fingerprint(), $input->inboundMessageId)) {
             return MovementState::PossibleDuplicate;
         }
-        if ($this->isOwnAccount($firm, $input->counterIban)) {
+        if ($this->isOwnAccount($input->counterIban)) {
             return MovementState::OwnTransfer;
         }
 
         return MovementState::Unmatched;
     }
 
-    private function isOwnAccount(LegalEntity $firm, ?string $iban): bool
+    private function isOwnAccount(?string $iban): bool
     {
         if (null === $iban) {
             return false;
@@ -111,7 +112,7 @@ final readonly class RecordMovement
         }
 
         // Archived accounts too: the firm still owns them, and money from them is its own.
-        return $this->accounts->ofIban($firm, $normalised) instanceof FirmBankAccount;
+        return $this->accounts->ofIban($normalised) instanceof FirmBankAccount;
     }
 
     private function movement(FirmBankAccount $account, MovementInput $input, TrustVerdict $verdict, MovementState $state, ?UnmatchedReason $reason): BankMovement

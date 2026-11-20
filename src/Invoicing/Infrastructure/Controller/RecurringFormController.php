@@ -46,10 +46,8 @@ use Foresi\Invoicing\Infrastructure\Form\RecurringFormReader;
 use Foresi\Invoicing\Infrastructure\Form\RecurringFormValues;
 use Foresi\Invoicing\Infrastructure\Form\RecurringSubmission;
 use Foresi\Party\Application\InstanceFirm;
-use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\PartyDetails;
 use Foresi\Party\Application\PartyQuery;
-use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\EmailPurpose;
 use Foresi\Party\Domain\LegalEntity;
@@ -91,7 +89,6 @@ final class RecurringFormController extends AbstractController
     private const array WITHOUT_LINK = ['form', 'version', 'state'];
 
     public function __construct(
-        private readonly LegalEntities $firms,
         private readonly InstanceFirm $instanceFirm,
         private readonly InvoiceStore $invoices,
         private readonly RecurringInvoices $templates,
@@ -131,14 +128,13 @@ final class RecurringFormController extends AbstractController
 
         $from = $request->query->getString('from');
         $source = '' === $from ? null : $this->invoice($from);
-        $firm = $source instanceof Invoice ? $source->firm() : $this->instanceFirm->find();
-        if (!$firm instanceof LegalEntity) {
+        if (!$this->instanceFirm->find() instanceof LegalEntity) {
             return $this->render('@Invoicing/recurring/form.html.twig', ['blocked' => 'no_firm']);
         }
 
         try {
-            $context = $this->context($firm);
-            $values = $source instanceof Invoice ? $this->recurringValues->ofInvoice($source, $this->today()) : $this->recurringValues->ofNew($firm, $this->today());
+            $context = $this->context();
+            $values = $source instanceof Invoice ? $this->recurringValues->ofInvoice($source, $this->today()) : $this->recurringValues->ofNew($this->today());
         } catch (UnsupportedCountry) {
             return $this->render('@Invoicing/recurring/form.html.twig', ['blocked' => 'country']);
         }
@@ -152,7 +148,7 @@ final class RecurringFormController extends AbstractController
         $this->denyUnlessStaff();
         $template = $this->template($id);
         try {
-            $context = $this->context($template->firm());
+            $context = $this->context();
         } catch (UnsupportedCountry) {
             return $this->render('@Invoicing/recurring/form.html.twig', ['blocked' => 'country']);
         }
@@ -174,13 +170,13 @@ final class RecurringFormController extends AbstractController
         $this->checkToken($request);
         $templateId = $request->request->getString('templateId');
         $template = '' === $templateId ? null : $this->template($templateId);
-        $firm = $template?->firm() ?? $this->firm();
+        $this->firm();
         try {
-            $context = $this->context($firm);
+            $context = $this->context();
         } catch (UnsupportedCountry) {
             throw new NotFoundHttpException();
         }
-        $recipients = $this->recipients($firm, $request->request->getString('customerId'), $template);
+        $recipients = $this->recipients($request->request->getString('customerId'), $template);
         $this->withRecipients($request, $recipients);
         $preview = $this->previewOf($this->reader->read($request, $context->currency, $this->today()), $template);
 
@@ -202,9 +198,8 @@ final class RecurringFormController extends AbstractController
             return $this->alreadySaved();
         }
         try {
-            $firm = $this->firm();
-            $request->request->set('firmId', $firm->id());
-            $context = $this->context($firm);
+            $this->firm();
+            $context = $this->context();
         } catch (UnsupportedCountry) {
             return $this->render('@Invoicing/recurring/form.html.twig', ['blocked' => 'country']);
         }
@@ -223,7 +218,6 @@ final class RecurringFormController extends AbstractController
         if (null !== $saved) {
             return $this->alreadySaved();
         }
-        $request->request->set('firmId', $template->firm()->id());
 
         return $this->submit($request, $context, $template, $token);
     }
@@ -239,10 +233,10 @@ final class RecurringFormController extends AbstractController
         $action = $request->request->getString('_action', 'refresh');
         $saving = 'save' === $action;
         $matches = $this->typedCustomers($request, $saving);
-        $wanted = $this->withRecipients($request, $this->recipients($context->firm, $request->request->getString('customerId'), $template));
+        $wanted = $this->withRecipients($request, $this->recipients($request->request->getString('customerId'), $template));
         $submission = $this->reader->read($request, $context->currency, $this->today());
         // The form shows the boxes as they were chosen, so a box that comes back with an address is as it was.
-        $values = $this->values->withoutHiddenCodes($this->withFormFields([...$submission->values, ...$wanted], $context), $context->firm->address()->countryCode);
+        $values = $this->values->withoutHiddenCodes($this->withFormFields([...$submission->values, ...$wanted], $context), $this->firm()->address()->countryCode);
 
         if (1 === \count($matches)) {
             // A typed name is a pick, never a save: the defaults of the customer come first.
@@ -259,7 +253,7 @@ final class RecurringFormController extends AbstractController
             return $this->form($context, $template, $values, [$this->message('form', 'party.error.expired')], $candidates, $this->tokens->issue(), $submission->version, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         if ([] !== $submission->errors) {
-            $problems = $this->rules->check($submission->input, $context->firm, $template, $this->today());
+            $problems = $this->rules->check($submission->input, $template, $this->today());
 
             return $this->form($context, $template, $values, $this->messages($submission->errors, $problems), $candidates, $token, $submission->version, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
@@ -269,7 +263,7 @@ final class RecurringFormController extends AbstractController
                 ? $this->save->edit($template->id(), $submission->version, $submission->input)
                 : $this->save->create($submission->input);
         } catch (RecurringRefused $refused) {
-            return $this->refused($refused, $template?->id(), $context, $values, $candidates, $token, $submission->version);
+            return $this->refused($refused, $template?->id(), $values, $candidates, $token, $submission->version);
         }
 
         $this->tokens->complete($token, $saved->id());
@@ -291,10 +285,10 @@ final class RecurringFormController extends AbstractController
      * @param array<string, mixed>                                $values
      * @param list<array{id: string, name: string, hint: string}> $candidates
      */
-    private function refused(RecurringRefused $refused, ?string $templateId, InvoiceFormContext $context, array $values, array $candidates, string $token, int $version): Response
+    private function refused(RecurringRefused $refused, ?string $templateId, array $values, array $candidates, string $token, int $version): Response
     {
         $template = null === $templateId ? null : $this->template($templateId);
-        $context = $this->context($template?->firm() ?? $this->firmById($context->firm->id()));
+        $context = $this->context();
         $stale = array_any($refused->problems, static fn (IssueProblem $problem): bool => 'version' === $problem->field);
 
         return $this->form($context, $template, $values, $stale ? [] : $this->messages([], $refused->problems), $candidates, $token, $version, $stale ? Response::HTTP_CONFLICT : Response::HTTP_UNPROCESSABLE_ENTITY, $stale);
@@ -330,7 +324,7 @@ final class RecurringFormController extends AbstractController
      */
     private function withCustomer(array $values, Party $party, InvoiceFormContext $context): array
     {
-        $values = $this->values->withCustomer($values + ['dueDateSet' => '1', 'dueDate' => ''], $party, $context->firm, $this->today(), $context->regime, $context->firm->address()->countryCode);
+        $values = $this->values->withCustomer($values + ['dueDateSet' => '1', 'dueDate' => ''], $party, $this->today(), $context->regime, $this->firm()->address()->countryCode);
         if ('1' !== $values['dueDaysSet']) {
             $values['dueDays'] = (string) $this->picker->option($party)->defaults->dueDays;
         }
@@ -447,7 +441,7 @@ final class RecurringFormController extends AbstractController
      */
     private function form(InvoiceFormContext $context, ?RecurringInvoice $template, array $values, array $errors, array $candidates, string $token, int $version, int $status, bool $stale = false): Response
     {
-        $firm = $context->firm;
+        $firm = $this->firm();
         $today = $this->today();
         $errorFields = [];
         foreach ($errors as $error) {
@@ -456,12 +450,11 @@ final class RecurringFormController extends AbstractController
         $firmUrl = $this->generateUrl('app_firm');
         // Accounts are kept on the firm's bank tab, which only an owner may open.
         $bankUrl = $this->owner->isOwner() ? $this->generateUrl('app_firm_bank') : null;
-        $bankAccounts = $this->options->bankAccounts($firm, $template?->bankAccount());
+        $bankAccounts = $this->options->bankAccounts($template?->bankAccount());
         $targets = new InvoiceErrorTargets($context->isPayer(), false, [] !== $bankAccounts, '' !== $values['customerId'], $firmUrl, $bankUrl);
         $links = array_map(fn (array $error): array => $error + ['link' => \in_array($error['id'], self::WITHOUT_LINK, true) ? null : $targets->of($error['id'], $error['key'])], $errors);
         $previewRequest = new Request(request: $values);
-        $previewRequest->request->set('firmId', $firm->id());
-        $recipients = $this->recipients($firm, $previewRequest->request->getString('customerId'), $template);
+        $recipients = $this->recipients($previewRequest->request->getString('customerId'), $template);
         $this->withRecipients($previewRequest, $recipients);
 
         return $this->render('@Invoicing/recurring/form.html.twig', [
@@ -469,19 +462,19 @@ final class RecurringFormController extends AbstractController
             'template' => $template,
             'ended' => RecurringState::Ended === $template?->state(),
             'firm' => $firm,
-            'series' => $this->seriesOptions($firm, $template),
+            'series' => $this->seriesOptions($template),
             'values' => $values,
             'errors' => $links,
             'errorFields' => $errorFields,
             'firmUrl' => $firmUrl,
             'bankUrl' => $bankUrl,
-            'moreOpen' => $this->moreOpen($values, $firm, $errorFields),
+            'moreOpen' => $this->moreOpen($values, $errorFields),
             'noContacts' => 0 === $this->parties->counts()->all,
             'candidates' => $candidates,
             'token' => $token,
             'version' => $version,
             'stale' => $stale,
-            'copyNotices' => $this->copyNotices($values, $firm),
+            'copyNotices' => $this->copyNotices($values),
             'payer' => $context->isPayer(),
             'issuerCountry' => $firm->address()->countryCode,
             'issuerName' => $firm->name(),
@@ -492,7 +485,7 @@ final class RecurringFormController extends AbstractController
             'paymentMethods' => $this->options->paymentMethods(),
             'languages' => $this->options->languages(),
             'bankAccounts' => $bankAccounts,
-            'bankDetails' => $this->options->bankDetails($firm, $context->country, array_keys($bankAccounts)),
+            'bankDetails' => $this->options->bankDetails($context->country, array_keys($bankAccounts)),
             'figures' => $this->shownFigures($context, $values, $today),
             'emptyLine' => $this->values->emptyLine($context->regime, $this->newLinesAreReverseCharge($context, $values)),
             'maxLines' => InvoiceFormReader::MAX_LINES,
@@ -568,7 +561,7 @@ final class RecurringFormController extends AbstractController
      *
      * @return array{sendToCustomer: list<string>, copyToMe: list<string>, copyToOthers: list<string>}
      */
-    private function recipients(LegalEntity $firm, string $customerId, ?RecurringInvoice $template): array
+    private function recipients(string $customerId, ?RecurringInvoice $template): array
     {
         $customer = [];
         $others = [];
@@ -582,7 +575,7 @@ final class RecurringFormController extends AbstractController
                 }
             }
         }
-        $contact = trim($this->settings->for($firm)->contactEmail());
+        $contact = trim($this->settings->get()->contactEmail());
         $owner = $template instanceof RecurringInvoice ? $template->owner() : $this->actor->userId();
         $me = '' !== $contact ? $contact : (null === $owner ? null : $this->users->findById($owner)?->email());
 
@@ -648,9 +641,9 @@ final class RecurringFormController extends AbstractController
     /**
      * @return array<string, string>
      */
-    private function seriesOptions(LegalEntity $firm, ?RecurringInvoice $template): array
+    private function seriesOptions(?RecurringInvoice $template): array
     {
-        return $this->options->recurringSeries($firm, $template?->series());
+        return $this->options->recurringSeries($template?->series());
     }
 
     /**
@@ -660,12 +653,12 @@ final class RecurringFormController extends AbstractController
      * @param array<string, mixed>  $values
      * @param array<string, string> $errorFields
      */
-    private function moreOpen(array $values, LegalEntity $firm, array $errorFields): bool
+    private function moreOpen(array $values, array $errorFields): bool
     {
         if ([] !== array_intersect_key($errorFields, array_flip(self::MORE_FIELDS))) {
             return true;
         }
-        $settings = $this->settings->for($firm);
+        $settings = $this->settings->get();
 
         return $values['constantSymbol'] !== $settings->constantSymbol()
             || $values['textBefore'] !== $settings->textBefore()
@@ -680,7 +673,7 @@ final class RecurringFormController extends AbstractController
      *
      * @return list<string> translation keys
      */
-    private function copyNotices(array $values, LegalEntity $firm): array
+    private function copyNotices(array $values): array
     {
         $id = $values['copyOf'] ?? '';
         if (!\is_string($id) || !Uuid::isValid($id)) {
@@ -690,9 +683,6 @@ final class RecurringFormController extends AbstractController
             $source = $this->invoices->get($id);
             $notices = $this->copies->valuesFrom($source)->notices;
         } catch (UnknownInvoice|UnsupportedCountry) {
-            return [];
-        }
-        if ($source->firm()->id() !== $firm->id()) {
             return [];
         }
 
@@ -724,9 +714,9 @@ final class RecurringFormController extends AbstractController
     /**
      * @throws UnsupportedCountry
      */
-    private function context(LegalEntity $firm): InvoiceFormContext
+    private function context(): InvoiceFormContext
     {
-        return InvoiceFormContext::new($firm, $this->countries, $this->settings);
+        return InvoiceFormContext::new($this->instanceFirm, $this->countries, $this->settings);
     }
 
     private function today(): \DateTimeImmutable
@@ -740,15 +730,6 @@ final class RecurringFormController extends AbstractController
     private function firm(): LegalEntity
     {
         return $this->instanceFirm->find() ?? throw new NotFoundHttpException();
-    }
-
-    private function firmById(string $id): LegalEntity
-    {
-        try {
-            return Uuid::isValid($id) ? $this->firms->get($id) : throw new NotFoundHttpException();
-        } catch (UnknownLegalEntity) {
-            throw new NotFoundHttpException();
-        }
     }
 
     private function invoice(string $id): Invoice

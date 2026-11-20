@@ -38,7 +38,6 @@ use Foresi\Invoicing\Domain\SeriesFormat;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
 use Foresi\Party\Domain\EmailPurpose;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyEmail;
@@ -90,13 +89,10 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     public function testADefaultSeriesIsCreatedOnTheFirstIssue(): void
     {
-        $firm = $this->secondFirm(VatStatus::Registered, 'CZ27074358');
-
-        $invoice = $this->issue->issue($this->input(overrides: ['firmId' => $firm->id(), 'seriesId' => null]));
+        $invoice = $this->issue->issue($this->input(overrides: ['seriesId' => null]));
 
         self::assertSame('20260001', $invoice->number());
         self::assertTrue($invoice->series()->isDefault());
-        self::assertSame($firm, $invoice->series()->firm());
     }
 
     public function testAPayerInvoiceStoresKindAndValueOfTheRate(): void
@@ -159,9 +155,9 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     public function testANonPayerInvoiceHasNoVatAndNoRates(): void
     {
-        $firm = $this->secondFirm(VatStatus::NotRegistered, null);
+        $this->reconfigureFirm(VatStatus::NotRegistered, null);
 
-        $invoice = $this->issue->issue($this->input([$this->line('121.00', PriceType::WithVat)], ['firmId' => $firm->id(), 'seriesId' => null]));
+        $invoice = $this->issue->issue($this->input([$this->line('121.00', PriceType::WithVat)], ['seriesId' => null]));
         $invoice = $this->reloaded($invoice);
         $lines = $this->store->lines($invoice);
         $document = self::getContainer()->get(IssuedDocumentFactory::class)->of($invoice->id());
@@ -185,23 +181,23 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     public function testARegisteredFirmWithoutAVatIdIsRefusedAtIssue(): void
     {
-        $firm = $this->secondFirm(VatStatus::Registered, null);
+        $this->reconfigureFirm(VatStatus::Registered, null);
 
-        $this->assertRefusedFor('invoice.problem.firm_vat_id_missing', fn (): Invoice => $this->issue->issue($this->input(overrides: ['firmId' => $firm->id(), 'seriesId' => null])));
+        $this->assertRefusedFor('invoice.problem.firm_vat_id_missing', fn (): Invoice => $this->issue->issue($this->input(overrides: ['seriesId' => null])));
     }
 
     public function testAFirmNeedsARegisterEntry(): void
     {
-        $firm = $this->secondFirm(VatStatus::Registered, 'CZ27074358', '');
+        $this->reconfigureFirm(VatStatus::Registered, 'CZ27074358', '');
 
-        $this->assertRefusedFor('invoice.problem.firm_register_entry_missing', fn (): Invoice => $this->issue->issue($this->input(overrides: ['firmId' => $firm->id(), 'seriesId' => null])));
+        $this->assertRefusedFor('invoice.problem.firm_register_entry_missing', fn (): Invoice => $this->issue->issue($this->input(overrides: ['seriesId' => null])));
     }
 
     public function testAFirmInAnUnsupportedCountryIssuesNothing(): void
     {
-        $firm = $this->secondFirm(VatStatus::Registered, 'DE123456789', 'Register', new Address('Beispielstrasse 1', 'Berlin', '10115', 'DE'));
+        $this->reconfigureFirm(VatStatus::Registered, 'DE123456789', 'Register', new Address('Beispielstrasse 1', 'Berlin', '10115', 'DE'));
 
-        $this->assertRefusedFor('invoice.problem.firm_country_unsupported', fn (): Invoice => $this->issue->issue($this->input(overrides: ['firmId' => $firm->id(), 'seriesId' => null])));
+        $this->assertRefusedFor('invoice.problem.firm_country_unsupported', fn (): Invoice => $this->issue->issue($this->input(overrides: ['seriesId' => null])));
     }
 
     public function testAnArchivedContactIsRefused(): void
@@ -215,15 +211,6 @@ final class IssueInvoiceTest extends InvoiceTestCase
     public function testAnUnknownCustomerIsRefused(): void
     {
         $this->assertRefusedFor('invoice.problem.customer_unknown', fn (): Invoice => $this->issue->issue($this->input(overrides: ['customerId' => '01963c5e-0000-7000-8000-000000000000'])));
-    }
-
-    public function testASeriesOfAnotherFirmIsRefused(): void
-    {
-        $other = $this->secondFirm(VatStatus::Registered, 'CZ27074358');
-        $series = $this->seriesOf($other);
-        $this->em->flush();
-
-        $this->assertRefusedFor('invoice.problem.series_of_another_firm', fn (): Invoice => $this->issue->issue($this->input(overrides: ['seriesId' => $series->id()])));
     }
 
     public function testAnArchivedSeriesIsRefused(): void
@@ -253,9 +240,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     public function testIssueRulesAcceptOnlyTheFirmsActiveIbansOrTheStoredOne(): void
     {
-        $second = FirmAccounts::add($this->em, $this->firm, 'CZ5508000000001234567899');
-        $other = $this->secondFirm(VatStatus::Registered, 'CZ27074358');
-        FirmAccounts::add($this->em, $other, 'DE89370400440532013000');
+        $second = FirmAccounts::add($this->em, 'CZ5508000000001234567899');
         $this->em->flush();
         $invoice = $this->issue->issue($this->input(overrides: ['bankAccount' => 'CZ55 0800 0000 0012 3456 7899']));
 
@@ -358,12 +343,10 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     public function testAFirmOutsideTheFontIsRefused(): void
     {
-        $firm = new LegalEntity('中文 s.r.o.', new RegistrationNumber('CZ', '12345687'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Example register, entry C 2');
-        $this->em->persist($firm);
-        FirmAccounts::add($this->em, $firm, self::IBAN);
+        $this->firm->update('中文 s.r.o.', new RegistrationNumber('CZ', '12345687'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Example register, entry C 2');
         $this->em->flush();
 
-        $problems = $this->problemsOf(fn (): Invoice => $this->issue->issue($this->input(overrides: ['firmId' => $firm->id(), 'seriesId' => null])));
+        $problems = $this->problemsOf(fn (): Invoice => $this->issue->issue($this->input(overrides: ['seriesId' => null])));
 
         self::assertSame('firm', $problems[0][0]);
         self::assertSame('invoice.problem.unprintable_part', $problems[0][1]);
@@ -378,7 +361,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     public function testAGeneratedNumberThatTheCountryCannotCarryIsRefusedAndTakesNoNumber(): void
     {
-        $series = new Series($this->firm, 'Long', SeriesFormat::fromString(str_repeat('A', 37).'{NNNN}'), DocumentKind::Invoice);
+        $series = new Series('Long', SeriesFormat::fromString(str_repeat('A', 37).'{NNNN}'), DocumentKind::Invoice);
         $this->em->persist($series);
         $this->em->flush();
 
@@ -406,9 +389,9 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     public function testAnIdentifiedPersonCannotIssueYet(): void
     {
-        $firm = $this->secondFirm(VatStatus::IdentifiedPerson, 'CZ27074358');
+        $this->reconfigureFirm(VatStatus::IdentifiedPerson, 'CZ27074358');
 
-        $this->assertRefusedFor('invoice.problem.firm_identified_person', fn (): Invoice => $this->issue->issue($this->input(overrides: ['firmId' => $firm->id(), 'seriesId' => null])));
+        $this->assertRefusedFor('invoice.problem.firm_identified_person', fn (): Invoice => $this->issue->issue($this->input(overrides: ['seriesId' => null])));
     }
 
     public function testANumberTheCountryCannotCarryIsRefused(): void
@@ -451,11 +434,11 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     public function testReverseChargeNeedsAPayerIssuer(): void
     {
-        $firm = $this->secondFirm(VatStatus::NotRegistered, null);
+        $this->reconfigureFirm(VatStatus::NotRegistered, null);
 
         $this->assertRefusedFor('invoice.problem.reverse_charge_payer', fn (): Invoice => $this->issue->issue($this->input(
             [$this->line(treatment: TaxTreatment::ReverseCharge, kind: null, supplyCode: '1')],
-            ['firmId' => $firm->id(), 'seriesId' => null],
+            ['seriesId' => null],
         )));
     }
 
@@ -597,7 +580,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
         $this->issue->issue($this->input(overrides: ['typedNumber' => 'TAKEN-1']));
         $allocator = self::getContainer()->get(NumberAllocator::class);
 
-        $this->assertRefusedFor('invoice.problem.number_taken', fn () => $allocator->allocate($this->series, $this->firm, new \DateTimeImmutable('2026-11-01'), 'TAKEN-1', null));
+        $this->assertRefusedFor('invoice.problem.number_taken', fn () => $allocator->allocate($this->series, new \DateTimeImmutable('2026-11-01'), 'TAKEN-1', null));
     }
 
     public function testANumberAboveTheCounterRangeIsRefused(): void
@@ -622,7 +605,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     public function testAnAllocatedNumberTakenByHandIsSkipped(): void
     {
-        $other = new Series($this->firm, 'Second', SeriesFormat::fromString('{YYYY}/{NNNN}'), DocumentKind::Invoice);
+        $other = new Series('Second', SeriesFormat::fromString('{YYYY}/{NNNN}'), DocumentKind::Invoice);
         $this->catalog->add($other);
         $this->em->flush();
         // The same key as the first two numbers of the standard series, typed in a form its counter cannot see.
@@ -637,7 +620,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     public function testASeriesFullOfTakenNumbersIsRefused(): void
     {
-        $other = new Series($this->firm, 'Second', SeriesFormat::fromString('{YYYY}/{NNNN}'), DocumentKind::Invoice);
+        $other = new Series('Second', SeriesFormat::fromString('{YYYY}/{NNNN}'), DocumentKind::Invoice);
         $this->catalog->add($other);
         $this->em->flush();
         for ($sequence = 1; $sequence <= 50; ++$sequence) {
@@ -651,7 +634,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     public function testTheFiftiethTryStillGivesANumber(): void
     {
-        $other = new Series($this->firm, 'Second', SeriesFormat::fromString('{YYYY}/{NNNN}'), DocumentKind::Invoice);
+        $other = new Series('Second', SeriesFormat::fromString('{YYYY}/{NNNN}'), DocumentKind::Invoice);
         $this->catalog->add($other);
         $this->em->flush();
         for ($sequence = 1; $sequence <= 49; ++$sequence) {
@@ -734,14 +717,14 @@ final class IssueInvoiceTest extends InvoiceTestCase
             {
             }
 
-            public function numberTaken(LegalEntity $firm, string $key, ?Invoice $except): bool
+            public function numberTaken(string $key, ?Invoice $except): bool
             {
-                return $this->store->numberTaken($firm, $key, $except);
+                return $this->store->numberTaken($key, $except);
             }
 
-            public function kindOfNumber(LegalEntity $firm, string $key): ?DocumentKind
+            public function kindOfNumber(string $key): ?DocumentKind
             {
-                return $this->store->kindOfNumber($firm, $key);
+                return $this->store->kindOfNumber($key);
             }
 
             public function page(\Foresi\Invoicing\Application\InvoiceFilter $filter): \Foresi\Invoicing\Application\InvoicePage
@@ -754,14 +737,14 @@ final class IssueInvoiceTest extends InvoiceTestCase
                 return $this->store->sums($filter);
             }
 
-            public function idsForPeriod(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to): array
+            public function idsForPeriod(\DateTimeImmutable $from, \DateTimeImmutable $to): array
             {
-                return $this->store->idsForPeriod($firm, $from, $to);
+                return $this->store->idsForPeriod($from, $to);
             }
 
-            public function forAccountant(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to, bool $pending): array
+            public function forAccountant(\DateTimeImmutable $from, \DateTimeImmutable $to, bool $pending): array
             {
-                return $this->store->forAccountant($firm, $from, $to, $pending);
+                return $this->store->forAccountant($from, $to, $pending);
             }
 
             public function lockRow(string $id): void
@@ -775,7 +758,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
             }
         };
         $issue = new IssueInvoice(
-            $container->get(\Foresi\Party\Application\LegalEntities::class),
+            $container->get(\Foresi\Party\Application\InstanceFirm::class),
             $this->catalog,
             $container->get(\Foresi\Party\Application\PartyQuery::class),
             $container->get(IssueRules::class),
@@ -784,7 +767,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
             $container->get(InvoicingCountries::class),
             $container->get(FirmInvoicingSettings::class),
             $failing,
-            new NumberAllocator($this->counter, $failing, self::getContainer()->get(InvoicingCountries::class)),
+            new NumberAllocator($this->counter, $failing, self::getContainer()->get(InvoicingCountries::class), $container->get(\Foresi\Party\Application\InstanceFirm::class)),
             $container->get(\Foresi\Party\Application\TransactionalWork::class),
             $container->get(\Foresi\Invoicing\Application\ConflictRetry::class),
             $container->get(\Foresi\Audit\Application\AuditActor::class),
@@ -819,10 +802,8 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     public function testASecondIssueReusesTheStoredDefaultSeries(): void
     {
-        $firm = $this->secondFirm(VatStatus::Registered, 'CZ27074358');
-
-        $first = $this->issue->issue($this->input(overrides: ['firmId' => $firm->id(), 'seriesId' => null]));
-        $second = $this->issue->issue($this->input(overrides: ['firmId' => $firm->id(), 'seriesId' => null]));
+        $first = $this->issue->issue($this->input(overrides: ['seriesId' => null]));
+        $second = $this->issue->issue($this->input(overrides: ['seriesId' => null]));
 
         self::assertSame($first->series()->id(), $second->series()->id());
     }
@@ -842,7 +823,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
     public function testTheIssuerCopyTakesTheFirmsContact(): void
     {
         $settings = self::getContainer()->get(FirmInvoicingSettings::class);
-        $row = $settings->for($this->firm);
+        $row = $settings->get();
         $row->change(TotalRounding::None, '', '', '', 'office@example.com', '+420 111 111 111', 'example.com');
         $settings->save($row);
         $this->em->flush();
@@ -973,14 +954,15 @@ final class IssueInvoiceTest extends InvoiceTestCase
         $reverse = fn (?string $code): LineInput => $this->line(treatment: TaxTreatment::ReverseCharge, kind: null, supplyCode: $code);
         $withoutVat = $this->customer(null);
         $foreign = $this->customer('DE123456789');
-        $nonPayer = $this->secondFirm(VatStatus::NotRegistered, null);
         $this->em->flush();
 
         self::assertSame(['lines.1.supplyCode'], $fields($this->input([$this->line(), $reverse('999')])));
         self::assertSame(['lines.0.supplyCode'], $fields($this->input([$reverse('999')])));
         self::assertSame(['lines.0.supplyCode'], $fields($this->input([$reverse('4')], ['customerId' => $foreign->id()])));
         self::assertSame(['customer'], $fields($this->input([$reverse('4')], ['customerId' => $withoutVat->id()])));
-        self::assertSame(['lines.0.treatment'], $fields($this->input([$reverse('4')], ['firmId' => $nonPayer->id(), 'seriesId' => null])));
+        $this->reconfigureFirm(VatStatus::NotRegistered, null);
+        self::assertSame(['lines.0.treatment'], $fields($this->input([$reverse('4')])));
+        $this->reconfigureFirm(VatStatus::Registered, 'CZ12345695');
         self::assertSame(['lines.0.rate'], $fields($this->input([$this->line(kind: null)])));
         self::assertSame(['bankAccount'], $fields($this->input(overrides: ['bankAccount' => null])));
         self::assertSame(['orderNumber'], $fields($this->input(overrides: ['orderNumber' => str_repeat('1', 65)])));
@@ -999,9 +981,9 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     public function testAFirmIsNotRefusedTwiceForTheSameThing(): void
     {
-        $firm = $this->secondFirm(VatStatus::NotRegistered, null, ' ');
+        $this->reconfigureFirm(VatStatus::NotRegistered, null, ' ');
 
-        self::assertSame(['invoice.problem.firm_register_entry_missing'], $this->refusalOf(fn (): Invoice => $this->issue->issue($this->input(overrides: ['firmId' => $firm->id(), 'seriesId' => null]))));
+        self::assertSame(['invoice.problem.firm_register_entry_missing'], $this->refusalOf(fn (): Invoice => $this->issue->issue($this->input(overrides: ['seriesId' => null]))));
     }
 
     public function testATreatmentWithoutARateKeepsNoPriceType(): void
@@ -1037,18 +1019,18 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     public function testAProblemOfTheFirmStaysWhenItsCountryIsUnsupported(): void
     {
-        $firm = $this->secondFirm(VatStatus::Registered, 'DE123456789', '', new Address('Beispielstrasse 1', 'Berlin', '10115', 'DE'));
+        $this->reconfigureFirm(VatStatus::Registered, 'DE123456789', '', new Address('Beispielstrasse 1', 'Berlin', '10115', 'DE'));
 
-        $keys = $this->refusalOf(fn (): Invoice => $this->issue->issue($this->input(overrides: ['firmId' => $firm->id(), 'seriesId' => null])));
+        $keys = $this->refusalOf(fn (): Invoice => $this->issue->issue($this->input(overrides: ['seriesId' => null])));
 
         self::assertSame(['invoice.problem.firm_register_entry_missing', 'invoice.problem.firm_country_unsupported'], $keys);
     }
 
     public function testEveryProblemOfTheFirmIsReported(): void
     {
-        $firm = $this->secondFirm(VatStatus::Registered, null, ' ');
+        $this->reconfigureFirm(VatStatus::Registered, null, ' ');
 
-        self::assertSame(['invoice.problem.firm_vat_id_missing', 'invoice.problem.firm_register_entry_missing'], $this->refusalOf(fn (): Invoice => $this->issue->issue($this->input(overrides: ['firmId' => $firm->id(), 'seriesId' => null]))));
+        self::assertSame(['invoice.problem.firm_vat_id_missing', 'invoice.problem.firm_register_entry_missing'], $this->refusalOf(fn (): Invoice => $this->issue->issue($this->input(overrides: ['seriesId' => null]))));
     }
 
     public function testEveryProblemOfTheCustomerIsReported(): void
@@ -1078,9 +1060,10 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     public function testLinesWithoutARateNeedNoKind(): void
     {
-        $nonPayer = $this->secondFirm(VatStatus::NotRegistered, null);
+        $this->reconfigureFirm(VatStatus::NotRegistered, null);
 
-        $this->issue->issue($this->input([$this->line(kind: null)], ['firmId' => $nonPayer->id(), 'seriesId' => null]));
+        $this->issue->issue($this->input([$this->line(kind: null)]));
+        $this->reconfigureFirm(VatStatus::Registered, 'CZ12345695');
         $invoice = $this->issue->issue($this->input([$this->line(treatment: TaxTreatment::Exempt, kind: null)]));
 
         self::assertSame(TaxTreatment::Exempt, $this->store->lines($this->reloaded($invoice))[0]->treatment());
@@ -1123,16 +1106,6 @@ final class IssueInvoiceTest extends InvoiceTestCase
         self::assertSame('The document cannot be saved: first, second', $refused->getMessage());
     }
 
-    public function testASeriesOfAnotherFirmIsRefusedByTheAggregate(): void
-    {
-        $other = $this->secondFirm(VatStatus::Registered, 'CZ27074358');
-        $series = $this->seriesOf($other);
-        $change = $this->input()->change($this->customer, DocumentParties::ofCustomer($this->customer, self::address(), null), DocumentKind::Invoice);
-
-        $this->expectExceptionMessageIsOrContains('A document takes a series of its own firm.');
-        new Invoice($this->firm, $series, '1', VatRegime::Payer, TotalRounding::None, Currency::CZK, DocumentParties::ofCustomer($this->customer, self::address(), null), $change, null, new \DateTimeImmutable('2026-11-01'));
-    }
-
     public function testAnInputWithoutDatesGivesNoChange(): void
     {
         $copy = DocumentParties::ofCustomer($this->customer, self::address(), null);
@@ -1152,16 +1125,6 @@ final class IssueInvoiceTest extends InvoiceTestCase
         $invoice = $this->issue->issue($this->input([$this->line(text: '  Work ')]));
 
         self::assertSame('Work', $this->store->lines($this->reloaded($invoice))[0]->text());
-    }
-
-    private function secondFirm(VatStatus $status, ?string $vatId, string $register = 'Example register, entry C 2', ?Address $address = null): LegalEntity
-    {
-        $firm = new LegalEntity('Second Firm s.r.o.', new RegistrationNumber('CZ', '27074358'), null === $vatId ? null : \Foresi\Party\Domain\VatId::fromString($vatId), $address ?? new Address('Example Street 1', 'Example City', '100 00', 'CZ'), $status, $register);
-        $this->em->persist($firm);
-        FirmAccounts::add($this->em, $firm, self::IBAN);
-        $this->em->flush();
-
-        return $firm;
     }
 
     public function testASymbolFollowingTheNumberTakesTheRealOne(): void

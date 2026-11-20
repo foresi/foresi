@@ -17,10 +17,10 @@ namespace Foresi\Banking\Application;
 final readonly class MovementPage
 {
     /**
-     * @param list<MovementRow>                                                 $rows
-     * @param list<MessageRow>                                                  $messages
-     * @param array<string, array{firmId: string, label: string, iban: string}> $accounts by account id
-     * @param array<string, int>                                                $counts   by the key of each view counted
+     * @param list<MovementRow>                                 $rows
+     * @param list<MessageRow>                                  $messages
+     * @param array<string, array{label: string, iban: string}> $accounts by account id
+     * @param array<string, int>                                $counts   by the key of each view counted
      */
     public function __construct(
         public array $rows,

@@ -26,7 +26,6 @@ use Foresi\Invoicing\Domain\SendPurpose;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineReminderSettings;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\InvoicingDefaults;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
@@ -199,7 +198,7 @@ final class SendRemindersTest extends SendingTestCase
         self::mockTime('2027-01-16 09:00:00');
         $this->em->clear();
 
-        $rows = self::getContainer()->get(ReminderPreview::class)->tomorrow($this->firmNow());
+        $rows = self::getContainer()->get(ReminderPreview::class)->tomorrow();
         self::assertSame([$open->id()], array_map(static fn (InvoiceRow $row): string => $row->id, $rows));
 
         $this->runOn('2027-01-17 09:00:00');
@@ -231,7 +230,7 @@ final class SendRemindersTest extends SendingTestCase
         self::mockTime('2027-01-16 09:00:00');
         $this->em->clear();
 
-        $rows = self::getContainer()->get(ReminderPreview::class)->tomorrow($this->firmNow());
+        $rows = self::getContainer()->get(ReminderPreview::class)->tomorrow();
         self::assertCount(1, $rows);
         self::assertSame([121000, 21000], [$rows[0]->payable->minor(), $rows[0]->paid->minor()]);
 
@@ -288,7 +287,7 @@ final class SendRemindersTest extends SendingTestCase
         self::mockTime('2027-01-16 09:00:00');
         $this->em->clear();
 
-        $rows = self::getContainer()->get(ReminderPreview::class)->tomorrow($this->firmNow());
+        $rows = self::getContainer()->get(ReminderPreview::class)->tomorrow();
 
         self::assertSame([$due->id()], array_map(static fn (InvoiceRow $row): string => $row->id, $rows));
     }
@@ -301,7 +300,7 @@ final class SendRemindersTest extends SendingTestCase
         self::mockTime('2027-01-16 09:00:00');
         $this->em->clear();
 
-        $rows = self::getContainer()->get(ReminderPreview::class)->tomorrow($this->firmNow());
+        $rows = self::getContainer()->get(ReminderPreview::class)->tomorrow();
 
         self::assertSame([[$earlier->id(), true], [$later->id(), true]], array_map(static fn (InvoiceRow $row): array => [$row->id, $row->overdue], $rows));
     }
@@ -313,7 +312,7 @@ final class SendRemindersTest extends SendingTestCase
         self::mockTime('2027-01-20 09:00:00');
         $this->em->clear();
 
-        $planned = self::getContainer()->get(ReminderPreview::class)->ifSwitchedOnToday($this->firmNow());
+        $planned = self::getContainer()->get(ReminderPreview::class)->ifSwitchedOnToday();
 
         self::assertCount(1, $planned);
         self::assertSame([$invoice->id(), false, '2027-01-27'], [$planned[0]->invoice->id, $planned[0]->invoice->overdue, $planned[0]->on->format('Y-m-d')]);
@@ -379,7 +378,7 @@ final class SendRemindersTest extends SendingTestCase
     {
         $english = $this->overdue(language: DocumentLanguage::English);
         $czech = $this->overdue();
-        self::getContainer()->get(MailTemplates::class)->save($this->firmNow(), MailTemplateKind::Reminder, DocumentLanguage::English, 'Reminder {reminder_step}: {number}', "{days_overdue} days overdue, {amount_due} to pay.\n{link}");
+        self::getContainer()->get(MailTemplates::class)->save(MailTemplateKind::Reminder, DocumentLanguage::English, 'Reminder {reminder_step}: {number}', "{days_overdue} days overdue, {amount_due} to pay.\n{link}");
         $this->em->flush();
         $this->switchOn();
 
@@ -420,23 +419,6 @@ final class SendRemindersTest extends SendingTestCase
         self::assertSame([1], $this->steps($invoice));
     }
 
-    public function testEachFirmIsRemindedByItsOwnSettings(): void
-    {
-        $other = $this->firm(vatId: 'CZ12345687', registrationNumber: '12345687');
-        $otherSeries = $this->seriesOf($other);
-        $this->em->flush();
-        $this->serverOf($other);
-        $own = $this->overdue();
-        $foreign = $this->delivered->mark($this->issue->issue($this->input(overrides: ['firmId' => $other->id(), 'seriesId' => $otherSeries->id(), 'dueDate' => new \DateTimeImmutable(self::DUE)]))->id());
-        $this->switchOn();
-        $this->switchOn(first: 3, firm: $other);
-
-        $this->runOn('2027-01-13 09:00:00');
-
-        self::assertSame([], $this->reminders($own));
-        self::assertSame([1], $this->steps($foreign));
-    }
-
     /**
      * A payment recorded by hand on the day after issue, as the payments dialog records it.
      *
@@ -445,7 +427,7 @@ final class SendRemindersTest extends SendingTestCase
     private function pay(Invoice $invoice, string $amount): string
     {
         $czk = Money::of($amount, Currency::CZK);
-        $payment = self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-02'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $czk)]));
+        $payment = self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-02'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $czk)]));
         $this->em->clear();
 
         return $payment->id();
@@ -466,24 +448,11 @@ final class SendRemindersTest extends SendingTestCase
         return $this->delivered->mark($invoice->id());
     }
 
-    private function switchOn(int $first = 7, int $every = 7, ?Money $minimum = null, string $on = '2027-01-01', bool $enabled = true, ?LegalEntity $firm = null): void
+    private function switchOn(int $first = 7, int $every = 7, ?Money $minimum = null, string $on = '2027-01-01', bool $enabled = true): void
     {
-        $firm = $this->em->find(LegalEntity::class, ($firm ?? $this->firm)->id()) ?? self::fail('No firm.');
-        $settings = $this->em->getRepository(FirmReminders::class)->findOneBy(['firm' => $firm]) ?? FirmReminders::standard($firm);
+        $settings = $this->em->getRepository(FirmReminders::class)->findOneBy([]) ?? FirmReminders::standard();
         $settings->change($enabled, $first, $every, $minimum, new \DateTimeImmutable($on));
         $this->em->persist($settings);
-        $this->em->flush();
-    }
-
-    private function firmNow(): LegalEntity
-    {
-        return $this->em->find(LegalEntity::class, $this->firm->id()) ?? self::fail('No firm.');
-    }
-
-    private function serverOf(LegalEntity $firm): void
-    {
-        $secrets = self::getContainer()->get(\Foresi\Invoicing\Application\MailSecrets::class);
-        self::getContainer()->get(\Foresi\Invoicing\Application\MailServers::class)->save(\Foresi\Invoicing\Domain\FirmMailServer::define($firm, 'smtp.example.com', 587, \Foresi\Invoicing\Domain\MailEncryption::Starttls, 'other@example.com', $secrets->seal('correct-horse-battery'), 'other@example.com', 'Other Firm'));
         $this->em->flush();
     }
 

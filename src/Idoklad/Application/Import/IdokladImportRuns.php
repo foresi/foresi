@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Idoklad\Application\Import;
 
 use Foresi\Idoklad\Domain\IdokladImportRun;
-use Foresi\Party\Domain\LegalEntity;
 
 /** Port: the imports of iDoklad snapshots, checked or run. */
 interface IdokladImportRuns
@@ -24,5 +23,5 @@ interface IdokladImportRuns
      *
      * @return list<IdokladImportRun>
      */
-    public function forFirm(LegalEntity $firm): array;
+    public function all(): array;
 }

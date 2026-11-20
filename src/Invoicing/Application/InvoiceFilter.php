@@ -12,7 +12,7 @@ use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Shared\Application\View\ViewFilter;
 
 /**
- * Which documents a list shows: of one kind, of one firm or all, in which tab, matching what text,
+ * Which documents a list shows: of one kind, in which tab, matching what text,
  * in what order, on what page. A sort is the key of an attribute of the list that its query sorts
  * by, such as "due_date", with a minus for descending.
  * To send narrows any tab to the invoices a recurring template issued that were
@@ -51,7 +51,7 @@ final readonly class InvoiceFilter
      *
      * @param array<string, ViewFilter> $counted
      */
-    public function __construct(public ?string $firmId, public string $tab, public string $text, public string $sort, public int $page, public bool $toSend = false, public DocumentKind $kind = DocumentKind::Invoice, public ?string $month = null, public ?ViewFilter $view = null, public array $counted = [])
+    public function __construct(public string $tab, public string $text, public string $sort, public int $page, public bool $toSend = false, public DocumentKind $kind = DocumentKind::Invoice, public ?string $month = null, public ?ViewFilter $view = null, public array $counted = [])
     {
     }
 

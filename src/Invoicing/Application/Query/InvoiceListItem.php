@@ -18,7 +18,6 @@ final readonly class InvoiceListItem
 {
     public function __construct(
         public InvoiceRow $row,
-        public string $firmId,
         public string $customerId,
         public ?\DateTimeImmutable $taxPointDate,
         public \DateTimeImmutable $createdAt,

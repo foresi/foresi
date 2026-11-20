@@ -49,7 +49,6 @@ final class IdokladImportTest extends KernelTestCase
     private const int SLOVAKIA = 1;
 
     private EntityManagerInterface $em;
-    private LegalEntity $firm;
 
     protected function setUp(): void
     {
@@ -61,11 +60,10 @@ final class IdokladImportTest extends KernelTestCase
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
 
-        $this->firm = new LegalEntity('Example s.r.o.', new RegistrationNumber('CZ', '12345679'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
-        $this->em->persist($this->firm);
+        $this->em->persist(new LegalEntity('Example s.r.o.', new RegistrationNumber('CZ', '12345679'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, ''));
         $this->record(IdokladResource::Countries, self::CZECHIA, ['Id' => self::CZECHIA, 'Code' => 'CZE', 'Name' => 'Česká republika', 'NameEnglish' => 'Czech Republic']);
         $this->record(IdokladResource::Countries, self::SLOVAKIA, ['Id' => self::SLOVAKIA, 'Code' => 'SVK', 'Name' => 'Slovensko', 'NameEnglish' => 'Slovakia']);
-        $pull = new IdokladPull($this->firm, new \DateTimeImmutable('2026-11-06 09:00:00'));
+        $pull = new IdokladPull(new \DateTimeImmutable('2026-11-06 09:00:00'));
         $pull->finish(new \DateTimeImmutable('2026-11-06 09:05:00'), 3);
         $this->em->persist($pull);
         $this->em->flush();
@@ -99,7 +97,7 @@ final class IdokladImportTest extends KernelTestCase
             ],
         ]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         self::assertNull($run->error());
         $entry = $this->entry($run, ContactsStage::KEY, 501);
@@ -131,7 +129,6 @@ final class IdokladImportTest extends KernelTestCase
         self::assertSame(501, $link->externalId());
         self::assertSame($party->id(), $link->targetId());
         self::assertSame($run->id(), $link->runId());
-        self::assertSame($this->firm->id(), $link->firm()->id());
         self::assertEquals($run->startedAt(), $link->createdAt());
     }
 
@@ -139,7 +136,7 @@ final class IdokladImportTest extends KernelTestCase
     {
         $this->contact(502, ['Firstname' => 'Petr', 'Surname' => 'Example', 'SendReminders' => true]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         $party = $this->party($this->entry($run, ContactsStage::KEY, 502)['target_id']);
         self::assertSame('Petr Example', $party->displayName());
@@ -165,7 +162,7 @@ final class IdokladImportTest extends KernelTestCase
             'DeliveryAddresses' => [['Street' => 'Store Street 3', 'City' => 'Example City', 'PostalCode' => '100 00', 'CountryId' => self::CZECHIA]],
         ]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         $entry = $this->entry($run, ContactsStage::KEY, 503);
         self::assertSame('matched', $entry['outcome']);
@@ -189,7 +186,7 @@ final class IdokladImportTest extends KernelTestCase
         $existing = $this->existing('Example Full a.s.', '34567895', phone: '+420 999 999 999');
         $this->contact(504, ['CompanyName' => 'Example Full a.s.', 'IdentificationNumber' => '34567895', 'Phone' => '+420 111 111 111', 'DefaultInvoiceMaturity' => 30]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         self::assertSame(['filled' => ''], $this->entry($run, ContactsStage::KEY, 504)['values']);
         self::assertSame('+420 999 999 999', $this->party($existing)->phone());
@@ -201,7 +198,7 @@ final class IdokladImportTest extends KernelTestCase
         $existing = $this->existing('Example  Trading s.r.o.', null);
         $this->contact(505, ['CompanyName' => ' example trading S.R.O. ', 'IdentificationNumber' => '23456787', 'VatIdentificationNumber' => 'CZ23456787', 'Iban' => 'CZ65 0800 0000 1920 0014 5399', 'Firstname' => 'Jana', 'Surname' => 'Example']);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         $entry = $this->entry($run, ContactsStage::KEY, 505);
         self::assertSame('matched', $entry['outcome']);
@@ -222,7 +219,7 @@ final class IdokladImportTest extends KernelTestCase
         $existing = $this->existing('Example Trading s.r.o.', '34567895');
         $this->contact(506, ['CompanyName' => 'Example Trading s.r.o.', 'IdentificationNumber' => '23456787']);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         $entry = $this->entry($run, ContactsStage::KEY, 506);
         self::assertSame('created', $entry['outcome']);
@@ -236,7 +233,7 @@ final class IdokladImportTest extends KernelTestCase
         $this->contact(507, ['CompanyName' => 'Example Twin s.r.o.', 'VatIdentificationNumber' => 'CZ23456787']);
         $this->contact(520, ['CompanyName' => 'Example After Twin s.r.o.', 'VatIdentificationNumber' => 'CZ23456787']);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         self::assertSame('created', $this->entry($run, ContactsStage::KEY, 520)['outcome'], 'The contacts after an ambiguous one are imported.');
 
@@ -252,7 +249,7 @@ final class IdokladImportTest extends KernelTestCase
         $this->contact(508, ['CompanyName' => 'Example Duo s.r.o.', 'VatIdentificationNumber' => 'CZ23456787']);
         $this->contact(509, ['CompanyName' => 'Example Duo s.r.o.', 'VatIdentificationNumber' => 'CZ23456787']);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         self::assertSame('created', $this->entry($run, ContactsStage::KEY, 508)['outcome']);
         $second = $this->entry($run, ContactsStage::KEY, 509);
@@ -269,7 +266,7 @@ final class IdokladImportTest extends KernelTestCase
         $this->contact(514, ['CompanyName' => '', 'Street' => '']);
         $this->contact(517, ['CompanyName' => 'Example Nowhere s.r.o.', 'CountryId' => 99, 'Email' => 'not an e-mail', 'DeliveryAddresses' => [['Street' => 'Store Street 3', 'City' => 'Example City', 'PostalCode' => '100 00', 'CountryId' => 98]]]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         $refused = fn (int $id): array => [$this->entry($run, ContactsStage::KEY, $id)['outcome'], $this->entry($run, ContactsStage::KEY, $id)['reasons'], $this->entry($run, ContactsStage::KEY, $id)['values']];
         self::assertSame(['refused', [ContactsStage::UNKNOWN_COUNTRY], ['billing_country' => '99']], $refused(510));
@@ -288,7 +285,7 @@ final class IdokladImportTest extends KernelTestCase
         $existing = $this->existing('Example Numbered a.s.', '34567895');
         $this->contact(521, ['CompanyName' => 'Example Numbered a.s.', 'VatIdentificationNumber' => 'CZ23456787']);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         self::assertSame($existing, $this->entry($run, ContactsStage::KEY, 521)['target_id']);
     }
@@ -299,7 +296,7 @@ final class IdokladImportTest extends KernelTestCase
         $plain = $this->existing('Example Pair s.r.o.', null);
         $this->contact(524, ['CompanyName' => 'Example Pair s.r.o.', 'IdentificationNumber' => '23456787']);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         $entry = $this->entry($run, ContactsStage::KEY, 524);
         self::assertSame(['matched', $plain], [$entry['outcome'], $entry['target_id']]);
@@ -313,7 +310,7 @@ final class IdokladImportTest extends KernelTestCase
         $this->em->flush();
         $this->contact(526, ['CompanyName' => 'Example Three a.s.', 'IdentificationNumber' => '34567895']);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         self::assertSame([ContactsStage::AMBIGUOUS], $this->entry($run, ContactsStage::KEY, 526)['reasons']);
     }
@@ -325,7 +322,7 @@ final class IdokladImportTest extends KernelTestCase
         $this->contact(523, ['CompanyName' => 'Example Junk s.r.o.', 'VatIdentificationNumber' => 'CZ23456787', 'DeliveryAddresses' => ['junk', ['IsDefault' => false, 'Street' => 'Store Street 3', 'City' => 'Example City', 'PostalCode' => '100 00', 'CountryId' => self::CZECHIA]]]);
         $this->contact(525, ['CompanyName' => 'Example Flag s.r.o.', 'VatIdentificationNumber' => 'CZ23456787', 'Phone' => true]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         $details = self::getContainer()->get(PartyDetails::class);
         self::assertSame('SK', $details->billingAddress($this->party($this->entry($run, ContactsStage::KEY, 522)['target_id']))?->address()->countryCode, 'The Czech name of the country comes first.');
@@ -355,7 +352,7 @@ final class IdokladImportTest extends KernelTestCase
         }
         $this->contact($id, ['CompanyName' => 'Example Bare s.r.o.', 'VatIdentificationNumber' => 'CZ45678901']);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         self::assertNull($run->error());
         $filled = fn (int $id): bool => str_contains((string) $this->entry($run, ContactsStage::KEY, $id)['values']['filled'], 'billing_street');
@@ -368,7 +365,7 @@ final class IdokladImportTest extends KernelTestCase
         $this->sequence(1, ['DocumentType' => 0, 'Name' => 'Faktury', 'NumberFormat' => 'RRRRNNNN', 'Year' => 2025, 'LastNumber' => 41, 'IsDefault' => true]);
         $this->sequence(2, ['DocumentType' => 0, 'Name' => 'Faktury', 'NumberFormat' => 'RRRRNNNN', 'Year' => 2026, 'LastNumber' => 7, 'IsDefault' => true]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         $first = $this->entry($run, SeriesStage::KEY, 1);
         $second = $this->entry($run, SeriesStage::KEY, 2);
@@ -403,7 +400,7 @@ final class IdokladImportTest extends KernelTestCase
             $this->sequence(40 + $type, ['DocumentType' => $type, 'Name' => 'Unused '.$type, 'NumberFormat' => 'Q{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 3]);
         }
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         $kind = fn (int $id): array => [$this->series($this->entry($run, SeriesStage::KEY, $id)['target_id'])->kind(), $this->series($this->entry($run, SeriesStage::KEY, $id)['target_id'])->format()->toString()];
         self::assertSame([DocumentKind::Advance, 'Z{YY}{NNN}'], $kind(3));
@@ -437,7 +434,7 @@ final class IdokladImportTest extends KernelTestCase
         $this->sequence(26, ['DocumentType' => 0, 'Name' => 'Full', 'NumberFormat' => 'CNNN', 'Year' => 2026, 'LastNumber' => SeriesFormat::MAX_SEQUENCE]);
         $this->sequence(27, ['Name' => 'Untyped', 'NumberFormat' => 'GNNN', 'Year' => 2026, 'LastNumber' => 1]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         self::assertSame('created', $this->entry($run, SeriesStage::KEY, 24)['outcome']);
         self::assertSame('created', $this->entry($run, SeriesStage::KEY, 25)['outcome']);
@@ -448,12 +445,12 @@ final class IdokladImportTest extends KernelTestCase
     public function testATakenNameWhateverItsCaseGetsTheFirstFreeNumber(): void
     {
         $catalog = self::getContainer()->get(SeriesCatalog::class);
-        $catalog->store(new Series($this->firm, 'Ďábel', SeriesFormat::fromString('H{NNN}'), DocumentKind::Invoice));
-        $catalog->store(new Series($this->firm, 'ŘADA', SeriesFormat::fromString('J{NNN}'), DocumentKind::Invoice));
+        $catalog->store(new Series('Ďábel', SeriesFormat::fromString('H{NNN}'), DocumentKind::Invoice));
+        $catalog->store(new Series('ŘADA', SeriesFormat::fromString('J{NNN}'), DocumentKind::Invoice));
         $this->sequence(28, ['DocumentType' => 0, 'Name' => 'ĎÁBEL', 'NumberFormat' => 'KRRNNN', 'Year' => 2026, 'LastNumber' => 1]);
         $this->sequence(29, ['DocumentType' => 0, 'Name' => 'řada', 'NumberFormat' => 'LRRNNN', 'Year' => 2026, 'LastNumber' => 1]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         self::assertSame('ĎÁBEL 2', $this->series($this->entry($run, SeriesStage::KEY, 28)['target_id'])->name());
         self::assertSame('řada 2', $this->series($this->entry($run, SeriesStage::KEY, 29)['target_id'])->name());
@@ -463,13 +460,13 @@ final class IdokladImportTest extends KernelTestCase
     {
         $this->sequence(30, ['DocumentType' => 1, 'Name' => 'Default', 'NumberFormat' => 'Z9{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 4, 'IsDefault' => true]);
         $this->sequence(31, ['DocumentType' => 10, 'Name' => 'Default', 'NumberFormat' => 'D8{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 3, 'IsDefault' => true]);
-        self::getContainer()->get(SeriesCatalog::class)->store(new Series($this->firm, 'Default 2', SeriesFormat::fromString('H{NNN}'), DocumentKind::Invoice));
+        self::getContainer()->get(SeriesCatalog::class)->store(new Series('Default 2', SeriesFormat::fromString('H{NNN}'), DocumentKind::Invoice));
         $this->sequence(33, ['DocumentType' => 3, 'Name' => 'default', 'NumberFormat' => 'O7{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 3, 'IsDefault' => true]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         $names = array_map(fn (int $id): string => $this->series($this->entry($run, SeriesStage::KEY, $id)['target_id'])->name(), [30, 31, 33]);
-        self::assertSame(['Default', 'Default 3', 'default 4'], $names, 'Names are per firm, across the kinds.');
+        self::assertSame(['Default', 'Default 3', 'default 4'], $names, 'Names are unique across the kinds.');
         self::assertSame(DocumentKind::PaymentTaxDocument, $this->series($this->entry($run, SeriesStage::KEY, 31)['target_id'])->kind());
     }
 
@@ -479,7 +476,7 @@ final class IdokladImportTest extends KernelTestCase
         $this->sequence(34, ['DocumentType' => 1, 'Name' => $long, 'NumberFormat' => 'Z9{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 4]);
         $this->sequence(35, ['DocumentType' => 10, 'Name' => $long, 'NumberFormat' => 'D8{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 3]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         self::assertSame($long, $this->series($this->entry($run, SeriesStage::KEY, 34)['target_id'])->name(), 'The limit counts characters, not bytes.');
         self::assertSame(str_repeat('č', Series::MAX_NAME_LENGTH - 2).' 2', $this->series($this->entry($run, SeriesStage::KEY, 35)['target_id'])->name());
@@ -488,12 +485,12 @@ final class IdokladImportTest extends KernelTestCase
     public function testAnExistingSeriesOfTheSameNumbersIsUsedAndItsCounterNeverGoesBack(): void
     {
         $catalog = self::getContainer()->get(SeriesCatalog::class);
-        $existing = Series::standard($this->firm, DocumentKind::Advance);
+        $existing = Series::standard(DocumentKind::Advance);
         $catalog->store($existing);
         self::getContainer()->get(NumberCounter::class)->advanceTo($existing, new \DateTimeImmutable('2026-03-01'), 100);
         $this->sequence(11, ['DocumentType' => 1, 'Name' => 'Zálohy', 'NumberFormat' => 'Z9RRRRNNNNN', 'Year' => 2026, 'LastNumber' => 7, 'IsDefault' => true]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         $entry = $this->entry($run, SeriesStage::KEY, 11);
         self::assertSame('matched', $entry['outcome']);
@@ -505,13 +502,13 @@ final class IdokladImportTest extends KernelTestCase
     public function testANewSeriesNeverTakesTheDefaultNorTheNameOfAnother(): void
     {
         $catalog = self::getContainer()->get(SeriesCatalog::class);
-        $standard = Series::standard($this->firm, DocumentKind::Invoice);
+        $standard = Series::standard(DocumentKind::Invoice);
         $catalog->store($standard);
         $this->sequence(12, ['DocumentType' => 0, 'Name' => ' Export ', 'NumberFormat' => 'EXRRNNN', 'Year' => 2026, 'LastNumber' => 1, 'IsDefault' => true]);
         $this->sequence(13, ['DocumentType' => 0, 'Name' => 'STANDARD', 'NumberFormat' => 'SRRNNN', 'Year' => 2026, 'LastNumber' => 1]);
         $this->sequence(14, ['DocumentType' => 3, 'Name' => ' ', 'NumberFormat' => 'ORRNNN', 'Year' => 2026, 'LastNumber' => 1]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         $created = $this->series($this->entry($run, SeriesStage::KEY, 12)['target_id']);
         self::assertFalse($created->isDefault());
@@ -528,7 +525,7 @@ final class IdokladImportTest extends KernelTestCase
         $tables = ['party', 'party_address', 'party_email', 'series', 'series_counter', 'idoklad_link', 'audit_entry'];
         $before = array_map(fn (string $table): int => $this->rows('SELECT COUNT(*) FROM '.$table), $tables);
 
-        $run = $this->import()->run($this->firm, ImportMode::Check);
+        $run = $this->import()->run(ImportMode::Check);
 
         self::assertNull($run->error());
         self::assertSame(ImportMode::Check, $run->mode());
@@ -536,7 +533,7 @@ final class IdokladImportTest extends KernelTestCase
         self::assertSame('20260008', $this->entry($run, SeriesStage::KEY, 15)['values']['next_number']);
         self::assertSame($before, array_map(fn (string $table): int => $this->rows('SELECT COUNT(*) FROM '.$table), $tables));
         $this->em->clear();
-        $stored = self::getContainer()->get(IdokladImportRuns::class)->forFirm($this->storedFirm());
+        $stored = self::getContainer()->get(IdokladImportRuns::class)->all();
         self::assertCount(1, $stored);
         self::assertSame($run->counts(), $stored[0]->counts());
         self::assertSame($run->report(), $stored[0]->report());
@@ -547,12 +544,12 @@ final class IdokladImportTest extends KernelTestCase
         $this->contact(516, ['CompanyName' => 'Example Again s.r.o.', 'VatIdentificationNumber' => 'CZ23456787']);
         $this->contact(519, ['CompanyName' => 'Example Again Too s.r.o.', 'VatIdentificationNumber' => 'CZ23456787']);
         $this->sequence(16, ['DocumentType' => 0, 'Name' => 'Faktury', 'NumberFormat' => 'RRRRNNNN', 'Year' => 2026, 'LastNumber' => 7]);
-        $first = $this->import()->run($this->firm, ImportMode::Run);
+        $first = $this->import()->run(ImportMode::Run);
         $this->em->clear();
         $this->em->getRepository(IdokladRecord::class)->findOneBy(['resource' => IdokladResource::NumericSequences, 'externalId' => 16])?->replace(['Id' => 16, 'DocumentType' => 0, 'Name' => 'Faktury', 'NumberFormat' => 'RRRRNNNN', 'Year' => 2026, 'LastNumber' => 9], new \DateTimeImmutable('2026-11-06 11:00:00'));
         $this->em->flush();
 
-        $second = $this->import()->run($this->storedFirm(), ImportMode::Run);
+        $second = $this->import()->run(ImportMode::Run);
 
         self::assertSame(['contacts' => ['already_linked' => 2], 'series' => ['already_linked' => 1]], $second->counts());
         self::assertSame($this->entry($first, ContactsStage::KEY, 516)['target_id'], $this->entry($second, ContactsStage::KEY, 516)['target_id']);
@@ -560,27 +557,26 @@ final class IdokladImportTest extends KernelTestCase
         self::assertSame(2, $this->rows('SELECT COUNT(*) FROM party'));
         self::assertCount(3, $this->links());
         $this->em->clear();
-        $runs = self::getContainer()->get(IdokladImportRuns::class)->forFirm($this->storedFirm());
+        $runs = self::getContainer()->get(IdokladImportRuns::class)->all();
         self::assertSame([$second->id(), $first->id()], array_map(static fn (IdokladImportRun $run): string => $run->id(), $runs));
         $stored = $runs[1];
         self::assertSame(ImportMode::Run, $stored->mode());
         self::assertSame($this->em->getRepository(IdokladPull::class)->findAll()[0]->id(), $stored->pullId());
         self::assertSame($first->startedAt()->format('Y-m-d H:i:s'), $stored->startedAt()->format('Y-m-d H:i:s'));
         self::assertNotNull($stored->finishedAt());
-        self::assertSame($this->firm->id(), $stored->firm()->id());
         self::assertSame(['stage' => 'contacts', 'external_id' => 516, 'outcome' => 'created', 'target_id' => $this->entry($first, ContactsStage::KEY, 516)['target_id'], 'reasons' => [], 'values' => []], $stored->report()[0]);
     }
 
     public function testASeriesThatNoLongerHasTheNumbersOfItsSequenceIsAMismatch(): void
     {
         $catalog = self::getContainer()->get(SeriesCatalog::class);
-        $series = new Series($this->firm, 'Other', SeriesFormat::fromString('X{NNN}'), DocumentKind::Invoice);
+        $series = new Series('Other', SeriesFormat::fromString('X{NNN}'), DocumentKind::Invoice);
         $catalog->store($series);
-        $this->em->persist(new IdokladLink($this->firm, IdokladResource::NumericSequences, 17, $series->id(), 'b0b0b0b0-0000-4000-8000-000000000000', new \DateTimeImmutable()));
+        $this->em->persist(new IdokladLink(IdokladResource::NumericSequences, 17, $series->id(), 'b0b0b0b0-0000-4000-8000-000000000000', new \DateTimeImmutable()));
         $this->sequence(17, ['DocumentType' => 0, 'Name' => 'Faktury', 'NumberFormat' => 'RRRRNNNN', 'Year' => 2026, 'LastNumber' => 7]);
         $this->sequence(23, ['DocumentType' => 1, 'Name' => 'Zálohy', 'NumberFormat' => 'ZRRRRNNNN', 'Year' => 2026, 'LastNumber' => 7]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         self::assertSame('created', $this->entry($run, SeriesStage::KEY, 23)['outcome'], 'The sequences after a mismatch are imported.');
 
@@ -594,26 +590,24 @@ final class IdokladImportTest extends KernelTestCase
     public function testAFailedRunStoresNothingButItsError(): void
     {
         $this->contact(518, ['CompanyName' => 'Example Lost s.r.o.', 'VatIdentificationNumber' => 'CZ23456787']);
-        $this->em->persist(new IdokladLink($this->firm, IdokladResource::NumericSequences, 18, 'c0c0c0c0-0000-4000-8000-000000000000', 'b0b0b0b0-0000-4000-8000-000000000000', new \DateTimeImmutable()));
+        $this->em->persist(new IdokladLink(IdokladResource::NumericSequences, 18, 'c0c0c0c0-0000-4000-8000-000000000000', 'b0b0b0b0-0000-4000-8000-000000000000', new \DateTimeImmutable()));
         $this->sequence(18, ['DocumentType' => 0, 'Name' => 'Faktury', 'NumberFormat' => 'RRRRNNNN', 'Year' => 2026, 'LastNumber' => 7]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run(ImportMode::Run);
 
         self::assertNotNull($run->error());
         self::assertSame(0, $this->rows('SELECT COUNT(*) FROM party'));
         self::assertSame(1, $this->rows('SELECT COUNT(*) FROM idoklad_link'));
         self::assertSame(1, $this->rows('SELECT COUNT(*) FROM idoklad_import_run'));
         $this->em->clear();
-        self::assertSame($run->error(), self::getContainer()->get(IdokladImportRuns::class)->forFirm($this->storedFirm())[0]->error());
+        self::assertSame($run->error(), self::getContainer()->get(IdokladImportRuns::class)->all()[0]->error());
     }
 
-    public function testAFirmWithoutAFinishedPullHasNothingToImport(): void
+    public function testWithoutAFinishedPullThereIsNothingToImport(): void
     {
-        $other = new LegalEntity('Example Other s.r.o.', new RegistrationNumber('CZ', '45678901'), null, new Address('Example Street 2', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
-        $this->em->persist($other);
-        $this->em->flush();
+        $this->em->createQuery('DELETE FROM '.IdokladPull::class.' p')->execute();
 
-        $run = $this->import()->run($other, ImportMode::Check);
+        $run = $this->import()->run(ImportMode::Check);
 
         self::assertSame(RunIdokladImport::NO_SNAPSHOT, $run->error());
         self::assertNull($run->pullId());
@@ -649,7 +643,7 @@ final class IdokladImportTest extends KernelTestCase
      */
     private function record(IdokladResource $resource, int $id, array $payload): void
     {
-        $this->em->persist(new IdokladRecord($this->firm, $resource, $id, $payload, new \DateTimeImmutable('2026-11-06 09:01:00')));
+        $this->em->persist(new IdokladRecord($resource, $id, $payload, new \DateTimeImmutable('2026-11-06 09:01:00')));
         $this->em->flush();
     }
 
@@ -700,11 +694,6 @@ final class IdokladImportTest extends KernelTestCase
     private function links(): array
     {
         return $this->em->getRepository(IdokladLink::class)->findAll();
-    }
-
-    private function storedFirm(): LegalEntity
-    {
-        return $this->em->find(LegalEntity::class, $this->firm->id()) ?? self::fail('The firm is stored.');
     }
 
     private function rows(string $sql): int

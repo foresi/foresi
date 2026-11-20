@@ -12,10 +12,6 @@ use Foresi\Idoklad\Application\Import\UndoIdokladImport;
 use Foresi\Idoklad\Domain\IdokladImportRun;
 use Foresi\Idoklad\Domain\ImportMode;
 use Foresi\Idoklad\Domain\ImportReport;
-use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\LegalEntity;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use PHPUnit\Framework\TestCase;
 
 final class UndoIdokladImportTest extends TestCase
@@ -34,7 +30,7 @@ final class UndoIdokladImportTest extends TestCase
     public function testACheckARunningRunAFailedRunAndAnUndoneRunCannotBeUndone(): void
     {
         $now = new \DateTimeImmutable('2026-11-07 10:00:00');
-        $running = new IdokladImportRun($this->firm(), ImportMode::Run, new \DateTimeImmutable(self::STARTED));
+        $running = new IdokladImportRun(ImportMode::Run, new \DateTimeImmutable(self::STARTED));
         $undone = $this->finished(ImportMode::Run);
         $undone->markUndone($now);
 
@@ -46,14 +42,9 @@ final class UndoIdokladImportTest extends TestCase
 
     private function finished(ImportMode $mode, ?string $error = null): IdokladImportRun
     {
-        $run = new IdokladImportRun($this->firm(), $mode, new \DateTimeImmutable(self::STARTED));
+        $run = new IdokladImportRun($mode, new \DateTimeImmutable(self::STARTED));
         $run->finish(new \DateTimeImmutable(self::STARTED), new ImportReport(), $error);
 
         return $run;
-    }
-
-    private function firm(): LegalEntity
-    {
-        return new LegalEntity('Example s.r.o.', new RegistrationNumber('CZ', '12345678'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
     }
 }

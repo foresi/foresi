@@ -78,9 +78,8 @@ final class RecordPaymentTest extends InvoiceTestCase
 
         $this->em->clear();
         $connection = $this->em->getConnection();
-        $row = $connection->fetchAssociative('SELECT legal_entity_id, received_on, amount_minor, currency, method, source, bank_movement_id, note, cancelled_at FROM payment WHERE id = ?', [$payment->id()]);
+        $row = $connection->fetchAssociative('SELECT received_on, amount_minor, currency, method, source, bank_movement_id, note, cancelled_at FROM payment WHERE id = ?', [$payment->id()]);
         self::assertIsArray($row);
-        self::assertSame($this->firm->id(), $row['legal_entity_id']);
         self::assertSame('2026-11-20', $row['received_on']);
         self::assertSame(121000, self::int($row['amount_minor']));
         self::assertSame(['CZK', 'cash', 'manual', null, 'Paid at the counter', null], [$row['currency'], $row['method'], $row['source'], $row['bank_movement_id'], $row['note'], $row['cancelled_at']]);
@@ -324,23 +323,11 @@ final class RecordPaymentTest extends InvoiceTestCase
         self::assertSame(Payment::MAX_NOTE, mb_strlen($this->payments->get($payment->id())->note()));
     }
 
-    public function testAnotherFirmsInvoiceIsRefused(): void
-    {
-        $other = $this->firm(vatId: 'CZ12345687', registrationNumber: '12345687');
-        $series = $this->seriesOf($other);
-        $this->em->flush();
-        $theirs = $this->issue->issue($this->input(overrides: ['firmId' => $other->id(), 'seriesId' => $series->id()]));
-
-        $this->assertRefused(PaymentRefused::WRONG_FIRM, fn (): Payment => $this->pay($theirs, '100.00'));
-        $this->assertNothingStored();
-    }
-
     public function testAnotherCurrencyIsRefused(): void
     {
         $invoice = $this->issue->issue($this->input());
 
         $this->assertRefused(PaymentRefused::CURRENCY_MISMATCH, fn (): Payment => $this->record->record(new PaymentRequest(
-            $this->firm->id(),
             new \DateTimeImmutable('2026-11-20'),
             Money::of('100.00', Currency::EUR),
             PaymentMethod::BankTransfer,
@@ -588,6 +575,7 @@ final class RecordPaymentTest extends InvoiceTestCase
             $container->get(EventDispatcherInterface::class),
             $container->get(EventRecorder::class),
             new PaymentTransitions($this->payments, $container->get(EventRecorder::class)),
+            $container->get(\Foresi\Party\Application\InstanceFirm::class),
         );
     }
 
@@ -608,7 +596,7 @@ final class RecordPaymentTest extends InvoiceTestCase
         PaymentSource $source = PaymentSource::Manual,
         ?string $movement = null,
     ): PaymentRequest {
-        return new PaymentRequest($this->firm->id(), new \DateTimeImmutable($on), $this->czk($amount), $method, $source, $movement, $note, $allocations);
+        return new PaymentRequest(new \DateTimeImmutable($on), $this->czk($amount), $method, $source, $movement, $note, $allocations);
     }
 
     private function czk(string $amount): Money

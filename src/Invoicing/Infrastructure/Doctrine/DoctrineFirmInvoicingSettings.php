@@ -11,7 +11,6 @@ namespace Foresi\Invoicing\Infrastructure\Doctrine;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Invoicing\Application\FirmInvoicingSettings;
 use Foresi\Invoicing\Domain\FirmInvoicing;
-use Foresi\Party\Domain\LegalEntity;
 
 final readonly class DoctrineFirmInvoicingSettings implements FirmInvoicingSettings
 {
@@ -19,13 +18,11 @@ final readonly class DoctrineFirmInvoicingSettings implements FirmInvoicingSetti
     {
     }
 
-    public function for(LegalEntity $firm): FirmInvoicing
+    public function get(): FirmInvoicing
     {
-        $stored = $this->em->createQuery('SELECT i FROM '.FirmInvoicing::class.' i WHERE i.firm = :firm')
-            ->setParameter('firm', $firm->id())
-            ->getOneOrNullResult();
+        $stored = $this->em->getRepository(FirmInvoicing::class)->findOneBy([]);
 
-        return $stored instanceof FirmInvoicing ? $stored : FirmInvoicing::standard($firm);
+        return $stored instanceof FirmInvoicing ? $stored : FirmInvoicing::standard();
     }
 
     public function save(FirmInvoicing $settings): void

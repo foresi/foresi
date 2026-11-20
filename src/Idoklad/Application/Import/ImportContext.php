@@ -16,17 +16,15 @@ use Foresi\Idoklad\Domain\ImportMode;
 use Foresi\Idoklad\Domain\ImportOptions;
 use Foresi\Idoklad\Domain\ImportOutcome;
 use Foresi\Idoklad\Domain\ImportReport;
-use Foresi\Party\Domain\LegalEntity;
 
 /**
- * What a stage works with: the firm and its snapshot, the options of the run,
+ * What a stage works with: the snapshot, the options of the run,
  * the links of this and earlier runs, and the report. In a check, stages write as in a run (the
  * transaction is rolled back), but never files: ask writesFiles().
  */
 final readonly class ImportContext
 {
     public function __construct(
-        public LegalEntity $firm,
         public string $runId,
         public ImportMode $mode,
         private ImportReport $report,
@@ -42,12 +40,12 @@ final readonly class ImportContext
      */
     public function records(IdokladResource $resource): iterable
     {
-        return $this->snapshot->records($this->firm, $resource);
+        return $this->snapshot->records($resource);
     }
 
     public function record(IdokladResource $resource, int $externalId): ?IdokladRecord
     {
-        return $this->snapshot->record($this->firm, $resource, $externalId);
+        return $this->snapshot->record($resource, $externalId);
     }
 
     /**
@@ -55,12 +53,12 @@ final readonly class ImportContext
      */
     public function linkedTo(IdokladResource $resource, int $externalId): ?string
     {
-        return $this->links->find($this->firm, $resource, $externalId)?->targetId();
+        return $this->links->find($resource, $externalId)?->targetId();
     }
 
     public function link(IdokladResource $resource, int $externalId, string $targetId): void
     {
-        $this->links->add(new IdokladLink($this->firm, $resource, $externalId, $targetId, $this->runId, $this->now));
+        $this->links->add(new IdokladLink($resource, $externalId, $targetId, $this->runId, $this->now));
     }
 
     /**

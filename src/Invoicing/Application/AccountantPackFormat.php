@@ -10,7 +10,6 @@ namespace Foresi\Invoicing\Application;
 
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Contract\IssuedDocument;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Currency;
 
 /**
@@ -19,7 +18,7 @@ use Foresi\Shared\Domain\Currency;
  */
 interface AccountantPackFormat
 {
-    public function packName(LegalEntity $firm, \DateTimeImmutable $month): string;
+    public function packName(string $firmName, \DateTimeImmutable $month): string;
 
     public function folder(DocumentKind $kind, string $locale): string;
 

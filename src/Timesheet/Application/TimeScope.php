@@ -18,7 +18,6 @@ final readonly class TimeScope
      * @param list<string> $projectIds
      */
     public function __construct(
-        public string $firmId,
         public string $clientId,
         public array $projectIds,
         public \DateTimeImmutable $from,

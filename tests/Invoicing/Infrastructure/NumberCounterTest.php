@@ -214,7 +214,7 @@ final class NumberCounterTest extends KernelTestCase
 
     public function testPeekWorksOnASeriesNotStoredYet(): void
     {
-        self::assertSame('20260001', $this->counter->peek($this->catalog->defaultFor($this->firm), $this->date('2026-10-31')));
+        self::assertSame('20260001', $this->counter->peek($this->catalog->defaultFor(), $this->date('2026-10-31')));
     }
 
     public function testARolledBackTransactionReturnsTheNumber(): void
@@ -267,14 +267,14 @@ final class NumberCounterTest extends KernelTestCase
         self::assertStringContainsString('90', $changes[0]);
     }
 
-    public function testTheCatalogListsTheActiveSeriesOfTheFirm(): void
+    public function testTheCatalogListsTheActiveSeries(): void
     {
         $active = $this->series('{YYYY}{NNNN}', 'Standard');
         $archived = $this->series('A{YYYY}{NNNN}', 'Archived');
         $archived->archive();
         $this->em->flush();
 
-        self::assertSame([$active], $this->catalog->forFirm($this->firm));
+        self::assertSame([$active], $this->catalog->all());
         self::assertSame($archived, $this->catalog->get($archived->id()));
     }
 
@@ -285,12 +285,12 @@ final class NumberCounterTest extends KernelTestCase
         $archived->archive();
         $this->em->flush();
 
-        self::assertSame([$archived, $active], $this->catalog->everyForFirm($this->firm));
+        self::assertSame([$archived, $active], $this->catalog->every());
     }
 
     public function testWithoutADefaultTheStandardSeriesIsOfferedUnsaved(): void
     {
-        $series = $this->catalog->defaultFor($this->firm);
+        $series = $this->catalog->defaultFor();
 
         self::assertSame(Series::STANDARD, $series->name());
         self::assertSame('{YYYY}{NNNN}', $series->format()->toString());
@@ -304,7 +304,7 @@ final class NumberCounterTest extends KernelTestCase
         $this->catalog->makeDefault($series);
         $this->em->flush();
 
-        self::assertSame($series, $this->catalog->defaultFor($this->firm));
+        self::assertSame($series, $this->catalog->defaultFor());
     }
 
     public function testMakingADefaultReleasesTheOldOne(): void
@@ -465,7 +465,7 @@ final class NumberCounterTest extends KernelTestCase
 
     private function series(string $format = '{YYYY}{NNNN}', string $name = 'Standard'): Series
     {
-        $series = new Series($this->firm, $name, SeriesFormat::fromString($format), DocumentKind::Invoice);
+        $series = new Series($name, SeriesFormat::fromString($format), DocumentKind::Invoice);
         $this->catalog->add($series);
         $this->em->flush();
 

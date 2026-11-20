@@ -15,7 +15,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The bank accounts of a firm, as a tab of the firm.
+ * The bank accounts of the firm, as a tab of the firm.
  */
 final readonly class FirmBankTab implements SlotProvider
 {
@@ -25,7 +25,7 @@ final readonly class FirmBankTab implements SlotProvider
 
     public function items(string $slot, array $context): iterable
     {
-        if (FirmTabs::SLOT !== $slot || !\is_string($context['firmId'] ?? null)) {
+        if (FirmTabs::SLOT !== $slot) {
             return [];
         }
 

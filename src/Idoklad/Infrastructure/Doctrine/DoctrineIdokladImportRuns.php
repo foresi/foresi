@@ -11,7 +11,6 @@ namespace Foresi\Idoklad\Infrastructure\Doctrine;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Idoklad\Application\Import\IdokladImportRuns;
 use Foresi\Idoklad\Domain\IdokladImportRun;
-use Foresi\Party\Domain\LegalEntity;
 
 final readonly class DoctrineIdokladImportRuns implements IdokladImportRuns
 {
@@ -30,8 +29,8 @@ final readonly class DoctrineIdokladImportRuns implements IdokladImportRuns
     }
 
     /** Ids are ordered by time, so they also order runs that started in the same second. */
-    public function forFirm(LegalEntity $firm): array
+    public function all(): array
     {
-        return $this->em->getRepository(IdokladImportRun::class)->findBy(['firm' => $firm], ['startedAt' => 'DESC', 'id' => 'DESC']);
+        return $this->em->getRepository(IdokladImportRun::class)->findBy([], ['startedAt' => 'DESC', 'id' => 'DESC']);
     }
 }

@@ -149,7 +149,7 @@ final readonly class SeriesStage implements ImportStage
      */
     private function same(ImportContext $context, DocumentKind $kind, SeriesFormat $format): ?Series
     {
-        foreach ($this->catalog->forFirm($context->firm, $kind) as $series) {
+        foreach ($this->catalog->all($kind) as $series) {
             if ($series->format()->collidesWith($format)) {
                 return $series;
             }
@@ -164,9 +164,9 @@ final readonly class SeriesStage implements ImportStage
     private function create(ImportContext $context, DocumentKind $kind, SeriesFormat $format, string $name, bool $default): Series
     {
         $name = '' === trim($name) ? $kind->standardSeriesName() : trim($name);
-        $series = new Series($context->firm, $this->names->free($context->firm, $name), $format, $kind);
+        $series = new Series($this->names->free($name), $format, $kind);
         $this->catalog->store($series);
-        if ($default && !array_any($this->catalog->forFirm($context->firm, $kind), static fn (Series $other): bool => $other->isDefault())) {
+        if ($default && !array_any($this->catalog->all($kind), static fn (Series $other): bool => $other->isDefault())) {
             $this->catalog->makeDefault($series);
         }
 

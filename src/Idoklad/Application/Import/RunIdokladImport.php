@@ -15,13 +15,11 @@ use Foresi\Idoklad\Domain\IdokladResource;
 use Foresi\Idoklad\Domain\ImportMode;
 use Foresi\Idoklad\Domain\ImportOptions;
 use Foresi\Idoklad\Domain\ImportReport;
-use Foresi\Party\Application\LegalEntities;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Id;
 use Psr\Clock\ClockInterface;
 
 /**
- * Imports the snapshot of a firm's iDoklad account: every stage in its order,
+ * Imports the snapshot of the iDoklad account: every stage in its order,
  * in one transaction, so a run that stops stores nothing of what it did. A
  * check rolls the transaction back. Either way the run is stored afterwards
  * with its report; a failure is its error.
@@ -42,7 +40,6 @@ final readonly class RunIdokladImport
         private IdokladLinks $links,
         private IdokladImportRuns $runs,
         private ImportTransaction $transaction,
-        private LegalEntities $firms,
         private ClockInterface $clock,
     ) {
         $ordered = [...$stages];
@@ -53,16 +50,16 @@ final readonly class RunIdokladImport
     /**
      * @param ImportOptions|null $options what the person chose; null for the defaults of the snapshot
      */
-    public function run(LegalEntity $firm, ImportMode $mode, ?ImportOptions $options = null): IdokladImportRun
+    public function run(ImportMode $mode, ?ImportOptions $options = null): IdokladImportRun
     {
         $runId = Id::generate();
         $startedAt = $this->now();
         $report = new ImportReport();
-        $pull = $this->snapshot->lastSucceededPull($firm);
+        $pull = $this->snapshot->lastSucceededPull();
         $error = $pull instanceof IdokladPull ? null : self::NO_SNAPSHOT;
-        $options ??= $this->defaultOptions($firm);
+        $options ??= $this->defaultOptions();
         if (null === $error) {
-            $context = new ImportContext($firm, $runId, $mode, $report, $this->snapshot, $this->links, $startedAt, $options);
+            $context = new ImportContext($runId, $mode, $report, $this->snapshot, $this->links, $startedAt, $options);
             try {
                 $this->transaction->run(function () use ($context): void {
                     foreach ($this->stages as $stage) {
@@ -74,11 +71,8 @@ final readonly class RunIdokladImport
             }
         }
 
-        // A rollback detached the firm; it is read again.
-        $firmId = $firm->id();
-
-        return $this->transaction->run(function () use ($firmId, $mode, $startedAt, $runId, $pull, $report, $error, $options): IdokladImportRun {
-            $run = new IdokladImportRun($this->firms->get($firmId), $mode, $startedAt, $runId);
+        return $this->transaction->run(function () use ($mode, $startedAt, $runId, $pull, $report, $error, $options): IdokladImportRun {
+            $run = new IdokladImportRun($mode, $startedAt, $runId);
             $run->ranWith($options);
             if ($pull instanceof IdokladPull) {
                 $run->readFrom($pull);
@@ -96,10 +90,10 @@ final readonly class RunIdokladImport
      * above zero, and never when it has none. iDoklad's VatRegime cannot say it:
      * it marks every document of an account as a tax document.
      */
-    public function defaultOptions(LegalEntity $firm): ImportOptions
+    public function defaultOptions(): ImportOptions
     {
         $earliest = null;
-        foreach ($this->snapshot->records($firm, IdokladResource::IssuedInvoices) as $record) {
+        foreach ($this->snapshot->records(IdokladResource::IssuedInvoices) as $record) {
             $payload = $record->payload();
             $items = \is_array($payload['Items'] ?? null) ? array_filter($payload['Items'], \is_array(...)) : [];
             $day = $this->day($payload['DateOfTaxing'] ?? null) ?? $this->day($payload['DateOfIssue'] ?? null);

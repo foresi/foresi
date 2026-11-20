@@ -14,19 +14,15 @@ namespace Foresi\Invoicing\Application;
 interface Receivables
 {
     /**
-     * Name by id of every firm with a document, the trash included, as the list has them.
-     *
-     * @return array<string, string>
+     * Whether any document exists, the trash included.
      */
-    public function firms(): array;
+    public function hasDocuments(): bool;
 
     /**
      * The invoices and advances out of the trash with something still to pay after
      * their corrections and payments, as the unpaid tab of the list has them.
      *
-     * @param string|null $firmId null for all firms
-     *
      * @return list<Receivable>
      */
-    public function open(?string $firmId): array;
+    public function open(): array;
 }

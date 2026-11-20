@@ -29,7 +29,7 @@ final class ExportDocumentListTest extends TestCase
     {
         $documents = new FakeListedDocuments(['a', 'b', 'c', 'd', 'e']);
         $writer = new RecordingListWriter();
-        $filter = new InvoiceFilter(null, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1, month: '2026-10');
+        $filter = new InvoiceFilter(InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1, month: '2026-10');
 
         new ExportDocumentList($documents, $writer, 2)->write($filter, ListFileFormat::Xlsx, '/tmp/list.xlsx', 'en');
 
@@ -46,7 +46,7 @@ final class ExportDocumentListTest extends TestCase
         $documents = new FakeListedDocuments(['a', 'b', 'c', 'd']);
         $writer = new RecordingListWriter();
 
-        new ExportDocumentList($documents, $writer, 2)->write(new InvoiceFilter(null, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1), ListFileFormat::Csv, 'php://memory', 'en');
+        new ExportDocumentList($documents, $writer, 2)->write(new InvoiceFilter(InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1), ListFileFormat::Csv, 'php://memory', 'en');
 
         self::assertSame([['a', 'b'], ['c', 'd']], $documents->batches);
         self::assertSame(['a', 'b', 'c', 'd'], $writer->numbers);
@@ -57,7 +57,7 @@ final class ExportDocumentListTest extends TestCase
         $documents = new FakeListedDocuments([]);
         $writer = new RecordingListWriter();
 
-        new ExportDocumentList($documents, $writer)->write(new InvoiceFilter(null, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1), ListFileFormat::Csv, 'php://memory', 'en');
+        new ExportDocumentList($documents, $writer)->write(new InvoiceFilter(InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1), ListFileFormat::Csv, 'php://memory', 'en');
 
         self::assertSame([], $documents->batches);
         self::assertSame([], $writer->numbers);
@@ -68,7 +68,7 @@ final class ExportDocumentListTest extends TestCase
         $ids = array_map(static fn (int $index): string => 'id'.$index, range(1, 501));
         $documents = new FakeListedDocuments($ids);
 
-        new ExportDocumentList($documents, new RecordingListWriter())->write(new InvoiceFilter(null, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1), ListFileFormat::Csv, 'php://memory', 'en');
+        new ExportDocumentList($documents, new RecordingListWriter())->write(new InvoiceFilter(InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1), ListFileFormat::Csv, 'php://memory', 'en');
 
         self::assertSame([500, 1], array_map(\count(...), $documents->batches));
     }

@@ -52,7 +52,7 @@ final readonly class InvoiceErrorTargets
     public function of(string $id, string $key): ?array
     {
         if ('firm' === $id) {
-            return 'invoice.problem.firm_locked' === $key ? null : $this->settings();
+            return $this->settings();
         }
         if ('bankAccount' === $id && !$this->hasBankAccount) {
             return null === $this->bankUrl ? null : ['href' => $this->bankUrl, 'external' => true];

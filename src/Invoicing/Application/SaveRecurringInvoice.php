@@ -14,13 +14,11 @@ use Foresi\Invoicing\Domain\RecurringContent;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\RecurringInvoiceLine;
 use Foresi\Invoicing\Domain\RecurringState;
-use Foresi\Invoicing\Domain\Series;
-use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\InstanceFirm;
+use Foresi\Party\Application\NoFirmYet;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\TransactionalWork;
-use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Party\Domain\Iban;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\PaymentMethod;
 use Psr\Clock\ClockInterface;
 
@@ -33,7 +31,7 @@ use Psr\Clock\ClockInterface;
 final readonly class SaveRecurringInvoice
 {
     public function __construct(
-        private LegalEntities $firms,
+        private InstanceFirm $instanceFirm,
         private PartyQuery $parties,
         private SeriesCatalog $catalog,
         private RecurringRules $rules,
@@ -51,19 +49,18 @@ final readonly class SaveRecurringInvoice
      * @param bool        $startPaused  stored paused, as an import does with a template still running elsewhere
      * @param string|null $importedFrom the identifier of the template in the system it was imported from
      *
-     * @throws RecurringRefused   when a rule refuses; nothing is stored
-     * @throws UnknownLegalEntity
+     * @throws RecurringRefused when a rule refuses; nothing is stored
+     * @throws NoFirmYet        before the first-run setup
      */
     public function create(RecurringInput $input, bool $startPaused = false, ?string $importedFrom = null): RecurringInvoice
     {
         return $this->work->run(function () use ($input, $startPaused, $importedFrom): RecurringInvoice {
-            $firm = $this->firms->get($input->firmId);
-            $problems = $this->rules->check($input, $firm, null, $this->instanceClock->today());
+            $problems = $this->rules->check($input, null, $this->instanceClock->today());
             if ([] !== $problems) {
                 throw new RecurringRefused($problems);
             }
 
-            return $this->store($input, $firm, $startPaused, $importedFrom);
+            return $this->store($input, $startPaused, $importedFrom);
         });
     }
 
@@ -73,19 +70,18 @@ final readonly class SaveRecurringInvoice
      * and the next date goes on after the last one. A template whose end rule allows no
      * more is stored ended.
      *
-     * @throws RecurringRefused   when a rule refuses; nothing is stored
-     * @throws UnknownLegalEntity
+     * @throws RecurringRefused when a rule refuses; nothing is stored
+     * @throws NoFirmYet        before the first-run setup
      */
     public function import(RecurringInput $input, RecurringHistory $history): RecurringInvoice
     {
         return $this->work->run(function () use ($input, $history): RecurringInvoice {
-            $firm = $this->firms->get($input->firmId);
-            $problems = $this->rules->check($input, $firm, null, $this->instanceClock->today(), $history);
+            $problems = $this->rules->check($input, null, $this->instanceClock->today(), $history);
             if ([] !== $problems) {
                 throw new RecurringRefused($problems);
             }
 
-            $template = $this->store($input, $firm, true, $history->importedFrom);
+            $template = $this->store($input, true, $history->importedFrom);
             $template->carryOver($history->issuedCount, $history->lastOccurrence, $history->restartedOn);
 
             return $template;
@@ -114,24 +110,23 @@ final readonly class SaveRecurringInvoice
             if ($template->version() !== $version) {
                 throw RecurringRefused::because('version', 'invoice.problem.changed_meanwhile');
             }
-            $firm = $template->firm();
             $today = $this->instanceClock->today();
-            $problems = $this->rules->check($input, $firm, $template, $today);
+            $problems = $this->rules->check($input, $template, $today);
             if ([] !== $problems) {
                 throw new RecurringRefused($problems);
             }
-            $template->change($this->content($input, $firm), $today);
+            $template->change($this->content($input), $today);
             $this->saveLines($template, $input);
 
             return $template;
         }));
     }
 
-    private function store(RecurringInput $input, LegalEntity $firm, bool $startPaused, ?string $importedFrom): RecurringInvoice
+    private function store(RecurringInput $input, bool $startPaused, ?string $importedFrom): RecurringInvoice
     {
-        $currency = $this->countries->for($firm->address()->countryCode)->homeCurrency();
+        $currency = $this->countries->for($this->instanceFirm->get()->address()->countryCode)->homeCurrency();
         $now = \DateTimeImmutable::createFromInterface($this->clock->now());
-        $template = new RecurringInvoice($firm, $currency, $this->content($input, $firm), $this->actor->userId(), $now, $startPaused, $importedFrom);
+        $template = new RecurringInvoice($currency, $this->content($input), $this->actor->userId(), $now, $startPaused, $importedFrom);
         $this->templates->add($template);
         foreach ($input->lines as $position => $line) {
             $this->templates->addLine(new RecurringInvoiceLine($template, $position, $line->text, $line->quantity, $line->unit, $line->price, $line->priceType, $line->treatment, $line->rateKind, $line->supplyCode, $line->discount));
@@ -140,13 +135,10 @@ final readonly class SaveRecurringInvoice
         return $template;
     }
 
-    private function content(RecurringInput $input, LegalEntity $firm): RecurringContent
+    private function content(RecurringInput $input): RecurringContent
     {
         $customer = $this->parties->find($input->customerId) ?? throw new \LogicException('RecurringRules refuses an unknown customer.');
         $series = null === $input->seriesId ? null : $this->catalog->get($input->seriesId);
-        if ($series instanceof Series && $series->firm()->id() !== $firm->id()) {
-            throw new \LogicException('RecurringRules refuses a series of another firm.');
-        }
         $account = PaymentMethod::BankTransfer === $input->paymentMethod && null !== $input->bankAccount ? Iban::fromString($input->bankAccount)->toString() : null;
 
         return new RecurringContent(

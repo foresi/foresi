@@ -9,10 +9,12 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Infrastructure\Mcp;
 
 use Foresi\Invoicing\Application\Query\PaymentList;
+use Foresi\Invoicing\Application\Query\PaymentRow;
 use Foresi\Invoicing\Application\Query\PaymentsNotAllowed;
 use Foresi\Invoicing\Domain\PaymentDirection;
 use Foresi\Invoicing\Infrastructure\Api\PaymentJson;
 use Foresi\Invoicing\Infrastructure\Api\PaymentListQuery;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Shared\Infrastructure\Mcp\ReadTool;
 use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
 use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
@@ -24,7 +26,7 @@ use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
  */
 final readonly class SearchPaymentsTool implements ReadTool
 {
-    public function __construct(private PaymentList $list, private ToolArguments $arguments)
+    public function __construct(private PaymentList $list, private ToolArguments $arguments, private InstanceFirm $instanceFirm)
     {
     }
 
@@ -87,6 +89,8 @@ final readonly class SearchPaymentsTool implements ReadTool
             throw ToolRefusal::forbidden('Only the owners and members of the organisation read its payments.');
         }
 
-        return ToolArguments::page(array_map(PaymentJson::row(...), $slice->rows), $slice->hasMore ? $slice->lastId() : null, 'payment', 'payments');
+        $firm = $this->instanceFirm->find();
+
+        return ToolArguments::page(null === $firm ? [] : array_map(static fn (PaymentRow $row): array => PaymentJson::row($row, $firm), $slice->rows), $slice->hasMore ? $slice->lastId() : null, 'payment', 'payments');
     }
 }

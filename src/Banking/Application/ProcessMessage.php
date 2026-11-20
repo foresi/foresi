@@ -19,7 +19,6 @@ use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\Iban;
 use Foresi\Party\Domain\InvalidIban;
-use Foresi\Party\Domain\LegalEntity;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -159,10 +158,9 @@ final readonly class ProcessMessage
             return ProcessingResult::parsedBy(InboundStatus::Ignored, $parser, $verdict, detail: $parsed->ignoredReason());
         }
 
-        $firm = $this->accounts->get($message->accountId)->firm();
         $accountIds = [];
         foreach ($parsed->movements() as $movement) {
-            $account = $this->activeAccount($firm, $movement->ownAccount);
+            $account = $this->activeAccount($movement->ownAccount);
             if (!$account instanceof FirmBankAccount) {
                 return ProcessingResult::parsedBy(InboundStatus::Rejected, $parser, $verdict, self::ACCOUNT_MISMATCH, 'A movement is booked on an account that is not an active account of the firm.');
             }
@@ -195,10 +193,10 @@ final readonly class ProcessMessage
         }
     }
 
-    private function activeAccount(LegalEntity $firm, string $iban): ?FirmBankAccount
+    private function activeAccount(string $iban): ?FirmBankAccount
     {
         try {
-            $account = $this->accounts->ofIban($firm, Iban::fromString($iban)->toString());
+            $account = $this->accounts->ofIban(Iban::fromString($iban)->toString());
         } catch (InvalidIban) {
             return null;
         }

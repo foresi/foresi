@@ -54,7 +54,6 @@ final readonly class InvoiceListQuery
     {
         return new InvoiceSliceFilter(
             null === $this->kind ? $kind : DocumentKind::from($this->kind),
-            null,
             null === $this->customerId ? null : strtolower($this->customerId),
             $this->state,
             $this->trashed,

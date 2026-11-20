@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Idoklad\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Id;
 
 /**
@@ -20,7 +19,7 @@ use Foresi\Shared\Domain\Id;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'idoklad_link')]
-#[ORM\UniqueConstraint(name: 'uniq_idoklad_link', columns: ['legal_entity_id', 'resource', 'external_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_idoklad_link', columns: ['resource', 'external_id'])]
 class IdokladLink
 {
     #[ORM\Id]
@@ -28,9 +27,6 @@ class IdokladLink
     private string $id;
 
     public function __construct(
-        #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
-        #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
-        private readonly LegalEntity $firm,
         #[ORM\Column(type: 'string', length: 32, enumType: IdokladResource::class)]
         private readonly IdokladResource $resource,
         #[ORM\Column(name: 'external_id', type: 'integer')]
@@ -49,11 +45,6 @@ class IdokladLink
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function firm(): LegalEntity
-    {
-        return $this->firm;
     }
 
     public function resource(): IdokladResource

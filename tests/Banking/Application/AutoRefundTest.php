@@ -108,7 +108,7 @@ final class AutoRefundTest extends BankingTestCase
 
     public function testMoneySentToAnotherAccountOfTheFirmIsAnOwnTransfer(): void
     {
-        FirmAccounts::add($this->em, $this->firm, self::OWN_IBAN);
+        FirmAccounts::add($this->em, self::OWN_IBAN);
         $this->em->flush();
         [$invoice] = $this->credited();
         $movement = $this->recordMovement->record($this->incoming('484.00', vs: $invoice->variableSymbol(), counterIban: self::OWN_IBAN, direction: MovementDirection::Outgoing), self::verified());
@@ -170,7 +170,7 @@ final class AutoRefundTest extends BankingTestCase
     private function paid(Invoice $invoice, string $amount): void
     {
         $money = $this->czk($amount);
-        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-01'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $money)]));
+        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-01'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $money)]));
         $this->em->clear();
     }
 
@@ -179,7 +179,7 @@ final class AutoRefundTest extends BankingTestCase
      */
     private function toRefundTab(DocumentKind $kind): array
     {
-        return array_map(static fn (InvoiceRow $row): string => $row->number, $this->store->page(new InvoiceFilter(null, InvoiceFilter::TO_REFUND, '', InvoiceFilter::DEFAULT_SORT, 1, kind: $kind))->rows);
+        return array_map(static fn (InvoiceRow $row): string => $row->number, $this->store->page(new InvoiceFilter(InvoiceFilter::TO_REFUND, '', InvoiceFilter::DEFAULT_SORT, 1, kind: $kind))->rows);
     }
 
     /**

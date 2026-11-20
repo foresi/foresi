@@ -31,8 +31,7 @@ use Foresi\Idoklad\Domain\InvalidIdokladConnection;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Invoicing\Application\UndoBlocker;
 use Foresi\Party\Application\InstanceFirm;
-use Foresi\Party\Application\LegalEntities;
-use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Party\Application\NoFirmYet;
 use Foresi\Party\Domain\LegalEntity;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -60,7 +59,6 @@ final class IdokladImportController extends AbstractController
     public const int MONTHLY_REQUESTS = 7500;
 
     public function __construct(
-        private readonly LegalEntities $firms,
         private readonly InstanceFirm $instanceFirm,
         private readonly IdokladConnections $connections,
         private readonly ConnectIdoklad $connect,
@@ -101,19 +99,19 @@ final class IdokladImportController extends AbstractController
     public function show(string $id): Response
     {
         $firm = $this->firm($id);
-        $job = $this->jobs->latest($firm);
+        $job = $this->jobs->latest();
         if ($job instanceof IdokladJob && $job->state()->isBusy()) {
             return $this->render('@Idoklad/progress.html.twig', $this->frame($firm, $job) + [
                 'firm' => $firm,
                 'stepper' => $this->screens->stepper($this->screens->stepOf($job)),
-                'crumbs' => $this->screens->crumbs($firm),
+                'crumbs' => $this->screens->crumbs(),
             ]);
         }
         if ($job instanceof IdokladJob && IdokladJobKind::Run === $job->kind() && IdokladJobState::Done === $job->state()) {
             return $this->redirectToRoute('app_idoklad_run', ['id' => $id, 'run' => $job->resultId()]);
         }
         $to = match (true) {
-            !$this->connections->for($firm) instanceof IdokladConnection && [] === $this->snapshot->pulls($firm) => 'app_idoklad_connect',
+            !$this->connections->get() instanceof IdokladConnection && [] === $this->snapshot->pulls() => 'app_idoklad_connect',
             $job instanceof IdokladJob && !$job->kind()->pulls() => 'app_idoklad_check',
             default => 'app_idoklad_pull',
         };
@@ -125,7 +123,7 @@ final class IdokladImportController extends AbstractController
     public function progress(string $id): Response
     {
         $firm = $this->firm($id);
-        $job = $this->jobs->latest($firm) ?? throw new NotFoundHttpException();
+        $job = $this->jobs->latest() ?? throw new NotFoundHttpException();
         $response = $this->render('@Idoklad/_progress.html.twig', $this->frame($firm, $job));
         $response->headers->set('Cache-Control', 'private, no-store');
 
@@ -136,7 +134,7 @@ final class IdokladImportController extends AbstractController
     public function connect(string $id, Request $request): Response
     {
         $firm = $this->firm($id);
-        $connection = $this->connections->for($firm);
+        $connection = $this->connections->get();
         if (!$request->isMethod('POST')) {
             return $this->connectForm($firm, $connection?->clientId() ?? '', []);
         }
@@ -149,7 +147,7 @@ final class IdokladImportController extends AbstractController
         ], static fn (?string $error): bool => null !== $error);
         if ([] === $errors) {
             try {
-                $this->connect->connect($firm, $clientId, $secret);
+                $this->connect->connect($clientId, $secret);
             } catch (InvalidIdokladConnection) {
                 $errors['client_id'] = $this->translator->trans('idoklad.connect.error.client_id');
             }
@@ -159,7 +157,7 @@ final class IdokladImportController extends AbstractController
         }
 
         try {
-            $this->verify->verify($this->firm($id));
+            $this->verify->verify();
         } catch (IdokladFailure $failure) {
             // The keys stay, so the user may fix the tariff and try again without typing them.
             return $this->connectForm($this->firm($id), $clientId, ['form' => $this->translator->trans(IdokladJobRunner::errorOf($failure))], Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -172,9 +170,9 @@ final class IdokladImportController extends AbstractController
     #[Route('/import/idoklad/{id}/disconnect', name: 'app_idoklad_disconnect', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function disconnect(string $id, Request $request): RedirectResponse
     {
-        $firm = $this->firm($id);
+        $this->firm($id);
         $this->checkToken($request);
-        $this->connect->disconnect($firm);
+        $this->connect->disconnect();
         $this->addFlash('success', $this->translator->trans('idoklad.connect.flash.disconnected'));
 
         return $this->redirectToRoute('app_idoklad_connect', ['id' => $id], Response::HTTP_SEE_OTHER);
@@ -184,34 +182,34 @@ final class IdokladImportController extends AbstractController
     public function pull(string $id): Response
     {
         $firm = $this->firm($id);
-        if ($this->isBusy($firm)) {
+        if ($this->isBusy()) {
             return $this->toFirm($id);
         }
-        $connection = $this->connections->for($firm);
-        $job = $this->jobs->latest($firm);
+        $connection = $this->connections->get();
+        $job = $this->jobs->latest();
 
         return $this->render('@Idoklad/pull.html.twig', [
             'firm' => $firm,
             'connection' => $connection,
-            'pull' => $this->screens->pull($this->snapshot->pulls($firm), $this->now()),
-            'canCheck' => $this->snapshot->lastSucceededPull($firm) instanceof IdokladPull,
+            'pull' => $this->screens->pull($this->snapshot->pulls(), $this->now()),
+            'canCheck' => $this->snapshot->lastSucceededPull() instanceof IdokladPull,
             'jobError' => $job instanceof IdokladJob && $job->kind()->pulls() && IdokladJobState::Failed === $job->state() ? $this->translator->trans((string) $job->error()) : null,
             'quota' => self::MONTHLY_REQUESTS,
             'stepper' => $this->screens->stepper(1),
-            'crumbs' => $this->screens->crumbs($firm),
+            'crumbs' => $this->screens->crumbs(),
         ]);
     }
 
     #[Route('/import/idoklad/{id}/pull', name: 'app_idoklad_pull_start', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function startPull(string $id, Request $request): RedirectResponse
     {
-        $firm = $this->firm($id);
+        $this->firm($id);
         $this->checkToken($request);
-        if (!$this->connections->for($firm) instanceof IdokladConnection) {
+        if (!$this->connections->get() instanceof IdokladConnection) {
             return $this->redirectToRoute('app_idoklad_connect', ['id' => $id], Response::HTTP_SEE_OTHER);
         }
-        $changes = '1' === $request->request->getString('changes') && $this->snapshot->lastSucceededPull($firm) instanceof IdokladPull;
-        $this->start->start($firm, $changes ? IdokladJobKind::Changes : IdokladJobKind::Pull);
+        $changes = '1' === $request->request->getString('changes') && $this->snapshot->lastSucceededPull() instanceof IdokladPull;
+        $this->start->start($changes ? IdokladJobKind::Changes : IdokladJobKind::Pull);
 
         return $this->toFirm($id);
     }
@@ -220,10 +218,10 @@ final class IdokladImportController extends AbstractController
     public function check(string $id, Request $request): Response
     {
         $firm = $this->firm($id);
-        if ($this->isBusy($firm)) {
+        if ($this->isBusy()) {
             return $this->toFirm($id);
         }
-        $check = $this->latestCheck($firm);
+        $check = $this->latestCheck();
         if (!$check instanceof IdokladImportRun) {
             return $this->redirectToRoute('app_idoklad_pull', ['id' => $id]);
         }
@@ -234,12 +232,12 @@ final class IdokladImportController extends AbstractController
     #[Route('/import/idoklad/{id}/check', name: 'app_idoklad_check_start', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function startCheck(string $id, Request $request): RedirectResponse
     {
-        $firm = $this->firm($id);
+        $this->firm($id);
         $this->checkToken($request);
-        if (!$this->snapshot->lastSucceededPull($firm) instanceof IdokladPull) {
+        if (!$this->snapshot->lastSucceededPull() instanceof IdokladPull) {
             return $this->redirectToRoute('app_idoklad_pull', ['id' => $id], Response::HTTP_SEE_OTHER);
         }
-        $this->start->start($firm, IdokladJobKind::Check);
+        $this->start->start(IdokladJobKind::Check);
 
         return $this->toFirm($id);
     }
@@ -249,7 +247,7 @@ final class IdokladImportController extends AbstractController
     {
         $firm = $this->firm($id);
         $this->checkToken($request);
-        $check = $this->latestCheck($firm);
+        $check = $this->latestCheck();
         if (!$check instanceof IdokladImportRun) {
             return $this->redirectToRoute('app_idoklad_pull', ['id' => $id], Response::HTTP_SEE_OTHER);
         }
@@ -269,7 +267,7 @@ final class IdokladImportController extends AbstractController
         if ([] !== $errors || !$remindFrom instanceof \DateTimeImmutable) {
             return $this->checkScreen($firm, $check, $request->getLocale(), $this->instanceClock->today(), $typed, $errors, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
-        $this->start->start($firm, IdokladJobKind::Run, $remindFrom, $chosen ? new ImportOptions($payerFrom) : null);
+        $this->start->start(IdokladJobKind::Run, $remindFrom, $chosen ? new ImportOptions($payerFrom) : null);
 
         return $this->toFirm($id);
     }
@@ -279,7 +277,7 @@ final class IdokladImportController extends AbstractController
     {
         $firm = $this->firm($id);
 
-        return $this->runScreen($firm, $this->runOf($firm, $run), $request->getLocale());
+        return $this->runScreen($firm, $this->runOf($run), $request->getLocale());
     }
 
     #[Route('/import/idoklad/{id}/runs/{run}/undo', name: 'app_idoklad_undo', requirements: ['id' => Requirement::UUID_V7, 'run' => Requirement::UUID_V7], methods: ['POST'])]
@@ -287,7 +285,7 @@ final class IdokladImportController extends AbstractController
     {
         $firm = $this->firm($id);
         $this->checkToken($request);
-        $stored = $this->runOf($firm, $run);
+        $stored = $this->runOf($run);
         if (!UndoIdokladImport::isUndoable($stored, $this->now())) {
             $this->addFlash('error', $this->translator->trans('idoklad.undo.unavailable'));
 
@@ -295,7 +293,7 @@ final class IdokladImportController extends AbstractController
         }
         $blockers = $this->undo->undo($stored);
         if ([] !== $blockers) {
-            return $this->runScreen($firm, $this->runOf($firm, $run), $request->getLocale(), $blockers, Response::HTTP_CONFLICT);
+            return $this->runScreen($firm, $this->runOf($run), $request->getLocale(), $blockers, Response::HTTP_CONFLICT);
         }
         $this->addFlash('success', $this->translator->trans('idoklad.undo.flash.done'));
 
@@ -310,8 +308,8 @@ final class IdokladImportController extends AbstractController
         return $this->render('@Idoklad/history.html.twig', [
             'firm' => $firm,
             'columns' => $this->screens->historyColumns(),
-            'rows' => $this->screens->history($firm, $this->snapshot->pulls($firm), $this->runs->forFirm($firm)),
-            'crumbs' => $this->screens->crumbs($firm, $this->translator->trans('idoklad.history.title')),
+            'rows' => $this->screens->history($this->snapshot->pulls(), $this->runs->all()),
+            'crumbs' => $this->screens->crumbs($this->translator->trans('idoklad.history.title')),
         ]);
     }
 
@@ -322,11 +320,11 @@ final class IdokladImportController extends AbstractController
     {
         return $this->render('@Idoklad/connect.html.twig', [
             'firm' => $firm,
-            'connection' => $this->connections->for($firm),
+            'connection' => $this->connections->get(),
             'clientId' => $clientId,
             'errors' => $errors,
             'stepper' => $this->screens->stepper(0),
-            'crumbs' => $this->screens->crumbs($firm),
+            'crumbs' => $this->screens->crumbs(),
         ], new Response(status: $status));
     }
 
@@ -344,7 +342,7 @@ final class IdokladImportController extends AbstractController
      */
     private function checkScreen(LegalEntity $firm, IdokladImportRun $check, string $locale, \DateTimeImmutable $today, array $typed = [], array $errors = [], int $status = Response::HTTP_OK): Response
     {
-        $job = $this->jobs->latest($firm);
+        $job = $this->jobs->latest();
         $error = fn (string $field): ?string => isset($errors[$field]) ? $this->translator->trans($errors[$field]) : null;
 
         return $this->render('@Idoklad/check.html.twig', [
@@ -357,9 +355,9 @@ final class IdokladImportController extends AbstractController
             'vatPayerFrom' => $typed['vat_payer_from'] ?? $check->options()?->vatPayerFrom?->format('Y-m-d') ?? '',
             'vatPayerError' => $error('vat_payer_from'),
             'jobError' => $job instanceof IdokladJob && !$job->kind()->pulls() && IdokladJobState::Failed === $job->state() ? $this->translator->trans((string) $job->error()) : null,
-            'stale' => $this->snapshot->lastSucceededPull($firm)?->id() !== $check->pullId(),
+            'stale' => $this->snapshot->lastSucceededPull()?->id() !== $check->pullId(),
             'stepper' => $this->screens->stepper(2),
-            'crumbs' => $this->screens->crumbs($firm),
+            'crumbs' => $this->screens->crumbs(),
         ], new Response(status: $status));
     }
 
@@ -379,7 +377,7 @@ final class IdokladImportController extends AbstractController
                 'reason' => $this->translator->trans('idoklad.undo.blocker.'.$blocker->reason),
             ], $blockers),
             'stepper' => $this->screens->stepper(ImportMode::Run === $run->mode() ? 4 : 2),
-            'crumbs' => $this->screens->crumbs($firm, $this->translator->trans('idoklad.run.mode.'.$run->mode()->value)),
+            'crumbs' => $this->screens->crumbs($this->translator->trans('idoklad.run.mode.'.$run->mode()->value)),
         ], new Response(status: $status));
     }
 
@@ -392,13 +390,13 @@ final class IdokladImportController extends AbstractController
             'firm' => $firm,
             'job' => $job,
             'badge' => $this->screens->jobBadge($job->state()),
-            'pull' => $job->kind()->pulls() ? $this->screens->pull($this->snapshot->pulls($firm), $this->now()) : null,
+            'pull' => $job->kind()->pulls() ? $this->screens->pull($this->snapshot->pulls(), $this->now()) : null,
         ];
     }
 
-    private function latestCheck(LegalEntity $firm): ?IdokladImportRun
+    private function latestCheck(): ?IdokladImportRun
     {
-        foreach ($this->runs->forFirm($firm) as $run) {
+        foreach ($this->runs->all() as $run) {
             if (ImportMode::Check === $run->mode()) {
                 return $run;
             }
@@ -407,29 +405,31 @@ final class IdokladImportController extends AbstractController
         return null;
     }
 
-    private function runOf(LegalEntity $firm, string $id): IdokladImportRun
+    private function runOf(string $id): IdokladImportRun
     {
         $run = $this->runs->find($id);
-        if (!$run instanceof IdokladImportRun || $run->firm()->id() !== $firm->id()) {
+        if (!$run instanceof IdokladImportRun) {
             throw new NotFoundHttpException();
         }
 
         return $run;
     }
 
-    private function isBusy(LegalEntity $firm): bool
+    private function isBusy(): bool
     {
-        return $this->jobs->busy($firm) instanceof IdokladJob;
+        return $this->jobs->busy() instanceof IdokladJob;
     }
 
     private function firm(string $id): LegalEntity
     {
         $this->denyUnlessOwner();
         try {
-            return $this->firms->get($id);
-        } catch (UnknownLegalEntity) {
+            $firm = $this->instanceFirm->get();
+        } catch (NoFirmYet) {
             throw new NotFoundHttpException();
         }
+
+        return $firm->id() === $id ? $firm : throw new NotFoundHttpException();
     }
 
     private function denyUnlessOwner(): void

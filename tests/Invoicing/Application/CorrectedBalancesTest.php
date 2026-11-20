@@ -60,7 +60,7 @@ final class CorrectedBalancesTest extends InvoiceTestCase
 
         self::assertSame([InvoiceFilter::ALL, InvoiceFilter::TO_REFUND, InvoiceFilter::TRASH], InvoiceFilter::tabsOf(DocumentKind::CorrectionDocument));
         self::assertSame([$toRefund->number()], $this->numbers(InvoiceFilter::TO_REFUND, DocumentKind::CorrectionDocument));
-        $page = $this->store->page(new InvoiceFilter(null, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1, kind: DocumentKind::CorrectionDocument));
+        $page = $this->store->page(new InvoiceFilter(InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1, kind: DocumentKind::CorrectionDocument));
         self::assertSame([InvoiceFilter::ALL => 3, InvoiceFilter::TO_REFUND => 1, InvoiceFilter::TRASH => 0], $page->tabCounts);
         foreach ($page->rows as $row) {
             self::assertFalse($row->overdue, 'a correction is never overdue');
@@ -73,7 +73,7 @@ final class CorrectedBalancesTest extends InvoiceTestCase
      */
     private function numbers(string $tab, DocumentKind $kind = DocumentKind::Invoice): array
     {
-        return array_map(static fn (InvoiceRow $row): string => $row->number, $this->store->page(new InvoiceFilter(null, $tab, '', InvoiceFilter::DEFAULT_SORT, 1, kind: $kind))->rows);
+        return array_map(static fn (InvoiceRow $row): string => $row->number, $this->store->page(new InvoiceFilter($tab, '', InvoiceFilter::DEFAULT_SORT, 1, kind: $kind))->rows);
     }
 
     /**
@@ -81,7 +81,7 @@ final class CorrectedBalancesTest extends InvoiceTestCase
      */
     private function states(DocumentKind $kind): array
     {
-        $rows = $this->store->page(new InvoiceFilter(null, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1, kind: $kind))->rows;
+        $rows = $this->store->page(new InvoiceFilter(InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1, kind: $kind))->rows;
 
         return array_combine(array_map(static fn (InvoiceRow $row): string => $row->number, $rows), array_map(static fn (InvoiceRow $row): PaymentState => $row->payment, $rows));
     }
@@ -94,7 +94,7 @@ final class CorrectedBalancesTest extends InvoiceTestCase
     private function pay(string $invoiceId, string $amount): void
     {
         $czk = Money::of($amount, Currency::CZK);
-        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-01'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoiceId, $czk)]));
+        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-01'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoiceId, $czk)]));
         $this->em->clear();
     }
 }

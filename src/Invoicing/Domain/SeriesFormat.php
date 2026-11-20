@@ -117,7 +117,7 @@ final readonly class SeriesFormat
     }
 
     /**
-     * Whether numbers of both formats can be the same number of a firm. The width
+     * Whether numbers of both formats can be the same number. The width
      * of the sequence is only a minimum, so it keeps no numbers apart.
      */
     public function collidesWith(self $other): bool

@@ -69,14 +69,14 @@ abstract class SendingTestCase extends InvoiceTestCase
     protected function serverFor(): void
     {
         $secrets = self::getContainer()->get(MailSecrets::class);
-        self::getContainer()->get(MailServers::class)->save(FirmMailServer::define($this->firm, 'smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', $secrets->seal('correct-horse-battery'), 'invoices@example.com', 'Example Firm'));
+        self::getContainer()->get(MailServers::class)->save(FirmMailServer::define('smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', $secrets->seal('correct-horse-battery'), 'invoices@example.com', 'Example Firm'));
         $this->em->flush();
     }
 
     protected function contactEmail(string $address): void
     {
         $settings = self::getContainer()->get(FirmInvoicingSettings::class);
-        $firm = $settings->for($this->firm);
+        $firm = $settings->get();
         $firm->change(TotalRounding::None, '', '', '', $address, '', '');
         $settings->save($firm);
         $this->em->flush();

@@ -10,7 +10,6 @@ namespace Foresi\Invoicing\Application;
 
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\Payment;
-use Foresi\Party\Domain\LegalEntity;
 
 /**
  * The imported documents and payments. Call remove() and
@@ -18,14 +17,14 @@ use Foresi\Party\Domain\LegalEntity;
  */
 interface ImportedDocuments
 {
-    public function find(LegalEntity $firm, string $source, string $externalId): ?Invoice;
+    public function find(string $source, string $externalId): ?Invoice;
 
     /**
      * @return list<Invoice> in the order of their numbers
      */
     public function ofRun(string $runId): array;
 
-    public function findPayment(LegalEntity $firm, string $source, string $externalId): ?Payment;
+    public function findPayment(string $source, string $externalId): ?Payment;
 
     /**
      * @return list<Payment> in the order they were received

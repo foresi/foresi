@@ -12,16 +12,11 @@ use Foresi\Identity\Application\People;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
-use Foresi\Party\Application\LegalEntities;
-use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\InvoicingDefaults;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PaymentMethod;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Timesheet\Application\RateResolver;
@@ -64,7 +59,6 @@ final class RateResolverTest extends TestCase
     #[DataProvider('levels')]
     public function testTheRateComesFromTheFirstLevelThatHasOne(array $rates, bool $client, ?array $expected): void
     {
-        $firm = $this->firm('Example Firm', '12345695');
         $party = $client ? new Party(PartyKind::Person, 'Example Client', null, null, '') : null;
         $party?->changeInvoicingDefaults($this->defaults($this->money($rates['client'] ?? null)));
         $project = new Project('Website', $party, WorkflowTemplate::Simple, 'creator', new \DateTimeImmutable('2026-11-10 10:00'));
@@ -72,7 +66,7 @@ final class RateResolverTest extends TestCase
         $membership = new Membership(new User('person@example.com', 'hash', 'Example Person'), Role::Member);
         $membership->changeHourlyRate($this->money($rates['person'] ?? null));
 
-        $resolved = $this->resolver($project, $membership, $firm)->resolve($project->id(), $membership->id(), $firm->id());
+        $resolved = $this->resolver($project, $membership)->resolve($project->id(), $membership->id());
 
         if (null === $expected) {
             self::assertNull($resolved);
@@ -97,25 +91,21 @@ final class RateResolverTest extends TestCase
     #[DataProvider('unknownTargets')]
     public function testAProjectOrAPersonOfNoOrganisationIsRefused(bool $knownProject, string $unknown): void
     {
-        $firm = $this->firm('Example Firm', '12345695');
         $project = new Project('Website', null, WorkflowTemplate::Simple, 'creator', new \DateTimeImmutable('2026-11-10 10:00'));
         $membership = new Membership(new User('person@example.com', 'hash', 'Example Person'), Role::Member);
 
         $this->expectException(UnknownRateTarget::class);
 
-        $this->resolver($project, $membership, $firm)->resolve($knownProject ? $project->id() : $unknown, $knownProject ? $unknown : $membership->id(), $firm->id());
+        $this->resolver($project, $membership)->resolve($knownProject ? $project->id() : $unknown, $knownProject ? $unknown : $membership->id());
     }
 
-    private function resolver(Project $project, Membership $membership, LegalEntity $firm): RateResolver
+    private function resolver(Project $project, Membership $membership): RateResolver
     {
         $projects = self::createStub(Projects::class);
         $projects->method('project')->willReturnCallback(static fn (string $id): ?Project => $id === $project->id() ? $project : null);
         $people = self::createStub(People::class);
         $people->method('membership')->willReturnCallback(static fn (string $id): ?Membership => $id === $membership->id() ? $membership : null);
-        $legalEntities = self::createStub(LegalEntities::class);
-        $legalEntities->method('get')->willReturnCallback(static fn (string $id): LegalEntity => $id === $firm->id() ? $firm : throw new \LogicException('An unknown firm.'));
-
-        return new RateResolver($projects, $people, $legalEntities);
+        return new RateResolver($projects, $people);
     }
 
     private function defaults(?Money $rate): InvoicingDefaults
@@ -131,10 +121,5 @@ final class RateResolverTest extends TestCase
         [$amount, $currency] = explode(' ', $text);
 
         return Money::of($amount, Currency::from($currency));
-    }
-
-    private function firm(string $name, string $number): LegalEntity
-    {
-        return new LegalEntity($name, new RegistrationNumber('CZ', $number), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
     }
 }

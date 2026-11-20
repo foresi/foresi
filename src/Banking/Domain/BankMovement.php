@@ -13,7 +13,6 @@ use Foresi\Audit\Domain\Audited;
 use Foresi\Audit\Domain\AuditExcluded;
 use Foresi\Banking\Contract\MovementDirection;
 use Foresi\Party\Domain\FirmBankAccount;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Money;
@@ -33,7 +32,6 @@ use Foresi\Shared\Domain\Money;
 #[ORM\Entity]
 #[ORM\Table(name: 'bank_movement')]
 #[ORM\Index(name: 'idx_bank_movement_fingerprint', columns: ['fingerprint'])]
-#[ORM\Index(name: 'idx_bank_movement_firm', columns: ['legal_entity_id'])]
 #[ORM\Index(name: 'idx_bank_movement_account_booked', columns: ['firm_bank_account_id', 'booked_on'])]
 #[ORM\Index(name: 'idx_bank_movement_message', columns: ['inbound_message_id'])]
 #[ORM\Index(name: 'idx_bank_movement_payment', columns: ['payment_id'])]
@@ -48,10 +46,6 @@ class BankMovement implements Audited
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
-    #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
-    private LegalEntity $firm;
 
     #[ORM\Column(name: 'amount_minor', type: 'bigint')]
     private int $amountMinor;
@@ -134,7 +128,6 @@ class BankMovement implements Audited
         }
         $this->assertReason($state, $unmatchedReason);
         $this->id = Id::generate();
-        $this->firm = $account->firm();
         $this->amountMinor = $amount->minor();
         $this->currency = $amount->currency();
         $this->state = $state;
@@ -196,11 +189,6 @@ class BankMovement implements Audited
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function firm(): LegalEntity
-    {
-        return $this->firm;
     }
 
     public function account(): FirmBankAccount

@@ -8,12 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Party\Domain;
 
-use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\Iban;
-use Foresi\Party\Domain\LegalEntity;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\TestCase;
@@ -24,12 +20,9 @@ final class FirmBankAccountTest extends TestCase
 
     public function testExposesItsData(): void
     {
-        $firm = $this->firm();
-        $account = FirmBankAccount::open($firm, Iban::fromString('cz65 0800 0000 1920 0014 5399'), Currency::EUR, ' Main ', 3);
+        $account = FirmBankAccount::open(Iban::fromString('cz65 0800 0000 1920 0014 5399'), Currency::EUR, ' Main ', 3);
 
         self::assertTrue(Id::isValid($account->id()));
-        self::assertSame($firm, $account->firm());
-        self::assertSame($firm, $account->auditRoot());
         self::assertSame(self::IBAN, $account->iban());
         self::assertSame(Currency::EUR, $account->currency());
         self::assertSame('Main', $account->label());
@@ -72,7 +65,7 @@ final class FirmBankAccountTest extends TestCase
     public function testALongLabelIsRefusedWhenOpening(): void
     {
         $this->expectException(\DomainException::class);
-        FirmBankAccount::open($this->firm(), Iban::fromString(self::IBAN), Currency::CZK, str_repeat('x', 101), 0);
+        FirmBankAccount::open(Iban::fromString(self::IBAN), Currency::CZK, str_repeat('x', 101), 0);
     }
 
     public function testIsMarkedAndUnmarkedPrimary(): void
@@ -122,11 +115,6 @@ final class FirmBankAccountTest extends TestCase
 
     private function account(): FirmBankAccount
     {
-        return FirmBankAccount::open($this->firm(), Iban::fromString(self::IBAN), Currency::CZK, '', 0);
-    }
-
-    private function firm(): LegalEntity
-    {
-        return new LegalEntity('Example Firm', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
+        return FirmBankAccount::open(Iban::fromString(self::IBAN), Currency::CZK, '', 0);
     }
 }

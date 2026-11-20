@@ -11,7 +11,8 @@ namespace Foresi\Tests\Purchasing\Application;
 use Foresi\Attachment\Application\AttachmentPermissions;
 use Foresi\Attachment\Application\AttachmentRefused;
 use Foresi\Attachment\Domain\Attachment;
-use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Party\Application\NoFirmYet;
+use Foresi\Party\Domain\LegalEntity;
 use Foresi\Purchasing\Application\PurchasingNotAllowed;
 use Foresi\Purchasing\Application\ReceivedDocumentWarning;
 use Foresi\Purchasing\Application\TrashReceivedDocument;
@@ -23,7 +24,7 @@ final class UploadReceivedDocumentsTest extends PurchasingTestCase
 {
     public function testEachFileBecomesADraftWithItsOriginal(): void
     {
-        $uploaded = $this->uploads()->upload($this->firm->id(), [$this->file('%PDF-1.4 first', 'first.pdf'), $this->file('%PDF-1.4 second', 'second.pdf')]);
+        $uploaded = $this->uploads()->upload([$this->file('%PDF-1.4 first', 'first.pdf'), $this->file('%PDF-1.4 second', 'second.pdf')]);
 
         self::assertCount(2, $uploaded);
         self::assertSame(['first.pdf', 'second.pdf'], [$uploaded[0]->fileName, $uploaded[1]->fileName]);
@@ -33,7 +34,6 @@ final class UploadReceivedDocumentsTest extends PurchasingTestCase
             $document = $this->document((string) $file->documentId);
             self::assertSame(ReceivedDocumentState::Draft, $document->state());
             self::assertNull($document->evidenceNumber());
-            self::assertSame($this->firm->id(), $document->firm()->id());
             self::assertSame('2026-11-10', $document->receivedDate()?->format('Y-m-d'), 'Received today in the zone of the organisation.');
             self::assertSame($this->owner->user()->id(), $document->createdBy());
             $original = $this->em->find(Attachment::class, (string) $document->originalAttachmentId());
@@ -46,28 +46,26 @@ final class UploadReceivedDocumentsTest extends PurchasingTestCase
     {
         $first = $this->draft('%PDF-1.4 the same bytes');
 
-        $again = $this->uploads()->upload($this->firm->id(), [$this->file('%PDF-1.4 the same bytes', 'copy.pdf')])[0];
+        $again = $this->uploads()->upload([$this->file('%PDF-1.4 the same bytes', 'copy.pdf')])[0];
 
         self::assertTrue($again->isDrafted(), 'A duplicate only warns.');
         self::assertSame([ReceivedDocumentWarning::DUPLICATE_FILE], $again->warnings->codes());
         self::assertSame([$first], $again->warnings->get(ReceivedDocumentWarning::DUPLICATE_FILE)?->documentIds);
     }
 
-    public function testTheSameFileOfAnotherFirmOrInTheTrashDoesNotWarn(): void
+    public function testTheSameFileInTheTrashDoesNotWarn(): void
     {
-        $other = $this->firm('Other Firm s.r.o.', '25596641');
-        $this->uploads()->upload($other->id(), [$this->file('%PDF-1.4 the same bytes')]);
         $trashed = $this->draft('%PDF-1.4 the same bytes');
         self::getContainer()->get(TrashReceivedDocument::class)->trash($trashed, 'Uploaded twice');
 
-        $again = $this->uploads()->upload($this->firm->id(), [$this->file('%PDF-1.4 the same bytes')])[0];
+        $again = $this->uploads()->upload([$this->file('%PDF-1.4 the same bytes')])[0];
 
         self::assertTrue($again->warnings->isEmpty());
     }
 
     public function testAFileTheStoreRefusesLeavesNoDraftAndTheOthersGoOn(): void
     {
-        $uploaded = $this->uploads()->upload($this->firm->id(), [$this->file('', 'empty.pdf'), $this->file('%PDF-1.4 fine', 'fine.pdf')]);
+        $uploaded = $this->uploads()->upload([$this->file('', 'empty.pdf'), $this->file('%PDF-1.4 fine', 'fine.pdf')]);
 
         self::assertFalse($uploaded[0]->isDrafted());
         self::assertSame(AttachmentRefused::EMPTY, $uploaded[0]->refusal);
@@ -80,20 +78,22 @@ final class UploadReceivedDocumentsTest extends PurchasingTestCase
         $this->signIn($this->guest);
 
         $this->expectException(PurchasingNotAllowed::class);
-        $this->uploads()->upload($this->firm->id(), [$this->file()]);
+        $this->uploads()->upload([$this->file()]);
     }
 
     public function testAMemberUploads(): void
     {
         $this->signIn($this->member);
 
-        self::assertTrue($this->uploads()->upload($this->firm->id(), [$this->file()])[0]->isDrafted());
+        self::assertTrue($this->uploads()->upload([$this->file()])[0]->isDrafted());
     }
 
-    public function testAnUnknownFirmIsNotFound(): void
+    public function testBeforeTheFirstRunSetupThereIsNoFirmToTakeTheFiles(): void
     {
-        $this->expectException(UnknownLegalEntity::class);
-        $this->uploads()->upload(Id::generate(), [$this->file()]);
+        $this->em->createQuery('DELETE FROM '.LegalEntity::class)->execute();
+
+        $this->expectException(NoFirmYet::class);
+        $this->uploads()->upload([$this->file()]);
     }
 
     public function testOnlyTheStaffSeeTheOriginalAndNobodyAttachesInTheTrash(): void

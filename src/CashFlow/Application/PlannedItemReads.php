@@ -21,7 +21,7 @@ final readonly class PlannedItemReads
     }
 
     /**
-     * @return list<PlannedItem> the firm's items, oldest first
+     * @return list<PlannedItem> the items, oldest first
      *
      * @throws CashFlowRefused
      */
@@ -29,7 +29,7 @@ final readonly class PlannedItemReads
     {
         $this->access->denyUnlessStaff();
 
-        return $this->store->plannedItemsOf($this->access->firm()->id());
+        return $this->store->plannedItems();
     }
 
     /**

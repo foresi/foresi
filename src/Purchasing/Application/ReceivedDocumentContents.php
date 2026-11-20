@@ -15,7 +15,6 @@ use Foresi\ExchangeRate\Domain\RateNotAvailable;
 use Foresi\Party\Application\PartyDetails;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Purchasing\Domain\ExchangeRate;
 use Foresi\Purchasing\Domain\ReceivedDocument;
@@ -27,7 +26,7 @@ use Foresi\Shared\Domain\Currency;
 /**
  * Turns what was given for a document into its content: the supplier found by
  * id with its snapshot, the original of a credit note checked to be a recorded
- * document of the same firm, and the exchange rate. A rate given wins; a
+ * document, and the exchange rate. A rate given wins; a
  * document in another currency without one takes the published rate of its tax
  * point, or of its issue date while it names no tax point (§4(8)).
  */
@@ -50,7 +49,7 @@ final readonly class ReceivedDocumentContents
      *
      * @throws ReceivedDocumentRefused
      */
-    public function of(LegalEntity $firm, ReceivedDocumentInput $input, ?ReceivedDocument $current, bool $complete): ReceivedDocumentContent
+    public function of(ReceivedDocumentInput $input, ?ReceivedDocument $current, bool $complete): ReceivedDocumentContent
     {
         $supplier = $this->supplier($input->supplierId);
         [$rate, $rateDate] = $this->rate($input, $complete);
@@ -71,7 +70,7 @@ final readonly class ReceivedDocumentContents
             $rate,
             $rateDate,
             $input->vatRecap,
-            $this->original($firm, $input->originalDocumentId, $current),
+            $this->original($input->originalDocumentId, $current),
             $input->supplyCode,
         );
     }
@@ -106,15 +105,15 @@ final readonly class ReceivedDocumentContents
     }
 
     /**
-     * @throws ReceivedDocumentRefused with ORIGINAL_INVALID for anything but another recorded document of the firm
+     * @throws ReceivedDocumentRefused with ORIGINAL_INVALID for anything but another recorded document
      */
-    private function original(LegalEntity $firm, ?string $id, ?ReceivedDocument $current): ?string
+    private function original(?string $id, ?ReceivedDocument $current): ?string
     {
         if (null === $id || '' === $id) {
             return null;
         }
         $original = $this->documents->find($id);
-        if (!$original instanceof ReceivedDocument || $original === $current || !$original->isRecorded() || $original->isTrashed() || $original->firm()->id() !== $firm->id()) {
+        if (!$original instanceof ReceivedDocument || $original === $current || !$original->isRecorded() || $original->isTrashed()) {
             throw new ReceivedDocumentRefused(ReceivedDocumentRefused::ORIGINAL_INVALID);
         }
 

@@ -38,7 +38,6 @@ use Foresi\Invoicing\Domain\LinkAudience;
 use Foresi\Invoicing\Domain\SendPurpose;
 use Foresi\Invoicing\Domain\SendStatus;
 use Foresi\Party\Application\TransactionalWork;
-use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Party\Domain\PartyEmail;
 use Foresi\Shared\Application\Event\EventRecorder;
 use Foresi\Shared\Application\Markdown;
@@ -128,11 +127,11 @@ final readonly class DeliverInvoiceSendHandler
         if (!$owed instanceof InvoiceSend) {
             return;
         }
-        $server = $this->servers->for($owed->invoice()->firm());
+        $server = $this->servers->get();
         if (SendStatus::Queued === $owed->status() && SendPurpose::Reminder === $owed->purpose()) {
             try {
                 $stopped = $this->stoppedBeforeLeaving($id, $owed->invoice()->id(), null === $owed->createdBy());
-            } catch (UnknownInvoice|UnknownLegalEntity|UnsupportedCountry|UndrawableDocument|EntityNotFoundException $unanswerable) {
+            } catch (UnknownInvoice|UnsupportedCountry|UndrawableDocument|EntityNotFoundException $unanswerable) {
                 // What a retry would find the same: the reminder fails at once, in the log, and no try is wasted.
                 $this->unit(function () use ($id): void {
                     $send = $this->sends->lock($id);
@@ -236,9 +235,7 @@ final readonly class DeliverInvoiceSendHandler
 
     private function stillReminded(Invoice $invoice): bool
     {
-        $firm = $invoice->firm();
-
-        return $this->reminders->for($firm)->enabled() && $invoice->customerParty()->invoicingDefaults()->sendReminders;
+        return $this->reminders->get()->enabled() && $invoice->customerParty()->invoicingDefaults()->sendReminders;
     }
 
     /**
@@ -369,7 +366,7 @@ final readonly class DeliverInvoiceSendHandler
             throw new MailRefused(true, self::LINK_CHANGED, reasonCode: MailRefused::LINK_CHANGED);
         }
         $body = new LinkedMailBody($send->body(), $this->links->url($token), $this->markdown);
-        $replyTo = trim($this->settings->for($send->invoice()->firm())->contactEmail());
+        $replyTo = trim($this->settings->get()->contactEmail());
 
         try {
             return new MailMessage(

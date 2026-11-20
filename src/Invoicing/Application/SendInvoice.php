@@ -92,11 +92,10 @@ final readonly class SendInvoice
             if ($document->trashed) {
                 throw new SendRefused(SendRefused::TRASHED);
             }
-            $firm = $invoice->firm();
-            if (!$this->servers->for($firm) instanceof FirmMailServer) {
+            if (!$this->servers->get() instanceof FirmMailServer) {
                 throw new SendRefused(SendRefused::NO_SERVER);
             }
-            if (!$limited && !$this->limits->take($userId, $firm->id())) {
+            if (!$limited && !$this->limits->take($userId)) {
                 throw new SendRefused(SendRefused::RATE_LIMITED);
             }
             $limited = true;
@@ -116,7 +115,7 @@ final readonly class SendInvoice
             $text = new MailText();
             $subject = $text->render($request->subject, [], true);
             $body = $text->render($request->body, [], false);
-            $contact = trim($this->settings->for($firm)->contactEmail());
+            $contact = trim($this->settings->get()->contactEmail());
             $copyTo = $request->copyToMe ? ('' !== $contact ? $contact : $user?->email()) : null;
             if (null !== $copyTo && !$this->isAddress($copyTo)) {
                 $copyTo = null;

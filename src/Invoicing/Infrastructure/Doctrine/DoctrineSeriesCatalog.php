@@ -15,7 +15,6 @@ use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesCounter;
-use Foresi\Party\Domain\LegalEntity;
 
 final readonly class DoctrineSeriesCatalog implements SeriesCatalog
 {
@@ -23,21 +22,19 @@ final readonly class DoctrineSeriesCatalog implements SeriesCatalog
     {
     }
 
-    public function forFirm(LegalEntity $firm, ?DocumentKind $kind = null): array
+    public function all(?DocumentKind $kind = null): array
     {
         /** @var list<Series> $series */
-        $series = $this->em->createQuery('SELECT s FROM '.Series::class.' s WHERE s.firm = :firm AND s.archived = false ORDER BY s.name, s.id')
-            ->setParameter('firm', $firm->id())
+        $series = $this->em->createQuery('SELECT s FROM '.Series::class.' s WHERE s.archived = false ORDER BY s.name, s.id')
             ->getResult();
 
         return $kind instanceof DocumentKind ? array_values(array_filter($series, static fn (Series $one): bool => $one->kind() === $kind)) : $series;
     }
 
-    public function everyForFirm(LegalEntity $firm): array
+    public function every(): array
     {
         /** @var list<Series> $series */
-        $series = $this->em->createQuery('SELECT s FROM '.Series::class.' s WHERE s.firm = :firm ORDER BY s.name, s.id')
-            ->setParameter('firm', $firm->id())
+        $series = $this->em->createQuery('SELECT s FROM '.Series::class.' s ORDER BY s.name, s.id')
             ->getResult();
 
         return $series;
@@ -50,9 +47,9 @@ final readonly class DoctrineSeriesCatalog implements SeriesCatalog
         return $series instanceof Series ? $series : throw new UnknownSeries();
     }
 
-    public function defaultFor(LegalEntity $firm, DocumentKind $kind = DocumentKind::Invoice): Series
+    public function defaultFor(DocumentKind $kind = DocumentKind::Invoice): Series
     {
-        return $this->storedDefault($firm, $kind) ?? Series::standard($firm, $kind);
+        return $this->storedDefault($kind) ?? Series::standard($kind);
     }
 
     public function add(Series $series): void
@@ -68,7 +65,7 @@ final readonly class DoctrineSeriesCatalog implements SeriesCatalog
 
     public function makeDefault(Series $series): void
     {
-        $current = $this->storedDefault($series->firm(), $series->kind());
+        $current = $this->storedDefault($series->kind());
         if ($current === $series) {
             return;
         }
@@ -95,10 +92,9 @@ final readonly class DoctrineSeriesCatalog implements SeriesCatalog
         return 0 < (int) $invoices;
     }
 
-    private function storedDefault(LegalEntity $firm, DocumentKind $kind): ?Series
+    private function storedDefault(DocumentKind $kind): ?Series
     {
-        $series = $this->em->createQuery('SELECT s FROM '.Series::class.' s WHERE s.firm = :firm AND s.kind = :kind AND s.defaultFlag = true')
-            ->setParameter('firm', $firm->id())
+        $series = $this->em->createQuery('SELECT s FROM '.Series::class.' s WHERE s.kind = :kind AND s.defaultFlag = true')
             ->setParameter('kind', $kind)
             ->getOneOrNullResult();
 

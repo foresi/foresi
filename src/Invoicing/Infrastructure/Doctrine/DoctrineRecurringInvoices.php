@@ -160,10 +160,6 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
     {
         $conditions = ['1 = 1'];
         $parameters = [];
-        if (null !== $filter->firmId) {
-            $conditions[] = 'r.firm = :firm';
-            $parameters['firm'] = [$filter->firmId, null];
-        }
         if ($filter->state instanceof RecurringState) {
             $conditions[] = 'r.state = :state';
             $parameters['state'] = [$filter->state->value, null];
@@ -221,15 +217,14 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
         return (int) $query->getSingleScalarResult();
     }
 
-    public function inReview(?string $firmId = null): int
+    public function inReview(): int
     {
         // Plain SQL, so the key of occurrences, led by the template, finds the invoices.
         // To send, as the list's filter has it: neither marked delivered nor on its way, and not in the trash.
         $count = $this->em->getConnection()->fetchOne(
             'SELECT COUNT(*) FROM invoice i WHERE i.recurring_invoice_id IS NOT NULL AND i.deleted_at IS NULL AND i.delivered_at IS NULL'
-            .(null === $firmId ? '' : ' AND i.legal_entity_id = :firm')
             .' AND NOT EXISTS (SELECT 1 FROM invoice_send s WHERE s.invoice_id = i.id AND s.purpose = :purpose AND s.status IN (:queued, :sent))',
-            ['purpose' => SendPurpose::Invoice->value, 'queued' => SendStatus::Queued->value, 'sent' => SendStatus::Sent->value] + (null === $firmId ? [] : ['firm' => $firmId]),
+            ['purpose' => SendPurpose::Invoice->value, 'queued' => SendStatus::Queued->value, 'sent' => SendStatus::Sent->value],
         );
 
         return is_numeric($count) ? (int) $count : 0;

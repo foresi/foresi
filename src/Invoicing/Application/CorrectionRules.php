@@ -15,12 +15,11 @@ use Foresi\Invoicing\Contract\VatRateKind;
 use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\CorrectionType;
 use Foresi\Invoicing\Domain\Invoice;
-use Foresi\Party\Domain\LegalEntity;
 
 /**
  * What a corrective tax document must be, on top of what every document must be.
  * It corrects an issued invoice in place, or a delivered tax document on payment
- * that no final invoice deducts, of the same firm and customer, at the rates of
+ * that no final invoice deducts, of the same customer, at the rates of
  * that document (§42(7)(a); for a tax document on payment those of the receipt,
  * §42(7)(b)): its tax point is the decisive date of a change
  * (§42) or the tax point of the invoice for an error (§43). Per rate and treatment,
@@ -50,7 +49,7 @@ final readonly class CorrectionRules
      *
      * @return list<IssueProblem>
      */
-    public function check(InvoiceInput $input, LegalEntity $firm, ?Invoice $existing, VatRegime $regime, InvoicingCountry $country): array
+    public function check(InvoiceInput $input, ?Invoice $existing, VatRegime $regime, InvoicingCountry $country): array
     {
         $correction = $input->correction;
         if (DocumentKind::CorrectionDocument !== ($existing?->kind() ?? $input->kind)) {
@@ -74,9 +73,6 @@ final readonly class CorrectionRules
             return [new IssueProblem('correctionType', 'invoice.problem.correction_payment_change')];
         }
         $problems = [...$this->texts($correction), ...$this->taxPoint($input, $correction, $original)];
-        if ($original->firm()->id() !== $firm->id()) {
-            $problems[] = new IssueProblem('firm', 'invoice.problem.correction_firm');
-        }
         if ($original->customerParty()->id() !== $input->customerId) {
             $problems[] = new IssueProblem('customer', 'invoice.problem.correction_customer');
         }

@@ -47,7 +47,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *
  * The old ?status= opens the view of that name, as the tabs it replaced did, and
  * an old ?purpose= adds its condition, so bookmarks and the shell's notices still
- * narrow (D12). There is one firm per instance, so no firm narrows the log.
+ * narrow (D12).
  */
 final class SendLogController extends AbstractController
 {

@@ -76,7 +76,6 @@ final class InvoiceSendControllerTest extends WebTestCase
 
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private LegalEntity $firm;
     private Series $series;
     private Party $customer;
 
@@ -360,8 +359,7 @@ final class InvoiceSendControllerTest extends WebTestCase
         $this->scoped(function (): void {
             $customer = $this->em()->find(Party::class, $this->customer->id()) ?? throw new \LogicException('Customer.');
             $customer->rename('Projekt {Alfa} a.s.');
-            $firm = $this->em()->find(LegalEntity::class, $this->firm->id()) ?? throw new \LogicException('Firm.');
-            self::getContainer()->get(MailTemplates::class)->save($firm, MailTemplateKind::Invoice, DocumentLanguage::Czech, 'Faktura {number} pro {customer_name}', "{description}\n{link}");
+            self::getContainer()->get(MailTemplates::class)->save(MailTemplateKind::Invoice, DocumentLanguage::Czech, 'Faktura {number} pro {customer_name}', "{description}\n{link}");
             $this->em()->flush();
         });
         $invoice = $this->issued(description: 'Ref {number}');
@@ -761,7 +759,7 @@ final class InvoiceSendControllerTest extends WebTestCase
     {
         $this->scoped(function () use ($invoice, $amount): void {
             $czk = Money::of($amount, Currency::CZK);
-            self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-16'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $czk)]));
+            self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-16'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $czk)]));
         });
         $this->em()->clear();
     }
@@ -800,7 +798,7 @@ final class InvoiceSendControllerTest extends WebTestCase
 
     private function exhaustFirmLimit(): void
     {
-        self::getContainer()->get('limiter.invoice_send_firm')->create($this->firm->id())->consume(500);
+        self::getContainer()->get('limiter.invoice_send_firm')->create('instance')->consume(500);
     }
 
     private function open(Invoice $invoice, string $return = ''): Crawler
@@ -890,7 +888,7 @@ final class InvoiceSendControllerTest extends WebTestCase
             $day = new \DateTimeImmutable('2026-11-01');
             $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
-            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($this->firm->id(), $this->series->id(), null, $this->customer->id(), null, $day, $day, new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', $description, '', '', $language, [$line]));
+            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($this->series->id(), null, $this->customer->id(), null, $day, $day, new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', $description, '', '', $language, [$line]));
         });
     }
 
@@ -898,7 +896,7 @@ final class InvoiceSendControllerTest extends WebTestCase
     {
         $this->browser->seed($locale, $role);
         $this->scoped(function () use ($server, $email): void {
-            [$this->firm, $this->series, $this->customer] = $this->firmWithCustomer($server, $email);
+            [$this->series, $this->customer] = $this->firmWithCustomer($server, $email);
         });
         $this->browser->signIn();
     }
@@ -907,15 +905,14 @@ final class InvoiceSendControllerTest extends WebTestCase
      * A payer firm with a contact address and, if asked, a mail server, and a customer
      * with one address.
      *
-     * @return array{LegalEntity, Series, Party}
+     * @return array{Series, Party}
      */
     private function firmWithCustomer(bool $server, EmailPurpose $purpose): array
     {
         $em = $this->em();
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
-        $em->persist($firm);
-        FirmAccounts::add($em, $firm, self::IBAN);
-        $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+        $em->persist(new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1'));
+        FirmAccounts::add($em, self::IBAN);
+        $series = new Series(Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $series->markDefault();
         $em->persist($series);
         $customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');
@@ -923,16 +920,16 @@ final class InvoiceSendControllerTest extends WebTestCase
         $em->persist(new PartyAddress($customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
         $em->persist(new PartyEmail($customer, 'billing@example.com', $purpose));
         if ($server) {
-            $em->persist(FirmMailServer::define($firm, 'smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', self::getContainer()->get(MailSecrets::class)->seal('correct-horse-battery'), 'invoices@example.com', 'Example Firm'));
+            $em->persist(FirmMailServer::define('smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', self::getContainer()->get(MailSecrets::class)->seal('correct-horse-battery'), 'invoices@example.com', 'Example Firm'));
         }
         $em->flush();
         $settings = self::getContainer()->get(FirmInvoicingSettings::class);
-        $own = $settings->for($firm);
+        $own = $settings->get();
         $own->change($own->rounding(), '', '', '', 'office@example.com', '', '');
         $settings->save($own);
         $em->flush();
 
-        return [$firm, $series, $customer];
+        return [$series, $customer];
     }
 
     /**

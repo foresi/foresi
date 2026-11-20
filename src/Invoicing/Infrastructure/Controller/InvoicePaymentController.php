@@ -26,6 +26,7 @@ use Foresi\Invoicing\Domain\Payment;
 use Foresi\Invoicing\Domain\PaymentDirection;
 use Foresi\Invoicing\Domain\PaymentSource;
 use Foresi\Invoicing\Infrastructure\Form\AmountText;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
@@ -81,6 +82,7 @@ final class InvoicePaymentController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
         private readonly LocaleSwitcher $locales,
+        private readonly InstanceFirm $instanceFirm,
     ) {
     }
 
@@ -138,7 +140,7 @@ final class InvoicePaymentController extends AbstractController
         }
 
         try {
-            $payment = $this->record->record(new PaymentRequest($invoice->firm()->id(), $receivedOn, $amount, $method, PaymentSource::Manual, null, $values['note'], [new AllocationRequest($invoice->id(), $amount, $settlement)]));
+            $payment = $this->record->record(new PaymentRequest($receivedOn, $amount, $method, PaymentSource::Manual, null, $values['note'], [new AllocationRequest($invoice->id(), $amount, $settlement)]));
         } catch (PaymentRefused $refused) {
             if (PaymentRefused::TRASHED === $refused->reason) {
                 $this->addFlash('error', $this->translator->trans('invoice.payment.trashed', ['number' => $invoice->number()]));
@@ -225,7 +227,7 @@ final class InvoicePaymentController extends AbstractController
         }
 
         try {
-            $payment = $this->record->record(new PaymentRequest($invoice->firm()->id(), $receivedOn, $amount, $method, PaymentSource::Manual, null, $values['note'], [new AllocationRequest($invoice->id(), $amount)], PaymentDirection::Refund));
+            $payment = $this->record->record(new PaymentRequest($receivedOn, $amount, $method, PaymentSource::Manual, null, $values['note'], [new AllocationRequest($invoice->id(), $amount)], PaymentDirection::Refund));
         } catch (PaymentRefused $refused) {
             return $this->refundPage($this->invoice($id), $values, $this->refusal($refused), $token, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
@@ -343,13 +345,13 @@ final class InvoicePaymentController extends AbstractController
 
     /**
      * How large a difference the issuer's country writes off, in minor units of the
-     * invoice's currency; null where it writes off none. The issuing firm's country
+     * invoice's currency; null where it writes off none. The firm's country
      * decides, as RecordPayment then checks.
      */
     private function settlementLimit(Invoice $invoice): ?int
     {
         try {
-            return $this->countries->for($invoice->firm()->address()->countryCode)->settlementLimit($invoice->currency());
+            return $this->countries->for($this->instanceFirm->get()->address()->countryCode)->settlementLimit($invoice->currency());
         } catch (UnsupportedCountry) {
             return null;
         }
@@ -478,7 +480,7 @@ final class InvoicePaymentController extends AbstractController
     {
         $now = \DateTimeImmutable::createFromInterface($this->clock->now());
         try {
-            return $now->setTimezone($this->countries->for($invoice->firm()->address()->countryCode)->timezone());
+            return $now->setTimezone($this->countries->for($this->instanceFirm->get()->address()->countryCode)->timezone());
         } catch (UnsupportedCountry) {
             return $now;
         }

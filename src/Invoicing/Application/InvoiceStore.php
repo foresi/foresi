@@ -12,7 +12,6 @@ use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\AbandonedNumber;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceLine;
-use Foresi\Party\Domain\LegalEntity;
 
 /**
  * The invoices. Call the writing methods inside
@@ -77,24 +76,24 @@ interface InvoiceStore
     public function addAbandoned(AbandonedNumber $number): void;
 
     /**
-     * Whether a firm has used the number: on an invoice, in the trash too, or as a
+     * Whether the number is used the number: on an invoice, in the trash too, or as a
      * number an edit gave up, which even that invoice cannot take back.
      *
      * @param string       $key    the NumberKey of the number
      * @param Invoice|null $except an invoice whose current number does not count
      */
-    public function numberTaken(LegalEntity $firm, string $key, ?Invoice $except): bool;
+    public function numberTaken(string $key, ?Invoice $except): bool;
 
     /**
-     * The kind of the firm's document with the number, in the trash too; null when no document has it.
+     * The kind of the document with the number, in the trash too; null when no document has it.
      *
      * @param string $key the NumberKey of the number
      */
-    public function kindOfNumber(LegalEntity $firm, string $key): ?DocumentKind;
+    public function kindOfNumber(string $key): ?DocumentKind;
 
     /**
-     * In the order of the filter; a page out of range gives the nearest one. A firm
-     * without an invoice filters nothing.
+     * In the order of the filter; a page out of range gives the nearest one. Without an
+     * invoice it filters nothing.
      */
     public function page(InvoiceFilter $filter): InvoicePage;
 
@@ -104,16 +103,16 @@ interface InvoiceStore
     public function sums(InvoiceFilter $filter): InvoiceSums;
 
     /**
-     * The invoices of a firm whose tax point falls in a period, both days included,
+     * The invoices whose tax point falls in a period, both days included,
      * in the order of their numbers. The trash stays out. The tax point, because it
      * decides the VAT period.
      *
      * @return list<string> ids
      */
-    public function idsForPeriod(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to): array;
+    public function idsForPeriod(\DateTimeImmutable $from, \DateTimeImmutable $to): array;
 
     /**
-     * The documents of a firm for the accountant in a period, both days included,
+     * The documents for the accountant in a period, both days included,
      * in the order of their numbers: a tax document by its tax point, an advance
      * invoice, which has none, by its issue date. The trash stays out.
      *
@@ -121,5 +120,5 @@ interface InvoiceStore
      *
      * @return array<string, DocumentKind> kinds by id
      */
-    public function forAccountant(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to, bool $pending): array;
+    public function forAccountant(\DateTimeImmutable $from, \DateTimeImmutable $to, bool $pending): array;
 }

@@ -12,10 +12,6 @@ use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
 use Foresi\Invoicing\Domain\VariableSymbol;
-use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\LegalEntity;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use PHPUnit\Framework\TestCase;
 
 final class DocumentKindTest extends TestCase
@@ -59,22 +55,17 @@ final class DocumentKindTest extends TestCase
 
     public function testTheStandardSeriesIsTheDefaultOfItsKind(): void
     {
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
-
-        $series = Series::standard($firm, DocumentKind::Advance);
+        $series = Series::standard(DocumentKind::Advance);
 
         self::assertSame(DocumentKind::Advance, $series->kind());
         self::assertSame('standard_advance', $series->name());
         self::assertSame('Z9{YYYY}{NNNN}', $series->format()->toString());
         self::assertTrue($series->isDefault());
-        self::assertSame($firm, $series->firm());
     }
 
     public function testACorrectionDocumentGetsItsOwnStandardSeries(): void
     {
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
-
-        $series = Series::standard($firm, DocumentKind::CorrectionDocument);
+        $series = Series::standard(DocumentKind::CorrectionDocument);
 
         self::assertSame(DocumentKind::CorrectionDocument, $series->kind());
         self::assertSame('standard_correction_document', $series->name());

@@ -27,9 +27,9 @@ interface MovementLedger
     public function bookedAfter(string $accountId, \DateTimeImmutable $after, \DateTimeImmutable $until): array;
 
     /**
-     * The movements of the firm booked on the days from $from to $to, both included.
+     * The movements booked on the days from $from to $to, both included.
      *
      * @return list<BankMovement>
      */
-    public function bookedBetween(string $firmId, \DateTimeImmutable $from, \DateTimeImmutable $to): array;
+    public function bookedBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): array;
 }

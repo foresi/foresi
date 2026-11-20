@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Infrastructure\Mcp;
 
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Purchasing\Application\PurchasingNotAllowed;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentBalances;
 use Foresi\Purchasing\Application\UnknownReceivedDocument;
@@ -22,7 +23,7 @@ use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
  */
 final readonly class GetReceivedDocumentTool implements ReadTool
 {
-    public function __construct(private ReceivedDocumentBalances $balances)
+    public function __construct(private ReceivedDocumentBalances $balances, private InstanceFirm $firm)
     {
     }
 
@@ -66,6 +67,6 @@ final readonly class GetReceivedDocumentTool implements ReadTool
             throw ToolRefusal::notFound($unknown->getMessage());
         }
 
-        return new ToolOutput(ReceivedDocumentJson::detail($paid), 'The received document with its VAT recap and payments.');
+        return new ToolOutput(ReceivedDocumentJson::detail($paid, $this->firm->get()), 'The received document with its VAT recap and payments.');
     }
 }

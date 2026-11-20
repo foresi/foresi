@@ -42,7 +42,7 @@ final readonly class EditReceivedDocument
         $userId = $this->access->denyUnlessStaff();
         $document = $this->unit->run(function () use ($documentId, $input, $version, $userId): ReceivedDocument {
             $document = $this->documents->lock($documentId);
-            $firm = $this->access->firm($document->firm(), true);
+            $this->access->firm(true);
             if (null !== $version && $version !== $document->version()) {
                 throw new ReceivedDocumentRefused(ReceivedDocumentRefused::STALE);
             }
@@ -53,9 +53,9 @@ final readonly class EditReceivedDocument
                 throw new ReceivedDocumentRefused(ReceivedDocumentRefused::LOCKED);
             }
             if ($document->isRecorded()) {
-                $this->recording->record($document, $firm, $this->contents->of($firm, $input, $document, true), $userId);
+                $this->recording->record($document, $this->contents->of($input, $document, true), $userId);
             } else {
-                $document->saveDraft($this->contents->of($firm, $input, $document, false));
+                $document->saveDraft($this->contents->of($input, $document, false));
             }
 
             return $document;

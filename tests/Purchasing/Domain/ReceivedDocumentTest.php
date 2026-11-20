@@ -10,11 +10,9 @@ namespace Foresi\Tests\Purchasing\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use Foresi\Purchasing\Domain\ExchangeRate;
 use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
 use Foresi\Purchasing\Domain\ReceivedDocument;
@@ -147,7 +145,7 @@ final class ReceivedDocumentTest extends TestCase
         $given = $content($this);
 
         $this->assertRefused($reason, static fn () => $document->saveDraft($given));
-        $this->assertRefused($reason, static fn (): ReceivedDocument => new ReceivedDocument($document->firm(), $given, null, new \DateTimeImmutable(self::AT)));
+        $this->assertRefused($reason, static fn (): ReceivedDocument => new ReceivedDocument($given, null, new \DateTimeImmutable(self::AT)));
     }
 
     /**
@@ -405,9 +403,7 @@ final class ReceivedDocumentTest extends TestCase
 
     private function draft(): ReceivedDocument
     {
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345678'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
-
-        return new ReceivedDocument($firm, ReceivedDocumentContent::blank(new \DateTimeImmutable('2026-11-02')), Id::generate(), new \DateTimeImmutable(self::AT));
+        return new ReceivedDocument(ReceivedDocumentContent::blank(new \DateTimeImmutable('2026-11-02')), Id::generate(), new \DateTimeImmutable(self::AT));
     }
 
     private function recorded(ReceivedDocumentContent $content): ReceivedDocument

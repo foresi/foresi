@@ -28,7 +28,6 @@ use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\InvoicingDefaults;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyKind;
@@ -73,20 +72,19 @@ final class RemindableInvoicesTest extends InvoiceTestCase
         $this->reminded($this->deliveredDue('2026-11-15'), ...array_fill(0, FirmReminders::MAX_STEPS, '2026-11-20 08:00:00'));
         $this->reminded($this->deliveredDue('2026-11-15'), '2026-11-26 07:00:00'); // reminded 5 days ago
         $second = $this->reminded($this->deliveredDue('2026-11-14'), '2026-11-23 23:30:00'); // 24 November in Prague
-        $this->otherFirmsInvoice('2026-11-15');
         $sentNormally = $this->deliveredDue('2026-11-16');
         $this->sent($sentNormally);
         $this->em->flush();
         $this->em->clear();
 
-        $due = $this->remindable->due($this->firm, $this->settings(), $this->today(), 50);
+        $due = $this->remindable->due($this->settings(), $this->today(), 50);
 
         self::assertEquals([
             new RemindableInvoice($second->id(), 2, new \DateTimeImmutable('2026-11-24', new \DateTimeZone(self::ZONE))),
             new RemindableInvoice($first->id(), 1, null),
             new RemindableInvoice($sentNormally->id(), 1, null),
         ], $due, 'oldest due first; an invoice send is no reminder');
-        self::assertSame([$second->id()], array_map(static fn (RemindableInvoice $invoice): string => $invoice->invoiceId, $this->remindable->due($this->firm, $this->settings(), $this->today(), 1)));
+        self::assertSame([$second->id()], array_map(static fn (RemindableInvoice $invoice): string => $invoice->invoiceId, $this->remindable->due($this->settings(), $this->today(), 1)));
     }
 
     public function testAnAdvanceIsRemindedOnlyWhenTheFirmSaysSo(): void
@@ -96,16 +94,16 @@ final class RemindableInvoicesTest extends InvoiceTestCase
         $this->em->clear();
         $settings = $this->settings();
 
-        self::assertSame([$invoice->id()], array_map(static fn (RemindableInvoice $due): string => $due->invoiceId, $this->remindable->due($this->firm, $settings, $this->today(), 50)));
+        self::assertSame([$invoice->id()], array_map(static fn (RemindableInvoice $due): string => $due->invoiceId, $this->remindable->due($settings, $this->today(), 50)));
         $settings->remindAdvances(true);
         self::assertTrue($settings->remindsAdvances());
-        self::assertEqualsCanonicalizing([$invoice->id(), $advance->id()], array_map(static fn (RemindableInvoice $due): string => $due->invoiceId, $this->remindable->due($this->firm, $settings, $this->today(), 50)));
+        self::assertEqualsCanonicalizing([$invoice->id(), $advance->id()], array_map(static fn (RemindableInvoice $due): string => $due->invoiceId, $this->remindable->due($settings, $this->today(), 50)));
     }
 
     public function testATaxDocumentOnPaymentIsNeverReminded(): void
     {
         $advance = $this->issue->issue($this->input(overrides: ['seriesId' => null, 'kind' => DocumentKind::Advance, 'taxPointDate' => null, 'dueDate' => new \DateTimeImmutable('2026-11-15')]));
-        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-10'), Money::of('1210.00', Currency::CZK), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($advance->id(), Money::of('1210.00', Currency::CZK))]));
+        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-10'), Money::of('1210.00', Currency::CZK), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($advance->id(), Money::of('1210.00', Currency::CZK))]));
         $document = $this->em->getConnection()->fetchOne('SELECT id FROM invoice WHERE advance_invoice_id = ?', [$advance->id()]);
         self::assertIsString($document);
         $this->delivered->mark($document);
@@ -113,7 +111,7 @@ final class RemindableInvoicesTest extends InvoiceTestCase
         $settings = $this->settings();
         $settings->remindAdvances(true);
 
-        self::assertSame([], $this->remindable->due($this->firm, $settings, $this->today(), 50));
+        self::assertSame([], $this->remindable->due($settings, $this->today(), 50));
         self::assertSame(0, self::getContainer()->get(InvoiceBalances::class)->outstanding([$document])[$document]->minor());
     }
 
@@ -125,7 +123,7 @@ final class RemindableInvoicesTest extends InvoiceTestCase
         $this->delivered->mark($this->correctionOf($debited, '200.00')->id());
         $this->em->clear();
 
-        self::assertSame([$debited->id()], array_map(static fn (RemindableInvoice $due): string => $due->invoiceId, $this->remindable->due($this->firm, $this->settings(), $this->today(), 50)));
+        self::assertSame([$debited->id()], array_map(static fn (RemindableInvoice $due): string => $due->invoiceId, $this->remindable->due($this->settings(), $this->today(), 50)));
         self::assertSame(0, self::getContainer()->get(InvoiceBalances::class)->outstanding([$credited->id()])[$credited->id()]->minor());
     }
 
@@ -140,7 +138,7 @@ final class RemindableInvoicesTest extends InvoiceTestCase
         $ids = [];
         $after = null;
         do {
-            $page = $this->remindable->due($this->firm, $this->settings(), $this->today(), 1, $after);
+            $page = $this->remindable->due($this->settings(), $this->today(), 1, $after);
             foreach ($page as $invoice) {
                 $ids[] = $after = $invoice->invoiceId;
             }
@@ -161,7 +159,7 @@ final class RemindableInvoicesTest extends InvoiceTestCase
         $settings = $this->settings();
         $settings->change(true, 7, 7, Money::of('500', Currency::CZK), new \DateTimeImmutable('2026-11-01'));
 
-        $due = $this->remindable->due($this->firm, $settings, $this->today(), 1);
+        $due = $this->remindable->due($settings, $this->today(), 1);
 
         self::assertSame([$enough->id()], array_map(static fn (RemindableInvoice $invoice): string => $invoice->invoiceId, $due));
     }
@@ -173,13 +171,13 @@ final class RemindableInvoicesTest extends InvoiceTestCase
         $settings = $this->settings();
         $settings->change(false, 7, 7, null, new \DateTimeImmutable('2026-11-30'));
 
-        self::assertSame([], $this->remindable->due($this->firm, $settings, $this->today(), 10));
+        self::assertSame([], $this->remindable->due($settings, $this->today(), 10));
     }
 
     public function testThePreviewListsTomorrowsReminders(): void
     {
         $stored = self::getContainer()->get(ReminderSettings::class);
-        $settings = $stored->for($this->firm);
+        $settings = $stored->get();
         $settings->change(true, 7, 7, null, new \DateTimeImmutable('2026-11-01'));
         $stored->save($settings);
         $tomorrow = $this->deliveredDue('2026-11-24');                    // 24 + 7 = 1 December, tomorrow
@@ -189,17 +187,17 @@ final class RemindableInvoicesTest extends InvoiceTestCase
         $this->em->getConnection()->executeStatement('UPDATE invoice SET deleted_at = ? WHERE id = ?', ['2026-11-21 10:00:00', $trashed->id()]);
         $this->em->clear();
 
-        $rows = self::getContainer()->get(ReminderPreview::class)->tomorrow($this->firm);
+        $rows = self::getContainer()->get(ReminderPreview::class)->tomorrow();
 
         self::assertSame([$tomorrow->id()], array_map(static fn (InvoiceRow $row): string => $row->id, $rows));
         self::assertSame($tomorrow->number(), $rows[0]->number);
         self::assertSame(1210_00, $rows[0]->payable->minor());
 
         // Below the minimum in the home currency, it is left out.
-        $settings = $stored->for($this->firm);
+        $settings = $stored->get();
         $settings->change(true, 7, 7, Money::of('1300', Currency::CZK), new \DateTimeImmutable('2026-11-30'));
         $this->em->flush();
-        self::assertSame([], self::getContainer()->get(ReminderPreview::class)->tomorrow($this->firm));
+        self::assertSame([], self::getContainer()->get(ReminderPreview::class)->tomorrow());
     }
 
     public function testThePreviewIsEmptyWhileSwitchedOff(): void
@@ -207,7 +205,7 @@ final class RemindableInvoicesTest extends InvoiceTestCase
         $this->deliveredDue('2026-11-24');
         $this->em->flush();
 
-        self::assertSame([], self::getContainer()->get(ReminderPreview::class)->tomorrow($this->firm));
+        self::assertSame([], self::getContainer()->get(ReminderPreview::class)->tomorrow());
     }
 
     public function testThePreviewWhileOffShowsWhatSwitchingOnTodayWouldSend(): void
@@ -219,7 +217,7 @@ final class RemindableInvoicesTest extends InvoiceTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $planned = self::getContainer()->get(ReminderPreview::class)->ifSwitchedOnToday($this->firm);
+        $planned = self::getContainer()->get(ReminderPreview::class)->ifSwitchedOnToday();
 
         self::assertSame(
             [[$today->id(), '2026-12-07'], [$later->id(), '2026-12-27']],
@@ -229,7 +227,7 @@ final class RemindableInvoicesTest extends InvoiceTestCase
 
         // The stored delays and minimum count, as they would once switched on.
         $stored = self::getContainer()->get(ReminderSettings::class);
-        $settings = $stored->for($this->em->find(LegalEntity::class, $this->firm->id()) ?? self::fail('No firm.'));
+        $settings = $stored->get();
         $settings->change(false, 3, 7, Money::of('1300', Currency::CZK), new \DateTimeImmutable('2026-11-30'));
         $stored->save($settings);
         $this->em->flush();
@@ -248,7 +246,7 @@ final class RemindableInvoicesTest extends InvoiceTestCase
      */
     private function plannedDays(): array
     {
-        return array_map(static fn (PlannedReminder $reminder): string => $reminder->on->format('Y-m-d'), self::getContainer()->get(ReminderPreview::class)->ifSwitchedOnToday($this->firm));
+        return array_map(static fn (PlannedReminder $reminder): string => $reminder->on->format('Y-m-d'), self::getContainer()->get(ReminderPreview::class)->ifSwitchedOnToday());
     }
 
     private function connection(): \Doctrine\DBAL\Connection
@@ -258,7 +256,7 @@ final class RemindableInvoicesTest extends InvoiceTestCase
 
     private function settings(): FirmReminders
     {
-        $settings = FirmReminders::standard($this->firm);
+        $settings = FirmReminders::standard();
         $settings->change(true, 7, 7, null, new \DateTimeImmutable('2026-11-01'));
 
         return $settings;
@@ -269,16 +267,11 @@ final class RemindableInvoicesTest extends InvoiceTestCase
         return new \DateTimeImmutable('2026-12-01', new \DateTimeZone(self::ZONE));
     }
 
-    private function issued(string $due, string $issued = '2026-11-01', ?Party $customer = null, ?LegalEntity $firm = null): Invoice
+    private function issued(string $due, string $issued = '2026-11-01', ?Party $customer = null): Invoice
     {
         $overrides = ['issueDate' => new \DateTimeImmutable($issued), 'taxPointDate' => new \DateTimeImmutable($issued), 'dueDate' => new \DateTimeImmutable($due)];
         if ($customer instanceof Party) {
             $overrides['customerId'] = $customer->id();
-        }
-        if ($firm instanceof LegalEntity) {
-            $overrides['firmId'] = $firm->id();
-            $overrides['seriesId'] = $this->seriesOf($firm)->id();
-            $this->em->flush();
         }
 
         return $this->issue->issue($this->input(overrides: $overrides));
@@ -287,13 +280,6 @@ final class RemindableInvoicesTest extends InvoiceTestCase
     private function deliveredDue(string $due, string $issued = '2026-11-01', ?Party $customer = null): Invoice
     {
         return $this->delivered->mark($this->issued($due, $issued, $customer)->id());
-    }
-
-    private function otherFirmsInvoice(string $due): void
-    {
-        $other = $this->firm(vatId: 'CZ12345679', registrationNumber: '12345679');
-        $this->em->flush();
-        $this->delivered->mark($this->issued($due, firm: $other)->id());
     }
 
     /**

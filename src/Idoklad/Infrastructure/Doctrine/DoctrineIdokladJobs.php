@@ -12,7 +12,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Idoklad\Application\IdokladJobs;
 use Foresi\Idoklad\Domain\IdokladJob;
 use Foresi\Idoklad\Domain\IdokladJobState;
-use Foresi\Party\Domain\LegalEntity;
 
 /** Ids are ordered by time, so they also order jobs asked for in the same second. */
 final readonly class DoctrineIdokladJobs implements IdokladJobs
@@ -31,13 +30,13 @@ final readonly class DoctrineIdokladJobs implements IdokladJobs
         return $this->em->find(IdokladJob::class, $id);
     }
 
-    public function latest(LegalEntity $firm): ?IdokladJob
+    public function latest(): ?IdokladJob
     {
-        return $this->em->getRepository(IdokladJob::class)->findOneBy(['firm' => $firm], ['requestedAt' => 'DESC', 'id' => 'DESC']);
+        return $this->em->getRepository(IdokladJob::class)->findOneBy([], ['requestedAt' => 'DESC', 'id' => 'DESC']);
     }
 
-    public function busy(LegalEntity $firm): ?IdokladJob
+    public function busy(): ?IdokladJob
     {
-        return $this->em->getRepository(IdokladJob::class)->findOneBy(['firm' => $firm, 'state' => [IdokladJobState::Pending, IdokladJobState::Running]], ['requestedAt' => 'DESC', 'id' => 'DESC']);
+        return $this->em->getRepository(IdokladJob::class)->findOneBy(['state' => [IdokladJobState::Pending, IdokladJobState::Running]], ['requestedAt' => 'DESC', 'id' => 'DESC']);
     }
 }

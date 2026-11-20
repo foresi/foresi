@@ -13,22 +13,20 @@ use Foresi\Instance\Application\Schedule\DailyPeriod;
 use Foresi\Instance\Application\Schedule\ScheduledJob;
 use Foresi\Invoicing\Domain\FirmReminders;
 use Foresi\Invoicing\Domain\SendPurpose;
-use Foresi\Party\Application\LegalEntities;
-use Foresi\Party\Domain\LegalEntity;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 
 /**
  * Reminds customers of overdue invoices, once a day from 08:00 in the instance's
- * zone, business hours for a mail about money. For each active firm with
- * reminders on it reads the invoices worth their next reminder, page after page
- * until the firm's daily budget is taken, and queues one reminder per invoice
+ * zone, business hours for a mail about money. With reminders on it reads the
+ * invoices worth their next reminder, page after page until the daily budget is
+ * taken, and queues one reminder per invoice
  * through SendInvoice, as the send dialog would: the contact's addresses for
  * invoices, the firm's reminder text in the document's language. Nothing is sent
  * while the gate is closed, so a paid invoice nobody recorded is never reminded.
  *
  * A step another run took first is no error; that run has it. A refusal of one
- * invoice is logged and the next one goes on; a firm out of its sending budget
+ * invoice is logged and the next one goes on; a run out of its sending budget
  * waits for the next day, when its invoices are still due. Anything else is
  * thrown, so the scheduler gives the day back and tries again; what was queued
  * stays queued and is not queued twice.
@@ -37,11 +35,10 @@ final readonly class SendReminders implements ScheduledJob
 {
     public const string NAME = 'invoice-reminders';
     public const int START_HOUR = 8;
-    /** The firm's daily sending budget: more could not leave today anyway. */
-    private const int MAX_PER_FIRM = 500;
+    /** The daily sending budget: more could not leave today anyway. */
+    private const int MAX_PER_DAY = 500;
 
     public function __construct(
-        private LegalEntities $firms,
         private ReminderSettings $settings,
         private ReminderCandidates $candidates,
         private InvoiceStore $store,
@@ -71,19 +68,17 @@ final readonly class SendReminders implements ScheduledJob
         $zone = $this->instanceClock->timezone();
         // The day of the period, so a run given back and retried after midnight still works for its own day.
         $today = new \DateTimeImmutable($this->period(\DateTimeImmutable::createFromInterface($this->clock->now()), $zone), $zone);
-        foreach ($this->firms->all() as $firm) {
-            $settings = $this->settings->for($firm);
-            if ($settings->enabled()) {
-                $this->remind($firm, $settings, $today);
-            }
+        $settings = $this->settings->get();
+        if ($settings->enabled()) {
+            $this->remind($settings, $today);
         }
     }
 
-    private function remind(LegalEntity $firm, FirmReminders $settings, \DateTimeImmutable $today): void
+    private function remind(FirmReminders $settings, \DateTimeImmutable $today): void
     {
         $tried = 0;
-        foreach ($this->candidates->worthReminding($firm, $settings, $today) as $candidate) {
-            if (self::MAX_PER_FIRM === $tried++) {
+        foreach ($this->candidates->worthReminding($settings, $today) as $candidate) {
+            if (self::MAX_PER_DAY === $tried++) {
                 return;
             }
             try {

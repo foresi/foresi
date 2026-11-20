@@ -10,23 +10,29 @@ namespace Foresi\Invoicing\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
-use Foresi\Audit\Domain\AuditRooted;
 use Foresi\Invoicing\Contract\TotalRounding;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Id;
 
 /**
- * What a firm prints on its invoices and how it rounds them. One row per firm; a
- * firm without a row uses standard(), which is not stored until it is changed.
+ * What the firm prints on its invoices and how it rounds them. One row for the
+ * instance; without a row the standard() settings apply, and they are not stored
+ * until they are changed.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'firm_invoicing')]
-#[ORM\UniqueConstraint(name: 'uniq_firm_invoicing_firm', columns: ['legal_entity_id'])]
-class FirmInvoicing implements Audited, AuditRooted
+#[ORM\UniqueConstraint(name: 'uniq_firm_invoicing_one_row', columns: ['one_row'])]
+class FirmInvoicing implements Audited
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
+
+    /**
+     * Always true: with its unique index (and a check on PostgreSQL) the table holds
+     * at most one row, the settings of the instance's one firm (ADR 0039).
+     */
+    #[ORM\Column(name: 'one_row', type: 'boolean', options: ['default' => true])]
+    private bool $oneRow = true;
 
     #[ORM\Column(type: 'string', length: 16, enumType: TotalRounding::class)]
     private TotalRounding $rounding = TotalRounding::WholeUnit;
@@ -49,17 +55,14 @@ class FirmInvoicing implements Audited, AuditRooted
     #[ORM\Column(name: 'contact_web', type: 'string', length: 255)]
     private string $contactWeb = '';
 
-    private function __construct(
-        #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
-        #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
-        private readonly LegalEntity $firm,
-    ) {
+    private function __construct()
+    {
         $this->id = Id::generate();
     }
 
-    public static function standard(LegalEntity $firm): self
+    public static function standard(): self
     {
-        return new self($firm);
+        return new self();
     }
 
     public function change(TotalRounding $rounding, string $constantSymbol, string $textBefore, string $textAfter, string $contactEmail, string $contactPhone, string $contactWeb): void
@@ -76,16 +79,6 @@ class FirmInvoicing implements Audited, AuditRooted
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function auditRoot(): object
-    {
-        return $this->firm;
-    }
-
-    public function firm(): LegalEntity
-    {
-        return $this->firm;
     }
 
     public function rounding(): TotalRounding

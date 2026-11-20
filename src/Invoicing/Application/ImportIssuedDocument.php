@@ -17,11 +17,9 @@ use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceChange;
 use Foresi\Invoicing\Domain\InvoiceLine;
 use Foresi\Invoicing\Domain\Series;
-use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\NoFirmYet;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\TransactionalWork;
-use Foresi\Party\Application\UnknownLegalEntity;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Shared\Domain\Currency;
@@ -49,7 +47,6 @@ use Psr\Clock\ClockInterface;
 final readonly class ImportIssuedDocument
 {
     public function __construct(
-        private LegalEntities $firms,
         private SeriesCatalog $catalog,
         private PartyQuery $parties,
         private IssueRules $rules,
@@ -71,14 +68,13 @@ final readonly class ImportIssuedDocument
     }
 
     /**
-     * @throws UnknownLegalEntity
+     * @throws NoFirmYet before the first-run setup
      */
     public function import(ImportedDocumentInput $import): ImportedDocumentResult
     {
         return $this->retry->run(function () use ($import): ImportedDocumentResult {
             $input = $import->document;
-            $firm = $this->firms->get($input->firmId);
-            $known = $this->imported->find($firm, $import->source, $import->externalId);
+            $known = $this->imported->find($import->source, $import->externalId);
             if ($known instanceof Invoice) {
                 return ImportedDocumentResult::alreadyImported($known->id());
             }
@@ -86,7 +82,7 @@ final readonly class ImportIssuedDocument
             if (!$input->kind->standsAlone() && !$taxed) {
                 return ImportedDocumentResult::refused([new IssueProblem('document', 'invoice.problem.import_kind_unsupported')]);
             }
-            $problems = [...$this->taxedPayment($import), ...$this->rules->checkImported($import, $firm)];
+            $problems = [...$this->taxedPayment($import), ...$this->rules->checkImported($import)];
             if ([] !== $problems) {
                 return ImportedDocumentResult::refused($problems);
             }
@@ -107,7 +103,7 @@ final readonly class ImportIssuedDocument
             }
 
             try {
-                return ImportedDocumentResult::imported($this->stored($import, $firm, $series, $content, $lines, $country->homeCurrency(), $totals), $computed);
+                return ImportedDocumentResult::imported($this->stored($import, $series, $content, $lines, $country->homeCurrency(), $totals), $computed);
             } catch (IssueRefused $refused) {
                 return ImportedDocumentResult::refused($refused->problems);
             }
@@ -144,14 +140,14 @@ final readonly class ImportIssuedDocument
      *
      * @throws IssueRefused when someone took the number, or another invoice what it deducts, meanwhile
      */
-    private function stored(ImportedDocumentInput $import, LegalEntity $firm, Series $series, InvoiceChange $content, array $lines, Currency $home, DocumentTotals $totals): string
+    private function stored(ImportedDocumentInput $import, Series $series, InvoiceChange $content, array $lines, Currency $home, DocumentTotals $totals): string
     {
         $invoice = null;
         try {
-            return $this->work->run(function () use ($import, $firm, $series, $content, $lines, $home, $totals, &$invoice): string {
+            return $this->work->run(function () use ($import, $series, $content, $lines, $home, $totals, &$invoice): string {
                 $input = $import->document;
-                $number = $this->numbers->allocate($series, $firm, $input->issueDate, $input->typedNumber, null);
-                $invoice = new Invoice($firm, $series, $number, $import->regime, $import->rounding, $home, $import->issuer, $content, $this->actor->userId(), $import->createdAt);
+                $number = $this->numbers->allocate($series, $input->issueDate, $input->typedNumber, null);
+                $invoice = new Invoice($series, $number, $import->regime, $import->rounding, $home, $import->issuer, $content, $this->actor->userId(), $import->createdAt);
                 $this->store->add($invoice);
                 foreach ($lines as $position => $line) {
                     $this->store->addLine(new InvoiceLine($invoice, $position, $line->input->text, $line->input->unit, $line->input->rateKind, $line->input->supplyCode, $line->values, $line->amounts, $line->input->deducts));

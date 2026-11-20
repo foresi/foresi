@@ -49,7 +49,7 @@ final class InvoiceWritesTest extends InvoicingReadTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        FirmAccounts::add($this->em, $this->firm, self::OTHER_IBAN);
+        FirmAccounts::add($this->em, self::OTHER_IBAN);
         $this->em->flush();
         $this->writes = self::getContainer()->get(InvoiceWrites::class);
     }
@@ -260,7 +260,7 @@ final class InvoiceWritesTest extends InvoicingReadTestCase
         self::assertFalse($this->stored($id)->isTrashed());
 
         $money = Money::of('1210.00', Currency::CZK);
-        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-10'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($id, $money)]));
+        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-10'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($id, $money)]));
         $this->em->flush();
         $paid = $this->refused(fn (): string => $this->writes->trash(new TrashInvoiceInput($id, 'Issued by mistake.')));
         self::assertSame([InvoicingRefused::HAS_PAYMENTS, RefusalKind::Conflict], [$paid->reason(), $paid->kind()]);

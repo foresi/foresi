@@ -24,6 +24,6 @@ final class ReceivedDocumentRowTest extends TestCase
 
     private function row(?\DateTimeImmutable $deletedAt): ReceivedDocumentRow
     {
-        return new ReceivedDocumentRow('id', 'firm', 'Example Firm s.r.o.', ReceivedDocumentState::Recorded, ReceivedDocumentKind::TaxInvoice, PurchaseTaxTreatment::Domestic, 'R20260001', 'Supplier Example s.r.o.', 'FV-1', null, null, null, null, null, new \DateTimeImmutable('2026-11-01'), $deletedAt, null, null);
+        return new ReceivedDocumentRow('id', ReceivedDocumentState::Recorded, ReceivedDocumentKind::TaxInvoice, PurchaseTaxTreatment::Domestic, 'R20260001', 'Supplier Example s.r.o.', 'FV-1', null, null, null, null, null, new \DateTimeImmutable('2026-11-01'), $deletedAt, null, null);
     }
 }

@@ -11,7 +11,6 @@ namespace Foresi\Invoicing\Domain;
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
 use Foresi\Audit\Domain\AuditRooted;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Id;
 
 /**
@@ -21,16 +20,12 @@ use Foresi\Shared\Domain\Id;
 #[ORM\Entity]
 #[ORM\Table(name: 'abandoned_number')]
 #[ORM\Index(name: 'idx_abandoned_number_invoice', columns: ['invoice_id'])]
-#[ORM\UniqueConstraint(name: 'uniq_abandoned_number', columns: ['legal_entity_id', 'number_key'])]
+#[ORM\UniqueConstraint(name: 'uniq_abandoned_number', columns: ['number_key'])]
 class AbandonedNumber implements Audited, AuditRooted
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
-    #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
-    private readonly LegalEntity $firm;
 
     #[ORM\Column(name: 'number_key', type: 'string', length: Invoice::MAX_NUMBER_LENGTH)]
     private string $numberKey;
@@ -43,7 +38,6 @@ class AbandonedNumber implements Audited, AuditRooted
         private readonly string $number,
     ) {
         $this->id = Id::generate();
-        $this->firm = $invoice->firm();
         $this->numberKey = NumberKey::of($number);
     }
 

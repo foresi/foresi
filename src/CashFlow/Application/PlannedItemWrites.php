@@ -55,9 +55,10 @@ final readonly class PlannedItemWrites
 
         return $this->transaction->run(function () use ($input, $direction): PlannedItem {
             $terms = $this->rules->terms(new PlannedItemDraft($input->name, $input->category, $input->amount, $input->currency, $input->on, $input->repeat, $input->every, $input->lastDayOfMonth, $input->endsOn, $input->endsAfter, $input->counterpartyId, $input->included, $input->matchAccount, $input->matchVariableSymbol, $input->matchTolerance), $this->instanceClock->timezone());
-            $item = new PlannedItem($this->access->firm(), $direction, $terms, $this->clock->now());
+            $firmId = $this->access->firm()->id();
+            $item = new PlannedItem($direction, $terms, $this->clock->now());
             $this->store->add($item);
-            $this->events->record(new PlannedItemCreated($item->id(), $item->firm()->id(), $this->direction($item), self::decimal($item->amount()), $item->amount()->currency()->value, $item->isRecurring()));
+            $this->events->record(new PlannedItemCreated($item->id(), $firmId, $this->direction($item), self::decimal($item->amount()), $item->amount()->currency()->value, $item->isRecurring()));
 
             return $item;
         });
@@ -96,7 +97,7 @@ final readonly class PlannedItemWrites
                 $this->given($input->matchVariableSymbol, $match->variableSymbol()),
                 $this->given($input->matchTolerance, null === $tolerance ? null : self::decimal(Money::ofMinor($tolerance, $item->amount()->currency()))),
             ), $zone));
-            $this->events->record(new PlannedItemChanged($item->id(), $item->firm()->id(), $this->direction($item), self::decimal($item->amount()), $item->amount()->currency()->value, $item->isIncluded()));
+            $this->events->record(new PlannedItemChanged($item->id(), $this->access->firm()->id(), $this->direction($item), self::decimal($item->amount()), $item->amount()->currency()->value, $item->isIncluded()));
 
             return $item;
         });
@@ -119,7 +120,7 @@ final readonly class PlannedItemWrites
                 throw CashFlowRefused::invalid('not_an_occurrence', 'on', 'The planned item does not fall on this day; skip a day it falls on, as the forecast lists it.');
             }
             $item->skip($on);
-            $this->events->record(new PlannedItemOccurrenceSkipped($item->id(), $item->firm()->id(), $this->direction($item), $on->format('Y-m-d')));
+            $this->events->record(new PlannedItemOccurrenceSkipped($item->id(), $this->access->firm()->id(), $this->direction($item), $on->format('Y-m-d')));
 
             return $item;
         });
@@ -141,7 +142,7 @@ final readonly class PlannedItemWrites
                 throw CashFlowRefused::invalid('ends_before_start', 'on', $invalid->getMessage());
             }
             $item->endOn($on);
-            $this->events->record(new PlannedItemEnded($item->id(), $item->firm()->id(), $this->direction($item), $on->format('Y-m-d')));
+            $this->events->record(new PlannedItemEnded($item->id(), $this->access->firm()->id(), $this->direction($item), $on->format('Y-m-d')));
 
             return $item;
         });
@@ -154,7 +155,7 @@ final readonly class PlannedItemWrites
     {
         return $this->transaction->run(function () use ($input): string {
             $item = $this->item($input->plannedItemId);
-            $this->events->record(new PlannedItemDeleted($item->id(), $item->firm()->id(), $this->direction($item)));
+            $this->events->record(new PlannedItemDeleted($item->id(), $this->access->firm()->id(), $this->direction($item)));
             $this->store->remove($item);
 
             return $item->id();

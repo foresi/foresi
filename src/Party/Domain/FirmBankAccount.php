@@ -10,24 +10,23 @@ namespace Foresi\Party\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
-use Foresi\Audit\Domain\AuditRooted;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Id;
 
 /**
  * A bank account of the issuing firm, where its customers pay. An IBAN is there
- * once per firm, archived accounts included, and the IBAN never changes. An
+ * once, archived accounts included, and the IBAN never changes. An
  * account is never deleted: invoices and bank movements point at it, so it is
  * archived instead. Among the active accounts at most one is the primary one,
  * which new invoices get; ManageFirmBankAccounts keeps it that way and, as a
- * backstop, a unique index over the firm and primary_flag does too (the flag is
+ * backstop, a unique index over primary_flag does too (the flag is
  * true on the primary account and NULL on the others, see PartyAddress for why).
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'firm_bank_account')]
-#[ORM\UniqueConstraint(name: 'uniq_firm_bank_account_iban', columns: ['legal_entity_id', 'iban'])]
-#[ORM\UniqueConstraint(name: 'uniq_firm_bank_account_primary', columns: ['legal_entity_id', 'primary_flag'])]
-class FirmBankAccount implements Audited, AuditRooted
+#[ORM\UniqueConstraint(name: 'uniq_firm_bank_account_iban', columns: ['iban'])]
+#[ORM\UniqueConstraint(name: 'uniq_firm_bank_account_primary', columns: ['primary_flag'])]
+class FirmBankAccount implements Audited
 {
     public const int MAX_LABEL_LENGTH = 100;
 
@@ -48,9 +47,6 @@ class FirmBankAccount implements Audited, AuditRooted
     private ?\DateTimeImmutable $archivedAt = null;
 
     private function __construct(
-        #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
-        #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
-        private readonly LegalEntity $firm,
         Iban $iban,
         #[ORM\Column(type: 'string', length: 3, enumType: Currency::class)]
         private Currency $currency,
@@ -66,26 +62,16 @@ class FirmBankAccount implements Audited, AuditRooted
     /**
      * A new account is not primary; ManageFirmBankAccounts decides that.
      *
-     * @param int $position where the account comes in the firm's list, after the primary one
+     * @param int $position where the account comes in the list, after the primary one
      */
-    public static function open(LegalEntity $firm, Iban $iban, Currency $currency, string $label, int $position): self
+    public static function open(Iban $iban, Currency $currency, string $label, int $position): self
     {
-        return new self($firm, $iban, $currency, $label, $position);
+        return new self($iban, $currency, $label, $position);
     }
 
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function auditRoot(): object
-    {
-        return $this->firm;
-    }
-
-    public function firm(): LegalEntity
-    {
-        return $this->firm;
     }
 
     public function iban(): string

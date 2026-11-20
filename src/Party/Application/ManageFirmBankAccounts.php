@@ -18,11 +18,11 @@ use Foresi\Shared\Domain\Currency;
 use Psr\Clock\ClockInterface;
 
 /**
- * The one path that writes a firm's bank accounts. The first active account is
+ * The one path that writes the firm's bank accounts. The first active account is
  * the primary one, and only ever one is; making another primary demotes the old
  * one, and archiving the primary hands it to the next active account. Primary
- * moves only by making another account primary, so a firm with active accounts
- * always has one. An account is never deleted, only archived.
+ * moves only by making another account primary, so with active accounts there
+ * is always one. An account is never deleted, only archived.
  */
 final readonly class ManageFirmBankAccounts
 {
@@ -33,7 +33,7 @@ final readonly class ManageFirmBankAccounts
      * @param iterable<DomesticBankAccount> $domesticAccounts
      */
     public function __construct(
-        private LegalEntities $firms,
+        private InstanceFirm $firm,
         private FirmBankAccounts $accounts,
         private TransactionalWork $transaction,
         private BankAccountUsage $usage,
@@ -46,21 +46,22 @@ final readonly class ManageFirmBankAccounts
      * @param string $iban an IBAN, or a domestic account number of the firm's country
      *
      * @throws BankAccountRefused with InvalidIban, UnknownCurrency or Duplicate
-     * @throws UnknownLegalEntity also for an unknown firm
+     * @throws NoFirmYet          before the first-run setup
+     * @throws \Exception         the storage's error when the commit fails, for one when a concurrent open took the IBAN or the primary place
      */
-    public function open(string $firmId, string $iban, string $currency, string $label, bool $primary): FirmBankAccount
+    public function open(string $iban, string $currency, string $label, bool $primary): FirmBankAccount
     {
-        return $this->transaction->run(function () use ($firmId, $iban, $currency, $label, $primary): FirmBankAccount {
+        return $this->transaction->run(function () use ($iban, $currency, $label, $primary): FirmBankAccount {
             // Two opens at once would both find no primary account and both take it.
-            $firm = $this->firms->lock($firmId);
+            $firm = $this->firm->lock();
             $number = $this->iban($firm, $iban);
             $currency = $this->currency($currency);
-            if ($this->accounts->ofIban($firm, $number->toString()) instanceof FirmBankAccount) {
+            if ($this->accounts->ofIban($number->toString()) instanceof FirmBankAccount) {
                 throw new BankAccountRefused(BankAccountRefusal::Duplicate);
             }
 
-            $first = !$this->accounts->primaryOf($firm) instanceof FirmBankAccount;
-            $account = FirmBankAccount::open($firm, $number, $currency, $label, $this->accounts->nextPosition($firm));
+            $first = !$this->accounts->primary() instanceof FirmBankAccount;
+            $account = FirmBankAccount::open($number, $currency, $label, $this->accounts->nextPosition());
             $this->accounts->add($account);
             if ($primary || $first) {
                 $this->accounts->makePrimary($account);
@@ -116,7 +117,7 @@ final readonly class ManageFirmBankAccounts
             if (!$wasPrimary) {
                 return;
             }
-            foreach ($this->accounts->of($account->firm()) as $next) {
+            foreach ($this->accounts->all() as $next) {
                 if ($next !== $account) {
                     $this->accounts->makePrimary($next);
 
@@ -127,7 +128,7 @@ final readonly class ManageFirmBankAccounts
     }
 
     /**
-     * Repeatable. A restored account is primary when the firm has no other.
+     * Repeatable. A restored account is primary when there is no other.
      *
      * @throws UnknownFirmBankAccount also for an unknown account
      */
@@ -139,7 +140,7 @@ final readonly class ManageFirmBankAccounts
                 return;
             }
             $account->restore();
-            if (!$this->accounts->primaryOf($account->firm()) instanceof FirmBankAccount) {
+            if (!$this->accounts->primary() instanceof FirmBankAccount) {
                 $this->accounts->makePrimary($account);
             }
         });

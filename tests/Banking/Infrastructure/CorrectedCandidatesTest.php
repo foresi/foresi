@@ -29,7 +29,7 @@ final class CorrectedCandidatesTest extends InvoiceTestCase
         $this->correctionOf($debited, '200.00');
         $this->em->clear();
 
-        $open = self::getContainer()->get(Candidates::class)->open($this->firm->id(), Currency::CZK, '', [], 50);
+        $open = self::getContainer()->get(Candidates::class)->open(Currency::CZK, '', [], 50);
         $left = array_combine(array_map(static fn (Candidate $candidate): string => $candidate->invoiceId, $open), array_map(static fn (Candidate $candidate): int => $candidate->remaining->minor(), $open));
 
         self::assertSame([$partly->id() => 72600, $debited->id() => 145200], $left);
@@ -41,6 +41,6 @@ final class CorrectedCandidatesTest extends InvoiceTestCase
         $this->correctionOf($credited, '-1000.00');
         $this->em->clear();
 
-        self::assertSame([], self::getContainer()->get(Candidates::class)->withSymbol($this->firm->id(), ltrim($credited->variableSymbol(), '0')));
+        self::assertSame([], self::getContainer()->get(Candidates::class)->withSymbol(ltrim($credited->variableSymbol(), '0')));
     }
 }

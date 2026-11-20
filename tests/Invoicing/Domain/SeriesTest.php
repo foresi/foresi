@@ -11,10 +11,6 @@ namespace Foresi\Tests\Invoicing\Domain;
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
-use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\LegalEntity;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
 
@@ -95,30 +91,22 @@ final class SeriesTest extends TestCase
         $this->series()->rename($name);
     }
 
-    public function testItBelongsToItsFirm(): void
+    public function testItHasANameAndAnId(): void
     {
-        $firm = $this->firm();
-        $series = new Series($firm, 'Standard', SeriesFormat::fromString('{N}'), DocumentKind::Invoice);
+        $series = new Series('Standard', SeriesFormat::fromString('{N}'), DocumentKind::Invoice);
 
-        self::assertSame($firm, $series->firm());
-        self::assertSame($firm, $series->auditRoot());
         self::assertSame('Standard', $series->name());
         self::assertNotSame('', $series->id());
     }
 
     private function series(): Series
     {
-        return new Series($this->firm(), 'Standard', SeriesFormat::fromString('{YYYY}{NNNN}'), DocumentKind::Invoice);
-    }
-
-    private function firm(): LegalEntity
-    {
-        return new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
+        return new Series('Standard', SeriesFormat::fromString('{YYYY}{NNNN}'), DocumentKind::Invoice);
     }
 
     public function testASeriesMayStartAtOne(): void
     {
-        $series = new Series(new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, ''), 'Standard', SeriesFormat::fromString('{NNN}'), DocumentKind::Invoice);
+        $series = new Series('Standard', SeriesFormat::fromString('{NNN}'), DocumentKind::Invoice);
 
         $series->startAt(1, 'all');
 

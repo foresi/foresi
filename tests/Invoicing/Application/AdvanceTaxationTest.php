@@ -43,10 +43,9 @@ final class AdvanceTaxationTest extends InvoiceTestCase
 
     public function testANonPayerIssuesNoneWhateverWasChosen(): void
     {
-        $firm = $this->firm(VatStatus::NotRegistered, null, registrationNumber: '12345687');
-        $this->em->flush();
+        $this->reconfigureFirm(VatStatus::NotRegistered, null);
 
-        $taxation = $this->taxationOf($this->advance([$this->line(treatment: TaxTreatment::NotApplicable, kind: null)], ['firmId' => $firm->id(), 'taxOnReceipt' => TaxOnReceiptChoice::Issue]));
+        $taxation = $this->taxationOf($this->advance([$this->line(treatment: TaxTreatment::NotApplicable, kind: null)], ['taxOnReceipt' => TaxOnReceiptChoice::Issue]));
 
         self::assertFalse($taxation->arises);
         self::assertSame(TaxOnReceipt::NON_PAYER, $taxation->reason);

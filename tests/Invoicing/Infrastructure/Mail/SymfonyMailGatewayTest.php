@@ -17,9 +17,6 @@ use Foresi\Invoicing\Infrastructure\Mail\DnsMailHostPolicy;
 use Foresi\Invoicing\Infrastructure\Mail\SodiumMailSecrets;
 use Foresi\Invoicing\Infrastructure\Mail\SymfonyMailGateway;
 use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\LegalEntity;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Mailer\Exception\TransportException;
@@ -103,7 +100,7 @@ final class SymfonyMailGatewayTest extends TestCase
 
     public function testAnIpv6AddressIsBracketedForTheSocket(): void
     {
-        $server = FirmMailServer::define($this->firm(), '2606:2800:21f:cb07::1', 465, MailEncryption::Tls, self::USERNAME, $this->secrets->seal(self::PASSWORD), 'invoices@example.com', 'Example Firm');
+        $server = FirmMailServer::define('2606:2800:21f:cb07::1', 465, MailEncryption::Tls, self::USERNAME, $this->secrets->seal(self::PASSWORD), 'invoices@example.com', 'Example Firm');
 
         $stream = $this->gateway()->transport($server, '2606:2800:21f:cb07::1')->getStream();
 
@@ -114,7 +111,7 @@ final class SymfonyMailGatewayTest extends TestCase
 
     public function testAPasswordTheKeysCannotOpenIsAPermanentSettingsProblem(): void
     {
-        $server = FirmMailServer::define($this->firm(), 'smtp.example.com', 587, MailEncryption::Starttls, self::USERNAME, 'gone:'.base64_encode(str_repeat('x', 48)), 'invoices@example.com', 'Example Firm');
+        $server = FirmMailServer::define('smtp.example.com', 587, MailEncryption::Starttls, self::USERNAME, 'gone:'.base64_encode(str_repeat('x', 48)), 'invoices@example.com', 'Example Firm');
 
         try {
             $this->gateway()->send($this->message(), $server);
@@ -140,7 +137,7 @@ final class SymfonyMailGatewayTest extends TestCase
 
     public function testAPasswordWithDsnCharactersNeedsNoEncoding(): void
     {
-        $server = FirmMailServer::define($this->firm(), 'smtp.example.com', 587, MailEncryption::Starttls, 'user@example.com', $this->secrets->seal('p@ss:w/rd?#%'), 'invoices@example.com', 'Example Firm');
+        $server = FirmMailServer::define('smtp.example.com', 587, MailEncryption::Starttls, 'user@example.com', $this->secrets->seal('p@ss:w/rd?#%'), 'invoices@example.com', 'Example Firm');
 
         self::assertSame('p@ss:w/rd?#%', $this->gateway()->transport($server, self::ADDRESS)->getPassword());
     }
@@ -253,16 +250,11 @@ final class SymfonyMailGatewayTest extends TestCase
 
     private function server(MailEncryption $encryption, int $port): FirmMailServer
     {
-        return FirmMailServer::define($this->firm(), 'smtp.example.com', $port, $encryption, self::USERNAME, $this->secrets->seal(self::PASSWORD), 'invoices@example.com', 'Example Firm');
+        return FirmMailServer::define('smtp.example.com', $port, $encryption, self::USERNAME, $this->secrets->seal(self::PASSWORD), 'invoices@example.com', 'Example Firm');
     }
 
     private function message(): MailMessage
     {
         return new MailMessage('invoices@example.com', 'Example Firm', null, ['customer@example.com'], [], 'Subject', 'Text', '<p>Text</p>', '<1@example.com>');
-    }
-
-    private function firm(): LegalEntity
-    {
-        return new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
     }
 }

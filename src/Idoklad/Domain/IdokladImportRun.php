@@ -9,11 +9,10 @@ declare(strict_types=1);
 namespace Foresi\Idoklad\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Id;
 
 /**
- * One import of a firm's iDoklad snapshot into Foresi, checked or run: when,
+ * One import of the iDoklad snapshot into Foresi, checked or run: when,
  * from which pull, the outcomes counted by stage, the report record by record
  * and why it stopped, if it did, and the options it ran with. A check is kept
  * too, though what it did was rolled back, so its report can be read before the
@@ -21,7 +20,7 @@ use Foresi\Shared\Domain\Id;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'idoklad_import_run')]
-#[ORM\Index(name: 'idx_idoklad_import_run_firm', columns: ['legal_entity_id', 'started_at'])]
+#[ORM\Index(name: 'idx_idoklad_import_run_started', columns: ['started_at'])]
 class IdokladImportRun
 {
     #[ORM\Id]
@@ -54,9 +53,6 @@ class IdokladImportRun
     private ?\DateTimeImmutable $undoneAt = null;
 
     public function __construct(
-        #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
-        #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
-        private readonly LegalEntity $firm,
         #[ORM\Column(type: 'string', length: 8, enumType: ImportMode::class)]
         private readonly ImportMode $mode,
         #[ORM\Column(name: 'started_at', type: 'datetime_immutable')]
@@ -92,11 +88,6 @@ class IdokladImportRun
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function firm(): LegalEntity
-    {
-        return $this->firm;
     }
 
     public function mode(): ImportMode

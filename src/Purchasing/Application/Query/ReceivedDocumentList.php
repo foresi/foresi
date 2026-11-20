@@ -77,14 +77,14 @@ final readonly class ReceivedDocumentList
     }
 
     /**
-     * The id of the firm that takes the documents (ADR 0039), or null before the first-run setup.
+     * Whether the instance has its firm (ADR 0039): none before the first-run setup.
      *
      * @throws PurchasingNotAllowed for anyone but the owners and members of the organisation
      */
-    public function firmId(): ?string
+    public function hasFirm(): bool
     {
         $this->access->denyUnlessStaff();
 
-        return $this->firm->find()?->id();
+        return $this->firm->find() instanceof \Foresi\Party\Domain\LegalEntity;
     }
 }

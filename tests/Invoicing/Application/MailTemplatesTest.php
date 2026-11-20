@@ -27,8 +27,8 @@ final class MailTemplatesTest extends InvoiceTestCase
 
     public function testCzechAndEnglishDefaultsDifferAndHoldNumberAmountDueDate(): void
     {
-        $czech = $this->templates->textFor($this->firm, MailTemplateKind::Invoice, DocumentLanguage::Czech);
-        $english = $this->templates->textFor($this->firm, MailTemplateKind::Invoice, DocumentLanguage::English);
+        $czech = $this->templates->textFor(MailTemplateKind::Invoice, DocumentLanguage::Czech);
+        $english = $this->templates->textFor(MailTemplateKind::Invoice, DocumentLanguage::English);
 
         self::assertNotSame($czech->body, $english->body);
         self::assertNotSame($czech->subject, $english->subject);
@@ -41,38 +41,30 @@ final class MailTemplatesTest extends InvoiceTestCase
             }
         }
         self::assertStringNotContainsString('{link}', $czech->subject);
-        self::assertFalse($this->templates->isCustom($this->firm, MailTemplateKind::Invoice, DocumentLanguage::Czech));
+        self::assertFalse($this->templates->isCustom(MailTemplateKind::Invoice, DocumentLanguage::Czech));
     }
 
-    public function testASavedTemplateWinsForItsFirmAndLanguageOnly(): void
+    public function testASavedTemplateWinsForItsLanguageOnly(): void
     {
-        $other = $this->firm(vatId: 'CZ12345687', registrationNumber: '12345687');
-        $this->em->flush();
-
-        $this->templates->save($this->firm, MailTemplateKind::Invoice, DocumentLanguage::Czech, ' Faktura {number} od nás ', "Dobrý den,\n{link}");
+        $this->templates->save(MailTemplateKind::Invoice, DocumentLanguage::Czech, ' Faktura {number} od nás ', "Dobrý den,\n{link}");
         $this->em->flush();
         $this->em->clear();
 
-        $row = $this->connection()->fetchAssociative('SELECT legal_entity_id, kind, language, subject, body FROM mail_template');
-        self::assertSame(['legal_entity_id' => $this->firm->id(), 'kind' => 'invoice', 'language' => 'cs', 'subject' => 'Faktura {number} od nás', 'body' => "Dobrý den,\n{link}"], $row);
+        $row = $this->connection()->fetchAssociative('SELECT kind, language, subject, body FROM mail_template');
+        self::assertSame(['kind' => 'invoice', 'language' => 'cs', 'subject' => 'Faktura {number} od nás', 'body' => "Dobrý den,\n{link}"], $row);
 
-        $firm = $this->em->find($this->firm::class, $this->firm->id());
-        \assert(null !== $firm);
-        $saved = $this->templates->textFor($firm, MailTemplateKind::Invoice, DocumentLanguage::Czech);
+        $saved = $this->templates->textFor(MailTemplateKind::Invoice, DocumentLanguage::Czech);
         self::assertSame('Faktura {number} od nás', $saved->subject);
         self::assertSame("Dobrý den,\n{link}", $saved->body);
-        self::assertTrue($this->templates->isCustom($firm, MailTemplateKind::Invoice, DocumentLanguage::Czech));
-        self::assertSame('Invoice {number} from {firm_name}', $this->templates->textFor($firm, MailTemplateKind::Invoice, DocumentLanguage::English)->subject);
-        $otherFirm = $this->em->find($other::class, $other->id());
-        \assert(null !== $otherFirm);
-        self::assertNotSame('Faktura {number} od nás', $this->templates->textFor($otherFirm, MailTemplateKind::Invoice, DocumentLanguage::Czech)->subject);
+        self::assertTrue($this->templates->isCustom(MailTemplateKind::Invoice, DocumentLanguage::Czech));
+        self::assertSame('Invoice {number} from {firm_name}', $this->templates->textFor(MailTemplateKind::Invoice, DocumentLanguage::English)->subject);
     }
 
     public function testSavingAgainChangesTheOneRow(): void
     {
-        $this->templates->save($this->firm, MailTemplateKind::Invoice, DocumentLanguage::English, 'First {number}', 'First {link}');
+        $this->templates->save(MailTemplateKind::Invoice, DocumentLanguage::English, 'First {number}', 'First {link}');
         $this->em->flush();
-        $this->templates->save($this->firm, MailTemplateKind::Invoice, DocumentLanguage::English, 'Second {number}', 'Second {link}');
+        $this->templates->save(MailTemplateKind::Invoice, DocumentLanguage::English, 'Second {number}', 'Second {link}');
         $this->em->flush();
         $this->em->clear();
 
@@ -81,24 +73,22 @@ final class MailTemplatesTest extends InvoiceTestCase
 
     public function testResetReturnsTheBuiltInText(): void
     {
-        $builtIn = $this->templates->textFor($this->firm, MailTemplateKind::Invoice, DocumentLanguage::Czech);
-        $this->templates->save($this->firm, MailTemplateKind::Invoice, DocumentLanguage::Czech, 'Own {number}', 'Own body');
+        $builtIn = $this->templates->textFor(MailTemplateKind::Invoice, DocumentLanguage::Czech);
+        $this->templates->save(MailTemplateKind::Invoice, DocumentLanguage::Czech, 'Own {number}', 'Own body');
         $this->em->flush();
 
-        $this->templates->reset($this->firm, MailTemplateKind::Invoice, DocumentLanguage::Czech);
+        $this->templates->reset(MailTemplateKind::Invoice, DocumentLanguage::Czech);
         $this->em->flush();
         $this->em->clear();
 
         self::assertSame([], $this->connection()->fetchFirstColumn('SELECT id FROM mail_template'));
-        $firm = $this->em->find($this->firm::class, $this->firm->id());
-        \assert(null !== $firm);
-        self::assertEquals($builtIn, $this->templates->textFor($firm, MailTemplateKind::Invoice, DocumentLanguage::Czech));
+        self::assertEquals($builtIn, $this->templates->textFor(MailTemplateKind::Invoice, DocumentLanguage::Czech));
     }
 
     public function testAnUnknownVariableIsRefusedAndNothingIsStored(): void
     {
         try {
-            $this->templates->save($this->firm, MailTemplateKind::Invoice, DocumentLanguage::Czech, 'Invoice {numbr}', 'Pay {amount} {link}');
+            $this->templates->save(MailTemplateKind::Invoice, DocumentLanguage::Czech, 'Invoice {numbr}', 'Pay {amount} {link}');
             self::fail('Expected the template to be refused.');
         } catch (UnknownMailVariables $refused) {
             self::assertSame(['numbr'], $refused->inSubject);
@@ -113,14 +103,14 @@ final class MailTemplatesTest extends InvoiceTestCase
     {
         $this->expectException(UnknownMailVariables::class);
 
-        $this->templates->save($this->firm, MailTemplateKind::Invoice, DocumentLanguage::Czech, 'Invoice {link}', 'Body');
+        $this->templates->save(MailTemplateKind::Invoice, DocumentLanguage::Czech, 'Invoice {link}', 'Body');
     }
 
     public function testAnEmptySubjectIsRefused(): void
     {
         $this->expectException(InvalidMailTemplate::class);
 
-        $this->templates->save($this->firm, MailTemplateKind::Invoice, DocumentLanguage::Czech, '  ', 'Body');
+        $this->templates->save(MailTemplateKind::Invoice, DocumentLanguage::Czech, '  ', 'Body');
     }
 
     private function connection(): Connection

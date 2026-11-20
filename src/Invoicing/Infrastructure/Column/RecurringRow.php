@@ -20,7 +20,6 @@ final readonly class RecurringRow
         public string $customer,
         public string $customerHref,
         public string $description,
-        public string $firm,
         public string $interval,
         public string $next,
         public string $delivery,

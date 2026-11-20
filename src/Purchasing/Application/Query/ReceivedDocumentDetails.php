@@ -45,7 +45,7 @@ final readonly class ReceivedDocumentDetails
         $document = $this->documents->find($documentId) ?? throw new UnknownReceivedDocument();
         $fileId = $document->originalAttachmentId();
         $file = null === $fileId ? null : $this->attachments->get($fileId);
-        $correctable = $this->queries->correctable($document->firm()->id(), $document->id(), self::CORRECTABLE);
+        $correctable = $this->queries->correctable($document->id(), self::CORRECTABLE);
         $originalId = $document->originalDocumentId();
         // The original may be older than the documents offered, or in the trash since, so it is read on its own.
         $corrected = null === $originalId ? null : $this->row($originalId);
@@ -60,17 +60,17 @@ final readonly class ReceivedDocumentDetails
     }
 
     /**
-     * The recorded documents of the firm a new credit note may correct.
+     * The recorded documents a new credit note may correct.
      *
      * @return list<ReceivedDocumentRow> newest first
      *
      * @throws PurchasingNotAllowed for anyone but the owners and members of the organisation
      */
-    public function correctable(string $firmId): array
+    public function correctable(): array
     {
         $this->access->denyUnlessStaff();
 
-        return $this->queries->correctable($firmId, null, self::CORRECTABLE);
+        return $this->queries->correctable(null, self::CORRECTABLE);
     }
 
     private function row(string $id): ?ReceivedDocumentRow
@@ -82,8 +82,6 @@ final readonly class ReceivedDocumentDetails
 
         return new ReceivedDocumentRow(
             $document->id(),
-            $document->firm()->id(),
-            $document->firm()->name(),
             $document->state(),
             $document->kind(),
             $document->treatment(),

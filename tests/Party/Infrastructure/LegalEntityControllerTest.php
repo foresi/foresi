@@ -11,7 +11,6 @@ namespace Foresi\Tests\Party\Infrastructure;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Identity\Domain\Role;
 use Foresi\Party\Application\FirmBankAccounts;
-use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\RegistrationNumber;
@@ -165,7 +164,7 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSame(VatStatus::Registered, $firm->vatStatus());
         self::assertSame('Register entry C 1234', $firm->registerEntry());
         self::assertSame('Example City', $firm->address()->city);
-        self::assertSame([], $this->accounts()->of($firm), 'the firm form opens no bank account');
+        self::assertSame([], $this->accounts()->all(), 'the firm form opens no bank account');
     }
 
     public function testANonPayerFirmSavesWithoutAVatNumber(): void
@@ -246,7 +245,7 @@ final class LegalEntityControllerTest extends WebTestCase
     {
         $this->signIn();
         $firm = $this->firm('Example Firm', '12345695');
-        FirmAccounts::add($this->em(), self::getContainer()->get(LegalEntities::class)->get($firm->id()), self::IBAN);
+        FirmAccounts::add($this->em(), self::IBAN);
         $this->em()->flush();
 
         $crawler = $this->client->request('GET', '/settings/firm');
@@ -265,7 +264,7 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSelectorTextContains('main', 'The changes are saved.');
         $stored = $this->storedFirm();
         self::assertSame('Renamed Firm', $stored->name());
-        self::assertSame([self::IBAN_STORED], $this->accounts()->ibansOf($stored), 'saving the firm keeps its accounts');
+        self::assertSame([self::IBAN_STORED], $this->accounts()->ibans(), 'saving the firm keeps its accounts');
         self::assertSame('12345695', $stored->registrationNumber()->value);
     }
 

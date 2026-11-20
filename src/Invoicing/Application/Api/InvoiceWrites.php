@@ -88,7 +88,7 @@ final readonly class InvoiceWrites
         $kind = DocumentKind::from($input->kind);
         $issueDate = $this->date($input->issueDate, 'issueDate');
         try {
-            $draft = $this->defaults->for($firm, $issueDate, $kind);
+            $draft = $this->defaults->for($issueDate, $kind);
         } catch (UnsupportedCountry $unsupported) {
             throw InvoicingRefused::conflict('firm_country_unsupported', 'The country of the firm has no invoicing rules in Foresi.', $unsupported);
         }
@@ -100,7 +100,6 @@ final readonly class InvoiceWrites
         $lines = $this->lines($input->lines, $currency, VatRegime::of($firm->vatStatus()), $customer?->defaults->reverseCharge ?? false);
 
         return $this->issue->issue(new InvoiceInput(
-            $firm->id(),
             $this->id($input->seriesId, 'seriesId'),
             $this->typed($input->number),
             $this->id($input->customerId, 'customerId') ?? '',
@@ -132,7 +131,6 @@ final readonly class InvoiceWrites
         $this->allowed();
         // A tax document on payment is refused by IssueRules, as on the screen.
         $invoice = $this->invoice($input->invoiceId);
-        $firm = $invoice->firm();
         $customerId = null === $input->customerId ? $invoice->customerParty()->id() : ($this->id($input->customerId, 'customerId') ?? '');
         $reverseCharge = $this->customerOf($customerId)?->defaults->reverseCharge ?? false;
         $lines = null === $input->lines
@@ -142,7 +140,6 @@ final readonly class InvoiceWrites
         $follows = null === $input->variableSymbol && $invoice->variableSymbol() === VariableSymbol::fromNumber($invoice->number());
 
         $this->edit->edit($invoice->id(), new InvoiceInput(
-            $firm->id(),
             $this->id($input->seriesId, 'seriesId'),
             $this->typed($input->number),
             $customerId,

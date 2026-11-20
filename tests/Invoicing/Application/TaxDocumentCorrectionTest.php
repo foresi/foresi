@@ -355,7 +355,7 @@ final class TaxDocumentCorrectionTest extends AdvanceTestCase
      */
     public function testTheFormOfAWaitingTaxDocumentOpensOnTheDayOfTheFact(): void
     {
-        FirmAccounts::add($this->em, $this->firm, self::SECOND_IBAN);
+        FirmAccounts::add($this->em, self::SECOND_IBAN);
         $this->em->flush();
         $advance = $this->advance([$this->line('1000.00')], ['bankAccount' => self::SECOND_IBAN]);
         $payment = $this->pay($advance, '1210.00', '2026-11-10');
@@ -413,7 +413,7 @@ final class TaxDocumentCorrectionTest extends AdvanceTestCase
 
     private function refund(Invoice $advance, string $amount, string $on): Payment
     {
-        $payment = $this->record->record(new PaymentRequest($advance->firm()->id(), new \DateTimeImmutable($on), $this->czk($amount), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($advance->id(), $this->czk($amount))], PaymentDirection::Refund));
+        $payment = $this->record->record(new PaymentRequest(new \DateTimeImmutable($on), $this->czk($amount), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($advance->id(), $this->czk($amount))], PaymentDirection::Refund));
         $this->em->clear();
 
         return $payment;

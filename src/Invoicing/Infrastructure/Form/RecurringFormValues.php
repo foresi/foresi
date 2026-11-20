@@ -21,7 +21,6 @@ use Foresi\Invoicing\Domain\RecurringDelivery;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\RecurringInvoiceLine;
 use Foresi\Invoicing\Domain\TaxPointRule;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
 use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
 
@@ -48,9 +47,9 @@ final readonly class RecurringFormValues
      *
      * @throws UnsupportedCountry
      */
-    public function ofNew(LegalEntity $firm, \DateTimeImmutable $today): array
+    public function ofNew(\DateTimeImmutable $today): array
     {
-        $draft = $this->defaults->for($firm);
+        $draft = $this->defaults->for();
 
         return [...$this->values->ofDraft($draft), ...$this->schedule($today, $this->dueDays($draft)), 'name' => '', 'copyOf' => ''];
     }
@@ -66,7 +65,7 @@ final readonly class RecurringFormValues
     public function ofInvoice(Invoice $source, \DateTimeImmutable $today): array
     {
         $draft = $this->copies->valuesFrom($source);
-        $values = $this->values->ofCopy($draft, $source->firm(), $source);
+        $values = $this->values->ofCopy($draft, $source);
         $days = (int) $source->issueDate()->diff($source->dueDate())->format('%r%a');
 
         return [...$values, ...$this->schedule($today, max(0, min(RecurringInvoice::MAX_DUE_DAYS, $days))), 'orderNumber' => $source->orderNumber(), 'name' => $this->nameFrom($values), 'copyOf' => $source->id()];
@@ -77,11 +76,10 @@ final readonly class RecurringFormValues
      */
     public function ofTemplate(RecurringInvoice $template, VatRegime $regime): array
     {
-        $firm = $template->firm();
         $recurrence = $template->recurrence();
         $first = $recurrence->firstIssueOn();
         $lines = array_map(static fn (RecurringInvoiceLine $line): LineInput => new LineInput($line->text(), $line->quantity(), $line->unit(), $line->price(), $line->priceType(), $line->treatment(), $line->rateKind(), $line->supplyCode(), $line->discount()), $this->templates->lines($template));
-        $draft = new InvoiceDraftValues($firm->id(), $regime, $template->currency(), $template->series()?->id(), '', $first, $first, $first, $template->paymentMethod(), $template->bankAccount(), '', $template->constantSymbol(), $template->textBefore(), $template->textAfter(), $template->language(), $lines, description: $template->description());
+        $draft = new InvoiceDraftValues($regime, $template->currency(), $template->series()?->id(), '', $first, $first, $first, $template->paymentMethod(), $template->bankAccount(), '', $template->constantSymbol(), $template->textBefore(), $template->textAfter(), $template->language(), $lines, description: $template->description());
         $values = $this->values->withCustomerShown($this->values->ofDraft($draft), $this->picker->option($template->customer()));
 
         return [

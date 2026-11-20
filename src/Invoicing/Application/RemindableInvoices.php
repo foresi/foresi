@@ -9,10 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Application;
 
 use Foresi\Invoicing\Domain\FirmReminders;
-use Foresi\Party\Domain\LegalEntity;
 
 /**
- * The invoices of a firm that are due for a reminder on a day, by every rule but
+ * The invoices that are due for a reminder on a day, by every rule but
  * the open amount, which the caller reads from InvoiceBalances and checks with
  * FirmReminders::isWorthReminding(). It already leaves out what it can tell owes
  * nothing or less than the minimum, so settled invoices do not crowd the limit;
@@ -32,5 +31,5 @@ interface RemindableInvoices
      *
      * @return list<RemindableInvoice> oldest due date first, then by id
      */
-    public function due(LegalEntity $firm, FirmReminders $settings, \DateTimeImmutable $today, int $limit, ?string $afterId = null): array;
+    public function due(FirmReminders $settings, \DateTimeImmutable $today, int $limit, ?string $afterId = null): array;
 }

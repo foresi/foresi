@@ -11,11 +11,11 @@ namespace Foresi\Invoicing\Application;
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Contract\ElectronicFile;
 use Foresi\Invoicing\Contract\IssuedDocument;
-use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Application\InstanceFirm;
 use Psr\Log\LoggerInterface;
 
 /**
- * The documents of one firm and month in one ZIP, for the accountant: a folder per
+ * The documents of one month in one ZIP, for the accountant: a folder per
  * kind, each document as a PDF with its electronic file beside it, and a list of
  * them with a VAT recap. A tax document falls in the month of its tax point, an
  * advance invoice, which has none, in the month of its issue. The trash stays out.
@@ -42,6 +42,7 @@ final readonly class InvoiceBundle
         private AccountantPackFormat $format,
         private DocumentExports $exports,
         private LoggerInterface $logger,
+        private InstanceFirm $instanceFirm,
     ) {
     }
 
@@ -51,19 +52,19 @@ final readonly class InvoiceBundle
      *
      * @return array<string, int> how many documents of each kind the pack would hold, every kind named
      */
-    public function counts(LegalEntity $firm, \DateTimeImmutable $month, bool $pending): array
+    public function counts(\DateTimeImmutable $month, bool $pending): array
     {
         $counts = array_fill_keys(array_map(static fn (DocumentKind $kind): string => $kind->value, DocumentKind::cases()), 0);
-        foreach ($this->selection($firm, $month, $pending) as $kind) {
+        foreach ($this->selection($month, $pending) as $kind) {
             ++$counts[$kind->value];
         }
 
         return $counts;
     }
 
-    public function fileName(LegalEntity $firm, \DateTimeImmutable $month): string
+    public function fileName(\DateTimeImmutable $month): string
     {
-        return $this->format->packName($firm, $month);
+        return $this->format->packName($this->instanceFirm->get()->name(), $month);
     }
 
     /**
@@ -78,9 +79,9 @@ final readonly class InvoiceBundle
      * @throws BundleIncomplete  when a document cannot be drawn; nothing usable is left at the path and nothing is marked
      * @throws \RuntimeException when the archive cannot be written
      */
-    public function writeTo(string $path, LegalEntity $firm, \DateTimeImmutable $month, bool $pending, string $locale): int
+    public function writeTo(string $path, \DateTimeImmutable $month, bool $pending, string $locale): int
     {
-        $ids = array_keys($this->selection($firm, $month, $pending));
+        $ids = array_keys($this->selection($month, $pending));
         if ([] === $ids) {
             return 0;
         }
@@ -131,7 +132,7 @@ final readonly class InvoiceBundle
             }
             $list = $parts.'/list.xlsx';
             $files[] = $list;
-            $home = $this->countries->for($firm->address()->countryCode)->homeCurrency();
+            $home = $this->countries->for($this->instanceFirm->get()->address()->countryCode)->homeCurrency();
             $this->format->writeList($list, $listed, VatRecap::of(array_map(static fn (AccountantDocument $listed): IssuedDocument => $listed->document, $listed), $home), $home, $locale);
             if (!$zip->addFile($list, $this->format->listName($locale))) {
                 throw new \RuntimeException('The archive cannot take the list.');
@@ -161,11 +162,11 @@ final readonly class InvoiceBundle
     /**
      * @return array<string, DocumentKind>
      */
-    private function selection(LegalEntity $firm, \DateTimeImmutable $month, bool $pending): array
+    private function selection(\DateTimeImmutable $month, bool $pending): array
     {
         $first = $month->modify('first day of this month');
 
-        return $this->store->forAccountant($firm, $first, $first->modify('last day of this month'), $pending);
+        return $this->store->forAccountant($first, $first->modify('last day of this month'), $pending);
     }
 
     /**
@@ -187,7 +188,7 @@ final readonly class InvoiceBundle
      */
     private function unique(string $name, string $number, array &$taken): string
     {
-        // A firm numbers each document once, so its number always tells two apart.
+        // Each document is numbered once, so its number always tells two apart.
         $candidate = \in_array($name, $taken, true) ? $name.'_'.preg_replace('/[^A-Za-z0-9-]+/', '-', $number) : $name;
         $taken[] = $candidate;
 

@@ -32,16 +32,11 @@ final readonly class DoctrineCashFlowStore implements CashFlowStore
         return Id::isValid($id) ? $this->entityManager->find(PlannedItem::class, $id) : null;
     }
 
-    public function plannedItemsOf(string $firmId): array
+    public function plannedItems(): array
     {
-        if (!Id::isValid($firmId)) {
-            return [];
-        }
-
         /* @var list<PlannedItem> */
         return $this->entityManager->createQueryBuilder()
             ->select('i')->from(PlannedItem::class, 'i')
-            ->where('IDENTITY(i.firm) = :firm')->setParameter('firm', $firmId)
             ->orderBy('i.createdAt')->addOrderBy('i.id')
             ->getQuery()->getResult();
     }
@@ -88,16 +83,9 @@ final readonly class DoctrineCashFlowStore implements CashFlowStore
         return $dates;
     }
 
-    public function minimumBalance(string $firmId): ?MinimumBalance
+    public function minimumBalance(): ?MinimumBalance
     {
-        if (!Id::isValid($firmId)) {
-            return null;
-        }
-
-        $minimum = $this->entityManager->createQueryBuilder()
-            ->select('m')->from(MinimumBalance::class, 'm')
-            ->where('IDENTITY(m.firm) = :firm')->setParameter('firm', $firmId)
-            ->getQuery()->getOneOrNullResult();
+        $minimum = $this->entityManager->getRepository(MinimumBalance::class)->findOneBy([]);
 
         return $minimum instanceof MinimumBalance ? $minimum : null;
     }

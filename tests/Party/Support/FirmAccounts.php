@@ -11,20 +11,19 @@ namespace Foresi\Tests\Party\Support;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\Iban;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Currency;
 
 /**
- * Gives a firm of a test a bank account without the application path: the
- * firm's first account is the primary one, later ones come after it. It
- * persists and leaves the flush to the test.
+ * Gives the firm of a test a bank account without the application path: the
+ * first account is the primary one, later ones come after it. It persists and
+ * leaves the flush to the test.
  */
 final class FirmAccounts
 {
-    public static function add(EntityManagerInterface $em, LegalEntity $firm, string $iban, Currency $currency = Currency::CZK): FirmBankAccount
+    public static function add(EntityManagerInterface $em, string $iban, Currency $currency = Currency::CZK): FirmBankAccount
     {
-        $existing = self::of($em, $firm);
-        $account = FirmBankAccount::open($firm, Iban::fromString($iban), $currency, '', \count($existing));
+        $existing = self::all($em);
+        $account = FirmBankAccount::open(Iban::fromString($iban), $currency, '', \count($existing));
         if ([] === $existing) {
             $account->markPrimary(true);
         }
@@ -34,11 +33,11 @@ final class FirmAccounts
     }
 
     /**
-     * Archives every account of the firm, as an owner who dropped them would. It leaves the flush to the test.
+     * Archives every account, as an owner who dropped them would. It leaves the flush to the test.
      */
-    public static function archiveAll(EntityManagerInterface $em, LegalEntity $firm): void
+    public static function archiveAll(EntityManagerInterface $em): void
     {
-        foreach (self::of($em, $firm) as $account) {
+        foreach (self::all($em) as $account) {
             $account->archive(new \DateTimeImmutable('2026-11-02 12:00:00'));
         }
     }
@@ -48,16 +47,13 @@ final class FirmAccounts
      *
      * @return list<FirmBankAccount>
      */
-    private static function of(EntityManagerInterface $em, LegalEntity $firm): array
+    private static function all(EntityManagerInterface $em): array
     {
         $uow = $em->getUnitOfWork();
-        $accounts = array_values(array_filter($uow->getScheduledEntityInsertions(), static fn (object $entity): bool => $entity instanceof FirmBankAccount && $entity->firm() === $firm));
-        if ($em->contains($firm) && !$uow->isScheduledForInsert($firm)) {
-            /** @var list<FirmBankAccount> $stored */
-            $stored = $em->createQuery('SELECT a FROM '.FirmBankAccount::class.' a WHERE a.firm = :firm')->setParameter('firm', $firm)->getResult();
-            $accounts = [...$accounts, ...$stored];
-        }
+        $accounts = array_values(array_filter($uow->getScheduledEntityInsertions(), static fn (object $entity): bool => $entity instanceof FirmBankAccount));
+        /** @var list<FirmBankAccount> $stored */
+        $stored = $em->createQuery('SELECT a FROM '.FirmBankAccount::class.' a')->getResult();
 
-        return $accounts;
+        return [...$accounts, ...$stored];
     }
 }

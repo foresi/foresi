@@ -30,46 +30,46 @@ final class RateLimitedSendsTest extends KernelTestCase
     public function testAPersonHasThirtyAMinute(): void
     {
         for ($i = 0; $i < 30; ++$i) {
-            self::assertTrue($this->limits->take('user-1', 'firm-'.$i));
+            self::assertTrue($this->limits->take('user-1'));
         }
 
-        self::assertFalse($this->limits->take('user-1', 'firm-x'));
-        self::assertTrue($this->limits->take('user-2', 'firm-x'), 'another person has a budget of their own');
+        self::assertFalse($this->limits->take('user-1'));
+        self::assertTrue($this->limits->take('user-2'), 'another person has a budget of their own');
     }
 
-    public function testSystemSendsOfOneFirmAreNotHeldByTheMinute(): void
+    public function testSystemSendsAreNotHeldByTheMinute(): void
     {
         for ($i = 0; $i < 100; ++$i) {
-            self::assertTrue($this->limits->take(null, 'firm-a'), 'send '.($i + 1));
+            self::assertTrue($this->limits->take(null), 'send '.($i + 1));
         }
     }
 
-    public function testSystemSendsOfOtherFirmsDoNotShareABudget(): void
+    public function testASpentDayStopsEveryone(): void
     {
-        $firm = self::getContainer()->get('test.invoice_send_firm_limiter');
-        $firm->create('firm-a')->consume(500);
+        $day = self::getContainer()->get('test.invoice_send_firm_limiter');
+        $day->create('instance')->consume(500);
 
-        self::assertFalse($this->limits->take(null, 'firm-a'), 'its own day is spent');
-        self::assertTrue($this->limits->take(null, 'firm-b'), 'another firm still sends');
+        self::assertFalse($this->limits->take(null), 'the day is spent');
+        self::assertFalse($this->limits->take('user-1'), 'the day is spent for a person too');
     }
 
-    public function testTheSystemLeavesAFifthOfTheFirmsDayToPeople(): void
+    public function testTheSystemLeavesAFifthOfTheDayToPeople(): void
     {
-        $firm = self::getContainer()->get('test.invoice_send_firm_limiter');
-        $firm->create('firm-a')->consume(399);
+        $day = self::getContainer()->get('test.invoice_send_firm_limiter');
+        $day->create('instance')->consume(399);
 
-        self::assertTrue($this->limits->take(null, 'firm-a'), 'the 400th of 500 is still the system\'s');
-        self::assertFalse($this->limits->take(null, 'firm-a'), 'the last 100 are left to people');
-        self::assertSame(100, $firm->create('firm-a')->consume(0)->getRemainingTokens(), 'a refused system send spends nothing');
-        self::assertTrue($this->limits->take('user-1', 'firm-a'), 'a person still sends');
+        self::assertTrue($this->limits->take(null), 'the 400th of 500 is still the system\'s');
+        self::assertFalse($this->limits->take(null), 'the last 100 are left to people');
+        self::assertSame(100, $day->create('instance')->consume(0)->getRemainingTokens(), 'a refused system send spends nothing');
+        self::assertTrue($this->limits->take('user-1'), 'a person still sends');
     }
 
     public function testASystemSendDoesNotSpendAPersonsBudget(): void
     {
         for ($i = 0; $i < 30; ++$i) {
-            $this->limits->take(null, 'firm-a');
+            $this->limits->take(null);
         }
 
-        self::assertTrue($this->limits->take('user-1', 'firm-a'));
+        self::assertTrue($this->limits->take('user-1'));
     }
 }

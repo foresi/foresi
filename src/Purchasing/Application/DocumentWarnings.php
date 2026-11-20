@@ -66,7 +66,7 @@ final readonly class DocumentWarnings
         $id = $document->originalAttachmentId();
         $original = null === $id ? null : $this->attachments->get($id);
 
-        return $original instanceof Attachment ? $this->duplicates->withFile($document->firm(), $original->sha256(), $document->id()) : [];
+        return $original instanceof Attachment ? $this->duplicates->withFile($original->sha256(), $document->id()) : [];
     }
 
     /**
@@ -77,7 +77,7 @@ final readonly class DocumentWarnings
         $supplier = $document->supplierParty();
         $number = $document->supplierNumber();
 
-        return $supplier instanceof Party && '' !== $number ? $this->duplicates->withSupplierNumber($document->firm(), $supplier, $number, $document->id()) : [];
+        return $supplier instanceof Party && '' !== $number ? $this->duplicates->withSupplierNumber($supplier, $number, $document->id()) : [];
     }
 
     private function deadline(ReceivedDocument $document): ?ReceivedDocumentWarning

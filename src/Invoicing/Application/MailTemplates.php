@@ -11,10 +11,9 @@ namespace Foresi\Invoicing\Application;
 use Foresi\Invoicing\Domain\InvalidMailTemplate;
 use Foresi\Invoicing\Domain\MailTemplateKind;
 use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\LegalEntity;
 
 /**
- * The texts a firm sends its documents with: its own for a kind and language, or
+ * The texts the firm sends its documents with: its own for a kind and language, or
  * the built-in one.
  */
 interface MailTemplates
@@ -22,26 +21,26 @@ interface MailTemplates
     /**
      * The template with its tokens, not filled in.
      */
-    public function textFor(LegalEntity $firm, MailTemplateKind $kind, DocumentLanguage $language): RenderedMail;
+    public function textFor(MailTemplateKind $kind, DocumentLanguage $language): RenderedMail;
 
     /**
-     * The built-in text of a kind and language, whatever a firm stored.
+     * The built-in text of a kind and language, whatever the firm stored.
      */
     public function builtIn(MailTemplateKind $kind, DocumentLanguage $language): RenderedMail;
 
     /**
      * Whether the firm has its own text, rather than the built-in one.
      */
-    public function isCustom(LegalEntity $firm, MailTemplateKind $kind, DocumentLanguage $language): bool;
+    public function isCustom(MailTemplateKind $kind, DocumentLanguage $language): bool;
 
     /**
      * @throws UnknownMailVariables when a token is not a variable, or the subject holds the link
      * @throws InvalidMailTemplate  when the subject or body is empty, too long, or the subject breaks a line
      */
-    public function save(LegalEntity $firm, MailTemplateKind $kind, DocumentLanguage $language, string $subject, string $body): void;
+    public function save(MailTemplateKind $kind, DocumentLanguage $language, string $subject, string $body): void;
 
     /**
      * Back to the built-in text.
      */
-    public function reset(LegalEntity $firm, MailTemplateKind $kind, DocumentLanguage $language): void;
+    public function reset(MailTemplateKind $kind, DocumentLanguage $language): void;
 }

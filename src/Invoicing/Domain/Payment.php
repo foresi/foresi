@@ -10,14 +10,13 @@ namespace Foresi\Invoicing\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Money;
 
 /**
- * Money a firm received, once, or sent back as a refund. Which invoices it pays, or
+ * Money the firm received, once, or sent back as a refund. Which invoices it pays, or
  * refunds, is told by its allocations, whose amounts add up to the amount of the
  * payment. The amount is positive either way: the direction carries the sign. A payment is never deleted:
  * cancelling it removes its allocations and keeps the row, with who and when, so a
@@ -33,11 +32,10 @@ use Foresi\Shared\Domain\Money;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'payment')]
-#[ORM\Index(name: 'idx_payment_firm_received', columns: ['legal_entity_id', 'received_on'])]
+#[ORM\Index(name: 'idx_payment_received', columns: ['received_on'])]
 #[ORM\Index(name: 'idx_payment_bank_movement', columns: ['bank_movement_id'])]
-#[ORM\Index(name: 'idx_payment_firm', columns: ['legal_entity_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_payment_active_movement', columns: ['live_bank_movement_id'])]
-#[ORM\UniqueConstraint(name: 'uniq_payment_import', columns: ['legal_entity_id', 'import_source', 'import_external_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_payment_import', columns: ['import_source', 'import_external_id'])]
 #[ORM\Index(name: 'idx_payment_import_run', columns: ['import_run_id'])]
 class Payment implements Audited
 {
@@ -80,9 +78,6 @@ class Payment implements Audited
      *                                   named for a payment that did not come from one, or missing for one that did
      */
     public function __construct(
-        #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
-        #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
-        private readonly LegalEntity $firm,
         #[ORM\Column(name: 'received_on', type: 'date_immutable')]
         private readonly \DateTimeImmutable $receivedOn,
         Money $amount,
@@ -173,11 +168,6 @@ class Payment implements Audited
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function firm(): LegalEntity
-    {
-        return $this->firm;
     }
 
     public function receivedOn(): \DateTimeImmutable

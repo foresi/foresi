@@ -10,8 +10,8 @@ namespace Foresi\Purchasing\Application;
 
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\StaffCheck;
-use Foresi\Party\Application\LegalEntities;
-use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Party\Application\InstanceFirm;
+use Foresi\Party\Application\NoFirmYet;
 use Foresi\Party\Domain\LegalEntity;
 
 /**
@@ -21,7 +21,7 @@ use Foresi\Party\Domain\LegalEntity;
  */
 final readonly class PurchasingAccess
 {
-    public function __construct(private StaffCheck $staff, private AuditActor $actor, private LegalEntities $firms)
+    public function __construct(private StaffCheck $staff, private AuditActor $actor, private InstanceFirm $firm)
     {
     }
 
@@ -41,15 +41,15 @@ final readonly class PurchasingAccess
     }
 
     /**
-     * The firm, loaded again. Call it inside the unit of work, as a failed one
-     * detaches what was loaded before it.
+     * The one firm of the instance (ADR 0039), its row locked until the unit of
+     * work ends when $lock is set: the first write of a unit that numbers a
+     * document, as EvidenceNumbers asks. Call it inside the unit of work, as a
+     * failed one detaches what was loaded before it.
      *
-     * @throws UnknownLegalEntity
+     * @throws NoFirmYet before the first-run setup
      */
-    public function firm(LegalEntity|string $firm, bool $lock = false): LegalEntity
+    public function firm(bool $lock = false): LegalEntity
     {
-        $id = $firm instanceof LegalEntity ? $firm->id() : $firm;
-
-        return $lock ? $this->firms->lock($id) : $this->firms->get($id);
+        return $lock ? $this->firm->lock() : $this->firm->get();
     }
 }

@@ -11,8 +11,8 @@ namespace Foresi\Invoicing\Application;
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\UserRepository;
 use Foresi\Invoicing\Domain\MailTemplateKind;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Psr\Clock\ClockInterface;
@@ -40,6 +40,7 @@ final readonly class MailSamples
         private UserRepository $users,
         private AuditActor $actor,
         private ClockInterface $clock,
+        private InstanceFirm $instanceFirm,
     ) {
     }
 
@@ -49,8 +50,9 @@ final readonly class MailSamples
      *
      * @return array<string, string> every variable of the kind except the link
      */
-    public function valuesFor(LegalEntity $firm, MailTemplateKind $kind, DocumentLanguage $language, Currency $currency, string $customer, string $documentType): array
+    public function valuesFor(MailTemplateKind $kind, DocumentLanguage $language, Currency $currency, string $customer, string $documentType): array
     {
+        $firm = $this->instanceFirm->get();
         $today = \DateTimeImmutable::createFromInterface($this->clock->now());
         $userId = $this->actor->userId();
         $user = null === $userId ? null : $this->users->findById($userId);
@@ -70,7 +72,7 @@ final readonly class MailSamples
             'amount_net' => $money(self::NET),
             'firm_name' => $firm->name(),
             'iban' => self::IBAN,
-            'firm_email' => trim($this->settings->for($firm)->contactEmail()),
+            'firm_email' => trim($this->settings->get()->contactEmail()),
             'firm_phone' => '',
             'registration_number' => $firm->registrationNumber()->toString(),
             'vat_id' => $firm->vatId()?->toString() ?? '',

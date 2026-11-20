@@ -61,7 +61,6 @@ final class InvoiceListTest extends InvoicingReadTestCase
 
         self::assertSame($invoice->id(), $item->row->id);
         self::assertSame($invoice->number(), $item->row->number);
-        self::assertSame($this->firm->id(), $item->firmId);
         self::assertSame('Example Firm s.r.o.', $item->row->firmName);
         self::assertSame($this->customer->id(), $item->customerId);
         self::assertSame('Example Customer a.s.', $item->row->customerName);
@@ -110,19 +109,6 @@ final class InvoiceListTest extends InvoicingReadTestCase
         self::assertSame([$credit->id()], $this->ids($this->slice(new InvoiceSliceFilter(kind: DocumentKind::CorrectionDocument))));
         self::assertSame([$invoice->id()], $this->ids($this->slice(new InvoiceSliceFilter(kind: DocumentKind::Invoice))));
         self::assertSame([], $this->ids($this->slice(new InvoiceSliceFilter(kind: DocumentKind::Advance))));
-    }
-
-    public function testTheFirmNarrowsTheSlice(): void
-    {
-        $mine = $this->issued();
-        $other = $this->firm(registrationNumber: '87654321');
-        $otherSeries = $this->seriesOf($other);
-        $this->em->flush();
-        $theirs = $this->issue->issue($this->input(null, ['firmId' => $other->id(), 'seriesId' => $otherSeries->id()]));
-
-        self::assertSame([$mine->id()], $this->ids($this->slice(new InvoiceSliceFilter(firmId: $this->firm->id()))));
-        self::assertSame([$theirs->id()], $this->ids($this->slice(new InvoiceSliceFilter(firmId: $other->id()))));
-        self::assertSame([$theirs->id(), $mine->id()], $this->ids($this->slice(new InvoiceSliceFilter())));
     }
 
     public function testTheCustomerNarrowsTheSlice(): void
@@ -209,8 +195,8 @@ final class InvoiceListTest extends InvoicingReadTestCase
             $becomes();
             foreach ([
                 static fn (): InvoiceSlice => $list->slice(new InvoiceSliceFilter(), null, 25),
-                static fn (): InvoicePage => $list->page(new InvoiceFilter(null, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1)),
-                static fn (): InvoiceSums => $list->sums(new InvoiceFilter(null, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1)),
+                static fn (): InvoicePage => $list->page(new InvoiceFilter(InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1)),
+                static fn (): InvoiceSums => $list->sums(new InvoiceFilter(InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1)),
                 static fn (): int => $list->count(new InvoiceSliceFilter()),
             ] as $read) {
                 try {
@@ -226,7 +212,7 @@ final class InvoiceListTest extends InvoicingReadTestCase
     {
         $invoice = $this->issued();
         $this->signIn($this->member);
-        $filter = new InvoiceFilter(null, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1);
+        $filter = new InvoiceFilter(InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1);
 
         $page = $this->list()->page($filter);
         self::assertSame([$invoice->id()], array_map(static fn (InvoiceRow $row): string => $row->id, $page->rows));
@@ -249,7 +235,6 @@ final class InvoiceListTest extends InvoicingReadTestCase
             fn (): InvoiceSlice => $this->slice(new InvoiceSliceFilter(), strtoupper('01963c5e-0000-7000-8000-00000000000a')),
             static fn (): InvoiceSliceFilter => new InvoiceSliceFilter(state: 'refunded'),
             static fn (): InvoiceSliceFilter => new InvoiceSliceFilter(state: 'trash'),
-            static fn (): InvoiceSliceFilter => new InvoiceSliceFilter(firmId: 'not-an-id'),
             static fn (): InvoiceSliceFilter => new InvoiceSliceFilter(customerId: 'not-an-id'),
         ] as $ask) {
             try {
@@ -300,6 +285,6 @@ final class InvoiceListTest extends InvoicingReadTestCase
     private function pay(Invoice $invoice, string $amount): void
     {
         $money = Money::of($amount, Currency::CZK);
-        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-20'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $money)]));
+        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-20'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $money)]));
     }
 }

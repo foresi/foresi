@@ -16,7 +16,6 @@ use Foresi\Invoicing\Application\UndoBlocker;
 use Foresi\Invoicing\Application\UndoImportedDocuments;
 use Foresi\Invoicing\Application\UnknownRecurringInvoice;
 use Foresi\Invoicing\Domain\RecurringInvoice;
-use Foresi\Party\Application\LegalEntities;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -36,7 +35,6 @@ final readonly class UndoIdokladImport
         private IdokladLinks $links,
         private IdokladImportRuns $runs,
         private RecurringInvoices $templates,
-        private LegalEntities $firms,
         private ClockInterface $clock,
     ) {
     }
@@ -64,11 +62,10 @@ final readonly class UndoIdokladImport
             throw new \DomainException('Only a run of the last 30 days that brought something and was not undone can be undone.');
         }
         $runId = $run->id();
-        $firmId = $run->firm()->id();
 
         // One transaction: a template that fails keeps the documents and payments too.
-        return $this->documents->undo($runId, function () use ($runId, $firmId): array {
-            foreach ($this->links->ofRun($this->firms->get($firmId), $runId) as $link) {
+        return $this->documents->undo($runId, function () use ($runId): array {
+            foreach ($this->links->ofRun($runId) as $link) {
                 if (\in_array($link->resource(), self::KEPT, true)) {
                     continue;
                 }

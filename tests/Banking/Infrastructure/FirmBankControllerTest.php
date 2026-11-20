@@ -90,7 +90,7 @@ final class FirmBankControllerTest extends WebTestCase
 
     public function testAddingAnAccountInTheDialogStoresIt(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
         $form = $this->dialogForm($this->url().'/accounts/new');
         self::assertSame('1', $form['primary'] ?? null, 'The first account is offered as the primary one.');
 
@@ -98,7 +98,7 @@ final class FirmBankControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSame(['location' => $this->url()], json_decode(Scalars::text($this->client->getResponse()->getContent()), true));
-        self::assertSame([['iban' => self::IBAN, 'currency' => 'EUR', 'label' => 'Operating', 'primary_flag' => 1, 'legal_entity_id' => $firm->id()]], $this->storedAccounts());
+        self::assertSame([['iban' => self::IBAN, 'currency' => 'EUR', 'label' => 'Operating', 'primary_flag' => 1]], $this->storedAccounts());
         $crawler = $this->client->request('GET', $this->url());
         self::assertStringContainsString('The account Operating is added.', $crawler->filter('main')->text());
         self::assertStringContainsString('CZ65 0800 0000 1920 0014 5399', $crawler->filter('main table')->text());
@@ -132,8 +132,8 @@ final class FirmBankControllerTest extends WebTestCase
 
     public function testTheSameIbanTwiceIsRefusedOnTheField(): void
     {
-        $firm = $this->signedInFirm();
-        $this->withAccount($firm);
+        $this->signedInFirm();
+        $this->withAccount();
         $form = $this->dialogForm($this->url().'/accounts/new');
 
         $crawler = $this->dialogPost($this->url().'/accounts/new', ['number' => self::IBAN, 'currency' => 'CZK'] + $form);
@@ -145,8 +145,8 @@ final class FirmBankControllerTest extends WebTestCase
 
     public function testEditingCannotChangeTheIban(): void
     {
-        $firm = $this->signedInFirm();
-        $account = $this->withAccount($firm);
+        $this->signedInFirm();
+        $account = $this->withAccount();
         $url = $this->url().'/accounts/'.$account.'/edit';
         $crawler = $this->client->request('GET', $url, server: ['HTTP_'.str_replace('-', '_', strtoupper(DialogRequest::HEADER)) => '1']);
         self::assertCount(0, $crawler->filter('input[name="number"]'));
@@ -155,14 +155,14 @@ final class FirmBankControllerTest extends WebTestCase
         $this->dialogPost($url, ['number' => self::OTHER_IBAN, 'currency' => 'USD', 'label' => 'Renamed'] + $crawler->filter('#bank-account-form')->form()->getPhpValues());
 
         self::assertResponseIsSuccessful();
-        self::assertSame([['iban' => self::IBAN, 'currency' => 'USD', 'label' => 'Renamed', 'primary_flag' => 1, 'legal_entity_id' => $firm->id()]], $this->storedAccounts());
+        self::assertSame([['iban' => self::IBAN, 'currency' => 'USD', 'label' => 'Renamed', 'primary_flag' => 1]], $this->storedAccounts());
     }
 
     public function testMakingPrimaryArchivingAndRestoring(): void
     {
-        $firm = $this->signedInFirm();
-        $first = $this->withAccount($firm);
-        $second = $this->withAccount($firm, self::OTHER_IBAN);
+        $this->signedInFirm();
+        $first = $this->withAccount();
+        $second = $this->withAccount(self::OTHER_IBAN);
         $token = $this->actionToken();
 
         $this->client->request('POST', $this->url().'/accounts/'.$second.'/primary', ['_token' => $token]);
@@ -184,8 +184,8 @@ final class FirmBankControllerTest extends WebTestCase
 
     public function testGeneratingStoresOnlyHashAndSealedToken(): void
     {
-        $firm = $this->signedInFirm();
-        $account = $this->withAccount($firm);
+        $this->signedInFirm();
+        $account = $this->withAccount();
 
         $this->generate($account);
 
@@ -202,8 +202,8 @@ final class FirmBankControllerTest extends WebTestCase
 
     public function testTheShownAddressMatchesTheTemplateAndResolves(): void
     {
-        $firm = $this->signedInFirm();
-        $account = $this->withAccount($firm);
+        $this->signedInFirm();
+        $account = $this->withAccount();
 
         $this->generate($account);
         $address = $this->shownAddress($account);
@@ -211,7 +211,7 @@ final class FirmBankControllerTest extends WebTestCase
         self::assertMatchesRegularExpression(self::ADDRESS, $address);
         $route = $this->directory()->route(InboundToken::hash(Scalars::text($this->addresses()->tokenIn($address))));
         self::assertNotNull($route);
-        self::assertSame([$account, $firm->id()], [$route->accountId, $route->firmId]);
+        self::assertSame($account, $route->accountId);
         // The dialog of the account shows the same address with the setup steps.
         $crawler = $this->client->request('GET', $this->url().'/accounts/'.$account.'/address', server: ['HTTP_'.str_replace('-', '_', strtoupper(DialogRequest::HEADER)) => '1']);
         self::assertSame($address, $crawler->filter('dialog#dialog-page #address')->attr('value'));
@@ -222,8 +222,8 @@ final class FirmBankControllerTest extends WebTestCase
 
     public function testPagesShowingTheAddressAreNeverStored(): void
     {
-        $firm = $this->signedInFirm();
-        $account = $this->withAccount($firm);
+        $this->signedInFirm();
+        $account = $this->withAccount();
         $this->generate($account);
         $dialog = ['HTTP_'.str_replace('-', '_', strtoupper(DialogRequest::HEADER)) => '1'];
 
@@ -241,8 +241,8 @@ final class FirmBankControllerTest extends WebTestCase
      */
     public function testThePairingTabShowsWhoVouchedForTheLastMessage(): void
     {
-        $firm = $this->signedInFirm();
-        $account = $this->withAccount($firm);
+        $this->signedInFirm();
+        $account = $this->withAccount();
         $this->generate($account);
         $address = $this->shownAddress($account);
         self::assertCount(0, $this->client->request('GET', $this->url('pairing'))->filter('[data-trust-check]'), 'Nothing came yet.');
@@ -269,8 +269,8 @@ final class FirmBankControllerTest extends WebTestCase
 
     public function testGeneratingFromTheDialogClosesItOverTheTab(): void
     {
-        $firm = $this->signedInFirm();
-        $account = $this->withAccount($firm);
+        $this->signedInFirm();
+        $account = $this->withAccount();
         $url = $this->url().'/accounts/'.$account.'/address';
         $crawler = $this->client->request('GET', $url, server: ['HTTP_'.str_replace('-', '_', strtoupper(DialogRequest::HEADER)) => '1']);
 
@@ -282,8 +282,8 @@ final class FirmBankControllerTest extends WebTestCase
 
     public function testRegeneratingKillsTheOldToken(): void
     {
-        $firm = $this->signedInFirm();
-        $account = $this->withAccount($firm);
+        $this->signedInFirm();
+        $account = $this->withAccount();
         $this->generate($account);
         $old = $this->shownAddress($account);
 
@@ -300,9 +300,9 @@ final class FirmBankControllerTest extends WebTestCase
         self::assertSame(2, Scalars::int($this->connection()->fetchOne('SELECT generation FROM bank_feed')));
     }
 
-    public function testPairingSwitchesAreStoredPerFirm(): void
+    public function testPairingSwitchesAreStored(): void
     {
-        $firm = $this->signedInFirm();
+        $this->signedInFirm();
         $crawler = $this->client->request('GET', $this->url('pairing'));
         $form = $crawler->filter('#bank-pairing')->form();
         $values = $form->getPhpValues();
@@ -311,9 +311,9 @@ final class FirmBankControllerTest extends WebTestCase
         $this->client->request('POST', $form->getUri(), ['smallDifference' => '1'] + $values);
 
         self::assertResponseRedirects($this->url('pairing'));
-        $row = $this->connection()->fetchAssociative('SELECT legal_entity_id, auto_pairing, small_difference FROM firm_bank_pairing');
+        $row = $this->connection()->fetchAssociative('SELECT auto_pairing, small_difference FROM firm_bank_pairing');
         self::assertIsArray($row);
-        self::assertSame([$firm->id(), 0, 1], [$row['legal_entity_id'], Scalars::int($row['auto_pairing']), Scalars::int($row['small_difference'])]);
+        self::assertSame([0, 1], [Scalars::int($row['auto_pairing']), Scalars::int($row['small_difference'])]);
         $crawler = $this->client->request('GET', $this->url('pairing'));
         self::assertNull($crawler->filter('#autoPairing')->attr('checked'));
         self::assertNotNull($crawler->filter('#smallDifference')->attr('checked'));
@@ -334,8 +334,8 @@ final class FirmBankControllerTest extends WebTestCase
     public function testWithoutAnAddressTemplateGeneratingIsRefused(): void
     {
         $this->changeEnv('BANK_INBOX_ADDRESS', '');
-        $firm = $this->signedInFirm();
-        $account = $this->withAccount($firm);
+        $this->signedInFirm();
+        $account = $this->withAccount();
 
         $crawler = $this->client->request('GET', $this->url('pairing'));
         self::assertStringContainsString('Bank e-mail is not set up on this server', $crawler->filter('#bank-address-unavailable')->text());
@@ -349,8 +349,8 @@ final class FirmBankControllerTest extends WebTestCase
     public function testAClientRoleGets403(): void
     {
         $this->browser->seed(role: Role::Guest);
-        $firm = $this->firm();
-        $account = $this->withAccount($firm);
+        $this->firm();
+        $account = $this->withAccount();
         $this->browser->signIn();
 
         $this->client->request('GET', $this->url());
@@ -369,9 +369,9 @@ final class FirmBankControllerTest extends WebTestCase
     public function testAMemberGets403AndNeverSeesTheAddress(): void
     {
         $this->browser->seed(role: Role::Member);
-        $firm = $this->firm();
-        $account = $this->withAccount($firm);
-        $other = $this->withAccount($firm, self::OTHER_IBAN);
+        $this->firm();
+        $account = $this->withAccount();
+        $other = $this->withAccount(self::OTHER_IBAN);
         $address = self::getContainer()->get(GenerateAddress::class)->generate($account);
         $token = Scalars::text($this->addresses()->tokenIn($address));
         $this->browser->signIn();
@@ -414,32 +414,28 @@ final class FirmBankControllerTest extends WebTestCase
         $this->boot();
     }
 
-    private function signedInFirm(): LegalEntity
+    private function signedInFirm(): void
     {
         $this->browser->seed();
         $this->browser->signIn();
-
-        return $this->firm();
+        $this->firm();
     }
 
-    private function firm(): LegalEntity
+    private function firm(): void
     {
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $em = $this->browser->em();
         $em->persist($firm);
         $em->flush();
-
-        return $firm;
     }
 
     /**
      * @return string the id of the new account
      */
-    private function withAccount(LegalEntity $firm, string $iban = self::IBAN): string
+    private function withAccount(string $iban = self::IBAN): string
     {
         $em = $this->browser->em();
-        $managed = $em->find(LegalEntity::class, $firm->id()) ?? throw new \LogicException('The firm is gone.');
-        $account = FirmAccounts::add($em, $managed, $iban);
+        $account = FirmAccounts::add($em, $iban);
         $em->flush();
 
         return $account->id();
@@ -505,7 +501,7 @@ final class FirmBankControllerTest extends WebTestCase
      */
     private function storedAccounts(): array
     {
-        return array_map(static fn (array $row): array => ['iban' => $row['iban'], 'currency' => $row['currency'], 'label' => $row['label'], 'primary_flag' => null === $row['primary_flag'] ? null : Scalars::int($row['primary_flag']), 'legal_entity_id' => $row['legal_entity_id']], $this->connection()->fetchAllAssociative('SELECT iban, currency, label, primary_flag, legal_entity_id FROM firm_bank_account ORDER BY position'));
+        return array_map(static fn (array $row): array => ['iban' => $row['iban'], 'currency' => $row['currency'], 'label' => $row['label'], 'primary_flag' => null === $row['primary_flag'] ? null : Scalars::int($row['primary_flag'])], $this->connection()->fetchAllAssociative('SELECT iban, currency, label, primary_flag FROM firm_bank_account ORDER BY position'));
     }
 
     private function addresses(): InboundAddresses

@@ -13,6 +13,7 @@ use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Invoicing\Application\InvoicingCountries;
 use Foresi\Invoicing\Application\UnsupportedCountry;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Infrastructure\Http\TypedNumber;
@@ -30,6 +31,7 @@ final readonly class BankText
         private LocaleSwitcher $locales,
         private TranslatorInterface $translator,
         private InvoicingCountries $countries,
+        private InstanceFirm $firm,
     ) {
     }
 
@@ -77,13 +79,13 @@ final readonly class BankText
      * The label of an account, or its number when it has none: the domestic form
      * where the firm's country has one, else the IBAN in groups of four.
      */
-    public function account(string $label, string $iban, string $countryCode = 'CZ'): string
+    public function account(string $label, string $iban): string
     {
         if ('' !== $label) {
             return $label;
         }
         try {
-            $domestic = $this->countries->for($countryCode)->domesticAccount($iban);
+            $domestic = $this->countries->for($this->countryCode())->domesticAccount($iban);
         } catch (UnsupportedCountry) {
             $domestic = null;
         }
@@ -94,10 +96,10 @@ final readonly class BankText
     /**
      * A moment as the clock of the firm's country shows it.
      */
-    public function time(\DateTimeImmutable $at, string $countryCode): string
+    public function time(\DateTimeImmutable $at): string
     {
         try {
-            $at = $at->setTimezone($this->countries->for($countryCode)->timezone());
+            $at = $at->setTimezone($this->countries->for($this->countryCode())->timezone());
         } catch (UnsupportedCountry) {
         }
 
@@ -168,5 +170,10 @@ final readonly class BankText
         $whole = (string) $formatter->format(intdiv($minor, 100), \NumberFormatter::TYPE_INT64);
 
         return \sprintf('%s%s%s%02d', $money->isNegative() ? '-' : '', $whole, $formatter->getSymbol(\NumberFormatter::DECIMAL_SEPARATOR_SYMBOL), $minor % 100);
+    }
+
+    private function countryCode(): string
+    {
+        return $this->firm->find()?->address()->countryCode ?? 'CZ';
     }
 }

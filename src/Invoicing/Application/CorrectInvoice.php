@@ -15,7 +15,7 @@ use Foresi\Invoicing\Domain\InvoiceLine;
 
 /**
  * What the form of a corrective tax document opens with: the invoice it corrects
- * with every line negated, a credit note of all of it to edit down. Firm, customer,
+ * with every line negated, a credit note of all of it to edit down. Customer,
  * payment, texts and the rates and treatments of the lines stay; the default series
  * of corrections numbers it. It writes nothing: only Save issues.
  */
@@ -42,7 +42,7 @@ final readonly class CorrectInvoice
         if (!self::corrects($source)) {
             throw new \DomainException('Only an invoice that is not in the trash, or a delivered tax document on payment, is corrected.');
         }
-        $draft = $this->defaults->for($source->firm(), kind: DocumentKind::CorrectionDocument);
+        $draft = $this->defaults->for(kind: DocumentKind::CorrectionDocument);
         if (DocumentKind::PaymentTaxDocument === $source->kind()) {
             return $this->ofTaxDocument($draft, $source);
         }

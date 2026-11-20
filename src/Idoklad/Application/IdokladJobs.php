@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Idoklad\Application;
 
 use Foresi\Idoklad\Domain\IdokladJob;
-use Foresi\Party\Domain\LegalEntity;
 
 /** Port: the jobs of the move from iDoklad. Call add() inside TransactionalWork, which flushes. */
 interface IdokladJobs
@@ -19,9 +18,9 @@ interface IdokladJobs
     /** Also null for an unknown job. */
     public function find(string $id): ?IdokladJob;
 
-    /** The firm's latest job, ended or not. */
-    public function latest(LegalEntity $firm): ?IdokladJob;
+    /** The latest job, ended or not. */
+    public function latest(): ?IdokladJob;
 
-    /** The firm's job that waits or runs, if one does. */
-    public function busy(LegalEntity $firm): ?IdokladJob;
+    /** The job that waits or runs, if one does. */
+    public function busy(): ?IdokladJob;
 }

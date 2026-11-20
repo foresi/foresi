@@ -12,7 +12,6 @@ use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
 use Foresi\CashFlow\Contract\FlowCategory;
 use Foresi\CashFlow\Contract\FlowDirection;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Id;
@@ -31,7 +30,6 @@ use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'cash_flow_planned_item')]
-#[ORM\Index(name: 'idx_cash_flow_planned_item_firm', columns: ['legal_entity_id'])]
 #[ORM\Index(name: 'idx_cash_flow_planned_item_counterparty', columns: ['counterparty_id'])]
 class PlannedItem implements Audited
 {
@@ -92,9 +90,6 @@ class PlannedItem implements Audited
     private MatchRule $matchRule;
 
     public function __construct(
-        #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
-        #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
-        private readonly LegalEntity $firm,
         #[ORM\Column(type: 'string', length: 3, enumType: FlowDirection::class)]
         private readonly FlowDirection $direction,
         PlannedItemTerms $terms,
@@ -146,11 +141,6 @@ class PlannedItem implements Audited
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function firm(): LegalEntity
-    {
-        return $this->firm;
     }
 
     public function direction(): FlowDirection

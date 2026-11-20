@@ -31,12 +31,7 @@ use Foresi\Idoklad\Infrastructure\Http\HttpIdokladSession;
 use Foresi\Invoicing\Application\MailSecrets;
 use Foresi\Invoicing\Application\ReminderSettings;
 use Foresi\Invoicing\Domain\FirmReminders;
-use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\TransactionalWork;
-use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\LegalEntity;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\HttpClient\MockHttpClient;
@@ -49,7 +44,6 @@ final class IdokladJobRunnerTest extends KernelTestCase
 
     private EntityManagerInterface $em;
     private MockClock $clock;
-    private LegalEntity $firm;
 
     /** @var array<string, list<ResponseInterface>> answers by path, the first one next; a list not named is empty */
     private array $answers = [];
@@ -64,10 +58,6 @@ final class IdokladJobRunnerTest extends KernelTestCase
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
         $this->clock = new MockClock('2026-11-06 10:00:00');
-
-        $this->firm = new LegalEntity('Example s.r.o.', new RegistrationNumber('CZ', '12345678'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
-        $this->em->persist($this->firm);
-        $this->em->flush();
     }
 
     public function testAPullDownloadsThePdfsBatchByBatchAndCountsTheirRequests(): void
@@ -87,7 +77,7 @@ final class IdokladJobRunnerTest extends KernelTestCase
         $pull = $this->em->find(IdokladPull::class, (string) $stored->resultId());
         self::assertInstanceOf(IdokladPull::class, $pull);
         self::assertSame(14 + IdokladJobRunner::PDF_BATCH + 1, $pull->requestsUsed(), 'One request a list, then one a PDF in both batches.');
-        self::assertSame([], $this->snapshot()->withoutPdf($this->storedFirm(), 10));
+        self::assertSame([], $this->snapshot()->withoutPdf(10));
     }
 
     public function testAPullOfChangesWithoutAnEarlierPullOrCredentialsFailsBeforeAPullIsStored(): void
@@ -131,7 +121,7 @@ final class IdokladJobRunnerTest extends KernelTestCase
 
         $this->em->clear();
         self::assertSame(RunIdokladImport::NO_SNAPSHOT, $this->storedJob($job)->error());
-        self::assertNull($this->em->getRepository(FirmReminders::class)->findOneBy(['firm' => $this->firm->id()])?->enabledOn());
+        self::assertNull($this->em->getRepository(FirmReminders::class)->findOneBy([])?->enabledOn());
     }
 
     public function testAJobGoneBeforeItEndsIsLeftAlone(): void
@@ -156,14 +146,14 @@ final class IdokladJobRunnerTest extends KernelTestCase
                 return 0 === $this->finds++ ? $this->real->find($id) : null;
             }
 
-            public function latest(LegalEntity $firm): ?IdokladJob
+            public function latest(): ?IdokladJob
             {
-                return $this->real->latest($firm);
+                return $this->real->latest();
             }
 
-            public function busy(LegalEntity $firm): ?IdokladJob
+            public function busy(): ?IdokladJob
             {
-                return $this->real->busy($firm);
+                return $this->real->busy();
             }
         };
 
@@ -183,12 +173,12 @@ final class IdokladJobRunnerTest extends KernelTestCase
 
     private function connect(): void
     {
-        self::getContainer()->get(ConnectIdoklad::class)->connect($this->firm, 'example-client', 'example-client-secret-0123456789');
+        self::getContainer()->get(ConnectIdoklad::class)->connect('example-client', 'example-client-secret-0123456789');
     }
 
     private function job(IdokladJobKind $kind, ?\DateTimeImmutable $remindFrom = null): string
     {
-        $job = new IdokladJob($this->storedFirm(), $kind, new \DateTimeImmutable('2026-11-06 09:59:00'), $remindFrom);
+        $job = new IdokladJob($kind, new \DateTimeImmutable('2026-11-06 09:59:00'), $remindFrom);
         self::getContainer()->get(TransactionalWork::class)->run(fn () => self::getContainer()->get(IdokladJobs::class)->add($job));
 
         return $job->id();
@@ -204,7 +194,6 @@ final class IdokladJobRunnerTest extends KernelTestCase
             $this->snapshot(),
             $container->get(RunIdokladImport::class),
             $container->get(ReminderSettings::class),
-            $container->get(LegalEntities::class),
             $container->get(TransactionalWork::class),
             $this->clock,
         );
@@ -256,11 +245,6 @@ final class IdokladJobRunnerTest extends KernelTestCase
     private function storedJob(string $id): IdokladJob
     {
         return $this->em->find(IdokladJob::class, $id) ?? self::fail('The job is stored.');
-    }
-
-    private function storedFirm(): LegalEntity
-    {
-        return $this->em->find(LegalEntity::class, $this->firm->id()) ?? self::fail('The firm is stored.');
     }
 
     private function snapshot(): IdokladSnapshot

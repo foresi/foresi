@@ -11,7 +11,7 @@ namespace Foresi\Invoicing\Domain;
 /**
  * The form two document numbers are compared in: upper case Latin letters and
  * digits only, so punctuation, case and diacritics never make two numbers different.
- * It also names the file of a document, unique per firm.
+ * It also names the file of a document, unique.
  */
 final class NumberKey
 {

@@ -24,8 +24,6 @@ final readonly class MovementRow
      */
     public function __construct(
         public string $id,
-        public string $firmId,
-        public string $firmName,
         public string $accountId,
         public string $accountLabel,
         public string $accountIban,

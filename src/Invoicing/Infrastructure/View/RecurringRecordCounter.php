@@ -41,6 +41,6 @@ final readonly class RecurringRecordCounter implements ListRecordCounter
             throw new \InvalidArgumentException(\sprintf('The list "%s" is not the recurring invoices.', $listKey));
         }
 
-        return $this->templates->page(new RecurringFilter(null, null, false, 1, $filter))->total;
+        return $this->templates->page(new RecurringFilter(null, false, 1, $filter))->total;
     }
 }

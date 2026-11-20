@@ -91,7 +91,7 @@ final class InvoicePaymentsStoreTest extends InvoiceTestCase
         }
         self::assertCount($all->tabCounts[InvoiceFilter::TRASH], $queries->slice(new InvoiceSliceFilter(DocumentKind::Invoice, trashed: true), null, 100)->items);
         // OR within a field: paid or unpaid is every document out of the trash.
-        $either = $this->store->page(new InvoiceFilter(null, InvoiceFilter::ALL, '', 'issueDate', 1, view: ViewFilter::all(new Condition(InvoiceLists::PAYMENT, 'is_any_of', [InvoiceFilter::PAID, InvoiceFilter::UNPAID])), counted: ['neither' => ViewFilter::all(new Condition(InvoiceLists::PAYMENT, 'is_none_of', [InvoiceFilter::PAID, InvoiceFilter::UNPAID]))]));
+        $either = $this->store->page(new InvoiceFilter(InvoiceFilter::ALL, '', 'issueDate', 1, view: ViewFilter::all(new Condition(InvoiceLists::PAYMENT, 'is_any_of', [InvoiceFilter::PAID, InvoiceFilter::UNPAID])), counted: ['neither' => ViewFilter::all(new Condition(InvoiceLists::PAYMENT, 'is_none_of', [InvoiceFilter::PAID, InvoiceFilter::UNPAID]))]));
         self::assertSame([7, ['neither' => 0]], [$either->total, $either->tabCounts]);
 
         $rows = [];
@@ -163,7 +163,7 @@ final class InvoicePaymentsStoreTest extends InvoiceTestCase
      */
     private function request(string $amount, array $allocations): PaymentRequest
     {
-        return new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-20'), $this->czk($amount), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', $allocations);
+        return new PaymentRequest(new \DateTimeImmutable('2026-11-20'), $this->czk($amount), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', $allocations);
     }
 
     private function czk(string $amount): Money
@@ -173,7 +173,7 @@ final class InvoicePaymentsStoreTest extends InvoiceTestCase
 
     private function page(string $tab): InvoicePage
     {
-        return $this->store->page(new InvoiceFilter(null, $tab, '', 'issueDate', 1));
+        return $this->store->page(new InvoiceFilter($tab, '', 'issueDate', 1));
     }
 
     /**

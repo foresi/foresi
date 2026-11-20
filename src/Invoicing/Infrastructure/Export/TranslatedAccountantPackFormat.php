@@ -14,7 +14,6 @@ use Foresi\Invoicing\Application\VatRecap;
 use Foresi\Invoicing\Application\VatRecapLine;
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Contract\IssuedDocument;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use OpenSpout\Common\Entity\Cell\NumericCell;
@@ -40,9 +39,9 @@ final readonly class TranslatedAccountantPackFormat implements AccountantPackFor
         $this->slugger = new AsciiSlugger();
     }
 
-    public function packName(LegalEntity $firm, \DateTimeImmutable $month): string
+    public function packName(string $firmName, \DateTimeImmutable $month): string
     {
-        return \sprintf('%s_%s.zip', $this->slug($firm->name()), $month->format('Y-m'));
+        return \sprintf('%s_%s.zip', $this->slug($firmName), $month->format('Y-m'));
     }
 
     public function folder(DocumentKind $kind, string $locale): string

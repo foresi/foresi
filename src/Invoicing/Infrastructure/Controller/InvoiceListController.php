@@ -167,12 +167,12 @@ final class InvoiceListController extends AbstractController
         )));
 
         return $this->render('@Invoicing/index.html.twig', [
-            'firstRun' => [] === $page->firms,
+            'firstRun' => !$page->hasDocuments,
             'page' => $page,
             'tab' => $tab,
             'view' => $view->isAll() ? '' : $view->key,
             'working' => $filterParam ?? '',
-            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl($route, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references($page->firms)),
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl($route, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references($page->hasDocuments)),
             'text' => $text,
             'sort' => $sort,
             'sortKept' => $viewSort === $sort ? null : $sort,
@@ -250,9 +250,7 @@ final class InvoiceListController extends AbstractController
         }
         $sort = $input->getString('sort', ViewState::sortParam($view->sort, InvoiceFilter::DEFAULT_SORT));
 
-        // An instance holds one firm (ADR 0039): an old ?firm= filters nothing.
         return [new InvoiceFilter(
-            null,
             $this->tabOf($view, $working, $kind),
             trim(mb_substr($input->getString('q'), 0, self::MAX_TEXT)),
             // By any attribute the list sorts by, under its key; an older key such as dueDate still sorts (spec DS2).
@@ -334,14 +332,11 @@ final class InvoiceListController extends AbstractController
     /**
      * The contacts a customer condition picks from and names: those of the instance's firm.
      *
-     * @param array<string, string> $firms
-     *
      * @return array<string, array{url: string, name: \Closure(string): ?string}>
      */
-    private function references(array $firms): array
+    private function references(bool $hasDocuments): array
     {
-        $id = (string) array_key_first($firms);
-        if ('' === $id) {
+        if (!$hasDocuments) {
             return [];
         }
 
@@ -366,7 +361,7 @@ final class InvoiceListController extends AbstractController
         $absolute = null === $month || \in_array($month, InvoiceFilter::RELATIVE_MONTHS, true) ? [] : [$month];
         // Grouped by year when there are many; else under one heading, below the periods.
         $flat = [];
-        foreach (MonthChoices::of([...$this->months->months($kind, null), ...$absolute], $this->translator->getLocale()) as $key => $choice) {
+        foreach (MonthChoices::of([...$this->months->months($kind), ...$absolute], $this->translator->getLocale()) as $key => $choice) {
             if (\is_array($choice)) {
                 $options[$key] = $choice;
             } else {

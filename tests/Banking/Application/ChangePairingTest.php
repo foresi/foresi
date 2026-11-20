@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Tests\Banking\Application;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Foresi\Banking\Application\ChangePairing;
@@ -23,8 +24,8 @@ use Foresi\Tests\Banking\Support\Scalars;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
- * A firm's pairing switches: the defaults until the firm changes them, then its
- * own row, which no other firm shares.
+ * The pairing switches of the instance: the defaults until they are changed,
+ * then the one row, which the next change updates.
  */
 final class ChangePairingTest extends KernelTestCase
 {
@@ -38,55 +39,49 @@ final class ChangePairingTest extends KernelTestCase
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
+        $this->firm();
     }
 
     public function testDefaultsAreOnAndOffWithoutARow(): void
     {
-        $firm = $this->firm('Example One s.r.o.');
-
-        self::assertEquals(new PairingRules(autoPairing: true, smallDifference: false), $this->rules()->for($firm));
+        self::assertEquals(new PairingRules(autoPairing: true, smallDifference: false), $this->rules()->get());
         self::assertSame(0, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM firm_bank_pairing')));
     }
 
-    public function testPairingSwitchesAreStoredPerFirm(): void
+    public function testPairingSwitchesAreStoredInOneRow(): void
     {
-        $one = $this->firm('Example One s.r.o.');
-        $two = $this->firm('Example Two s.r.o.', '12345687');
-
-        $this->change()->change($one->id(), false, true);
+        $this->change()->change(false, true);
         $this->em->clear();
 
-        self::assertSame([['legal_entity_id' => $one->id(), 'auto_pairing' => 0, 'small_difference' => 1]], $this->stored());
-        self::assertEquals(new PairingRules(false, true), $this->rules()->for($this->reloaded($one)));
-        self::assertEquals(new PairingRules(true, false), $this->rules()->for($this->reloaded($two)));
+        self::assertSame([['auto_pairing' => 0, 'small_difference' => 1]], $this->stored());
+        self::assertEquals(new PairingRules(false, true), $this->rules()->get());
 
-        $this->change()->change($one->id(), true, true);
+        $this->change()->change(true, true);
         $this->em->clear();
 
-        self::assertSame([['legal_entity_id' => $one->id(), 'auto_pairing' => 1, 'small_difference' => 1]], $this->stored());
+        self::assertSame([['auto_pairing' => 1, 'small_difference' => 1]], $this->stored());
         self::assertContains(FirmPairing::class, $this->connection()->fetchFirstColumn('SELECT entity_class FROM audit_entry'));
     }
 
     public function testARowWrittenWithoutTheSwitchesHasTheDefaults(): void
     {
-        $firm = $this->firm('Example One s.r.o.');
-        $this->connection()->insert('firm_bank_pairing', ['id' => '01963c5e-0000-7000-8000-000000000001', 'legal_entity_id' => $firm->id()]);
+        $this->connection()->insert('firm_bank_pairing', ['id' => '01963c5e-0000-7000-8000-000000000001']);
 
-        self::assertSame([['legal_entity_id' => $firm->id(), 'auto_pairing' => 1, 'small_difference' => 0]], $this->stored(), 'the database defaults are the ones of a firm without a row');
+        self::assertSame([['auto_pairing' => 1, 'small_difference' => 0]], $this->stored(), 'the database defaults are the ones of an instance without a row');
     }
 
-    private function firm(string $name, string $number = '12345695'): LegalEntity
+    public function testASecondRowIsRefused(): void
     {
-        $firm = new LegalEntity($name, new RegistrationNumber('CZ', $number), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
-        $this->em->persist($firm);
+        $this->change()->change(false, false);
+
+        $this->expectException(UniqueConstraintViolationException::class);
+        $this->connection()->insert('firm_bank_pairing', ['id' => '01963c5e-0000-7000-8000-000000000002']);
+    }
+
+    private function firm(): void
+    {
+        $this->em->persist(new LegalEntity('Example One s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, ''));
         $this->em->flush();
-
-        return $firm;
-    }
-
-    private function reloaded(LegalEntity $firm): LegalEntity
-    {
-        return $this->em->find(LegalEntity::class, $firm->id()) ?? throw new \LogicException('The firm is gone.');
     }
 
     /**
@@ -94,7 +89,7 @@ final class ChangePairingTest extends KernelTestCase
      */
     private function stored(): array
     {
-        return array_map(static fn (array $row): array => ['legal_entity_id' => $row['legal_entity_id'], 'auto_pairing' => Scalars::int($row['auto_pairing']), 'small_difference' => Scalars::int($row['small_difference'])], $this->connection()->fetchAllAssociative('SELECT legal_entity_id, auto_pairing, small_difference FROM firm_bank_pairing'));
+        return array_map(static fn (array $row): array => ['auto_pairing' => Scalars::int($row['auto_pairing']), 'small_difference' => Scalars::int($row['small_difference'])], $this->connection()->fetchAllAssociative('SELECT auto_pairing, small_difference FROM firm_bank_pairing'));
     }
 
     private function change(): ChangePairing

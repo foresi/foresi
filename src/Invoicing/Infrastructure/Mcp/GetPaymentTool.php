@@ -12,6 +12,7 @@ use Foresi\Invoicing\Application\Query\PaymentDetails;
 use Foresi\Invoicing\Application\Query\PaymentsNotAllowed;
 use Foresi\Invoicing\Application\UnknownPayment;
 use Foresi\Invoicing\Infrastructure\Api\PaymentJson;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Shared\Infrastructure\Mcp\ReadTool;
 use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
 use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
@@ -22,7 +23,7 @@ use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
  */
 final readonly class GetPaymentTool implements ReadTool
 {
-    public function __construct(private PaymentDetails $details)
+    public function __construct(private PaymentDetails $details, private InstanceFirm $instanceFirm)
     {
     }
 
@@ -68,6 +69,6 @@ final readonly class GetPaymentTool implements ReadTool
             throw ToolRefusal::notFound('The organisation has no payment with this id. Find the id with foresi_search_payments.');
         }
 
-        return new ToolOutput(PaymentJson::row($payment), 'The payment with the documents it is allocated to.');
+        return new ToolOutput(PaymentJson::row($payment, $this->instanceFirm->get()), 'The payment with the documents it is allocated to.');
     }
 }

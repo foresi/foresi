@@ -44,7 +44,6 @@ use Foresi\Invoicing\Domain\ExportState;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
-use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\Address;
@@ -240,7 +239,7 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
 
     public function testAnAdvanceInvoiceIsImportedWithoutATaxPoint(): void
     {
-        $series = new Series($this->firm, 'Advances', SeriesFormat::fromString('Z9{YYYY}{NNNN}'), DocumentKind::Advance);
+        $series = new Series('Advances', SeriesFormat::fromString('Z9{YYYY}{NNNN}'), DocumentKind::Advance);
         $this->em->persist($series);
         $this->em->flush();
 
@@ -276,7 +275,7 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
         $path = (string) tempnam(sys_get_temp_dir(), 'foresi-test-');
 
         try {
-            self::assertSame(1, self::getContainer()->get(InvoiceBundle::class)->writeTo($path, $this->firm, new \DateTimeImmutable('2026-10-15'), false, 'en'));
+            self::assertSame(1, self::getContainer()->get(InvoiceBundle::class)->writeTo($path, new \DateTimeImmutable('2026-10-15'), false, 'en'));
             $zip = new \ZipArchive();
             self::assertTrue($zip->open($path));
             $files = [];
@@ -340,7 +339,6 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
             }
         };
         $import = new ImportIssuedDocument(
-            $container->get(LegalEntities::class),
             $container->get(SeriesCatalog::class),
             $container->get(PartyQuery::class),
             $container->get(IssueRules::class),

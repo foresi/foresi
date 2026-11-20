@@ -196,7 +196,6 @@ final class PaymentBalancesTest extends InvoiceBalancesContract
     {
         $czk = Money::of($amount, Currency::CZK);
         $payment = self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(
-            $this->firm->id(),
             new \DateTimeImmutable('2026-11-01'),
             $czk,
             PaymentMethod::BankTransfer,

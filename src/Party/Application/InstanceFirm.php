@@ -45,6 +45,17 @@ final readonly class InstanceFirm
     }
 
     /**
+     * The firm with its row locked until the transaction ends, so whoever changes
+     * what depends on the firm waits for the others. Call it inside TransactionalWork.
+     *
+     * @throws NoFirmYet before the first-run setup
+     */
+    public function lock(): LegalEntity
+    {
+        return $this->firms->lock($this->get()->id());
+    }
+
+    /**
      * The first-run setup. Call it inside TransactionalWork, which flushes.
      *
      * @throws FirmAlreadyExists when the instance has a firm

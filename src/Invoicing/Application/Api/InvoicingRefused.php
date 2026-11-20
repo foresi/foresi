@@ -31,7 +31,7 @@ final class InvoicingRefused extends \DomainException implements Refused
     public const string CURRENCY = 'currency_unsupported';
     /** A line is not an object of the documented fields. */
     public const string LINE = 'line_invalid';
-    /** The firm is not the instance's. */
+    /** The instance has no firm yet. */
     public const string FIRM_UNKNOWN = 'firm_unknown';
     /** The organisation has no such document. */
     public const string NOT_FOUND = 'not_found';
@@ -55,7 +55,7 @@ final class InvoicingRefused extends \DomainException implements Refused
     /** What the data does not allow now, whatever is sent: 409. */
     private const array CONFLICTS = [
         'number_locked', 'number_locked_sent', 'number_locked_sending', 'number_taken', 'trashed', 'tax_document_fixed',
-        'changed_meanwhile', 'firm_locked', 'already_deducted',
+        'changed_meanwhile', 'already_deducted',
     ];
 
     /** The fields of IssueRules, as the inputs of the API name them. */

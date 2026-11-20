@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\CashFlow\Application;
 
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Money;
 
 /**
@@ -26,7 +25,6 @@ final readonly class Forecast
      * @param list<string>         $restrictedSources  the keys of the sources whose documents the caller may not read: in the totals, not as items
      */
     public function __construct(
-        public LegalEntity $firm,
         public \DateTimeImmutable $today,
         public \DateTimeImmutable $from,
         public Money $opening,

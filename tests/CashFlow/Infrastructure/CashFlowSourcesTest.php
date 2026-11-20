@@ -118,7 +118,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
     {
         parent::setUp();
         $this->firm->update('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
-        $this->series = new Series($this->firm, 'Standard', SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+        $this->series = new Series('Standard', SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $this->em->persist($this->series);
         $this->em->persist(new PartyAddress($this->customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
         $this->em->persist(new PartyEmail($this->customer, 'billing@example.com', EmailPurpose::Invoices));
@@ -133,7 +133,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
         Clock::set(new MockClock('2026-11-28 12:00:00', 'UTC'));
         $overdue = $this->invoice('2026-11-16', '2026-11-30', 'Consulting');
         $partlyPaid = $this->invoice('2026-11-20', '2026-12-20', 'Development');
-        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-25'), Money::of('2100.00', Currency::CZK), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($partlyPaid, Money::of('2100.00', Currency::CZK))]));
+        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-25'), Money::of('2100.00', Currency::CZK), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($partlyPaid, Money::of('2100.00', Currency::CZK))]));
         $undated = $this->received($this->otherSupplier, 'FV-11', '2026-11-18', null, '2026-11-20', 500_000);
         $this->checkpoint('2026-11-25', '100000.00');
         $this->movement(MovementDirection::Incoming, '5000.00', '2026-11-27', '123456789/0800', null);
@@ -194,7 +194,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
         $this->movement(MovementDirection::Incoming, '20.00', '2026-12-02', null, null, 'CZ5508000000001234567899');
         $zone = new \DateTimeZone('Europe/Prague');
 
-        $actuals = iterator_to_array(self::getContainer()->get(MovementFlows::class)->actuals($this->firm->id(), new \DateTimeImmutable('2026-12-01', $zone), new \DateTimeImmutable('2026-12-31', $zone)), false);
+        $actuals = iterator_to_array(self::getContainer()->get(MovementFlows::class)->actuals(new \DateTimeImmutable('2026-12-01', $zone), new \DateTimeImmutable('2026-12-31', $zone)), false);
 
         self::assertCount(2, $actuals);
         self::assertSame([FlowDirection::Out, 100_000, '2026-12-01', '123456789/0710', '777', null], [$actuals[0]->direction, $actuals[0]->amount->minor(), $actuals[0]->on->format('Y-m-d'), $actuals[0]->counterpartyAccount, $actuals[0]->variableSymbol, $actuals[0]->counterpartyId]);
@@ -206,7 +206,6 @@ final class CashFlowSourcesTest extends CashFlowTestCase
         $zone = new \DateTimeZone('Europe/Prague');
         $item = fn (string $id, DocumentKind $kind, string $payable, string $paid, string $due): InvoiceListItem => new InvoiceListItem(
             new InvoiceRow($id, 'FV-'.$id, 'Example Firm s.r.o.', 'Customer Example s.r.o.', new \DateTimeImmutable('2026-11-10', $zone), new \DateTimeImmutable($due, $zone), Money::of($payable, Currency::CZK), false, false, false, Money::of($paid, Currency::CZK), PaymentState::Unpaid, kind: $kind),
-            $this->firm->id(),
             $this->customer->id(),
             null,
             new \DateTimeImmutable('2026-11-10', $zone),
@@ -224,7 +223,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
             ],
         ]);
 
-        $flows = iterator_to_array($this->invoiceFlows($queries)->flows($this->firm->id(), new \DateTimeImmutable('2026-11-17', $zone), new \DateTimeImmutable('2026-12-31', $zone), new \DateTimeImmutable('2026-11-17', $zone)), false);
+        $flows = iterator_to_array($this->invoiceFlows($queries)->flows(new \DateTimeImmutable('2026-11-17', $zone), new \DateTimeImmutable('2026-12-31', $zone), new \DateTimeImmutable('2026-11-17', $zone)), false);
 
         self::assertSame(
             [['last-day', FlowDirection::In, 10_000], ['refund', FlowDirection::Out, 5_000], ['advance', FlowDirection::In, 15_000]],
@@ -232,7 +231,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
         );
         self::assertSame(['2026-12-31', 'FV-last-day Customer Example s.r.o.', $this->customer->id(), 'Europe/Prague'], [$flows[0]->expectedOn->format('Y-m-d'), $flows[0]->label, $flows[0]->counterpartyId, $flows[0]->expectedOn->getTimezone()->getName()]);
         self::assertCount(2, $queries->filters, 'Both slices were read.');
-        self::assertSame([$this->firm->id(), 'unpaid'], [$queries->filters[0]->firmId, $queries->filters[0]->state]);
+        self::assertSame(['unpaid'], [$queries->filters[0]->state]);
     }
 
     public function testEveryInvoiceAndAdvanceIssuedInThePeriodIsAnActualWhetherPaidOrNot(): void
@@ -240,7 +239,6 @@ final class CashFlowSourcesTest extends CashFlowTestCase
         $zone = new \DateTimeZone('Europe/Prague');
         $item = fn (string $id, DocumentKind $kind, string $payable): InvoiceListItem => new InvoiceListItem(
             new InvoiceRow($id, 'FV-'.$id, 'Example Firm s.r.o.', 'Customer Example s.r.o.', new \DateTimeImmutable('2026-11-10', $zone), new \DateTimeImmutable('2026-11-24', $zone), Money::of($payable, Currency::CZK), false, false, false, Money::of('0.00', Currency::CZK), PaymentState::Unpaid, kind: $kind),
-            $this->firm->id(),
             $this->customer->id(),
             null,
             new \DateTimeImmutable('2026-11-10', $zone),
@@ -252,7 +250,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
         $from = new \DateTimeImmutable('2026-11-01', $zone);
         $to = new \DateTimeImmutable('2026-11-30', $zone);
 
-        $actuals = iterator_to_array($this->invoiceFlows($queries)->actuals($this->firm->id(), $from, $to), false);
+        $actuals = iterator_to_array($this->invoiceFlows($queries)->actuals($from, $to), false);
 
         self::assertSame(
             [['first', FlowDirection::In, 10_000], ['credit', FlowDirection::Out, 3_000], ['advance', FlowDirection::In, 5_000]],
@@ -260,7 +258,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
         );
         self::assertSame(['2026-11-10', $this->customer->id()], [$actuals[0]->on->format('Y-m-d'), $actuals[0]->counterpartyId]);
         self::assertCount(2, $queries->filters);
-        self::assertSame([$this->firm->id(), '2026-11-01', '2026-11-30'], [$queries->filters[0]->firmId, $queries->filters[0]->issuedFrom?->format('Y-m-d'), $queries->filters[0]->issuedTo?->format('Y-m-d')]);
+        self::assertSame(['2026-11-01', '2026-11-30'], [$queries->filters[0]->issuedFrom?->format('Y-m-d'), $queries->filters[0]->issuedTo?->format('Y-m-d')]);
     }
 
     public function testARecurringTemplateIssuesUntilItsEndAndEveryOccurrenceCountsWhereverItSitsInTheHorizon(): void
@@ -268,7 +266,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
         $this->recurring('2026-11-18', 'Daily hosting', RecurrenceUnit::Day, RecurrenceEnd::AfterCount, 100);
         $zone = new \DateTimeZone('Europe/Prague');
 
-        $flows = iterator_to_array(self::getContainer()->get(RecurringInvoiceFlows::class)->flows($this->firm->id(), new \DateTimeImmutable('2026-11-17', $zone), new \DateTimeImmutable('2027-03-31', $zone), new \DateTimeImmutable('2026-11-17', $zone)), false);
+        $flows = iterator_to_array(self::getContainer()->get(RecurringInvoiceFlows::class)->flows(new \DateTimeImmutable('2026-11-17', $zone), new \DateTimeImmutable('2027-03-31', $zone), new \DateTimeImmutable('2026-11-17', $zone)), false);
 
         self::assertCount(100, $flows);
         self::assertSame('Daily hosting (2026-11-18)', $flows[0]->label);
@@ -282,7 +280,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
         $this->recurring('2026-11-18', 'Daily hosting', RecurrenceUnit::Day);
         $zone = new \DateTimeZone('Europe/Prague');
 
-        $flows = iterator_to_array(self::getContainer()->get(RecurringInvoiceFlows::class)->flows($this->firm->id(), new \DateTimeImmutable('2026-11-17', $zone), new \DateTimeImmutable('2026-12-31', $zone), new \DateTimeImmutable('2026-11-17', $zone)), false);
+        $flows = iterator_to_array(self::getContainer()->get(RecurringInvoiceFlows::class)->flows(new \DateTimeImmutable('2026-11-17', $zone), new \DateTimeImmutable('2026-12-31', $zone), new \DateTimeImmutable('2026-11-17', $zone)), false);
 
         self::assertCount(30, $flows);
         self::assertSame(['2026-12-31', 'Daily hosting (2026-12-17)'], [$flows[29]->expectedOn->format('Y-m-d'), $flows[29]->label]);
@@ -293,7 +291,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
         $this->recurring('2026-11-18', 'Free hosting', price: '0.00');
         $zone = new \DateTimeZone('Europe/Prague');
 
-        $flows = iterator_to_array(self::getContainer()->get(RecurringInvoiceFlows::class)->flows($this->firm->id(), new \DateTimeImmutable('2026-11-17', $zone), new \DateTimeImmutable('2027-03-31', $zone), new \DateTimeImmutable('2026-11-17', $zone)), false);
+        $flows = iterator_to_array(self::getContainer()->get(RecurringInvoiceFlows::class)->flows(new \DateTimeImmutable('2026-11-17', $zone), new \DateTimeImmutable('2027-03-31', $zone), new \DateTimeImmutable('2026-11-17', $zone)), false);
 
         self::assertSame([], $flows);
     }
@@ -305,7 +303,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
 
         $this->expectException(InvoicingNotAllowed::class);
 
-        iterator_to_array(self::getContainer()->get(RecurringInvoiceFlows::class)->flows($this->firm->id(), new \DateTimeImmutable('2026-11-17', $zone), new \DateTimeImmutable('2027-03-31', $zone), new \DateTimeImmutable('2026-11-17', $zone)), false);
+        iterator_to_array(self::getContainer()->get(RecurringInvoiceFlows::class)->flows(new \DateTimeImmutable('2026-11-17', $zone), new \DateTimeImmutable('2027-03-31', $zone), new \DateTimeImmutable('2026-11-17', $zone)), false);
     }
 
     public function testEveryPageOfTheActiveTemplatesIsRead(): void
@@ -314,14 +312,14 @@ final class CashFlowSourcesTest extends CashFlowTestCase
         $this->recurring('2026-11-19', 'Second hosting');
         $this->recurring('2026-11-20', 'Third hosting');
         $container = self::getContainer();
-        $all = $container->get(RecurringInvoices::class)->page(new RecurringFilter($this->firm->id(), RecurringState::Active, false, 1))->templates;
+        $all = $container->get(RecurringInvoices::class)->page(new RecurringFilter(RecurringState::Active, false, 1))->templates;
         self::assertCount(3, $all);
         $templates = self::createStub(RecurringInvoices::class);
         $templates->method('page')->willReturnCallback(static fn (RecurringFilter $filter): RecurringPage => new RecurringPage([$all[$filter->page - 1]], \count($all), $filter->page, \count($all)));
         $flows = new RecurringInvoiceFlows($container->get(InvoicingAccess::class), $templates, $container->get(RecurringOverview::class), $container->get(RecurringAmounts::class), $container->get(InvoiceReadAccess::class));
         $zone = new \DateTimeZone('Europe/Prague');
 
-        $given = iterator_to_array($flows->flows($this->firm->id(), new \DateTimeImmutable('2026-11-17', $zone), new \DateTimeImmutable('2026-12-31', $zone), new \DateTimeImmutable('2026-11-17', $zone)), false);
+        $given = iterator_to_array($flows->flows(new \DateTimeImmutable('2026-11-17', $zone), new \DateTimeImmutable('2026-12-31', $zone), new \DateTimeImmutable('2026-11-17', $zone)), false);
 
         $names = array_unique(array_map(static fn (ExpectedFlow $flow): string => explode(' (', $flow->label)[0], $given));
         sort($names);
@@ -339,7 +337,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
         $zone = new \DateTimeZone('Europe/Prague');
 
         $flows = [];
-        foreach ($this->receivedFlows(includePaid: true)->flows($this->firm->id(), new \DateTimeImmutable('2026-11-17', $zone), new \DateTimeImmutable('2026-12-31', $zone), new \DateTimeImmutable('2026-11-17', $zone)) as $flow) {
+        foreach ($this->receivedFlows(includePaid: true)->flows(new \DateTimeImmutable('2026-11-17', $zone), new \DateTimeImmutable('2026-12-31', $zone), new \DateTimeImmutable('2026-11-17', $zone)) as $flow) {
             $flows[$flow->subject->id] = $flow;
         }
 
@@ -362,7 +360,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
         $zone = new \DateTimeZone('Europe/Prague');
 
         $actuals = [];
-        foreach ($this->receivedFlows()->actuals($this->firm->id(), new \DateTimeImmutable('2026-11-10', $zone), new \DateTimeImmutable('2026-11-30', $zone)) as $actual) {
+        foreach ($this->receivedFlows()->actuals(new \DateTimeImmutable('2026-11-10', $zone), new \DateTimeImmutable('2026-11-30', $zone)) as $actual) {
             $actuals[$actual->subject->id] = $actual;
         }
 
@@ -383,8 +381,8 @@ final class CashFlowSourcesTest extends CashFlowTestCase
         $to = new \DateTimeImmutable('2026-12-31', $zone);
         $flows = $this->receivedFlows();
 
-        $expected = iterator_to_array($flows->flows($this->firm->id(), $from, $to, $from), false);
-        $actuals = iterator_to_array($flows->actuals($this->firm->id(), $from, $to), false);
+        $expected = iterator_to_array($flows->flows($from, $to, $from), false);
+        $actuals = iterator_to_array($flows->actuals($from, $to), false);
 
         self::assertCount(1, $expected);
         self::assertNull($expected[0]->counterpartyId);
@@ -434,7 +432,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
     private function movementBalance(): ?AccountBalance
     {
         $zone = new \DateTimeZone('Europe/Prague');
-        $checkpoint = new BalanceCheckpoint($this->account->id(), $this->firm->id(), Money::of('1000.00', Currency::CZK), new \DateTimeImmutable('2026-11-10', $zone));
+        $checkpoint = new BalanceCheckpoint($this->account->id(), Money::of('1000.00', Currency::CZK), new \DateTimeImmutable('2026-11-10', $zone));
 
         return self::getContainer()->get(MovementFlows::class)->balance($checkpoint, new \DateTimeImmutable('2026-11-17', $zone));
     }
@@ -455,7 +453,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
         $inner = $container->get(ReceivedDocumentQueries::class);
         $queries = self::createStub(ReceivedDocumentQueries::class);
         $queries->method('slice')->willReturnCallback(static fn (ReceivedDocumentSliceFilter $filter, ?string $after, int $limit): array => $inner->slice(
-            $includePaid ? new ReceivedDocumentSliceFilter($filter->firmId, $filter->state, false, $filter->dueBefore, $filter->trashed, $filter->supplierId) : $filter,
+            $includePaid ? new ReceivedDocumentSliceFilter($filter->state, false, $filter->dueBefore, $filter->trashed, $filter->supplierId) : $filter,
             $after,
             1,
         ));
@@ -546,7 +544,6 @@ final class CashFlowSourcesTest extends CashFlowTestCase
     private function invoice(string $issued, string $due, string $description): string
     {
         $input = new \ReflectionClass(InvoiceInput::class)->newInstanceArgs([
-            'firmId' => $this->firm->id(),
             'seriesId' => $this->series->id(),
             'typedNumber' => null,
             'customerId' => $this->customer->id(),
@@ -574,7 +571,6 @@ final class CashFlowSourcesTest extends CashFlowTestCase
     private function recurring(string $firstIssueOn, string $name = 'Hosting', RecurrenceUnit $unit = RecurrenceUnit::Month, RecurrenceEnd $end = RecurrenceEnd::Never, ?int $endAfter = null, string $price = '10000.00'): RecurringInvoice
     {
         $input = new \ReflectionClass(RecurringInput::class)->newInstanceArgs([
-            'firmId' => $this->firm->id(),
             'seriesId' => $this->series->id(),
             'customerId' => $this->customer->id(),
             'paymentMethod' => PaymentMethod::BankTransfer,
@@ -609,7 +605,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
     private function received(Party $supplier, string $number, string $issued, ?string $due, string $received, int $base): string
     {
         $vat = intdiv($base * 21, 100);
-        $saved = self::getContainer()->get(RecordReceivedDocument::class)->create($this->firm->id(), new ReceivedDocumentInput(
+        $saved = self::getContainer()->get(RecordReceivedDocument::class)->create(new ReceivedDocumentInput(
             ReceivedDocumentKind::TaxInvoice,
             PurchaseTaxTreatment::Domestic,
             $supplier->id(),

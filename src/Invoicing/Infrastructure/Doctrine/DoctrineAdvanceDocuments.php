@@ -40,10 +40,9 @@ final readonly class DoctrineAdvanceDocuments implements AdvanceDocuments
         );
     }
 
-    public function firmHasUndeducted(string $firmId): bool
+    public function hasUndeducted(): bool
     {
-        $found = $this->em->createQuery('SELECT i.id FROM '.Invoice::class.' i WHERE i.firm = :firm AND i.kind IN (:kinds) AND i.deletedAt IS NULL AND i.deductedByInvoiceId IS NULL')
-            ->setParameter('firm', $firmId)
+        $found = $this->em->createQuery('SELECT i.id FROM '.Invoice::class.' i WHERE i.kind IN (:kinds) AND i.deletedAt IS NULL AND i.deductedByInvoiceId IS NULL')
             ->setParameter('kinds', [DocumentKind::Advance->value, DocumentKind::PaymentTaxDocument->value])
             ->setMaxResults(1)
             ->getOneOrNullResult();
@@ -51,18 +50,18 @@ final readonly class DoctrineAdvanceDocuments implements AdvanceDocuments
         return null !== $found;
     }
 
-    public function deductibleFor(string $firmId, string $customerId, ?string $except): array
+    public function deductibleFor(string $customerId, ?string $except): array
     {
         $free = '(i.deductedByInvoiceId IS NULL'.(null === $except ? ')' : ' OR i.deductedByInvoiceId = :except)');
         $documents = $this->em->createQuery(
-            'SELECT i.id FROM '.Invoice::class.' i, '.Payment::class.' p WHERE p.id = i.paymentId AND i.kind = :tax AND i.firm = :firm AND i.customerParty = :customer'
+            'SELECT i.id FROM '.Invoice::class.' i, '.Payment::class.' p WHERE p.id = i.paymentId AND i.kind = :tax AND i.customerParty = :customer'
             .' AND i.deletedAt IS NULL AND p.cancelledAt IS NULL AND '.$free.' ORDER BY i.taxPointDate, i.numberKey',
         )->setParameter('tax', DocumentKind::PaymentTaxDocument->value);
         $advances = $this->em->createQuery(
-            'SELECT i.id FROM '.Invoice::class.' i WHERE i.kind = :advance AND i.firm = :firm AND i.customerParty = :customer AND i.deletedAt IS NULL AND '.$free.' ORDER BY i.issueDate, i.numberKey',
+            'SELECT i.id FROM '.Invoice::class.' i WHERE i.kind = :advance AND i.customerParty = :customer AND i.deletedAt IS NULL AND '.$free.' ORDER BY i.issueDate, i.numberKey',
         )->setParameter('advance', DocumentKind::Advance->value);
         foreach ([$documents, $advances] as $query) {
-            $query->setParameter('firm', $firmId)->setParameter('customer', $customerId);
+            $query->setParameter('customer', $customerId);
             if (null !== $except) {
                 $query->setParameter('except', $except);
             }

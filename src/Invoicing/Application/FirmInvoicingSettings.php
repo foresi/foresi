@@ -9,18 +9,17 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Application;
 
 use Foresi\Invoicing\Domain\FirmInvoicing;
-use Foresi\Party\Domain\LegalEntity;
 
 /**
- * The invoicing settings of the firms. Call save() inside
+ * The invoicing settings of the firm. Call save() inside
  * TransactionalWork, which flushes.
  */
 interface FirmInvoicingSettings
 {
     /**
-     * The stored settings of a firm, or the standard ones, not stored yet.
+     * The stored settings, or the standard ones, not stored yet.
      */
-    public function for(LegalEntity $firm): FirmInvoicing;
+    public function get(): FirmInvoicing;
 
     public function save(FirmInvoicing $settings): void;
 }

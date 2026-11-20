@@ -22,8 +22,6 @@ final readonly class ReceivedDocumentRow
 {
     public function __construct(
         public string $id,
-        public string $firmId,
-        public string $firmName,
         public ReceivedDocumentState $state,
         public ReceivedDocumentKind $kind,
         public PurchaseTaxTreatment $treatment,

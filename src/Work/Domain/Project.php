@@ -17,8 +17,7 @@ use Foresi\Shared\Domain\Money;
 
 /**
  * A body of work of the organisation, for a client or internal. It belongs to
- * the organisation, not to one of its firms: the firms of an organisation share their
- * people and their projects, and only an invoice needs a firm.
+ * the organisation (ADR 0039: one firm per instance); only an invoice needs the firm.
  *
  * Statuses, sections and tasks point here and are read by query; the project
  * maps no collection of them, as the audit log rejects changed collections.

@@ -46,11 +46,11 @@ final readonly class TimeInvoiceOrigin implements IssueOrigin
     }
 
     /**
-     * @throws IssueRefused when the invoice is no invoice of the firm the time was priced for, or an entry changed since it was chosen
+     * @throws IssueRefused when the document is no invoice, or an entry changed since it was chosen
      */
     public function recordIn(Invoice $invoice, array $lines): void
     {
-        if (DocumentKind::Invoice !== $invoice->kind() || $invoice->firm()->id() !== $this->selection->firmId) {
+        if (DocumentKind::Invoice !== $invoice->kind()) {
             throw $this->refused('timesheet.problem.other_document');
         }
         // The first row that kept a line's source bills its time; a copy of the row bills nothing.

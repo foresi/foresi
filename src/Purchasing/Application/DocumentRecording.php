@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Application;
 
-use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Purchasing\Contract\Event\ReceivedDocumentRecorded;
@@ -22,9 +22,9 @@ use Psr\Clock\ClockInterface;
 
 /**
  * Records a document, or saves a recorded one again, inside the unit of work
- * that locked it and its firm. A document recorded for the first time takes
- * the next evidence number of the firm's series, made with the standard format
- * when the firm has none yet; the number counts in the year of the received
+ * that locked it and the firm. A document recorded for the first time takes
+ * the next evidence number of the series, made with the standard format
+ * when there is none yet; the number counts in the year of the received
  * date. Its supplier becomes a supplier of the firm. Recording a draft records
  * purchasing.received_document.recorded; saving a recorded document again does not.
  */
@@ -35,18 +35,19 @@ final readonly class DocumentRecording
         private EvidenceNumbers $numbers,
         private ClockInterface $clock,
         private EventRecorder $events,
+        private InstanceFirm $firm,
     ) {
     }
 
     /**
      * @throws ReceivedDocumentRefused
      */
-    public function record(ReceivedDocument $document, LegalEntity $firm, ReceivedDocumentContent $content, string $userId): void
+    public function record(ReceivedDocument $document, ReceivedDocumentContent $content, string $userId): void
     {
         // Checked first, so a number is taken only for a document that can be recorded.
         $document->checkRecordable($content);
         if (null === $document->evidenceNumber() && $content->receivedDate instanceof \DateTimeImmutable) {
-            $document->assignEvidenceNumber($this->nextNumber($firm, $content->receivedDate));
+            $document->assignEvidenceNumber($this->nextNumber($content->receivedDate));
         }
         $first = !$document->isRecorded();
         $document->record($content, $userId, \DateTimeImmutable::createFromInterface($this->clock->now()));
@@ -60,7 +61,7 @@ final readonly class DocumentRecording
             \assert($total instanceof Money && $supplier instanceof Party);
             $this->events->record(new ReceivedDocumentRecorded(
                 $document->id(),
-                $firm->id(),
+                $this->firm->get()->id(),
                 $document->kind()->value,
                 $supplier->id(),
                 EventAmount::of($total),
@@ -73,11 +74,11 @@ final readonly class DocumentRecording
     /**
      * @throws ReceivedDocumentRefused with EVIDENCE_NUMBERS_EXHAUSTED when the series has none left this year
      */
-    private function nextNumber(LegalEntity $firm, \DateTimeImmutable $received): string
+    private function nextNumber(\DateTimeImmutable $received): string
     {
-        $series = $this->series->ofFirm($firm);
+        $series = $this->series->get();
         if (!$series instanceof EvidenceSeries) {
-            $series = EvidenceSeries::standard($firm);
+            $series = EvidenceSeries::standard();
             $this->series->add($series);
         }
         try {

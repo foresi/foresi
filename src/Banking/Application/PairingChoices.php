@@ -50,11 +50,10 @@ final readonly class PairingChoices
     public function of(BankMovement $movement, string $text = '', array $kept = []): PairingOptions
     {
         $amount = $movement->amount();
-        $firmId = $movement->firm()->id();
         $incoming = $movement->isIncoming();
         $open = $incoming
-            ? $this->candidates->open($firmId, $amount->currency(), '', [], 200)
-            : array_filter($this->candidates->refunds($firmId, null), static fn (Candidate $candidate): bool => $candidate->remaining->currency() === $amount->currency());
+            ? $this->candidates->open($amount->currency(), '', [], 200)
+            : array_filter($this->candidates->refunds(null), static fn (Candidate $candidate): bool => $candidate->remaining->currency() === $amount->currency());
 
         $suggested = [];
         foreach ($this->matcher->candidates($movement) as $candidate) {
@@ -68,7 +67,7 @@ final readonly class PairingChoices
             }
         }
         // Never filled in, only offered: an account may pay for several customers.
-        $paidFrom = $incoming ? [] : array_flip($this->candidates->paidFrom($firmId, $movement->counterIban(), $movement->counterAccount()));
+        $paidFrom = $incoming ? [] : array_flip($this->candidates->paidFrom($movement->counterIban(), $movement->counterAccount()));
         foreach ($open as $candidate) {
             if (!isset($suggested[$candidate->invoiceId]) && isset($paidFrom[$candidate->invoiceId])) {
                 $suggested[$candidate->invoiceId] = [$candidate, self::BY_ACCOUNT];
@@ -84,9 +83,9 @@ final readonly class PairingChoices
         $others = !$incoming ? array_filter($open, static fn (Candidate $candidate): bool => '' === $text || str_contains(mb_strtolower($candidate->number.' '.$candidate->customerName), mb_strtolower($text))) : [
             ...('' === $text
                 ? \array_slice(array_values(array_filter($open, static fn (Candidate $candidate): bool => !isset($suggested[$candidate->invoiceId]))), 0, self::OTHERS)
-                : $this->candidates->open($firmId, $amount->currency(), $text, [], self::FOUND)),
+                : $this->candidates->open($amount->currency(), $text, [], self::FOUND)),
             // What was ticked stays offered, whatever the search finds.
-            ...([] === $kept ? [] : $this->candidates->open($firmId, $amount->currency(), '', $kept, \count($kept))),
+            ...([] === $kept ? [] : $this->candidates->open($amount->currency(), '', $kept, \count($kept))),
         ];
         if (!$incoming) {
             $others = [...$others, ...array_filter($open, static fn (Candidate $candidate): bool => \in_array($candidate->invoiceId, $kept, true))];
@@ -98,7 +97,7 @@ final readonly class PairingChoices
             }
         }
 
-        $rules = $this->rules->for($movement->firm());
+        $rules = $this->rules->get();
         $limit = $this->matcher->settlementLimit($movement);
 
         return new PairingOptions(

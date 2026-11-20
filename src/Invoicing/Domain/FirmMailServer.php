@@ -11,20 +11,18 @@ namespace Foresi\Invoicing\Domain;
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
 use Foresi\Audit\Domain\AuditExcluded;
-use Foresi\Audit\Domain\AuditRooted;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Id;
 
 /**
- * The firm's own SMTP server, through which its documents are sent. One per firm.
+ * The firm's own SMTP server, through which its documents are sent. One for the instance.
  * The password is held only sealed, and never written to the audit log. Whether
  * the host may be reached is checked by the mail host policy, at save and again
  * before every connection, since a name can change what it points to.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'firm_mail_server')]
-#[ORM\UniqueConstraint(name: 'uniq_firm_mail_server_firm', columns: ['legal_entity_id'])]
-class FirmMailServer implements Audited, AuditRooted
+#[ORM\UniqueConstraint(name: 'uniq_firm_mail_server_one_row', columns: ['one_row'])]
+class FirmMailServer implements Audited
 {
     /** Submission ports only: 25 is for servers talking to servers, and often blocked. */
     public const array PORTS = [465, 587, 2525];
@@ -34,6 +32,13 @@ class FirmMailServer implements Audited, AuditRooted
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
+
+    /**
+     * Always true: with its unique index (and a check on PostgreSQL) the table holds
+     * at most one row, the settings of the instance's one firm (ADR 0039).
+     */
+    #[ORM\Column(name: 'one_row', type: 'boolean', options: ['default' => true])]
+    private bool $oneRow = true;
 
     #[ORM\Column(type: 'string', length: 253)]
     private string $host;
@@ -68,9 +73,6 @@ class FirmMailServer implements Audited, AuditRooted
     private ?string $lastTestError;
 
     private function __construct(
-        #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
-        #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
-        private readonly LegalEntity $firm,
         string $host,
         int $port,
         MailEncryption $encryption,
@@ -83,9 +85,9 @@ class FirmMailServer implements Audited, AuditRooted
         $this->change($host, $port, $encryption, $username, $sealedSecret, $fromAddress, $fromName);
     }
 
-    public static function define(LegalEntity $firm, string $host, int $port, MailEncryption $encryption, string $username, string $sealedSecret, string $fromAddress, string $fromName): self
+    public static function define(string $host, int $port, MailEncryption $encryption, string $username, string $sealedSecret, string $fromAddress, string $fromName): self
     {
-        return new self($firm, $host, $port, $encryption, $username, $sealedSecret, $fromAddress, $fromName);
+        return new self($host, $port, $encryption, $username, $sealedSecret, $fromAddress, $fromName);
     }
 
     /**
@@ -181,16 +183,6 @@ class FirmMailServer implements Audited, AuditRooted
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function auditRoot(): object
-    {
-        return $this->firm;
-    }
-
-    public function firm(): LegalEntity
-    {
-        return $this->firm;
     }
 
     public function host(): string

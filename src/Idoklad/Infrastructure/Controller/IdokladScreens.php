@@ -22,8 +22,8 @@ use Foresi\Invoicing\Application\DocumentFormat;
 use Foresi\Invoicing\Application\ImportedInvoiceTotals;
 use Foresi\Invoicing\Application\InvoicingCountries;
 use Foresi\Invoicing\Application\StoredInvoiceTotal;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -66,6 +66,7 @@ final readonly class IdokladScreens
         private DocumentFormat $format,
         private UrlGeneratorInterface $urls,
         private TranslatorInterface $translator,
+        private InstanceFirm $instanceFirm,
     ) {
     }
 
@@ -80,8 +81,9 @@ final readonly class IdokladScreens
     /**
      * @return list<array{label: string, href?: string}>
      */
-    public function crumbs(LegalEntity $firm, ?string $last = null): array
+    public function crumbs(?string $last = null): array
     {
+        $firm = $this->instanceFirm->get();
         $crumbs = [
             ['label' => $this->trans('import.history.title'), 'href' => $this->urls->generate('app_imports')],
             ['label' => $this->trans('idoklad.title'), 'href' => $this->urls->generate('app_idoklad', ['id' => $firm->id()])],
@@ -180,7 +182,7 @@ final readonly class IdokladScreens
     public function report(IdokladImportRun $run, string $locale, \DateTimeImmutable $today): array
     {
         $language = DocumentLanguage::tryFrom($locale) ?? DocumentLanguage::Czech;
-        $firm = $run->firm();
+        $firm = $this->instanceFirm->get();
         $outcomes = array_map(static fn (ImportOutcome $outcome): string => $outcome->value, ImportOutcome::cases());
         $stageRows = [];
         $counted = array_fill_keys($outcomes, 0);
@@ -208,7 +210,7 @@ final readonly class IdokladScreens
                 $imported[$resource->value][$entry['external_id']] = true;
             }
             if ('recurring' === $entry['stage'] && ImportOutcome::Created->value === $entry['outcome']) {
-                $record = $this->record($firm, $resource, $entry['external_id']);
+                $record = $this->record($resource, $entry['external_id']);
                 $templates[] = [
                     'title' => $this->title($record, $entry['values'], $entry['external_id']),
                     'dates' => array_map(fn (string $date): string => $this->format->date(new \DateTimeImmutable($date), $language), array_values(array_filter(explode(',', (string) ($entry['values']['next_issues'] ?? '')), static fn (string $date): bool => '' !== $date))),
@@ -217,7 +219,7 @@ final readonly class IdokladScreens
             if (!isset($groups[$entry['outcome']])) {
                 continue;
             }
-            $record = $this->record($firm, $resource, $entry['external_id']);
+            $record = $this->record($resource, $entry['external_id']);
             $groups[$entry['outcome']][$entry['stage']][] = [
                 'title' => $this->title($record, $entry['values'], $entry['external_id']),
                 'customer' => $this->customer($record),
@@ -228,7 +230,7 @@ final readonly class IdokladScreens
 
         $home = $this->countries->for($firm->address()->countryCode)->homeCurrency();
         $currencies = [];
-        foreach ($this->snapshot->records($firm, IdokladResource::Currencies) as $currency) {
+        foreach ($this->snapshot->records(IdokladResource::Currencies) as $currency) {
             $currencies[$currency->externalId()] = \is_string($currency->payload()['Code'] ?? null) ? $currency->payload()['Code'] : null;
         }
         /** @var array<int|string, array{idoklad: int, idokladSum: int, foresi: int, foresiSum: int, unexplained: int, foreign: int}> $years */
@@ -237,7 +239,7 @@ final readonly class IdokladScreens
         $foreign = [];
         $documentYears = [];
         foreach (self::DOCUMENTS as $resource) {
-            foreach ($this->snapshot->records($firm, $resource) as $record) {
+            foreach ($this->snapshot->records($resource) as $record) {
                 $payload = $record->payload();
                 $year = substr(\is_string($payload['DateOfIssue'] ?? null) ? $payload['DateOfIssue'] : '', 0, 4);
                 $years[$year] ??= self::YEAR;
@@ -333,15 +335,16 @@ final readonly class IdokladScreens
     }
 
     /**
-     * The history of a firm: its pulls and import runs, the latest first.
+     * The history: the pulls and import runs, the latest first.
      *
      * @param list<IdokladPull>      $pulls
      * @param list<IdokladImportRun> $runs
      *
      * @return list<array<string, mixed>>
      */
-    public function history(LegalEntity $firm, array $pulls, array $runs): array
+    public function history(array $pulls, array $runs): array
     {
+        $firm = $this->instanceFirm->get();
         $rows = [];
         foreach ($pulls as $pull) {
             $state = $pull->finishedAt() instanceof \DateTimeImmutable ? $pull->succeeded() ? IdokladJobState::Done : IdokladJobState::Failed : (IdokladJobState::Running);
@@ -415,9 +418,9 @@ final readonly class IdokladScreens
         return $groups;
     }
 
-    private function record(LegalEntity $firm, ?IdokladResource $resource, int $externalId): ?IdokladRecord
+    private function record(?IdokladResource $resource, int $externalId): ?IdokladRecord
     {
-        return $resource instanceof IdokladResource ? $this->snapshot->record($firm, $resource, $externalId) : null;
+        return $resource instanceof IdokladResource ? $this->snapshot->record($resource, $externalId) : null;
     }
 
     /**

@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Idoklad\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Id;
 
 /**
@@ -20,7 +19,7 @@ use Foresi\Shared\Domain\Id;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'idoklad_job')]
-#[ORM\Index(name: 'idx_idoklad_job_firm', columns: ['legal_entity_id', 'requested_at'])]
+#[ORM\Index(name: 'idx_idoklad_job_requested', columns: ['requested_at'])]
 class IdokladJob
 {
     #[ORM\Id]
@@ -48,9 +47,6 @@ class IdokladJob
     private ?array $options;
 
     public function __construct(
-        #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
-        #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
-        private readonly LegalEntity $firm,
         #[ORM\Column(type: 'string', length: 8, enumType: IdokladJobKind::class)]
         private readonly IdokladJobKind $kind,
         #[ORM\Column(name: 'requested_at', type: 'datetime_immutable')]
@@ -86,11 +82,6 @@ class IdokladJob
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function firm(): LegalEntity
-    {
-        return $this->firm;
     }
 
     public function kind(): IdokladJobKind

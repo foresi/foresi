@@ -25,13 +25,8 @@ use Foresi\Invoicing\Domain\InvoiceLine;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
 use Foresi\Party\Application\TransactionalWork;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatId;
-use Foresi\Party\Domain\VatStatus;
 use Foresi\Tests\Invoicing\Application\InvoiceTestCase;
-use Foresi\Tests\Party\Support\FirmAccounts;
 
 final class InvoicePersistenceTest extends InvoiceTestCase
 {
@@ -170,16 +165,6 @@ final class InvoicePersistenceTest extends InvoiceTestCase
         $connection->insert('invoice', $row, $types);
     }
 
-    public function testTheSameNumberIsFineInAnotherFirm(): void
-    {
-        $second = $this->secondFirm();
-        $this->issue->issue($this->input());
-
-        $invoice = $this->issue->issue($this->input(overrides: ['firmId' => $second->id(), 'seriesId' => null]));
-
-        self::assertSame('20260001', $invoice->number());
-    }
-
     public function testACustomerWithInvoicesCannotBeRemoved(): void
     {
         $this->issue->issue($this->input());
@@ -194,15 +179,14 @@ final class InvoicePersistenceTest extends InvoiceTestCase
     {
         $invoice = $this->issue->issue($this->input());
 
-        self::assertTrue($this->store->numberTaken($this->firm, '20260001', null));
-        self::assertFalse($this->store->numberTaken($this->firm, '20260001', $invoice));
-        self::assertFalse($this->store->numberTaken($this->firm, '20260002', null));
-        self::assertFalse($this->store->numberTaken($this->secondFirm(), '20260001', null));
+        self::assertTrue($this->store->numberTaken('20260001', null));
+        self::assertFalse($this->store->numberTaken('20260001', $invoice));
+        self::assertFalse($this->store->numberTaken('20260002', null));
 
         $this->edited($invoice, $this->input(overrides: ['typedNumber' => '20260002']));
 
-        self::assertTrue($this->store->numberTaken($this->firm, '20260001', null));
-        self::assertTrue($this->store->numberTaken($this->firm, '20260001', $invoice), 'even its own invoice does not take it back');
+        self::assertTrue($this->store->numberTaken('20260001', null));
+        self::assertTrue($this->store->numberTaken('20260001', $invoice), 'even its own invoice does not take it back');
         $abandoned = $this->em->getRepository(AbandonedNumber::class)->findOneBy([]);
         self::assertInstanceOf(AbandonedNumber::class, $abandoned);
         self::assertSame('20260001', $abandoned->number());
@@ -211,7 +195,7 @@ final class InvoicePersistenceTest extends InvoiceTestCase
 
     public function testAnInvoiceCountsForTheSeriesEvenWithoutACounterRow(): void
     {
-        $series = new Series($this->firm, 'Second', SeriesFormat::fromString('B{NNN}'), DocumentKind::Invoice);
+        $series = new Series('Second', SeriesFormat::fromString('B{NNN}'), DocumentKind::Invoice);
         $this->catalog->add($series);
         $this->em->flush();
         self::assertFalse($this->catalog->hasDocuments($series));
@@ -227,12 +211,10 @@ final class InvoicePersistenceTest extends InvoiceTestCase
         $second = $this->issue->issue($this->input(overrides: ['issueDate' => new \DateTimeImmutable('2026-11-02')]));
         $trashed = $this->issue->issue($this->input(overrides: ['issueDate' => new \DateTimeImmutable('2026-11-03')]));
         $this->trash->trash($trashed->id(), 'Wrong customer');
-        $other = $this->secondFirm();
-        $foreign = $this->issue->issue($this->input(overrides: ['firmId' => $other->id(), 'seriesId' => null]));
 
-        $page = $this->store->page(new InvoiceFilter(null, 'all', '', '-issueDate', 1));
-        self::assertSame([$second->id(), $foreign->id(), $first->id()], array_map(static fn (\Foresi\Invoicing\Application\InvoiceRow $row): string => $row->id, $page->rows));
-        self::assertSame(3, $page->total);
+        $page = $this->store->page(new InvoiceFilter('all', '', '-issueDate', 1));
+        self::assertSame([$second->id(), $first->id()], array_map(static fn (\Foresi\Invoicing\Application\InvoiceRow $row): string => $row->id, $page->rows));
+        self::assertSame(2, $page->total);
         self::assertSame(1, $page->page);
         self::assertSame(1, $page->pages);
 
@@ -245,16 +227,15 @@ final class InvoicePersistenceTest extends InvoiceTestCase
         self::assertFalse($row->delivered);
         self::assertFalse($row->trashed);
 
-        self::assertSame([$foreign->id()], array_map(static fn (\Foresi\Invoicing\Application\InvoiceRow $row): string => $row->id, $this->store->page(new InvoiceFilter($other->id(), 'all', '', '-issueDate', 1))->rows));
-        self::assertSame([$trashed->id()], array_map(static fn (\Foresi\Invoicing\Application\InvoiceRow $row): string => $row->id, $this->store->page(new InvoiceFilter(null, 'trash', '', '-issueDate', 1))->rows));
+        self::assertSame([$trashed->id()], array_map(static fn (\Foresi\Invoicing\Application\InvoiceRow $row): string => $row->id, $this->store->page(new InvoiceFilter('trash', '', '-issueDate', 1))->rows));
     }
 
     public function testThePageStaysInRange(): void
     {
         $this->issue->issue($this->input());
 
-        self::assertSame(1, $this->store->page(new InvoiceFilter(null, 'all', '', '-issueDate', 99))->page);
-        self::assertSame(1, $this->store->page(new InvoiceFilter(null, 'all', '', '-issueDate', -1))->page);
+        self::assertSame(1, $this->store->page(new InvoiceFilter('all', '', '-issueDate', 99))->page);
+        self::assertSame(1, $this->store->page(new InvoiceFilter('all', '', '-issueDate', -1))->page);
     }
 
     public function testALockErrorRunsTheWholeUnitAgainUpToThreeTimes(): void
@@ -383,16 +364,6 @@ final class InvoicePersistenceTest extends InvoiceTestCase
                 return null;
             }
         };
-    }
-
-    private function secondFirm(): LegalEntity
-    {
-        $firm = new LegalEntity('Second Firm s.r.o.', new RegistrationNumber('CZ', '27074358'), VatId::fromString('CZ27074358'), $this->firm->address(), VatStatus::Registered, 'Register');
-        $this->em->persist($firm);
-        FirmAccounts::add($this->em, $firm, self::IBAN);
-        $this->em->flush();
-
-        return $firm;
     }
 
     private function enforceForeignKeys(): void

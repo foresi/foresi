@@ -88,7 +88,7 @@ abstract class InvoiceTestCase extends KernelTestCase
         $this->catalog = $container->get(SeriesCatalog::class);
 
         $this->firm = $this->firm();
-        $this->series = $this->seriesOf($this->firm);
+        $this->series = $this->seriesOf();
         $this->customer = $this->customer();
         $this->em->flush();
     }
@@ -104,14 +104,28 @@ abstract class InvoiceTestCase extends KernelTestCase
             $register,
         );
         $this->em->persist($firm);
-        FirmAccounts::add($this->em, $firm, self::IBAN);
+        FirmAccounts::add($this->em, self::IBAN);
 
         return $firm;
     }
 
-    protected function seriesOf(LegalEntity $firm): Series
+    /**
+     * Gives the one firm another standing, before anything is issued.
+     */
+    protected function reconfigureFirm(VatStatus $status, ?string $vatId, string $register = 'Example register, entry C 1', ?Address $address = null): LegalEntity
     {
-        $series = new Series($firm, 'Standard', SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+        $firm = $this->em->find(LegalEntity::class, $this->firm->id());
+        self::assertInstanceOf(LegalEntity::class, $firm);
+        $firm->update($firm->name(), $firm->registrationNumber(), null === $vatId ? null : VatId::fromString($vatId), $address ?? $firm->address(), $status, $register);
+        $this->em->flush();
+        $this->firm = $firm;
+
+        return $firm;
+    }
+
+    protected function seriesOf(): Series
+    {
+        $series = new Series('Standard', SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $this->em->persist($series);
 
         return $series;
@@ -134,7 +148,6 @@ abstract class InvoiceTestCase extends KernelTestCase
     protected function input(?array $lines = null, array $overrides = []): InvoiceInput
     {
         return new \ReflectionClass(InvoiceInput::class)->newInstanceArgs(array_merge([
-            'firmId' => $this->firm->id(),
             'seriesId' => $this->series->id(),
             'typedNumber' => null,
             'customerId' => $this->customer->id(),

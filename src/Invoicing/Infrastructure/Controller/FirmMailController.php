@@ -99,16 +99,16 @@ final class FirmMailController extends AbstractController
     public function settings(Request $request): Response
     {
         $this->denyUnlessOwner();
-        $firm = $this->firm();
+        $this->firm();
         if (!$request->isMethod('POST')) {
             $tab = self::SERVER === $request->query->getString('tab') ? self::SERVER : self::TEMPLATES;
 
-            return $this->page($firm, $tab, $this->storedReminders($firm), $this->storedServer($firm), [], Response::HTTP_OK);
+            return $this->page($tab, $this->storedReminders(), $this->storedServer(), [], Response::HTTP_OK);
         }
 
         return match ($request->request->getString('section')) {
-            self::REMINDERS => $this->saveReminders($firm, $request),
-            self::SERVER => $this->saveServer($firm, $request),
+            self::REMINDERS => $this->saveReminders($request),
+            self::SERVER => $this->saveServer($request),
             default => throw new BadRequestHttpException('Unknown section.'),
         };
     }
@@ -117,11 +117,11 @@ final class FirmMailController extends AbstractController
     public function test(Request $request): RedirectResponse
     {
         $this->denyUnlessOwner();
-        $firm = $this->firm();
+        $this->firm();
         $this->checkToken($request, self::TEST_TOKEN);
         $back = $this->redirectToRoute('app_firm_mail', ['tab' => self::SERVER]);
 
-        $server = $this->servers->for($firm);
+        $server = $this->servers->get();
         $recipient = $this->getUser()?->getUserIdentifier() ?? '';
         if (!$server instanceof FirmMailServer || false === filter_var($recipient, \FILTER_VALIDATE_EMAIL)) {
             $this->addFlash('error', $this->translator->trans('firm.mail.flash.test_unavailable'));
@@ -150,20 +150,20 @@ final class FirmMailController extends AbstractController
         return $back;
     }
 
-    private function saveReminders(LegalEntity $firm, Request $request): Response
+    private function saveReminders(Request $request): Response
     {
         $this->checkToken($request, self::REMINDERS_TOKEN);
-        $home = $this->homeCurrency($firm) ?? throw new BadRequestHttpException('This firm has no reminders.');
+        $home = $this->homeCurrency() ?? throw new BadRequestHttpException('This firm has no reminders.');
         $reminders = FirmMailSubmission::reminders($request, $home, $request->getLocale());
         $values = $reminders->values;
         $errors = $reminders->errors;
-        $stored = $this->reminders->for($firm);
+        $stored = $this->reminders->get();
         $enabled = '1' === $values['enabled'];
         if ($enabled && !$stored->enabled() && !$this->reminders->canSwitchOn()) {
             $errors['reminders-enabled'] = ['reminder.error.gate'];
         }
         if ([] !== $errors) {
-            return $this->page($firm, self::TEMPLATES, $values, $this->storedServer($firm), $errors, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->page(self::TEMPLATES, $values, $this->storedServer(), $errors, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $first = (int) $values['firstAfterDays'];
@@ -198,10 +198,10 @@ final class FirmMailController extends AbstractController
             || ($current instanceof Money && $minimum instanceof Money && !$current->equals($minimum));
     }
 
-    private function saveServer(LegalEntity $firm, Request $request): Response
+    private function saveServer(Request $request): Response
     {
         $this->checkToken($request, self::SERVER_TOKEN);
-        $stored = $this->servers->for($firm);
+        $stored = $this->servers->get();
         $submission = FirmMailSubmission::server($request, $stored instanceof FirmMailServer);
         $errors = $submission->errors;
         if (!$this->secrets->isConfigured()) {
@@ -221,26 +221,26 @@ final class FirmMailController extends AbstractController
             }
         }
         if ([] !== $errors) {
-            return $this->page($firm, self::SERVER, $this->storedReminders($firm), $submission->values, $errors, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->page(self::SERVER, $this->storedReminders(), $submission->values, $errors, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $values = $submission->values;
         $sealed = '' === $submission->password ? null : $this->secrets->seal($submission->password);
         $encryption = MailEncryption::from($values['encryption']);
         try {
-            $this->transaction->run(function () use ($firm, $stored, $values, $sealed, $encryption): void {
+            $this->transaction->run(function () use ($stored, $values, $sealed, $encryption): void {
                 if ($stored instanceof FirmMailServer) {
                     $stored->change($values['host'], (int) $values['port'], $encryption, $values['username'], $sealed, $values['fromAddress'], $values['fromName']);
 
                     return;
                 }
-                $this->servers->save(FirmMailServer::define($firm, $values['host'], (int) $values['port'], $encryption, $values['username'], $sealed ?? '', $values['fromAddress'], $values['fromName']));
+                $this->servers->save(FirmMailServer::define($values['host'], (int) $values['port'], $encryption, $values['username'], $sealed ?? '', $values['fromAddress'], $values['fromName']));
             });
         } catch (InvalidMailServer) {
-            return $this->page($firm, self::SERVER, $this->storedReminders($firm), $values, ['host' => ['firm.mail.error.host']], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->page(self::SERVER, $this->storedReminders(), $values, ['host' => ['firm.mail.error.host']], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (UniqueConstraintViolationException) {
-            // Another request stored the first server of this firm meanwhile.
-            return $this->page($firm, self::SERVER, $this->storedReminders($firm), $values, ['form' => ['firm.mail.error.save_failed']], Response::HTTP_UNPROCESSABLE_ENTITY);
+            // Another request stored the first server meanwhile.
+            return $this->page(self::SERVER, $this->storedReminders(), $values, ['form' => ['firm.mail.error.save_failed']], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         $this->addFlash('success', $this->translator->trans('firm.mail.flash.server_saved'));
 
@@ -258,7 +258,7 @@ final class FirmMailController extends AbstractController
             null,
             [$recipient],
             [],
-            $this->translator->trans('firm.mail.test.subject', ['firm' => $server->firm()->name()]),
+            $this->translator->trans('firm.mail.test.subject', ['firm' => $this->firm()->name()]),
             $text,
             // Sent as the templates are: Markdown, the values in it as text.
             $this->markdown->toMailHtml(MailMarkdown::escape($text, true)),
@@ -271,12 +271,13 @@ final class FirmMailController extends AbstractController
      * @param array<string, string>                                      $server
      * @param array<string, array{0: string, 1?: array<string, string>}> $errors
      */
-    private function page(LegalEntity $firm, string $tab, array $reminders, array $server, array $errors, int $status): Response
+    private function page(string $tab, array $reminders, array $server, array $errors, int $status): Response
     {
-        $stored = $this->servers->for($firm);
+        $firm = $this->firm();
+        $stored = $this->servers->get();
         $url = $this->generateUrl('app_firm_mail');
-        $settings = $this->reminders->for($firm);
-        $home = $this->homeCurrency($firm);
+        $settings = $this->reminders->get();
+        $home = $this->homeCurrency();
 
         return $this->render('@Invoicing/firm/mail.html.twig', [
             'firm' => $firm,
@@ -295,7 +296,7 @@ final class FirmMailController extends AbstractController
                 'languages' => array_map(fn (DocumentLanguage $language): array => [
                     'code' => $language->value,
                     'label' => $this->translator->trans('firm.mail.language.'.$language->value),
-                    'custom' => $this->templates->isCustom($firm, $kind, $language),
+                    'custom' => $this->templates->isCustom($kind, $language),
                 ], DocumentLanguage::cases()),
             ], FirmMailTemplateController::ORDER),
             'reminders' => $reminders,
@@ -305,9 +306,9 @@ final class FirmMailController extends AbstractController
             'remindersOn' => $settings->enabled(),
             'maxReminders' => FirmReminders::MAX_STEPS,
             'homeCurrency' => $home instanceof Currency ? $home->value : '',
-            'tomorrow' => $home instanceof Currency && $settings->enabled() ? array_map($this->previewRow(...), $this->preview->tomorrow($firm)) : [],
+            'tomorrow' => $home instanceof Currency && $settings->enabled() ? array_map($this->previewRow(...), $this->preview->tomorrow()) : [],
             // While off: what switching on today would send over the coming days.
-            'planned' => $home instanceof Currency && !$settings->enabled() ? array_map(fn (PlannedReminder $planned): array => $this->previewRow($planned->invoice) + ['on' => $planned->on], $this->preview->ifSwitchedOnToday($firm)) : [],
+            'planned' => $home instanceof Currency && !$settings->enabled() ? array_map(fn (PlannedReminder $planned): array => $this->previewRow($planned->invoice) + ['on' => $planned->on], $this->preview->ifSwitchedOnToday()) : [],
             'plannedDays' => ReminderPreview::AHEAD_DAYS,
             'server' => $server,
             'hasServer' => $stored instanceof FirmMailServer,
@@ -349,9 +350,9 @@ final class FirmMailController extends AbstractController
     /**
      * @return array<string, string>
      */
-    private function storedReminders(LegalEntity $firm): array
+    private function storedReminders(): array
     {
-        $settings = $this->reminders->for($firm);
+        $settings = $this->reminders->get();
         $minimum = $settings->minimum();
 
         return [
@@ -366,10 +367,10 @@ final class FirmMailController extends AbstractController
     /**
      * Null for a firm in a country without invoicing rules.
      */
-    private function homeCurrency(LegalEntity $firm): ?Currency
+    private function homeCurrency(): ?Currency
     {
         try {
-            return $this->countries->for($firm->address()->countryCode)->homeCurrency();
+            return $this->countries->for($this->firm()->address()->countryCode)->homeCurrency();
         } catch (UnsupportedCountry) {
             return null;
         }
@@ -380,11 +381,11 @@ final class FirmMailController extends AbstractController
      *
      * @return array<string, string>
      */
-    private function storedServer(LegalEntity $firm): array
+    private function storedServer(): array
     {
-        $server = $this->servers->for($firm);
+        $server = $this->servers->get();
         if (!$server instanceof FirmMailServer) {
-            return ['host' => '', 'port' => '587', 'encryption' => MailEncryption::Starttls->value, 'username' => '', 'fromAddress' => '', 'fromName' => $firm->name()];
+            return ['host' => '', 'port' => '587', 'encryption' => MailEncryption::Starttls->value, 'username' => '', 'fromAddress' => '', 'fromName' => $this->firm()->name()];
         }
 
         return [

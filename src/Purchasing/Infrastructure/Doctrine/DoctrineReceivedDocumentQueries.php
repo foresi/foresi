@@ -40,7 +40,7 @@ use Foresi\Shared\Infrastructure\View\DqlConditions;
  */
 final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocumentQueries
 {
-    private const string COLUMNS = 'd.id, f.id AS firmId, f.name AS firmName, d.state, d.kind, d.treatment, d.evidenceNumber, d.supplier.name AS supplierName, d.supplierNumber, '
+    private const string COLUMNS = 'd.id, d.state, d.kind, d.treatment, d.evidenceNumber, d.supplier.name AS supplierName, d.supplierNumber, '
         .'d.issueDate, d.taxPointDate, d.receivedDate, d.currency, d.totalMinor, d.vatCzkMinor, d.createdAt, d.deletedAt, d.deletedBy, d.deletedReason, IDENTITY(d.supplierParty) AS supplierId';
     /** The fields of a view stored in a column of their own. */
     private const array VIEW_COLUMNS = [
@@ -87,7 +87,7 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
             ReceivedDocumentFilter::TRASH => 'd.deletedAt DESC, d.id DESC',
             default => 'd.receivedDate DESC, d.evidenceNumber DESC, d.id DESC',
         };
-        $query = $this->em->createQuery('SELECT '.self::COLUMNS.' FROM '.ReceivedDocument::class.' d JOIN d.firm f WHERE '.$where.' ORDER BY '.$order);
+        $query = $this->em->createQuery('SELECT '.self::COLUMNS.' FROM '.ReceivedDocument::class.' d WHERE '.$where.' ORDER BY '.$order);
         $this->bind($query, $parameters);
 
         return $this->rowsOf($query->setFirstResult(max(0, $offset))->setMaxResults(max(1, $limit))->getArrayResult());
@@ -117,11 +117,10 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
         return $months;
     }
 
-    public function correctable(string $firmId, ?string $exceptId, int $limit): array
+    public function correctable(?string $exceptId, int $limit): array
     {
-        $query = $this->em->createQuery('SELECT '.self::COLUMNS.' FROM '.ReceivedDocument::class.' d JOIN d.firm f WHERE d.firm = :firm AND d.state = :recorded AND d.deletedAt IS NULL AND d.kind <> :creditNote'
+        $query = $this->em->createQuery('SELECT '.self::COLUMNS.' FROM '.ReceivedDocument::class.' d WHERE d.state = :recorded AND d.deletedAt IS NULL AND d.kind <> :creditNote'
             .(null === $exceptId ? '' : ' AND d.id <> :except').' ORDER BY d.receivedDate DESC, d.evidenceNumber DESC, d.id DESC')
-            ->setParameter('firm', $firmId)
             ->setParameter('recorded', ReceivedDocumentState::Recorded->value)
             ->setParameter('creditNote', ReceivedDocumentKind::CreditNote->value);
         if (null !== $exceptId) {
@@ -192,13 +191,6 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
             // A condition of the view on the trash decides instead of $trashed.
             [$conditions[0], $parameters] = $this->inView($filter->view, 'v', $conditions[0]);
         }
-        if (null !== $filter->firmId) {
-            if (!Id::isValid($filter->firmId)) {
-                return [[], false];
-            }
-            $conditions[] = 'd.firm = :firm';
-            $parameters['firm'] = [$filter->firmId, null];
-        }
         if (null !== $filter->supplierId) {
             if (!Id::isValid($filter->supplierId)) {
                 return [[], false];
@@ -252,13 +244,11 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
     private function rowsOf(array $result): array
     {
         $rows = [];
-        /** @var array{id: string, firmId: string, firmName: string, state: ReceivedDocumentState|string, kind: ReceivedDocumentKind|string, treatment: PurchaseTaxTreatment|string, evidenceNumber: ?string, supplierName: string, supplierNumber: string, issueDate: ?\DateTimeImmutable, taxPointDate: ?\DateTimeImmutable, receivedDate: ?\DateTimeImmutable, currency: Currency|string, totalMinor: int|string|null, vatCzkMinor: int|string|null, createdAt: \DateTimeImmutable, deletedAt: ?\DateTimeImmutable, deletedBy: ?string, deletedReason: ?string, supplierId: ?string} $row */
+        /** @var array{id: string, state: ReceivedDocumentState|string, kind: ReceivedDocumentKind|string, treatment: PurchaseTaxTreatment|string, evidenceNumber: ?string, supplierName: string, supplierNumber: string, issueDate: ?\DateTimeImmutable, taxPointDate: ?\DateTimeImmutable, receivedDate: ?\DateTimeImmutable, currency: Currency|string, totalMinor: int|string|null, vatCzkMinor: int|string|null, createdAt: \DateTimeImmutable, deletedAt: ?\DateTimeImmutable, deletedBy: ?string, deletedReason: ?string, supplierId: ?string} $row */
         foreach ($result as $row) {
             $currency = $row['currency'] instanceof Currency ? $row['currency'] : Currency::from($row['currency']);
             $rows[] = new ReceivedDocumentRow(
                 $row['id'],
-                $row['firmId'],
-                $row['firmName'],
                 $row['state'] instanceof ReceivedDocumentState ? $row['state'] : ReceivedDocumentState::from($row['state']),
                 $this->kind($row['kind']),
                 $this->treatment($row['treatment']),

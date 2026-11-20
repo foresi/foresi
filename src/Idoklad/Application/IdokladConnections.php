@@ -9,11 +9,10 @@ declare(strict_types=1);
 namespace Foresi\Idoklad\Application;
 
 use Foresi\Idoklad\Domain\IdokladConnection;
-use Foresi\Party\Domain\LegalEntity;
 
 interface IdokladConnections
 {
-    public function for(LegalEntity $firm): ?IdokladConnection;
+    public function get(): ?IdokladConnection;
 
     public function save(IdokladConnection $connection): void;
 

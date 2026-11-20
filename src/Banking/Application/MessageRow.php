@@ -34,8 +34,6 @@ final readonly class MessageRow
         public ?string $parserId,
         public ?int $parserVersion,
         public int $attempts,
-        public string $firmName,
-        public string $firmCountry,
         public string $accountLabel,
         public string $accountIban,
         public bool $stuck,

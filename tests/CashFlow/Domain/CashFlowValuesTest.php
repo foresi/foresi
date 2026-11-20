@@ -20,10 +20,6 @@ use Foresi\CashFlow\Domain\MatchRule;
 use Foresi\CashFlow\Domain\MinimumBalance;
 use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\CashFlow\Domain\PlannedItemTerms;
-use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\LegalEntity;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use PHPUnit\Framework\TestCase;
@@ -95,8 +91,7 @@ final class CashFlowValuesTest extends TestCase
 
     public function testAMinimumBalanceIsInCzk(): void
     {
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
-        $minimum = new MinimumBalance($firm, Money::of('100.00', Currency::CZK));
+        $minimum = new MinimumBalance(Money::of('100.00', Currency::CZK));
         self::assertSame(10000, $minimum->amount()->minor());
 
         $this->expectException(\InvalidArgumentException::class);

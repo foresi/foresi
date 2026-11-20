@@ -19,7 +19,7 @@ use Foresi\Purchasing\Domain\ReceivedDocument;
 final readonly class ReceivedDocumentDetail
 {
     /**
-     * @param list<ReceivedDocumentRow>          $correctable the recorded documents of the firm a credit note may name, newest first
+     * @param list<ReceivedDocumentRow>          $correctable the recorded documents a credit note may name, newest first
      * @param list<ReceivedDocumentHistoryEntry> $history     oldest first
      */
     public function __construct(

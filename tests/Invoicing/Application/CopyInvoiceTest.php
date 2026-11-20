@@ -78,7 +78,6 @@ final class CopyInvoiceTest extends InvoiceTestCase
 
         $draft = $this->copy->valuesFrom($source);
 
-        self::assertSame($this->firm->id(), $draft->firmId);
         self::assertSame($this->series->id(), $draft->seriesId);
         self::assertSame($this->customer->id(), $draft->customerId);
         self::assertSame('Consulting', $draft->description);
@@ -106,7 +105,7 @@ final class CopyInvoiceTest extends InvoiceTestCase
 
     public function testAnotherSeriesOfTheFirmStaysWithItsOwnNumber(): void
     {
-        $second = new Series($this->firm, 'Second', SeriesFormat::fromString('S{YYYY}{NNN}'), DocumentKind::Invoice);
+        $second = new Series('Second', SeriesFormat::fromString('S{YYYY}{NNN}'), DocumentKind::Invoice);
         $this->em->persist($second);
         $this->em->flush();
         $source = $this->source(['seriesId' => $second->id()]);
@@ -120,7 +119,7 @@ final class CopyInvoiceTest extends InvoiceTestCase
 
     public function testAnArchivedSeriesGivesWayToTheDefaultAndSaysSo(): void
     {
-        $second = new Series($this->firm, 'Second', SeriesFormat::fromString('S{YYYY}{NNN}'), DocumentKind::Invoice);
+        $second = new Series('Second', SeriesFormat::fromString('S{YYYY}{NNN}'), DocumentKind::Invoice);
         $this->em->persist($second);
         $this->series->markDefault();
         $this->em->flush();
@@ -193,8 +192,8 @@ final class CopyInvoiceTest extends InvoiceTestCase
 
     public function testANonPayerCopyStaysWithoutVat(): void
     {
-        $firm = $this->secondFirm(VatStatus::NotRegistered, null);
-        $source = $this->issued([$this->line(treatment: TaxTreatment::NotApplicable, kind: null)], ['firmId' => $firm->id(), 'seriesId' => null, 'bankAccount' => self::IBAN]);
+        $this->reconfigureFirm(VatStatus::NotRegistered, null);
+        $source = $this->issued([$this->line(treatment: TaxTreatment::NotApplicable, kind: null)]);
 
         $draft = $this->copy->valuesFrom($source);
 
@@ -221,9 +220,8 @@ final class CopyInvoiceTest extends InvoiceTestCase
 
     public function testASourceFromBeforeTheFirmBecameAPayerTakesTheBaseRate(): void
     {
-        $firm = $this->secondFirm(VatStatus::NotRegistered, null);
-        $source = $this->issued([$this->line(treatment: TaxTreatment::NotApplicable, kind: null)], ['firmId' => $firm->id(), 'seriesId' => null]);
-        $this->firm = $firm;
+        $this->reconfigureFirm(VatStatus::NotRegistered, null);
+        $source = $this->issued([$this->line(treatment: TaxTreatment::NotApplicable, kind: null)]);
         $this->firmChanged(VatStatus::Registered, [self::IBAN], 'CZ12345687');
 
         $line = $this->copy->valuesFrom($source)->lines[0];
@@ -303,7 +301,7 @@ final class CopyInvoiceTest extends InvoiceTestCase
         $firm = $this->firm;
         $firm->update($firm->name(), $firm->registrationNumber(), VatStatus::Registered === $status ? \Foresi\Party\Domain\VatId::fromString($vatId ?? '') : null, $firm->address(), $status, $firm->registerEntry());
         $kept = [];
-        foreach (self::getContainer()->get(FirmBankAccounts::class)->of($firm, withArchived: true) as $account) {
+        foreach (self::getContainer()->get(FirmBankAccounts::class)->all(withArchived: true) as $account) {
             if (\in_array($account->iban(), $accounts, true)) {
                 $account->restore();
                 $kept[] = $account->iban();
@@ -312,7 +310,7 @@ final class CopyInvoiceTest extends InvoiceTestCase
             }
         }
         foreach (array_diff($accounts, $kept) as $iban) {
-            FirmAccounts::add($this->em, $firm, $iban);
+            FirmAccounts::add($this->em, $iban);
         }
         $this->em->flush();
     }
@@ -320,13 +318,5 @@ final class CopyInvoiceTest extends InvoiceTestCase
     private function reloadedSeries(Series $series): Series
     {
         return $this->catalog->get($series->id());
-    }
-
-    private function secondFirm(VatStatus $status, ?string $vatId): \Foresi\Party\Domain\LegalEntity
-    {
-        $firm = $this->firm($status, $vatId, registrationNumber: '12345687');
-        $this->em->flush();
-
-        return $firm;
     }
 }

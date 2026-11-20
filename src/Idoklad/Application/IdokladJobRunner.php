@@ -14,7 +14,6 @@ use Foresi\Idoklad\Domain\IdokladJobKind;
 use Foresi\Idoklad\Domain\IdokladPull;
 use Foresi\Idoklad\Domain\ImportMode;
 use Foresi\Invoicing\Application\ReminderSettings;
-use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 
@@ -42,7 +41,6 @@ final readonly class IdokladJobRunner
         private IdokladSnapshot $snapshot,
         private RunIdokladImport $import,
         private ReminderSettings $reminders,
-        private LegalEntities $firms,
         private TransactionalWork $work,
         private ClockInterface $clock,
     ) {
@@ -84,16 +82,15 @@ final readonly class IdokladJobRunner
      */
     private function pull(IdokladJob $job): array
     {
-        $firm = $job->firm();
-        $since = IdokladJobKind::Changes === $job->kind() ? $this->snapshot->lastSucceededPull($firm)?->latestChange() : null;
+        $since = IdokladJobKind::Changes === $job->kind() ? $this->snapshot->lastSucceededPull()?->latestChange() : null;
         try {
-            $pull = $this->pull->pull($firm, $since);
+            $pull = $this->pull->pull($since);
             do {
-                $batch = $this->pull->downloadPdfs($firm, self::PDF_BATCH);
+                $batch = $this->pull->downloadPdfs(self::PDF_BATCH);
                 $this->work->run(fn () => $pull->addRequests($batch->requestsUsed));
             } while (self::PDF_BATCH === $batch->downloaded);
         } catch (IdokladFailure $failure) {
-            $latest = $this->snapshot->pulls($firm)[0] ?? null;
+            $latest = $this->snapshot->pulls()[0] ?? null;
 
             return [$latest instanceof IdokladPull ? $latest->id() : null, self::errorOf($failure)];
         }
@@ -107,12 +104,11 @@ final readonly class IdokladJobRunner
     private function import(IdokladJob $job): array
     {
         $mode = IdokladJobKind::Run === $job->kind() ? ImportMode::Run : ImportMode::Check;
-        $run = $this->import->run($job->firm(), $mode, $job->options());
+        $run = $this->import->run($mode, $job->options());
         $remindFrom = $job->remindFrom();
         if (ImportMode::Run === $mode && null === $run->error() && $remindFrom instanceof \DateTimeImmutable) {
-            $firmId = $run->firm()->id();
-            $this->work->run(function () use ($firmId, $remindFrom): void {
-                $settings = $this->reminders->for($this->firms->get($firmId));
+            $this->work->run(function () use ($remindFrom): void {
+                $settings = $this->reminders->get();
                 $settings->remindFrom($remindFrom);
                 $this->reminders->save($settings);
             });
