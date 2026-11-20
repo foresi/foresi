@@ -12,17 +12,12 @@ use Foresi\CashFlow\Contract\ActualFlowSource;
 use Foresi\CashFlow\Contract\BalanceCheckpoint;
 use Foresi\CashFlow\Contract\BalanceSource;
 use Foresi\CashFlow\Contract\CashFlowSource;
-use Foresi\CashFlow\Contract\ExpectedFlow;
 use Foresi\CashFlow\Contract\FlowCertainty;
 use Foresi\CashFlow\Contract\FlowDirection;
-use Foresi\CashFlow\Contract\FlowFlag;
 use Foresi\CashFlow\Contract\ForecastPeriod;
 use Foresi\CashFlow\Domain\Checkpoint;
 use Foresi\CashFlow\Domain\MinimumBalance;
-use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\ExchangeRate\Application\ExchangeRates;
-use Foresi\ExchangeRate\Domain\ExchangeRate;
-use Foresi\ExchangeRate\Domain\RateNotAvailable;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\LegalEntity;
@@ -37,7 +32,10 @@ use Psr\Log\LoggerInterface;
  * day and flagged overdue; a document with an expected day is counted then.
  * Every amount is converted to CZK at today's rate and keeps its own amount.
  * A planned occurrence that a document or a bank movement already fulfils is
- * left out (PlannedFulfilment). A source whose documents the caller may not
+ * left out (PlannedFulfilment); ForecastFlows asks the sources, as it does for
+ * ForecastReads. A certainty filter keeps the flows of the certainties chosen,
+ * and the balances, the lowest point and the shortfall follow it; the balance
+ * today is never filtered. A source whose documents the caller may not
  * read adds to the category totals only, never as items (C15).
  * A source, a balance source or a rate that fails is listed and left out; it
  * never breaks the forecast.
@@ -48,12 +46,10 @@ final class Forecasts
     public const int MAX_MONTHS = 24;
     public const int STALE_AFTER_DAYS = 7;
 
-    /** @var array<string, ExchangeRate> */
-    private array $rates = [];
-    /** @var list<string> the currencies without a rate in this forecast */
-    private array $missingRates = [];
     /** @var list<string> the keys of the sources whose documents the caller may not read */
     private array $restricted = [];
+
+    private readonly ForecastFlows $flows;
 
     /**
      * @param iterable<CashFlowSource>   $sources
@@ -66,20 +62,22 @@ final class Forecasts
         private readonly InstanceClock $clock,
         private readonly ExchangeRates $exchangeRates,
         private readonly LoggerInterface $logger,
-        private readonly iterable $sources,
+        iterable $sources,
         private readonly iterable $balanceSources,
-        private readonly iterable $actualSources = [],
+        iterable $actualSources = [],
     ) {
+        $this->flows = new ForecastFlows($store, $logger, $sources, $actualSources);
     }
 
     /**
-     * @param string|null $from       the first day, today or later, ISO 8601; today when null
-     * @param int|null    $months     how many calendar months the horizon covers, 1 to 24; 12 when null
-     * @param string|null $weeksUntil weeks are used up to the week holding this day, ISO 8601; the end of next month when null
+     * @param string|null              $from        the first day, today or later, ISO 8601; today when null
+     * @param int|null                 $months      how many calendar months the horizon covers, 1 to 24; 12 when null
+     * @param string|null              $weeksUntil  weeks are used up to the week holding this day, ISO 8601; the end of next month when null
+     * @param list<FlowCertainty>|null $certainties the flows counted, by how sure they are; all when null. The balance today is never filtered.
      *
      * @throws CashFlowRefused
      */
-    public function of(?string $from = null, ?int $months = null, ?string $weeksUntil = null): Forecast
+    public function of(?string $from = null, ?int $months = null, ?string $weeksUntil = null, ?array $certainties = null): Forecast
     {
         $this->access->denyUnlessStaff();
         $firm = $this->access->firm();
@@ -96,16 +94,19 @@ final class Forecasts
         $weeksEnd = null === $weeksUntil ? ForecastPeriods::endOfNextMonth($start) : PlannedItemRules::day($weeksUntil, $zone, 'weeksUntil');
         $periods = ForecastPeriods::of($start, $months, $weeksEnd);
         $end = ForecastPeriods::horizonEnd($start, $months);
-        $this->rates = [];
-        $this->missingRates = [];
-        $this->restricted = [];
+        $czk = new CzkAmounts($this->exchangeRates, $this->logger, $today);
         $unavailable = [];
 
         $accounts = [];
         foreach ($this->access->accountsOf($firm) as $account) {
-            $accounts[] = $this->opening($firm, $account, $today, $unavailable);
+            $accounts[] = $this->opening($firm, $account, $today, $czk, $unavailable);
         }
-        $lines = $this->unfulfilled($firm, $this->lines($firm, $today, $start, $end, $unavailable), $unavailable);
+        // In the order of FlowCertainty, each once.
+        $certainties = null === $certainties ? null : array_values(array_filter(FlowCertainty::cases(), static fn (FlowCertainty $certainty): bool => \in_array($certainty, $certainties, true)));
+        $collected = $this->flows->collect($firm, $today, $start, $end, $czk, certainties: $certainties);
+        $lines = $collected->lines;
+        $this->restricted = $collected->restricted;
+        array_push($unavailable, ...$collected->unavailable);
 
         $running = $this->sum(array_map(static fn (AccountOpening $account): ?Money => $account->amount, $accounts));
         $opening = $running;
@@ -164,15 +165,39 @@ final class Forecasts
             $minimumAmount,
             $shortfallOn,
             array_values(array_unique($unavailable)),
-            $this->missingRates,
-            array_values(array_unique($this->restricted)),
+            $czk->missing(),
+            $this->restricted,
+            $certainties,
         );
+    }
+
+    /**
+     * The certainties a client names, such as "document" and "plan"; null when it names none.
+     *
+     * @param list<mixed> $names
+     *
+     * @return list<FlowCertainty>|null
+     *
+     * @throws CashFlowRefused invalid_certainty
+     */
+    public static function certainties(array $names): ?array
+    {
+        $certainties = [];
+        foreach ($names as $name) {
+            $certainty = \is_string($name) ? FlowCertainty::tryFrom(trim($name)) : null;
+            if (!$certainty instanceof FlowCertainty) {
+                throw CashFlowRefused::invalid('invalid_certainty', 'certainty', \sprintf('certainty is a list of %s.', implode(', ', FlowCertainty::values())));
+            }
+            $certainties[] = $certainty;
+        }
+
+        return [] === $certainties ? null : $certainties;
     }
 
     /**
      * @param list<string> $unavailable
      */
-    private function opening(LegalEntity $firm, FirmBankAccount $account, \DateTimeImmutable $today, array &$unavailable): AccountOpening
+    private function opening(LegalEntity $firm, FirmBankAccount $account, \DateTimeImmutable $today, CzkAmounts $czk, array &$unavailable): AccountOpening
     {
         $checkpoint = $this->store->latestCheckpoint($account, $today);
         if (!$checkpoint instanceof Checkpoint) {
@@ -195,122 +220,7 @@ final class Forecasts
             }
         }
 
-        return new AccountOpening($account, $balance, $this->czk($balance, $today), $asOf, $source);
-    }
-
-    /**
-     * @param list<string> $unavailable
-     *
-     * @return list<ForecastLine> in the order they are counted
-     */
-    private function lines(LegalEntity $firm, \DateTimeImmutable $today, \DateTimeImmutable $start, \DateTimeImmutable $end, array &$unavailable): array
-    {
-        $expected = $this->store->expectedDates();
-        $lines = [];
-        foreach ($this->sources as $source) {
-            try {
-                $flows = [];
-                $details = $source->mayReadDetails();
-                foreach ($source->flows($firm->id(), $today, $end, $today) as $flow) {
-                    $flows[] = $flow;
-                }
-            } catch (\Throwable $failure) {
-                $this->logger->error('The cash-flow source {source} failed.', ['source' => $source->key(), 'exception' => $failure]);
-                $unavailable[] = $source->key();
-                continue;
-            }
-            if (!$details) {
-                $this->restricted[] = $source->key();
-            }
-            foreach ($flows as $flow) {
-                $line = $this->line($flow, $expected, $today, $start, $end);
-                if ($line instanceof ForecastLine) {
-                    $lines[] = $line;
-                }
-            }
-        }
-        // By the day they are counted on, overdue ones first, money in before money out.
-        usort($lines, static fn (ForecastLine $a, ForecastLine $b): int => self::order($a) <=> self::order($b));
-
-        return $lines;
-    }
-
-    /**
-     * @param array<string, \DateTimeImmutable> $expected
-     */
-    private function line(ExpectedFlow $flow, array $expected, \DateTimeImmutable $today, \DateTimeImmutable $start, \DateTimeImmutable $end): ?ForecastLine
-    {
-        $override = $expected[$flow->subject->type.':'.$flow->subject->id] ?? null;
-        $sourceOn = $flow->expectedOn;
-        if (FlowCertainty::Document === $flow->certainty && $override instanceof \DateTimeImmutable) {
-            $flow = $flow->movedTo(new \DateTimeImmutable($override->format('Y-m-d'), $today->getTimezone()), FlowFlag::ExpectedDate);
-        }
-        $day = $flow->expectedOn->format('Y-m-d');
-        if ($day > $end->format('Y-m-d')) {
-            return null;
-        }
-        $overdue = $day < $today->format('Y-m-d');
-        if ($overdue) {
-            $flow = $flow->movedTo($flow->expectedOn, FlowFlag::Overdue);
-        }
-        $amount = $this->czk($flow->amount, $today);
-
-        return $amount instanceof Money ? new ForecastLine($flow, $amount, $overdue ? $start : new \DateTimeImmutable($day, $today->getTimezone()), $sourceOn) : null;
-    }
-
-    /**
-     * The lines but the planned occurrences that a document or a bank movement
-     * already fulfils, asked of the actual sources once for all the periods.
-     *
-     * @param list<ForecastLine> $lines
-     * @param list<string>       $unavailable
-     *
-     * @return list<ForecastLine>
-     */
-    private function unfulfilled(LegalEntity $firm, array $lines, array &$unavailable): array
-    {
-        $items = [];
-        foreach ($this->store->plannedItemsOf($firm->id()) as $item) {
-            $items[$item->id()] = $item;
-        }
-        $planned = [];
-        $first = null;
-        $last = null;
-        foreach ($lines as $index => $line) {
-            $item = 'planned_item' === $line->flow->subject->type ? ($items[$line->flow->subject->id] ?? null) : null;
-            if (!$item instanceof PlannedItem || (!$item->isRecurring() || !$item->counterparty() instanceof \Foresi\Party\Domain\Party) && $item->matchRule()->isEmpty()) {
-                continue;
-            }
-            $planned[$index] = $item;
-            [$from, $to] = PlannedFulfilment::period($item, $line->flow->expectedOn);
-            $first = null === $first || $from < $first ? $from : $first;
-            $last = null === $last || $to > $last ? $to : $last;
-        }
-        if (!$first instanceof \DateTimeImmutable || !$last instanceof \DateTimeImmutable) {
-            return $lines;
-        }
-        $actuals = [];
-        foreach ($this->actualSources as $source) {
-            try {
-                $given = [];
-                foreach ($source->actuals($firm->id(), $first, $last) as $actual) {
-                    $given[] = $actual;
-                }
-            } catch (\Throwable $failure) {
-                // What it gave before failing may be partial; it suppresses nothing.
-                $this->logger->error('The cash-flow actual source {source} failed.', ['source' => $source->key(), 'exception' => $failure]);
-                $unavailable[] = $source->key();
-                continue;
-            }
-            array_push($actuals, ...$given);
-        }
-        foreach ($planned as $index => $item) {
-            if (PlannedFulfilment::isFulfilled($item, $lines[$index]->flow->expectedOn, $actuals)) {
-                unset($lines[$index]);
-            }
-        }
-
-        return array_values($lines);
+        return new AccountOpening($account, $balance, $czk->of($balance), $asOf, $source);
     }
 
     /**
@@ -325,7 +235,15 @@ final class Forecasts
     {
         $visible = [];
         $hidden = [];
+        $inByCertainty = [];
+        $outByCertainty = [];
         foreach ($lines as $line) {
+            $certainty = $line->flow->certainty->value;
+            if (FlowDirection::In === $line->flow->direction) {
+                $inByCertainty[$certainty] = isset($inByCertainty[$certainty]) ? $inByCertainty[$certainty]->plus($line->amount) : $line->amount;
+            } else {
+                $outByCertainty[$certainty] = isset($outByCertainty[$certainty]) ? $outByCertainty[$certainty]->plus($line->amount) : $line->amount;
+            }
             if (!\in_array($line->flow->source, $this->restricted, true)) {
                 $visible[] = $line;
                 continue;
@@ -337,43 +255,7 @@ final class Forecasts
         }
         ksort($hidden);
 
-        return new PeriodForecast($period, $opening, $in, $out, $closing, $visible, array_values($hidden));
-    }
-
-    /**
-     * The amount in CZK at today's rate; null when the currency has no rate.
-     */
-    private function czk(Money $money, \DateTimeImmutable $today): ?Money
-    {
-        $currency = $money->currency();
-        if (Currency::CZK === $currency) {
-            return $money;
-        }
-        if (\in_array($currency->value, $this->missingRates, true)) {
-            return null;
-        }
-        if (!isset($this->rates[$currency->value])) {
-            try {
-                $this->rates[$currency->value] = $this->exchangeRates->rateOn($currency->value, $today);
-            } catch (RateNotAvailable $failure) {
-                $this->logger->warning('No rate of {currency} for the cash-flow forecast.', ['currency' => $currency->value, 'exception' => $failure]);
-                $this->missingRates[] = $currency->value;
-
-                return null;
-            }
-        }
-        $rate = $this->rates[$currency->value];
-        $czk = Money::ofMinor($money->minor(), Currency::CZK)->multipliedBy($rate->rate);
-
-        return $czk->dividedBy((string) $rate->amount);
-    }
-
-    /**
-     * @return array{string, bool, string, string}
-     */
-    private static function order(ForecastLine $line): array
-    {
-        return [$line->countedOn->format('Y-m-d'), !$line->flow->hasFlag(FlowFlag::Overdue), $line->flow->direction->value, $line->flow->label];
+        return new PeriodForecast($period, $opening, $in, $out, $closing, $visible, array_values($hidden), $inByCertainty, $outByCertainty);
     }
 
     /**

@@ -42,6 +42,7 @@ final readonly class CashFlowApiController
     #[OA\Parameter(name: 'from', description: 'The first day, today or later; today when left out.', in: 'query', schema: new OA\Schema(type: 'string', format: 'date'))]
     #[OA\Parameter(name: 'months', description: 'How many calendar months the forecast covers, 1 to 24; 12 when left out.', in: 'query', schema: new OA\Schema(type: 'integer'))]
     #[OA\Parameter(name: 'weeks_until', description: 'Weeks are used up to the week that holds this day, then months; the end of next month when left out.', in: 'query', schema: new OA\Schema(type: 'string', format: 'date'))]
+    #[OA\Parameter(name: 'certainty', description: 'The certainties counted, separated by commas: document, schedule, plan, estimate; all when left out. The balances, lowest and shortfall_on are then those of the chosen flows; the balance today is never filtered.', in: 'query', schema: new OA\Schema(type: 'string', example: 'document,schedule'))]
     #[OA\Response(response: 200, description: 'The forecast of the firm in CZK.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/CashFlowForecast')], type: 'object'))]
     #[OA\Response(response: 400, description: 'A parameter cannot be used.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
@@ -55,7 +56,9 @@ final readonly class CashFlowApiController
         if ('' !== $months && 1 !== preg_match('/^[0-9]{1,3}\z/', $months)) {
             throw CashFlowRefused::invalid('months_invalid', 'months', 'months is a whole number of months, 1 to 24.');
         }
-        $forecast = $this->forecasts->of($this->optional($request, 'from'), '' === $months ? null : (int) $months, $this->optional($request, 'weeks_until'));
+        $certainty = $this->optional($request, 'certainty');
+        $certainties = null === $certainty ? null : Forecasts::certainties(explode(',', $certainty));
+        $forecast = $this->forecasts->of($this->optional($request, 'from'), '' === $months ? null : (int) $months, $this->optional($request, 'weeks_until'), $certainties);
 
         return new JsonResponse(['data' => CashFlowJson::forecast($forecast)]);
     }

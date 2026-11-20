@@ -18,6 +18,9 @@ use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Tests\ExchangeRate\Support\FakeRateSource;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Tests\Party\Support\FirmAccounts;
@@ -192,9 +195,47 @@ final class CashFlowControllerTest extends WebTestCase
         self::assertCount(1, $sheet->filter('#sheet-page'));
         self::assertStringContainsString('Money out · Rent · Dec 2026', $sheet->filter('#sheet-page')->text());
         self::assertStringContainsString('Office rent', $sheet->filter('[data-cash-flow-item]')->text());
-        self::assertSame('Plan', $sheet->filter('[data-cash-flow-item] [data-source]')->text());
+        self::assertSame('Plan', $sheet->filter('[data-cash-flow-item] [data-certainty]')->text());
+        // A plan's source says no more than its certainty.
+        self::assertCount(0, $sheet->filter('[data-cash-flow-item] [data-source]'));
         $this->client->request('GET', $link->attr('href'));
         self::assertResponseIsSuccessful();
+    }
+
+    public function testACertaintyFilterNarrowsTheTableAndKeepsTheBalanceOfToday(): void
+    {
+        $this->signedIn();
+        $this->dialogPost('/cash-flow/balance', ['amount' => '60000'] + $this->dialogForm('/cash-flow/balance', '#cash-flow-balance-form'));
+        $this->plan('2026-12-15', '20000.00');
+
+        // The builder's rows become the filter in the address, the view kept.
+        $this->client->request('GET', '/cash-flow', ['view' => 'weeks', 'conditions' => '1', 'c' => [['field' => 'certainty', 'op' => 'is_any_of', 'values' => ['document', 'estimate']]]]);
+        self::assertResponseStatusCodeSame(303);
+        $location = (string) $this->client->getResponse()->headers->get('Location');
+        self::assertStringStartsWith('/cash-flow?view=weeks&f=', $location);
+        $crawler = $this->client->request('GET', $location);
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('[data-cash-flow-table-empty]'));
+        self::assertCount(0, $crawler->filter('[data-cash-flow-table]'));
+        self::assertStringContainsString('Certainty: Document, Estimate', $crawler->filter('[data-cash-flow-filter]')->text());
+        // The balance today is never filtered.
+        self::assertStringContainsString('60,000', $crawler->filter('[data-cash-flow-kpis]')->text());
+
+        $f = WorkingFilter::encode(new ViewFilter([new Condition('certainty', 'is', 'plan')]));
+        $crawler = $this->client->request('GET', '/cash-flow', ['f' => $f]);
+        $link = $crawler->filter('[data-cash-flow-table] tr[data-row="category"] a[data-sheet]');
+        self::assertCount(1, $link);
+        self::assertSame('/cash-flow/items?period=2026-12&direction=out&category=rent&f='.$f, $link->attr('href'));
+        self::assertStringContainsString('f='.$f, (string) $crawler->filter('[data-cash-flow-views] a')->first()->attr('href'));
+        $sheet = $this->client->request('GET', $link->attr('href'));
+        self::assertStringContainsString('Office rent', $sheet->filter('[data-cash-flow-item]')->text());
+
+        // A filter that leaves the plan out leaves its items out of the sheet too.
+        $none = WorkingFilter::encode(new ViewFilter([new Condition('certainty', 'is_not', 'plan')]));
+        $sheet = $this->client->request('GET', '/cash-flow/items?period=2026-12&direction=out&category=rent&f='.$none);
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $sheet->filter('[data-cash-flow-item]'));
     }
 
     public function testAGuestMayNotSeeTheCashFlow(): void

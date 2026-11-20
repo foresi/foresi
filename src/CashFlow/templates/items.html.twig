@@ -1,9 +1,9 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     The items of one cell of the period table, in the side sheet over the Cash flow page, as QuickBooks
-    lists the items behind its planner: what each is, a badge for where it comes from (an invoice, a
-    recurring invoice, a received document, a plan), the day it is counted on and the amount in its own
-    currency. The same URL without the dialog header is a page.
+    lists the items behind its planner: what each is, a badge for how sure it is (a document, a
+    schedule, a plan, or an estimate in its own outlined badge), where it comes from when that says
+    more, the day it is counted on and the amount in its own currency. The same URL without the dialog header is a page.
 #}
 {% extends overlay() == 'sheet' ? '@Ui/layout/sheet.html.twig' : '@Ui/layout/app.html.twig' %}
 
@@ -22,7 +22,8 @@
                     <div class="min-w-0 flex-1">
                         <p class="m-0 truncate font-medium text-ink" title="{{ item.label }}">{{ item.label }}</p>
                         <div class="mt-1 flex flex-wrap items-center gap-1.5 text-caption text-muted">
-                            <twig:Ui:Badge tone="gray" data-source>{{ item.source }}</twig:Ui:Badge>
+                            <twig:Ui:Badge :tone="item.certaintyTone" data-certainty>{{ item.certainty }}</twig:Ui:Badge>
+                            {% if item.source %}<span data-source>{{ item.source }}</span>{% endif %}
                             <span>{{ item.day }}</span>
                             {% for flag in item.flags %}<twig:Ui:Badge tone="amber">{{ flag }}</twig:Ui:Badge>{% endfor %}
                         </div>
