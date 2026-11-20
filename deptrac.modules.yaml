@@ -151,6 +151,26 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Shared\\Contract\\.*
+    - name: taxes_and_contributions
+      collectors:
+        - type: classLike
+          value: ^Foresi\\TaxesAndContributions\\(?!Contract\\|Integration\\).*
+    - name: taxes_and_contributions_contract
+      collectors:
+        - type: classLike
+          value: ^Foresi\\TaxesAndContributions\\Contract\\.*
+    - name: taxes_and_contributions_integration_cash_flow
+      collectors:
+        - type: classLike
+          value: ^Foresi\\TaxesAndContributions\\Integration\\CashFlow\\.*
+    - name: taxes_and_contributions_integration_invoicing
+      collectors:
+        - type: classLike
+          value: ^Foresi\\TaxesAndContributions\\Integration\\Invoicing\\.*
+    - name: taxes_and_contributions_integration_purchasing
+      collectors:
+        - type: classLike
+          value: ^Foresi\\TaxesAndContributions\\Integration\\Purchasing\\.*
     - name: timesheet
       collectors:
         - type: classLike
@@ -559,6 +579,89 @@ deptrac:
     shared:
       - shared_contract
     shared_contract: []
+    taxes_and_contributions:
+      - audit
+      - audit_contract
+      - exchange_rate
+      - exchange_rate_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - taxes_and_contributions_contract
+      - ui
+      - ui_contract
+    taxes_and_contributions_contract:
+      - audit
+      - audit_contract
+      - exchange_rate_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui_contract
+    taxes_and_contributions_integration_cash_flow:
+      - audit
+      - audit_contract
+      - cash_flow_contract
+      - exchange_rate
+      - exchange_rate_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - taxes_and_contributions
+      - taxes_and_contributions_contract
+      - ui
+      - ui_contract
+    taxes_and_contributions_integration_invoicing:
+      - audit
+      - audit_contract
+      - exchange_rate
+      - exchange_rate_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - invoicing_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - taxes_and_contributions
+      - taxes_and_contributions_contract
+      - ui
+      - ui_contract
+    taxes_and_contributions_integration_purchasing:
+      - audit
+      - audit_contract
+      - exchange_rate
+      - exchange_rate_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - purchasing_contract
+      - shared
+      - shared_contract
+      - taxes_and_contributions
+      - taxes_and_contributions_contract
+      - ui
+      - ui_contract
     timesheet:
       - audit
       - audit_contract

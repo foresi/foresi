@@ -1,0 +1,161 @@
+nav:
+  item:
+    taxes: Taxes and contributions
+taxes:
+  title: Taxes and contributions
+  cancel: Cancel
+  save: Save
+  status:
+    kind:
+      legal_form: Legal form
+      activity: Activity
+      vat_payer: VAT payer
+      flat_rate_band: Flat-rate tax
+      sickness_insurance: Sickness insurance
+      health_minimum_exempt: Exempt from the health minimum
+    value:
+      legal_form:
+        sole_trader: Sole trader
+      activity:
+        none: No activity
+        secondary: Secondary
+        main: Main
+      vat_payer:
+        'yes': VAT payer
+        'no': Not a VAT payer
+      health_minimum_exempt:
+        'yes': Yes, exempt
+        'no': No, the minimum applies
+      flat_rate_band:
+        none: No flat-rate tax
+        '1': Band 1
+        '2': Band 2
+        '3': Band 3
+      sickness_insurance:
+        'off': Not paid
+        'on': Paid
+  method:
+    actual: Actual costs
+    lump_80: Lump sum 80%
+    lump_60: Lump sum 60%
+    lump_40: Lump sum 40%
+    lump_30: Lump sum 30%
+  route:
+    paper: On paper
+    electronic: Electronically
+    advisor: Through a tax advisor
+  authority:
+    social: Social insurance
+    health: Health insurance
+    sickness: Sickness insurance
+    income_tax: Income tax
+  deduction:
+    gifts: Gifts
+    housing_loan_interest: Housing loan interest
+    pension_products: Pension products
+    life_insurance: Life insurance
+    long_term_investment: Long-term investment product
+    union_fees: Union fees
+    exam_fees: Further education exams
+  profile:
+    title: Profile
+    description: What the taxes and contributions are estimated from. Each status holds from its day until the next change of its kind. The profile holds personal data, so only the owner sees it.
+    statuses: Statuses
+    years: Years
+    authorities: Authority accounts
+    authorities_note: Where you pay the advances. Payments are matched to the estimate by the account and the variable symbol.
+    empty_title: No statuses yet
+    empty_text: Add since when you are a sole trader, your activity and since when you are a VAT payer.
+    until_next: until the next change
+    column:
+      value: Status
+      from: From
+      until: Until
+    field:
+      change: Change
+      valid_from: From
+      valid_from_help: It holds from this day until the next change of its kind.
+      base: Monthly base
+      base_help: Only for sickness insurance you pay. CZK.
+      account: Account number
+      account_help: Such as 000000-1234567890/0710 or an IBAN.
+      variable_symbol: Variable symbol
+      chosen_method: Costs in the return
+      chosen_open: Not decided yet
+      child_label: Child
+      child_label_help: Your own label, such as "Elder daughter".
+      birth_date: Birth date
+      order: Order
+      months: Months (0–12)
+      ztp_p: Holds a severe disability card (ZTP/P)
+      spouse_months: Months of the spouse (0–12)
+      spouse_months_help: Empty when you claim no spouse.
+      spouse_low_income: Their income stays at most 68,000 CZK
+      employmentBase: Partial base from employment
+      employmentTaxWithheld: Tax withheld by the employer
+      rentalBase: Partial base from rental
+      otherBase: Other partial bases
+      lastKnownTax: Last known tax
+      previousSocialBase: Social insurance base of the previous year
+      previousHealthBase: Health insurance base of the previous year
+      previousOverviewFiledOn: Overviews of the previous year filed on
+      returnRoute: Filing the return
+      activityStart: Start of the activity
+      activityStart_help: Only when you started in this year.
+      averageWageOverride: Own average wage
+      averageWageOverride_help: Empty uses the published average wage.
+    order:
+      '1': First child
+      '2': Second child
+      '3': Third and further child
+    status:
+      new: Add a change
+      description: The new status holds from the day you choose until the next change of its kind.
+      remove: Remove
+      remove_title: Remove this status?
+      remove_text: From its day, the status of its kind before it holds again.
+      with_base: '{value}, base {base}'
+      flash_added: 'The status "{value}" is added.'
+      flash_removed: The status is removed.
+    year:
+      title: 'Year {year}'
+      description: The inputs of the estimate for this year. Amounts in CZK.
+      not_entered: Not entered yet
+      children: '{count, plural, one {# child} other {# children}}'
+      methods: Costs to compare
+      children_title: Children
+      child: 'Child {number}'
+      spouse: Spouse
+      deductions: Deductions
+      bases: Other income
+      previous: Previous year
+      other: Other
+      flash: 'The inputs of {year} are saved.'
+    authority:
+      vs: 'VS {symbol}'
+      not_set: Not set
+      flash: 'The account for {authority} is saved.'
+    error:
+      kind_invalid: Choose a change from the list.
+      value_invalid: Choose a change from the list.
+      date_invalid: Enter a valid date.
+      base_required: Enter the monthly base.
+      base_not_allowed: A base is only for sickness insurance you pay.
+      amount_invalid: Enter a positive amount in CZK with at most two decimals.
+      status_day_taken: A status of this kind already starts on this day. Remove it first.
+      year_invalid: The year is out of range.
+      expense_method_invalid: Choose the costs from the list.
+      expense_methods_empty: Choose at least one way of counting costs to compare.
+      chosen_method_not_compared: The costs in the return must be one of those compared.
+      children_too_many: There are too many children.
+      child_invalid: The child is not complete.
+      child_label_invalid: Each child needs a label of at most 100 characters.
+      child_order_invalid: Choose the order of the child.
+      months_invalid: The months are 0 to 12.
+      deduction_invalid: The deduction is not valid.
+      deduction_repeated: Each deduction comes once.
+      return_route_invalid: Choose how the return is filed.
+      authority_invalid: Unknown authority.
+      account_invalid: Enter an account number of at most 64 characters.
+      variable_symbol_invalid: A variable symbol has at most 35 characters.
+      not_found: The status no longer exists.

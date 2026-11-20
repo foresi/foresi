@@ -27,6 +27,15 @@ final readonly class OwnerCheck
     {
         $userId = $this->actor->userId();
 
-        return null !== $userId && Role::Owner === $this->memberships->roleOf($userId);
+        return null !== $userId && $this->isOwnerMember($userId);
+    }
+
+    /**
+     * Whether a given user, signed in or not, owns the active organisation:
+     * for work done on their behalf, such as the webhooks they own.
+     */
+    public function isOwnerMember(string $userId): bool
+    {
+        return Role::Owner === $this->memberships->roleOf($userId);
     }
 }

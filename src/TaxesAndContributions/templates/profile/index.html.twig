@@ -1,0 +1,73 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The owner profile under Money → Taxes and contributions, for the owner only (B7). The statuses are a
+    dated list per kind, each holding until the next of its kind; "Add a change" in the page header
+    opens the dialog. Each year
+    opens its inputs in the side sheet, each authority its account in a small dialog
+    (docs/design/overlays.md). Variables: columns, groups, years, authorities.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'taxes.title'|trans}, {label: 'taxes.profile.title'|trans}] %}
+{% set token = csrf_token(constant('Foresi\\TaxesAndContributions\\Infrastructure\\Controller\\ProfileController::TOKEN')) %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+
+{% block title %}{{ 'taxes.profile.title'|trans }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:Button variant="primary" icon="plus" :href="path('app_taxes_profile_status_new')" data-dialog aria-haspopup="dialog" data-taxes-status-new>{{ 'taxes.profile.status.new'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% for tone in ['success', 'error'] %}
+        {% for message in app.flashes(tone) %}
+            <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
+        {% endfor %}
+    {% endfor %}
+    <div class="grid gap-6">
+        <p class="m-0 max-w-3xl text-small text-muted">{{ 'taxes.profile.description'|trans }}</p>
+
+        <section class="grid gap-3" aria-labelledby="taxes-statuses" data-taxes-statuses>
+            <h2 id="taxes-statuses" class="m-0 text-h3 font-semibold text-ink">{{ 'taxes.profile.statuses'|trans }}</h2>
+            {% for group in groups %}
+                <div class="grid gap-2" data-taxes-kind="{{ group.kind }}">
+                    <h3 class="m-0 text-small font-semibold text-ink">{{ group.title }}</h3>
+                    <twig:Ui:DataTable :caption="group.title" :columns="columns" :rows="group.rows" :actionToken="token" />
+                </div>
+            {% else %}
+                <twig:Ui:EmptyState icon="calendar" :title="'taxes.profile.empty_title'|trans" :text="'taxes.profile.empty_text'|trans">
+                    <twig:Ui:Button variant="primary" icon="plus" :href="path('app_taxes_profile_status_new')" data-dialog aria-haspopup="dialog">{{ 'taxes.profile.status.new'|trans }}</twig:Ui:Button>
+                </twig:Ui:EmptyState>
+            {% endfor %}
+        </section>
+
+        <section class="grid gap-3" aria-labelledby="taxes-years" data-taxes-years>
+            <h2 id="taxes-years" class="m-0 text-h3 font-semibold text-ink">{{ 'taxes.profile.years'|trans }}</h2>
+            <ul class="m-0 grid list-none gap-2 p-0">
+                {% for year in years %}
+                    <li class="relative flex min-h-row-list flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-panel border border-container bg-white px-4 py-2" data-taxes-year="{{ year.year }}">
+                        <a href="{{ year.href }}" data-sheet aria-haspopup="dialog" class="font-medium text-ink no-underline after:absolute after:inset-0 hover:text-green {{ focus }}">{{ 'taxes.profile.year.title'|trans({year: year.year}) }}</a>
+                        <span class="text-small text-muted">{{ year.summary }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+
+        <section class="grid gap-3" aria-labelledby="taxes-authorities" data-taxes-authorities>
+            <h2 id="taxes-authorities" class="m-0 text-h3 font-semibold text-ink">{{ 'taxes.profile.authorities'|trans }}</h2>
+            <p class="m-0 text-small text-muted">{{ 'taxes.profile.authorities_note'|trans }}</p>
+            <ul class="m-0 grid list-none gap-2 p-0">
+                {% for authority in authorities %}
+                    <li class="relative flex min-h-row-list flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-panel border border-container bg-white px-4 py-2" data-taxes-authority="{{ authority.authority }}">
+                        <a href="{{ authority.href }}" data-dialog aria-haspopup="dialog" class="font-medium text-ink no-underline after:absolute after:inset-0 hover:text-green {{ focus }}">{{ authority.title }}</a>
+                        {% if authority.account %}
+                            <span class="text-small text-text">{{ authority.account }}{% if authority.variableSymbol %} · {{ 'taxes.profile.authority.vs'|trans({symbol: authority.variableSymbol}) }}{% endif %}</span>
+                        {% else %}
+                            <span class="text-small text-muted">{{ 'taxes.profile.authority.not_set'|trans }}</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    </div>
+{% endblock %}

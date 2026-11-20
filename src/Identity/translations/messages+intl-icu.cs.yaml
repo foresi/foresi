@@ -175,6 +175,7 @@ api_tokens:
     webhooks: Webhooky
     events: Události
     cashflow: Cash flow
+    taxes: Daně a odvody
     received_documents: Přijaté doklady
     views: Uložené pohledy
     projects: Projekty

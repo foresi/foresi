@@ -1,0 +1,41 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Add a change: one status from a day on, until the next of its kind. The change is one choice,
+    grouped by kind, so no script has to swap the values; sickness insurance that is on also takes its
+    monthly base. Variables: values, errors, choices.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'taxes.profile.title'|trans, href: path('app_taxes_profile')}, {label: 'taxes.profile.status.new'|trans}] %}
+{% set dialog_size = 'sm' %}
+{% set dialog_description = 'taxes.profile.status.description'|trans %}
+
+{% block title %}{{ 'taxes.profile.status.new'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="taxes-status-form" action="{{ path('app_taxes_profile_status_new') }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\TaxesAndContributions\\Infrastructure\\Controller\\ProfileController::TOKEN')) }}">
+        <twig:Ui:Select name="change" id="change" :label="'taxes.profile.field.change'|trans" :options="choices" :value="values.change" :error="errors.change is defined ? errors.change|trans : null" />
+        <twig:Ui:TextInput name="validFrom" id="validFrom" type="date" :label="'taxes.profile.field.valid_from'|trans" :help="'taxes.profile.field.valid_from_help'|trans" :value="values.validFrom" :error="errors.validFrom is defined ? errors.validFrom|trans : null" />
+        <twig:Ui:TextInput name="base" id="base" :label="'taxes.profile.field.base'|trans" :help="'taxes.profile.field.base_help'|trans" :value="values.base" :error="errors.base is defined ? errors.base|trans : null" inputmode="decimal" autocomplete="off" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'taxes.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="taxes-status-form" variant="primary">{{ 'taxes.save'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'taxes.profile.status.new'|trans" icon="calendar" class="max-w-2xl">
+        <p class="mt-0 mb-4 text-small text-muted">{{ 'taxes.profile.status.description'|trans }}</p>
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_taxes_profile')">{{ 'taxes.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="taxes-status-form" variant="primary">{{ 'taxes.save'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}
