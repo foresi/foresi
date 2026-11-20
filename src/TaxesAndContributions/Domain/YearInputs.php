@@ -57,7 +57,7 @@ final readonly class YearInputs
             'children' => array_map(static fn (ChildInput $child): array => [
                 'label' => $child->label,
                 'birth_date' => $child->birthDate->format('Y-m-d'),
-                'order' => $child->order,
+                'order' => $child->orderChosen ? $child->order : null,
                 'ztp_p' => $child->ztpP,
                 'months' => $child->months,
             ], $view->children),
@@ -109,13 +109,7 @@ final readonly class YearInputs
             $this->year(),
             [] === $methods ? throw new \UnexpectedValueException('A stored year compares no expense method.') : $methods,
             \is_string($chosen) ? ExpenseMethod::from($chosen) : null,
-            array_map(static fn (array $child): ChildInput => new ChildInput(
-                Stored::string($child, 'label'),
-                Stored::day($child, 'birth_date') ?? throw new \UnexpectedValueException('A stored child has no birth date.'),
-                Stored::int($child, 'order'),
-                Stored::bool($child, 'ztp_p'),
-                Stored::int($child, 'months'),
-            ), Stored::list($data, 'children')),
+            $this->children(Stored::list($data, 'children')),
             \is_array($spouse) ? new SpouseInput(Stored::int($spouse, 'months'), Stored::bool($spouse, 'ztp_p'), Stored::bool($spouse, 'low_income')) : null,
             $deductions,
             Stored::money($data, 'employment_base'),
@@ -130,5 +124,29 @@ final readonly class YearInputs
             Stored::day($data, 'activity_start'),
             Stored::money($data, 'average_wage_override'),
         );
+    }
+
+    /**
+     * The stored children by birth date, each with the order it takes. A child
+     * stored before the order followed the birth dates has an order of its
+     * own; when it is the one the birth date gives, it follows them again.
+     *
+     * @param list<array<mixed>> $stored
+     *
+     * @return list<ChildInput>
+     */
+    private function children(array $stored): array
+    {
+        $births = array_map(static fn (array $child): \DateTimeImmutable => Stored::day($child, 'birth_date') ?? throw new \UnexpectedValueException('A stored child has no birth date.'), $stored);
+        $fixed = array_map(static fn (array $child): ?int => \is_int($child['order'] ?? null) ? $child['order'] : null, $stored);
+
+        return array_map(static fn (array $place): ChildInput => new ChildInput(
+            Stored::string($stored[$place['key']], 'label'),
+            $births[$place['key']],
+            $place['order'],
+            Stored::bool($stored[$place['key']], 'ztp_p'),
+            Stored::int($stored[$place['key']], 'months'),
+            $place['chosen'],
+        ), ChildOrder::of($births, $fixed));
     }
 }

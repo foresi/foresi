@@ -41,7 +41,7 @@ final readonly class SetYearInputsInput
         public array $expenseMethods = ['actual', 'lump_60'],
         #[Field('The method the owner files with, one of expense_methods; null leaves it open.', enum: ['actual', 'lump_80', 'lump_60', 'lump_40', 'lump_30'])]
         public ?string $chosenMethod = null,
-        #[Field('The children claimed: objects of label (the owner\'s own, at most 100 characters), birth_date, order (1, 2 or 3 for the third and further), ztp_p (true for a severe disability card) and months (0 to 12).', items: Field::OBJECTS)]
+        #[Field('The children claimed: objects of label (an optional name of the owner\'s own, at most 100 characters), birth_date, order, ztp_p (true for a severe disability card) and months (0 to 12, 12 when left out). The order is 1, 2 or 3 for the third and further; leave it out or null and it follows the birth dates, the eldest first. Give it only when the parents agreed on another order.', items: Field::OBJECTS)]
         public array $children = [],
         #[Field('The months the spouse is claimed, 0 to 12; null claims no spouse.')]
         public ?int $spouseMonths = null,

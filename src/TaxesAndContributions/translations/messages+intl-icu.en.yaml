@@ -82,13 +82,15 @@ taxes:
       variable_symbol: Variable symbol
       chosen_method: Costs in the return
       chosen_open: Not decided yet
-      child_label: Child
-      child_label_help: Your own label, such as "Elder daughter".
+      child_name: Name
+      child_name_help: Optional. Without one, the child shows by its order.
       birth_date: Birth date
-      order: Order
-      months: Months (0–12)
+      order: Order for the credit
+      order_help: Other than by birth date only when you agreed on it with the other parent.
+      months: Months
+      months_help: The months you claim the credit for, 0 to 12. A child born in the year counts from the month of birth.
       ztp_p: Holds a severe disability card (ZTP/P)
-      spouse_months: Months of the spouse (0–12)
+      spouse_months: Months
       spouse_months_help: Empty when you claim no spouse.
       spouse_low_income: Their income stays at most 68,000 CZK
       employmentBase: Partial base from employment
@@ -96,9 +98,9 @@ taxes:
       rentalBase: Partial base from rental
       otherBase: Other partial bases
       lastKnownTax: Last known tax
-      previousSocialBase: Social insurance base of the previous year
-      previousHealthBase: Health insurance base of the previous year
-      previousOverviewFiledOn: Overviews of the previous year filed on
+      previousSocialBase: Social insurance base
+      previousHealthBase: Health insurance base
+      previousOverviewFiledOn: Overviews filed on
       returnRoute: Filing the return
       activityStart: Start of the activity
       activityStart_help: Only when you started in this year.
@@ -108,6 +110,21 @@ taxes:
       '1': First child
       '2': Second child
       '3': Third and further child
+    section:
+      expenses: Costs
+      credits: Children, credits and deductions
+      other: Other income and filing
+    section_description:
+      expenses: Which costs the estimate compares and which go in the return.
+      credits: The credits for children and the spouse, and the deductions from the tax base. Amounts in CZK.
+      other: Income outside the business, the previous year and filing the return. Amounts in CZK.
+    summary:
+      chosen: '{method} in the return'
+      spouse: spouse
+      deductions: '{count, plural, one {# deduction} other {# deductions}}'
+      income: other income
+      previous: previous year
+      none: Nothing claimed
     status:
       new: Add a change
       description: The new status holds from the day you choose until the next change of its kind.
@@ -119,7 +136,6 @@ taxes:
       flash_removed: The status is removed.
     year:
       title: 'Year {year}'
-      description: The inputs of the estimate for this year. Amounts in CZK.
       not_entered: Not entered yet
       children: '{count, plural, one {# child} other {# children}}'
       methods: Costs to compare
@@ -130,6 +146,16 @@ taxes:
       bases: Other income
       previous: Previous year
       other: Other
+      section_title: '{section} – year {year}'
+      methods_help: The estimate works out the tax and contributions for each method ticked.
+      children_none: You claim no child.
+      child_add: Add a child
+      child_remove: Remove
+      child_remove_label: 'Remove {name}'
+      child_more: Months and order
+      whole_year: whole year
+      months: '{count, plural, one {# month} other {# months}}'
+      order_by_birth: order by birth date
       flash: 'The inputs of {year} are saved.'
     authority:
       vs: 'VS {symbol}'
@@ -149,7 +175,7 @@ taxes:
       chosen_method_not_compared: The costs in the return must be one of those compared.
       children_too_many: There are too many children.
       child_invalid: The child is not complete.
-      child_label_invalid: Each child needs a label of at most 100 characters.
+      child_label_invalid: The name of a child is at most 100 characters.
       child_order_invalid: Choose the order of the child.
       months_invalid: The months are 0 to 12.
       deduction_invalid: The deduction is not valid.

@@ -29,9 +29,26 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * What the profile page shows: the statuses as a dated list per kind, each
  * holding until the next of its kind, the years with their inputs, and the
  * account of each authority.
+ *
+ * @phpstan-type YearValues array{expenseMethods: list<string>, chosenMethod: string, children: list<array{label: string, birthDate: string, order: string, ztpP: bool, months: string, new?: bool}>, spouseMonths: string, spouseZtpP: bool, spouseLowIncome: bool, deductions: array<string, string>, employmentBase: string, employmentTaxWithheld: string, rentalBase: string, otherBase: string, lastKnownTax: string, previousSocialBase: string, previousHealthBase: string, previousOverviewFiledOn: string, returnRoute: string, activityStart: string, averageWageOverride: string}
  */
 final readonly class ProfileScreen
 {
+    public const string SECTION_EXPENSES = 'expenses';
+    public const string SECTION_CREDITS = 'credits';
+    public const string SECTION_OTHER = 'other';
+
+    /**
+     * The three forms a year is entered in, each with the fields it sends: the
+     * expenses to compare, the children with the other credits and the
+     * deductions, and the rest. One long form split by topic, as a tax return is.
+     */
+    public const array SECTIONS = [
+        self::SECTION_EXPENSES => ['expenseMethods', 'chosenMethod'],
+        self::SECTION_CREDITS => ['children', 'spouseMonths', 'spouseZtpP', 'spouseLowIncome', 'deductions'],
+        self::SECTION_OTHER => ['employmentBase', 'employmentTaxWithheld', 'rentalBase', 'otherBase', 'lastKnownTax', 'previousSocialBase', 'previousHealthBase', 'previousOverviewFiledOn', 'returnRoute', 'activityStart', 'averageWageOverride'],
+    ];
+
     public function __construct(
         private TranslatorInterface $translator,
         private UrlGeneratorInterface $urls,
@@ -119,9 +136,9 @@ final readonly class ProfileScreen
 
     /**
      * The years with inputs, and this year and the next when they have none
-     * yet, newest first.
+     * yet, newest first; each with its three sections and what they hold.
      *
-     * @return list<array{year: int, href: string, entered: bool, summary: string}>
+     * @return list<array{year: int, entered: bool, sections: list<array{section: string, title: string, href: string, summary: string}>}>
      */
     public function years(ProfileView $profile): array
     {
@@ -132,13 +149,17 @@ final readonly class ProfileScreen
 
         return array_map(function (int $year) use ($profile): array {
             $inputs = $profile->years[$year] ?? null;
+            $sections = [];
+            foreach (array_keys(self::SECTIONS) as $section) {
+                $sections[] = [
+                    'section' => $section,
+                    'title' => $this->trans('taxes.profile.section.'.$section),
+                    'href' => $this->urls->generate(ProfileController::ROUTE.'_year', ['year' => $year, 'section' => $section]),
+                    'summary' => $inputs instanceof YearInputsView ? $this->sectionSummary($section, $inputs) : $this->trans('taxes.profile.year.not_entered'),
+                ];
+            }
 
-            return [
-                'year' => $year,
-                'href' => $this->urls->generate(ProfileController::ROUTE.'_year', ['year' => $year]),
-                'entered' => $inputs instanceof YearInputsView,
-                'summary' => $inputs instanceof YearInputsView ? $this->yearSummary($inputs) : $this->trans('taxes.profile.year.not_entered'),
-            ];
+            return ['year' => $year, 'entered' => $inputs instanceof YearInputsView, 'sections' => $sections];
         }, $all);
     }
 
@@ -163,21 +184,20 @@ final readonly class ProfileScreen
     }
 
     /**
-     * The form values of a year, as the sheet shows them: one blank child
-     * after those claimed, so another can be added.
+     * The form values of a year, as the sheet shows them. A child's order is
+     * empty while it follows the birth dates.
      *
-     * @return array<string, mixed>
+     * @return YearValues
      */
     public function yearValues(YearInputsView $year): array
     {
         $children = array_map(fn (ChildInput $child): array => [
             'label' => $child->label,
             'birthDate' => $child->birthDate->format('Y-m-d'),
-            'order' => (string) $child->order,
+            'order' => $child->orderChosen ? (string) $child->order : '',
             'ztpP' => $child->ztpP,
             'months' => (string) $child->months,
         ], $year->children);
-        $children[] = ['label' => '', 'birthDate' => '', 'order' => (string) min(3, \count($children) + 1), 'ztpP' => false, 'months' => '12'];
         $deductions = [];
         foreach (DeductionType::cases() as $type) {
             $deductions[$type->value] = $this->plain($year->deductions[$type->value] ?? null);
@@ -225,14 +245,35 @@ final readonly class ProfileScreen
         return $status->base instanceof Money ? $this->trans('taxes.profile.status.with_base', ['value' => $value, 'base' => $status->base->format($this->locale())]) : $value;
     }
 
-    private function yearSummary(YearInputsView $year): string
+    private function sectionSummary(string $section, YearInputsView $year): string
     {
-        $parts = [implode(', ', array_map(fn (ExpenseMethod $method): string => $this->trans('taxes.method.'.$method->value), $year->expenseMethods))];
-        if ([] !== $year->children) {
-            $parts[] = $this->trans('taxes.profile.year.children', ['count' => \count($year->children)]);
+        $parts = [];
+        if (self::SECTION_EXPENSES === $section) {
+            $parts[] = implode(', ', array_map(fn (ExpenseMethod $method): string => $this->trans('taxes.method.'.$method->value), $year->expenseMethods));
+            if ($year->chosenMethod instanceof ExpenseMethod) {
+                $parts[] = $this->trans('taxes.profile.summary.chosen', ['method' => $this->trans('taxes.method.'.$year->chosenMethod->value)]);
+            }
+        } elseif (self::SECTION_CREDITS === $section) {
+            if ([] !== $year->children) {
+                $parts[] = $this->trans('taxes.profile.year.children', ['count' => \count($year->children)]);
+            }
+            if ($year->spouse instanceof SpouseInput) {
+                $parts[] = $this->trans('taxes.profile.summary.spouse');
+            }
+            if ([] !== $year->deductions) {
+                $parts[] = $this->trans('taxes.profile.summary.deductions', ['count' => \count($year->deductions)]);
+            }
+        } else {
+            $parts[] = $this->trans('taxes.route.'.$year->returnRoute->value);
+            if (($year->employmentBase ?? $year->rentalBase ?? $year->otherBase ?? $year->lastKnownTax) instanceof Money) {
+                $parts[] = $this->trans('taxes.profile.summary.income');
+            }
+            if (null !== ($year->previousSocialBase ?? $year->previousHealthBase ?? $year->previousOverviewFiledOn)) {
+                $parts[] = $this->trans('taxes.profile.summary.previous');
+            }
         }
 
-        return implode(' · ', $parts);
+        return [] === $parts ? $this->trans('taxes.profile.summary.none') : implode(' · ', $parts);
     }
 
     private function day(\DateTimeImmutable $day): string

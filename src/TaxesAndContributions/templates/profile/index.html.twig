@@ -2,8 +2,9 @@
 {#
     The owner profile under Money → Taxes and contributions, for the owner only (B7). The statuses are a
     dated list per kind, each holding until the next of its kind; "Add a change" in the page header
-    opens the dialog. Each year
-    opens its inputs in the side sheet, each authority its account in a small dialog
+    opens the dialog. Each year has
+    three sections (expenses; children, credits and deductions; other details), each opening its form in
+    the side sheet, each authority its account in a small dialog
     (docs/design/overlays.md). Variables: columns, groups, years, authorities.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
@@ -43,14 +44,19 @@
 
         <section class="grid gap-3" aria-labelledby="taxes-years" data-taxes-years>
             <h2 id="taxes-years" class="m-0 text-h3 font-semibold text-ink">{{ 'taxes.profile.years'|trans }}</h2>
-            <ul class="m-0 grid list-none gap-2 p-0">
-                {% for year in years %}
-                    <li class="relative flex min-h-row-list flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-panel border border-container bg-white px-4 py-2" data-taxes-year="{{ year.year }}">
-                        <a href="{{ year.href }}" data-sheet aria-haspopup="dialog" class="font-medium text-ink no-underline after:absolute after:inset-0 hover:text-green {{ focus }}">{{ 'taxes.profile.year.title'|trans({year: year.year}) }}</a>
-                        <span class="text-small text-muted">{{ year.summary }}</span>
-                    </li>
-                {% endfor %}
-            </ul>
+            {% for year in years %}
+                <div class="grid gap-2" data-taxes-year="{{ year.year }}">
+                    <h3 class="m-0 text-small font-semibold text-ink">{{ 'taxes.profile.year.title'|trans({year: year.year}) }}</h3>
+                    <ul class="m-0 grid list-none gap-2 p-0">
+                        {% for part in year.sections %}
+                            <li class="relative flex min-h-row-list flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-panel border border-container bg-white px-4 py-2" data-taxes-year-section="{{ part.section }}">
+                                <a href="{{ part.href }}" data-sheet aria-haspopup="dialog" class="font-medium text-ink no-underline after:absolute after:inset-0 hover:text-green {{ focus }}">{{ part.title }}<span class="sr-only"> {{ 'taxes.profile.year.title'|trans({year: year.year}) }}</span></a>
+                                <span class="text-small text-muted">{{ part.summary }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endfor %}
         </section>
 
         <section class="grid gap-3" aria-labelledby="taxes-authorities" data-taxes-authorities>

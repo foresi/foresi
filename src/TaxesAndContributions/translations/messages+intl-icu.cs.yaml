@@ -82,13 +82,15 @@ taxes:
       variable_symbol: Variabilní symbol
       chosen_method: Výdaje v přiznání
       chosen_open: Zatím nerozhodnuto
-      child_label: Označení dítěte
-      child_label_help: Vlastní označení, třeba „Starší dcera".
+      child_name: Jméno
+      child_name_help: Nepovinné. Bez jména se dítě ukazuje podle pořadí.
       birth_date: Datum narození
-      order: Pořadí
-      months: Počet měsíců (0–12)
+      order: Pořadí pro slevu
+      order_help: Jinak než podle data narození jen tehdy, když se tak dohodnete s druhým rodičem.
+      months: Počet měsíců
+      months_help: Měsíce, za které slevu uplatňujete, 0 až 12. Dítě narozené v roce se počítá od měsíce narození.
       ztp_p: Držitel průkazu ZTP/P
-      spouse_months: Počet měsíců manžela nebo manželky (0–12)
+      spouse_months: Počet měsíců
       spouse_months_help: Prázdné, když slevu na manžela neuplatňujete.
       spouse_low_income: Jeho nebo její příjmy nepřesáhnou 68 000 Kč
       employmentBase: Dílčí základ ze zaměstnání
@@ -96,9 +98,9 @@ taxes:
       rentalBase: Dílčí základ z nájmu
       otherBase: Ostatní dílčí základy
       lastKnownTax: Poslední známá daň
-      previousSocialBase: Vyměřovací základ sociálního pojištění za minulý rok
-      previousHealthBase: Vyměřovací základ zdravotního pojištění za minulý rok
-      previousOverviewFiledOn: Přehledy za minulý rok podány dne
+      previousSocialBase: Základ sociálního pojištění
+      previousHealthBase: Základ zdravotního pojištění
+      previousOverviewFiledOn: Přehledy podány dne
       returnRoute: Podání přiznání
       activityStart: Zahájení činnosti
       activityStart_help: Jen když jste začali podnikat v tomto roce.
@@ -108,6 +110,21 @@ taxes:
       '1': První dítě
       '2': Druhé dítě
       '3': Třetí a další dítě
+    section:
+      expenses: Výdaje
+      credits: Děti, slevy a odpočty
+      other: Další příjmy a podání
+    section_description:
+      expenses: Které výdaje odhad porovná a které uvedete v přiznání.
+      credits: Slevy na děti a na manžela nebo manželku a odpočty od základu daně. Částky v Kč.
+      other: Příjmy mimo podnikání, minulý rok a podání přiznání. Částky v Kč.
+    summary:
+      chosen: 'v přiznání {method}'
+      spouse: manžel nebo manželka
+      deductions: '{count, plural, one {# odpočet} few {# odpočty} other {# odpočtů}}'
+      income: další příjmy
+      previous: minulý rok
+      none: Nic neuplatňujete
     status:
       new: Přidat změnu
       description: Nový stav platí od zvoleného dne do další změny stejného druhu.
@@ -119,7 +136,6 @@ taxes:
       flash_removed: Stav je odebraný.
     year:
       title: 'Rok {year}'
-      description: Údaje pro odhad za tento rok. Částky v Kč.
       not_entered: Zatím nevyplněno
       children: '{count, plural, one {# dítě} few {# děti} other {# dětí}}'
       methods: Výdaje k porovnání
@@ -130,6 +146,16 @@ taxes:
       bases: Další příjmy
       previous: Minulý rok
       other: Ostatní
+      section_title: '{section} – rok {year}'
+      methods_help: Odhad spočítá daň a odvody pro každý zaškrtnutý způsob.
+      children_none: Žádné dítě neuplatňujete.
+      child_add: Přidat dítě
+      child_remove: Odebrat
+      child_remove_label: 'Odebrat: {name}'
+      child_more: Měsíce a pořadí
+      whole_year: celý rok
+      months: '{count, plural, one {# měsíc} few {# měsíce} other {# měsíců}}'
+      order_by_birth: pořadí podle data narození
       flash: 'Údaje za rok {year} jsou uložené.'
     authority:
       vs: 'VS {symbol}'
@@ -149,7 +175,7 @@ taxes:
       chosen_method_not_compared: Výdaje v přiznání musí být mezi porovnávanými.
       children_too_many: Dětí je příliš mnoho.
       child_invalid: Údaje o dítěti nejsou úplné.
-      child_label_invalid: Každé dítě potřebuje označení, nejvýš 100 znaků.
+      child_label_invalid: Jméno dítěte má nejvýš 100 znaků.
       child_order_invalid: Vyberte pořadí dítěte.
       months_invalid: Počet měsíců je 0 až 12.
       deduction_invalid: Odčitatelná položka není platná.

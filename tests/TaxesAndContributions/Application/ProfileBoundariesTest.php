@@ -119,6 +119,8 @@ final class ProfileBoundariesTest extends TaxesTestCase
         $this->assertReason('child_label_invalid', fn (): mixed => $this->writes()->setYear(new SetYearInputsInput('2026', children: [$child(['label' => str_repeat('a', 101)])])));
         self::assertSame(str_repeat('č', 100), $this->writes()->setYear(new SetYearInputsInput('2026', children: [$child(['label' => str_repeat('č', 100)])]))->children[0]->label);
         $this->assertReason('child_label_invalid', fn (): mixed => $this->writes()->setYear(new SetYearInputsInput('2026', children: [$child(['label' => 5])])));
+        self::assertSame('', $this->writes()->setYear(new SetYearInputsInput('2026', children: [$child(['label' => '  '])]))->children[0]->label);
+        self::assertSame([1, false], [($c = $this->writes()->setYear(new SetYearInputsInput('2026', children: [$child(['order' => null])]))->children[0])->order, $c->orderChosen]);
         $this->assertReason('child_order_invalid', fn (): mixed => $this->writes()->setYear(new SetYearInputsInput('2026', children: [$child(['order' => 0])])));
         $this->assertReason('child_order_invalid', fn (): mixed => $this->writes()->setYear(new SetYearInputsInput('2026', children: [$child(['order' => '1'])])));
         $this->assertReason('months_invalid', fn (): mixed => $this->writes()->setYear(new SetYearInputsInput('2026', children: [$child(['months' => -1])])));
