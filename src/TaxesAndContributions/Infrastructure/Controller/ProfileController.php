@@ -32,8 +32,9 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The owner profile under Money → Taxes and contributions: the statuses as a
- * dated list per kind, with "Add a change" in the page header opening a dialog;
+ * The owner profile under Money → Taxes and contributions: one line of the
+ * statuses that hold, and "Statuses" in the page header opening their dated
+ * list per kind in a dialog, where "Add a change" loads its form in place;
  * the inputs of a year as three forms in the side sheet, one per section; and the account of each
  * authority in a small dialog (docs/design/overlays.md). Only the owner sees
  * any of it (B7): a member is refused with 403.
@@ -58,10 +59,25 @@ final class ProfileController extends AbstractController
         $profile = $this->reads()->profile();
 
         return $this->render('@TaxesAndContributions/profile/index.html.twig', [
-            'columns' => $this->screen->statusColumns(),
-            'groups' => $this->screen->statusGroups($profile),
+            'summary' => $this->screen->statusSummary($profile),
             'years' => $this->screen->years($profile),
             'authorities' => $this->screen->authorities($profile),
+        ]);
+    }
+
+    /**
+     * The statuses as a dated list per kind: a small record that the page
+     * header opens in a dialog, with "Add a change" in its header loading the
+     * form in the same dialog. The same URL is a page.
+     */
+    #[Route('/taxes-and-contributions/profile/statuses', name: self::ROUTE.'_statuses', methods: ['GET'])]
+    public function statuses(): Response
+    {
+        $profile = $this->reads()->profile();
+
+        return $this->render('@TaxesAndContributions/profile/statuses.html.twig', [
+            'columns' => $this->screen->statusColumns(),
+            'groups' => $this->screen->statusGroups($profile),
         ]);
     }
 
@@ -95,7 +111,7 @@ final class ProfileController extends AbstractController
         }
         $this->addFlash('success', $this->translator->trans('taxes.profile.status.flash_added', ['value' => $this->screen->statusValue($status)]));
 
-        return $this->redirectToRoute(self::ROUTE);
+        return $this->redirectToRoute(self::ROUTE.'_statuses');
     }
 
     #[Route('/taxes-and-contributions/profile/statuses/{id}/remove', name: self::ROUTE.'_status_remove', requirements: ['id' => '[^/]{1,64}'], methods: ['POST'])]
@@ -112,7 +128,7 @@ final class ProfileController extends AbstractController
         }
         $this->addFlash('success', $this->translator->trans('taxes.profile.status.flash_removed'));
 
-        return $this->redirectToRoute(self::ROUTE);
+        return $this->redirectToRoute(self::ROUTE.'_statuses');
     }
 
     #[Route('/taxes-and-contributions/profile/years/{year}/{section}', name: self::ROUTE.'_year', requirements: ['year' => '[0-9]{1,4}', 'section' => 'expenses|credits|other'], defaults: ['section' => ProfileScreen::SECTION_EXPENSES], methods: ['GET', 'POST'])]

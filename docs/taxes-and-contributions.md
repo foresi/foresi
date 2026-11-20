@@ -49,8 +49,9 @@ For each authority (`social`, `health`, `sickness`, `income_tax`), the account a
 
 **Money → Taxes and contributions** (`/taxes-and-contributions/profile`), for the owner only:
 
-- the statuses as a dated list per kind, each with the day it holds from and until, and **Add a change** in the page header, which opens a dialog. A status is removed from its row after a confirmation.
-- the years, this one and the next and every year with inputs; a year opens its inputs as a form in the side sheet.
+- one line of the statuses that hold today, such as "sole trader · main activity · VAT payer from Nov 12, 2026", with a change still to come after them. Statuses change a few times in a firm's life, so they do not take the page.
+- **Statuses** in the page header opens a dialog (`/taxes-and-contributions/profile/statuses`) with the dated list per kind, each with the day it holds from and until. **Add a change** in the dialog's header loads the form in the same dialog, and saving comes back to the list. A status is removed from its row after a confirmation.
+- the years, this one and the next and every year with inputs. A year's heading names the statuses that change in it, such as "from Nov 12: VAT payer". Each of its three sections opens its form in the side sheet.
 - the four authorities; each opens its account in a small dialog.
 
 ## API and MCP

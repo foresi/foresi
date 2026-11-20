@@ -1,0 +1,39 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The statuses of the owner: a dated list per kind, each holding until the next of its kind. A small
+    record that "Statuses" in the profile's header opens in a dialog (docs/design/overlays.md), as the
+    history of a send; "Add a change" in its header loads the form in the same dialog, and saving
+    comes back here. The same URL is a page. Variables: columns, groups.
+#}
+{% extends '@Ui/layout/record.html.twig' %}
+
+{% set record_overlay = 'dialog' %}
+{% set record_size = 'lg' %}
+{% set record_reload = true %}
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'taxes.profile.title'|trans, href: path('app_taxes_profile')}, {label: 'taxes.profile.statuses'|trans}] %}
+{% set token = csrf_token(constant('Foresi\\TaxesAndContributions\\Infrastructure\\Controller\\ProfileController::TOKEN')) %}
+
+{% block title %}{{ 'taxes.profile.statuses'|trans }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:Button variant="primary" icon="plus" :size="record_action_size" :href="path('app_taxes_profile_status_new')" data-dialog aria-haspopup="dialog" data-in-place data-taxes-status-new>{{ 'taxes.profile.status.new'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% for tone in ['success', 'error'] %}
+        {% for message in app.flashes(tone) %}
+            <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
+        {% endfor %}
+    {% endfor %}
+    <div class="grid gap-4" data-taxes-statuses>
+        <p class="m-0 text-small text-muted">{{ 'taxes.profile.statuses_note'|trans }}</p>
+        {% for group in groups %}
+            <div class="grid gap-2" data-taxes-kind="{{ group.kind }}">
+                <h3 class="m-0 text-small font-semibold text-ink">{{ group.title }}</h3>
+                <twig:Ui:DataTable :caption="group.title" :columns="columns" :rows="group.rows" :actionToken="token" />
+            </div>
+        {% else %}
+            <p class="m-0 text-text" data-taxes-statuses-empty>{{ 'taxes.profile.empty_text'|trans }}</p>
+        {% endfor %}
+    </div>
+{% endblock %}

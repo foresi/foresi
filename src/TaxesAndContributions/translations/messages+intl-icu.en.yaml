@@ -34,6 +34,27 @@ taxes:
       sickness_insurance:
         'off': Not paid
         'on': Paid
+    phrase:
+      legal_form:
+        sole_trader: sole trader
+      activity:
+        none: no activity
+        secondary: secondary activity
+        main: main activity
+      vat_payer:
+        'yes': VAT payer
+        'no': not a VAT payer
+      health_minimum_exempt:
+        'yes': exempt from the health minimum
+        'no': with the health minimum
+      flat_rate_band:
+        none: no flat-rate tax
+        '1': flat-rate tax band 1
+        '2': flat-rate tax band 2
+        '3': flat-rate tax band 3
+      sickness_insurance:
+        'off': no sickness insurance
+        'on': sickness insurance
   method:
     actual: Actual costs
     lump_80: Lump sum 80%
@@ -61,10 +82,10 @@ taxes:
     title: Profile
     description: What the taxes and contributions are estimated from. Each status holds from its day until the next change of its kind. The profile holds personal data, so only the owner sees it.
     statuses: Statuses
+    statuses_note: Each status holds from its day until the next change of its kind. They change rarely, such as when you register for VAT.
     years: Years
     authorities: Authority accounts
     authorities_note: Where you pay the advances. Payments are matched to the estimate by the account and the variable symbol.
-    empty_title: No statuses yet
     empty_text: Add since when you are a sole trader, your activity and since when you are a VAT payer.
     until_next: until the next change
     column:
@@ -119,6 +140,8 @@ taxes:
       credits: The credits for children and the spouse, and the deductions from the tax base. Amounts in CZK.
       other: Income outside the business, the previous year and filing the return. Amounts in CZK.
     summary:
+      since: '{status} from {day}'
+      no_statuses: None yet
       chosen: '{method} in the return'
       spouse: spouse
       deductions: '{count, plural, one {# deduction} other {# deductions}}'
@@ -136,6 +159,7 @@ taxes:
       flash_removed: The status is removed.
     year:
       title: 'Year {year}'
+      change: 'from {day}: {status}'
       not_entered: Not entered yet
       children: '{count, plural, one {# child} other {# children}}'
       methods: Costs to compare

@@ -46,31 +46,49 @@ final class ProfileControllerTest extends WebTestCase
         parent::tearDown();
     }
 
-    public function testTheOwnerAddsAChangeInTheDialogAndSeesItAsADatedList(): void
+    public function testTheOwnerSeesTheStatusesAsOneLineAndChangesThemInTheirDialog(): void
     {
         $this->signedIn(Role::Owner);
 
         $crawler = $this->client->request('GET', '/taxes-and-contributions/profile');
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('nav a[href="/taxes-and-contributions/profile"]'));
-        self::assertCount(1, $crawler->filter('header [data-taxes-status-new][data-dialog]'));
-        self::assertSelectorTextContains('[data-taxes-statuses]', 'No statuses yet');
+        // A rare change is a small action in the header, not a primary one, and no empty state.
+        self::assertCount(1, $crawler->filter('header a[data-taxes-statuses-open][data-dialog][href="/taxes-and-contributions/profile/statuses"]'));
+        self::assertCount(0, $crawler->filter('header [data-taxes-status-new]'));
+        self::assertSelectorTextContains('[data-taxes-status-summary]', 'None yet');
         self::assertCount(2, $crawler->filter('[data-taxes-year]'));
         self::assertCount(4, $crawler->filter('[data-taxes-authority]'));
 
-        $values = $this->dialogForm('/taxes-and-contributions/profile/statuses/new', '#taxes-status-form');
-        $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'vat_payer:no', 'validFrom' => '2026-01-01'] + $values);
-        self::assertSame('{"location":"\\/taxes-and-contributions\\/profile"}', $this->client->getResponse()->getContent());
-        $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'vat_payer:yes', 'validFrom' => '2026-11-12'] + $values);
-        self::assertSame('{"location":"\\/taxes-and-contributions\\/profile"}', $this->client->getResponse()->getContent());
+        // The dialog lists the statuses, and "Add a change" in its header loads the form in place.
+        $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/statuses', server: [$this->dialogHeader() => '1']);
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('dialog[data-overlay-record] a[data-taxes-status-new][data-in-place]'));
+        self::assertCount(1, $crawler->filter('[data-taxes-statuses-empty]'));
 
-        $crawler = $this->client->request('GET', '/taxes-and-contributions/profile');
+        $values = $this->dialogForm('/taxes-and-contributions/profile/statuses/new', '#taxes-status-form');
+        $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'legal_form:sole_trader', 'validFrom' => '2024-03-01'] + $values);
+        $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'activity:main', 'validFrom' => '2024-03-01'] + $values);
+        $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'vat_payer:no', 'validFrom' => '2026-01-01'] + $values);
+        // Saved, the dialog shows the statuses again.
+        self::assertSame('{"location":"\\/taxes-and-contributions\\/profile\\/statuses"}', $this->client->getResponse()->getContent());
+        $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'vat_payer:yes', 'validFrom' => '2026-11-12'] + $values);
+        self::assertSame('{"location":"\\/taxes-and-contributions\\/profile\\/statuses"}', $this->client->getResponse()->getContent());
+
+        $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/statuses');
         self::assertSelectorTextContains('[data-taxes-statuses]', 'VAT payer');
         $rows = $crawler->filter('[data-taxes-kind="vat_payer"] tbody tr');
         self::assertCount(2, $rows);
         self::assertStringContainsString('Not a VAT payer', $rows->eq(0)->text());
         self::assertStringContainsString('Nov 11, 2026', $rows->eq(0)->text());
         self::assertStringContainsString('until the next change', $rows->eq(1)->text());
+        self::assertSame('confirm-submit', $rows->eq(0)->filter('form')->attr('data-controller'));
+
+        // The page: one line of what holds today, and the change in the year it falls in.
+        $crawler = $this->client->request('GET', '/taxes-and-contributions/profile');
+        self::assertSame('Statuses: sole trader · main activity · VAT payer from Nov 12, 2026', preg_replace('/\s+/', ' ', trim($crawler->filter('[data-taxes-status-summary]')->text())));
+        self::assertSame('from Jan 1: not a VAT payer · from Nov 12: VAT payer', $crawler->filter('[data-taxes-year="2026"] [data-taxes-year-changes]')->text());
+        self::assertCount(0, $crawler->filter('[data-taxes-year="2027"] [data-taxes-year-changes]'));
 
         // The same day again is refused in the dialog, at the day.
         $crawler = $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'vat_payer:yes', 'validFrom' => '2026-11-12'] + $values);
@@ -165,7 +183,7 @@ final class ProfileControllerTest extends WebTestCase
     {
         $this->signedIn(Role::Member);
 
-        foreach (['/taxes-and-contributions/profile', '/taxes-and-contributions/profile/statuses/new', '/taxes-and-contributions/profile/years/2026', '/taxes-and-contributions/profile/authorities/health'] as $page) {
+        foreach (['/taxes-and-contributions/profile', '/taxes-and-contributions/profile/statuses', '/taxes-and-contributions/profile/statuses/new', '/taxes-and-contributions/profile/years/2026', '/taxes-and-contributions/profile/authorities/health'] as $page) {
             $this->client->request('GET', $page);
             self::assertResponseStatusCodeSame(403, $page);
         }
