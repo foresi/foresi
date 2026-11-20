@@ -2,7 +2,6 @@
 timesheet:
   invoice:
     title: Vyfakturovat čas
-    firm: Fakturující firma
     client: Klient
     choose_client: Vyberte klienta
     projects: Projekty

@@ -100,12 +100,9 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
             ->getSingleScalarResult();
     }
 
-    public function months(?string $firmId): array
+    public function months(): array
     {
-        $query = $this->em->createQuery('SELECT DISTINCT d.kind, d.treatment, d.issueDate, d.taxPointDate FROM '.ReceivedDocument::class.' d'.(null === $firmId ? '' : ' WHERE d.firm = :firm'));
-        if (null !== $firmId) {
-            $query->setParameter('firm', $firmId);
-        }
+        $query = $this->em->createQuery('SELECT DISTINCT d.kind, d.treatment, d.issueDate, d.taxPointDate FROM '.ReceivedDocument::class.' d');
         $months = [];
         /** @var array{kind: ReceivedDocumentKind|string, treatment: PurchaseTaxTreatment|string, issueDate: ?\DateTimeImmutable, taxPointDate: ?\DateTimeImmutable} $row */
         foreach ($query->getArrayResult() as $row) {
@@ -135,7 +132,7 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
     }
 
     /**
-     * What the firm, the month and the text leave, before any view: the tabs count within this.
+     * What the month and the text leave, before any view: the tabs count within this.
      *
      * @return array{string, Parameters}
      */
@@ -143,10 +140,6 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
     {
         $where = '1 = 1';
         $parameters = [];
-        if (null !== $filter->firmId) {
-            $where .= ' AND d.firm = :firm';
-            $parameters['firm'] = [$filter->firmId, null];
-        }
         $month = ReceivedDocumentFilter::monthValue($filter->month);
         if (null !== $month) {
             $range = DateRange::of($month, $this->clock->today());

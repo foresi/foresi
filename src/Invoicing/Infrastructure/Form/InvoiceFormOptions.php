@@ -15,7 +15,6 @@ use Foresi\Invoicing\Contract\PriceType;
 use Foresi\Invoicing\Contract\VatRateKind;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Party\Application\FirmBankAccounts;
-use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\PaymentMethod;
@@ -23,33 +22,16 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The choices of the selects an invoice form and a recurring template's form share,
- * as value => label, so both offer the same firms, series, rates and methods.
+ * as value => label, so both offer the same series, rates and methods.
  */
 final readonly class InvoiceFormOptions
 {
     public function __construct(
-        private LegalEntities $firms,
         private SeriesCatalog $catalog,
         private AmountText $amounts,
         private TranslatorInterface $translator,
         private FirmBankAccounts $accounts,
     ) {
-    }
-
-    /**
-     * The active firms, and the one on the form, which may have been archived.
-     *
-     * @return array<string, string>
-     */
-    public function firms(LegalEntity $current): array
-    {
-        $options = [];
-        foreach ($this->firms->active() as $firm) {
-            $options[$firm->id()] = $firm->name();
-        }
-        $options[$current->id()] = $current->name();
-
-        return $options;
     }
 
     /**

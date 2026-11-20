@@ -290,7 +290,7 @@ final class RecurringListControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/invoices/recurring');
         self::assertSame(['All 3', 'Active 2', 'Paused 1', 'Ended 0', 'Failing 0', 'Trash 0'], $this->tabs($crawler));
-        self::assertContains('Firm', $this->headers($crawler), 'several firms name theirs');
+        self::assertNotContains('Firm', $this->headers($crawler), 'one firm per instance (ADR 0039)');
 
         // An instance holds one firm (ADR 0039): no firm select, and an old ?firm= narrows nothing.
         $crawler = $this->client->request('GET', '/invoices/recurring?firm='.$second->id());

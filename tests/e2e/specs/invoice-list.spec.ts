@@ -38,11 +38,6 @@ async function describe(page: Page, text: string): Promise<void> {
 async function issue(page: Page, description: string, dueDate?: string): Promise<void> {
   await page.goto('/invoices/new');
   await expect(page.locator('form#invoice-form')).toBeVisible();
-  const firm = page.locator('select[name=firmId]');
-  if (await firm.count() > 0 && (await firm.locator('option:checked').textContent()) !== 'Example Payer s.r.o.') {
-    await firm.selectOption({ label: 'Example Payer s.r.o.' });
-    await expect(page.locator('select[data-cell=vat]').first()).toBeVisible();
-  }
   await page.locator('#customer').fill('Example Dome');
   await page.getByRole('option', { name: 'Example Domestic a.s.' }).click();
   await expect(page.locator('[data-customer-summary]')).toBeVisible();

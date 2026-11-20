@@ -13,15 +13,12 @@ use Foresi\Invoicing\Application\FirmInvoicingSettings;
 use Foresi\Invoicing\Application\InvoiceDraftValues;
 use Foresi\Invoicing\Application\NewInvoiceDefaults;
 use Foresi\Invoicing\Application\UnsupportedCountry;
-use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Contract\PriceType;
 use Foresi\Invoicing\Contract\TaxTreatment;
 use Foresi\Invoicing\Contract\TotalRounding;
 use Foresi\Invoicing\Contract\VatRateKind;
 use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\FirmInvoicing;
-use Foresi\Invoicing\Domain\Series;
-use Foresi\Invoicing\Domain\SeriesFormat;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\DocumentLanguage;
@@ -206,40 +203,6 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
         self::assertSame(TaxTreatment::NotApplicable, $this->defaults->for($firm)->lines[0]->treatment);
     }
 
-    public function testTheLastUsedFirmIsTheDefault(): void
-    {
-        $user = 'a0000000-0000-7000-8000-000000000001';
-        $first = $this->namedFirm('A Firm', '12345687');
-        $used = $this->namedFirm('B Firm', '12345679');
-        $this->em->flush();
-
-        self::assertSame($first->id(), $this->defaults->firmFor($user)?->id());
-        self::assertSame($first->id(), $this->defaults->firmFor(null)?->id());
-
-        $store = self::createStub(\Foresi\Invoicing\Application\InvoiceStore::class);
-        $store->method('lastFirmOf')->willReturnMap([[$user, $used]]);
-        $defaults = new NewInvoiceDefaults(
-            $store,
-            self::getContainer()->get(\Foresi\Party\Application\LegalEntities::class),
-            $this->catalog,
-            $this->counter,
-            self::getContainer()->get(FirmInvoicingSettings::class),
-            self::getContainer()->get(\Foresi\Invoicing\Application\InvoicingCountries::class),
-            self::getContainer()->get(\Psr\Clock\ClockInterface::class),
-            self::getContainer()->get(FirmBankAccounts::class),
-        );
-
-        self::assertSame($used->id(), $defaults->firmFor($user)?->id());
-    }
-
-    public function testNoFirmNoDefault(): void
-    {
-        $this->firm->archive(new \DateTimeImmutable('2026-10-01'));
-        $this->em->flush();
-
-        self::assertNull($this->defaults->firmFor(null));
-    }
-
     public function testACustomerSetsDueDatePaymentAndLanguage(): void
     {
         $draft = $this->defaults->withCustomer(
@@ -338,16 +301,5 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
     private function reloadedFirm(): LegalEntity
     {
         return self::getContainer()->get(\Foresi\Party\Application\LegalEntities::class)->get($this->firm->id());
-    }
-
-    private function namedFirm(string $name, string $number): LegalEntity
-    {
-        $this->firm->archive(new \DateTimeImmutable('2026-10-01'));
-        $firm = new LegalEntity($name, new RegistrationNumber('CZ', $number), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register');
-        $this->em->persist($firm);
-        $series = new Series($firm, 'Standard', SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
-        $this->em->persist($series);
-
-        return $firm;
     }
 }

@@ -611,6 +611,21 @@ final class IdokladImportControllerTest extends WebTestCase
         self::assertResponseRedirects($this->url('/connect'));
     }
 
+    public function testTheMoveOpensTheInstanceFirmAndWithoutOneSaysSo(): void
+    {
+        $this->browser->seed();
+        $this->browser->signIn();
+
+        $this->client->request('GET', '/import/idoklad');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('main', 'No firm yet');
+
+        $this->firm = $this->firm();
+        $this->firm('25596641');
+        $this->client->request('GET', '/import/idoklad');
+        self::assertResponseRedirects($this->url(), message: 'The oldest active firm, as InstanceFirm reads it.');
+    }
+
     public function testOnlyTheOwnerMovesFromIDoklad(): void
     {
         $this->browser->seed(role: Role::Member);

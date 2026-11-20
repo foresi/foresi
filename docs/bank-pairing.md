@@ -312,7 +312,7 @@ The small-difference settlement applies only when the switch is on, the movement
 | Outgoing unmatched | Outgoing movements waiting for a person, with the reason and the suggested refunds; the tab shows their count |
 | Messages | The bank mail: received, from, subject, status and the reason in words |
 
-The list filters by firm, account and a search over partner, VS or amount. The shell also shows a notice while failed or rejected messages, or unmatched movements, wait.
+The list filters by account and a search over partner, VS or amount. The shell also shows a notice while failed or rejected messages, or unmatched movements, wait.
 
 - **Pair** opens a dialog with the suggested invoices first (same variable symbol, then same amount, then same customer) and a search over the firm's other unpaid invoices in the movement's currency. Tick one or more; the amounts fill in oldest due first, and the parts must add up to the movement. When the firm allows it, the difference on one invoice can be written off, up to the limit. Pairing needs no confirm: the flash "Paired with …" offers **Undo**, for ten minutes. Only the invoices the dialog offered can be paid, and an invoice paid meanwhile is refused under its lock.
 - For a movement Foresi did not verify (listed as "Not verified, check it in the bank first"), the dialog warns, nothing is ticked or filled in, and the box "I checked the payment in the bank" must be ticked. Find the payment in your internet banking first.

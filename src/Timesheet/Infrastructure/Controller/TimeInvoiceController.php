@@ -8,11 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Timesheet\Infrastructure\Controller;
 
-use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\OwnerCheck;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Invoicing\Application\NewInvoiceDefaults;
-use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Money;
 use Foresi\Timesheet\Application\TimeCandidate;
@@ -36,12 +34,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * "Invoice time", for an owner, from the header of a project and of the time
  * report: a dialog over the page (a page of its own without JavaScript) that
- * picks the invoicing firm, the client, its projects and the period, last
- * month unless changed, and lists the billable, finished time there not
- * invoiced yet, every entry ticked (Harvest, Clockify). A change of the firm,
- * the client, the projects or the period sends the form back for the time it
- * holds (a button without JavaScript); ticks, the grouping and the rounding
- * change the totals in place.
+ * picks the client, its projects and the period, last month unless changed,
+ * and lists the billable, finished time there not invoiced yet, every entry
+ * ticked (Harvest, Clockify). The instance's firm invoices it (ADR 0039). A
+ * change of the client, the projects or the period sends the form back for the
+ * time it holds (a button without JavaScript); ticks, the grouping and the
+ * rounding change the totals in place.
  *
  * Continue opens the ordinary new invoice form with the lines, which stays
  * free to edit; issuing it locks the time. An entry without a rate or a mix of
@@ -54,10 +52,8 @@ final class TimeInvoiceController extends AbstractController
 
     public function __construct(
         private readonly TimeInvoicing $invoicing,
-        private readonly LegalEntities $firms,
-        private readonly NewInvoiceDefaults $defaults,
+        private readonly InstanceFirm $firm,
         private readonly OwnerCheck $owner,
-        private readonly AuditActor $actor,
         private readonly InstanceClock $clock,
         private readonly TranslatorInterface $translator,
     ) {
@@ -69,11 +65,8 @@ final class TimeInvoiceController extends AbstractController
         if (!$this->owner->isOwner()) {
             throw new AccessDeniedHttpException('Only an owner invoices time.');
         }
-        $firms = [];
-        foreach ($this->firms->active() as $firm) {
-            $firms[$firm->id()] = $firm->name();
-        }
-        if ([] === $firms) {
+        $firm = $this->firm->find();
+        if (!$firm instanceof LegalEntity) {
             return $this->render('@Timesheet/invoice.html.twig', ['blocked' => 'no_firm']);
         }
         $posted = $request->isMethod('POST');
@@ -82,8 +75,6 @@ final class TimeInvoiceController extends AbstractController
         }
         $input = $posted ? $request->request : $request->query;
 
-        $firmId = $input->getString('firm');
-        $firmId = isset($firms[$firmId]) ? $firmId : $this->defaultFirm($firms);
         $all = $this->invoicing->projects();
         $clients = [];
         foreach ($all as $row) {
@@ -105,7 +96,7 @@ final class TimeInvoiceController extends AbstractController
         $grouping = LineGrouping::tryFrom($input->getString('grouping')) ?? LineGrouping::Task;
         $rounding = TimeRounding::tryFrom($input->getString('rounding')) ?? TimeRounding::None;
 
-        $scope = new TimeScope($firmId, $clientId, $ticked, $from, $until);
+        $scope = new TimeScope($firm->id(), $clientId, $ticked, $from, $until);
         $candidates = '' === $clientId ? [] : $this->invoicing->candidates($scope);
         // An entry listed before keeps its tick; one new to the list comes ticked.
         $listed = array_flip($this->strings($request->request, 'listed'));
@@ -138,8 +129,6 @@ final class TimeInvoiceController extends AbstractController
             'action' => $this->generateUrl(self::ROUTE, '' === $project ? [] : ['project' => $project]),
             // Back to the project the dialog was opened from, else to the time report.
             'back' => null === $projectClient ? $this->generateUrl('app_time_report') : $this->generateUrl('app_project', ['id' => $project]),
-            'firms' => $firms,
-            'firm' => $firmId,
             'clients' => ['' => $this->translator->trans('timesheet.invoice.choose_client')] + $clients,
             'client' => $clientId,
             'projects' => array_combine($projectIds, array_map(static fn (ProjectRow $row): string => $row->name, $projects)),
@@ -154,18 +143,6 @@ final class TimeInvoiceController extends AbstractController
             'totals' => $this->totals($candidates, $entryIds, $grouping, $rounding),
             'error' => $error,
         ], new Response(status: null === $error ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
-    }
-
-    /**
-     * The firm a new invoice opens in, as on any new invoice.
-     *
-     * @param array<string, string> $firms names by id
-     */
-    private function defaultFirm(array $firms): string
-    {
-        $firm = $this->defaults->firmFor($this->actor->userId());
-
-        return $firm instanceof LegalEntity && isset($firms[$firm->id()]) ? $firm->id() : (string) array_key_first($firms);
     }
 
     /**

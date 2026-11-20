@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Infrastructure\Controller;
 
-use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\OwnerCheck;
 use Foresi\Identity\Application\StaffCheck;
 use Foresi\Instance\Application\InstanceClock;
@@ -66,6 +65,7 @@ use Foresi\Invoicing\Infrastructure\Form\InvoiceFormValues;
 use Foresi\Invoicing\Infrastructure\Form\InvoiceSubmission;
 use Foresi\Invoicing\Infrastructure\Form\PaymentPanel;
 use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\UnknownLegalEntity;
@@ -112,6 +112,7 @@ final class InvoiceController extends AbstractController
 
     public function __construct(
         private readonly LegalEntities $firms,
+        private readonly InstanceFirm $instanceFirm,
         private readonly SeriesCatalog $catalog,
         private readonly NumberCounter $counter,
         private readonly InvoiceStore $store,
@@ -129,7 +130,6 @@ final class InvoiceController extends AbstractController
         private readonly InvoiceFigures $figures,
         private readonly SubmissionTokens $tokens,
         private readonly StaffCheck $staff,
-        private readonly AuditActor $actor,
         private readonly ClockInterface $clock,
         private readonly InstanceClock $instanceClock,
         private readonly TranslatorInterface $translator,
@@ -166,8 +166,7 @@ final class InvoiceController extends AbstractController
             return $this->newOfBilledWork($billed);
         }
 
-        $id = $request->query->getString('firm');
-        $firm = '' === $id ? $this->defaults->firmFor($this->actor->userId()) : $this->firm($id);
+        $firm = $this->instanceFirm->find();
         if (!$firm instanceof LegalEntity) {
             return $this->render('@Invoicing/form.html.twig', ['blocked' => 'no_firm']);
         }
@@ -200,7 +199,7 @@ final class InvoiceController extends AbstractController
 
             return $this->redirectToRoute('app_invoice_new');
         }
-        $firm = $this->firm($work->firmId);
+        $firm = $this->firmById($work->firmId);
         try {
             $context = $this->newContext($firm);
             $party = $this->parties->find($work->customerId);
@@ -318,7 +317,7 @@ final class InvoiceController extends AbstractController
         }
         $invoiceId = $request->request->getString('invoiceId');
         try {
-            $context = '' === $invoiceId ? $this->newContext($this->firm($request->request->getString('firmId')), InvoiceFormReader::kind($request->request->getString('kind'))) : $this->storedContext($this->invoice($invoiceId));
+            $context = '' === $invoiceId ? $this->newContext($this->firm(), InvoiceFormReader::kind($request->request->getString('kind'))) : $this->storedContext($this->invoice($invoiceId));
         } catch (UnsupportedCountry) {
             return $this->json(['errors' => ['firm']], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
@@ -368,7 +367,8 @@ final class InvoiceController extends AbstractController
             return $this->alreadySaved();
         }
 
-        $firm = $this->firm($request->request->getString('firmId'));
+        $firm = $this->firm();
+        $request->request->set('firmId', $firm->id());
         try {
             $context = $this->newContext($firm, InvoiceFormReader::kind($request->request->getString('kind')));
         } catch (UnsupportedCountry) {
@@ -441,11 +441,10 @@ final class InvoiceController extends AbstractController
 
         $invoiceId = $context->invoice?->id();
         $ownNumber = $context->invoice?->number();
-        $firmId = $context->firm->id();
         try {
             $saved = null === $invoiceId ? $this->issue->issue($submission->input) : $this->edit->edit($invoiceId, $submission->input, $submission->version);
         } catch (IssueRefused $refused) {
-            return $this->refused($refused, $invoiceId, $firmId, $values, $candidates, $token, $submission->version);
+            return $this->refused($refused, $invoiceId, $values, $candidates, $token, $submission->version);
         }
 
         $this->tokens->complete($token, $saved->id());
@@ -471,9 +470,9 @@ final class InvoiceController extends AbstractController
      * @param array<string, mixed>                                $values
      * @param list<array{id: string, name: string, hint: string}> $candidates
      */
-    private function refused(IssueRefused $refused, ?string $invoiceId, string $firmId, array $values, array $candidates, string $token, int $version): Response
+    private function refused(IssueRefused $refused, ?string $invoiceId, array $values, array $candidates, string $token, int $version): Response
     {
-        $context = null === $invoiceId ? $this->newContext($this->firm($firmId), InvoiceFormReader::kind(\is_string($values['kind'] ?? null) ? $values['kind'] : '')) : $this->storedContext($this->invoice($invoiceId));
+        $context = null === $invoiceId ? $this->newContext($this->firm(), InvoiceFormReader::kind(\is_string($values['kind'] ?? null) ? $values['kind'] : '')) : $this->storedContext($this->invoice($invoiceId));
         $stale = array_any($refused->problems, static fn (IssueProblem $problem): bool => 'version' === $problem->field);
 
         return $this->form($context, $values, $stale ? [] : $this->messages([], $refused->problems), $candidates, $token, $version, $stale ? Response::HTTP_CONFLICT : Response::HTTP_UNPROCESSABLE_ENTITY, $stale);
@@ -491,11 +490,6 @@ final class InvoiceController extends AbstractController
                 $errors = [$this->message('customer', 'invoice.problem.customer_archived')];
             } elseif ($party instanceof Party) {
                 $values = $this->values->withCustomer($values, $party, $context->firm, $submission->input->issueDate, $context->regime, $this->issuerCountry($context));
-            }
-        } elseif ('refresh' === $action) {
-            if (!$context->invoice instanceof Invoice && $values['firmId'] !== $values['firmShown']) {
-                $values = $this->values->forFirm($values, $context->firm, $submission->input->issueDate);
-                $this->addFlash('warning', $this->translator->trans('invoice.firm_changed'));
             }
         } elseif ('deduct' === $action) {
             $chosen = $this->request->getCurrentRequest()?->request->getString('deduction') ?? '';
@@ -663,7 +657,6 @@ final class InvoiceController extends AbstractController
             'blocked' => null,
             'invoice' => $invoice,
             'firm' => $firm,
-            'firms' => $this->firmOptions($context),
             'series' => $this->seriesOptions($context),
             'values' => $values,
             'errors' => array_map(static fn (array $error): array => $error + ['link' => $targets->of($error['id'], $error['key'])], $errors),
@@ -995,14 +988,6 @@ final class InvoiceController extends AbstractController
     }
 
     /**
-     * @return array<string, string>
-     */
-    private function firmOptions(InvoiceFormContext $context): array
-    {
-        return $context->invoice instanceof Invoice ? [] : $this->options->firms($context->firm);
-    }
-
-    /**
      * The active series of the firm; a document keeps showing an archived one of its
      * own. A firm that has none yet offers its default, which the first save stores.
      *
@@ -1040,7 +1025,7 @@ final class InvoiceController extends AbstractController
     {
         $id = $request->query->getString('series');
         if ('' === $id) {
-            return $this->catalog->defaultFor($this->firm($request->query->getString('firm')), InvoiceFormReader::kind($request->query->getString('kind')));
+            return $this->catalog->defaultFor($this->firm(), InvoiceFormReader::kind($request->query->getString('kind')));
         }
 
         try {
@@ -1065,7 +1050,15 @@ final class InvoiceController extends AbstractController
         return \DateTimeImmutable::createFromInterface($this->clock->now())->setTimezone($context->country->timezone())->setTime(0, 0);
     }
 
-    private function firm(string $id): LegalEntity
+    /**
+     * The firm of the instance, which issues every new document (ADR 0039).
+     */
+    private function firm(): LegalEntity
+    {
+        return $this->instanceFirm->find() ?? throw new NotFoundHttpException();
+    }
+
+    private function firmById(string $id): LegalEntity
     {
         try {
             return Uuid::isValid($id) ? $this->firms->get($id) : throw new NotFoundHttpException();

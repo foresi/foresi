@@ -781,11 +781,6 @@ final class IssueInvoiceTest extends InvoiceTestCase
             {
                 return $this->store->correctionsOf($original);
             }
-
-            public function lastFirmOf(string $userId): ?LegalEntity
-            {
-                return null;
-            }
         };
         $issue = new IssueInvoice(
             $container->get(\Foresi\Party\Application\LegalEntities::class),

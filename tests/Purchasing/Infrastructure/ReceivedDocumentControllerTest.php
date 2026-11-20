@@ -210,14 +210,14 @@ final class ReceivedDocumentControllerTest extends WebTestCase
         $this->signedIn();
         $token = $this->token('/purchasing/upload');
 
-        $this->client->request('POST', '/purchasing/upload', ['_token' => $token, 'firm' => $this->firm->id()], ['file' => $this->file('%PDF-1.4 one', 'one.pdf')], ['HTTP_ACCEPT' => 'application/json']);
+        $this->client->request('POST', '/purchasing/upload', ['_token' => $token], ['file' => $this->file('%PDF-1.4 one', 'one.pdf')], ['HTTP_ACCEPT' => 'application/json']);
 
         self::assertResponseStatusCodeSame(201);
         $answer = $this->json();
         self::assertIsString($answer['id']);
         self::assertSame('/purchasing/'.$answer['id'], $answer['url']);
 
-        $this->client->request('POST', '/purchasing/upload', ['_token' => $token, 'firm' => $this->firm->id()], ['file' => $this->file('%PDF-1.4 one', 'again.pdf')], ['HTTP_ACCEPT' => 'application/json']);
+        $this->client->request('POST', '/purchasing/upload', ['_token' => $token], ['file' => $this->file('%PDF-1.4 one', 'again.pdf')], ['HTTP_ACCEPT' => 'application/json']);
 
         self::assertResponseStatusCodeSame(201, 'The same file again only warns.');
         self::assertSame(['The same file is on another document already.'], $this->json()['warnings']);
@@ -403,7 +403,8 @@ final class ReceivedDocumentControllerTest extends WebTestCase
         $this->signedIn();
         $dialog = $this->dialog('/purchasing/new');
         self::assertCount(1, $dialog->filter('form#received-document-new'));
-        $values = $this->values($dialog) + ['firm' => $this->firm->id()];
+        self::assertCount(0, $dialog->filter('[name="firm"]'), 'The document goes to the instance firm (ADR 0039).');
+        $values = $this->values($dialog);
 
         $this->client->request('POST', '/purchasing/new', $values + ['_action' => 'record'], server: self::DIALOG);
 
@@ -418,7 +419,7 @@ final class ReceivedDocumentControllerTest extends WebTestCase
     public function testANewDocumentMissingItsTotalStaysInTheDialog(): void
     {
         $this->signedIn();
-        $values = ['total' => ''] + $this->values($this->dialog('/purchasing/new')) + ['firm' => $this->firm->id()];
+        $values = ['total' => ''] + $this->values($this->dialog('/purchasing/new'));
 
         $this->client->request('POST', '/purchasing/new', $values + ['_action' => 'record'], server: self::DIALOG);
 
@@ -533,12 +534,12 @@ final class ReceivedDocumentControllerTest extends WebTestCase
     private function upload(array $files): void
     {
         $token = $this->token('/purchasing/upload');
-        $this->client->request('POST', '/purchasing/upload', ['_token' => $token, 'firm' => $this->firm->id()], ['files' => array_map($this->file(...), $files, array_keys($files))]);
+        $this->client->request('POST', '/purchasing/upload', ['_token' => $token], ['files' => array_map($this->file(...), $files, array_keys($files))]);
     }
 
     private function draft(string $content = "%PDF-1.4\nAn example invoice\n%%EOF"): string
     {
-        $this->client->request('POST', '/purchasing/upload', ['_token' => $this->token('/purchasing/upload'), 'firm' => $this->firm->id()], ['file' => $this->file($content, 'invoice.pdf')], ['HTTP_ACCEPT' => 'application/json']);
+        $this->client->request('POST', '/purchasing/upload', ['_token' => $this->token('/purchasing/upload')], ['file' => $this->file($content, 'invoice.pdf')], ['HTTP_ACCEPT' => 'application/json']);
         self::assertResponseStatusCodeSame(201);
         $id = $this->json()['id'];
         self::assertIsString($id);

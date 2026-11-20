@@ -174,11 +174,7 @@ test.describe.serial('sending an invoice', () => {
     await page.setViewportSize(DESKTOP);
     await page.goto('/invoices/new');
     await expect(page.locator('form#invoice-form')).toBeVisible();
-    const firm = page.locator('select[name=firmId]');
-    if ((await firm.locator('option:checked').textContent()) !== 'Example Sending s.r.o.') {
-      await firm.selectOption({ label: 'Example Sending s.r.o.' });
-      await expect(page.locator('select[data-cell=vat]').first()).toBeVisible();
-    }
+    await expect(page.locator('[data-firm-text]')).toHaveText('Example Sending s.r.o.');
     await page.locator('#customer').fill('Example Recip');
     await page.getByRole('option', { name: 'Example Recipient a.s.' }).click();
     await expect(page.locator('[data-customer-summary]')).toBeVisible();

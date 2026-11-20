@@ -28,11 +28,10 @@ final class BankScreenTest extends TestCase
         'account-b' => ['firmId' => 'firm-b', 'firmName' => 'Other Firm s.r.o.', 'label' => '', 'iban' => 'CZ5508000000001234567899'],
     ];
 
-    public function testListsTheFirmsAndTheAccountsWithoutTheirFirmNames(): void
+    public function testListsTheAccountsWithoutTheirFirmNames(): void
     {
         $page = $this->page(new ScreenStores(self::ACCOUNTS, 3, 0, attention: 2), new MovementFilter());
 
-        self::assertSame(['firm-a' => 'Example Firm s.r.o.', 'firm-b' => 'Other Firm s.r.o.'], $page->firms);
         self::assertSame([
             'account-a' => ['firmId' => 'firm-a', 'label' => 'Main', 'iban' => 'CZ6508000000192000145399'],
             'account-b' => ['firmId' => 'firm-b', 'label' => '', 'iban' => 'CZ5508000000001234567899'],

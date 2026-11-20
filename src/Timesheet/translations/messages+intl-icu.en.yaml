@@ -2,7 +2,6 @@
 timesheet:
   invoice:
     title: Invoice time
-    firm: Invoicing firm
     client: Client
     choose_client: Choose a client
     projects: Projects

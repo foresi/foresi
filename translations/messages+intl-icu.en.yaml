@@ -22,7 +22,6 @@ dashboard:
     debtors: Top debtors
     debtors_empty: No customer owes anything.
     pending: '{month} has not gone to the accountant yet ({count, plural, one {# document} other {# documents}})'
-    pending_firm: '{firm}: {month} has not gone to the accountant yet ({count, plural, one {# document} other {# documents}})'
     pending_link: Pass to the accountant
 registry:
   result:

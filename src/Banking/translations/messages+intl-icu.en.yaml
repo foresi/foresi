@@ -154,7 +154,6 @@ bank:
       messages: Messages
     column:
       date: Date
-      firm: Firm
       account: Account
       amount: Amount
       vs: VS
@@ -175,7 +174,7 @@ bank:
     empty:
       no_accounts_title: No bank account yet
       no_accounts_text: Add the firm's bank account in its bank settings. Payments from bank e-mails then show up here.
-      no_accounts_link: Open the firms
+      no_accounts_link: Open the bank settings
       all_title: No payments yet
       all_text: Payments from the bank e-mails will show here.
       filtered_title: Nothing matches the filter

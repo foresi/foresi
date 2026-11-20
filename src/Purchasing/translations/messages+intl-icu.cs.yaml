@@ -22,7 +22,6 @@ purchasing:
     draft_label: "Koncept z {date}"
     column:
       number: "Naše číslo"
-      firm: "Firma"
       supplier: "Dodavatel"
       supplierNumber: "Číslo dokladu dodavatele"
       monthDay: "DUZP / vystaveno"
@@ -42,7 +41,7 @@ purchasing:
       drafts_title: "Nic nečeká na doplnění"
       drafts_text: "Nahrajte faktury a účtenky, z každého souboru vznikne koncept."
     no_firm_title: "Nejdřív přidejte firmu"
-    no_firm_text: "Přijaté doklady patří vždy jedné z vašich firem."
+    no_firm_text: "Přijaté doklady patří vždy vaší firmě."
     add_firm: "Přidat firmu"
   new: "Nový doklad"
   upload:
@@ -97,7 +96,6 @@ purchasing:
       supplier: "Vyberte dodavatele ze seznamu kontaktů."
       vat_rate: "Zadejte sazbu DPH od 0 do 100 %."
   field:
-    firm: "Firma"
     kind: "Druh dokladu"
     treatment: "Režim DPH"
     supplier: "Dodavatel"

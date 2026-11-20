@@ -27,7 +27,7 @@ async function undockActionBar(page: Page): Promise<void> {
   await page.locator('[data-action-bar]').evaluate((bar) => bar.removeAttribute('data-stuck'));
 }
 
-// The firm's pull screen. With one firm the entry goes straight to it; after a run it would show
+// The firm's pull screen. The entry goes straight to the instance's firm; after a run it would show
 // the run, so the pull is opened by its own address.
 async function openPull(page: Page): Promise<void> {
   await page.goto('/import/idoklad');

@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Purchasing\Application\Query;
 
-use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Purchasing\Application\PurchasingAccess;
 use Foresi\Purchasing\Application\PurchasingNotAllowed;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentFilter;
@@ -30,7 +30,7 @@ final class ReceivedDocumentListTest extends PurchasingTestCase
         foreach ([
             fn (): mixed => $list->page(new ReceivedDocumentFilter()),
             $list->drafts(...),
-            $list->activeFirms(...),
+            $list->firmId(...),
         ] as $read) {
             try {
                 $read();
@@ -51,51 +51,34 @@ final class ReceivedDocumentListTest extends PurchasingTestCase
         self::assertSame(7, $this->list($queries)->drafts());
     }
 
-    public function testOnlyTheActiveFirmsAreOffered(): void
+    public function testTheDocumentsGoToTheInstanceFirm(): void
     {
         $second = $this->firm('Second Firm s.r.o.', '27082440');
-        $archived = $this->firm('Old Firm s.r.o.', '25596641');
-        $archived->archive($this->clock->now());
+
+        self::assertSame($this->firm->id(), $this->list(new ListedQueries())->firmId(), 'The oldest active firm, as InstanceFirm reads it.');
+
+        $this->firm->archive($this->clock->now());
         $this->em->flush();
 
-        self::assertSame([
-            $this->firm->id() => 'Example Firm s.r.o.',
-            $second->id() => 'Second Firm s.r.o.',
-        ], $this->list(new ListedQueries())->activeFirms());
+        self::assertSame($second->id(), $this->list(new ListedQueries())->firmId(), 'An archived firm takes no documents.');
     }
 
-    public function testAKnownFirmNarrowsTheList(): void
+    public function testThePageKeepsWhatItWasAskedFor(): void
     {
         $queries = new ListedQueries();
-        $archived = $this->firm('Old Firm s.r.o.', '25596641');
-        $archived->archive($this->clock->now());
-        $this->em->flush();
         $view = ViewFilter::all(new Condition(ReceivedDocumentLists::KIND, 'is', 'credit_note'));
         $counted = ['drafts' => new ViewFilter()];
 
-        $page = $this->list($queries)->page(new ReceivedDocumentFilter(ReceivedDocumentFilter::RECORDED, $this->firm->id(), '2026-10', view: $view, counted: $counted));
+        $page = $this->list($queries)->page(new ReceivedDocumentFilter(ReceivedDocumentFilter::RECORDED, '2026-10', view: $view, counted: $counted));
 
-        self::assertSame($this->firm->id(), $page->filter->firmId);
         self::assertSame('2026-10', $page->filter->month);
         self::assertSame(ReceivedDocumentFilter::RECORDED, $page->filter->tab);
         self::assertSame($view, $page->filter->view);
         self::assertSame($counted, $page->filter->counted);
-        self::assertSame([$this->firm->id(), $archived->id()], array_keys($page->firms), 'Every firm of the organisation, the archived one too.');
-        self::assertSame($this->firm->id(), $queries->monthsOf);
+        self::assertTrue($queries->monthsAsked);
     }
 
-    public function testAFirmTheOrganisationDoesNotKnowIsNoFilter(): void
-    {
-        $queries = new ListedQueries();
-
-        $page = $this->list($queries)->page(new ReceivedDocumentFilter(ReceivedDocumentFilter::DRAFTS, 'other-firm'));
-
-        self::assertNull($page->filter->firmId);
-        self::assertNull($queries->monthsOf);
-        self::assertNull($queries->filters[0]->firmId);
-    }
-
-    public function testAViewCountsWhatItHoldsOfEveryFirmMonthAndText(): void
+    public function testAViewCountsWhatItHoldsOfEveryMonthAndText(): void
     {
         $queries = new ListedQueries();
         $queries->total = 4;
@@ -104,7 +87,6 @@ final class ReceivedDocumentListTest extends PurchasingTestCase
         self::assertSame(4, $this->list($queries)->count($view));
         self::assertSame($view, $queries->filters[0]->view);
         self::assertSame([], $queries->filters[0]->counted);
-        self::assertNull($queries->filters[0]->firmId);
         self::assertNull($queries->filters[0]->month);
         self::assertSame('', $queries->filters[0]->text);
 
@@ -200,7 +182,7 @@ final class ReceivedDocumentListTest extends PurchasingTestCase
         return new ReceivedDocumentList(
             self::getContainer()->get(PurchasingAccess::class),
             $queries,
-            self::getContainer()->get(LegalEntities::class),
+            self::getContainer()->get(InstanceFirm::class),
         );
     }
 }
@@ -216,7 +198,7 @@ final class ListedQueries implements ReceivedDocumentQueries
     public array $counts = [];
     /** @var list<string> */
     public array $months = [];
-    public ?string $monthsOf = 'unasked';
+    public bool $monthsAsked = false;
     /** @var list<ReceivedDocumentFilter> */
     public array $filters = [];
     /** @var array{int, int}|null */
@@ -241,9 +223,9 @@ final class ListedQueries implements ReceivedDocumentQueries
         return $this->drafts;
     }
 
-    public function months(?string $firmId): array
+    public function months(): array
     {
-        $this->monthsOf = $firmId;
+        $this->monthsAsked = true;
 
         return $this->months;
     }

@@ -55,14 +55,9 @@ idoklad:
             reanchored: iDoklad šablonu znovu zapnul a počítá ji od dne zapnutí; Foresi ji opakuje od téhož dne.
     title: Přesun z iDokladu
     entry: Přesun z iDokladu
-    firms:
-        intro: Vyberte firmu, jejíž účet iDokladu přesouváte.
-        caption: Firmy
-        column:
-            name: Firma
-        empty:
-            title: Zatím žádná firma
-            text: Nejdřív přidejte firmu, pak přesuňte její účet iDokladu.
+    no_firm:
+        title: Zatím žádná firma
+        text: Nejdřív přidejte firmu, pak přesuňte její účet iDokladu.
     steps:
         label: Kroky přesunu
         connect: Připojení

@@ -80,7 +80,8 @@ test.describe('invoicing time', () => {
   test('bills the ticked time on a new invoice, frees it in the trash and locks it again on restore', async ({ page }) => {
     const dialog = await openDialog(page);
     await expect(dialog.locator('[data-time-invoice-entry]')).toHaveCount(3);
-    await expect(dialog.locator('#time-invoice-firm option:checked')).toHaveText('Example Agency s.r.o.');
+    // The instance's one firm invoices the time: there is no firm to pick (ADR 0039).
+    await expect(dialog.locator('[name="firm"]')).toHaveCount(0);
     await expect(dialog.locator('#time-invoice-client option:checked')).toHaveText('Example Client s.r.o.');
     await expect(dialog.locator('[data-time-invoice-target="tick"]:checked')).toHaveCount(3);
     await expect(dialog.locator('[data-time-invoice-hours]')).toHaveText('3,00 hod');

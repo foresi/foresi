@@ -15,7 +15,7 @@ use Foresi\Shared\Application\View\ViewFilter;
 
 /**
  * What a list of received documents shows: the conditions of its view (spec D3),
- * narrowed by firm, month and a text in the supplier's name, the supplier's number
+ * narrowed by month and a text in the supplier's name, the supplier's number
  * or the evidence number. The tab says how the list orders its rows and what its
  * empty state says: the drafts newest first, the recorded documents by the day
  * they came, the trash by when they went there. A document belongs to the month
@@ -44,7 +44,6 @@ final readonly class ReceivedDocumentFilter
      */
     public function __construct(
         public string $tab = self::DRAFTS,
-        public ?string $firmId = null,
         public ?string $month = null,
         public string $text = '',
         public int $page = 1,

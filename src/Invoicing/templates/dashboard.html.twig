@@ -7,9 +7,6 @@
             <p class="m-0 text-caption text-muted">{{ 'dashboard.invoicing.note'|trans }}</p>
         </div>
     </div>
-    {% if firms is not empty %}
-        <twig:Ui:FilterBar id="dashboard-filters" :action="path('app_dashboard')" :filters="[{name: 'firm', label: 'invoice.field.firm'|trans, options: firms, value: firm, pinned: true}]" />
-    {% endif %}
     {% if pending is not empty %}
         <div data-dashboard-pending class="grid gap-2">
             {% for reminder in pending %}

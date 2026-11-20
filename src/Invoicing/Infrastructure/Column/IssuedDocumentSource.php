@@ -40,8 +40,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * the older key of the total to pay, which views kept.
  *
  * The context holds "trash" (the trash tab swaps the dates, the sent date and the export mark for who
- * deleted the document, when and why), "severalFirms" (the firm column), "names" (user names by
- * id, for the trash) and "reminders" ({count, lastAt} by the id of an overdue row).
+ * deleted the document, when and why), "names" (user names by id, for the trash) and
+ * "reminders" ({count, lastAt} by the id of an overdue row).
  *
  * The names and the reason give way to the numbers, dates, states and actions, cut short with
  * their full text in a title, so the table fits its frame with every column shown. A narrower
@@ -85,7 +85,6 @@ final readonly class IssuedDocumentSource implements DataSource
         return [
             // Shown by default, as the list has always shown them.
             new Attribute('number', $label('number'), AttributeType::Text, static fn (InvoiceRow $row): string => $row->number, sort: 'i.numberKey', defaultVisible: true, defaultPosition: 10, locked: true, filterable: true, filter: 'i.number'),
-            new Attribute('firm', $label('firm'), AttributeType::Reference, static fn (InvoiceRow $row): string => $row->firmName, sort: 'LOWER(i.issuer.name)', defaultVisible: true, defaultPosition: 20, phone: false, truncate: true, available: static fn (array $context): bool => true === ($context['severalFirms'] ?? false)),
             new Attribute('customer', $label('customer'), AttributeType::Reference, static fn (InvoiceRow $row): string => $row->customerName, sort: 'LOWER(i.customer.name)', defaultVisible: true, defaultPosition: 30, phone: false, truncate: true),
             new Attribute('deleted_by', $label('deleted_by'), AttributeType::Reference, fn (InvoiceRow $row, array $context): string => $this->who($row->deletedBy, $context), defaultVisible: true, defaultPosition: 40, aliases: ['deletedBy'], phone: false, truncate: true, available: $trash),
             new Attribute('deleted_at', $label('deleted_at'), AttributeType::DateTime, static fn (InvoiceRow $row): ?\DateTimeImmutable => $row->deletedAt, sort: 'i.deletedAt', defaultVisible: true, defaultPosition: 50, aliases: ['deletedAt'], phone: false, available: $trash, filterable: true),

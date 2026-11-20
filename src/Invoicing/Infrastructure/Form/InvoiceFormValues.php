@@ -14,7 +14,6 @@ use Foresi\Invoicing\Application\Deductible;
 use Foresi\Invoicing\Application\InvoiceDraftValues;
 use Foresi\Invoicing\Application\InvoiceStore;
 use Foresi\Invoicing\Application\LineInput;
-use Foresi\Invoicing\Application\NewInvoiceDefaults;
 use Foresi\Invoicing\Contract\DocumentParty;
 use Foresi\Invoicing\Contract\PriceType;
 use Foresi\Invoicing\Contract\TaxTreatment;
@@ -36,7 +35,6 @@ use Foresi\Shared\Domain\Money;
 final readonly class InvoiceFormValues
 {
     public function __construct(
-        private NewInvoiceDefaults $defaults,
         private CustomerPicker $picker,
         private PartyQuery $parties,
         private InvoiceStore $store,
@@ -51,7 +49,6 @@ final readonly class InvoiceFormValues
     {
         return [
             'firmId' => $draft->firmId,
-            'firmShown' => $draft->firmId,
             'kind' => $draft->kind->value,
             'taxOnReceipt' => '',
             'seriesId' => $draft->seriesId ?? '',
@@ -125,7 +122,6 @@ final readonly class InvoiceFormValues
     {
         return [
             'firmId' => $invoice->firm()->id(),
-            'firmShown' => $invoice->firm()->id(),
             'kind' => $invoice->kind()->value,
             'taxOnReceipt' => $invoice->taxOnReceipt()->value ?? '',
             'seriesId' => $invoice->series()->id(),
@@ -218,44 +214,6 @@ final readonly class InvoiceFormValues
     }
 
     /**
-     * The firm changed on a new document. Series, number and variable symbol start
-     * over from the new firm on the date of the form, a number or symbol typed by hand
-     * included; so do its account, symbol and texts. What was typed about the supply
-     * stays. A customer the new firm cannot invoice goes; one it can takes the VAT of
-     * the lines, by what the customer is to this firm.
-     *
-     * @param array<string, mixed> $values
-     *
-     * @return array<string, mixed>
-     */
-    public function forFirm(array $values, LegalEntity $firm, \DateTimeImmutable $issueDate): array
-    {
-        $draft = $this->defaults->for($firm, $issueDate);
-        $own = $this->ofDraft($draft);
-        foreach (['firmId', 'firmShown', 'seriesId', 'number', 'numberPeek', 'bankAccount', 'variableSymbol', 'constantSymbol', 'textBefore', 'textAfter'] as $field) {
-            $values[$field] = $own[$field];
-        }
-        /** @var list<array<string, string>> $typed */
-        $typed = $values['lines'];
-        $rows = array_map(static fn (array $row): array => self::rowFor($row, $draft->regime), $typed);
-        $values['lines'] = $rows;
-        $party = $this->partyOf($values);
-        if (!$party instanceof Party) {
-            return $values;
-        }
-        if ($party->isArchived()) {
-            return array_merge($values, ['customerId' => '', 'customerQuery' => '', 'customer' => $this->emptyCustomer()]);
-        }
-        if (VatRegime::Payer === $draft->regime) {
-            $option = $this->picker->option($party);
-            $issuerCountry = $firm->address()->countryCode;
-            $values['lines'] = array_map(static fn (array $row): array => self::rowAfterPick($row, $option, $issuerCountry), $rows);
-        }
-
-        return $values;
-    }
-
-    /**
      * A code the row must not hold: it belongs to reverse charge between parties of one
      * country, and the form hides it otherwise.
      *
@@ -315,30 +273,6 @@ final readonly class InvoiceFormValues
             'countryCode' => $option->billing->countryCode,
             'email' => $option->email ?? '',
         ])]);
-    }
-
-    /**
-     * @param array<string, mixed> $values
-     */
-    private function partyOf(array $values): ?Party
-    {
-        $id = $values['customerId'];
-
-        return \is_string($id) && '' !== $id ? $this->parties->find($id) : null;
-    }
-
-    /**
-     * @param array<string, string> $row
-     *
-     * @return array<string, string>
-     */
-    private static function rowFor(array $row, VatRegime $regime): array
-    {
-        if (VatRegime::NonPayer === $regime) {
-            return array_merge($row, ['vat' => InvoiceFormReader::VAT_NONE, 'priceType' => PriceType::WithoutVat->value, 'supplyCode' => '']);
-        }
-
-        return InvoiceFormReader::VAT_NONE === $row['vat'] ? array_merge($row, ['vat' => InvoiceFormReader::VAT_BASE]) : $row;
     }
 
     /**

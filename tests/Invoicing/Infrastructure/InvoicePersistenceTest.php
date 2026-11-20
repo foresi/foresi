@@ -257,24 +257,6 @@ final class InvoicePersistenceTest extends InvoiceTestCase
         self::assertSame(1, $this->store->page(new InvoiceFilter(null, 'all', '', '-issueDate', -1))->page);
     }
 
-    public function testTheLastFirmOfAUser(): void
-    {
-        $user = '01963c5e-0000-7000-8000-00000000000a';
-        $none = $this->store->lastFirmOf($user);
-        self::assertNull($none);
-
-        $connection = $this->em->getConnection();
-        $invoice = $this->issue->issue($this->input());
-        $connection->update('invoice', ['created_by' => $user], ['id' => $invoice->id()]);
-        $last = $this->store->lastFirmOf($user);
-        self::assertSame($this->firm->id(), $last?->id());
-
-        $this->firm->archive(new \DateTimeImmutable('2026-11-02'));
-        $this->em->flush();
-        $archived = $this->store->lastFirmOf($user);
-        self::assertNull($archived, 'an archived firm issues nothing');
-    }
-
     public function testALockErrorRunsTheWholeUnitAgainUpToThreeTimes(): void
     {
         $retry = self::getContainer()->get(ConflictRetry::class);

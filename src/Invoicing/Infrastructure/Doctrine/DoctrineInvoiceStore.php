@@ -549,16 +549,6 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQuerie
         return $corrections;
     }
 
-    public function lastFirmOf(string $userId): ?LegalEntity
-    {
-        $firm = $this->em->createQuery('SELECT f FROM '.LegalEntity::class.' f, '.Invoice::class.' i WHERE i.firm = f AND i.createdBy = :user AND f.archivedAt IS NULL ORDER BY i.createdAt DESC, i.id DESC')
-            ->setParameter('user', $userId)
-            ->setMaxResults(1)
-            ->getOneOrNullResult();
-
-        return $firm instanceof LegalEntity ? $firm : null;
-    }
-
     /**
      * Starting a session over would drop these without a word.
      */

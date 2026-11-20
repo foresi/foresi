@@ -47,7 +47,6 @@ final class RefusalFields
         ReceivedDocumentRefused::VARIABLE_SYMBOL => 'variableSymbol',
         ReceivedDocumentRefused::SUPPLY_CODE_NOT_ALLOWED => 'supplyCode',
         ReceivedDocumentRefused::SUPPLY_CODE_INVALID => 'supplyCode',
-        ReceivedDocumentRefused::FIRM_ARCHIVED => 'firm',
         ReceivedDocumentRefused::REASON_MISSING => 'reason',
         ReceivedDocumentRefused::REASON_TOO_LONG => 'reason',
     ];

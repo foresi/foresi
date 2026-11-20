@@ -10,7 +10,7 @@ Owners and team members of the organisation. A guest never sees received documen
 
 ## Concepts
 
-- **Received document.** One record for everything a firm receives and books as a cost. It belongs to one of your firms and keeps the original file, the supplier, the dates, the amounts and a VAT recap.
+- **Received document.** One record for everything a firm receives and books as a cost. It belongs to the firm and keeps the original file, the supplier, the dates, the amounts and a VAT recap.
 - **Kind.** A tax invoice, a simplified receipt (a simplified tax document), a foreign invoice, a credit note (a corrective tax document), an advance request or another document. The kind decides what a document needs: advance requests and other documents carry no VAT, so they are always "not a VAT document" and need no VAT recap; a credit note names the recorded document it corrects, and only a credit note does.
 - **Supplier.** A contact of the address book. The document keeps a frozen copy of the supplier's name, registration number, VAT ID and address as the document states them, so a later edit of the contact never changes a recorded document.
 - **Supplier's number and our evidence number.** The supplier's number is the number printed on the document, the one the control statement reports. The evidence number is the firm's own number in its books (see [Evidence number](#evidence-number)).
@@ -27,7 +27,7 @@ A document is first a **draft** or is **recorded**:
 - **Changing the kind, the treatment or the currency** sends the form back for what the new value needs (the exchange rate, the supply code, the original of a credit note, the CZK VAT a document in another currency states). It saves nothing. A refusal is shown next to its field and in a summary over the form.
 - **Two people editing the same document** cannot overwrite each other: a save from a form opened before another save is refused with a message and a link to load the document again.
 
-The list has the tabs **To complete**, **Recorded** and **Trash**, each with its count, a filter by firm, month, supplier, kind and VAT treatment, and a search over the supplier and the supplier's number.
+The list has the tabs **To complete**, **Recorded** and **Trash**, each with its count, a filter by month, supplier, kind and VAT treatment, and a search over the supplier and the supplier's number.
 
 ### Evidence number
 

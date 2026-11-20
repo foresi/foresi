@@ -122,9 +122,4 @@ interface InvoiceStore
      * @return array<string, DocumentKind> kinds by id
      */
     public function forAccountant(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to, bool $pending): array;
-
-    /**
-     * The active firm the user issued in last.
-     */
-    public function lastFirmOf(string $userId): ?LegalEntity;
 }

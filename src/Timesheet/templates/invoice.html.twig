@@ -1,10 +1,11 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    Invoice time, for an owner: the firm, the client, its projects and the period (last month unless
-    changed) pick the time, which is listed with a tick each, all ticked, and the totals of what is
-    ticked. A change of the firm, the client, the projects or the period sends the form back for the
-    time it holds (a button without JavaScript); ticks, the grouping of the lines and the rounding of
-    each entry change the totals in place. Continue opens the new invoice form with the lines.
+    Invoice time, for an owner: the client, its projects and the period (last month unless changed)
+    pick the time, which is listed with a tick each, all ticked, and the totals of what is ticked.
+    The instance's firm invoices it. A change of the client, the projects or the period sends the
+    form back for the time it holds (a button without JavaScript); ticks, the grouping of the lines
+    and the rounding of each entry change the totals in place. Continue opens the new invoice form
+    with the lines.
     A dialog over the page it was opened from; the same URL is a page of its own.
 #}
 {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
@@ -30,7 +31,6 @@
 
             <div class="grid gap-4" data-action="change->autosubmit#submit" data-controller="autosubmit" data-time-invoice-scope>
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <twig:Ui:Select name="firm" id="time-invoice-firm" :label="'timesheet.invoice.firm'|trans" :options="firms" :value="firm" required />
                     <twig:Ui:Select name="client" id="time-invoice-client" :label="'timesheet.invoice.client'|trans" :options="clients" :value="client" required />
                 </div>
                 {% if projects is not empty %}

@@ -154,7 +154,6 @@ bank:
       messages: Zprávy
     column:
       date: Datum
-      firm: Firma
       account: Účet
       amount: Částka
       vs: VS
@@ -175,7 +174,7 @@ bank:
     empty:
       no_accounts_title: Zatím tu není žádný bankovní účet
       no_accounts_text: Přidejte bankovní účet firmy v jejím nastavení banky. Platby z e-mailů banky se pak ukážou tady.
-      no_accounts_link: Otevřít firmy
+      no_accounts_link: Otevřít nastavení banky
       all_title: Zatím žádné platby
       all_text: Platby z e-mailů banky se ukážou tady.
       filtered_title: Filtru nic neodpovídá

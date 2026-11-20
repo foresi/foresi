@@ -336,35 +336,16 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame(['20260002', '20260001', '20260003'], $this->numbers($this->client->request('GET', '/invoices?sort=customer')));
     }
 
-    public function testTheFirmColumnAppearsWithTwoFirms(): void
+    public function testThereIsNoFirmColumnEvenWithAnInvoiceOfAnOldFirm(): void
     {
         $this->signedIn();
-        $second = $this->secondFirm();
         $this->issue('2026-11-01', '2026-12-01');
+        $this->issue('2026-11-02', '2026-12-01', firm: $this->secondFirm());
 
         $crawler = $this->client->request('GET', '/invoices');
+
         self::assertNotContains('Firm', $this->headers($crawler));
         self::assertCount(0, $crawler->filter('[data-filter-sheet-form] select[name="firm"]'));
-
-        $this->issue('2026-11-02', '2026-12-01', firm: $second);
-
-        $crawler = $this->client->request('GET', '/invoices');
-        self::assertContains('Firm', $this->headers($crawler));
-        self::assertStringContainsString('Example Second s.r.o.', $crawler->filter('tbody tr')->first()->text());
-        // The column stays for data from before one firm per instance (ADR 0039); the select does not.
-        self::assertCount(0, $crawler->filter('[data-filter-sheet-form] select[name="firm"]'));
-    }
-
-    public function testAFirmStaysInTheColumnOnceItsOnlyInvoiceIsInTheTrash(): void
-    {
-        $this->signedIn();
-        $second = $this->secondFirm();
-        $this->issue('2026-11-01', '2026-12-01');
-        $this->trashed($this->issue('2026-11-02', '2026-12-01', firm: $second), 'Wrong firm');
-
-        $crawler = $this->client->request('GET', '/invoices');
-
-        self::assertContains('Firm', $this->headers($crawler));
     }
 
     public function testTheDetailIsAPageAndARecordInTheSheet(): void

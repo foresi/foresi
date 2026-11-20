@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Application\Query;
 
-use Foresi\Party\Application\LegalEntities;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Purchasing\Application\PurchasingAccess;
 use Foresi\Purchasing\Application\PurchasingNotAllowed;
 use Foresi\Shared\Application\View\ViewFilter;
@@ -23,25 +23,19 @@ final readonly class ReceivedDocumentList
     public function __construct(
         private PurchasingAccess $access,
         private ReceivedDocumentQueries $queries,
-        private LegalEntities $firms,
+        private InstanceFirm $firm,
     ) {
     }
 
     /**
-     * A firm the organisation does not know is no filter at all, and a page past
-     * the last is the last.
+     * A page past the last is the last.
      *
      * @throws PurchasingNotAllowed for anyone but the owners and members of the organisation
      */
     public function page(ReceivedDocumentFilter $filter): ReceivedDocumentPage
     {
         $this->access->denyUnlessStaff();
-        $firms = [];
-        foreach ($this->firms->all() as $firm) {
-            $firms[$firm->id()] = $firm->name();
-        }
-        $firmId = null !== $filter->firmId && isset($firms[$filter->firmId]) ? $filter->firmId : null;
-        $filter = new ReceivedDocumentFilter($filter->tab, $firmId, $filter->month, trim(mb_substr($filter->text, 0, ReceivedDocumentFilter::MAX_TEXT)), $filter->page, $filter->view, $filter->counted);
+        $filter = new ReceivedDocumentFilter($filter->tab, $filter->month, trim(mb_substr($filter->text, 0, ReceivedDocumentFilter::MAX_TEXT)), $filter->page, $filter->view, $filter->counted);
 
         [$total, $counts] = $this->queries->counts($filter);
         $pages = max(1, (int) ceil($total / ReceivedDocumentFilter::PER_PAGE));
@@ -54,13 +48,12 @@ final readonly class ReceivedDocumentList
             $page,
             $pages,
             $counts,
-            $firms,
-            $this->queries->months($firmId),
+            $this->queries->months(),
         );
     }
 
     /**
-     * How many documents a view holds, of every firm, month and text.
+     * How many documents a view holds, of every month and text.
      *
      * @throws PurchasingNotAllowed for anyone but the owners and members of the organisation
      */
@@ -84,20 +77,14 @@ final readonly class ReceivedDocumentList
     }
 
     /**
-     * The firms that take documents, by name.
-     *
-     * @return array<string, string> name by id
+     * The id of the firm that takes the documents (ADR 0039), or null before the first-run setup.
      *
      * @throws PurchasingNotAllowed for anyone but the owners and members of the organisation
      */
-    public function activeFirms(): array
+    public function firmId(): ?string
     {
         $this->access->denyUnlessStaff();
-        $firms = [];
-        foreach ($this->firms->active() as $firm) {
-            $firms[$firm->id()] = $firm->name();
-        }
 
-        return $firms;
+        return $this->firm->find()?->id();
     }
 }

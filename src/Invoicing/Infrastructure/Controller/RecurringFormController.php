@@ -21,7 +21,6 @@ use Foresi\Invoicing\Application\InvoiceStore;
 use Foresi\Invoicing\Application\InvoicingCountries;
 use Foresi\Invoicing\Application\IssueAfterTodaysRun;
 use Foresi\Invoicing\Application\IssueProblem;
-use Foresi\Invoicing\Application\NewInvoiceDefaults;
 use Foresi\Invoicing\Application\PreviewRow;
 use Foresi\Invoicing\Application\RecurringInvoices;
 use Foresi\Invoicing\Application\RecurringOccurrence;
@@ -46,6 +45,7 @@ use Foresi\Invoicing\Infrastructure\Form\InvoiceFormValues;
 use Foresi\Invoicing\Infrastructure\Form\RecurringFormReader;
 use Foresi\Invoicing\Infrastructure\Form\RecurringFormValues;
 use Foresi\Invoicing\Infrastructure\Form\RecurringSubmission;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\PartyDetails;
 use Foresi\Party\Application\PartyQuery;
@@ -92,6 +92,7 @@ final class RecurringFormController extends AbstractController
 
     public function __construct(
         private readonly LegalEntities $firms,
+        private readonly InstanceFirm $instanceFirm,
         private readonly InvoiceStore $invoices,
         private readonly RecurringInvoices $templates,
         private readonly SaveRecurringInvoice $save,
@@ -106,7 +107,6 @@ final class RecurringFormController extends AbstractController
         private readonly InvoiceFigures $figures,
         private readonly FirmInvoicingSettings $settings,
         private readonly InvoicingCountries $countries,
-        private readonly NewInvoiceDefaults $defaults,
         private readonly CopyInvoice $copies,
         private readonly CustomerPicker $picker,
         private readonly PartyDetails $partyDetails,
@@ -131,12 +131,7 @@ final class RecurringFormController extends AbstractController
 
         $from = $request->query->getString('from');
         $source = '' === $from ? null : $this->invoice($from);
-        $id = $request->query->getString('firm');
-        $firm = match (true) {
-            $source instanceof Invoice => $source->firm(),
-            '' !== $id => $this->firm($id),
-            default => $this->defaults->firmFor($this->actor->userId()),
-        };
+        $firm = $source instanceof Invoice ? $source->firm() : $this->instanceFirm->find();
         if (!$firm instanceof LegalEntity) {
             return $this->render('@Invoicing/recurring/form.html.twig', ['blocked' => 'no_firm']);
         }
@@ -179,7 +174,7 @@ final class RecurringFormController extends AbstractController
         $this->checkToken($request);
         $templateId = $request->request->getString('templateId');
         $template = '' === $templateId ? null : $this->template($templateId);
-        $firm = $template?->firm() ?? $this->firm($request->request->getString('firmId'));
+        $firm = $template?->firm() ?? $this->firm();
         try {
             $context = $this->context($firm);
         } catch (UnsupportedCountry) {
@@ -207,7 +202,9 @@ final class RecurringFormController extends AbstractController
             return $this->alreadySaved();
         }
         try {
-            $context = $this->context($this->firm($request->request->getString('firmId')));
+            $firm = $this->firm();
+            $request->request->set('firmId', $firm->id());
+            $context = $this->context($firm);
         } catch (UnsupportedCountry) {
             return $this->render('@Invoicing/recurring/form.html.twig', ['blocked' => 'country']);
         }
@@ -297,7 +294,7 @@ final class RecurringFormController extends AbstractController
     private function refused(RecurringRefused $refused, ?string $templateId, InvoiceFormContext $context, array $values, array $candidates, string $token, int $version): Response
     {
         $template = null === $templateId ? null : $this->template($templateId);
-        $context = $this->context($template?->firm() ?? $this->firm($context->firm->id()));
+        $context = $this->context($template?->firm() ?? $this->firmById($context->firm->id()));
         $stale = array_any($refused->problems, static fn (IssueProblem $problem): bool => 'version' === $problem->field);
 
         return $this->form($context, $template, $values, $stale ? [] : $this->messages([], $refused->problems), $candidates, $token, $version, $stale ? Response::HTTP_CONFLICT : Response::HTTP_UNPROCESSABLE_ENTITY, $stale);
@@ -316,12 +313,7 @@ final class RecurringFormController extends AbstractController
             } elseif ($party instanceof Party) {
                 $values = $this->withCustomer($values, $party, $context);
             }
-        } elseif ('refresh' === $action) {
-            if (!$template instanceof RecurringInvoice && $values['firmId'] !== $values['firmShown']) {
-                $values = $this->values->forFirm($values, $context->firm, $this->today());
-                $this->addFlash('warning', $this->translator->trans('invoice.firm_changed'));
-            }
-        } else {
+        } elseif ('refresh' !== $action) {
             $values = $this->values->withRowAction($values, $action, $context->regime, $this->newLinesAreReverseCharge($context, $values));
         }
 
@@ -477,7 +469,6 @@ final class RecurringFormController extends AbstractController
             'template' => $template,
             'ended' => RecurringState::Ended === $template?->state(),
             'firm' => $firm,
-            'firms' => $template instanceof RecurringInvoice ? [] : $this->options->firms($firm),
             'series' => $this->seriesOptions($firm, $template),
             'values' => $values,
             'errors' => $links,
@@ -743,7 +734,15 @@ final class RecurringFormController extends AbstractController
         return $this->clock->today();
     }
 
-    private function firm(string $id): LegalEntity
+    /**
+     * The firm of the instance, which a new template invoices from (ADR 0039).
+     */
+    private function firm(): LegalEntity
+    {
+        return $this->instanceFirm->find() ?? throw new NotFoundHttpException();
+    }
+
+    private function firmById(string $id): LegalEntity
     {
         try {
             return Uuid::isValid($id) ? $this->firms->get($id) : throw new NotFoundHttpException();

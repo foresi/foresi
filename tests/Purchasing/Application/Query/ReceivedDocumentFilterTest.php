@@ -48,7 +48,7 @@ final class ReceivedDocumentFilterTest extends TestCase
         $view = ViewFilter::all(new Condition(ReceivedDocumentLists::KIND, 'is', 'credit_note'));
         $counted = ['drafts' => new ViewFilter()];
 
-        $filter = new ReceivedDocumentFilter(ReceivedDocumentFilter::TRASH, 'firm', 'last_month', 'text', 4, $view, $counted);
+        $filter = new ReceivedDocumentFilter(ReceivedDocumentFilter::TRASH, 'last_month', 'text', 4, $view, $counted);
 
         self::assertSame($view, $filter->view);
         self::assertSame($counted, $filter->counted);
