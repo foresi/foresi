@@ -29,7 +29,8 @@
             "namespace": "Foresi\\Purchasing\\",
             "bundle": "Foresi\\Purchasing\\PurchasingBundle",
             "optional": [
-                "cash-flow"
+                "cash-flow",
+                "taxes-and-contributions"
             ],
             "scopes": [
                 "received_documents"

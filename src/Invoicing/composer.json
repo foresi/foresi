@@ -29,7 +29,8 @@
             "namespace": "Foresi\\Invoicing\\",
             "bundle": "Foresi\\Invoicing\\InvoicingBundle",
             "optional": [
-                "cash-flow"
+                "cash-flow",
+                "taxes-and-contributions"
             ],
             "scopes": [
                 "invoices",

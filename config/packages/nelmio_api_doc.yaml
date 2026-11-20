@@ -719,6 +719,64 @@ nelmio_api_doc:
                         statuses: { type: array, items: { $ref: '#/components/schemas/TaxStatus' } }
                         years: { type: array, items: { $ref: '#/components/schemas/TaxYear' } }
                         authorities: { type: array, items: { $ref: '#/components/schemas/TaxAuthorityAccount' } }
+                TaxAmountFigures:
+                    type: object
+                    description: 'Amounts in CZK. counted is what the records count: the gross before the day the owner became a VAT payer, the net from it.'
+                    properties:
+                        gross: { $ref: '#/components/schemas/Money' }
+                        net: { $ref: '#/components/schemas/Money' }
+                        vat: { $ref: '#/components/schemas/Money' }
+                        counted: { $ref: '#/components/schemas/Money' }
+                TaxAmounts:
+                    type: object
+                    description: 'The actual income and costs on a cash basis: each payment on its own day, split into net and VAT in the ratio of its document, at the ČNB rate of its day. Refunds and credit notes are negative. Only the owner reads them.'
+                    properties:
+                        from: { type: string, format: date }
+                        to: { type: string, format: date }
+                        totals:
+                            type: object
+                            properties:
+                                income: { $ref: '#/components/schemas/TaxAmountFigures' }
+                                cost: { $ref: '#/components/schemas/TaxAmountFigures' }
+                        months:
+                            type: array
+                            items:
+                                allOf:
+                                    - $ref: '#/components/schemas/TaxAmountFigures'
+                                    - type: object
+                                      properties:
+                                          month: { type: string, example: '2026-11' }
+                                          kind: { type: string, enum: [income, cost] }
+                                          source: { type: string, example: invoicing.payments }
+                        amounts:
+                            type: array
+                            description: The payments of the documents the caller may read.
+                            items:
+                                type: object
+                                properties:
+                                    source: { type: string, example: invoicing.payments }
+                                    subject:
+                                        type: object
+                                        properties:
+                                            type: { type: string, example: invoice }
+                                            id: { type: string, format: uuid }
+                                            url: { type: string, nullable: true }
+                                    kind: { type: string, enum: [income, cost] }
+                                    paid_on: { type: string, format: date }
+                                    tax_point_on: { type: string, format: date, nullable: true }
+                                    advance: { type: boolean }
+                                    gross: { $ref: '#/components/schemas/Money' }
+                                    net: { $ref: '#/components/schemas/Money' }
+                                    vat: { $ref: '#/components/schemas/Money' }
+                                    gross_czk: { $ref: '#/components/schemas/Money' }
+                                    net_czk: { $ref: '#/components/schemas/Money' }
+                                    vat_czk: { $ref: '#/components/schemas/Money' }
+                                    counted_czk: { $ref: '#/components/schemas/Money' }
+                        unavailable_sources: { type: array, items: { type: string }, description: The sources not installed or that failed; their amounts are missing. }
+                        restricted_sources: { type: array, items: { type: string }, description: The sources whose documents the caller may not read; they count in the sums only. }
+                        missing_rates: { type: array, items: { type: string }, description: The currencies without a rate on a payment day; those payments are left out. }
+                        unverified: { type: array, items: { type: string, enum: [fx_payment_day, vat_cash_basis] }, description: Rules an accountant should confirm. }
+                        known_gaps: { type: array, items: { type: string, enum: [non_deductible_costs, assets] }, description: What the received documents cannot say yet. }
                 ReceivedDocument:
                     type: object
                     description: 'A document a firm received from a supplier. Paid and remaining are positive, also for a credit note, whose total is negative.'

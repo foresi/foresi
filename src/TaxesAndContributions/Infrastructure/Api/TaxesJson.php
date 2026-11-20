@@ -10,6 +10,11 @@ namespace Foresi\TaxesAndContributions\Infrastructure\Api;
 
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Infrastructure\Api\JsonValues;
+use Foresi\TaxesAndContributions\Contract\AmountKind;
+use Foresi\TaxesAndContributions\Contract\AmountLine;
+use Foresi\TaxesAndContributions\Contract\AmountSum;
+use Foresi\TaxesAndContributions\Contract\AmountsView;
+use Foresi\TaxesAndContributions\Contract\AmountTotals;
 use Foresi\TaxesAndContributions\Contract\AuthorityAccountView;
 use Foresi\TaxesAndContributions\Contract\ChildInput;
 use Foresi\TaxesAndContributions\Contract\ExpenseMethod;
@@ -19,7 +24,7 @@ use Foresi\TaxesAndContributions\Contract\StatusPeriod;
 use Foresi\TaxesAndContributions\Contract\YearInputsView;
 
 /**
- * The owner profile as the API and MCP write it, in snake case, with amounts
+ * The owner profile and the actual amounts as the API and MCP write them, in snake case, with amounts
  * as {amount_minor, currency} and days as 2026-11-12.
  */
 final class TaxesJson
@@ -97,6 +102,65 @@ final class TaxesJson
     public static function authority(AuthorityAccountView $account): array
     {
         return ['authority' => $account->authority, 'account' => $account->account, 'variable_symbol' => $account->variableSymbol];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function amounts(AmountsView $amounts): array
+    {
+        $totals = [];
+        foreach (AmountKind::cases() as $kind) {
+            $totals[$kind->value] = self::totals($amounts->totalOf($kind));
+        }
+
+        return [
+            'from' => $amounts->from->format('Y-m-d'),
+            'to' => $amounts->to->format('Y-m-d'),
+            'totals' => $totals,
+            'months' => array_map(static fn (AmountSum $sum): array => [
+                'month' => $sum->month,
+                'kind' => $sum->kind->value,
+                'source' => $sum->source,
+                'gross' => JsonValues::money($sum->gross),
+                'net' => JsonValues::money($sum->net),
+                'vat' => JsonValues::money($sum->vat),
+                'counted' => JsonValues::money($sum->counted),
+            ], $amounts->sums),
+            'amounts' => array_map(static fn (AmountLine $line): array => [
+                'source' => $line->amount->source,
+                'subject' => ['type' => $line->amount->subject->type, 'id' => $line->amount->subject->id, 'url' => $line->amount->subject->url],
+                'kind' => $line->amount->kind->value,
+                'paid_on' => $line->amount->paidOn->format('Y-m-d'),
+                'tax_point_on' => $line->amount->taxPointOn?->format('Y-m-d'),
+                'advance' => $line->amount->advance,
+                'gross' => JsonValues::money($line->amount->gross),
+                'net' => JsonValues::money($line->amount->net),
+                'vat' => JsonValues::money($line->amount->vat),
+                'gross_czk' => JsonValues::money($line->grossCzk),
+                'net_czk' => JsonValues::money($line->netCzk),
+                'vat_czk' => JsonValues::money($line->vatCzk),
+                'counted_czk' => JsonValues::money($line->countedCzk),
+            ], $amounts->lines),
+            'unavailable_sources' => $amounts->unavailableSources,
+            'restricted_sources' => $amounts->restrictedSources,
+            'missing_rates' => $amounts->missingRates,
+            'unverified' => $amounts->unverified,
+            'known_gaps' => $amounts->knownGaps,
+        ];
+    }
+
+    /**
+     * @return array<string, array{amount_minor: int, currency: string}>
+     */
+    private static function totals(AmountTotals $totals): array
+    {
+        return [
+            'gross' => JsonValues::money($totals->gross),
+            'net' => JsonValues::money($totals->net),
+            'vat' => JsonValues::money($totals->vat),
+            'counted' => JsonValues::money($totals->counted),
+        ];
     }
 
     /**

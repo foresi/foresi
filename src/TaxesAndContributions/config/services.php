@@ -6,7 +6,11 @@
 
 declare(strict_types=1);
 
+use Foresi\TaxesAndContributions\Application\Amounts;
+use Foresi\TaxesAndContributions\Contract\ActualAmountSource;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+
+use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 
 /*
  * The services of the TaxesAndContributions module, loaded by
@@ -17,4 +21,8 @@ return static function (ContainerConfigurator $container): void {
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\TaxesAndContributions\\', '../')
         ->exclude(['../config/', '../Integration/', '../migrations/', '../TaxesAndContributionsBundle.php']);
+
+    // Invoicing and Purchasing give the paid amounts through Foresi\TaxesAndContributions\Contract\ActualAmountSource.
+    $services->set(Amounts::class)
+        ->arg('$sources', tagged_iterator(ActualAmountSource::TAG));
 };
