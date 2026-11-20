@@ -18,6 +18,7 @@ use Foresi\Party\Infrastructure\Events\PartyEventAccess;
 use Foresi\Purchasing\Infrastructure\Events\PurchasingEventAccess;
 use Foresi\Shared\Application\Event\EventReadAccess;
 use Foresi\Shared\Domain\Id;
+use Foresi\TaxesAndContributions\Infrastructure\Events\TaxesEventAccess;
 use Foresi\Tests\Identity\Support\IdentityFixtures;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Tests\Webhooks\Support\DeliveryRows;
@@ -193,7 +194,7 @@ final class WebhookEndpointControllerTest extends WebTestCase
         $id = $this->stored();
         // The person no longer works with the bank, the cash flow, invoices, contacts or received documents: the access services
         // of the installed modules say no.
-        foreach ([BankingEventAccess::class => 'banking', CashFlowEventAccess::class => 'cash-flow', InvoicingEventAccess::class => 'invoicing', PartyEventAccess::class => 'party', PurchasingEventAccess::class => 'purchasing', WorkEventAccess::class => 'work'] as $service => $module) {
+        foreach ([BankingEventAccess::class => 'banking', CashFlowEventAccess::class => 'cash-flow', InvoicingEventAccess::class => 'invoicing', PartyEventAccess::class => 'party', PurchasingEventAccess::class => 'purchasing', TaxesEventAccess::class => 'taxes-and-contributions', WorkEventAccess::class => 'work'] as $service => $module) {
             if (!class_exists($service)) {
                 continue;
             }

@@ -63,7 +63,7 @@ taxes:
     statuses: Stavy
     years: Roky
     authorities: Účty úřadů
-    authorities_help: Kam platíte zálohy. Podle účtu a variabilního symbolu se platby spárují s odhadem.
+    authorities_note: Kam platíte zálohy. Podle účtu a variabilního symbolu se platby spárují s odhadem.
     empty_title: Zatím žádné stavy
     empty_text: Přidejte, odkdy jste OSVČ, jakou máte činnost a odkdy jste plátce DPH.
     until_next: do další změny
@@ -83,7 +83,7 @@ taxes:
       chosen_method: Výdaje v přiznání
       chosen_open: Zatím nerozhodnuto
       child_label: Označení dítěte
-      child_label_help: Vlastní označení, třeba „Starší dcera". Dítě bez označení a data narození se neuloží.
+      child_label_help: Vlastní označení, třeba „Starší dcera".
       birth_date: Datum narození
       order: Pořadí
       months: Počet měsíců (0–12)

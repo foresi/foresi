@@ -34,7 +34,7 @@
             {% if errors.children is defined %}<twig:Ui:Alert tone="error">{{ errors.children|trans }}</twig:Ui:Alert>{% endif %}
             {% for child in values.children %}
                 {% set i = loop.index0 %}
-                <fieldset class="m-0 grid gap-3 border-0 border-t border-line p-0 pt-3" data-taxes-child>
+                <fieldset class="m-0 grid gap-3 border-0 border-t border-divider p-0 pt-3" data-taxes-child>
                     <legend class="sr-only">{{ 'taxes.profile.year.child'|trans({number: loop.index}) }}</legend>
                     <twig:Ui:TextInput :name="'children[' ~ i ~ '][label]'" :id="'child-' ~ i ~ '-label'" :label="'taxes.profile.field.child_label'|trans" :help="loop.first ? 'taxes.profile.field.child_label_help'|trans : null" :value="child.label" autocomplete="off" />
                     <twig:Ui:TextInput :name="'children[' ~ i ~ '][birthDate]'" :id="'child-' ~ i ~ '-birth'" type="date" :label="'taxes.profile.field.birth_date'|trans" :value="child.birthDate" />

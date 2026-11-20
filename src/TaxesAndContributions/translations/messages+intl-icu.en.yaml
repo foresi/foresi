@@ -63,7 +63,7 @@ taxes:
     statuses: Statuses
     years: Years
     authorities: Authority accounts
-    authorities_help: Where you pay the advances. Payments are matched to the estimate by the account and the variable symbol.
+    authorities_note: Where you pay the advances. Payments are matched to the estimate by the account and the variable symbol.
     empty_title: No statuses yet
     empty_text: Add since when you are a sole trader, your activity and since when you are a VAT payer.
     until_next: until the next change
@@ -74,7 +74,7 @@ taxes:
     field:
       change: Change
       valid_from: From
-      valid_from_help: The status holds from this day until the next change of its kind.
+      valid_from_help: It holds from this day until the next change of its kind.
       base: Monthly base
       base_help: Only for sickness insurance you pay. CZK.
       account: Account number
@@ -83,7 +83,7 @@ taxes:
       chosen_method: Costs in the return
       chosen_open: Not decided yet
       child_label: Child
-      child_label_help: Your own label, such as "Elder daughter". A child without a label and a birth date is not saved.
+      child_label_help: Your own label, such as "Elder daughter".
       birth_date: Birth date
       order: Order
       months: Months (0–12)
