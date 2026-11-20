@@ -152,10 +152,9 @@ final class InvoiceListController extends AbstractController
         $viewSort = ViewState::sortParam($view->sort, InvoiceFilter::DEFAULT_SORT);
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null, 'month' => $month, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
         $toSendCount = $this->recurring->inReview();
-        $severalFirms = \count($page->firms) > 1;
         // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $list = $this->lists->of($kind);
-        $working = $this->workingDisplay->read($this->listKey($kind), ['trash' => InvoiceFilter::TRASH === $tab, 'severalFirms' => $severalFirms], $list->key, $view, $request->query->all());
+        $working = $this->workingDisplay->read($this->listKey($kind), ['trash' => InvoiceFilter::TRASH === $tab], $list->key, $view, $request->query->all());
         $query += $working->query;
         $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, InvoiceFilter::DEFAULT_SORT, $working, $route, '' === $text ? [] : ['q' => $text]);
         $modified = $bar['viewBar']['modified'];
@@ -185,7 +184,7 @@ final class InvoiceListController extends AbstractController
             'newHref' => $kind->standsAlone() ? $this->generateUrl('app_invoice_new', DocumentKind::Invoice === $kind ? [] : ['kind' => $kind->value]) : null,
             ...$this->tabs($views, $view->key, $page, $query, $route, $kind, $modified),
             'columns' => $working->display->table($sort, fn (string $next): string => $this->generateUrl($route, ['sort' => $next] + $query)),
-            'rows' => array_map(fn (InvoiceRow $row): array => $this->row($row, $tab, $severalFirms, $names, http_build_query($here), $reminders[$row->id] ?? null, $working->payload), $page->rows),
+            'rows' => array_map(fn (InvoiceRow $row): array => $this->row($row, $tab, $names, http_build_query($here), $reminders[$row->id] ?? null, $working->payload), $page->rows),
             'density' => $working->tableDensity(),
             'picker' => $this->picker($working, $query, $route),
             'workingQuery' => $working->query,
@@ -347,7 +346,7 @@ final class InvoiceListController extends AbstractController
         }
 
         return [InvoiceLists::CONTACT => [
-            'url' => $this->generateUrl('app_invoice_customers', ['firm' => $id]),
+            'url' => $this->generateUrl('app_invoice_customers'),
             'name' => fn (string $contact): ?string => $this->customers->find($contact)?->name,
         ]];
     }
@@ -663,9 +662,9 @@ final class InvoiceListController extends AbstractController
      * @param array<string, array{count: int, lastAt: \DateTimeImmutable}> $reminders by the id of an overdue row
      * @param array<array-key, mixed>|null                                 $display   the display payload the list shows
      */
-    private function column(string $kind, string $tab, bool $severalFirms, array $names = [], array $reminders = [], ?array $display = null): ListDisplay
+    private function column(string $kind, string $tab, array $names = [], array $reminders = [], ?array $display = null): ListDisplay
     {
-        return $this->listColumns->display($this->listKey($kind), ['trash' => InvoiceFilter::TRASH === $tab, 'severalFirms' => $severalFirms, 'names' => $names, 'reminders' => $reminders], $display);
+        return $this->listColumns->display($this->listKey($kind), ['trash' => InvoiceFilter::TRASH === $tab, 'names' => $names, 'reminders' => $reminders], $display);
     }
 
     /**
@@ -678,12 +677,12 @@ final class InvoiceListController extends AbstractController
      *
      * @return array<string, mixed>
      */
-    private function row(InvoiceRow $row, string $tab, bool $severalFirms, array $names, string $return, ?array $reminders = null, ?array $display = null): array
+    private function row(InvoiceRow $row, string $tab, array $names, string $return, ?array $reminders = null, ?array $display = null): array
     {
         $context = null === $reminders ? [] : [$row->id => $reminders];
-        $cells = $this->column($row->kind->value, $tab, $severalFirms, $names, $context, $display)->cells($row);
+        $cells = $this->column($row->kind->value, $tab, $names, $context, $display)->cells($row);
         // A phone keeps its own line under the number, whichever columns a wider screen shows (D-display-5).
-        $line = null === $display ? $cells : $this->column($row->kind->value, $tab, $severalFirms, $names, $context)->cells($row);
+        $line = null === $display ? $cells : $this->column($row->kind->value, $tab, $names, $context)->cells($row);
         $text = static function (string $key, string $part = 'text') use ($line): ?string {
             $value = \is_array($line[$key] ?? null) ? ($line[$key][$part] ?? null) : ('text' === $part ? ($line[$key] ?? null) : null);
 

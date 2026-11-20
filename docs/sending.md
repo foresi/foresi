@@ -9,7 +9,7 @@ Foresi sends an invoice as a link to its PDF, through the firm's own mail server
 3. The send waits in the `mail` queue. A worker hands it to the firm's mail server. A temporary refusal is retried after 1, 4, 16, 64 and 256 minutes (about 5.7 hours, which outlasts greylisting); a permanent refusal (a 5xx answer, a refused login) fails at once.
 
    The server takes or refuses a send as a whole. If it refuses one recipient (a 5xx answer to `RCPT TO`, for example an unknown Cc address), the whole send fails and no recipient gets it, the customer included. The reason names the refused address: correct or remove it and send again.
-4. The invoice list marks each invoice as sending, sent, read or failed. The invoice's history shows every send with its text and the PDF as it was sent, and **Sales › Sent e-mails** lists all sends with a filter by firm and state.
+4. The invoice list marks each invoice as sending, sent, read or failed. The invoice's history shows every send with its text and the PDF as it was sent, and **Sales › Sent e-mails** lists all sends with a filter by state.
 
 Every send has a purpose: an invoice, or a reminder with its step number. **Sales › Sent e-mails** filters by it, and the invoice's history names the reminder step. Sends made by the daily runs, recurring invoices and automatic reminders, are the system's: they skip the per-user minute limit and take at most 80% of the firm's daily budget, so people keep room to send by hand. See [recurring.md](recurring.md) and [reminders.md](reminders.md).
 

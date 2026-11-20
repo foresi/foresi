@@ -2,7 +2,7 @@
 
 Foresi can move a firm's iDoklad account over through the iDoklad API: contacts, number series, issued invoices, advance invoices, payments with their tax documents, and recurring invoices. The move reads the account, never writes to it, and every step can be checked before anything is stored. This page is for the owner who moves and for the operator who runs the installation.
 
-The move is a wizard per firm, opened with **Move from iDoklad** on the list of imports (`/import/idoklad`) by the organisation's owners. With one firm it opens that firm; with more it asks which one. Its steps are Connect, Download, Check, Import and Result. **History of the move** lists every download and every check and import with what it did.
+The move is a wizard of the firm, opened with **Move from iDoklad** on the list of imports (`/import/idoklad`) by the organisation's owners. Before the firm is set up, it says to set it up first. Its steps are Connect, Download, Check, Import and Result. **History of the move** lists every download and every check and import with what it did.
 
 ## What moves and what does not
 

@@ -22,7 +22,6 @@ purchasing:
     draft_label: "Draft of {date}"
     column:
       number: "Our number"
-      firm: "Firm"
       supplier: "Supplier"
       supplierNumber: "Supplier's number"
       monthDay: "Tax point / issued"
@@ -42,7 +41,7 @@ purchasing:
       drafts_title: "Nothing waits to be completed"
       drafts_text: "Upload invoices and receipts; each file becomes a draft."
     no_firm_title: "Add a firm first"
-    no_firm_text: "Every received document belongs to one of your firms."
+    no_firm_text: "Every received document belongs to your firm."
     add_firm: "Add a firm"
   new: "New document"
   upload:
@@ -97,7 +96,6 @@ purchasing:
       supplier: "Pick the supplier from the contacts."
       vat_rate: "Enter a VAT rate from 0 to 100 %."
   field:
-    firm: "Firm"
     kind: "Kind of document"
     treatment: "VAT treatment"
     supplier: "Supplier"

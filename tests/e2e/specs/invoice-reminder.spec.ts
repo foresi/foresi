@@ -69,11 +69,11 @@ test.describe.serial('reminders of overdue invoices', () => {
     }
   });
 
-  test('the list of an organisation with two firms fits its frame at 1440 with every column shown @layout', async ({ page }) => {
+  test('the list fits its frame at 1440 with every column shown @layout', async ({ page }) => {
     await page.setViewportSize(DESKTOP);
     await page.goto('/invoices');
     const table = page.getByRole('table', { name: 'Faktury' });
-    for (const label of ['Číslo', 'Firma', 'Zákazník', 'Vystaveno', 'Splatnost', 'Celkem', 'Stav', 'Odesláno']) {
+    for (const label of ['Číslo', 'Zákazník', 'Vystaveno', 'Splatnost', 'Celkem', 'Stav', 'Odesláno']) {
       await expect(table.getByRole('columnheader', { name: label, exact: true })).toBeVisible();
     }
     await expect(row(page, 'R0001').locator('[data-icon-cell="bell-ring"]')).toBeVisible();

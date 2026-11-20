@@ -162,11 +162,8 @@ async function pickCustomer(page: Page, name: string): Promise<void> {
 async function openPayerForm(page: Page): Promise<void> {
   await page.goto('/invoices/new');
   await expect(page.locator('form#invoice-form')).toBeVisible();
-  const firm = page.locator('select[name=firmId]');
-  if (await firm.count() > 0 && (await firm.locator('option:checked').textContent()) !== 'Example Payer s.r.o.') {
-    await firm.selectOption({ label: 'Example Payer s.r.o.' });
-    await expect(page.locator('select[data-cell=vat]').first()).toBeVisible();
-  }
+  // The instance's firm is the payer, the first firm of the world (ADR 0039).
+  await expect(page.locator('[data-firm-text]')).toHaveText('Example Payer s.r.o.');
 }
 
 test.describe.serial('an invoice', () => {
@@ -174,8 +171,8 @@ test.describe.serial('an invoice', () => {
 
   test('is issued with the keyboard alone, in the order of the form', async ({ page }) => {
     await openPayerForm(page);
-    await page.locator('#firmId').focus();
-    await tabThrough(page, ['series', 'customer']);
+    await page.locator('#series').focus();
+    await tabThrough(page, ['customer']);
     await page.keyboard.type('Example Dom');
     await expect(page.getByRole('option', { name: /Example Domestic/ })).toBeVisible();
     await expect(page.locator('#customer-list').getByRole('option')).toHaveCount(1);
@@ -247,21 +244,6 @@ test.describe.serial('an invoice', () => {
     await fillLine(page);
     await save(page);
     await expectSaved(page, number, number);
-  });
-
-  test('saves after a firm change on the date of the form, with a typed number gone', async ({ page }) => {
-    await openPayerForm(page);
-    await setIssueDate(page, '2029-03-01');
-    await expect(page.locator('#number')).toHaveValue('20290001');
-    await page.getByLabel('Změnit číslo').click();
-    await page.locator('#number').fill('X-TYPED-1');
-    await page.locator('select[name=firmId]').selectOption({ label: 'Example Small Trader' });
-    await expect(page.getByText('Firma se změnila')).toBeVisible();
-    await expectShown(page, '20290001', '20290001');
-    await pickCustomer(page, 'Example Domestic a.s.');
-    await fillLine(page);
-    await save(page);
-    await expectSaved(page, '20290001', '20290001');
   });
 
   test('saves an edit moved to another series', async ({ page }) => {
@@ -786,27 +768,6 @@ test.describe.serial('an invoice', () => {
     await expect(page.locator('[data-line-total]').first()).toHaveText(/1\s815,91\sKč/);
   });
 
-  test('leads from a firm problem to the firm settings in a new tab and keeps the form', async ({ page, context }) => {
-    await page.goto('/invoices/new');
-    await page.locator('select[name=firmId]').selectOption({ label: 'Example No Account s.r.o.' });
-    await expect(page.locator('[data-bank-note]')).toBeVisible();
-    await page.screenshot({ path: `${SHOTS}/no-account-note.png`, fullPage: true });
-    await pickCustomer(page, 'Example Domestic a.s.');
-    await fillLine(page, 'Zůstane');
-    await save(page);
-    const link = page.locator('[data-error-summary] a[target=_blank]').first();
-    await expect(link).toBeVisible();
-    await page.screenshot({ path: `${SHOTS}/error-links.png`, fullPage: true });
-    const [tab] = await Promise.all([context.waitForEvent('page'), link.click()]);
-    await expect(tab).toHaveURL(/\/settings\/firm$/);
-    await tab.close();
-    await expect(page.locator('#lines-0-text')).toHaveValue('Zůstane');
-    for (const anchor of await page.locator('[data-error-summary] a[data-error-link]:not([target])').all()) {
-      await anchor.click();
-      await expect.poll(() => page.evaluate(() => document.activeElement?.tagName)).not.toBe('BODY');
-    }
-  });
-
 
   test('lists every mistake on submit and marks the fields', async ({ page }) => {
     await openPayerForm(page);
@@ -976,19 +937,6 @@ test.describe.serial('an invoice', () => {
     expect(asked).toBe(1);
   });
 
-  test('a firm change is a submit and asks nothing', async ({ page }) => {
-    await page.goto('/invoices/new');
-    await type(page, '#description', 'Zůstane');
-    let asked = false;
-    page.on('dialog', (dialog) => { asked = true; void dialog.dismiss(); });
-    const firm = page.locator('select[name=firmId]');
-    const other = (await firm.locator('option:checked').textContent()) === 'Example Payer s.r.o.' ? 'Example Small Trader' : 'Example Payer s.r.o.';
-    await firm.selectOption({ label: other });
-    await expect(page.getByText('Firma se změnila')).toBeVisible();
-    await expect(page.locator('#description')).toHaveValue('Zůstane');
-    expect(asked).toBe(false);
-  });
-
   test('leaves an untouched form on Back without asking', async ({ page }) => {
     await page.goto('/contacts');
     await page.goto('/invoices/new');
@@ -1020,20 +968,6 @@ test.describe.serial('an invoice', () => {
     await expect(page.locator('[data-action-bar]')).toBeInViewport();
   });
 
-  test('shows the issuer of two firms and a non-payer form without VAT', async ({ page }) => {
-    await page.goto('/invoices/new');
-    await expect(page.locator('select[name=firmId]')).toBeVisible();
-    await page.locator('#lines-0-text').fill('Zůstane');
-    await page.locator('select[name=firmId]').selectOption({ label: 'Example Small Trader' });
-    await expect(page.locator('select[data-cell=vat]')).toHaveCount(0);
-    await expect(page.locator('#lines-0-text')).toHaveValue('Zůstane');
-    await expect(page.locator('[data-total=vat]')).toHaveCount(0);
-    await expect(page.locator('main')).not.toContainText('DPH');
-    await page.locator('#lines-0-price').fill('1000,50');
-    await expect(page.locator('[data-total=payable]')).toHaveText(/1\s001,00\sKč/);
-    await expectNoSeriousViolations(page);
-  });
-
   test('stays what it was when edited, and a second save of the old form asks to reload', async ({ page, context }) => {
     await openPayerForm(page);
     await pickCustomer(page, 'Example Domestic a.s.');
@@ -1041,7 +975,6 @@ test.describe.serial('an invoice', () => {
     await page.locator('#lines-0-price').fill('500');
     await page.getByRole('button', { name: 'Uložit', exact: true }).click();
     await openSaved(page);
-    await expect(page.locator('select[name=firmId]')).toHaveCount(0);
     await expect(page.locator('[data-firm-text]')).toHaveText('Example Payer s.r.o.');
 
     const other = await context.newPage();

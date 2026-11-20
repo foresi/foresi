@@ -38,7 +38,6 @@ use Foresi\Invoicing\Domain\RecurringState;
 use Foresi\Invoicing\Infrastructure\Column\RecurringColumns;
 use Foresi\Invoicing\Infrastructure\Column\RecurringRow;
 use Foresi\Invoicing\Infrastructure\Form\AmountText;
-use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Application\View\FilterRows;
@@ -92,7 +91,6 @@ final class RecurringListController extends AbstractController
         private readonly DeliverRecurringInvoice $delivery,
         private readonly IssueAfterTodaysRun $afterTodaysRun,
         private readonly TransactionalWork $work,
-        private readonly LegalEntities $firms,
         private readonly AmountText $amountText,
         private readonly InstanceClock $clock,
         private readonly StaffCheck $staff,
@@ -123,7 +121,6 @@ final class RecurringListController extends AbstractController
         $sort = $request->query->getString('sort', $viewSort);
         $sort = \in_array(ltrim($sort, '-'), RecurringFilter::SORTS, true) ? $sort : RecurringFilter::NEXT;
         // An instance holds one firm (ADR 0039): an old ?firm= filters nothing.
-        $severalFirms = \count($this->firmNames()) > 1;
         $trash = [] !== $shown->on(RecurringLists::TRASHED);
 
         $page = $this->templates->page(new RecurringFilter(null, null, false, max(1, $request->query->getInt('page', 1)), $shown, $this->counted($views), $sort));
@@ -133,7 +130,7 @@ final class RecurringListController extends AbstractController
 
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
         // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
-        $working = $this->rememberedDisplay->read(RecurringColumns::LIST, ['severalFirms' => $severalFirms, 'trash' => $trash], $list->key, $view, $request->query->all());
+        $working = $this->rememberedDisplay->read(RecurringColumns::LIST, ['trash' => $trash], $list->key, $view, $request->query->all());
         $query += $working->query;
         $here = http_build_query(1 === $page->page ? $query : $query + ['page' => (string) $page->page]);
         $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, RecurringFilter::NEXT, $working, 'app_recurring', []);
@@ -190,9 +187,6 @@ final class RecurringListController extends AbstractController
             ['label' => $this->translator->trans('recurring.list.column.next'), 'value' => RecurringState::Active === $state && $next instanceof \DateTimeImmutable ? $this->date($next) : null, 'empty' => $this->translator->trans('recurring.list.no_next')],
             ['label' => $this->translator->trans('recurring.list.column.delivery'), 'value' => $this->translator->trans('recurring.list.delivery.'.$template->delivery()->value)],
         ];
-        if (\count($this->firmNames()) > 1) {
-            $facts[] = ['label' => $this->translator->trans('recurring.list.column.firm'), 'value' => $template->firm()->name()];
-        }
 
         return $this->render('@Invoicing/recurring/show.html.twig', [
             'template' => $template,
@@ -694,19 +688,6 @@ final class RecurringListController extends AbstractController
 
         // {document_number} is known only once the invoice has its number.
         return str_replace('{document_number}', $this->translator->trans('recurring.preview.document_number'), $text);
-    }
-
-    /**
-     * @return array<string, string> names by firm id
-     */
-    private function firmNames(): array
-    {
-        $names = [];
-        foreach ($this->firms->all() as $firm) {
-            $names[$firm->id()] = $firm->name();
-        }
-
-        return $names;
     }
 
     private function date(\DateTimeImmutable $date): string

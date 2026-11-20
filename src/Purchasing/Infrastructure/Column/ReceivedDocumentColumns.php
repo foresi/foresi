@@ -23,9 +23,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The columns of the received documents; each cell renders one ReceivedDocumentRow: the
  * numbers, the supplier and its number, the day that places the document in its month,
- * the total in its currency and the VAT in CZK, the treatment and the state. The firm
- * shows only when there are several. A draft has no number yet: it reads as a draft of
- * the day it came.
+ * the total in its currency and the VAT in CZK, the treatment and the state. A draft
+ * has no number yet: it reads as a draft of the day it came.
  */
 final readonly class ReceivedDocumentColumns implements DataSource
 {
@@ -49,7 +48,6 @@ final readonly class ReceivedDocumentColumns implements DataSource
 
         return [
             new Attribute('number', $label('number'), AttributeType::Text, $this->number(...), defaultVisible: true, defaultPosition: 10, cell: $this->number(...), locked: true, filterable: true, filter: 'd.evidenceNumber'),
-            new Attribute('firm', $label('firm'), AttributeType::Text, static fn (ReceivedDocumentRow $row): string => $row->firmName, defaultVisible: true, defaultPosition: 20, cell: static fn (ReceivedDocumentRow $row): string => $row->firmName, phone: false, truncate: true, available: static fn (array $context): bool => true === ($context['severalFirms'] ?? false)),
             new Attribute('supplier', $label('supplier'), AttributeType::Reference, static fn (ReceivedDocumentRow $row): string => $row->supplierName, defaultVisible: true, defaultPosition: 30, cell: $this->supplier(...), phone: false, truncate: true),
             new Attribute('supplier_number', $label('supplierNumber'), AttributeType::Text, static fn (ReceivedDocumentRow $row): string => $row->supplierNumber, defaultVisible: true, defaultPosition: 40, cell: static fn (ReceivedDocumentRow $row): string => $row->supplierNumber, aliases: ['supplierNumber'], phone: false, wide: true, filterable: true, filter: 'd.supplierNumber'),
             new Attribute('month_day', $label('monthDay'), AttributeType::Date, static fn (ReceivedDocumentRow $row): ?\DateTimeImmutable => $row->monthDay(), defaultVisible: true, defaultPosition: 50, cell: fn (ReceivedDocumentRow $row): string => $row->monthDay()?->format($this->translator->trans('format.date')) ?? '', aliases: ['monthDay'], phone: false),

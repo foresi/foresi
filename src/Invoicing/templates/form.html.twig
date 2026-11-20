@@ -85,9 +85,8 @@
             data-action="contact:created@document->invoice-form#contactFromDialog combobox:pick->invoice-form#customerPicked combobox:clear->invoice-form#customerCleared input->invoice-form#changed change->invoice-form#changed input@document->invoice-form#outsideInput submit->invoice-form#submitted keydown.enter@window->invoice-form#enter beforeunload@window->invoice-form#beforeUnload pageshow@window->invoice-form#shown mouseup@window->invoice-form#disarmDrag"
             data-invoice-form-recount-url-value="{{ path('app_invoice_recount') }}"
             data-invoice-form-number-url-value="{{ path('app_invoice_next_number') }}"
-            data-invoice-form-customers-url-value="{{ path('app_invoice_customers', {firm: firm.id}) }}"
+            data-invoice-form-customers-url-value="{{ path('app_invoice_customers') }}"
             data-invoice-form-contact-url-value="{{ path('app_contact_edit', {id: '00000000-0000-7000-8000-000000000000'}) }}"
-            data-invoice-form-firm-value="{{ firm.id }}"
             data-invoice-form-max-lines-value="{{ maxLines }}"
             data-invoice-form-new-line-vat-value="{{ emptyLine.vat }}"
             data-invoice-form-due-date-set-value="{{ values.dueDateSet == '1' ? 'true' : 'false' }}"
@@ -113,7 +112,6 @@
             <input type="hidden" name="copyOf" value="{{ copyOf }}">
             {# The work another module bills; each line it filled keeps its source, however it is edited. #}
             <input type="hidden" name="billedWork" value="{{ values.billedWork|default('') }}">
-            <input type="hidden" name="firmShown" value="{{ values.firmShown }}">
             <input type="hidden" name="kind" value="{{ kind }}">
             <input type="hidden" name="dueDateSet" value="{{ values.dueDateSet }}" data-invoice-form-target="dueDateSet">
             {# Of the stored document, never of the post: a series can go there and back across re-renders. #}
@@ -126,27 +124,10 @@
             {% set smallSelect = 'h-control-sm max-w-full appearance-none rounded-control border bg-white pl-2.5 pr-8 text-small text-ink ' ~ focus %}
             <div class="flex flex-wrap items-start gap-x-6 gap-y-2" data-form-head>
                 {% set firmError = errorFields.firm|default(null) %}
-                {% if firms|length > 1 %}
-                    <div class="grid gap-1">
-                        <div class="flex flex-wrap items-center gap-2">
-                            <label for="firmId" class="text-small font-medium text-muted">{{ 'invoice.field.firm'|trans }}</label>
-                            <div class="relative min-w-0">
-                                <select id="firmId" name="firmId" class="{{ smallSelect }} {{ firmError ? 'border-badge-red-text' : 'border-control-line' }}"{% if firmError %} aria-invalid="true" aria-describedby="firmId-error"{% endif %} data-action="change->invoice-form#firmChanged">
-                                    {% for optionValue, optionLabel in firms %}<option value="{{ optionValue }}"{% if optionValue ~ '' == values.firmId %} selected{% endif %}>{{ optionLabel }}</option>{% endfor %}
-                                </select>
-                                {{ ux_icon('lucide:chevron-down', {class: 'pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-muted', 'aria-hidden': 'true'}) }}
-                            </div>
-                            <div data-invoice-form-target="noScript"><twig:Ui:Button type="submit" name="_action" value="refresh" size="sm">{{ 'invoice.firm_apply'|trans }}</twig:Ui:Button></div>
-                        </div>
-                        {% if firmError %}<p id="firmId-error" role="alert" class="m-0 text-caption font-medium text-badge-red-text">{{ firmError }}</p>{% endif %}
-                    </div>
-                {% else %}
-                    <div class="grid gap-1">
-                        <input type="hidden" name="firmId" value="{{ values.firmId }}">
-                        <p class="m-0 flex min-h-control-sm items-center gap-2 text-small"><span class="font-medium text-muted">{{ 'invoice.field.firm'|trans }}</span><span class="text-ink" data-firm-text>{{ issuerName }}</span></p>
-                        {% if firmError %}<p class="m-0 text-caption font-medium text-badge-red-text">{{ firmError }}</p>{% endif %}
-                    </div>
-                {% endif %}
+                <div class="grid gap-1">
+                    <p class="m-0 flex min-h-control-sm items-center gap-2 text-small"><span class="font-medium text-muted">{{ 'invoice.field.firm'|trans }}</span><span class="text-ink" data-firm-text>{{ issuerName }}</span></p>
+                    {% if firmError %}<p class="m-0 text-caption font-medium text-badge-red-text">{{ firmError }}</p>{% endif %}
+                </div>
                 {% if delivered %}
                     <p class="m-0 flex min-h-control-sm items-center gap-2 text-small"><span class="font-medium text-muted">{{ 'invoice.field.series'|trans }}</span><span class="text-ink">{{ series[values.seriesId]|default('') }} · {{ values.number }}</span></p>
                     <input type="hidden" name="seriesId" value="{{ values.seriesId }}">
@@ -172,7 +153,7 @@
             <twig:Ui:Card data-form-surface>
                 <div class="grid gap-3" data-customer-block>
                     <div class="grid grid-cols-[minmax(0,1fr)_auto] items-start justify-start gap-2 md:grid-cols-[minmax(0,calc(var(--spacing-label)+1rem+var(--spacing-field-long)))_auto]">
-                        <twig:Ui:Combobox name="customerId" id="customer" textName="customerQuery" :row="true" width="long" :label="'invoice.field.customer'|trans" :placeholder="'invoice.customer.placeholder'|trans" :value="values.customerId" :text="values.customerQuery" :url="path('app_invoice_customers', {firm: firm.id})" :emptyText="'invoice.customer.empty'|trans" :help="noContacts ? 'invoice.customer.none_yet'|trans : null" :error="errorFields.customer|default(null)" :required="true" />
+                        <twig:Ui:Combobox name="customerId" id="customer" textName="customerQuery" :row="true" width="long" :label="'invoice.field.customer'|trans" :placeholder="'invoice.customer.placeholder'|trans" :value="values.customerId" :text="values.customerQuery" :url="path('app_invoice_customers')" :emptyText="'invoice.customer.empty'|trans" :help="noContacts ? 'invoice.customer.none_yet'|trans : null" :error="errorFields.customer|default(null)" :required="true" />
                         <twig:Ui:Button :href="path('app_contact_new')" id="customer-add" icon="plus" class="mt-6 md:mt-0" target="_blank" rel="noopener" data-dialog aria-haspopup="dialog" data-dialog-focus="#customer" data-action="invoice-form#awaitContact">{{ 'invoice.customer.add'|trans }}</twig:Ui:Button>
                     </div>
                     {% if candidates is not empty %}

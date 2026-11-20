@@ -140,10 +140,7 @@ final class BankMovementController extends AbstractController
         // The bank mail is not searched: its tab has no search field.
         $text = $mail ? '' : $text;
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
-        $severalFirms = \count($page->firms) > 1;
-        // The firm names the account already, unless a firm has more than one.
-        $accountColumn = \count($page->accounts) > \count($page->firms);
-        $context = [MovementColumns::SEVERAL_FIRMS => $severalFirms, MovementColumns::ACCOUNT_COLUMN => $accountColumn];
+        $context = [MovementColumns::ACCOUNT_COLUMN => \count($page->accounts) > 1];
         // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $working = $this->rememberedDisplay->read(MovementColumns::LIST, $context, $list->key, $view, $request->query->all(), ListDisplay::DENSE);
         $query += $working->query;
@@ -688,7 +685,7 @@ final class BankMovementController extends AbstractController
             'reason' => $reason,
         ];
         if ($severalAccounts) {
-            $cells['account'] = $row->firmName.' · '.$this->text->account($row->accountLabel, $row->accountIban);
+            $cells['account'] = $this->text->account($row->accountLabel, $row->accountIban);
         }
         $id = ['id' => $row->id];
         $fields = ['return' => $return];

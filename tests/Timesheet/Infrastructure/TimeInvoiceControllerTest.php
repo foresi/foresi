@@ -94,7 +94,7 @@ final class TimeInvoiceControllerTest extends WebTestCase
 
         $crawler = $this->dialog('/time/invoice?project='.$this->website);
         self::assertResponseIsSuccessful();
-        self::assertSame($this->firm, $crawler->filter('#time-invoice-firm option[selected]')->attr('value'));
+        self::assertCount(0, $crawler->filter('[name="firm"]'), 'The instance firm invoices the time (ADR 0039).');
         self::assertSame($this->customer, $crawler->filter('#time-invoice-client option[selected]')->attr('value'));
         self::assertSame(['Shop', 'Website'], $crawler->filter('[data-time-invoice-projects] label')->each(static fn (Crawler $label): string => trim($label->text())));
         self::assertSame([$this->website], $crawler->filter('[data-time-invoice-projects] input:checked')->each(static fn (Crawler $box): string => (string) $box->attr('value')));
@@ -135,9 +135,8 @@ final class TimeInvoiceControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', $location);
         self::assertResponseIsSuccessful();
-        /** @var array{firmId: string, customerId: string, billedWork: string, lineSources: string, lines: list<array<string, string>>} $values */
+        /** @var array{customerId: string, billedWork: string, lineSources: string, lines: list<array<string, string>>} $values */
         $values = $crawler->filter('form#invoice-form')->form()->getPhpValues();
-        self::assertSame($this->firm, $values['firmId']);
         self::assertSame($this->customer, $values['customerId']);
         self::assertNotSame('', $values['billedWork']);
         self::assertSame([
@@ -152,8 +151,9 @@ final class TimeInvoiceControllerTest extends WebTestCase
         $this->client->request('POST', '/invoices/new', array_merge($values, ['_action' => 'save']));
         self::assertResponseRedirects('/invoices');
 
-        $invoice = $this->row('SELECT id, number FROM invoice');
+        $invoice = $this->row('SELECT id, number, legal_entity_id FROM invoice');
         [$invoiceId, $number] = [(string) $invoice['id'], (string) $invoice['number']];
+        self::assertSame($this->firm, $invoice['legal_entity_id'], 'The instance firm invoices the time.');
         $line = $this->row('SELECT id FROM invoice_line WHERE invoice_id = ?', [$invoiceId]);
         foreach ([$design => 60, $more => 30] as $entry => $minutes) {
             self::assertSame(['invoice_id' => $invoiceId, 'invoice_line_id' => $line['id'], 'invoiced_rate_minor' => '100000', 'invoiced_rate_currency' => 'CZK', 'invoiced_minutes' => (string) $minutes], $this->row('SELECT invoice_id, invoice_line_id, invoiced_rate_minor, invoiced_rate_currency, invoiced_minutes FROM time_entry WHERE id = ?', [$entry]));

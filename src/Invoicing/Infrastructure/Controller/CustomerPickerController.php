@@ -11,27 +11,23 @@ namespace Foresi\Invoicing\Infrastructure\Controller;
 use Foresi\Identity\Application\StaffCheck;
 use Foresi\Invoicing\Application\CustomerOption;
 use Foresi\Invoicing\Application\CustomerPicker;
-use Foresi\Party\Application\LegalEntities;
-use Foresi\Party\Application\UnknownLegalEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * The contacts a firm can invoice, for the combobox of the invoice form: found by
+ * The contacts the firm can invoice, for the combobox of the invoice form: found by
  * text, or the one with an id, which the form asks for after the contact was created
- * in another tab. An unknown firm answers 404.
+ * in another tab.
  */
 final class CustomerPickerController extends AbstractController
 {
     private const int MAX_QUERY = 100;
 
     public function __construct(
-        private readonly LegalEntities $firms,
         private readonly CustomerPicker $picker,
         private readonly StaffCheck $staff,
     ) {
@@ -42,14 +38,6 @@ final class CustomerPickerController extends AbstractController
     {
         if (!$this->staff->isStaff()) {
             throw new AccessDeniedHttpException('Only staff work with invoices.');
-        }
-
-        $id = $request->query->getString('firm');
-        try {
-            // The firm no longer changes what a contact is, but an unknown one is still not found.
-            Uuid::isValid($id) ? $this->firms->get($id) : throw new NotFoundHttpException();
-        } catch (UnknownLegalEntity) {
-            throw new NotFoundHttpException();
         }
 
         $contact = $request->query->getString('id');

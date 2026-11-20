@@ -32,10 +32,6 @@ final readonly class BankScreen
     public function page(MovementFilter $filter): MovementPage
     {
         $accounts = $this->movements->accounts();
-        $firms = [];
-        foreach ($accounts as $account) {
-            $firms[$account['firmId']] = $account['firmName'];
-        }
         $stuckBefore = self::stuckBefore($this->clock);
 
         $mail = $filter->mail();
@@ -56,7 +52,6 @@ final readonly class BankScreen
             $total,
             $page,
             $pages,
-            $firms,
             array_map(static fn (array $account): array => ['firmId' => $account['firmId'], 'label' => $account['label'], 'iban' => $account['iban']], $accounts),
             $counts,
             $mail,

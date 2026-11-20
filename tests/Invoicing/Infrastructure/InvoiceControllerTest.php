@@ -79,7 +79,7 @@ use Symfony\Component\Yaml\Yaml;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * @phpstan-type Form array{lines: list<array<string, string>>, customer: array<string, string>, firmId: string, kind: string, numberPeek: string, seriesId: string, customerId: string, customerQuery: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, language: string, description: string, orderNumber: string, dueDateSet: string, ...}
+ * @phpstan-type Form array{lines: list<array<string, string>>, customer: array<string, string>, kind: string, numberPeek: string, seriesId: string, customerId: string, customerQuery: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, language: string, description: string, orderNumber: string, dueDateSet: string, ...}
  * @phpstan-type Figures array{lines: list<array{total: string, discount: string}>, summaries: list<array{label: string, base: string, vat: string}>, net: string, vat: ?string, rounding: ?string, payable: string}
  */
 final class InvoiceControllerTest extends WebTestCase
@@ -261,21 +261,20 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSelectorNotExists('[data-line-dates]');
     }
 
-    public function testACopyOfAnArchivedFirmAsksForAnotherFirm(): void
+    public function testACopyOfAnArchivedFirmSaysSo(): void
     {
         $this->signedIn();
         $source = $this->issued();
-        $second = $this->secondFirm(VatStatus::Registered);
+        $this->secondFirm(VatStatus::Registered);
         $this->archiveFirm();
 
-        $crawler = $this->client->request('GET', '/invoices/'.$source->id().'/copy');
+        $this->client->request('GET', '/invoices/'.$source->id().'/copy');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('[data-copy-notice]', 'This firm is archived');
-        self::assertCount(1, $crawler->filter('select[name="firmId"] option[value="'.$second->id().'"]'));
     }
 
-    public function testANewIssueForAnArchivedFirmIsRefused(): void
+    public function testASaveOnceTheOnlyFirmIsArchivedIs404AndIssuesNothing(): void
     {
         $this->signedIn();
         $source = $this->issued();
@@ -284,8 +283,7 @@ final class InvoiceControllerTest extends WebTestCase
 
         $this->save($values);
 
-        self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('[data-error-summary]', 'This firm is archived');
+        self::assertResponseStatusCodeSame(404);
         self::assertCount(1, $this->invoices());
     }
 
@@ -405,15 +403,18 @@ final class InvoiceControllerTest extends WebTestCase
     {
         $this->signedIn();
         $source = $this->issued();
-        $this->secondFirm(VatStatus::Registered);
-        $this->archiveFirm();
+        $this->scoped(function (): void {
+            $party = $this->em()->getRepository(Party::class)->find($this->customer->id()) ?? throw new \LogicException('Customer.');
+            $party->archive(new \DateTimeImmutable('2026-11-01'));
+            $this->em()->flush();
+        });
         $values = $this->openCopy($source);
         self::assertSelectorExists('[data-copy-notice]');
 
         $this->save($values);
 
         self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('[data-copy-notice]', 'This firm is archived');
+        self::assertSelectorTextContains('[data-copy-notice]', 'Choose another customer');
     }
 
     public function testACustomerNoticeLeavesOnceAnotherCustomerIsChosen(): void
@@ -792,7 +793,7 @@ final class InvoiceControllerTest extends WebTestCase
     {
         $this->signedIn(series: false);
 
-        $this->client->request('GET', '/invoices/next-number', ['firm' => $this->firm->id(), 'date' => '2026-11-01']);
+        $this->client->request('GET', '/invoices/next-number', ['date' => '2026-11-01']);
 
         self::assertStringContainsString('"number":"20260001"', (string) $this->client->getResponse()->getContent());
     }
@@ -801,9 +802,6 @@ final class InvoiceControllerTest extends WebTestCase
     {
         $this->signedIn();
 
-        $this->client->request('GET', '/invoices/next-number', ['firm' => '00000000-0000-7000-8000-000000000000', 'date' => '2026-11-01']);
-        self::assertResponseStatusCodeSame(404);
-
         $this->client->request('GET', '/invoices/next-number', ['series' => '00000000-0000-7000-8000-000000000000', 'date' => '2026-11-01']);
         self::assertResponseStatusCodeSame(404);
 
@@ -811,12 +809,9 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
     }
 
-    public function testAnUnknownFirmIs404AndAnUnknownSeriesOrCustomerIsAFormError(): void
+    public function testAnUnknownSeriesOrCustomerIsAFormError(): void
     {
         $this->signedIn();
-
-        $this->save(array_merge($this->filled(), ['firmId' => '00000000-0000-7000-8000-000000000000']));
-        self::assertResponseStatusCodeSame(404);
 
         $this->save(array_merge($this->filled(), ['seriesId' => '00000000-0000-7000-8000-000000000000']));
         self::assertResponseStatusCodeSame(422);
@@ -1587,7 +1582,7 @@ final class InvoiceControllerTest extends WebTestCase
     {
         $this->signedIn();
 
-        $this->client->request('GET', '/invoices/next-number', ['date' => '2026-11-01', 'series' => '', 'firm' => $this->firm->id(), 'kind' => 'advance']);
+        $this->client->request('GET', '/invoices/next-number', ['date' => '2026-11-01', 'series' => '', 'kind' => 'advance']);
 
         self::assertSame(['number' => 'Z920260001', 'variableSymbol' => '920260001'], json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR));
     }
@@ -1808,7 +1803,7 @@ final class InvoiceControllerTest extends WebTestCase
         $this->signedIn(Role::Guest);
         $id = '019a0000-0000-7000-8000-000000000001';
 
-        foreach ([['GET', '/invoices/new'], ['POST', '/invoices/new'], ['GET', '/invoices/'.$id.'/edit'], ['POST', '/invoices/'.$id.'/edit'], ['GET', '/invoices/'.$id.'/copy'], ['POST', '/invoices/recount'], ['GET', '/invoices/next-number?date=2026-11-01'], ['GET', '/invoices/customers?firm='.$this->firm->id()]] as [$method, $url]) {
+        foreach ([['GET', '/invoices/new'], ['POST', '/invoices/new'], ['GET', '/invoices/'.$id.'/edit'], ['POST', '/invoices/'.$id.'/edit'], ['GET', '/invoices/'.$id.'/copy'], ['POST', '/invoices/recount'], ['GET', '/invoices/next-number?date=2026-11-01'], ['GET', '/invoices/customers']] as [$method, $url]) {
             $this->client->request($method, $url);
             self::assertResponseStatusCodeSame(403, $method.' '.$url);
         }
@@ -2351,14 +2346,11 @@ final class InvoiceControllerTest extends WebTestCase
     {
         $this->signedIn();
         $values = $this->openNew();
-        $foreign = $this->scoped(function (): LegalEntity {
-            $firm = new LegalEntity('Example Slovak s.r.o.', new RegistrationNumber('CZ', '12345687'), null, new Address('Example Street 1', 'Example City', '100 00', 'SK'), VatStatus::NotRegistered, 'Register');
-            $this->em()->persist($firm);
+        $this->scoped(function (): void {
+            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
+            $firm->update($firm->name(), $firm->registrationNumber(), $firm->vatId(), new Address('Example Street 1', 'Example City', '100 00', 'SK'), $firm->vatStatus(), $firm->registerEntry());
             $this->em()->flush();
-
-            return $firm;
         });
-        $values['firmId'] = $foreign->id();
 
         $this->client->request('POST', '/invoices/recount', $values);
 
@@ -2479,37 +2471,6 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertCount(1, $this->invoices());
     }
 
-    public function testAFirmChangeUsesTheDateOfTheFormAndClearsWhatWasTyped(): void
-    {
-        $this->signedIn();
-        $second = $this->secondFirm(VatStatus::Registered);
-        $values = $this->filled(['issueDate' => '2027-02-10', 'number' => 'X-1', 'variableSymbol' => '777', 'firmId' => $second->id()]);
-
-        $this->save(array_merge($values, ['_action' => 'refresh']));
-
-        $reopened = $this->currentValues();
-        self::assertSame('20270001', $reopened['number'] ?? null);
-        self::assertSame('20270001', $reopened['numberPeek']);
-        self::assertSame('20270001', $reopened['variableSymbol']);
-        self::assertSelectorTextContains('main', 'The firm changed');
-    }
-
-    public function testAPayerFirmAlignsTheLinesOfAReverseChargeCustomer(): void
-    {
-        $this->signedIn(status: VatStatus::NotRegistered);
-        $second = $this->secondFirm(VatStatus::Registered);
-        $this->scoped(function (): void {
-            $party = $this->em()->getRepository(Party::class)->find($this->customer->id());
-            $party?->changeInvoicingDefaults(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true));
-            $this->em()->flush();
-        });
-        $values = $this->filled(['firmId' => $second->id()]);
-
-        $this->save(array_merge($values, ['_action' => 'refresh']));
-
-        self::assertSame('reverse_charge', $this->currentValues()['lines'][0]['vat']);
-    }
-
     public function testAPickTakesAContactOfAnyRoleAndRefusesAnArchivedOne(): void
     {
         $this->signedIn();
@@ -2580,33 +2541,20 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSame('reverse_charge', $values['lines'][0]['vat']);
     }
 
-    public function testChangingTheFirmReopensItsValues(): void
-    {
-        $this->signedIn();
-        $second = $this->secondFirm(VatStatus::NotRegistered);
-        $values = $this->filled();
-        $values['firmId'] = $second->id();
-
-        $this->save(array_merge($values, ['_action' => 'refresh']));
-
-        $reopened = $this->currentValues();
-        self::assertSame($second->id(), $reopened['firmId']);
-        self::assertSame(self::OTHER_IBAN, $reopened['bankAccount']);
-        self::assertSame('none', $reopened['lines'][0]['vat']);
-        self::assertSame('Work', $reopened['lines'][0]['text']);
-        self::assertSame($this->customer->id(), $reopened['customerId']);
-    }
-
-    public function testTwoFirmsShowTheIssuerAndTheLastUsedOneOpens(): void
+    public function testAnotherFirmInTheQueryOrTheFormIsIgnoredAndTheInstanceFirmIssues(): void
     {
         $this->signedIn();
         $second = $this->secondFirm(VatStatus::NotRegistered);
 
-        $this->openNew(['firm' => $second->id()]);
-        self::assertSame($second->id(), $this->client->getCrawler()->filter('select[name="firmId"] option[selected]')->attr('value'));
-
+        $this->client->request('GET', '/invoices/new', ['firm' => $second->id()]);
+        self::assertSelectorTextContains('[data-firm-text]', 'Example Firm s.r.o.');
         $this->client->request('GET', '/invoices/new', ['firm' => '00000000-0000-7000-8000-000000000000']);
-        self::assertResponseStatusCodeSame(404);
+        self::assertResponseIsSuccessful();
+
+        $this->save(array_merge($this->filled(), ['firmId' => $second->id()]));
+
+        self::assertResponseRedirects('/invoices');
+        self::assertSame($this->firm->id(), $this->onlyInvoice()->firm()->id());
     }
 
     public function testOneFirmIsPlainText(): void

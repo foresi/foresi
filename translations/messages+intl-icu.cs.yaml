@@ -22,7 +22,6 @@ dashboard:
     debtors: Největší dlužníci
     debtors_empty: Žádný odběratel nic nedluží.
     pending: '{month} ještě není předané účetní ({count, plural, one {# doklad} few {# doklady} other {# dokladů}})'
-    pending_firm: '{firm}: {month} ještě není předané účetní ({count, plural, one {# doklad} few {# doklady} other {# dokladů}})'
     pending_link: Předat účetní
 registry:
   result:

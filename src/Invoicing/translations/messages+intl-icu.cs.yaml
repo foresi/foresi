@@ -394,7 +394,6 @@ invoice:
     title_payment_tax_document: Daňové doklady k platbě
     title_correction_document: Opravné doklady
     views: Seznamy faktur
-    all_firms: Všechny firmy
     search_label: Hledat ve fakturách
     search_placeholder: Číslo, zákazník nebo popis
     summary: '{kind, select, advance {{total, plural, one {# zálohová faktura} few {# zálohové faktury} other {# zálohových faktur}}} payment_tax_document {{total, plural, one {# daňový doklad} few {# daňové doklady} other {# daňových dokladů}}} correction_document {{total, plural, one {# opravný doklad} few {# opravné doklady} other {# opravných dokladů}}} other {{total, plural, one {# faktura} few {# faktury} other {# faktur}}}}'
@@ -421,7 +420,6 @@ invoice:
       entries_count: '{count, plural, one {# záznam} few {# záznamy} other {# záznamů}}'
       export: Export
       number: Číslo
-      firm: Firma
       customer: Zákazník
       issue_date: Vystaveno
       due_date: Splatnost
@@ -584,7 +582,6 @@ invoice:
   due_on: 'splatnost {date}'
   more: Další údaje
   more_show: Zobrazit více detailů
-  firm_apply: Použít tuto firmu
   month:
     this_month: Tento měsíc
     last_month: Minulý měsíc
@@ -599,7 +596,6 @@ invoice:
   cut_off_retry: Otevřít formulář znovu
   line_limit: 'Faktura má nejvýše 100 řádků.'
   errors_close: Zavřít seznam
-  firm_changed: Firma se změnila, proto se řada, číslo a variabilní symbol nastavily znovu.
   currency_notice: 'Tento kontakt má nastavenou měnu {contact}. Doklad zůstává v {document}.'
   opens_new_tab: otevře se v nové kartě
   blocked:
@@ -1106,7 +1102,6 @@ recurring:
       name: Název vzoru
       customer: Odběratel
       description: Popis
-      firm: Firma
       interval: Opakování
       next: Další vystavení
       end: Konec

@@ -42,7 +42,7 @@ interface ReceivedDocumentQueries
      *
      * @return list<string> as YYYY-MM, newest first
      */
-    public function months(?string $firmId): array;
+    public function months(): array;
 
     /**
      * The recorded documents of the firm outside the trash a credit note may

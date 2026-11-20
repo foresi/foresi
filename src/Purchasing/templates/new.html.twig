@@ -17,11 +17,6 @@
     <form method="post" id="received-document-new" action="{{ path('app_purchasing_new') }}" class="grid gap-4" novalidate data-purchasing-new-form>
         <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Purchasing\\Infrastructure\\Controller\\ReceivedDocumentListController::TOKEN')) }}">
         {{ include('@Purchasing/_form_errors.html.twig') }}
-        {% if firms|length > 1 %}
-            <twig:Ui:Select name="firm" id="firm" :row="true" width="medium" :label="'purchasing.field.firm'|trans" :options="firms" :value="firm" :error="errors.firm|default(null)" data-controller="autosubmit" data-action="change->autosubmit#submit" />
-        {% else %}
-            <input type="hidden" name="firm" value="{{ firm }}">
-        {% endif %}
         {{ include('@Purchasing/_fields.html.twig', {editable: true, contactDialog: false}) }}
     </form>
 {% endblock %}

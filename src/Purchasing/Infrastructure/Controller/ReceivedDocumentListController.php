@@ -54,8 +54,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The list of received documents, as Fakturoid lists its costs and Xero its
  * bills, on saved views (spec D3, D7): All, the drafts to complete, the recorded
- * ones and the trash ship as views, with the person's own beside them. The firm
- * and the month are chips on the bar; the supplier, the kind and the treatment are
+ * ones and the trash ship as views, with the person's own beside them. The month
+ * is a chip on the bar; the supplier, the kind and the treatment are
  * conditions of "+ Filter" (D11). Found by the supplier's name or either number.
  * Every row opens the document.
  *
@@ -103,8 +103,6 @@ final class ReceivedDocumentListController extends AbstractController
         $filterParam = WorkingFilter::param($shown, $view->filter);
         $page = $this->list->page(new ReceivedDocumentFilter(
             $this->tabOf($view, $shown),
-            // An instance holds one firm (ADR 0039): an old ?firm= filters nothing.
-            null,
             ReceivedDocumentFilter::monthOf($input->getString('month')),
             $input->getString('q'),
             max(1, $input->getInt('page', 1)),
@@ -118,17 +116,16 @@ final class ReceivedDocumentListController extends AbstractController
             'q' => '' === $filter->text ? null : $filter->text,
             WorkingFilter::PARAM => $filterParam,
         ], static fn (?string $value): bool => null !== $value);
-        $severalFirms = \count($page->firms) > 1;
-        $firms = $this->list->activeFirms();
+        $firm = $this->list->firmId();
         // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
-        $working = $this->rememberedDisplay->read(ReceivedDocumentColumns::LIST, ['severalFirms' => $severalFirms], $list->key, $view, $input->all());
+        $working = $this->rememberedDisplay->read(ReceivedDocumentColumns::LIST, [], $list->key, $view, $input->all());
         $query += $working->query;
         $bar = $this->viewBar->of($list, $views, $view, $shown, '', '', $working, PurchasingNavigation::ROUTE, '' === $filter->text ? [] : ['q' => $filter->text]);
 
         return $this->render('@Purchasing/index.html.twig', [
             'page' => $page,
             'filter' => $filter,
-            'noFirm' => [] === $firms,
+            'noFirm' => null === $firm,
             'view' => $view->isAll() ? '' : $view->key,
             'working' => $filterParam ?? '',
             ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(PurchasingNavigation::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references()),
@@ -152,9 +149,10 @@ final class ReceivedDocumentListController extends AbstractController
     #[Route('/purchasing/upload', name: 'app_purchasing_upload', methods: ['GET', 'POST'])]
     public function upload(Request $request): Response
     {
-        $firms = $this->list->activeFirms();
+        // The documents go to the instance's firm (ADR 0039); none before the first-run setup.
+        $firm = $this->list->firmId() ?? '';
         if (!$request->isMethod('POST')) {
-            return $this->render('@Purchasing/upload.html.twig', ['firms' => $firms, 'firm' => (string) array_key_first($firms)]);
+            return $this->render('@Purchasing/upload.html.twig');
         }
         $json = 'json' === $request->getPreferredFormat();
         // Larger than the web server takes: the body was dropped, the token with it.
@@ -167,7 +165,7 @@ final class ReceivedDocumentListController extends AbstractController
             return $this->uploadRefused(AttachmentRefused::EMPTY, $json);
         }
         try {
-            $uploaded = $this->uploads->upload($request->request->getString('firm'), $files);
+            $uploaded = $this->uploads->upload($firm, $files);
         } catch (ReceivedDocumentRefused $refused) {
             return $this->uploadRefused(null, $json, $this->screen->refusal($refused));
         }
@@ -200,18 +198,16 @@ final class ReceivedDocumentListController extends AbstractController
     #[Route('/purchasing/new', name: 'app_purchasing_new', methods: ['GET', 'POST'])]
     public function create(Request $request): Response
     {
-        $firms = $this->list->activeFirms();
+        // The document goes to the instance's firm (ADR 0039); none before the first-run setup.
+        $firm = $this->list->firmId() ?? '';
         if (!$request->isMethod('POST')) {
-            $firm = (string) array_key_first($firms);
-
-            return $this->newForm($firms, $firm, $this->form->blank($this->clock->today()), [], Response::HTTP_OK);
+            return $this->newForm($firm, $this->form->blank($this->clock->today()), [], Response::HTTP_OK);
         }
         $this->checkToken($request);
-        $firm = $request->request->getString('firm');
         $values = $this->form->posted($request);
         $action = $request->request->getString('_action');
         if ('record' !== $action) {
-            return $this->newForm($firms, $firm, $this->form->changed($values, $action), [], Response::HTTP_OK);
+            return $this->newForm($firm, $this->form->changed($values, $action), [], Response::HTTP_OK);
         }
         [$input, $errors] = $this->form->input($values);
         $errors = array_map($this->translator->trans(...), $errors);
@@ -229,7 +225,7 @@ final class ReceivedDocumentListController extends AbstractController
             }
         }
 
-        return $this->newForm($firms, $firm, $values, $errors, Response::HTTP_UNPROCESSABLE_ENTITY);
+        return $this->newForm($firm, $values, $errors, Response::HTTP_UNPROCESSABLE_ENTITY);
     }
 
     /**
@@ -255,22 +251,19 @@ final class ReceivedDocumentListController extends AbstractController
     }
 
     /**
-     * @param array<string, string> $firms
      * @param array<string, mixed>  $values
      * @param array<string, string> $errors
      */
-    private function newForm(array $firms, string $firm, array $values, array $errors, int $status): Response
+    private function newForm(string $firm, array $values, array $errors, int $status): Response
     {
         return $this->render('@Purchasing/new.html.twig', [
-            'firms' => $firms,
-            'firm' => $firm,
             'values' => $values,
             'errors' => $errors,
             'summary' => $this->screen->summary($errors),
             'kinds' => $this->screen->kinds(),
             'treatments' => $this->screen->treatments(),
             'currencies' => $this->screen->currencies(),
-            'correctable' => isset($firms[$firm]) && ReceivedDocumentKind::CreditNote->value === $values['kind'] ? $this->screen->correctable($this->details->correctable($firm)) : [],
+            'correctable' => '' !== $firm && ReceivedDocumentKind::CreditNote->value === $values['kind'] ? $this->screen->correctable($this->details->correctable($firm)) : [],
         ], new Response(status: $status));
     }
 

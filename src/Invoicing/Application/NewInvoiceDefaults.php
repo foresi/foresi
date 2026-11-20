@@ -18,7 +18,6 @@ use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\VariableSymbol;
 use Foresi\Party\Application\FirmBankAccounts;
-use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\LegalEntity;
@@ -34,8 +33,6 @@ use Psr\Clock\ClockInterface;
 final readonly class NewInvoiceDefaults
 {
     public function __construct(
-        private InvoiceStore $store,
-        private LegalEntities $firms,
         private SeriesCatalog $catalog,
         private NumberCounter $counter,
         private FirmInvoicingSettings $settings,
@@ -95,16 +92,6 @@ final readonly class NewInvoiceDefaults
         $draft = $draft->with(['lines' => $lines, 'currency' => $work->currency, 'billedWork' => $work->reference]);
 
         return $customer instanceof CustomerOption ? $this->withCustomer($draft, $customer) : $draft;
-    }
-
-    /**
-     * The firm a new invoice opens in: where the user issued last, else the first active one.
-     */
-    public function firmFor(?string $userId): ?LegalEntity
-    {
-        $last = null === $userId ? null : $this->store->lastFirmOf($userId);
-
-        return $last ?? $this->firms->active()[0] ?? null;
     }
 
     public function withCustomer(InvoiceDraftValues $draft, CustomerOption $customer): InvoiceDraftValues

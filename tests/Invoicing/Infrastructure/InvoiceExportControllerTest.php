@@ -84,7 +84,7 @@ final class InvoiceExportControllerTest extends WebTestCase
         self::assertSame('2026-10', $crawler->filter('select[name="month"] option[selected]')->attr('value'));
         self::assertSame('pending', $crawler->filter('input[name="scope"][checked]')->attr('value'));
         self::assertSame('false', $crawler->filter('form[action="/invoices/export"]')->attr('data-turbo'));
-        self::assertSame($this->firm->id(), $crawler->filter('select[name="firm"] option[selected]')->attr('value'));
+        self::assertCount(0, $crawler->filter('select[name="firm"]'));
         self::assertSame(['invoice' => '2', 'advance' => '0', 'payment_tax_document' => '0', 'correction_document' => '0', 'total' => '2'], $this->counts($crawler));
     }
 
@@ -231,11 +231,16 @@ final class InvoiceExportControllerTest extends WebTestCase
         }
     }
 
-    public function testAMissingFirmIs404(): void
+    public function testWithoutAFirmADownloadIs404(): void
     {
         $this->signedIn();
+        $this->scoped(function (): void {
+            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
+            $firm->archive(new \DateTimeImmutable('2026-11-01'));
+            $this->em()->flush();
+        });
 
-        $this->post(['firm' => 'nothing', 'month' => '2026-10']);
+        $this->post(['month' => '2026-10']);
 
         self::assertResponseStatusCodeSame(404);
     }
@@ -254,7 +259,7 @@ final class InvoiceExportControllerTest extends WebTestCase
     {
         $this->signedIn();
 
-        $this->client->request('POST', '/invoices/export', ['_token' => 'wrong', 'firm' => $this->firm->id(), 'month' => '2026-10']);
+        $this->client->request('POST', '/invoices/export', ['_token' => 'wrong', 'month' => '2026-10']);
 
         self::assertResponseStatusCodeSame(403);
     }
@@ -395,7 +400,7 @@ final class InvoiceExportControllerTest extends WebTestCase
         $form = $this->client->request('GET', '/invoices/export');
         $token = (string) $form->filter('form[action="/invoices/export"] input[name="_token"]')->attr('value');
 
-        return $this->client->request('POST', '/invoices/export', $values + ['_token' => $token, 'firm' => $this->firm->id()]);
+        return $this->client->request('POST', '/invoices/export', $values + ['_token' => $token]);
     }
 
     /**

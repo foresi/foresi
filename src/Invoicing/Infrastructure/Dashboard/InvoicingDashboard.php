@@ -18,20 +18,18 @@ use Foresi\Invoicing\Application\PendingExport;
 use Foresi\Invoicing\Infrastructure\Form\AmountText;
 use Foresi\Ui\Contract\Dashboard\DashboardSection;
 use Foresi\Ui\Contract\Dashboard\DashboardSectionProvider;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The invoicing overview on the start page, for staff of an organisation with documents.
- * The firm comes from the query, as on the list, whose filtered views each number opens.
+ * Each number opens the filtered view of the list it counts.
  */
 final readonly class InvoicingDashboard implements DashboardSectionProvider
 {
     public function __construct(
         private StaffCheck $staff,
         private InvoicingOverview $overview,
-        private RequestStack $requests,
         private UrlGeneratorInterface $urls,
         private TranslatorInterface $translator,
         private AmountText $amounts,
@@ -43,31 +41,26 @@ final readonly class InvoicingDashboard implements DashboardSectionProvider
         if (!$this->staff->isStaff()) {
             return [];
         }
-        $firms = $this->overview->firms();
-        if ([] === $firms) {
+        if ([] === $this->overview->firms()) {
             return [];
         }
-        $asked = $this->requests->getCurrentRequest()?->query->getString('firm') ?? '';
-        $summary = $this->overview->of('' === $asked ? null : $asked);
+        $summary = $this->overview->of(null);
 
         return [new DashboardSection('@Invoicing/dashboard.html.twig', [
-            'firms' => \count($firms) > 1 ? ['' => $this->translator->trans('invoice.list.all_firms')] + $firms : [],
-            'firm' => $summary->firmId ?? '',
             'kpis' => $this->kpis($summary),
             'facts' => $this->facts($summary),
             'debtors' => array_map(fn (Debtor $debtor): array => [
                 'name' => $debtor->name,
                 'amount' => $this->amounts->shown($debtor->amount),
                 'count' => $this->translator->trans('dashboard.invoicing.documents', ['count' => $debtor->count]),
-                'href' => $this->list($summary, ['tab' => InvoiceFilter::UNPAID, 'q' => $debtor->name]),
+                'href' => $this->list(['tab' => InvoiceFilter::UNPAID, 'q' => $debtor->name]),
             ], $summary->debtors),
             'pending' => array_map(fn (PendingExport $pending): array => [
-                'text' => $this->translator->trans(\count($firms) > 1 && null === $summary->firmId ? 'dashboard.invoicing.pending_firm' : 'dashboard.invoicing.pending', [
-                    'firm' => $pending->firmName,
+                'text' => $this->translator->trans('dashboard.invoicing.pending', [
                     'month' => $this->monthName($pending->month),
                     'count' => $pending->count,
                 ]),
-                'href' => $this->urls->generate('app_invoice_export', ['firm' => $pending->firmId, 'month' => $pending->month]),
+                'href' => $this->urls->generate('app_invoice_export', ['month' => $pending->month]),
             ], $summary->pending),
         ], 10)];
     }
@@ -81,7 +74,7 @@ final readonly class InvoicingDashboard implements DashboardSectionProvider
             'label' => $this->translator->trans('dashboard.invoicing.invoiced', ['month' => $this->monthName($month->month)]),
             'value' => $this->amounts->shown($month->total),
             'note' => $this->translator->trans('dashboard.invoicing.base', ['amount' => $this->amounts->shown($month->base)]),
-            'href' => $this->list($summary, ['month' => $month->month]),
+            'href' => $this->list(['month' => $month->month]),
         ];
 
         return [
@@ -91,13 +84,13 @@ final readonly class InvoicingDashboard implements DashboardSectionProvider
                 'label' => $this->translator->trans('dashboard.invoicing.unpaid'),
                 'value' => $this->amounts->shown($summary->unpaid),
                 'note' => $this->translator->trans('dashboard.invoicing.documents', ['count' => $summary->unpaidCount]),
-                'href' => $this->list($summary, ['tab' => InvoiceFilter::UNPAID]),
+                'href' => $this->list(['tab' => InvoiceFilter::UNPAID]),
             ],
             [
                 'label' => $this->translator->trans('dashboard.invoicing.overdue'),
                 'value' => $this->amounts->shown($summary->overdue),
                 'note' => $this->translator->trans('dashboard.invoicing.documents', ['count' => $summary->overdueCount]),
-                'href' => $this->list($summary, ['tab' => InvoiceFilter::OVERDUE]),
+                'href' => $this->list(['tab' => InvoiceFilter::OVERDUE]),
             ],
         ];
     }
@@ -107,12 +100,12 @@ final readonly class InvoicingDashboard implements DashboardSectionProvider
      */
     private function facts(InvoicingSummary $summary): array
     {
-        $overdue = $this->list($summary, ['tab' => InvoiceFilter::OVERDUE]);
+        $overdue = $this->list(['tab' => InvoiceFilter::OVERDUE]);
         [$young, $middle, $old] = $summary->overdueByAge;
 
         return [
-            ['label' => $this->translator->trans('dashboard.invoicing.vat', ['month' => $this->monthName($summary->thisMonth->month)]), 'value' => $this->amounts->shown($summary->thisMonth->vat), 'href' => $this->list($summary, ['month' => $summary->thisMonth->month])],
-            ['label' => $this->translator->trans('dashboard.invoicing.vat', ['month' => $this->monthName($summary->lastMonth->month)]), 'value' => $this->amounts->shown($summary->lastMonth->vat), 'href' => $this->list($summary, ['month' => $summary->lastMonth->month])],
+            ['label' => $this->translator->trans('dashboard.invoicing.vat', ['month' => $this->monthName($summary->thisMonth->month)]), 'value' => $this->amounts->shown($summary->thisMonth->vat), 'href' => $this->list(['month' => $summary->thisMonth->month])],
+            ['label' => $this->translator->trans('dashboard.invoicing.vat', ['month' => $this->monthName($summary->lastMonth->month)]), 'value' => $this->amounts->shown($summary->lastMonth->vat), 'href' => $this->list(['month' => $summary->lastMonth->month])],
             ['label' => $this->translator->trans('dashboard.invoicing.age_30'), 'value' => $this->amounts->shown($young), 'href' => $overdue],
             ['label' => $this->translator->trans('dashboard.invoicing.age_60'), 'value' => $this->amounts->shown($middle), 'href' => $overdue],
             ['label' => $this->translator->trans('dashboard.invoicing.age_over'), 'value' => $this->amounts->shown($old), 'href' => $overdue],
@@ -122,9 +115,9 @@ final readonly class InvoicingDashboard implements DashboardSectionProvider
     /**
      * @param array<string, string> $query
      */
-    private function list(InvoicingSummary $summary, array $query): string
+    private function list(array $query): string
     {
-        return $this->urls->generate('app_invoices', null === $summary->firmId ? $query : ['firm' => $summary->firmId] + $query);
+        return $this->urls->generate('app_invoices', $query);
     }
 
     /**

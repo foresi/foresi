@@ -13,12 +13,10 @@ use Foresi\Identity\Domain\Role;
 use Foresi\Invoicing\Infrastructure\Controller\CustomerPickerController;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
-use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -41,10 +39,10 @@ final class CustomerPickerControllerTest extends WebTestCase
     public function testAnswersWithTheOptionsAsJson(): void
     {
         $this->browser->seed();
-        $firm = $this->firm();
+        $this->customer();
         $this->browser->signIn();
 
-        $this->client->request('GET', '/invoices/customers', ['firm' => $firm->id(), 'q' => 'Example Customer']);
+        $this->client->request('GET', '/invoices/customers', ['q' => 'Example Customer']);
 
         self::assertResponseIsSuccessful();
         self::assertResponseHeaderSame('Content-Type', 'application/json');
@@ -64,30 +62,20 @@ final class CustomerPickerControllerTest extends WebTestCase
     public function testAskedByIdItAnswersThatOneContact(): void
     {
         $this->browser->seed();
-        $firm = $this->firm();
+        $this->customer();
         $this->browser->signIn();
-        $this->client->request('GET', '/invoices/customers', ['firm' => $firm->id(), 'q' => 'Example Customer']);
+        $this->client->request('GET', '/invoices/customers', ['q' => 'Example Customer']);
         /** @var array{results: list<array{id: string}>} $found */
         $found = json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR);
 
-        $this->client->request('GET', '/invoices/customers', ['firm' => $firm->id(), 'id' => $found['results'][0]['id']]);
+        $this->client->request('GET', '/invoices/customers', ['id' => $found['results'][0]['id']]);
         /** @var array{results: list<array{name: string, dueDays: int}>} $data */
         $data = json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR);
         self::assertSame('Example Customer a.s.', $data['results'][0]['name']);
         self::assertSame(14, $data['results'][0]['dueDays']);
 
-        $this->client->request('GET', '/invoices/customers', ['firm' => $firm->id(), 'id' => 'nonsense']);
+        $this->client->request('GET', '/invoices/customers', ['id' => 'nonsense']);
         self::assertSame('{"results":[]}', $this->client->getResponse()->getContent());
-    }
-
-    public function testAMissingFirmAnswers404(): void
-    {
-        $this->browser->seed();
-        $this->browser->signIn();
-
-        $this->client->request('GET', '/invoices/customers', ['q' => 'Example']);
-
-        self::assertResponseStatusCodeSame(404);
     }
 
     /**
@@ -104,24 +92,20 @@ final class CustomerPickerControllerTest extends WebTestCase
     public function testOnlyStaffReachThePicker(Role $role, int $status): void
     {
         $this->browser->seed(role: $role);
-        $firm = $this->firm();
+        $this->customer();
         $this->browser->signIn();
 
-        $this->client->request('GET', '/invoices/customers', ['firm' => $firm->id(), 'q' => 'Example']);
+        $this->client->request('GET', '/invoices/customers', ['q' => 'Example']);
 
         self::assertResponseStatusCodeSame($status);
     }
 
-    private function firm(): LegalEntity
+    private function customer(): void
     {
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register');
-        $this->em()->persist($firm);
         $party = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), null, '');
         $this->em()->persist($party);
         $this->em()->persist(new PartyAddress($party, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
         $this->em()->flush();
-
-        return $firm;
     }
 
     private function em(): EntityManagerInterface

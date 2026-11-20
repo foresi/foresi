@@ -55,14 +55,9 @@ idoklad:
             reanchored: iDoklad switched the template back on and counts it from that day; Foresi repeats it from the same day.
     title: Move from iDoklad
     entry: Move from iDoklad
-    firms:
-        intro: Choose the firm whose iDoklad account you are moving.
-        caption: Firms
-        column:
-            name: Firm
-        empty:
-            title: No firm yet
-            text: Add your firm first, then move its iDoklad account.
+    no_firm:
+        title: No firm yet
+        text: Add your firm first, then move its iDoklad account.
     steps:
         label: Steps of the move
         connect: Connect

@@ -394,7 +394,6 @@ invoice:
     title_payment_tax_document: Tax documents on payment
     title_correction_document: Corrective documents
     views: Invoice lists
-    all_firms: All firms
     search_label: Search invoices
     search_placeholder: Number, customer or description
     summary: '{kind, select, advance {{total, plural, one {# advance invoice} other {# advance invoices}}} payment_tax_document {{total, plural, one {# tax document} other {# tax documents}}} correction_document {{total, plural, one {# corrective document} other {# corrective documents}}} other {{total, plural, one {# invoice} other {# invoices}}}}'
@@ -421,7 +420,6 @@ invoice:
       entries_count: '{count, plural, one {# entry} other {# entries}}'
       export: Export
       number: Number
-      firm: Firm
       customer: Customer
       issue_date: Issued
       due_date: Due
@@ -584,7 +582,6 @@ invoice:
   due_on: 'due {date}'
   more: More details
   more_show: Show more details
-  firm_apply: Use this firm
   month:
     this_month: This month
     last_month: Last month
@@ -599,7 +596,6 @@ invoice:
   cut_off_retry: Open the form again
   line_limit: 'An invoice has at most 100 lines.'
   errors_close: Close the list
-  firm_changed: The firm changed, so series, number and variable symbol start over.
   currency_notice: 'This contact prefers {contact}. The document stays in {document}.'
   opens_new_tab: opens in a new tab
   blocked:
@@ -1106,7 +1102,6 @@ recurring:
       name: Template name
       customer: Customer
       description: Description
-      firm: Firm
       interval: Repeats
       next: Next issue
       end: Ends

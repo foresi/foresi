@@ -30,6 +30,7 @@ use Foresi\Idoklad\Domain\ImportOptions;
 use Foresi\Idoklad\Domain\InvalidIdokladConnection;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Invoicing\Application\UndoBlocker;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\UnknownLegalEntity;
 use Foresi\Party\Domain\LegalEntity;
@@ -60,6 +61,7 @@ final class IdokladImportController extends AbstractController
 
     public function __construct(
         private readonly LegalEntities $firms,
+        private readonly InstanceFirm $instanceFirm,
         private readonly IdokladConnections $connections,
         private readonly ConnectIdoklad $connect,
         private readonly VerifyIdokladConnection $verify,
@@ -76,19 +78,19 @@ final class IdokladImportController extends AbstractController
     ) {
     }
 
+    /**
+     * The move of the instance's firm (ADR 0039), or an empty state before the first-run setup.
+     */
     #[Route('/import/idoklad', name: 'app_idoklad_firms', methods: ['GET'])]
-    public function firms(): Response
+    public function entry(): Response
     {
         $this->denyUnlessOwner();
-        $firms = $this->firms->active();
-        if (1 === \count($firms)) {
-            return $this->redirectToRoute('app_idoklad', ['id' => $firms[0]->id()]);
+        $firm = $this->instanceFirm->find();
+        if ($firm instanceof LegalEntity) {
+            return $this->redirectToRoute('app_idoklad', ['id' => $firm->id()]);
         }
 
-        return $this->render('@Idoklad/firms.html.twig', [
-            'columns' => [['key' => 'name', 'label' => $this->translator->trans('idoklad.firms.column.name')]],
-            'rows' => array_map(fn (LegalEntity $firm): array => ['id' => $firm->id(), 'href' => $this->generateUrl('app_idoklad', ['id' => $firm->id()]), 'opens' => 'page', 'cells' => ['name' => $firm->name()]], $firms),
-        ]);
+        return $this->render('@Idoklad/no_firm.html.twig');
     }
 
     /**

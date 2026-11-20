@@ -378,11 +378,6 @@ final class CorrectionDocumentTest extends InvoiceTestCase
             {
                 return $this->store->forAccountant($firm, $from, $to, $pending);
             }
-
-            public function lastFirmOf(string $userId): ?LegalEntity
-            {
-                return $this->store->lastFirmOf($userId);
-            }
         };
 
         return $this->built(IssueRules::class, ['corrections' => new CorrectionRules($blind, $container->get(LinePricing::class))]);

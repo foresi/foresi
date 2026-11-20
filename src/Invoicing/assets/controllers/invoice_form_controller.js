@@ -25,7 +25,7 @@ export default class extends Controller {
     ];
 
     static values = {
-        recountUrl: String, numberUrl: String, contactUrl: String, customersUrl: String, firm: String, kind: String, editing: Boolean, payer: Boolean,
+        recountUrl: String, numberUrl: String, contactUrl: String, customersUrl: String, kind: String, editing: Boolean, payer: Boolean,
         issuerCountry: String, currency: String, dueDays: Number, titleTemplate: String, noticeTemplate: String,
         registrationLabel: String, vatLabel: String, unsaved: Boolean,
         maxLines: Number, newLineVat: String, dueDateSet: Boolean,
@@ -178,7 +178,6 @@ export default class extends Controller {
         const url = new URL(this.numberUrlValue, window.location.origin);
         url.searchParams.set('date', this.issueDateTarget.value);
         url.searchParams.set('series', this.seriesTarget.value);
-        url.searchParams.set('firm', this.firmValue);
         url.searchParams.set('kind', this.kindValue);
         const response = await fetch(url, { headers: { Accept: 'application/json' } });
         if (response.ok) {
@@ -243,10 +242,6 @@ export default class extends Controller {
     }
 
     // Customer and payment
-
-    firmChanged() {
-        this.element.requestSubmit(this.element.querySelector('button[name="_action"][value="refresh"]'));
-    }
 
     customerPicked(event) {
         const customer = event.detail;

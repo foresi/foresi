@@ -50,7 +50,6 @@ use Symfony\Component\DomCrawler\Crawler;
 final class InvoicingDashboardTest extends WebTestCase
 {
     private const string IBAN = 'CZ6508000000192000145399';
-    private const string SECOND_IBAN = 'CZ5508000000001234567899';
 
     private KernelBrowser $client;
     private SignedInBrowser $browser;
@@ -114,48 +113,22 @@ final class InvoicingDashboardTest extends WebTestCase
         $pending = $crawler->filter('[data-dashboard-pending] [role="status"]');
         self::assertCount(1, $pending);
         self::assertStringContainsString('October 2026 has not gone to the accountant yet (1 document)', $pending->text());
-        self::assertSame('/invoices/export?firm='.$this->firm->id().'&month=2026-10', $pending->filter('a')->attr('href'));
+        self::assertSame('/invoices/export?month=2026-10', $pending->filter('a')->attr('href'));
     }
 
-    public function testTheReminderLinkPreselectsTheFirmAndMonthOfTheExport(): void
+    public function testTheReminderLinkPreselectsTheMonthOfTheExport(): void
     {
         $this->signedIn();
-        $second = $this->secondFirm();
 
-        $crawler = $this->client->request('GET', '/invoices/export?firm='.$second->id().'&month=2026-09');
+        $crawler = $this->client->request('GET', '/invoices/export?month=2026-09');
 
         self::assertResponseIsSuccessful();
         self::assertSame('2026-09', $crawler->filter('select[name="month"] option[selected]')->attr('value'));
-        self::assertSame($second->id(), $crawler->filter('select[name="firm"] option[selected]')->attr('value'));
 
-        $crawler = $this->client->request('GET', '/invoices/export?firm=unknown&month=2026-13');
+        $crawler = $this->client->request('GET', '/invoices/export?month=2026-13');
 
         self::assertResponseIsSuccessful();
         self::assertSame('2026-10', $crawler->filter('select[name="month"] option[selected]')->attr('value'));
-    }
-
-    public function testSeveralFirmsOfferAPickerThatNarrowsTheOverview(): void
-    {
-        $this->signedIn();
-        $this->issue('2026-10-02', '2026-12-31', '1000.00');
-        $second = $this->secondFirm();
-        $this->issue('2026-10-03', '2026-12-31', '100.00', $second);
-
-        $crawler = $this->client->request('GET', '/');
-
-        $options = $crawler->filter('main [data-dashboard-invoicing] [data-filter-sheet-form] select[name="firm"] option');
-        self::assertSame(['', $this->firm->id(), $second->id()], $options->each(static fn (Crawler $option): string => (string) $option->attr('value')));
-        self::assertSame('1,331.00 Kč', $this->kpis($crawler)[2][1] ?? null, 'All firms by default.');
-        self::assertSame([
-            'Example Firm s.r.o.: October 2026 has not gone to the accountant yet (1 document) Pass to the accountant',
-            'Example Second s.r.o.: October 2026 has not gone to the accountant yet (1 document) Pass to the accountant',
-        ], $crawler->filter('[data-dashboard-pending] [role="status"]')->each(static fn (Crawler $reminder): string => $reminder->text()), 'One reminder per firm.');
-
-        $crawler = $this->client->request('GET', '/?firm='.$second->id());
-
-        self::assertSame($second->id(), $crawler->filter('main [data-filter-sheet-form] select[name="firm"] option[selected]')->attr('value'));
-        self::assertSame(['Unpaid', '121.00 Kč', '1 document', '/invoices?firm='.$second->id().'&tab=unpaid'], $this->kpis($crawler)[2]);
-        self::assertSame(['October 2026 has not gone to the accountant yet (1 document) Pass to the accountant'], $crawler->filter('[data-dashboard-pending] [role="status"]')->each(static fn (Crawler $reminder): string => $reminder->text()));
     }
 
     public function testCzechNamesTheMonthAsASentenceStartsWithIt(): void
@@ -200,13 +173,13 @@ final class InvoicingDashboardTest extends WebTestCase
         return str_replace(["\u{a0}", "\u{202f}"], ' ', $text);
     }
 
-    private function issue(string $date, string $due, string $price, ?LegalEntity $firm = null): Invoice
+    private function issue(string $date, string $due, string $price): Invoice
     {
         $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
         return $this->scoped(fn (): Invoice => self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput(
-            ($firm ?? $this->firm)->id(),
-            $firm instanceof LegalEntity ? null : $this->series->id(),
+            $this->firm->id(),
+            $this->series->id(),
             null,
             $this->customer->id(),
             null,
@@ -214,7 +187,7 @@ final class InvoicingDashboardTest extends WebTestCase
             new \DateTimeImmutable($date),
             new \DateTimeImmutable($due),
             PaymentMethod::BankTransfer,
-            $firm instanceof LegalEntity ? self::SECOND_IBAN : self::IBAN,
+            self::IBAN,
             '',
             '',
             '',
@@ -225,18 +198,6 @@ final class InvoicingDashboardTest extends WebTestCase
             [$line],
             true,
         )));
-    }
-
-    private function secondFirm(): LegalEntity
-    {
-        return $this->scoped(function (): LegalEntity {
-            $firm = new LegalEntity('Example Second s.r.o.', new RegistrationNumber('CZ', '12345687'), VatId::fromString('CZ12345687'), new Address('Example Street 2', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 2');
-            $this->em()->persist($firm);
-            FirmAccounts::add($this->em(), $firm, self::SECOND_IBAN);
-            $this->em()->flush();
-
-            return $firm;
-        });
     }
 
     private function signedIn(Role $role = Role::Owner, string $locale = 'en'): void

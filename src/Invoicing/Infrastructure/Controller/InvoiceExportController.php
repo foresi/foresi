@@ -8,14 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Infrastructure\Controller;
 
-use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\StaffCheck;
 use Foresi\Invoicing\Application\BundleIncomplete;
 use Foresi\Invoicing\Application\DocumentMonths;
 use Foresi\Invoicing\Application\InvoiceBundle;
-use Foresi\Invoicing\Application\NewInvoiceDefaults;
-use Foresi\Party\Application\LegalEntities;
-use Foresi\Party\Application\UnknownLegalEntity;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Domain\LegalEntity;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -26,7 +23,6 @@ use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Uid\Uuid;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -43,11 +39,9 @@ final class InvoiceExportController extends AbstractController
     private const string MONTH = '!Y-m-d';
 
     public function __construct(
-        private readonly LegalEntities $firms,
+        private readonly InstanceFirm $firm,
         private readonly InvoiceBundle $bundle,
-        private readonly NewInvoiceDefaults $defaults,
         private readonly StaffCheck $staff,
-        private readonly AuditActor $actor,
         private readonly ClockInterface $clock,
         private readonly TranslatorInterface $translator,
         private readonly DocumentMonths $months,
@@ -64,11 +58,11 @@ final class InvoiceExportController extends AbstractController
             return $this->download($request);
         }
 
-        // A link may name the firm and month, as the reminder on the start page does; else the last month.
+        // A link may name the month, as the reminder on the start page does; else the last month.
         $month = $this->month($request->query->getString('month')) ?? $this->lastMonth();
-        $firm = $this->linkedFirm($request->query->getString('firm')) ?? $this->defaults->firmFor($this->actor->userId());
+        $firm = $this->firm->find();
 
-        return $this->form($firm?->id() ?? '', $month->format('Y-m'), self::PENDING, $firm instanceof LegalEntity ? $this->bundle->counts($firm, $month, true) : null, null, null, Response::HTTP_OK);
+        return $this->form($month->format('Y-m'), self::PENDING, $firm instanceof LegalEntity ? $this->bundle->counts($firm, $month, true) : null, null, null, Response::HTTP_OK);
     }
 
     private function download(Request $request): Response
@@ -76,16 +70,16 @@ final class InvoiceExportController extends AbstractController
         if (!$this->isCsrfTokenValid(self::TOKEN, $request->request->getString('_token'))) {
             throw new AccessDeniedHttpException('Invalid CSRF token.');
         }
-        $firm = $this->firm($request->request->getString('firm'));
+        $firm = $this->firm->find() ?? throw new NotFoundHttpException();
         $monthText = $request->request->getString('month');
         $scope = self::ALL === $request->request->getString('scope') ? self::ALL : self::PENDING;
         $pending = self::PENDING === $scope;
         $month = $this->month($monthText);
         if (!$month instanceof \DateTimeImmutable) {
-            return $this->form($firm->id(), $monthText, $scope, null, $this->translator->trans('invoice.export.month_invalid'), null, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->form($monthText, $scope, null, $this->translator->trans('invoice.export.month_invalid'), null, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         if ('count' === $request->request->getString('action')) {
-            return $this->form($firm->id(), $monthText, $scope, $this->bundle->counts($firm, $month, $pending), null, null, Response::HTTP_OK);
+            return $this->form($monthText, $scope, $this->bundle->counts($firm, $month, $pending), null, null, Response::HTTP_OK);
         }
 
         $path = tempnam(sys_get_temp_dir(), 'foresi-bundle-');
@@ -97,7 +91,7 @@ final class InvoiceExportController extends AbstractController
         } catch (BundleIncomplete $incomplete) {
             unlink($path);
 
-            return $this->form($firm->id(), $monthText, $scope, $this->bundle->counts($firm, $month, $pending), null, $this->translator->trans('invoice.export.incomplete', ['numbers' => implode(', ', $incomplete->numbers)]), Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->form($monthText, $scope, $this->bundle->counts($firm, $month, $pending), null, $this->translator->trans('invoice.export.incomplete', ['numbers' => implode(', ', $incomplete->numbers)]), Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (\Throwable $failure) {
             @unlink($path);
 
@@ -106,7 +100,7 @@ final class InvoiceExportController extends AbstractController
         if (0 === $count) {
             unlink($path);
 
-            return $this->form($firm->id(), $monthText, $scope, $this->bundle->counts($firm, $month, $pending), null, $this->translator->trans('invoice.export.empty'), Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->form($monthText, $scope, $this->bundle->counts($firm, $month, $pending), null, $this->translator->trans('invoice.export.empty'), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $response = new BinaryFileResponse($path, Response::HTTP_OK, ['Content-Type' => 'application/zip'], false);
@@ -119,16 +113,9 @@ final class InvoiceExportController extends AbstractController
     /**
      * @param array<string, int>|null $counts by kind
      */
-    private function form(string $firmId, string $month, string $scope, ?array $counts, ?string $error, ?string $notice, int $status): Response
+    private function form(string $month, string $scope, ?array $counts, ?string $error, ?string $notice, int $status): Response
     {
-        $firms = [];
-        foreach ($this->firms->all() as $firm) {
-            $firms[$firm->id()] = $firm->name();
-        }
-
         return $this->render('@Invoicing/export.html.twig', [
-            'firms' => $firms,
-            'firm' => $firmId,
             'month' => $month,
             // A pack is of one month: those with a document, the last one and the one chosen.
             'months' => MonthChoices::of([...$this->months->months(null, null), $this->lastMonth()->format('Y-m'), ...($this->month($month) instanceof \DateTimeImmutable ? [$month] : [])], $this->translator->getLocale()),
@@ -149,26 +136,5 @@ final class InvoiceExportController extends AbstractController
         $month = \DateTimeImmutable::createFromFormat(self::MONTH, $text.'-01');
 
         return false !== $month && $month->format('Y-m') === $text ? $month : null;
-    }
-
-    /**
-     * The firm a link names, if it exists.
-     */
-    private function linkedFirm(string $id): ?LegalEntity
-    {
-        try {
-            return $this->firm($id);
-        } catch (NotFoundHttpException) {
-            return null;
-        }
-    }
-
-    private function firm(string $id): LegalEntity
-    {
-        try {
-            return Uuid::isValid($id) ? $this->firms->get($id) : throw new NotFoundHttpException();
-        } catch (UnknownLegalEntity) {
-            throw new NotFoundHttpException();
-        }
     }
 }

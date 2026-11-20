@@ -19,16 +19,14 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The columns of the bank movements; each cell renders one MovementRow. The firm
- * shows when several firms have an account, the account when a firm has more than
- * one, as the firm names it otherwise. A paired movement links the invoices its
+ * The columns of the bank movements; each cell renders one MovementRow. The account
+ * shows when the firm has more than one. A paired movement links the invoices its
  * payment pays; one waiting says why. The bank mail has columns of its own.
  */
 final readonly class MovementColumns implements DataSource
 {
     public const string LIST = 'banking.movements';
-    /** The context keys: whether several firms, and more accounts than firms, have an account. */
-    public const string SEVERAL_FIRMS = 'severalFirms';
+    /** The context key: whether the firm has more than one account. */
     public const string ACCOUNT_COLUMN = 'accountColumn';
 
     public function __construct(private BankText $text, private TranslatorInterface $translator, private UrlGeneratorInterface $urls)
@@ -44,7 +42,6 @@ final readonly class MovementColumns implements DataSource
 
         return [
             new Attribute('date', $label('date'), AttributeType::Date, static fn (MovementRow $row): \DateTimeImmutable => $row->bookedOn, defaultVisible: true, defaultPosition: 10, cell: $this->date(...), locked: true),
-            new Attribute('firm', $label('firm'), AttributeType::Text, static fn (MovementRow $row): string => $row->firmName, defaultVisible: true, defaultPosition: 20, cell: static fn (MovementRow $row): string => $row->firmName, phone: false, truncate: true, available: static fn (array $context): bool => true === ($context[self::SEVERAL_FIRMS] ?? false)),
             new Attribute('account', $label('account'), AttributeType::Text, $this->account(...), defaultVisible: true, defaultPosition: 30, cell: $this->account(...), phone: false, wide: true, truncate: true, available: static fn (array $context): bool => true === ($context[self::ACCOUNT_COLUMN] ?? false)),
             new Attribute('amount', $label('amount'), AttributeType::Money, static fn (MovementRow $row): Money => $row->amount, defaultVisible: true, defaultPosition: 40, cell: $this->amount(...)),
             new Attribute('vs', $label('vs'), AttributeType::Text, static fn (MovementRow $row): ?string => $row->variableSymbol, defaultVisible: true, defaultPosition: 50, cell: static fn (MovementRow $row): string => $row->variableSymbol ?? '', phone: false),

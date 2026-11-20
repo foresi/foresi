@@ -1,0 +1,13 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The move from iDoklad before the first-run setup: there is no firm to move into yet. #}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'import.history.title'|trans, href: path('app_imports')}, {label: 'idoklad.title'|trans}] %}
+
+{% block title %}{{ 'idoklad.title'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="grid max-w-3xl gap-4">
+        <twig:Ui:EmptyState icon="building-2" :title="'idoklad.no_firm.title'|trans" :text="'idoklad.no_firm.text'|trans" />
+    </div>
+{% endblock %}
