@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5954761d6b025faa3a5e3c87f836a1c0",
+    "content-hash": "7a0c4a57812ea5b7b24bf96b9a41d929",
     "packages": [
         {
             "name": "brick/math",
@@ -1602,7 +1602,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Attachment",
-                "reference": "296be34a044ee6dce6261c7ec9c688e8781f1108"
+                "reference": "9d8adc45ea51b56090f15e43e3d9e1d558a03fbd"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1640,7 +1640,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Audit",
-                "reference": "85b10af35adaf5e8fd154518979b34a61fe1f3f9"
+                "reference": "54fad1b484d3a634aba26750239c6aa396c44b8e"
             },
             "require": {
                 "foresi/instance": "*",
@@ -1676,7 +1676,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Banking",
-                "reference": "514ef5c17cabf3ad23093decd7c422af23f0cc47"
+                "reference": "a37ea207a36b4666e4268d4ed2223a387373295a"
             },
             "require": {
                 "directorytree/imapengine": "~1.25.7",
@@ -1721,7 +1721,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/CashFlow",
-                "reference": "066e6eef965950985cbf3e3557fd07bc0b4632c1"
+                "reference": "497242f552a8ad054a7fa8de0ea9aaec40e35985"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1792,7 +1792,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Country",
-                "reference": "a644eb17771da5d207df71adef0646fbaedbb105"
+                "reference": "b6742e472e498f55c6a59603c005931a3721397b"
             },
             "require": {
                 "foresi/party": "*",
@@ -1832,7 +1832,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Events",
-                "reference": "d996545403bc12080d78113262753a02bb8db157"
+                "reference": "59edab29126acfd5d6d1d3842f27924d2eeb7798"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1872,7 +1872,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/ExchangeRate",
-                "reference": "f67650c7035351f14a76b9ce3485b269497153ae"
+                "reference": "466e3d4235f5d7faf4980a0b7a96cdd5ec2fcfdd"
             },
             "require": {
                 "foresi/instance": "*",
@@ -1908,7 +1908,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Identity",
-                "reference": "51d0086885bd61055eb8435d4c21ce6f7c38654b"
+                "reference": "ab0bdb214d941c2dfc9d3bf5e0887dbd9544875f"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1948,7 +1948,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Idoklad",
-                "reference": "1b1f2483e289d4e8887e8ab839bc8fc07076317a"
+                "reference": "7a84e115d15fb38d74d0913e16fe8f58d773e5c4"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1989,7 +1989,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Import",
-                "reference": "60861ded475a09814d9b970b7a3e542818f3c733"
+                "reference": "287bcaf8ba8353be6121a76e3720658f9aad6df7"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2029,7 +2029,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Instance",
-                "reference": "c21a31ac707885c08e9d8c2064f9ef19c7d9e586"
+                "reference": "12b32d2d5888e90c69c701cd6fa95fea0ab99cf3"
             },
             "require": {
                 "foresi/shared": "*"
@@ -2064,7 +2064,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Invoicing",
-                "reference": "89cccd0544b445d21cf43d963d6a794f450575af"
+                "reference": "db8efad2d9100724c1b22f1b4332254d479a1e49"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2113,7 +2113,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "e7717ce6d82dc4a2db7b95f6a315c4c6b87fcbad"
+                "reference": "2f6668b38081dcc68b405518cdcdb43463146092"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2156,7 +2156,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Purchasing",
-                "reference": "96fa050ec669828d143b3d2fb8649bfe975ebb0e"
+                "reference": "0e6d57b7da8346a889e2d97b6c2ed324b5041849"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -2204,7 +2204,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "bb24ed6f76037034cc6f52d82f453bce7e7f7717"
+                "reference": "e74faf4cc787a5354eaf9ae5462c27ea23ae1b5e"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -2239,12 +2239,60 @@
             }
         },
         {
+            "name": "foresi/taxes-and-contributions",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/TaxesAndContributions",
+                "reference": "48189519b67f0b9f028b7e62b0670a4af2431519"
+            },
+            "require": {
+                "foresi/audit": "*",
+                "foresi/exchange-rate": "*",
+                "foresi/identity": "*",
+                "foresi/instance": "*",
+                "foresi/party": "*",
+                "foresi/shared": "*",
+                "foresi/ui": "*"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "taxes-and-contributions",
+                    "kind": "module",
+                    "namespace": "Foresi\\TaxesAndContributions\\",
+                    "bundle": "Foresi\\TaxesAndContributions\\TaxesAndContributionsBundle",
+                    "optional": [
+                        "cash-flow",
+                        "invoicing",
+                        "purchasing"
+                    ],
+                    "scopes": [
+                        "taxes"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\TaxesAndContributions\\": ""
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "The taxes and contributions of the owner: the owner profile with dated statuses, and the estimate to date and to the year end.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "foresi/timesheet",
             "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "src/Timesheet",
-                "reference": "0aefafd3b0246101af8b9b6c069cd3d749a02bfe"
+                "reference": "a475c95b096dfbfa7383df7a10f8b40a39d76fdc"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2286,7 +2334,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Ui",
-                "reference": "ba42f7867117256da78d93955fb50af983518d56"
+                "reference": "655142303f63673ad9f2c395b4b7920ec3ca7d10"
             },
             "require": {
                 "foresi/shared": "*",
@@ -2322,7 +2370,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Webhooks",
-                "reference": "e19963e92198ce4a51f22092ae66d856fd01b939"
+                "reference": "4bb115692b296e4d7928b8e8a7bad602dbcc1a2e"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2365,7 +2413,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Work",
-                "reference": "5df34c750cfaa9cd389e36d259dfd7584b553de9"
+                "reference": "e845efc1b05bea14bcacef793b971bc308e26a31"
             },
             "require": {
                 "foresi/attachment": "*",
@@ -2384,7 +2432,18 @@
                     "kind": "module",
                     "namespace": "Foresi\\Work\\",
                     "bundle": "Foresi\\Work\\WorkBundle",
-                    "optional": []
+                    "optional": [],
+                    "scopes": [
+                        {
+                            "resource": "projects",
+                            "guest": "read"
+                        },
+                        {
+                            "resource": "tasks",
+                            "guest": "write"
+                        },
+                        "time_entries"
+                    ]
                 }
             },
             "autoload": {
@@ -18899,6 +18958,7 @@
         "foresi/party": 20,
         "foresi/purchasing": 20,
         "foresi/shared": 20,
+        "foresi/taxes-and-contributions": 20,
         "foresi/timesheet": 20,
         "foresi/ui": 20,
         "foresi/webhooks": 20,
@@ -18917,5 +18977,5 @@
         "ext-zip": "*"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.6.0"
 }

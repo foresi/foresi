@@ -20,7 +20,7 @@ use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 /**
  * Counts every request of the REST API and of the MCP server over HTTP against
  * one budget of its token (the api_token limiter, config/packages/rate_limiter.yaml),
- * so a client cannot spend twice by switching surface. A REST write (POST, PATCH
+ * so a client cannot spend twice by switching surface. A REST write (POST, PUT, PATCH
  * or DELETE) spends the write budget too (WriteBudget, ADR 0032). Every answer to
  * a signed-in request says the budget, what is left of it and the seconds until
  * the next request is let through, zero while some is left; a write says the
@@ -35,7 +35,7 @@ final readonly class ApiRateLimit
     public const string MCP_PATH = '#^/mcp(/|$)#';
     private const string ATTRIBUTE = '_api_rate_limit';
 
-    private const array WRITES = ['POST', 'PATCH', 'DELETE'];
+    private const array WRITES = ['POST', 'PUT', 'PATCH', 'DELETE'];
 
     public function __construct(private RateLimiterFactoryInterface $apiTokenLimiter, private ApiClient $client, private WriteBudget $writes)
     {

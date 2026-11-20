@@ -35,7 +35,7 @@ use PHPUnit\Framework\TestCase;
 final class FirmColumnRemovalMigrationTest extends TestCase
 {
     private const string BEFORE = 'DoctrineMigrations\Version20261120100001';
-    private const string DROP = 'DoctrineMigrations\Version20261120200001';
+    private const string DROP = 'DoctrineMigrations\Version20261120300001';
     private const string SCHEMA = 'firm_column_removal_migration_test';
     private const string FIRM = '22222222-2222-2222-2222-222222222222';
 

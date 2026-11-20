@@ -1,0 +1,36 @@
+{
+    "name": "foresi/taxes-and-contributions",
+    "description": "The taxes and contributions of the owner: the owner profile with dated statuses, and the estimate to date and to the year end.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "require": {
+        "foresi/audit": "*",
+        "foresi/exchange-rate": "*",
+        "foresi/identity": "*",
+        "foresi/instance": "*",
+        "foresi/party": "*",
+        "foresi/shared": "*",
+        "foresi/ui": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\TaxesAndContributions\\": ""
+        }
+    },
+    "extra": {
+        "foresi": {
+            "module": "taxes-and-contributions",
+            "kind": "module",
+            "namespace": "Foresi\\TaxesAndContributions\\",
+            "bundle": "Foresi\\TaxesAndContributions\\TaxesAndContributionsBundle",
+            "optional": [
+                "cash-flow",
+                "invoicing",
+                "purchasing"
+            ],
+            "scopes": [
+                "taxes"
+            ]
+        }
+    }
+}

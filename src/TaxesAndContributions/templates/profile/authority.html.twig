@@ -1,0 +1,39 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Where the owner pays one authority: the account and the variable symbol, the match rule for the
+    payments of its advances. A small dialog over the profile. Variables: authority, values, errors.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set title = ('taxes.authority.' ~ authority)|trans %}
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'taxes.profile.title'|trans, href: path('app_taxes_profile')}, {label: title}] %}
+{% set dialog_size = 'sm' %}
+{% set dialog_description = 'taxes.profile.authorities_note'|trans %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="taxes-authority-form" action="{{ path('app_taxes_profile_authority', {authority: authority}) }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\TaxesAndContributions\\Infrastructure\\Controller\\ProfileController::TOKEN')) }}">
+        <twig:Ui:TextInput name="account" id="account" :label="'taxes.profile.field.account'|trans" :help="'taxes.profile.field.account_help'|trans" :value="values.account" :error="errors.account is defined ? errors.account|trans : null" autocomplete="off" />
+        <twig:Ui:TextInput name="variableSymbol" id="variableSymbol" :label="'taxes.profile.field.variable_symbol'|trans" :value="values.variableSymbol" :error="errors.variableSymbol is defined ? errors.variableSymbol|trans : null" inputmode="numeric" autocomplete="off" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'taxes.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="taxes-authority-form" variant="primary">{{ 'taxes.save'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="title" icon="landmark" class="max-w-2xl">
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_taxes_profile')">{{ 'taxes.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="taxes-authority-form" variant="primary">{{ 'taxes.save'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

@@ -59,7 +59,7 @@ A scope says what a token may reach. A token has one or more:
 | `<resource>:read` | Reading one kind of record. |
 | `<resource>:write` | Changing one kind of record, and reading it. |
 
-The resources are `cashflow`, `contacts`, `invoices`, `payments`, `received_documents`, `events`, `projects`, `tasks` (comments and labels included), `time_entries`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
+The resources are `cashflow`, `contacts`, `invoices`, `payments`, `received_documents`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
 
 ## Using the API
 
@@ -136,6 +136,7 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/cash-flow/forecast` | `cashflow:read` | The cash-flow forecast of the firm; see [Cash flow](#cash-flow). |
 | `/api/v1/cash-flow/planned-items` | `cashflow:read` | The planned items of the firm, oldest first, without paging. |
 | `/api/v1/cash-flow/planned-items/{plannedItemId}` | `cashflow:read` | One planned item. |
+| `/api/v1/taxes-and-contributions/profile` | `taxes:read` | The owner profile, for the owner only; see [Taxes and contributions](#taxes-and-contributions). |
 | `/api/v1/lists` | `views:read` | The lists saved views filter, with their fields, operators, values and columns; see [Saved views](#saved-views). |
 | `/api/v1/views?list=` | `views:read` | The saved views of a list the token's person sees. |
 | `/api/v1/views/{viewId}` | `views:read` | One saved view, by its id or the system key of one a module ships. |
@@ -450,6 +451,24 @@ What the cash flow refuses:
 | 403 | `forbidden` | A guest of the organisation. |
 | 404 | `not_found` | The instance has no firm yet, or the organisation has no such bank account or planned item. |
 | 409 | `not_recurring` | Ending a one-off item. |
+
+## Taxes and contributions
+
+The owner profile the taxes and contributions are estimated from: the dated statuses, the inputs of each year and the authority accounts. What each one means is in [taxes-and-contributions.md](taxes-and-contributions.md). The writes need `taxes:write`, the read `taxes:read`, and only the **owner** of the organisation may use them: anyone else is refused with `403 owner_only`. Bodies are JSON with snake case fields, amounts in CZK as decimals such as `"12500.00"`.
+
+| Method and path | Answer |
+| --- | --- |
+| `GET /api/v1/taxes-and-contributions/profile` | `{statuses, years, authorities}`. |
+| `POST /api/v1/taxes-and-contributions/profile/statuses` | `201` with the status: `kind`, `value`, `valid_from` and, for sickness insurance that is on, `base`. A second status of one kind on one day is `409 status_day_taken`. |
+| `DELETE /api/v1/taxes-and-contributions/profile/statuses/{statusId}` | `{"id": ..., "removed": true}`. The status before it holds again. |
+| `PUT /api/v1/taxes-and-contributions/profile/years/{year}` | The inputs of the year as they are now. The whole year is replaced: a field left out is cleared. |
+| `PUT /api/v1/taxes-and-contributions/profile/authorities/{authority}` | The account of `social`, `health`, `sickness` or `income_tax`: `account` and `variable_symbol`. |
+
+```bash
+curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
+  -d '{"kind": "vat_payer", "value": "yes", "valid_from": "2026-11-12"}' \
+  "https://app.example.com/api/v1/taxes-and-contributions/profile/statuses"
+```
 
 ## Received documents
 

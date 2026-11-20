@@ -1,0 +1,161 @@
+nav:
+  item:
+    taxes: Daně a odvody
+taxes:
+  title: Daně a odvody
+  cancel: Zrušit
+  save: Uložit
+  status:
+    kind:
+      legal_form: Právní forma
+      activity: Činnost
+      vat_payer: Plátce DPH
+      flat_rate_band: Paušální daň
+      sickness_insurance: Nemocenské pojištění
+      health_minimum_exempt: Bez minima zdravotního pojištění
+    value:
+      legal_form:
+        sole_trader: OSVČ
+      activity:
+        none: Bez činnosti
+        secondary: Vedlejší
+        main: Hlavní
+      vat_payer:
+        'yes': Plátce DPH
+        'no': Neplátce DPH
+      health_minimum_exempt:
+        'yes': Ano, bez minima
+        'no': Ne, platí minimum
+      flat_rate_band:
+        none: Bez paušální daně
+        '1': 1. pásmo
+        '2': 2. pásmo
+        '3': 3. pásmo
+      sickness_insurance:
+        'off': Neplatí
+        'on': Platí
+  method:
+    actual: Skutečné výdaje
+    lump_80: Paušál 80 %
+    lump_60: Paušál 60 %
+    lump_40: Paušál 40 %
+    lump_30: Paušál 30 %
+  route:
+    paper: Papírově
+    electronic: Elektronicky
+    advisor: Přes daňového poradce
+  authority:
+    social: Sociální pojištění (ČSSZ)
+    health: Zdravotní pojištění
+    sickness: Nemocenské pojištění
+    income_tax: Daň z příjmů (finanční úřad)
+  deduction:
+    gifts: Dary
+    housing_loan_interest: Úroky z úvěru na bydlení
+    pension_products: Penzijní produkty
+    life_insurance: Životní pojištění
+    long_term_investment: Dlouhodobý investiční produkt
+    union_fees: Odborové příspěvky
+    exam_fees: Zkoušky dalšího vzdělávání
+  profile:
+    title: Profil
+    description: Z čeho se počítají daně a odvody. Každý stav platí od svého dne do další změny stejného druhu. Profil obsahuje osobní údaje, proto ho vidí jen vlastník.
+    statuses: Stavy
+    years: Roky
+    authorities: Účty úřadů
+    authorities_note: Kam platíte zálohy. Podle účtu a variabilního symbolu se platby spárují s odhadem.
+    empty_title: Zatím žádné stavy
+    empty_text: Přidejte, odkdy jste OSVČ, jakou máte činnost a odkdy jste plátce DPH.
+    until_next: do další změny
+    column:
+      value: Stav
+      from: Platí od
+      until: Platí do
+    field:
+      change: Změna
+      valid_from: Platí od
+      valid_from_help: Stav platí od tohoto dne do další změny stejného druhu.
+      base: Měsíční vyměřovací základ
+      base_help: Jen u nemocenského pojištění, které platíte. Kč.
+      account: Číslo účtu
+      account_help: Například 000000-1234567890/0710 nebo IBAN.
+      variable_symbol: Variabilní symbol
+      chosen_method: Výdaje v přiznání
+      chosen_open: Zatím nerozhodnuto
+      child_label: Označení dítěte
+      child_label_help: Vlastní označení, třeba „Starší dcera".
+      birth_date: Datum narození
+      order: Pořadí
+      months: Počet měsíců (0–12)
+      ztp_p: Držitel průkazu ZTP/P
+      spouse_months: Počet měsíců manžela nebo manželky (0–12)
+      spouse_months_help: Prázdné, když slevu na manžela neuplatňujete.
+      spouse_low_income: Jeho nebo její příjmy nepřesáhnou 68 000 Kč
+      employmentBase: Dílčí základ ze zaměstnání
+      employmentTaxWithheld: Daň sražená zaměstnavatelem
+      rentalBase: Dílčí základ z nájmu
+      otherBase: Ostatní dílčí základy
+      lastKnownTax: Poslední známá daň
+      previousSocialBase: Vyměřovací základ sociálního pojištění za minulý rok
+      previousHealthBase: Vyměřovací základ zdravotního pojištění za minulý rok
+      previousOverviewFiledOn: Přehledy za minulý rok podány dne
+      returnRoute: Podání přiznání
+      activityStart: Zahájení činnosti
+      activityStart_help: Jen když jste začali podnikat v tomto roce.
+      averageWageOverride: Vlastní průměrná mzda
+      averageWageOverride_help: Prázdné použije zveřejněnou průměrnou mzdu.
+    order:
+      '1': První dítě
+      '2': Druhé dítě
+      '3': Třetí a další dítě
+    status:
+      new: Přidat změnu
+      description: Nový stav platí od zvoleného dne do další změny stejného druhu.
+      remove: Odebrat
+      remove_title: Odebrat tento stav?
+      remove_text: Od jeho dne pak znovu platí předchozí stav stejného druhu.
+      with_base: '{value}, základ {base}'
+      flash_added: 'Stav „{value}“ je přidaný.'
+      flash_removed: Stav je odebraný.
+    year:
+      title: 'Rok {year}'
+      description: Údaje pro odhad za tento rok. Částky v Kč.
+      not_entered: Zatím nevyplněno
+      children: '{count, plural, one {# dítě} few {# děti} other {# dětí}}'
+      methods: Výdaje k porovnání
+      children_title: Děti
+      child: 'Dítě {number}'
+      spouse: Manžel nebo manželka
+      deductions: Odčitatelné položky
+      bases: Další příjmy
+      previous: Minulý rok
+      other: Ostatní
+      flash: 'Údaje za rok {year} jsou uložené.'
+    authority:
+      vs: 'VS {symbol}'
+      not_set: Nenastaveno
+      flash: 'Účet pro {authority} je uložený.'
+    error:
+      kind_invalid: Vyberte změnu ze seznamu.
+      value_invalid: Vyberte změnu ze seznamu.
+      date_invalid: Zadejte platné datum.
+      base_required: Zadejte měsíční vyměřovací základ.
+      base_not_allowed: Základ se zadává jen u nemocenského pojištění, které platíte.
+      amount_invalid: Zadejte kladnou částku v Kč, nejvýš se dvěma desetinnými místy.
+      status_day_taken: Stav tohoto druhu už od tohoto dne platí. Nejdřív ho odeberte.
+      year_invalid: Rok je mimo rozsah.
+      expense_method_invalid: Vyberte výdaje ze seznamu.
+      expense_methods_empty: Vyberte aspoň jeden způsob výdajů k porovnání.
+      chosen_method_not_compared: Výdaje v přiznání musí být mezi porovnávanými.
+      children_too_many: Dětí je příliš mnoho.
+      child_invalid: Údaje o dítěti nejsou úplné.
+      child_label_invalid: Každé dítě potřebuje označení, nejvýš 100 znaků.
+      child_order_invalid: Vyberte pořadí dítěte.
+      months_invalid: Počet měsíců je 0 až 12.
+      deduction_invalid: Odčitatelná položka není platná.
+      deduction_repeated: Každá odčitatelná položka může být jen jednou.
+      return_route_invalid: Vyberte způsob podání.
+      authority_invalid: Neznámý úřad.
+      account_invalid: Zadejte číslo účtu, nejvýš 64 znaků.
+      variable_symbol_invalid: Variabilní symbol má nejvýš 35 znaků.
+      not_found: Stav už neexistuje.

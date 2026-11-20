@@ -31,6 +31,7 @@ final class McpServerTest extends ApiTestCase
         'party' => ['foresi_archive_contact', 'foresi_create_contact', 'foresi_get_contact', 'foresi_get_firm', 'foresi_link_contact_person', 'foresi_restore_contact', 'foresi_search_contacts', 'foresi_unlink_contact_person', 'foresi_update_contact'],
         'purchasing' => ['foresi_add_received_document_payment', 'foresi_get_received_document', 'foresi_list_received_document_payments', 'foresi_mark_received_document_paid', 'foresi_record_received_document', 'foresi_remove_received_document_payment', 'foresi_search_received_documents', 'foresi_trash_received_document'],
         'shared' => ['foresi_create_view', 'foresi_delete_view', 'foresi_get_view', 'foresi_list_lists', 'foresi_list_modules', 'foresi_list_views', 'foresi_restore_default_views', 'foresi_update_view'],
+        'taxes-and-contributions' => ['foresi_add_tax_status', 'foresi_get_tax_profile', 'foresi_remove_tax_status', 'foresi_set_tax_authority_account', 'foresi_set_tax_year'],
         'work' => ['foresi_add_task_comment', 'foresi_archive_project', 'foresi_create_project', 'foresi_create_task', 'foresi_get_project', 'foresi_get_task', 'foresi_list_labels', 'foresi_list_project_people', 'foresi_list_task_comments', 'foresi_log_time', 'foresi_restore_project', 'foresi_restore_task', 'foresi_search_projects', 'foresi_search_tasks', 'foresi_search_time_entries', 'foresi_start_timer', 'foresi_stop_timer', 'foresi_trash_task', 'foresi_trash_task_comment', 'foresi_update_project', 'foresi_update_task', 'foresi_update_task_comment'],
         'webhooks' => ['foresi_create_webhook_endpoint', 'foresi_delete_webhook_endpoint', 'foresi_list_webhook_deliveries', 'foresi_list_webhook_endpoints', 'foresi_redeliver_webhook', 'foresi_rotate_webhook_secret', 'foresi_update_webhook_endpoint'],
     ];
@@ -38,6 +39,7 @@ final class McpServerTest extends ApiTestCase
     /** The tools that change data, with whether they destroy: every other tool only reads. */
     private const array WRITE_TOOLS = [
         'foresi_add_received_document_payment' => false,
+        'foresi_add_tax_status' => false,
         'foresi_add_task_comment' => false,
         'foresi_archive_contact' => false,
         'foresi_archive_project' => false,
@@ -62,6 +64,7 @@ final class McpServerTest extends ApiTestCase
         'foresi_record_received_document' => false,
         'foresi_redeliver_webhook' => false,
         'foresi_remove_received_document_payment' => true,
+        'foresi_remove_tax_status' => true,
         'foresi_restore_contact' => false,
         'foresi_restore_default_views' => false,
         'foresi_restore_invoice' => false,
@@ -70,6 +73,8 @@ final class McpServerTest extends ApiTestCase
         'foresi_rotate_webhook_secret' => true,
         'foresi_set_expected_date' => false,
         'foresi_set_minimum_balance' => false,
+        'foresi_set_tax_authority_account' => false,
+        'foresi_set_tax_year' => false,
         'foresi_skip_planned_occurrence' => false,
         'foresi_start_timer' => false,
         'foresi_stop_timer' => false,
