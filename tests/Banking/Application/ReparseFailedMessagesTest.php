@@ -44,20 +44,20 @@ final class ReparseFailedMessagesTest extends InboundTestCase
         // Version 1, the parser of today, does not know the status of this notice.
         $older = $this->received($this->notice('incoming-unknown-status'));
         self::assertSame(InboundStatus::Failed, $this->process->process($older));
-        // Version 2 failed on its own already: a run of version 2 has nothing new to say about it.
-        $fixedFailing = new FixedParser('cz.kb', 2, ['kb.cz'], new ParseFailed(ParseFailure::MissingField, 'A payment has no amount.'));
+        // Version 3 failed on its own already: a run of version 3 has nothing new to say about it.
+        $fixedFailing = new FixedParser('cz.kb', 3, ['kb.cz'], new ParseFailed(ParseFailure::MissingField, 'A payment has no amount.'));
         $newer = $this->received($this->notice('missing-amount'));
         self::assertSame(InboundStatus::Failed, $this->processWith(new BankMessageParsers([$fixedFailing]))->process($newer));
 
-        // Version 2 reads the status the first one did not know.
-        $release = new BankMessageParsers([new FixedParser('cz.kb', 2, ['kb.cz'], FixedParser::kbMovement())]);
+        // Version 3 reads the status the first one did not know.
+        $release = new BankMessageParsers([new FixedParser('cz.kb', 3, ['kb.cz'], FixedParser::kbMovement())]);
         $this->job($release)->run(null);
 
         $row = $this->messageRow($older);
-        self::assertSame(['processed', 'cz.kb', 2, 2, null], [$row['status'], $row['parser_id'], self::int($row['parser_version']), self::int($row['attempts']), $row['failure']]);
+        self::assertSame(['processed', 'cz.kb', 3, 2, null], [$row['status'], $row['parser_id'], self::int($row['parser_version']), self::int($row['attempts']), $row['failure']]);
         self::assertSame(PaymentState::Paid, $this->stateOf($invoice));
         $untouched = $this->messageRow($newer);
-        self::assertSame(['failed', 2, 1], [$untouched['status'], self::int($untouched['parser_version']), self::int($untouched['attempts'])]);
+        self::assertSame(['failed', 3, 1], [$untouched['status'], self::int($untouched['parser_version']), self::int($untouched['attempts'])]);
 
         // Nothing is due any more.
         $this->job($release)->run(null);
