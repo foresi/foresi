@@ -25,9 +25,6 @@ final readonly class AuthorityAccount
         public string $account,
         public string $variableSymbol,
     ) {
-        if ('' === trim($account) || mb_strlen($account) > self::MAX_ACCOUNT || mb_strlen($variableSymbol) > self::MAX_REFERENCE) {
-            throw new \InvalidArgumentException('An authority account has an account of 1 to 64 characters and a reference of at most 35.');
-        }
     }
 
     /**

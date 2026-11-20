@@ -44,7 +44,7 @@ final class Stored
      */
     public static function bool(array $data, string $key): bool
     {
-        return true === ($data[$key] ?? false);
+        return true === ($data[$key] ?? null);
     }
 
     /**
@@ -70,6 +70,18 @@ final class Stored
         $day = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
 
         return false !== $day ? $day : throw new \UnexpectedValueException(\sprintf('The stored profile has no day %s.', $key));
+    }
+
+    /**
+     * @param array<mixed> $data
+     *
+     * @return list<string>
+     */
+    public static function strings(array $data, string $key): array
+    {
+        $value = $data[$key] ?? [];
+
+        return \is_array($value) ? array_values(array_filter($value, \is_string(...))) : [];
     }
 
     /**

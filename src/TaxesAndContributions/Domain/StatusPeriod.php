@@ -20,7 +20,7 @@ use Foresi\TaxesAndContributions\Contract\StatusPeriod as StatusPeriodView;
  * A status of the owner from a day on, until the next period of its kind: the
  * owner became a VAT payer on 12 November, say. Two periods of one kind never
  * start on the same day. Only voluntary sickness insurance that is on carries
- * a base, its monthly base in CZK.
+ * a base, its monthly base in CZK; ProfileWrites checks the value and the base.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'taxes_status_period')]
@@ -46,15 +46,6 @@ class StatusPeriod implements Audited
         private readonly \DateTimeImmutable $validFrom,
         ?Money $base = null,
     ) {
-        if (!\in_array($value, $kind->values(), true)) {
-            throw new \InvalidArgumentException(\sprintf('"%s" is not a value of the status %s.', $value, $kind->value));
-        }
-        if ($kind->needsBase($value) !== $base instanceof Money) {
-            throw new \InvalidArgumentException('Only voluntary sickness insurance that is on has a base, and it always has one.');
-        }
-        if ($base instanceof Money && (Currency::CZK !== $base->currency() || $base->isNegative() || $base->isZero())) {
-            throw new \InvalidArgumentException('A base is a positive amount in CZK.');
-        }
         $this->id = Id::generate();
         $this->baseMinor = $base?->minor();
     }
@@ -62,11 +53,6 @@ class StatusPeriod implements Audited
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function profile(): OwnerProfile
-    {
-        return $this->profile;
     }
 
     public function kind(): StatusKind

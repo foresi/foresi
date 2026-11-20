@@ -28,17 +28,14 @@ final readonly class ProfileView
 
     /**
      * The status of this kind on the day: the latest period that starts on
-     * it or before, so a status holds from its day until the next of its kind.
+     * it or before, as the statuses are oldest first within their kind, so a status holds from its day until the next of its kind.
      */
     public function valueOn(StatusKind $kind, \DateTimeImmutable $day): ?StatusPeriod
     {
         $on = $day->format('Y-m-d');
         $found = null;
         foreach ($this->statuses as $status) {
-            if ($kind !== $status->kind || $status->validFrom->format('Y-m-d') > $on) {
-                continue;
-            }
-            if (!$found instanceof StatusPeriod || $status->validFrom > $found->validFrom) {
+            if ($kind === $status->kind && $status->validFrom->format('Y-m-d') <= $on) {
                 $found = $status;
             }
         }

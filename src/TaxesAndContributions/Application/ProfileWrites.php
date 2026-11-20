@@ -165,8 +165,8 @@ final readonly class ProfileWrites
      */
     private function yearView(SetYearInputsInput $input): YearInputsView
     {
-        $year = trim($input->year);
-        if (1 !== preg_match('/^[0-9]{4}\z/', $year) || (int) $year < self::FIRST_YEAR || (int) $year > self::LAST_YEAR) {
+        $year = filter_var(trim($input->year), \FILTER_VALIDATE_INT, ['options' => ['min_range' => self::FIRST_YEAR, 'max_range' => self::LAST_YEAR]]);
+        if (false === $year) {
             throw TaxesRefused::invalid('year_invalid', 'year', \sprintf('A year is %d to %d.', self::FIRST_YEAR, self::LAST_YEAR));
         }
         $methods = [];
@@ -178,8 +178,9 @@ final readonly class ProfileWrites
             throw TaxesRefused::invalid('expense_methods_empty', 'expenseMethods', 'Compare at least one expense method.');
         }
         $chosen = null;
-        if (null !== $input->chosenMethod && '' !== $input->chosenMethod) {
-            $chosen = ExpenseMethod::tryFrom($input->chosenMethod) ?? throw TaxesRefused::invalid('expense_method_invalid', 'chosenMethod', 'An expense method is actual, lump_80, lump_60, lump_40 or lump_30.');
+        $chosenValue = trim($input->chosenMethod ?? '');
+        if ('' !== $chosenValue) {
+            $chosen = ExpenseMethod::tryFrom($chosenValue) ?? throw TaxesRefused::invalid('expense_method_invalid', 'chosenMethod', 'An expense method is actual, lump_80, lump_60, lump_40 or lump_30.');
             if (!\in_array($chosen, $methods, true)) {
                 throw TaxesRefused::invalid('chosen_method_not_compared', 'chosenMethod', 'The chosen method is one of expense_methods.');
             }
@@ -207,7 +208,7 @@ final readonly class ProfileWrites
         $route = null === $input->returnRoute || '' === $input->returnRoute ? ReturnRoute::Electronic : (ReturnRoute::tryFrom($input->returnRoute) ?? throw TaxesRefused::invalid('return_route_invalid', 'returnRoute', 'A return route is paper, electronic or advisor.'));
 
         return new YearInputsView(
-            (int) $year,
+            $year,
             $methods,
             $chosen,
             $children,

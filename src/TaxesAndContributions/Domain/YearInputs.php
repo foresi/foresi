@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\TaxesAndContributions\Domain;
 
-use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\TaxesAndContributions\Contract\ChildInput;
 use Foresi\TaxesAndContributions\Contract\DeductionType;
@@ -19,14 +18,16 @@ use Foresi\TaxesAndContributions\Contract\YearInputsView;
 
 /**
  * The inputs of one year as the profile stores them: amounts in minor units
- * of CZK and days written as 2026-11-12. A child and the spouse are claimed
- * for 0 to 12 months, the chosen expense method is one of those compared, and
- * no amount is negative.
+ * of CZK and days written as 2026-11-12. ProfileWrites checks them before
+ * they get here.
  */
 final readonly class YearInputs
 {
+    /** The amounts of a year, by the key they are stored under. */
+    private const array AMOUNTS = ['employment_base', 'employment_tax_withheld', 'rental_base', 'other_base', 'last_known_tax', 'previous_social_base', 'previous_health_base', 'average_wage_override'];
+
     /**
-     * @param array<string, mixed> $data
+     * @param array<mixed> $data
      */
     private function __construct(private array $data)
     {
@@ -34,36 +35,24 @@ final readonly class YearInputs
 
     public static function of(YearInputsView $view): self
     {
-        if ($view->chosenMethod instanceof ExpenseMethod && !\in_array($view->chosenMethod, $view->expenseMethods, true)) {
-            throw new \InvalidArgumentException('The chosen expense method is one of those compared.');
-        }
-        foreach ($view->children as $child) {
-            self::months($child->months);
-            if ($child->order < 1) {
-                throw new \InvalidArgumentException('The order of a child starts at 1.');
-            }
-        }
-        if ($view->spouse instanceof SpouseInput) {
-            self::months($view->spouse->months);
-        }
         $deductions = [];
         foreach ($view->deductions as $type => $amount) {
-            $deductions[DeductionType::from($type)->value] = self::minor($amount);
+            $deductions[$type] = $amount->minor();
         }
-        $amounts = [
-            'employment_base' => $view->employmentBase,
-            'employment_tax_withheld' => $view->employmentTaxWithheld,
-            'rental_base' => $view->rentalBase,
-            'other_base' => $view->otherBase,
-            'last_known_tax' => $view->lastKnownTax,
-            'previous_social_base' => $view->previousSocialBase,
-            'previous_health_base' => $view->previousHealthBase,
-            'average_wage_override' => $view->averageWageOverride,
-        ];
+        $amounts = array_combine(self::AMOUNTS, array_map(static fn (?Money $amount): ?int => $amount?->minor(), [
+            $view->employmentBase,
+            $view->employmentTaxWithheld,
+            $view->rentalBase,
+            $view->otherBase,
+            $view->lastKnownTax,
+            $view->previousSocialBase,
+            $view->previousHealthBase,
+            $view->averageWageOverride,
+        ]));
 
         return new self([
             'year' => $view->year,
-            'expense_methods' => array_values(array_unique(array_map(static fn (ExpenseMethod $method): string => $method->value, $view->expenseMethods))),
+            'expense_methods' => array_map(static fn (ExpenseMethod $method): string => $method->value, $view->expenseMethods),
             'chosen_method' => $view->chosenMethod?->value,
             'children' => array_map(static fn (ChildInput $child): array => [
                 'label' => $child->label,
@@ -77,7 +66,7 @@ final readonly class YearInputs
             'previous_overview_filed_on' => $view->previousOverviewFiledOn?->format('Y-m-d'),
             'return_route' => $view->returnRoute->value,
             'activity_start' => $view->activityStart?->format('Y-m-d'),
-        ] + array_map(static fn (?Money $amount): ?int => $amount instanceof Money ? self::minor($amount) : null, $amounts));
+        ] + $amounts);
     }
 
     /**
@@ -85,12 +74,7 @@ final readonly class YearInputs
      */
     public static function stored(array $data): self
     {
-        $named = [];
-        foreach ($data as $key => $value) {
-            $named[(string) $key] = $value;
-        }
-
-        return new self($named);
+        return new self($data);
     }
 
     public function year(): int
@@ -99,7 +83,7 @@ final readonly class YearInputs
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     public function data(): array
     {
@@ -109,20 +93,21 @@ final readonly class YearInputs
     public function view(): YearInputsView
     {
         $data = $this->data;
-        $methods = array_map(static fn (mixed $method): ExpenseMethod => ExpenseMethod::from(\is_string($method) ? $method : ''), \is_array($data['expense_methods'] ?? null) ? array_values($data['expense_methods']) : []);
-        $chosen = $data['chosen_method'] ?? null;
-        $spouse = \is_array($data['spouse'] ?? null) ? $data['spouse'] : null;
+        $spouse = $data['spouse'] ?? null;
+        $stored = \is_array($data['deductions'] ?? null) ? $data['deductions'] : [];
         $deductions = [];
-        foreach (\is_array($data['deductions'] ?? null) ? $data['deductions'] : [] as $type => $minor) {
-            if (\is_string($type) && \is_int($minor)) {
-                $deductions[$type] = Money::ofMinor($minor, Currency::CZK);
+        foreach (DeductionType::cases() as $type) {
+            $amount = Stored::money($stored, $type->value);
+            if ($amount instanceof Money) {
+                $deductions[$type->value] = $amount;
             }
         }
-        $route = $data['return_route'] ?? null;
+        $methods = array_map(ExpenseMethod::from(...), Stored::strings($data, 'expense_methods'));
+        $chosen = $data['chosen_method'] ?? null;
 
         return new YearInputsView(
             $this->year(),
-            [] === $methods ? [ExpenseMethod::Actual, ExpenseMethod::Lump60] : $methods,
+            [] === $methods ? throw new \UnexpectedValueException('A stored year compares no expense method.') : $methods,
             \is_string($chosen) ? ExpenseMethod::from($chosen) : null,
             array_map(static fn (array $child): ChildInput => new ChildInput(
                 Stored::string($child, 'label'),
@@ -131,7 +116,7 @@ final readonly class YearInputs
                 Stored::bool($child, 'ztp_p'),
                 Stored::int($child, 'months'),
             ), Stored::list($data, 'children')),
-            null === $spouse ? null : new SpouseInput(Stored::int($spouse, 'months'), Stored::bool($spouse, 'ztp_p'), Stored::bool($spouse, 'low_income')),
+            \is_array($spouse) ? new SpouseInput(Stored::int($spouse, 'months'), Stored::bool($spouse, 'ztp_p'), Stored::bool($spouse, 'low_income')) : null,
             $deductions,
             Stored::money($data, 'employment_base'),
             Stored::money($data, 'employment_tax_withheld'),
@@ -141,25 +126,9 @@ final readonly class YearInputs
             Stored::money($data, 'previous_social_base'),
             Stored::money($data, 'previous_health_base'),
             Stored::day($data, 'previous_overview_filed_on'),
-            \is_string($route) ? ReturnRoute::from($route) : ReturnRoute::Electronic,
+            ReturnRoute::from(Stored::string($data, 'return_route')),
             Stored::day($data, 'activity_start'),
             Stored::money($data, 'average_wage_override'),
         );
-    }
-
-    private static function months(int $months): void
-    {
-        if ($months < 0 || $months > 12) {
-            throw new \InvalidArgumentException('A child or the spouse is claimed for 0 to 12 months.');
-        }
-    }
-
-    private static function minor(Money $amount): int
-    {
-        if (Currency::CZK !== $amount->currency() || $amount->isNegative()) {
-            throw new \InvalidArgumentException('An amount of the profile is not negative and in CZK.');
-        }
-
-        return $amount->minor();
     }
 }

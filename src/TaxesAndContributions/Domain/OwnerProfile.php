@@ -29,7 +29,7 @@ class OwnerProfile implements Audited
     #[ORM\Column(type: 'smallint')]
     private int $id = self::ID;
 
-    /** @var list<array<string, mixed>> the inputs of each year, oldest first */
+    /** @var list<array<mixed>> the inputs of each year, oldest first */
     #[ORM\Column(type: 'json')]
     private array $years = [];
 
@@ -89,7 +89,7 @@ class OwnerProfile implements Audited
         return array_map(AuthorityAccount::stored(...), $this->authorities);
     }
 
-    public function authority(Authority $authority): ?AuthorityAccount
+    private function authority(Authority $authority): ?AuthorityAccount
     {
         return array_find($this->authorities(), static fn (AuthorityAccount $account): bool => $account->authority === $authority);
     }
