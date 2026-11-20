@@ -41,6 +41,8 @@ final readonly class VatShare
             return [$paid, Money::ofMinor(0, $paid->currency())];
         }
 
-        return $paid->allocate($net, $vat);
+        [$netPart, $vatPart] = $paid->allocate($net, $vat);
+
+        return [$netPart, $vatPart];
     }
 }

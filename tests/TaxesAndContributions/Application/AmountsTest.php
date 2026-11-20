@@ -306,4 +306,3 @@ final class AmountsTest extends TaxesTestCase
         return [$totals->gross->minor(), $totals->net->minor(), $totals->vat->minor(), $totals->counted->minor()];
     }
 }
-

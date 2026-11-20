@@ -15,7 +15,7 @@ use Psr\Log\AbstractLogger;
  */
 final class RecordingLogger extends AbstractLogger
 {
-    /** @var list<array{string, array<string, mixed>}> */
+    /** @var list<array{string, array<mixed>}> */
     public array $records = [];
 
     public function log($level, \Stringable|string $message, array $context = []): void

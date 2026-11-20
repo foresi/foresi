@@ -150,7 +150,7 @@ final class IssuedPaymentAmountsTest extends AdvanceTestCase
     {
         $container = self::getContainer();
 
-        return $tokens instanceof \Foresi\Identity\Application\ApiTokenContext ? new IssuedPaymentAmounts($container->get('doctrine.orm.entity_manager'), $tokens, $container->get(UrlGeneratorInterface::class)) : $container->get(IssuedPaymentAmounts::class);
+        return $tokens instanceof ApiTokenContext ? new IssuedPaymentAmounts($container->get('doctrine.orm.entity_manager'), $tokens, $container->get(UrlGeneratorInterface::class)) : $container->get(IssuedPaymentAmounts::class);
     }
 
     private function grant(string $scope): ApiTokenContext

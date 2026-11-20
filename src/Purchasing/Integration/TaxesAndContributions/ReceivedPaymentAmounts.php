@@ -93,10 +93,9 @@ final readonly class ReceivedPaymentAmounts implements ActualAmountSource
 
     public function sharesOf(array $subjectIds): array
     {
-        $ids = array_values($subjectIds);
         /** @var list<array{id: string, treatment: PurchaseTaxTreatment, vat: int, total: int|null}> $documents */
         $documents = $this->entityManager->createQuery('SELECT d.id AS id, d.treatment AS treatment, d.vatMinor AS vat, d.totalMinor AS total FROM '.ReceivedDocument::class.' d WHERE d.id IN (:ids) AND d.state = :state')
-            ->setParameter('ids', $ids)
+            ->setParameter('ids', $subjectIds)
             ->setParameter('state', ReceivedDocumentState::Recorded->value)
             ->getArrayResult();
         $shares = [];

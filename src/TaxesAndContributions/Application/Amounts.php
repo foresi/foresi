@@ -180,10 +180,10 @@ final readonly class Amounts
             $rows,
             $totals,
             $lines,
-            self::distinct($unavailable),
-            self::distinct($restricted),
-            self::distinct($missing),
-            self::distinct($unverified),
+            $this->distinct($unavailable),
+            $this->distinct($restricted),
+            $this->distinct($missing),
+            $this->distinct($unverified),
             [AmountsView::GAP_NON_DEDUCTIBLE_COSTS, AmountsView::GAP_ASSETS],
         );
     }
@@ -192,8 +192,8 @@ final readonly class Amounts
      * The amount in CZK at the rate of the day it was paid; null when the
      * currency has no rate then, which is remembered and listed.
      *
-     * @param array<string, array<string, array{int, string}|null>> $rates by currency and day
-     * @param list<string>                           $missing
+     * @param array<string, array<string, array{int, string}|null>> $rates   by currency and day
+     * @param list<string>                                          $missing
      */
     private function czk(Money $money, \DateTimeImmutable $day, array &$rates, array &$missing): ?Money
     {
@@ -224,7 +224,7 @@ final readonly class Amounts
      *
      * @return list<string> each value once, in the order first seen
      */
-    private static function distinct(array $values): array
+    private function distinct(array $values): array
     {
         return array_values(array_unique($values));
     }

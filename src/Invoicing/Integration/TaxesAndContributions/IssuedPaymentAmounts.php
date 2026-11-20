@@ -94,22 +94,21 @@ final readonly class IssuedPaymentAmounts implements ActualAmountSource
      */
     public function sharesOf(array $subjectIds): array
     {
-        $ids = array_values($subjectIds);
         /** @var list<array{id: string, net: int, vat: int}> $documents */
         $documents = $this->entityManager->createQuery('SELECT i.id AS id, i.netMinor AS net, i.vatMinor AS vat FROM '.Invoice::class.' i WHERE i.id IN (:ids)')
-            ->setParameter('ids', $ids)
+            ->setParameter('ids', $subjectIds)
             ->getArrayResult();
         /** @var list<array{id: string, net: int|numeric-string, vat: int|numeric-string}> $corrections */
         $corrections = $this->entityManager->createQuery(
             'SELECT c.correctedInvoiceId AS id, SUM(c.netMinor) AS net, SUM(c.vatMinor) AS vat FROM '.Invoice::class.' c'
             .' WHERE c.correctedInvoiceId IN (:ids) AND c.kind = :kind AND c.deletedAt IS NULL GROUP BY c.correctedInvoiceId',
         )
-            ->setParameter('ids', $ids)
+            ->setParameter('ids', $subjectIds)
             ->setParameter('kind', DocumentKind::CorrectionDocument->value)
             ->getArrayResult();
         $changes = [];
         foreach ($corrections as $correction) {
-            $changes[$correction['id']] = [$correction['net'], $correction['vat']];
+            $changes[$correction['id']] = [(int) $correction['net'], (int) $correction['vat']];
         }
         $shares = [];
         foreach ($documents as $document) {
