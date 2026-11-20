@@ -1,21 +1,24 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    The owner profile under Money → Taxes and contributions, for the owner only (B7). The statuses are a
-    dated list per kind, each holding until the next of its kind; "Add a change" in the page header
-    opens the dialog. Each year
-    opens its inputs in the side sheet, each authority its account in a small dialog
-    (docs/design/overlays.md). Variables: columns, groups, years, authorities.
+    The owner profile under Money → Taxes and contributions, for the owner only (B7). The statuses change
+    a few times in a firm's life, so they are one line of what holds today, and "Statuses" in the page
+    header opens their dated list in a dialog, where a change is added; a year names the changes that
+    fall in it. The years are the content: each has three sections (expenses; children, credits and
+    deductions; other details), each opening its form in the side sheet, each authority its account
+    in a small dialog (docs/design/overlays.md). Variables: summary, years, authorities.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'taxes.title'|trans}, {label: 'taxes.profile.title'|trans}] %}
 {% set token = csrf_token(constant('Foresi\\TaxesAndContributions\\Infrastructure\\Controller\\ProfileController::TOKEN')) %}
-{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{# A row is one link stretched over it, so its focus ring is the row's edge, not a box around the
+   link's words (the ring that came back around "Expenses" on closing the sheet). #}
+{% set focus = 'outline-none after:rounded-panel focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-green' %}
 
 {% block title %}{{ 'taxes.profile.title'|trans }}{% endblock %}
 
 {% block actions %}
-    <twig:Ui:Button variant="primary" icon="plus" :href="path('app_taxes_profile_status_new')" data-dialog aria-haspopup="dialog" data-taxes-status-new>{{ 'taxes.profile.status.new'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button icon="history" :href="path('app_taxes_profile_statuses')" data-dialog aria-haspopup="dialog" data-taxes-statuses-open>{{ 'taxes.profile.statuses'|trans }}</twig:Ui:Button>
 {% endblock %}
 
 {% block content %}
@@ -25,32 +28,32 @@
         {% endfor %}
     {% endfor %}
     <div class="grid gap-6">
-        <p class="m-0 max-w-3xl text-small text-muted">{{ 'taxes.profile.description'|trans }}</p>
-
-        <section class="grid gap-3" aria-labelledby="taxes-statuses" data-taxes-statuses>
-            <h2 id="taxes-statuses" class="m-0 text-h3 font-semibold text-ink">{{ 'taxes.profile.statuses'|trans }}</h2>
-            {% for group in groups %}
-                <div class="grid gap-2" data-taxes-kind="{{ group.kind }}">
-                    <h3 class="m-0 text-small font-semibold text-ink">{{ group.title }}</h3>
-                    <twig:Ui:DataTable :caption="group.title" :columns="columns" :rows="group.rows" :actionToken="token" />
-                </div>
-            {% else %}
-                <twig:Ui:EmptyState icon="calendar" :title="'taxes.profile.empty_title'|trans" :text="'taxes.profile.empty_text'|trans">
-                    <twig:Ui:Button variant="primary" icon="plus" :href="path('app_taxes_profile_status_new')" data-dialog aria-haspopup="dialog">{{ 'taxes.profile.status.new'|trans }}</twig:Ui:Button>
-                </twig:Ui:EmptyState>
-            {% endfor %}
-        </section>
+        <div class="grid max-w-3xl gap-1">
+            <p class="m-0 text-small text-muted">{{ 'taxes.profile.description'|trans }}</p>
+            <p class="m-0 text-text" data-taxes-status-summary>
+                <span class="font-medium text-ink">{{ 'taxes.profile.statuses'|trans }}:</span>
+                {% if summary is not empty %}{{ summary|join(' · ') }}{% else %}<span class="text-muted">{{ 'taxes.profile.summary.no_statuses'|trans }}</span>{% endif %}
+            </p>
+        </div>
 
         <section class="grid gap-3" aria-labelledby="taxes-years" data-taxes-years>
             <h2 id="taxes-years" class="m-0 text-h3 font-semibold text-ink">{{ 'taxes.profile.years'|trans }}</h2>
-            <ul class="m-0 grid list-none gap-2 p-0">
-                {% for year in years %}
-                    <li class="relative flex min-h-row-list flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-panel border border-container bg-white px-4 py-2" data-taxes-year="{{ year.year }}">
-                        <a href="{{ year.href }}" data-sheet aria-haspopup="dialog" class="font-medium text-ink no-underline after:absolute after:inset-0 hover:text-green {{ focus }}">{{ 'taxes.profile.year.title'|trans({year: year.year}) }}</a>
-                        <span class="text-small text-muted">{{ year.summary }}</span>
-                    </li>
-                {% endfor %}
-            </ul>
+            {% for year in years %}
+                <div class="grid gap-2" data-taxes-year="{{ year.year }}">
+                    <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                        <h3 class="m-0 text-small font-semibold text-ink">{{ 'taxes.profile.year.title'|trans({year: year.year}) }}</h3>
+                        {% if year.changes is not empty %}<span class="text-small text-muted" data-taxes-year-changes>{{ year.changes|join(' · ') }}</span>{% endif %}
+                    </div>
+                    <ul class="m-0 grid list-none gap-2 p-0">
+                        {% for part in year.sections %}
+                            <li class="relative flex min-h-row-list flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-panel border border-container bg-white px-4 py-2" data-taxes-year-section="{{ part.section }}">
+                                <a href="{{ part.href }}" data-sheet aria-haspopup="dialog" class="font-medium text-ink no-underline after:absolute after:inset-0 hover:text-green {{ focus }}">{{ part.title }}<span class="sr-only"> {{ 'taxes.profile.year.title'|trans({year: year.year}) }}</span></a>
+                                <span class="text-small text-muted">{{ part.summary }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endfor %}
         </section>
 
         <section class="grid gap-3" aria-labelledby="taxes-authorities" data-taxes-authorities>

@@ -32,9 +32,10 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The owner profile under Money → Taxes and contributions: the statuses as a
- * dated list per kind, with "Add a change" in the page header opening a dialog;
- * the inputs of a year as a form in the side sheet; and the account of each
+ * The owner profile under Money → Taxes and contributions: one line of the
+ * statuses that hold, and "Statuses" in the page header opening their dated
+ * list per kind in a dialog, where "Add a change" loads its form in place;
+ * the inputs of a year as three forms in the side sheet, one per section; and the account of each
  * authority in a small dialog (docs/design/overlays.md). Only the owner sees
  * any of it (B7): a member is refused with 403.
  */
@@ -58,10 +59,25 @@ final class ProfileController extends AbstractController
         $profile = $this->reads()->profile();
 
         return $this->render('@TaxesAndContributions/profile/index.html.twig', [
-            'columns' => $this->screen->statusColumns(),
-            'groups' => $this->screen->statusGroups($profile),
+            'summary' => $this->screen->statusSummary($profile),
             'years' => $this->screen->years($profile),
             'authorities' => $this->screen->authorities($profile),
+        ]);
+    }
+
+    /**
+     * The statuses as a dated list per kind: a small record that the page
+     * header opens in a dialog, with "Add a change" in its header loading the
+     * form in the same dialog. The same URL is a page.
+     */
+    #[Route('/taxes-and-contributions/profile/statuses', name: self::ROUTE.'_statuses', methods: ['GET'])]
+    public function statuses(): Response
+    {
+        $profile = $this->reads()->profile();
+
+        return $this->render('@TaxesAndContributions/profile/statuses.html.twig', [
+            'columns' => $this->screen->statusColumns(),
+            'groups' => $this->screen->statusGroups($profile),
         ]);
     }
 
@@ -95,7 +111,7 @@ final class ProfileController extends AbstractController
         }
         $this->addFlash('success', $this->translator->trans('taxes.profile.status.flash_added', ['value' => $this->screen->statusValue($status)]));
 
-        return $this->redirectToRoute(self::ROUTE);
+        return $this->redirectToRoute(self::ROUTE.'_statuses');
     }
 
     #[Route('/taxes-and-contributions/profile/statuses/{id}/remove', name: self::ROUTE.'_status_remove', requirements: ['id' => '[^/]{1,64}'], methods: ['POST'])]
@@ -112,80 +128,89 @@ final class ProfileController extends AbstractController
         }
         $this->addFlash('success', $this->translator->trans('taxes.profile.status.flash_removed'));
 
-        return $this->redirectToRoute(self::ROUTE);
+        return $this->redirectToRoute(self::ROUTE.'_statuses');
     }
 
-    #[Route('/taxes-and-contributions/profile/years/{year}', name: self::ROUTE.'_year', requirements: ['year' => '[0-9]{1,4}'], methods: ['GET', 'POST'])]
-    public function year(Request $request, int $year): Response
+    #[Route('/taxes-and-contributions/profile/years/{year}/{section}', name: self::ROUTE.'_year', requirements: ['year' => '[0-9]{1,4}', 'section' => 'expenses|credits|other'], defaults: ['section' => ProfileScreen::SECTION_EXPENSES], methods: ['GET', 'POST'])]
+    public function year(Request $request, int $year, string $section): Response
     {
         if ($year < ProfileWrites::FIRST_YEAR || $year > ProfileWrites::LAST_YEAR) {
             throw new NotFoundHttpException();
         }
-        $inputs = $this->reads()->year($year);
+        $values = $this->screen->yearValues($this->reads()->year($year));
         if (!$request->isMethod('POST')) {
-            return $this->yearForm($year, $this->screen->yearValues($inputs), [], Response::HTTP_OK);
+            return $this->yearForm($year, $section, $values, [], Response::HTTP_OK);
         }
 
         $this->checkToken($request);
-        $locale = $request->getLocale();
         $form = $request->request->all();
         $text = static fn (string $name): string => \is_string($form[$name] ?? null) ? trim($form[$name]) : '';
-        $amount = static fn (string $value): ?string => '' === $value ? null : TypedNumber::decimal($value, $locale);
-        $children = [];
-        $childValues = [];
-        foreach (\is_array($form['children'] ?? null) ? $form['children'] : [] as $child) {
-            if (!\is_array($child)) {
-                continue;
-            }
-            $row = [
-                'label' => \is_string($child['label'] ?? null) ? trim($child['label']) : '',
-                'birthDate' => \is_string($child['birthDate'] ?? null) ? trim($child['birthDate']) : '',
-                'order' => \is_string($child['order'] ?? null) ? $child['order'] : '1',
-                'ztpP' => '1' === ($child['ztpP'] ?? null),
-                'months' => \is_string($child['months'] ?? null) ? trim($child['months']) : '',
-            ];
-            $childValues[] = $row;
-            if ('' === $row['label'] && '' === $row['birthDate']) {
-                continue;
-            }
-            $children[] = [
-                'label' => $row['label'],
-                'birth_date' => $row['birthDate'],
-                'order' => (int) $row['order'],
-                'ztp_p' => $row['ztpP'],
-                'months' => 1 === preg_match('/^[0-9]{1,2}\z/', $row['months']) ? (int) $row['months'] : -1,
-            ];
+        // The form sends one section; the others keep what the year has.
+        if (ProfileScreen::SECTION_EXPENSES === $section) {
+            $values['expenseMethods'] = array_values(array_filter(\is_array($form['expenseMethods'] ?? null) ? $form['expenseMethods'] : [], \is_string(...)));
+            $values['chosenMethod'] = $text('chosenMethod');
+        } elseif (ProfileScreen::SECTION_CREDITS === $section) {
+            $values['children'] = $this->childRows($form['children'] ?? null);
+            $values['spouseMonths'] = $text('spouseMonths');
+            $values['spouseZtpP'] = '1' === $text('spouseZtpP');
+            $values['spouseLowIncome'] = '1' === $text('spouseLowIncome');
+            $values['deductions'] = $this->deductionRows($form['deductions'] ?? null);
+        } else {
+            $values['employmentBase'] = $text('employmentBase');
+            $values['employmentTaxWithheld'] = $text('employmentTaxWithheld');
+            $values['rentalBase'] = $text('rentalBase');
+            $values['otherBase'] = $text('otherBase');
+            $values['lastKnownTax'] = $text('lastKnownTax');
+            $values['previousSocialBase'] = $text('previousSocialBase');
+            $values['previousHealthBase'] = $text('previousHealthBase');
+            $values['previousOverviewFiledOn'] = $text('previousOverviewFiledOn');
+            $values['returnRoute'] = $text('returnRoute');
+            $values['activityStart'] = $text('activityStart');
+            $values['averageWageOverride'] = $text('averageWageOverride');
         }
-        $deductionValues = [];
-        $deductions = [];
-        $sent = \is_array($form['deductions'] ?? null) ? $form['deductions'] : [];
-        foreach (DeductionType::cases() as $type) {
-            $value = \is_string($sent[$type->value] ?? null) ? trim($sent[$type->value]) : '';
-            $deductionValues[$type->value] = $value;
-            if ('' !== $value) {
-                $deductions[] = ['type' => $type->value, 'amount' => TypedNumber::decimal($value, $locale)];
-            }
+        // Add a child and Remove answer with the form again, nothing saved yet (as an invoice's lines).
+        $action = $request->request->getString('_action');
+        if (ProfileScreen::SECTION_CREDITS === $section && 'add_child' === $action) {
+            $values['children'][] = ['label' => '', 'birthDate' => '', 'order' => '', 'ztpP' => false, 'months' => '12', 'new' => true];
+
+            return $this->yearForm($year, $section, $values, [], Response::HTTP_OK);
         }
-        $methods = array_values(array_filter(\is_array($form['expenseMethods'] ?? null) ? $form['expenseMethods'] : [], \is_string(...)));
-        $values = [
-            'expenseMethods' => $methods,
-            'chosenMethod' => $text('chosenMethod'),
-            'children' => [...$childValues, ...([] === $childValues ? [['label' => '', 'birthDate' => '', 'order' => '1', 'ztpP' => false, 'months' => '12']] : [])],
-            'spouseMonths' => $text('spouseMonths'),
-            'spouseZtpP' => '1' === $text('spouseZtpP'),
-            'spouseLowIncome' => '1' === $text('spouseLowIncome'),
-            'deductions' => $deductionValues,
-        ];
-        foreach (['employmentBase', 'employmentTaxWithheld', 'rentalBase', 'otherBase', 'lastKnownTax', 'previousSocialBase', 'previousHealthBase', 'previousOverviewFiledOn', 'returnRoute', 'activityStart', 'averageWageOverride'] as $name) {
-            $values[$name] = $text($name);
+        if (ProfileScreen::SECTION_CREDITS === $section && 1 === preg_match('/^remove_child:([0-9]{1,2})\z/', $action, $match)) {
+            unset($values['children'][(int) $match[1]]);
+            $values['children'] = array_values($values['children']);
+
+            return $this->yearForm($year, $section, $values, [], Response::HTTP_OK);
         }
         if ('' !== $values['spouseMonths'] && 1 !== preg_match('/^[0-9]{1,2}\z/', $values['spouseMonths'])) {
-            return $this->yearForm($year, $values, ['spouseMonths' => 'taxes.profile.error.months_invalid'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->yearForm($year, $section, $values, ['spouseMonths' => 'taxes.profile.error.months_invalid'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+        $locale = $request->getLocale();
+        $amount = static fn (string $value): ?string => '' === $value ? null : TypedNumber::decimal($value, $locale);
+        $children = [];
+        foreach ($values['children'] as $child) {
+            // A child left without a name and a birth date is not saved.
+            if ('' === $child['label'] && '' === $child['birthDate']) {
+                continue;
+            }
+            $months = '' === $child['months'] ? '12' : $child['months'];
+            $children[] = [
+                'label' => $child['label'],
+                'birth_date' => $child['birthDate'],
+                'order' => '' === $child['order'] ? null : (int) $child['order'],
+                'ztp_p' => $child['ztpP'],
+                'months' => 1 === preg_match('/^[0-9]{1,2}\z/', $months) ? (int) $months : -1,
+            ];
+        }
+        $deductions = [];
+        foreach ($values['deductions'] as $type => $value) {
+            if ('' !== $value) {
+                $deductions[] = ['type' => $type, 'amount' => TypedNumber::decimal($value, $locale)];
+            }
         }
         try {
             $this->writes->setYear(new SetYearInputsInput(
                 (string) $year,
-                $methods,
+                $values['expenseMethods'],
                 '' === $values['chosenMethod'] ? null : $values['chosenMethod'],
                 $children,
                 '' === $values['spouseMonths'] ? null : (int) $values['spouseMonths'],
@@ -206,8 +231,9 @@ final class ProfileController extends AbstractController
             ));
         } catch (TaxesRefused $refused) {
             $this->denyIfForbidden($refused);
+            $field = $refused->field();
 
-            return $this->yearForm($year, $values, [$refused->field() ?? 'form' => 'taxes.profile.error.'.$refused->reason()], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->yearForm($year, $section, $values, [null !== $field && \in_array($field, ProfileScreen::SECTIONS[$section], true) ? $field : 'form' => 'taxes.profile.error.'.$refused->reason()], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         $this->addFlash('success', $this->translator->trans('taxes.profile.year.flash', ['year' => $year]));
 
@@ -259,18 +285,61 @@ final class ProfileController extends AbstractController
     }
 
     /**
+     * The children as the form sent them, a row for each, filled or not.
+     *
+     * @return list<array{label: string, birthDate: string, order: string, ztpP: bool, months: string}>
+     */
+    private function childRows(mixed $sent): array
+    {
+        $rows = [];
+        foreach (\is_array($sent) ? $sent : [] as $child) {
+            if (!\is_array($child)) {
+                continue;
+            }
+            $order = \is_string($child['order'] ?? null) ? $child['order'] : '';
+            $rows[] = [
+                'label' => \is_string($child['label'] ?? null) ? trim($child['label']) : '',
+                'birthDate' => \is_string($child['birthDate'] ?? null) ? trim($child['birthDate']) : '',
+                'order' => \in_array($order, ['1', '2', '3'], true) ? $order : '',
+                'ztpP' => '1' === ($child['ztpP'] ?? null),
+                'months' => \is_string($child['months'] ?? null) ? trim($child['months']) : '12',
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * The amount of each deduction as typed, empty when none.
+     *
+     * @return array<string, string>
+     */
+    private function deductionRows(mixed $sent): array
+    {
+        $sent = \is_array($sent) ? $sent : [];
+        $rows = [];
+        foreach (DeductionType::cases() as $type) {
+            $rows[$type->value] = \is_string($sent[$type->value] ?? null) ? trim($sent[$type->value]) : '';
+        }
+
+        return $rows;
+    }
+
+    /**
      * @param array<string, mixed>  $values
      * @param array<string, string> $errors
      */
-    private function yearForm(int $year, array $values, array $errors, int $status): Response
+    private function yearForm(int $year, string $section, array $values, array $errors, int $status): Response
     {
         return $this->render('@TaxesAndContributions/profile/year.html.twig', [
             'year' => $year,
+            'section' => $section,
             'values' => $values,
             'errors' => $errors,
             'methods' => $this->screen->methodChoices(),
             'deductionTypes' => array_map(static fn (DeductionType $type): string => $type->value, DeductionType::cases()),
             'routes' => array_map(static fn (ReturnRoute $route): string => $route->value, ReturnRoute::cases()),
+            'maxChildren' => ProfileWrites::MAX_CHILDREN,
         ], new Response(status: $status));
     }
 

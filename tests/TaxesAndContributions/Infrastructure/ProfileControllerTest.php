@@ -46,31 +46,49 @@ final class ProfileControllerTest extends WebTestCase
         parent::tearDown();
     }
 
-    public function testTheOwnerAddsAChangeInTheDialogAndSeesItAsADatedList(): void
+    public function testTheOwnerSeesTheStatusesAsOneLineAndChangesThemInTheirDialog(): void
     {
         $this->signedIn(Role::Owner);
 
         $crawler = $this->client->request('GET', '/taxes-and-contributions/profile');
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('nav a[href="/taxes-and-contributions/profile"]'));
-        self::assertCount(1, $crawler->filter('header [data-taxes-status-new][data-dialog]'));
-        self::assertSelectorTextContains('[data-taxes-statuses]', 'No statuses yet');
+        // A rare change is a small action in the header, not a primary one, and no empty state.
+        self::assertCount(1, $crawler->filter('header a[data-taxes-statuses-open][data-dialog][href="/taxes-and-contributions/profile/statuses"]'));
+        self::assertCount(0, $crawler->filter('header [data-taxes-status-new]'));
+        self::assertSelectorTextContains('[data-taxes-status-summary]', 'None yet');
         self::assertCount(2, $crawler->filter('[data-taxes-year]'));
         self::assertCount(4, $crawler->filter('[data-taxes-authority]'));
 
-        $values = $this->dialogForm('/taxes-and-contributions/profile/statuses/new', '#taxes-status-form');
-        $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'vat_payer:no', 'validFrom' => '2026-01-01'] + $values);
-        self::assertSame('{"location":"\\/taxes-and-contributions\\/profile"}', $this->client->getResponse()->getContent());
-        $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'vat_payer:yes', 'validFrom' => '2026-11-12'] + $values);
-        self::assertSame('{"location":"\\/taxes-and-contributions\\/profile"}', $this->client->getResponse()->getContent());
+        // The dialog lists the statuses, and "Add a change" in its header loads the form in place.
+        $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/statuses', server: [$this->dialogHeader() => '1']);
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('dialog[data-overlay-record] a[data-taxes-status-new][data-in-place]'));
+        self::assertCount(1, $crawler->filter('[data-taxes-statuses-empty]'));
 
-        $crawler = $this->client->request('GET', '/taxes-and-contributions/profile');
+        $values = $this->dialogForm('/taxes-and-contributions/profile/statuses/new', '#taxes-status-form');
+        $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'legal_form:sole_trader', 'validFrom' => '2024-03-01'] + $values);
+        $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'activity:main', 'validFrom' => '2024-03-01'] + $values);
+        $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'vat_payer:no', 'validFrom' => '2026-01-01'] + $values);
+        // Saved, the dialog shows the statuses again.
+        self::assertSame('{"location":"\\/taxes-and-contributions\\/profile\\/statuses"}', $this->client->getResponse()->getContent());
+        $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'vat_payer:yes', 'validFrom' => '2026-11-12'] + $values);
+        self::assertSame('{"location":"\\/taxes-and-contributions\\/profile\\/statuses"}', $this->client->getResponse()->getContent());
+
+        $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/statuses');
         self::assertSelectorTextContains('[data-taxes-statuses]', 'VAT payer');
         $rows = $crawler->filter('[data-taxes-kind="vat_payer"] tbody tr');
         self::assertCount(2, $rows);
         self::assertStringContainsString('Not a VAT payer', $rows->eq(0)->text());
         self::assertStringContainsString('Nov 11, 2026', $rows->eq(0)->text());
         self::assertStringContainsString('until the next change', $rows->eq(1)->text());
+        self::assertSame('confirm-submit', $rows->eq(0)->filter('form')->attr('data-controller'));
+
+        // The page: one line of what holds today, and the change in the year it falls in.
+        $crawler = $this->client->request('GET', '/taxes-and-contributions/profile');
+        self::assertSame('Statuses: sole trader · main activity · VAT payer from Nov 12, 2026', preg_replace('/\s+/', ' ', trim($crawler->filter('[data-taxes-status-summary]')->text())));
+        self::assertSame('from Jan 1: not a VAT payer · from Nov 12: VAT payer', $crawler->filter('[data-taxes-year="2026"] [data-taxes-year-changes]')->text());
+        self::assertCount(0, $crawler->filter('[data-taxes-year="2027"] [data-taxes-year-changes]'));
 
         // The same day again is refused in the dialog, at the day.
         $crawler = $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'vat_payer:yes', 'validFrom' => '2026-11-12'] + $values);
@@ -81,33 +99,73 @@ final class ProfileControllerTest extends WebTestCase
         self::assertStringContainsString('Enter the monthly base', $crawler->filter('#taxes-status-form')->text());
     }
 
-    public function testTheOwnerEntersAYearInTheSheetAndAnAuthorityAccount(): void
+    public function testTheOwnerEntersAYearInThreeSheetsAndAnAuthorityAccount(): void
     {
         $this->signedIn(Role::Owner);
+        $crawler = $this->client->request('GET', '/taxes-and-contributions/profile');
+        self::assertCount(3, $crawler->filter('[data-taxes-year="2026"] [data-taxes-year-section] a[data-sheet]'));
+        self::assertSame('/taxes-and-contributions/profile/years/2026/credits', $crawler->filter('[data-taxes-year="2026"] [data-taxes-year-section="credits"] a')->attr('href'));
 
+        // The expenses, in their own sheet; /years/2026 is that sheet.
         $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/years/2026', server: [$this->dialogHeader() => '1']);
         self::assertResponseIsSuccessful();
+        self::assertSame('expenses', $crawler->filter('#taxes-year-form')->attr('data-taxes-section'));
+        self::assertCount(0, $crawler->filter('[data-taxes-children]'));
         $form = $crawler->filter('#taxes-year-form')->form();
         $form['chosenMethod'] = 'lump_60';
-        $form->setValues(['children' => [['label' => 'Elder daughter', 'birthDate' => '2019-05-14', 'months' => '12']], 'deductions' => ['pension_products' => '24 000']]);
-        $form['spouseMonths'] = '6';
-        $form['employmentBase'] = '120 000,50';
         $this->client->submit($form, [], [$this->dialogHeader() => '1']);
         self::assertSame('{"location":"\\/taxes-and-contributions\\/profile"}', $this->client->getResponse()->getContent());
 
-        $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/years/2026');
+        // The children: none at first, "Add a child" answers with a blank one, nothing saved yet.
+        $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/years/2026/credits', server: [$this->dialogHeader() => '1']);
+        self::assertCount(0, $crawler->filter('[data-taxes-child]'));
+        self::assertCount(1, $crawler->filter('[data-taxes-children-empty]'));
+        $crawler = $this->client->submit($crawler->filter('[data-taxes-child-add]')->form(), [], [$this->dialogHeader() => '1']);
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('[data-taxes-child]'));
+        self::assertSame('12', $crawler->filter('#child-0-months')->attr('value'));
+        self::assertNull($crawler->filter('[data-taxes-child-more]')->attr('open'));
+        $form = $crawler->filter('[data-taxes-child-add]')->form();
+        $form->setValues(['children' => [['label' => '', 'birthDate' => '2022-09-01']]]);
+        $crawler = $this->client->submit($form, [], [$this->dialogHeader() => '1']);
+        self::assertCount(2, $crawler->filter('[data-taxes-child]'));
+        self::assertSame('2022-09-01', $crawler->filter('#child-0-birth')->attr('value'));
+        $form = $crawler->filter('#taxes-year-form')->form();
+        $form->setValues(['children' => [1 => ['label' => 'Elder daughter', 'birthDate' => '2019-05-14']], 'deductions' => ['pension_products' => '24 000']]);
+        $form['spouseMonths'] = '6';
+        $this->client->submit($form, [], [$this->dialogHeader() => '1']);
+        self::assertSame('{"location":"\\/taxes-and-contributions\\/profile"}', $this->client->getResponse()->getContent());
+
+        // By birth date, the eldest first; the unnamed one shows by its place.
+        $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/years/2026/credits');
         self::assertSame('Elder daughter', $crawler->filter('#child-0-label')->attr('value'));
         self::assertSame('', $crawler->filter('#child-1-label')->attr('value'));
+        self::assertStringContainsString('Child 2', $crawler->filter('[data-taxes-child]')->eq(1)->text());
         self::assertSame('24000.00', $crawler->filter('#deduction-pension_products')->attr('value'));
-        self::assertSame('120000.50', $crawler->filter('#employmentBase')->attr('value'));
         self::assertSame('6', $crawler->filter('#spouseMonths')->attr('value'));
+        // The expenses saved before are kept.
+        $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/years/2026/expenses');
+        self::assertSame('lump_60', $crawler->filter('#chosenMethod option[selected]')->attr('value'));
 
-        $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/years/2026', server: [$this->dialogHeader() => '1']);
+        // Remove takes the child out of the form; Save stores it.
+        $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/years/2026/credits', server: [$this->dialogHeader() => '1']);
+        $crawler = $this->client->submit($crawler->filter('[data-taxes-child-remove]')->eq(0)->form([], 'POST'), ['_action' => 'remove_child:0'], [$this->dialogHeader() => '1']);
+        self::assertCount(1, $crawler->filter('[data-taxes-child]'));
         $form = $crawler->filter('#taxes-year-form')->form();
         $form->setValues(['children' => [['months' => '13']]]);
         $crawler = $this->client->submit($form, [], [$this->dialogHeader() => '1']);
         self::assertResponseStatusCodeSame(422);
         self::assertStringContainsString('The months are 0 to 12', $crawler->filter('#taxes-year-form')->text());
+        self::assertNotNull($crawler->filter('[data-taxes-child-more]')->attr('open'));
+
+        // The other details, in the third sheet.
+        $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/years/2026/other', server: [$this->dialogHeader() => '1']);
+        $form = $crawler->filter('#taxes-year-form')->form();
+        $form['employmentBase'] = '120 000,50';
+        $this->client->submit($form, [], [$this->dialogHeader() => '1']);
+        self::assertSame('{"location":"\\/taxes-and-contributions\\/profile"}', $this->client->getResponse()->getContent());
+        $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/years/2026/other');
+        self::assertSame('120000.50', $crawler->filter('#employmentBase')->attr('value'));
 
         $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/authorities/health', server: [$this->dialogHeader() => '1']);
         $form = $crawler->filter('#taxes-authority-form')->form(['account' => '1234567890/0300', 'variableSymbol' => '8501011234']);
@@ -116,7 +174,8 @@ final class ProfileControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/taxes-and-contributions/profile');
         self::assertStringContainsString('1234567890/0300 · VS 8501011234', $crawler->filter('[data-taxes-authority="health"]')->text());
-        self::assertStringContainsString('1 child', $crawler->filter('[data-taxes-year="2026"]')->text());
+        self::assertStringContainsString('2 children', $crawler->filter('[data-taxes-year="2026"] [data-taxes-year-section="credits"]')->text());
+        self::assertStringContainsString('Lump sum 60% in the return', $crawler->filter('[data-taxes-year="2026"] [data-taxes-year-section="expenses"]')->text());
         self::assertNotNull($this->browser->em()->find(OwnerProfile::class, OwnerProfile::ID));
     }
 
@@ -124,7 +183,7 @@ final class ProfileControllerTest extends WebTestCase
     {
         $this->signedIn(Role::Member);
 
-        foreach (['/taxes-and-contributions/profile', '/taxes-and-contributions/profile/statuses/new', '/taxes-and-contributions/profile/years/2026', '/taxes-and-contributions/profile/authorities/health'] as $page) {
+        foreach (['/taxes-and-contributions/profile', '/taxes-and-contributions/profile/statuses', '/taxes-and-contributions/profile/statuses/new', '/taxes-and-contributions/profile/years/2026', '/taxes-and-contributions/profile/authorities/health'] as $page) {
             $this->client->request('GET', $page);
             self::assertResponseStatusCodeSame(403, $page);
         }

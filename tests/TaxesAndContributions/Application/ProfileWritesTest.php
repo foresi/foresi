@@ -14,6 +14,7 @@ use Foresi\TaxesAndContributions\Application\RemoveStatusInput;
 use Foresi\TaxesAndContributions\Application\SetAuthorityAccountInput;
 use Foresi\TaxesAndContributions\Application\SetYearInputsInput;
 use Foresi\TaxesAndContributions\Application\TaxesRefused;
+use Foresi\TaxesAndContributions\Contract\ChildInput;
 use Foresi\TaxesAndContributions\Contract\ExpenseMethod;
 use Foresi\TaxesAndContributions\Contract\ReturnRoute;
 use Foresi\TaxesAndContributions\Contract\StatusKind;
@@ -121,13 +122,37 @@ final class ProfileWritesTest extends TaxesTestCase
         self::assertSame([ExpenseMethod::Actual, ExpenseMethod::Lump60], $this->reads()->year(2030)->expenseMethods);
     }
 
+    public function testTheChildrenGoByBirthDateAndTakeTheirOrderFromIt(): void
+    {
+        // Sent youngest first, with no name and no order: the eldest is first.
+        $this->writes()->setYear($this->year(children: [$this->child('', '2024-02-01', null), $this->child('', '2017-03-01', null), $this->child('Middle', '2020-06-01', null), $this->child('', '2025-01-01', null)]));
+        $this->em->clear();
+        $children = $this->reads()->year(2026)->children;
+        self::assertSame(['2017-03-01', '2020-06-01', '2024-02-01', '2025-01-01'], array_map(static fn (ChildInput $child): string => $child->birthDate->format('Y-m-d'), $children));
+        self::assertSame([1, 2, 3, 3], array_map(static fn (ChildInput $child): int => $child->order, $children));
+        self::assertSame(['', 'Middle', '', ''], array_map(static fn (ChildInput $child): string => $child->label, $children));
+        self::assertSame([false, false, false, false], array_map(static fn (ChildInput $child): bool => $child->orderChosen, $children));
+
+        // An order the parents agreed on stays; one the birth date gives anyway follows the birth dates.
+        $this->writes()->setYear($this->year(children: [$this->child('Elder', '2017-03-01', 1), $this->child('Younger', '2020-06-01', 1)]));
+        $this->em->clear();
+        $children = $this->reads()->year(2026)->children;
+        self::assertSame([[1, false], [1, true]], array_map(static fn (ChildInput $child): array => [$child->order, $child->orderChosen], $children));
+
+        // An elder child added later moves the others along unless their order is fixed.
+        $this->writes()->setYear($this->year(children: [$this->child('Younger', '2020-06-01', null), $this->child('Elder', '2015-01-01', null)]));
+        $this->em->clear();
+        self::assertSame(['Elder', 'Younger'], array_map(static fn (ChildInput $child): string => $child->label, $this->reads()->year(2026)->children));
+        self::assertSame([1, 2], array_map(static fn (ChildInput $child): int => $child->order, $this->reads()->year(2026)->children));
+    }
+
     public function testAYearRefusesWhatItCannotUse(): void
     {
         $this->assertRefused('year_invalid', 'year', RefusalKind::Invalid, fn (): mixed => $this->writes()->setYear($this->year(year: '1999')));
         $this->assertRefused('expense_methods_empty', 'expenseMethods', RefusalKind::Invalid, fn (): mixed => $this->writes()->setYear($this->year([])));
         $this->assertRefused('expense_method_invalid', 'expenseMethods', RefusalKind::Invalid, fn (): mixed => $this->writes()->setYear($this->year(['lump_50'])));
         $this->assertRefused('chosen_method_not_compared', 'chosenMethod', RefusalKind::Invalid, fn (): mixed => $this->writes()->setYear($this->year(['actual'], 'lump_60')));
-        $this->assertRefused('child_label_invalid', 'children', RefusalKind::Invalid, fn (): mixed => $this->writes()->setYear($this->year(children: [$this->child('')])));
+        $this->assertRefused('child_label_invalid', 'children', RefusalKind::Invalid, fn (): mixed => $this->writes()->setYear($this->year(children: [$this->child(str_repeat('a', 101))])));
         $this->assertRefused('child_order_invalid', 'children', RefusalKind::Invalid, fn (): mixed => $this->writes()->setYear($this->year(children: [$this->child(order: 4)])));
         $this->assertRefused('date_invalid', 'children', RefusalKind::Invalid, fn (): mixed => $this->writes()->setYear($this->year(children: [$this->child(birth: 'May 2019')])));
         $this->assertRefused('deduction_invalid', 'deductions', RefusalKind::Invalid, fn (): mixed => $this->writes()->setYear($this->year(deductions: [['type' => 'mortgage', 'amount' => '1.00']])));
@@ -203,7 +228,7 @@ final class ProfileWritesTest extends TaxesTestCase
     /**
      * @return array<string, mixed>
      */
-    private function child(string $label = 'Elder daughter', string $birth = '2019-05-14', int $order = 1, int $months = 12): array
+    private function child(string $label = 'Elder daughter', string $birth = '2019-05-14', ?int $order = 1, int $months = 12): array
     {
         return ['label' => $label, 'birth_date' => $birth, 'order' => $order, 'ztp_p' => false, 'months' => $months];
     }

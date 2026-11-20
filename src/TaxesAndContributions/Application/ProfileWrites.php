@@ -25,6 +25,7 @@ use Foresi\TaxesAndContributions\Contract\StatusKind;
 use Foresi\TaxesAndContributions\Contract\StatusPeriod as StatusPeriodView;
 use Foresi\TaxesAndContributions\Contract\YearInputsView;
 use Foresi\TaxesAndContributions\Domain\AuthorityAccount;
+use Foresi\TaxesAndContributions\Domain\ChildOrder;
 use Foresi\TaxesAndContributions\Domain\OwnerProfile;
 use Foresi\TaxesAndContributions\Domain\StatusPeriod;
 use Foresi\TaxesAndContributions\Domain\YearInputs;
@@ -188,7 +189,7 @@ final readonly class ProfileWrites
         if (\count($input->children) > self::MAX_CHILDREN) {
             throw TaxesRefused::invalid('children_too_many', 'children', \sprintf('A year claims at most %d children.', self::MAX_CHILDREN));
         }
-        $children = array_map($this->child(...), $input->children);
+        $children = $this->children(array_map($this->child(...), $input->children));
         $spouse = null;
         if (null !== $input->spouseMonths) {
             $spouse = new SpouseInput($this->months($input->spouseMonths, 'spouseMonths'), $input->spouseZtpP, $input->spouseLowIncome);
@@ -229,31 +230,55 @@ final readonly class ProfileWrites
     }
 
     /**
+     * A child as sent, its order null when it follows the birth dates.
+     *
+     * @return array{label: string, birth: \DateTimeImmutable, order: ?int, ztpP: bool, months: int}
+     *
      * @throws TaxesRefused
      */
-    private function child(mixed $child): ChildInput
+    private function child(mixed $child): array
     {
         if (!\is_array($child)) {
             throw TaxesRefused::invalid('child_invalid', 'children', 'A child is {label, birth_date, order, ztp_p, months}.');
         }
-        $label = \is_string($child['label'] ?? null) ? trim($child['label']) : '';
-        if ('' === $label || mb_strlen($label) > self::MAX_LABEL) {
-            throw TaxesRefused::invalid('child_label_invalid', 'children', \sprintf('A child has a label of 1 to %d characters, such as "First child".', self::MAX_LABEL));
+        $label = $child['label'] ?? '';
+        $label = \is_string($label) ? trim($label) : null;
+        if (null === $label || mb_strlen($label) > self::MAX_LABEL) {
+            throw TaxesRefused::invalid('child_label_invalid', 'children', \sprintf('The name of a child is text of at most %d characters, or empty.', self::MAX_LABEL));
         }
         $birth = $child['birth_date'] ?? null;
         $order = $child['order'] ?? null;
-        if (!\is_int($order) || $order < 1 || $order > 3) {
-            throw TaxesRefused::invalid('child_order_invalid', 'children', 'The order of a child is 1, 2 or 3 for the third and further.');
+        if (null !== $order && (!\is_int($order) || $order < 1 || $order > 3)) {
+            throw TaxesRefused::invalid('child_order_invalid', 'children', 'The order of a child is 1, 2 or 3 for the third and further, or null to follow the birth dates.');
         }
         $months = $child['months'] ?? 12;
 
-        return new ChildInput(
-            $label,
-            $this->day(\is_string($birth) ? $birth : '', 'children'),
-            $order,
-            true === ($child['ztp_p'] ?? false),
-            $this->months(\is_int($months) ? $months : -1, 'children'),
-        );
+        return [
+            'label' => $label,
+            'birth' => $this->day(\is_string($birth) ? $birth : '', 'children'),
+            'order' => $order,
+            'ztpP' => true === ($child['ztp_p'] ?? false),
+            'months' => $this->months(\is_int($months) ? $months : -1, 'children'),
+        ];
+    }
+
+    /**
+     * The children by birth date, each with the order it takes (ChildOrder).
+     *
+     * @param list<array{label: string, birth: \DateTimeImmutable, order: ?int, ztpP: bool, months: int}> $children
+     *
+     * @return list<ChildInput>
+     */
+    private function children(array $children): array
+    {
+        return array_map(static fn (array $place): ChildInput => new ChildInput(
+            $children[$place['key']]['label'],
+            $children[$place['key']]['birth'],
+            $place['order'],
+            $children[$place['key']]['ztpP'],
+            $children[$place['key']]['months'],
+            $place['chosen'],
+        ), ChildOrder::of(array_column($children, 'birth'), array_column($children, 'order')));
     }
 
     /**

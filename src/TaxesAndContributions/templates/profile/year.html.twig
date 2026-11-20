@@ -1,83 +1,126 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    The inputs of one year, a form in the side sheet over the profile (docs/design/overlays.md); the
-    same URL is a page of its own. The expense methods to compare and the chosen one, the children and
-    the spouse claimed, the deductions, the other partial bases, the last known tax, the previous year
-    and the return route. One blank child follows those claimed; a child left blank is not saved.
-    Variables: year, values, errors, methods, deductionTypes, routes.
+    One section of a year's inputs, a form in the side sheet over the profile (docs/design/overlays.md);
+    the same URL is a page of its own. A year is entered in three sections, one topic each, as a tax
+    return groups it: the expenses to compare and the chosen one; the children, the spouse and the
+    deductions; and the other incomes, the previous year and the return. The fields sit in rows with
+    the label beside them, as every form in a sheet.
+
+    The children are a list: each child is a card with its name (optional, "Child 1" without one), the
+    birth date and ZTP/P; the months (12 unless changed) and a fixed order sit behind "Months and order",
+    because most children are claimed for the whole year in the order of their birth. "Add a child" and
+    "Remove" send the form and answer with it again, nothing saved until Save (as an invoice's lines).
+    Sources: GOV.UK Design System, "Add multiple things" (an add-another list, each item removable) and
+    NN/g, "Progressive disclosure" (the rare options behind a toggle).
+    Variables: year, section, values, errors, methods, deductionTypes, routes, maxChildren.
 #}
 {% extends in_dialog() ? '@Ui/layout/sheet.html.twig' : '@Ui/layout/app.html.twig' %}
 
-{% set title = 'taxes.profile.year.title'|trans({year: year}) %}
+{% set sectionTitle = ('taxes.profile.section.' ~ section)|trans %}
+{% set title = 'taxes.profile.year.section_title'|trans({section: sectionTitle, year: year}) %}
 {% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'taxes.profile.title'|trans, href: path('app_taxes_profile')}, {label: title}] %}
 {% set sheet_size = 'md' %}
 {% set sheet_fields = true %}
-{% set sheet_description = 'taxes.profile.year.description'|trans %}
-{% set action = path('app_taxes_profile_year', {year: year}) %}
+{% set sheet_description = ('taxes.profile.section_description.' ~ section)|trans %}
+{% set action = path('app_taxes_profile_year', {year: year, section: section}) %}
+{% set indent = 'md:pl-[calc(var(--spacing-label)+1rem)]' %}
 
 {% block title %}{{ title }}{% endblock %}
 
 {% block sheet_body %}
-    <form id="taxes-year-form" method="post" action="{{ action }}" class="grid gap-6" novalidate data-taxes-year-form>
+    <form id="taxes-year-form" method="post" action="{{ action }}" class="grid gap-6" novalidate data-taxes-year-form data-taxes-section="{{ section }}">
         <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\TaxesAndContributions\\Infrastructure\\Controller\\ProfileController::TOKEN')) }}">
         {% if errors.form is defined %}<twig:Ui:Alert tone="error">{{ errors.form|trans }}</twig:Ui:Alert>{% endif %}
 
-        <twig:Ui:FieldGroup :title="'taxes.profile.year.methods'|trans">
-            {% if errors.expenseMethods is defined %}<twig:Ui:Alert tone="error">{{ errors.expenseMethods|trans }}</twig:Ui:Alert>{% endif %}
-            {% for method, label in methods %}
-                <twig:Ui:Checkbox name="expenseMethods[]" :id="'method-' ~ method" :value="method" :checked="method in values.expenseMethods" :label="label" />
-            {% endfor %}
-            <twig:Ui:Select name="chosenMethod" id="chosenMethod" :label="'taxes.profile.field.chosen_method'|trans" :options="{'': 'taxes.profile.field.chosen_open'|trans}|merge(methods)" :value="values.chosenMethod" :error="errors.chosenMethod is defined ? errors.chosenMethod|trans : null" />
-        </twig:Ui:FieldGroup>
+        {% if section == 'expenses' %}
+            <twig:Ui:FieldGroup :title="'taxes.profile.year.methods'|trans">
+                <div class="grid gap-1 {{ indent }}" role="group" aria-label="{{ 'taxes.profile.year.methods'|trans }}" aria-describedby="methods-help">
+                    {% for method, label in methods %}
+                        <twig:Ui:Checkbox name="expenseMethods[]" :id="'method-' ~ method" :value="method" :checked="method in values.expenseMethods" :label="label" />
+                    {% endfor %}
+                    <p id="methods-help" class="m-0 text-caption text-muted">{{ 'taxes.profile.year.methods_help'|trans }}</p>
+                    {% if errors.expenseMethods is defined %}<p role="alert" class="m-0 text-small text-badge-red-text">{{ errors.expenseMethods|trans }}</p>{% endif %}
+                </div>
+                <twig:Ui:Select name="chosenMethod" id="chosenMethod" :row="true" width="medium" :label="'taxes.profile.field.chosen_method'|trans" :options="{'': 'taxes.profile.field.chosen_open'|trans}|merge(methods)" :value="values.chosenMethod" :error="errors.chosenMethod is defined ? errors.chosenMethod|trans : null" />
+            </twig:Ui:FieldGroup>
+        {% elseif section == 'credits' %}
+            <twig:Ui:FieldGroup :title="'taxes.profile.year.children_title'|trans" data-taxes-children>
+                <div class="grid gap-3 {{ indent }}">
+                {% if errors.children is defined %}<twig:Ui:Alert tone="error">{{ errors.children|trans }}</twig:Ui:Alert>{% endif %}
+                {% for child in values.children %}
+                    {% set i = loop.index0 %}
+                    {% set name = child.label ?: 'taxes.profile.year.child'|trans({number: loop.index}) %}
+                    {% set adjusted = child.months != '12' or child.order != '' %}
+                    <fieldset class="m-0 grid min-w-0 gap-3 rounded-panel border border-container p-3" data-taxes-child>
+                        <legend class="sr-only">{{ name }}</legend>
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="m-0 font-medium text-ink" aria-hidden="true">{{ name }}</p>
+                            <twig:Ui:Button type="submit" size="sm" icon="trash-2" name="_action" :value="'remove_child:' ~ i" formnovalidate :aria-label="'taxes.profile.year.child_remove_label'|trans({name: name})" data-taxes-child-remove>{{ 'taxes.profile.year.child_remove'|trans }}</twig:Ui:Button>
+                        </div>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <twig:Ui:TextInput :name="'children[' ~ i ~ '][label]'" :id="'child-' ~ i ~ '-label'" :label="'taxes.profile.field.child_name'|trans" :help="'taxes.profile.field.child_name_help'|trans" :value="child.label" autocomplete="off" maxlength="100" :autofocus="child.new|default(false)" />
+                            <twig:Ui:TextInput :name="'children[' ~ i ~ '][birthDate]'" :id="'child-' ~ i ~ '-birth'" type="date" :label="'taxes.profile.field.birth_date'|trans" :value="child.birthDate" />
+                        </div>
+                        <twig:Ui:Checkbox :name="'children[' ~ i ~ '][ztpP]'" :id="'child-' ~ i ~ '-ztpp'" value="1" :checked="child.ztpP" :label="'taxes.profile.field.ztp_p'|trans" />
+                        <details class="group"{% if adjusted %} open{% endif %} data-taxes-child-more>
+                            <summary class="inline-flex min-h-6 cursor-pointer list-none items-center gap-1 text-small text-text {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }} [&::-webkit-details-marker]:hidden">
+                                {{ ux_icon('lucide:chevron-right', {class: 'size-4 transition-transform group-open:rotate-90', 'aria-hidden': 'true'}) }}
+                                <span>{{ 'taxes.profile.year.child_more'|trans }}:</span>
+                                <span class="text-muted">{{ (child.months == '12' or child.months == '' ? 'taxes.profile.year.whole_year' : 'taxes.profile.year.months')|trans({count: child.months}) }} · {{ (child.order == '' ? 'taxes.profile.year.order_by_birth' : 'taxes.profile.order.' ~ child.order)|trans }}</span>
+                            </summary>
+                            <div class="mt-3 grid gap-3">
+                                <twig:Ui:TextInput :name="'children[' ~ i ~ '][months]'" :id="'child-' ~ i ~ '-months'" :label="'taxes.profile.field.months'|trans" :help="'taxes.profile.field.months_help'|trans" width="short" :value="child.months" inputmode="numeric" autocomplete="off" />
+                                <twig:Ui:Select :name="'children[' ~ i ~ '][order]'" :id="'child-' ~ i ~ '-order'" :label="'taxes.profile.field.order'|trans" :help="'taxes.profile.field.order_help'|trans" width="medium" :options="{'': 'taxes.profile.year.order_by_birth'|trans, '1': 'taxes.profile.order.1'|trans, '2': 'taxes.profile.order.2'|trans, '3': 'taxes.profile.order.3'|trans}" :value="child.order" />
+                            </div>
+                        </details>
+                    </fieldset>
+                {% else %}
+                    <p class="m-0 text-small text-muted" data-taxes-children-empty>{{ 'taxes.profile.year.children_none'|trans }}</p>
+                {% endfor %}
+                {% if values.children|length < maxChildren %}
+                    <div>
+                        <twig:Ui:Button type="submit" icon="plus" name="_action" value="add_child" formnovalidate data-taxes-child-add>{{ 'taxes.profile.year.child_add'|trans }}</twig:Ui:Button>
+                    </div>
+                {% endif %}
+                </div>
+            </twig:Ui:FieldGroup>
 
-        <twig:Ui:FieldGroup :title="'taxes.profile.year.children_title'|trans">
-            {% if errors.children is defined %}<twig:Ui:Alert tone="error">{{ errors.children|trans }}</twig:Ui:Alert>{% endif %}
-            {% for child in values.children %}
-                {% set i = loop.index0 %}
-                <fieldset class="m-0 grid gap-3 border-0 border-t border-divider p-0 pt-3" data-taxes-child>
-                    <legend class="sr-only">{{ 'taxes.profile.year.child'|trans({number: loop.index}) }}</legend>
-                    <twig:Ui:TextInput :name="'children[' ~ i ~ '][label]'" :id="'child-' ~ i ~ '-label'" :label="'taxes.profile.field.child_label'|trans" :help="loop.first ? 'taxes.profile.field.child_label_help'|trans : null" :value="child.label" autocomplete="off" />
-                    <twig:Ui:TextInput :name="'children[' ~ i ~ '][birthDate]'" :id="'child-' ~ i ~ '-birth'" type="date" :label="'taxes.profile.field.birth_date'|trans" :value="child.birthDate" />
-                    <twig:Ui:Select :name="'children[' ~ i ~ '][order]'" :id="'child-' ~ i ~ '-order'" :label="'taxes.profile.field.order'|trans" :options="{'1': 'taxes.profile.order.1'|trans, '2': 'taxes.profile.order.2'|trans, '3': 'taxes.profile.order.3'|trans}" :value="child.order" />
-                    <twig:Ui:TextInput :name="'children[' ~ i ~ '][months]'" :id="'child-' ~ i ~ '-months'" :label="'taxes.profile.field.months'|trans" :value="child.months" inputmode="numeric" autocomplete="off" />
-                    <twig:Ui:Checkbox :name="'children[' ~ i ~ '][ztpP]'" :id="'child-' ~ i ~ '-ztpp'" value="1" :checked="child.ztpP" :label="'taxes.profile.field.ztp_p'|trans" />
-                </fieldset>
-            {% endfor %}
-        </twig:Ui:FieldGroup>
+            <twig:Ui:FieldGroup :title="'taxes.profile.year.spouse'|trans">
+                <twig:Ui:TextInput name="spouseMonths" id="spouseMonths" :row="true" width="short" :label="'taxes.profile.field.spouse_months'|trans" :help="'taxes.profile.field.spouse_months_help'|trans" :value="values.spouseMonths" :error="errors.spouseMonths is defined ? errors.spouseMonths|trans : null" inputmode="numeric" autocomplete="off" />
+                <div class="grid gap-1 {{ indent }}">
+                    <twig:Ui:Checkbox name="spouseZtpP" id="spouseZtpP" value="1" :checked="values.spouseZtpP" :label="'taxes.profile.field.ztp_p'|trans" />
+                    <twig:Ui:Checkbox name="spouseLowIncome" id="spouseLowIncome" value="1" :checked="values.spouseLowIncome" :label="'taxes.profile.field.spouse_low_income'|trans" />
+                </div>
+            </twig:Ui:FieldGroup>
 
-        <twig:Ui:FieldGroup :title="'taxes.profile.year.spouse'|trans">
-            <twig:Ui:TextInput name="spouseMonths" id="spouseMonths" :label="'taxes.profile.field.spouse_months'|trans" :help="'taxes.profile.field.spouse_months_help'|trans" :value="values.spouseMonths" :error="errors.spouseMonths is defined ? errors.spouseMonths|trans : null" inputmode="numeric" autocomplete="off" />
-            <twig:Ui:Checkbox name="spouseZtpP" id="spouseZtpP" value="1" :checked="values.spouseZtpP" :label="'taxes.profile.field.ztp_p'|trans" />
-            <twig:Ui:Checkbox name="spouseLowIncome" id="spouseLowIncome" value="1" :checked="values.spouseLowIncome" :label="'taxes.profile.field.spouse_low_income'|trans" />
-        </twig:Ui:FieldGroup>
+            <twig:Ui:FieldGroup :title="'taxes.profile.year.deductions'|trans">
+                {% if errors.deductions is defined %}<twig:Ui:Alert tone="error">{{ errors.deductions|trans }}</twig:Ui:Alert>{% endif %}
+                {% for type in deductionTypes %}
+                    <twig:Ui:TextInput :name="'deductions[' ~ type ~ ']'" :id="'deduction-' ~ type" :row="true" width="short" :label="('taxes.deduction.' ~ type)|trans" :value="values.deductions[type]|default('')" inputmode="decimal" autocomplete="off" />
+                {% endfor %}
+            </twig:Ui:FieldGroup>
+        {% else %}
+            <twig:Ui:FieldGroup :title="'taxes.profile.year.bases'|trans">
+                {% for name in ['employmentBase', 'employmentTaxWithheld', 'rentalBase', 'otherBase', 'lastKnownTax'] %}
+                    <twig:Ui:TextInput :name="name" :id="name" :row="true" width="short" :label="('taxes.profile.field.' ~ name)|trans" :value="values[name]" :error="errors[name] is defined ? errors[name]|trans : null" inputmode="decimal" autocomplete="off" />
+                {% endfor %}
+            </twig:Ui:FieldGroup>
 
-        <twig:Ui:FieldGroup :title="'taxes.profile.year.deductions'|trans">
-            {% if errors.deductions is defined %}<twig:Ui:Alert tone="error">{{ errors.deductions|trans }}</twig:Ui:Alert>{% endif %}
-            {% for type in deductionTypes %}
-                <twig:Ui:TextInput :name="'deductions[' ~ type ~ ']'" :id="'deduction-' ~ type" :label="('taxes.deduction.' ~ type)|trans" :value="values.deductions[type]|default('')" inputmode="decimal" autocomplete="off" />
-            {% endfor %}
-        </twig:Ui:FieldGroup>
+            <twig:Ui:FieldGroup :title="'taxes.profile.year.previous'|trans">
+                {% for name in ['previousSocialBase', 'previousHealthBase'] %}
+                    <twig:Ui:TextInput :name="name" :id="name" :row="true" width="short" :label="('taxes.profile.field.' ~ name)|trans" :value="values[name]" :error="errors[name] is defined ? errors[name]|trans : null" inputmode="decimal" autocomplete="off" />
+                {% endfor %}
+                <twig:Ui:TextInput name="previousOverviewFiledOn" id="previousOverviewFiledOn" type="date" :row="true" width="short" :label="'taxes.profile.field.previousOverviewFiledOn'|trans" :value="values.previousOverviewFiledOn" :error="errors.previousOverviewFiledOn is defined ? errors.previousOverviewFiledOn|trans : null" />
+            </twig:Ui:FieldGroup>
 
-        <twig:Ui:FieldGroup :title="'taxes.profile.year.bases'|trans">
-            {% for name in ['employmentBase', 'employmentTaxWithheld', 'rentalBase', 'otherBase', 'lastKnownTax'] %}
-                <twig:Ui:TextInput :name="name" :id="name" :label="('taxes.profile.field.' ~ name)|trans" :value="values[name]" :error="errors[name] is defined ? errors[name]|trans : null" inputmode="decimal" autocomplete="off" />
-            {% endfor %}
-        </twig:Ui:FieldGroup>
-
-        <twig:Ui:FieldGroup :title="'taxes.profile.year.previous'|trans">
-            {% for name in ['previousSocialBase', 'previousHealthBase'] %}
-                <twig:Ui:TextInput :name="name" :id="name" :label="('taxes.profile.field.' ~ name)|trans" :value="values[name]" :error="errors[name] is defined ? errors[name]|trans : null" inputmode="decimal" autocomplete="off" />
-            {% endfor %}
-            <twig:Ui:TextInput name="previousOverviewFiledOn" id="previousOverviewFiledOn" type="date" :label="'taxes.profile.field.previousOverviewFiledOn'|trans" :value="values.previousOverviewFiledOn" :error="errors.previousOverviewFiledOn is defined ? errors.previousOverviewFiledOn|trans : null" />
-        </twig:Ui:FieldGroup>
-
-        <twig:Ui:FieldGroup :title="'taxes.profile.year.other'|trans">
-            {% set routeChoices = {} %}
-            {% for route in routes %}{% set routeChoices = routeChoices|merge({(route): ('taxes.route.' ~ route)|trans}) %}{% endfor %}
-            <twig:Ui:Select name="returnRoute" id="returnRoute" :label="'taxes.profile.field.returnRoute'|trans" :options="routeChoices" :value="values.returnRoute" />
-            <twig:Ui:TextInput name="activityStart" id="activityStart" type="date" :label="'taxes.profile.field.activityStart'|trans" :help="'taxes.profile.field.activityStart_help'|trans" :value="values.activityStart" :error="errors.activityStart is defined ? errors.activityStart|trans : null" />
-            <twig:Ui:TextInput name="averageWageOverride" id="averageWageOverride" :label="'taxes.profile.field.averageWageOverride'|trans" :help="'taxes.profile.field.averageWageOverride_help'|trans" :value="values.averageWageOverride" :error="errors.averageWageOverride is defined ? errors.averageWageOverride|trans : null" inputmode="decimal" autocomplete="off" />
-        </twig:Ui:FieldGroup>
+            <twig:Ui:FieldGroup :title="'taxes.profile.year.other'|trans">
+                {% set routeChoices = {} %}
+                {% for route in routes %}{% set routeChoices = routeChoices|merge({(route): ('taxes.route.' ~ route)|trans}) %}{% endfor %}
+                <twig:Ui:Select name="returnRoute" id="returnRoute" :row="true" width="medium" :label="'taxes.profile.field.returnRoute'|trans" :options="routeChoices" :value="values.returnRoute" />
+                <twig:Ui:TextInput name="activityStart" id="activityStart" type="date" :row="true" width="short" :label="'taxes.profile.field.activityStart'|trans" :help="'taxes.profile.field.activityStart_help'|trans" :value="values.activityStart" :error="errors.activityStart is defined ? errors.activityStart|trans : null" />
+                <twig:Ui:TextInput name="averageWageOverride" id="averageWageOverride" :row="true" width="short" :label="'taxes.profile.field.averageWageOverride'|trans" :help="'taxes.profile.field.averageWageOverride_help'|trans" :value="values.averageWageOverride" :error="errors.averageWageOverride is defined ? errors.averageWageOverride|trans : null" inputmode="decimal" autocomplete="off" />
+            </twig:Ui:FieldGroup>
+        {% endif %}
     </form>
 {% endblock %}
 
@@ -89,7 +132,7 @@
 {% block content %}
     {% set body %}{{ block('sheet_body') }}{% endset %}
     <twig:Ui:Card :title="title" icon="calendar" class="max-w-3xl">
-        <p class="mt-0 mb-4 text-small text-muted">{{ 'taxes.profile.year.description'|trans }}</p>
+        <p class="mt-0 mb-4 text-small text-muted">{{ sheet_description }}</p>
         {{ body }}
     </twig:Ui:Card>
     <div class="max-w-3xl">

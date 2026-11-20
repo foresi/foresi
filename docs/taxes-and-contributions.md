@@ -32,7 +32,7 @@ Removing a status lets the one before it hold again.
 Each year has its own inputs, all amounts in CZK:
 
 - the expense methods to compare (`actual`, `lump_80`, `lump_60`, `lump_40`, `lump_30`; `actual` and `lump_60` by default) and the one chosen;
-- the children claimed: a label of the owner's choice, the birth date, the order (1, 2, or 3 for the third and further), a severe disability card (ZTP/P) and the months claimed, 0 to 12;
+- the children claimed: an optional name, the birth date, a severe disability card (ZTP/P) and the months claimed, 0 to 12 (12 by default). The order (1, 2, or 3 for the third and further) follows the birth dates, the eldest first; the owner fixes another only when the parents agreed on one, and a child is listed by birth date;
 - the spouse: the months claimed, a severe disability card, and whether their own income stays at most 68,000 CZK;
 - the deductions by type (`gifts`, `housing_loan_interest`, `pension_products`, `life_insurance`, `long_term_investment`, `union_fees`, `exam_fees`);
 - the other partial bases (employment and the tax withheld, rental, other) and the last known tax;
@@ -49,8 +49,9 @@ For each authority (`social`, `health`, `sickness`, `income_tax`), the account a
 
 **Money → Taxes and contributions** (`/taxes-and-contributions/profile`), for the owner only:
 
-- the statuses as a dated list per kind, each with the day it holds from and until, and **Add a change** in the page header, which opens a dialog. A status is removed from its row after a confirmation.
-- the years, this one and the next and every year with inputs; a year opens its inputs as a form in the side sheet.
+- one line of the statuses that hold today, such as "sole trader · main activity · VAT payer from Nov 12, 2026", with a change still to come after them. Statuses change a few times in a firm's life, so they do not take the page.
+- **Statuses** in the page header opens a dialog (`/taxes-and-contributions/profile/statuses`) with the dated list per kind, each with the day it holds from and until. **Add a change** in the dialog's header loads the form in the same dialog, and saving comes back to the list. A status is removed from its row after a confirmation.
+- the years, this one and the next and every year with inputs. A year's heading names the statuses that change in it, such as "from Nov 12: VAT payer". Each of its three sections opens its form in the side sheet.
 - the four authorities; each opens its account in a small dialog.
 
 ## API and MCP

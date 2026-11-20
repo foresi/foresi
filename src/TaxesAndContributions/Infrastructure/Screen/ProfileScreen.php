@@ -26,12 +26,30 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * What the profile page shows: the statuses as a dated list per kind, each
- * holding until the next of its kind, the years with their inputs, and the
- * account of each authority.
+ * What the profile page shows: one line of the statuses that hold, the years
+ * with their inputs and the statuses that change in them, and the account of
+ * each authority; and the statuses dialog, a dated list per kind, each holding
+ * until the next of its kind.
+ *
+ * @phpstan-type YearValues array{expenseMethods: list<string>, chosenMethod: string, children: list<array{label: string, birthDate: string, order: string, ztpP: bool, months: string, new?: bool}>, spouseMonths: string, spouseZtpP: bool, spouseLowIncome: bool, deductions: array<string, string>, employmentBase: string, employmentTaxWithheld: string, rentalBase: string, otherBase: string, lastKnownTax: string, previousSocialBase: string, previousHealthBase: string, previousOverviewFiledOn: string, returnRoute: string, activityStart: string, averageWageOverride: string}
  */
 final readonly class ProfileScreen
 {
+    public const string SECTION_EXPENSES = 'expenses';
+    public const string SECTION_CREDITS = 'credits';
+    public const string SECTION_OTHER = 'other';
+
+    /**
+     * The three forms a year is entered in, each with the fields it sends: the
+     * expenses to compare, the children with the other credits and the
+     * deductions, and the rest. One long form split by topic, as a tax return is.
+     */
+    public const array SECTIONS = [
+        self::SECTION_EXPENSES => ['expenseMethods', 'chosenMethod'],
+        self::SECTION_CREDITS => ['children', 'spouseMonths', 'spouseZtpP', 'spouseLowIncome', 'deductions'],
+        self::SECTION_OTHER => ['employmentBase', 'employmentTaxWithheld', 'rentalBase', 'otherBase', 'lastKnownTax', 'previousSocialBase', 'previousHealthBase', 'previousOverviewFiledOn', 'returnRoute', 'activityStart', 'averageWageOverride'],
+    ];
+
     public function __construct(
         private TranslatorInterface $translator,
         private UrlGeneratorInterface $urls,
@@ -89,6 +107,8 @@ final readonly class ProfileScreen
                             'text' => $this->trans('taxes.profile.status.remove_text'),
                             'accept' => $this->trans('taxes.profile.status.remove'),
                             'tone' => 'danger',
+                            // The list is a dialog over the profile: its host posts the form itself.
+                            'overlay' => true,
                         ],
                     ]],
                 ];
@@ -97,6 +117,38 @@ final readonly class ProfileScreen
         }
 
         return $groups;
+    }
+
+    /**
+     * What holds today, one phrase per kind in the order of StatusKind, as one
+     * line: "sole trader · main activity · VAT payer from Nov 12, 2026". A
+     * status that replaced an earlier one of its kind carries its day; a change
+     * still to come follows what holds, with its day.
+     *
+     * @return list<string>
+     */
+    public function statusSummary(ProfileView $profile): array
+    {
+        $today = $this->clock->today();
+        $parts = [];
+        foreach (StatusKind::cases() as $kind) {
+            $periods = array_values(array_filter($profile->statuses, static fn (StatusPeriod $status): bool => $kind === $status->kind));
+            $holding = null;
+            foreach ($periods as $index => $status) {
+                if ($status->validFrom <= $today) {
+                    $holding = $index;
+                }
+            }
+            if (null !== $holding) {
+                $status = $periods[$holding];
+                $parts[] = $holding > 0 ? $this->trans('taxes.profile.summary.since', ['status' => $this->statusPhrase($status), 'day' => $this->day($status->validFrom)]) : $this->statusPhrase($status);
+            }
+            foreach (\array_slice($periods, null === $holding ? 0 : $holding + 1) as $status) {
+                $parts[] = $this->trans('taxes.profile.summary.since', ['status' => $this->statusPhrase($status), 'day' => $this->day($status->validFrom)]);
+            }
+        }
+
+        return $parts;
     }
 
     /**
@@ -110,7 +162,9 @@ final readonly class ProfileScreen
         $choices = [];
         foreach (StatusKind::cases() as $kind) {
             foreach ($kind->values() as $value) {
-                $choices[$this->trans('taxes.status.kind.'.$kind->value)][$kind->value.':'.$value] = $this->trans('taxes.status.value.'.$kind->value.'.'.$value);
+                // The phrase names the kind too, so the closed select reads "Sickness insurance", not "On".
+                $phrase = $this->trans('taxes.status.phrase.'.$kind->value.'.'.$value);
+                $choices[$this->trans('taxes.status.kind.'.$kind->value)][$kind->value.':'.$value] = mb_strtoupper(mb_substr($phrase, 0, 1)).mb_substr($phrase, 1);
             }
         }
 
@@ -119,9 +173,10 @@ final readonly class ProfileScreen
 
     /**
      * The years with inputs, and this year and the next when they have none
-     * yet, newest first.
+     * yet, newest first; each with the statuses that change in it ("from
+     * Nov 12: VAT payer") and its three sections and what they hold.
      *
-     * @return list<array{year: int, href: string, entered: bool, summary: string}>
+     * @return list<array{year: int, entered: bool, changes: list<string>, sections: list<array{section: string, title: string, href: string, summary: string}>}>
      */
     public function years(ProfileView $profile): array
     {
@@ -132,13 +187,26 @@ final readonly class ProfileScreen
 
         return array_map(function (int $year) use ($profile): array {
             $inputs = $profile->years[$year] ?? null;
+            $sections = [];
+            foreach (array_keys(self::SECTIONS) as $section) {
+                $sections[] = [
+                    'section' => $section,
+                    'title' => $this->trans('taxes.profile.section.'.$section),
+                    'href' => $this->urls->generate(ProfileController::ROUTE.'_year', ['year' => $year, 'section' => $section]),
+                    'summary' => $inputs instanceof YearInputsView ? $this->sectionSummary($section, $inputs) : $this->trans('taxes.profile.year.not_entered'),
+                ];
+            }
 
-            return [
-                'year' => $year,
-                'href' => $this->urls->generate(ProfileController::ROUTE.'_year', ['year' => $year]),
-                'entered' => $inputs instanceof YearInputsView,
-                'summary' => $inputs instanceof YearInputsView ? $this->yearSummary($inputs) : $this->trans('taxes.profile.year.not_entered'),
-            ];
+            $changes = [];
+            $statuses = $profile->statuses;
+            usort($statuses, static fn (StatusPeriod $a, StatusPeriod $b): int => $a->validFrom <=> $b->validFrom);
+            foreach ($statuses as $status) {
+                if ((int) $status->validFrom->format('Y') === $year) {
+                    $changes[] = $this->trans('taxes.profile.year.change', ['day' => $this->dayInYear($status->validFrom), 'status' => $this->statusPhrase($status)]);
+                }
+            }
+
+            return ['year' => $year, 'entered' => $inputs instanceof YearInputsView, 'changes' => $changes, 'sections' => $sections];
         }, $all);
     }
 
@@ -163,21 +231,20 @@ final readonly class ProfileScreen
     }
 
     /**
-     * The form values of a year, as the sheet shows them: one blank child
-     * after those claimed, so another can be added.
+     * The form values of a year, as the sheet shows them. A child's order is
+     * empty while it follows the birth dates.
      *
-     * @return array<string, mixed>
+     * @return YearValues
      */
     public function yearValues(YearInputsView $year): array
     {
         $children = array_map(fn (ChildInput $child): array => [
             'label' => $child->label,
             'birthDate' => $child->birthDate->format('Y-m-d'),
-            'order' => (string) $child->order,
+            'order' => $child->orderChosen ? (string) $child->order : '',
             'ztpP' => $child->ztpP,
             'months' => (string) $child->months,
         ], $year->children);
-        $children[] = ['label' => '', 'birthDate' => '', 'order' => (string) min(3, \count($children) + 1), 'ztpP' => false, 'months' => '12'];
         $deductions = [];
         foreach (DeductionType::cases() as $type) {
             $deductions[$type->value] = $this->plain($year->deductions[$type->value] ?? null);
@@ -225,19 +292,62 @@ final readonly class ProfileScreen
         return $status->base instanceof Money ? $this->trans('taxes.profile.status.with_base', ['value' => $value, 'base' => $status->base->format($this->locale())]) : $value;
     }
 
-    private function yearSummary(YearInputsView $year): string
+    /**
+     * A status as a phrase that names its kind too ("main activity"), for the
+     * summary line and the years.
+     */
+    public function statusPhrase(StatusPeriod $status): string
     {
-        $parts = [implode(', ', array_map(fn (ExpenseMethod $method): string => $this->trans('taxes.method.'.$method->value), $year->expenseMethods))];
-        if ([] !== $year->children) {
-            $parts[] = $this->trans('taxes.profile.year.children', ['count' => \count($year->children)]);
+        $phrase = $this->trans('taxes.status.phrase.'.$status->kind->value.'.'.$status->value);
+
+        return $status->base instanceof Money ? $this->trans('taxes.profile.status.with_base', ['value' => $phrase, 'base' => $status->base->format($this->locale())]) : $phrase;
+    }
+
+    private function sectionSummary(string $section, YearInputsView $year): string
+    {
+        $parts = [];
+        if (self::SECTION_EXPENSES === $section) {
+            $parts[] = implode(', ', array_map(fn (ExpenseMethod $method): string => $this->trans('taxes.method.'.$method->value), $year->expenseMethods));
+            if ($year->chosenMethod instanceof ExpenseMethod) {
+                $parts[] = $this->trans('taxes.profile.summary.chosen', ['method' => $this->trans('taxes.method.'.$year->chosenMethod->value)]);
+            }
+        } elseif (self::SECTION_CREDITS === $section) {
+            if ([] !== $year->children) {
+                $parts[] = $this->trans('taxes.profile.year.children', ['count' => \count($year->children)]);
+            }
+            if ($year->spouse instanceof SpouseInput) {
+                $parts[] = $this->trans('taxes.profile.summary.spouse');
+            }
+            if ([] !== $year->deductions) {
+                $parts[] = $this->trans('taxes.profile.summary.deductions', ['count' => \count($year->deductions)]);
+            }
+        } else {
+            $parts[] = $this->trans('taxes.route.'.$year->returnRoute->value);
+            if (($year->employmentBase ?? $year->rentalBase ?? $year->otherBase ?? $year->lastKnownTax) instanceof Money) {
+                $parts[] = $this->trans('taxes.profile.summary.income');
+            }
+            if (null !== ($year->previousSocialBase ?? $year->previousHealthBase ?? $year->previousOverviewFiledOn)) {
+                $parts[] = $this->trans('taxes.profile.summary.previous');
+            }
         }
 
-        return implode(' · ', $parts);
+        return [] === $parts ? $this->trans('taxes.profile.summary.none') : implode(' · ', $parts);
     }
 
     private function day(\DateTimeImmutable $day): string
     {
         $formatter = new \IntlDateFormatter($this->locale(), \IntlDateFormatter::MEDIUM, \IntlDateFormatter::NONE, $this->clock->timezone());
+
+        return (string) $formatter->format($day);
+    }
+
+    /**
+     * A day without its year, where the year is already said ("12. 11.").
+     */
+    private function dayInYear(\DateTimeImmutable $day): string
+    {
+        $pattern = new \IntlDatePatternGenerator($this->locale())->getBestPattern('dMMM');
+        $formatter = new \IntlDateFormatter($this->locale(), \IntlDateFormatter::NONE, \IntlDateFormatter::NONE, $this->clock->timezone(), null, false === $pattern ? 'd. M.' : $pattern);
 
         return (string) $formatter->format($day);
     }
