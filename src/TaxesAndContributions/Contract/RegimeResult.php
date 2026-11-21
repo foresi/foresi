@@ -17,7 +17,8 @@ use Foresi\Shared\Domain\Money;
  * cheapest lump sum), the credits, the months counted, the payments of the
  * year as they fall due (its cash view), and what the owner or an accountant
  * should know. A year with flat-rate months has them apart, beside the
- * methods. It is always an estimate.
+ * methods. A change of the expense method from the year before brings its
+ * adjustment apart too, never inside the totals. It is always an estimate.
  */
 final readonly class RegimeResult
 {
@@ -46,6 +47,7 @@ final readonly class RegimeResult
         public array $knownGaps,
         public array $payments = [],
         public ?FlatRateResult $flatRate = null,
+        public ?SwitchAdjustment $switchAdjustment = null,
     ) {
     }
 

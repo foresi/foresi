@@ -11,7 +11,14 @@ namespace Foresi\Tests\TaxesAndContributions\Infrastructure;
 use Foresi\Identity\Application\ManageApiTokens;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Domain\Role;
+use Foresi\Invoicing\Integration\TaxesAndContributions\IssuedPaymentAmounts;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\TaxesAndContributions\Contract\AmountKind;
+use Foresi\TaxesAndContributions\Contract\OpenAmount;
+use Foresi\TaxesAndContributions\Contract\Subject;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
+use Foresi\Tests\TaxesAndContributions\Support\DatedAmountSource;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
@@ -253,6 +260,49 @@ final class TaxesApiTest extends ApiTestCase
         $call = $this->tool($this->owner, 'foresi_tax_estimate', ['year' => 2026]);
         self::assertEquals($estimate, $this->in($call, 'structuredContent', 'data'));
         self::assertStringContainsString('Flat-rate tax of 11 months: ', $this->text($call));
+    }
+
+    public function testTheMethodSwitchAdjustmentIsApartWithItsPaymentOnBothSurfaces(): void
+    {
+        $this->send($this->owner, 'POST', '/api/v1/taxes-and-contributions/profile/statuses', ['kind' => 'activity', 'value' => 'main', 'valid_from' => '2026-01-01']);
+        $this->send($this->owner, 'PUT', '/api/v1/taxes-and-contributions/profile/years/2026', ['expense_methods' => ['actual'], 'chosen_method' => 'actual']);
+        self::assertResponseIsSuccessful();
+        $this->send($this->owner, 'PUT', '/api/v1/taxes-and-contributions/profile/years/2027', ['expense_methods' => ['lump_60'], 'chosen_method' => 'lump_60']);
+        self::assertResponseIsSuccessful();
+        Clock::set(new MockClock('2027-03-10 10:00:00', 'UTC'));
+        $later = $this->flushed(fn (): string => self::getContainer()->get(ManageApiTokens::class)->issueAsOperator($this->ownerId, 'Taxes 2027', [ApiScope::from('taxes:write')])->secret);
+        $open = new OpenAmount('invoicing.payments', new Subject('invoice', 'open', null), AmountKind::Income, Money::ofMinor(50_000_00, Currency::CZK), Money::ofMinor(50_000_00, Currency::CZK), Money::ofMinor(0, Currency::CZK));
+        self::getContainer()->set(IssuedPaymentAmounts::class, new DatedAmountSource('invoicing.payments', [], ['2026-12-31' => [$open]]));
+
+        $this->get('/api/v1/taxes-and-contributions/estimate?year=2027', secret: $later);
+        self::assertResponseIsSuccessful();
+        $czk = static fn (int $minor): array => ['amount_minor' => $minor, 'currency' => 'CZK'];
+        self::assertSame([
+            'adjusted_year' => 2026,
+            'from_method' => 'actual',
+            'into' => 'lump_60',
+            'open_on' => '2026-12-31',
+            'receivables' => $czk(50_000_00),
+            'payables' => $czk(0),
+            'base_change' => $czk(50_000_00),
+            'previous_tax_base' => $czk(0),
+            'rate' => '15',
+            'tax' => $czk(7_500_00),
+            'due_on' => '2028-05-02',
+            'source_url' => 'https://www.zakonyprolidi.cz/cs/1992-586',
+        ], $this->at('data', 'to_date', 'switch_adjustment'));
+        $payments = (array) $this->at('data', 'payments');
+        $index = $this->index($payments, 'income_tax.switch_adjustment.2027');
+        self::assertSame(['switch_adjustment', '2027', 'out', '2028-05-02', $czk(7_500_00), 'expected'], [$this->at('data', 'payments', $index, 'kind'), $this->at('data', 'payments', $index, 'period'), $this->at('data', 'payments', $index, 'direction'), $this->at('data', 'payments', $index, 'due_on'), $this->at('data', 'payments', $index, 'amount'), $this->at('data', 'payments', $index, 'state')]);
+        self::assertContains('switch_adjustment', (array) $this->at('data', 'warnings'));
+        self::assertContains('switch_adjustment_insurance', (array) $this->at('data', 'unverified'));
+        self::assertSame($czk(0), $this->at('data', 'to_date', 'methods', 0, 'totals', 'income'), 'Never inside the totals.');
+        $estimate = $this->json()['data'];
+
+        $call = $this->tool($later, 'foresi_tax_estimate', ['year' => 2027]);
+        self::assertEquals($estimate, $this->in($call, 'structuredContent', 'data'));
+        self::assertStringContainsString('Method change: 2026 adjusted by ', $this->text($call));
+        self::assertStringContainsString('due 2028-05-02.', $this->text($call));
     }
 
     public function testAMemberIsRefusedWithOwnerOnly(): void

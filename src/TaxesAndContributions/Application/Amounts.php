@@ -20,6 +20,8 @@ use Foresi\TaxesAndContributions\Contract\AmountLine;
 use Foresi\TaxesAndContributions\Contract\AmountSum;
 use Foresi\TaxesAndContributions\Contract\AmountsView;
 use Foresi\TaxesAndContributions\Contract\AmountTotals;
+use Foresi\TaxesAndContributions\Contract\OpenAmount;
+use Foresi\TaxesAndContributions\Contract\OpenAmountsView;
 use Foresi\TaxesAndContributions\Contract\ProfileView;
 use Foresi\TaxesAndContributions\Contract\StatusKind;
 use Psr\Log\LoggerInterface;
@@ -90,6 +92,70 @@ final readonly class Amounts
         }
 
         return $this->between($from, min($today->setDate($year, 12, 31), $today), $profile);
+    }
+
+    /**
+     * The receivables and payables open at the end of a day, for the change
+     * of the expense method (ZDP § 23 (8)): converted to CZK at the ČNB rate
+     * of the day, and counted without their VAT when the owner is a VAT payer
+     * on it (unverified, like the payments).
+     */
+    public function openAt(\DateTimeImmutable $day, ProfileView $profile): OpenAmountsView
+    {
+        $day = new \DateTimeImmutable($day->format('Y-m-d'), $this->clock->timezone());
+        $zero = Money::ofMinor(0, Currency::CZK);
+        $sums = [];
+        foreach (AmountKind::cases() as $kind) {
+            $sums[$kind->value] = [$zero, $zero, $zero];
+        }
+        $unavailable = [];
+        $found = [];
+        $open = [];
+        foreach ($this->sources as $source) {
+            $found[] = $source->key();
+            try {
+                $read = [];
+                foreach ($source->openAt($day) as $amount) {
+                    $read[] = $amount;
+                }
+            } catch (\Throwable $failure) {
+                $this->logger->error('The open amounts of {source} could not be read.', ['source' => $source->key(), 'exception' => $failure]);
+                $unavailable[] = $source->key();
+                continue;
+            }
+            array_push($open, ...$read);
+        }
+        foreach (self::EXPECTED_SOURCES as $expected) {
+            if (!\in_array($expected, $found, true)) {
+                $unavailable[] = $expected;
+            }
+        }
+        $rates = [];
+        $missing = [];
+        $unverified = [];
+        /** @var OpenAmount $amount */
+        foreach ($open as $amount) {
+            $gross = $this->czk($amount->gross, $day, $rates, $missing);
+            if (!$gross instanceof Money) {
+                continue;
+            }
+            if (Currency::CZK !== $amount->gross->currency()) {
+                $unverified[] = AmountsView::UNVERIFIED_FX_PAYMENT_DAY;
+            }
+            $net = $this->czk($amount->net, $day, $rates, $missing) ?? $gross;
+            [$sumGross, $sumNet, $sumVat] = $sums[$amount->kind->value];
+            $sums[$amount->kind->value] = [$sumGross->plus($gross), $sumNet->plus($net), $sumVat->plus($gross->minus($net))];
+        }
+        $payer = 'yes' === $profile->valueOn(StatusKind::VatPayer, $day)?->value;
+        if ($payer) {
+            $unverified[] = AmountsView::UNVERIFIED_VAT_CASH_BASIS;
+        }
+        $totals = [];
+        foreach ($sums as $kind => [$gross, $net, $vat]) {
+            $totals[$kind] = new AmountTotals($gross, $net, $vat, $payer ? $net : $gross);
+        }
+
+        return new OpenAmountsView($day, $totals, $this->distinct($unavailable), $this->distinct($missing), $this->distinct($unverified));
     }
 
     private function between(\DateTimeImmutable $from, \DateTimeImmutable $to, ProfileView $profile): AmountsView

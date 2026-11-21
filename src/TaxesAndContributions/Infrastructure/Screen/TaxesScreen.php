@@ -22,6 +22,7 @@ use Foresi\TaxesAndContributions\Contract\MethodResult;
 use Foresi\TaxesAndContributions\Contract\PossibleDuplicate;
 use Foresi\TaxesAndContributions\Contract\RegimeResult;
 use Foresi\TaxesAndContributions\Contract\Step;
+use Foresi\TaxesAndContributions\Contract\SwitchAdjustment;
 use Foresi\TaxesAndContributions\Contract\Totals;
 use Foresi\TaxesAndContributions\Infrastructure\Controller\TaxesController;
 use Foresi\Ui\Format\MoneyText;
@@ -222,6 +223,32 @@ final readonly class TaxesScreen
                 : $this->trans('taxes.page.payments.state.'.$payment->state),
             'tone' => self::STATE_TONES[$payment->state] ?? 'gray',
         ], $estimate->payments);
+    }
+
+    /**
+     * The adjustment of the year before for a change of the expense method,
+     * as one sentence with its amounts, or null without one. It is a warning
+     * of its own, never a row of the totals.
+     */
+    public function switchAdjustment(EstimateView $estimate): ?string
+    {
+        $switch = ($estimate->yearEnd ?? $estimate->toDate)?->switchAdjustment;
+        if (!$switch instanceof SwitchAdjustment) {
+            return null;
+        }
+        $into = ExpenseMethod::tryFrom($switch->into);
+
+        return $this->trans($switch->tax->isNegative() || $switch->tax->isZero() ? 'taxes.page.switch.lower' : 'taxes.page.switch.text', [
+            'from' => $this->methodLabel($switch->from),
+            'into' => $into instanceof ExpenseMethod ? $this->methodLabel($into) : $this->trans('taxes.page.switch.flat_rate'),
+            'year' => $switch->adjustedYear,
+            'day' => $this->date($switch->openOn),
+            'receivables' => $this->amount($switch->receivables),
+            'payables' => $this->amount($switch->payables),
+            'change' => $this->amount($switch->baseChange),
+            'tax' => $this->amount(Money::ofMinor(abs($switch->tax->minor()), $switch->tax->currency())),
+            'due' => $this->date($switch->dueOn),
+        ]);
     }
 
     /**

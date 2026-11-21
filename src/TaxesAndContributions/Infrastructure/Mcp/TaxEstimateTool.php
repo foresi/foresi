@@ -17,6 +17,7 @@ use Foresi\TaxesAndContributions\Application\Estimates;
 use Foresi\TaxesAndContributions\Application\TaxesRefused;
 use Foresi\TaxesAndContributions\Contract\FlatRateResult;
 use Foresi\TaxesAndContributions\Contract\RegimeResult;
+use Foresi\TaxesAndContributions\Contract\SwitchAdjustment;
 use Foresi\TaxesAndContributions\Infrastructure\Api\TaxesJson;
 
 /**
@@ -56,6 +57,7 @@ final readonly class TaxEstimateTool implements ReadTool, StaffOnlyTool
             .'{cheaper_method} and {break_even} compare the methods, {credits} lists each tax credit with what it needs, {months} the activity of each month and its smallest advances, and {rules} the rule year, its status (published, derived, latest_used) and every value used with its source. '
             .'{payments} lists the payments of the year by due day: each social, health, sickness and flat-rate advance, the income tax advances, and in the next year the settlement or an overpayment coming back, with its authority, kind, period, due_on, amount and state (expected, paid by the bank movement in {paid_by}, or overdue). The bank pays a payment when a movement meets its {match_rule}, the authority\'s account and variable symbol in the profile. {possible_duplicates} lists the planned items for taxes and insurance that the estimate may count twice; only the owner ends them. '
             .'{flat_rate} is the flat-rate regime, null without it: a month whose flat_rate_band is 1, 2 or 3 pays the band amount, split into income_tax, social and health, which replaces those levies, with no credit, deduction or child benefit; each method\'s {totals.flat_rate} adds it to the levies, and its advance, authority flat_rate, is due by the 20th. Becoming a VAT payer ends it at the end of that year, with a warning; the estimate never changes the statuses. '
+            .'{switch_adjustment} is the adjustment of the year before when the expense method changes, null without it: from actual costs to a lump sum, or into a whole year of the flat-rate tax, the {receivables} open on 31 December of the year before raise its tax base and, with actual costs before, the open {payables} lower it. Its {tax}, at the marginal rate of that year, is due with an additional return by this year\'s return deadline, as the payment of kind switch_adjustment; it is never in the totals, and the warning switch_adjustment names it. '
             .'{warnings}, {unverified} and {known_gaps} say what an accountant should confirm or what the estimate leaves out. Only the owner of the organisation may read it.';
     }
 
@@ -96,6 +98,10 @@ final readonly class TaxEstimateTool implements ReadTool, StaffOnlyTool
                 $parts[] = \sprintf('%s: levies %s, take-home %s', $method->method->value, $method->totals->levies->format('en'), $method->totals->takeHome->format('en'));
             }
             $summary = \sprintf('Estimate to date for %d (rules %d, %s): %s.', $estimate->year, $estimate->toDate->ruleYear, $estimate->toDate->rules->value, implode('; ', $parts));
+            $switch = $estimate->toDate->switchAdjustment;
+            if ($switch instanceof SwitchAdjustment) {
+                $summary .= \sprintf(' Method change: %d adjusted by %s, tax %s due %s.', $switch->adjustedYear, $switch->baseChange->format('en'), $switch->tax->format('en'), $switch->dueOn->format('Y-m-d'));
+            }
             if ($estimate->toDate->flatRate instanceof FlatRateResult) {
                 $summary .= \sprintf(' Flat-rate tax of %d months: %s.', \count($estimate->toDate->flatRate->months), $estimate->toDate->flatRate->total->format('en'));
             }

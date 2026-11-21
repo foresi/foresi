@@ -13,7 +13,8 @@ use Foresi\Shared\Domain\Money;
 /**
  * One payment to or from an authority, as the cash view of a year has it
  * (Goal 4, old T7): a monthly or other advance, the settlement after the year,
- * or an overpayment that comes back. It covers a period ("2026-12" for a month,
+ * an overpayment that comes back, or the tax of a change of the expense
+ * method, due with the year of the change. It covers a period ("2026-12" for a month,
  * "2026" for the year), may be paid from $payableFrom and is due on $dueOn.
  * The amount is positive; an overpayment comes in, everything else goes out.
  *
@@ -26,13 +27,14 @@ final readonly class DuePayment
     public const string KIND_ADVANCE = 'advance';
     public const string KIND_SETTLEMENT = 'settlement';
     public const string KIND_OVERPAYMENT = 'overpayment';
+    public const string KIND_SWITCH_ADJUSTMENT = 'switch_adjustment';
 
     public const string STATE_EXPECTED = 'expected';
     public const string STATE_PAID = 'paid';
     public const string STATE_OVERDUE = 'overdue';
 
     /**
-     * @param string      $kind           advance, settlement or overpayment
+     * @param string      $kind           advance, settlement, overpayment or switch_adjustment
      * @param string      $period         the month ("2026-12") or the year ("2026") it covers
      * @param string      $state          expected, paid or overdue
      * @param string|null $account        the authority's account, the match rule

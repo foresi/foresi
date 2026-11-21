@@ -8,7 +8,9 @@
     side by side and the credits.
     Every number of both columns opens its steps in the side sheet, as a cell of Cash flow opens its items
     (docs/design/overlays.md). The profile is the header's action. Variables: year, tabs, reason,
-    yearEndReason, summary, forecast, payments, duplicates, comparison, credits, warnings, footer.
+    yearEndReason, summary, forecast, payments, duplicates, comparison, credits, warnings, switchAdjustment,
+    footer. A change of the expense method is a warning of its own with its amounts, the same alert as
+    the other warnings, never a row of the totals.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
@@ -33,6 +35,12 @@
                 <ul class="m-0 grid list-none gap-1 p-0">
                     {% for warning in warnings %}<li>{{ warning }}</li>{% endfor %}
                 </ul>
+            </twig:Ui:Alert>
+        {% endif %}
+
+        {% if switchAdjustment %}
+            <twig:Ui:Alert tone="warning" icon="triangle-alert" data-taxes-switch>
+                <p class="m-0">{{ switchAdjustment }}</p>
             </twig:Ui:Alert>
         {% endif %}
 

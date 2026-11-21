@@ -13,6 +13,7 @@ use Foresi\CashFlow\Application\PlannedItemWrites;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
+use Foresi\Invoicing\Integration\TaxesAndContributions\IssuedPaymentAmounts;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\RegistrationNumber;
@@ -21,11 +22,16 @@ use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\TaxesAndContributions\Application\AddStatusInput;
 use Foresi\TaxesAndContributions\Application\ProfileWrites;
+use Foresi\TaxesAndContributions\Application\SetYearInputsInput;
+use Foresi\TaxesAndContributions\Contract\AmountKind;
 use Foresi\TaxesAndContributions\Contract\Authority;
 use Foresi\TaxesAndContributions\Contract\DuePayment;
 use Foresi\TaxesAndContributions\Contract\EstimateView;
+use Foresi\TaxesAndContributions\Contract\OpenAmount;
+use Foresi\TaxesAndContributions\Contract\Subject;
 use Foresi\TaxesAndContributions\Infrastructure\Screen\TaxesScreen;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Tests\TaxesAndContributions\Support\DatedAmountSource;
 use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -240,6 +246,32 @@ final class TaxesControllerTest extends WebTestCase
         self::assertStringContainsString('Every active month is in the flat-rate tax', $this->text($crawler, '[data-taxes-step-rule]'));
         $crawler = $this->client->request('GET', '/taxes-and-contributions/steps/2026/actual/all', server: [$this->dialogHeader() => DialogRequest::SHEET]);
         self::assertCount(9, $crawler->filter('[data-taxes-step]'));
+    }
+
+    public function testAMethodSwitchIsAWarningWithItsAmountAndAPaymentOfItsOwn(): void
+    {
+        Clock::set(new MockClock('2027-03-10 10:00:00', 'UTC'));
+        $this->signedIn(Role::Owner);
+        $writes = self::getContainer()->get(ProfileWrites::class);
+        $writes->addStatus(new AddStatusInput('activity', 'main', '2026-01-01'));
+        $writes->setYear(new SetYearInputsInput('2026', ['actual'], 'actual'));
+        $writes->setYear(new SetYearInputsInput('2027', ['lump_60'], 'lump_60'));
+        $open = new OpenAmount('invoicing.payments', new Subject('invoice', 'open', null), AmountKind::Income, Money::ofMinor(50_000_00, Currency::CZK), Money::ofMinor(50_000_00, Currency::CZK), Money::ofMinor(0, Currency::CZK));
+        self::getContainer()->set(IssuedPaymentAmounts::class, new DatedAmountSource('invoicing.payments', [], ['2026-12-31' => [$open]]));
+
+        $crawler = $this->client->request('GET', '/taxes-and-contributions');
+        self::assertResponseIsSuccessful();
+        $alert = $this->text($crawler, '[data-taxes-switch]');
+        self::assertStringContainsString('The expense method changes from Actual costs to Lump sum 60%, so 2026 gets an additional return', $alert);
+        self::assertStringContainsString("its tax base changes by 50,000\u{a0}Kč, the receivables of 50,000\u{a0}Kč open on", $alert);
+        self::assertStringContainsString("Its tax of 7,500\u{a0}Kč is due by", $alert);
+        self::assertStringNotContainsString('tax base is adjusted with an additional return', $this->text($crawler, '[data-taxes-warnings]'), 'Said once, with the amount.');
+        self::assertStringContainsString("Income tax – method change, additional return 2027 7,500\u{a0}Kč", $this->text($crawler, '[data-taxes-payment="income_tax.switch_adjustment.2027"]'));
+        self::assertStringContainsString("the adjustment of last year's base for the change of the expense method", $this->text($crawler, '[data-taxes-unverified]'));
+        self::assertNotContains('switch_adjustment', $crawler->filter('[data-taxes-row]')->each(static fn (Crawler $row): string => (string) $row->attr('data-taxes-row')), 'Never a row of the totals.');
+
+        $crawler = $this->client->request('GET', '/taxes-and-contributions?year=2026');
+        self::assertCount(0, $crawler->filter('[data-taxes-switch]'), 'The year adjusted shows nothing of it.');
     }
 
     public function testThePaymentsShowWhatFallsDueAndThePlannedItemsThatMayDuplicateThem(): void

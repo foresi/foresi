@@ -49,4 +49,15 @@ interface ActualAmountSource
      * @return array<string, VatShare>
      */
     public function sharesOf(array $subjectIds): array;
+
+    /**
+     * What each document still asks at the end of the day, after its
+     * corrections and the payments made up to it, for the change of the
+     * expense method (ZDP § 23 (8)). A document issued after the day, an
+     * advance and a document in the trash are none; one asking nothing is
+     * left out.
+     *
+     * @return iterable<OpenAmount>
+     */
+    public function openAt(\DateTimeImmutable $day): iterable;
 }

@@ -75,6 +75,7 @@ taxes:
     advance: '{authority} – advance {period}'
     settlement: '{authority} – settlement {period}'
     overpayment: '{authority} – overpayment back {period}'
+    switch_adjustment: '{authority} – method change, additional return {period}'
   deduction:
     gifts: Gifts
     housing_loan_interest: Housing loan interest
@@ -266,6 +267,10 @@ taxes:
         plan_no_vat_split: recurring invoices and planned items count as entered, with no VAT split
         no_vat_split_restricted: documents you may not see count with their VAT
         no_vat_split_unknown: documents without a known VAT ratio count with their VAT
+    switch:
+      text: 'The expense method changes from {from} to {into}, so {year} gets an additional return: its tax base changes by {change}, the receivables of {receivables} open on {day} less the payables of {payables}. Its tax of {tax} is due by {due}.'
+      lower: 'The expense method changes from {from} to {into}, so {year} gets an additional return: its tax base changes by {change}, the receivables of {receivables} open on {day} less the payables of {payables}. Its tax would be {tax} lower; no payment is planned.'
+      flat_rate: the flat-rate tax
     payments:
       title: Payments
       description: The advances and the settlement of the year by due day. A bank movement to the authority's account with its variable symbol pays one.
@@ -425,6 +430,7 @@ taxes:
       possible_duplicates: Planned items in Cash flow may count a levy twice.
       no_match_rule: Some authorities have no account in the profile, so the bank cannot tell which of their payments are paid.
       payments_unavailable: The bank movements could not be read, so the payments may be paid already.
+      switch_adjustment: The expense method changes from last year, so last year's tax base is adjusted with an additional return.
     unverified:
       fx_payment_day: the ČNB rate of the payment day for foreign currencies
       vat_cash_basis: the amounts without VAT from the VAT registration day
@@ -439,6 +445,9 @@ taxes:
       overview_deadlines: the deadlines of the overviews and their settlement
       flat_rate_mixed_year: a year with months both in and out of the flat-rate tax
       flat_rate_2027_band_1: the flat-rate band 1 for 2027, 9,661 or 9,662 CZK
+      switch_adjustment: the adjustment of last year's base for the change of the expense method
+      switch_adjustment_insurance: whether the change of the expense method adjusts last year's insurance too
+      switch_adjustment_previous_base: the rate of the adjustment, as last year has no rules to compute its base
     gap:
       non_deductible_costs: costs that are not tax deductible
       assets: assets
@@ -446,3 +455,4 @@ taxes:
       loss_carry_forward: carrying a tax loss forward
       starter_relief: the relief of a starting sole trader
       flat_rate_surcharge: the flat-rate surcharge for not recording sales from 2027
+      switch_adjustment_inventory_and_reserves: the inventory and reserves in the adjustment for a change of method

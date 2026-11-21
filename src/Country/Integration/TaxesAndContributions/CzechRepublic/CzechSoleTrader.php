@@ -19,6 +19,7 @@ use Foresi\Country\Integration\TaxesAndContributions\CzechRepublic\Steps\ProfitS
 use Foresi\Country\Integration\TaxesAndContributions\CzechRepublic\Steps\SicknessStep;
 use Foresi\Country\Integration\TaxesAndContributions\CzechRepublic\Steps\SocialStep;
 use Foresi\Country\Integration\TaxesAndContributions\CzechRepublic\Steps\TaxBaseStep;
+use Foresi\TaxesAndContributions\Contract\Authority;
 use Foresi\TaxesAndContributions\Contract\DuePayment;
 use Foresi\TaxesAndContributions\Contract\ExpenseMethod;
 use Foresi\TaxesAndContributions\Contract\FlatRateResult;
@@ -28,10 +29,14 @@ use Foresi\TaxesAndContributions\Contract\ProfileView;
 use Foresi\TaxesAndContributions\Contract\Regime;
 use Foresi\TaxesAndContributions\Contract\RegimeInput;
 use Foresi\TaxesAndContributions\Contract\RegimeResult;
+use Foresi\TaxesAndContributions\Contract\RulesNotAvailable;
 use Foresi\TaxesAndContributions\Contract\RulesStatus;
 use Foresi\TaxesAndContributions\Contract\StatusKind;
 use Foresi\TaxesAndContributions\Contract\StatusPeriod;
+use Foresi\TaxesAndContributions\Contract\Step;
+use Foresi\TaxesAndContributions\Contract\SwitchAdjustment;
 use Foresi\TaxesAndContributions\Contract\Totals;
+use Foresi\TaxesAndContributions\Contract\YearBefore;
 use Foresi\TaxesAndContributions\Contract\YearInputsView;
 
 /**
@@ -50,6 +55,11 @@ use Foresi\TaxesAndContributions\Contract\YearInputsView;
  * the flat rate at the end of that tax year (ZDP § 2a (8) a) 2)): the year
  * warns, and the years after it count as ordinary while the band stays, until
  * a new band status starts. The estimate never changes a status itself.
+ *
+ * A year whose return leaves the actual costs of the year before for a lump
+ * sum, or the ordinary tax for a whole year in the flat rate, adjusts the
+ * year before (ZDP § 23 (8), CzechSwitchAdjustment): a warning with the
+ * amount and a payment of its own, never inside the totals.
  */
 final readonly class CzechSoleTrader implements Regime
 {
@@ -103,7 +113,7 @@ final readonly class CzechSoleTrader implements Regime
         $flatRate = null;
         foreach ($inputs->expenseMethods as $method) {
             $calculation = new Calculation($input, $inputs, $method, $months, $this->rules);
-            $steps = array_map(static fn (PipelineStep $step): \Foresi\TaxesAndContributions\Contract\Step => $step->apply($calculation), $this->pipeline($calculation));
+            $steps = array_map(static fn (PipelineStep $step): Step => $step->apply($calculation), $this->pipeline($calculation));
             $methods[] = new MethodResult($method, $this->totals($calculation), $steps);
             $used += $calculation->used();
             $unverified = [...$unverified, ...$calculation->unverified];
@@ -118,6 +128,15 @@ final readonly class CzechSoleTrader implements Regime
         }
         $statuses = $this->monthStatuses($months, $used);
         $payments = $this->payments($input, $inputs, $methods, $used, $unverified);
+        $switch = $this->switchAdjustment($input, $inputs, $unverified);
+        if ($switch instanceof SwitchAdjustment) {
+            $warnings[] = CzechSwitchAdjustment::WARNING;
+            $knownGaps[] = CzechSwitchAdjustment::GAP_INVENTORY_AND_RESERVES;
+            if ($switch->tax->minor() > 0) {
+                $payments[] = new DuePayment(Authority::IncomeTax, DuePayment::KIND_SWITCH_ADJUSTMENT, (string) $input->year, new \DateTimeImmutable(\sprintf('%04d-01-01', $input->year), $input->today->getTimezone()), $switch->dueOn, $switch->tax);
+                usort($payments, static fn (DuePayment $a, DuePayment $b): int => [$a->dueOn->format('Y-m-d'), $a->authority->value] <=> [$b->dueOn->format('Y-m-d'), $b->authority->value]);
+            }
+        }
         if (RulesStatus::Derived === $status) {
             $unverified[] = self::UNVERIFIED_OFFICIAL_2027_TABLES;
         } elseif (RulesStatus::LatestUsed === $status) {
@@ -143,7 +162,60 @@ final readonly class CzechSoleTrader implements Regime
             $knownGaps,
             $payments,
             $flatRate,
+            $switch,
         );
+    }
+
+    /**
+     * The adjustment of the year before when this year changes the expense
+     * method (ZDP § 23 (8)): from the actual costs to a lump sum, or from an
+     * ordinary year to a year wholly in the flat-rate tax. The methods are
+     * those the returns are filed with; while one is open, nothing is
+     * assumed. A year before in the flat rate changes nothing.
+     *
+     * @param list<string> $unverified
+     */
+    private function switchAdjustment(RegimeInput $input, YearInputsView $inputs, array &$unverified): ?SwitchAdjustment
+    {
+        $before = $input->yearBefore;
+        if (!$before instanceof YearBefore || $input->year - 1 !== $before->year) {
+            return null;
+        }
+        $previousInputs = $input->profile->years[$before->year] ?? new YearInputsView($before->year);
+        $from = $previousInputs->filedMethod();
+        $ignored = [];
+        $zone = $input->today->getTimezone();
+        $active = array_filter($this->months($input, $ignored, $this->lastDayOf($input->year, $input->today)), static fn (Month $month): bool => $month->isActive());
+        $wholeFlatRate = [] !== $active && [] === array_filter($active, static fn (Month $month): bool => !$month->isFlatRate());
+        $to = $inputs->filedMethod();
+        $into = match (true) {
+            $wholeFlatRate => SwitchAdjustment::INTO_FLAT_RATE,
+            ExpenseMethod::Actual === $from && $to instanceof ExpenseMethod && ExpenseMethod::Actual !== $to => $to->value,
+            default => null,
+        };
+        $wasFlatRate = null !== $this->flatRateBand($input->profile, new \DateTimeImmutable(\sprintf('%04d-12-01', $before->year), $zone), $ignored);
+        if (!$from instanceof ExpenseMethod || null === $into || $wasFlatRate) {
+            return null;
+        }
+        $unverified[] = CzechSwitchAdjustment::UNVERIFIED;
+        $unverified[] = CzechSwitchAdjustment::UNVERIFIED_INSURANCE;
+
+        return new CzechSwitchAdjustment($this->rules)->of($input->year, $before, $from, $into, $this->taxBaseOf($input, $before, $previousInputs), $inputs->returnRoute, $zone, $unverified);
+    }
+
+    /**
+     * The tax base of the year before with the method its return is filed
+     * with, or null when that year has no rules.
+     */
+    private function taxBaseOf(RegimeInput $input, YearBefore $before, YearInputsView $previousInputs): ?int
+    {
+        try {
+            $previous = $this->compute(new RegimeInput($before->year, $input->profile, $before->amounts, $input->today, $this->lastDayOf($before->year, $input->today)));
+        } catch (RulesNotAvailable) {
+            return null;
+        }
+
+        return Czk::minorOf(CzechPayments::paidMethod($previous->methods, $previousInputs->filedMethod(), $previous->cheaperMethod)->step(Step::TAX_BASE)->result);
     }
 
     /**
@@ -159,7 +231,7 @@ final readonly class CzechSoleTrader implements Regime
     private function payments(RegimeInput $input, YearInputsView $inputs, array $methods, array &$used, array &$unverified): array
     {
         $ignored = [];
-        $lastDay = $input->today->setDate($input->year, 12, 31);
+        $lastDay = $this->lastDayOf($input->year, $input->today);
         $months = $this->months($input, $ignored, $lastDay);
         $plan = new CzechPayments($this->rules);
         $payments = $plan->advances($input, $months, $this->monthStatuses($months, $used), $used, $unverified);
@@ -169,6 +241,14 @@ final readonly class CzechSoleTrader implements Regime
         usort($payments, static fn (DuePayment $a, DuePayment $b): int => [$a->dueOn->format('Y-m-d'), $a->authority->value] <=> [$b->dueOn->format('Y-m-d'), $b->authority->value]);
 
         return $payments;
+    }
+
+    /**
+     * 31 December of the year, in the zone of today.
+     */
+    private function lastDayOf(int $year, \DateTimeImmutable $today): \DateTimeImmutable
+    {
+        return $today->setDate($year, 12, 31);
     }
 
     /**
@@ -187,7 +267,7 @@ final readonly class CzechSoleTrader implements Regime
         if (!$calculation->hasOrdinaryMonths()) {
             $covered = static fn (string $key): PipelineStep => new FlatRateCoveredStep($key);
 
-            return [new ProfitStep(), $covered(\Foresi\TaxesAndContributions\Contract\Step::SOCIAL), $covered(\Foresi\TaxesAndContributions\Contract\Step::HEALTH), new SicknessStep(), $covered(\Foresi\TaxesAndContributions\Contract\Step::TAX_BASE), $covered(\Foresi\TaxesAndContributions\Contract\Step::INCOME_TAX), $covered(\Foresi\TaxesAndContributions\Contract\Step::CREDITS), $covered(\Foresi\TaxesAndContributions\Contract\Step::CHILD_BENEFIT), new FlatRateStep()];
+            return [new ProfitStep(), $covered(Step::SOCIAL), $covered(Step::HEALTH), new SicknessStep(), $covered(Step::TAX_BASE), $covered(Step::INCOME_TAX), $covered(Step::CREDITS), $covered(Step::CHILD_BENEFIT), new FlatRateStep()];
         }
         $calculation->flag(Calculation::UNVERIFIED_FLAT_RATE_MIXED_YEAR);
 

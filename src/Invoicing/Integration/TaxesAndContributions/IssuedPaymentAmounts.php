@@ -21,6 +21,7 @@ use Foresi\Shared\Domain\Money;
 use Foresi\TaxesAndContributions\Contract\ActualAmount;
 use Foresi\TaxesAndContributions\Contract\ActualAmountSource;
 use Foresi\TaxesAndContributions\Contract\AmountKind;
+use Foresi\TaxesAndContributions\Contract\OpenAmount;
 use Foresi\TaxesAndContributions\Contract\Subject;
 use Foresi\TaxesAndContributions\Contract\VatShare;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -33,6 +34,11 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  * it does not count, and neither does a cancelled payment or a document in
  * the trash. A paid advance counts when paid; its final invoice deducts it and
  * asks only for the rest, so the money counts once.
+ *
+ * What is open at the end of a day are the invoices supplied by then (their
+ * tax point, else their issue day) that the payments up to that day, with
+ * what was written off, have not settled, after their corrections issued by
+ * then. An advance is never open: it is no receivable of the records.
  */
 final readonly class IssuedPaymentAmounts implements ActualAmountSource
 {
@@ -84,6 +90,39 @@ final readonly class IssuedPaymentAmounts implements ActualAmountSource
                 $vat,
                 null === $row['taxPointOn'] ? null : new \DateTimeImmutable($row['taxPointOn']->format('Y-m-d'), $from->getTimezone()),
                 DocumentKind::Advance === $row['kind'],
+            );
+        }
+    }
+
+    public function openAt(\DateTimeImmutable $day): iterable
+    {
+        /** @var list<array{id: string, currency: Currency, payable: int, corrections: int|numeric-string, paid: int|numeric-string}> $rows */
+        $rows = $this->entityManager->createQuery(
+            'SELECT i.id AS id, i.currency AS currency, i.payableMinor AS payable,'
+            .' (SELECT COALESCE(SUM(c.payableMinor), 0) FROM '.Invoice::class.' c WHERE c.correctedInvoiceId = i.id AND c.deletedAt IS NULL AND c.issueDate <= :day) AS corrections,'
+            .' (SELECT COALESCE(SUM(a.amountMinor + a.settlementMinor), 0) FROM '.PaymentAllocation::class.' a JOIN a.payment p WHERE a.invoice = i AND p.cancelledAt IS NULL AND p.receivedOn <= :day) AS paid'
+            .' FROM '.Invoice::class.' i WHERE i.kind = :kind AND i.deletedAt IS NULL AND COALESCE(i.taxPointDate, i.issueDate) <= :day',
+        )
+            ->setParameter('day', $day->format('Y-m-d'))
+            ->setParameter('kind', DocumentKind::Invoice->value)
+            ->getArrayResult();
+        $open = [];
+        foreach ($rows as $row) {
+            $rest = $row['payable'] + (int) $row['corrections'] - (int) $row['paid'];
+            if (0 !== $rest) {
+                $open[$row['id']] = Money::ofMinor($rest, $row['currency']);
+            }
+        }
+        $shares = [] === $open ? [] : $this->sharesOf(array_keys($open));
+        foreach ($open as $id => $gross) {
+            [$net, $vat] = $shares[$id]->split($gross);
+            yield new OpenAmount(
+                self::KEY,
+                new Subject('invoice', $id, $this->urls->generate(InvoiceApiController::SHOW, ['invoiceId' => $id], UrlGeneratorInterface::ABSOLUTE_PATH)),
+                AmountKind::Income,
+                $gross,
+                $net,
+                $vat,
             );
         }
     }
