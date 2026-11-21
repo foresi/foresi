@@ -10,6 +10,7 @@ namespace Foresi\TaxesAndContributions\Infrastructure\Api;
 
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Infrastructure\Api\JsonValues;
+use Foresi\TaxesAndContributions\Contract\AccrualMonth;
 use Foresi\TaxesAndContributions\Contract\AmountKind;
 use Foresi\TaxesAndContributions\Contract\AmountLine;
 use Foresi\TaxesAndContributions\Contract\AmountSum;
@@ -20,6 +21,8 @@ use Foresi\TaxesAndContributions\Contract\ChildInput;
 use Foresi\TaxesAndContributions\Contract\CreditLine;
 use Foresi\TaxesAndContributions\Contract\EstimateView;
 use Foresi\TaxesAndContributions\Contract\ExpenseMethod;
+use Foresi\TaxesAndContributions\Contract\ForecastCertainty;
+use Foresi\TaxesAndContributions\Contract\ForecastView;
 use Foresi\TaxesAndContributions\Contract\MethodResult;
 use Foresi\TaxesAndContributions\Contract\MonthStatus;
 use Foresi\TaxesAndContributions\Contract\ProfileView;
@@ -190,11 +193,60 @@ final class TaxesJson
             'to_date_reason' => $estimate->toDateReason,
             'year_end' => $estimate->yearEnd instanceof RegimeResult ? self::result($estimate->yearEnd) : null,
             'year_end_reason' => $estimate->yearEndReason,
+            'forecast' => $estimate->forecast instanceof ForecastView ? self::forecast($estimate->forecast) : null,
+            'forecast_by_certainty' => $estimate->forecast instanceof ForecastView ? self::byCertainty($estimate->forecast) : null,
+            'accruals' => array_map(static fn (string $method, array $months): array => [
+                'method' => $method,
+                'months' => array_map(static fn (AccrualMonth $month): array => [
+                    'month' => $month->month,
+                    'profit' => JsonValues::money($month->profit),
+                    'minimum' => JsonValues::money($month->minimum),
+                    'levies' => JsonValues::money($month->levies),
+                ], $months),
+            ], array_keys($estimate->accruals), array_values($estimate->accruals)),
             'amounts' => $sources,
             'warnings' => $estimate->warnings,
             'unverified' => $estimate->unverified,
             'known_gaps' => $estimate->knownGaps,
         ];
+    }
+
+    /**
+     * The forecast part of the year end, from today to 31 December.
+     *
+     * @return array<string, mixed>
+     */
+    private static function forecast(ForecastView $forecast): array
+    {
+        $totals = [];
+        foreach (AmountKind::cases() as $kind) {
+            $totals[$kind->value] = self::totals($forecast->totalOf($kind));
+        }
+
+        return [
+            'from' => $forecast->from->format('Y-m-d'),
+            'to' => $forecast->to->format('Y-m-d'),
+            'totals' => $totals,
+            'flags' => $forecast->flags,
+            'incomplete' => $forecast->incomplete,
+            'unavailable_sources' => $forecast->unavailableSources,
+            'restricted_sources' => $forecast->restrictedSources,
+        ];
+    }
+
+    /**
+     * @return array<string, array<string, array<string, array{amount_minor: int, currency: string}>>>
+     */
+    private static function byCertainty(ForecastView $forecast): array
+    {
+        $split = [];
+        foreach (ForecastCertainty::cases() as $certainty) {
+            foreach (AmountKind::cases() as $kind) {
+                $split[$certainty->value][$kind->value] = self::totals($forecast->totalOfCertainty($certainty, $kind));
+            }
+        }
+
+        return $split;
     }
 
     /**

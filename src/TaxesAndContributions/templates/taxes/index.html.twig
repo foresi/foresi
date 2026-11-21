@@ -2,11 +2,12 @@
 {#
     The page Money → Taxes and contributions, for the owner only (B7). The years are tabs, places rather
     than saved views (docs/design/list-pages.md, 7). What the owner keeps is one compact table: the
-    actual figures to date, and beside them the year end, a forecast kept apart in its own dashed column
-    with the reason it is still empty. The expense methods follow side by side, then the credits. Every
-    number opens its steps in the side sheet, as a cell of Cash flow opens its items
+    actual figures to date, and beside them the year end, a forecast kept apart in its own dashed, shaded
+    column under the outline "forecast" badge, or the reason it is empty. Under it, the forecast part by
+    certainty in a dashed box of the same look. The expense methods follow side by side, then the credits.
+    Every number of both columns opens its steps in the side sheet, as a cell of Cash flow opens its items
     (docs/design/overlays.md). The profile is the header's action. Variables: year, tabs, reason,
-    yearEndReason, summary, comparison, credits, warnings, footer.
+    yearEndReason, summary, forecast, comparison, credits, warnings, footer.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
@@ -49,7 +50,9 @@
                             <tr>
                                 <th scope="col" class="{{ head }} text-left"><span class="sr-only">{{ 'taxes.page.summary.item'|trans }}</span></th>
                                 <th scope="col" class="{{ head }} text-right" data-taxes-to-date>{{ 'taxes.page.summary.to_date'|trans }}</th>
-                                <th scope="col" class="{{ head }} border-l border-dashed border-l-control-line text-right" data-taxes-year-end>{{ 'taxes.page.summary.year_end'|trans }}</th>
+                                <th scope="col" class="{{ head }} border-l border-dashed border-l-control-line text-right" data-taxes-year-end>
+                                    {% if forecast %}<twig:Ui:Badge tone="outline" class="mr-1.5" data-taxes-forecast-badge>{{ 'taxes.page.summary.forecast'|trans }}</twig:Ui:Badge>{% endif %}{{ 'taxes.page.summary.year_end'|trans }}
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
@@ -59,8 +62,13 @@
                                     <td class="{{ cell }} {{ row.total ? 'font-semibold text-ink' : 'text-ink' }}">
                                         <a href="{{ row.href }}" data-sheet aria-haspopup="dialog" class="{{ link }}">{{ row.text }}<span class="sr-only"> {{ 'taxes.page.open_steps'|trans }}</span></a>
                                     </td>
-                                    {% if loop.first %}
-                                        {# The forecast is not a fact: one dashed column for all rows, saying why it is still empty. #}
+                                    {% if row.yearEnd %}
+                                        {# The forecast is not a fact: a dashed, shaded column of its own. #}
+                                        <td class="{{ cell }} border-l border-dashed border-l-control-line bg-head {{ row.total ? 'font-semibold text-ink' : 'text-text' }}" data-taxes-year-end-cell="{{ row.key }}">
+                                            <a href="{{ row.yearEnd.href }}" data-sheet aria-haspopup="dialog" class="{{ link }}">{{ row.yearEnd.text }}<span class="sr-only"> {{ 'taxes.page.open_steps_year_end'|trans }}</span></a>
+                                        </td>
+                                    {% elseif loop.first %}
+                                        {# Without a year end: one dashed column for all rows, saying why it is empty. #}
                                         <td rowspan="{{ summary.rows|length }}" class="w-2/5 border-b border-l border-dashed border-l-control-line bg-head px-4 py-3 align-top text-small text-muted" data-taxes-year-end-empty="{{ yearEndReason }}">
                                             <span class="mb-1.5 block"><twig:Ui:Badge tone="outline">{{ 'taxes.page.summary.forecast'|trans }}</twig:Ui:Badge></span>
                                             {{ ('taxes.page.reason.' ~ yearEndReason ~ '.text')|trans({year: year}) }}
@@ -71,6 +79,32 @@
                         </tbody>
                     </table>
                 </div>
+                {% if forecast %}
+                    <div class="grid gap-1.5 rounded-panel border border-dashed border-control-line bg-head px-4 py-2.5" data-taxes-forecast>
+                        <table class="w-full border-collapse text-small">
+                            <caption class="pb-1 text-left text-caption font-medium text-muted">{{ 'taxes.page.forecast.title'|trans }}</caption>
+                            <thead class="sr-only">
+                                <tr>
+                                    <th scope="col">{{ 'taxes.page.forecast.certainty_column'|trans }}</th>
+                                    <th scope="col">{{ 'taxes.page.row.income'|trans }}</th>
+                                    <th scope="col">{{ 'taxes.page.row.costs'|trans }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in forecast.rows %}
+                                    <tr data-taxes-forecast-row="{{ item.key }}">
+                                        <th scope="row" class="py-0.5 text-left font-normal text-text">{{ item.label }}</th>
+                                        <td class="num py-0.5 text-right text-text"><span class="text-caption text-muted">{{ 'taxes.page.row.income'|trans }}</span> {{ item.income }}</td>
+                                        <td class="num py-0.5 pl-4 text-right text-text"><span class="text-caption text-muted">{{ 'taxes.page.row.costs'|trans }}</span> {{ item.costs }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% if forecast.notes is not empty %}
+                            <p class="m-0 text-caption text-muted" data-taxes-forecast-notes>{{ forecast.notes|join(' · ') }}</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
             </section>
 
             {% if comparison %}

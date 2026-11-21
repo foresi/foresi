@@ -35,6 +35,9 @@ final class TaxesController extends AbstractController
 {
     public const string ROUTE = 'app_taxes';
 
+    /** The query value of the steps of the year end rather than of "to date". */
+    public const string YEAR_END = 'year_end';
+
     public function __construct(
         private readonly Estimates $estimates,
         private readonly ProfileReads $profiles,
@@ -62,6 +65,7 @@ final class TaxesController extends AbstractController
             'reason' => $estimate->toDateReason,
             'yearEndReason' => $estimate->yearEndReason,
             'summary' => $this->screen->summary($estimate, $this->profiles->year($year)->chosenMethod),
+            'forecast' => $this->screen->forecast($estimate),
             'comparison' => $this->screen->comparison($estimate),
             'credits' => $this->screen->credits($estimate),
             'warnings' => $this->screen->notes('warning', $estimate->warnings),
@@ -72,24 +76,26 @@ final class TaxesController extends AbstractController
     /**
      * The steps behind one number of the page, in the side sheet: each with
      * its input, its rule, where the rule is published and its result. The
-     * same URL is a page.
+     * same URL is a page. With part=year_end, the steps of the year end.
      */
     #[Route('/taxes-and-contributions/steps/{year}/{method}/{step}', name: self::ROUTE.'_steps', requirements: ['year' => '[0-9]{1,4}', 'method' => '[a-z0-9_]{1,20}', 'step' => '[a-z0-9_]{1,20}'], methods: ['GET'])]
-    public function steps(int $year, string $method, string $step): Response
+    public function steps(Request $request, int $year, string $method, string $step): Response
     {
         $this->denyUnlessOwner();
         $keys = TaxesScreen::CHAINS[$step] ?? throw new NotFoundHttpException();
         $expenseMethod = ExpenseMethod::tryFrom($method) ?? throw new NotFoundHttpException();
-        $toDate = $this->estimate($year)->toDate ?? throw new NotFoundHttpException();
+        $yearEnd = self::YEAR_END === $request->query->getString('part');
+        $estimate = $this->estimate($year);
+        $computed = ($yearEnd ? $estimate->yearEnd : $estimate->toDate) ?? throw new NotFoundHttpException();
         try {
-            $result = $toDate->method($expenseMethod);
+            $result = $computed->method($expenseMethod);
         } catch (\OutOfBoundsException $missing) {
             throw new NotFoundHttpException($missing->getMessage(), $missing);
         }
 
         return $this->render('@TaxesAndContributions/taxes/steps.html.twig', [
             'year' => $year,
-            'title' => $this->screen->stepsTitle($step, $expenseMethod),
+            'title' => $this->screen->stepsTitle($step, $expenseMethod, $yearEnd),
             'steps' => $this->screen->steps($result, $keys),
         ]);
     }

@@ -22,11 +22,14 @@ test.describe('taxes and contributions', () => {
     await expect(summary.getByRole('heading', { name: 'Kolik ti zůstane' })).toBeVisible();
     await expect(summary.getByRole('columnheader', { name: 'Zatím' })).toBeVisible();
     await expect(summary.getByRole('columnheader', { name: 'Na konci roku' })).toBeVisible();
-    await expect(page.locator('[data-taxes-year-end-empty="forecast_not_built"]')).toContainText('předpověď z Cash flow');
+    // The year end is a forecast, apart from the facts, with its part split by certainty.
+    await expect(summary.locator('[data-taxes-year-end] [data-taxes-forecast-badge]')).toHaveText('Výhled');
+    await expect(summary.locator('[data-taxes-year-end-cell="social"] a')).toBeVisible();
+    await expect(summary.locator('[data-taxes-forecast]')).toContainText('Otevřené doklady');
     await expect(page.locator('[data-taxes-footer]')).toContainText('Odhad, ne podklad pro přiznání.');
 
     // A number opens its steps in the side sheet over the page, as a cell of Cash flow opens its items.
-    await page.locator('[data-taxes-row="social"] a').click();
+    await page.locator('[data-taxes-row="social"] td:not([data-taxes-year-end-cell]) a').click();
     const sheet = page.locator('dialog#sheet');
     await expect(sheet).toBeVisible();
     await expect(sheet.getByRole('heading', { name: 'Sociální pojištění · Skutečné výdaje' })).toBeVisible();
@@ -36,6 +39,11 @@ test.describe('taxes and contributions', () => {
     await sheet.getByRole('button', { name: 'Zavřít' }).first().click();
     await expect(sheet).toBeHidden();
     await expect(page.locator('[data-taxes-summary]')).toBeVisible();
+
+    // A number of the year end opens the steps of the year end.
+    await page.locator('[data-taxes-year-end-cell="social"] a').click();
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByRole('heading', { name: 'Sociální pojištění na konci roku · Skutečné výdaje' })).toBeVisible();
   });
 
   test('a team member does not see the menu item', async ({ page }) => {
