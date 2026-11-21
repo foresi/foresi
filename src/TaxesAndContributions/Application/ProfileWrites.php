@@ -128,7 +128,7 @@ final readonly class ProfileWrites
     public function setAuthority(SetAuthorityAccountInput $input): AuthorityAccountView
     {
         $this->access->denyUnlessOwner();
-        $authority = Authority::tryFrom(trim($input->authority)) ?? throw TaxesRefused::invalid('authority_invalid', 'authority', 'An authority is social, health, sickness or income_tax.');
+        $authority = Authority::tryFrom(trim($input->authority)) ?? throw TaxesRefused::invalid('authority_invalid', 'authority', 'An authority is social, health, sickness, income_tax or flat_rate.');
         $account = trim($input->account);
         if ('' === $account || mb_strlen($account) > AuthorityAccount::MAX_ACCOUNT) {
             throw TaxesRefused::invalid('account_invalid', 'account', \sprintf('An account has 1 to %d characters.', AuthorityAccount::MAX_ACCOUNT));

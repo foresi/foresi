@@ -229,6 +229,32 @@ final class TaxesApiTest extends ApiTestCase
         self::assertSame(['social.advance.2027-01', 'expected'], [$this->at('data', 'payments', 0, 'key'), $this->at('data', 'payments', 0, 'state')], 'Next year has its advances before it starts.');
     }
 
+    public function testTheEstimateHasTheFlatRateApartOnBothSurfaces(): void
+    {
+        $this->send($this->owner, 'POST', '/api/v1/taxes-and-contributions/profile/statuses', ['kind' => 'activity', 'value' => 'main', 'valid_from' => '2026-01-01']);
+        $this->send($this->owner, 'POST', '/api/v1/taxes-and-contributions/profile/statuses', ['kind' => 'flat_rate_band', 'value' => '1', 'valid_from' => '2026-01-01']);
+        $this->send($this->owner, 'PUT', '/api/v1/taxes-and-contributions/profile/authorities/flat_rate', ['account' => '7720-77628031/0710', 'variable_symbol' => '7805121234']);
+        self::assertResponseIsSuccessful();
+
+        $this->get('/api/v1/taxes-and-contributions/estimate?year=2026', secret: $this->owner);
+        self::assertResponseIsSuccessful();
+        // January to November: six months of 9,984 and five of 9,162.
+        self::assertSame(['amount_minor' => (6 * 9_984 + 5 * 9_162) * 100, 'currency' => 'CZK'], $this->at('data', 'to_date', 'flat_rate', 'total'));
+        self::assertSame(['month' => '2026-07', 'band' => '1', 'income_tax' => ['amount_minor' => 10_000, 'currency' => 'CZK'], 'social' => ['amount_minor' => 575_600, 'currency' => 'CZK'], 'health' => ['amount_minor' => 330_600, 'currency' => 'CZK'], 'total' => ['amount_minor' => 916_200, 'currency' => 'CZK']], $this->at('data', 'to_date', 'flat_rate', 'months', 6));
+        self::assertSame($this->at('data', 'to_date', 'flat_rate', 'total'), $this->at('data', 'to_date', 'methods', 0, 'totals', 'flat_rate'));
+        self::assertSame(['amount_minor' => 0, 'currency' => 'CZK'], $this->at('data', 'to_date', 'methods', 0, 'totals', 'social'));
+        self::assertSame(['flat_rate', '1'], [$this->at('data', 'to_date', 'methods', 0, 'steps', 8, 'key'), $this->at('data', 'to_date', 'months', 0, 'flat_rate_band')]);
+        $payments = (array) $this->at('data', 'payments');
+        $december = $this->index($payments, 'flat_rate.advance.2026-12');
+        self::assertSame(['flat_rate', '2026-12-21', ['account' => '7720-77628031/0710', 'variable_symbol' => '7805121234']], [$this->at('data', 'payments', $december, 'authority'), $this->at('data', 'payments', $december, 'due_on'), $this->at('data', 'payments', $december, 'match_rule')]);
+        self::assertNotContains('social.advance.2026-12', array_column($payments, 'key'));
+        $estimate = $this->json()['data'];
+
+        $call = $this->tool($this->owner, 'foresi_tax_estimate', ['year' => 2026]);
+        self::assertEquals($estimate, $this->in($call, 'structuredContent', 'data'));
+        self::assertStringContainsString('Flat-rate tax of 11 months: ', $this->text($call));
+    }
+
     public function testAMemberIsRefusedWithOwnerOnly(): void
     {
         $this->get('/api/v1/taxes-and-contributions/profile', secret: $this->memberWriter);

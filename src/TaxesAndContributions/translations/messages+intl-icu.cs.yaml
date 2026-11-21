@@ -70,6 +70,7 @@ taxes:
     health: Zdravotní pojištění
     sickness: Nemocenské pojištění
     income_tax: Daň z příjmů (finanční úřad)
+    flat_rate: Paušální daň (finanční úřad)
   flow:
     advance: '{authority} – záloha {period}'
     settlement: '{authority} – doplatek {period}'
@@ -236,6 +237,7 @@ taxes:
       health: Zdravotní pojištění
       sickness: Nemocenské pojištění
       income_tax: Daň z příjmů
+      flat_rate: Paušální daň
       child_bonus: Daňový bonus na děti
       levies: Odvody celkem
       take_home: Zůstane ti
@@ -322,6 +324,7 @@ taxes:
       sickness: Nemocenské pojištění
       income_tax: Daň z příjmů
       child_benefit: Daňový bonus na děti
+      flat_rate: Paušální daň
       all: Celý výpočet
     steps:
       title: '{item} · {method}'
@@ -354,6 +357,10 @@ taxes:
       child_benefit:
         title: Daňové zvýhodnění na děti
         rule: Zvýhodnění na děti nejdřív snižuje daň; zbytek se vyplatí jako bonus, když dosáhne minima a příjmy dosáhnou šestinásobku minimální mzdy.
+      flat_rate:
+        title: Paušální daň
+        rule: Za každý měsíc v paušálním režimu měsíční částka jeho pásma, která nahrazuje sociální a zdravotní pojištění i daň z příjmů; slevy, odpočty ani zvýhodnění na děti se neuplatní.
+        covered: Všechny měsíce činnosti jsou v paušálním režimu a jeho částka tohle pokrývá; slevy, odpočty ani zvýhodnění na děti se neuplatní.
     input:
       income: Příjmy
       costs: Skutečné výdaje
@@ -394,6 +401,14 @@ taxes:
       as_credit: Zvýhodnění jako sleva
       minimum_income: Potřebné příjmy pro bonus
       bonus: Daňový bonus
+      band_1_months: Měsíce v 1. pásmu
+      band_2_months: Měsíce ve 2. pásmu
+      band_3_months: Měsíce ve 3. pásmu
+      income_tax_part: Složka daně z příjmů
+      social_part: Složka sociálního pojištění
+      health_part: Složka zdravotního pojištění
+      income_limit: Limit příjmů pásma
+      flat_rate_months: Měsíce v paušálním režimu
     footer:
       estimate: Odhad, ne podklad pro přiznání.
       rules: 'Pravidla roku {year}: {status, select, published {zveřejněná úřady} derived {odvozená ze zákona, zatím nezveřejněná} other {převzatá z posledního roku, který je má}}.'
@@ -403,7 +418,9 @@ taxes:
       sources_unavailable: Některé zdroje příjmů a výdajů nejsou dostupné, odhad je proto neúplný.
       forecast_incomplete: Část předpovědi z Cash flow se nepodařilo načíst, výhled do konce roku je proto neúplný.
       activity_assumed_main: V profilu chybí druh činnosti, počítá se s hlavní činností.
-      flat_rate_not_computed: Paušální daň se zatím nepočítá, odhad ukazuje běžný režim.
+      flat_rate_ends_vat_payer: Letos se stáváte plátcem DPH, paušální režim proto končí 31. prosince a příští rok je běžný. Pásmo v profilu změňte sami.
+      flat_rate_ended_vat_payer: Paušální režim skončil, když jste se stali plátcem DPH, letošek se proto počítá jako běžný. Ukončete pásmo v profilu.
+      flat_rate_over_income_limit: Příjmy roku jsou nad limitem pásma pro jakoukoli činnost. Vyšší limit platí, jen když většina příjmů pochází z činností s paušálem 80 % nebo 60 %.
       deduction_not_computed: Odborové příspěvky a zkoušky dalšího vzdělávání se zatím neodečítají.
       possible_duplicates: Plánované položky v Cash flow mohou odvod započítat dvakrát.
       no_match_rule: Některé úřady nemají v profilu účet, banka proto nepozná, které jejich platby jsou zaplacené.
@@ -420,9 +437,12 @@ taxes:
       middle_advance_band: dvě zálohy na daň po 40 % při poslední známé dani do 150 000 Kč
       electronic_deadline_payment_date: lhůta a den platby u elektronického přiznání
       overview_deadlines: lhůty přehledů a jejich doplatků
+      flat_rate_mixed_year: rok s měsíci v paušálním režimu i mimo něj
+      flat_rate_2027_band_1: 1. pásmo paušální daně pro rok 2027, 9 661, nebo 9 662 Kč
     gap:
       non_deductible_costs: daňově neuznatelné výdaje
       assets: majetek
       assets_and_depreciation: majetek a odpisy
       loss_carry_forward: odpočet daňové ztráty
       starter_relief: úlevy pro začínající OSVČ
+      flat_rate_surcharge: přirážka k paušální dani za neevidování tržeb od roku 2027

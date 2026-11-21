@@ -709,7 +709,7 @@ nelmio_api_doc:
                 TaxAuthorityAccount:
                     type: object
                     properties:
-                        authority: { type: string, enum: [social, health, sickness, income_tax] }
+                        authority: { type: string, enum: [social, health, sickness, income_tax, flat_rate] }
                         account: { type: string }
                         variable_symbol: { type: string }
                 TaxProfile:
@@ -768,12 +768,13 @@ nelmio_api_doc:
                                             levies: { $ref: '#/components/schemas/Money' }
                                             take_home: { $ref: '#/components/schemas/Money' }
                                             social_base: { $ref: '#/components/schemas/Money' }
+                                            flat_rate: { $ref: '#/components/schemas/Money', description: 'The flat-rate tax of the months in it; the levies add it. Social, health and income tax are those of the other months.' }
                                     steps:
                                         type: array
                                         items:
                                             type: object
                                             properties:
-                                                key: { type: string, enum: [profit, social, health, sickness, tax_base, income_tax, credits, child_benefit] }
+                                                key: { type: string, enum: [profit, social, health, sickness, tax_base, income_tax, credits, child_benefit, flat_rate], description: 'flat_rate only in a year with flat-rate months.' }
                                                 input: { type: object, additionalProperties: { type: string } }
                                                 rule: { type: string }
                                                 source_url: { type: string, format: uri }
@@ -800,6 +801,27 @@ nelmio_api_doc:
                                     sickness_insurance: { type: boolean }
                                     minimum_social_advance: { $ref: '#/components/schemas/Money' }
                                     minimum_health_advance: { $ref: '#/components/schemas/Money' }
+                                    flat_rate_band: { type: string, nullable: true, enum: ['1', '2', '3'], description: 'The band when the month is in the flat-rate tax; its smallest advances are then the social and health parts of the band.' }
+                        flat_rate:
+                            type: object
+                            nullable: true
+                            description: 'The flat-rate regime of the year, the same for every expense method; null without a flat-rate month. A month whose flat_rate_band is 1, 2 or 3 on its first day pays the band amount, which replaces social, health and income tax; no credit, deduction or child benefit applies. Becoming a VAT payer ends it at the end of that year.'
+                            properties:
+                                months:
+                                    type: array
+                                    items:
+                                        type: object
+                                        properties:
+                                            month: { type: string, example: '2026-07' }
+                                            band: { type: string, enum: ['1', '2', '3'] }
+                                            income_tax: { $ref: '#/components/schemas/Money' }
+                                            social: { $ref: '#/components/schemas/Money' }
+                                            health: { $ref: '#/components/schemas/Money' }
+                                            total: { $ref: '#/components/schemas/Money' }
+                                income_tax: { $ref: '#/components/schemas/Money' }
+                                social: { $ref: '#/components/schemas/Money' }
+                                health: { $ref: '#/components/schemas/Money' }
+                                total: { $ref: '#/components/schemas/Money' }
                 TaxEstimate:
                     type: object
                     description: 'The estimate of the taxes and contributions of a year, never a basis for the tax return. "To date" and "year end" are never mixed; a part that cannot be computed is null with its reason. Only the owner reads it.'
@@ -872,7 +894,7 @@ nelmio_api_doc:
                                 type: object
                                 properties:
                                     key: { type: string, example: social.advance.2026-12 }
-                                    authority: { type: string, enum: [social, health, sickness, income_tax] }
+                                    authority: { type: string, enum: [social, health, sickness, income_tax, flat_rate] }
                                     kind: { type: string, enum: [advance, settlement, overpayment] }
                                     period: { type: string, example: '2026-12', description: 'The month ("2026-12") or the year ("2026") it covers.' }
                                     direction: { type: string, enum: [in, out] }

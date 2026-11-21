@@ -14,7 +14,10 @@ namespace Foresi\Country\Integration\TaxesAndContributions\CzechRepublic;
  * Regulation 177/2026 Coll. by the statute's formula, and the decisive amount
  * and the sickness minimum are derived from it before ČSSZ and MPSV publish
  * them, so they are unverified. Act 180/2026 Coll. adds the student, school-fee
- * and EET credits.
+ * and EET credits. Band 1 of the flat-rate tax follows the new minimums: 100 +
+ * 6,073 + 3,488 = 9,661 by the statute, where some sources say 9,662, so its
+ * social and health parts are unverified; bands 2 and 3 stay. The surcharge
+ * of 1,400 a month for not recording sales (Act 180/2026) is not counted.
  */
 final class Rules2027
 {
@@ -23,6 +26,8 @@ final class Rules2027
     public const string REGULATION_177_2026 = 'https://www.epravo.cz/_dataPublic/sbirky/2026/Sb_2026_177_PZZ.pdf';
     public const string ACT_180_2026 = 'https://www.zakonyprolidi.cz/cs/2026-180';
     public const string MINIMUM_WAGE = 'https://mpsv.gov.cz/minimalni-mzda-v-roce-2027-vzroste-na-24-900-korun';
+    public const string FLAT_RATE = 'https://norman.finance/cz/blog/pausalni-dan';
+    public const string HEALTH_MINIMUM = 'https://www.forvismazars.com/cz/cs/prehledy/forvis-mazars-v-mediich/archiv-2026/kolik-zaplatite-na-zalohach-v-roce-2027';
     public const string SICKNESS_MINIMUM = 'https://www.businessinfo.cz/clanky/minimalni-zalohy-pro-osvc-na-povinna-pojisteni-opet-narostou-ceka-se-na-odhad-prumerne-mzdy/';
 
     /**
@@ -40,6 +45,8 @@ final class Rules2027
             new RuleValue('credit.student', '4020', $year, self::ACT_180_2026),
             new RuleValue('credit.school_fees', '24900', $year, self::ACT_180_2026),
             new RuleValue('credit.eet', '5000', $year, self::ACT_180_2026),
+            new RuleValue('flat_rate.band_1.social', '6073', $year, self::FLAT_RATE, true),
+            new RuleValue('flat_rate.band_1.health', '3488', $year, self::HEALTH_MINIMUM, true),
         ];
     }
 }

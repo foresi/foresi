@@ -9,8 +9,9 @@ declare(strict_types=1);
 namespace Foresi\TaxesAndContributions\Contract;
 
 /**
- * Who the owner pays: social insurance, health insurance, sickness insurance
- * and the income tax office.
+ * Who the owner pays: social insurance, health insurance, sickness insurance,
+ * the income tax office, and the tax office's account for a flat-rate regime,
+ * which takes the three levies it replaces in one payment.
  */
 enum Authority: string
 {
@@ -18,4 +19,5 @@ enum Authority: string
     case Health = 'health';
     case Sickness = 'sickness';
     case IncomeTax = 'income_tax';
+    case FlatRate = 'flat_rate';
 }

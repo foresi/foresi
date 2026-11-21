@@ -70,6 +70,7 @@ taxes:
     health: Health insurance
     sickness: Sickness insurance
     income_tax: Income tax
+    flat_rate: Flat-rate tax
   flow:
     advance: '{authority} – advance {period}'
     settlement: '{authority} – settlement {period}'
@@ -236,6 +237,7 @@ taxes:
       health: Health insurance
       sickness: Sickness insurance
       income_tax: Income tax
+      flat_rate: Flat-rate tax
       child_bonus: Child tax bonus
       levies: Levies in total
       take_home: You keep
@@ -322,6 +324,7 @@ taxes:
       sickness: Sickness insurance
       income_tax: Income tax
       child_benefit: Child tax bonus
+      flat_rate: Flat-rate tax
       all: The whole calculation
     steps:
       title: '{item} · {method}'
@@ -354,6 +357,10 @@ taxes:
       child_benefit:
         title: Child benefit
         rule: The child benefit lowers the tax first; the rest is a bonus paid out when it is at least the minimum and the income reaches six minimum wages.
+      flat_rate:
+        title: Flat-rate tax
+        rule: For each month in the flat-rate tax, its band's monthly amount, which replaces social, health and income tax; no credit, deduction or child benefit applies.
+        covered: Every active month is in the flat-rate tax, whose amount covers this; no credit, deduction or child benefit applies.
     input:
       income: Income
       costs: Actual costs
@@ -394,6 +401,14 @@ taxes:
       as_credit: Benefit as a credit
       minimum_income: Income needed for the bonus
       bonus: Child tax bonus
+      band_1_months: Months in band 1
+      band_2_months: Months in band 2
+      band_3_months: Months in band 3
+      income_tax_part: Income tax part
+      social_part: Social insurance part
+      health_part: Health insurance part
+      income_limit: Income limit of the band
+      flat_rate_months: Months in the flat-rate tax
     footer:
       estimate: An estimate, not a basis for the tax return.
       rules: 'The rules of {year}: {status, select, published {published by the authorities} derived {derived from the statute, not yet published} other {taken from the latest year that has them}}.'
@@ -403,7 +418,9 @@ taxes:
       sources_unavailable: Some sources of income and costs are not available, so the estimate is incomplete.
       forecast_incomplete: Part of the Cash flow forecast could not be read, so the year end is incomplete.
       activity_assumed_main: The profile names no activity, so a main activity is assumed.
-      flat_rate_not_computed: The flat-rate tax is not computed yet; the estimate shows the standard regime.
+      flat_rate_ends_vat_payer: You become a VAT payer this year, so the flat-rate tax ends on 31 December and next year is standard. Change the band in the profile yourself.
+      flat_rate_ended_vat_payer: The flat-rate tax ended when you became a VAT payer, so this year counts as standard. End the band in the profile.
+      flat_rate_over_income_limit: The income of the year is above the band's limit for any activity. A higher limit holds only when most of the income comes from activities with 80 % or 60 % lump sums.
       deduction_not_computed: Union fees and further education exams are not deducted yet.
       possible_duplicates: Planned items in Cash flow may count a levy twice.
       no_match_rule: Some authorities have no account in the profile, so the bank cannot tell which of their payments are paid.
@@ -420,9 +437,12 @@ taxes:
       middle_advance_band: two income tax advances of 40 % each with a last known tax up to 150,000 CZK
       electronic_deadline_payment_date: the deadline and the payment day of an electronic return
       overview_deadlines: the deadlines of the overviews and their settlement
+      flat_rate_mixed_year: a year with months both in and out of the flat-rate tax
+      flat_rate_2027_band_1: the flat-rate band 1 for 2027, 9,661 or 9,662 CZK
     gap:
       non_deductible_costs: costs that are not tax deductible
       assets: assets
       assets_and_depreciation: assets and depreciation
       loss_carry_forward: carrying a tax loss forward
       starter_relief: the relief of a starting sole trader
+      flat_rate_surcharge: the flat-rate surcharge for not recording sales from 2027

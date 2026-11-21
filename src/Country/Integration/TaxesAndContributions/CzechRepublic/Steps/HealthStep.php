@@ -17,7 +17,7 @@ use Foresi\TaxesAndContributions\Contract\Step;
  * Health insurance for the year: 50 % of the profit, at least half the
  * average wage for each active month without the exemption from the minimum,
  * times 13.5 %, rounded up. Health insurance knows no secondary activity, and
- * has no maximum.
+ * has no maximum. Months in the flat-rate tax take no part.
  */
 final readonly class HealthStep implements PipelineStep
 {
@@ -25,8 +25,8 @@ final readonly class HealthStep implements PipelineStep
     {
         $rate = $calculation->rule('health.rate');
         $share = $calculation->rule('health.profit_share');
-        $active = array_filter($calculation->months, static fn (Month $month): bool => $month->isActive());
-        $input = ['profit' => Czk::text($calculation->profit), 'active_months' => (string) \count($active)];
+        $active = array_filter($calculation->months, static fn (Month $month): bool => $month->isOrdinary());
+        $input = ['profit' => Czk::text($calculation->ordinaryProfit()), 'active_months' => (string) \count($active)];
         if ([] === $active) {
             $calculation->health = 0;
 
@@ -40,7 +40,7 @@ final readonly class HealthStep implements PipelineStep
                 ++$withMinimum;
             }
         }
-        $profitShare = Czk::percent(max(0, $calculation->profit), $share->value);
+        $profitShare = Czk::percent(max(0, $calculation->ordinaryProfit()), $share->value);
         $base = Czk::upToCzk(max($profitShare, $minimum));
         $calculation->health = Czk::percentUp($base, $rate->value);
         $input += ['months_with_minimum' => (string) $withMinimum, 'profit_share' => Czk::text($profitShare), 'minimum_base' => Czk::text($minimum), 'base' => Czk::text($base), 'rate' => $rate->value];

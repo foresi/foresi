@@ -15,7 +15,9 @@ use Foresi\Shared\Domain\Money;
  * expenses claimed (the real costs or the lump sum), the profit, each levy,
  * the child bonus paid out, the levies together and what the owner keeps:
  * income - real costs - levies + child bonus. The social base is what the
- * pension counts from.
+ * pension counts from. In a year with flat-rate months, social, health and
+ * income tax are those of the other months, the flat rate is the bands'
+ * amounts of its months, and the levies add it.
  */
 final readonly class Totals
 {
@@ -32,6 +34,7 @@ final readonly class Totals
         public Money $levies,
         public Money $takeHome,
         public Money $socialBase,
+        public Money $flatRate,
     ) {
     }
 }

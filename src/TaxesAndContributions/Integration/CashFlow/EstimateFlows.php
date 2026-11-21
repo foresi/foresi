@@ -29,8 +29,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The payments of the estimate in the cash flow (Goal 5, old T7): every
  * advance and settlement not yet paid, and an overpayment coming back, as
- * estimate flows on their due day. The income tax is in the category taxes,
- * social, health and sickness insurance in insurance. They are computed from
+ * estimate flows on their due day. The income tax and the flat-rate tax are
+ * in the category taxes, social, health and sickness insurance in insurance. They are computed from
  * the profile and its chosen expense method each time, never stored. A
  * payment the bank has paid is no flow any more (B4).
  *
@@ -75,7 +75,7 @@ final readonly class EstimateFlows implements CashFlowSource
                 $payment->comesIn() ? FlowDirection::In : FlowDirection::Out,
                 $payment->amount,
                 new \DateTimeImmutable($payment->dueOn->format('Y-m-d'), $today->getTimezone()),
-                Authority::IncomeTax === $payment->authority ? FlowCategory::Taxes : FlowCategory::Insurance,
+                \in_array($payment->authority, [Authority::IncomeTax, Authority::FlatRate], true) ? FlowCategory::Taxes : FlowCategory::Insurance,
                 FlowCertainty::Estimate,
                 $this->label($payment),
                 [FlowFlag::Estimated],

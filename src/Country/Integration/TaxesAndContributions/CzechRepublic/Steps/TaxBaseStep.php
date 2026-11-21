@@ -28,7 +28,8 @@ final readonly class TaxBaseStep implements PipelineStep
         $inputs = $calculation->inputs;
         $minor = static fn (?Money $money): int => $money?->minor() ?? 0;
         $deduction = static fn (DeductionType $type): int => $minor($inputs->deductions[$type->value] ?? null);
-        $partial = $calculation->profit + $minor($inputs->employmentBase) + $minor($inputs->rentalBase) + $minor($inputs->otherBase);
+        $profit = $calculation->ordinaryProfit();
+        $partial = $profit + $minor($inputs->employmentBase) + $minor($inputs->rentalBase) + $minor($inputs->otherBase);
         $pensionCap = $calculation->rule('deduction.pension_and_life_cap');
         $pension = min($deduction(DeductionType::PensionProducts) + $deduction(DeductionType::LifeInsurance) + $deduction(DeductionType::LongTermInvestment), $pensionCap->minor());
         $housing = min($deduction(DeductionType::HousingLoanInterest), $calculation->rule('deduction.housing_loan_cap')->minor());
@@ -46,8 +47,8 @@ final readonly class TaxBaseStep implements PipelineStep
         return new Step(
             Step::TAX_BASE,
             [
-                'profit' => Czk::text($calculation->profit),
-                'other_partial_bases' => Czk::text($partial - $calculation->profit),
+                'profit' => Czk::text($profit),
+                'other_partial_bases' => Czk::text($partial - $profit),
                 'pension_and_life' => Czk::text($pension),
                 'housing_loan_interest' => Czk::text($housing),
                 'gifts' => Czk::text($giftsCounted),

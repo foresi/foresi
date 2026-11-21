@@ -22,6 +22,8 @@ use Foresi\TaxesAndContributions\Contract\CreditLine;
 use Foresi\TaxesAndContributions\Contract\DuePayment;
 use Foresi\TaxesAndContributions\Contract\EstimateView;
 use Foresi\TaxesAndContributions\Contract\ExpenseMethod;
+use Foresi\TaxesAndContributions\Contract\FlatRateMonth;
+use Foresi\TaxesAndContributions\Contract\FlatRateResult;
 use Foresi\TaxesAndContributions\Contract\ForecastCertainty;
 use Foresi\TaxesAndContributions\Contract\ForecastView;
 use Foresi\TaxesAndContributions\Contract\MethodResult;
@@ -302,6 +304,7 @@ final class TaxesJson
                     'levies' => JsonValues::money($method->totals->levies),
                     'take_home' => JsonValues::money($method->totals->takeHome),
                     'social_base' => JsonValues::money($method->totals->socialBase),
+                    'flat_rate' => JsonValues::money($method->totals->flatRate),
                 ],
                 'steps' => array_map(static fn (Step $step): array => [
                     'key' => $step->key,
@@ -326,7 +329,30 @@ final class TaxesJson
                 'sickness_insurance' => $month->sicknessInsurance,
                 'minimum_social_advance' => JsonValues::money($month->minimumSocialAdvance),
                 'minimum_health_advance' => JsonValues::money($month->minimumHealthAdvance),
+                'flat_rate_band' => $month->flatRateBand,
             ], $result->months),
+            'flat_rate' => $result->flatRate instanceof FlatRateResult ? self::flatRate($result->flatRate) : null,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function flatRate(FlatRateResult $flatRate): array
+    {
+        return [
+            'months' => array_map(static fn (FlatRateMonth $month): array => [
+                'month' => $month->month,
+                'band' => $month->band,
+                'income_tax' => JsonValues::money($month->incomeTax),
+                'social' => JsonValues::money($month->social),
+                'health' => JsonValues::money($month->health),
+                'total' => JsonValues::money($month->total()),
+            ], $flatRate->months),
+            'income_tax' => JsonValues::money($flatRate->incomeTax),
+            'social' => JsonValues::money($flatRate->social),
+            'health' => JsonValues::money($flatRate->health),
+            'total' => JsonValues::money($flatRate->total),
         ];
     }
 

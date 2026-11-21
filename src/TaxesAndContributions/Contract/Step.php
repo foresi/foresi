@@ -23,9 +23,10 @@ final readonly class Step
     public const string INCOME_TAX = 'income_tax';
     public const string CREDITS = 'credits';
     public const string CHILD_BENEFIT = 'child_benefit';
+    public const string FLAT_RATE = 'flat_rate';
 
-    /** The steps in the order of the pipeline. */
-    public const array KEYS = [self::PROFIT, self::SOCIAL, self::HEALTH, self::SICKNESS, self::TAX_BASE, self::INCOME_TAX, self::CREDITS, self::CHILD_BENEFIT];
+    /** The steps in the order of the pipeline; the flat rate only in a year with flat-rate months. */
+    public const array KEYS = [self::PROFIT, self::SOCIAL, self::HEALTH, self::SICKNESS, self::TAX_BASE, self::INCOME_TAX, self::CREDITS, self::CHILD_BENEFIT, self::FLAT_RATE];
 
     /**
      * @param array<string, string> $input
