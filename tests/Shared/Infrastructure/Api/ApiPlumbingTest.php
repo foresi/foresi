@@ -144,6 +144,7 @@ final class ApiPlumbingTest extends ApiTestCase
             ],
             'taxes-and-contributions' => [
                 '/api/v1/taxes-and-contributions/amounts' => ['get' => '200'],
+                '/api/v1/taxes-and-contributions/estimate' => ['get' => '200'],
                 '/api/v1/taxes-and-contributions/profile' => ['get' => '200'],
                 '/api/v1/taxes-and-contributions/profile/statuses' => ['post' => '201'],
                 '/api/v1/taxes-and-contributions/profile/statuses/{statusId}' => ['delete' => '200'],
