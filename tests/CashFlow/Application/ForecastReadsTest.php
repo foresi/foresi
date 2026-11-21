@@ -126,8 +126,8 @@ final class ForecastReadsTest extends CashFlowTestCase
         self::assertSame(['test.hidden'], $read->restrictedSources);
         self::assertCount(2, $read->flows);
         [$first, $second] = $read->flows;
-        self::assertSame(['test.hidden', null, 100000], [$first->source, $first->subject, $first->amountCzk->minor()]);
-        self::assertSame(['test.open', '2'], [$second->source, $second->subject?->id]);
+        self::assertSame(['test.hidden', null, 100000, null], [$first->source, $first->subject, $first->amountCzk->minor(), $first->label]);
+        self::assertSame(['test.open', '2', 'Invoice 2'], [$second->source, $second->subject?->id, $second->label]);
     }
 
     public function testAFulfilledPlannedOccurrenceIsNotReturned(): void

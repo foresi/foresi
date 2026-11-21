@@ -70,6 +70,10 @@ taxes:
     health: Health insurance
     sickness: Sickness insurance
     income_tax: Income tax
+  flow:
+    advance: '{authority} – advance {period}'
+    settlement: '{authority} – settlement {period}'
+    overpayment: '{authority} – overpayment back {period}'
   deduction:
     gifts: Gifts
     housing_loan_interest: Housing loan interest
@@ -260,6 +264,20 @@ taxes:
         plan_no_vat_split: recurring invoices and planned items count as entered, with no VAT split
         no_vat_split_restricted: documents you may not see count with their VAT
         no_vat_split_unknown: documents without a known VAT ratio count with their VAT
+    payments:
+      title: Payments
+      description: The advances and the settlement of the year by due day. A bank movement to the authority's account with its variable symbol pays one.
+      due: Due
+      payment: Payment
+      amount: Amount
+      state_column: State
+      state:
+        expected: Expected
+        paid: Paid
+        overdue: Overdue
+      paid_on: 'Paid {day}'
+      paid: '{count, plural, one {# payment paid} other {# payments paid}}'
+      duplicates: '{count, plural, one {This planned item in Cash flow may count a levy twice. End it there if the estimate covers it:} other {These planned items in Cash flow may count a levy twice. End them there if the estimate covers them:}}'
     comparison:
       title: Expense methods compared
       cheaper: cheaper
@@ -387,6 +405,9 @@ taxes:
       activity_assumed_main: The profile names no activity, so a main activity is assumed.
       flat_rate_not_computed: The flat-rate tax is not computed yet; the estimate shows the standard regime.
       deduction_not_computed: Union fees and further education exams are not deducted yet.
+      possible_duplicates: Planned items in Cash flow may count a levy twice.
+      no_match_rule: Some authorities have no account in the profile, so the bank cannot tell which of their payments are paid.
+      payments_unavailable: The bank movements could not be read, so the payments may be paid already.
     unverified:
       fx_payment_day: the ČNB rate of the payment day for foreign currencies
       vat_cash_basis: the amounts without VAT from the VAT registration day
@@ -396,6 +417,9 @@ taxes:
       official_2027_tables: the official tables of 2027
       rules_not_published: rules the authorities have not published yet
       act_180_2026: the changes of Act 180/2026
+      middle_advance_band: two income tax advances of 40 % each with a last known tax up to 150,000 CZK
+      electronic_deadline_payment_date: the deadline and the payment day of an electronic return
+      overview_deadlines: the deadlines of the overviews and their settlement
     gap:
       non_deductible_costs: costs that are not tax deductible
       assets: assets

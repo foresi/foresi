@@ -19,12 +19,14 @@ use Foresi\TaxesAndContributions\Contract\AmountTotals;
 use Foresi\TaxesAndContributions\Contract\AuthorityAccountView;
 use Foresi\TaxesAndContributions\Contract\ChildInput;
 use Foresi\TaxesAndContributions\Contract\CreditLine;
+use Foresi\TaxesAndContributions\Contract\DuePayment;
 use Foresi\TaxesAndContributions\Contract\EstimateView;
 use Foresi\TaxesAndContributions\Contract\ExpenseMethod;
 use Foresi\TaxesAndContributions\Contract\ForecastCertainty;
 use Foresi\TaxesAndContributions\Contract\ForecastView;
 use Foresi\TaxesAndContributions\Contract\MethodResult;
 use Foresi\TaxesAndContributions\Contract\MonthStatus;
+use Foresi\TaxesAndContributions\Contract\PossibleDuplicate;
 use Foresi\TaxesAndContributions\Contract\ProfileView;
 use Foresi\TaxesAndContributions\Contract\RegimeResult;
 use Foresi\TaxesAndContributions\Contract\RuleRef;
@@ -205,6 +207,24 @@ final class TaxesJson
                 ], $months),
             ], array_keys($estimate->accruals), array_values($estimate->accruals)),
             'amounts' => $sources,
+            'payments' => array_map(static fn (DuePayment $payment): array => [
+                'key' => $payment->key(),
+                'authority' => $payment->authority->value,
+                'kind' => $payment->kind,
+                'period' => $payment->period,
+                'direction' => $payment->comesIn() ? 'in' : 'out',
+                'payable_from' => $payment->payableFrom->format('Y-m-d'),
+                'due_on' => $payment->dueOn->format('Y-m-d'),
+                'amount' => JsonValues::money($payment->amount),
+                'state' => $payment->state,
+                'match_rule' => $payment->hasMatchRule() ? ['account' => $payment->account, 'variable_symbol' => $payment->variableSymbol] : null,
+                'paid_by' => null === $payment->paidBy ? null : ['bank_movement_id' => $payment->paidBy, 'booked_on' => $payment->paidOn?->format('Y-m-d')],
+            ], $estimate->payments),
+            'possible_duplicates' => array_map(static fn (PossibleDuplicate $item): array => [
+                'planned_item_id' => $item->id,
+                'name' => $item->name,
+                'category' => $item->category,
+            ], $estimate->possibleDuplicates),
             'warnings' => $estimate->warnings,
             'unverified' => $estimate->unverified,
             'known_gaps' => $estimate->knownGaps,

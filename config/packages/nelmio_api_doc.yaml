@@ -865,6 +865,43 @@ nelmio_api_doc:
                                 unavailable_sources: { type: array, items: { type: string } }
                                 restricted_sources: { type: array, items: { type: string } }
                                 missing_rates: { type: array, items: { type: string } }
+                        payments:
+                            type: array
+                            description: 'The payments of the year by due day: every advance, and the settlement in the next year once the year end is known; an overpayment comes back. A bank movement that meets the match rule of its authority (the account and variable symbol in the profile) pays it; one unpaid after its due day is overdue. The payments not yet paid are the estimate flows of the cash flow.'
+                            items:
+                                type: object
+                                properties:
+                                    key: { type: string, example: social.advance.2026-12 }
+                                    authority: { type: string, enum: [social, health, sickness, income_tax] }
+                                    kind: { type: string, enum: [advance, settlement, overpayment] }
+                                    period: { type: string, example: '2026-12', description: 'The month ("2026-12") or the year ("2026") it covers.' }
+                                    direction: { type: string, enum: [in, out] }
+                                    payable_from: { type: string, format: date }
+                                    due_on: { type: string, format: date }
+                                    amount: { $ref: '#/components/schemas/Money' }
+                                    state: { type: string, enum: [expected, paid, overdue] }
+                                    match_rule:
+                                        type: object
+                                        nullable: true
+                                        description: Null until the authority's account is in the profile.
+                                        properties:
+                                            account: { type: string }
+                                            variable_symbol: { type: string }
+                                    paid_by:
+                                        type: object
+                                        nullable: true
+                                        properties:
+                                            bank_movement_id: { type: string }
+                                            booked_on: { type: string, format: date }
+                        possible_duplicates:
+                            type: array
+                            description: 'Active planned items of Cash flow in the categories taxes and insurance, which the estimate flows may count twice. The estimate never ends them; the owner does.'
+                            items:
+                                type: object
+                                properties:
+                                    planned_item_id: { type: string, format: uuid }
+                                    name: { type: string }
+                                    category: { type: string, enum: [taxes, insurance] }
                         warnings: { type: array, items: { type: string, example: sources_unavailable } }
                         unverified: { type: array, items: { type: string, example: vat_cash_basis }, description: Rules an accountant should confirm. }
                         known_gaps: { type: array, items: { type: string } }

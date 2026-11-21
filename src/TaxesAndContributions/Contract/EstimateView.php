@@ -16,7 +16,10 @@ namespace Foresi\TaxesAndContributions\Contract;
  * A part that cannot be computed is null with the reason why:
  * year_not_started, rules_not_available, cash_flow_not_installed or
  * forecast_unavailable. A past year has no forecast: its year end is what
- * was paid. Every figure is an estimate, not a basis for the tax return.
+ * was paid. The payments are those of the year as they fall due, each
+ * expected, paid by a bank movement or overdue (B4), with the planned items of
+ * Cash flow that may count them twice (B5). Every figure is an estimate, not
+ * a basis for the tax return.
  */
 final readonly class EstimateView
 {
@@ -26,12 +29,17 @@ final readonly class EstimateView
     public const string YEAR_END_FORECAST_UNAVAILABLE = 'forecast_unavailable';
     public const string WARNING_SOURCES_UNAVAILABLE = 'sources_unavailable';
     public const string WARNING_FORECAST_INCOMPLETE = 'forecast_incomplete';
+    public const string WARNING_POSSIBLE_DUPLICATES = 'possible_duplicates';
+    public const string WARNING_NO_MATCH_RULE = 'no_match_rule';
+    public const string WARNING_PAYMENTS_UNAVAILABLE = 'payments_unavailable';
 
     /**
      * @param list<string>                      $warnings
      * @param list<string>                      $unverified
      * @param list<string>                      $knownGaps
-     * @param array<string, list<AccrualMonth>> $accruals   of the year end, by the value of the expense method
+     * @param array<string, list<AccrualMonth>> $accruals           of the year end, by the value of the expense method
+     * @param list<DuePayment>                  $payments           of the year, by due day
+     * @param list<PossibleDuplicate>           $possibleDuplicates
      */
     public function __construct(
         public int $year,
@@ -46,6 +54,21 @@ final readonly class EstimateView
         public array $knownGaps,
         public ?ForecastView $forecast = null,
         public array $accruals = [],
+        public array $payments = [],
+        public array $possibleDuplicates = [],
     ) {
+    }
+
+    /**
+     * The same estimate with its payments as the bank leaves them, the
+     * planned items that may duplicate them, and the warnings about both.
+     *
+     * @param list<DuePayment>        $payments
+     * @param list<PossibleDuplicate> $possibleDuplicates
+     * @param list<string>            $warnings
+     */
+    public function withPayments(array $payments, array $possibleDuplicates, array $warnings): self
+    {
+        return new self($this->year, $this->today, $this->toDate, $this->toDateReason, $this->yearEnd, $this->yearEndReason, $this->amounts, $warnings, $this->unverified, $this->knownGaps, $this->forecast, $this->accruals, $payments, $possibleDuplicates);
     }
 }

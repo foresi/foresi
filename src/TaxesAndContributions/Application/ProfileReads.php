@@ -31,6 +31,22 @@ final readonly class ProfileReads
     public function profile(): ProfileView
     {
         $this->access->denyUnlessOwner();
+
+        return $this->view();
+    }
+
+    /**
+     * The profile without asking who reads, for the estimate flows of the
+     * cash flow alone: Cash flow shows them to anyone but the owner only as
+     * category totals (B7), so nothing of the profile reaches them.
+     */
+    public function forEstimateFlows(): ProfileView
+    {
+        return $this->view();
+    }
+
+    private function view(): ProfileView
+    {
         $profile = $this->store->profile();
         $years = [];
         foreach ($profile instanceof OwnerProfile ? $profile->years() : [] as $inputs) {

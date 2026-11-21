@@ -194,6 +194,41 @@ final class TaxesApiTest extends ApiTestCase
         self::assertSame('owner_only', $this->in($read, 'structuredContent', 'error', 'code'));
     }
 
+    public function testTheEstimateListsThePaymentsWithTheirStateAndMatchRuleOnBothSurfaces(): void
+    {
+        $this->send($this->owner, 'POST', '/api/v1/taxes-and-contributions/profile/statuses', ['kind' => 'activity', 'value' => 'main', 'valid_from' => '2026-01-01']);
+        $this->send($this->owner, 'PUT', '/api/v1/taxes-and-contributions/profile/authorities/social', ['account' => '123-456789/0100', 'variable_symbol' => '7805121234']);
+        self::assertResponseIsSuccessful();
+
+        $this->get('/api/v1/taxes-and-contributions/estimate?year=2026', secret: $this->owner);
+        self::assertResponseIsSuccessful();
+        $payments = (array) $this->at('data', 'payments');
+        $byKey = array_column($payments, null, 'key');
+        self::assertSame([
+            'key' => 'social.advance.2026-12',
+            'authority' => 'social',
+            'kind' => 'advance',
+            'period' => '2026-12',
+            'direction' => 'out',
+            'payable_from' => '2026-12-01',
+            'due_on' => '2026-12-31',
+            'amount' => ['amount_minor' => 500_500, 'currency' => 'CZK'],
+            'state' => 'expected',
+            'match_rule' => ['account' => '123-456789/0100', 'variable_symbol' => '7805121234'],
+            'paid_by' => null,
+        ], $byKey['social.advance.2026-12']);
+        self::assertSame(['overdue', null], [$this->at('data', 'payments', $this->index($payments, 'health.advance.2026-09'), 'state'), $this->at('data', 'payments', $this->index($payments, 'health.advance.2026-09'), 'match_rule')]);
+        self::assertSame('in', $this->at('data', 'payments', $this->index($payments, 'social.overpayment.2026'), 'direction'));
+        self::assertSame([], $this->at('data', 'possible_duplicates'));
+        self::assertContains('no_match_rule', (array) $this->at('data', 'warnings'));
+
+        $call = $this->tool($this->owner, 'foresi_tax_estimate', ['year' => 2026]);
+        self::assertEquals($payments, $this->in($call, 'structuredContent', 'data', 'payments'));
+
+        $this->get('/api/v1/taxes-and-contributions/estimate?year=2027', secret: $this->owner);
+        self::assertSame(['social.advance.2027-01', 'expected'], [$this->at('data', 'payments', 0, 'key'), $this->at('data', 'payments', 0, 'state')], 'Next year has its advances before it starts.');
+    }
+
     public function testAMemberIsRefusedWithOwnerOnly(): void
     {
         $this->get('/api/v1/taxes-and-contributions/profile', secret: $this->memberWriter);
@@ -284,5 +319,15 @@ final class TaxesApiTest extends ApiTestCase
         }
 
         return $value;
+    }
+
+    /**
+     * @param array<mixed> $payments
+     */
+    private function index(array $payments, string $key): int
+    {
+        $index = array_search($key, array_column($payments, 'key'), true);
+
+        return \is_int($index) ? $index : self::fail('No payment '.$key);
     }
 }

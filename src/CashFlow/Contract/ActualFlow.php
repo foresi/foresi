@@ -36,4 +36,37 @@ final readonly class ActualFlow
             throw new \InvalidArgumentException('An actual flow has a positive amount; its direction says which way it goes.');
         }
     }
+
+    /**
+     * Whether this is a bank movement that meets a match rule (C16): to or
+     * from the account the rule names and with the variable symbol it names,
+     * each when named. A rule that names neither meets nothing, and neither
+     * does a document. The amount is the caller's to compare.
+     */
+    public function meets(?string $account, ?string $variableSymbol): bool
+    {
+        if ((null === $account && null === $variableSymbol) || null !== $this->counterpartyId) {
+            return false;
+        }
+        if (null !== $account && (null === $this->counterpartyAccount || $this->account($account) !== $this->account($this->counterpartyAccount))) {
+            return false;
+        }
+
+        return null === $variableSymbol || ltrim($variableSymbol, '0') === ltrim($this->variableSymbol ?? '', '0');
+    }
+
+    /**
+     * An account as it compares: without spaces and in capitals, and a Czech
+     * number without the zeros a bank may pad it with ("000000-0123/0100" is "123/0100").
+     */
+    private function account(string $account): string
+    {
+        $account = strtoupper((string) preg_replace('/\s+/', '', $account));
+        if (1 !== preg_match('/^(?:(\d{1,6})-)?(\d{1,10})\/(\d{4})$/', $account, $parts)) {
+            return $account;
+        }
+        $prefix = ltrim($parts[1], '0');
+
+        return ('' === $prefix ? '' : $prefix.'-').ltrim($parts[2], '0').'/'.$parts[3];
+    }
 }

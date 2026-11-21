@@ -17,6 +17,12 @@ use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\TaxesAndContributions\Contract\Authority;
+use Foresi\TaxesAndContributions\Contract\DuePayment;
+use Foresi\TaxesAndContributions\Contract\EstimateView;
+use Foresi\TaxesAndContributions\Infrastructure\Screen\TaxesScreen;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -203,6 +209,47 @@ final class TaxesControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('dialog#sheet-page'));
         self::assertCount(1, $crawler->filter('nav a[href="/taxes-and-contributions?year=2026"]'));
+    }
+
+    public function testThePaymentsShowWhatFallsDueAndThePlannedItemsThatMayDuplicateThem(): void
+    {
+        $this->signedIn(Role::Owner);
+        $this->planned('out', 'taxes', '5005.00', '2026-12-31');
+
+        $crawler = $this->client->request('GET', '/taxes-and-contributions');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-taxes-payments] h2', 'Payments');
+        $december = $crawler->filter('[data-taxes-payment="social.advance.2026-12"]');
+        self::assertSame('expected', $december->attr('data-state'));
+        self::assertStringContainsString('Social insurance – advance 12/2026', $december->text());
+        self::assertStringContainsString('5,005', $december->text());
+        self::assertStringContainsString('Dec 31, 2026', $december->text());
+        self::assertSame('Overdue', trim($crawler->filter('[data-taxes-payment="social.advance.2026-10"] td:last-child')->text()));
+        // Without income, the advances to June at 5,720 paid more than the year's minimum: it comes back.
+        self::assertStringContainsString('+', $crawler->filter('[data-taxes-payment="social.overpayment.2026"]')->text());
+        self::assertCount(0, $crawler->filter('[data-taxes-paid]'), 'Nothing is paid yet.');
+
+        $duplicate = $crawler->filter('[data-taxes-duplicates] [data-taxes-duplicate] a');
+        self::assertSame('Planned taxes', trim($duplicate->text()));
+        self::assertMatchesRegularExpression('#^/cash-flow/planned-costs/[0-9a-f-]{36}$#', (string) $duplicate->attr('href'));
+        self::assertStringNotContainsString('may count a levy twice.', $this->text($crawler, '[data-taxes-warnings]'), 'The duplicates are named in the payments, not twice.');
+        self::assertStringContainsString('no account in the profile', $this->text($crawler, '[data-taxes-warnings]'));
+    }
+
+    public function testAPaidPaymentSaysWhenTheBankBookedItInCzech(): void
+    {
+        $this->signedIn(Role::Owner);
+        $day = static fn (string $day): \DateTimeImmutable => new \DateTimeImmutable($day, new \DateTimeZone('Europe/Prague'));
+        $czk = Money::ofMinor(500_500, Currency::CZK);
+        $paid = new DuePayment(Authority::Social, DuePayment::KIND_ADVANCE, '2026-10', $day('2026-10-01'), $day('2026-10-31'), $czk, DuePayment::STATE_PAID, '1/0100', '1', 'm1', $day('2026-10-30'));
+        $open = new DuePayment(Authority::Health, DuePayment::KIND_ADVANCE, '2026-11', $day('2026-11-01'), $day('2026-12-08'), $czk);
+        $estimate = new EstimateView(2026, $day('2026-11-20'), null, null, null, null, null, [], [], [], payments: [$paid, $open]);
+
+        $rows = self::getContainer()->get(TaxesScreen::class)->payments($estimate);
+
+        self::assertSame([DuePayment::STATE_PAID, 'Zaplaceno 30. 10. 2026', 'green'], [$rows[0]['state'], $rows[0]['stateLabel'], $rows[0]['tone']]);
+        self::assertSame(['Očekává se', 'outline', 'Zdravotní pojištění – záloha 11/2026'], [$rows[1]['stateLabel'], $rows[1]['tone'], $rows[1]['label']]);
     }
 
     public function testAMemberIsRefused(): void

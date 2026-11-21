@@ -76,9 +76,10 @@ final readonly class ForecastReads implements ForecastReader
                 continue;
             }
             $flow = $line->flow;
+            $restricted = \in_array($flow->source, $collected->restricted, true);
             $flows[] = new ReadFlow(
                 $flow->source,
-                \in_array($flow->source, $collected->restricted, true) ? null : $flow->subject,
+                $restricted ? null : $flow->subject,
                 $flow->direction,
                 $flow->amount,
                 $line->amount,
@@ -86,6 +87,7 @@ final readonly class ForecastReads implements ForecastReader
                 $flow->category,
                 $flow->certainty,
                 $flow->flags,
+                $restricted ? null : $flow->label,
             );
         }
 

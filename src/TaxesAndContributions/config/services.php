@@ -7,10 +7,13 @@
 declare(strict_types=1);
 
 use Foresi\TaxesAndContributions\Application\Amounts;
+use Foresi\TaxesAndContributions\Application\DuePayments;
 use Foresi\TaxesAndContributions\Application\Estimates;
 use Foresi\TaxesAndContributions\Application\YearEndForecast;
 use Foresi\TaxesAndContributions\Contract\ActualAmountSource;
 use Foresi\TaxesAndContributions\Contract\ForecastAmountSource;
+use Foresi\TaxesAndContributions\Contract\LevyPaymentSource;
+use Foresi\TaxesAndContributions\Contract\PlannedLevySource;
 use Foresi\TaxesAndContributions\Contract\Regime;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
@@ -37,8 +40,15 @@ return static function (ContainerConfigurator $container): void {
 
     // A country gives the rules of a legal form through Foresi\TaxesAndContributions\Contract\Regime;
     // Cash flow, when installed, gives the forecast through Foresi\TaxesAndContributions\Contract\ForecastAmountSource.
+    // Cash flow, when installed, also gives the bank movements that pay the levies
+    // (Foresi\TaxesAndContributions\Contract\LevyPaymentSource) and the planned items that may
+    // duplicate them (Foresi\TaxesAndContributions\Contract\PlannedLevySource).
+    $services->set(DuePayments::class)
+        ->arg('$banks', tagged_iterator(LevyPaymentSource::TAG));
     $services->set(Estimates::class)
         ->arg('$regimes', tagged_iterator(Regime::TAG))
         ->arg('$forecasts', tagged_iterator(ForecastAmountSource::TAG))
-        ->arg('$yearEnd', service(YearEndForecast::class));
+        ->arg('$yearEnd', service(YearEndForecast::class))
+        ->arg('$payments', service(DuePayments::class))
+        ->arg('$plannedLevies', tagged_iterator(PlannedLevySource::TAG));
 };

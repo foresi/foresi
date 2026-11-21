@@ -4,10 +4,11 @@
     than saved views (docs/design/list-pages.md, 7). What the owner keeps is one compact table: the
     actual figures to date, and beside them the year end, a forecast kept apart in its own dashed, shaded
     column under the outline "forecast" badge, or the reason it is empty. Under it, the forecast part by
-    certainty in a dashed box of the same look. The expense methods follow side by side, then the credits.
+    certainty in a dashed box of the same look. The payments of the year follow, then the expense methods
+    side by side and the credits.
     Every number of both columns opens its steps in the side sheet, as a cell of Cash flow opens its items
     (docs/design/overlays.md). The profile is the header's action. Variables: year, tabs, reason,
-    yearEndReason, summary, forecast, comparison, credits, warnings, footer.
+    yearEndReason, summary, forecast, payments, duplicates, comparison, credits, warnings, footer.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
@@ -106,7 +107,68 @@
                     </div>
                 {% endif %}
             </section>
+        {% endif %}
 
+        {% if payments is not empty or duplicates is not empty %}
+            {#
+                What falls due and what the bank already paid (B4), compact: the payments still open in one
+                table, the paid ones folded under it in a native disclosure, the progressive disclosure of
+                iDoklad's "show more details". Planned items that may count a levy twice are named with a link,
+                and only the owner ends them in Cash flow (B5).
+            #}
+            {% set open = payments|filter(p => p.state != 'paid') %}
+            {% set paid = payments|filter(p => p.state == 'paid') %}
+            <section aria-labelledby="taxes-payments-title" class="grid max-w-2xl grid-cols-1 gap-2" data-taxes-payments>
+                <div class="grid gap-0.5">
+                    <h2 id="taxes-payments-title" class="m-0 text-body font-semibold text-ink">{{ 'taxes.page.payments.title'|trans }}</h2>
+                    <p class="m-0 text-small text-muted">{{ 'taxes.page.payments.description'|trans }}</p>
+                </div>
+                {% if duplicates is not empty %}
+                    <twig:Ui:Alert tone="warning" icon="triangle-alert" data-taxes-duplicates>
+                        <p class="m-0">{{ 'taxes.page.payments.duplicates'|trans({count: duplicates|length}) }}</p>
+                        <ul class="m-0 mt-1 grid list-none gap-0.5 p-0">
+                            {% for item in duplicates %}
+                                <li data-taxes-duplicate>{% if item.href %}<a href="{{ item.href }}" class="{{ link }}">{{ item.name }}</a>{% else %}{{ item.name }}{% endif %}</li>
+                            {% endfor %}
+                        </ul>
+                    </twig:Ui:Alert>
+                {% endif %}
+                {% for rows in [open, paid] %}
+                    {% set table %}
+                        <div class="relative overflow-x-auto rounded-panel border border-container bg-white">
+                            <table class="w-full border-collapse text-small">
+                                <caption class="sr-only">{{ 'taxes.page.payments.title'|trans }}</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col" class="{{ head }} text-left">{{ 'taxes.page.payments.due'|trans }}</th>
+                                        <th scope="col" class="{{ head }} w-full text-left">{{ 'taxes.page.payments.payment'|trans }}</th>
+                                        <th scope="col" class="{{ head }} text-right">{{ 'taxes.page.payments.amount'|trans }}</th>
+                                        <th scope="col" class="{{ head }} text-left">{{ 'taxes.page.payments.state_column'|trans }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for payment in rows %}
+                                        <tr data-taxes-payment="{{ payment.key }}" data-state="{{ payment.state }}">
+                                            <td class="num h-row whitespace-nowrap border-b border-divider px-4 text-left text-text">{{ payment.due }}</td>
+                                            <th scope="row" class="h-row whitespace-nowrap border-b border-divider px-4 text-left font-normal text-text">{{ payment.label }}</th>
+                                            <td class="{{ cell }} text-ink">{{ payment.amount }}</td>
+                                            <td class="h-row whitespace-nowrap border-b border-divider px-4"><twig:Ui:Badge :tone="payment.tone">{{ payment.stateLabel }}</twig:Ui:Badge></td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endset %}
+                    {% if loop.first and rows is not empty %}
+                        {{ table }}
+                    {% elseif not loop.first and rows is not empty %}
+                        <twig:Ui:Disclosure :label="'taxes.page.payments.paid'|trans({count: rows|length})" data-taxes-paid>{{ table }}</twig:Ui:Disclosure>
+                    {% endif %}
+                {% endfor %}
+            </section>
+        {% endif %}
+
+        {% if summary is not null %}
             {% if comparison %}
                 <section aria-labelledby="taxes-comparison-title" class="grid max-w-2xl grid-cols-1 gap-2" data-taxes-comparison>
                     <div class="grid gap-0.5">
