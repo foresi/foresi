@@ -35,6 +35,7 @@ use Foresi\TaxesAndContributions\Contract\RuleRef;
 use Foresi\TaxesAndContributions\Contract\SpouseInput;
 use Foresi\TaxesAndContributions\Contract\StatusPeriod;
 use Foresi\TaxesAndContributions\Contract\Step;
+use Foresi\TaxesAndContributions\Contract\SwitchAdjustment;
 use Foresi\TaxesAndContributions\Contract\YearInputsView;
 
 /**
@@ -332,6 +333,31 @@ final class TaxesJson
                 'flat_rate_band' => $month->flatRateBand,
             ], $result->months),
             'flat_rate' => $result->flatRate instanceof FlatRateResult ? self::flatRate($result->flatRate) : null,
+            'switch_adjustment' => $result->switchAdjustment instanceof SwitchAdjustment ? self::switchAdjustment($result->switchAdjustment) : null,
+        ];
+    }
+
+    /**
+     * The adjustment of the year before for a change of the expense method,
+     * apart from the totals.
+     *
+     * @return array<string, mixed>
+     */
+    private static function switchAdjustment(SwitchAdjustment $switch): array
+    {
+        return [
+            'adjusted_year' => $switch->adjustedYear,
+            'from_method' => $switch->from->value,
+            'into' => $switch->into,
+            'open_on' => $switch->openOn->format('Y-m-d'),
+            'receivables' => JsonValues::money($switch->receivables),
+            'payables' => JsonValues::money($switch->payables),
+            'base_change' => JsonValues::money($switch->baseChange),
+            'previous_tax_base' => self::money($switch->previousTaxBase),
+            'rate' => $switch->rate,
+            'tax' => JsonValues::money($switch->tax),
+            'due_on' => $switch->dueOn->format('Y-m-d'),
+            'source_url' => $switch->sourceUrl,
         ];
     }
 

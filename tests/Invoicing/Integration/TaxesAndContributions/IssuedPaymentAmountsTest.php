@@ -24,6 +24,7 @@ use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\TaxesAndContributions\Contract\ActualAmount;
 use Foresi\TaxesAndContributions\Contract\AmountKind;
+use Foresi\TaxesAndContributions\Contract\OpenAmount;
 use Foresi\TaxesAndContributions\Contract\VatShare;
 use Foresi\Tests\Invoicing\Application\AdvanceTestCase;
 use Symfony\Component\Clock\Clock;
@@ -133,6 +134,41 @@ final class IssuedPaymentAmountsTest extends AdvanceTestCase
         self::assertSame([], $this->source()->sharesOf([]));
         self::assertSame([], $this->source()->sharesOf(['not-an-id']));
         self::assertEquals([$invoice->id() => new VatShare(100_000, 121_000)], $this->source()->sharesOf(['not-an-id', $invoice->id(), '019a0000-0000-7000-8000-000000000001']));
+    }
+
+    public function testWhatIsOpenAtTheEndOfADayIsWhatItsPaymentsAndCorrectionsUpToThenLeft(): void
+    {
+        // 1,000 + 210 VAT, supplied on 1 November.
+        $invoice = $this->issue->issue($this->input([$this->line('1000.00')]));
+        $this->pay($invoice, '605.00', '2026-11-10');
+        $this->correctionOf($this->reloaded($invoice), '-100.00');
+
+        self::assertSame([], $this->open('2026-10-31'), 'Not yet supplied.');
+        self::assertSame([[IssuedPaymentAmounts::KEY, 'invoice', $invoice->id(), '/api/v1/invoices/'.$invoice->id(), AmountKind::Income, 121_000]], array_map(static fn (OpenAmount $amount): array => [$amount->source, $amount->subject->type, $amount->subject->id, $amount->subject->url, $amount->kind, $amount->gross->minor()], $this->open('2026-11-09')));
+        self::assertSame([[60_500, 50_000, 10_500]], array_map(static fn (OpenAmount $amount): array => [$amount->gross->minor(), $amount->net->minor(), $amount->vat->minor()], $this->open('2026-11-19')), 'The payment of the 10th counts, the credit note of the 20th not yet.');
+        // The credit note of 100 + 21 takes 121 off; the ratio stays 21 %.
+        self::assertSame([[48_400, 40_000, 8_400]], array_map(static fn (OpenAmount $amount): array => [$amount->gross->minor(), $amount->net->minor(), $amount->vat->minor()], $this->open('2026-11-20')));
+    }
+
+    public function testAnAdvanceIsNeverOpenAndACancelledPaymentPaysNothing(): void
+    {
+        $this->advance([$this->gross('5000.00')]);
+        $paid = $this->issue->issue($this->input([$this->line('1000.00')]));
+        $this->pay($paid, '1210.00', '2026-11-05');
+        $cancelled = $this->issue->issue($this->input([$this->line('1000.00')]));
+        $this->cancel->cancel($this->pay($cancelled, '1210.00', '2026-11-05')->id());
+
+        self::assertSame([[$cancelled->id(), 121_000]], array_map(static fn (OpenAmount $amount): array => [$amount->subject->id, $amount->gross->minor()], $this->open('2026-12-31')));
+    }
+
+    /**
+     * @return list<OpenAmount>
+     */
+    private function open(string $day): array
+    {
+        $this->em->clear();
+
+        return iterator_to_array($this->source()->openAt(new \DateTimeImmutable($day, new \DateTimeZone('Europe/Prague'))), false);
     }
 
     /**

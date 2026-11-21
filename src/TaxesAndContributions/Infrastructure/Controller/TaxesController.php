@@ -38,6 +38,9 @@ final class TaxesController extends AbstractController
     /** The query value of the steps of the year end rather than of "to date". */
     public const string YEAR_END = 'year_end';
 
+    /** The warning of a change of the expense method, shown on its own with its amount. */
+    public const string WARNING_SWITCH_ADJUSTMENT = 'switch_adjustment';
+
     public function __construct(
         private readonly Estimates $estimates,
         private readonly ProfileReads $profiles,
@@ -70,8 +73,9 @@ final class TaxesController extends AbstractController
             'duplicates' => $this->screen->duplicates($estimate),
             'comparison' => $this->screen->comparison($estimate),
             'credits' => $this->screen->credits($estimate),
-            // The possible duplicates are named in the payments, with their links.
-            'warnings' => $this->screen->notes('warning', array_values(array_diff($estimate->warnings, [EstimateView::WARNING_POSSIBLE_DUPLICATES]))),
+            // The possible duplicates are named in the payments, with their links; the method change has its own warning with the amount.
+            'warnings' => $this->screen->notes('warning', array_values(array_diff($estimate->warnings, [EstimateView::WARNING_POSSIBLE_DUPLICATES, self::WARNING_SWITCH_ADJUSTMENT]))),
+            'switchAdjustment' => $this->screen->switchAdjustment($estimate),
             'footer' => $this->screen->footer($estimate),
         ]);
     }

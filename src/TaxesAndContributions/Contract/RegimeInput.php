@@ -11,7 +11,9 @@ namespace Foresi\TaxesAndContributions\Contract;
 /**
  * What a regime computes a year from: the owner profile, the amounts and the
  * days. The cut-off is today for "to date" and 31 December for "year end";
- * only the months that start on it or before count.
+ * only the months that start on it or before count. The year before comes
+ * when the expense method of that year is known, for the adjustment of a
+ * change of method.
  */
 final readonly class RegimeInput
 {
@@ -21,6 +23,7 @@ final readonly class RegimeInput
         public AmountsView $amounts,
         public \DateTimeImmutable $today,
         public \DateTimeImmutable $cutOff,
+        public ?YearBefore $yearBefore = null,
     ) {
     }
 }

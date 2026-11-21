@@ -75,6 +75,7 @@ taxes:
     advance: '{authority} – záloha {period}'
     settlement: '{authority} – doplatek {period}'
     overpayment: '{authority} – přeplatek zpět {period}'
+    switch_adjustment: '{authority} – změna způsobu výdajů, dodatečné přiznání {period}'
   deduction:
     gifts: Dary
     housing_loan_interest: Úroky z úvěru na bydlení
@@ -266,6 +267,10 @@ taxes:
         plan_no_vat_split: opakované faktury a plánované položky se počítají, jak jsou zadané, bez rozdělení DPH
         no_vat_split_restricted: doklady, které nesmíte vidět, se počítají s DPH
         no_vat_split_unknown: doklady bez známého poměru DPH se počítají s DPH
+    switch:
+      text: 'Způsob výdajů se mění ({from} → {into}), za rok {year} proto podáte dodatečné přiznání: jeho základ daně se změní o {change}, tedy pohledávky {receivables} otevřené k {day} bez závazků {payables}. Daň {tax} je splatná do {due}.'
+      lower: 'Způsob výdajů se mění ({from} → {into}), za rok {year} proto podáte dodatečné přiznání: jeho základ daně se změní o {change}, tedy pohledávky {receivables} otevřené k {day} bez závazků {payables}. Daň by byla o {tax} nižší, žádná platba se neplánuje.'
+      flat_rate: paušální daň
     payments:
       title: Platby
       description: Zálohy a vyúčtování roku podle splatnosti. Platbu uhradí pohyb na účet úřadu s jeho variabilním symbolem.
@@ -425,6 +430,7 @@ taxes:
       possible_duplicates: Plánované položky v Cash flow mohou odvod započítat dvakrát.
       no_match_rule: Některé úřady nemají v profilu účet, banka proto nepozná, které jejich platby jsou zaplacené.
       payments_unavailable: Pohyby na účtu se nepodařilo načíst, platby už mohou být zaplacené.
+      switch_adjustment: Způsob uplatnění výdajů se proti loňsku mění, loňský základ daně se proto upraví dodatečným přiznáním.
     unverified:
       fx_payment_day: kurz ČNB ke dni platby u cizích měn
       vat_cash_basis: částky bez DPH ode dne registrace k DPH
@@ -439,6 +445,9 @@ taxes:
       overview_deadlines: lhůty přehledů a jejich doplatků
       flat_rate_mixed_year: rok s měsíci v paušálním režimu i mimo něj
       flat_rate_2027_band_1: 1. pásmo paušální daně pro rok 2027, 9 661, nebo 9 662 Kč
+      switch_adjustment: úprava loňského základu daně při změně způsobu uplatnění výdajů
+      switch_adjustment_insurance: zda změna způsobu uplatnění výdajů upraví i loňské pojistné
+      switch_adjustment_previous_base: sazba úpravy, protože pro loňský rok chybí pravidla k výpočtu základu
     gap:
       non_deductible_costs: daňově neuznatelné výdaje
       assets: majetek
@@ -446,3 +455,4 @@ taxes:
       loss_carry_forward: odpočet daňové ztráty
       starter_relief: úlevy pro začínající OSVČ
       flat_rate_surcharge: přirážka k paušální dani za neevidování tržeb od roku 2027
+      switch_adjustment_inventory_and_reserves: zásoby a rezervy v úpravě při změně způsobu výdajů

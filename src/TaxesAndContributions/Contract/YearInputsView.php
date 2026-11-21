@@ -45,4 +45,17 @@ final readonly class YearInputsView
         public ?Money $averageWageOverride = null,
     ) {
     }
+
+    /**
+     * The method the return of the year is filed with: the one chosen, or the
+     * only one compared; null while the owner has not decided.
+     */
+    public function filedMethod(): ?ExpenseMethod
+    {
+        return match (true) {
+            $this->chosenMethod instanceof ExpenseMethod => $this->chosenMethod,
+            1 === \count($this->expenseMethods) => $this->expenseMethods[0],
+            default => null,
+        };
+    }
 }

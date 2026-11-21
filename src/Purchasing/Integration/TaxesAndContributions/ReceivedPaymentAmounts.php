@@ -23,6 +23,7 @@ use Foresi\Shared\Domain\Money;
 use Foresi\TaxesAndContributions\Contract\ActualAmount;
 use Foresi\TaxesAndContributions\Contract\ActualAmountSource;
 use Foresi\TaxesAndContributions\Contract\AmountKind;
+use Foresi\TaxesAndContributions\Contract\OpenAmount;
 use Foresi\TaxesAndContributions\Contract\Subject;
 use Foresi\TaxesAndContributions\Contract\VatShare;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -35,6 +36,12 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  * non-deductible VAT stays a cost. The money a credit note brings back
  * counts against the costs. Drafts and the trash stay out. A paid advance
  * request counts when paid.
+ *
+ * What is open at the end of a day are the recorded documents supplied by
+ * then (their tax point, else their issue or received day) that the payments
+ * up to that day have not settled; a credit note not yet refunded is open
+ * below zero. An advance request is never open: it is no payable of the
+ * records.
  */
 final readonly class ReceivedPaymentAmounts implements ActualAmountSource
 {
@@ -87,6 +94,39 @@ final readonly class ReceivedPaymentAmounts implements ActualAmountSource
                 $vat,
                 null === $row['taxPointOn'] ? null : new \DateTimeImmutable($row['taxPointOn']->format('Y-m-d'), $zone),
                 ReceivedDocumentKind::AdvanceRequest === $row['kind'],
+            );
+        }
+    }
+
+    public function openAt(\DateTimeImmutable $day): iterable
+    {
+        /** @var list<array{id: string, currency: Currency, kind: ReceivedDocumentKind, treatment: PurchaseTaxTreatment, vat: int, total: int|null, paid: int|numeric-string}> $rows */
+        $rows = $this->entityManager->createQuery(
+            'SELECT d.id AS id, d.currency AS currency, d.kind AS kind, d.treatment AS treatment, d.vatMinor AS vat, d.totalMinor AS total,'
+            .' (SELECT COALESCE(SUM(p.amountMinor), 0) FROM '.ReceivedDocumentPayment::class.' p WHERE p.document = d AND p.paidOn <= :day) AS paid'
+            .' FROM '.ReceivedDocument::class.' d WHERE d.state = :state AND d.deletedAt IS NULL AND d.kind <> :advance AND COALESCE(d.taxPointDate, d.issueDate, d.receivedDate) <= :day',
+        )
+            ->setParameter('day', $day->format('Y-m-d'))
+            ->setParameter('state', ReceivedDocumentState::Recorded->value)
+            ->setParameter('advance', ReceivedDocumentKind::AdvanceRequest->value)
+            ->getArrayResult();
+        foreach ($rows as $row) {
+            $share = $this->share($row['treatment'], $row['vat'], $row['total']);
+            // A credit note asks below zero, and what it brings back is paid above zero.
+            $paid = (int) $row['paid'];
+            $rest = $share->grossMinor + (ReceivedDocumentKind::CreditNote === $row['kind'] ? $paid : -$paid);
+            if (0 === $rest) {
+                continue;
+            }
+            $gross = Money::ofMinor($rest, $row['currency']);
+            [$net, $vat] = $share->split($gross);
+            yield new OpenAmount(
+                self::KEY,
+                new Subject('received_document', $row['id'], $this->urls->generate(ReceivedDocumentApiController::SHOW, ['documentId' => $row['id']], UrlGeneratorInterface::ABSOLUTE_PATH)),
+                AmountKind::Cost,
+                $gross,
+                $net,
+                $vat,
             );
         }
     }

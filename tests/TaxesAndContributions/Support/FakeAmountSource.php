@@ -51,6 +51,11 @@ final class FakeAmountSource implements ActualAmountSource
         return $this->amounts;
     }
 
+    public function openAt(\DateTimeImmutable $day): iterable
+    {
+        return [];
+    }
+
     public function sharesOf(array $subjectIds): array
     {
         $this->sharesAsked[] = $subjectIds;

@@ -822,6 +822,23 @@ nelmio_api_doc:
                                 social: { $ref: '#/components/schemas/Money' }
                                 health: { $ref: '#/components/schemas/Money' }
                                 total: { $ref: '#/components/schemas/Money' }
+                        switch_adjustment:
+                            type: object
+                            nullable: true
+                            description: 'The adjustment of the year before when the expense method changes (ZDP § 23 (8)): from actual costs to a lump sum, or into a whole year of the flat-rate tax. The receivables open at the end of the year before raise its tax base and, with actual costs before, the open payables lower it; advances stay out. The tax on the change, at the marginal rate of the year before, is due with an additional return by the return deadline of this year, as the payment of kind switch_adjustment. It is never inside the totals, and the warning switch_adjustment names it; unverified, and its effect on the insurance (switch_adjustment_insurance) too.'
+                            properties:
+                                adjusted_year: { type: integer, example: 2026 }
+                                from_method: { type: string, enum: [actual, lump_80, lump_60, lump_40, lump_30] }
+                                into: { type: string, enum: [lump_80, lump_60, lump_40, lump_30, flat_rate] }
+                                open_on: { type: string, format: date, description: 'The last day of the year before, when the documents were open.' }
+                                receivables: { $ref: '#/components/schemas/Money', description: 'Open issued invoices, without VAT when the owner was a VAT payer on that day.' }
+                                payables: { $ref: '#/components/schemas/Money', description: 'Open received documents; zero when the year before had a lump sum.' }
+                                base_change: { $ref: '#/components/schemas/Money', description: 'The receivables less the payables; below zero it lowers the base.' }
+                                previous_tax_base: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true, description: 'Null when the year before has no rules; the tax then takes the basic rate of this year.' }
+                                rate: { type: string, example: '15', description: 'The marginal rate in per cent.' }
+                                tax: { $ref: '#/components/schemas/Money', description: 'The change of the tax of the year before; below zero no payment comes of it.' }
+                                due_on: { type: string, format: date }
+                                source_url: { type: string, format: uri }
                 TaxEstimate:
                     type: object
                     description: 'The estimate of the taxes and contributions of a year, never a basis for the tax return. "To date" and "year end" are never mixed; a part that cannot be computed is null with its reason. Only the owner reads it.'
@@ -895,7 +912,7 @@ nelmio_api_doc:
                                 properties:
                                     key: { type: string, example: social.advance.2026-12 }
                                     authority: { type: string, enum: [social, health, sickness, income_tax, flat_rate] }
-                                    kind: { type: string, enum: [advance, settlement, overpayment] }
+                                    kind: { type: string, enum: [advance, settlement, overpayment, switch_adjustment], description: 'switch_adjustment is the tax of a change of the expense method, of the year of the change.' }
                                     period: { type: string, example: '2026-12', description: 'The month ("2026-12") or the year ("2026") it covers.' }
                                     direction: { type: string, enum: [in, out] }
                                     payable_from: { type: string, format: date }

@@ -12,6 +12,7 @@ use Foresi\Instance\Application\InstanceClock;
 use Foresi\TaxesAndContributions\Contract\AmountsView;
 use Foresi\TaxesAndContributions\Contract\DuePayment;
 use Foresi\TaxesAndContributions\Contract\EstimateView;
+use Foresi\TaxesAndContributions\Contract\ExpenseMethod;
 use Foresi\TaxesAndContributions\Contract\ForecastAmountSource;
 use Foresi\TaxesAndContributions\Contract\ForecastView;
 use Foresi\TaxesAndContributions\Contract\PlannedLevySource;
@@ -23,6 +24,7 @@ use Foresi\TaxesAndContributions\Contract\RegimeResult;
 use Foresi\TaxesAndContributions\Contract\RulesNotAvailable;
 use Foresi\TaxesAndContributions\Contract\StatusKind;
 use Foresi\TaxesAndContributions\Contract\StatusPeriod;
+use Foresi\TaxesAndContributions\Contract\YearBefore;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
@@ -35,8 +37,10 @@ use Psr\Log\NullLogger;
  * forecast part is split by certainty. Without Cash flow, the year end of
  * this year is null and says why. The payments of the year come with it, each
  * matched to the bank, and the same payments not yet paid feed the estimate
- * flows of the cash flow. Nothing is stored; only the owner reads the
- * estimate (B7).
+ * flows of the cash flow. When the year before has its expense method
+ * filed, the regime gets that year too, its amounts and what was open at its
+ * end, so it can tell a change of method and add its adjustment. Nothing is
+ * stored; only the owner reads the estimate (B7).
  */
 final readonly class Estimates
 {
@@ -136,12 +140,16 @@ final readonly class Estimates
         }
         $amounts = $this->amounts->yearOf($year, $profile);
         $warnings = [] === $amounts->unavailableSources ? [] : [EstimateView::WARNING_SOURCES_UNAVAILABLE];
+        $before = $this->yearBefore($year, $profile);
+        if ($before instanceof YearBefore && [] !== $before->open->unavailableSources) {
+            $warnings[] = EstimateView::WARNING_SOURCES_UNAVAILABLE;
+        }
         try {
-            $toDate = $regime->compute(new RegimeInput($year, $profile, $amounts, $today, min($today, $lastDay)));
+            $toDate = $regime->compute(new RegimeInput($year, $profile, $amounts, $today, min($today, $lastDay), $before));
         } catch (RulesNotAvailable) {
             return new EstimateView($year, $today, null, EstimateView::TO_DATE_RULES_NOT_AVAILABLE, null, EstimateView::TO_DATE_RULES_NOT_AVAILABLE, $amounts, $warnings, $amounts->unverified, $amounts->knownGaps);
         }
-        $unverified = [...$amounts->unverified, ...$toDate->unverified];
+        $unverified = [...$amounts->unverified, ...($before instanceof YearBefore ? $before->open->unverified : []), ...$toDate->unverified];
         $knownGaps = [...$amounts->knownGaps, ...$toDate->knownGaps];
         $warnings = [...$warnings, ...$toDate->warnings];
         // A past year is over: its year end is what was paid, every month counted.
@@ -163,7 +171,7 @@ final readonly class Estimates
             }
             if ($forecast instanceof ForecastView) {
                 $combined = YearEndForecast::combined($amounts, $forecast);
-                $yearEnd = $regime->compute(new RegimeInput($year, $profile, $combined, $today, $lastDay));
+                $yearEnd = $regime->compute(new RegimeInput($year, $profile, $combined, $today, $lastDay, $before));
                 // The months to come may bring statuses the months so far do not have.
                 $warnings = [...$warnings, ...$yearEnd->warnings, ...($forecast->incomplete ? [EstimateView::WARNING_FORECAST_INCOMPLETE] : [])];
                 $unverified = [...$unverified, ...$forecast->unverified, ...$yearEnd->unverified];
@@ -186,6 +194,21 @@ final readonly class Estimates
             // The year end adds the settlement; without it, "to date" has every advance of the year.
             ($yearEnd ?? $toDate)->payments,
         );
+    }
+
+    /**
+     * The year before, when its return is filed with a known expense method:
+     * what was paid in it and what was open at its last day. Without it no
+     * change of method can be told, so nothing more is read.
+     */
+    private function yearBefore(int $year, ProfileView $profile): ?YearBefore
+    {
+        $previous = $year - 1;
+        if ($previous < ProfileWrites::FIRST_YEAR || !($profile->years[$previous] ?? null)?->filedMethod() instanceof ExpenseMethod) {
+            return null;
+        }
+
+        return new YearBefore($previous, $this->amounts->yearOf($previous, $profile), $this->amounts->openAt($this->clock->today()->setDate($previous, 12, 31), $profile));
     }
 
     /**

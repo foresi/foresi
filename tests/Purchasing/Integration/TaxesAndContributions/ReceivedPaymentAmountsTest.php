@@ -20,6 +20,7 @@ use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\TaxesAndContributions\Contract\ActualAmount;
 use Foresi\TaxesAndContributions\Contract\AmountKind;
+use Foresi\TaxesAndContributions\Contract\OpenAmount;
 use Foresi\TaxesAndContributions\Contract\VatShare;
 use Foresi\Tests\Purchasing\Application\PurchasingTestCase;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -117,6 +118,44 @@ final class ReceivedPaymentAmountsTest extends PurchasingTestCase
         $expected = [$domestic => new VatShare(100_000, 121_000), $service => new VatShare(100_000, 100_000)];
         ksort($expected);
         self::assertEquals($expected, $shares);
+    }
+
+    public function testWhatIsOpenAtTheEndOfADayIsWhatItsPaymentsUpToThenLeft(): void
+    {
+        // 1,000 + 210 VAT, supplied on 28 October.
+        $document = $this->recording()->create($this->input())->document->id();
+        $this->pay($document, '605.00', '2026-11-05');
+
+        self::assertSame([], $this->open('2026-10-27'), 'Not yet supplied.');
+        $open = $this->open('2026-10-31');
+        self::assertSame([[ReceivedPaymentAmounts::KEY, 'received_document', $document, '/api/v1/received-documents/'.$document, AmountKind::Cost, 121_000, 100_000, 21_000]], array_map(static fn (OpenAmount $amount): array => [$amount->source, $amount->subject->type, $amount->subject->id, $amount->subject->url, $amount->kind, $amount->gross->minor(), $amount->net->minor(), $amount->vat->minor()], $open));
+        self::assertSame([[60_500, 50_000, 10_500]], array_map(static fn (OpenAmount $amount): array => [$amount->gross->minor(), $amount->net->minor(), $amount->vat->minor()], $this->open('2026-11-05')));
+        $this->pay($document, '605.00', '2026-11-06');
+        self::assertSame([], $this->open('2026-11-06'), 'Paid in full, nothing is open.');
+    }
+
+    public function testACreditNoteNotYetRefundedIsOpenBelowZeroAndAnAdvanceRequestNever(): void
+    {
+        $original = $this->recording()->create($this->input())->document->id();
+        $this->pay($original, '1210.00', '2026-11-01');
+        $note = $this->recording()->create($this->input(kind: ReceivedDocumentKind::CreditNote, supplierNumber: 'DB-1', base: -10_000, originalDocumentId: $original))->document->id();
+        $this->recording()->create($this->input(kind: ReceivedDocumentKind::AdvanceRequest, treatment: PurchaseTaxTreatment::NotVatDocument, supplierNumber: 'ZF-1', taxPoint: null));
+        $this->recording()->create($this->input(supplierNumber: 'FV-2', issue: '2026-12-02', taxPoint: null, received: '2026-12-03'));
+
+        self::assertSame([[$note, -12_100, -10_000, -2_100]], array_map(static fn (OpenAmount $amount): array => [$amount->subject->id, $amount->gross->minor(), $amount->net->minor(), $amount->vat->minor()], $this->open('2026-11-30')));
+        $this->pay($note, '121.00', '2026-12-01');
+        self::assertSame([], $this->open('2026-12-01'));
+        self::assertCount(1, $this->open('2026-12-02'), 'Without a tax point, the issue day counts.');
+    }
+
+    /**
+     * @return list<OpenAmount>
+     */
+    private function open(string $day): array
+    {
+        $this->em->clear();
+
+        return iterator_to_array($this->source()->openAt(new \DateTimeImmutable($day, new \DateTimeZone('Europe/Prague'))), false);
     }
 
     /**
