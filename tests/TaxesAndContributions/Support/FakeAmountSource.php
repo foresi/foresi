@@ -10,6 +10,7 @@ namespace Foresi\Tests\TaxesAndContributions\Support;
 
 use Foresi\TaxesAndContributions\Contract\ActualAmount;
 use Foresi\TaxesAndContributions\Contract\ActualAmountSource;
+use Foresi\TaxesAndContributions\Contract\VatShare;
 
 /**
  * A source that pays what the test gives it, and remembers what it was asked.
@@ -19,10 +20,14 @@ final class FakeAmountSource implements ActualAmountSource
     /** @var list<array{\DateTimeImmutable, \DateTimeImmutable}> */
     public array $asked = [];
 
+    /** @var list<list<string>> */
+    public array $sharesAsked = [];
+
     /**
-     * @param list<ActualAmount> $amounts
+     * @param list<ActualAmount>      $amounts
+     * @param array<string, VatShare> $shares  the ratio of each open document it knows
      */
-    public function __construct(private readonly string $key, private readonly array $amounts, private readonly bool $details = true, private readonly bool $fails = false)
+    public function __construct(private readonly string $key, private readonly array $amounts, private readonly bool $details = true, private readonly bool $fails = false, private readonly array $shares = [])
     {
     }
 
@@ -48,6 +53,8 @@ final class FakeAmountSource implements ActualAmountSource
 
     public function sharesOf(array $subjectIds): array
     {
-        return [];
+        $this->sharesAsked[] = $subjectIds;
+
+        return array_intersect_key($this->shares, array_flip($subjectIds));
     }
 }

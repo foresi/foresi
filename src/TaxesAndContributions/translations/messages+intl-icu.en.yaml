@@ -214,6 +214,7 @@ taxes:
     'yes': 'yes'
     'no': 'no'
     open_steps: – show how it is computed
+    open_steps_year_end: – show how the year end is computed
     summary:
       title: What you keep
       method: 'Method: {method} ({why})'
@@ -241,9 +242,24 @@ taxes:
       rules_not_available:
         title: No rules for the year {year}
         text: Foresi knows the tax rules from a later year only, so it does not compute this one.
-      forecast_not_built:
-        title: No year-end forecast yet
-        text: The year end comes with the forecast of Cash flow. For now only the actual payments count.
+      cash_flow_not_installed:
+        title: No year-end forecast
+        text: The year end counts with the forecast of Cash flow, which is not installed here. Only the actual payments count.
+      forecast_unavailable:
+        title: The year-end forecast could not be read
+        text: The forecast of Cash flow could not be read just now. Only the actual payments count.
+    forecast:
+      title: Forecast to the year end by certainty
+      certainty_column: Certainty
+      certainty:
+        document: Open documents
+        schedule: Recurring invoices
+        plan: Planned items
+    flag:
+      forecast:
+        plan_no_vat_split: recurring invoices and planned items count as entered, with no VAT split
+        no_vat_split_restricted: documents you may not see count with their VAT
+        no_vat_split_unknown: documents without a known VAT ratio count with their VAT
     comparison:
       title: Expense methods compared
       cheaper: cheaper
@@ -291,6 +307,7 @@ taxes:
       all: The whole calculation
     steps:
       title: '{item} · {method}'
+      title_year_end: '{item} at the year end · {method}'
       source: Source of the rule
       new_tab: opens in a new tab
       result: Result
@@ -366,6 +383,7 @@ taxes:
       gaps: 'Not counted yet:'
     warning:
       sources_unavailable: Some sources of income and costs are not available, so the estimate is incomplete.
+      forecast_incomplete: Part of the Cash flow forecast could not be read, so the year end is incomplete.
       activity_assumed_main: The profile names no activity, so a main activity is assumed.
       flat_rate_not_computed: The flat-rate tax is not computed yet; the estimate shows the standard regime.
       deduction_not_computed: Union fees and further education exams are not deducted yet.

@@ -214,6 +214,7 @@ taxes:
     'yes': ano
     'no': ne
     open_steps: – zobrazit postup výpočtu
+    open_steps_year_end: – zobrazit postup výpočtu na konci roku
     summary:
       title: Kolik ti zůstane
       method: 'Metoda: {method} ({why})'
@@ -241,9 +242,24 @@ taxes:
       rules_not_available:
         title: Pravidla pro rok {year} nejsou k dispozici
         text: Foresi zná daňová pravidla až od pozdějšího roku, proto tento rok nespočítá.
-      forecast_not_built:
-        title: Výhled do konce roku zatím chybí
-        text: Výhled do konce roku doplní předpověď z Cash flow. Zatím se počítá jen se skutečnými platbami.
+      cash_flow_not_installed:
+        title: Výhled do konce roku chybí
+        text: Výhled do konce roku počítá s předpovědí z Cash flow, který tu není nainstalovaný. Počítá se jen se skutečnými platbami.
+      forecast_unavailable:
+        title: Výhled do konce roku se nepodařilo načíst
+        text: Předpověď z Cash flow se teď nepodařilo načíst. Počítá se jen se skutečnými platbami.
+    forecast:
+      title: Výhled do konce roku podle jistoty
+      certainty_column: Jistota
+      certainty:
+        document: Otevřené doklady
+        schedule: Opakované faktury
+        plan: Plánované položky
+    flag:
+      forecast:
+        plan_no_vat_split: opakované faktury a plánované položky se počítají, jak jsou zadané, bez rozdělení DPH
+        no_vat_split_restricted: doklady, které nesmíte vidět, se počítají s DPH
+        no_vat_split_unknown: doklady bez známého poměru DPH se počítají s DPH
     comparison:
       title: Porovnání výdajů
       cheaper: levnější
@@ -291,6 +307,7 @@ taxes:
       all: Celý výpočet
     steps:
       title: '{item} · {method}'
+      title_year_end: '{item} na konci roku · {method}'
       source: Zdroj pravidla
       new_tab: otevře se v nové kartě
       result: Výsledek
@@ -366,6 +383,7 @@ taxes:
       gaps: 'Zatím se nepočítá:'
     warning:
       sources_unavailable: Některé zdroje příjmů a výdajů nejsou dostupné, odhad je proto neúplný.
+      forecast_incomplete: Část předpovědi z Cash flow se nepodařilo načíst, výhled do konce roku je proto neúplný.
       activity_assumed_main: V profilu chybí druh činnosti, počítá se s hlavní činností.
       flat_rate_not_computed: Paušální daň se zatím nepočítá, odhad ukazuje běžný režim.
       deduction_not_computed: Odborové příspěvky a zkoušky dalšího vzdělávání se zatím neodečítají.

@@ -810,7 +810,47 @@ nelmio_api_doc:
                         to_date: { allOf: [{ $ref: '#/components/schemas/TaxEstimateResult' }], nullable: true }
                         to_date_reason: { type: string, nullable: true, enum: [year_not_started, rules_not_available] }
                         year_end: { allOf: [{ $ref: '#/components/schemas/TaxEstimateResult' }], nullable: true }
-                        year_end_reason: { type: string, nullable: true, enum: [forecast_not_built] }
+                        year_end_reason: { type: string, nullable: true, enum: [year_not_started, rules_not_available, cash_flow_not_installed, forecast_unavailable] }
+                        forecast:
+                            type: object
+                            nullable: true
+                            description: 'The forecast part of the year end, from today to 31 December: open documents split into net and VAT in their own ratio, recurring invoices and planned items as stated. It leaves out the estimate itself and the categories taxes, insurance, vat, loans and owner_draws. Null for a past year and without Cash flow.'
+                            properties:
+                                from: { type: string, format: date }
+                                to: { type: string, format: date }
+                                totals:
+                                    type: object
+                                    properties:
+                                        income: { $ref: '#/components/schemas/TaxAmountFigures' }
+                                        cost: { $ref: '#/components/schemas/TaxAmountFigures' }
+                                flags: { type: array, items: { type: string, enum: [forecast.plan_no_vat_split, forecast.no_vat_split_restricted, forecast.no_vat_split_unknown] }, description: Where the forecast could not split the VAT. }
+                                incomplete: { type: boolean, description: A source failed or an amount had no rate; what failed is left out. }
+                                unavailable_sources: { type: array, items: { type: string } }
+                                restricted_sources: { type: array, items: { type: string } }
+                        forecast_by_certainty:
+                            type: object
+                            nullable: true
+                            description: The forecast part split by how sure it is.
+                            properties:
+                                document: { $ref: '#/components/schemas/TaxForecastPart' }
+                                schedule: { $ref: '#/components/schemas/TaxForecastPart' }
+                                plan: { $ref: '#/components/schemas/TaxForecastPart' }
+                        accruals:
+                            type: array
+                            description: "The levies of the year end spread over its months by each month's share of the profit, with the smallest advances in a month of low profit; the months add up to the levies of the year."
+                            items:
+                                type: object
+                                properties:
+                                    method: { type: string, enum: [actual, lump_80, lump_60, lump_40, lump_30] }
+                                    months:
+                                        type: array
+                                        items:
+                                            type: object
+                                            properties:
+                                                month: { type: string, example: '2026-11' }
+                                                profit: { $ref: '#/components/schemas/Money' }
+                                                minimum: { $ref: '#/components/schemas/Money' }
+                                                levies: { $ref: '#/components/schemas/Money' }
                         amounts:
                             type: object
                             nullable: true
@@ -828,6 +868,11 @@ nelmio_api_doc:
                         warnings: { type: array, items: { type: string, example: sources_unavailable } }
                         unverified: { type: array, items: { type: string, example: vat_cash_basis }, description: Rules an accountant should confirm. }
                         known_gaps: { type: array, items: { type: string } }
+                TaxForecastPart:
+                    type: object
+                    properties:
+                        income: { $ref: '#/components/schemas/TaxAmountFigures' }
+                        cost: { $ref: '#/components/schemas/TaxAmountFigures' }
                 TaxAmounts:
                     type: object
                     description: 'The actual income and costs on a cash basis: each payment on its own day, split into net and VAT in the ratio of its document, at the ČNB rate of its day. Refunds and credit notes are negative. Only the owner reads them.'

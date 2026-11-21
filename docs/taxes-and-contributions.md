@@ -60,6 +60,18 @@ The income received and the costs paid, on a cash basis, as the estimate of "to 
 - Purchasing cannot mark a cost as not tax deductible, or an asset over 80,000 CZK, yet: `known_gaps` lists `non_deductible_costs` and `assets`.
 - A source that is not installed or failed is listed in `unavailable_sources`, so a missing module is never read as a year without income. A source whose documents the caller may not read (a token without `invoices:read` or `received_documents:read`) is listed in `restricted_sources` and counts in the sums only.
 
+## Year end
+
+The year end is "to date" plus the Cash flow forecast from today to 31 December, computed over every month of the year. It is always shown apart from "to date", never mixed into it. Cash flow fills `Foresi\TaxesAndContributions\Contract\ForecastAmountSource` through this module's `Integration/CashFlow` directory, which reads the forecast through `Foresi\CashFlow\Contract\ForecastReader`.
+
+- The read never calls this module's own cash-flow source, `taxes-and-contributions.estimate`. It leaves out the categories `taxes`, `insurance`, `vat`, `loans` and `owner_draws`, and flows of the certainty `estimate`.
+- It starts today. What was paid by today counts to date. An open document counts only what is still open on it, so nothing counts twice. A flow overdue before today counts today.
+- An open invoice or received document splits into net and VAT in its own ratio, which `ActualAmountSource::sharesOf()` gives. It counts gross before the `vat_payer` day of its expected day, and net from that day on.
+- A recurring invoice or a planned item counts as stated, with no VAT split, flagged `forecast.plan_no_vat_split`. A document whose records the caller may not read counts gross, flagged `forecast.no_vat_split_restricted`. A document without a known ratio counts gross too, flagged `forecast.no_vat_split_unknown`.
+- `forecast_by_certainty` splits the forecast part into `document`, `schedule` and `plan`, each with its income and costs: gross, net, VAT and counted. The forecast's `incomplete` and `unavailable_sources` are passed on.
+- `accruals` spreads the levies of the year end over its months by each month's share of the profit. A month of low profit, or of none, carries its smallest advances. The months add up to the levies of the year.
+- Without Cash flow, `year_end` is null with the reason `cash_flow_not_installed`. A past year has no forecast, so its year end is what was paid.
+
 ## The profile page
 
 **Money → Taxes and contributions** (`/taxes-and-contributions/profile`), for the owner only:

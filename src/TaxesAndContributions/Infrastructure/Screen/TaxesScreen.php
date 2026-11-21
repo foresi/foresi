@@ -10,9 +10,12 @@ namespace Foresi\TaxesAndContributions\Infrastructure\Screen;
 
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
+use Foresi\TaxesAndContributions\Contract\AmountKind;
 use Foresi\TaxesAndContributions\Contract\CreditLine;
 use Foresi\TaxesAndContributions\Contract\EstimateView;
 use Foresi\TaxesAndContributions\Contract\ExpenseMethod;
+use Foresi\TaxesAndContributions\Contract\ForecastCertainty;
+use Foresi\TaxesAndContributions\Contract\ForecastView;
 use Foresi\TaxesAndContributions\Contract\MethodResult;
 use Foresi\TaxesAndContributions\Contract\RegimeResult;
 use Foresi\TaxesAndContributions\Contract\Step;
@@ -94,7 +97,10 @@ final readonly class TaxesScreen
      * What the owner keeps to date with the method chosen in the profile, or
      * the cheaper one when none is chosen; null when "to date" has no result.
      *
-     * @return ?array{method: string, why: string, rows: list<array{key: string, label: string, text: string, href: string, total: bool}>}
+     * The year end beside it uses the same method, and its numbers open the
+     * steps of the year end.
+     *
+     * @return ?array{method: string, why: string, rows: list<array{key: string, label: string, text: string, href: string, total: bool, yearEnd: ?array{text: string, href: string}}>}
      */
     public function summary(EstimateView $estimate, ?ExpenseMethod $chosen): ?array
     {
@@ -103,6 +109,7 @@ final readonly class TaxesScreen
             return null;
         }
         $result = $this->shown($toDate, $chosen);
+        $yearEnd = $estimate->yearEnd instanceof RegimeResult ? $this->shown($estimate->yearEnd, $result->method) : null;
         $rows = [];
         foreach (self::SUMMARY as $key) {
             $rows[] = [
@@ -111,6 +118,10 @@ final readonly class TaxesScreen
                 'text' => $this->amount($this->total($result->totals, $key)),
                 'href' => $this->stepsHref($estimate->year, $result->method, self::OPENS[$key]),
                 'total' => \in_array($key, ['levies', 'take_home'], true),
+                'yearEnd' => $yearEnd instanceof MethodResult ? [
+                    'text' => $this->amount($this->total($yearEnd->totals, $key)),
+                    'href' => $this->stepsHref($estimate->year, $yearEnd->method, self::OPENS[$key], true),
+                ] : null,
             ];
         }
 
@@ -151,6 +162,29 @@ final readonly class TaxesScreen
         }
 
         return ['sentence' => $this->breakEven($toDate), 'columns' => $columns, 'rows' => $rows];
+    }
+
+    /**
+     * The forecast part of the year end by certainty, as the records count
+     * it: income and costs of the open documents, the recurring invoices and
+     * the plans, with what the forecast could not split; null without one.
+     *
+     * @return ?array{rows: list<array{key: string, label: string, income: string, costs: string}>, notes: list<string>}
+     */
+    public function forecast(EstimateView $estimate): ?array
+    {
+        $forecast = $estimate->forecast;
+        if (!$forecast instanceof ForecastView) {
+            return null;
+        }
+        $rows = array_map(fn (ForecastCertainty $certainty): array => [
+            'key' => $certainty->value,
+            'label' => $this->trans('taxes.page.forecast.certainty.'.$certainty->value),
+            'income' => $this->amount($forecast->totalOfCertainty($certainty, AmountKind::Income)->counted),
+            'costs' => $this->amount($forecast->totalOfCertainty($certainty, AmountKind::Cost)->counted),
+        ], ForecastCertainty::cases());
+
+        return ['rows' => $rows, 'notes' => $this->notes('flag', $forecast->flags)];
     }
 
     /**
@@ -200,9 +234,9 @@ final readonly class TaxesScreen
         ];
     }
 
-    public function stepsTitle(string $chain, ExpenseMethod $method): string
+    public function stepsTitle(string $chain, ExpenseMethod $method, bool $yearEnd = false): string
     {
-        return $this->trans('taxes.page.steps.title', ['item' => $this->trans('taxes.page.chain.'.$chain), 'method' => $this->methodLabel($method)]);
+        return $this->trans($yearEnd ? 'taxes.page.steps.title_year_end' : 'taxes.page.steps.title', ['item' => $this->trans('taxes.page.chain.'.$chain), 'method' => $this->methodLabel($method)]);
     }
 
     /**
@@ -286,9 +320,11 @@ final readonly class TaxesScreen
             : $this->trans('taxes.page.comparison.actual_cheaper', ['method' => $method]);
     }
 
-    private function stepsHref(int $year, ExpenseMethod $method, string $chain): string
+    private function stepsHref(int $year, ExpenseMethod $method, string $chain, bool $yearEnd = false): string
     {
-        return $this->urls->generate(TaxesController::ROUTE.'_steps', ['year' => $year, 'method' => $method->value, 'step' => $chain]);
+        $parameters = ['year' => $year, 'method' => $method->value, 'step' => $chain];
+
+        return $this->urls->generate(TaxesController::ROUTE.'_steps', $yearEnd ? [...$parameters, 'part' => TaxesController::YEAR_END] : $parameters);
     }
 
     /**

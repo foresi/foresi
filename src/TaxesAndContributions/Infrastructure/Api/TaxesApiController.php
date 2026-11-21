@@ -71,7 +71,7 @@ final readonly class TaxesApiController
     #[Route('/api/v1/taxes-and-contributions/estimate', name: self::ESTIMATE, methods: ['GET'])]
     #[OA\Tag(name: 'Taxes')]
     #[OA\Parameter(name: 'year', description: 'The year, this one when left out; from 2000 to next year.', in: 'query', schema: new OA\Schema(type: 'integer', example: 2026))]
-    #[OA\Response(response: 200, description: 'The estimate of the taxes and contributions: "to date" from the actual amounts and the months so far, each expense method side by side with its steps; "year end" stays null with its reason until the forecast is read.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/TaxEstimate')], type: 'object'))]
+    #[OA\Response(response: 200, description: 'The estimate of the taxes and contributions: "to date" from the actual amounts and the months so far, each expense method side by side with its steps; "year end" adds the Cash flow forecast to 31 December, kept apart and split by certainty, or is null with its reason when Cash flow is not installed.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/TaxEstimate')], type: 'object'))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 403, description: 'The token lacks the taxes:read scope, or its person is not the owner (owner_only).', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 400, description: 'The year is not one from 2000 to next year (invalid_parameter, reason invalid_year).', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
