@@ -72,6 +72,22 @@ The year end is "to date" plus the Cash flow forecast from today to 31 December,
 - `accruals` spreads the levies of the year end over its months by each month's share of the profit. A month of low profit, or of none, carries its smallest advances. The months add up to the levies of the year.
 - Without Cash flow, `year_end` is null with the reason `cash_flow_not_installed`. A past year has no forecast, so its year end is what was paid.
 
+## Payments
+
+Every estimate lists the payments of its year by due day (`payments`): what falls due, and whether the bank has paid it. Nothing of it is stored; it is computed from the profile each time.
+
+- The Czech sole trader pays the social advance of a month by its last day, the voluntary sickness advance too, and the health advance by the 8th of the next month. An advance is the previous year's base per month of its activity, times the rate, rounded up, and at least the minimum valid in that month: in 2026 the social one is 5,720 CZK to June and 5,005 CZK from July. With no base entered it is the minimum. A secondary activity pays a social advance only with a base from the year before. The new base applies to social from the month after the overview and to health from the overview month; the overview day is the one entered for the year, or else its deadline.
+- The income tax advances follow the last known tax: none up to 30,000 CZK, two of 40 % on 15 June and 15 December up to 150,000 CZK (flagged `middle_advance_band`), four of a quarter on the 15th of March, June, September and December above it. Each is rounded up to hundreds and moves to the next working day.
+- Once the year end is known, the settlement follows in the next year: the income tax on the return deadline of the route (tax year 2026: paper 1 April 2027, electronic 3 May 2027, advisor 1 July 2027; flagged `electronic_deadline_payment_date` for the electronic route), and the social and health shortfall 8 days after the overviews, which are due one month after the return (flagged `overview_deadlines` until the day they were filed is entered). The settlement is the year's levy with the chosen expense method less the advances; when the advances paid more, an `overpayment` comes back. Next year shows its advances only.
+- Each payment takes the match rule of its authority: the account and the variable symbol in the profile. A bank movement that meets it, from the day the payment could be paid, makes it `paid` and names the movement. A movement pays one payment: the one it is on time for with the same amount first, else the oldest debt. A payment unpaid after its due day, in the instance's zone, is `overdue`; one to come is `expected`. A payment of an authority without an account cannot be checked, and the estimate warns `no_match_rule`.
+- `possible_duplicates` lists the active planned items of Cash flow in the categories `taxes` and `insurance`, which the estimate flows may count twice, and the estimate warns `possible_duplicates`. The module never ends or changes them; the owner does in Cash flow.
+
+### In the cash flow
+
+The payments not yet paid are the source `taxes-and-contributions.estimate` of Cash flow: estimate flows, flagged `estimated`, on their due days, the income tax in the category `taxes` and social, health and sickness insurance in `insurance`, an overpayment coming in. They cover last year, this year and next year. An overdue payment stays in the forecast only when its authority has an account, so the bank could have shown it paid. Before an activity is entered there are none.
+
+The flows come from the owner's personal profile, so only the owner with `taxes:read` reads them one by one; anyone else sees them in the category totals only. The year end inside the source reads the forecast without this source, so the forecast never asks it again.
+
 ## The profile page
 
 **Money → Taxes and contributions** (`/taxes-and-contributions/profile`), for the owner only:

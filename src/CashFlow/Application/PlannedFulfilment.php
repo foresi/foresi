@@ -83,36 +83,10 @@ final class PlannedFulfilment
 
     private static function meets(MatchRule $rule, PlannedItem $item, ActualFlow $actual): bool
     {
-        if ($rule->isEmpty() || null !== $actual->counterpartyId) {
-            return false;
-        }
-        $account = $rule->counterpartyAccount();
-        if (null !== $account && (null === $actual->counterpartyAccount || self::account($account) !== self::account($actual->counterpartyAccount))) {
-            return false;
-        }
-        $symbol = $rule->variableSymbol();
-        if (null !== $symbol && ltrim($symbol, '0') !== ltrim($actual->variableSymbol ?? '', '0')) {
-            return false;
-        }
-        if ($actual->amount->currency() !== $item->amount()->currency()) {
+        if (!$actual->meets($rule->counterpartyAccount(), $rule->variableSymbol()) || $actual->amount->currency() !== $item->amount()->currency()) {
             return false;
         }
 
         return abs($actual->amount->minor() - $item->amount()->minor()) <= ($rule->toleranceMinor() ?? 0);
-    }
-
-    /**
-     * An account as it compares: without spaces and in capitals, and a Czech
-     * number without the zeros a bank may pad it with ("000000-0123/0100" is "123/0100").
-     */
-    private static function account(string $account): string
-    {
-        $account = strtoupper((string) preg_replace('/\s+/', '', $account));
-        if (1 !== preg_match('/^(?:(\d{1,6})-)?(\d{1,10})\/(\d{4})$/D', $account, $parts)) {
-            return $account;
-        }
-        $prefix = ltrim($parts[1], '0');
-
-        return ('' === $prefix ? '' : $prefix.'-').ltrim($parts[2], '0').'/'.$parts[3];
     }
 }

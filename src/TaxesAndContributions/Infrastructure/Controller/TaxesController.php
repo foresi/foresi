@@ -66,9 +66,12 @@ final class TaxesController extends AbstractController
             'yearEndReason' => $estimate->yearEndReason,
             'summary' => $this->screen->summary($estimate, $this->profiles->year($year)->chosenMethod),
             'forecast' => $this->screen->forecast($estimate),
+            'payments' => $this->screen->payments($estimate),
+            'duplicates' => $this->screen->duplicates($estimate),
             'comparison' => $this->screen->comparison($estimate),
             'credits' => $this->screen->credits($estimate),
-            'warnings' => $this->screen->notes('warning', $estimate->warnings),
+            // The possible duplicates are named in the payments, with their links.
+            'warnings' => $this->screen->notes('warning', array_values(array_diff($estimate->warnings, [EstimateView::WARNING_POSSIBLE_DUPLICATES]))),
             'footer' => $this->screen->footer($estimate),
         ]);
     }

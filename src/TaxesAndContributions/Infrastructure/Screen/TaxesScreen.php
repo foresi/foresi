@@ -12,11 +12,13 @@ use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\TaxesAndContributions\Contract\AmountKind;
 use Foresi\TaxesAndContributions\Contract\CreditLine;
+use Foresi\TaxesAndContributions\Contract\DuePayment;
 use Foresi\TaxesAndContributions\Contract\EstimateView;
 use Foresi\TaxesAndContributions\Contract\ExpenseMethod;
 use Foresi\TaxesAndContributions\Contract\ForecastCertainty;
 use Foresi\TaxesAndContributions\Contract\ForecastView;
 use Foresi\TaxesAndContributions\Contract\MethodResult;
+use Foresi\TaxesAndContributions\Contract\PossibleDuplicate;
 use Foresi\TaxesAndContributions\Contract\RegimeResult;
 use Foresi\TaxesAndContributions\Contract\Step;
 use Foresi\TaxesAndContributions\Contract\Totals;
@@ -28,7 +30,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * What the Taxes and contributions page shows: the year tabs, what the owner
- * keeps with one expense method, the methods side by side, the credits, and
+ * keeps with one expense method, the payments as they fall due, the methods
+ * side by side, the credits, and
  * the steps of each number as the side sheet lists them. Every text is
  * translated by its key; the English sentences of the regime are for the API.
  */
@@ -67,6 +70,9 @@ final readonly class TaxesScreen
         'levies' => self::ALL,
         'take_home' => self::ALL,
     ];
+
+    /** The badge of each state of a payment: a fact paid, an expectation, or late. */
+    private const array STATE_TONES = [DuePayment::STATE_PAID => 'green', DuePayment::STATE_EXPECTED => 'outline', DuePayment::STATE_OVERDUE => 'red'];
 
     /** Inputs that are a rate in per cent. */
     private const array PERCENT_INPUTS = ['rate', 'higher_rate', 'lump_sum_rate'];
@@ -185,6 +191,39 @@ final readonly class TaxesScreen
         ], ForecastCertainty::cases());
 
         return ['rows' => $rows, 'notes' => $this->notes('flag', $forecast->flags)];
+    }
+
+    /**
+     * The payments of the year by due day, each with its state: expected,
+     * paid on the day the bank booked it, or overdue. An overpayment comes in.
+     *
+     * @return list<array{key: string, due: string, label: string, amount: string, incoming: bool, state: string, stateLabel: string, tone: string}>
+     */
+    public function payments(EstimateView $estimate): array
+    {
+        return array_map(fn (DuePayment $payment): array => [
+            'key' => $payment->key(),
+            'due' => $this->date($payment->dueOn),
+            'label' => $this->trans('taxes.flow.'.$payment->kind, ['authority' => $this->trans('taxes.authority.'.$payment->authority->value), 'period' => $payment->periodLabel()]),
+            'amount' => ($payment->comesIn() ? '+' : '').$this->amount($payment->amount),
+            'incoming' => $payment->comesIn(),
+            'state' => $payment->state,
+            'stateLabel' => $payment->paidOn instanceof \DateTimeImmutable
+                ? $this->trans('taxes.page.payments.paid_on', ['day' => $this->date($payment->paidOn)])
+                : $this->trans('taxes.page.payments.state.'.$payment->state),
+            'tone' => self::STATE_TONES[$payment->state] ?? 'gray',
+        ], $estimate->payments);
+    }
+
+    /**
+     * The planned items of Cash flow that the payments may count twice (B5),
+     * each with where the owner ends it.
+     *
+     * @return list<array{name: string, href: ?string}>
+     */
+    public function duplicates(EstimateView $estimate): array
+    {
+        return array_map(static fn (PossibleDuplicate $item): array => ['name' => $item->name, 'href' => $item->url], $estimate->possibleDuplicates);
     }
 
     /**
@@ -395,6 +434,16 @@ final readonly class TaxesScreen
         $formatter = new \NumberFormatter($this->locales->getLocale(), \NumberFormatter::DECIMAL);
 
         return \sprintf("%s\u{a0}%s", $formatter->format(intdiv($money->minor(), 100), \NumberFormatter::TYPE_INT64), $this->money->unit($money->currency()));
+    }
+
+    /**
+     * A day as the locale writes it in full, "8. 1. 2027".
+     */
+    private function date(\DateTimeImmutable $day): string
+    {
+        $formatter = new \IntlDateFormatter($this->locales->getLocale(), \IntlDateFormatter::MEDIUM, \IntlDateFormatter::NONE, $day->getTimezone());
+
+        return (string) $formatter->format($day);
     }
 
     private function percent(string $value): string

@@ -237,7 +237,7 @@ final class CzechSoleTraderTest extends TestCase
 
     public function testTheUnverifiedOf2026And2027AreListedOnceEach(): void
     {
-        self::assertSame(['insurance_profit_definition'], $this->compute(2026, $this->mainAllYear(2026), 900_000, 200_000)->unverified);
+        self::assertSame(['insurance_profit_definition', 'overview_deadlines', 'electronic_deadline_payment_date'], $this->compute(2026, $this->mainAllYear(2026), 900_000, 200_000)->unverified, 'The settlement on the electronic deadline waits for the authorities.');
 
         $mixed = new ProfileView([
             new StatusPeriod('a', StatusKind::Activity, 'secondary', new \DateTimeImmutable('2027-01-01')),
@@ -245,7 +245,7 @@ final class CzechSoleTraderTest extends TestCase
         ], [], []);
         $result = $this->compute(2027, $mixed, 900_000, 200_000);
 
-        self::assertSame(['insurance_profit_definition', 'mixed_year', 'official_2027_tables', 'act_180_2026'], $result->unverified);
+        self::assertSame(['insurance_profit_definition', 'mixed_year', 'overview_deadlines', 'electronic_deadline_payment_date', 'official_2027_tables', 'act_180_2026'], $result->unverified);
     }
 
     public function testTheWarningsAreListedOnceEach(): void

@@ -16,8 +16,11 @@ use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\TaxesAndContributions\Application\AddStatusInput;
 use Foresi\TaxesAndContributions\Application\Amounts;
+use Foresi\TaxesAndContributions\Application\DuePayments;
 use Foresi\TaxesAndContributions\Application\Estimates;
 use Foresi\TaxesAndContributions\Application\ProfileReads;
+use Foresi\TaxesAndContributions\Application\SetAuthorityAccountInput;
+use Foresi\TaxesAndContributions\Application\SetYearInputsInput;
 use Foresi\TaxesAndContributions\Application\TaxesRefused;
 use Foresi\TaxesAndContributions\Application\YearEndForecast;
 use Foresi\TaxesAndContributions\Contract\AccrualMonth;
@@ -27,17 +30,21 @@ use Foresi\TaxesAndContributions\Contract\AmountKind;
 use Foresi\TaxesAndContributions\Contract\AmountSum;
 use Foresi\TaxesAndContributions\Contract\AmountsView;
 use Foresi\TaxesAndContributions\Contract\AmountTotals;
+use Foresi\TaxesAndContributions\Contract\Authority;
+use Foresi\TaxesAndContributions\Contract\DuePayment;
 use Foresi\TaxesAndContributions\Contract\EstimateView;
 use Foresi\TaxesAndContributions\Contract\ExpenseMethod;
 use Foresi\TaxesAndContributions\Contract\ForecastAmount;
 use Foresi\TaxesAndContributions\Contract\ForecastAmountSource;
 use Foresi\TaxesAndContributions\Contract\ForecastCertainty;
 use Foresi\TaxesAndContributions\Contract\ForecastView;
+use Foresi\TaxesAndContributions\Contract\LevyPayment;
 use Foresi\TaxesAndContributions\Contract\RegimeResult;
 use Foresi\TaxesAndContributions\Contract\Subject;
 use Foresi\TaxesAndContributions\Contract\VatShare;
 use Foresi\Tests\TaxesAndContributions\Support\FakeAmountSource;
 use Foresi\Tests\TaxesAndContributions\Support\FakeForecastSource;
+use Foresi\Tests\TaxesAndContributions\Support\FakeLevyPayments;
 use Foresi\Tests\TaxesAndContributions\Support\RecordingLogger;
 use Foresi\Tests\TaxesAndContributions\Support\TaxesTestCase;
 use Psr\Log\NullLogger;
@@ -286,7 +293,7 @@ final class EstimatesTest extends TaxesTestCase
         self::assertSame(EstimateView::YEAR_END_CASH_FLOW_NOT_INSTALLED, $estimate->yearEndReason);
         self::assertContains('vat_cash_basis', $estimate->unverified);
         self::assertContains('insurance_profit_definition', $estimate->unverified);
-        self::assertSame([], $estimate->warnings);
+        self::assertSame([EstimateView::WARNING_NO_MATCH_RULE], $estimate->warnings, 'Without the authority accounts the bank cannot tell which advances are paid.');
         self::assertSame('cz.sole_trader', $estimate->toDate->regime);
     }
 
@@ -343,6 +350,44 @@ final class EstimatesTest extends TaxesTestCase
         self::assertSame(['non_deductible_costs', 'assets', 'assets_and_depreciation', 'loss_carry_forward', 'starter_relief'], $estimate->knownGaps);
     }
 
+    public function testABankMovementPaysOnePaymentAcrossTheYears(): void
+    {
+        Clock::set(new MockClock('2027-06-20 10:00:00', 'UTC'));
+        $this->writes()->addStatus(new AddStatusInput('activity', 'main', '2026-01-01'));
+        $this->writes()->setAuthority(new SetAuthorityAccountInput('social', '123/0100', '42'));
+        $this->writes()->setYear(new SetYearInputsInput('2026', ['actual'], 'actual'));
+        $income = [new FakeAmountSource('invoicing.payments', [$this->amount('a', '2026-05-10', 90_000_000, 90_000_000)]), new FakeAmountSource('purchasing.payments', [])];
+        $settlement = $this->payment($this->estimatesWith($income, [])->of(2026), 'social.settlement.2026');
+        $bank = new FakeLevyPayments([
+            new LevyPayment(Authority::Social, 'jan', new \DateTimeImmutable('2027-01-29', new \DateTimeZone('Europe/Prague')), Money::ofMinor(100, Currency::CZK)),
+            new LevyPayment(Authority::Social, 'settle', new \DateTimeImmutable('2027-06-05', new \DateTimeZone('Europe/Prague')), $settlement->amount),
+        ]);
+        $estimates = $this->estimatesWith($income, [$bank]);
+
+        $past = $estimates->of(2026);
+        $now = $estimates->of(2027);
+
+        // January's movement pays January's advance, due first, not the settlement of 2026 it could pay too.
+        self::assertSame('jan', $this->payment($now, 'social.advance.2027-01')->paidBy);
+        // The settlement's amount pays the settlement, though June's advance was on time too.
+        self::assertSame('settle', $this->payment($past, 'social.settlement.2026')->paidBy);
+        self::assertNull($this->payment($now, 'social.advance.2027-06')->paidBy);
+        self::assertSame(DuePayment::STATE_OVERDUE, $this->payment($past, 'health.advance.2026-12')->state);
+        self::assertSame([2027], array_values(array_unique(array_map(static fn (DuePayment $payment): int => $payment->taxYear(), $now->payments))), 'Each year shows its own payments.');
+    }
+
+    public function testWithEveryAccountSetThereIsNoMatchRuleWarning(): void
+    {
+        $this->writes()->addStatus(new AddStatusInput('activity', 'main', '2026-01-01'));
+        $this->writes()->setAuthority(new SetAuthorityAccountInput('social', '123/0100', '42'));
+        $this->writes()->setAuthority(new SetAuthorityAccountInput('health', '456/0300', '42'));
+
+        $estimate = $this->estimates([new FakeAmountSource('invoicing.payments', []), new FakeAmountSource('purchasing.payments', [])])->of(2026);
+
+        self::assertNotSame([], $estimate->payments);
+        self::assertSame([], $estimate->warnings);
+    }
+
     public function testALegalFormNoRegimeComputesIsAConflict(): void
     {
         $estimates = new Estimates(self::getContainer()->get(ProfileReads::class), $this->amounts([]), [], self::getContainer()->get(InstanceClock::class));
@@ -371,6 +416,28 @@ final class EstimatesTest extends TaxesTestCase
         $container = self::getContainer();
 
         return new Estimates($container->get(ProfileReads::class), $this->amounts($sources), [new CzechSoleTrader()], $container->get(InstanceClock::class), $forecasts, new YearEndForecast($sources));
+    }
+
+    /**
+     * @param list<ActualAmountSource> $sources
+     * @param list<FakeLevyPayments>   $banks
+     */
+    private function estimatesWith(array $sources, array $banks): Estimates
+    {
+        $container = self::getContainer();
+
+        return new Estimates($container->get(ProfileReads::class), $this->amounts($sources), [new CzechSoleTrader()], $container->get(InstanceClock::class), [], new YearEndForecast($sources), new NullLogger(), new DuePayments($banks));
+    }
+
+    private function payment(EstimateView $estimate, string $key): DuePayment
+    {
+        foreach ($estimate->payments as $payment) {
+            if ($key === $payment->key()) {
+                return $payment;
+            }
+        }
+
+        self::fail('No payment '.$key);
     }
 
     private function expected(string $id, string $on, int $gross, ForecastCertainty $certainty = ForecastCertainty::Document, AmountKind $kind = AmountKind::Income, bool $restricted = false, string $source = 'invoicing.invoices'): ForecastAmount

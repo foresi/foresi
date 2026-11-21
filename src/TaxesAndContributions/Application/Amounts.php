@@ -72,21 +72,28 @@ final readonly class Amounts
      */
     public function year(int $year): AmountsView
     {
+        return $this->yearOf($year, $this->profiles->profile());
+    }
+
+    /**
+     * The same for a profile already read: by the estimate, which reads it
+     * once, or by its flows for the cash flow (ProfileReads::forEstimateFlows).
+     *
+     * @throws TaxesRefused invalid_year for a year after this one
+     */
+    public function yearOf(int $year, ProfileView $profile): AmountsView
+    {
         $today = $this->clock->today();
         $from = $today->setDate($year, 1, 1);
         if ($year < self::FIRST_YEAR || $from > $today) {
             throw TaxesRefused::invalid('invalid_year', 'year', \sprintf('The year is one from %d to this year.', self::FIRST_YEAR));
         }
 
-        return $this->between($from, min($today->setDate($year, 12, 31), $today));
+        return $this->between($from, min($today->setDate($year, 12, 31), $today), $profile);
     }
 
-    /**
-     * @throws TaxesRefused owner_only
-     */
-    private function between(\DateTimeImmutable $from, \DateTimeImmutable $to): AmountsView
+    private function between(\DateTimeImmutable $from, \DateTimeImmutable $to, ProfileView $profile): AmountsView
     {
-        $profile = $this->profiles->profile();
         $zone = $this->clock->timezone();
         $from = new \DateTimeImmutable($from->format('Y-m-d'), $zone);
         $to = new \DateTimeImmutable($to->format('Y-m-d'), $zone);

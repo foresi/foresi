@@ -76,6 +76,11 @@ final class Czk
         return self::ceilDiv($minor, self::UNIT) * self::UNIT;
     }
 
+    public static function upToHundreds(int $minor): int
+    {
+        return self::ceilDiv($minor, 100 * self::UNIT) * 100 * self::UNIT;
+    }
+
     public static function downToHundreds(int $minor): int
     {
         return self::floorDiv($minor, 100 * self::UNIT) * 100 * self::UNIT;

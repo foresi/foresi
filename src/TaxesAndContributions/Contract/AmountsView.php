@@ -8,6 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\TaxesAndContributions\Contract;
 
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+
 /**
  * The actual income and costs paid from $from to $to, in CZK, as the
  * estimate reads them (B2, B3): the sums by month, kind and source, the
@@ -46,6 +49,20 @@ final readonly class AmountsView
         public array $unverified,
         public array $knownGaps,
     ) {
+    }
+
+    /**
+     * No amounts at all, for a year that has not started.
+     */
+    public static function none(\DateTimeImmutable $from, \DateTimeImmutable $to): self
+    {
+        $zero = Money::ofMinor(0, Currency::CZK);
+        $totals = [];
+        foreach (AmountKind::cases() as $kind) {
+            $totals[$kind->value] = new AmountTotals($zero, $zero, $zero, $zero);
+        }
+
+        return new self($from, $to, [], $totals, [], [], [], [], [], []);
     }
 
     public function totalOf(AmountKind $kind): AmountTotals

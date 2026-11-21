@@ -17,6 +17,7 @@ use Foresi\Country\Integration\TaxesAndContributions\CzechRepublic\Steps\ProfitS
 use Foresi\Country\Integration\TaxesAndContributions\CzechRepublic\Steps\SicknessStep;
 use Foresi\Country\Integration\TaxesAndContributions\CzechRepublic\Steps\SocialStep;
 use Foresi\Country\Integration\TaxesAndContributions\CzechRepublic\Steps\TaxBaseStep;
+use Foresi\TaxesAndContributions\Contract\DuePayment;
 use Foresi\TaxesAndContributions\Contract\ExpenseMethod;
 use Foresi\TaxesAndContributions\Contract\MethodResult;
 use Foresi\TaxesAndContributions\Contract\MonthStatus;
@@ -31,7 +32,8 @@ use Foresi\TaxesAndContributions\Contract\YearInputsView;
 /**
  * The Czech sole trader (OSVČ) on a cash basis: one pipeline per expense
  * method compared (old T5, T9), over the months from January to the cut-off,
- * each classified by the statuses on its first day. It is an estimate, not a
+ * each classified by the statuses on its first day, with the payments of the
+ * year as they fall due (CzechPayments). It is an estimate, not a
  * basis for the tax return; what an accountant should still confirm is listed.
  */
 final readonly class CzechSoleTrader implements Regime
@@ -89,6 +91,7 @@ final readonly class CzechSoleTrader implements Regime
             $credits = [] === $credits ? $calculation->credits : $credits;
         }
         $statuses = $this->monthStatuses($months, $used);
+        $payments = $this->payments($input, $inputs, $methods, $used, $unverified);
         if (RulesStatus::Derived === $status) {
             $unverified[] = self::UNVERIFIED_OFFICIAL_2027_TABLES;
         } elseif (RulesStatus::LatestUsed === $status) {
@@ -112,7 +115,33 @@ final readonly class CzechSoleTrader implements Regime
             array_values(array_unique($warnings)),
             array_values(array_unique($unverified)),
             self::KNOWN_GAPS,
+            $payments,
         );
+    }
+
+    /**
+     * The advances of every month of the year, whatever the cut-off, and the
+     * settlement in the next year once the cut-off is 31 December, by due day.
+     *
+     * @param list<MethodResult>       $methods
+     * @param array<string, RuleValue> $used
+     * @param list<string>             $unverified
+     *
+     * @return list<DuePayment>
+     */
+    private function payments(RegimeInput $input, YearInputsView $inputs, array $methods, array &$used, array &$unverified): array
+    {
+        $ignored = [];
+        $lastDay = $input->today->setDate($input->year, 12, 31);
+        $months = $this->months($input, $ignored, $lastDay);
+        $plan = new CzechPayments($this->rules);
+        $payments = $plan->advances($input, $months, $this->monthStatuses($months, $used), $used, $unverified);
+        if ($input->cutOff->format('Y-m-d') >= $lastDay->format('Y-m-d')) {
+            $payments = [...$payments, ...$plan->settlement($input, CzechPayments::paidMethod($methods, $inputs->chosenMethod, $this->cheaper($methods)), $payments, $unverified)];
+        }
+        usort($payments, static fn (DuePayment $a, DuePayment $b): int => [$a->dueOn->format('Y-m-d'), $a->authority->value] <=> [$b->dueOn->format('Y-m-d'), $b->authority->value]);
+
+        return $payments;
     }
 
     /**
@@ -124,7 +153,7 @@ final readonly class CzechSoleTrader implements Regime
     }
 
     /**
-     * January to the month of the cut-off, each by the statuses on its first
+     * January to the month of the cut-off, or of the one given, each by the statuses on its first
      * day. Without any activity entered, every month is a main one, and the
      * result says so.
      *
@@ -132,7 +161,7 @@ final readonly class CzechSoleTrader implements Regime
      *
      * @return list<Month>
      */
-    private function months(RegimeInput $input, array &$warnings): array
+    private function months(RegimeInput $input, array &$warnings, ?\DateTimeImmutable $cutOff = null): array
     {
         $profile = $input->profile;
         $anyActivity = [] !== array_filter($profile->statuses, static fn (\Foresi\TaxesAndContributions\Contract\StatusPeriod $status): bool => StatusKind::Activity === $status->kind);
@@ -140,7 +169,7 @@ final readonly class CzechSoleTrader implements Regime
             $warnings[] = self::WARNING_ACTIVITY_ASSUMED_MAIN;
         }
         $zone = $input->today->getTimezone();
-        $cutOff = $input->cutOff->format('Y-m-d');
+        $cutOff = ($cutOff ?? $input->cutOff)->format('Y-m-d');
         $months = [];
         for ($number = 1; $number <= 12; ++$number) {
             $first = new \DateTimeImmutable(\sprintf('%04d-%02d-01', $input->year, $number), $zone);

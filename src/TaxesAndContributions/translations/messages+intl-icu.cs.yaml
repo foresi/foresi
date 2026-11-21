@@ -70,6 +70,10 @@ taxes:
     health: Zdravotní pojištění
     sickness: Nemocenské pojištění
     income_tax: Daň z příjmů (finanční úřad)
+  flow:
+    advance: '{authority} – záloha {period}'
+    settlement: '{authority} – doplatek {period}'
+    overpayment: '{authority} – přeplatek zpět {period}'
   deduction:
     gifts: Dary
     housing_loan_interest: Úroky z úvěru na bydlení
@@ -260,6 +264,20 @@ taxes:
         plan_no_vat_split: opakované faktury a plánované položky se počítají, jak jsou zadané, bez rozdělení DPH
         no_vat_split_restricted: doklady, které nesmíte vidět, se počítají s DPH
         no_vat_split_unknown: doklady bez známého poměru DPH se počítají s DPH
+    payments:
+      title: Platby
+      description: Zálohy a vyúčtování roku podle splatnosti. Platbu uhradí pohyb na účet úřadu s jeho variabilním symbolem.
+      due: Splatnost
+      payment: Platba
+      amount: Částka
+      state_column: Stav
+      state:
+        expected: Očekává se
+        paid: Zaplaceno
+        overdue: Po splatnosti
+      paid_on: 'Zaplaceno {day}'
+      paid: '{count, plural, one {# zaplacená platba} few {# zaplacené platby} other {# zaplacených plateb}}'
+      duplicates: '{count, plural, one {Tato plánovaná položka v Cash flow může odvod započítat dvakrát. Pokud ho pokrývá odhad, ukonči ji tam:} few {Tyto plánované položky v Cash flow mohou odvod započítat dvakrát. Pokud ho pokrývá odhad, ukonči je tam:} other {Tyto plánované položky v Cash flow mohou odvod započítat dvakrát. Pokud ho pokrývá odhad, ukonči je tam:}}'
     comparison:
       title: Porovnání výdajů
       cheaper: levnější
@@ -387,6 +405,9 @@ taxes:
       activity_assumed_main: V profilu chybí druh činnosti, počítá se s hlavní činností.
       flat_rate_not_computed: Paušální daň se zatím nepočítá, odhad ukazuje běžný režim.
       deduction_not_computed: Odborové příspěvky a zkoušky dalšího vzdělávání se zatím neodečítají.
+      possible_duplicates: Plánované položky v Cash flow mohou odvod započítat dvakrát.
+      no_match_rule: Některé úřady nemají v profilu účet, banka proto nepozná, které jejich platby jsou zaplacené.
+      payments_unavailable: Pohyby na účtu se nepodařilo načíst, platby už mohou být zaplacené.
     unverified:
       fx_payment_day: kurz ČNB ke dni platby u cizích měn
       vat_cash_basis: částky bez DPH ode dne registrace k DPH
@@ -396,6 +417,9 @@ taxes:
       official_2027_tables: oficiální tabulky pro rok 2027
       rules_not_published: pravidla, která úřady ještě nezveřejnily
       act_180_2026: změny podle zákona 180/2026 Sb.
+      middle_advance_band: dvě zálohy na daň po 40 % při poslední známé dani do 150 000 Kč
+      electronic_deadline_payment_date: lhůta a den platby u elektronického přiznání
+      overview_deadlines: lhůty přehledů a jejich doplatků
     gap:
       non_deductible_costs: daňově neuznatelné výdaje
       assets: majetek

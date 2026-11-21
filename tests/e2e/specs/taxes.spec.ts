@@ -46,6 +46,37 @@ test.describe('taxes and contributions', () => {
     await expect(sheet.getByRole('heading', { name: 'Sociální pojištění na konci roku · Skutečné výdaje' })).toBeVisible();
   });
 
+  test('the payments fall due on the page and reach the cash flow as estimates', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/taxes-and-contributions');
+    const payments = page.locator('[data-taxes-payments]');
+    await expect(payments.getByRole('heading', { name: 'Platby' })).toBeVisible();
+    // No bank account pays them yet: what is past is overdue, the rest is expected.
+    await expect(payments.locator('tr[data-state="expected"]').first()).toContainText('Očekává se');
+    await expect(payments.locator('tr[data-taxes-payment^="social.advance."]').first()).toContainText('Sociální pojištění');
+
+    // In the cash flow the advances are estimates, in their own outlined badge.
+    await page.goto('/cash-flow');
+    const insurance = page.locator('[data-cash-flow-table] tr[data-row="category"]', { hasText: 'Pojištění' }).first();
+    await expect(insurance).toBeVisible();
+    await insurance.locator('a[data-sheet]').first().click();
+    const sheet = page.locator('dialog#sheet');
+    await expect(sheet.locator('[data-cash-flow-item]').first().locator('[data-certainty]')).toHaveText('Odhad');
+    await sheet.getByRole('button', { name: 'Zavřít' }).first().click();
+
+    // The filter "Jistota není Odhad" leaves them out, and with them every flow of this firm.
+    await page.getByRole('button', { name: 'Filtr', exact: true }).click();
+    await page.getByRole('button', { name: 'Přidat filtr' }).click();
+    await page.getByRole('menuitem', { name: 'Jistota' }).click();
+    const row = page.locator('[data-filter-sheet-form] [data-filter-row="certainty"]');
+    await row.getByRole('combobox').first().selectOption({ label: 'není' });
+    await row.getByLabel('Odhad', { exact: true }).check();
+    await page.getByRole('button', { name: 'Použít' }).click();
+    await expect(page).toHaveURL(/[?&]f=/);
+    await expect(page.locator('[data-cash-flow-table-empty]')).toBeVisible();
+    await expect(page.locator('[data-cash-flow-filter]')).toContainText('Jistota: není Odhad');
+  });
+
   test('a team member does not see the menu item', async ({ page }) => {
     await signIn(page, MEMBER);
     await page.goto('/cash-flow');

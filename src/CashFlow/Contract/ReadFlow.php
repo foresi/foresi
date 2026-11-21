@@ -21,6 +21,7 @@ final readonly class ReadFlow
      * @param FlowSubject|null   $subject null when the caller may not read the source's documents; the amount still counts
      * @param \DateTimeImmutable $on      the expected day, or the first day of the read for a flow already overdue
      * @param list<FlowFlag>     $flags
+     * @param string|null        $label   what a person reads, such as a planned item's name; null like the subject
      */
     public function __construct(
         public string $source,
@@ -32,6 +33,7 @@ final readonly class ReadFlow
         public FlowCategory $category,
         public FlowCertainty $certainty,
         public array $flags,
+        public ?string $label = null,
     ) {
     }
 }

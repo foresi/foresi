@@ -14,8 +14,9 @@ use Foresi\Shared\Domain\Money;
  * A year computed by a regime: the rules it used and how sure they are, one
  * result per expense method compared, the cheaper method and the break-even
  * (how much more real cost would make the actual costs cost as much as the
- * cheapest lump sum), the credits, the months counted, and what the owner or
- * an accountant should know. It is always an estimate.
+ * cheapest lump sum), the credits, the months counted, the payments of the
+ * year as they fall due (its cash view), and what the owner or an accountant
+ * should know. It is always an estimate.
  */
 final readonly class RegimeResult
 {
@@ -27,6 +28,7 @@ final readonly class RegimeResult
      * @param list<string>       $warnings
      * @param list<string>       $unverified
      * @param list<string>       $knownGaps
+     * @param list<DuePayment>   $payments   every advance of the year, and the settlement once the cut-off is 31 December; all expected
      */
     public function __construct(
         public string $regime,
@@ -41,6 +43,7 @@ final readonly class RegimeResult
         public array $warnings,
         public array $unverified,
         public array $knownGaps,
+        public array $payments = [],
     ) {
     }
 
