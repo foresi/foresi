@@ -3,12 +3,17 @@
     "description": "People, sign-in, memberships and roles.",
     "type": "foresi-module",
     "license": "AGPL-3.0-only",
+    "homepage": "https://foresi.app",
+    "support": {
+        "issues": "https://github.com/foresi/foresi/issues",
+        "source": "https://github.com/foresi/foresi"
+    },
     "require": {
-        "foresi/audit": "*",
-        "foresi/instance": "*",
-        "foresi/party": "*",
-        "foresi/shared": "*",
-        "foresi/ui": "*",
+        "foresi/audit": "self.version",
+        "foresi/instance": "self.version",
+        "foresi/party": "self.version",
+        "foresi/shared": "self.version",
+        "foresi/ui": "self.version",
         "tecnickcom/tc-lib-barcode": "^2.17.2"
     },
     "autoload": {

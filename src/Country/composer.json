@@ -3,9 +3,14 @@
     "description": "Country-specific rules, registers and formats.",
     "type": "foresi-module",
     "license": "AGPL-3.0-only",
+    "homepage": "https://foresi.app",
+    "support": {
+        "issues": "https://github.com/foresi/foresi/issues",
+        "source": "https://github.com/foresi/foresi"
+    },
     "require": {
-        "foresi/party": "*",
-        "foresi/shared": "*"
+        "foresi/party": "self.version",
+        "foresi/shared": "self.version"
     },
     "autoload": {
         "psr-4": {

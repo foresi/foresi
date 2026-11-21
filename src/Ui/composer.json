@@ -3,8 +3,13 @@
     "description": "Screen components, layout and navigation.",
     "type": "foresi-module",
     "license": "AGPL-3.0-only",
+    "homepage": "https://foresi.app",
+    "support": {
+        "issues": "https://github.com/foresi/foresi/issues",
+        "source": "https://github.com/foresi/foresi"
+    },
     "require": {
-        "foresi/shared": "*",
+        "foresi/shared": "self.version",
         "tempest/highlight": "^2.30"
     },
     "autoload": {

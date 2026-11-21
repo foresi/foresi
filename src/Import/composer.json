@@ -3,12 +3,17 @@
     "description": "Import runs and their records.",
     "type": "foresi-module",
     "license": "AGPL-3.0-only",
+    "homepage": "https://foresi.app",
+    "support": {
+        "issues": "https://github.com/foresi/foresi/issues",
+        "source": "https://github.com/foresi/foresi"
+    },
     "require": {
-        "foresi/audit": "*",
-        "foresi/identity": "*",
-        "foresi/instance": "*",
-        "foresi/shared": "*",
-        "foresi/ui": "*",
+        "foresi/audit": "self.version",
+        "foresi/identity": "self.version",
+        "foresi/instance": "self.version",
+        "foresi/shared": "self.version",
+        "foresi/ui": "self.version",
         "openspout/openspout": "^5.12"
     },
     "autoload": {

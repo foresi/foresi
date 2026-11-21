@@ -1602,13 +1602,13 @@
             "dist": {
                 "type": "path",
                 "url": "src/Attachment",
-                "reference": "1eedd59da6e4f55d7cc74cdf7ea00ab904b9854b"
+                "reference": "c8f231e8e0f90e44aa76cfbe61120db33b1da6c2"
             },
             "require": {
-                "foresi/audit": "*",
-                "foresi/identity": "*",
-                "foresi/instance": "*",
-                "foresi/shared": "*"
+                "foresi/audit": "self.version",
+                "foresi/identity": "self.version",
+                "foresi/instance": "self.version",
+                "foresi/shared": "self.version"
             },
             "type": "foresi-module",
             "extra": {
@@ -1632,6 +1632,11 @@
                 "AGPL-3.0-only"
             ],
             "description": "Files attached to records.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -1643,11 +1648,11 @@
             "dist": {
                 "type": "path",
                 "url": "src/Audit",
-                "reference": "04b13047a2c89d2d416e6a685947b8e747fd5985"
+                "reference": "1f629702042c7e011c94196e32920269130a727c"
             },
             "require": {
-                "foresi/instance": "*",
-                "foresi/shared": "*"
+                "foresi/instance": "self.version",
+                "foresi/shared": "self.version"
             },
             "type": "foresi-module",
             "extra": {
@@ -1671,6 +1676,11 @@
                 "AGPL-3.0-only"
             ],
             "description": "Audit log of changes to records.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -1682,17 +1692,17 @@
             "dist": {
                 "type": "path",
                 "url": "src/Banking",
-                "reference": "d8ed4191384f2b3d209bffee091e5690411c6e0b"
+                "reference": "35f8338d3dc9f179e8783d5f56783611e09c877d"
             },
             "require": {
                 "directorytree/imapengine": "~1.25.7",
-                "foresi/audit": "*",
-                "foresi/identity": "*",
-                "foresi/instance": "*",
-                "foresi/invoicing": "*",
-                "foresi/party": "*",
-                "foresi/shared": "*",
-                "foresi/ui": "*",
+                "foresi/audit": "self.version",
+                "foresi/identity": "self.version",
+                "foresi/instance": "self.version",
+                "foresi/invoicing": "self.version",
+                "foresi/party": "self.version",
+                "foresi/shared": "self.version",
+                "foresi/ui": "self.version",
                 "zbateson/mail-mime-parser": "^4.0.8"
             },
             "type": "foresi-module",
@@ -1719,6 +1729,11 @@
                 "AGPL-3.0-only"
             ],
             "description": "Bank accounts, statements and payment matching.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -1730,16 +1745,16 @@
             "dist": {
                 "type": "path",
                 "url": "src/CashFlow",
-                "reference": "31ea57b4632de52128eb972e04d603599034cd29"
+                "reference": "6d2707565dba89fa060ee35c3a73e6271fba21cf"
             },
             "require": {
-                "foresi/audit": "*",
-                "foresi/exchange-rate": "*",
-                "foresi/identity": "*",
-                "foresi/instance": "*",
-                "foresi/party": "*",
-                "foresi/shared": "*",
-                "foresi/ui": "*"
+                "foresi/audit": "self.version",
+                "foresi/exchange-rate": "self.version",
+                "foresi/identity": "self.version",
+                "foresi/instance": "self.version",
+                "foresi/party": "self.version",
+                "foresi/shared": "self.version",
+                "foresi/ui": "self.version"
             },
             "type": "foresi-module",
             "extra": {
@@ -1766,6 +1781,11 @@
                 "AGPL-3.0-only"
             ],
             "description": "Planned items, balance checkpoints and the cash-flow forecast.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -1777,23 +1797,28 @@
             "dist": {
                 "type": "path",
                 "url": "packages/core",
-                "reference": "80f898df644f7dde985170080adde577ca73c3f8"
+                "reference": "6f72d23e3b63b97026ea64a65133ab3e842f5daf"
             },
             "require": {
-                "foresi/attachment": "*",
-                "foresi/audit": "*",
-                "foresi/events": "*",
-                "foresi/identity": "*",
-                "foresi/instance": "*",
-                "foresi/party": "*",
-                "foresi/shared": "*",
-                "foresi/webhooks": "*"
+                "foresi/attachment": "self.version",
+                "foresi/audit": "self.version",
+                "foresi/events": "self.version",
+                "foresi/identity": "self.version",
+                "foresi/instance": "self.version",
+                "foresi/party": "self.version",
+                "foresi/shared": "self.version",
+                "foresi/webhooks": "self.version"
             },
             "type": "metapackage",
             "license": [
                 "AGPL-3.0-only"
             ],
             "description": "The core every Foresi application needs: shared kernel, instance, audit, identity, party, attachments, events and webhooks.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
             "transport-options": {
                 "relative": true
             }
@@ -1804,11 +1829,11 @@
             "dist": {
                 "type": "path",
                 "url": "src/Country",
-                "reference": "b6742e472e498f55c6a59603c005931a3721397b"
+                "reference": "725c619c6faeb36ae27e3af0892cbc8a7d5a8963"
             },
             "require": {
-                "foresi/party": "*",
-                "foresi/shared": "*"
+                "foresi/party": "self.version",
+                "foresi/shared": "self.version"
             },
             "type": "foresi-module",
             "extra": {
@@ -1833,6 +1858,11 @@
                 "AGPL-3.0-only"
             ],
             "description": "Country-specific rules, registers and formats.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -1844,12 +1874,12 @@
             "dist": {
                 "type": "path",
                 "url": "src/Events",
-                "reference": "1e0ee3499852b871ee59aacb46a3fcccf0997299"
+                "reference": "011469e39a6c24e15a5b7be66bce898158cc887f"
             },
             "require": {
-                "foresi/audit": "*",
-                "foresi/instance": "*",
-                "foresi/shared": "*"
+                "foresi/audit": "self.version",
+                "foresi/instance": "self.version",
+                "foresi/shared": "self.version"
             },
             "type": "foresi-module",
             "extra": {
@@ -1876,6 +1906,11 @@
                 "AGPL-3.0-only"
             ],
             "description": "Domain events: the catalogue of contract events, their recording and delivery.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -1887,11 +1922,11 @@
             "dist": {
                 "type": "path",
                 "url": "src/ExchangeRate",
-                "reference": "3fbc6a8809a0c9fc3f0034ac2fa1d881357db0bf"
+                "reference": "50613ab60a176b1543305a2e662cfb18324553dc"
             },
             "require": {
-                "foresi/instance": "*",
-                "foresi/shared": "*"
+                "foresi/instance": "self.version",
+                "foresi/shared": "self.version"
             },
             "type": "foresi-module",
             "extra": {
@@ -1915,6 +1950,11 @@
                 "AGPL-3.0-only"
             ],
             "description": "Daily exchange rates.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -1926,14 +1966,14 @@
             "dist": {
                 "type": "path",
                 "url": "src/Identity",
-                "reference": "889a197fd31ad1fa0c9ba45f760cfd262ef00618"
+                "reference": "7a9441879156e03a271f1a4a17e3b06a7a472fd2"
             },
             "require": {
-                "foresi/audit": "*",
-                "foresi/instance": "*",
-                "foresi/party": "*",
-                "foresi/shared": "*",
-                "foresi/ui": "*",
+                "foresi/audit": "self.version",
+                "foresi/instance": "self.version",
+                "foresi/party": "self.version",
+                "foresi/shared": "self.version",
+                "foresi/ui": "self.version",
                 "tecnickcom/tc-lib-barcode": "^2.17.2"
             },
             "type": "foresi-module",
@@ -1958,6 +1998,11 @@
                 "AGPL-3.0-only"
             ],
             "description": "People, sign-in, memberships and roles.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -1969,16 +2014,16 @@
             "dist": {
                 "type": "path",
                 "url": "src/Idoklad",
-                "reference": "9aa96783ff462d2a09397a2bfcf161aed540f0a4"
+                "reference": "f8467c925dda02937b0e6492c3e4b70315d86685"
             },
             "require": {
-                "foresi/audit": "*",
-                "foresi/identity": "*",
-                "foresi/import": "*",
-                "foresi/instance": "*",
-                "foresi/invoicing": "*",
-                "foresi/party": "*",
-                "foresi/shared": "*"
+                "foresi/audit": "self.version",
+                "foresi/identity": "self.version",
+                "foresi/import": "self.version",
+                "foresi/instance": "self.version",
+                "foresi/invoicing": "self.version",
+                "foresi/party": "self.version",
+                "foresi/shared": "self.version"
             },
             "type": "foresi-module",
             "extra": {
@@ -2002,6 +2047,11 @@
                 "AGPL-3.0-only"
             ],
             "description": "Import from iDoklad.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -2013,14 +2063,14 @@
             "dist": {
                 "type": "path",
                 "url": "src/Import",
-                "reference": "3403ce0c2532f7d80fdf17a99526661acfaec156"
+                "reference": "82630a985b2486849f1757e57440432eccba1e67"
             },
             "require": {
-                "foresi/audit": "*",
-                "foresi/identity": "*",
-                "foresi/instance": "*",
-                "foresi/shared": "*",
-                "foresi/ui": "*",
+                "foresi/audit": "self.version",
+                "foresi/identity": "self.version",
+                "foresi/instance": "self.version",
+                "foresi/shared": "self.version",
+                "foresi/ui": "self.version",
                 "openspout/openspout": "^5.12"
             },
             "type": "foresi-module",
@@ -2045,6 +2095,11 @@
                 "AGPL-3.0-only"
             ],
             "description": "Import runs and their records.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -2056,10 +2111,10 @@
             "dist": {
                 "type": "path",
                 "url": "src/Instance",
-                "reference": "8afe1f1cfcbf471af1055cae7a3ba6600f6e126f"
+                "reference": "6dba81a00d27c1b3c750dec30e321a32324efce2"
             },
             "require": {
-                "foresi/shared": "*"
+                "foresi/shared": "self.version"
             },
             "type": "foresi-module",
             "extra": {
@@ -2083,6 +2138,11 @@
                 "AGPL-3.0-only"
             ],
             "description": "The instance: its clock, schedule, operator tasks and health.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -2094,15 +2154,15 @@
             "dist": {
                 "type": "path",
                 "url": "src/Invoicing",
-                "reference": "8c0aabed28f81160cebc797095dd43a1cb1b6057"
+                "reference": "e43bcb64fe63f0d58065a277f3cb1638ffd9be21"
             },
             "require": {
-                "foresi/audit": "*",
-                "foresi/identity": "*",
-                "foresi/instance": "*",
-                "foresi/party": "*",
-                "foresi/shared": "*",
-                "foresi/ui": "*",
+                "foresi/audit": "self.version",
+                "foresi/identity": "self.version",
+                "foresi/instance": "self.version",
+                "foresi/party": "self.version",
+                "foresi/shared": "self.version",
+                "foresi/ui": "self.version",
                 "openspout/openspout": "^5.12",
                 "tecnickcom/tc-lib-barcode": "^2.17.2",
                 "tecnickcom/tc-lib-pdf": "^8.82.2"
@@ -2136,6 +2196,11 @@
                 "AGPL-3.0-only"
             ],
             "description": "Issued invoices, credit notes and their delivery.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -2147,13 +2212,13 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "443e83d90433dc49869754fa00fd887c02cf2b44"
+                "reference": "473966d638dcfae19885a7b315b43afc59487d49"
             },
             "require": {
-                "foresi/audit": "*",
-                "foresi/instance": "*",
-                "foresi/shared": "*",
-                "foresi/ui": "*"
+                "foresi/audit": "self.version",
+                "foresi/instance": "self.version",
+                "foresi/shared": "self.version",
+                "foresi/ui": "self.version"
             },
             "type": "foresi-module",
             "extra": {
@@ -2182,6 +2247,11 @@
                 "AGPL-3.0-only"
             ],
             "description": "Address book of people and organisations.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -2193,18 +2263,18 @@
             "dist": {
                 "type": "path",
                 "url": "src/Purchasing",
-                "reference": "04db333593d5db25f7b5ddef79c3d18cd0e2f07d"
+                "reference": "7518dfbfba3da4fd9fc0979c6c7b616e622a6bd2"
             },
             "require": {
                 "brick/math": "^1.0",
-                "foresi/attachment": "*",
-                "foresi/audit": "*",
-                "foresi/exchange-rate": "*",
-                "foresi/identity": "*",
-                "foresi/instance": "*",
-                "foresi/party": "*",
-                "foresi/shared": "*",
-                "foresi/ui": "*"
+                "foresi/attachment": "self.version",
+                "foresi/audit": "self.version",
+                "foresi/exchange-rate": "self.version",
+                "foresi/identity": "self.version",
+                "foresi/instance": "self.version",
+                "foresi/party": "self.version",
+                "foresi/shared": "self.version",
+                "foresi/ui": "self.version"
             },
             "type": "foresi-module",
             "extra": {
@@ -2234,6 +2304,11 @@
                 "AGPL-3.0-only"
             ],
             "description": "Received documents from suppliers.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -2245,7 +2320,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "f2c7b410fe9a50001996863d5eee222f8b55923f"
+                "reference": "c7284fbbc008e9940f2286f13a4fc8f7736afdab"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -2277,6 +2352,11 @@
                 "AGPL-3.0-only"
             ],
             "description": "Shared kernel: ids, money, mail and infrastructure.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -2288,16 +2368,16 @@
             "dist": {
                 "type": "path",
                 "url": "src/TaxesAndContributions",
-                "reference": "62dda487c7089ef8af6f052cd713beac0f937f99"
+                "reference": "b507099e223a1151e4deb4de1c0dbeb86a91cd07"
             },
             "require": {
-                "foresi/audit": "*",
-                "foresi/exchange-rate": "*",
-                "foresi/identity": "*",
-                "foresi/instance": "*",
-                "foresi/party": "*",
-                "foresi/shared": "*",
-                "foresi/ui": "*"
+                "foresi/audit": "self.version",
+                "foresi/exchange-rate": "self.version",
+                "foresi/identity": "self.version",
+                "foresi/instance": "self.version",
+                "foresi/party": "self.version",
+                "foresi/shared": "self.version",
+                "foresi/ui": "self.version"
             },
             "type": "foresi-module",
             "extra": {
@@ -2328,6 +2408,11 @@
                 "AGPL-3.0-only"
             ],
             "description": "The taxes and contributions of the owner: the owner profile with dated statuses, and the estimate to date and to the year end.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -2339,17 +2424,17 @@
             "dist": {
                 "type": "path",
                 "url": "src/Timesheet",
-                "reference": "aab7bec3b9c0ca9d91c72d6ce605f7ab0332a020"
+                "reference": "ceec1c5e2de54e8201da543cbc8245d2fe15c30c"
             },
             "require": {
-                "foresi/audit": "*",
-                "foresi/identity": "*",
-                "foresi/instance": "*",
-                "foresi/invoicing": "*",
-                "foresi/party": "*",
-                "foresi/shared": "*",
-                "foresi/ui": "*",
-                "foresi/work": "*"
+                "foresi/audit": "self.version",
+                "foresi/identity": "self.version",
+                "foresi/instance": "self.version",
+                "foresi/invoicing": "self.version",
+                "foresi/party": "self.version",
+                "foresi/shared": "self.version",
+                "foresi/ui": "self.version",
+                "foresi/work": "self.version"
             },
             "type": "foresi-module",
             "extra": {
@@ -2373,6 +2458,11 @@
                 "AGPL-3.0-only"
             ],
             "description": "Time tracking against tasks.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -2384,10 +2474,10 @@
             "dist": {
                 "type": "path",
                 "url": "src/Ui",
-                "reference": "655142303f63673ad9f2c395b4b7920ec3ca7d10"
+                "reference": "6f5e779ee5eb5ef0a5822911ff0730a9a79f6a47"
             },
             "require": {
-                "foresi/shared": "*",
+                "foresi/shared": "self.version",
                 "tempest/highlight": "^2.30"
             },
             "type": "foresi-module",
@@ -2409,6 +2499,11 @@
                 "AGPL-3.0-only"
             ],
             "description": "Screen components, layout and navigation.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -2420,15 +2515,15 @@
             "dist": {
                 "type": "path",
                 "url": "src/Webhooks",
-                "reference": "1222502cc2ec4d5d44a507189d55d70ac7504ce0"
+                "reference": "7931068053c87efdc705676b85c64d1a2ac262ca"
             },
             "require": {
-                "foresi/audit": "*",
-                "foresi/events": "*",
-                "foresi/identity": "*",
-                "foresi/instance": "*",
-                "foresi/shared": "*",
-                "foresi/ui": "*"
+                "foresi/audit": "self.version",
+                "foresi/events": "self.version",
+                "foresi/identity": "self.version",
+                "foresi/instance": "self.version",
+                "foresi/shared": "self.version",
+                "foresi/ui": "self.version"
             },
             "type": "foresi-module",
             "extra": {
@@ -2455,6 +2550,11 @@
                 "AGPL-3.0-only"
             ],
             "description": "Outbound webhooks: endpoints that receive the domain events as signed Standard Webhooks requests.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -2466,16 +2566,16 @@
             "dist": {
                 "type": "path",
                 "url": "src/Work",
-                "reference": "1d31fb5f3be2d8856836c7b966d3aa9a6d6cbe90"
+                "reference": "616f64a2190458cc9f8e65065f7041ae4fdfdbcd"
             },
             "require": {
-                "foresi/attachment": "*",
-                "foresi/audit": "*",
-                "foresi/identity": "*",
-                "foresi/instance": "*",
-                "foresi/party": "*",
-                "foresi/shared": "*",
-                "foresi/ui": "*",
+                "foresi/attachment": "self.version",
+                "foresi/audit": "self.version",
+                "foresi/identity": "self.version",
+                "foresi/instance": "self.version",
+                "foresi/party": "self.version",
+                "foresi/shared": "self.version",
+                "foresi/ui": "self.version",
                 "openspout/openspout": "^5.12"
             },
             "type": "foresi-module",
@@ -2511,6 +2611,11 @@
                 "AGPL-3.0-only"
             ],
             "description": "Projects and tasks.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
