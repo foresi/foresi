@@ -17,14 +17,21 @@ use Foresi\TaxesAndContributions\Contract\AmountsView;
 use Foresi\TaxesAndContributions\Contract\AmountTotals;
 use Foresi\TaxesAndContributions\Contract\AuthorityAccountView;
 use Foresi\TaxesAndContributions\Contract\ChildInput;
+use Foresi\TaxesAndContributions\Contract\CreditLine;
+use Foresi\TaxesAndContributions\Contract\EstimateView;
 use Foresi\TaxesAndContributions\Contract\ExpenseMethod;
+use Foresi\TaxesAndContributions\Contract\MethodResult;
+use Foresi\TaxesAndContributions\Contract\MonthStatus;
 use Foresi\TaxesAndContributions\Contract\ProfileView;
+use Foresi\TaxesAndContributions\Contract\RegimeResult;
+use Foresi\TaxesAndContributions\Contract\RuleRef;
 use Foresi\TaxesAndContributions\Contract\SpouseInput;
 use Foresi\TaxesAndContributions\Contract\StatusPeriod;
+use Foresi\TaxesAndContributions\Contract\Step;
 use Foresi\TaxesAndContributions\Contract\YearInputsView;
 
 /**
- * The owner profile and the actual amounts as the API and MCP write them, in snake case, with amounts
+ * The owner profile, the actual amounts and the estimate as the API and MCP write them, in snake case, with amounts
  * as {amount_minor, currency} and days as 2026-11-12.
  */
 final class TaxesJson
@@ -147,6 +154,107 @@ final class TaxesJson
             'missing_rates' => $amounts->missingRates,
             'unverified' => $amounts->unverified,
             'known_gaps' => $amounts->knownGaps,
+        ];
+    }
+
+    /**
+     * The estimate: "to date" and "year end" apart, each null with its reason
+     * until it can be computed.
+     *
+     * @return array<string, mixed>
+     */
+    public static function estimate(EstimateView $estimate): array
+    {
+        $amounts = $estimate->amounts;
+        $sources = null;
+        if ($amounts instanceof AmountsView) {
+            $totals = [];
+            foreach (AmountKind::cases() as $kind) {
+                $totals[$kind->value] = self::totals($amounts->totalOf($kind));
+            }
+            $sources = [
+                'from' => $amounts->from->format('Y-m-d'),
+                'to' => $amounts->to->format('Y-m-d'),
+                'totals' => $totals,
+                'unavailable_sources' => $amounts->unavailableSources,
+                'restricted_sources' => $amounts->restrictedSources,
+                'missing_rates' => $amounts->missingRates,
+            ];
+        }
+
+        return [
+            'estimate' => true,
+            'year' => $estimate->year,
+            'today' => $estimate->today->format('Y-m-d'),
+            'to_date' => $estimate->toDate instanceof RegimeResult ? self::result($estimate->toDate) : null,
+            'to_date_reason' => $estimate->toDateReason,
+            'year_end' => $estimate->yearEnd instanceof RegimeResult ? self::result($estimate->yearEnd) : null,
+            'year_end_reason' => $estimate->yearEndReason,
+            'amounts' => $sources,
+            'warnings' => $estimate->warnings,
+            'unverified' => $estimate->unverified,
+            'known_gaps' => $estimate->knownGaps,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function result(RegimeResult $result): array
+    {
+        return [
+            'regime' => $result->regime,
+            'rules' => [
+                'year' => $result->ruleYear,
+                'status' => $result->rules->value,
+                'values' => array_map(static fn (RuleRef $rule): array => [
+                    'key' => $rule->key,
+                    'value' => $rule->value,
+                    'valid_from' => $rule->validFrom->format('Y-m-d'),
+                    'source_url' => $rule->sourceUrl,
+                    'unverified' => $rule->unverified,
+                ], $result->rulesUsed),
+            ],
+            'methods' => array_map(static fn (MethodResult $method): array => [
+                'method' => $method->method->value,
+                'totals' => [
+                    'income' => JsonValues::money($method->totals->income),
+                    'costs' => JsonValues::money($method->totals->costs),
+                    'expenses' => JsonValues::money($method->totals->expenses),
+                    'profit' => JsonValues::money($method->totals->profit),
+                    'social' => JsonValues::money($method->totals->social),
+                    'health' => JsonValues::money($method->totals->health),
+                    'sickness' => JsonValues::money($method->totals->sickness),
+                    'income_tax' => JsonValues::money($method->totals->incomeTax),
+                    'child_bonus' => JsonValues::money($method->totals->childBonus),
+                    'levies' => JsonValues::money($method->totals->levies),
+                    'take_home' => JsonValues::money($method->totals->takeHome),
+                    'social_base' => JsonValues::money($method->totals->socialBase),
+                ],
+                'steps' => array_map(static fn (Step $step): array => [
+                    'key' => $step->key,
+                    'input' => $step->input,
+                    'rule' => $step->rule,
+                    'source_url' => $step->sourceUrl,
+                    'result' => $step->result,
+                ], $method->steps),
+            ], $result->methods),
+            'cheaper_method' => $result->cheaperMethod?->value,
+            'break_even' => self::money($result->breakEven),
+            'credits' => array_map(static fn (CreditLine $credit): array => [
+                'key' => $credit->key,
+                'claimed' => $credit->claimed,
+                'amount' => JsonValues::money($credit->amount),
+                'explanation' => $credit->explanation,
+            ], $result->credits),
+            'months' => array_map(static fn (MonthStatus $month): array => [
+                'month' => $month->month,
+                'activity' => $month->activity,
+                'health_minimum_exempt' => $month->healthMinimumExempt,
+                'sickness_insurance' => $month->sicknessInsurance,
+                'minimum_social_advance' => JsonValues::money($month->minimumSocialAdvance),
+                'minimum_health_advance' => JsonValues::money($month->minimumHealthAdvance),
+            ], $result->months),
         ];
     }
 

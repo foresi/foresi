@@ -727,6 +727,107 @@ nelmio_api_doc:
                         net: { $ref: '#/components/schemas/Money' }
                         vat: { $ref: '#/components/schemas/Money' }
                         counted: { $ref: '#/components/schemas/Money' }
+                TaxEstimateResult:
+                    type: object
+                    description: 'A year computed by a regime, such as the Czech sole trader: one result per expense method, each with its steps.'
+                    properties:
+                        regime: { type: string, example: cz.sole_trader }
+                        rules:
+                            type: object
+                            properties:
+                                year: { type: integer, example: 2026 }
+                                status: { type: string, enum: [published, derived, latest_used] }
+                                values:
+                                    type: array
+                                    items:
+                                        type: object
+                                        properties:
+                                            key: { type: string, example: social.minimum_share.main }
+                                            value: { type: string, example: '35' }
+                                            valid_from: { type: string, format: date }
+                                            source_url: { type: string, format: uri }
+                                            unverified: { type: boolean }
+                        methods:
+                            type: array
+                            items:
+                                type: object
+                                properties:
+                                    method: { type: string, enum: [actual, lump_80, lump_60, lump_40, lump_30] }
+                                    totals:
+                                        type: object
+                                        properties:
+                                            income: { $ref: '#/components/schemas/Money' }
+                                            costs: { $ref: '#/components/schemas/Money' }
+                                            expenses: { $ref: '#/components/schemas/Money' }
+                                            profit: { $ref: '#/components/schemas/Money' }
+                                            social: { $ref: '#/components/schemas/Money' }
+                                            health: { $ref: '#/components/schemas/Money' }
+                                            sickness: { $ref: '#/components/schemas/Money' }
+                                            income_tax: { $ref: '#/components/schemas/Money' }
+                                            child_bonus: { $ref: '#/components/schemas/Money' }
+                                            levies: { $ref: '#/components/schemas/Money' }
+                                            take_home: { $ref: '#/components/schemas/Money' }
+                                            social_base: { $ref: '#/components/schemas/Money' }
+                                    steps:
+                                        type: array
+                                        items:
+                                            type: object
+                                            properties:
+                                                key: { type: string, enum: [profit, social, health, sickness, tax_base, income_tax, credits, child_benefit] }
+                                                input: { type: object, additionalProperties: { type: string } }
+                                                rule: { type: string }
+                                                source_url: { type: string, format: uri }
+                                                result: { type: string, example: '60056.00' }
+                        cheaper_method: { type: string, nullable: true, enum: [actual, lump_80, lump_60, lump_40, lump_30] }
+                        break_even: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true, description: How much more real cost would make the actual costs cost as much as the cheapest lump sum. }
+                        credits:
+                            type: array
+                            items:
+                                type: object
+                                properties:
+                                    key: { type: string, example: taxpayer }
+                                    claimed: { type: boolean }
+                                    amount: { $ref: '#/components/schemas/Money' }
+                                    explanation: { type: string }
+                        months:
+                            type: array
+                            items:
+                                type: object
+                                properties:
+                                    month: { type: string, example: '2026-07' }
+                                    activity: { type: string, enum: [none, secondary, main] }
+                                    health_minimum_exempt: { type: boolean }
+                                    sickness_insurance: { type: boolean }
+                                    minimum_social_advance: { $ref: '#/components/schemas/Money' }
+                                    minimum_health_advance: { $ref: '#/components/schemas/Money' }
+                TaxEstimate:
+                    type: object
+                    description: 'The estimate of the taxes and contributions of a year, never a basis for the tax return. "To date" and "year end" are never mixed; a part that cannot be computed is null with its reason. Only the owner reads it.'
+                    properties:
+                        estimate: { type: boolean, enum: [true] }
+                        year: { type: integer, example: 2026 }
+                        today: { type: string, format: date }
+                        to_date: { allOf: [{ $ref: '#/components/schemas/TaxEstimateResult' }], nullable: true }
+                        to_date_reason: { type: string, nullable: true, enum: [year_not_started, rules_not_available] }
+                        year_end: { allOf: [{ $ref: '#/components/schemas/TaxEstimateResult' }], nullable: true }
+                        year_end_reason: { type: string, nullable: true, enum: [forecast_not_built] }
+                        amounts:
+                            type: object
+                            nullable: true
+                            properties:
+                                from: { type: string, format: date }
+                                to: { type: string, format: date }
+                                totals:
+                                    type: object
+                                    properties:
+                                        income: { $ref: '#/components/schemas/TaxAmountFigures' }
+                                        cost: { $ref: '#/components/schemas/TaxAmountFigures' }
+                                unavailable_sources: { type: array, items: { type: string } }
+                                restricted_sources: { type: array, items: { type: string } }
+                                missing_rates: { type: array, items: { type: string } }
+                        warnings: { type: array, items: { type: string, example: sources_unavailable } }
+                        unverified: { type: array, items: { type: string, example: vat_cash_basis }, description: Rules an accountant should confirm. }
+                        known_gaps: { type: array, items: { type: string } }
                 TaxAmounts:
                     type: object
                     description: 'The actual income and costs on a cash basis: each payment on its own day, split into net and VAT in the ratio of its document, at the ČNB rate of its day. Refunds and credit notes are negative. Only the owner reads them.'

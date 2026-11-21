@@ -7,7 +7,9 @@
 declare(strict_types=1);
 
 use Foresi\TaxesAndContributions\Application\Amounts;
+use Foresi\TaxesAndContributions\Application\Estimates;
 use Foresi\TaxesAndContributions\Contract\ActualAmountSource;
+use Foresi\TaxesAndContributions\Contract\Regime;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
@@ -25,4 +27,8 @@ return static function (ContainerConfigurator $container): void {
     // Invoicing and Purchasing give the paid amounts through Foresi\TaxesAndContributions\Contract\ActualAmountSource.
     $services->set(Amounts::class)
         ->arg('$sources', tagged_iterator(ActualAmountSource::TAG));
+
+    // A country gives the rules of a legal form through Foresi\TaxesAndContributions\Contract\Regime.
+    $services->set(Estimates::class)
+        ->arg('$regimes', tagged_iterator(Regime::TAG));
 };

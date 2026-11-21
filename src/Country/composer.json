@@ -21,7 +21,8 @@
             "optional": [
                 "banking",
                 "exchange-rate",
-                "invoicing"
+                "invoicing",
+                "taxes-and-contributions"
             ]
         }
     }
