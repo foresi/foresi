@@ -130,6 +130,42 @@ final class TaxesApiTest extends ApiTestCase
         self::assertSame('owner_only', $this->in($read, 'structuredContent', 'error', 'code'));
     }
 
+    public function testTheOwnerReadsTheEstimateOnBothSurfaces(): void
+    {
+        $this->get('/api/v1/taxes-and-contributions/estimate?year=2026', secret: $this->owner);
+        self::assertResponseIsSuccessful();
+        self::assertTrue($this->at('data', 'estimate'));
+        self::assertSame('cz.sole_trader', $this->at('data', 'to_date', 'regime'));
+        self::assertSame([2026, 'published'], [$this->at('data', 'to_date', 'rules', 'year'), $this->at('data', 'to_date', 'rules', 'status')]);
+        self::assertNull($this->at('data', 'year_end'));
+        self::assertSame('forecast_not_built', $this->at('data', 'year_end_reason'));
+        self::assertSame(['actual', 'lump_60'], [$this->at('data', 'to_date', 'methods', 0, 'method'), $this->at('data', 'to_date', 'methods', 1, 'method')]);
+        foreach (['profit', 'social', 'health', 'sickness', 'tax_base', 'income_tax', 'credits', 'child_benefit'] as $index => $key) {
+            self::assertSame($key, $this->at('data', 'to_date', 'methods', 0, 'steps', $index, 'key'));
+        }
+        // No income yet, main activity assumed January to November: eleven months of the 35 % minimum.
+        self::assertSame(['amount_minor' => 17_139 * 11 * 100, 'currency' => 'CZK'], $this->at('data', 'to_date', 'methods', 0, 'totals', 'social_base'));
+        $estimate = $this->json()['data'];
+
+        $this->get('/api/v1/taxes-and-contributions/estimate', secret: $this->owner);
+        self::assertSame(2026, $this->at('data', 'year'), 'Without a year, this one.');
+
+        $call = $this->tool($this->owner, 'foresi_tax_estimate', ['year' => 2026]);
+        self::assertFalse($call['isError'] ?? false);
+        self::assertEquals($estimate, $this->in($call, 'structuredContent', 'data'));
+
+        $this->get('/api/v1/taxes-and-contributions/estimate?year=2027', secret: $this->owner);
+        self::assertSame('year_not_started', $this->at('data', 'to_date_reason'));
+        foreach (['2028', '1999', 'last'] as $year) {
+            $this->get('/api/v1/taxes-and-contributions/estimate?year='.$year, secret: $this->owner);
+            $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'year', 'reason' => 'invalid_year']);
+        }
+        $this->get('/api/v1/taxes-and-contributions/estimate', secret: $this->memberWriter);
+        $this->assertProblem(403, 'owner_only');
+        $read = $this->tool($this->memberWriter, 'foresi_tax_estimate', []);
+        self::assertSame('owner_only', $this->in($read, 'structuredContent', 'error', 'code'));
+    }
+
     public function testAMemberIsRefusedWithOwnerOnly(): void
     {
         $this->get('/api/v1/taxes-and-contributions/profile', secret: $this->memberWriter);

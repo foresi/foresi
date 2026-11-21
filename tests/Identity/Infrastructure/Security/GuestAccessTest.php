@@ -58,7 +58,7 @@ final class GuestAccessTest extends WebTestCase
         'api_v1_operation_received_documents.record', 'api_v1_operation_received_documents.trash',
         'api_v1_operation_received_documents.add_payment', 'api_v1_operation_received_documents.mark_paid',
         'api_v1_operation_received_documents.remove_payment',
-        'api_v1_taxes_profile', 'api_v1_taxes_amounts', 'api_v1_operation_taxes.profile.status.add', 'api_v1_operation_taxes.profile.status.remove',
+        'api_v1_taxes_profile', 'api_v1_taxes_amounts', 'api_v1_taxes_estimate', 'api_v1_operation_taxes.profile.status.add', 'api_v1_operation_taxes.profile.status.remove',
         'api_v1_operation_taxes.profile.year.set', 'api_v1_operation_taxes.profile.authority.set',
         'api_v1_operation_invoices.create', 'api_v1_operation_invoices.update', 'api_v1_operation_invoices.trash', 'api_v1_operation_invoices.restore', 'api_v1_operation_invoices.mark_sent',
         'api_v1_lists', 'api_v1_views', 'api_v1_view', 'api_v1_view_count',
