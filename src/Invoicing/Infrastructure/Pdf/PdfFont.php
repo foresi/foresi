@@ -24,7 +24,7 @@ final class PdfFont implements PrintableText
     /** @var array<int, int>|null width in thousandths of the type size, by code point */
     private ?array $widths = null;
 
-    public function __construct(private readonly string $directory = __DIR__.'/../../../../resources/pdf-fonts')
+    public function __construct(private readonly string $directory = __DIR__.'/../../resources/pdf-fonts')
     {
     }
 

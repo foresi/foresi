@@ -22,7 +22,7 @@ final class ProjectEventsTest extends TestCase
     public function testCatalogueHasNoProblems(): void
     {
         $projectDir = \dirname(__DIR__, 4);
-        $catalogue = new EventCatalogue(new InstalledModules($projectDir), $projectDir);
+        $catalogue = new EventCatalogue(new InstalledModules($projectDir));
 
         self::assertSame([], $catalogue->problems());
         foreach ($catalogue->all() as $type) {

@@ -52,6 +52,21 @@ final readonly class InstalledModules
     }
 
     /**
+     * The directory of an installed module's package, as Composer installed it:
+     * vendor/foresi/<package> from Packagist, or the target of a path repository.
+     * Nothing assumes the module sits in src/ of the application.
+     *
+     * @throws InvalidManifest when the module's package is not installed
+     */
+    public static function directoryOf(ModuleManifest $module): string
+    {
+        $path = InstalledVersions::isInstalled($module->package) ? InstalledVersions::getInstallPath($module->package) : null;
+        $directory = null === $path ? false : realpath($path);
+
+        return false === $directory ? throw new InvalidManifest(\sprintf('Module %s (package %s) is not installed.', $module->id->value, $module->package)) : $directory;
+    }
+
+    /**
      * The graph problems this application lives with for now, from
      * "extra.foresi.accepted-problems" of the root composer.json.
      *

@@ -170,8 +170,8 @@ abstract class ModuleBundle extends AbstractBundle
             return;
         }
         $graph = $this->installedModules($builder);
-        foreach (new ModuleIntegrations(\dirname($this->getPath()))->of($graph) as $integration) {
-            if (!$integration->loaded || $integration->module->value !== $this->id()->value) {
+        foreach (new ModuleIntegrations()->ofModule($graph->get($this->id()), $this->getPath(), $graph) as $integration) {
+            if (!$integration->loaded) {
                 continue;
             }
             $templates = $integration->directory.'/templates';

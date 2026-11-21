@@ -13,7 +13,6 @@ use Foresi\Shared\Domain\Event\DomainEventPayload;
 use Foresi\Shared\Domain\Module\ModuleGraph;
 use Foresi\Shared\Domain\Module\ModuleId;
 use Foresi\Shared\Infrastructure\Module\InstalledModules;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * The contract events of the installed modules: every class in a module's
@@ -42,8 +41,6 @@ final class EventCatalogue
 
     public function __construct(
         private readonly InstalledModules $modules,
-        #[Autowire(param: 'kernel.project_dir')]
-        private readonly string $projectDir,
     ) {
     }
 
@@ -54,7 +51,7 @@ final class EventCatalogue
      */
     public static function scan(array $sources): self
     {
-        $catalogue = new self(new InstalledModules(''), '');
+        $catalogue = new self(new InstalledModules(''));
         $catalogue->sources = $sources;
 
         return $catalogue;
@@ -65,8 +62,13 @@ final class EventCatalogue
      */
     public static function forGraph(ModuleGraph $graph, string $projectDir): self
     {
-        $catalogue = new self(new InstalledModules($projectDir), $projectDir);
-        $catalogue->sources = $catalogue->sourcesOf($graph);
+        $catalogue = new self(new InstalledModules($projectDir));
+        $sources = [];
+        foreach ($graph->all() as $manifest) {
+            $segments = explode('\\', trim($manifest->namespace, '\\'));
+            $sources[] = [$manifest->id, $manifest->namespace, $projectDir.'/src/'.end($segments)];
+        }
+        $catalogue->sources = $sources;
 
         return $catalogue;
     }
@@ -285,14 +287,13 @@ final class EventCatalogue
     }
 
     /**
-     * @return list<array{ModuleId, string, string}> each module of the graph with its directory below src/
+     * @return list<array{ModuleId, string, string}> each installed module with the directory Composer installed it in
      */
     private function sourcesOf(ModuleGraph $graph): array
     {
         $sources = [];
         foreach ($graph->all() as $manifest) {
-            $segments = explode('\\', trim($manifest->namespace, '\\'));
-            $sources[] = [$manifest->id, $manifest->namespace, $this->projectDir.'/src/'.end($segments)];
+            $sources[] = [$manifest->id, $manifest->namespace, InstalledModules::directoryOf($manifest)];
         }
 
         return $sources;
