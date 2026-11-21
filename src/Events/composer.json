@@ -3,10 +3,15 @@
     "description": "Domain events: the catalogue of contract events, their recording and delivery.",
     "type": "foresi-module",
     "license": "AGPL-3.0-only",
+    "homepage": "https://foresi.app",
+    "support": {
+        "issues": "https://github.com/foresi/foresi/issues",
+        "source": "https://github.com/foresi/foresi"
+    },
     "require": {
-        "foresi/audit": "*",
-        "foresi/instance": "*",
-        "foresi/shared": "*"
+        "foresi/audit": "self.version",
+        "foresi/instance": "self.version",
+        "foresi/shared": "self.version"
     },
     "autoload": {
         "psr-4": {

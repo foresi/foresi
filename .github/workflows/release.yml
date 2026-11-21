@@ -51,3 +51,38 @@ jobs:
             exit 0
           fi
           curl --fail --silent --show-error --retry 3 --max-time 30 -X POST "$DEPLOY_HOOK" > /dev/null
+
+  # Splits every package into its read-only repository foresi/<name> (ADR 0034,
+  # Distribution), after the release so that a tag cut by this run goes along.
+  # It runs here and not on its own push trigger because tags made with the
+  # workflow token start no other workflow. Until the SPLIT_TOKEN secret exists
+  # it does nothing; tags are pushed only from the repository variable
+  # SPLIT_SINCE on, the first lockstep tag.
+  split:
+    name: Split packages
+    needs: release
+    if: github.repository == 'foresi/foresi'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The release job may have cut a tag after this run started.
+          ref: main
+          fetch-depth: 0
+          fetch-tags: true
+          # The pushes authenticate with SPLIT_TOKEN, not the workflow token.
+          persist-credentials: false
+
+      - name: Split and push
+        env:
+          SPLIT_TOKEN: ${{ secrets.SPLIT_TOKEN }}
+          SPLIT_SINCE: ${{ vars.SPLIT_SINCE }}
+        run: |
+          if [ -z "$SPLIT_TOKEN" ]; then
+            echo "SPLIT_TOKEN is not set; nothing to do."
+            exit 0
+          fi
+          .github/scripts/split.sh --push ${SPLIT_SINCE:+--since "$SPLIT_SINCE"}

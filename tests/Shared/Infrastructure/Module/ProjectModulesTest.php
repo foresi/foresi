@@ -40,6 +40,40 @@ final class ProjectModulesTest extends TestCase
         self::assertCount(\count($directories), new InstalledModules($this->projectDir())->graph()->all(), 'Every manifest must be installed; run composer update "foresi/*".');
     }
 
+    /**
+     * Every package is split into its own repository and installed from
+     * Packagist.org (ADR 0034, Distribution), so each one must stand on its own:
+     * the licence text travels with it, and the packages of this repository
+     * require each other at the same version, as they are released in lockstep.
+     */
+    public function testEveryPackageCanBePublishedOnItsOwn(): void
+    {
+        $licence = (string) file_get_contents($this->projectDir().'/LICENSE');
+        $manifests = [...(array) glob($this->projectDir().'/src/*/composer.json'), $this->projectDir().'/packages/core/composer.json'];
+
+        foreach ($manifests as $manifest) {
+            $directory = \dirname((string) $manifest);
+            $package = basename($directory);
+            $composer = json_decode((string) file_get_contents((string) $manifest), true, flags: \JSON_THROW_ON_ERROR);
+            self::assertIsArray($composer);
+
+            $name = $composer['name'] ?? null;
+            self::assertIsString($name, $package);
+            self::assertMatchesRegularExpression('#^foresi/[a-z0-9]+(-[a-z0-9]+)*$#', $name, $package);
+            self::assertSame('AGPL-3.0-only', $composer['license'] ?? null, $package);
+            $support = $composer['support'] ?? null;
+            self::assertIsArray($support, $package);
+            self::assertSame('https://github.com/foresi/foresi', $support['source'] ?? null, \sprintf('%s must point to this repository, where it is developed.', $package));
+            self::assertFileExists($directory.'/LICENSE', \sprintf('%s ships without the licence text; copy LICENSE into it.', $package));
+            self::assertSame($licence, file_get_contents($directory.'/LICENSE'), \sprintf('%s/LICENSE differs from LICENSE.', $package));
+            foreach ((array) ($composer['require'] ?? []) as $dependency => $constraint) {
+                if (str_starts_with((string) $dependency, 'foresi/')) {
+                    self::assertSame('self.version', $constraint, \sprintf('%s must require %s at self.version.', $package, $dependency));
+                }
+            }
+        }
+    }
+
     public function testProblemsAreExactlyTheAcceptedOnes(): void
     {
         $modules = new InstalledModules($this->projectDir());

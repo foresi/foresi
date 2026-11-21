@@ -3,8 +3,13 @@
     "description": "The instance: its clock, schedule, operator tasks and health.",
     "type": "foresi-module",
     "license": "AGPL-3.0-only",
+    "homepage": "https://foresi.app",
+    "support": {
+        "issues": "https://github.com/foresi/foresi/issues",
+        "source": "https://github.com/foresi/foresi"
+    },
     "require": {
-        "foresi/shared": "*"
+        "foresi/shared": "self.version"
     },
     "autoload": {
         "psr-4": {

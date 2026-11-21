@@ -3,16 +3,21 @@
     "description": "Received documents from suppliers.",
     "type": "foresi-module",
     "license": "AGPL-3.0-only",
+    "homepage": "https://foresi.app",
+    "support": {
+        "issues": "https://github.com/foresi/foresi/issues",
+        "source": "https://github.com/foresi/foresi"
+    },
     "require": {
         "brick/math": "^1.0",
-        "foresi/attachment": "*",
-        "foresi/audit": "*",
-        "foresi/exchange-rate": "*",
-        "foresi/identity": "*",
-        "foresi/instance": "*",
-        "foresi/party": "*",
-        "foresi/shared": "*",
-        "foresi/ui": "*"
+        "foresi/attachment": "self.version",
+        "foresi/audit": "self.version",
+        "foresi/exchange-rate": "self.version",
+        "foresi/identity": "self.version",
+        "foresi/instance": "self.version",
+        "foresi/party": "self.version",
+        "foresi/shared": "self.version",
+        "foresi/ui": "self.version"
     },
     "autoload": {
         "psr-4": {

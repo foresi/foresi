@@ -3,14 +3,19 @@
     "description": "The core every Foresi application needs: shared kernel, instance, audit, identity, party, attachments, events and webhooks.",
     "type": "metapackage",
     "license": "AGPL-3.0-only",
+    "homepage": "https://foresi.app",
+    "support": {
+        "issues": "https://github.com/foresi/foresi/issues",
+        "source": "https://github.com/foresi/foresi"
+    },
     "require": {
-        "foresi/attachment": "*",
-        "foresi/audit": "*",
-        "foresi/events": "*",
-        "foresi/identity": "*",
-        "foresi/instance": "*",
-        "foresi/party": "*",
-        "foresi/shared": "*",
-        "foresi/webhooks": "*"
+        "foresi/attachment": "self.version",
+        "foresi/audit": "self.version",
+        "foresi/events": "self.version",
+        "foresi/identity": "self.version",
+        "foresi/instance": "self.version",
+        "foresi/party": "self.version",
+        "foresi/shared": "self.version",
+        "foresi/webhooks": "self.version"
     }
 }
