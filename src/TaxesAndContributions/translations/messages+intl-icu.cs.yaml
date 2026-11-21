@@ -209,3 +209,178 @@ taxes:
       account_invalid: Zadejte číslo účtu, nejvýš 64 znaků.
       variable_symbol_invalid: Variabilní symbol má nejvýš 35 znaků.
       not_found: Stav už neexistuje.
+  page:
+    years: Roky
+    'yes': ano
+    'no': ne
+    open_steps: – zobrazit postup výpočtu
+    summary:
+      title: Kolik ti zůstane
+      method: 'Metoda: {method} ({why})'
+      chosen: zvolená v profilu
+      cheaper: v profilu žádná, ukázána levnější
+      item: Položka
+      to_date: Zatím
+      year_end: Na konci roku
+      forecast: Výhled
+    row:
+      income: Příjmy
+      costs: Výdaje
+      profit: Zisk
+      social: Sociální pojištění
+      health: Zdravotní pojištění
+      sickness: Nemocenské pojištění
+      income_tax: Daň z příjmů
+      child_bonus: Daňový bonus na děti
+      levies: Odvody celkem
+      take_home: Zůstane ti
+    reason:
+      year_not_started:
+        title: Rok {year} ještě nezačal
+        text: Odhad ke dni se ukáže s prvním měsícem roku.
+      rules_not_available:
+        title: Pravidla pro rok {year} nejsou k dispozici
+        text: Foresi zná daňová pravidla až od pozdějšího roku, proto tento rok nespočítá.
+      forecast_not_built:
+        title: Výhled do konce roku zatím chybí
+        text: Výhled do konce roku doplní předpověď z Cash flow. Zatím se počítá jen se skutečnými platbami.
+    comparison:
+      title: Porovnání výdajů
+      cheaper: levnější
+      break_even: Skutečné výdaje by vyšly stejně jako {method}, kdyby byly o {amount} vyšší.
+      actual_cheaper: Skutečné výdaje vycházejí stejně nebo levněji než {method}.
+    credits:
+      title: Slevy na dani
+      claimed: Uplatněno
+      not_claimed: Neuplatněno
+    credit:
+      taxpayer:
+        label: Sleva na poplatníka
+        explanation: 'Každý poplatník: {amount1} ročně.'
+      spouse:
+        label: Sleva na manžela nebo manželku
+        explanation: 'Manžel nebo manželka ve společné domácnosti s dítětem do 3 let a s vlastními příjmy nejvýše {amount1} ročně: {amount2} ročně, 1/12 za každý měsíc, dvojnásobek s průkazem ZTP/P.'
+      disability:
+        label: Invalidita prvního nebo druhého stupně
+        explanation: 'Vlastní invalidita prvního nebo druhého stupně: {amount1} ročně.'
+      disability_third:
+        label: Invalidita třetího stupně
+        explanation: 'Vlastní invalidita třetího stupně: {amount1} ročně.'
+      ztp_p_holder:
+        label: Držitel průkazu ZTP/P
+        explanation: 'Držitel průkazu ZTP/P: {amount1} ročně.'
+      student:
+        label: Sleva na studenta
+        explanation: 'Student do 26 let, u doktorského studia do 28 let: {amount1} ročně.'
+      school_fees:
+        label: Školkovné
+        explanation: Poplatky za předškolní zařízení dítěte, nejvýše {amount1} na dítě a rok.
+      eet:
+        label: Sleva za evidenci tržeb
+        explanation: 'První rok evidence tržeb: {amount1}, nejvýše 15 % ze základu z podnikání po slevě na poplatníka.'
+      child_benefit:
+        label: Daňové zvýhodnění na děti
+        explanation: 'Každé uplatněné dítě podle pořadí: {amount1}, {amount2} a {amount3} ročně, 1/12 za každý měsíc, dvojnásobek s průkazem ZTP/P. Co daň nepokryje, se vyplatí jako bonus od {amount4}, když příjmy dosáhnou {amount5}.'
+    chain:
+      profit: Zisk
+      social: Sociální pojištění
+      health: Zdravotní pojištění
+      sickness: Nemocenské pojištění
+      income_tax: Daň z příjmů
+      child_benefit: Daňový bonus na děti
+      all: Celý výpočet
+    steps:
+      title: '{item} · {method}'
+      source: Zdroj pravidla
+      new_tab: otevře se v nové kartě
+      result: Výsledek
+    step:
+      profit:
+        title: Zisk
+        rule: '{method, select, actual {Příjmy minus skutečně zaplacené výdaje, obojí podle dne platby.} other {Příjmy minus paušál {rate} z nich, nejvýše {cap}; skutečné výdaje se nepočítají.}}'
+      social:
+        title: Sociální pojištění
+        rule: '{counted, select, no {Žádný měsíc se do sociálního pojištění nepočítá: chybí hlavní činnost a vedlejší je pod rozhodnou částkou.} other {Podíl ze zisku, nejméně minimální vyměřovací základ každého započteného měsíce, nejvýše maximální základ; z toho {rate}, zaokrouhleno nahoru.}}'
+      health:
+        title: Zdravotní pojištění
+        rule: '{counted, select, no {Žádný měsíc činnosti: zdravotní pojištění OSVČ se neplatí.} other {Podíl ze zisku, nejméně minimální vyměřovací základ za každý měsíc činnosti s minimem; z toho {rate}, zaokrouhleno nahoru.}}'
+      sickness:
+        title: Nemocenské pojištění
+        rule: 'Za každý měsíc, kdy se platí: {rate} ze zvoleného měsíčního základu, nejméně z minimálního, zaokrouhleno nahoru.'
+      tax_base:
+        title: Základ daně
+        rule: Zisk a ostatní dílčí základy minus odpočty v jejich limitech, zaokrouhleno dolů na celé stovky.
+      income_tax:
+        title: Daň před slevami
+        rule: '{rate} ze základu do {threshold}, {higher} z části nad touto hranicí; zaokrouhleno nahoru.'
+      credits:
+        title: Slevy na dani
+        rule: Uplatněné slevy snižují daň, nejvýše na nulu.
+      child_benefit:
+        title: Daňové zvýhodnění na děti
+        rule: Zvýhodnění na děti nejdřív snižuje daň; zbytek se vyplatí jako bonus, když dosáhne minima a příjmy dosáhnou šestinásobku minimální mzdy.
+    input:
+      income: Příjmy
+      costs: Skutečné výdaje
+      method: Metoda výdajů
+      lump_sum_rate: Paušál
+      lump_sum_cap: Strop paušálu
+      expenses: Uplatněné výdaje
+      profit: Zisk
+      main_months: Měsíce hlavní činnosti
+      secondary_months: Měsíce vedlejší činnosti
+      decisive_amount: Rozhodná částka
+      secondary_takes_part: Vedlejší činnost se počítá
+      profit_share: Podíl ze zisku
+      minimum_base: Minimální vyměřovací základ
+      maximum_base: Maximální vyměřovací základ
+      base: Vyměřovací základ
+      rate: Sazba
+      active_months: Měsíce činnosti
+      months_with_minimum: Měsíce s minimem
+      months: Měsíce
+      bases: Základy po měsících
+      other_partial_bases: Ostatní dílčí základy
+      pension_and_life: Penzijní a životní produkty
+      housing_loan_interest: Úroky z úvěru na bydlení
+      gifts: Dary
+      deductions: Odpočty celkem
+      tax_base: Základ daně
+      threshold: Hranice vyšší sazby
+      higher_rate: Vyšší sazba
+      tax: Daň před slevami
+      taxpayer: Sleva na poplatníka
+      spouse: Sleva na manžela nebo manželku
+      claimed: Slevy celkem
+      applied: Uplatněné slevy
+      children: Děti
+      benefit: Zvýhodnění na děti
+      tax_after_credits: Daň po slevách
+      as_credit: Zvýhodnění jako sleva
+      minimum_income: Potřebné příjmy pro bonus
+      bonus: Daňový bonus
+    footer:
+      estimate: Odhad, ne podklad pro přiznání.
+      rules: 'Pravidla roku {year}: {status, select, published {zveřejněná úřady} derived {odvozená ze zákona, zatím nezveřejněná} other {převzatá z posledního roku, který je má}}.'
+      unverified: 'Neověřeno:'
+      gaps: 'Zatím se nepočítá:'
+    warning:
+      sources_unavailable: Některé zdroje příjmů a výdajů nejsou dostupné, odhad je proto neúplný.
+      activity_assumed_main: V profilu chybí druh činnosti, počítá se s hlavní činností.
+      flat_rate_not_computed: Paušální daň se zatím nepočítá, odhad ukazuje běžný režim.
+      deduction_not_computed: Odborové příspěvky a zkoušky dalšího vzdělávání se zatím neodečítají.
+    unverified:
+      fx_payment_day: kurz ČNB ke dni platby u cizích měn
+      vat_cash_basis: částky bez DPH ode dne registrace k DPH
+      mixed_year: rok s hlavní i vedlejší činností
+      starting_minimum: minimum pro začínající OSVČ
+      insurance_profit_definition: zisk jako základ pojistného
+      official_2027_tables: oficiální tabulky pro rok 2027
+      rules_not_published: pravidla, která úřady ještě nezveřejnily
+      act_180_2026: změny podle zákona 180/2026 Sb.
+    gap:
+      non_deductible_costs: daňově neuznatelné výdaje
+      assets: majetek
+      assets_and_depreciation: majetek a odpisy
+      loss_carry_forward: odpočet daňové ztráty
+      starter_relief: úlevy pro začínající OSVČ

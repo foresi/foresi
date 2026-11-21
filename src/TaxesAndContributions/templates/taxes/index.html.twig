@@ -1,0 +1,150 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The page Money → Taxes and contributions, for the owner only (B7). The years are tabs, places rather
+    than saved views (docs/design/list-pages.md, 7). What the owner keeps is one compact table: the
+    actual figures to date, and beside them the year end, a forecast kept apart in its own dashed column
+    with the reason it is still empty. The expense methods follow side by side, then the credits. Every
+    number opens its steps in the side sheet, as a cell of Cash flow opens its items
+    (docs/design/overlays.md). The profile is the header's action. Variables: year, tabs, reason,
+    yearEndReason, summary, comparison, credits, warnings, footer.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'taxes.title'|trans}] %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{% set link = 'text-current underline decoration-control-line underline-offset-2 hover:decoration-ink ' ~ focus %}
+{% set head = 'h-row whitespace-nowrap border-b border-divider bg-head px-4 text-caption font-medium text-muted' %}
+{% set cell = 'num h-row whitespace-nowrap border-b border-divider px-4 text-right' %}
+
+{% block title %}{{ 'taxes.title'|trans }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:Button icon="user" :href="path('app_taxes_profile')" data-taxes-profile>{{ 'taxes.profile.title'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    <div class="grid grid-cols-1 gap-6">
+        <twig:Ui:Tabs :items="tabs" :label="'taxes.page.years'|trans" data-taxes-years />
+
+        {% if warnings is not empty %}
+            <twig:Ui:Alert tone="warning" icon="triangle-alert" data-taxes-warnings>
+                <ul class="m-0 grid list-none gap-1 p-0">
+                    {% for warning in warnings %}<li>{{ warning }}</li>{% endfor %}
+                </ul>
+            </twig:Ui:Alert>
+        {% endif %}
+
+        {% if summary is null %}
+            <twig:Ui:EmptyState icon="calendar" :title="('taxes.page.reason.' ~ reason ~ '.title')|trans({year: year})" :text="('taxes.page.reason.' ~ reason ~ '.text')|trans({year: year})" data-taxes-empty="{{ reason }}" />
+        {% else %}
+            <section aria-labelledby="taxes-summary-title" class="grid max-w-2xl grid-cols-1 gap-2" data-taxes-summary>
+                <div class="grid gap-0.5">
+                    <h2 id="taxes-summary-title" class="m-0 text-body font-semibold text-ink">{{ 'taxes.page.summary.title'|trans }}</h2>
+                    <p class="m-0 text-small text-muted" data-taxes-method>{{ 'taxes.page.summary.method'|trans({method: summary.method, why: summary.why}) }}</p>
+                </div>
+                <div class="relative overflow-x-auto rounded-panel border border-container bg-white">
+                    <table class="w-full border-collapse text-small">
+                        <caption class="sr-only">{{ 'taxes.page.summary.title'|trans }}</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col" class="{{ head }} text-left"><span class="sr-only">{{ 'taxes.page.summary.item'|trans }}</span></th>
+                                <th scope="col" class="{{ head }} text-right" data-taxes-to-date>{{ 'taxes.page.summary.to_date'|trans }}</th>
+                                <th scope="col" class="{{ head }} border-l border-dashed border-l-control-line text-right" data-taxes-year-end>{{ 'taxes.page.summary.year_end'|trans }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in summary.rows %}
+                                <tr data-taxes-row="{{ row.key }}">
+                                    <th scope="row" class="h-row whitespace-nowrap border-b border-divider px-4 text-left {{ row.total ? 'font-semibold text-ink' : 'font-normal text-text' }}">{{ row.label }}</th>
+                                    <td class="{{ cell }} {{ row.total ? 'font-semibold text-ink' : 'text-ink' }}">
+                                        <a href="{{ row.href }}" data-sheet aria-haspopup="dialog" class="{{ link }}">{{ row.text }}<span class="sr-only"> {{ 'taxes.page.open_steps'|trans }}</span></a>
+                                    </td>
+                                    {% if loop.first %}
+                                        {# The forecast is not a fact: one dashed column for all rows, saying why it is still empty. #}
+                                        <td rowspan="{{ summary.rows|length }}" class="w-2/5 border-b border-l border-dashed border-l-control-line bg-head px-4 py-3 align-top text-small text-muted" data-taxes-year-end-empty="{{ yearEndReason }}">
+                                            <span class="mb-1.5 block"><twig:Ui:Badge tone="outline">{{ 'taxes.page.summary.forecast'|trans }}</twig:Ui:Badge></span>
+                                            {{ ('taxes.page.reason.' ~ yearEndReason ~ '.text')|trans({year: year}) }}
+                                        </td>
+                                    {% endif %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            {% if comparison %}
+                <section aria-labelledby="taxes-comparison-title" class="grid max-w-2xl grid-cols-1 gap-2" data-taxes-comparison>
+                    <div class="grid gap-0.5">
+                        <h2 id="taxes-comparison-title" class="m-0 text-body font-semibold text-ink">{{ 'taxes.page.comparison.title'|trans }}</h2>
+                        {% if comparison.sentence %}<p class="m-0 text-small text-muted" data-taxes-break-even>{{ comparison.sentence }}</p>{% endif %}
+                    </div>
+                    <div class="relative overflow-x-auto rounded-panel border border-container bg-white">
+                        <table class="w-full border-collapse text-small">
+                            <caption class="sr-only">{{ 'taxes.page.comparison.title'|trans }}</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col" class="{{ head }} text-left"><span class="sr-only">{{ 'taxes.page.summary.item'|trans }}</span></th>
+                                    {% for column in comparison.columns %}
+                                        <th scope="col" class="{{ head }} text-right" data-taxes-method-column="{{ column.key }}">
+                                            {{ column.label }}
+                                            {% if column.cheaper %}<twig:Ui:Badge tone="green" class="ml-1.5" data-taxes-cheaper>{{ 'taxes.page.comparison.cheaper'|trans }}</twig:Ui:Badge>{% endif %}
+                                        </th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in comparison.rows %}
+                                    {% set strong = row.key == 'take_home' %}
+                                    <tr data-taxes-comparison-row="{{ row.key }}">
+                                        <th scope="row" class="h-row whitespace-nowrap border-b border-divider px-4 text-left {{ strong ? 'font-semibold text-ink' : 'font-normal text-text' }}">{{ row.label }}</th>
+                                        {% for item in row.cells %}
+                                            <td class="{{ cell }} {{ strong ? 'font-semibold' : '' }} text-ink">
+                                                <a href="{{ item.href }}" data-sheet aria-haspopup="dialog" class="{{ link }}">{{ item.text }}<span class="sr-only"> {{ 'taxes.page.open_steps'|trans }}</span></a>
+                                            </td>
+                                        {% endfor %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            {% endif %}
+
+            {% if credits is not empty %}
+                <section aria-labelledby="taxes-credits-title" class="grid max-w-2xl grid-cols-1 gap-2" data-taxes-credits>
+                    <h2 id="taxes-credits-title" class="m-0 text-body font-semibold text-ink">{{ 'taxes.page.credits.title'|trans }}</h2>
+                    <ul class="m-0 grid list-none divide-y divide-divider rounded-panel border border-container bg-white p-0">
+                        {% for credit in credits %}
+                            <li class="flex items-start justify-between gap-4 px-4 py-2.5" data-taxes-credit="{{ credit.key }}">
+                                <div class="min-w-0">
+                                    <p class="m-0 font-medium text-ink">{{ credit.label }}</p>
+                                    <p class="m-0 text-caption text-muted">{{ credit.explanation }}</p>
+                                </div>
+                                <div class="flex shrink-0 items-center gap-2 text-small">
+                                    {% if credit.claimed %}
+                                        <span class="num font-medium text-ink">{{ credit.amount }}</span>
+                                        <twig:Ui:Badge tone="green">{{ 'taxes.page.credits.claimed'|trans }}</twig:Ui:Badge>
+                                    {% else %}
+                                        <twig:Ui:Badge tone="gray">{{ 'taxes.page.credits.not_claimed'|trans }}</twig:Ui:Badge>
+                                    {% endif %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </section>
+            {% endif %}
+        {% endif %}
+
+        <footer class="grid max-w-2xl gap-1 border-t border-divider pt-3 text-caption text-muted" data-taxes-footer>
+            <p class="m-0 font-medium text-text">{{ 'taxes.page.footer.estimate'|trans }}</p>
+            {% if footer.rules %}<p class="m-0" data-taxes-rules>{{ footer.rules }}</p>{% endif %}
+            {% if footer.unverified is not empty %}
+                <p class="m-0" data-taxes-unverified><span class="font-medium text-text">{{ 'taxes.page.footer.unverified'|trans }}</span> {{ footer.unverified|join(' · ') }}</p>
+            {% endif %}
+            {% if footer.gaps is not empty %}
+                <p class="m-0" data-taxes-gaps><span class="font-medium text-text">{{ 'taxes.page.footer.gaps'|trans }}</span> {{ footer.gaps|join(' · ') }}</p>
+            {% endif %}
+        </footer>
+    </div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The steps behind one number of the Taxes and contributions page, in the side sheet over it, as Cash
+    flow lists the items of a cell: each step with what it takes, the rule it applies, where the rule is
+    published, and its result. The same URL without the dialog header is a page.
+    Variables: year, title, steps.
+#}
+{% extends overlay() == 'sheet' ? '@Ui/layout/sheet.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'taxes.title'|trans, href: path('app_taxes', {year: year})}, {label: title}] %}
+{% set sheet_size = 'md' %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block sheet_body %}
+    <ol class="m-0 grid list-none gap-0 p-0" data-taxes-steps>
+        {% for step in steps %}
+            <li class="grid gap-2 border-b border-divider py-4 first:pt-0 last:border-b-0 last:pb-0" data-taxes-step="{{ step.key }}">
+                <h3 class="m-0 text-small font-semibold text-ink">{{ step.title }}</h3>
+                <twig:Ui:DescriptionList :items="step.input|map(item => {label: item.label, value: item.value})" class="text-small" data-taxes-step-input />
+                <p class="m-0 text-small text-text" data-taxes-step-rule>{{ step.rule }}</p>
+                <p class="m-0 text-small">
+                    <a href="{{ step.source }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 font-medium text-ink underline decoration-control-line underline-offset-2 hover:decoration-ink {{ focus }}" data-taxes-step-source>{{ ux_icon('lucide:external-link', {class: 'size-3.5 shrink-0 text-muted', 'aria-hidden': 'true'}) }}{{ 'taxes.page.steps.source'|trans }}<span class="sr-only"> ({{ 'taxes.page.steps.new_tab'|trans }})</span></a>
+                </p>
+                <p class="m-0 flex items-baseline justify-between gap-3 text-small">
+                    <span class="font-semibold text-ink">{{ 'taxes.page.steps.result'|trans }}</span>
+                    <span class="num font-semibold text-ink" data-taxes-step-result>{{ step.result }}</span>
+                </p>
+            </li>
+        {% endfor %}
+    </ol>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('sheet_body') }}{% endset %}
+    <twig:Ui:Card :title="title" icon="list" class="max-w-2xl">{{ body }}</twig:Ui:Card>
+{% endblock %}

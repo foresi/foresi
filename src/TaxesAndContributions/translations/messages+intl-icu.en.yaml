@@ -209,3 +209,178 @@ taxes:
       account_invalid: Enter an account number of at most 64 characters.
       variable_symbol_invalid: A variable symbol has at most 35 characters.
       not_found: The status no longer exists.
+  page:
+    years: Years
+    'yes': 'yes'
+    'no': 'no'
+    open_steps: – show how it is computed
+    summary:
+      title: What you keep
+      method: 'Method: {method} ({why})'
+      chosen: chosen in the profile
+      cheaper: none in the profile, the cheaper one shown
+      item: Item
+      to_date: To date
+      year_end: At year end
+      forecast: Forecast
+    row:
+      income: Income
+      costs: Costs
+      profit: Profit
+      social: Social insurance
+      health: Health insurance
+      sickness: Sickness insurance
+      income_tax: Income tax
+      child_bonus: Child tax bonus
+      levies: Levies in total
+      take_home: You keep
+    reason:
+      year_not_started:
+        title: The year {year} has not started yet
+        text: The estimate to date shows with the first month of the year.
+      rules_not_available:
+        title: No rules for the year {year}
+        text: Foresi knows the tax rules from a later year only, so it does not compute this one.
+      forecast_not_built:
+        title: No year-end forecast yet
+        text: The year end comes with the forecast of Cash flow. For now only the actual payments count.
+    comparison:
+      title: Expense methods compared
+      cheaper: cheaper
+      break_even: Actual costs would cost as much as {method} if they were {amount} higher.
+      actual_cheaper: Actual costs already cost as much as {method} or less.
+    credits:
+      title: Tax credits
+      claimed: Claimed
+      not_claimed: Not claimed
+    credit:
+      taxpayer:
+        label: Taxpayer credit
+        explanation: 'Every taxpayer: {amount1} a year.'
+      spouse:
+        label: Spouse credit
+        explanation: 'A spouse in the household with a child under 3, whose own income is at most {amount1} a year: {amount2} a year, 1/12 for each month, double with a ZTP/P card.'
+      disability:
+        label: Disability of the first or second degree
+        explanation: 'Your own disability of the first or second degree: {amount1} a year.'
+      disability_third:
+        label: Disability of the third degree
+        explanation: 'Your own disability of the third degree: {amount1} a year.'
+      ztp_p_holder:
+        label: ZTP/P card holder
+        explanation: 'A holder of a ZTP/P card: {amount1} a year.'
+      student:
+        label: Student credit
+        explanation: 'A student up to the age of 26, 28 for a doctorate: {amount1} a year.'
+      school_fees:
+        label: Pre-school fees
+        explanation: The fees of a child's pre-school, up to {amount1} per child a year.
+      eet:
+        label: Sales recording credit
+        explanation: 'The first year sales are recorded: {amount1}, at most 15 % of the business base less the taxpayer credit.'
+      child_benefit:
+        label: Child benefit
+        explanation: 'Each child claimed, by its order: {amount1}, {amount2} and {amount3} a year, 1/12 for each month, double with a ZTP/P card. What the tax cannot take is paid out as a bonus from {amount4} when the income reaches {amount5}.'
+    chain:
+      profit: Profit
+      social: Social insurance
+      health: Health insurance
+      sickness: Sickness insurance
+      income_tax: Income tax
+      child_benefit: Child tax bonus
+      all: The whole calculation
+    steps:
+      title: '{item} · {method}'
+      source: Source of the rule
+      new_tab: opens in a new tab
+      result: Result
+    step:
+      profit:
+        title: Profit
+        rule: '{method, select, actual {Income less the costs actually paid, both on the cash basis.} other {Income less {rate} of it as the lump sum, at most {cap}; the real costs do not count.}}'
+      social:
+        title: Social insurance
+        rule: '{counted, select, no {No month takes part in social insurance: no main activity, and a secondary activity below the decisive amount.} other {A share of the profit, at least the minimum base of each month taking part, at most the maximum base; times {rate}, rounded up.}}'
+      health:
+        title: Health insurance
+        rule: '{counted, select, no {No active month: no health insurance as a sole trader.} other {A share of the profit, at least the minimum base for each active month with the minimum; times {rate}, rounded up.}}'
+      sickness:
+        title: Sickness insurance
+        rule: 'For each month it is on: {rate} of the chosen monthly base, at least the minimum base, rounded up.'
+      tax_base:
+        title: Tax base
+        rule: The profit and the other partial bases, less the deductions within their caps, rounded down to whole hundreds.
+      income_tax:
+        title: Tax before credits
+        rule: '{rate} of the base up to {threshold}, {higher} of the part above; rounded up.'
+      credits:
+        title: Tax credits
+        rule: The credits claimed lower the tax, down to zero.
+      child_benefit:
+        title: Child benefit
+        rule: The child benefit lowers the tax first; the rest is a bonus paid out when it is at least the minimum and the income reaches six minimum wages.
+    input:
+      income: Income
+      costs: Actual costs
+      method: Expense method
+      lump_sum_rate: Lump sum
+      lump_sum_cap: Lump sum cap
+      expenses: Expenses claimed
+      profit: Profit
+      main_months: Months of main activity
+      secondary_months: Months of secondary activity
+      decisive_amount: Decisive amount
+      secondary_takes_part: Secondary activity counts
+      profit_share: Share of the profit
+      minimum_base: Minimum base
+      maximum_base: Maximum base
+      base: Assessment base
+      rate: Rate
+      active_months: Active months
+      months_with_minimum: Months with the minimum
+      months: Months
+      bases: Bases by month
+      other_partial_bases: Other partial bases
+      pension_and_life: Pension and life products
+      housing_loan_interest: Housing loan interest
+      gifts: Gifts
+      deductions: Deductions in total
+      tax_base: Tax base
+      threshold: Threshold of the higher rate
+      higher_rate: Higher rate
+      tax: Tax before credits
+      taxpayer: Taxpayer credit
+      spouse: Spouse credit
+      claimed: Credits in total
+      applied: Credits applied
+      children: Children
+      benefit: Child benefit
+      tax_after_credits: Tax after credits
+      as_credit: Benefit as a credit
+      minimum_income: Income needed for the bonus
+      bonus: Child tax bonus
+    footer:
+      estimate: An estimate, not a basis for the tax return.
+      rules: 'The rules of {year}: {status, select, published {published by the authorities} derived {derived from the statute, not yet published} other {taken from the latest year that has them}}.'
+      unverified: 'Not verified:'
+      gaps: 'Not counted yet:'
+    warning:
+      sources_unavailable: Some sources of income and costs are not available, so the estimate is incomplete.
+      activity_assumed_main: The profile names no activity, so a main activity is assumed.
+      flat_rate_not_computed: The flat-rate tax is not computed yet; the estimate shows the standard regime.
+      deduction_not_computed: Union fees and further education exams are not deducted yet.
+    unverified:
+      fx_payment_day: the ČNB rate of the payment day for foreign currencies
+      vat_cash_basis: the amounts without VAT from the VAT registration day
+      mixed_year: a year with both a main and a secondary activity
+      starting_minimum: the minimum of a starting sole trader
+      insurance_profit_definition: the profit as the base of the insurance
+      official_2027_tables: the official tables of 2027
+      rules_not_published: rules the authorities have not published yet
+      act_180_2026: the changes of Act 180/2026
+    gap:
+      non_deductible_costs: costs that are not tax deductible
+      assets: assets
+      assets_and_depreciation: assets and depreciation
+      loss_carry_forward: carrying a tax loss forward
+      starter_relief: the relief of a starting sole trader

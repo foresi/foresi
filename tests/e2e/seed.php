@@ -86,6 +86,8 @@ const WORLDS = [
     'purchasing' => ['Example Purchasing', 'purchasing@example.com', 'Purchasing Example'],
     // One firm with a bank account and one open invoice, for the certainty filter of Cash flow.
     'cash-flow' => ['Example Cash Flow', 'cash-flow@example.com', 'Cash Flow Example'],
+    // A sole trader for the Taxes and contributions page, and the team member taxes-member@example.com.
+    'taxes' => ['Example Taxes', 'taxes@example.com', 'Taxes Example'],
 ];
 
 if (\in_array('--worlds', $argv, true)) {
