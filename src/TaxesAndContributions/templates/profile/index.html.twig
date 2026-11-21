@@ -9,7 +9,7 @@
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
-{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'taxes.title'|trans}, {label: 'taxes.profile.title'|trans}] %}
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'taxes.title'|trans, href: path('app_taxes')}, {label: 'taxes.profile.title'|trans}] %}
 {% set token = csrf_token(constant('Foresi\\TaxesAndContributions\\Infrastructure\\Controller\\ProfileController::TOKEN')) %}
 {# A row is one link stretched over it, so its focus ring is the row's edge, not a box around the
    link's words (the ring that came back around "Expenses" on closing the sheet). #}
