@@ -74,7 +74,7 @@ final class TaxesController extends AbstractController
      * its input, its rule, where the rule is published and its result. The
      * same URL is a page.
      */
-    #[Route('/taxes-and-contributions/steps/{year}/{method}/{step}', name: self::ROUTE.'_steps', requirements: ['year' => '[0-9]{1,4}', 'method' => '[a-z0-9_]{1,20}', 'step' => '[a-z_]{1,20}'], methods: ['GET'])]
+    #[Route('/taxes-and-contributions/steps/{year}/{method}/{step}', name: self::ROUTE.'_steps', requirements: ['year' => '[0-9]{1,4}', 'method' => '[a-z0-9_]{1,20}', 'step' => '[a-z0-9_]{1,20}'], methods: ['GET'])]
     public function steps(int $year, string $method, string $step): Response
     {
         $this->denyUnlessOwner();
