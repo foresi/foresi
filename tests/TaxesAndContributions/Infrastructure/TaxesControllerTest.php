@@ -19,6 +19,8 @@ use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
+use Foresi\TaxesAndContributions\Application\AddStatusInput;
+use Foresi\TaxesAndContributions\Application\ProfileWrites;
 use Foresi\TaxesAndContributions\Contract\Authority;
 use Foresi\TaxesAndContributions\Contract\DuePayment;
 use Foresi\TaxesAndContributions\Contract\EstimateView;
@@ -201,7 +203,7 @@ final class TaxesControllerTest extends WebTestCase
         self::assertStringContainsString("Income less 60\u{a0}% of it as the lump sum, at most 1,200,000\u{a0}Kč", $this->text($crawler, '[data-taxes-step-rule]'));
         self::assertStringContainsString('Expense method Lump sum 60%', $this->text($crawler, '[data-taxes-step-input]'));
         $crawler = $this->client->request('GET', '/taxes-and-contributions/steps/2026/actual/all', server: [$this->dialogHeader() => DialogRequest::SHEET]);
-        self::assertCount(8, $crawler->filter('[data-taxes-step]'));
+        self::assertCount(8, $crawler->filter('[data-taxes-step]'), 'An ordinary year has no flat-rate step.');
         self::assertSame('Income less the costs actually paid, both on the cash basis.', $this->text($crawler, '[data-taxes-step="profit"] [data-taxes-step-rule]'));
 
         // Without the sheet, the same URL is a page.
@@ -209,6 +211,35 @@ final class TaxesControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('dialog#sheet-page'));
         self::assertCount(1, $crawler->filter('nav a[href="/taxes-and-contributions?year=2026"]'));
+    }
+
+    public function testAFlatRateYearShowsItsOwnRowAndSteps(): void
+    {
+        $this->signedIn(Role::Owner);
+        $writes = self::getContainer()->get(ProfileWrites::class);
+        $writes->addStatus(new AddStatusInput('activity', 'main', '2026-01-01'));
+        $writes->addStatus(new AddStatusInput('flat_rate_band', '2', '2026-01-01'));
+
+        $crawler = $this->client->request('GET', '/taxes-and-contributions');
+        self::assertResponseIsSuccessful();
+        self::assertSame(['income', 'costs', 'social', 'health', 'sickness', 'income_tax', 'flat_rate', 'child_bonus', 'levies', 'take_home'], $crawler->filter('[data-taxes-row]')->each(static fn (Crawler $row): string => (string) $row->attr('data-taxes-row')));
+        $row = $crawler->filter('[data-taxes-row="flat_rate"]');
+        self::assertStringContainsString('Flat-rate tax', $row->text());
+        self::assertStringContainsString("184,195\u{a0}Kč", $row->text(), 'Eleven months of 16,745.');
+        self::assertSame('/taxes-and-contributions/steps/2026/actual/flat_rate', $row->filter('td a')->attr('href'));
+        self::assertStringContainsString('Flat-rate tax – advance 12/2026', $crawler->filter('[data-taxes-payment="flat_rate.advance.2026-12"]')->text());
+        self::assertCount(0, $crawler->filter('[data-taxes-credits]'), 'No credit applies.');
+
+        $crawler = $this->client->request('GET', '/taxes-and-contributions/steps/2026/actual/flat_rate', server: [$this->dialogHeader() => DialogRequest::SHEET]);
+        self::assertResponseIsSuccessful();
+        $step = $crawler->filter('[data-taxes-step="flat_rate"]');
+        self::assertStringContainsString('replaces social, health and income tax', $this->text($step, '[data-taxes-step-rule]'));
+        self::assertStringContainsString('Months in band 2 11', $this->text($step, '[data-taxes-step-input]'));
+        self::assertSame("184,195\u{a0}Kč", $this->text($step, '[data-taxes-step-result]'));
+        $crawler = $this->client->request('GET', '/taxes-and-contributions/steps/2026/actual/social', server: [$this->dialogHeader() => DialogRequest::SHEET]);
+        self::assertStringContainsString('Every active month is in the flat-rate tax', $this->text($crawler, '[data-taxes-step-rule]'));
+        $crawler = $this->client->request('GET', '/taxes-and-contributions/steps/2026/actual/all', server: [$this->dialogHeader() => DialogRequest::SHEET]);
+        self::assertCount(9, $crawler->filter('[data-taxes-step]'));
     }
 
     public function testThePaymentsShowWhatFallsDueAndThePlannedItemsThatMayDuplicateThem(): void

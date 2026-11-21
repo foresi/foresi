@@ -75,6 +75,8 @@ final class CzechRuleBookTest extends TestCase
             'credit.student' => false,
             'credit.school_fees' => false,
             'credit.eet' => false,
+            'flat_rate.band_1.social' => true,
+            'flat_rate.band_1.health' => true,
         ], $unverified);
     }
 

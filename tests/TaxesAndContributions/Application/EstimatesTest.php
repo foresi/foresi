@@ -34,6 +34,7 @@ use Foresi\TaxesAndContributions\Contract\Authority;
 use Foresi\TaxesAndContributions\Contract\DuePayment;
 use Foresi\TaxesAndContributions\Contract\EstimateView;
 use Foresi\TaxesAndContributions\Contract\ExpenseMethod;
+use Foresi\TaxesAndContributions\Contract\FlatRateMonth;
 use Foresi\TaxesAndContributions\Contract\ForecastAmount;
 use Foresi\TaxesAndContributions\Contract\ForecastAmountSource;
 use Foresi\TaxesAndContributions\Contract\ForecastCertainty;
@@ -267,10 +268,11 @@ final class EstimatesTest extends TaxesTestCase
 
         $estimate = $this->estimates([], [new FakeForecastSource()])->of(2026);
 
-        self::assertNotContains(CzechSoleTrader::WARNING_FLAT_RATE_NOT_COMPUTED, $estimate->toDate->warnings ?? []);
-        self::assertContains(CzechSoleTrader::WARNING_FLAT_RATE_NOT_COMPUTED, $estimate->warnings);
-        self::assertNotContains('mixed_year', $estimate->toDate->unverified ?? []);
-        self::assertContains('mixed_year', $estimate->unverified);
+        self::assertNull($estimate->toDate?->flatRate);
+        self::assertSame(['2026-12'], array_map(static fn (FlatRateMonth $month): string => $month->month, $estimate->yearEnd->flatRate->months ?? []));
+        self::assertNotContains('flat_rate_mixed_year', $estimate->toDate->unverified ?? []);
+        self::assertContains('flat_rate_mixed_year', $estimate->unverified);
+        self::assertNotContains('mixed_year', $estimate->unverified, 'The main December is in the flat rate, so no ordinary month is main.');
     }
 
     public function testTheVatPayerDayCountsGrossBeforeAndNetAfterInTheEstimate(): void

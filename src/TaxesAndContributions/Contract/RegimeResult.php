@@ -16,7 +16,8 @@ use Foresi\Shared\Domain\Money;
  * (how much more real cost would make the actual costs cost as much as the
  * cheapest lump sum), the credits, the months counted, the payments of the
  * year as they fall due (its cash view), and what the owner or an accountant
- * should know. It is always an estimate.
+ * should know. A year with flat-rate months has them apart, beside the
+ * methods. It is always an estimate.
  */
 final readonly class RegimeResult
 {
@@ -44,6 +45,7 @@ final readonly class RegimeResult
         public array $unverified,
         public array $knownGaps,
         public array $payments = [],
+        public ?FlatRateResult $flatRate = null,
     ) {
     }
 

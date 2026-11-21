@@ -13,7 +13,12 @@ namespace Foresi\Country\Integration\TaxesAndContributions\CzechRepublic;
  * the consolidated statutes and the authorities. Act 90/2026 Coll. lowered the
  * minimum social base of a main activity from 40 % to 35 % of the average wage
  * from 1 July 2026: the advances follow the dated value, and the annual
- * settlement uses 35 % for the whole year (ČSSZ).
+ * settlement uses 35 % for the whole year (ČSSZ). The flat-rate tax (paušální
+ * daň, ZDP § 2a, § 38lk) is a monthly amount per band made of an income tax,
+ * a social and a health part; band 1 fell with the social minimum from July.
+ * Its income limits are those for any activity (ZDP § 2a (5)); higher ones
+ * hold when most of the income comes from activities with 80 % or 60 % lump
+ * sums.
  */
 final class Rules2026
 {
@@ -28,6 +33,9 @@ final class Rules2026
     public const string AVERAGE_WAGE = 'https://www.pruvodcepodnikanim.cz/clanek/minimalni-zalohy-osvc-2026/';
     public const string HEALTH_MINIMUM = 'https://www.vzp.cz/platci/informace/povinnosti-platcu-metodika/osvc/osvc-minimalni-vyse-zaloh';
     public const string MINIMUM_WAGE = 'https://mpsv.gov.cz/minimalni-mzda-od-ledna-2026-vzroste-o-1-600-korun-na-22-400-korun-mesicne';
+    public const string FLAT_RATE = 'https://financnisprava.gov.cz/cs/financni-sprava/media-a-verejnost/tiskove-zpravy-gfr/tiskove-zpravy-2025/pausalni-dan-2026-novinky-terminy';
+    public const string FLAT_RATE_JULY = 'https://financnisprava.gov.cz/cs/financni-sprava/media-a-verejnost/tiskove-zpravy-gfr/tiskove-zpravy-2026/poplatnikum-v-prvnim-pasmu-pausalniho-rezimu-snizeni-zalohy';
+    public const string FLAT_RATE_PARTS = 'https://www.e15.cz/pausalni-dan-2027';
 
     /**
      * @return list<RuleValue>
@@ -84,6 +92,19 @@ final class Rules2026
             self::value('deduction.gifts_minimum', '1000', $year, self::ZDP),
             self::value('deduction.gifts_minimum_share', '2', $year, self::ZDP),
             self::value('deduction.gifts_maximum_share', '15', $year, self::ZDP),
+            self::value('flat_rate.band_1.income_tax', '100', $year, self::FLAT_RATE),
+            self::value('flat_rate.band_1.social', '6578', $year, self::FLAT_RATE),
+            self::value('flat_rate.band_1.social', '5756', $july, self::FLAT_RATE_JULY),
+            self::value('flat_rate.band_1.health', '3306', $year, self::FLAT_RATE),
+            self::value('flat_rate.band_1.income_limit', '1000000', $year, self::ZDP),
+            self::value('flat_rate.band_2.income_tax', '4963', $year, self::FLAT_RATE),
+            self::value('flat_rate.band_2.social', '8191', $year, self::FLAT_RATE_PARTS),
+            self::value('flat_rate.band_2.health', '3591', $year, self::FLAT_RATE_PARTS),
+            self::value('flat_rate.band_2.income_limit', '1500000', $year, self::ZDP),
+            self::value('flat_rate.band_3.income_tax', '9320', $year, self::FLAT_RATE),
+            self::value('flat_rate.band_3.social', '12527', $year, self::FLAT_RATE_PARTS),
+            self::value('flat_rate.band_3.health', '5292', $year, self::FLAT_RATE_PARTS),
+            self::value('flat_rate.band_3.income_limit', '2000000', $year, self::ZDP),
         ];
     }
 

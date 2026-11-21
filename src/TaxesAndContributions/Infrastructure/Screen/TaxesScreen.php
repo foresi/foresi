@@ -15,6 +15,7 @@ use Foresi\TaxesAndContributions\Contract\CreditLine;
 use Foresi\TaxesAndContributions\Contract\DuePayment;
 use Foresi\TaxesAndContributions\Contract\EstimateView;
 use Foresi\TaxesAndContributions\Contract\ExpenseMethod;
+use Foresi\TaxesAndContributions\Contract\FlatRateResult;
 use Foresi\TaxesAndContributions\Contract\ForecastCertainty;
 use Foresi\TaxesAndContributions\Contract\ForecastView;
 use Foresi\TaxesAndContributions\Contract\MethodResult;
@@ -37,8 +38,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final readonly class TaxesScreen
 {
-    /** Every levy and the take-home, in the order of the summary. */
-    private const array SUMMARY = ['income', 'costs', 'social', 'health', 'sickness', 'income_tax', 'child_bonus', 'levies', 'take_home'];
+    /** Every levy and the take-home, in the order of the summary; the flat rate only in a year that has it. */
+    private const array SUMMARY = ['income', 'costs', 'social', 'health', 'sickness', 'income_tax', 'flat_rate', 'child_bonus', 'levies', 'take_home'];
 
     /** The rows of the comparison of the expense methods. */
     private const array COMPARISON = ['profit', 'levies', 'take_home'];
@@ -51,6 +52,7 @@ final readonly class TaxesScreen
         Step::SICKNESS => [Step::SICKNESS],
         Step::INCOME_TAX => [Step::TAX_BASE, Step::INCOME_TAX, Step::CREDITS, Step::CHILD_BENEFIT],
         Step::CHILD_BENEFIT => [Step::CHILD_BENEFIT],
+        Step::FLAT_RATE => [Step::FLAT_RATE],
         self::ALL => Step::KEYS,
     ];
 
@@ -67,6 +69,7 @@ final readonly class TaxesScreen
         'sickness' => Step::SICKNESS,
         'income_tax' => Step::INCOME_TAX,
         'child_bonus' => Step::CHILD_BENEFIT,
+        'flat_rate' => Step::FLAT_RATE,
         'levies' => self::ALL,
         'take_home' => self::ALL,
     ];
@@ -106,6 +109,8 @@ final readonly class TaxesScreen
      * The year end beside it uses the same method, and its numbers open the
      * steps of the year end.
      *
+     * The flat-rate tax has its own row in a year with flat-rate months.
+     *
      * @return ?array{method: string, why: string, rows: list<array{key: string, label: string, text: string, href: string, total: bool, yearEnd: ?array{text: string, href: string}}>}
      */
     public function summary(EstimateView $estimate, ?ExpenseMethod $chosen): ?array
@@ -117,7 +122,11 @@ final readonly class TaxesScreen
         $result = $this->shown($toDate, $chosen);
         $yearEnd = $estimate->yearEnd instanceof RegimeResult ? $this->shown($estimate->yearEnd, $result->method) : null;
         $rows = [];
+        $flatRate = $toDate->flatRate instanceof FlatRateResult || $estimate->yearEnd?->flatRate instanceof FlatRateResult;
         foreach (self::SUMMARY as $key) {
+            if ('flat_rate' === $key && !$flatRate) {
+                continue;
+            }
             $rows[] = [
                 'key' => $key,
                 'label' => $this->trans('taxes.page.row.'.$key),
@@ -279,7 +288,8 @@ final readonly class TaxesScreen
     }
 
     /**
-     * The steps of one method, as the sheet lists them.
+     * The steps of one method, as the sheet lists them; a step the method
+     * does not have, such as the flat rate of an ordinary year, is left out.
      *
      * @param list<string> $keys
      *
@@ -298,11 +308,12 @@ final readonly class TaxesScreen
                 'key' => $key,
                 'title' => $this->trans('taxes.page.step.'.$key.'.title'),
                 'input' => $input,
-                'rule' => $this->trans('taxes.page.step.'.$key.'.rule', $this->ruleArguments($step)),
+                // A levy the flat-rate tax covers in a year of flat-rate months only says so.
+                'rule' => isset($step->input['flat_rate_months']) ? $this->trans('taxes.page.step.flat_rate.covered') : $this->trans('taxes.page.step.'.$key.'.rule', $this->ruleArguments($step)),
                 'source' => $step->sourceUrl,
                 'result' => $this->decimal($step->result),
             ];
-        }, $keys);
+        }, array_values(array_filter($keys, $result->hasStep(...))));
     }
 
     private function shown(RegimeResult $toDate, ?ExpenseMethod $chosen): MethodResult
@@ -329,6 +340,7 @@ final readonly class TaxesScreen
             'sickness' => $totals->sickness,
             'income_tax' => $totals->incomeTax,
             'child_bonus' => $totals->childBonus,
+            'flat_rate' => $totals->flatRate,
             'levies' => $totals->levies,
             default => $totals->takeHome,
         };

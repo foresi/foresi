@@ -175,7 +175,7 @@ final class CzechSoleTraderTest extends TestCase
         $result = $this->compute(2026, $this->mainAllYear(2026), 900_000, 200_000);
 
         foreach ($result->methods as $method) {
-            self::assertSame(Step::KEYS, array_map(static fn (Step $step): string => $step->key, $method->steps));
+            self::assertSame(array_values(array_diff(Step::KEYS, [Step::FLAT_RATE])), array_map(static fn (Step $step): string => $step->key, $method->steps));
             foreach ($method->steps as $step) {
                 self::assertNotSame('', $step->rule, $step->key);
                 self::assertStringStartsWith('https://', $step->sourceUrl, $step->key);
@@ -257,7 +257,7 @@ final class CzechSoleTraderTest extends TestCase
             new StatusPeriod('band', StatusKind::FlatRateBand, '1', new \DateTimeImmutable('2026-10-01')),
         ], [2026 => $inputs], []);
 
-        self::assertSame(['flat_rate_not_computed', 'deduction_not_computed'], $this->compute(2026, $profile, 900_000, 200_000)->warnings);
+        self::assertSame(['deduction_not_computed'], $this->compute(2026, $profile, 900_000, 200_000)->warnings);
 
         $none = new ProfileView([$profile->statuses[0], $profile->statuses[1]], [], []);
         self::assertSame([], $this->compute(2026, $none, 900_000, 200_000)->warnings, 'The band "none" is no flat rate.');

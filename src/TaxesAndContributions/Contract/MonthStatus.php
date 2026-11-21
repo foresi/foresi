@@ -14,7 +14,8 @@ use Foresi\Shared\Domain\Money;
  * A month as the statuses on its first day make it: the activity (none,
  * secondary or main), whether health has no minimum and whether voluntary
  * sickness insurance is on, with the smallest social and health advances the
- * rules of that month ask.
+ * rules of that month ask. A month in a flat-rate regime has its band, and
+ * its smallest advances are the social and health parts of the band.
  */
 final readonly class MonthStatus
 {
@@ -25,6 +26,7 @@ final readonly class MonthStatus
         public bool $sicknessInsurance,
         public Money $minimumSocialAdvance,
         public Money $minimumHealthAdvance,
+        public ?string $flatRateBand = null,
     ) {
     }
 }

@@ -29,7 +29,7 @@ use Foresi\Shared\Application\Api\Operation;
 final readonly class SetAuthorityAccountInput
 {
     public function __construct(
-        #[Field('The authority.', enum: ['social', 'health', 'sickness', 'income_tax'])]
+        #[Field('The authority.', enum: ['social', 'health', 'sickness', 'income_tax', 'flat_rate'])]
         public string $authority,
         #[Field('The account, such as "000000-1234567890/0710" or an IBAN.', maxLength: 64)]
         public string $account,

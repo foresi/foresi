@@ -23,6 +23,11 @@ final readonly class MethodResult
     ) {
     }
 
+    public function hasStep(string $key): bool
+    {
+        return array_any($this->steps, fn (Step $step): bool => $key === $step->key);
+    }
+
     public function step(string $key): Step
     {
         foreach ($this->steps as $step) {

@@ -21,23 +21,25 @@ use Foresi\TaxesAndContributions\Contract\Step;
  * months (Act 90/2026). A secondary activity takes part only when the profit
  * reaches the decisive amount, less 1/12 for each month without it; then its
  * months count the 11 % minimum. In a year with both, the profit share is
- * taken for the months that take part (unverified, the mixed year).
+ * taken for the months that take part (unverified, the mixed year). Months
+ * in the flat-rate tax take no part.
  */
 final readonly class SocialStep implements PipelineStep
 {
     public function apply(Calculation $calculation): Step
     {
+        $profit = $calculation->ordinaryProfit();
         $main = $calculation->monthsOf(Month::MAIN);
         $secondary = $calculation->monthsOf(Month::SECONDARY);
         $averageWage = $calculation->rule('average_wage');
         $share = $calculation->rule('social.profit_share');
         $rate = $calculation->rule('social.rate');
-        $input = ['profit' => Czk::text($calculation->profit), 'main_months' => (string) \count($main), 'secondary_months' => (string) \count($secondary)];
+        $input = ['profit' => Czk::text($profit), 'main_months' => (string) \count($main), 'secondary_months' => (string) \count($secondary)];
 
         $takesPart = false;
         if ([] !== $secondary) {
             $decisive = Czk::fractionUp($calculation->rule('social.decisive_amount')->minor(), \count($secondary), 12);
-            $takesPart = $calculation->profit >= $decisive;
+            $takesPart = $profit >= $decisive;
             $input['decisive_amount'] = Czk::text($decisive);
             $input['secondary_takes_part'] = $takesPart ? 'yes' : 'no';
         }
@@ -57,7 +59,7 @@ final readonly class SocialStep implements PipelineStep
         foreach ($counted as $month) {
             $minimum += Czk::percentUp($averageWage->minor(), $this->minimumShare($calculation, $month));
         }
-        $profitShare = intdiv(Czk::percent(max(0, $calculation->profit), $share->value) * \count($counted), $active);
+        $profitShare = intdiv(Czk::percent(max(0, $profit), $share->value) * \count($counted), $active);
         $maximum = $averageWage->minor() * (int) $calculation->rule('social.maximum_multiple')->value;
         $calculation->socialBase = min(Czk::upToCzk(max($profitShare, $minimum)), $maximum);
         $calculation->social = Czk::percentUp($calculation->socialBase, $rate->value);

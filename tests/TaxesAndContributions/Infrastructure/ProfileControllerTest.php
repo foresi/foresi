@@ -58,7 +58,7 @@ final class ProfileControllerTest extends WebTestCase
         self::assertCount(0, $crawler->filter('header [data-taxes-status-new]'));
         self::assertSelectorTextContains('[data-taxes-status-summary]', 'None yet');
         self::assertCount(2, $crawler->filter('[data-taxes-year]'));
-        self::assertCount(4, $crawler->filter('[data-taxes-authority]'));
+        self::assertCount(5, $crawler->filter('[data-taxes-authority]'));
 
         // The dialog lists the statuses, and "Add a change" in its header loads the form in place.
         $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/statuses', server: [$this->dialogHeader() => '1']);

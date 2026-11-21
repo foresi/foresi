@@ -40,6 +40,10 @@ use Foresi\TaxesAndContributions\Contract\YearInputsView;
  * - The settlement falls in the next year: the income tax on the return
  *   deadline of the route, the social and health shortfall 8 days after the
  *   overview. What the year's advances paid too much comes back.
+ * - A month in the flat-rate tax pays its band's amount to the tax office by
+ *   the 20th, the first month of the regime by the 20th of the next month, on
+ *   the next working day (ZDP § 38lk); it has no social, health or income tax
+ *   advance and no settlement. Voluntary sickness insurance stays apart.
  */
 final readonly class CzechPayments
 {
@@ -74,8 +78,18 @@ final readonly class CzechPayments
         $before = $this->bases($profile, $year - 1);
         $after = $this->bases($profile, $year);
         $payments = [];
+        $flatRate = [];
         foreach ($months as $index => $month) {
             if (!$month->isActive()) {
+                continue;
+            }
+            if ($month->sicknessInsurance) {
+                $payments[] = $this->sicknessAdvance($month, $used);
+            }
+            if ($month->isFlatRate()) {
+                $flatRate[] = $month->key();
+                $payments[] = $this->flatRateAdvance($month, 0 !== $index && !$months[$index - 1]->isFlatRate(), $used, $unverified);
+
                 continue;
             }
             $status = $statuses[$index];
@@ -98,15 +112,9 @@ final readonly class CzechPayments
             if ($amount > 0) {
                 $payments[] = new DuePayment(Authority::Health, DuePayment::KIND_ADVANCE, $period, $first, $first->modify('first day of next month')->modify('+7 days'), Czk::money($amount));
             }
-
-            if ($month->sicknessInsurance) {
-                $minimum = $this->rule('sickness.minimum_base', $first, $used)->minor();
-                $base = max($month->sicknessBase ?? $minimum, $minimum);
-                $payments[] = new DuePayment(Authority::Sickness, DuePayment::KIND_ADVANCE, $period, $first, $last, Czk::money(Czk::percentUp($base, $this->rule('sickness.rate', $first, $used)->value)));
-            }
         }
 
-        return [...$payments, ...$this->taxAdvances($input, $used, $unverified)];
+        return [...$payments, ...$this->taxAdvances($input, $flatRate, $used, $unverified)];
     }
 
     /**
@@ -189,17 +197,47 @@ final readonly class CzechPayments
 
     /**
      * @param array<string, RuleValue> $used
+     */
+    private function sicknessAdvance(Month $month, array &$used): DuePayment
+    {
+        $first = $month->first;
+        $minimum = $this->rule('sickness.minimum_base', $first, $used)->minor();
+        $base = max($month->sicknessBase ?? $minimum, $minimum);
+
+        return new DuePayment(Authority::Sickness, DuePayment::KIND_ADVANCE, $month->key(), $first, $first->modify('last day of this month'), Czk::money(Czk::percentUp($base, $this->rule('sickness.rate', $first, $used)->value)));
+    }
+
+    /**
+     * @param array<string, RuleValue> $used
+     * @param list<string>             $unverified
+     */
+    private function flatRateAdvance(Month $month, bool $firstMonth, array &$used, array &$unverified): DuePayment
+    {
+        [$flat, $notPublished] = CzechFlatRate::month($month, fn (string $key, \DateTimeImmutable $day): RuleValue => $this->rule($key, $day, $used));
+        if ($notPublished) {
+            $unverified[] = CzechFlatRate::UNVERIFIED_2027_BAND_1;
+        }
+
+        return new DuePayment(Authority::FlatRate, DuePayment::KIND_ADVANCE, $month->key(), $month->first, CzechFlatRate::dueOn($month->first, $firstMonth), $flat->total());
+    }
+
+    /**
+     * The income tax advances, but none in a month of the flat-rate tax.
+     *
+     * @param list<string>             $flatRate   the keys of the flat-rate months
+     * @param array<string, RuleValue> $used
      * @param list<string>             $unverified
      *
      * @return list<DuePayment>
      */
-    private function taxAdvances(RegimeInput $input, array &$used, array &$unverified): array
+    private function taxAdvances(RegimeInput $input, array $flatRate, array &$used, array &$unverified): array
     {
         $year = $input->year;
         $zone = $input->today->getTimezone();
         $first = new \DateTimeImmutable(\sprintf('%04d-01-01', $year), $zone);
         $known = $this->inputs($input->profile, $year)->lastKnownTax;
-        if (!$known instanceof Money || $known->minor() <= $this->rule('tax.advance.none_up_to', $first, $used)->minor()) {
+        // A flat-rate taxpayer pays the monthly flat advances instead (ZDP § 38a).
+        if (!$known instanceof Money || \count($flatRate) >= 12 || $known->minor() <= $this->rule('tax.advance.none_up_to', $first, $used)->minor()) {
             return [];
         }
         $last = $known->minor();
@@ -213,6 +251,9 @@ final readonly class CzechPayments
         $payments = [];
         $from = $first;
         foreach ($months as $month) {
+            if (\in_array(\sprintf('%04d-%02d', $year, $month), $flatRate, true)) {
+                continue;
+            }
             $due = CzechDeadlines::workingDayFrom(new \DateTimeImmutable(\sprintf('%04d-%02d-15', $year, $month), $zone));
             $payments[] = new DuePayment(Authority::IncomeTax, DuePayment::KIND_ADVANCE, $due->format('Y-m'), $from, $due, $amount);
             $from = $due->modify('+1 day');

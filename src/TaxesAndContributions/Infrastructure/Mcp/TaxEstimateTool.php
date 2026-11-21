@@ -15,6 +15,7 @@ use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
 use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 use Foresi\TaxesAndContributions\Application\Estimates;
 use Foresi\TaxesAndContributions\Application\TaxesRefused;
+use Foresi\TaxesAndContributions\Contract\FlatRateResult;
 use Foresi\TaxesAndContributions\Contract\RegimeResult;
 use Foresi\TaxesAndContributions\Infrastructure\Api\TaxesJson;
 
@@ -53,7 +54,8 @@ final readonly class TaxEstimateTool implements ReadTool, StaffOnlyTool
             .'Without Cash flow {year_end} is null with {year_end_reason} cash_flow_not_installed; a past year\'s {year_end} is what was paid. '
             .'Each of {to_date.methods} is one expense method (actual costs or a lump sum) with its {totals} (income, costs, profit, social, health, sickness, income_tax, child_bonus, levies, take_home) and its {steps}, each with its input, rule, source_url and result, so any number can be explained. '
             .'{cheaper_method} and {break_even} compare the methods, {credits} lists each tax credit with what it needs, {months} the activity of each month and its smallest advances, and {rules} the rule year, its status (published, derived, latest_used) and every value used with its source. '
-            .'{payments} lists the payments of the year by due day: each social, health and sickness advance, the income tax advances, and in the next year the settlement or an overpayment coming back, with its authority, kind, period, due_on, amount and state (expected, paid by the bank movement in {paid_by}, or overdue). The bank pays a payment when a movement meets its {match_rule}, the authority\'s account and variable symbol in the profile. {possible_duplicates} lists the planned items for taxes and insurance that the estimate may count twice; only the owner ends them. '
+            .'{payments} lists the payments of the year by due day: each social, health, sickness and flat-rate advance, the income tax advances, and in the next year the settlement or an overpayment coming back, with its authority, kind, period, due_on, amount and state (expected, paid by the bank movement in {paid_by}, or overdue). The bank pays a payment when a movement meets its {match_rule}, the authority\'s account and variable symbol in the profile. {possible_duplicates} lists the planned items for taxes and insurance that the estimate may count twice; only the owner ends them. '
+            .'{flat_rate} is the flat-rate regime, null without it: a month whose flat_rate_band is 1, 2 or 3 pays the band amount, split into income_tax, social and health, which replaces those levies, with no credit, deduction or child benefit; each method\'s {totals.flat_rate} adds it to the levies, and its advance, authority flat_rate, is due by the 20th. Becoming a VAT payer ends it at the end of that year, with a warning; the estimate never changes the statuses. '
             .'{warnings}, {unverified} and {known_gaps} say what an accountant should confirm or what the estimate leaves out. Only the owner of the organisation may read it.';
     }
 
@@ -94,6 +96,9 @@ final readonly class TaxEstimateTool implements ReadTool, StaffOnlyTool
                 $parts[] = \sprintf('%s: levies %s, take-home %s', $method->method->value, $method->totals->levies->format('en'), $method->totals->takeHome->format('en'));
             }
             $summary = \sprintf('Estimate to date for %d (rules %d, %s): %s.', $estimate->year, $estimate->toDate->ruleYear, $estimate->toDate->rules->value, implode('; ', $parts));
+            if ($estimate->toDate->flatRate instanceof FlatRateResult) {
+                $summary .= \sprintf(' Flat-rate tax of %d months: %s.', \count($estimate->toDate->flatRate->months), $estimate->toDate->flatRate->total->format('en'));
+            }
         }
         if ($estimate->yearEnd instanceof RegimeResult) {
             $parts = [];
