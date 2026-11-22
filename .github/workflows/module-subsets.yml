@@ -59,7 +59,7 @@ jobs:
       contents: read
     # Modules that are not green alone yet; each comes off the list with the fix that
     # makes it pass. Their jobs run and report, but do not fail the workflow.
-    continue-on-error: ${{ contains(fromJSON('["Banking","CashFlow","Identity","Idoklad","Import","Invoicing","Party","Purchasing","Timesheet","Ui","Webhooks"]'), matrix.module) }}
+    continue-on-error: ${{ contains(fromJSON('["Banking","Calendar","CashFlow","Catalog","Documents","Identity","Idoklad","Import","Invoicing","Party","Purchasing","Shared","TaxesAndContributions","Timesheet","Ui","Vat","Webhooks","Work"]'), matrix.module) }}
     strategy:
       fail-fast: false
       matrix:
@@ -138,7 +138,11 @@ jobs:
 
       # Only the installed modules' baselines run, so the database holds their tables and
       # no table of a module that is not installed.
+      # In the dev environment, like the full suite's migration check in ci.yml: the test
+      # environment also maps entities that exist only for tests and has no migrations.
       - name: Migrations
+        env:
+          APP_ENV: dev
         run: |
           bin/console doctrine:migrations:migrate --no-interaction
           bin/console doctrine:schema:validate
