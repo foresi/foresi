@@ -1,6 +1,6 @@
 # VAT
 
-The VAT module (`src/Vat`, id `vat`, package `foresi/vat`, scope `vat`) shows a firm that is a VAT payer its **VAT periods**: which month or quarter it files, when the return and the payment are due, and when a refund is expected. It counts the **VAT of the documents** and of the **recurring invoices** not issued yet in each period, and keeps **where the firm pays its VAT**. Later steps add the flow into the Cash flow forecast, the matching of the bank payments, and the VAT of plans.
+The VAT module (`src/Vat`, id `vat`, package `foresi/vat`, scope `vat`) shows a firm that is a VAT payer its **VAT periods**: which month or quarter it files, when the return and the payment are due, and when a refund is expected. It counts the **VAT of the documents** and of the **recurring invoices** not issued yet in each period, puts what each period expects into the **Cash flow forecast**, finds the **bank payments** that settle it, and keeps **where the firm pays its VAT**. Later steps add the VAT of plans.
 
 Every answer is an **estimate**, not the base of a return. It says so (`estimate: true`), names the rules nobody has confirmed from a primary source yet (`unverified`) and what the amounts do not count yet (`known_gaps`). A past period that is not paid is never called overdue.
 
@@ -51,6 +51,37 @@ The open points, each listed in `unverified` until an accountant confirms them: 
 
 The account of the tax office and the variable symbol match the bank payments to the periods. An empty variable symbol takes the one the country suggests. `GET /api/v1/vat/settings` shows the suggestion with its source.
 
+## What a period expects, and when it is settled
+
+A period **expects** its result, or the amount of the return when a person entered it (`PUT /api/v1/vat/periods/{key}/return-amount`); the result stays in the answer next to it. A period is in one of four states:
+
+- `settled`: a bank movement pays it, or a person marked it settled (`POST …/settle`, with a note, for a period paid from an account the bank does not show);
+- otherwise `not_yet_paid`, once its due date has passed, or for a refund its expected refund date. A period that expects nothing is never unpaid;
+- otherwise `return_entered`, when the return amount is entered;
+- otherwise `estimated`.
+
+A past period that is not paid is **not yet paid, never overdue**: only the return knows its final amount, and "today" is the day in the instance's time zone.
+
+What the movements paid (`paid`) and the **difference** to what the period expects are information: a payment of 1,500 for an estimate of 1,890 settles the period, and the difference of −390 is shown, nothing more.
+
+## Matching the bank payments
+
+With the Cash flow module and the office account set, the module reads the bank movements to and from that account, from the first period to today, through Cash flow's movement finder. **The amount never decides a match.**
+
+- A movement **to** the office account with the variable symbol pays the oldest unsettled period to pay that ended before the movement and whose window is still open: the window closes on the due date of the next period. A late November payment in January still pays November. When no period fits, it adds to the latest period it already helps pay whose window holds it, so several payments add up. Otherwise it stays unassigned.
+- A movement **from** the office account is a refund, matched by the account alone, since the symbol of a refund is not known (`unverified`: `refund_account`): it settles the oldest unsettled period to get back that ended before it, or stays unassigned.
+- A movement to the office account with **another** variable symbol is never matched on its own; it is listed in `unassigned_payments`.
+- A person's assignment wins (`PUT /api/v1/vat/payments/{movementId}` with a `period`); `period: null` says the movement is no VAT payment, and `DELETE` gives it back to the automatic matching.
+- Without an office account nothing is matched, and the past periods stay not yet paid. A bank source that cannot be read is listed in `unavailable_sources`.
+
+## In the cash flow
+
+Every period that is not settled and expects money is an **estimate flow** of the category `vat` in the forecast (source `vat.periods`): out on its due date to pay, in on its expected refund date to get back, labelled with its period, such as *VAT for November 2026*. A refund says that the tax office first uses it to pay other arrears (Tax Code section 154). A flow whose day has passed is counted on today, flagged `awaited`, never `overdue`. Once a payment or a person settles the period, its flow leaves the forecast.
+
+The owners and members see the flows one by one, and a token only with `vat:read`; anyone else sees their category totals. Taxes and contributions never counts them.
+
+A planned item of the category `vat` entered by hand in Cash flow may count the VAT a second time: the answer lists it in `possible_duplicates`, and only a person ends it.
+
 ## API and MCP
 
-See [VAT in the REST API](api.md#vat) and the tools `foresi_vat_periods`, `foresi_get_vat_period` and `foresi_set_vat_settings` in [mcp.md](mcp.md).
+See [VAT in the REST API](api.md#vat) and the tools `foresi_vat_periods`, `foresi_get_vat_period`, `foresi_set_vat_settings`, `foresi_set_vat_return_amount`, `foresi_clear_vat_return_amount`, `foresi_settle_vat_period`, `foresi_reopen_vat_period`, `foresi_assign_vat_payment` and `foresi_reset_vat_payment` in [mcp.md](mcp.md). Every write records the event `vat.period.changed`.

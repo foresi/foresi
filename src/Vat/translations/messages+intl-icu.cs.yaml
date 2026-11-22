@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+vat:
+  period:
+    quarter: '{quarter}. čtvrtletí {year}'
+  flow:
+    payable: 'DPH za {period}'
+    refund: 'Nadměrný odpočet DPH za {period} (finanční úřad jím nejdřív uhradí jiné nedoplatky, § 154 daňového řádu)'

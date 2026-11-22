@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Vat\Application;
 
+use Foresi\Vat\Contract\PossibleDuplicate;
+
 /**
  * The VAT periods of the firm in a range, always an estimate. When there is
  * nothing to compute, the reason says why: payer_date_missing (the firm is
@@ -15,7 +17,10 @@ namespace Foresi\Vat\Application;
  * country_not_supported. It carries the warnings about the firm's VAT
  * statuses, the rules nobody has confirmed yet (unverified), what the
  * amounts do not count yet (known gaps) and the document sources that are
- * not installed or could not be read (unavailable sources).
+ * not installed or could not be read (unavailable sources). It lists the
+ * bank movements to or from the tax office that pay no period yet, for a
+ * person to place, and the planned items of the category vat that may
+ * count the VAT a second time.
  */
 final readonly class PeriodList
 {
@@ -27,11 +32,13 @@ final readonly class PeriodList
     public const array KNOWN_GAPS = ['plans_not_counted', 'deduction_before_registration'];
 
     /**
-     * @param list<PeriodView> $periods            oldest first
-     * @param list<string>     $warnings
-     * @param list<string>     $unverified
-     * @param list<string>     $unavailableSources
-     * @param list<string>     $knownGaps
+     * @param list<PeriodView>        $periods            oldest first
+     * @param list<string>            $warnings
+     * @param list<string>            $unverified
+     * @param list<string>            $unavailableSources
+     * @param list<string>            $knownGaps
+     * @param list<PaymentView>       $unassigned         oldest first
+     * @param list<PossibleDuplicate> $duplicates
      */
     public function __construct(
         public ?string $reason,
@@ -43,6 +50,8 @@ final readonly class PeriodList
         public array $unverified,
         public array $unavailableSources = [],
         public array $knownGaps = self::KNOWN_GAPS,
+        public array $unassigned = [],
+        public array $duplicates = [],
     ) {
     }
 }

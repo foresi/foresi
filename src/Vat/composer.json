@@ -1,6 +1,6 @@
 {
     "name": "foresi/vat",
-    "description": "The VAT of the firm: its VAT periods with the due dates from the country's rules and the amounts from its documents and schedules, and where it pays its VAT.",
+    "description": "The VAT of the firm: its VAT periods with the due dates from the country's rules and the amounts from its documents and schedules, the flow of each into the cash flow, the bank payments that settle them, and where it pays its VAT.",
     "type": "foresi-module",
     "license": "AGPL-3.0-only",
     "homepage": "https://foresi.app",
@@ -19,11 +19,13 @@
         "foresi/party": "self.version",
         "foresi/shared": "self.version",
         "foresi/ui": "self.version",
+        "psr/clock": "^1.0",
         "psr/log": "^3.0",
         "symfony/dependency-injection": "^7.4 || ^8.0",
         "symfony/http-foundation": "^7.4 || ^8.0",
         "symfony/http-kernel": "^7.4 || ^8.0",
         "symfony/routing": "^7.4",
+        "symfony/translation-contracts": "^3.8",
         "zircote/swagger-php": "^7.5"
     },
     "autoload": {

@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+vat:
+  period:
+    quarter: 'Q{quarter} {year}'
+  flow:
+    payable: 'VAT for {period}'
+    refund: 'VAT refund for {period} (the tax office first uses it to pay other arrears)'

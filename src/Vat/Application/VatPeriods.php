@@ -19,11 +19,16 @@ use Foresi\Party\Contract\VatStretch;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Vat\Contract\DocumentVat;
+use Foresi\Vat\Contract\PlannedVatSource;
+use Foresi\Vat\Contract\PossibleDuplicate;
 use Foresi\Vat\Contract\ScheduledVat;
 use Foresi\Vat\Contract\VatCountryRules;
 use Foresi\Vat\Contract\VatDocumentSource;
+use Foresi\Vat\Contract\VatPayment;
+use Foresi\Vat\Contract\VatPaymentSource;
 use Foresi\Vat\Contract\VatPeriod;
 use Foresi\Vat\Contract\VatScheduleSource;
+use Foresi\Vat\Domain\VatSettings;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -51,9 +56,14 @@ final readonly class VatPeriods
     /** The schedule sources the amounts count when their modules are installed. */
     public const array EXPECTED_SCHEDULE_SOURCES = ['invoicing.recurring_vat'];
 
+    /** Listed in the unavailable sources when the bank movements could not be read at all. */
+    public const string PAYMENT_SOURCE = 'cash-flow.vat_payments';
+
     /**
      * @param iterable<VatDocumentSource> $sources
      * @param iterable<VatScheduleSource> $schedules
+     * @param iterable<VatPaymentSource>  $payments     Cash flow's, when it is installed
+     * @param iterable<PlannedVatSource>  $plannedItems Cash flow's, when it is installed
      */
     public function __construct(
         private VatAccess $access,
@@ -64,6 +74,9 @@ final readonly class VatPeriods
         private LoggerInterface $logger,
         private ExchangeRates $exchangeRates,
         private iterable $schedules = [],
+        private ?VatStore $store = null,
+        private iterable $payments = [],
+        private iterable $plannedItems = [],
     ) {
     }
 
@@ -112,18 +125,41 @@ final readonly class VatPeriods
     }
 
     /**
+     * The periods to the one that holds the last day, with what they still
+     * expect, for the cash-flow forecast: no staff check, since Cash flow
+     * checks who reads it, and no possible duplicates, which are read from
+     * the forecast itself.
+     *
+     * @return list<PeriodView>
+     *
+     * @throws VatRefused not_found before the first-run setup
+     */
+    public function open(\DateTimeImmutable $to): array
+    {
+        $zone = $this->clock->timezone();
+        $max = $this->clock->today()->modify('first day of this month')->modify(\sprintf('+%d months', self::MAX_MONTHS));
+        $last = min(new \DateTimeImmutable($to->format('Y-m-01'), $zone), $max);
+
+        return $this->compute(null, $last, 'to', false)[0]->periods;
+    }
+
+    /**
      * The periods from the month $first (from the first period when null) to
-     * the month $last, with their amounts, and the sources whose documents
-     * the caller may not read.
+     * the month $last, with their amounts, what people entered for them, the
+     * bank movements that pay them, and the sources whose documents the
+     * caller may not read. The movements are matched over every period from
+     * the first one to this month, so a period's payments never depend on
+     * the range asked for.
      *
      * @return array{PeriodList, list<string>}
      *
      * @throws VatRefused not_found, or invalid with range_too_long
      */
-    private function compute(?\DateTimeImmutable $first, \DateTimeImmutable $last, string $field): array
+    private function compute(?\DateTimeImmutable $first, \DateTimeImmutable $last, string $field, bool $withDuplicates = true): array
     {
         $zone = $this->clock->timezone();
-        $thisMonth = $this->clock->today()->modify('first day of this month');
+        $today = $this->clock->today();
+        $thisMonth = $today->modify('first day of this month');
         if ($last > $thisMonth->modify(\sprintf('+%d months', self::MAX_MONTHS))) {
             throw VatRefused::invalid('range_too_long', $field, \sprintf('The last month is at most %d months after this one.', self::MAX_MONTHS));
         }
@@ -144,23 +180,115 @@ final readonly class VatPeriods
             return [new PeriodList([] === $registered ? PeriodList::NOT_A_PAYER : PeriodList::PAYER_DATE_MISSING, $rules->country(), $range[0], $range[1], [], $warnings, $rules->unverified()), []];
         }
 
+        $all = $this->periods($rules, $segments, max($end, $thisMonth->modify('last day of this month')));
         $listed = [];
-        foreach ($this->periods($rules, $segments, $end) as [$whole, $clipped]) {
-            if ($first instanceof \DateTimeImmutable && $clipped->end < $first) {
+        foreach ($all as $i => [$whole, $clipped]) {
+            if (($first instanceof \DateTimeImmutable && $clipped->end < $first) || $whole->start > $end) {
                 continue;
             }
-            $listed[] = [$whole, $clipped];
+            $listed[] = $i;
         }
-        $wholes = array_column($listed, 0);
-        [$documents, $unavailable, $restricted] = [] === $wholes ? [[], [], []] : $this->documents($wholes[0]->start, $wholes[\count($wholes) - 1]->end);
-        [$schedules, $unscheduled, $hidden] = [] === $wholes ? [[], [], []] : $this->scheduled($wholes[0]->start, $wholes[\count($wholes) - 1]->end);
-        $amounts = VatCalculation::compute(array_column($listed, 1), $documents, $stretches, $schedules);
+        $duplicates = $withDuplicates ? $this->duplicates() : [];
+        if ([] === $listed) {
+            return [new PeriodList(null, $rules->country(), $range[0], $range[1], [], $warnings, $rules->unverified(), [], PeriodList::KNOWN_GAPS, [], $duplicates), []];
+        }
+        $wholes = array_column($all, 0);
+        [$documents, $unavailable, $restricted] = $this->documents($wholes[0]->start, $wholes[\count($wholes) - 1]->end);
+        [$schedules, $unscheduled, $hidden] = $this->scheduled($wholes[0]->start, $wholes[\count($wholes) - 1]->end);
+        $amounts = VatCalculation::compute(array_column($all, 1), $documents, $stretches, $schedules);
+
+        $entries = [];
+        foreach ($this->store?->entries() ?? [] as $entry) {
+            $entries[$entry->periodKey()] = $entry;
+        }
+        $settlement = [];
+        foreach ($all as $i => [$whole, $clipped]) {
+            $entry = $entries[$clipped->key] ?? null;
+            $next = $all[$i + 1][0] ?? $rules->periodOf($whole->end->modify('+1 day'), $whole->length);
+            $settlement[] = new SettlementPeriod($clipped->key, $clipped->end, $entry?->returnAmount() ?? $amounts[$i]->result, $rules->dueOn($next), $entry?->settledAt() instanceof \DateTimeImmutable);
+        }
+        [$payments, $failed] = $this->payments($wholes[0]->start, $today);
+        [$paid, $unassigned] = VatSettlement::assign($settlement, $payments, $this->manual());
+
         $views = [];
-        foreach ($listed as $i => [$whole, $clipped]) {
-            $views[] = new PeriodView($clipped, $rules->dueOn($whole), $rules->refundExpectedOn($whole), $amounts[$i]);
+        foreach ($listed as $i) {
+            [$whole, $clipped] = $all[$i];
+            $entry = $entries[$clipped->key] ?? null;
+            $mark = $entry?->settledAt() instanceof \DateTimeImmutable ? new SettledMark($entry->settledAt(), (string) $entry->settledBy(), $entry->settledNote()) : null;
+            $dueOn = $rules->dueOn($whole);
+            $refundOn = $rules->refundExpectedOn($whole);
+            $expected = $settlement[$i]->expected;
+            $state = PeriodState::of($mark instanceof SettledMark || [] !== $paid[$clipped->key], $entry?->returnAmount() instanceof Money, PeriodView::awaited($expected, $dueOn, $refundOn), $today);
+            $views[] = new PeriodView($clipped, $dueOn, $refundOn, $amounts[$i], $entry?->returnAmount(), $state, $paid[$clipped->key], $mark);
         }
 
-        return [new PeriodList(null, $rules->country(), $range[0], $range[1], $views, $warnings, $rules->unverified(), [...$unavailable, ...$unscheduled]), [...$restricted, ...$hidden]];
+        return [new PeriodList(null, $rules->country(), $range[0], $range[1], $views, $warnings, $rules->unverified(), [...$unavailable, ...$unscheduled, ...$failed], PeriodList::KNOWN_GAPS, $unassigned, $duplicates), [...$restricted, ...$hidden]];
+    }
+
+    /**
+     * The movements to and from the tax office from the first day of the
+     * first period to today, and the bank sources that failed. Without the
+     * office's account nothing is matched.
+     *
+     * @return array{list<VatPayment>, list<string>}
+     */
+    private function payments(\DateTimeImmutable $from, \DateTimeImmutable $today): array
+    {
+        $settings = $this->store?->settings();
+        if (!$settings instanceof VatSettings) {
+            return [[], []];
+        }
+        $payments = [];
+        $failed = [];
+        foreach ($this->payments as $source) {
+            try {
+                $found = $source->paymentsBetween($from, $today, $settings->officeAccount(), '' === $settings->variableSymbol() ? null : $settings->variableSymbol());
+            } catch (\Throwable $failure) {
+                $this->logger->error('The VAT payments could not be read from the bank.', ['exception' => $failure]);
+                $failed[] = self::PAYMENT_SOURCE;
+
+                continue;
+            }
+            array_push($payments, ...$found->payments);
+            array_push($failed, ...$found->unavailable);
+        }
+
+        return [$payments, array_values(array_unique($failed))];
+    }
+
+    /**
+     * The period of each movement a person assigned, null for no VAT payment.
+     *
+     * @return array<string, ?string>
+     */
+    private function manual(): array
+    {
+        $manual = [];
+        foreach ($this->store?->assignments() ?? [] as $assignment) {
+            $manual[$assignment->movementId()] = $assignment->periodKey();
+        }
+
+        return $manual;
+    }
+
+    /**
+     * The planned items of the category vat that may count the VAT twice;
+     * none when they cannot be read.
+     *
+     * @return list<PossibleDuplicate>
+     */
+    private function duplicates(): array
+    {
+        $items = [];
+        foreach ($this->plannedItems as $source) {
+            try {
+                array_push($items, ...$source->activeVatItems());
+            } catch (\Throwable $failure) {
+                $this->logger->error('The planned VAT items could not be read.', ['exception' => $failure]);
+            }
+        }
+
+        return $items;
     }
 
     /**

@@ -3082,7 +3082,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Vat",
-                "reference": "9209347baa2e96e7878954e93ce2ca402f7b51b1"
+                "reference": "d8da651b934a872275d58795ff846484002c36c3"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3095,11 +3095,13 @@
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
+                "psr/clock": "^1.0",
                 "psr/log": "^3.0",
                 "symfony/dependency-injection": "^7.4 || ^8.0",
                 "symfony/http-foundation": "^7.4 || ^8.0",
                 "symfony/http-kernel": "^7.4 || ^8.0",
                 "symfony/routing": "^7.4",
+                "symfony/translation-contracts": "^3.8",
                 "zircote/swagger-php": "^7.5"
             },
             "type": "foresi-module",
@@ -3130,7 +3132,7 @@
             "license": [
                 "AGPL-3.0-only"
             ],
-            "description": "The VAT of the firm: its VAT periods with the due dates from the country's rules and the amounts from its documents and schedules, and where it pays its VAT.",
+            "description": "The VAT of the firm: its VAT periods with the due dates from the country's rules and the amounts from its documents and schedules, the flow of each into the cash flow, the bank payments that settle them, and where it pays its VAT.",
             "homepage": "https://foresi.app",
             "support": {
                 "issues": "https://github.com/foresi/foresi/issues",

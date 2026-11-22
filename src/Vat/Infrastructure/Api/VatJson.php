@@ -10,6 +10,8 @@ namespace Foresi\Vat\Infrastructure\Api;
 
 use Foresi\Shared\Infrastructure\Api\JsonValues;
 use Foresi\Vat\Application\CalculationStep;
+use Foresi\Vat\Application\PaymentAssignmentView;
+use Foresi\Vat\Application\PaymentView;
 use Foresi\Vat\Application\PeriodDetail;
 use Foresi\Vat\Application\PeriodList;
 use Foresi\Vat\Application\PeriodView;
@@ -17,6 +19,7 @@ use Foresi\Vat\Application\ScheduleAmount;
 use Foresi\Vat\Application\VatPart;
 use Foresi\Vat\Application\VatSettingsView;
 use Foresi\Vat\Contract\DocumentVat;
+use Foresi\Vat\Contract\PossibleDuplicate;
 
 /**
  * The VAT module as REST and MCP write it: snake_case keys, money in minor
@@ -41,6 +44,8 @@ final class VatJson
             'unverified' => $list->unverified,
             'known_gaps' => $list->knownGaps,
             'unavailable_sources' => $list->unavailableSources,
+            'unassigned_payments' => array_map(self::payment(...), $list->unassigned),
+            'possible_duplicates' => array_map(static fn (PossibleDuplicate $item): array => ['id' => $item->id, 'name' => $item->name, 'url' => $item->url], $list->duplicates),
         ];
     }
 
@@ -108,6 +113,13 @@ final class VatJson
             'output' => JsonValues::money($view->output),
             'input' => JsonValues::money($view->input),
             'result' => JsonValues::money($view->result),
+            'return_amount' => $view->returnAmount instanceof \Foresi\Shared\Domain\Money ? JsonValues::money($view->returnAmount) : null,
+            'expected' => JsonValues::money($view->expected),
+            'state' => $view->state->value,
+            'paid' => $view->paid instanceof \Foresi\Shared\Domain\Money ? JsonValues::money($view->paid) : null,
+            'difference' => $view->difference instanceof \Foresi\Shared\Domain\Money ? JsonValues::money($view->difference) : null,
+            'payments' => array_map(self::payment(...), $view->payments),
+            'settled_mark' => $view->mark instanceof \Foresi\Vat\Application\SettledMark ? ['at' => JsonValues::timestamp($view->mark->at), 'note' => $view->mark->note] : null,
             'breakdown' => [
                 'documents' => self::part($view->amounts->documentsPart),
                 'schedules' => self::part($view->amounts->schedulesPart),
@@ -122,6 +134,31 @@ final class VatJson
             'warnings' => $view->warnings,
             'missing_czk' => $view->amounts->missingCzk,
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function payment(PaymentView $view): array
+    {
+        return [
+            'movement_id' => $view->payment->id,
+            'on' => JsonValues::date($view->payment->on),
+            'amount' => JsonValues::money($view->payment->amount),
+            'direction' => $view->payment->incoming ? 'in' : 'out',
+            'rule' => $view->payment->rule,
+            'period' => $view->period,
+            'manual' => $view->manual,
+            'unverified' => $view->unverified,
+        ];
+    }
+
+    /**
+     * @return array{movement_id: string, period: ?string, automatic: bool}
+     */
+    public static function assignment(PaymentAssignmentView $view): array
+    {
+        return ['movement_id' => $view->movementId, 'period' => $view->period, 'automatic' => $view->automatic];
     }
 
     /**
