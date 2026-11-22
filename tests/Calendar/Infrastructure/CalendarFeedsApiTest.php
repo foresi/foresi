@@ -72,7 +72,9 @@ final class CalendarFeedsApiTest extends ApiTestCase
         $this->send('PATCH', '/api/v1/calendar/feeds/'.$id, ['name' => 'Work laptop']);
         self::assertResponseIsSuccessful();
         self::assertSame('Work laptop', $this->at('data', 'name'));
-        self::assertArrayNotHasKey('address', $this->json()['data']);
+        $renamed = $this->at('data');
+        self::assertIsArray($renamed);
+        self::assertArrayNotHasKey('address', $renamed);
 
         $this->send('POST', '/api/v1/calendar/feeds/'.$id.'/revoke');
         self::assertResponseIsSuccessful();
