@@ -39,7 +39,7 @@ final readonly class PdfEngine
      * @param list<string> $logoDirectories
      */
     public function __construct(
-        string $fontDirectory = __DIR__.'/../../../../resources/pdf-fonts',
+        string $fontDirectory = __DIR__.'/../../resources/pdf-fonts',
         private array $logoDirectories = [],
     ) {
         $font = realpath($fontDirectory);

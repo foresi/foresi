@@ -15,6 +15,7 @@ use Foresi\Shared\Domain\Module\ModuleGraph;
 use Foresi\Shared\Domain\Module\ModuleId;
 use Foresi\Shared\Domain\Module\ModuleKind;
 use Foresi\Shared\Domain\Module\ModuleManifest;
+use Foresi\Shared\Infrastructure\Module\InstalledModules;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -47,6 +48,18 @@ final class EventCatalogueTest extends TestCase
         self::assertSame(['invoicing.invoice.paid'], array_map(static fn (EventType $type): string => $type->name, $catalogue->all()));
         self::assertFalse($catalogue->has('stranger.thing.happened'));
         self::assertSame([], $catalogue->problems());
+    }
+
+    public function testTheInstalledCatalogueReadsEachModuleWhereComposerInstalledIt(): void
+    {
+        $root = \dirname(__DIR__, 4);
+        $modules = new InstalledModules($root);
+
+        // From Packagist a module sits in vendor/foresi/<package>, not in src/<Name>;
+        // here the path repositories point Composer back at src/, so both agree.
+        $installed = new EventCatalogue($modules);
+        self::assertNotSame([], $installed->all());
+        self::assertEquals(EventCatalogue::forGraph($modules->graph(), $root)->all(), $installed->all());
     }
 
     public function testPrefixMustEqualModuleId(): void

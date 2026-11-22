@@ -57,7 +57,7 @@ The tests of the invoice PDF read its text and attachment with Poppler (`pdftote
 
 The tests of the ISDOC file validate it against the published XSD. The package states no licence, so it is not in the repository: `composer isdoc:schema` downloads it into `var/isdoc-schema/` and refuses a file whose SHA-256 differs from the one pinned in `bin/fetch-isdoc-schema`. Without it, these checks are skipped locally with a message. CI sets `REQUIRE_ISDOC_SCHEMA=1`.
 
-The bundled PDF fonts (Inter, SIL Open Font License) are committed under `resources/pdf-fonts/`. `bin/build-pdf-fonts` regenerates them from the Inter TTF release; you only need it to change the fonts.
+The bundled PDF fonts (Inter, SIL Open Font License) are committed under `src/Invoicing/resources/pdf-fonts/`. `bin/build-pdf-fonts` regenerates them from the Inter TTF release; you only need it to change the fonts.
 
 ### Mutation testing
 

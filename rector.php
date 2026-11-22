@@ -19,9 +19,9 @@ return RectorConfig::configure()
         // Conflicts with phpstan-strict-rules (staticMethod.dynamicCall).
         PreferPHPUnitThisCallRector::class,
         // MicroKernelTrait passes the configurator, the loader and the builder by position.
-        RemoveUnusedPrivateMethodParameterRector::class => [__DIR__.'/src/Kernel.php'],
+        RemoveUnusedPrivateMethodParameterRector::class => [__DIR__.'/src/Shared/Infrastructure/Kernel/ForesiKernel.php'],
         // registerBundles() yields the HttpKernel bundle interface, which extends the one the rename points to.
-        RenameClassRector::class => [__DIR__.'/src/Kernel.php'],
+        RenameClassRector::class => [__DIR__.'/src/Shared/Infrastructure/Kernel/ForesiKernel.php'],
     ])
     ->withPhpSets(php84: true)
     ->withComposerBased(twig: true, doctrine: true, phpunit: true, symfony: true)

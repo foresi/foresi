@@ -63,7 +63,7 @@ final class PdfEngineTest extends TestCase
      */
     public function testTheConformanceCheckTellsTheLevelsApart(): void
     {
-        $directory = realpath(__DIR__.'/../../../../resources/pdf-fonts');
+        $directory = realpath(__DIR__.'/../../../../src/Invoicing/resources/pdf-fonts');
         self::assertIsString($directory);
         $library = \dirname((string) new \ReflectionClass(Tcpdf::class)->getFileName()).'/include';
         $pdf = new Tcpdf(unit: 'mm', isunicode: true, subsetfont: true, compress: true, mode: PdfConformance::Pdfa3b, fileOptions: ['allowedHosts' => [], 'allowedPaths' => [$directory, $library]]);

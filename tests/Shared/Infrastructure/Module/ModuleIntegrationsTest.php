@@ -66,7 +66,7 @@ final class ModuleIntegrationsTest extends TestCase
         $graph = new ModuleGraph([$this->alpha(optional: []), $this->module('beta')]);
 
         $this->expectException(InvalidManifest::class);
-        $this->expectExceptionMessageIsOrContains('Module alpha has integration code in src/Alpha/Integration/Beta but lists no module Beta in extra.foresi.optional');
+        $this->expectExceptionMessageIsOrContains('Module alpha has integration code in Alpha/Integration/Beta but lists no module Beta in extra.foresi.optional');
 
         $this->integrations()->of($graph);
     }
@@ -83,6 +83,21 @@ final class ModuleIntegrationsTest extends TestCase
 
         // Refuses an integration directory that the module's manifest does not declare.
         self::assertContainsOnlyInstancesOf(ModuleIntegration::class, new ModuleIntegrations($root.'/src')->of($graph));
+    }
+
+    public function testWithoutASourceDirectoryEachModuleIsReadWhereComposerInstalledIt(): void
+    {
+        $root = \dirname(__DIR__, 4);
+        $graph = new InstalledModules($root)->graph();
+
+        // From Packagist a module sits in vendor/foresi/<package>, not in src/<Name>;
+        // here the path repositories point Composer back at src/, so both agree.
+        $fromComposer = new ModuleIntegrations()->of($graph);
+        self::assertNotSame([], $fromComposer);
+        self::assertEquals(new ModuleIntegrations($root.'/src')->of($graph), $fromComposer);
+        foreach ($fromComposer as $integration) {
+            self::assertSame(InstalledModules::directoryOf($graph->get($integration->module)).'/Integration/'.basename($integration->directory), $integration->directory);
+        }
     }
 
     private function integrations(): ModuleIntegrations
