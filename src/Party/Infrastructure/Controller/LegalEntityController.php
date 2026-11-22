@@ -31,6 +31,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -209,6 +210,8 @@ final class LegalEntityController extends AbstractController
      */
     private function form(Request $request, ?LegalEntity $firm, array $values, array $errors, string $token, int $status): Response
     {
+        $bankUrl = $this->bankUrl();
+
         return $this->render('@Party/legal_entity/form.html.twig', [
             'firm' => $firm,
             'values' => $values,
@@ -218,12 +221,27 @@ final class LegalEntityController extends AbstractController
             'countries' => CountryOptions::options($request->getLocale()),
             'action' => $this->generateUrl('app_firm'),
             'cancel' => $this->generateUrl('app_firm'),
-            // A new firm gets its accounts once it is saved, on its bank tab.
-            'bankUrl' => $firm instanceof LegalEntity ? $this->generateUrl('app_firm_bank') : null,
+            // The firm's bank accounts are kept on the bank tab of Banking, when it is installed;
+            // a new firm gets them once it is saved.
+            'banking' => null !== $bankUrl,
+            'bankUrl' => $firm instanceof LegalEntity ? $bankUrl : null,
             // An edited firm shows its status of today; its statuses over time change on their tab.
             'vatToday' => $firm instanceof LegalEntity ? $this->vatToday() : null,
             'vatUrl' => $firm instanceof LegalEntity ? $this->generateUrl('app_firm_vat') : null,
         ], new Response(status: $status));
+    }
+
+    /**
+     * The bank tab of the firm, or null without Banking: Party knows that screen
+     * by its route only.
+     */
+    private function bankUrl(): ?string
+    {
+        try {
+            return $this->generateUrl('app_firm_bank');
+        } catch (RouteNotFoundException) {
+            return null;
+        }
     }
 
     /**

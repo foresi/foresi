@@ -67,6 +67,8 @@
         <twig:Ui:Card :title="'firm.card.documents'|trans" icon="file-pen-line">
             <div class="grid gap-3">
                 <twig:Ui:TextInput name="registerEntry" id="registerEntry" :label="'firm.field.registerEntry'|trans" :help="'firm.field.registerEntry_help'|trans" :value="values.registerEntry" :error="errors.registerEntry|default(null)" maxlength="255" />
+                {# The accounts are kept in Banking's settings, so the note and its words come with Banking. #}
+                {% if banking|default(false) %}
                 <div id="bank-accounts-note">
                     <p class="m-0 text-small font-medium text-ink">{{ 'bank.account.firm_form.label'|trans }}</p>
                     <p class="m-0 mt-1 text-small text-muted">
@@ -74,6 +76,7 @@
                         {% if bankUrl|default(null) %} <a href="{{ bankUrl }}" class="font-semibold text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'bank.account.firm_form.link'|trans }}</a>{% endif %}
                     </p>
                 </div>
+                {% endif %}
             </div>
         </twig:Ui:Card>
 
