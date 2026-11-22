@@ -22,11 +22,9 @@ interface LevyPaymentSource
 
     /**
      * The movements booked between the two days, both included, that meet
-     * one of the accounts.
+     * one of the accounts, and the bank sources that could not be read.
      *
      * @param list<AuthorityAccountView> $accounts
-     *
-     * @return iterable<LevyPayment>
      */
-    public function paymentsBetween(\DateTimeImmutable $from, \DateTimeImmutable $to, array $accounts): iterable;
+    public function paymentsBetween(\DateTimeImmutable $from, \DateTimeImmutable $to, array $accounts): LevyPayments;
 }

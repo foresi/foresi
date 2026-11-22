@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\TaxesAndContributions\Integration\CashFlow;
 
+use Foresi\CashFlow\Application\RuleMovements;
 use Foresi\CashFlow\Contract\ActualFlow;
 use Foresi\CashFlow\Contract\ExpectedFlow;
 use Foresi\CashFlow\Contract\FlowCategory;
@@ -72,7 +73,7 @@ final class FlatRateFlowsTest extends TaxesTestCase
         $bank = new FakeActualSource('banking.movements', [
             new ActualFlow('banking.movements', new FlowSubject('bank_movement', 'm-nov'), FlowDirection::Out, Money::ofMinor(916_200, Currency::CZK), $this->day('2026-11-19'), counterpartyAccount: self::ACCOUNT, variableSymbol: self::SYMBOL),
         ]);
-        $estimates = $this->estimates(new DuePayments([new BankLevyPayments([$bank])]));
+        $estimates = $this->estimates(new DuePayments([new BankLevyPayments(new RuleMovements([$bank]))]));
 
         $flows = $this->flows($this->flowsWith($estimates));
 
