@@ -47,6 +47,7 @@
             "namespace": "Foresi\\Party\\",
             "bundle": "Foresi\\Party\\PartyBundle",
             "optional": [
+                "documents",
                 "import"
             ],
             "scopes": [

@@ -1,0 +1,53 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Settings → Documents: the document types and the templates. A type is a small record: a new one and
+    a change open in a dialog over the page, and archiving asks first, as it cannot be undone here. A
+    template opens in its editor page. Variables: typeColumns, typeRows, templateColumns, templateRows,
+    hasTypes.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'documents.settings.title'|trans}] %}
+{% set token = csrf_token(constant('Foresi\\Documents\\Infrastructure\\Controller\\DocumentController::TOKEN')) %}
+
+{% block title %}{{ 'documents.settings.title'|trans }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:MoreActions menuId="document-settings-actions">
+        <twig:block name="primary">
+            {% if hasTypes %}
+                <twig:Ui:Button variant="primary" icon="plus" :href="path('app_document_template_new')" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-template-new>{{ 'documents.settings.new_template'|trans }}</twig:Ui:Button>
+            {% endif %}
+        </twig:block>
+        <twig:block name="buttons">
+            <twig:Ui:Button icon="plus" :href="path('app_document_type_new')" data-dialog aria-haspopup="dialog" data-type-new>{{ 'documents.settings.new_type'|trans }}</twig:Ui:Button>
+        </twig:block>
+        <twig:block name="phone">
+            <twig:Ui:MenuItem icon="plus" :href="path('app_document_type_new')" data-dialog aria-haspopup="dialog">{{ 'documents.settings.new_type'|trans }}</twig:Ui:MenuItem>
+        </twig:block>
+    </twig:Ui:MoreActions>
+{% endblock %}
+
+{% block content %}
+    {{ include('@Documents/_flashes.html.twig') }}
+    <div class="grid gap-6">
+        <section class="grid gap-2" aria-labelledby="document-types-title" data-document-types>
+            <h2 id="document-types-title" class="m-0 text-body font-semibold text-ink">{{ 'documents.settings.types'|trans }}</h2>
+            <twig:Ui:DataTable :caption="'documents.settings.types'|trans" :columns="typeColumns" :rows="typeRows" :actionToken="token">
+                <twig:block name="empty">
+                    <twig:Ui:EmptyState icon="file-text" :title="'documents.settings.types_empty'|trans">
+                        <twig:Ui:Button variant="primary" icon="plus" :href="path('app_document_type_new')" data-dialog aria-haspopup="dialog">{{ 'documents.settings.new_type'|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                </twig:block>
+            </twig:Ui:DataTable>
+        </section>
+        <section class="grid gap-2" aria-labelledby="document-templates-title" data-document-templates>
+            <h2 id="document-templates-title" class="m-0 text-body font-semibold text-ink">{{ 'documents.settings.templates'|trans }}</h2>
+            <twig:Ui:DataTable :caption="'documents.settings.templates'|trans" :columns="templateColumns" :rows="templateRows" :actionToken="token">
+                <twig:block name="empty">
+                    <twig:Ui:EmptyState icon="file-text" :title="'documents.settings.templates_empty'|trans" :text="'documents.settings.templates_empty_text'|trans" />
+                </twig:block>
+            </twig:Ui:DataTable>
+        </section>
+    </div>
+{% endblock %}

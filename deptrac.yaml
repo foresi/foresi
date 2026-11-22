@@ -418,6 +418,7 @@ deptrac:
       - VendorDoctrineOrmMapping
       - VendorDbalConnection
       - VendorComposer
+      - VendorTecnick
     InstanceDomain:
       - Contract
       - VendorDoctrineOrmMapping

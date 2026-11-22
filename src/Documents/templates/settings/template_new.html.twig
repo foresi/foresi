@@ -1,0 +1,37 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A new template: the type it is for and its name. It starts with a heading and opens in its editor.
+    A dialog over the settings; the same URL is a page. Variables: values, errors, types.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set heading = 'documents.settings.new_template'|trans %}
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'documents.settings.title'|trans, href: path('app_document_settings')}, {label: heading}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="template-new-form" action="{{ path('app_document_template_new') }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Documents\\Infrastructure\\Controller\\DocumentController::TOKEN')) }}">
+        <twig:Ui:Select name="typeId" id="typeId" :label="'documents.field.type'|trans" :options="types" :value="values.typeId" :error="errors.typeId|default(null)" required />
+        <twig:Ui:TextInput name="name" id="name" :label="'documents.settings.field.template_name'|trans" :placeholder="'documents.settings.field.template_name_placeholder'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="120" autocomplete="off" required />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'documents.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="template-new-form" variant="primary">{{ 'documents.create'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="heading" icon="plus" class="max-w-2xl">{{ body }}</twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_document_settings')">{{ 'documents.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="template-new-form" variant="primary">{{ 'documents.create'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

@@ -1,0 +1,236 @@
+nav:
+    item:
+        documents: Dokumenty
+        document_settings: Dokumenty
+documents:
+    pdf:
+        footer: 'Strana {page} z {pages}'
+    cancel: Zrušit
+    keep: Ponechat
+    save: Uložit
+    create: Vytvořit
+    list:
+        title: Dokumenty
+        more: 'Zobrazeno nejnovějších 200 dokumentů. Seznam zúžíte filtry.'
+    column:
+        title: Název
+        type: Typ
+        status: Stav
+        links: Patří k
+        created: Vytvořeno
+    status:
+        draft: Koncept
+        ready: Připraveno
+        out_for_signature: K podpisu
+        completed: Dokončeno
+        declined: Odmítnuto
+        cancelled: Zrušeno
+        expired: Vypršelo
+    filter:
+        type: Typ
+        status: Stav
+        any_type: Všechny typy
+        any_status: Všechny stavy
+    empty:
+        title: Zatím žádné dokumenty
+        text: 'Vytvořte dokument ze šablony, vygenerujte jeho PDF a zaznamenejte, kdo ho podepsal.'
+        filtered_title: Filtrům neodpovídá žádný dokument
+        reset: Zrušit filtry
+        no_types_title: Zatím žádné typy dokumentů
+        no_types_text: 'Dokumenty vznikají ze šablon určitého typu. Nejdřív přidejte typ a šablonu.'
+        no_types_action: Otevřít nastavení dokumentů
+    action:
+        new: Nový dokument
+        generate: Vygenerovat
+        send: Označit jako odeslané
+        signed_copy: Nahrát podepsanou kopii
+        add_signer: Přidat podepisujícího
+        mark_signed: 'Označit, že {name} podepsal(a)'
+        cancel: Zrušit dokument
+        again: Vygenerovat znovu
+        open_pdf: Otevřít PDF
+        open_signed: Otevřít podepsanou kopii
+    field:
+        type: Typ
+        template: Šablona
+        template_help: Šablony jsou seskupené podle typu dokumentu.
+        title: Název
+        title_placeholder: 'NDA se společností Example s.r.o.'
+        link: Patří k
+    link:
+        unavailable: 'Nedostupný záznam ({kind})'
+        unavailable_short: Nedostupný záznam
+    links:
+        title: Patří k
+    none:
+        links: Nepatří k žádnému záznamu
+        generated: Zatím nevygenerováno
+        sent: Zatím neodesláno
+        completed: Zatím nedokončeno
+    detail:
+        title: Podrobnosti
+        template_version: '{name}, verze {number}'
+        created: Vytvořeno
+        generated: Vygenerováno
+        sent: Odesláno
+        completed: Dokončeno
+    preview:
+        pdf: Vygenerované PDF
+        draft: Náhled
+        draft_note: 'Šablona vyplněná hodnotami propojených záznamů. Vygenerování ji zmrazí jako PDF.'
+        signed_copy: 'Podepsaná kopie je uložená.'
+    signers:
+        title: Podepisující
+        none: 'Zatím nikdo. Přidejte, kdo podepisuje, a jeho pořadí.'
+        order: 'Pořadí {order}'
+        parallel: podepisují souběžně
+        order_note: 'Podepisující se stejným pořadím podepisují souběžně, pořadí jdou po sobě. Pořadí se jen zobrazuje, nevynucuje se.'
+        signed: Podepsáno
+        add: Přidat
+        edit: Upravit
+        edit_label: 'Upravit {name}'
+        edit_title: 'Upravit {name}'
+        remove: Odebrat
+        remove_label: 'Odebrat {name}'
+    signer:
+        field:
+            name: Jméno
+            email: E-mail
+            side: Podepisuje za
+            order: Pořadí
+            order_help: 'Stejné pořadí znamená souběžný podpis, 1 až 99.'
+        side:
+            ours: Naši stranu
+            theirs: Druhou stranu
+        status:
+            pending: Čeká
+            signed: Podepsáno
+            signed_on: 'Podepsáno {day}'
+            declined: Odmítnuto
+    signed_copy:
+        description: 'PDF se všemi podpisy. U připraveného dokumentu ho zároveň označí jako odeslaný.'
+        file: Podepsané PDF
+        help: 'PDF do 10 MB.'
+        submit: Nahrát
+    confirm:
+        cancel_title: 'Zrušit dokument {title}?'
+        cancel_text: 'Zrušený dokument zůstane v historii a nejde podepsat. Pro nový ho vygenerujte znovu.'
+        remove_signer_title: 'Odebrat {name} z podepisujících?'
+    record:
+        title: Dokumenty
+        empty_title: Zatím žádné dokumenty
+        empty_text: 'Vytvořte dokument k tomuto záznamu tlačítkem Nový dokument.'
+    flash:
+        created: 'Dokument {title} byl vytvořen.'
+        generated: PDF je vygenerované a dokument je připravený.
+        sent: Dokument je označený jako odeslaný.
+        signed_copy: Podepsaná kopie je uložená.
+        cancelled: Dokument byl zrušen.
+        again: Z dokumentu vznikl nový koncept.
+        signer_added: '{name} je mezi podepisujícími.'
+        signer_saved: 'Podepisující {name} je uložen(a).'
+        signer_removed: Podepisující byl(a) odebrán(a).
+        signer_signed: Podpis je zaznamenaný.
+    error:
+        forbidden: S dokumenty pracují jen vlastníci a členové organizace.
+        not_found: Dokument nebyl nalezen.
+        invalid:
+            title: 'Zadejte název, nejvýš 200 znaků.'
+            name: 'Zadejte jméno, nejvýš 160 znaků.'
+            email: 'Zadejte platnou e-mailovou adresu, nebo pole nechte prázdné.'
+            order: 'Pořadí je celé číslo od 1 do 99.'
+            margin: 'Okraj je celé číslo milimetrů od 0 do 60.'
+            marginTop: 'Okraj je celé číslo milimetrů od 0 do 60.'
+            body: 'Zadejte šablonu, nejvýš 200 000 bajtů.'
+            code: 'Kód je identifikátor malými písmeny, nejvýš 40 znaků, třeba nda.'
+        type_unknown: Vyberte typ dokumentu.
+        template_unknown: Vyberte šablonu zvoleného typu.
+        link_invalid: Záznam, ke kterému dokument patří, není platný.
+        link_kind_unknown: 'Žádný nainstalovaný modul nenabízí záznamy tohoto druhu ({kind}), dokument k němu proto nemůže patřit.'
+        link_target_unknown: Záznam, ke kterému dokument patří, neexistuje.
+        not_draft: Měnit jde jen koncept; vygenerovaný dokument je zmrazený. Zrušte ho a vygenerujte znovu.
+        not_ready: Jako odeslaný jde označit jen vygenerovaný, připravený dokument.
+        not_final: Znovu jde vygenerovat jen dokončený, odmítnutý nebo zrušený dokument.
+        not_signable: Podpisy se zaznamenávají u vygenerovaného dokumentu, který je připravený nebo k podpisu.
+        final: Dokončený, odmítnutý nebo zrušený dokument už nejde měnit.
+        signed_copy_exists: Dokument už podepsanou kopii má.
+        signer_not_pending: Tento podepisující už podepsal nebo odmítl.
+        signer_unknown: Dokument takového podepisujícího nemá.
+        side_unknown: Vyberte, za kterou stranu podepisuje.
+        file_invalid: Vyberte podepsané PDF.
+        file_too_large: Podepsaná kopie je větší než 10 MB.
+        file_not_pdf: Podepsaná kopie musí být PDF.
+        template_variables_missing: 'Šablona používá proměnné, které pro tento dokument nemají hodnotu. Propojte záznam, ze kterého pocházejí, nebo šablonu upravte:'
+        template_not_allowed: Šablona používá něco, co šablony používat nemohou. Smějí používat značky if, for a set, filtry z dokumentace a proměnné vedle editoru.
+        template_failed: Šablonu se nepodařilo vyplnit.
+        code_taken: Tento kód už má jiný typ dokumentu; kódy jsou jedinečné.
+        signature_level_unknown: Vyberte úroveň podpisu.
+        paper_unknown: Vyberte papír.
+    settings:
+        title: Dokumenty
+        types: Typy dokumentů
+        templates: Šablony
+        types_empty: Zatím žádné typy dokumentů
+        templates_empty: Zatím žádné šablony
+        templates_empty_text: 'Šablona je HTML dokumentu s proměnnými, třeba jménem klienta, které se doplní při vygenerování.'
+        new_type: Nový typ
+        edit_type: 'Upravit {name}'
+        new_template: Nová šablona
+        template_of: 'Šablona typu {type}.'
+        archived: Archivováno
+        not_signed: Nepodepisuje se
+        version: 'Verze {number}'
+        version_editing: 'Upravujete verzi {number}. Uložení ji mění, dokud z ní nevznikne dokument.'
+        version_frozen: 'Verzi {number} používají vygenerované dokumenty a zůstává beze změny. Uložení vytvoří verzi {next}.'
+        variables: Proměnné
+        variables_help: 'Kliknutím vložíte proměnnou na místo kurzoru.'
+        variables_none: 'Žádný nainstalovaný modul zatím proměnné nenabízí. Šablona může obsahovat i prostý text.'
+        example: 'Příklad: {example}'
+        preview: Náhled
+        preview_help: Šablona vyplněná příklady proměnných.
+        column:
+            name: Název
+            code: Kód
+            signing: Podpis
+            type: Typ
+            version: Verze
+        level:
+            simple: Prostý podpis
+            advanced: Zaručený podpis
+            qualified: Kvalifikovaný podpis
+        paper:
+            a4: A4
+            letter: Letter
+        field:
+            name: Název
+            name_placeholder: Smlouva o poskytování služeb
+            code: Kód
+            code_help: 'Malými písmeny, třeba service_contract; nemění se.'
+            needs_signing: Dokumenty tohoto typu se podepisují
+            level: Úroveň podpisu
+            level_help: 'Pro smlouvy mezi firmami většinou stačí prostý.'
+            template_name: Název
+            template_name_placeholder: 'NDA, česky'
+            body: Zdrojové HTML
+            body_help: 'Proměnné se doplní při vygenerování dokumentu.'
+            paper: Papír
+            landscape: Na šířku
+            marginTop: Horní okraj (mm)
+            marginRight: Pravý okraj (mm)
+            marginBottom: Dolní okraj (mm)
+            marginLeft: Levý okraj (mm)
+        action:
+            edit: Upravit
+            edit_template: Otevřít editor
+            archive: Archivovat
+        confirm:
+            archive_type: 'Archivovat typ {name}?'
+            archive_type_text: 'Z archivovaného typu už nové dokumenty nevzniknou; jeho dokumenty zůstanou.'
+            archive_template: 'Archivovat šablonu {name}?'
+            archive_template_text: 'Z archivované šablony už nové dokumenty nevzniknou; její dokumenty zůstanou.'
+        flash:
+            type_saved: 'Typ {name} je uložený.'
+            type_archived: 'Typ {name} je archivovaný.'
+            template_created: 'Šablona {name} je vytvořená.'
+            template_saved: 'Šablona je uložená jako verze {number}.'
+            template_archived: 'Šablona {name} je archivovaná.'

@@ -1206,6 +1206,145 @@ nelmio_api_doc:
                     properties:
                         data: { type: array, items: { $ref: '#/components/schemas/WebhookDelivery' } }
                         next_cursor: { type: string, nullable: true }
+                DocumentsType:
+                    type: object
+                    description: A kind of document, such as an NDA, and whether and how it is signed.
+                    properties:
+                        id: { type: string, format: uuid }
+                        name: { type: string, example: NDA }
+                        code: { type: string, example: nda, description: 'Unique; it never changes.' }
+                        needs_signing: { type: boolean }
+                        signature_level: { type: string, enum: [simple, advanced, qualified] }
+                        archived: { type: boolean }
+                DocumentsTemplateVersion:
+                    type: object
+                    description: A version of a template. It is edited in place until a document is generated from it; then it is frozen, and saving makes the next number.
+                    properties:
+                        id: { type: string, format: uuid }
+                        number: { type: integer, example: 1 }
+                        body: { type: string, description: 'The HTML body in the subset of ADR 0042, with placeholders such as {{ firm.name }}.' }
+                        frozen: { type: boolean }
+                        page:
+                            type: object
+                            properties:
+                                paper: { type: string, enum: [a4, letter] }
+                                landscape: { type: boolean }
+                                margin_top: { type: number, description: 'Millimetres.' }
+                                margin_right: { type: number, description: 'Millimetres.' }
+                                margin_bottom: { type: number, description: 'Millimetres.' }
+                                margin_left: { type: number, description: 'Millimetres.' }
+                        uses: { type: array, items: { type: string, example: firm.name }, description: 'The variables the body uses.' }
+                DocumentsTemplateRow:
+                    type: object
+                    description: A template in a list, with its latest version without the body.
+                    properties:
+                        id: { type: string, format: uuid }
+                        type_id: { type: string, format: uuid }
+                        name: { type: string }
+                        archived: { type: boolean }
+                        version:
+                            type: object
+                            nullable: true
+                            properties:
+                                id: { type: string, format: uuid }
+                                number: { type: integer }
+                                frozen: { type: boolean }
+                DocumentsTemplate:
+                    type: object
+                    description: A template with its latest version, all its versions and every variable a body can use.
+                    properties:
+                        id: { type: string, format: uuid }
+                        type_id: { type: string, format: uuid }
+                        name: { type: string }
+                        archived: { type: boolean }
+                        version: { allOf: [{ $ref: '#/components/schemas/DocumentsTemplateVersion' }], nullable: true }
+                        versions:
+                            type: array
+                            description: Newest first.
+                            items:
+                                type: object
+                                properties:
+                                    id: { type: string, format: uuid }
+                                    number: { type: integer }
+                                    frozen: { type: boolean }
+                        variables:
+                            type: array
+                            description: What the installed modules offer, such as the firm and the linked client.
+                            items:
+                                type: object
+                                properties:
+                                    name: { type: string, example: firm.name }
+                                    label: { type: string, example: Firm name }
+                                    example: { type: string, example: Example Firm s.r.o. }
+                DocumentsSigner:
+                    type: object
+                    description: Who signs a document, in a signing order; signers of one order sign in parallel. The order is shown, not enforced.
+                    properties:
+                        id: { type: string, format: uuid }
+                        name: { type: string }
+                        email: { type: string, format: email, nullable: true }
+                        party_person_id: { type: string, format: uuid, nullable: true }
+                        side: { type: string, enum: [ours, theirs] }
+                        order: { type: integer, minimum: 1 }
+                        status: { type: string, enum: [pending, signed, declined] }
+                        signed_at: { type: string, format: date-time, nullable: true }
+                        method: { type: string, nullable: true, example: manual, description: 'manual, or the code of a signature provider.' }
+                DocumentsFile:
+                    type: object
+                    nullable: true
+                    description: A stored file of a document; GET /api/v1/documents/{documentId}/files/{file} downloads it.
+                    properties:
+                        attachment_id: { type: string, format: uuid }
+                        sha256: { type: string, nullable: true }
+                DocumentsDocumentRow:
+                    type: object
+                    description: A document in a list.
+                    properties:
+                        id: { type: string, format: uuid }
+                        title: { type: string }
+                        status: { type: string, enum: [draft, ready, out_for_signature, completed, declined, cancelled, expired] }
+                        type:
+                            type: object
+                            properties:
+                                id: { type: string, format: uuid }
+                                code: { type: string, nullable: true }
+                                name: { type: string, nullable: true }
+                        created_at: { type: string, format: date-time }
+                        generated_at: { type: string, format: date-time, nullable: true }
+                        completed_at: { type: string, format: date-time, nullable: true }
+                DocumentsDocument:
+                    allOf:
+                        - $ref: '#/components/schemas/DocumentsDocumentRow'
+                        - type: object
+                          properties:
+                              template:
+                                  type: object
+                                  properties:
+                                      id: { type: string, format: uuid }
+                                      version_id: { type: string, format: uuid, nullable: true }
+                                      version_number: { type: integer, nullable: true }
+                              links:
+                                  type: array
+                                  items:
+                                      type: object
+                                      properties:
+                                          kind: { type: string, example: contact }
+                                          id: { type: string, format: uuid }
+                                          available: { type: boolean, description: 'False when the record is gone or no module offers its kind any more.' }
+                                          label: { type: string, nullable: true }
+                                          url: { type: string, nullable: true }
+                              signers: { type: array, items: { $ref: '#/components/schemas/DocumentsSigner' }, description: 'In signing order.' }
+                              files:
+                                  type: object
+                                  properties:
+                                      pdf: { $ref: '#/components/schemas/DocumentsFile' }
+                                      signed: { $ref: '#/components/schemas/DocumentsFile' }
+                                      certificate: { $ref: '#/components/schemas/DocumentsFile' }
+                              values: { type: object, nullable: true, additionalProperties: true, description: 'The values frozen when the document was generated, by prefix.' }
+                              provider: { type: string, nullable: true, description: 'The signature provider; null for manual signing.' }
+                              envelope_id: { type: string, nullable: true }
+                              sent_at: { type: string, format: date-time, nullable: true }
+                              closed_at: { type: string, format: date-time, nullable: true }
     areas:
         default:
             # The API itself; the document is not one of its operations.

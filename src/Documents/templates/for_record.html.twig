@@ -1,0 +1,29 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The documents of one record (Foresi\Documents\Contract\RecordDocuments), shown inside another
+    module's screen such as a contact's Documents tab, as Pipedrive lists a deal's documents on its
+    tab: title, type and status, a row opening the document in the side sheet, and "New document" in
+    a dialog with the record's link filled in, which follows to the new document. Loaded by a Turbo
+    frame it is that frame alone (_frame.html.twig); otherwise a page. Variables: frame, kind, id,
+    columns, rows.
+#}
+{% extends frame ? '@Documents/_frame.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'documents.list.title'|trans, href: path('app_documents')}, {label: 'documents.record.title'|trans}] %}
+{% set newHref = path('app_document_new', {link_kind: kind, link_id: id}) %}
+
+{% block title %}{{ 'documents.record.title'|trans }}{% endblock %}
+
+{% block content %}
+    <section class="grid gap-3" aria-labelledby="record-documents-title" data-record-documents>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 id="record-documents-title" class="m-0 text-heading font-semibold text-ink">{{ 'documents.record.title'|trans }} <span class="num font-normal text-muted">({{ rows|length }})</span></h2>
+            <twig:Ui:Button variant="primary" icon="plus" size="sm" :href="newHref" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-document-new>{{ 'documents.action.new'|trans }}</twig:Ui:Button>
+        </div>
+        <twig:Ui:DataTable :caption="'documents.record.title'|trans" :columns="columns" :rows="rows">
+            <twig:block name="empty">
+                <twig:Ui:EmptyState icon="file-text" :title="'documents.record.empty_title'|trans" :text="'documents.record.empty_text'|trans" />
+            </twig:block>
+        </twig:Ui:DataTable>
+    </section>
+{% endblock %}

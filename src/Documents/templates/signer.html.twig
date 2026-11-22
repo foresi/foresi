@@ -1,0 +1,41 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A signer of a document, added or changed: the name, the e-mail, which side they sign for, and the
+    signing order, as DocuSign's routing order: signers of one order sign at the same time, a higher
+    order after them. A small dialog over the document; the same URL is a page. Variables: document,
+    signer (null for a new one), values, errors, sides, action.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set heading = signer ? 'documents.signers.edit_title'|trans({name: signer.name}) : 'documents.action.add_signer'|trans %}
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'documents.list.title'|trans, href: path('app_documents')}, {label: document.title, href: path('app_document', {id: document.id})}, {label: heading}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="signer-form" action="{{ action }}" class="grid gap-4 sm:grid-cols-2" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Documents\\Infrastructure\\Controller\\DocumentController::TOKEN')) }}">
+        <div class="sm:col-span-2"><twig:Ui:TextInput name="name" id="name" :label="'documents.signer.field.name'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="160" autocomplete="off" required /></div>
+        <div class="sm:col-span-2"><twig:Ui:TextInput type="email" name="email" id="email" :label="'documents.signer.field.email'|trans" :value="values.email" :error="errors.email|default(null)" maxlength="254" autocomplete="off" /></div>
+        <twig:Ui:Select name="side" id="side" :label="'documents.signer.field.side'|trans" :options="sides" :value="values.side" :error="errors.side|default(null)" required />
+        <twig:Ui:TextInput name="order" id="order" :label="'documents.signer.field.order'|trans" :help="'documents.signer.field.order_help'|trans" :value="values.order" :error="errors.order|default(null)" inputmode="numeric" maxlength="2" autocomplete="off" required />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'documents.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="signer-form" variant="primary">{{ (signer ? 'documents.save' : 'documents.signers.add')|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="heading" icon="user-plus" class="max-w-2xl">{{ body }}</twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_document', {id: document.id})">{{ 'documents.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="signer-form" variant="primary">{{ (signer ? 'documents.save' : 'documents.signers.add')|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

@@ -88,6 +88,8 @@ const WORLDS = [
     'cash-flow' => ['Example Cash Flow', 'cash-flow@example.com', 'Cash Flow Example'],
     // A sole trader for the Taxes and contributions page, and the team member taxes-member@example.com.
     'taxes' => ['Example Taxes', 'taxes@example.com', 'Taxes Example'],
+    // The NDA type the migration seeds and one template of it, for the documents spec.
+    'documents' => ['Example Documents', 'documents@example.com', 'Documents Example'],
 ];
 
 if (\in_array('--worlds', $argv, true)) {
