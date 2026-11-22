@@ -17,7 +17,8 @@ use Foresi\Vat\Application\VatSettingsWrites;
 
 /**
  * Where the firm pays its VAT: the limits of the account and the variable
- * symbol, the suggested symbol, and who may read and set them.
+ * symbol, a firm without country rules, and who may read and set them. The
+ * symbol the Czech rules suggest is in Integration/Country.
  */
 final class VatSettingsTest extends VatTestCase
 {
@@ -31,22 +32,6 @@ final class VatSettingsTest extends VatTestCase
         self::assertSame([$account, $symbol], [$set->officeAccount, $set->variableSymbol]);
         $this->assertRefused('office_account_invalid', fn (): \Foresi\Vat\Application\VatSettingsView => $this->writes()->set(new SetVatSettingsInput(str_repeat('č', 65))));
         $this->assertRefused('variable_symbol_invalid', fn (): \Foresi\Vat\Application\VatSettingsView => $this->writes()->set(new SetVatSettingsInput('705-1/0710', str_repeat('ř', 36))));
-    }
-
-    public function testAnEmptySymbolTakesTheVatIdDigitsAndASetOneIsTrimmed(): void
-    {
-        self::assertSame('12345678', $this->writes()->set(new SetVatSettingsInput('705-1/0710'))->variableSymbol);
-        self::assertSame('99', $this->writes()->set(new SetVatSettingsInput('705-1/0710', ' 99 '))->variableSymbol);
-        self::assertSame(['705-1/0710', '99'], [$this->reads()->current()->officeAccount, $this->reads()->current()->variableSymbol]);
-    }
-
-    public function testAFirmWithoutAVatIdGetsAnEmptySuggestedSymbol(): void
-    {
-        $this->firm->update($this->firm->name(), $this->firm->registrationNumber(), null, $this->firm->address(), $this->firm->vatStatus(), '');
-        $this->em->flush();
-
-        self::assertSame('', $this->reads()->current()->suggestion?->variableSymbol);
-        self::assertSame('', $this->writes()->set(new SetVatSettingsInput('705-1/0710'))->variableSymbol);
     }
 
     public function testWithoutCountryRulesThereIsNoSuggestion(): void
