@@ -10,7 +10,18 @@
     },
     "require": {
         "foresi/shared": "self.version",
-        "tempest/highlight": "^2.30"
+        "symfony/dependency-injection": "^7.4 || ^8.0",
+        "symfony/event-dispatcher": "^7.4",
+        "symfony/framework-bundle": "7.4.*",
+        "symfony/http-foundation": "^7.4 || ^8.0",
+        "symfony/http-kernel": "^7.4 || ^8.0",
+        "symfony/routing": "^7.4",
+        "symfony/service-contracts": "^3.8",
+        "symfony/translation": "7.4.*",
+        "symfony/translation-contracts": "^3.8",
+        "symfony/ux-twig-component": "^3.6",
+        "tempest/highlight": "^2.30",
+        "twig/twig": "^3.30"
     },
     "autoload": {
         "psr-4": {

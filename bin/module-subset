@@ -18,7 +18,8 @@ declare(strict_types=1);
  *       Rewrites composer.json for the module in src/DIR. The root requirements stay,
  *       except the foresi/* packages other than foresi/core, the core every application
  *       has, and the third-party libraries some module declares: those come in only with
- *       a module that requires them. The application autoloads only its kernel; each
+ *       a module that requires them. The Symfony and Doctrine packages of the root stay,
+ *       because the application's config/ configures them whichever modules are installed. The application autoloads only its kernel; each
  *       module autoloads itself, so a class of a module that is not installed cannot be
  *       loaded. Then "composer update 'foresi/*'" resolves the set again from composer.lock:
  *       it removes every module the one module does not require, with the libraries only
@@ -113,11 +114,12 @@ function writeComposer(string $root, string $dir): int
         return fail("src/{$dir} is not a module. Modules: ".implode(', ', array_keys($modules))."\n");
     }
 
-    // The libraries a module declares come with that module, not with the skeleton.
+    // The libraries a module declares come with that module, not with the skeleton;
+    // the framework the skeleton's config/ configures stays.
     $declared = [];
     foreach ($modules as $composer) {
         foreach (array_keys($composer['require'] ?? []) as $package) {
-            if (isLibrary($package)) {
+            if (isLibrary($package) && !str_starts_with($package, 'symfony/') && !str_starts_with($package, 'doctrine/')) {
                 $declared[$package] = true;
             }
         }

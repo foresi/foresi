@@ -9,8 +9,14 @@
         "source": "https://github.com/foresi/foresi"
     },
     "require": {
+        "doctrine/dbal": "^4.5",
+        "doctrine/migrations": "^3.9",
+        "doctrine/orm": "^3.7.5",
         "foresi/instance": "self.version",
-        "foresi/shared": "self.version"
+        "foresi/shared": "self.version",
+        "psr/clock": "^1.0",
+        "symfony/console": "7.4.*",
+        "symfony/dependency-injection": "^7.4 || ^8.0"
     },
     "autoload": {
         "psr-4": {
