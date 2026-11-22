@@ -233,7 +233,7 @@ final class DeliverInvoiceSendTest extends SendingTestCase
     public function testTheTriesOfASendAreTheMailTransportsTries(): void
     {
         /** @var array{framework: array{messenger: array{transports: array{mail: array{retry_strategy: array{max_retries: int}}}}}} $config */
-        $config = Yaml::parseFile(\dirname(__DIR__, 3).'/config/packages/messenger.yaml');
+        $config = Yaml::parseFile(\dirname(__DIR__, 3).'/src/Shared/config/packages/messenger.yaml');
 
         self::assertSame(MarkSendFailed::ATTEMPTS, 1 + $config['framework']['messenger']['transports']['mail']['retry_strategy']['max_retries']);
     }

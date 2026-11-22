@@ -134,7 +134,7 @@ final class ProjectModulesTest extends TestCase
      */
     private function aliases(): array
     {
-        $config = Yaml::parseFile($this->projectDir().'/config/services.yaml', Yaml::PARSE_CUSTOM_TAGS);
+        $config = Yaml::parseFile($this->projectDir().'/src/Shared/config/packages/parameters.yaml', Yaml::PARSE_CUSTOM_TAGS);
         self::assertIsArray($config);
         $aliases = [];
         foreach ((array) ($config['services'] ?? []) as $id => $definition) {

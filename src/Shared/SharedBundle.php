@@ -29,6 +29,11 @@ final class SharedBundle extends ModuleBundle
 
     protected function prepend(ContainerConfigurator $container, ContainerBuilder $builder): void
     {
+        // The configuration of the framework every Foresi application runs on. It is
+        // prepended, so an application's own config/packages/ overrides any of it.
+        if ($builder->hasExtension('framework')) {
+            $container->import($this->getPath().'/config/packages/*.yaml');
+        }
         // A JSON list column, such as a contact's roles, is matched as text (DqlConditions).
         $builder->prependExtensionConfig('doctrine', ['orm' => ['dql' => ['string_functions' => ['CAST_TEXT' => CastTextFunction::class]]]]);
         if ('test' === $container->env()) {

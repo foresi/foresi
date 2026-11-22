@@ -13,7 +13,7 @@
  */
 return [
     'app' => [
-        'path' => './assets/app.js',
+        'path' => '@foresi/ui/theme/app.js',
         'entrypoint' => true,
     ],
     '@hotwired/stimulus' => [

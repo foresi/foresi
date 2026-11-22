@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../vendor/symfony/dependency-injection/Loader/schema/services.schema.json
+# yaml-language-server: $schema=../../../../vendor/symfony/dependency-injection/Loader/schema/services.schema.json
 
 # The parameters of the installation itself. Every module loads its own services,
 # parameters and test wiring from src/<Module>/config/services.php, through its
