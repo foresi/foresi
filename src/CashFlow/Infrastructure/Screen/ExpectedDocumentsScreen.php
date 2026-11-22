@@ -147,9 +147,10 @@ final readonly class ExpectedDocumentsScreen
         // Money out with a minus, as the period table subtracts it.
         $amount = $this->money->shown(FlowDirection::In === $flow->direction ? $flow->amount : Money::ofMinor(-$flow->amount->minor(), $flow->amount->currency()));
         $badges = [];
-        foreach ([[FlowFlag::Overdue, 'red'], [FlowFlag::ExpectedDate, 'green'], [FlowFlag::NoDueDate, 'amber'], [FlowFlag::Estimated, 'amber']] as [$flag, $tone]) {
+        // Awaited is past but not late: neutral, never red.
+        foreach ([[FlowFlag::Overdue, 'red'], [FlowFlag::Awaited, 'gray'], [FlowFlag::ExpectedDate, 'green'], [FlowFlag::NoDueDate, 'amber'], [FlowFlag::Estimated, 'amber']] as [$flag, $tone]) {
             if ($flow->hasFlag($flag)) {
-                $badges[] = ['label' => $this->trans('cash_flow.flag.'.$flag->value), 'tone' => $tone];
+                $badges[] = ['label' => $this->trans(ForecastScreen::flagKey($flag, $flow->direction)), 'tone' => $tone];
             }
         }
         $actions = [];

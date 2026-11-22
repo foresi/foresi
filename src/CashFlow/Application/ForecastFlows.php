@@ -23,7 +23,8 @@ use Psr\Log\LoggerInterface;
  * How the forecast asks its sources, shared by Forecasts and ForecastReads so
  * both count the same flows: every source but those left out, from today to
  * the last day; a document on the day it is expected on when someone set one;
- * a flow still open before today on the first day, flagged overdue; every
+ * a flow still open before today on the first day, flagged overdue unless its
+ * source flagged it awaited; every
  * amount in CZK at today's rate; and no planned occurrence that a document or
  * a bank movement already fulfils (PlannedFulfilment).
  *
@@ -45,7 +46,7 @@ final readonly class ForecastFlows
     }
 
     /**
-     * @param \DateTimeImmutable       $start             the first day counted; a flow overdue before today is counted on it
+     * @param \DateTimeImmutable       $start             the first day counted; a flow dated before today is counted on it
      * @param \DateTimeImmutable       $end               the last day, inclusive
      * @param list<string>             $excludeSources    the keys of the sources never to call
      * @param list<FlowCategory>       $excludeCategories
@@ -93,7 +94,7 @@ final readonly class ForecastFlows
                 }
             }
         }
-        // By the day they are counted on, overdue ones first, money in before money out.
+        // By the day they are counted on, overdue and awaited ones first, money in before money out.
         usort($lines, static fn (ForecastLine $a, ForecastLine $b): int => self::order($a) <=> self::order($b));
         $lines = $this->unfulfilled($lines, $unavailable);
 
@@ -114,13 +115,14 @@ final readonly class ForecastFlows
         if ($day > $end->format('Y-m-d')) {
             return null;
         }
-        $overdue = $day < $today->format('Y-m-d');
-        if ($overdue) {
+        $past = $day < $today->format('Y-m-d');
+        // A flow its source still awaits is past but not late: counted first, never overdue.
+        if ($past && !$flow->hasFlag(FlowFlag::Awaited)) {
             $flow = $flow->movedTo($flow->expectedOn, FlowFlag::Overdue);
         }
         $amount = $czk->of($flow->amount);
 
-        return $amount instanceof Money ? new ForecastLine($flow, $amount, $overdue ? $start : new \DateTimeImmutable($day, $today->getTimezone()), $sourceOn) : null;
+        return $amount instanceof Money ? new ForecastLine($flow, $amount, $past ? $start : new \DateTimeImmutable($day, $today->getTimezone()), $sourceOn) : null;
     }
 
     /**
@@ -183,6 +185,6 @@ final readonly class ForecastFlows
      */
     private static function order(ForecastLine $line): array
     {
-        return [$line->countedOn->format('Y-m-d'), !$line->flow->hasFlag(FlowFlag::Overdue), $line->flow->direction->value, $line->flow->label];
+        return [$line->countedOn->format('Y-m-d'), !$line->flow->hasFlag(FlowFlag::Overdue) && !$line->flow->hasFlag(FlowFlag::Awaited), $line->flow->direction->value, $line->flow->label];
     }
 }

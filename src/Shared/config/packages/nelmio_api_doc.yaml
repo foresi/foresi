@@ -602,7 +602,7 @@ nelmio_api_doc:
                         label: { type: string }
                         category: { type: string, enum: [revenue, purchases, rent, software, payroll, taxes, insurance, vat, loans, owner_draws, other] }
                         certainty: { type: string, enum: [document, schedule, plan, estimate] }
-                        flags: { type: array, items: { type: string, enum: [overdue, estimated, no_due_date, expected_date] } }
+                        flags: { type: array, items: { type: string, enum: [overdue, awaited, estimated, no_due_date, expected_date] } }
                         expected_on: { type: string, format: date }
                         counted_on: { type: string, format: date }
                         amount: { $ref: '#/components/schemas/Money' }
