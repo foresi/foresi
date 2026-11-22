@@ -59,18 +59,14 @@ final class CzechVatRules implements VatCountryRules
 
     public function periodOf(\DateTimeImmutable $day, VatPeriodLength $length): VatPeriod
     {
-        $year = (int) $day->format('Y');
-        $month = (int) $day->format('n');
-        $zone = $day->getTimezone();
+        $month = $day->setTime(0, 0)->modify('first day of this month');
         if (VatPeriodLength::Month === $length) {
-            $start = new \DateTimeImmutable(\sprintf('%04d-%02d-01', $year, $month), $zone);
-
-            return new VatPeriod($start->format('Y-m'), $start, $start->modify('last day of this month'), $length);
+            return new VatPeriod($month->format('Y-m'), $month, $month->modify('last day of this month'), $length);
         }
-        $quarter = intdiv($month - 1, 3) + 1;
-        $start = new \DateTimeImmutable(\sprintf('%04d-%02d-01', $year, 3 * $quarter - 2), $zone);
+        $quarter = intdiv((int) $month->format('n') - 1, 3) + 1;
+        $start = $month->setDate((int) $month->format('Y'), 3 * $quarter - 2, 1);
 
-        return new VatPeriod(\sprintf('%04d-Q%d', $year, $quarter), $start, $start->modify('+2 months')->modify('last day of this month'), $length);
+        return new VatPeriod($start->format('Y').'-Q'.$quarter, $start, $start->modify('+2 months')->modify('last day of this month'), $length);
     }
 
     public function dueOn(VatPeriod $period): \DateTimeImmutable
@@ -104,8 +100,9 @@ final class CzechVatRules implements VatCountryRules
                 $payer = true;
             }
             $from = $stretch->validFrom ?? $registeredSince;
+            // Not before 1 January of the second year after the registration.
             if (VatPeriodLength::Quarter === $stretch->periodLength && $registeredSince instanceof \DateTimeImmutable && $from instanceof \DateTimeImmutable
-                && (int) $from->format('Y') <= (int) $registeredSince->format('Y') + 1) {
+                && $from->format('Y-m-d') < $registeredSince->setDate((int) $registeredSince->format('Y') + 2, 1, 1)->format('Y-m-d')) {
                 return [self::QUARTER_NOT_ALLOWED];
             }
         }

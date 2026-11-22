@@ -141,6 +141,9 @@ final class VatPeriodsTest extends VatTestCase
         self::assertSame(['2027-01', '2027-02', '2027-03'], $this->keys($this->periods()->list('2027-Q1', '2027-Q1')));
         self::assertSame(['2026-11', '2026-12'], $this->keys($this->periods()->list('2026-01', '2026-12')));
         self::assertSame([], $this->periods()->list('2025-01', '2026-10')->periods);
+        self::assertSame(['2027-04', '2027-05', '2027-06'], $this->keys($this->periods()->list(' 2027-q2 ', '2027-Q2')));
+        self::assertSame(['2027-07', '2027-08', '2027-09'], $this->keys($this->periods()->list('2027-Q3', '2027-q3')));
+        self::assertSame(['2027-01', '2027-03'], [$this->periods()->list(' 2027-01 ', '2027-03')->from, $this->periods()->list('2027-01', '2027-03')->to]);
     }
 
     public function testToBeyond24MonthsIsRefused(): void
@@ -157,6 +160,9 @@ final class VatPeriodsTest extends VatTestCase
         $this->assertRefused('to_invalid', 'to', fn (): PeriodList => $this->periods()->list(null, 'next year'));
         $this->assertRefused('to_invalid', 'to', fn (): PeriodList => $this->periods()->list(null, '2027-Q5'));
         $this->assertRefused('range_invalid', 'from', fn (): PeriodList => $this->periods()->list('2027-02', '2027-01'));
+        $this->assertRefused('from_invalid', 'from', fn (): PeriodList => $this->periods()->list('x2027-01', null));
+        $this->assertRefused('to_invalid', 'to', fn (): PeriodList => $this->periods()->list(null, 'x2027-Q1'));
+        self::assertSame('2027-01', $this->periods()->list('2027-01', '2027-01')->from);
     }
 
     public function testWithoutCountryRulesTheAnswerSaysWhy(): void

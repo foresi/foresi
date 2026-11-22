@@ -30,7 +30,7 @@ final readonly class VatRules
     public function of(LegalEntity $firm): ?VatCountryRules
     {
         foreach ($this->rules as $rules) {
-            if (strtoupper($firm->address()->countryCode) === $rules->country()) {
+            if ($firm->address()->countryCode === $rules->country()) {
                 return $rules;
             }
         }
