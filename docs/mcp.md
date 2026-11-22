@@ -90,8 +90,8 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_get_tax_profile` | The owner profile the taxes and contributions are estimated from: the dated statuses, the inputs of each year and the authority accounts. Owner only. |
 | `foresi_tax_amounts` | The actual income and costs of a year to date (`year`, this one by default), in CZK, by month, kind and source, with net, VAT and what the records count. Owner only. |
 | `foresi_tax_estimate` | The estimate of a year (`year`, this one by default): to date and year end apart, the expense methods with their steps, and the payments of the year by due day with their state, expected, paid by a bank movement or overdue. Owner only. |
-| `foresi_add_tax_status` | **Write.** Adds a status of the owner from a day on (`kind`, `value`, `valid_from`), until the next of its kind. Owner only. |
-| `foresi_remove_tax_status` | **Write, destructive.** Removes a status (`status_id`); the one before it holds again. Owner only. |
+| `foresi_add_tax_status` | **Write.** Adds a status of the owner from a day on (`kind`, `value`, `valid_from`), until the next of its kind. `vat_payer` is refused with `vat_payer_on_firm`: it follows the firm's VAT statuses (`foresi_add_firm_vat_status`). Owner only. |
+| `foresi_remove_tax_status` | **Write, destructive.** Removes a status (`status_id`); the one before it holds again. A `vat_payer` status is the firm's and is refused with `vat_payer_on_firm`. Owner only. |
 | `foresi_set_tax_year` | **Write.** Replaces the inputs of one `year`: expense methods, children, spouse, deductions, other bases, the previous year (bases, overview day and `previous_activity_months`, 1 to 12) and the return route. Owner only. |
 | `foresi_set_tax_authority_account` | **Write.** Sets the account and variable symbol of an `authority`. Owner only. |
 | `foresi_list_calendar_feeds` | Your own calendar feeds: name, created, last fetched and revoked, never their addresses. Not for guests. |

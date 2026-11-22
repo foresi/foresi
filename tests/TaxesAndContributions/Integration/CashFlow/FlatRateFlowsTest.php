@@ -33,6 +33,7 @@ use Foresi\TaxesAndContributions\Contract\DuePayment;
 use Foresi\TaxesAndContributions\Integration\CashFlow\BankLevyPayments;
 use Foresi\TaxesAndContributions\Integration\CashFlow\EstimateFlows;
 use Foresi\Tests\CashFlow\Support\FakeActualSource;
+use Foresi\Tests\TaxesAndContributions\Support\FirmVat;
 use Foresi\Tests\TaxesAndContributions\Support\TaxesTestCase;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -103,7 +104,7 @@ final class FlatRateFlowsTest extends TaxesTestCase
 
     public function testTheProfileEventsOfTheFlatRateCarryNoAmount(): void
     {
-        $this->writes()->addStatus(new AddStatusInput('vat_payer', 'yes', '2026-11-12'));
+        FirmVat::from($this->em, 'yes', '2026-11-12');
 
         $events = $this->eventData('taxes-and-contributions.profile.changed');
         $all = implode("\n", $events);

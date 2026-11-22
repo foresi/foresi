@@ -14,18 +14,22 @@ There is one profile per instance, the profile of the natural person who is the 
 
 ### Statuses
 
-A status holds from its day (`valid_from`) until the next status of the same kind, so a change in the middle of the year is one more status. For example, `vat_payer` is `no` from 2026-01-01 and `yes` from 2026-11-12. Two statuses of one kind never start on the same day.
+A status holds from its day (`valid_from`) until the next status of the same kind, so a change in the middle of the year is one more status. For example, `activity` is `secondary` from 2026-01-01 and `main` from 2026-07-01. Two statuses of one kind never start on the same day.
 
 | Kind | Values |
 | --- | --- |
 | `legal_form` | `sole_trader` |
 | `activity` | `none`, `secondary`, `main` |
-| `vat_payer` | `yes`, `no` |
+| `vat_payer` | `yes`, `no`, read from the firm (see below) |
 | `flat_rate_band` | `none`, `1`, `2`, `3` |
 | `sickness_insurance` | `off`, `on` with `base`, the monthly base in CZK |
 | `health_minimum_exempt` | `yes`, `no` |
 
 Removing a status lets the one before it hold again.
+
+Whether the owner is a VAT payer is not stored in the profile. It comes from the VAT statuses of the firm (*Settings → Firm → VAT*, or [`POST /api/v1/firm/vat-statuses`](api.md#firm-vat-statuses)), so the two never disagree. A stretch that is `registered` is `vat_payer` `yes` from its day, and any other status is `no`. The stretch that held from the start, whose first day is not known, starts on 1970-01-01. These statuses have the id `firm-vat:` followed by the id of the stretch. Adding or removing a `vat_payer` status here is refused with the reason `vat_payer_on_firm`, and on the profile page they are read-only, with a link to the firm.
+
+When upgrading, a migration moves the `vat_payer` statuses the profile held to the firm: `yes` becomes a monthly payer and `no` not registered, each from its day. It replaces the firm's VAT statuses, sets the firm's status of today, and deletes the profile's `vat_payer` statuses. Without such statuses it changes nothing. It cannot be reverted.
 
 ### The inputs of a year
 

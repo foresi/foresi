@@ -50,7 +50,7 @@ abstract class TaxesTestCase extends KernelTestCase
         $this->clock = new MockClock('2026-11-20 10:00:00', 'UTC');
         Clock::set($this->clock);
 
-        $this->em->persist(new LegalEntity('Example Sole Trader', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, ''));
+        $this->em->persist(new LegalEntity('Example Sole Trader', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, ''));
         $this->owner = $this->person('owner@example.com', Role::Owner);
         $this->member = $this->person('member@example.com', Role::Member);
         $this->em->flush();

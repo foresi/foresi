@@ -59,7 +59,10 @@ final readonly class ProfileWrites
     public function addStatus(AddStatusInput $input): StatusPeriodView
     {
         $this->access->denyUnlessOwner();
-        $kind = StatusKind::tryFrom(trim($input->kind)) ?? throw TaxesRefused::invalid('kind_invalid', 'kind', 'A kind is legal_form, activity, vat_payer, flat_rate_band, sickness_insurance or health_minimum_exempt.');
+        $kind = StatusKind::tryFrom(trim($input->kind)) ?? throw TaxesRefused::invalid('kind_invalid', 'kind', 'A kind is legal_form, activity, flat_rate_band, sickness_insurance or health_minimum_exempt.');
+        if (!\in_array($kind, StatusKind::writable(), true)) {
+            throw $this->vatPayerOnFirm('kind');
+        }
         $value = trim($input->value);
         if (!\in_array($value, $kind->values(), true)) {
             throw TaxesRefused::invalid('value_invalid', 'value', \sprintf('A status of the kind %s is %s.', $kind->value, implode(', ', $kind->values())));
@@ -94,6 +97,10 @@ final readonly class ProfileWrites
     public function removeStatus(RemoveStatusInput $input): string
     {
         $this->access->denyUnlessOwner();
+
+        if (str_starts_with(trim($input->statusId), ProfileReads::FIRM_VAT)) {
+            throw $this->vatPayerOnFirm('statusId');
+        }
 
         return $this->transaction->run(function () use ($input): string {
             $status = $this->store->status(trim($input->statusId)) ?? throw TaxesRefused::notFound('The owner profile has no status with this id. Find it in statuses of foresi_get_tax_profile.');
@@ -145,6 +152,14 @@ final readonly class ProfileWrites
 
             return $set->view();
         });
+    }
+
+    /**
+     * The VAT payer days are the firm's VAT statuses, changed in Party.
+     */
+    private function vatPayerOnFirm(string $field): TaxesRefused
+    {
+        return TaxesRefused::invalid('vat_payer_on_firm', $field, 'Whether the owner is a VAT payer comes from the VAT statuses of the firm: change them with POST /api/v1/firm/vat-statuses or DELETE /api/v1/firm/vat-statuses/{id} (foresi_add_firm_vat_status, foresi_remove_firm_vat_status).');
     }
 
     /**

@@ -88,12 +88,15 @@ taxes:
     title: Profile
     description: What the taxes and contributions are estimated from. Each status holds from its day until the next change of its kind. The profile holds personal data, so only the owner sees it.
     statuses: Statuses
-    statuses_note: Each status holds from its day until the next change of its kind. They change rarely, such as when you register for VAT.
+    statuses_note: Each status holds from its day until the next change of its kind. They change rarely, such as when your activity becomes your main one.
     years: Years
     authorities: Authority accounts
     authorities_note: Where you pay the advances. Payments are matched to the estimate by the account and the variable symbol.
-    empty_text: Add since when you are a sole trader, your activity and since when you are a VAT payer.
+    empty_text: Add since when you are a sole trader and what your activity is.
     until_next: until the next change
+    from_the_start: From the start
+    firm_vat_note: Whether you are a VAT payer follows the VAT statuses of the firm, and changes there.
+    firm_vat_link: Firm VAT statuses
     column:
       value: Status
       from: From
@@ -195,6 +198,7 @@ taxes:
       flash: 'The account for {authority} is saved.'
     error:
       kind_invalid: Choose a change from the list.
+      vat_payer_on_firm: VAT payer follows the VAT statuses of the firm. Change it under Firm, VAT.
       value_invalid: Choose a change from the list.
       date_invalid: Enter a valid date.
       base_required: Enter the monthly base.

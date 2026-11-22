@@ -364,7 +364,7 @@ The writes need the `contacts:write` scope, and only the **owner** of the organi
 | Method and path | Answer |
 | --- | --- |
 | `POST /api/v1/firm/vat-statuses` | `201` with the status: `id`, `status`, `period_length` and `valid_from`, which is required. |
-| `DELETE /api/v1/firm/vat-statuses/{vatStatusId}` | `{"id": ..., "removed": true}`. The status before it holds again. |
+| `DELETE /api/v1/firm/vat-statuses/{vatStatusId}` | `{"id": ..., "removed": true}`. The status before it holds again. A `vat_payer` status (its id starts with `firm-vat:`) is `400 invalid_parameter` with the reason `vat_payer_on_firm`. |
 
 ```bash
 curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
@@ -550,14 +550,14 @@ The owner profile the taxes and contributions are estimated from: the dated stat
 | `GET /api/v1/taxes-and-contributions/profile` | `{statuses, years, authorities}`. |
 | `GET /api/v1/taxes-and-contributions/amounts?year=2026` | The actual income and costs of the year to date in CZK: `totals` and `months` (by month, `kind` and `source`) with `gross`, `net`, `vat` and `counted`, the payments themselves in `amounts`, and `unavailable_sources`, `restricted_sources`, `missing_rates`, `unverified` and `known_gaps`. Without `year`, this year. A year after this one or before 2000 is `400 invalid_parameter` with the reason `invalid_year`. |
 | `GET /api/v1/taxes-and-contributions/estimate?year=2026` | The estimate of the year: `to_date` and `year_end` apart, each method with its totals and steps, the `forecast` part, `accruals`, and the `payments` of the year by due day, each with its `authority`, `kind` (`advance`, `settlement`, `overpayment`), `period`, `due_on`, `amount`, `state` (`expected`, `paid`, `overdue`), `match_rule` and the bank movement in `paid_by`. `possible_duplicates` names the planned items for taxes and insurance it may count twice. Without `year`, this year; from 2000 to next year. See [Payments](taxes-and-contributions.md#payments). |
-| `POST /api/v1/taxes-and-contributions/profile/statuses` | `201` with the status: `kind`, `value`, `valid_from` and, for sickness insurance that is on, `base`. A second status of one kind on one day is `409 status_day_taken`. |
-| `DELETE /api/v1/taxes-and-contributions/profile/statuses/{statusId}` | `{"id": ..., "removed": true}`. The status before it holds again. |
+| `POST /api/v1/taxes-and-contributions/profile/statuses` | `201` with the status: `kind`, `value`, `valid_from` and, for sickness insurance that is on, `base`. A second status of one kind on one day is `409 status_day_taken`. The kind `vat_payer` is `400 invalid_parameter` with the reason `vat_payer_on_firm`: it follows the [VAT statuses of the firm](#firm-vat-statuses). |
+| `DELETE /api/v1/taxes-and-contributions/profile/statuses/{statusId}` | `{"id": ..., "removed": true}`. The status before it holds again. A `vat_payer` status (its id starts with `firm-vat:`) is `400 invalid_parameter` with the reason `vat_payer_on_firm`. |
 | `PUT /api/v1/taxes-and-contributions/profile/years/{year}` | The inputs of the year as they are now. The whole year is replaced: a field left out is cleared. `previous_activity_months` (1 to 12, or `null`) is the months of the previous year with an activity, which divide its bases for the advances; `null` counts the activity statuses of that year, or twelve, flagged `previous_activity_months`. Out of range is `400 invalid_parameter` with the reason `activity_months_invalid`. It reads back as `previous_year.activity_months`. |
 | `PUT /api/v1/taxes-and-contributions/profile/authorities/{authority}` | The account of `social`, `health`, `sickness` or `income_tax`: `account` and `variable_symbol`. |
 
 ```bash
 curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
-  -d '{"kind": "vat_payer", "value": "yes", "valid_from": "2026-11-12"}' \
+  -d '{"kind": "activity", "value": "main", "valid_from": "2026-07-01"}' \
   "https://app.example.com/api/v1/taxes-and-contributions/profile/statuses"
 ```
 
