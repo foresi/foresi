@@ -138,7 +138,11 @@ jobs:
 
       # Only the installed modules' baselines run, so the database holds their tables and
       # no table of a module that is not installed.
+      # In the dev environment, like the full suite's migration check in ci.yml: the test
+      # environment also maps entities that exist only for tests and has no migrations.
       - name: Migrations
+        env:
+          APP_ENV: dev
         run: |
           bin/console doctrine:migrations:migrate --no-interaction
           bin/console doctrine:schema:validate
