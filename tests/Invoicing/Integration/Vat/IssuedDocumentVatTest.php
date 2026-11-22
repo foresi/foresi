@@ -52,13 +52,15 @@ final class IssuedDocumentVatTest extends AdvanceTestCase
 
     public function testAnAdvanceInvoiceAddsNothingAndItsPaymentTaxDocumentCountsAtItsTaxPoint(): void
     {
-        $advance = $this->advance([$this->gross('1210.00')]);
+        $advance = $this->advance([$this->gross('1210.00')], ['issueDate' => new \DateTimeImmutable('2026-11-02')]);
         $this->pay($advance, '1210.00', '2026-11-18');
         $document = $this->onlyTaxDocumentOf($advance);
+        $other = $this->advance([$this->gross('605.00')], ['issueDate' => new \DateTimeImmutable('2026-11-03')]);
 
         $documents = $this->between('2026-11-01', '2026-11-30');
 
-        self::assertSame([$document->id()], array_map(static fn (DocumentVat $vat): string => $vat->subject->id, $documents));
+        self::assertSame([$document->id()], array_map(static fn (DocumentVat $vat): string => $vat->subject->id, $documents), 'Neither advance counts, unpaid or paid, and the tax document after them does.');
+        self::assertNotSame($other->id(), $documents[0]->subject->id);
         self::assertSame(['2026-11-18', 21_000], [$documents[0]->taxPointOn->format('Y-m-d'), $documents[0]->output->minor()]);
     }
 
@@ -69,6 +71,14 @@ final class IssuedDocumentVatTest extends AdvanceTestCase
 
         self::assertSame([-21_000], $this->outputs('2026-11-01', '2026-11-30'), 'The credit note of 20 November counts in November.');
         self::assertSame([21_000], $this->outputs('2026-10-01', '2026-10-31'));
+    }
+
+    public function testAnInvoiceSentToTheAccountantStillCounts(): void
+    {
+        $invoice = $this->issue->issue($this->input([$this->line('1000.00')]));
+        $this->em->getConnection()->executeStatement('UPDATE invoice SET exported_at = ? WHERE id = ?', ['2026-11-25 10:00:00', $invoice->id()]);
+
+        self::assertSame([21_000], $this->outputs('2026-11-01', '2026-11-30'));
     }
 
     public function testTheTrashAddsNothing(): void

@@ -11,10 +11,12 @@ namespace Foresi\Tests\Vat\Application;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Contract\FirmVatStatuses;
 use Foresi\Party\Contract\VatPeriodLength;
+use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Vat\Support\VatTestCase;
+use Foresi\Vat\Application\PeriodList;
 use Foresi\Vat\Application\VatAccess;
 use Foresi\Vat\Application\VatPeriods;
 use Foresi\Vat\Application\VatRefused;
@@ -33,11 +35,18 @@ use Psr\Log\AbstractLogger;
  */
 final class VatPeriodDocumentsTest extends VatTestCase
 {
-    /** @var list<array{string, string, string}> */
-    private array $reads = [];
+    /** @var \ArrayObject<int, array{string, string, string}> */
+    private \ArrayObject $reads;
 
-    /** @var list<string> */
-    private array $logged = [];
+    /** @var \ArrayObject<int, array{string, mixed}> */
+    private \ArrayObject $logged;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->reads = new \ArrayObject();
+        $this->logged = new \ArrayObject();
+    }
 
     public function testMartinsNovemberIsPayableOnTheTwentyEighthOfDecember(): void
     {
@@ -51,6 +60,7 @@ final class VatPeriodDocumentsTest extends VatTestCase
         [$november, $december] = $list->periods;
         self::assertSame(['2026-11', '2026-12-28', 210_000, 21_000, 189_000], [$november->period->key, $november->dueOn->format('Y-m-d'), $november->output->minor(), $november->input->minor(), $november->result->minor()]);
         self::assertCount(2, $november->amounts->documents, 'The document from before the payer day is not counted.');
+        self::assertSame('2026-11-12', $november->amounts->period->start->format('Y-m-d'), 'The amounts are those of the clipped period.');
         self::assertSame(0, $december->result->minor());
         self::assertSame([], $list->unavailableSources);
         self::assertSame(['schedules_not_counted', 'plans_not_counted', 'deduction_before_registration'], $list->knownGaps);
@@ -62,7 +72,7 @@ final class VatPeriodDocumentsTest extends VatTestCase
 
         $this->with([$this->source('invoicing.issued_vat', [])])->list(null, '2026-11');
 
-        self::assertSame([['invoicing.issued_vat', '2026-10-01', '2026-12-31']], $this->reads, 'From the first day of the clipped first quarter to the last day of the quarter that holds November.');
+        self::assertSame([['invoicing.issued_vat', '2026-10-01', '2026-12-31']], $this->reads->getArrayCopy(), 'From the first day of the clipped first quarter to the last day of the quarter that holds November.');
     }
 
     public function testNothingIsReadWithoutAPeriod(): void
@@ -72,7 +82,7 @@ final class VatPeriodDocumentsTest extends VatTestCase
 
         $list = $this->with([$this->source('invoicing.issued_vat', [])])->list('2027-02', '2027-03');
 
-        self::assertSame([[], [], []], [$list->periods, $this->reads, $list->unavailableSources]);
+        self::assertSame([[], [], []], [$list->periods, $this->reads->getArrayCopy(), $list->unavailableSources]);
     }
 
     public function testModuleRunsWithoutInvoicingAndPurchasing(): void
@@ -107,11 +117,11 @@ final class VatPeriodDocumentsTest extends VatTestCase
             }
         };
 
-        $list = $this->with([$this->source('invoicing.issued_vat', [$this->document('invoicing.issued_vat', '2026-11-20', '2026-11-20', 100, 0)]), $failing])->list('2026-11', '2026-11');
+        $list = $this->with([$failing, $this->source('invoicing.issued_vat', [$this->document('invoicing.issued_vat', '2026-11-20', '2026-11-20', 100, 0)])])->list('2026-11', '2026-11');
 
         self::assertSame(['purchasing.received_vat'], $list->unavailableSources);
         self::assertSame(100, $list->periods[0]->result->minor());
-        self::assertSame(['The VAT of the documents of {source} could not be read.'], $this->logged);
+        self::assertSame([['The VAT of the documents of {source} could not be read.', 'purchasing.received_vat']], $this->logged->getArrayCopy());
     }
 
     public function testWithoutInvoicesReadThePeriodHasTotalsOnly(): void
@@ -127,7 +137,7 @@ final class VatPeriodDocumentsTest extends VatTestCase
         self::assertSame(['2026-11', 189_000], [$detail->period->period->key, $detail->period->result->minor()]);
         self::assertSame([$received], $detail->documents);
         self::assertSame(['invoicing.issued_vat'], $detail->restrictedSources);
-        self::assertSame(['2026-11'], array_map(static fn ($view): string => $view->period->key, $detail->list->periods));
+        self::assertSame(['2026-11'], array_map(static fn (\Foresi\Vat\Application\PeriodView $view): string => $view->period->key, $detail->list->periods));
     }
 
     public function testAQuarterIsReadByItsKey(): void
@@ -138,6 +148,19 @@ final class VatPeriodDocumentsTest extends VatTestCase
 
         self::assertSame(['2026-Q4', '2026-11-12', '2026-12-31'], [$detail->period->period->key, $detail->period->period->start->format('Y-m-d'), $detail->period->period->end->format('Y-m-d')]);
         self::assertSame([], $detail->restrictedSources);
+        self::assertSame(['2026-10', '2026-12'], [$detail->list->from, $detail->list->to], 'The whole quarter is asked for.');
+    }
+
+    public function testAnAnswerWithNothingToComputeKeepsTheRangeAskedFor(): void
+    {
+        $this->stretch(VatStatus::Registered, VatPeriodLength::Month, null);
+        $missing = $this->with([])->list('2026-11', '2027-01');
+        $this->firm->update($this->firm->name(), $this->firm->registrationNumber(), $this->firm->vatId(), new Address('Example Street 1', 'Example City', '811 01', 'SK'), $this->firm->vatStatus(), '');
+        $this->em->flush();
+        $foreign = $this->with([])->list('2026-11', '2027-01');
+
+        self::assertSame([PeriodList::PAYER_DATE_MISSING, '2026-11', '2027-01'], [$missing->reason, $missing->from, $missing->to]);
+        self::assertSame([PeriodList::COUNTRY_NOT_SUPPORTED, '2026-11', '2027-01'], [$foreign->reason, $foreign->from, $foreign->to]);
     }
 
     public function testAPeriodTheFirmDoesNotHaveIsNotFound(): void
@@ -145,10 +168,10 @@ final class VatPeriodDocumentsTest extends VatTestCase
         $this->martin();
         $periods = $this->with([]);
 
-        $this->assertRefused('not_found', null, static fn () => $periods->get('2026-10'));
-        $this->assertRefused('not_found', null, static fn () => $periods->get('2026-Q4'));
-        $this->assertRefused('key_invalid', 'key', static fn () => $periods->get('November'));
-        $this->assertRefused('range_too_long', 'key', static fn () => $periods->get('2028-12'));
+        $this->assertRefused('not_found', null, static fn (): \Foresi\Vat\Application\PeriodDetail => $periods->get('2026-10'));
+        $this->assertRefused('not_found', null, static fn (): \Foresi\Vat\Application\PeriodDetail => $periods->get('2026-Q4'));
+        $this->assertRefused('key_invalid', 'key', static fn (): \Foresi\Vat\Application\PeriodDetail => $periods->get('November'));
+        $this->assertRefused('range_too_long', 'key', static fn (): \Foresi\Vat\Application\PeriodDetail => $periods->get('2028-12'));
         self::assertSame('2028-11', $periods->get('2028-11')->period->period->key, 'Twenty-four months ahead is still read.');
     }
 
@@ -157,7 +180,7 @@ final class VatPeriodDocumentsTest extends VatTestCase
         $this->martin();
         $this->signIn($this->guest);
 
-        $this->assertRefused('forbidden', null, fn () => $this->with([])->get('2026-11'));
+        $this->assertRefused('forbidden', null, fn (): \Foresi\Vat\Application\PeriodDetail => $this->with([])->get('2026-11'));
     }
 
     /**
@@ -166,18 +189,17 @@ final class VatPeriodDocumentsTest extends VatTestCase
     private function with(array $sources): VatPeriods
     {
         $container = self::getContainer();
-        $logged = &$this->logged;
-        $logger = new class($logged) extends AbstractLogger {
+        $logger = new class($this->logged) extends AbstractLogger {
             /**
-             * @param list<string> $logged
+             * @param \ArrayObject<int, array{string, mixed}> $logged
              */
-            public function __construct(private array &$logged)
+            public function __construct(private \ArrayObject $logged)
             {
             }
 
             public function log($level, \Stringable|string $message, array $context = []): void
             {
-                $this->logged[] = (string) $message;
+                $this->logged->append([(string) $message, $context['source'] ?? null]);
             }
         };
 
@@ -189,14 +211,12 @@ final class VatPeriodDocumentsTest extends VatTestCase
      */
     private function source(string $key, array $documents, bool $details = true): VatDocumentSource
     {
-        $reads = &$this->reads;
-
-        return new class($key, $documents, $details, $reads) implements VatDocumentSource {
+        return new class($key, $documents, $details, $this->reads) implements VatDocumentSource {
             /**
              * @param list<DocumentVat>                   $documents
-             * @param list<array{string, string, string}> $reads
+             * @param \ArrayObject<int, array{string, string, string}> $reads
              */
-            public function __construct(private string $key, private array $documents, private bool $details, private array &$reads)
+            public function __construct(private readonly string $key, private readonly array $documents, private readonly bool $details, private readonly \ArrayObject $reads)
             {
             }
 
@@ -212,7 +232,7 @@ final class VatPeriodDocumentsTest extends VatTestCase
 
             public function between(\DateTimeImmutable $from, \DateTimeImmutable $to): iterable
             {
-                $this->reads[] = [$this->key, $from->format('Y-m-d'), $to->format('Y-m-d')];
+                $this->reads->append([$this->key, $from->format('Y-m-d'), $to->format('Y-m-d')]);
 
                 return $this->documents;
             }

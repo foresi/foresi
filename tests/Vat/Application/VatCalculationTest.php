@@ -34,11 +34,11 @@ final class VatCalculationTest extends TestCase
         $issued = $this->issued('2026-11-20', 210_000);
         $received = $this->received('2026-11-01', '2026-11-24', 21_000);
 
-        [$november, $december] = VatCalculation::compute([$this->month('2026-11', '2026-11-12', '2026-11-30'), $this->month('2026-12', '2026-12-01', '2026-12-31')], [$issued, $received], $this->payer());
+        [$november, $december] = VatCalculation::compute([$this->month('2026-11', '2026-11-12', '2026-11-30'), $this->month('2026-12', '2026-12-01', '2026-12-31')], [$received, $issued], $this->payer());
 
         self::assertSame([210_000, 21_000, 189_000], $this->totals($november));
         self::assertSame('CZK', $november->result->currency()->value);
-        self::assertSame([$issued, $received], $november->documents);
+        self::assertSame([$received, $issued], $november->documents);
         self::assertSame([210_000, 21_000], [$november->documentsPart->output->minor(), $november->documentsPart->input->minor()]);
         self::assertSame([0, 0, 0, 0], [$november->schedulesPart->output->minor(), $november->schedulesPart->input->minor(), $november->plansPart->output->minor(), $november->plansPart->input->minor()]);
         self::assertSame([
@@ -64,12 +64,11 @@ final class VatCalculationTest extends TestCase
     {
         $november = [$this->month('2026-11', '2026-11-12', '2026-11-30')];
 
-        [$before] = VatCalculation::compute($november, [$this->received('2026-11-01', '2026-11-05', 21_000), $this->received('2026-11-01', '2026-11-11', 100)], $this->payer());
-        [$on] = VatCalculation::compute($november, [$this->received('2026-11-01', '2026-11-12', 21_000)], $this->payer());
+        $on = $this->received('2026-11-01', '2026-11-12', 21_000);
+        [$period] = VatCalculation::compute($november, [$this->received('2026-11-01', '2026-11-05', 50_000), $this->received('2026-11-01', '2026-11-11', 100), $on], $this->payer());
 
-        self::assertSame([0, 0, 0], $this->totals($before));
-        self::assertSame([], $before->documents);
-        self::assertSame([0, 21_000, -21_000], $this->totals($on), 'The payer day itself counts.');
+        self::assertSame([0, 21_000, -21_000], $this->totals($period), 'The payer day itself counts.');
+        self::assertSame([$on], $period->documents);
     }
 
     public function testAStretchEndsTheDayBeforeTheNextBegins(): void
@@ -82,6 +81,19 @@ final class VatCalculationTest extends TestCase
 
         self::assertSame(100, $last->output->minor());
         self::assertSame(0, $after->output->minor());
+    }
+
+    public function testADocumentCountsOnceWhenAMonthHasTwoPayerParts(): void
+    {
+        $stretches = [
+            ...$this->payer(),
+            new VatStretch('gap', VatRegistration::NotRegistered, null, new \DateTimeImmutable('2027-03-06')),
+            new VatStretch('again', VatRegistration::Registered, VatPeriodLength::Month, new \DateTimeImmutable('2027-03-20')),
+        ];
+
+        [$first, $second] = VatCalculation::compute([$this->month('2027-03', '2027-03-01', '2027-03-05'), $this->month('2027-03', '2027-03-20', '2027-03-31')], [$this->issued('2027-03-25', 100)], $stretches);
+
+        self::assertSame([100, 0], [$first->output->minor(), $second->output->minor()]);
     }
 
     public function testAnUndatedPayerStretchCountsNothing(): void

@@ -76,12 +76,12 @@ final class VatCalculation
         foreach ($documents as $document) {
             $output = $output->plus($document->output);
             $input = $input->plus($document->input);
-            $sources[$document->source] = true;
+            $sources[] = $document->source;
             if ($document->missingCzk) {
                 $missing[] = $document->label;
             }
         }
-        $sources = array_keys($sources);
+        $sources = array_values(array_unique($sources));
         sort($sources);
         $part = new VatPart($output, $input);
 
@@ -129,7 +129,7 @@ final class VatCalculation
     private static function keyOf(\DateTimeImmutable $day, VatPeriodLength $length): string
     {
         return VatPeriodLength::Quarter === $length
-            ? \sprintf('%s-Q%d', $day->format('Y'), intdiv((int) $day->format('n') + 2, 3))
+            ? \sprintf('%s-Q%d', $day->format('Y'), intdiv($day->format('n') + 2, 3))
             : $day->format('Y-m');
     }
 }

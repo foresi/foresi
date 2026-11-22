@@ -29,7 +29,8 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  * self-assessed treatments (domestic reverse charge, a service from the EU
  * or from outside it) the firm owes the VAT and deducts it in the same
  * return, so it is both output and input. Non-deductible VAT and a document
- * without VAT give nothing, and neither does a draft. A credit note's VAT is
+ * without VAT give nothing, as they have no deduction month, and neither
+ * does a draft. A credit note's VAT is
  * below zero, so it lowers what it adds to. VAT without a CZK amount counts
  * zero and says so.
  */
@@ -58,15 +59,14 @@ final readonly class ReceivedDocumentVat implements VatDocumentSource
 
     public function between(\DateTimeImmutable $from, \DateTimeImmutable $to): iterable
     {
-        /** @var list<array{id: string, treatment: PurchaseTaxTreatment, vat: int|null, deduction: \DateTimeImmutable, taxPoint: \DateTimeImmutable|null, evidence: string|null, supplierNumber: string}> $rows */
+        /** @var list<array{id: string, treatment: PurchaseTaxTreatment, vat: int|null, deduction: \DateTimeImmutable, taxPoint: \DateTimeImmutable|null, issue: \DateTimeImmutable, evidence: string|null, supplierNumber: string}> $rows */
         $rows = $this->entityManager->createQuery(
-            'SELECT d.id AS id, d.treatment AS treatment, d.vatCzkMinor AS vat, d.deductionPeriod AS deduction, d.taxPointDate AS taxPoint, d.evidenceNumber AS evidence, d.supplierNumber AS supplierNumber'
+            'SELECT d.id AS id, d.treatment AS treatment, d.vatCzkMinor AS vat, d.deductionPeriod AS deduction, d.taxPointDate AS taxPoint, d.issueDate AS issue, d.evidenceNumber AS evidence, d.supplierNumber AS supplierNumber'
             .' FROM '.ReceivedDocument::class.' d'
-            .' WHERE d.state = :state AND d.deletedAt IS NULL AND d.treatment IN (:treatments) AND d.deductionPeriod >= :from AND d.deductionPeriod <= :to'
+            .' WHERE d.state = :state AND d.deletedAt IS NULL AND d.deductionPeriod >= :from AND d.deductionPeriod <= :to'
             .' ORDER BY d.deductionPeriod ASC, d.evidenceNumber ASC, d.id ASC',
         )
             ->setParameter('state', ReceivedDocumentState::Recorded->value)
-            ->setParameter('treatments', array_map(static fn (PurchaseTaxTreatment $treatment): string => $treatment->value, array_filter(PurchaseTaxTreatment::cases(), static fn (PurchaseTaxTreatment $treatment): bool => $treatment->isDeductible())))
             ->setParameter('from', $from->format('Y-m-d'))
             ->setParameter('to', $to->format('Y-m-d'))
             ->getArrayResult();
@@ -74,8 +74,8 @@ final readonly class ReceivedDocumentVat implements VatDocumentSource
         $zero = Money::ofMinor(0, Currency::CZK);
         foreach ($rows as $row) {
             $vat = Money::ofMinor($row['vat'] ?? 0, Currency::CZK);
-            // A recorded document has a tax point: its issue date when the document names none (ADR 0028).
-            $taxPoint = ($row['taxPoint'] ?? throw new \LogicException('A recorded document has a tax point.'))->format('Y-m-d');
+            // A recorded document without a tax point of its own is taxed on its issue date (ADR 0028).
+            $taxPoint = ($row['taxPoint'] ?? $row['issue'])->format('Y-m-d');
             yield new DocumentVat(
                 self::KEY,
                 new VatSubject('received_document', $row['id'], $this->urls->generate(ReceivedDocumentApiController::SHOW, ['documentId' => $row['id']], UrlGeneratorInterface::ABSOLUTE_PATH)),

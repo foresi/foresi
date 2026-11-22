@@ -58,12 +58,10 @@ final readonly class IssuedDocumentVat implements VatDocumentSource
     public function between(\DateTimeImmutable $from, \DateTimeImmutable $to): iterable
     {
         $zone = $from->getTimezone();
-        foreach ($this->store->forAccountant($from, $to, false) as $id => $kind) {
-            if (DocumentKind::Advance === $kind) {
-                continue;
-            }
+        $taxDocuments = array_filter($this->store->forAccountant($from, $to, false), static fn (DocumentKind $kind): bool => DocumentKind::Advance !== $kind);
+        foreach (array_keys($taxDocuments) as $id) {
             $document = $this->documents->of($id);
-            $taxPoint = new \DateTimeImmutable(($document->taxPointDate ?? throw new \LogicException('A tax document has a tax point.'))->format('Y-m-d'), $zone);
+            $taxPoint = new \DateTimeImmutable(($document->taxPointDate ?? $document->issueDate)->format('Y-m-d'), $zone);
             yield new DocumentVat(
                 self::KEY,
                 new VatSubject('invoice', $id, $this->urls->generate(InvoiceApiController::SHOW, ['invoiceId' => $id], UrlGeneratorInterface::ABSOLUTE_PATH)),

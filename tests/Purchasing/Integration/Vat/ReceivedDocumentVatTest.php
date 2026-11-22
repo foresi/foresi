@@ -53,22 +53,22 @@ final class ReceivedDocumentVatTest extends PurchasingTestCase
 
     public function testOnlyTheDeductionMonthsOfTheDaysAskedCount(): void
     {
-        $this->recording()->create($this->input(supplierNumber: 'OCT', issue: '2026-10-20', taxPoint: '2026-10-20', received: '2026-10-31'));
         $this->recording()->create($this->input(supplierNumber: 'NOV', issue: '2026-11-20', taxPoint: '2026-11-20', received: '2026-11-21'));
+        $this->recording()->create($this->input(supplierNumber: 'OCT', issue: '2026-10-20', taxPoint: '2026-10-20', received: '2026-10-31'));
         $this->recording()->create($this->input(supplierNumber: 'DEC', issue: '2026-11-20', taxPoint: '2026-11-20', received: '2026-12-01'));
 
         self::assertSame(['NOV'], $this->numbers($this->between('2026-11-01', '2026-11-30')));
-        self::assertSame(['OCT', 'NOV'], $this->numbers($this->between('2026-10-01', '2026-11-01')));
+        self::assertSame(['OCT', 'NOV'], $this->numbers($this->between('2026-10-01', '2026-11-01')), 'By the deduction month.');
     }
 
     public function testSelfAssessedVatIsBothOutputAndInputInTheTaxPointMonth(): void
     {
         // An EU service with a base of 5,000 CZK at 21 %, received in December.
-        $this->recording()->create($this->input(treatment: PurchaseTaxTreatment::EuService, issue: '2026-11-20', taxPoint: '2026-11-20', received: '2026-12-02', base: 500_000));
+        $this->recording()->create($this->input(treatment: PurchaseTaxTreatment::EuService, issue: '2026-11-25', taxPoint: '2026-11-20', received: '2026-12-02', base: 500_000));
 
         $documents = $this->between('2026-11-01', '2026-11-30');
 
-        self::assertSame([[105_000, 105_000, '2026-11-01']], array_map(static fn (DocumentVat $vat): array => [$vat->output->minor(), $vat->input->minor(), $vat->countsOn->format('Y-m-d')], $documents));
+        self::assertSame([[105_000, 105_000, '2026-11-01', '2026-11-20']], array_map(static fn (DocumentVat $vat): array => [$vat->output->minor(), $vat->input->minor(), $vat->countsOn->format('Y-m-d'), $vat->taxPointOn->format('Y-m-d')], $documents));
     }
 
     public function testAReceivedCreditNoteLowersInput(): void
