@@ -1,0 +1,135 @@
+nav:
+    item:
+        activity_settings: Aktivity
+activities:
+    cancel: Zrušit
+    keep: Ponechat
+    save: Uložit
+    overdue: po termínu
+    duration: '{minutes} min'
+    type:
+        meeting: Schůzka
+        call: Hovor
+        note: Poznámka
+        task: Úkol
+    timing:
+        timed: 'V čase, s délkou'
+        date: 'Na den'
+        none: 'Bez času, hotová zapsáním'
+    when:
+        done: 'Hotovo {time}'
+    status:
+        planned: Naplánováno
+        done: Hotovo
+        trashed: 'V koši'
+    link:
+        unavailable: 'Už není k dispozici'
+    record:
+        title: Aktivity
+        planned: Naplánované
+        done: Hotové
+        empty_title: 'Zatím žádné aktivity'
+        empty_text: 'Zapište schůzku nebo hovor, který proběhl, nebo naplánujte další krok.'
+    action:
+        log: 'Zapsat aktivitu'
+        plan: 'Naplánovat aktivitu'
+        done: 'Hotovo a naplánovat další'
+        edit: Upravit
+        trash: Smazat
+        restore: Obnovit
+        undo: Vrátit
+        log_title: 'Zapsat aktivitu'
+        plan_title: 'Naplánovat aktivitu'
+        edit_title: 'Upravit {subject}'
+        log_submit: Zapsat
+        plan_submit: Naplánovat
+        edit_submit: Uložit
+    complete:
+        title: 'Hotovo: {subject}'
+        next: 'Další krok'
+        plan_next: 'Naplánovat další krok'
+        next_type: 'Další aktivita'
+        next_subject: 'Předmět další aktivity'
+        submit: 'Označit jako hotové'
+    field:
+        type: Typ
+        subject: Předmět
+        subject_placeholder: 'Úvodní schůzka'
+        planned_at: Začátek
+        planned_on: Den
+        duration: 'Délka (minuty)'
+        duration_help: 'Když ji nevyplníte, platí výchozí délka typu.'
+        done_at: 'Kdy proběhla'
+        outcome: Výsledek
+        outcome_placeholder: 'Domluvili jsme audit'
+        body: Poznámky
+        body_help: 'Markdown.'
+        file: Soubor
+        file_help: 'Třeba nahrávka schůzky.'
+        link: 'Patří k'
+    detail:
+        title: Podrobnosti
+        planned: Naplánováno
+        done: Hotovo
+        owner: Vlastník
+        links: 'Patří k'
+        no_links: 'Nepatří k žádnému záznamu. Vidí ji jen její vlastník.'
+    flash:
+        logged: 'Zapsáno: {subject}.'
+        planned: 'Naplánováno: {subject}.'
+        saved: 'Uloženo: {subject}.'
+        done: 'Hotovo: {subject}.'
+        done_and_planned: 'Hotovo: {subject}. Další krok je naplánovaný.'
+        trashed: 'Smazáno: {subject}.'
+        restored: 'Obnoveno: {subject}.'
+    error:
+        invalid:
+            subject: 'Zadejte předmět aktivity, nejvýš 200 znaků.'
+            body: 'Poznámky mají nejvýš 20 000 znaků.'
+            outcome: 'Výsledek má nejvýš 1 000 znaků.'
+            plannedAt: 'Zvolte začátek. Schůzka nebo hovor se plánuje na čas, úkol na den.'
+            plannedOn: 'Zvolte den. Úkol se plánuje na den, schůzka nebo hovor na čas.'
+            durationMinutes: 'Délka je 1 až 1 440 minut.'
+            nextSubject: 'Zadejte předmět další aktivity, nejvýš 200 znaků.'
+            nextPlannedAt: 'Zvolte začátek další aktivity.'
+            nextPlannedOn: 'Zvolte den další aktivity.'
+            nextDurationMinutes: 'Délka je 1 až 1 440 minut.'
+            name: 'Zadejte název typu, nejvýš 80 znaků.'
+            key: 'Klíč je identifikátor malými písmeny, nejvýš 40 znaků, třeba site_visit.'
+            defaultDurationMinutes: 'Délka je 1 až 1 440 minut.'
+        type_unknown: 'Zvolte typ.'
+        date_invalid: 'Zadejte datum.'
+        time_invalid: 'Zadejte datum a čas.'
+        already_done: 'Aktivita už je hotová.'
+        trashed: 'Aktivita je v koši; nejdřív ji obnovte.'
+        owner_unknown: 'Aktivita patří vlastníkovi nebo členovi.'
+        link_kind_unknown: 'K tomuto záznamu nelze zapisovat aktivity.'
+        link_target_unknown: 'Záznam už není k dispozici.'
+        key_taken: 'Tento klíč už má jiný typ.'
+        timing_unknown: 'Zvolte, jaký čas typ má.'
+    settings:
+        title: Aktivity
+        types: 'Typy aktivit'
+        new_type: 'Nový typ'
+        edit_type: 'Upravit {name}'
+        archived: Archivovaný
+        column:
+            name: Název
+            timing: Čas
+            key: Klíč
+        field:
+            name: Název
+            name_placeholder: 'Návštěva na místě'
+            key: Klíč
+            key_help: 'Nastavuje se jednou, pro API a události, třeba site_visit.'
+            timing: Čas
+            duration: 'Výchozí délka (minuty)'
+        action:
+            edit: Upravit
+            archive: Archivovat
+        confirm:
+            archive: 'Archivovat {name}?'
+            archive_text: 'Už se nebude nabízet pro nové aktivity; aktivity tohoto typu ho ponechají.'
+        flash:
+            saved: 'Uloženo: {name}.'
+            archived: 'Archivováno: {name}.'

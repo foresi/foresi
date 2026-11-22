@@ -1,0 +1,54 @@
+{
+    "name": "foresi/activities",
+    "description": "Meetings, calls, notes and tasks logged or planned on any record, on its timeline and in the calendar.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "homepage": "https://foresi.app",
+    "support": {
+        "issues": "https://github.com/foresi/foresi/issues",
+        "source": "https://github.com/foresi/foresi"
+    },
+    "require": {
+        "doctrine/dbal": "^4.5",
+        "doctrine/migrations": "^3.9",
+        "doctrine/orm": "^3.7.5",
+        "doctrine/persistence": "^4.2",
+        "foresi/attachment": "self.version",
+        "foresi/audit": "self.version",
+        "foresi/identity": "self.version",
+        "foresi/instance": "self.version",
+        "foresi/shared": "self.version",
+        "foresi/ui": "self.version",
+        "symfony/dependency-injection": "^7.4 || ^8.0",
+        "symfony/framework-bundle": "7.4.*",
+        "symfony/http-foundation": "^7.4 || ^8.0",
+        "symfony/http-kernel": "^7.4 || ^8.0",
+        "symfony/routing": "^7.4",
+        "symfony/translation": "7.4.*",
+        "symfony/translation-contracts": "^3.8",
+        "symfony/uid": "7.4.*",
+        "zircote/swagger-php": "^7.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\Activities\\": ""
+        },
+        "exclude-from-classmap": [
+            "migrations/"
+        ]
+    },
+    "extra": {
+        "foresi": {
+            "module": "activities",
+            "kind": "module",
+            "namespace": "Foresi\\Activities\\",
+            "bundle": "Foresi\\Activities\\ActivitiesBundle",
+            "optional": [
+                "calendar"
+            ],
+            "scopes": [
+                "activities"
+            ]
+        }
+    }
+}

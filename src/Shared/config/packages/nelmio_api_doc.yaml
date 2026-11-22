@@ -1310,6 +1310,65 @@ nelmio_api_doc:
                     properties:
                         data: { type: array, items: { $ref: '#/components/schemas/WebhookDelivery' } }
                         next_cursor: { type: string, nullable: true }
+                ActivitiesType:
+                    type: object
+                    description: A kind of activity, such as a meeting, and the time it has.
+                    properties:
+                        id: { type: string, format: uuid }
+                        key: { type: string, example: meeting, description: 'Unique; it never changes.' }
+                        name: { type: string, example: Meeting, description: 'A seeded type that was never renamed shows under its name in the language of the caller.' }
+                        timing: { type: string, enum: [timed, date, none], description: 'timed: at a time with a duration; date: on a day; none: no time, done when written.' }
+                        default_duration_minutes: { type: integer, nullable: true, example: 60 }
+                        archived: { type: boolean }
+                ActivitiesActivity:
+                    type: object
+                    description: A meeting, call, note or task, planned ahead or logged as done, with the records it is about and its files.
+                    properties:
+                        id: { type: string, format: uuid }
+                        type:
+                            type: object
+                            properties:
+                                id: { type: string, format: uuid }
+                                key: { type: string, example: meeting }
+                                name: { type: string, example: Meeting }
+                                timing: { type: string, enum: [timed, date, none] }
+                        subject: { type: string, example: Kick-off meeting }
+                        body: { type: string, description: 'Notes, in Markdown.' }
+                        planned_on: { type: string, format: date, nullable: true }
+                        planned_at: { type: string, format: date-time, nullable: true }
+                        duration_minutes: { type: integer, nullable: true }
+                        done: { type: boolean }
+                        done_at: { type: string, format: date-time, nullable: true }
+                        outcome: { type: string, nullable: true }
+                        owner_user_id: { type: string, format: uuid }
+                        created_by: { type: string, format: uuid }
+                        created_at: { type: string, format: date-time }
+                        updated_at: { type: string, format: date-time }
+                        trashed: { type: boolean }
+                        links:
+                            type: array
+                            description: 'The records it is about; one that is gone or not the caller''s to see is available: false, without its label.'
+                            items:
+                                type: object
+                                properties:
+                                    kind: { type: string, example: contact }
+                                    id: { type: string, format: uuid }
+                                    available: { type: boolean }
+                                    label: { type: string, nullable: true }
+                        files:
+                            type: array
+                            items:
+                                type: object
+                                properties:
+                                    id: { type: string, format: uuid }
+                                    name: { type: string, example: recording.m4a }
+                                    media_type: { type: string }
+                                    size: { type: integer }
+                                    url: { type: string, format: uri }
+                        next:
+                            description: 'Only in the answer of activities.complete: the next activity it planned, or null.'
+                            nullable: true
+                            allOf: [{ $ref: '#/components/schemas/ActivitiesActivity' }]
                 DocumentsType:
                     type: object
                     description: A kind of document, such as an NDA, and whether and how it is signed.

@@ -1,0 +1,45 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    One activity on a timeline: its type's icon, its subject opening it in the side sheet, its type and
+    time (in red once a planned one is overdue), its duration and owner; a done one with its outcome
+    and its files; the other records it is about. A planned one has "Done" that opens "Done and plan
+    next". Variables: item, return, focus.
+#}
+<li class="grid grid-cols-[20px_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 rounded-panel border border-container bg-white p-3" data-activity="{{ item.id }}" data-activity-done="{{ item.done ? 'true' : 'false' }}">
+    {{ ux_icon('lucide:' ~ item.icon, {class: 'mt-0.5 size-5 text-green', 'aria-hidden': 'true'}) }}
+    <div class="grid min-w-0 gap-1">
+        <a href="{{ item.url }}" data-sheet class="min-w-0 font-medium text-ink no-underline hover:underline [overflow-wrap:anywhere] {{ focus }}" data-activity-subject>{{ item.subject }}</a>
+        <p class="m-0 flex flex-wrap gap-x-2 text-small text-muted">
+            <span data-activity-type>{{ item.type }}</span>
+            {% if item.when %}<time datetime="{{ item.datetime }}" class="num {{ item.overdue ? 'font-medium text-badge-red-text' : '' }}" data-activity-when>{{ item.when }}{% if item.overdue %} · {{ 'activities.overdue'|trans }}{% endif %}</time>{% endif %}
+            {% if item.duration %}<span class="num">{{ item.duration }}</span>{% endif %}
+            {% if item.owner %}<span>{{ item.owner }}</span>{% endif %}
+        </p>
+        {% if item.outcome %}
+            <p class="m-0 text-text [overflow-wrap:anywhere]" data-activity-outcome>{{ item.outcome }}</p>
+        {% endif %}
+        {% if item.files is not empty %}
+            <ul class="m-0 flex list-none flex-wrap gap-2 p-0" data-activity-files>
+                {% for file in item.files %}
+                    <li><a href="{{ file.url }}" class="inline-flex items-center gap-1 text-small text-ink underline decoration-control-line underline-offset-2 hover:decoration-ink {{ focus }}">{{ ux_icon('lucide:paperclip', {class: 'size-3.5', 'aria-hidden': 'true'}) }}{{ file.name }}</a></li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% if item.links is not empty %}
+            <p class="m-0 flex flex-wrap gap-x-2 text-small text-muted" data-activity-links>
+                {% for link in item.links %}
+                    {% if link.available %}
+                        <a href="{{ link.url }}" class="text-current underline decoration-control-line underline-offset-2 hover:decoration-ink {{ focus }}">{{ link.label }}</a>
+                    {% else %}
+                        <span data-activity-link-unavailable>{{ 'activities.link.unavailable'|trans }}</span>
+                    {% endif %}
+                {% endfor %}
+            </p>
+        {% endif %}
+    </div>
+    {% if not item.done %}
+        <twig:Ui:Button size="sm" icon="check" :href="path('app_activity_complete', {id: item.id, return: return})" data-dialog aria-haspopup="dialog" data-activity-complete>{{ 'activities.action.done'|trans }}</twig:Ui:Button>
+    {% else %}
+        <span></span>
+    {% endif %}
+</li>

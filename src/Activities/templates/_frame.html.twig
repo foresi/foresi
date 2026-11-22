@@ -1,0 +1,6 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The answer to a Turbo frame that loads an activities fragment into another module's screen: the frame
+    alone, with the id the request named, and no page around it. Variables: frame.
+#}
+<turbo-frame id="{{ frame }}">{% block content %}{% endblock %}</turbo-frame>

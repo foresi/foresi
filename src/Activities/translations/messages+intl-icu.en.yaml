@@ -1,0 +1,135 @@
+nav:
+    item:
+        activity_settings: Activities
+activities:
+    cancel: Cancel
+    keep: Keep
+    save: Save
+    overdue: overdue
+    duration: '{minutes} min'
+    type:
+        meeting: Meeting
+        call: Call
+        note: Note
+        task: Task
+    timing:
+        timed: 'At a time, with a duration'
+        date: 'On a day'
+        none: 'No time, done when written'
+    when:
+        done: 'Done {time}'
+    status:
+        planned: Planned
+        done: Done
+        trashed: 'In the trash'
+    link:
+        unavailable: 'No longer available'
+    record:
+        title: Activities
+        planned: Planned
+        done: Done
+        empty_title: 'No activities yet'
+        empty_text: 'Log a meeting or a call that happened, or plan the next step.'
+    action:
+        log: 'Log activity'
+        plan: 'Plan activity'
+        done: 'Done and plan next'
+        edit: Edit
+        trash: Delete
+        restore: Restore
+        undo: Undo
+        log_title: 'Log activity'
+        plan_title: 'Plan activity'
+        edit_title: 'Edit {subject}'
+        log_submit: Log
+        plan_submit: Plan
+        edit_submit: Save
+    complete:
+        title: 'Done: {subject}'
+        next: 'The next step'
+        plan_next: 'Plan the next step'
+        next_type: 'Next activity'
+        next_subject: 'Subject of the next activity'
+        submit: 'Mark done'
+    field:
+        type: Type
+        subject: Subject
+        subject_placeholder: 'Kick-off meeting'
+        planned_at: Starts
+        planned_on: Day
+        duration: 'Duration (minutes)'
+        duration_help: "The type's default when left empty."
+        done_at: 'Done at'
+        outcome: Outcome
+        outcome_placeholder: 'Agreed on an audit'
+        body: Notes
+        body_help: 'Markdown.'
+        file: File
+        file_help: 'Such as the recording of a meeting.'
+        link: 'Belongs to'
+    detail:
+        title: Details
+        planned: Planned
+        done: Done
+        owner: Owner
+        links: 'Belongs to'
+        no_links: 'Not linked to any record. Only its owner sees it.'
+    flash:
+        logged: 'Logged {subject}.'
+        planned: 'Planned {subject}.'
+        saved: 'Saved {subject}.'
+        done: '{subject} is done.'
+        done_and_planned: '{subject} is done and the next step is planned.'
+        trashed: '{subject} was deleted.'
+        restored: '{subject} is back.'
+    error:
+        invalid:
+            subject: 'Give the activity a subject of up to 200 characters.'
+            body: 'The notes have at most 20,000 characters.'
+            outcome: 'An outcome has at most 1,000 characters.'
+            plannedAt: 'Choose when it starts. A meeting or a call is planned at a time, a task on a day.'
+            plannedOn: 'Choose the day. A task is planned on a day, a meeting or a call at a time.'
+            durationMinutes: 'A duration is 1 to 1,440 minutes.'
+            nextSubject: 'Give the next activity a subject of up to 200 characters.'
+            nextPlannedAt: 'Choose when the next one starts.'
+            nextPlannedOn: 'Choose the day of the next one.'
+            nextDurationMinutes: 'A duration is 1 to 1,440 minutes.'
+            name: 'Give the type a name of up to 80 characters.'
+            key: 'A key is a lowercase identifier of up to 40 characters, such as site_visit.'
+            defaultDurationMinutes: 'A duration is 1 to 1,440 minutes.'
+        type_unknown: 'Choose a type.'
+        date_invalid: 'Enter a date.'
+        time_invalid: 'Enter a date and time.'
+        already_done: 'The activity is done already.'
+        trashed: 'The activity is in the trash; restore it first.'
+        owner_unknown: 'An activity belongs to an owner or member.'
+        link_kind_unknown: 'This record cannot have activities.'
+        link_target_unknown: 'The record is no longer available.'
+        key_taken: 'Another type has this key.'
+        timing_unknown: 'Choose a timing.'
+    settings:
+        title: Activities
+        types: 'Activity types'
+        new_type: 'New type'
+        edit_type: 'Edit {name}'
+        archived: Archived
+        column:
+            name: Name
+            timing: Timing
+            key: Key
+        field:
+            name: Name
+            name_placeholder: 'Site visit'
+            key: Key
+            key_help: 'Set once, for the API and events, such as site_visit.'
+            timing: Timing
+            duration: 'Default duration (minutes)'
+        action:
+            edit: Edit
+            archive: Archive
+        confirm:
+            archive: 'Archive {name}?'
+            archive_text: 'It is no longer offered for new activities; the activities of this type keep it.'
+        flash:
+            saved: 'Saved {name}.'
+            archived: 'Archived {name}.'

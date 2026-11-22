@@ -1,0 +1,49 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A new activity type, or a change of one: its name, its key (set once, as an API name is), its timing,
+    and for a timed type the duration a new activity starts with. A dialog over the settings; the same
+    URL is a page. Variables: type (null for a new one), values, errors, timings, action.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set heading = type ? 'activities.settings.edit_type'|trans({name: values.name}) : 'activities.settings.new_type'|trans %}
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'activities.settings.title'|trans, href: path('app_activity_settings')}, {label: heading}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="activity-type-form" action="{{ action }}" class="grid gap-4" novalidate data-controller="activity-timing" data-activity-timing-timings-value="{{ timings|map((label, key) => key)|json_encode }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Activities\\Infrastructure\\Controller\\ActivityController::TOKEN')) }}">
+        <twig:Ui:TextInput name="name" id="name" :label="'activities.settings.field.name'|trans" :placeholder="'activities.settings.field.name_placeholder'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="80" autocomplete="off" required />
+        {% if type %}
+            <div class="grid gap-1">
+                <p class="m-0 text-small text-ink">{{ 'activities.settings.field.key'|trans }}</p>
+                <p class="m-0 font-medium text-ink"><code>{{ type.key }}</code></p>
+            </div>
+        {% else %}
+            <twig:Ui:TextInput name="key" id="key" :label="'activities.settings.field.key'|trans" :help="'activities.settings.field.key_help'|trans" :value="values.key" :error="errors.key|default(null)" maxlength="40" autocomplete="off" required />
+        {% endif %}
+        <twig:Ui:Select name="timing" id="timing" :label="'activities.settings.field.timing'|trans" :options="timings" :value="values.timing" :error="errors.timing|default(null)" data-activity-timing-target="type" data-action="activity-timing#show" />
+        <div data-activity-timing-target="group" data-timing="timed">
+            <twig:Ui:TextInput type="number" name="defaultDurationMinutes" id="defaultDurationMinutes" :label="'activities.settings.field.duration'|trans" :value="values.defaultDurationMinutes" :error="errors.defaultDurationMinutes|default(null)" min="1" max="1440" inputmode="numeric" />
+        </div>
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'activities.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="activity-type-form" variant="primary">{{ 'activities.save'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="heading" icon="calendar" class="max-w-2xl">{{ body }}</twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_activity_settings')">{{ 'activities.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="activity-type-form" variant="primary">{{ 'activities.save'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}
