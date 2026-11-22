@@ -65,7 +65,7 @@ final class PartyDirectoryTest extends ContactTestCase
         self::assertNull($this->directory()->find('not-an-id'));
 
         $this->expectException(UnknownParty::class);
-        $this->expectExceptionMessage('There is no contact with the id "0192f1a4-0000-7000-8000-000000000000".');
+        $this->expectExceptionMessageIsOrContains('There is no contact with the id "0192f1a4-0000-7000-8000-000000000000".');
         $this->directory()->get('0192f1a4-0000-7000-8000-000000000000');
     }
 
