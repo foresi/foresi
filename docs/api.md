@@ -59,7 +59,7 @@ A scope says what a token may reach. A token has one or more:
 | `<resource>:read` | Reading one kind of record. |
 | `<resource>:write` | Changing one kind of record, and reading it. |
 
-The resources are `calendar`, `cashflow`, `catalog`, `contacts`, `documents`, `invoices`, `payments`, `received_documents`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
+The resources are `calendar`, `cashflow`, `catalog`, `contacts`, `documents`, `invoices`, `payments`, `received_documents`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `vat`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
 
 ## Using the API
 
@@ -141,6 +141,8 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/catalog/products/{productId}` | `catalog:read` | One product. |
 | `/api/v1/taxes-and-contributions/profile` | `taxes:read` | The owner profile, for the owner only; see [Taxes and contributions](#taxes-and-contributions). |
 | `/api/v1/taxes-and-contributions/amounts` | `taxes:read` | The actual income and costs to date, for the owner only; see [Taxes and contributions](#taxes-and-contributions). |
+| `/api/v1/vat/periods` | `vat:read` | The VAT periods of the firm with their due dates, an estimate; see [VAT](#vat). |
+| `/api/v1/vat/settings` | `vat:read` | Where the firm pays its VAT; see [VAT](#vat). |
 | `/api/v1/documents` | `documents:read` | Documents, newest first; see [Documents](#documents). |
 | `/api/v1/documents/{documentId}` | `documents:read` | One document with its links, signers, files and frozen values. |
 | `/api/v1/documents/{documentId}/files/{file}` | `documents:read` | The bytes of a stored file of a document: `pdf`, `signed` or `certificate`. |
@@ -559,6 +561,20 @@ The owner profile the taxes and contributions are estimated from: the dated stat
 curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
   -d '{"kind": "activity", "value": "main", "valid_from": "2026-07-01"}' \
   "https://app.example.com/api/v1/taxes-and-contributions/profile/statuses"
+```
+
+## VAT
+
+The VAT periods of the firm and where it pays its VAT. What a period is and how its dates come about is in [vat.md](vat.md). The reads need `vat:read`, the write `vat:write`, and the owners and members of the organisation may use them: a guest's token is never accepted. Every answer about periods is an estimate: it carries `estimate: true`, `unverified` (the rules nobody has confirmed yet) and `known_gaps` (what the amounts do not count yet).
+
+| Method and path | Answer |
+| --- | --- |
+| `GET /api/v1/vat/periods?from=2026-11&to=2027-12` | The periods from the day the firm became a payer, oldest first, each with `key` (`2026-11` or `2026-Q4`), `length`, `start` and `end` (clipped to the days the firm is a payer), `due_on`, `refund_expected_on`, `output`, `input`, `result` and `warnings`; and `reason`, `country`, `from`, `to`, `warnings`, `unverified` and `known_gaps`. `from` and `to` are months or quarters; without `from` the list starts with the first period, without `to` it ends with the period that holds the twelfth month after this one. A `to` more than 24 months ahead is `400 invalid_parameter` with the reason `range_too_long`; a month that cannot be read is `from_invalid` or `to_invalid`, and a `from` after `to` is `range_invalid`. With nothing to compute, `periods` is empty and `reason` is `payer_date_missing`, `not_a_payer` or `country_not_supported`. The amounts are zero until the documents are counted. |
+| `GET /api/v1/vat/settings` | `{office_account, variable_symbol, suggestion}`: the account of the tax office and the variable symbol, `null` until they are set, and the country's `suggestion` (`account_hint`, `variable_symbol`, `source_url`), `null` without its rules. |
+| `PUT /api/v1/vat/settings` | Replaces them: `office_account` (required, up to 64 characters) and `variable_symbol` (up to 35; empty takes the suggested one). Answers as the read. |
+
+```bash
+curl -H "Authorization: Bearer $FORESI_API_TOKEN" "https://app.example.com/api/v1/vat/periods?from=2026-11&to=2027-03"
 ```
 
 ## Documents

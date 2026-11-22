@@ -42,6 +42,7 @@
         "foresi/taxes-and-contributions": "dev-main",
         "foresi/timesheet": "dev-main",
         "foresi/ui": "dev-main",
+        "foresi/vat": "dev-main",
         "foresi/webhooks": "dev-main",
         "foresi/work": "dev-main",
         "guzzlehttp/psr7": "^3.2",
@@ -241,6 +242,7 @@
                     "foresi/taxes-and-contributions": "dev-main",
                     "foresi/timesheet": "dev-main",
                     "foresi/ui": "dev-main",
+                    "foresi/vat": "dev-main",
                     "foresi/webhooks": "dev-main",
                     "foresi/work": "dev-main"
                 }

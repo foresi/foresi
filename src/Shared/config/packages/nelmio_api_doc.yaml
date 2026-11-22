@@ -743,6 +743,49 @@ nelmio_api_doc:
                         authority: { type: string, enum: [social, health, sickness, income_tax, flat_rate] }
                         account: { type: string }
                         variable_symbol: { type: string }
+                VatPeriods:
+                    type: object
+                    description: The VAT periods of the firm, always an estimate. With nothing to compute, periods is empty and reason says why.
+                    required: [estimate, reason, country, from, to, periods, warnings, unverified, known_gaps]
+                    properties:
+                        estimate: { type: boolean, enum: [true] }
+                        reason: { type: string, nullable: true, enum: [payer_date_missing, not_a_payer, country_not_supported, null], description: 'payer_date_missing when the firm is a payer but the day it became one is not stated: nothing is computed before a stated day.' }
+                        country: { type: string, nullable: true, description: 'The country whose rules apply, ISO 3166-1 alpha-2; null without them.' }
+                        from: { type: string, nullable: true, example: '2026-11', description: 'The first month asked for, null for the first period.' }
+                        to: { type: string, example: '2027-11', description: The last month; the period that holds it is the last one. }
+                        periods: { type: array, items: { $ref: '#/components/schemas/VatPeriod' } }
+                        warnings: { type: array, items: { type: string }, example: [quarter_not_allowed], description: What the country does not allow in the VAT statuses of the firm; the statuses are kept. }
+                        unverified: { type: array, items: { type: string }, example: [refund_timing], description: The rules nobody has confirmed from a primary source yet. }
+                        known_gaps: { type: array, items: { type: string }, example: [documents_not_counted, schedules_not_counted, plans_not_counted], description: What the amounts do not count yet. }
+                VatPeriod:
+                    type: object
+                    required: [key, length, start, end, due_on, refund_expected_on, output, input, result, warnings]
+                    properties:
+                        key: { type: string, example: '2026-11', description: 'The calendar month, or the quarter such as "2026-Q4".' }
+                        length: { type: string, enum: [month, quarter] }
+                        start: { type: string, format: date, description: 'The first day; the day the firm became a payer in its first period.' }
+                        end: { type: string, format: date, description: 'The last day; the last day as a payer in its last period.' }
+                        due_on: { type: string, format: date, description: The day the return and the payment of the whole period are due. }
+                        refund_expected_on: { type: string, format: date, description: 'The day a refund is expected at the earliest (unverified: refund_timing).' }
+                        output: { $ref: '#/components/schemas/Money' }
+                        input: { $ref: '#/components/schemas/Money' }
+                        result: { $ref: '#/components/schemas/Money', description: 'Output minus input; positive to pay, negative to get back.' }
+                        warnings: { type: array, items: { type: string } }
+                VatSettings:
+                    type: object
+                    required: [office_account, variable_symbol, suggestion]
+                    properties:
+                        office_account: { type: string, nullable: true, description: The account of the tax office; null until it is set. }
+                        variable_symbol: { type: string, nullable: true }
+                        suggestion:
+                            type: object
+                            nullable: true
+                            description: How the country of the firm suggests paying; null without its rules.
+                            required: [account_hint, variable_symbol, source_url]
+                            properties:
+                                account_hint: { type: string, example: '705-<number of your tax office>/0710' }
+                                variable_symbol: { type: string, example: '12345678' }
+                                source_url: { type: string, format: uri }
                 CalendarFeed:
                     type: object
                     description: One of your calendar feeds. Its address is never shown again after it is created.

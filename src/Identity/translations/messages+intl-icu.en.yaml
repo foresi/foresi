@@ -178,6 +178,7 @@ api_tokens:
     cashflow: Cash flow
     catalog: Catalog
     taxes: Taxes and contributions
+    vat: VAT
     received_documents: Received documents
     views: Saved views
     projects: Projects
