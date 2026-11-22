@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Integration\Country;
 
 use Foresi\Banking\Application\Candidate;
 use Foresi\Banking\Application\Matcher;

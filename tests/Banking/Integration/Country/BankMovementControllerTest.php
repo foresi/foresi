@@ -1,0 +1,529 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\Tests\Banking\Integration\Country;
+
+use Foresi\Banking\Application\BankScreen;
+use Foresi\Banking\Application\MovementFilter;
+use Foresi\Banking\Application\MovementPage;
+use Foresi\Banking\Application\MovementRow;
+use Foresi\Banking\Contract\MovementDirection;
+use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Party\Domain\Party;
+use Foresi\Shared\Application\View\Condition;
+use Foresi\Tests\Banking\Support\BankScreenTestCase;
+use Foresi\Tests\Banking\Support\Scalars;
+use Foresi\Tests\Party\Support\FirmAccounts;
+use Symfony\Component\Clock\Clock;
+use Symfony\Component\Clock\MockClock;
+use Symfony\Component\DomCrawler\Crawler;
+
+/**
+ * The bank movements screen: the tabs of incoming and outgoing movements and of the
+ * unmatched ones, pairing by hand in a dialog over the list with Undo in the flash,
+ * and unpairing after a confirmation. Every write is read back from the database.
+ *
+ * @phpstan-type Pair array{_token: string, return: string, invoices?: list<string>, amounts: array<string, string>, q: string, search?: string, settle?: string}
+ */
+final class BankMovementControllerTest extends BankScreenTestCase
+{
+    public function testTabsListTheRightMovementsAndFilterByAccount(): void
+    {
+        $this->signedIn();
+        $paid = $this->invoice(vs: '20260001');
+        $second = $this->scoped(function (): FirmBankAccount {
+            $account = FirmAccounts::add($this->em(), self::OTHER_IBAN);
+            $this->em()->flush();
+
+            return $account;
+        });
+        $pairedId = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified);
+        $unmatchedId = $this->movement('500.00', '99999999', trust: MessageTrust::Verified);
+        $outgoingId = $this->movement('80.00', null, MovementDirection::Outgoing, account: $second);
+
+        $all = $this->page('/bank');
+        self::assertSame('page', $all->filter('main nav[aria-label="Bank views"] a[href="/bank"]')->attr('aria-current'));
+        self::assertSame([$outgoingId, $unmatchedId, $pairedId], $this->rowIds($all), 'All of them, newest first.');
+
+        $incoming = $this->page('/bank?view=incoming');
+        self::assertSame('page', $incoming->filter('main nav[aria-label="Bank views"] a[href="/bank?view=incoming"]')->attr('aria-current'));
+        self::assertSame([$unmatchedId, $pairedId], $this->rowIds($incoming), 'Newest first, incoming only.');
+        self::assertSame([$unmatchedId, $pairedId], $this->rowIds($this->page('/bank?tab=incoming')), 'The tab it was still opens it.');
+        self::assertSame('20260001', $this->row($incoming, $pairedId)->filter('a[href="/invoices/'.$paid->id().'"][data-sheet]')->text());
+        self::assertStringContainsString($this->nb('+1,210.00 Kč'), $this->row($incoming, $pairedId)->text());
+        self::assertStringContainsString('Example Remitter Ltd', $this->row($incoming, $unmatchedId)->text());
+        self::assertStringContainsString('No invoice has its symbol', $this->row($incoming, $unmatchedId)->text());
+
+        $outgoing = $this->page('/bank?tab=outgoing');
+        self::assertSame([$outgoingId], $this->rowIds($outgoing));
+        self::assertStringContainsString($this->nb('−80.00 Kč'), $this->row($outgoing, $outgoingId)->text());
+
+        // The account the select named is a condition now; the firm select is gone with the one firm of an instance.
+        self::assertSame([$unmatchedId, $pairedId], $this->rowIds($this->page('/bank?tab=incoming&account='.$this->account->id())));
+        self::assertSame([], $this->rowIds($this->page('/bank?tab=outgoing&account='.$this->account->id())));
+        self::assertSame([$unmatchedId, $pairedId], $this->rowIds($this->page('/bank?view=incoming&firm=01963c5e-0000-7000-8000-000000000001')), 'The firm select is gone: its parameter filters nothing.');
+        self::assertSame([$unmatchedId], $this->rowIds($this->page('/bank?q=99999999')));
+        // An account of no one is no filter at all.
+        self::assertSame([$unmatchedId, $pairedId], $this->rowIds($this->page('/bank?view=incoming&account=nobody')));
+    }
+
+    public function testTheTabsAreTheShippedViewsCountedWithinTheSearch(): void
+    {
+        // Saved views, D12: All and the tabs it had, the same counts on the same tabs (D9), counted within the search.
+        $this->signedIn();
+        $this->invoice(vs: '20260001');
+        $this->movement('1210.00', '20260001', trust: MessageTrust::Verified);
+        $this->movement('500.00', '1');
+        $this->movement('600.00');
+        $this->movement('90.00', null, MovementDirection::Outgoing);
+        $this->received($this->notice('incoming-unknown-status'));
+
+        $crawler = $this->page('/bank');
+        self::assertSame(['All', 'Incoming', 'Outgoing', 'Unmatched2', 'Outgoing unmatched0', 'Messages1'], $this->tabs($crawler));
+        self::assertSame('/bank?view=unmatched', $crawler->filter('main nav[aria-label="Bank views"] a')->eq(3)->attr('href'));
+        self::assertCount(4, $crawler->filter('main tbody tr'));
+        self::assertCount(1, $crawler->filter('[data-filter-sheet-form]'));
+
+        $crawler = $this->page('/bank?view=unmatched&q=600');
+        self::assertSame(['All', 'Incoming', 'Outgoing', 'Unmatched1', 'Outgoing unmatched0', 'Messages1'], $this->tabs($crawler));
+        self::assertCount(1, $crawler->filter('main tbody tr'));
+        // An unknown view is every movement.
+        self::assertCount(4, $this->page('/bank?view=friends')->filter('main tbody tr'));
+    }
+
+    public function testTheUnmatchedTabCountsOnlyUnmatchedIncoming(): void
+    {
+        $this->signedIn();
+        $this->invoice(vs: '20260001');
+        $this->movement('1210.00', '20260001', trust: MessageTrust::Verified);
+        $first = $this->movement('500.00', '1');
+        $second = $this->movement('600.00');
+        $this->movement('90.00', null, MovementDirection::Outgoing);
+
+        $crawler = $this->page('/bank?tab=unmatched');
+
+        self::assertSame('2', $crawler->filter('main nav[aria-label="Bank views"] a[aria-current="page"] span')->text());
+        self::assertSame([$second, $first], $this->rowIds($crawler));
+        self::assertCount(2, $crawler->filter('tbody a[role="menuitem"][href*="/pair"][data-dialog]'), 'Each one offers to pair it in a dialog.');
+    }
+
+    public function testTheOutgoingUnmatchedTabListsOnlyTheRefundsWaitingWithTheirReason(): void
+    {
+        $this->signedIn();
+        $this->invoice(vs: '20260009');
+        $this->movement('1300.00', '20260009', trust: MessageTrust::Verified);
+        $this->movement('500.00', '1');
+        $waiting = $this->movement('50.00', '20260009', MovementDirection::Outgoing, trust: MessageTrust::Verified);
+        $supplier = $this->movement('75.00', '55500001', MovementDirection::Outgoing, trust: MessageTrust::Verified, counterName: 'Example Supplier s.r.o.', counterIban: 'SK3112000000198742637541');
+
+        $crawler = $this->page('/bank?tab=outgoing_unmatched');
+
+        self::assertSame('1', $crawler->filter('main nav[aria-label="Bank views"] a[aria-current="page"] span')->text());
+        self::assertSame([$waiting], $this->rowIds($crawler), 'Outgoing refunds only; a supplier payment is recorded only.');
+        self::assertStringContainsString('The amount is not what is to refund', $this->row($crawler, $waiting)->text());
+        self::assertSame('recorded', $this->movementRow($supplier)['state']);
+        self::assertContains($supplier, $this->rowIds($this->page('/bank?tab=outgoing')), 'It is still in the full outgoing list.');
+    }
+
+    public function testThePairDialogSuggestsBySymbolThenAmountThenCustomerAndPrefillsTheSymbol(): void
+    {
+        $this->signedIn();
+        $payer = $this->scoped(fn (): Party => $this->party('Example Payer s.r.o.'));
+        $stranger = $this->scoped(fn (): Party => $this->party('Example Stranger a.s.'));
+        $bySymbol = $this->invoice(vs: '20260007', due: '2026-11-30');
+        $byAmount = $this->invoice(due: '2026-11-10', customer: $stranger);
+        $byCustomer = $this->invoice('700.00', customer: $payer);
+        $other = $this->invoice('300.00', customer: $stranger);
+        $movement = $this->movement('1210.00', '20260007', trust: MessageTrust::Verified, counterName: 'Example Payer s.r.o.', auto: false);
+
+        $dialog = $this->dialog($this->pairUrl($movement));
+
+        self::assertResponseIsSuccessful();
+        self::assertStringStartsWith('<dialog', ltrim((string) $this->client->getResponse()->getContent()));
+        self::assertStringContainsString($this->nb('1,210.00 Kč'), $dialog->filter('dialog h2')->text());
+        self::assertSame([$bySymbol->id(), $byAmount->id(), $byCustomer->id()], $this->invoiceIds($dialog, '[data-pair-suggestions]'));
+        self::assertSame([$other->id()], $this->invoiceIds($dialog, '[data-pair-others]'));
+        self::assertNotNull($dialog->filter('#pair-invoice-'.$bySymbol->id())->attr('checked'));
+        self::assertSame('1210.00', $dialog->filter('#pair-amount-'.$bySymbol->id())->attr('value'));
+        self::assertNull($dialog->filter('#pair-invoice-'.$byAmount->id())->attr('checked'));
+        self::assertStringContainsString('Same variable symbol', $dialog->filter('[data-pair-invoice="'.$bySymbol->id().'"]')->text());
+        self::assertStringContainsString('Same amount', $dialog->filter('[data-pair-invoice="'.$byAmount->id().'"]')->text());
+        self::assertStringContainsString('Same customer', $dialog->filter('[data-pair-invoice="'.$byCustomer->id().'"]')->text());
+        self::assertSame('pair-form', $dialog->filter('#pair-submit')->attr('form'));
+    }
+
+    /**
+     * A notice the bank did not vouch for may be forged: a click must not pay an
+     * invoice on it. The dialog warns, ticks and fills in nothing, and pairs only
+     * once the person confirms they found the payment in their internet banking.
+     */
+    public function testAnUnverifiedPaymentWarnsFillsInNothingAndNeedsTheBankCheck(): void
+    {
+        $this->signedIn();
+        $invoice = $this->invoice(vs: '20260001');
+        $movement = $this->movement('1210.00', '20260001');
+        self::assertStringContainsString('Not verified, check it in the bank first', $this->row($this->page('/bank'), $movement)->text());
+
+        $dialog = $this->dialog($this->pairUrl($movement));
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Foresi did not verify this payment with the bank. Before you pair it, check it in your internet banking.', $dialog->filter('[data-pair-unverified]')->text());
+        self::assertSame([$invoice->id()], $this->invoiceIds($dialog, '[data-pair-suggestions]'), 'Still suggested, to find it faster.');
+        self::assertCount(0, $dialog->filter('[data-pair-invoice] input[type="checkbox"][checked]'), 'Nothing ticked.');
+        self::assertSame([''], $dialog->filter('[data-pair-invoice] input[type="text"]')->each(static fn (Crawler $field): string => (string) $field->attr('value')), 'No amount filled in.');
+        self::assertSame('false', $dialog->filter('form#pair-form')->attr('data-pair-sum-fill-value'), 'Ticking fills in nothing either.');
+        $box = $dialog->filter('#pair-checked-in-bank');
+        self::assertCount(1, $box);
+        self::assertNull($box->attr('checked'));
+        self::assertStringContainsString('I checked the payment in the bank', $dialog->filter('[data-pair-checked]')->text());
+
+        $form = $this->pairForm($movement);
+        $form['invoices'] = [$invoice->id()];
+        $form['amounts'][$invoice->id()] = '1210.00';
+        $dialog = $this->dialogPost($this->pairUrl($movement), $form);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('Confirm that you checked the payment in the bank.', $dialog->filter('[data-pair-checked]')->text());
+        self::assertSame([], $this->liveAllocations());
+        self::assertSame('unmatched', $this->movementRow($movement)['state']);
+
+        $form['checked_in_bank'] = '1';
+        $this->dialogPost($this->pairUrl($movement), $form);
+
+        self::assertSame(['location' => '/bank'], $this->json());
+        self::assertSame([$invoice->id() => 121000], $this->liveAllocations());
+        self::assertSame('paired', $this->movementRow($movement)['state']);
+    }
+
+    /**
+     * The dialog pays only the invoices it offered: a forged post naming one paid
+     * already pays nothing.
+     */
+    public function testAnInvoiceTheDialogDidNotOfferIsRefused(): void
+    {
+        $this->signedIn();
+        $paid = $this->invoice(vs: '20260009');
+        $this->movement('1210.00', '20260009', trust: MessageTrust::Verified);
+        self::assertSame([$paid->id() => 121000], $this->liveAllocations(), 'Paid by its notice.');
+        $movement = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified, bookedOn: '2026-11-18', auto: false);
+        $form = $this->pairForm($movement);
+
+        $posted = $form;
+        $posted['invoices'] = [$paid->id()];
+        $posted['amounts'] = [$paid->id() => '1210.00'];
+        $dialog = $this->dialogPost($this->pairUrl($movement), $posted);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('The invoice is gone. Pick another one.', $dialog->filter('[data-error-summary]')->text());
+        self::assertSame([$paid->id() => 121000], $this->liveAllocations());
+        self::assertSame('unmatched', $this->movementRow($movement)['state']);
+    }
+
+    public function testAVerifiedPaymentNeedsNoBankCheck(): void
+    {
+        $this->signedIn();
+        $this->invoice(vs: '20260001');
+        $movement = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified, auto: false);
+
+        $dialog = $this->dialog($this->pairUrl($movement));
+
+        self::assertCount(0, $dialog->filter('[data-pair-unverified], #pair-checked-in-bank'));
+        self::assertNull($dialog->filter('form#pair-form')->attr('data-pair-sum-fill-value'));
+    }
+
+    public function testSearchingKeepsWhatWasTickedAndFindsAnotherInvoice(): void
+    {
+        $this->signedIn();
+        $first = $this->invoice(vs: '20260001');
+        $found = $this->invoice('500.00', due: '2026-12-30');
+        $this->invoice('300.00');
+        $movement = $this->movement('1815.00', '20260001', trust: MessageTrust::Verified, auto: false);
+        $number = $found->number();
+
+        $form = $this->pairForm($movement);
+        $form['q'] = $number;
+        $form['search'] = '1';
+        $dialog = $this->dialogPost($this->pairUrl($movement), $form);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame([$found->id()], $this->invoiceIds($dialog, '[data-pair-others]'));
+        self::assertNotNull($dialog->filter('#pair-invoice-'.$first->id())->attr('checked'), 'What was ticked stays ticked.');
+        self::assertSame($number, $dialog->filter('#pair-q')->attr('value'));
+        self::assertSame([], $this->liveAllocations(), 'A search pays nothing.');
+    }
+
+    public function testPairingInTheDialogStoresOnePaymentOverTwoInvoices(): void
+    {
+        $this->signedIn();
+        $first = $this->invoice(vs: '20260001');
+        $second = $this->invoice('500.00', vs: '20260001', due: '2026-11-30');
+        $movement = $this->movement('1815.00', '20260001', trust: MessageTrust::Verified, auto: false);
+        $form = $this->pairForm($movement, 'tab=unmatched');
+        self::assertSame(['1210.00', '605.00'], [$form['amounts'][$first->id()], $form['amounts'][$second->id()]], 'Prefilled oldest due first.');
+
+        $this->dialogPost($this->pairUrl($movement), $form);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(['location' => '/bank?tab=unmatched'], $this->json());
+        self::assertSame([$second->id() => 60500, $first->id() => 121000], $this->liveAllocations());
+        self::assertSame(1, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM payment WHERE cancelled_at IS NULL AND bank_movement_id = ?', [$movement])));
+        $row = $this->movementRow($movement);
+        self::assertSame('paired', $row['state']);
+        $crawler = $this->page('/bank?tab=unmatched');
+        $flash = $crawler->filter('[data-undo]');
+        self::assertStringContainsString('Paired with 20260001, 20260002.', $flash->text());
+        self::assertSame('/bank/movements/'.$movement.'/undo', $flash->filter('form')->attr('action'));
+    }
+
+    public function testAWrongSumAnswers422(): void
+    {
+        $this->signedIn();
+        $invoice = $this->invoice(vs: '20260001');
+        $movement = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified, auto: false);
+        $form = $this->pairForm($movement);
+        $form['amounts'][$invoice->id()] = '1000.00';
+
+        $dialog = $this->dialogPost($this->pairUrl($movement), $form);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertCount(1, $dialog->filter('dialog#dialog-page'));
+        self::assertStringContainsString($this->nb('The parts add up to 1,000.00 Kč, the payment is 1,210.00 Kč.'), $dialog->filter('[data-error-summary]')->text());
+        self::assertSame('1000.00', $dialog->filter('#pair-amount-'.$invoice->id())->attr('value'));
+        self::assertSame([], $this->liveAllocations());
+
+        unset($form['invoices']);
+        $this->dialogPost($this->pairUrl($movement), $form);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('unmatched', $this->movementRow($movement)['state']);
+    }
+
+    public function testASmallDifferenceIsWrittenOffWhenTheFirmAllowsIt(): void
+    {
+        $this->signedIn();
+        $invoice = $this->invoice(vs: '20260001');
+        $movement = $this->movement('1209.50', '20260001', trust: MessageTrust::Verified, auto: false);
+        $form = $this->pairForm($movement);
+        self::assertArrayNotHasKey('settle', $form, 'Offered, not ticked.');
+        $this->dialog($this->pairUrl($movement));
+        self::assertSelectorNotExists('#pair-settle', 'The switch is off by default.');
+
+        $this->scoped(function (): void {
+            $this->connection()->insert('firm_bank_pairing', ['id' => '01963c5e-0000-7000-8000-00000000f1f1', 'auto_pairing' => 1, 'small_difference' => 1]);
+        });
+        $dialog = $this->dialog($this->pairUrl($movement));
+        self::assertCount(1, $dialog->filter('#pair-settle'));
+        $form['settle'] = '1';
+        $this->dialogPost($this->pairUrl($movement), $form);
+
+        self::assertResponseIsSuccessful();
+        $settlement = $this->connection()->fetchOne('SELECT settlement_minor FROM payment_allocation WHERE invoice_id = ?', [$invoice->id()]);
+        self::assertSame(50, Scalars::int($settlement));
+        self::assertSame([$invoice->id() => 120950], $this->liveAllocations());
+    }
+
+    public function testUndoFromTheFlashUnpairsAndBlocksAutoPairing(): void
+    {
+        $this->signedIn();
+        $invoice = $this->invoice(vs: '20260001');
+        $movement = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified, auto: false);
+        $this->dialogPost($this->pairUrl($movement), $this->pairForm($movement));
+        $flash = $this->page('/bank')->filter('[data-undo] form');
+        $token = Scalars::text($flash->filter('input[name="_token"]')->attr('value'));
+
+        $this->client->request('POST', '/bank/movements/'.$movement.'/undo', ['_token' => $token, 'return' => 'tab=unmatched']);
+
+        self::assertResponseRedirects('/bank?tab=unmatched');
+        $row = $this->movementRow($movement);
+        self::assertSame(['unmatched', 'blocked', null], [$row['state'], $row['unmatched_reason'], $row['payment_id']]);
+        self::assertSame(1, Scalars::int($row['auto_pair_blocked']));
+        self::assertSame([], $this->liveAllocations());
+        self::assertSame(1, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM payment WHERE cancelled_at IS NOT NULL AND bank_movement_id = ?', [$movement])));
+        $crawler = $this->page('/bank?tab=unmatched');
+        self::assertStringContainsString('The pairing is undone. Invoice 20260001 is unpaid again.', $crawler->filter('main')->text());
+        self::assertCount(0, $crawler->filter('[data-undo]'));
+
+        // Undo is for the pairing just made: a second time, or for another, it does nothing.
+        $this->client->request('POST', '/bank/movements/'.$movement.'/undo', ['_token' => $token]);
+        self::assertResponseRedirects('/bank');
+        self::assertSame([], $this->liveAllocations());
+        self::assertSame('unmatched', $this->movementRow($movement)['state']);
+        self::assertNotSame('', $invoice->id());
+    }
+
+    public function testUndoExpiresAfterTenMinutes(): void
+    {
+        $this->signedIn();
+        $this->invoice(vs: '20260001');
+        $movement = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified, auto: false);
+        $this->dialogPost($this->pairUrl($movement), $this->pairForm($movement));
+        $token = Scalars::text($this->page('/bank')->filter('[data-undo] form input[name="_token"]')->attr('value'));
+        $clock = Clock::get();
+        self::assertInstanceOf(MockClock::class, $clock);
+        $clock->modify('+10 minutes +1 second');
+
+        $this->client->request('POST', '/bank/movements/'.$movement.'/undo', ['_token' => $token]);
+
+        self::assertResponseRedirects('/bank');
+        self::assertSame('paired', $this->movementRow($movement)['state'], 'Too late for Undo: unpairing asks first.');
+        self::assertStringContainsString('Only the pairing just made can be undone.', $this->page('/bank')->filter('main')->text());
+    }
+
+    public function testUndoIsOnlyForThePairingJustMade(): void
+    {
+        $this->signedIn();
+        $this->invoice(vs: '20260001');
+        $paired = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified);
+        $this->client->request('POST', '/bank/movements/'.$paired.'/undo', ['_token' => $this->formToken()]);
+
+        self::assertResponseRedirects('/bank');
+        self::assertSame('paired', $this->movementRow($paired)['state'], 'A pairing nobody made here is unpaired after the confirmation.');
+    }
+
+    public function testUnpairFromTheRowNeedsTheConfirm(): void
+    {
+        $this->signedIn();
+        $this->invoice(vs: '20260001');
+        $movement = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified);
+        $list = $this->page('/bank');
+        self::assertCount(1, $this->row($list, $movement)->filter('a[href="/bank/movements/'.$movement.'/unpair"][data-dialog]'));
+
+        $dialog = $this->dialog('/bank/movements/'.$movement.'/unpair');
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Invoice 20260001 will be unpaid again, and this payment will not be paired automatically any more.', $dialog->filter('dialog')->text());
+        self::assertSame('paired', $this->movementRow($movement)['state'], 'Opening the confirmation changes nothing.');
+        $form = $dialog->filter('form#unpair-form')->form()->getPhpValues();
+
+        $this->client->request('POST', '/bank/movements/'.$movement.'/unpair', ['return' => 'tab=incoming'] + $form, server: self::DIALOG);
+
+        self::assertSame(['location' => '/bank?tab=incoming'], $this->json());
+        $row = $this->movementRow($movement);
+        self::assertSame(['unmatched', 'blocked'], [$row['state'], $row['unmatched_reason']]);
+        self::assertSame([], $this->liveAllocations());
+        // A plain POST without the confirmation's token is refused.
+        $this->client->request('POST', '/bank/movements/'.$movement.'/unpair', ['_token' => 'wrong']);
+        self::assertResponseStatusCodeSame(403);
+    }
+
+    public function testPairingADuplicateOrRejectedMovementIsRefused(): void
+    {
+        $this->signedIn();
+        $invoice = $this->invoice(vs: '20260001');
+        $rejected = $this->movement('1210.00', '20260001', trust: MessageTrust::Failed);
+        $outgoing = $this->movement('1210.00', '20260001', MovementDirection::Outgoing);
+        $token = $this->formToken();
+
+        foreach ([$rejected, $outgoing] as $id) {
+            $this->client->request('GET', $this->pairUrl($id));
+            self::assertResponseRedirects('/bank');
+            $this->client->request('POST', $this->pairUrl($id), ['_token' => $token, 'invoices' => [$invoice->id()], 'amounts' => [$invoice->id() => '1210.00']]);
+            self::assertResponseRedirects('/bank');
+        }
+        self::assertStringContainsString('This payment cannot be paired', $this->page('/bank')->filter('main')->text());
+        self::assertSame([], $this->liveAllocations());
+        self::assertSame('unmatched', $this->movementRow($rejected)['state']);
+    }
+
+    public function testOneQueryForMatchedInvoiceNumbersPer25Rows(): void
+    {
+        $this->signedIn();
+        for ($i = 1; $i <= 26; ++$i) {
+            $this->invoice('100.00', vs: (string) (900 + $i));
+            $this->movement('121.00', (string) (900 + $i), trust: MessageTrust::Verified);
+        }
+        $this->em()->clear();
+
+        $before = $this->queryCount();
+        $page = $this->scoped(fn (): MovementPage => self::getContainer()->get(BankScreen::class)->page(new MovementFilter()));
+        $queries = \array_slice(self::getContainer()->get('doctrine.debug_data_holder')->getData()['default'] ?? [], $before);
+
+        self::assertCount(25, $page->rows);
+        self::assertCount(25, array_filter($page->rows, static fn (MovementRow $row): bool => 1 === \count($row->invoices)));
+        $numbers = array_filter($queries, static fn (array $query): bool => \is_string($query['sql']) && str_contains($query['sql'], 'payment_allocation'));
+        self::assertCount(1, $numbers);
+        // The accounts, the count, the rows, the numbers and the three tab counts.
+        self::assertLessThanOrEqual(7, \count($queries), 'Queries used: '.\count($queries));
+        $crawler = $this->page('/bank');
+        self::assertCount(25, $crawler->filter('tbody tr'));
+        self::assertCount(25, $crawler->filter('tbody [data-links] a[href^="/invoices/"]'));
+    }
+
+    public function testThePaymentPanelOfAnInvoiceLinksToItsMovement(): void
+    {
+        $this->signedIn();
+        $invoice = $this->invoice(vs: '20260001');
+        $movement = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified);
+
+        $crawler = $this->page('/invoices/'.$invoice->id().'/edit');
+
+        self::assertSame('/bank?movement='.$movement, $crawler->filter('[data-payments] a[data-payment-movement]')->attr('href'));
+        self::assertSame([$movement], $this->rowIds($this->page('/bank?movement='.$movement)));
+    }
+
+    private function pairUrl(string $movement): string
+    {
+        return '/bank/movements/'.$movement.'/pair';
+    }
+
+    /**
+     * What the dialog would post as it opens.
+     *
+     * @return Pair
+     */
+    private function pairForm(string $movement, string $return = ''): array
+    {
+        $dialog = $this->dialog($this->pairUrl($movement).('' === $return ? '' : '?return='.rawurlencode($return)));
+        self::assertResponseIsSuccessful();
+        /** @var Pair $values */
+        $values = $dialog->filter('form#pair-form')->form()->getPhpValues();
+
+        return $values;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function invoiceIds(Crawler $dialog, string $section): array
+    {
+        return $dialog->filter($section.' [data-pair-invoice]')->each(static fn (Crawler $row): string => (string) $row->attr('data-pair-invoice'));
+    }
+
+    private function formToken(): string
+    {
+        return $this->pairForm($this->movement('1.00', null, auto: false))['_token'];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function rowIds(Crawler $crawler): array
+    {
+        return $crawler->filter('main tbody tr')->each(static fn (Crawler $row): string => (string) $row->attr('data-id'));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function tabs(Crawler $crawler): array
+    {
+        return $crawler->filter('main nav[aria-label="Bank views"] a')->each(static fn (Crawler $tab): string => trim((string) preg_replace('/\s+/', ' ', $tab->text())));
+    }
+
+    private function row(Crawler $crawler, string $id): Crawler
+    {
+        $row = $crawler->filter('main tbody tr[data-id="'.$id.'"]');
+        self::assertCount(1, $row);
+
+        return $row;
+    }
+
+    private function queryCount(): int
+    {
+        return \count(self::getContainer()->get('doctrine.debug_data_holder')->getData()['default'] ?? []);
+    }
+}
