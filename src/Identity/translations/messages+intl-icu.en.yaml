@@ -174,6 +174,7 @@ api_tokens:
     payments: Payments
     webhooks: Webhooks
     events: Events
+    calendar: Calendar
     cashflow: Cash flow
     catalog: Catalog
     taxes: Taxes and contributions

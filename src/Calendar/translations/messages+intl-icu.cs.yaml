@@ -1,0 +1,48 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+calendar:
+  user_menu: Kalendářové odběry
+  feeds:
+    title: Kalendářové odběry
+    intro: Tajné adresy, které ukážou, co pro vás Foresi plánuje, ve vašem kalendáři, třeba v Kalendáři Apple, Google Kalendáři nebo Outlooku. Každé aplikaci nebo zařízení dejte vlastní adresu, ať můžete jednu zrušit samostatně.
+    refresh_note: Kalendářové aplikace načítají odběr podle sebe, každé 3 až 24 hodin, takže se změna může projevit až po této době.
+    new: Nová adresa odběru
+    new_title: Nová adresa odběru
+    new_submit: Vytvořit adresu
+    rename_title: Přejmenovat odběr
+    rename_submit: Uložit
+    cancel: Zrušit
+    never: Nikdy
+    column:
+      name: Název
+      created: Vytvořeno
+      last_fetched: Naposledy načteno
+    state:
+      revoked: Zrušeno
+    field:
+      name: Název
+      name_help: Třeba „Telefon“; ukáže se i v kalendářové aplikaci.
+    action:
+      rename: Přejmenovat
+      revoke: Zrušit adresu
+    confirm:
+      revoke:
+        title: 'Zrušit odběr {name}?'
+        text: Adresa hned přestane fungovat a nejde obnovit. Kalendářová aplikace si nechá, co načetla naposledy, dokud kalendář neodeberete i v ní.
+    flash:
+      renamed: Odběr je přejmenovaný.
+      revoked: 'Odběr {name} je zrušený.'
+    refused:
+      name_invalid: Název má 1 až 80 znaků.
+    empty:
+      title: Zatím žádné adresy odběru
+      text: Vytvořte si adresu a přihlaste se k jejímu odběru v kalendářové aplikaci.
+    created:
+      title: Vaše adresa odběru
+      once: Tuto adresu uvidíte jen teď. Zkopírujte si ji nebo se rovnou přihlaste k odběru; kdo ji má, vidí váš kalendář.
+      text: 'Přidejte adresu odběru {name} do kalendářové aplikace jako odebíraný kalendář (v Google Kalendáři: Další kalendáře, Z adresy URL).'
+      field: Adresa odběru
+      copy: Kopírovat
+      copied: Zkopírováno
+      copy_failed: Zkopírujte ji ručně
+      subscribe: Otevřít v kalendářové aplikaci
+      done: Hotovo

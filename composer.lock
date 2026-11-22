@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bb9ec9f94a46cfa33d06dc3f3a9b197a",
+    "content-hash": "933f31f16b6f87a1372449cb34892dff",
     "packages": [
         {
             "name": "brick/math",
@@ -1602,7 +1602,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Attachment",
-                "reference": "06a99e688b94a31c7d7c27001c754220472b7264"
+                "reference": "62d0ec98183795b119171d816c7d3dad7c36c415"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1659,7 +1659,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Audit",
-                "reference": "5b8272c7299386de5741662b447522eb5446ba0d"
+                "reference": "2327710144ba884cd14dcd4047495da4f64b8ff0"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1709,7 +1709,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Banking",
-                "reference": "00bb155e5f2185754962c7f867a85a380a4b02a9"
+                "reference": "d86ead095cb31614e4d78dc6ffa56fe47b9c8eba"
             },
             "require": {
                 "directorytree/imapengine": "~1.25.7",
@@ -1773,12 +1773,74 @@
             }
         },
         {
+            "name": "foresi/calendar",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Calendar",
+                "reference": "f9cf1c87d5d8804222322f28d0986fc572f7de3e"
+            },
+            "require": {
+                "doctrine/dbal": "^4.5",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
+                "foresi/audit": "self.version",
+                "foresi/identity": "self.version",
+                "foresi/instance": "self.version",
+                "foresi/shared": "self.version",
+                "foresi/ui": "self.version",
+                "psr/log": "^3.0",
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/framework-bundle": "7.4.*",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/rate-limiter": "7.4.*",
+                "symfony/routing": "^7.4",
+                "symfony/translation-contracts": "^3.8",
+                "zircote/swagger-php": "^7.5"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "calendar",
+                    "kind": "module",
+                    "namespace": "Foresi\\Calendar\\",
+                    "bundle": "Foresi\\Calendar\\CalendarBundle",
+                    "optional": [],
+                    "scopes": [
+                        "calendar"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\Calendar\\": ""
+                },
+                "exclude-from-classmap": [
+                    "migrations/"
+                ]
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Personal iCal feed addresses that any module can fill with calendar entries.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "foresi/cash-flow",
             "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "src/CashFlow",
-                "reference": "ad8144458afa7a2142e67910f4685e131d606ca0"
+                "reference": "d2b4b7cc84e53cf4e41246f0d69cb5a191b59d31"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1843,7 +1905,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Catalog",
-                "reference": "487399824a1f5c053d937412c50b90c9bec2a98f"
+                "reference": "bd96cd363f1e4edd8ee203d55c6094da184eb3a5"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1936,7 +1998,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Country",
-                "reference": "deacf2476482128c04445a6d5cb999bef5da8be3"
+                "reference": "2a31ba7d1bac8d7e6ba406fbcaaa40e4befedc1e"
             },
             "require": {
                 "foresi/party": "self.version",
@@ -1984,7 +2046,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Events",
-                "reference": "e16c01b9bf2e1dc2083af35b8f429c6dc76a886c"
+                "reference": "201282150f1b2bb70f7c5a7e016ac76ec907a1f9"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2050,7 +2112,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/ExchangeRate",
-                "reference": "63bfb2fd7ce3c4664955bc32386ae2d5b2cc834c"
+                "reference": "d81b6b9b4a5b6d99f8d8cc5430dd148319390eaf"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2100,7 +2162,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Identity",
-                "reference": "9384abec56eb6152f461d3a01670fcf2573cc34c"
+                "reference": "12f2d1ed3fb9664192c2c795539a2c0ef6f28166"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2173,7 +2235,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Idoklad",
-                "reference": "b7ffcdee526e39763a3a614ad3a6028e902d314a"
+                "reference": "c3dcad988a553fddbef3a23bec8cfbd48a41a808"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2237,7 +2299,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Import",
-                "reference": "2864803b57832070f04f71e66d0c2826f2ce09d9"
+                "reference": "05bfc2f01a5ae8f536b0998ab3d332827e24cf63"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2301,7 +2363,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Instance",
-                "reference": "0a2492cc756b4c36ed79a45b694633ea924c6f8b"
+                "reference": "766430d4efe6ff449e1171e25f85faf94786cfb7"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2361,7 +2423,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Invoicing",
-                "reference": "2e2c65511ce17b45040514a925b455969e19f4ca"
+                "reference": "811925396b93edd0bb413c59c262361e2a5bda72"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2445,7 +2507,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "866ab5f0d05917fe0b435db4650dbf4712bc4c2f"
+                "reference": "2c4ec7dda87fdeb750b217387a6bc54d33fa3129"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2514,7 +2576,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Purchasing",
-                "reference": "63f09034be964859af6742f08078546ee1a62d33"
+                "reference": "78af1c766ef223cc9d390fa468e9a44b2827bfb1"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -2586,7 +2648,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "339067c5c37fe7cab8358a21f1b0cdffc9e4e655"
+                "reference": "f9d1368562f99bacf057be0080f242c9f1a9c1e3"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -2690,7 +2752,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/TaxesAndContributions",
-                "reference": "d42e2f74b4b5681ed2b26ed5fb267b3aa662851b"
+                "reference": "ca9a06368e3ea174ff429aae90244f40158783b1"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2758,7 +2820,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Timesheet",
-                "reference": "8336f16f1a713d20cec3970a79f210538fbfc808"
+                "reference": "2f6175629cbf264facf91599010b5200addfd458"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2818,7 +2880,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Ui",
-                "reference": "2a276bcc4a23b3b5dce080c002d7eef151b5add4"
+                "reference": "9096f88e2fa522842f64b2ae81dfc681072e8cf7"
             },
             "require": {
                 "foresi/shared": "self.version",
@@ -2882,7 +2944,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Webhooks",
-                "reference": "dd4f4fe5c91dc5ed256c93d97fa0c24878a4351a"
+                "reference": "aec74172dc010be1eb5bd0bc81f6cad4d114ea7c"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2955,7 +3017,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Work",
-                "reference": "8a4a8ba920797b2309998ef24a3aa387e509c1a7"
+                "reference": "7190dbb36721cfc635193664573463fc025e12e6"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -19512,6 +19574,7 @@
         "foresi/attachment": 20,
         "foresi/audit": 20,
         "foresi/banking": 20,
+        "foresi/calendar": 20,
         "foresi/cash-flow": 20,
         "foresi/catalog": 20,
         "foresi/core": 20,

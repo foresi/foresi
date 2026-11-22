@@ -1,0 +1,5 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# Calendar's item of the account menu (Foresi\Calendar\Infrastructure\Slot\CalendarSlots), for the staff only. Variables: shell (ShellView). #}
+{% if shell.organisation and shell.organisation.role.isStaff() %}
+<twig:Ui:MenuItem :href="path('app_calendar_feeds')" icon="calendar" data-user-menu-calendar>{{ 'calendar.user_menu'|trans }}</twig:Ui:MenuItem>
+{% endif %}

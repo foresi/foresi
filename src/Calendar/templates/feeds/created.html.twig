@@ -1,0 +1,47 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The address of a feed just made, shown this once with a button to copy it and a webcal link that opens
+    the calendar app, the way a new API token is shown. It is the answer to the form, never a redirect,
+    and is not cached. In the dialog the list under it is loaded again when the dialog closes.
+    Variables: name, address, webcal.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'calendar.feeds.title'|trans, href: path('app_calendar_feeds')}, {label: 'calendar.feeds.created.title'|trans}] %}
+{% set dialog_size = 'md' %}
+{% set dialog_reload = true %}
+
+{% block head %}
+    <meta name="turbo-cache-control" content="no-cache">
+{% endblock %}
+
+{% block title %}{{ 'calendar.feeds.created.title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <div class="grid gap-4">
+        <twig:Ui:Alert tone="warning" data-calendar-feed-once>{{ 'calendar.feeds.created.once'|trans }}</twig:Ui:Alert>
+        <p class="m-0 text-text">{{ 'calendar.feeds.created.text'|trans({name: name}) }}</p>
+        <div class="flex flex-wrap items-end gap-2" data-controller="copy" data-copy-done-value="{{ 'calendar.feeds.created.copied'|trans }}" data-copy-failed-value="{{ 'calendar.feeds.created.copy_failed'|trans }}">
+            <div class="min-w-0 flex-1 basis-64"><twig:Ui:TextInput id="calendar-feed-address" :label="'calendar.feeds.created.field'|trans" :value="address" readonly spellcheck="false" autocomplete="off" data-copy-target="source" /></div>
+            <twig:Ui:Button icon="copy" data-action="copy#copy"><span data-copy-target="label">{{ 'calendar.feeds.created.copy'|trans }}</span></twig:Ui:Button>
+            <span class="sr-only" aria-live="polite" data-copy-target="status"></span>
+        </div>
+        {# The webcal scheme opens the calendar app to subscribe; Ui:Button links only within the web. #}
+        <p class="m-0"><a href="{{ webcal }}" data-turbo="false" data-calendar-feed-webcal class="font-medium text-green underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'calendar.feeds.created.subscribe'|trans }}</a></p>
+        <p class="m-0 text-caption text-muted">{{ 'calendar.feeds.refresh_note'|trans }}</p>
+    </div>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button variant="primary" data-action="dialog#dismiss">{{ 'calendar.feeds.created.done'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'calendar.feeds.created.title'|trans" icon="calendar" class="max-w-2xl">
+        {{ body }}
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <twig:Ui:Button variant="primary" :href="path('app_calendar_feeds')">{{ 'calendar.feeds.created.done'|trans }}</twig:Ui:Button>
+        </div>
+    </twig:Ui:Card>
+{% endblock %}

@@ -16,6 +16,12 @@ framework:
             policy: sliding_window
             limit: 20
             interval: '1 hour'
+        # Fetches of a calendar feed address, per feed token (plan 32c); see Foresi\Calendar\Infrastructure\Controller\CalendarFeedController.
+        # Calendar apps fetch every few hours, so 30 an hour leaves room for a person pressing refresh.
+        calendar_feed:
+            policy: sliding_window
+            limit: 30
+            interval: '1 hour'
 
 services:
     # Declared here (private) so PHPStan, which reads the dev container, knows the
@@ -24,6 +30,8 @@ services:
         alias: limiter.api_token
     test.api_token_write_limiter:
         alias: limiter.api_token_write
+    test.calendar_feed_limiter:
+        alias: limiter.calendar_feed
 
 when@test:
     framework:
@@ -33,6 +41,8 @@ when@test:
             api_token_write:
                 storage_service: test.api_token_storage
             oauth_register:
+                storage_service: test.api_token_storage
+            calendar_feed:
                 storage_service: test.api_token_storage
 
     services:
@@ -45,4 +55,7 @@ when@test:
             public: true
         test.api_token_write_limiter:
             alias: limiter.api_token_write
+            public: true
+        test.calendar_feed_limiter:
+            alias: limiter.calendar_feed
             public: true

@@ -1,0 +1,40 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A new calendar feed or a new name for one: only its name. A dialog over the feeds; the same URL is a
+    page of its own. A new feed answers with the page that shows its address once.
+    Variables: mode (new or rename), action, name, error.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set title = ('calendar.feeds.' ~ mode ~ '_title')|trans %}
+{% set crumbs = [{label: 'calendar.feeds.title'|trans, href: path('app_calendar_feeds')}, {label: title}] %}
+{% set form_invalid = error is not null %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block dialog_body %}
+    {# A new feed answers with the page of its address, which Turbo would refuse as a form answer without a redirect. #}
+    <form method="post" id="calendar-feed-form" action="{{ action }}" class="grid gap-4"{% if mode == 'new' %} data-turbo="false"{% endif %} novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Calendar\\Infrastructure\\Controller\\AccountCalendarController::TOKEN')) }}">
+        <twig:Ui:TextInput name="name" id="name" :label="'calendar.feeds.field.name'|trans" :help="'calendar.feeds.field.name_help'|trans" :value="name" :error="error" maxlength="80" required autocomplete="off" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'calendar.feeds.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="calendar-feed-form" variant="primary">{{ ('calendar.feeds.' ~ mode ~ '_submit')|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="title" icon="calendar" class="max-w-2xl">
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_calendar_feeds')">{{ 'calendar.feeds.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="calendar-feed-form" variant="primary">{{ ('calendar.feeds.' ~ mode ~ '_submit')|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

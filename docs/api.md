@@ -59,7 +59,7 @@ A scope says what a token may reach. A token has one or more:
 | `<resource>:read` | Reading one kind of record. |
 | `<resource>:write` | Changing one kind of record, and reading it. |
 
-The resources are `cashflow`, `catalog`, `contacts`, `invoices`, `payments`, `received_documents`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
+The resources are `calendar`, `cashflow`, `catalog`, `contacts`, `invoices`, `payments`, `received_documents`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
 
 ## Using the API
 
@@ -136,6 +136,7 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/cash-flow/forecast` | `cashflow:read` | The cash-flow forecast of the firm; see [Cash flow](#cash-flow). |
 | `/api/v1/cash-flow/planned-items` | `cashflow:read` | The planned items of the firm, oldest first, without paging. |
 | `/api/v1/cash-flow/planned-items/{plannedItemId}` | `cashflow:read` | One planned item. |
+| `/api/v1/calendar/feeds` | `calendar:read` | Your calendar feeds, oldest first, without their addresses; see [Calendar](#calendar). |
 | `/api/v1/catalog/products` | `catalog:read` | The products in name order, without paging; `q` finds a text in the name or description, `archived=true` includes the archived ones. See [Catalog](#catalog). |
 | `/api/v1/catalog/products/{productId}` | `catalog:read` | One product. |
 | `/api/v1/taxes-and-contributions/profile` | `taxes:read` | The owner profile, for the owner only; see [Taxes and contributions](#taxes-and-contributions). |
@@ -454,6 +455,22 @@ What the cash flow refuses:
 | 403 | `forbidden` | A guest of the organisation. |
 | 404 | `not_found` | The instance has no firm yet, or the organisation has no such bank account or planned item. |
 | 409 | `not_recurring` | Ending a one-off item. |
+
+## Calendar
+
+Your own calendar feeds (see [calendar](calendar.md)): secret iCal addresses for your calendar apps. Reading needs `calendar:read`, writing `calendar:write`, and only the owners and members of the organisation have feeds. Each person sees and changes only their own; someone else's feed is `404 not_found`. A feed has `id`, `name`, `created_at`, `last_fetched_at` (recorded at most once an hour) and `revoked_at`.
+
+| Method and path | Answer |
+| --- | --- |
+| `GET /api/v1/calendar/feeds` | Your feeds, revoked ones too, never their addresses. |
+| `POST /api/v1/calendar/feeds` | `201` with the feed and, this once, its `address` (https) and `webcal`. Only the hash of the token is kept. A name of 1 to 80 characters is required (`name_invalid`). |
+| `PATCH /api/v1/calendar/feeds/{feedId}` | The feed with its new `name`; the address stays. |
+| `POST /api/v1/calendar/feeds/{feedId}/revoke` | The feed with `revoked_at`. Its address answers `404` from now on and cannot be brought back. |
+
+```bash
+curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
+  -d '{"name": "Phone"}' "https://app.example.com/api/v1/calendar/feeds"
+```
 
 ## Catalog
 

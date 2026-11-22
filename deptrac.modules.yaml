@@ -31,6 +31,14 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Banking\\Integration\\CashFlow\\.*
+    - name: calendar
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Calendar\\(?!Contract\\|Integration\\).*
+    - name: calendar_contract
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Calendar\\Contract\\.*
     - name: cash_flow
       collectors:
         - type: classLike
@@ -300,6 +308,28 @@ deptrac:
       - shared
       - shared_contract
       - ui
+      - ui_contract
+    calendar:
+      - audit
+      - audit_contract
+      - calendar_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+    calendar_contract:
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - shared
+      - shared_contract
       - ui_contract
     cash_flow:
       - audit

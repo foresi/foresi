@@ -105,6 +105,11 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/catalog/products/{productId}/archive' => ['post' => '200'],
                 '/api/v1/catalog/products/{productId}/restore' => ['post' => '200'],
             ],
+            'calendar' => [
+                '/api/v1/calendar/feeds' => ['get' => '200', 'post' => '201'],
+                '/api/v1/calendar/feeds/{feedId}' => ['patch' => '200'],
+                '/api/v1/calendar/feeds/{feedId}/revoke' => ['post' => '200'],
+            ],
             'cash-flow' => [
                 '/api/v1/cash-flow/forecast' => ['get' => '200'],
                 '/api/v1/cash-flow/planned-items' => ['get' => '200', 'post' => '201'],

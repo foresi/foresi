@@ -33,8 +33,8 @@ final class GuestAccessTest extends WebTestCase
         'app_login', '2fa_login', '2fa_login_check', 'app_logout',
         // Their account.
         'app_account_language', 'app_two_factor_setup', 'app_two_factor_recovery_codes',
-        // Machines: the uptime monitor and the bank mail relay, on firewalls without a session.
-        'app_health', 'app_inbound_mail',
+        // Machines: the uptime monitor, the bank mail relay and calendar apps fetching a feed, on firewalls without a session.
+        'app_health', 'app_inbound_mail', 'app_calendar_feed',
         // OAuth for MCP clients (ADR 0036): metadata, registration and the token endpoint hold no data and
         // take no session; a guest connects their own agent on the consent screen and manages it
         // on Connected apps (ADR 0041).
@@ -60,6 +60,7 @@ final class GuestAccessTest extends WebTestCase
         'api_v1_operation_received_documents.record', 'api_v1_operation_received_documents.trash',
         'api_v1_operation_received_documents.add_payment', 'api_v1_operation_received_documents.mark_paid',
         'api_v1_operation_received_documents.remove_payment',
+        'api_v1_calendar_feeds', 'api_v1_operation_calendar.feeds.create', 'api_v1_operation_calendar.feeds.rename', 'api_v1_operation_calendar.feeds.revoke',
         'api_v1_taxes_profile', 'api_v1_taxes_amounts', 'api_v1_taxes_estimate', 'api_v1_operation_taxes.profile.status.add', 'api_v1_operation_taxes.profile.status.remove',
         'api_v1_operation_taxes.profile.year.set', 'api_v1_operation_taxes.profile.authority.set',
         'api_v1_operation_invoices.create', 'api_v1_operation_invoices.update', 'api_v1_operation_invoices.trash', 'api_v1_operation_invoices.restore', 'api_v1_operation_invoices.mark_sent',

@@ -208,7 +208,7 @@ final class AppShellTest extends WebTestCase
         self::assertSelectorCount(1, '[data-command-palette-target="opener"]');
     }
 
-    public function testUserMenuListsProfileNotificationsLanguageAndLogout(): void
+    public function testUserMenuListsProfileNotificationsCalendarLanguageAndLogout(): void
     {
         $this->browser->seed();
         $this->browser->signIn();
@@ -218,8 +218,9 @@ final class AppShellTest extends WebTestCase
         $menu = $crawler->filter('[data-controller="dropdown"] [role="menu"]');
         self::assertCount(1, $menu);
         self::assertTrue($menu->matches('[hidden]'));
-        self::assertCount(4, $menu->filter('[role="menuitem"]'));
+        self::assertCount(5, $menu->filter('[role="menuitem"]'));
         self::assertSelectorExists('[role="menu"] a[href="/account/notifications"]');
+        self::assertSelectorExists('[role="menu"] a[href="/account/calendar"]');
         // API and MCP live in the settings only.
         self::assertSelectorNotExists('[role="menu"] a[href="/settings/api"]');
         self::assertSelectorExists('[role="menu"] form[action="/account/language"] input[name="_token"]');

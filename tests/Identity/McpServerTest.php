@@ -24,6 +24,7 @@ final class McpServerTest extends ApiTestCase
 {
     /** The tools of each module: the server lists those of the installed ones. */
     private const array TOOLS = [
+        'calendar' => ['foresi_create_calendar_feed', 'foresi_list_calendar_feeds', 'foresi_rename_calendar_feed', 'foresi_revoke_calendar_feed'],
         'cash-flow' => ['foresi_cash_flow_forecast', 'foresi_change_planned_item', 'foresi_clear_expected_date', 'foresi_create_planned_item', 'foresi_delete_planned_item', 'foresi_end_planned_item', 'foresi_list_planned_items', 'foresi_record_balance_checkpoint', 'foresi_set_expected_date', 'foresi_set_minimum_balance', 'foresi_skip_planned_occurrence'],
         'catalog' => ['foresi_archive_product', 'foresi_create_product', 'foresi_get_product', 'foresi_restore_product', 'foresi_search_products', 'foresi_update_product'],
         'events' => ['foresi_list_event_types', 'foresi_list_events'],
@@ -47,6 +48,7 @@ final class McpServerTest extends ApiTestCase
         'foresi_archive_project' => false,
         'foresi_change_planned_item' => false,
         'foresi_clear_expected_date' => false,
+        'foresi_create_calendar_feed' => false,
         'foresi_create_contact' => false,
         'foresi_create_invoice' => false,
         'foresi_create_planned_item' => false,
@@ -68,12 +70,14 @@ final class McpServerTest extends ApiTestCase
         'foresi_redeliver_webhook' => false,
         'foresi_remove_received_document_payment' => true,
         'foresi_remove_tax_status' => true,
+        'foresi_rename_calendar_feed' => false,
         'foresi_restore_contact' => false,
         'foresi_restore_default_views' => false,
         'foresi_restore_invoice' => false,
         'foresi_restore_product' => false,
         'foresi_restore_project' => false,
         'foresi_restore_task' => false,
+        'foresi_revoke_calendar_feed' => true,
         'foresi_rotate_webhook_secret' => true,
         'foresi_set_expected_date' => false,
         'foresi_set_minimum_balance' => false,

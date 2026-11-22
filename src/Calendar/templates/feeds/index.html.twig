@@ -1,0 +1,39 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The person's calendar feeds: secret addresses for their calendar apps, with name, created and when an
+    app last fetched each. A new feed opens in a dialog from the header; each feed's menu has Rename (a
+    dialog) and Revoke (asks first). The addresses are never shown here, only once when a feed is made.
+    Variables: columns, rows.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'calendar.feeds.title'|trans}] %}
+
+{% block title %}{{ 'calendar.feeds.title'|trans }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:Button variant="primary" icon="plus" :href="path('app_calendar_feed_new')" id="calendar-feed-new" data-dialog aria-haspopup="dialog">{{ 'calendar.feeds.new'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% for tone in ['success', 'error'] %}
+        {% for message in app.flashes(tone) %}
+            <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
+        {% endfor %}
+    {% endfor %}
+    <div class="grid max-w-4xl gap-4">
+        <p class="m-0 text-text">{{ 'calendar.feeds.intro'|trans }}</p>
+        <section data-calendar-feeds>
+            <twig:Ui:DataTable :caption="'calendar.feeds.title'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('Foresi\\Calendar\\Infrastructure\\Controller\\AccountCalendarController::TOKEN'))">
+                <twig:block name="empty">
+                    <div data-calendar-feeds-empty>
+                        <twig:Ui:EmptyState icon="calendar" :title="'calendar.feeds.empty.title'|trans" :text="'calendar.feeds.empty.text'|trans">
+                            <twig:Ui:Button variant="primary" icon="plus" :href="path('app_calendar_feed_new')" data-dialog aria-haspopup="dialog">{{ 'calendar.feeds.new'|trans }}</twig:Ui:Button>
+                        </twig:Ui:EmptyState>
+                    </div>
+                </twig:block>
+            </twig:Ui:DataTable>
+        </section>
+        <p class="m-0 text-caption text-muted" data-calendar-refresh-note>{{ 'calendar.feeds.refresh_note'|trans }}</p>
+    </div>
+{% endblock %}

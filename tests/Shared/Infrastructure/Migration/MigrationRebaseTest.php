@@ -53,8 +53,8 @@ final class MigrationRebaseTest extends KernelTestCase
 
     public function testADatabaseOnTheGlobalHistoryMovesOntoTheBaselines(): void
     {
-        $this->onGlobalHistory();
         $tables = $this->tables();
+        $this->onGlobalHistory();
         self::assertSame(RebaseMigrationsCommand::PENDING, $this->console('app:migrations:rebase', ['--check' => true])->getStatusCode());
 
         $rebase = $this->console('app:migrations:rebase');
@@ -62,6 +62,8 @@ final class MigrationRebaseTest extends KernelTestCase
         self::assertSame(Command::SUCCESS, $rebase->getStatusCode(), $rebase->getDisplay());
         self::assertStringContainsString('Replaced the 108 versions', $rebase->getDisplay());
         self::assertSame($this->baselines(), $this->versions());
+        // What ops/deploy.sh runs next: the migrations after the baselines, which create what the database never had.
+        self::assertSame(Command::SUCCESS, $this->console('doctrine:migrations:migrate')->getStatusCode());
         self::assertSame($tables, $this->tables());
         self::assertSame(Command::SUCCESS, $this->console('doctrine:migrations:up-to-date')->getStatusCode());
         self::assertSame(Command::SUCCESS, $this->console('app:migrations:rebase', ['--check' => true])->getStatusCode());
@@ -131,8 +133,20 @@ final class MigrationRebaseTest extends KernelTestCase
     /**
      * The rows a database migrated before the module packages holds.
      */
+    /**
+     * A database of the last release before the module packages: every global version executed,
+     * and none of the tables that only migrations after the baselines create.
+     */
     private function onGlobalHistory(): void
     {
+        foreach ($this->afterBaselines() as $version) {
+            $migration = self::getContainer()->get('doctrine.migrations.dependency_factory')->getMigrationRepository()->getMigration(new \Doctrine\Migrations\Version\Version($version))->getMigration();
+            $schema = new \Doctrine\DBAL\Schema\Schema();
+            $migration->up($schema);
+            foreach ($schema->getTables() as $table) {
+                $this->db->createSchemaManager()->dropTable($table->getName());
+            }
+        }
         $this->db->executeStatement('DELETE FROM doctrine_migration_versions');
         foreach (GlobalMigrationHistory::VERSIONS as $version) {
             $this->db->insert('doctrine_migration_versions', ['version' => $version, 'executed_at' => '2026-11-20 12:00:00', 'execution_time' => 5]);
@@ -144,15 +158,33 @@ final class MigrationRebaseTest extends KernelTestCase
      */
     private function baselines(): array
     {
-        $directories = glob(\dirname(__DIR__, 4).'/src/*/migrations', \GLOB_ONLYDIR);
-        self::assertIsArray($directories);
-        $baselines = array_map(
-            static fn (string $directory): string => 'Foresi\\'.basename(\dirname($directory)).'\Migrations\\'.GlobalMigrationHistory::BASELINE,
-            $directories,
-        );
-        sort($baselines, \SORT_STRING);
+        return array_values(array_filter($this->migrations(), static fn (string $version): bool => str_ends_with($version, '\\'.GlobalMigrationHistory::BASELINE)));
+    }
 
-        return $baselines;
+    /**
+     * The migrations written after the baselines, such as those of a module added later.
+     *
+     * @return list<string>
+     */
+    private function afterBaselines(): array
+    {
+        return array_values(array_diff($this->migrations(), $this->baselines()));
+    }
+
+    /**
+     * @return list<string> every migration of the modules in src/
+     */
+    private function migrations(): array
+    {
+        $files = glob(\dirname(__DIR__, 4).'/src/*/migrations/Version*.php');
+        self::assertIsArray($files);
+        $versions = array_map(
+            static fn (string $file): string => 'Foresi\\'.basename(\dirname($file, 2)).'\Migrations\\'.basename($file, '.php'),
+            $files,
+        );
+        sort($versions, \SORT_STRING);
+
+        return $versions;
     }
 
     /**

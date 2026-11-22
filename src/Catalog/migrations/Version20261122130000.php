@@ -16,7 +16,7 @@ use Doctrine\Migrations\AbstractMigration;
  * The products of the catalog (plan 32e). The billing kind is a plain string,
  * so a new kind needs no data migration.
  */
-final class Version20261120000000 extends AbstractMigration
+final class Version20261122130000 extends AbstractMigration
 {
     public function getDescription(): string
     {

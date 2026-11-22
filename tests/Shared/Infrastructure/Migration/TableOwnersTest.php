@@ -45,7 +45,7 @@ final class TableOwnersTest extends KernelTestCase
     {
         $owners = $this->owners()->owners();
 
-        self::assertCount(82, $owners);
+        self::assertCount(83, $owners);
         self::assertSame('shared', $owners['messenger_messages']);
         self::assertSame('events', $owners['event_log']);
         self::assertSame('events', $owners['event_consumption']);
