@@ -1,0 +1,120 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    One activity, a record (docs/design/overlays.md): its subject on a timeline opens it in the side sheet;
+    the same URL is a page. The header has "Done and plan next" while it is planned (Odoo's "Done &
+    Schedule Next"), Edit, and Delete, which asks nothing: the message says so with its Undo. The body
+    has its type, time, duration, owner and outcome, its notes, the records it is about (one that is
+    gone shows as unavailable) and its files, added with the plain file upload of GOV.UK.
+    Variables: activity, item, attachmentKind.
+#}
+{% extends '@Ui/layout/record.html.twig' %}
+
+{% set crumbs = [{label: 'activities.record.title'|trans}, {label: activity.subject}] %}
+{% set token = csrf_token(constant('Foresi\\Activities\\Infrastructure\\Controller\\ActivityController::TOKEN')) %}
+{% set record_reload = true %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{% set back = path('app_activity', {id: activity.id}) %}
+{% set trashReturn = item.links|filter(link => link.available)|first.url|default(back) %}
+
+{% block title %}{{ activity.subject }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:MoreActions menuId="activity-actions">
+        <twig:block name="primary">
+            {% if not activity.done and not activity.trashed %}
+                <twig:Ui:Button variant="primary" icon="check" :size="record_action_size" :href="path('app_activity_complete', {id: activity.id})" data-dialog aria-haspopup="dialog" data-activity-complete>{{ 'activities.action.done'|trans }}</twig:Ui:Button>
+            {% endif %}
+        </twig:block>
+        <twig:block name="buttons">
+            {% if not activity.trashed %}
+                <twig:Ui:Button icon="pencil" :size="record_action_size" :href="path('app_activity_edit', {id: activity.id})" data-dialog aria-haspopup="dialog" data-activity-edit>{{ 'activities.action.edit'|trans }}</twig:Ui:Button>
+            {% endif %}
+        </twig:block>
+        <twig:block name="phone">
+            {% if not activity.trashed %}
+                <twig:Ui:MenuItem icon="pencil" :href="path('app_activity_edit', {id: activity.id})" data-dialog aria-haspopup="dialog">{{ 'activities.action.edit'|trans }}</twig:Ui:MenuItem>
+            {% endif %}
+        </twig:block>
+        <twig:block name="last">
+            {% if activity.trashed %}
+                <form method="post" action="{{ path('app_activity_restore', {id: activity.id}) }}" role="none" data-activity-restore>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:MenuItem type="submit" icon="archive-restore">{{ 'activities.action.restore'|trans }}</twig:Ui:MenuItem>
+                </form>
+            {% else %}
+                <form method="post" action="{{ path('app_activity_trash', {id: activity.id}) }}" role="none" data-activity-trash>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <input type="hidden" name="return" value="{{ trashReturn }}">
+                    <twig:Ui:MenuItem type="submit" tone="danger" icon="trash-2">{{ 'activities.action.trash'|trans }}</twig:Ui:MenuItem>
+                </form>
+            {% endif %}
+        </twig:block>
+    </twig:Ui:MoreActions>
+{% endblock %}
+
+{% block content %}
+    <div class="grid gap-4">
+        {{ include('@Activities/_flashes.html.twig') }}
+        <div class="flex flex-wrap items-center gap-2">
+            <twig:Ui:Badge :tone="activity.trashed ? 'gray' : (activity.done ? 'green' : (item.overdue ? 'red' : 'amber'))" data-activity-status>{{ (activity.trashed ? 'activities.status.trashed' : (activity.done ? 'activities.status.done' : 'activities.status.planned'))|trans }}</twig:Ui:Badge>
+        </div>
+
+        <twig:Ui:Card :title="'activities.detail.title'|trans" :icon="item.icon">
+            <twig:Ui:DescriptionList :items="[
+                {label: 'activities.field.type'|trans, value: item.type},
+                {label: (activity.done ? 'activities.detail.done' : 'activities.detail.planned')|trans, value: item.when},
+                {label: 'activities.field.duration'|trans, value: item.duration},
+                {label: 'activities.detail.owner'|trans, value: item.owner},
+                {label: 'activities.field.outcome'|trans, value: item.outcome},
+            ]" />
+        </twig:Ui:Card>
+
+        {% if activity.body is not empty %}
+            <section class="grid gap-2" aria-labelledby="activity-body-title">
+                <h2 id="activity-body-title" class="m-0 text-body font-semibold text-ink">{{ 'activities.field.body'|trans }}</h2>
+                <div class="markdown" data-activity-body>{{ activity.body|markdown }}</div>
+            </section>
+        {% endif %}
+
+        <section class="grid gap-2" aria-labelledby="activity-links-title" data-activity-links>
+            <h2 id="activity-links-title" class="m-0 text-body font-semibold text-ink">{{ 'activities.detail.links'|trans }}</h2>
+            {% if item.links is empty %}
+                <p class="m-0 text-muted">{{ 'activities.detail.no_links'|trans }}</p>
+            {% else %}
+                <ul class="m-0 grid list-none gap-1 p-0">
+                    {% for link in item.links %}
+                        <li>
+                            {% if link.available %}
+                                <a href="{{ link.url }}" class="font-medium text-ink underline decoration-control-line underline-offset-2 hover:decoration-ink {{ focus }}">{{ link.label }}</a>
+                            {% else %}
+                                <span class="text-muted" data-activity-link-unavailable>{{ 'activities.link.unavailable'|trans }}</span>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </section>
+
+        <section class="grid gap-2" aria-labelledby="activity-files-title" data-activity-files-section>
+            <h2 id="activity-files-title" class="m-0 text-body font-semibold text-ink">{{ 'attachment.title'|trans }} <span class="num font-normal text-muted">({{ item.files|length }})</span></h2>
+            {% if item.files is not empty %}
+                <ul class="m-0 grid list-none gap-1 p-0" data-activity-files>
+                    {% for file in item.files %}
+                        <li><a href="{{ file.url }}" class="inline-flex items-center gap-1 text-ink underline decoration-control-line underline-offset-2 hover:decoration-ink {{ focus }}">{{ ux_icon('lucide:paperclip', {class: 'size-4', 'aria-hidden': 'true'}) }}{{ file.name }}</a></li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            {% if not activity.trashed %}
+                <form method="post" action="{{ path('app_attachment_upload') }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-3 rounded-panel border border-dashed border-control-line bg-white px-4 py-3" data-turbo="false" data-activity-upload>
+                    <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Attachment\\Infrastructure\\Controller\\AttachmentController::TOKEN')) }}">
+                    <input type="hidden" name="owner_kind" value="{{ attachmentKind }}">
+                    <input type="hidden" name="owner_id" value="{{ activity.id }}">
+                    <input type="hidden" name="return" value="{{ back }}">
+                    <label for="activity-attachment-file" class="sr-only">{{ 'attachment.file_label'|trans }}</label>
+                    <input type="file" id="activity-attachment-file" name="file" class="text-small text-text">
+                    <twig:Ui:Button type="submit" size="sm" icon="upload">{{ 'attachment.upload'|trans }}</twig:Ui:Button>
+                </form>
+            {% endif %}
+        </section>
+    </div>
+{% endblock %}

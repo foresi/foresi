@@ -20,6 +20,7 @@
         "doctrine/doctrine-bundle": "^3.3.4",
         "doctrine/doctrine-migrations-bundle": "^4.0.1",
         "doctrine/orm": "^3.7.5",
+        "foresi/activities": "dev-main",
         "foresi/attachment": "dev-main",
         "foresi/audit": "dev-main",
         "foresi/banking": "dev-main",
@@ -221,6 +222,7 @@
             "options": {
                 "symlink": true,
                 "versions": {
+                    "foresi/activities": "dev-main",
                     "foresi/attachment": "dev-main",
                     "foresi/audit": "dev-main",
                     "foresi/banking": "dev-main",

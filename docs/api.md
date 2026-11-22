@@ -613,6 +613,32 @@ curl -H "Authorization: Bearer $FORESI_API_TOKEN" -o nda.pdf \
   "https://app.example.com/api/v1/documents/$DOCUMENT_ID/files/pdf"
 ```
 
+## Activities
+
+Meetings, calls, notes and tasks, planned ahead or logged as done, on the records they are about. What the timings mean and who sees an activity is in [activities.md](activities.md). The reads need `activities:read`, the writes `activities:write`, and only the owners and members of the organisation may use them: a guest's token is never accepted. Bodies are JSON with snake case fields; times are ISO 8601, returned in UTC.
+
+| Method and path | Answer |
+| --- | --- |
+| `GET /api/v1/activities?linked_kind=contact&linked_id=...` | The timeline of a record: the planned activities first, the soonest on top, then the done ones, the latest first, each with its `type`, times, `outcome`, `links` (each with `available`) and `files`. The trash is left out. |
+| `GET /api/v1/activities/planned` | Your own planned activities that are not done, from `from` (a day; today when left out) up to the day before `to` (30 days later when left out, at most 400). |
+| `GET /api/v1/activities/{activityId}` | One activity, also one in the trash (`trashed: true`). |
+| `GET /api/v1/activity-types` | The types in the order they were created; archived ones with `include_archived=true`. |
+| `POST /api/v1/activities` | `201` with the activity: `type_id`, `subject`, `body`, and `planned_on` (a dated type) or `planned_at` with `duration_minutes` (a timed type), or `done: true` with `done_at` and `outcome`; `links`, a list of `{kind, id}`; `owner_user_id`. A time of the wrong kind for the type is `400 invalid_parameter` naming the field. |
+| `PATCH /api/v1/activities/{activityId}` | The activity with what was given changed: `type_id`, `subject`, `body`, `planned_on`, `planned_at`, `duration_minutes`, `outcome`, `links` (replaces them), `owner_user_id`. |
+| `POST /api/v1/activities/{activityId}/complete` | The activity done (`done_at`, `outcome`) with the next one it planned under `next`: `next_type_id`, `next_subject`, `next_planned_on` or `next_planned_at`, `next_duration_minutes`. Both or neither are saved. Done already is `409 already_done`. |
+| `POST /api/v1/activities/{activityId}/trash` | The activity in the trash. |
+| `POST /api/v1/activities/{activityId}/restore` | The activity back from the trash. |
+| `POST /api/v1/activity-types` | `201` with the type: `name`, `key` (unique, never changes), `timing` (`timed`, `date`, `none`), `default_duration_minutes`. |
+| `PATCH /api/v1/activity-types/{typeId}` | The type with its new `name`, `timing` or `default_duration_minutes`. |
+| `POST /api/v1/activity-types/{typeId}/archive` | The archived type. |
+
+```bash
+curl -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Idempotency-Key: $(uuidgen)" \
+  -H "Content-Type: application/json" -X POST \
+  -d '{"outcome": "Agreed on an audit", "next_type_id": "'$TASK_TYPE_ID'", "next_subject": "Send the offer", "next_planned_on": "2026-12-01"}' \
+  "https://app.example.com/api/v1/activities/$ACTIVITY_ID/complete"
+```
+
 ## Received documents
 
 The documents the firm received from suppliers (see [received documents](purchasing.md)). Reading needs `received_documents:read`, writing `received_documents:write`. An item has the firm, `state` (`draft` or `recorded`), `kind`, `treatment`, the evidence number, the supplier, the supplier's number, the variable symbol, the dates, `total` (negative for a credit note), `base`, `vat`, and the derived `paid`, `remaining` (both positive), `is_paid` and `last_paid_on`. The detail adds the supplier as the document names it, `vat_recap`, the exchange rate, the deduction period and `payments`.

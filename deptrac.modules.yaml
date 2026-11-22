@@ -3,6 +3,18 @@ deptrac:
   paths:
     - src
   layers:
+    - name: activities
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Activities\\(?!Contract\\|Integration\\).*
+    - name: activities_contract
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Activities\\Contract\\.*
+    - name: activities_integration_calendar
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Activities\\Integration\\Calendar\\.*
     - name: attachment
       collectors:
         - type: classLike
@@ -163,6 +175,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Party\\Contract\\.*
+    - name: party_integration_activities
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Party\\Integration\\Activities\\.*
     - name: party_integration_documents
       collectors:
         - type: classLike
@@ -268,6 +284,48 @@ deptrac:
         - type: classLike
           value: ^Foresi\\Work\\Contract\\.*
   ruleset:
+    activities:
+      - activities_contract
+      - attachment
+      - attachment_contract
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+    activities_contract:
+      - attachment
+      - attachment_contract
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - shared
+      - shared_contract
+      - ui_contract
+    activities_integration_calendar:
+      - activities
+      - activities_contract
+      - attachment
+      - attachment_contract
+      - audit
+      - audit_contract
+      - calendar_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
     attachment:
       - attachment_contract
       - audit
@@ -676,6 +734,18 @@ deptrac:
       - instance_contract
       - shared
       - shared_contract
+      - ui_contract
+    party_integration_activities:
+      - activities_contract
+      - audit
+      - audit_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
       - ui_contract
     party_integration_documents:
       - audit

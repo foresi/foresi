@@ -1,0 +1,88 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Log an activity that happened (mode "log"), plan one ahead (mode "plan"), or change one (mode "edit"),
+    in a dialog over the page it was opened from; the same URL is a page. The type decides which time
+    fields show (activity_timing_controller.js): a start time and a duration for a meeting or a call, a
+    day for a task, none for a note, as Pipedrive's and HubSpot's activity forms change with the type.
+    A logged one has when it happened and what came of it; any of them may take a file, such as the
+    recording of a meeting. The record it was opened from is shown and linked. Variables: mode, activity,
+    values, errors, link, linkView, types, timings, return, action.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set heading = mode == 'edit' ? 'activities.action.edit_title'|trans({subject: activity.subject}) : ('activities.action.' ~ mode ~ '_title')|trans %}
+{% set crumbs = [{label: 'activities.record.title'|trans}, {label: heading}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+{% set done = mode == 'log' or (activity and activity.done) %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="activity-form" action="{{ action }}" enctype="multipart/form-data" class="grid gap-4" novalidate data-controller="activity-timing" data-activity-timing-timings-value="{{ timings|json_encode }}" data-activity-form="{{ mode }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Activities\\Infrastructure\\Controller\\ActivityController::TOKEN')) }}">
+        <input type="hidden" name="mode" value="{{ mode }}">
+        {% if return %}<input type="hidden" name="return" value="{{ return }}">{% endif %}
+        {% if link %}
+            <input type="hidden" name="link_kind" value="{{ link.kind }}">
+            <input type="hidden" name="link_id" value="{{ link.id }}">
+        {% endif %}
+        {% if errors.links is defined %}
+            <twig:Ui:Alert tone="error" tabindex="-1" :autofocus="true" data-error-summary>{{ errors.links }}</twig:Ui:Alert>
+        {% endif %}
+        <twig:Ui:Select name="typeId" id="typeId" :label="'activities.field.type'|trans" :options="types" :value="values.typeId" :error="errors.typeId|default(null)" required data-activity-timing-target="type" data-action="activity-timing#show" />
+        <twig:Ui:TextInput name="subject" id="subject" :label="'activities.field.subject'|trans" :placeholder="'activities.field.subject_placeholder'|trans" :value="values.subject" :error="errors.subject|default(null)" maxlength="200" autocomplete="off" required />
+        {% if not done or mode == 'edit' %}
+            <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_10rem]" data-activity-timing-target="group" data-timing="timed">
+                <twig:Ui:TextInput type="datetime-local" name="plannedAt" id="plannedAt" :label="'activities.field.planned_at'|trans" :value="values.plannedAt" :error="errors.plannedAt|default(null)" />
+                <twig:Ui:TextInput type="number" name="durationMinutes" id="durationMinutes" :label="'activities.field.duration'|trans" :help="'activities.field.duration_help'|trans" :value="values.durationMinutes" :error="errors.durationMinutes|default(null)" min="1" max="1440" inputmode="numeric" />
+            </div>
+            <div class="grid gap-4" data-activity-timing-target="group" data-timing="date">
+                <twig:Ui:TextInput type="date" name="plannedOn" id="plannedOn" :label="'activities.field.planned_on'|trans" :value="values.plannedOn" :error="errors.plannedOn|default(null)" />
+            </div>
+        {% endif %}
+        {% if mode == 'log' %}
+            <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_10rem]">
+                <twig:Ui:TextInput type="datetime-local" name="doneAt" id="doneAt" :label="'activities.field.done_at'|trans" :value="values.doneAt" :error="errors.doneAt|default(null)" />
+                <div data-activity-timing-target="group" data-timing="timed">
+                    <twig:Ui:TextInput type="number" name="durationMinutes" id="loggedDuration" :label="'activities.field.duration'|trans" :help="'activities.field.duration_help'|trans" :value="values.durationMinutes" :error="errors.durationMinutes|default(null)" min="1" max="1440" inputmode="numeric" />
+                </div>
+            </div>
+        {% endif %}
+        {% if done %}
+            <twig:Ui:TextInput name="outcome" id="outcome" :label="'activities.field.outcome'|trans" :placeholder="'activities.field.outcome_placeholder'|trans" :value="values.outcome" :error="errors.outcome|default(null)" maxlength="1000" autocomplete="off" />
+        {% endif %}
+        <twig:Ui:Textarea name="body" id="body" :label="'activities.field.body'|trans" :help="'activities.field.body_help'|trans" :value="values.body" :error="errors.body|default(null)" :rows="5" />
+        <div class="grid gap-1">
+            <label for="activity-file" class="text-small text-ink">{{ 'activities.field.file'|trans }}</label>
+            <input type="file" id="activity-file" name="file" class="text-small text-text" data-activity-file>
+            <p class="m-0 text-caption text-muted">{{ 'activities.field.file_help'|trans }}</p>
+        </div>
+        {% if linkView %}
+            <div class="grid gap-1" data-activity-link>
+                <p class="m-0 text-small text-ink">{{ 'activities.field.link'|trans }}</p>
+                {% if linkView.available %}
+                    <p class="m-0 font-medium text-ink">{{ linkView.label }}</p>
+                {% else %}
+                    <p class="m-0 text-muted">{{ 'activities.link.unavailable'|trans }}</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'activities.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="activity-form" variant="primary">{{ ('activities.action.' ~ mode ~ '_submit')|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="heading" icon="calendar" class="max-w-2xl">{{ body }}</twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="return ?? '/'">{{ 'activities.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="activity-form" variant="primary">{{ ('activities.action.' ~ mode ~ '_submit')|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

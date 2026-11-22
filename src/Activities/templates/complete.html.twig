@@ -1,0 +1,55 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    "Done and plan next" for a planned activity, as Odoo's "Done & Schedule Next" and Pipedrive's
+    follow-up prompt: when it was done and what came of it, then the next step on the same records,
+    planned in the same dialog and saved with it; unticking "Plan the next step" only marks it done.
+    The type of the next one decides its time fields. Variables: activity, item, values, errors, types,
+    timings, return.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set heading = 'activities.complete.title'|trans({subject: activity.subject}) %}
+{% set crumbs = [{label: 'activities.record.title'|trans}, {label: heading}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="activity-complete-form" action="{{ path('app_activity_complete', {id: activity.id}) }}" class="grid gap-4" novalidate data-controller="activity-timing" data-activity-timing-timings-value="{{ timings|json_encode }}" data-activity-complete-form>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Activities\\Infrastructure\\Controller\\ActivityController::TOKEN')) }}">
+        {% if return %}<input type="hidden" name="return" value="{{ return }}">{% endif %}
+        <p class="m-0 text-small text-muted">{{ item.type }} · {{ item.when }}</p>
+        <twig:Ui:TextInput type="datetime-local" name="doneAt" id="doneAt" :label="'activities.field.done_at'|trans" :value="values.doneAt" :error="errors.doneAt|default(null)" />
+        <twig:Ui:TextInput name="outcome" id="outcome" :label="'activities.field.outcome'|trans" :placeholder="'activities.field.outcome_placeholder'|trans" :value="values.outcome" :error="errors.outcome|default(null)" maxlength="1000" autocomplete="off" />
+        <fieldset class="m-0 grid gap-4 border-0 border-t border-container p-0 pt-4">
+            <legend class="sr-only">{{ 'activities.complete.next'|trans }}</legend>
+            <twig:Ui:Checkbox name="planNext" id="planNext" value="1" :checked="values.planNext" :label="'activities.complete.plan_next'|trans" />
+            <twig:Ui:Select name="nextTypeId" id="nextTypeId" :label="'activities.complete.next_type'|trans" :options="types" :value="values.nextTypeId" :error="errors.nextTypeId|default(null)" data-activity-timing-target="type" data-action="activity-timing#show" />
+            <twig:Ui:TextInput name="nextSubject" id="nextSubject" :label="'activities.complete.next_subject'|trans" :placeholder="'activities.field.subject_placeholder'|trans" :value="values.nextSubject" :error="errors.nextSubject|default(null)" maxlength="200" autocomplete="off" />
+            <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_10rem]" data-activity-timing-target="group" data-timing="timed">
+                <twig:Ui:TextInput type="datetime-local" name="nextPlannedAt" id="nextPlannedAt" :label="'activities.field.planned_at'|trans" :value="values.nextPlannedAt" :error="errors.nextPlannedAt|default(null)" />
+                <twig:Ui:TextInput type="number" name="nextDurationMinutes" id="nextDurationMinutes" :label="'activities.field.duration'|trans" :help="'activities.field.duration_help'|trans" :value="values.nextDurationMinutes" :error="errors.nextDurationMinutes|default(null)" min="1" max="1440" inputmode="numeric" />
+            </div>
+            <div class="grid gap-4" data-activity-timing-target="group" data-timing="date">
+                <twig:Ui:TextInput type="date" name="nextPlannedOn" id="nextPlannedOn" :label="'activities.field.planned_on'|trans" :value="values.nextPlannedOn" :error="errors.nextPlannedOn|default(null)" />
+            </div>
+        </fieldset>
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'activities.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="activity-complete-form" variant="primary">{{ 'activities.complete.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="heading" icon="check" class="max-w-2xl">{{ body }}</twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="return ?? path('app_activity', {id: activity.id})">{{ 'activities.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="activity-complete-form" variant="primary">{{ 'activities.complete.submit'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}
