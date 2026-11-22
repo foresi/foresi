@@ -116,12 +116,17 @@ final readonly class TemplateRenderer
     {
         try {
             $module = $this->twig->parse($this->twig->tokenize(new Source($body, 'template')));
-            // Compiling applies the sandbox policy to every tag, filter and function.
-            $this->twig->createTemplate($body);
+            // The sandbox policy is checked when the template starts to display.
+            $this->twig->createTemplate($body)->render([]);
         } catch (SecurityError $blocked) {
             throw self::blocked($blocked);
         } catch (SyntaxError $invalid) {
             throw DocumentsRefused::blockedTemplate('syntax', \sprintf('The template is not valid on line %d: %s', $invalid->getTemplateLine(), $invalid->getRawMessage()));
+        } catch (TwigError) {
+            // Without values a template may fail to render; only what it uses matters here.
+        }
+        if (!isset($module)) {
+            throw new \LogicException('A template that parsed has its module.');
         }
 
         $found = ['paths' => [], 'optional' => [], 'bound' => ['loop']];

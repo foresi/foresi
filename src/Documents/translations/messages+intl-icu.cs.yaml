@@ -1,0 +1,3 @@
+documents:
+    pdf:
+        footer: 'Strana {page} z {pages}'
