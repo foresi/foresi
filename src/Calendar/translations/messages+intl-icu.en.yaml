@@ -1,0 +1,48 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+calendar:
+  user_menu: Calendar feeds
+  feeds:
+    title: Calendar feeds
+    intro: Secret addresses that show what Foresi plans for you in your own calendar app, such as Apple Calendar, Google Calendar or Outlook. Give each app or device its own feed, so you can revoke one alone.
+    refresh_note: Calendar apps fetch a feed on their own schedule, every 3 to 24 hours, so a change can take that long to show.
+    new: New feed address
+    new_title: New feed address
+    new_submit: Create the address
+    rename_title: Rename the feed
+    rename_submit: Save
+    cancel: Cancel
+    never: Never
+    column:
+      name: Name
+      created: Created
+      last_fetched: Last fetched
+    state:
+      revoked: Revoked
+    field:
+      name: Name
+      name_help: 'Such as "Phone"; the calendar app shows it too.'
+    action:
+      rename: Rename
+      revoke: Revoke
+    confirm:
+      revoke:
+        title: 'Revoke the feed {name}?'
+        text: The address stops working at once and cannot be brought back. The calendar app keeps what it last fetched until you remove the calendar there.
+    flash:
+      renamed: The feed is renamed.
+      revoked: 'The feed {name} is revoked.'
+    refused:
+      name_invalid: The name has 1 to 80 characters.
+    empty:
+      title: No feed addresses yet
+      text: Create one and subscribe to it in your calendar app.
+    created:
+      title: Your feed address
+      once: This address is shown only now. Copy it or subscribe now; anyone who has it sees your calendar.
+      text: 'Add the address of {name} to your calendar app as a subscribed calendar (in Google Calendar: Other calendars, From URL).'
+      field: Feed address
+      copy: Copy
+      copied: Copied
+      copy_failed: Copy it by hand
+      subscribe: Open in the calendar app
+      done: Done

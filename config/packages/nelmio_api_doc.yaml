@@ -713,6 +713,25 @@ nelmio_api_doc:
                         authority: { type: string, enum: [social, health, sickness, income_tax, flat_rate] }
                         account: { type: string }
                         variable_symbol: { type: string }
+                CalendarFeed:
+                    type: object
+                    description: One of your calendar feeds. Its address is never shown again after it is created.
+                    required: [id, name, created_at, last_fetched_at, revoked_at]
+                    properties:
+                        id: { type: string, format: uuid }
+                        name: { type: string, example: Phone }
+                        created_at: { type: string, format: date-time }
+                        last_fetched_at: { type: string, format: date-time, nullable: true, description: 'When a calendar app last fetched it; recorded at most once an hour.' }
+                        revoked_at: { type: string, format: date-time, nullable: true }
+                CalendarFeedCreated:
+                    description: A new calendar feed with its address, shown this once; only its hash is kept.
+                    allOf:
+                        - $ref: '#/components/schemas/CalendarFeed'
+                        - type: object
+                          required: [address, webcal]
+                          properties:
+                              address: { type: string, format: uri, example: 'https://foresi.example.com/calendar/feed/AbCdEfGhIjKlMnOpQrStUvWxYz0123456789_-AbCd.ics' }
+                              webcal: { type: string, example: 'webcal://foresi.example.com/calendar/feed/AbCdEfGhIjKlMnOpQrStUvWxYz0123456789_-AbCd.ics', description: 'The same address with the webcal scheme, which opens the calendar app to subscribe.' }
                 TaxProfile:
                     type: object
                     description: The owner profile; only the owner reads it.
