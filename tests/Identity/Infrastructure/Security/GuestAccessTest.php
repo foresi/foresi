@@ -68,7 +68,7 @@ final class GuestAccessTest extends WebTestCase
         'api_v1_operation_activities.create', 'api_v1_operation_activities.update', 'api_v1_operation_activities.complete', 'api_v1_operation_activities.trash', 'api_v1_operation_activities.restore', 'api_v1_operation_activities.types.create', 'api_v1_operation_activities.types.update', 'api_v1_operation_activities.types.archive',
         'api_v1_taxes_profile', 'api_v1_taxes_amounts', 'api_v1_taxes_estimate', 'api_v1_operation_taxes.profile.status.add', 'api_v1_operation_taxes.profile.status.remove',
         'api_v1_operation_taxes.profile.year.set', 'api_v1_operation_taxes.profile.authority.set',
-        'api_v1_vat_periods', 'api_v1_vat_settings', 'api_v1_operation_vat.settings.set',
+        'api_v1_vat_periods', 'api_v1_vat_period', 'api_v1_vat_settings', 'api_v1_operation_vat.settings.set',
         'api_v1_operation_invoices.create', 'api_v1_operation_invoices.update', 'api_v1_operation_invoices.trash', 'api_v1_operation_invoices.restore', 'api_v1_operation_invoices.mark_sent',
         'api_v1_lists', 'api_v1_views', 'api_v1_view', 'api_v1_view_count',
         'api_v1_projects', 'api_v1_project', 'api_v1_project_people', 'api_v1_tasks', 'api_v1_task', 'api_v1_task_comments', 'api_v1_labels', 'api_v1_time_entries',

@@ -40,7 +40,7 @@ final class VatPeriodsTest extends VatTestCase
         // Every month to the twelfth after this one, November 2027.
         self::assertCount(13, $list->periods);
         self::assertSame(['2027-11', '2027-11-01', '2027-11-30', '2027-12-27', '2028-01-26'], $this->row($list->periods[12]));
-        self::assertSame(['documents_not_counted', 'schedules_not_counted', 'plans_not_counted'], $list->knownGaps);
+        self::assertSame(['schedules_not_counted', 'plans_not_counted', 'deduction_before_registration'], $list->knownGaps);
         self::assertContains('refund_timing', $list->unverified);
         self::assertSame([], $list->warnings);
     }

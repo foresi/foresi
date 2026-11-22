@@ -95,6 +95,7 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_set_tax_year` | **Write.** Replaces the inputs of one `year`: expense methods, children, spouse, deductions, other bases, the previous year (bases, overview day and `previous_activity_months`, 1 to 12) and the return route. Owner only. |
 | `foresi_set_tax_authority_account` | **Write.** Sets the account and variable symbol of an `authority`. Owner only. |
 | `foresi_vat_periods` | The VAT periods of the firm (`from`, `to`, months or quarters), an estimate: each with its days, due date, expected refund date and amounts, the reason when there is nothing to compute, the warnings, the unverified rules, the known gaps, and the payment details in `settings`. |
+| `foresi_get_vat_period` | One VAT period (`key`, such as `2026-11` or `2026-Q4`) with its amounts, their breakdown and steps, and the documents counted; `restricted_sources` names the sources whose documents the token may not read. |
 | `foresi_set_vat_settings` | **Write.** Sets where the firm pays its VAT: `office_account` and `variable_symbol` (empty takes the suggested one). |
 | `foresi_list_calendar_feeds` | Your own calendar feeds: name, created, last fetched and revoked, never their addresses. Not for guests. |
 | `foresi_create_calendar_feed` | **Write.** Creates a secret iCal address for your calendar app (`name`); the answer holds the address this once. Not for guests. |

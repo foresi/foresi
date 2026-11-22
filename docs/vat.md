@@ -1,6 +1,6 @@
 # VAT
 
-The VAT module (`src/Vat`, id `vat`, package `foresi/vat`, scope `vat`) shows a firm that is a VAT payer its **VAT periods**: which month or quarter it files, when the return and the payment are due, and when a refund is expected. It also keeps **where the firm pays its VAT**. Later steps add the amounts from the documents, the flow into the Cash flow forecast and the matching of the bank payments.
+The VAT module (`src/Vat`, id `vat`, package `foresi/vat`, scope `vat`) shows a firm that is a VAT payer its **VAT periods**: which month or quarter it files, when the return and the payment are due, and when a refund is expected. It counts the **VAT of the documents** in each period, and keeps **where the firm pays its VAT**. Later steps add the flow into the Cash flow forecast, the matching of the bank payments, and the VAT of recurring invoices and plans.
 
 Every answer is an **estimate**, not the base of a return. It says so (`estimate: true`), names the rules nobody has confirmed from a primary source yet (`unverified`) and what the amounts do not count yet (`known_gaps`). A past period that is not paid is never called overdue.
 
@@ -19,6 +19,18 @@ The firm's VAT status over time is kept on the firm, under *Settings â†’ Firm â†
 - When the firm stops being a payer, the last period ends the day before. When it becomes one again, new periods begin.
 - Nothing is computed before a stated date. A firm whose only payer status has no date (a firm set up before the statuses had dates) gets no periods and the reason `payer_date_missing`: state the day on the firm's VAT tab. A firm that is no payer gets `not_a_payer`, and a firm in a country without rules `country_not_supported`.
 - The list runs to the period that holds the twelfth month after this one, or to the month asked for, at most 24 months ahead.
+
+## Amounts
+
+Each period has its output VAT, its deductible input VAT and the result, the output minus the input, in CZK: positive to pay, negative to get back. The documents come from Invoicing and Purchasing through `Foresi\Vat\Contract\VatDocumentSource`; without one of them its source is listed in `unavailable_sources` and its documents count nothing.
+
+- **Issued documents** (`invoicing.issued_vat`): the tax documents the accountant gets, the invoices, the tax documents on payment and the corrective tax documents not in the trash. Each counts on its tax point, with the VAT of its rate summaries converted at its own exchange rate. An advance invoice is no tax document and adds nothing; the tax document on its payment counts. Whether a document is paid does not matter.
+- **Received documents** (`purchasing.received_vat`): the recorded documents not in the trash, in their deduction month. Domestic VAT the supplier charged is input. In the self-assessed treatments (domestic reverse charge, a service from the EU or from outside it) the VAT is both output and input. Non-deductible VAT, a document without VAT and a draft give nothing. A credit note lowers the input. A document whose VAT has no CZK amount counts zero, and the period warns `missing_czk_vat` and names it in `missing_czk`.
+- A document counts in the period whose month or quarter holds the day it counts on, so a quarterly filer finds a received document's deduction month in its quarter.
+- A document counts only when the firm is a payer on its tax point. The deduction of VAT on supplies received before the registration is not supported (`known_gaps`: `deduction_before_registration`): a payer from 12 November 2026 deducts nothing for a document with the tax point 5 November, even in its deduction month November.
+- `breakdown` keeps the documents, the schedules and the plans apart, and `steps` shows the output, the input and the result with the rule and the sources of each. Recurring invoices and plans are not counted yet (`schedules_not_counted`, `plans_not_counted`).
+
+`GET /api/v1/vat/periods/{key}` lists the documents of one period. A token that may not read the invoices or the received documents sees the totals only, and the source in `restricted_sources`.
 
 ## Czech rules
 
@@ -40,4 +52,4 @@ The account of the tax office and the variable symbol match the bank payments to
 
 ## API and MCP
 
-See [VAT in the REST API](api.md#vat) and the tools `foresi_vat_periods` and `foresi_set_vat_settings` in [mcp.md](mcp.md).
+See [VAT in the REST API](api.md#vat) and the tools `foresi_vat_periods`, `foresi_get_vat_period` and `foresi_set_vat_settings` in [mcp.md](mcp.md).

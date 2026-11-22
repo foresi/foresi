@@ -167,6 +167,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Invoicing\\Integration\\TaxesAndContributions\\.*
+    - name: invoicing_integration_vat
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Invoicing\\Integration\\Vat\\.*
     - name: party
       collectors:
         - type: classLike
@@ -203,6 +207,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Purchasing\\Integration\\TaxesAndContributions\\.*
+    - name: purchasing_integration_vat
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Purchasing\\Integration\\Vat\\.*
     - name: shared
       collectors:
         - type: classLike
@@ -717,6 +725,22 @@ deptrac:
       - taxes_and_contributions_contract
       - ui
       - ui_contract
+    invoicing_integration_vat:
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - invoicing
+      - invoicing_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+      - vat_contract
     party:
       - audit
       - audit_contract
@@ -844,6 +868,26 @@ deptrac:
       - taxes_and_contributions_contract
       - ui
       - ui_contract
+    purchasing_integration_vat:
+      - attachment
+      - attachment_contract
+      - audit
+      - audit_contract
+      - exchange_rate
+      - exchange_rate_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - purchasing
+      - purchasing_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+      - vat_contract
     shared:
       - shared_contract
     shared_contract: []

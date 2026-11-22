@@ -9,9 +9,13 @@ declare(strict_types=1);
 namespace Foresi\Vat\Infrastructure\Api;
 
 use Foresi\Shared\Infrastructure\Api\JsonValues;
+use Foresi\Vat\Application\CalculationStep;
+use Foresi\Vat\Application\PeriodDetail;
 use Foresi\Vat\Application\PeriodList;
 use Foresi\Vat\Application\PeriodView;
+use Foresi\Vat\Application\VatPart;
 use Foresi\Vat\Application\VatSettingsView;
+use Foresi\Vat\Contract\DocumentVat;
 
 /**
  * The VAT module as REST and MCP write it: snake_case keys, money in minor
@@ -35,6 +39,36 @@ final class VatJson
             'warnings' => $list->warnings,
             'unverified' => $list->unverified,
             'known_gaps' => $list->knownGaps,
+            'unavailable_sources' => $list->unavailableSources,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function detail(PeriodDetail $detail): array
+    {
+        return self::periods($detail->list) + [
+            'period' => self::period($detail->period),
+            'documents' => array_map(self::document(...), $detail->documents),
+            'restricted_sources' => $detail->restrictedSources,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function document(DocumentVat $document): array
+    {
+        return [
+            'source' => $document->source,
+            'subject' => ['type' => $document->subject->type, 'id' => $document->subject->id, 'url' => $document->subject->url],
+            'label' => $document->label,
+            'counts_on' => JsonValues::date($document->countsOn),
+            'tax_point_on' => JsonValues::date($document->taxPointOn),
+            'output' => JsonValues::money($document->output),
+            'input' => JsonValues::money($document->input),
+            'missing_czk' => $document->missingCzk,
         ];
     }
 
@@ -53,8 +87,28 @@ final class VatJson
             'output' => JsonValues::money($view->output),
             'input' => JsonValues::money($view->input),
             'result' => JsonValues::money($view->result),
+            'breakdown' => [
+                'documents' => self::part($view->amounts->documentsPart),
+                'schedules' => self::part($view->amounts->schedulesPart),
+                'plans' => self::part($view->amounts->plansPart),
+            ],
+            'steps' => array_map(static fn (CalculationStep $step): array => [
+                'name' => $step->name,
+                'amount' => JsonValues::money($step->amount),
+                'rule' => $step->rule,
+                'sources' => $step->sources,
+            ], $view->amounts->steps),
             'warnings' => $view->warnings,
+            'missing_czk' => $view->amounts->missingCzk,
         ];
+    }
+
+    /**
+     * @return array{output: array<string, mixed>, input: array<string, mixed>}
+     */
+    private static function part(VatPart $part): array
+    {
+        return ['output' => JsonValues::money($part->output), 'input' => JsonValues::money($part->input)];
     }
 
     /**
